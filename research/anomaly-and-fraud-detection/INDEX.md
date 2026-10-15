@@ -22,7 +22,8 @@ No experiments in this folder yet.
 
 - [expansion_v1](../../evidence/campaigns/expansion_v1): 20 result files · [CAMPAIGN_REPORT.md](../../evidence/campaigns/expansion_v1/CAMPAIGN_REPORT.md)
 - [pitfalls_v1](../../evidence/campaigns/pitfalls_v1): 6 result files · [PITFALLS_REPORT.md](../../evidence/campaigns/pitfalls_v1/PITFALLS_REPORT.md)
-- [kinds_v1](../../evidence/campaigns/kinds_v1): 18 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+- [kinds_v1](../../evidence/campaigns/kinds_v1): 20 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+- [benchmark_v4](../../evidence/campaigns/benchmark_v4): 2 result files · [README.md](../../evidence/campaigns/benchmark_v4/README.md)
 
 ## Notebooks
 
@@ -35,6 +36,38 @@ No notebooks yet.
 ## Reports and research notes
 
 Research notes live in [README.md](README.md) until there is enough material for `reports/`.
+
+## Problem kinds
+
+The kinds whose evidence this track holds (16.14), each from its stored results.
+
+### Rare events and fraud (`rare_event`)
+
+Rare positives: average precision, recall at the review budget, rules, anomaly detectors and PU learning.
+
+Also called: fraud detection, imbalanced classification, rare positives, anomaly detection.
+
+- **Acceptance on its replica**: every decision held on 2 of 3 seeds (95% interval [0.208, 0.939]), [KND-008](../../evidence/campaigns/kinds_v1/results/KND-008_rare_event.json).
+- **Benchmark v4, dev** (BEN4-001): the standard plan kept 2 of 9 leaks out (95% [0.063, 0.547]), 0 false alarms of 16 (95% [0.0, 0.194]).
+- **Benchmark v4, sealed** (BEN4-002): the standard plan kept 4 of 27 leaks out (95% [0.059, 0.325]), 0 false alarms of 48 (95% [0.0, 0.074]).
+
+### Streams: sensor anomalies and incidents (`streams`)
+
+Readings over time from machines or sessions: alert before an incident, within an alert budget.
+
+Also called: predictive maintenance, sensor anomaly detection, machine alerts, time series anomalies.
+
+- **Acceptance on its replica**: every decision held on 3 of 3 seeds (95% interval [0.439, 1.0]), [KND-017](../../evidence/campaigns/kinds_v1/results/KND-017_streams.json).
+- **Benchmark**: not judged by the benchmark's scripted policies (one yes or no or numeric outcome column): see its acceptance.
+
+### Anomaly detection (`anomaly`)
+
+Find the unusual rows when nothing is labelled yet: a ranked list for people to review, whose answers become labels.
+
+Also called: anomaly detection, outlier detection, unsupervised fraud detection, novelty detection.
+
+- **Acceptance on its replica**: every decision held on 3 of 3 seeds (95% interval [0.439, 1.0]), [KND-015](../../evidence/campaigns/kinds_v1/results/KND-015_anomaly.json).
+- **Benchmark**: not judged by the benchmark's scripted policies (one yes or no or numeric outcome column): see its acceptance.
 
 ## Related tracks
 

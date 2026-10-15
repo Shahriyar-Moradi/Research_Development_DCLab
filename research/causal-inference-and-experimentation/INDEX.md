@@ -16,7 +16,7 @@ No experiments in this folder yet.
 
 **Related evidence campaigns** (shared across tracks, in `evidence/campaigns/`):
 
-- [kinds_v1](../../evidence/campaigns/kinds_v1): 18 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+- [kinds_v1](../../evidence/campaigns/kinds_v1): 20 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
 
 ## Notebooks
 
@@ -29,4 +29,17 @@ No evaluation artifacts yet.
 ## Reports and research notes
 
 Research notes live in [README.md](README.md) until there is enough material for `reports/`.
+
+## Problem kinds
+
+The kinds whose evidence this track holds (16.14), each from its stored results.
+
+### Uplift: who responds to an action (`uplift`)
+
+Who changes because of an action (an offer, a call), so the action goes where it makes a difference.
+
+Also called: uplift modelling, incremental effect, treatment effect, campaign targeting, A/B test.
+
+- **Acceptance on its replica**: every decision held on 3 of 3 seeds (95% interval [0.439, 1.0]), [KND-014](../../evidence/campaigns/kinds_v1/results/KND-014_uplift.json).
+- **Benchmark**: not judged by the benchmark's scripted policies (one yes or no or numeric outcome column): see its acceptance.
 

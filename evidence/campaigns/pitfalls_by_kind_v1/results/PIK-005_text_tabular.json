@@ -1,0 +1,98 @@
+{
+  "experiment_id": "PIK-005",
+  "campaign_id": "pitfalls_by_kind_v1",
+  "kind": "pitfall",
+  "problem_kind": "text_tabular",
+  "pitfall": "text_tabular pitfalls",
+  "title": "Text + tabular (binary): what its pitfalls cost on its replica",
+  "question": "On the Text + tabular (binary) replica, how much better does a wrong split or a kept leak make the score look?",
+  "setup_summary": "3 seeds of the text_tabular replica; 20% held out; histogram gradient boosting with default settings; ROC-AUC; right split: random.",
+  "evidence": {
+    "leak_kept_in": {
+      "gaps": [
+        0.1223,
+        0.1179,
+        0.1096
+      ],
+      "mean": 0.1166,
+      "ci95": [
+        0.1006,
+        0.1326
+      ],
+      "seeds": 3,
+      "measured": true
+    },
+    "runs": [
+      {
+        "seed": 0,
+        "rows": 2500,
+        "task": "binary",
+        "right_split": "random",
+        "pitfalls": {
+          "leak_kept_in": {
+            "wrong": 1.0,
+            "right": 0.8777,
+            "leaks": [
+              "shop_reply"
+            ],
+            "gap": 0.1223
+          }
+        }
+      },
+      {
+        "seed": 1,
+        "rows": 2500,
+        "task": "binary",
+        "right_split": "random",
+        "pitfalls": {
+          "leak_kept_in": {
+            "wrong": 1.0,
+            "right": 0.8821,
+            "leaks": [
+              "shop_reply"
+            ],
+            "gap": 0.1179
+          }
+        }
+      },
+      {
+        "seed": 2,
+        "rows": 2500,
+        "task": "binary",
+        "right_split": "random",
+        "pitfalls": {
+          "leak_kept_in": {
+            "wrong": 1.0,
+            "right": 0.8904,
+            "leaks": [
+              "shop_reply"
+            ],
+            "gap": 0.1096
+          }
+        }
+      }
+    ]
+  },
+  "claims": [
+    {
+      "id": "C1",
+      "kind": "fact",
+      "statement": "On the Text + tabular (binary) replica, the planted leak kept in makes the ROC-AUC look better by 0.1166 on average over 3 seeds (95% interval 0.1006 to 0.1326).",
+      "evidence": [
+        "evidence.leak_kept_in"
+      ],
+      "limitations": [
+        "Invented replica data with its traps planted, one model family with default settings: the size of the effect on a real table differs; the direction is what the replica shows."
+      ]
+    }
+  ],
+  "track": "nlp-and-text",
+  "provenance": {
+    "at": "2026-10-15T04:23:28+00:00",
+    "seeds": [
+      0,
+      1,
+      2
+    ]
+  }
+}

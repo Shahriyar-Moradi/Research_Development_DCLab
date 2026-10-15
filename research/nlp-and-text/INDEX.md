@@ -21,7 +21,9 @@ No experiments in this folder yet.
 **Related evidence campaigns** (shared across tracks, in `evidence/campaigns/`):
 
 - [expansion_v1](../../evidence/campaigns/expansion_v1): 20 result files · [CAMPAIGN_REPORT.md](../../evidence/campaigns/expansion_v1/CAMPAIGN_REPORT.md)
-- [kinds_v1](../../evidence/campaigns/kinds_v1): 18 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+- [kinds_v1](../../evidence/campaigns/kinds_v1): 20 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+- [pitfalls_by_kind_v1](../../evidence/campaigns/pitfalls_by_kind_v1): 5 result files · [README.md](../../evidence/campaigns/pitfalls_by_kind_v1/README.md)
+- [benchmark_v4](../../evidence/campaigns/benchmark_v4): 2 result files · [README.md](../../evidence/campaigns/benchmark_v4/README.md)
 
 ## Notebooks
 
@@ -34,6 +36,21 @@ No evaluation artifacts yet.
 ## Reports and research notes
 
 Research notes live in [README.md](README.md) until there is enough material for `reports/`.
+
+## Problem kinds
+
+The kinds whose evidence this track holds (16.14), each from its stored results.
+
+### Text + tabular (binary) (`text_tabular`)
+
+A yes or no from free text and the structured fields that come with it.
+
+Also called: text and tabular, free text with numbers, review text, text features.
+
+- **Acceptance on its replica**: every decision held on 3 of 3 seeds (95% interval [0.439, 1.0]), [KND-012](../../evidence/campaigns/kinds_v1/results/KND-012_text_tabular.json).
+- **Pitfall leak kept in** (PIK-005): the wrong way looks better by 0.1166 on average (95% interval [0.1006, 0.1326]).
+- **Benchmark v4, dev** (BEN4-001): the standard plan kept 0 of 2 leaks out (95% [0.0, 0.658]), 0 false alarms of 2 (95% [0.0, 0.658]).
+- **Benchmark v4, sealed** (BEN4-002): the standard plan kept 0 of 3 leaks out (95% [0.0, 0.561]), 0 false alarms of 3 (95% [0.0, 0.561]).
 
 ## Related tracks
 

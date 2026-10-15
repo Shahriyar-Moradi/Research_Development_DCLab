@@ -1,0 +1,142 @@
+{
+  "experiment_id": "PIK-002",
+  "campaign_id": "pitfalls_by_kind_v1",
+  "kind": "pitfall",
+  "problem_kind": "multiclass",
+  "pitfall": "multiclass pitfalls",
+  "title": "Multiclass classification: what its pitfalls cost on its replica",
+  "question": "On the Multiclass classification replica, how much better does a wrong split or a kept leak make the score look?",
+  "setup_summary": "3 seeds of the multiclass replica; 20% held out; histogram gradient boosting with default settings; accuracy; right split: the latest rows by time.",
+  "evidence": {
+    "random_split": {
+      "gaps": [
+        0.0261,
+        0.0307,
+        0.0729
+      ],
+      "mean": 0.0432,
+      "ci95": [
+        -0.0208,
+        0.1073
+      ],
+      "seeds": 3,
+      "measured": false
+    },
+    "leak_kept_in": {
+      "gaps": [
+        0.4167,
+        0.4167,
+        0.469
+      ],
+      "mean": 0.4341,
+      "ci95": [
+        0.3591,
+        0.5091
+      ],
+      "seeds": 3,
+      "measured": true
+    },
+    "runs": [
+      {
+        "seed": 0,
+        "rows": 3060,
+        "task": "multiclass",
+        "right_split": "the latest rows by time",
+        "pitfalls": {
+          "random_split": {
+            "wrong": 0.5899,
+            "right": 0.5637,
+            "gap": 0.0261
+          },
+          "leak_kept_in": {
+            "wrong": 0.9804,
+            "right": 0.5637,
+            "leaks": [
+              "first_response_minutes",
+              "resolved_by"
+            ],
+            "gap": 0.4167
+          }
+        }
+      },
+      {
+        "seed": 1,
+        "rows": 3060,
+        "task": "multiclass",
+        "right_split": "the latest rows by time",
+        "pitfalls": {
+          "random_split": {
+            "wrong": 0.6075,
+            "right": 0.5768,
+            "gap": 0.0307
+          },
+          "leak_kept_in": {
+            "wrong": 0.9935,
+            "right": 0.5768,
+            "leaks": [
+              "first_response_minutes",
+              "resolved_by"
+            ],
+            "gap": 0.4167
+          }
+        }
+      },
+      {
+        "seed": 2,
+        "rows": 3060,
+        "task": "multiclass",
+        "right_split": "the latest rows by time",
+        "pitfalls": {
+          "random_split": {
+            "wrong": 0.6007,
+            "right": 0.5278,
+            "gap": 0.0729
+          },
+          "leak_kept_in": {
+            "wrong": 0.9967,
+            "right": 0.5278,
+            "leaks": [
+              "first_response_minutes",
+              "resolved_by"
+            ],
+            "gap": 0.469
+          }
+        }
+      }
+    ]
+  },
+  "claims": [
+    {
+      "id": "C1",
+      "kind": "fact",
+      "statement": "On the Multiclass classification replica, a random split instead of the latest rows by time showed no difference beyond the spread of 3 seeds (mean 0.0432, 95% interval -0.0208 to 0.1073).",
+      "evidence": [
+        "evidence.random_split"
+      ],
+      "limitations": [
+        "Invented replica data with its traps planted, one model family with default settings: the size of the effect on a real table differs; the direction is what the replica shows.",
+        "No difference measured on this replica: it plants no effect of this kind (no drift over time), which says nothing about a real table, where a random split is still the wrong one for a time-ordered problem."
+      ]
+    },
+    {
+      "id": "C2",
+      "kind": "fact",
+      "statement": "On the Multiclass classification replica, the planted leak kept in makes the accuracy look better by 0.4341 on average over 3 seeds (95% interval 0.3591 to 0.5091).",
+      "evidence": [
+        "evidence.leak_kept_in"
+      ],
+      "limitations": [
+        "Invented replica data with its traps planted, one model family with default settings: the size of the effect on a real table differs; the direction is what the replica shows."
+      ]
+    }
+  ],
+  "track": "tabular-classification",
+  "provenance": {
+    "at": "2026-10-15T04:22:31+00:00",
+    "seeds": [
+      0,
+      1,
+      2
+    ]
+  }
+}

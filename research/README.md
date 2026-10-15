@@ -21,6 +21,8 @@ Open a track's **INDEX.md** to see everything about the idea at once, including 
 flowchart LR
   subgraph T0["Tabular modeling"]
     tabular_classification["tabular-classification"]
+    tabular_regression["tabular-regression"]
+    places_and_spatial["places-and-spatial"]
     churn_prediction["churn-prediction"]
     tabular_foundation_models["tabular-foundation-models"]
     data_science_foundations["data-science-foundations"]
@@ -71,7 +73,10 @@ flowchart LR
   mlops_and_deployment --- time_series_forecasting
   evaluation_and_trust --- mlops_and_deployment
   llm_fine_tuning --- nlp_and_text
+  places_and_spatial --- tabular_regression
+  driving_maps --- places_and_spatial
   tabular_classification --- tabular_foundation_models
+  tabular_classification --- tabular_regression
   temporal_gnn --- vision_scene_graphs
   workflow_actions --- workflow_model
 ```

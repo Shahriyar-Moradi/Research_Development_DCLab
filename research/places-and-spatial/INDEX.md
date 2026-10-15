@@ -12,12 +12,14 @@ No champion yet. The first measured result recorded in this track becomes the ba
 
 ## Experiments
 
-No experiments in this folder yet.
+| Experiment | Result files | Notebooks | Scripts | Entry point |
+|---|---:|---:|---:|---|
+| [.gitkeep](experiments/.gitkeep) | 0 | 0 | 0 | [.gitkeep](experiments/.gitkeep) |
 
 **Related evidence campaigns** (shared across tracks, in `evidence/campaigns/`):
 
-- [kinds_v1](../../evidence/campaigns/kinds_v1): 18 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
-- [pitfalls_by_kind_v1](../../evidence/campaigns/pitfalls_by_kind_v1): 0 result files · [README.md](../../evidence/campaigns/pitfalls_by_kind_v1/README.md)
+- [kinds_v1](../../evidence/campaigns/kinds_v1): 20 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+- [pitfalls_by_kind_v1](../../evidence/campaigns/pitfalls_by_kind_v1): 5 result files · [README.md](../../evidence/campaigns/pitfalls_by_kind_v1/README.md)
 
 ## Notebooks
 
@@ -25,7 +27,7 @@ No notebooks yet.
 
 ## Evaluation
 
-No evaluation artifacts yet.
+- [.gitkeep](evaluation/.gitkeep)
 
 ## Reports and research notes
 
@@ -41,8 +43,8 @@ A value at a place (a price, a demand) where nearby places are alike: tested on 
 
 Also called: spatial data, geographic data, location, spatial cross validation, nearby houses.
 
-- **Acceptance on its replica**: every decision held on 3 of 3 seeds (95% interval [0.439, 1.0]), [KND-006](../../evidence/campaigns/kinds_v1/results/KND-006_places.json).
-- **Pitfall random split** (PIK-004): the wrong way looks better by 16905.4851 on average (95% interval [2504.731, 31306.2393]).
+- **Acceptance on its replica**: every decision held on 3 of 3 seeds (95% interval [0.439, 1.0]), [KND-019](../../evidence/campaigns/kinds_v1/results/KND-019_places.json).
+- **Pitfall random split** (PIK-004): the wrong way looks better by 19486.9478 on average (95% interval [3015.8428, 35958.0529]).
 - **Benchmark**: not judged by the benchmark's scripted policies (one yes or no or numeric outcome column): see its acceptance.
 
 ## Related tracks

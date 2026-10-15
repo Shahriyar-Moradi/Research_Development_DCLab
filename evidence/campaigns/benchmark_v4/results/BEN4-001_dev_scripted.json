@@ -1,0 +1,6236 @@
+{
+  "experiment_id": "BEN4-001",
+  "status": "completed",
+  "campaign_id": "benchmark_v4",
+  "kind": "benchmark_scripted",
+  "question": "Per problem kind, on seeded tables and the kinds' replicas, which policies keep the leak out, follow the time and the entity, and keep clean columns usable?",
+  "completed_at": "2026-10-15T04:18:31+00:00",
+  "suite": "benchmark_v4:dev",
+  "scripted": true,
+  "policies": [
+    "standard",
+    "audit",
+    "bad"
+  ],
+  "prompt_hashes": null,
+  "cases": [
+    {
+      "id": "BV4-CLAI-post_outcome_name",
+      "suite": "leakage",
+      "trap": "post_outcome_name",
+      "title": "claims: A column written after the outcome, with a telling name",
+      "seed": 1431624557,
+      "fingerprint": "bdc5243f1b4f80ce",
+      "moment": "When a claim is filed, before any investigation; the outcome is whether it proves fraudulent.",
+      "leaks": [
+        "investigation_cost_after"
+      ],
+      "innocent": [
+        "policy_age_months",
+        "vehicle_age_years",
+        "region",
+        "annual_premium",
+        "prior_claims"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-CLAI-post_outcome_neutral",
+      "suite": "leakage",
+      "trap": "post_outcome_neutral",
+      "title": "claims: A post-outcome measurement with a neutral name",
+      "seed": 2278102180,
+      "fingerprint": "f6e22b8093217166",
+      "moment": "When a claim is filed, before any investigation; the outcome is whether it proves fraudulent.",
+      "leaks": [
+        "z_rk4"
+      ],
+      "innocent": [
+        "policy_age_months",
+        "vehicle_age_years",
+        "region",
+        "annual_premium",
+        "prior_claims"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-CLAI-noisy_target_copy",
+      "suite": "leakage",
+      "trap": "noisy_target_copy",
+      "title": "claims: A copy of the target with 5% of labels flipped",
+      "seed": 1489496405,
+      "fingerprint": "f29acdd55e3d03e9",
+      "moment": "When a claim is filed, before any investigation; the outcome is whether it proves fraudulent.",
+      "leaks": [
+        "adjuster_flag"
+      ],
+      "innocent": [
+        "policy_age_months",
+        "vehicle_age_years",
+        "region",
+        "annual_premium",
+        "prior_claims"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-CLAI-identifier",
+      "suite": "leakage",
+      "trap": "identifier",
+      "title": "claims: A number assigned in target order",
+      "seed": 2383253230,
+      "fingerprint": "80df173576732c96",
+      "moment": "When a claim is filed, before any investigation; the outcome is whether it proves fraudulent.",
+      "leaks": [
+        "claim_no"
+      ],
+      "innocent": [
+        "policy_age_months",
+        "vehicle_age_years",
+        "region",
+        "annual_premium",
+        "prior_claims"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-CLAI-missing_is_outcome",
+      "suite": "leakage",
+      "trap": "missing_is_outcome",
+      "title": "claims: A value missing exactly when the outcome happened",
+      "seed": 4030287856,
+      "fingerprint": "7d74bf332908de56",
+      "moment": "When a claim is filed, before any investigation; the outcome is whether it proves fraudulent.",
+      "leaks": [
+        "recovery_score"
+      ],
+      "innocent": [
+        "policy_age_months",
+        "vehicle_age_years",
+        "region",
+        "annual_premium",
+        "prior_claims"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-CLAI-group_label",
+      "suite": "split",
+      "trap": "group_label",
+      "title": "claims: Rows of one entity share the outcome",
+      "seed": 3062463753,
+      "fingerprint": "00870ffdb24130ea",
+      "moment": "When a claim is filed, before any investigation; the outcome is whether it proves fraudulent.",
+      "leaks": [],
+      "innocent": [
+        "policy_age_months",
+        "vehicle_age_years",
+        "region",
+        "annual_premium",
+        "prior_claims"
+      ],
+      "time_column": null,
+      "group_column": "policy_holder",
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-CLAI-time_random_split",
+      "suite": "split",
+      "trap": "time_random_split",
+      "title": "claims: Rows over two years whose outcome drifts, split at random",
+      "seed": 4009871123,
+      "fingerprint": "e68002ceae43a7a2",
+      "moment": "When a claim is filed, before any investigation; the outcome is whether it proves fraudulent.",
+      "leaks": [],
+      "innocent": [
+        "policy_age_months",
+        "vehicle_age_years",
+        "region",
+        "annual_premium",
+        "prior_claims"
+      ],
+      "time_column": "filed_on",
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-CLAI-duplicates",
+      "suite": "split",
+      "trap": "duplicates",
+      "title": "claims: A fifth of the rows repeated",
+      "seed": 2526322453,
+      "fingerprint": "707e07b990130e8f",
+      "moment": "When a claim is filed, before any investigation; the outcome is whether it proves fraudulent.",
+      "leaks": [],
+      "innocent": [
+        "policy_age_months",
+        "vehicle_age_years",
+        "region",
+        "annual_premium",
+        "prior_claims"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": true,
+      "note": ""
+    },
+    {
+      "id": "BV4-CLAI-clean",
+      "suite": "control",
+      "trap": "clean",
+      "title": "claims: A clean table",
+      "seed": 1888926317,
+      "fingerprint": "a213029900c384bc",
+      "moment": "When a claim is filed, before any investigation; the outcome is whether it proves fraudulent.",
+      "leaks": [],
+      "innocent": [
+        "policy_age_months",
+        "vehicle_age_years",
+        "region",
+        "annual_premium",
+        "prior_claims"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-CLAI-constant_column",
+      "suite": "control",
+      "trap": "constant_column",
+      "title": "claims: Two columns with one value each",
+      "seed": 2244207449,
+      "fingerprint": "3120ecdb6c6e272b",
+      "moment": "When a claim is filed, before any investigation; the outcome is whether it proves fraudulent.",
+      "leaks": [],
+      "innocent": [
+        "source_system",
+        "export_version",
+        "policy_age_months",
+        "vehicle_age_years",
+        "region",
+        "annual_premium",
+        "prior_claims"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-CLAI-benign_post_name",
+      "suite": "control",
+      "trap": "benign_post_name",
+      "title": "claims: A value known at the prediction, with post in its name",
+      "seed": 375876737,
+      "fingerprint": "9c0c8989ec664ba6",
+      "moment": "When a claim is filed, before any investigation; the outcome is whether it proves fraudulent.",
+      "leaks": [],
+      "innocent": [
+        "post_code_zone",
+        "policy_age_months",
+        "vehicle_age_years",
+        "region",
+        "annual_premium",
+        "prior_claims"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-CLAI-strong_honest_driver",
+      "suite": "control",
+      "trap": "strong_honest_driver",
+      "title": "claims: A strong driver that exists at the prediction",
+      "seed": 1647139276,
+      "fingerprint": "65ecc949faaae762",
+      "moment": "When a claim is filed, before any investigation; the outcome is whether it proves fraudulent.",
+      "leaks": [],
+      "innocent": [
+        "prior_fraud_score",
+        "policy_age_months",
+        "vehicle_age_years",
+        "region",
+        "annual_premium",
+        "prior_claims"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-CLAI-informative_missing",
+      "suite": "control",
+      "trap": "informative_missing",
+      "title": "claims: Missing more often for one outcome, known at the prediction",
+      "seed": 2847162047,
+      "fingerprint": "188e98d2138e4d16",
+      "moment": "When a claim is filed, before any investigation; the outcome is whether it proves fraudulent.",
+      "leaks": [],
+      "innocent": [
+        "declared_extra",
+        "policy_age_months",
+        "vehicle_age_years",
+        "region",
+        "annual_premium",
+        "prior_claims"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-SUBS-post_outcome_name",
+      "suite": "leakage",
+      "trap": "post_outcome_name",
+      "title": "subscriptions: A column written after the outcome, with a telling name",
+      "seed": 1216799345,
+      "fingerprint": "62d32a47c699ae94",
+      "moment": "On the first day of each month, from the account as it stands; the outcome is cancelling within the month.",
+      "leaks": [
+        "refund_paid_after"
+      ],
+      "innocent": [
+        "months_active",
+        "weekly_sessions",
+        "tier",
+        "seats",
+        "support_tickets"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-SUBS-post_outcome_neutral",
+      "suite": "leakage",
+      "trap": "post_outcome_neutral",
+      "title": "subscriptions: A post-outcome measurement with a neutral name",
+      "seed": 3900809920,
+      "fingerprint": "2256cbfdfc253f5c",
+      "moment": "On the first day of each month, from the account as it stands; the outcome is cancelling within the month.",
+      "leaks": [
+        "m_q9"
+      ],
+      "innocent": [
+        "months_active",
+        "weekly_sessions",
+        "tier",
+        "seats",
+        "support_tickets"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-SUBS-noisy_target_copy",
+      "suite": "leakage",
+      "trap": "noisy_target_copy",
+      "title": "subscriptions: A copy of the target with 5% of labels flipped",
+      "seed": 3446148141,
+      "fingerprint": "424cd4fb6b1df9b6",
+      "moment": "On the first day of each month, from the account as it stands; the outcome is cancelling within the month.",
+      "leaks": [
+        "cancel_reason_code"
+      ],
+      "innocent": [
+        "months_active",
+        "weekly_sessions",
+        "tier",
+        "seats",
+        "support_tickets"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-SUBS-identifier",
+      "suite": "leakage",
+      "trap": "identifier",
+      "title": "subscriptions: A number assigned in target order",
+      "seed": 1857367507,
+      "fingerprint": "2091bd81cad74cf5",
+      "moment": "On the first day of each month, from the account as it stands; the outcome is cancelling within the month.",
+      "leaks": [
+        "account_no"
+      ],
+      "innocent": [
+        "months_active",
+        "weekly_sessions",
+        "tier",
+        "seats",
+        "support_tickets"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-SUBS-missing_is_outcome",
+      "suite": "leakage",
+      "trap": "missing_is_outcome",
+      "title": "subscriptions: A value missing exactly when the outcome happened",
+      "seed": 1111504746,
+      "fingerprint": "99795937bc09b8d8",
+      "moment": "On the first day of each month, from the account as it stands; the outcome is cancelling within the month.",
+      "leaks": [
+        "exit_rating"
+      ],
+      "innocent": [
+        "months_active",
+        "weekly_sessions",
+        "tier",
+        "seats",
+        "support_tickets"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-SUBS-group_label",
+      "suite": "split",
+      "trap": "group_label",
+      "title": "subscriptions: Rows of one entity share the outcome",
+      "seed": 820970995,
+      "fingerprint": "d3cb7eb950e5265c",
+      "moment": "On the first day of each month, from the account as it stands; the outcome is cancelling within the month.",
+      "leaks": [],
+      "innocent": [
+        "months_active",
+        "weekly_sessions",
+        "tier",
+        "seats",
+        "support_tickets"
+      ],
+      "time_column": null,
+      "group_column": "company_ref",
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-SUBS-time_random_split",
+      "suite": "split",
+      "trap": "time_random_split",
+      "title": "subscriptions: Rows over two years whose outcome drifts, split at random",
+      "seed": 3040533918,
+      "fingerprint": "2ac043ae9b1c5268",
+      "moment": "On the first day of each month, from the account as it stands; the outcome is cancelling within the month.",
+      "leaks": [],
+      "innocent": [
+        "months_active",
+        "weekly_sessions",
+        "tier",
+        "seats",
+        "support_tickets"
+      ],
+      "time_column": "snapshot_day",
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-SUBS-duplicates",
+      "suite": "split",
+      "trap": "duplicates",
+      "title": "subscriptions: A fifth of the rows repeated",
+      "seed": 2041724806,
+      "fingerprint": "2ef402a452971e65",
+      "moment": "On the first day of each month, from the account as it stands; the outcome is cancelling within the month.",
+      "leaks": [],
+      "innocent": [
+        "months_active",
+        "weekly_sessions",
+        "tier",
+        "seats",
+        "support_tickets"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": true,
+      "note": ""
+    },
+    {
+      "id": "BV4-SUBS-clean",
+      "suite": "control",
+      "trap": "clean",
+      "title": "subscriptions: A clean table",
+      "seed": 3386894793,
+      "fingerprint": "632a536ba59cf70f",
+      "moment": "On the first day of each month, from the account as it stands; the outcome is cancelling within the month.",
+      "leaks": [],
+      "innocent": [
+        "months_active",
+        "weekly_sessions",
+        "tier",
+        "seats",
+        "support_tickets"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-SUBS-constant_column",
+      "suite": "control",
+      "trap": "constant_column",
+      "title": "subscriptions: Two columns with one value each",
+      "seed": 2690896171,
+      "fingerprint": "dd57252f530fcfbb",
+      "moment": "On the first day of each month, from the account as it stands; the outcome is cancelling within the month.",
+      "leaks": [],
+      "innocent": [
+        "source_system",
+        "export_version",
+        "months_active",
+        "weekly_sessions",
+        "tier",
+        "seats",
+        "support_tickets"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-SUBS-benign_post_name",
+      "suite": "control",
+      "trap": "benign_post_name",
+      "title": "subscriptions: A value known at the prediction, with post in its name",
+      "seed": 3350293854,
+      "fingerprint": "de8922fbff7575b8",
+      "moment": "On the first day of each month, from the account as it stands; the outcome is cancelling within the month.",
+      "leaks": [],
+      "innocent": [
+        "postal_region",
+        "months_active",
+        "weekly_sessions",
+        "tier",
+        "seats",
+        "support_tickets"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-SUBS-strong_honest_driver",
+      "suite": "control",
+      "trap": "strong_honest_driver",
+      "title": "subscriptions: A strong driver that exists at the prediction",
+      "seed": 4239723965,
+      "fingerprint": "f5810f1135a2a92a",
+      "moment": "On the first day of each month, from the account as it stands; the outcome is cancelling within the month.",
+      "leaks": [],
+      "innocent": [
+        "seats_unused_share",
+        "months_active",
+        "weekly_sessions",
+        "tier",
+        "seats",
+        "support_tickets"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-SUBS-informative_missing",
+      "suite": "control",
+      "trap": "informative_missing",
+      "title": "subscriptions: Missing more often for one outcome, known at the prediction",
+      "seed": 4213028991,
+      "fingerprint": "fb5874bde6317ea5",
+      "moment": "On the first day of each month, from the account as it stands; the outcome is cancelling within the month.",
+      "leaks": [],
+      "innocent": [
+        "declared_extra",
+        "months_active",
+        "weekly_sessions",
+        "tier",
+        "seats",
+        "support_tickets"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-DEMA-post_outcome_name",
+      "suite": "leakage",
+      "trap": "post_outcome_name",
+      "title": "demand: A column written after the outcome, with a telling name",
+      "seed": 1897235131,
+      "fingerprint": "080385ce81410a15",
+      "moment": "Each evening, for the next day's sales of the item, before the store opens.",
+      "leaks": [
+        "units_returned_next_week"
+      ],
+      "innocent": [
+        "unit_price",
+        "on_promotion",
+        "weekday",
+        "shelf_metres",
+        "forecast_temp_c"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-DEMA-post_outcome_neutral",
+      "suite": "leakage",
+      "trap": "post_outcome_neutral",
+      "title": "demand: A post-outcome measurement with a neutral name",
+      "seed": 2652895426,
+      "fingerprint": "7f008782a21d46f5",
+      "moment": "Each evening, for the next day's sales of the item, before the store opens.",
+      "leaks": [
+        "v_77"
+      ],
+      "innocent": [
+        "unit_price",
+        "on_promotion",
+        "weekday",
+        "shelf_metres",
+        "forecast_temp_c"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-DEMA-unit_conversion",
+      "suite": "leakage",
+      "trap": "unit_conversion",
+      "title": "demand: The target in other units",
+      "seed": 1072276676,
+      "fingerprint": "f77116d75e842b05",
+      "moment": "Each evening, for the next day's sales of the item, before the store opens.",
+      "leaks": [
+        "sold_dozens"
+      ],
+      "innocent": [
+        "unit_price",
+        "on_promotion",
+        "weekday",
+        "shelf_metres",
+        "forecast_temp_c"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-DEMA-sum_identity",
+      "suite": "leakage",
+      "trap": "sum_identity",
+      "title": "demand: Two columns that add up to the target",
+      "seed": 1111468127,
+      "fingerprint": "4e5f7af8872b86f0",
+      "moment": "Each evening, for the next day's sales of the item, before the store opens.",
+      "leaks": [
+        "sold_morning",
+        "sold_afternoon"
+      ],
+      "innocent": [
+        "unit_price",
+        "on_promotion",
+        "weekday",
+        "shelf_metres",
+        "forecast_temp_c"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-DEMA-identifier",
+      "suite": "leakage",
+      "trap": "identifier",
+      "title": "demand: A number assigned in target order",
+      "seed": 2439323577,
+      "fingerprint": "752c18ffc10a3371",
+      "moment": "Each evening, for the next day's sales of the item, before the store opens.",
+      "leaks": [
+        "row_seq"
+      ],
+      "innocent": [
+        "unit_price",
+        "on_promotion",
+        "weekday",
+        "shelf_metres",
+        "forecast_temp_c"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-DEMA-group_label",
+      "suite": "split",
+      "trap": "group_label",
+      "title": "demand: Rows of one entity share the outcome",
+      "seed": 1121044526,
+      "fingerprint": "863631ac4712233d",
+      "moment": "Each evening, for the next day's sales of the item, before the store opens.",
+      "leaks": [],
+      "innocent": [
+        "unit_price",
+        "on_promotion",
+        "weekday",
+        "shelf_metres",
+        "forecast_temp_c"
+      ],
+      "time_column": null,
+      "group_column": "store_ref",
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-DEMA-time_random_split",
+      "suite": "split",
+      "trap": "time_random_split",
+      "title": "demand: Rows over two years whose outcome drifts, split at random",
+      "seed": 1290986208,
+      "fingerprint": "fdab0e707ef69f38",
+      "moment": "Each evening, for the next day's sales of the item, before the store opens.",
+      "leaks": [],
+      "innocent": [
+        "unit_price",
+        "on_promotion",
+        "weekday",
+        "shelf_metres",
+        "forecast_temp_c"
+      ],
+      "time_column": "sales_day",
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-DEMA-duplicates",
+      "suite": "split",
+      "trap": "duplicates",
+      "title": "demand: A fifth of the rows repeated",
+      "seed": 2694556973,
+      "fingerprint": "198af33590309d3c",
+      "moment": "Each evening, for the next day's sales of the item, before the store opens.",
+      "leaks": [],
+      "innocent": [
+        "unit_price",
+        "on_promotion",
+        "weekday",
+        "shelf_metres",
+        "forecast_temp_c"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": true,
+      "note": ""
+    },
+    {
+      "id": "BV4-DEMA-clean",
+      "suite": "control",
+      "trap": "clean",
+      "title": "demand: A clean table",
+      "seed": 501597558,
+      "fingerprint": "5bf106e55a9d961b",
+      "moment": "Each evening, for the next day's sales of the item, before the store opens.",
+      "leaks": [],
+      "innocent": [
+        "unit_price",
+        "on_promotion",
+        "weekday",
+        "shelf_metres",
+        "forecast_temp_c"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-DEMA-constant_column",
+      "suite": "control",
+      "trap": "constant_column",
+      "title": "demand: Two columns with one value each",
+      "seed": 2310261711,
+      "fingerprint": "c31fcff916d0ce6d",
+      "moment": "Each evening, for the next day's sales of the item, before the store opens.",
+      "leaks": [],
+      "innocent": [
+        "source_system",
+        "export_version",
+        "unit_price",
+        "on_promotion",
+        "weekday",
+        "shelf_metres",
+        "forecast_temp_c"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-DEMA-benign_post_name",
+      "suite": "control",
+      "trap": "benign_post_name",
+      "title": "demand: A value known at the prediction, with post in its name",
+      "seed": 3654213296,
+      "fingerprint": "6087dbbe464978b4",
+      "moment": "Each evening, for the next day's sales of the item, before the store opens.",
+      "leaks": [],
+      "innocent": [
+        "post_holiday_week",
+        "unit_price",
+        "on_promotion",
+        "weekday",
+        "shelf_metres",
+        "forecast_temp_c"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-DEMA-strong_honest_driver",
+      "suite": "control",
+      "trap": "strong_honest_driver",
+      "title": "demand: A strong driver that exists at the prediction",
+      "seed": 772560065,
+      "fingerprint": "ab805ddd1f7cf0e0",
+      "moment": "Each evening, for the next day's sales of the item, before the store opens.",
+      "leaks": [],
+      "innocent": [
+        "planned_display_units",
+        "unit_price",
+        "on_promotion",
+        "weekday",
+        "shelf_metres",
+        "forecast_temp_c"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-PAYM-post_outcome_name",
+      "suite": "leakage",
+      "trap": "post_outcome_name",
+      "title": "payments: A column written after the outcome, with a telling name",
+      "seed": 2346460079,
+      "fingerprint": "090e0d0a58a1fa28",
+      "moment": "When the payment is authorised, before anyone reviews it; the outcome is a confirmed fraud.",
+      "leaks": [
+        "chargeback_fee_billed"
+      ],
+      "innocent": [
+        "amount",
+        "hour_of_day",
+        "card_age_days",
+        "merchant_group",
+        "foreign_card"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-PAYM-post_outcome_neutral",
+      "suite": "leakage",
+      "trap": "post_outcome_neutral",
+      "title": "payments: A post-outcome measurement with a neutral name",
+      "seed": 3261760415,
+      "fingerprint": "d56ece931df2d096",
+      "moment": "When the payment is authorised, before anyone reviews it; the outcome is a confirmed fraud.",
+      "leaks": [
+        "p_t6"
+      ],
+      "innocent": [
+        "amount",
+        "hour_of_day",
+        "card_age_days",
+        "merchant_group",
+        "foreign_card"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-PAYM-noisy_target_copy",
+      "suite": "leakage",
+      "trap": "noisy_target_copy",
+      "title": "payments: A copy of the target with 5% of labels flipped",
+      "seed": 2241693471,
+      "fingerprint": "c29f9d35429ea800",
+      "moment": "When the payment is authorised, before anyone reviews it; the outcome is a confirmed fraud.",
+      "leaks": [
+        "dispute_code"
+      ],
+      "innocent": [
+        "amount",
+        "hour_of_day",
+        "card_age_days",
+        "merchant_group",
+        "foreign_card"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-PAYM-identifier",
+      "suite": "leakage",
+      "trap": "identifier",
+      "title": "payments: A number assigned in target order",
+      "seed": 498842557,
+      "fingerprint": "77d393b05e3b1c09",
+      "moment": "When the payment is authorised, before anyone reviews it; the outcome is a confirmed fraud.",
+      "leaks": [
+        "payment_no"
+      ],
+      "innocent": [
+        "amount",
+        "hour_of_day",
+        "card_age_days",
+        "merchant_group",
+        "foreign_card"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-PAYM-missing_is_outcome",
+      "suite": "leakage",
+      "trap": "missing_is_outcome",
+      "title": "payments: A value missing exactly when the outcome happened",
+      "seed": 2568538259,
+      "fingerprint": "7f3abf5eac95f269",
+      "moment": "When the payment is authorised, before anyone reviews it; the outcome is a confirmed fraud.",
+      "leaks": [
+        "cardholder_reply_score"
+      ],
+      "innocent": [
+        "amount",
+        "hour_of_day",
+        "card_age_days",
+        "merchant_group",
+        "foreign_card"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-PAYM-group_label",
+      "suite": "split",
+      "trap": "group_label",
+      "title": "payments: Rows of one entity share the outcome",
+      "seed": 289540879,
+      "fingerprint": "ab7c52f36753fb68",
+      "moment": "When the payment is authorised, before anyone reviews it; the outcome is a confirmed fraud.",
+      "leaks": [],
+      "innocent": [
+        "amount",
+        "hour_of_day",
+        "card_age_days",
+        "merchant_group",
+        "foreign_card"
+      ],
+      "time_column": null,
+      "group_column": "card_ref",
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-PAYM-duplicates",
+      "suite": "split",
+      "trap": "duplicates",
+      "title": "payments: A fifth of the rows repeated",
+      "seed": 3228515730,
+      "fingerprint": "352e9702e5366569",
+      "moment": "When the payment is authorised, before anyone reviews it; the outcome is a confirmed fraud.",
+      "leaks": [],
+      "innocent": [
+        "amount",
+        "hour_of_day",
+        "card_age_days",
+        "merchant_group",
+        "foreign_card"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": true,
+      "note": ""
+    },
+    {
+      "id": "BV4-PAYM-clean",
+      "suite": "control",
+      "trap": "clean",
+      "title": "payments: A clean table",
+      "seed": 3605400420,
+      "fingerprint": "9cd93d82b00acffd",
+      "moment": "When the payment is authorised, before anyone reviews it; the outcome is a confirmed fraud.",
+      "leaks": [],
+      "innocent": [
+        "amount",
+        "hour_of_day",
+        "card_age_days",
+        "merchant_group",
+        "foreign_card"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-PAYM-constant_column",
+      "suite": "control",
+      "trap": "constant_column",
+      "title": "payments: Two columns with one value each",
+      "seed": 1895161846,
+      "fingerprint": "5fe1e24adff750f2",
+      "moment": "When the payment is authorised, before anyone reviews it; the outcome is a confirmed fraud.",
+      "leaks": [],
+      "innocent": [
+        "source_system",
+        "export_version",
+        "amount",
+        "hour_of_day",
+        "card_age_days",
+        "merchant_group",
+        "foreign_card"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-PAYM-benign_post_name",
+      "suite": "control",
+      "trap": "benign_post_name",
+      "title": "payments: A value known at the prediction, with post in its name",
+      "seed": 752686371,
+      "fingerprint": "5ed922f35edb3ed9",
+      "moment": "When the payment is authorised, before anyone reviews it; the outcome is a confirmed fraud.",
+      "leaks": [],
+      "innocent": [
+        "post_auth_hold_hours",
+        "amount",
+        "hour_of_day",
+        "card_age_days",
+        "merchant_group",
+        "foreign_card"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-PAYM-informative_missing",
+      "suite": "control",
+      "trap": "informative_missing",
+      "title": "payments: Missing more often for one outcome, known at the prediction",
+      "seed": 2415648822,
+      "fingerprint": "6bc0b827118854e0",
+      "moment": "When the payment is authorised, before anyone reviews it; the outcome is a confirmed fraud.",
+      "leaks": [],
+      "innocent": [
+        "declared_extra",
+        "amount",
+        "hour_of_day",
+        "card_age_days",
+        "merchant_group",
+        "foreign_card"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-PAYM-label_by_key",
+      "suite": "leakage",
+      "trap": "label_by_key",
+      "title": "payments: A flag set on every row of a key once any of its rows is a case",
+      "seed": 1488267891,
+      "fingerprint": "c9da3928463c4ebf",
+      "moment": "When the payment is authorised, before anyone reviews it; the outcome is a confirmed fraud.",
+      "leaks": [
+        "card_flagged"
+      ],
+      "innocent": [
+        "amount",
+        "hour_of_day",
+        "card_age_days",
+        "merchant_group",
+        "foreign_card"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-PAYM-partial_labels",
+      "suite": "labels",
+      "trap": "partial_labels",
+      "title": "payments: Only the cases someone found are marked",
+      "seed": 1826317577,
+      "fingerprint": "1792d3a8785c9ef1",
+      "moment": "When the payment is authorised, before anyone reviews it; the outcome is a confirmed fraud. The labels are the cases the review team confirmed; most rows were never checked, so an unmarked row may be a case nobody found.",
+      "leaks": [],
+      "innocent": [
+        "amount",
+        "hour_of_day",
+        "card_age_days",
+        "merchant_group",
+        "foreign_card"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": "",
+      "labels": "partial"
+    },
+    {
+      "id": "BV4-PAYM-rare_entity_cluster",
+      "suite": "split",
+      "trap": "rare_entity_cluster",
+      "title": "payments: The rare cases sit on a few entities",
+      "seed": 1985413620,
+      "fingerprint": "7c4fa008117cb96b",
+      "moment": "When the payment is authorised, before anyone reviews it; the outcome is a confirmed fraud.",
+      "leaks": [],
+      "innocent": [
+        "amount",
+        "hour_of_day",
+        "card_age_days",
+        "merchant_group",
+        "foreign_card"
+      ],
+      "time_column": null,
+      "group_column": "card_ref",
+      "flag_duplicates": false,
+      "note": "",
+      "strict_group": true
+    },
+    {
+      "id": "BV4-PAYM-unclustered_entity",
+      "suite": "control",
+      "trap": "unclustered_entity",
+      "title": "payments: A many-valued entity column with no link to the outcome",
+      "seed": 2072840171,
+      "fingerprint": "93f69af7b4b41cdf",
+      "moment": "When the payment is authorised, before anyone reviews it; the outcome is a confirmed fraud.",
+      "leaks": [],
+      "innocent": [
+        "terminal_ref",
+        "amount",
+        "hour_of_day",
+        "card_age_days",
+        "merchant_group",
+        "foreign_card"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV4-PAYM-oversampled_positives",
+      "suite": "split",
+      "trap": "oversampled_positives",
+      "title": "payments: The positive rows were copied before the table was saved",
+      "seed": 4005205809,
+      "fingerprint": "b4a75c3452a68cbc",
+      "moment": "When the payment is authorised, before anyone reviews it; the outcome is a confirmed fraud.",
+      "leaks": [],
+      "innocent": [
+        "amount",
+        "hour_of_day",
+        "card_age_days",
+        "merchant_group",
+        "foreign_card"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": true,
+      "note": ""
+    },
+    {
+      "id": "BV4-KIND-binary-0",
+      "suite": "leakage",
+      "trap": "binary_replica",
+      "title": "binary: the replica's planted traps (seed 0)",
+      "seed": 2356202895,
+      "fingerprint": "be032abc11b751fd",
+      "moment": "At renewal time, before the subscriber decides; refunds are paid only after a cancellation.",
+      "leaks": [
+        "final_refund_amount"
+      ],
+      "innocent": [
+        "plan",
+        "monthly_fee",
+        "tenure_months",
+        "support_calls",
+        "late_payments"
+      ],
+      "time_column": "signup_time",
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": "the binary kind's replica: its leaks, its time and its entity as the replica declares them"
+    },
+    {
+      "id": "BV4-KIND-binary-1",
+      "suite": "leakage",
+      "trap": "binary_replica",
+      "title": "binary: the replica's planted traps (seed 1)",
+      "seed": 1744752456,
+      "fingerprint": "7dc70119a69fc237",
+      "moment": "At renewal time, before the subscriber decides; refunds are paid only after a cancellation.",
+      "leaks": [
+        "final_refund_amount"
+      ],
+      "innocent": [
+        "plan",
+        "monthly_fee",
+        "tenure_months",
+        "support_calls",
+        "late_payments"
+      ],
+      "time_column": "signup_time",
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": "the binary kind's replica: its leaks, its time and its entity as the replica declares them"
+    },
+    {
+      "id": "BV4-KIND-regression-0",
+      "suite": "leakage",
+      "trap": "regression_replica",
+      "title": "regression: the replica's planted traps (seed 0)",
+      "seed": 3225230053,
+      "fingerprint": "42700451d7622dd5",
+      "moment": "When the order is placed, before a courier is assigned.",
+      "leaks": [
+        "delivered_at",
+        "courier_rating"
+      ],
+      "innocent": [
+        "distance_km",
+        "couriers_online",
+        "weather",
+        "basket_items",
+        "order_value"
+      ],
+      "time_column": null,
+      "group_column": "restaurant_id",
+      "flag_duplicates": false,
+      "note": "the regression kind's replica: its leaks, its time and its entity as the replica declares them"
+    },
+    {
+      "id": "BV4-KIND-regression-1",
+      "suite": "leakage",
+      "trap": "regression_replica",
+      "title": "regression: the replica's planted traps (seed 1)",
+      "seed": 2923726702,
+      "fingerprint": "a071eb09850fbe55",
+      "moment": "When the order is placed, before a courier is assigned.",
+      "leaks": [
+        "delivered_at",
+        "courier_rating"
+      ],
+      "innocent": [
+        "distance_km",
+        "couriers_online",
+        "weather",
+        "basket_items",
+        "order_value"
+      ],
+      "time_column": null,
+      "group_column": "restaurant_id",
+      "flag_duplicates": false,
+      "note": "the regression kind's replica: its leaks, its time and its entity as the replica declares them"
+    },
+    {
+      "id": "BV4-KIND-text_tabular-0",
+      "suite": "leakage",
+      "trap": "text_tabular_replica",
+      "title": "text_tabular: the replica's planted traps (seed 0)",
+      "seed": 441245279,
+      "fingerprint": "decabc1b00c38cad",
+      "moment": "When the review is posted, before anyone answers it.",
+      "leaks": [
+        "shop_reply"
+      ],
+      "innocent": [
+        "category",
+        "price",
+        "past_reviews"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": "the text_tabular kind's replica: its leaks, its time and its entity as the replica declares them"
+    },
+    {
+      "id": "BV4-KIND-text_tabular-1",
+      "suite": "leakage",
+      "trap": "text_tabular_replica",
+      "title": "text_tabular: the replica's planted traps (seed 1)",
+      "seed": 1648652224,
+      "fingerprint": "6ef9f9a0cfb7282a",
+      "moment": "When the review is posted, before anyone answers it.",
+      "leaks": [
+        "shop_reply"
+      ],
+      "innocent": [
+        "category",
+        "price",
+        "past_reviews"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": "the text_tabular kind's replica: its leaks, its time and its entity as the replica declares them"
+    }
+  ],
+  "results": [
+    {
+      "case": "BV4-CLAI-post_outcome_name",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 2.15
+    },
+    {
+      "case": "BV4-CLAI-post_outcome_name",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "investigation_cost_after"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.02
+    },
+    {
+      "case": "BV4-CLAI-post_outcome_name",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.87
+    },
+    {
+      "case": "BV4-CLAI-post_outcome_neutral",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.88
+    },
+    {
+      "case": "BV4-CLAI-post_outcome_neutral",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.9
+    },
+    {
+      "case": "BV4-CLAI-post_outcome_neutral",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.86
+    },
+    {
+      "case": "BV4-CLAI-noisy_target_copy",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.99
+    },
+    {
+      "case": "BV4-CLAI-noisy_target_copy",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "adjuster_flag"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.05
+    },
+    {
+      "case": "BV4-CLAI-noisy_target_copy",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.96
+    },
+    {
+      "case": "BV4-CLAI-identifier",
+      "policy": "standard",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "claim_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.0
+    },
+    {
+      "case": "BV4-CLAI-identifier",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "claim_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.01
+    },
+    {
+      "case": "BV4-CLAI-identifier",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.89
+    },
+    {
+      "case": "BV4-CLAI-missing_is_outcome",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.94
+    },
+    {
+      "case": "BV4-CLAI-missing_is_outcome",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.93
+    },
+    {
+      "case": "BV4-CLAI-missing_is_outcome",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.91
+    },
+    {
+      "case": "BV4-CLAI-group_label",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.49
+    },
+    {
+      "case": "BV4-CLAI-group_label",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "policy_holder"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.19
+    },
+    {
+      "case": "BV4-CLAI-group_label",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.41
+    },
+    {
+      "case": "BV4-CLAI-time_random_split",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.15
+    },
+    {
+      "case": "BV4-CLAI-time_random_split",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": "filed_on",
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.22
+    },
+    {
+      "case": "BV4-CLAI-time_random_split",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.1
+    },
+    {
+      "case": "BV4-CLAI-duplicates",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.18
+    },
+    {
+      "case": "BV4-CLAI-duplicates",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.18
+    },
+    {
+      "case": "BV4-CLAI-duplicates",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.16
+    },
+    {
+      "case": "BV4-CLAI-clean",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.02
+    },
+    {
+      "case": "BV4-CLAI-clean",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.98
+    },
+    {
+      "case": "BV4-CLAI-clean",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.96
+    },
+    {
+      "case": "BV4-CLAI-constant_column",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.09
+    },
+    {
+      "case": "BV4-CLAI-constant_column",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.1
+    },
+    {
+      "case": "BV4-CLAI-constant_column",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.12
+    },
+    {
+      "case": "BV4-CLAI-benign_post_name",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.14
+    },
+    {
+      "case": "BV4-CLAI-benign_post_name",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "post_code_zone"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.11
+    },
+    {
+      "case": "BV4-CLAI-benign_post_name",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.11
+    },
+    {
+      "case": "BV4-CLAI-strong_honest_driver",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.09
+    },
+    {
+      "case": "BV4-CLAI-strong_honest_driver",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "prior_fraud_score"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.16
+    },
+    {
+      "case": "BV4-CLAI-strong_honest_driver",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.04
+    },
+    {
+      "case": "BV4-CLAI-informative_missing",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.11
+    },
+    {
+      "case": "BV4-CLAI-informative_missing",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.1
+    },
+    {
+      "case": "BV4-CLAI-informative_missing",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.07
+    },
+    {
+      "case": "BV4-SUBS-post_outcome_name",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.85
+    },
+    {
+      "case": "BV4-SUBS-post_outcome_name",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "refund_paid_after"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.87
+    },
+    {
+      "case": "BV4-SUBS-post_outcome_name",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.82
+    },
+    {
+      "case": "BV4-SUBS-post_outcome_neutral",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.86
+    },
+    {
+      "case": "BV4-SUBS-post_outcome_neutral",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.83
+    },
+    {
+      "case": "BV4-SUBS-post_outcome_neutral",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.82
+    },
+    {
+      "case": "BV4-SUBS-noisy_target_copy",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.91
+    },
+    {
+      "case": "BV4-SUBS-noisy_target_copy",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "cancel_reason_code"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.92
+    },
+    {
+      "case": "BV4-SUBS-noisy_target_copy",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.87
+    },
+    {
+      "case": "BV4-SUBS-identifier",
+      "policy": "standard",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "account_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.0
+    },
+    {
+      "case": "BV4-SUBS-identifier",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "account_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.0
+    },
+    {
+      "case": "BV4-SUBS-identifier",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.88
+    },
+    {
+      "case": "BV4-SUBS-missing_is_outcome",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.92
+    },
+    {
+      "case": "BV4-SUBS-missing_is_outcome",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "exit_rating"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.97
+    },
+    {
+      "case": "BV4-SUBS-missing_is_outcome",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.85
+    },
+    {
+      "case": "BV4-SUBS-group_label",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.46
+    },
+    {
+      "case": "BV4-SUBS-group_label",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "company_ref"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.17
+    },
+    {
+      "case": "BV4-SUBS-group_label",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.48
+    },
+    {
+      "case": "BV4-SUBS-time_random_split",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.98
+    },
+    {
+      "case": "BV4-SUBS-time_random_split",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": "snapshot_day",
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.03
+    },
+    {
+      "case": "BV4-SUBS-time_random_split",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.95
+    },
+    {
+      "case": "BV4-SUBS-duplicates",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.02
+    },
+    {
+      "case": "BV4-SUBS-duplicates",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.01
+    },
+    {
+      "case": "BV4-SUBS-duplicates",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.98
+    },
+    {
+      "case": "BV4-SUBS-clean",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.87
+    },
+    {
+      "case": "BV4-SUBS-clean",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.99
+    },
+    {
+      "case": "BV4-SUBS-clean",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.82
+    },
+    {
+      "case": "BV4-SUBS-constant_column",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.94
+    },
+    {
+      "case": "BV4-SUBS-constant_column",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.91
+    },
+    {
+      "case": "BV4-SUBS-constant_column",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.88
+    },
+    {
+      "case": "BV4-SUBS-benign_post_name",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.07
+    },
+    {
+      "case": "BV4-SUBS-benign_post_name",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.06
+    },
+    {
+      "case": "BV4-SUBS-benign_post_name",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.03
+    },
+    {
+      "case": "BV4-SUBS-strong_honest_driver",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.9
+    },
+    {
+      "case": "BV4-SUBS-strong_honest_driver",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "seats_unused_share"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.93
+    },
+    {
+      "case": "BV4-SUBS-strong_honest_driver",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.89
+    },
+    {
+      "case": "BV4-SUBS-informative_missing",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.95
+    },
+    {
+      "case": "BV4-SUBS-informative_missing",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.95
+    },
+    {
+      "case": "BV4-SUBS-informative_missing",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.88
+    },
+    {
+      "case": "BV4-DEMA-post_outcome_name",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.71
+    },
+    {
+      "case": "BV4-DEMA-post_outcome_name",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "units_returned_next_week"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.7
+    },
+    {
+      "case": "BV4-DEMA-post_outcome_name",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.67
+    },
+    {
+      "case": "BV4-DEMA-post_outcome_neutral",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.71
+    },
+    {
+      "case": "BV4-DEMA-post_outcome_neutral",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "v_77"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.77
+    },
+    {
+      "case": "BV4-DEMA-post_outcome_neutral",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.67
+    },
+    {
+      "case": "BV4-DEMA-unit_conversion",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.69
+    },
+    {
+      "case": "BV4-DEMA-unit_conversion",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "sold_dozens"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.7
+    },
+    {
+      "case": "BV4-DEMA-unit_conversion",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.66
+    },
+    {
+      "case": "BV4-DEMA-sum_identity",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.97
+    },
+    {
+      "case": "BV4-DEMA-sum_identity",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "sold_afternoon",
+        "sold_morning"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.79
+    },
+    {
+      "case": "BV4-DEMA-sum_identity",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.91
+    },
+    {
+      "case": "BV4-DEMA-identifier",
+      "policy": "standard",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "row_seq"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.7
+    },
+    {
+      "case": "BV4-DEMA-identifier",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "row_seq"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.68
+    },
+    {
+      "case": "BV4-DEMA-identifier",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.86
+    },
+    {
+      "case": "BV4-DEMA-group_label",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.26
+    },
+    {
+      "case": "BV4-DEMA-group_label",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.24
+    },
+    {
+      "case": "BV4-DEMA-group_label",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.27
+    },
+    {
+      "case": "BV4-DEMA-time_random_split",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.69
+    },
+    {
+      "case": "BV4-DEMA-time_random_split",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": "sales_day",
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.85
+    },
+    {
+      "case": "BV4-DEMA-time_random_split",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.65
+    },
+    {
+      "case": "BV4-DEMA-duplicates",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.71
+    },
+    {
+      "case": "BV4-DEMA-duplicates",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.73
+    },
+    {
+      "case": "BV4-DEMA-duplicates",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.7
+    },
+    {
+      "case": "BV4-DEMA-clean",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.69
+    },
+    {
+      "case": "BV4-DEMA-clean",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.65
+    },
+    {
+      "case": "BV4-DEMA-clean",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.65
+    },
+    {
+      "case": "BV4-DEMA-constant_column",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.76
+    },
+    {
+      "case": "BV4-DEMA-constant_column",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.74
+    },
+    {
+      "case": "BV4-DEMA-constant_column",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.71
+    },
+    {
+      "case": "BV4-DEMA-benign_post_name",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.79
+    },
+    {
+      "case": "BV4-DEMA-benign_post_name",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "post_holiday_week"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.7
+    },
+    {
+      "case": "BV4-DEMA-benign_post_name",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.75
+    },
+    {
+      "case": "BV4-DEMA-strong_honest_driver",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.86
+    },
+    {
+      "case": "BV4-DEMA-strong_honest_driver",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.87
+    },
+    {
+      "case": "BV4-DEMA-strong_honest_driver",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.81
+    },
+    {
+      "case": "BV4-PAYM-post_outcome_name",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.46
+    },
+    {
+      "case": "BV4-PAYM-post_outcome_name",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "chargeback_fee_billed"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.33
+    },
+    {
+      "case": "BV4-PAYM-post_outcome_name",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.39
+    },
+    {
+      "case": "BV4-PAYM-post_outcome_neutral",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.34
+    },
+    {
+      "case": "BV4-PAYM-post_outcome_neutral",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.39
+    },
+    {
+      "case": "BV4-PAYM-post_outcome_neutral",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.31
+    },
+    {
+      "case": "BV4-PAYM-noisy_target_copy",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.33
+    },
+    {
+      "case": "BV4-PAYM-noisy_target_copy",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "dispute_code"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.23
+    },
+    {
+      "case": "BV4-PAYM-noisy_target_copy",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.29
+    },
+    {
+      "case": "BV4-PAYM-identifier",
+      "policy": "standard",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "payment_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.18
+    },
+    {
+      "case": "BV4-PAYM-identifier",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "payment_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.16
+    },
+    {
+      "case": "BV4-PAYM-identifier",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.24
+    },
+    {
+      "case": "BV4-PAYM-missing_is_outcome",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.24
+    },
+    {
+      "case": "BV4-PAYM-missing_is_outcome",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.28
+    },
+    {
+      "case": "BV4-PAYM-missing_is_outcome",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.25
+    },
+    {
+      "case": "BV4-PAYM-group_label",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 2.1
+    },
+    {
+      "case": "BV4-PAYM-group_label",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "card_ref"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.36
+    },
+    {
+      "case": "BV4-PAYM-group_label",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 2.07
+    },
+    {
+      "case": "BV4-PAYM-duplicates",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.51
+    },
+    {
+      "case": "BV4-PAYM-duplicates",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.56
+    },
+    {
+      "case": "BV4-PAYM-duplicates",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.48
+    },
+    {
+      "case": "BV4-PAYM-clean",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.39
+    },
+    {
+      "case": "BV4-PAYM-clean",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.36
+    },
+    {
+      "case": "BV4-PAYM-clean",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.36
+    },
+    {
+      "case": "BV4-PAYM-constant_column",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.28
+    },
+    {
+      "case": "BV4-PAYM-constant_column",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.26
+    },
+    {
+      "case": "BV4-PAYM-constant_column",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.25
+    },
+    {
+      "case": "BV4-PAYM-benign_post_name",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.7
+    },
+    {
+      "case": "BV4-PAYM-benign_post_name",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "post_auth_hold_hours"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.54
+    },
+    {
+      "case": "BV4-PAYM-benign_post_name",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.68
+    },
+    {
+      "case": "BV4-PAYM-informative_missing",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.4
+    },
+    {
+      "case": "BV4-PAYM-informative_missing",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.4
+    },
+    {
+      "case": "BV4-PAYM-informative_missing",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.35
+    },
+    {
+      "case": "BV4-PAYM-label_by_key",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.49
+    },
+    {
+      "case": "BV4-PAYM-label_by_key",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "card_flagged"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.33
+    },
+    {
+      "case": "BV4-PAYM-label_by_key",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.46
+    },
+    {
+      "case": "BV4-PAYM-partial_labels",
+      "policy": "standard",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.31
+    },
+    {
+      "case": "BV4-PAYM-partial_labels",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.31
+    },
+    {
+      "case": "BV4-PAYM-partial_labels",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.3
+    },
+    {
+      "case": "BV4-PAYM-rare_entity_cluster",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 2.13
+    },
+    {
+      "case": "BV4-PAYM-rare_entity_cluster",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "card_ref"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.44
+    },
+    {
+      "case": "BV4-PAYM-rare_entity_cluster",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 2.16
+    },
+    {
+      "case": "BV4-PAYM-unclustered_entity",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 2.07
+    },
+    {
+      "case": "BV4-PAYM-unclustered_entity",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "terminal_ref"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.56
+    },
+    {
+      "case": "BV4-PAYM-unclustered_entity",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 2.05
+    },
+    {
+      "case": "BV4-PAYM-oversampled_positives",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.09
+    },
+    {
+      "case": "BV4-PAYM-oversampled_positives",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.09
+    },
+    {
+      "case": "BV4-PAYM-oversampled_positives",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.16
+    },
+    {
+      "case": "BV4-KIND-binary-0",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "subscriber_id"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.18
+    },
+    {
+      "case": "BV4-KIND-binary-0",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "final_refund_amount",
+        "subscriber_id"
+      ],
+      "declared": {
+        "time_column": "signup_time",
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.43
+    },
+    {
+      "case": "BV4-KIND-binary-0",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.66
+    },
+    {
+      "case": "BV4-KIND-binary-1",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "subscriber_id"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.16
+    },
+    {
+      "case": "BV4-KIND-binary-1",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "final_refund_amount",
+        "subscriber_id"
+      ],
+      "declared": {
+        "time_column": "signup_time",
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.4
+    },
+    {
+      "case": "BV4-KIND-binary-1",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.64
+    },
+    {
+      "case": "BV4-KIND-regression-0",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "order_id"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.17
+    },
+    {
+      "case": "BV4-KIND-regression-0",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "courier_rating",
+        "order_id"
+      ],
+      "declared": {
+        "time_column": "order_time",
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.16
+    },
+    {
+      "case": "BV4-KIND-regression-0",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.16
+    },
+    {
+      "case": "BV4-KIND-regression-1",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "order_id"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.16
+    },
+    {
+      "case": "BV4-KIND-regression-1",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "courier_rating",
+        "order_id"
+      ],
+      "declared": {
+        "time_column": "order_time",
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.14
+    },
+    {
+      "case": "BV4-KIND-regression-1",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.12
+    },
+    {
+      "case": "BV4-KIND-text_tabular-0",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "review_id"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.78
+    },
+    {
+      "case": "BV4-KIND-text_tabular-0",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "review_id",
+        "shop_reply"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.97
+    },
+    {
+      "case": "BV4-KIND-text_tabular-0",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 2.34
+    },
+    {
+      "case": "BV4-KIND-text_tabular-1",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "review_id"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.8
+    },
+    {
+      "case": "BV4-KIND-text_tabular-1",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "review_id",
+        "shop_reply"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 2.02
+    },
+    {
+      "case": "BV4-KIND-text_tabular-1",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 2.25
+    }
+  ],
+  "summary": {
+    "audit": {
+      "cases": 60,
+      "errors": 0,
+      "leaks_caught": [
+        26,
+        36
+      ],
+      "leaks_caught_rate": 0.722,
+      "leaks_caught_ci95": [
+        0.56,
+        0.842
+      ],
+      "false_alarms": [
+        6,
+        60
+      ],
+      "false_alarm_rate": 0.1,
+      "false_alarm_ci95": [
+        0.047,
+        0.201
+      ],
+      "unsafe_refused": [
+        0,
+        0
+      ],
+      "valid_moves": 1.0,
+      "engine_checks": [
+        5,
+        5
+      ],
+      "citations_exist": [
+        60,
+        60
+      ],
+      "by_trap": {
+        "binary_replica": [
+          2,
+          2
+        ],
+        "group_label": [
+          3,
+          4
+        ],
+        "identifier": [
+          4,
+          4
+        ],
+        "label_by_key": [
+          1,
+          1
+        ],
+        "missing_is_outcome": [
+          1,
+          3
+        ],
+        "noisy_target_copy": [
+          3,
+          3
+        ],
+        "partial_labels": [
+          0,
+          1
+        ],
+        "post_outcome_name": [
+          4,
+          4
+        ],
+        "post_outcome_neutral": [
+          1,
+          4
+        ],
+        "rare_entity_cluster": [
+          0,
+          1
+        ],
+        "regression_replica": [
+          0,
+          2
+        ],
+        "sum_identity": [
+          1,
+          1
+        ],
+        "text_tabular_replica": [
+          2,
+          2
+        ],
+        "time_random_split": [
+          3,
+          3
+        ],
+        "unit_conversion": [
+          1,
+          1
+        ]
+      }
+    },
+    "bad": {
+      "cases": 60,
+      "errors": 0,
+      "leaks_caught": [
+        0,
+        36
+      ],
+      "leaks_caught_rate": 0.0,
+      "leaks_caught_ci95": [
+        0.0,
+        0.096
+      ],
+      "false_alarms": [
+        0,
+        60
+      ],
+      "false_alarm_rate": 0.0,
+      "false_alarm_ci95": [
+        0.0,
+        0.06
+      ],
+      "unsafe_refused": [
+        60,
+        60
+      ],
+      "valid_moves": 0.75,
+      "engine_checks": [
+        5,
+        5
+      ],
+      "citations_exist": [
+        60,
+        60
+      ],
+      "by_trap": {
+        "binary_replica": [
+          0,
+          2
+        ],
+        "group_label": [
+          0,
+          4
+        ],
+        "identifier": [
+          0,
+          4
+        ],
+        "label_by_key": [
+          0,
+          1
+        ],
+        "missing_is_outcome": [
+          0,
+          3
+        ],
+        "noisy_target_copy": [
+          0,
+          3
+        ],
+        "partial_labels": [
+          0,
+          1
+        ],
+        "post_outcome_name": [
+          0,
+          4
+        ],
+        "post_outcome_neutral": [
+          0,
+          4
+        ],
+        "rare_entity_cluster": [
+          0,
+          1
+        ],
+        "regression_replica": [
+          0,
+          2
+        ],
+        "sum_identity": [
+          0,
+          1
+        ],
+        "text_tabular_replica": [
+          0,
+          2
+        ],
+        "time_random_split": [
+          0,
+          3
+        ],
+        "unit_conversion": [
+          0,
+          1
+        ]
+      }
+    },
+    "standard": {
+      "cases": 60,
+      "errors": 0,
+      "leaks_caught": [
+        5,
+        36
+      ],
+      "leaks_caught_rate": 0.139,
+      "leaks_caught_ci95": [
+        0.061,
+        0.287
+      ],
+      "false_alarms": [
+        0,
+        60
+      ],
+      "false_alarm_rate": 0.0,
+      "false_alarm_ci95": [
+        0.0,
+        0.06
+      ],
+      "unsafe_refused": [
+        0,
+        0
+      ],
+      "valid_moves": 1.0,
+      "engine_checks": [
+        5,
+        5
+      ],
+      "citations_exist": [
+        60,
+        60
+      ],
+      "by_trap": {
+        "binary_replica": [
+          0,
+          2
+        ],
+        "group_label": [
+          0,
+          4
+        ],
+        "identifier": [
+          4,
+          4
+        ],
+        "label_by_key": [
+          0,
+          1
+        ],
+        "missing_is_outcome": [
+          0,
+          3
+        ],
+        "noisy_target_copy": [
+          0,
+          3
+        ],
+        "partial_labels": [
+          1,
+          1
+        ],
+        "post_outcome_name": [
+          0,
+          4
+        ],
+        "post_outcome_neutral": [
+          0,
+          4
+        ],
+        "rare_entity_cluster": [
+          0,
+          1
+        ],
+        "regression_replica": [
+          0,
+          2
+        ],
+        "sum_identity": [
+          0,
+          1
+        ],
+        "text_tabular_replica": [
+          0,
+          2
+        ],
+        "time_random_split": [
+          0,
+          3
+        ],
+        "unit_conversion": [
+          0,
+          1
+        ]
+      }
+    }
+  },
+  "limitations": [
+    "Scripted policies on seeded, planted traps: evidence about these policies on these cases, not about any model's readiness for production.",
+    "Four kinds only (binary, regression, rare_event, text_tabular): the scripted policies judge a table with one yes or no or numeric outcome; every other kind is judged by its acceptance on its replica (kinds_v1).",
+    "Cases built from one base or one replica share its columns and its generator: they are not independent of each other.",
+    "v3's test generators were scored before (BEN3-005 to BEN3-008); v4 reseeds them, so only the replica cases' sealed seeds are new to every rule.",
+    "A leak counts as caught when the column is kept out of the model; the reason given is not checked."
+  ],
+  "split": "dev",
+  "sealed": false,
+  "by_family": {
+    "audit": {
+      "benign_post_name": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          3,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.301,
+          0.954
+        ]
+      },
+      "binary_replica": {
+        "leaks_caught": [
+          2,
+          2
+        ],
+        "leaks_caught_ci95": [
+          0.342,
+          1.0
+        ],
+        "false_alarms": [
+          0,
+          2
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.658
+        ]
+      },
+      "clean": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "constant_column": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "duplicates": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "group_label": {
+        "leaks_caught": [
+          3,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.301,
+          0.954
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "identifier": {
+        "leaks_caught": [
+          4,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.51,
+          1.0
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "informative_missing": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          3
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.561
+        ]
+      },
+      "label_by_key": {
+        "leaks_caught": [
+          1,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.207,
+          1.0
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "missing_is_outcome": {
+        "leaks_caught": [
+          1,
+          3
+        ],
+        "leaks_caught_ci95": [
+          0.061,
+          0.792
+        ],
+        "false_alarms": [
+          0,
+          3
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.561
+        ]
+      },
+      "noisy_target_copy": {
+        "leaks_caught": [
+          3,
+          3
+        ],
+        "leaks_caught_ci95": [
+          0.439,
+          1.0
+        ],
+        "false_alarms": [
+          0,
+          3
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.561
+        ]
+      },
+      "oversampled_positives": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "partial_labels": {
+        "leaks_caught": [
+          0,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.793
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "post_outcome_name": {
+        "leaks_caught": [
+          4,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.51,
+          1.0
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "post_outcome_neutral": {
+        "leaks_caught": [
+          1,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.046,
+          0.699
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "rare_entity_cluster": {
+        "leaks_caught": [
+          0,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.793
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "regression_replica": {
+        "leaks_caught": [
+          0,
+          2
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.658
+        ],
+        "false_alarms": [
+          0,
+          2
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.658
+        ]
+      },
+      "strong_honest_driver": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          2,
+          3
+        ],
+        "false_alarm_ci95": [
+          0.208,
+          0.939
+        ]
+      },
+      "sum_identity": {
+        "leaks_caught": [
+          1,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.207,
+          1.0
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "text_tabular_replica": {
+        "leaks_caught": [
+          2,
+          2
+        ],
+        "leaks_caught_ci95": [
+          0.342,
+          1.0
+        ],
+        "false_alarms": [
+          0,
+          2
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.658
+        ]
+      },
+      "time_random_split": {
+        "leaks_caught": [
+          3,
+          3
+        ],
+        "leaks_caught_ci95": [
+          0.439,
+          1.0
+        ],
+        "false_alarms": [
+          0,
+          3
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.561
+        ]
+      },
+      "unclustered_entity": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          1,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.207,
+          1.0
+        ]
+      },
+      "unit_conversion": {
+        "leaks_caught": [
+          1,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.207,
+          1.0
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      }
+    },
+    "bad": {
+      "benign_post_name": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "binary_replica": {
+        "leaks_caught": [
+          0,
+          2
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.658
+        ],
+        "false_alarms": [
+          0,
+          2
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.658
+        ]
+      },
+      "clean": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "constant_column": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "duplicates": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "group_label": {
+        "leaks_caught": [
+          0,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.49
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "identifier": {
+        "leaks_caught": [
+          0,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.49
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "informative_missing": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          3
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.561
+        ]
+      },
+      "label_by_key": {
+        "leaks_caught": [
+          0,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.793
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "missing_is_outcome": {
+        "leaks_caught": [
+          0,
+          3
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.561
+        ],
+        "false_alarms": [
+          0,
+          3
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.561
+        ]
+      },
+      "noisy_target_copy": {
+        "leaks_caught": [
+          0,
+          3
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.561
+        ],
+        "false_alarms": [
+          0,
+          3
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.561
+        ]
+      },
+      "oversampled_positives": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "partial_labels": {
+        "leaks_caught": [
+          0,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.793
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "post_outcome_name": {
+        "leaks_caught": [
+          0,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.49
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "post_outcome_neutral": {
+        "leaks_caught": [
+          0,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.49
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "rare_entity_cluster": {
+        "leaks_caught": [
+          0,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.793
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "regression_replica": {
+        "leaks_caught": [
+          0,
+          2
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.658
+        ],
+        "false_alarms": [
+          0,
+          2
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.658
+        ]
+      },
+      "strong_honest_driver": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          3
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.561
+        ]
+      },
+      "sum_identity": {
+        "leaks_caught": [
+          0,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.793
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "text_tabular_replica": {
+        "leaks_caught": [
+          0,
+          2
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.658
+        ],
+        "false_alarms": [
+          0,
+          2
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.658
+        ]
+      },
+      "time_random_split": {
+        "leaks_caught": [
+          0,
+          3
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.561
+        ],
+        "false_alarms": [
+          0,
+          3
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.561
+        ]
+      },
+      "unclustered_entity": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "unit_conversion": {
+        "leaks_caught": [
+          0,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.793
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      }
+    },
+    "standard": {
+      "benign_post_name": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "binary_replica": {
+        "leaks_caught": [
+          0,
+          2
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.658
+        ],
+        "false_alarms": [
+          0,
+          2
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.658
+        ]
+      },
+      "clean": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "constant_column": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "duplicates": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "group_label": {
+        "leaks_caught": [
+          0,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.49
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "identifier": {
+        "leaks_caught": [
+          4,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.51,
+          1.0
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "informative_missing": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          3
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.561
+        ]
+      },
+      "label_by_key": {
+        "leaks_caught": [
+          0,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.793
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "missing_is_outcome": {
+        "leaks_caught": [
+          0,
+          3
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.561
+        ],
+        "false_alarms": [
+          0,
+          3
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.561
+        ]
+      },
+      "noisy_target_copy": {
+        "leaks_caught": [
+          0,
+          3
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.561
+        ],
+        "false_alarms": [
+          0,
+          3
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.561
+        ]
+      },
+      "oversampled_positives": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "partial_labels": {
+        "leaks_caught": [
+          1,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.207,
+          1.0
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "post_outcome_name": {
+        "leaks_caught": [
+          0,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.49
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "post_outcome_neutral": {
+        "leaks_caught": [
+          0,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.49
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "rare_entity_cluster": {
+        "leaks_caught": [
+          0,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.793
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "regression_replica": {
+        "leaks_caught": [
+          0,
+          2
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.658
+        ],
+        "false_alarms": [
+          0,
+          2
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.658
+        ]
+      },
+      "strong_honest_driver": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          3
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.561
+        ]
+      },
+      "sum_identity": {
+        "leaks_caught": [
+          0,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.793
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "text_tabular_replica": {
+        "leaks_caught": [
+          0,
+          2
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.658
+        ],
+        "false_alarms": [
+          0,
+          2
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.658
+        ]
+      },
+      "time_random_split": {
+        "leaks_caught": [
+          0,
+          3
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.561
+        ],
+        "false_alarms": [
+          0,
+          3
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.561
+        ]
+      },
+      "unclustered_entity": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "unit_conversion": {
+        "leaks_caught": [
+          0,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.793
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      }
+    }
+  },
+  "by_kind": {
+    "binary": {
+      "standard": {
+        "leaks_caught": [
+          2,
+          16
+        ],
+        "false_alarms": [
+          0,
+          28
+        ],
+        "leaks_caught_ci95": [
+          0.035,
+          0.36
+        ],
+        "false_alarms_ci95": [
+          0.0,
+          0.121
+        ]
+      },
+      "audit": {
+        "leaks_caught": [
+          13,
+          16
+        ],
+        "false_alarms": [
+          3,
+          28
+        ],
+        "leaks_caught_ci95": [
+          0.57,
+          0.934
+        ],
+        "false_alarms_ci95": [
+          0.037,
+          0.272
+        ]
+      },
+      "bad": {
+        "leaks_caught": [
+          0,
+          16
+        ],
+        "false_alarms": [
+          0,
+          28
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.194
+        ],
+        "false_alarms_ci95": [
+          0.0,
+          0.121
+        ]
+      }
+    },
+    "regression": {
+      "standard": {
+        "leaks_caught": [
+          1,
+          9
+        ],
+        "false_alarms": [
+          0,
+          14
+        ],
+        "leaks_caught_ci95": [
+          0.02,
+          0.435
+        ],
+        "false_alarms_ci95": [
+          0.0,
+          0.215
+        ]
+      },
+      "audit": {
+        "leaks_caught": [
+          6,
+          9
+        ],
+        "false_alarms": [
+          1,
+          14
+        ],
+        "leaks_caught_ci95": [
+          0.354,
+          0.879
+        ],
+        "false_alarms_ci95": [
+          0.013,
+          0.315
+        ]
+      },
+      "bad": {
+        "leaks_caught": [
+          0,
+          9
+        ],
+        "false_alarms": [
+          0,
+          14
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.299
+        ],
+        "false_alarms_ci95": [
+          0.0,
+          0.215
+        ]
+      }
+    },
+    "rare_event": {
+      "standard": {
+        "leaks_caught": [
+          2,
+          9
+        ],
+        "false_alarms": [
+          0,
+          16
+        ],
+        "leaks_caught_ci95": [
+          0.063,
+          0.547
+        ],
+        "false_alarms_ci95": [
+          0.0,
+          0.194
+        ]
+      },
+      "audit": {
+        "leaks_caught": [
+          5,
+          9
+        ],
+        "false_alarms": [
+          2,
+          16
+        ],
+        "leaks_caught_ci95": [
+          0.267,
+          0.811
+        ],
+        "false_alarms_ci95": [
+          0.035,
+          0.36
+        ]
+      },
+      "bad": {
+        "leaks_caught": [
+          0,
+          9
+        ],
+        "false_alarms": [
+          0,
+          16
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.299
+        ],
+        "false_alarms_ci95": [
+          0.0,
+          0.194
+        ]
+      }
+    },
+    "text_tabular": {
+      "standard": {
+        "leaks_caught": [
+          0,
+          2
+        ],
+        "false_alarms": [
+          0,
+          2
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.658
+        ],
+        "false_alarms_ci95": [
+          0.0,
+          0.658
+        ]
+      },
+      "audit": {
+        "leaks_caught": [
+          2,
+          2
+        ],
+        "false_alarms": [
+          0,
+          2
+        ],
+        "leaks_caught_ci95": [
+          0.342,
+          1.0
+        ],
+        "false_alarms_ci95": [
+          0.0,
+          0.658
+        ]
+      },
+      "bad": {
+        "leaks_caught": [
+          0,
+          2
+        ],
+        "false_alarms": [
+          0,
+          2
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.658
+        ],
+        "false_alarms_ci95": [
+          0.0,
+          0.658
+        ]
+      }
+    }
+  },
+  "code": {
+    "commit": "1e1a0b649320dc6f115f04a8785afccc5d9e006f",
+    "clean_tree": false,
+    "prompt_hashes": {
+      "prompt:base_audit": "00ca260f5f22ef4e",
+      "prompt:evidence_answer": "1d5a29ab7625c442",
+      "prompt:home_agent": "cdd86dda083d9f04",
+      "prompt:home_plan": "4a5997517306687b",
+      "prompt:intern": "940712db9ba17a4e",
+      "prompt:intern_memory": "03299d06968ff8e7",
+      "prompt:leakage_review": "8a2ad6a0c8b4464f",
+      "prompt:lesson_proposal": "82be48a747b7fa03",
+      "prompt:notebook_fixes": "ba2518c858e53ff2",
+      "prompt:parse_pattern": "0c7f52395e5d583d",
+      "prompt:stage_critique": "0c28d31fea660837",
+      "prompt:stage_explain": "2bb437ac6f749d1e",
+      "prompt:synthetic_schema": "90f444b5eed17145",
+      "prompt:tools_as_text": "12bbc00ec34548c6",
+      "tools:project": "b4f789ff10a0dc6d",
+      "tools:draft": "0805399dc3bc6442",
+      "tools:session": "efe01ef63a00e175",
+      "tools:campaign": "959a1dfb09b41b8f",
+      "validator:graph": "286160517fa70d45"
+    }
+  }
+}

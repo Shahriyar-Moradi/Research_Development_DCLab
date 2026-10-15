@@ -1,0 +1,198 @@
+{
+ "package": "16.14",
+ "title": "Agents and evidence per kind, second half: the benchmark, the pitfalls, the lessons and the tracks by kind",
+ "date": "2026-10-15",
+ "request": "The open halves of 16.14: the benchmark reporting by kind with intervals, pitfalls measured per kind, each kind's traps in a new benchmark version, lessons filed by kind, a track per kind. Done when an agent's method question cites the kind's evidence and the benchmark reports per kind with intervals.",
+ "spec": "Benchmark v4 filing every case by kind with the replicas' traps and a sealed set frozen before its run; pitfalls measured on each tabular replica; lessons carrying the kind; tracks about each kind.",
+ "plan": [
+  "Survey the benchmark, pitfalls, lessons, tracks and the evidence index.",
+  "File lessons by kind.",
+  "Write benchmark v4 by kind and freeze its sealed set.",
+  "Measure each kind's pitfalls on its replica.",
+  "Give regression and places tracks; list each track's kinds.",
+  "Review, fix before the freeze, commit, run from the commit."
+ ],
+ "decisions": [
+  {
+   "decision": "Kinds the scripted policies cannot judge are said as not judged and read by their acceptance.",
+   "why": "An empty interval must never read as a pass."
+  },
+  {
+   "decision": "Results of a run made before the review's fixes, never committed, were removed and run again from the commit.",
+   "why": "A record must come from the code it names."
+  },
+  {
+   "decision": "The sealed replica seeds start after every seed a campaign read.",
+   "why": "A sealed case must be unseen by every rule."
+  }
+ ],
+ "change": "dclab_rnd/agent_eval/benchmark_v4.py and its sealed file, by_kind.py, run.py, dclab_rnd/pitfalls_by_kind.py, evidence_index.py, tools.py, lessons.py, research_map.py, kinds regression and places, research/tabular-regression and places-and-spatial, campaigns benchmark_v4 and pitfalls_by_kind_v1, KND-019 and KND-020, the knowledge base and track indexes, Makefile; tests/test_kinds_by_kind.py (new); the playbook, the roadmap, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The first dev run of the new benchmark stopped on the scorer's case lookup.",
+   "scenario": "Summarizing the results looked the trap up in v2 and v3 only and raised on a v4 case.",
+   "cause": "The scorer knew the frozen benchmarks by name.",
+   "fix": "The lookup falls back to v4.",
+   "test": "test_every_case_is_filed_by_its_kind_and_v3_is_untouched"
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The random split's cost was too noisy to read from one holdout draw.",
+   "scenario": "On the places replica one block draw gave a gap from 5800 to 20000 across seeds.",
+   "cause": "A single random holdout and a single block draw per seed.",
+   "fix": "Five draws of each, averaged per seed.",
+   "test": "test_a_kinds_leak_and_its_split_are_measured_on_its_replica"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The generated evidence index was not rebuilt.",
+   "scenario": "The new pitfall records were missing from the index agents read, and the new test failed.",
+   "cause": "The knowledge base is generated.",
+   "fix": "Rebuilt after the runs, in the same commit.",
+   "test": "test_the_records_are_filed_by_kind"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Stored results named the old tracks.",
+   "scenario": "The places and regression acceptance records named driving-maps and time-series-forecasting.",
+   "cause": "The tracks changed after those runs.",
+   "fix": "Both kinds' acceptance and the pitfalls rerun from the committed code into new records.",
+   "test": "test_every_kind_has_a_track_of_its_own_subject_and_its_index_names_it"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The sealed set included a replica seed already read.",
+   "scenario": "Seed 2 of the replicas had been run and read by the kinds' acceptance and the pitfalls.",
+   "cause": "The sealed seeds overlapped the campaigns' seeds.",
+   "fix": "Sealed replica seeds 3 to 5, before the freeze; the limitation that v3's test generators were scored before restored.",
+   "test": "test_a_replica_case_carries_its_time_its_entity_and_its_clean_columns_and_no_seed_already_read"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The text kind's leak cost was measured against a baseline without the text.",
+   "scenario": "The review text was dropped as a row key, so the clean model scored below chance and the leak looked worth 0.51.",
+   "cause": "Every many-valued text column was taken for a key.",
+   "fix": "The kind's text is read through words weighted on the training rows only; the cost is 0.12.",
+   "test": "test_the_text_and_a_time_valued_leak_are_modelled_and_no_effect_is_said_as_none"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "One of regression's two leaks was named but never modelled.",
+   "scenario": "The delivery's end time is a time, and times were left out, so only the rating counted.",
+   "cause": "Time columns were dropped from the features.",
+   "fix": "A time is modelled as its seconds after the row's own time; only modelled leaks are named; the cost is 8.3 minutes.",
+   "test": "test_the_text_and_a_time_valued_leak_are_modelled_and_no_effect_is_said_as_none"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A gap inside its noise was claimed as looking better.",
+   "scenario": "A random split's 0.0031 minutes on regression, with an interval across zero, read as a flattering split.",
+   "cause": "The claim wording ignored the interval.",
+   "fix": "An interval holding zero is said as no difference measured, with why.",
+   "test": "test_the_text_and_a_time_valued_leak_are_modelled_and_no_effect_is_said_as_none"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Replica cases tested the leak only.",
+   "scenario": "The binary replica's time and the regression replica's entity were not expected.",
+   "cause": "The case left them unset.",
+   "fix": "Each replica case expects its time and its entity.",
+   "test": "test_a_replica_case_carries_its_time_its_entity_and_its_clean_columns_and_no_seed_already_read"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "False alarms on replica cases were measured on a few columns or none.",
+   "scenario": "The text kind showed zero false alarms of zero, read as a pass.",
+   "cause": "No clean columns were listed.",
+   "fix": "The replica's honest columns are listed; a count of zero is said as not measured.",
+   "test": "test_a_replica_case_carries_its_time_its_entity_and_its_clean_columns_and_no_seed_already_read"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The generated track indexes would go stale on commit.",
+   "scenario": "Indexes count committed files.",
+   "cause": "Generated before the files were added.",
+   "fix": "Rebuilt after the runs.",
+   "test": "test_every_kind_has_a_track_of_its_own_subject_and_its_index_names_it"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The interval assumed three seeds, and blocks held out another share.",
+   "scenario": "Any other number of seeds used the three-seed t value; block draws held out a fifth of blocks, not of rows.",
+   "cause": "Fixed constants.",
+   "fix": "The t value by seeds; blocks drawn until they hold the same share of rows.",
+   "test": "test_a_kinds_leak_and_its_split_are_measured_on_its_replica"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Older lessons are never found by kind.",
+   "scenario": "A lesson accepted before 16.14 has no kind in its scope.",
+   "cause": "The kind is written at acceptance.",
+   "fix": "Said in the function: the kind is never guessed.",
+   "test": "test_a_lesson_is_filed_by_its_projects_kind"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "benchmark v4 by kind",
+   "gate": "the benchmark reports results per kind with intervals",
+   "result": "leaks caught and false alarms per kind and policy with Wilson intervals for binary, regression, rare_event and text_tabular, on dev and on the sealed set run once; on the sealed replica cases the audit kept 0 of 3 regression leaks out",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "per kind and policy with intervals for the kinds named; every other kind said as not judged and read by its acceptance",
+   "limits": [
+    "Scripted policies.",
+    "Cases of one replica are not independent."
+   ]
+  },
+  {
+   "name": "pitfalls per kind",
+   "gate": "each tabular kind's pitfalls measured on its replica",
+   "result": "a kept leak inflates every kind measured (0.3361 ROC-AUC on binary, 8.2786 minutes on regression, 0.1166 on text_tabular); a random split flatters places by 19486.9478 against blocks; no difference measured on replicas without drift",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "every tabular kind named measured on its replica",
+   "limits": [
+    "Invented replicas and one model family."
+   ]
+  }
+ ],
+ "outcome": "Every benchmark case is filed by its kind, results and pitfalls are reported per kind with intervals, lessons carry their kind, and each kind's track lists its evidence.",
+ "lessons": [
+  "Fix what a reviewer finds before freezing a sealed set: after it, nothing can change.",
+  "A baseline that lost its best input makes any leak look large.",
+  "An interval that holds zero is a measurement of nothing, and must be said so."
+ ],
+ "risks": [
+  "The scripted policies judge four kinds only.",
+  "Images wait on a local encoder."
+ ],
+ "commits": []
+}

@@ -21,7 +21,7 @@ No experiments in this folder yet.
 **Related evidence campaigns** (shared across tracks, in `evidence/campaigns/`):
 
 - [expansion_v1](../../evidence/campaigns/expansion_v1): 20 result files · [CAMPAIGN_REPORT.md](../../evidence/campaigns/expansion_v1/CAMPAIGN_REPORT.md)
-- [kinds_v1](../../evidence/campaigns/kinds_v1): 18 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+- [kinds_v1](../../evidence/campaigns/kinds_v1): 20 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
 
 ## Notebooks
 
@@ -34,6 +34,19 @@ No evaluation artifacts yet.
 ## Reports and research notes
 
 Research notes live in [README.md](README.md) until there is enough material for `reports/`.
+
+## Problem kinds
+
+The kinds whose evidence this track holds (16.14), each from its stored results.
+
+### Forecasting (`forecasting`)
+
+Many series forecast a horizon ahead from a forecast moment: demand per store and product, load per region.
+
+Also called: time series forecasting, demand forecast, sales forecast, backtesting.
+
+- **Acceptance on its replica**: every decision held on 3 of 3 seeds (95% interval [0.439, 1.0]), [KND-004](../../evidence/campaigns/kinds_v1/results/KND-004_forecasting.json).
+- **Benchmark**: not judged by the benchmark's scripted policies (one yes or no or numeric outcome column): see its acceptance.
 
 ## Related tracks
 

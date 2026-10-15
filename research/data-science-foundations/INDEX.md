@@ -17,7 +17,7 @@ No experiments in this folder yet.
 **Related evidence campaigns** (shared across tracks, in `evidence/campaigns/`):
 
 - [model_building_50_v1](../../evidence/campaigns/model_building_50_v1): 50 result files · [CAMPAIGN_REPORT.md](../../evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md)
-- [kinds_v1](../../evidence/campaigns/kinds_v1): 18 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+- [kinds_v1](../../evidence/campaigns/kinds_v1): 20 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
 
 ## Notebooks
 
@@ -30,6 +30,19 @@ No evaluation artifacts yet.
 ## Reports and research notes
 
 Research notes live in [README.md](README.md) until there is enough material for `reports/`.
+
+## Problem kinds
+
+The kinds whose evidence this track holds (16.14), each from its stored results.
+
+### Segmentation (`segmentation`)
+
+Groups of customers (or items, or places) that behave alike, when there is no outcome to predict.
+
+Also called: clustering, customer segments, personas, unsupervised grouping.
+
+- **Acceptance on its replica**: every decision held on 3 of 3 seeds (95% interval [0.439, 1.0]), [KND-010](../../evidence/campaigns/kinds_v1/results/KND-010_segmentation.json).
+- **Benchmark**: not judged by the benchmark's scripted policies (one yes or no or numeric outcome column): see its acceptance.
 
 ## Related tracks
 

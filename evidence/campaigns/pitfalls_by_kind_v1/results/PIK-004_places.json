@@ -1,0 +1,89 @@
+{
+  "experiment_id": "PIK-004",
+  "campaign_id": "pitfalls_by_kind_v1",
+  "kind": "pitfall",
+  "problem_kind": "places",
+  "pitfall": "places pitfalls",
+  "title": "Places: values over a map: what its pitfalls cost on its replica",
+  "question": "On the Places: values over a map replica, how much better does a wrong split or a kept leak make the score look?",
+  "setup_summary": "3 seeds of the places replica; 20% held out; histogram gradient boosting with default settings; mean absolute error; right split: whole blocks of 5 km.",
+  "evidence": {
+    "random_split": {
+      "gaps": [
+        15426.355,
+        27137.7677,
+        15896.7208
+      ],
+      "mean": 19486.9478,
+      "ci95": [
+        3015.8428,
+        35958.0529
+      ],
+      "seeds": 3,
+      "measured": true
+    },
+    "runs": [
+      {
+        "seed": 0,
+        "rows": 3000,
+        "task": "regression",
+        "right_split": "whole blocks of 5 km",
+        "pitfalls": {
+          "random_split": {
+            "wrong": 54847.7572,
+            "right": 70274.1122,
+            "gap": 15426.355
+          }
+        }
+      },
+      {
+        "seed": 1,
+        "rows": 3000,
+        "task": "regression",
+        "right_split": "whole blocks of 5 km",
+        "pitfalls": {
+          "random_split": {
+            "wrong": 76854.3701,
+            "right": 103992.1379,
+            "gap": 27137.7677
+          }
+        }
+      },
+      {
+        "seed": 2,
+        "rows": 3000,
+        "task": "regression",
+        "right_split": "whole blocks of 5 km",
+        "pitfalls": {
+          "random_split": {
+            "wrong": 106757.0453,
+            "right": 122653.7662,
+            "gap": 15896.7208
+          }
+        }
+      }
+    ]
+  },
+  "claims": [
+    {
+      "id": "C1",
+      "kind": "fact",
+      "statement": "On the Places: values over a map replica, a random split instead of whole blocks of 5 km makes the mean absolute error look better by 19486.9478 on average over 3 seeds (95% interval 3015.8428 to 35958.0529).",
+      "evidence": [
+        "evidence.random_split"
+      ],
+      "limitations": [
+        "Invented replica data with its traps planted, one model family with default settings: the size of the effect on a real table differs; the direction is what the replica shows."
+      ]
+    }
+  ],
+  "track": "places-and-spatial",
+  "provenance": {
+    "at": "2026-10-15T04:23:25+00:00",
+    "seeds": [
+      0,
+      1,
+      2
+    ]
+  }
+}

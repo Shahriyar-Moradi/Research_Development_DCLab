@@ -26,7 +26,7 @@ Best result of each churn study; development CV, not independent confirmation.
 **Related evidence campaigns** (shared across tracks, in `evidence/campaigns/`):
 
 - [pitfalls_v1](../../evidence/campaigns/pitfalls_v1): 6 result files · [PITFALLS_REPORT.md](../../evidence/campaigns/pitfalls_v1/PITFALLS_REPORT.md)
-- [kinds_v1](../../evidence/campaigns/kinds_v1): 18 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+- [kinds_v1](../../evidence/campaigns/kinds_v1): 20 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
 
 ## Notebooks
 
@@ -40,6 +40,28 @@ Best result of each churn study; development CV, not independent confirmation.
 ## Reports and research notes
 
 - [experiments/churn_exp/](experiments/churn_exp): [CHURN_BENCHMARK.md](experiments/churn_exp/CHURN_BENCHMARK.md)
+
+## Problem kinds
+
+The kinds whose evidence this track holds (16.14), each from its stored results.
+
+### Several tables: entity targets as of a cutoff (`entity_tables`)
+
+Customers with their orders and tickets in separate tables: will a customer stop, buy or call in the days after a date?
+
+Also called: relational tables, feature aggregation per customer, transactions per customer, point-in-time features.
+
+- **Acceptance on its replica**: every decision held on 3 of 3 seeds (95% interval [0.439, 1.0]), [KND-016](../../evidence/campaigns/kinds_v1/results/KND-016_entity_tables.json).
+- **Benchmark**: not judged by the benchmark's scripted policies (one yes or no or numeric outcome column): see its acceptance.
+
+### Time to event (`time_to_event`)
+
+How long until something happens (a cancellation, a failure), when for some rows it has not happened yet.
+
+Also called: survival analysis, churn timing, censoring, time until cancellation.
+
+- **Acceptance on its replica**: every decision held on 3 of 3 seeds (95% interval [0.439, 1.0]), [KND-013](../../evidence/campaigns/kinds_v1/results/KND-013_time_to_event.json).
+- **Benchmark**: not judged by the benchmark's scripted policies (one yes or no or numeric outcome column): see its acceptance.
 
 ## Related tracks
 

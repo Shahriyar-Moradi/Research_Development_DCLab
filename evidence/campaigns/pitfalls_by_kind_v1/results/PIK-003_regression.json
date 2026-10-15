@@ -1,0 +1,142 @@
+{
+  "experiment_id": "PIK-003",
+  "campaign_id": "pitfalls_by_kind_v1",
+  "kind": "pitfall",
+  "problem_kind": "regression",
+  "pitfall": "regression pitfalls",
+  "title": "Regression: what its pitfalls cost on its replica",
+  "question": "On the Regression replica, how much better does a wrong split or a kept leak make the score look?",
+  "setup_summary": "3 seeds of the regression replica; 20% held out; histogram gradient boosting with default settings; mean absolute error; right split: the latest rows by time.",
+  "evidence": {
+    "random_split": {
+      "gaps": [
+        -0.4282,
+        -0.1649,
+        0.6023
+      ],
+      "mean": 0.0031,
+      "ci95": [
+        -1.327,
+        1.3332
+      ],
+      "seeds": 3,
+      "measured": false
+    },
+    "leak_kept_in": {
+      "gaps": [
+        8.1158,
+        7.859,
+        8.8609
+      ],
+      "mean": 8.2786,
+      "ci95": [
+        6.9857,
+        9.5714
+      ],
+      "seeds": 3,
+      "measured": true
+    },
+    "runs": [
+      {
+        "seed": 0,
+        "rows": 3000,
+        "task": "regression",
+        "right_split": "the latest rows by time",
+        "pitfalls": {
+          "random_split": {
+            "wrong": 8.6172,
+            "right": 8.189,
+            "gap": -0.4282
+          },
+          "leak_kept_in": {
+            "wrong": 0.0732,
+            "right": 8.189,
+            "leaks": [
+              "courier_rating",
+              "delivered_at"
+            ],
+            "gap": 8.1158
+          }
+        }
+      },
+      {
+        "seed": 1,
+        "rows": 3000,
+        "task": "regression",
+        "right_split": "the latest rows by time",
+        "pitfalls": {
+          "random_split": {
+            "wrong": 8.1018,
+            "right": 7.9369,
+            "gap": -0.1649
+          },
+          "leak_kept_in": {
+            "wrong": 0.0779,
+            "right": 7.9369,
+            "leaks": [
+              "courier_rating",
+              "delivered_at"
+            ],
+            "gap": 7.859
+          }
+        }
+      },
+      {
+        "seed": 2,
+        "rows": 3000,
+        "task": "regression",
+        "right_split": "the latest rows by time",
+        "pitfalls": {
+          "random_split": {
+            "wrong": 8.3427,
+            "right": 8.945,
+            "gap": 0.6023
+          },
+          "leak_kept_in": {
+            "wrong": 0.0841,
+            "right": 8.945,
+            "leaks": [
+              "courier_rating",
+              "delivered_at"
+            ],
+            "gap": 8.8609
+          }
+        }
+      }
+    ]
+  },
+  "claims": [
+    {
+      "id": "C1",
+      "kind": "fact",
+      "statement": "On the Regression replica, a random split instead of the latest rows by time showed no difference beyond the spread of 3 seeds (mean 0.0031, 95% interval -1.327 to 1.3332).",
+      "evidence": [
+        "evidence.random_split"
+      ],
+      "limitations": [
+        "Invented replica data with its traps planted, one model family with default settings: the size of the effect on a real table differs; the direction is what the replica shows.",
+        "No difference measured on this replica: it plants no effect of this kind (no drift over time), which says nothing about a real table, where a random split is still the wrong one for a time-ordered problem."
+      ]
+    },
+    {
+      "id": "C2",
+      "kind": "fact",
+      "statement": "On the Regression replica, the planted leak kept in makes the mean absolute error look better by 8.2786 on average over 3 seeds (95% interval 6.9857 to 9.5714).",
+      "evidence": [
+        "evidence.leak_kept_in"
+      ],
+      "limitations": [
+        "Invented replica data with its traps planted, one model family with default settings: the size of the effect on a real table differs; the direction is what the replica shows."
+      ]
+    }
+  ],
+  "track": "tabular-regression",
+  "provenance": {
+    "at": "2026-10-15T04:22:56+00:00",
+    "seeds": [
+      0,
+      1,
+      2
+    ]
+  }
+}

@@ -12,13 +12,15 @@ No champion yet. The first measured result recorded in this track becomes the ba
 
 ## Experiments
 
-No experiments in this folder yet.
+| Experiment | Result files | Notebooks | Scripts | Entry point |
+|---|---:|---:|---:|---|
+| [.gitkeep](experiments/.gitkeep) | 0 | 0 | 0 | [.gitkeep](experiments/.gitkeep) |
 
 **Related evidence campaigns** (shared across tracks, in `evidence/campaigns/`):
 
-- [kinds_v1](../../evidence/campaigns/kinds_v1): 18 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
-- [pitfalls_by_kind_v1](../../evidence/campaigns/pitfalls_by_kind_v1): 0 result files · [README.md](../../evidence/campaigns/pitfalls_by_kind_v1/README.md)
-- [benchmark_v4](../../evidence/campaigns/benchmark_v4): 0 result files · [README.md](../../evidence/campaigns/benchmark_v4/README.md)
+- [kinds_v1](../../evidence/campaigns/kinds_v1): 20 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+- [pitfalls_by_kind_v1](../../evidence/campaigns/pitfalls_by_kind_v1): 5 result files · [README.md](../../evidence/campaigns/pitfalls_by_kind_v1/README.md)
+- [benchmark_v4](../../evidence/campaigns/benchmark_v4): 2 result files · [README.md](../../evidence/campaigns/benchmark_v4/README.md)
 
 ## Notebooks
 
@@ -26,7 +28,7 @@ No notebooks yet.
 
 ## Evaluation
 
-No evaluation artifacts yet.
+- [.gitkeep](evaluation/.gitkeep)
 
 ## Reports and research notes
 
@@ -42,10 +44,11 @@ A number for each row: a delivery time, a price, a count.
 
 Also called: regression, predicting a number, delivery time, minutes.
 
-- **Acceptance on its replica**: every decision held on 3 of 3 seeds (95% interval [0.439, 1.0]), [KND-009](../../evidence/campaigns/kinds_v1/results/KND-009_regression.json).
-- **Pitfall random split** (PIK-003): the wrong way looks better by 0.0031 on average (95% interval [-1.327, 1.3332]).
-- **Pitfall leak kept in** (PIK-003): the wrong way looks better by 1.7435 on average (95% interval [1.0086, 2.4783]).
-- **Benchmark v4, dev** (BEN4-002): the standard plan kept 1 of 9 leaks out (95% [0.02, 0.435]), 0 false alarms of 12.
+- **Acceptance on its replica**: every decision held on 3 of 3 seeds (95% interval [0.439, 1.0]), [KND-020](../../evidence/campaigns/kinds_v1/results/KND-020_regression.json).
+- **Pitfall random split** (PIK-003): no difference measured on this replica (mean 0.0031, 95% interval [-1.327, 1.3332]): it plants no such effect.
+- **Pitfall leak kept in** (PIK-003): the wrong way looks better by 8.2786 on average (95% interval [6.9857, 9.5714]).
+- **Benchmark v4, dev** (BEN4-001): the standard plan kept 1 of 9 leaks out (95% [0.02, 0.435]), 0 false alarms of 14 (95% [0.0, 0.215]).
+- **Benchmark v4, sealed** (BEN4-002): the standard plan kept 0 of 3 leaks out (95% [0.0, 0.561]), 0 false alarms of 3 (95% [0.0, 0.561]).
 
 ## Related tracks
 

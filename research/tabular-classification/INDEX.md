@@ -41,7 +41,9 @@ Best deployment-eligible result per dataset from the evidence registry (leakage-
 - [model_building_50_v1](../../evidence/campaigns/model_building_50_v1): 50 result files · [CAMPAIGN_REPORT.md](../../evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md)
 - [pitfalls_v1](../../evidence/campaigns/pitfalls_v1): 6 result files · [PITFALLS_REPORT.md](../../evidence/campaigns/pitfalls_v1/PITFALLS_REPORT.md)
 - [category_codes_v1](../../evidence/campaigns/category_codes_v1): 4 result files · [CAMPAIGN_REPORT.md](../../evidence/campaigns/category_codes_v1/CAMPAIGN_REPORT.md)
-- [kinds_v1](../../evidence/campaigns/kinds_v1): 18 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+- [kinds_v1](../../evidence/campaigns/kinds_v1): 20 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+- [pitfalls_by_kind_v1](../../evidence/campaigns/pitfalls_by_kind_v1): 5 result files · [README.md](../../evidence/campaigns/pitfalls_by_kind_v1/README.md)
+- [benchmark_v4](../../evidence/campaigns/benchmark_v4): 2 result files · [README.md](../../evidence/campaigns/benchmark_v4/README.md)
 
 ## Notebooks
 
@@ -61,6 +63,33 @@ Best deployment-eligible result per dataset from the evidence registry (leakage-
 - [experiments/optimized_safe_model/](experiments/optimized_safe_model): [MASTER_REPORT.md](experiments/optimized_safe_model/MASTER_REPORT.md), [MASTER_REPORT.pdf](experiments/optimized_safe_model/MASTER_REPORT.pdf), [OPTIMIZED_SAFE_REPORT.md](experiments/optimized_safe_model/OPTIMIZED_SAFE_REPORT.md), [OPTIMIZED_VS_UNSAFE_BENCHMARK.md](experiments/optimized_safe_model/OPTIMIZED_VS_UNSAFE_BENCHMARK.md)
 - [experiments/safe_leakage_exp/](experiments/safe_leakage_exp): [SAFE_VS_UNSAFE_REPORT.md](experiments/safe_leakage_exp/SAFE_VS_UNSAFE_REPORT.md)
 - [reports/](reports): [EXTERNAL_MULTI_DATASET_REPORT.md](reports/EXTERNAL_MULTI_DATASET_REPORT.md), [MASTER_4WAY_BENCHMARK_REPORT.md](reports/MASTER_4WAY_BENCHMARK_REPORT.md), [MASTER_4WAY_BENCHMARK_REPORT.pdf](reports/MASTER_4WAY_BENCHMARK_REPORT.pdf), [MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md](reports/MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md), [MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.pdf](reports/MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.pdf)
+
+## Problem kinds
+
+The kinds whose evidence this track holds (16.14), each from its stored results.
+
+### Binary classification (`binary`)
+
+A yes or no for each row: churn, default, acceptance.
+
+Also called: binary classification, yes or no prediction, churn classifier, customer table.
+
+- **Acceptance on its replica**: every decision held on 3 of 3 seeds (95% interval [0.439, 1.0]), [KND-001](../../evidence/campaigns/kinds_v1/results/KND-001_binary.json).
+- **Pitfall random split** (PIK-001): no difference measured on this replica (mean 0.0062, 95% interval [-0.0315, 0.0438]): it plants no such effect.
+- **Pitfall leak kept in** (PIK-001): the wrong way looks better by 0.3361 on average (95% interval [0.2916, 0.3806]).
+- **Benchmark v4, dev** (BEN4-001): the standard plan kept 2 of 16 leaks out (95% [0.035, 0.36]), 0 false alarms of 28 (95% [0.0, 0.121]).
+- **Benchmark v4, sealed** (BEN4-002): the standard plan kept 5 of 31 leaks out (95% [0.071, 0.326]), 3 false alarms of 55 (95% [0.019, 0.149]).
+
+### Multiclass classification (`multiclass`)
+
+One of several classes for each row: a ticket's team, a product's category.
+
+Also called: multiclass classification, ticket routing, category classifier, uneven classes.
+
+- **Acceptance on its replica**: every decision held on 3 of 3 seeds (95% interval [0.439, 1.0]), [KND-005](../../evidence/campaigns/kinds_v1/results/KND-005_multiclass.json).
+- **Pitfall random split** (PIK-002): no difference measured on this replica (mean 0.0432, 95% interval [-0.0208, 0.1073]): it plants no such effect.
+- **Pitfall leak kept in** (PIK-002): the wrong way looks better by 0.4341 on average (95% interval [0.3591, 0.5091]).
+- **Benchmark**: not judged by the benchmark's scripted policies (one yes or no or numeric outcome column): see its acceptance.
 
 ## Related tracks
 
