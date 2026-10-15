@@ -182,7 +182,7 @@ POINTS: dict[str, Point] = {p.key: p for p in (
 )}
 ANSWERERS = ("rule", "model_role", "classifier", "person")
 LEVELS = (0, 1, 2, 3)  # L0 shadow (never used) … L3 (acts alone): the main product's levels
-LABEL_SOURCES = ("benchmark", "blind", "measured", "user_decision_exposed")
+LABEL_SOURCES = ("benchmark", "blind", "measured", "user_decision_exposed", "model")  # model: v2, a model shown the blind view
 
 
 def answer_problem(point: "Point", value: Any) -> Optional[str]:
@@ -309,12 +309,14 @@ class Evidence(Contract):
 class DecisionLabel(Versioned):
     """What the right value of a decision was, from one source; a new label supersedes an older one, never edits it."""
 
-    schema_version: Literal["dclab_core.decision_label.v1"] = _version("decision_label")
+    schema_version: Literal["dclab_core.decision_label.v2"] = _version("decision_label", 2)
     id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{6,80}$")
     record: str = Field(min_length=1, max_length=80, description="The decision record it labels.")
     point: str
     value: Scalar
-    source: Literal["benchmark", "blind", "measured", "user_decision_exposed"]
+    # v2 (2026-10-15): "model", a model's answer to the blind view (what a blind reviewer sees); kept apart from a person's
+    # labels everywhere: agreement with a model is not correctness, and a model may itself be one of the answerers measured
+    source: Literal["benchmark", "blind", "measured", "user_decision_exposed", "model"]
     by: str = Field(min_length=1, max_length=120, description="Who or what: a replica's name, a reviewer's role, a measurement.")
     at: str
     supersedes: Optional[str] = Field(default=None, max_length=80)
@@ -323,14 +325,24 @@ class DecisionLabel(Versioned):
     weight_note: Optional[str] = Field(default=None, max_length=300, description="Why a blind label has no weight here: its "
                                        "source keeps the sampling probability elsewhere. An estimate must not use it unweighted.")
 
+    @model_validator(mode="before")
+    @classmethod
+    def _read_v1(cls, data: Any) -> Any:
+        """A label as stored; a v1 label is read as v2: v2 only added a source."""
+        if isinstance(data, dict) and data.get("schema_version") == "dclab_core.decision_label.v1":
+            data = {**data, "schema_version": "dclab_core.decision_label.v2"}
+        return data
+
     @model_validator(mode="after")
     def _checked(self) -> "DecisionLabel":
+        if self.source == "model" and not self.by.startswith("model:"):
+            raise ValueError("a model's label names its model: by is 'model:<name>'")
         if self.point not in POINTS:
             raise ValueError(f"unknown decision point {self.point!r}")
         if self.source == "blind" and self.weight is None and not self.weight_note:
             raise ValueError("a blind label carries its sampling weight, or says where its source keeps it (weight_note)")
-        if self.source != "blind" and (self.weight is not None or self.weight_note):
-            raise ValueError("only a blind label is weighted")
+        if self.source not in ("blind", "model") and (self.weight is not None or self.weight_note):
+            raise ValueError("only a label of the blind draw is weighted (a person's or a model's)")
         problem = answer_problem(POINTS[self.point], self.value)
         if problem:
             raise ValueError(f"value: {problem}")
@@ -343,7 +355,7 @@ SHADOW = "shadow"  # an answer recorded beside the others and never used (22.4):
 
 
 # ------------------------------------------------------------------------------------------------ which label counts (19.8)
-PRECEDENCE = ("blind", "benchmark", "measured", "user_decision_exposed")  # first is strongest
+PRECEDENCE = ("blind", "benchmark", "measured", "user_decision_exposed")  # first is strongest; a model's label is never truth (v2)
 
 
 def current_labels(labels: list[DecisionLabel]) -> list[DecisionLabel]:

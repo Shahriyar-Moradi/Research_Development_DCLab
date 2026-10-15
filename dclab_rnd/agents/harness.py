@@ -64,6 +64,7 @@ MODEL_USES: dict[str, str] = {  # purpose -> why it is not an agent: one complet
     "leakage_review": "a second reading of leakage suspects",
     "campaign_review": "the review of a finished research campaign",
     "decision_answer": "one decision answered from its state, beside the rule (22.5)",
+    "decision_labeler": "one drawn decision labelled from its blind view, kept apart from a person's labels",
 }
 
 

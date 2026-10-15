@@ -35,7 +35,7 @@ Builder = Literal["decisions", "conversations", "preferences", "trajectories", "
 SourceKind = Literal["decision", "label", "event", "visit", "conversation", "run", "project", "draft", "package", "flag"]
 SPLITS = (("sealed", 0.2), ("dev", 0.4))  # a group's hash below 0.2: sealed; below 0.4: dev; the rest train
 SALT = "dclab-datasets-v1"  # one salt for every set: a project is sealed (or not) everywhere at once
-LABEL_SOURCES = ("benchmark", "measured", "user_decision_exposed", "blind")
+LABEL_SOURCES = ("benchmark", "measured", "user_decision_exposed", "blind", "model")  # model: a second opinion, never the effective label
 
 
 class Source(Contract):
@@ -136,7 +136,8 @@ def decisions(docs: Iterable[dict[str, Any]], point: str, *, workspace: Optional
             mine = [x for x in current if x.source == source]
             if mine:
                 last = max(mine, key=lambda x: x.at)
-                apart[source] = {"value": last.value, "weight": last.weight} if source == "blind" else last.value
+                apart[source] = ({"value": last.value, "weight": last.weight} if source == "blind" else
+                                 {"value": last.value, "weight": last.weight, "by": last.by} if source == "model" else last.value)
                 by_source[source] += 1
         effective = ledger.effective_label(record, labels)
         group = _group(doc, drafts)

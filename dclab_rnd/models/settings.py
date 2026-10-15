@@ -83,6 +83,9 @@ PURPOSES: dict[str, Purpose] = {
     "decision_answer": Purpose("cheap", 60, "one decision's question and options, and what is known about its column: the column's name, "
                                             "its name tokens and bands (storage type, share of distinct and missing values, the shape of its "
                                             "written values) and the outcome column's name (package 22.5); never rows or cell values"),
+    "decision_labeler": Purpose("standard", 60, "what a blind reviewer sees of one decision: its point, question and options, its subject "
+                                                "(a column's or table's name) and the state (the column's name, its name tokens and bands, "
+                                                "the outcome column's name); never DCLab's answer, rows or cell values (blind labels by a model)"),
     "intern": Purpose("strong", 180, "the task, and the results of the tools it calls: data profiles (with up to three example values per "
                                      "column from describe_data), stage records and evidence records (with this workspace's accepted lessons: other "
                                      "projects' aggregate results and scope); never whole rows", cell_values=3 * 200),

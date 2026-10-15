@@ -51,7 +51,7 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.decision_label.v1.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.decision_label.v2.json",
   "additionalProperties": false,
   "description": "What the right value of a decision was, from one source; a new label supersedes an older one, never edits it.",
   "properties": {
@@ -94,8 +94,8 @@
       "type": "string"
     },
     "schema_version": {
-      "const": "dclab_core.decision_label.v1",
-      "default": "dclab_core.decision_label.v1",
+      "const": "dclab_core.decision_label.v2",
+      "default": "dclab_core.decision_label.v2",
       "title": "Schema Version",
       "type": "string"
     },
@@ -104,7 +104,8 @@
         "benchmark",
         "blind",
         "measured",
-        "user_decision_exposed"
+        "user_decision_exposed",
+        "model"
       ],
       "title": "Source",
       "type": "string"

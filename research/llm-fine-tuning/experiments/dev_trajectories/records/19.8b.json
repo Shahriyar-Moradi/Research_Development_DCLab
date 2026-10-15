@@ -1,0 +1,70 @@
+{
+ "package": "19.8b",
+ "title": "Claude helps label decisions, blind: a model's labels kept apart from a person's",
+ "date": "2026-10-15",
+ "request": "The owner asked to use Claude Sonnet for labelling the blind decisions, and to get help from Claude models for labelling.",
+ "spec": "A model sees exactly the blind view of each drawn decision and answers it; its labels are their own source, named and weighted, never the effective label, never exported as a person's, and a gap when it cannot tell.",
+ "plan": [
+  "Read the label contract, its consumers and the blind draw.",
+  "Add a model source in a new contract version that reads old labels.",
+  "Write the labeller through a gateway purpose with its own prompt and a cap.",
+  "Keep its labels apart in the summary and the sets.",
+  "Test, document, commit."
+ ],
+ "decisions": [
+  {
+   "decision": "A model's labels never become the effective label.",
+   "why": "Agreement with a model is not correctness, and a model may itself be one of the answerers measured."
+  },
+  {
+   "decision": "A new contract version rather than reusing a source.",
+   "why": "Filing a model's opinion as measured or blind would make it read as truth."
+  },
+  {
+   "decision": "The labeller has its own prompt and purpose, not the decision answerer's.",
+   "why": "Labels from the same prompt as an answerer would grade that answerer by itself."
+  }
+ ],
+ "change": "dclab_core/ledger.py (decision_label v2, the model source, weights on the draw), datasets.py, prompts/decision_labeler.md and HASHES, schemas (v2 baseline), CHANGELOG 0.37.0; dclab_rnd/ledger/model_labels.py (new), models/settings.py and agents/harness.py (the decision_labeler purpose); tests model_labels (new) and datasets; docs/guides/BLIND_LABELLING.md.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "A model's label was refused for its evidence.",
+   "scenario": "No label was kept: the evidence kind was not one the contract knows.",
+   "cause": "A new kind was used without the contract.",
+   "fix": "The reviewer's kind, review.",
+   "test": "test_the_model_sees_the_blind_view_only_and_its_labels_are_kept_apart"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "A model's label was refused for its weight.",
+   "scenario": "Labels on the blind draw without their weight could not be estimated.",
+   "cause": "Only a person's blind label could carry a weight.",
+   "fix": "A label of the draw carries its weight, a person's or a model's.",
+   "test": "test_the_model_sees_the_blind_view_only_and_its_labels_are_kept_apart"
+  },
+  {
+   "id": "T3",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The decision sets had no place for a model's label.",
+   "scenario": "A model label would be dropped from the set or mixed with others.",
+   "cause": "The sets listed four sources.",
+   "fix": "A model column of its own, with its name.",
+   "test": "test_the_identifier_set_keeps_its_labels_apart"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Claude can label the drawn decisions as a second opinion; the owner's labels stay the truth.",
+ "lessons": [
+  "A model's label is a second opinion: give it a source of its own, never one that reads as truth."
+ ],
+ "risks": [
+  "Claude's labels were not run on the owner's ledger yet: the dev database needs make dev's migration first."
+ ],
+ "commits": []
+}

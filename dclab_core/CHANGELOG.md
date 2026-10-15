@@ -4,6 +4,17 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.37.0 (2026-10-15)
+
+The owner asked Claude to help label decisions.
+
+- `ledger.DecisionLabel` v2 (`dclab_core.decision_label.v2`): the source `model`, a model's answer to a decision's blind
+  view, named (`by="model:<name>"`) and weighted like a person's blind label. A v1 label reads as v2. `effective_label`
+  never takes a model's label as the truth.
+- `datasets`: the decision sets keep a `model` column beside each source's.
+- `prompts/decision_labeler.md`: what the model is asked; `conversation_reader.md` names every family the card knows and
+  tells cases to review from items to rank.
+
 ## 0.36.0 (2026-10-15)
 
 Package 20.10 v2 and the open half of 16.15 C. No contract changes shape.

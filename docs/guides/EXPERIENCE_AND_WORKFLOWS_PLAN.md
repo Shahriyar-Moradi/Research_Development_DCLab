@@ -383,6 +383,14 @@ code are not one connected object a data scientist can read, run and change.
   of 30) say the same thing: word rules gain on each set's phrasings and meet new ones on the next. The next step is
   the conversation reader (20.2's model role), now that a model is configured (Claude Sonnet 5.5), measured on the
   three spent sets as dev material and judged on a fourth set written the same way.
+  **v4, the conversation reader (2026-10-15):** the reader (dclab_core's model role, served by Claude Sonnet 5.5) reads the
+  problem sentence and the answers that settle the card on Home; every value quotes the person, and it ranks below what
+  the person stated and what the data shows. A fourth sealed set, frozen (7debfff) before any reader work, ran once with
+  both arms from 8c24a21: **rules 20 of 30, reader 25 of 30** (`JRN-008`, `JRN-009`; 64 reader requests, none failed,
+  €0.25). The reader gained six people and lost one, but 25 is below the bar of 26, so by `GATE_V4`'s rule (fixed before
+  the run) it does not serve the product: `DCLAB_CONVERSATION_READER` stays without effect. Four independent sealed sets
+  say the rules alone reach 16 to 25 of 30 and the reader adds about five; the bar needs a reader that also reads what
+  the person never said in words (the data), and a fifth set to judge it.
 
 ---
 

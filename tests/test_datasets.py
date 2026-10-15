@@ -79,7 +79,7 @@ class WorkspaceTest(unittest.TestCase):
         rows = [json.loads(x) for f in ("rows.jsonl", "sealed.jsonl") if (folder / f).exists() for x in (folder / f).read_text().splitlines()]
         self.assertEqual({r["record"] for r in rows}, {r.id for r in self.recs[:3]})  # p2 did not consent
         first = next(r for r in rows if r["record"] == self.recs[0].id)
-        self.assertEqual(first["labels"], {"benchmark": True, "measured": True, "user_decision_exposed": True, "blind": None})
+        self.assertEqual(first["labels"], {"benchmark": True, "measured": True, "user_decision_exposed": True, "blind": None, "model": None})
         self.assertEqual(first["label"], {"value": True, "source": "benchmark"})
         sealed = (folder / "sealed.jsonl").read_text().splitlines() if (folder / "sealed.jsonl").exists() else []
         self.assertTrue(all(json.loads(x)["split"] == "sealed" for x in sealed))

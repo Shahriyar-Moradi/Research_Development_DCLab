@@ -46,6 +46,19 @@ on 30 answers is about ±0.17 at the worst). Start with the points the classifie
 `column.semantic_role`, `column.category_code`, `column.time`, `column.group` and `feature.leakage_suspect`. Then
 `python -m dclab_rnd.ledger.shadow recorded` measures each classifier against your labels.
 
+## Claude's help (a second opinion, never the truth)
+
+Claude Sonnet can label the same drawn decisions, seeing exactly what you see (the blind view, never DCLab's answer):
+
+    python -m dclab_rnd.ledger.model_labels                       # the plan: how many drawn decisions, the cap
+    python -m dclab_rnd.ledger.model_labels --yes --cap-eur 0.5   # about half a cent each, never more than the cap
+
+Its labels are kept apart from yours: source `model`, with the model's name and its reason. They are never the
+effective label, never exported to the main product, and never enough to promote a decision model, because agreement
+with a model is not correctness, and a model may itself be one of the answerers being measured. Use them to see where
+to look: a decision where Claude, the rule and the classifier disagree is where your label is worth most. When Claude
+says it cannot tell, the decision is left as a gap.
+
 ## What is never labelled blind
 
 Points whose state would name the answer, or that are a person's own judgement: the pack, the report's sentences,
