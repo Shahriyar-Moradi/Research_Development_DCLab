@@ -21,7 +21,8 @@ run once; nothing is tuned on them. Since 16.15 B the engine runs segmentation, 
 journeys of those families still expect the refusal, as they were sealed (JRN-002 stands); a later play of the sealed
 set would score them wrong for that reason alone. A second sealed set (``journeys_sealed_v2.json``, ``GATE_V2``: the same
 bar on the replicas' seed 2) was written by an agent that read only the replicas' columns and the format, and frozen
-before any rule changed for v1's failures; it runs once (``--split sealed_v2``).
+before any rule changed for v1's failures; it ran once (JRN-004: 24 of 30, a fail). A third (``journeys_sealed_v3.json``,
+``GATE_V3``, seed 3), written the same way, was frozen before the second set's misses were fixed (``--split sealed_v3``).
 """
 
 from __future__ import annotations
@@ -40,7 +41,7 @@ from unittest import mock
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 RESULTS = ROOT / "evidence" / "campaigns" / "journeys_v1" / "results"
-SEALED = {"sealed": "sealed.sha256", "sealed_v2": "sealed_v2.sha256"}
+SEALED = {"sealed": "sealed.sha256", "sealed_v2": "sealed_v2.sha256", "sealed_v3": "sealed_v3.sha256"}
 GATE = {
     "version": "journeys_gate_v1",
     "split": "sealed",
@@ -55,7 +56,10 @@ GATE = {
 GATE_V2 = {**GATE, "version": "journeys_gate_v2", "split": "sealed_v2",
            "seed": 2,  # neither the dev tables (0) nor v1's sealed ones (1)
            "author": "an agent that never read the rules, only the replicas' columns and the format"}
-GATES = {"sealed": GATE, "sealed_v2": GATE_V2}
+# 2026-10-15: the second set failed once (JRN-004, 24 of 30) and became dev material; a third, by another agent under the
+# same restrictions, frozen and committed before any rule changed for the second set's misses
+GATE_V3 = {**GATE_V2, "version": "journeys_gate_v3", "split": "sealed_v3", "seed": 3}
+GATES = {"sealed": GATE, "sealed_v2": GATE_V2, "sealed_v3": GATE_V3}
 PARTS = ("card", "workflow", "pipeline", "holdout")
 REFUSED = "family not built yet"  # dclab_core.coordinator.FAMILY_NOT_RUN: the build's rule for a family the engine does not run
 

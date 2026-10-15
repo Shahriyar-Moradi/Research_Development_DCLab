@@ -1,4 +1,4 @@
-"""``python -m dclab_rnd.agent_eval.journeys --split dev|sealed|sealed_v2 [--workers N] [--only ID|KIND ...] [--no-store]``."""
+"""``python -m dclab_rnd.agent_eval.journeys --split dev|sealed|sealed_v2|sealed_v3 [--workers N] [--only ID|KIND ...] [--no-store]``."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from . import GATES, SEALED, families, measure, sealed_runs, store, store_compar
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--split", default="dev", choices=("dev", "sealed", "sealed_v2"))
+    parser.add_argument("--split", default="dev", choices=("dev", "sealed", "sealed_v2", "sealed_v3"))
     parser.add_argument("--workers", type=int, default=min(4, max(1, (os.cpu_count() or 2) - 1)))  # each one an engine: memory
     parser.add_argument("--only", nargs="*")
     parser.add_argument("--no-store", action="store_true")

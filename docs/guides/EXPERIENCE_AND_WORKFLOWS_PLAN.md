@@ -363,6 +363,18 @@ code are not one connected object a data scientist can read, run and change.
   conversation reader (20.2's model role, measured) or the person's statement; a new sealed set by an independent
   writer (the owner's decision, as for 20.2); the kind's own fields are stated by the person on the Solution page, not
   asked; failures from Part 8's recorded sessions become cases once real sessions exist.
+  **v2 (2026-10-15):** a second sealed set (30 people, two per kind; `journeys_sealed_v2.json`, `GATE_V2`: the same bar
+  on replica seed 2) was written by an agent that read only the replicas' columns and the format, and frozen and
+  committed (6b6f7cf) before any rule changed; the first sealed set became dev material. The fixes (cbe18b9): the word
+  rules for the less common families tied to their context, a shape-only answer refined by the person's words (a named
+  family never), a table of long text alone read as text, several tables with an outcome said in words read as entity
+  tables, a negated history of cases read as nothing labelled, a rare event's unreached budget assumed and logged, "set
+  weeks before" read as known ahead; the first set's cards went from 18 to 30 of 30, dev stayed 15 of 15. The second
+  sealed run, once: **24 of 30, interval 0.63 to 0.90: fail** (`JRN-004`; the bar is 85%). Misses: three families said
+  in words the rules still do not read ("how much each shop will need the coming week", "how many months we can keep
+  them", "would have bought anyway"), an outcome named inside a phrase ("duration days_subscribed"), and two short
+  prediction moments ("at renewal", "at listing") that Home accepted and the Solution page refused (a dead end in the
+  product). A third sealed set is written by an independent agent and frozen before these are fixed.
 
 ---
 

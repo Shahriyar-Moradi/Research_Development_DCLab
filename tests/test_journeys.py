@@ -78,6 +78,12 @@ class JourneyTest(unittest.TestCase):
         with mock.patch.object(journeys, "HERE", tmp), self.assertRaises(ValueError):
             journeys.load("sealed")
 
+    def test_the_third_sealed_set_is_frozen_with_its_own_gate_and_seed(self):
+        people = journeys.load("sealed_v3")
+        self.assertEqual(len(people), 30)
+        self.assertEqual({j["kind"] for j in people}, {k.key for k in kinds.all_kinds()})
+        self.assertEqual((journeys.GATES["sealed_v3"]["seed"], journeys.GATES["sealed_v3"]["split"]), (3, "sealed_v3"))
+
     def test_the_second_sealed_set_is_frozen_with_its_own_gate_and_seed(self):
         people = journeys.load("sealed_v2")  # refused if a byte changed since it was pinned
         by_kind = {}
