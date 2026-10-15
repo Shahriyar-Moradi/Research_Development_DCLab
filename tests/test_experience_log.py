@@ -68,6 +68,7 @@ WRITE_ROUTES = {
     "DELETE /api/projects/{project_id}": (NONE, "the deletion is audited (its tombstone) and the project's events are removed (19.10)"),
     "DELETE /api/experience/sessions/{visit}": (NONE, "the session's events are removed; the audit keeps its tombstone (19.10)"),
     "POST /api/experience/ui": (EVENTS, ["ui.page_viewed", "ui.action", "ui.upload_started", "ui.upload_finished", "ui.error_shown"]),  # 23.2: the browser's own events, as the person
+    "POST /api/projects/{project_id}/outcome": (EVENTS, ["outcome.observed"]),  # 23.5: a business number, as the outcome of every decision
     "PUT /api/projects/{project_id}/data": (EVENTS, ["data.uploaded"]),
     "PUT /api/projects/{project_id}/tables/{name}": (EVENTS, ["data.uploaded"]),  # 16.15 C: a related table, its audit row a data import
     "POST /api/projects/{project_id}/pipeline/rerun": (EVENTS, ["job.started", "run.recorded"]),  # 20.8: a step rerun as a job

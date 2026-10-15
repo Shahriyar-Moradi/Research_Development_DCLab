@@ -1,0 +1,192 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.outcome.v1.json",
+  "additionalProperties": false,
+  "description": "How a decision turned out: one row per decision and observation; the newest per record is the current one.",
+  "properties": {
+    "at": {
+      "title": "At",
+      "type": "string"
+    },
+    "by": {
+      "description": "What observed it: final_stage, promotion, a person's role.",
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "By",
+      "type": "string"
+    },
+    "consent": {
+      "default": "operate",
+      "enum": [
+        "operate",
+        "improve",
+        "train"
+      ],
+      "title": "Consent",
+      "type": "string"
+    },
+    "higher_is_better": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Higher Is Better"
+    },
+    "id": {
+      "pattern": "^[A-Za-z0-9_.:-]{6,80}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "interval": {
+      "anyOf": [
+        {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Interval"
+    },
+    "metric": {
+      "description": "A metric's name as a slug (roc_auc, retained_customers): a person's words never travel in it.",
+      "pattern": "^[A-Za-z0-9_.:%/-]{1,80}$",
+      "title": "Metric",
+      "type": "string"
+    },
+    "note": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "A person's words with a business number (redacted when it leaves).",
+      "title": "Note"
+    },
+    "observed": {
+      "enum": [
+        "holdout",
+        "promotion",
+        "business"
+      ],
+      "title": "Observed",
+      "type": "string"
+    },
+    "point": {
+      "title": "Point",
+      "type": "string"
+    },
+    "project": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Project"
+    },
+    "record": {
+      "description": "The decision record it follows.",
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Record",
+      "type": "string"
+    },
+    "reference": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "What it was expected to be: the CV mean, a target.",
+      "title": "Reference"
+    },
+    "run": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Run"
+    },
+    "schema_version": {
+      "const": "dclab_core.outcome.v1",
+      "default": "dclab_core.outcome.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "value": {
+      "title": "Value",
+      "type": "number"
+    },
+    "verdict": {
+      "enum": [
+        "well",
+        "badly",
+        "unknown"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    },
+    "workspace": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Workspace"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "record",
+    "point",
+    "metric",
+    "value",
+    "observed",
+    "verdict",
+    "by",
+    "at"
+  ],
+  "title": "Outcome",
+  "type": "object"
+}

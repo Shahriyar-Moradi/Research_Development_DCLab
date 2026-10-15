@@ -486,6 +486,49 @@ async def remove_memory_note(project_id: str, note_id: str, body: Any = Body(Non
     return s.with_records(s.projects.get(project_id))
 
 
+@router.post("/api/projects/{project_id}/outcome", response_model=Page)
+async def record_outcome(project_id: str, payload: AnyObject, request: Request, s: Services = Depends(services)):
+    """23.5: a business number observed after the model ran ({"metric", "value", "reference"?, "higher_is_better"?, "note"?}),
+    written as the outcome of every decision of the project; judged only when both a reference and a direction (true or
+    false) are given, otherwise recorded with the verdict unknown and the holdout's verdict stays current. Owner and ML
+    engineer (the default write permission)."""
+    from ...accounts.principal import current
+    from ...ledger import outcomes
+
+    import math
+    import re
+
+    project = s.project(project_id)
+    if ((project.get("stages") or {}).get("final") or {}).get("status") not in ("completed", "approved"):
+        raise HTTPException(409, "A business number follows the model: run the final stage first")
+    body = payload.model_dump() if hasattr(payload, "model_dump") else dict(payload or {})
+    metric = str(body.get("metric") or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.:%/-]{1,80}", metric):
+        raise HTTPException(422, "metric is the number's name as one word, like retained_customers")
+
+    def number(name: str, required: bool) -> float | None:
+        raw = body.get(name)
+        if raw in (None, "") and not required:
+            return None
+        try:
+            found = float(raw)
+        except (TypeError, ValueError):
+            raise HTTPException(422, f"{name} is a number") from None
+        if not math.isfinite(found):
+            raise HTTPException(422, f"{name} is a finite number")
+        return found
+
+    value, reference = number("value", True), number("reference", False)
+    higher = body.get("higher_is_better")
+    if higher is not None and not isinstance(higher, bool):
+        raise HTTPException(422, "higher_is_better is true or false")
+    who = current()
+    out = await asyncio.to_thread(outcomes.observe, project_id, metric=metric, value=value, observed="business",
+                                  by=getattr(who, "role", None) or "person", reference=reference,
+                                  higher_is_better=higher, note=str(body.get("note") or "")[:300] or None)
+    return {"project_id": project_id, **out}
+
+
 @router.post("/api/projects/{project_id}/review", response_model=Project)
 async def confirm_review(project_id: str, payload: AnyObject, s: Services = Depends(services)):
     """{"confirmed": [keys], "rejected": [keys]}: alerts of an anomaly project's review list a person reviewed (20.7). The

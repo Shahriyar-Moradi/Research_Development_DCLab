@@ -55,7 +55,7 @@ SECRET = re.compile(
     r"|[a-z][a-z0-9+.-]*://[^\s/:@]+:[^\s/@]+@")                # a password in a connection string
 SHAREABLE = frozenset({"meta", "count"})  # what any export may keep
 READ_AS_CURRENT = frozenset({"dclab_core.experience_event.v1", "dclab_core.experience_event.v2", "dclab_core.experience_event.v3",
-                             "dclab_core.experience_event.v4"})  # read as v5: each a subset (v3 added consent; v4 the ui.* and auth.* kinds; v5 the error fingerprint)
+                             "dclab_core.experience_event.v4", "dclab_core.experience_event.v5"})  # read as v6: each a subset (v3 added consent; v4 the ui.* and auth.* kinds; v5 the error fingerprint; v6 outcome.observed)
 FINAL_STAGES = frozenset({"final", "terminal"})  # the last stage: this studio's, and the main product's
 
 M, C, P, A, X, V = "meta", "count", "person_text", "agent_text", "model_text", "cell_values"
@@ -118,6 +118,7 @@ KINDS: dict[str, dict[str, str]] = {
     "decision.refused": {"point": M, "choice": M, "rule": M, "reason": A},
     # quality signals
     "feedback.given": {"on": M, "rating": M, "reason": P},
+    "outcome.observed": {"metric": M, "value": C, "reference": C, "observed": M, "verdict": M, "decisions": C, "note": P},  # 23.5
     "consent.changed": {"scope": M, "use": M, "on": M, "was": M, "level": M, "notice_version": M},  # 23.1: a switch moved
     "export.made": {"what": M, "format": M},
     "job.started": {"kind": M, "key": M},
@@ -175,7 +176,7 @@ class ExperienceEvent(Versioned):
 
     model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False, json_schema_extra=_vocabulary)
 
-    schema_version: Literal["dclab_core.experience_event.v5"] = _version("experience_event", 5)
+    schema_version: Literal["dclab_core.experience_event.v6"] = _version("experience_event", 6)
     id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{6,80}$")
     at: str = Field(description="ISO 8601 with microseconds, UTC.")
     seq: int = Field(default=0, ge=0)

@@ -233,8 +233,10 @@ DC.view('admin', {
       [n(r.drawn), 'drawn for a blind label'], [n((r.by_used || {}).person), 'decided by a person']]
       .map(([v, l]) => `<div class="stat"><span class="v">${esc(v)}</span><span class="l">${esc(l)}</span></div>`).join('');
     const points = Object.entries(r.by_point || {});
-    if (points.length) $('#dec-body', el).innerHTML = points.map(([p, c]) => `<tr><td class="mono small">${esc(p)}</td><td class="mono small">${n(c)}</td></tr>`).join('');
-    else DC.states.empty($('#dec-body', el), 'No decision recorded yet: they appear as DCLab works on drafts and projects.', { cols: 2 });
+    const oc = r.outcomes || {};
+    if (points.length) $('#dec-body', el).innerHTML = points.map(([p, c]) => { const o = oc[p] || {}; return `<tr><td class="mono small">${esc(p)}</td><td class="mono small">${n(c)}</td>`
+      + `<td class="mono small">${n(o.well)}</td><td class="mono small">${n(o.badly)}</td><td class="mono small">${n((o.none || 0) + (o.unknown || 0))}</td></tr>`; }).join('');
+    else DC.states.empty($('#dec-body', el), 'No decision recorded yet: they appear as DCLab works on drafts and projects.', { cols: 5 });
     const shadows = Object.entries(r.shadow || {});
     const pct = v => (v === null || v === undefined) ? '—' : `${Math.round(v * 100)}%`;
     if (shadows.length) $('#shadow-body', el).innerHTML = shadows.map(([name, s]) => `<tr><td class="mono small">${esc(name)}</td><td>${esc(s.gate || '—')}</td>`

@@ -103,12 +103,15 @@ def summary(ledger: Any = None) -> dict[str, Any]:
 
     store = ledger if ledger is not None else current_ledger()
     if store is None:
-        return {"decisions": 0, "labels": 0, "by_point": {}, "by_used": {}, "by_kind": {}, "by_source": {}, "drawn": 0, "shadow": {}}
+        return {"decisions": 0, "labels": 0, "by_point": {}, "outcomes": {}, "by_used": {}, "by_kind": {}, "by_source": {}, "drawn": 0, "shadow": {}}
     records = store.records()
     labels = store.labels()
     from . import shadow
 
+    from dclab_core import outcomes as oc
+
     return {"decisions": len(records), "labels": len(labels), "by_point": dict(Counter(r.point for r in records).most_common()),
+            "outcomes": oc.by_point(records, store.outcomes()) if hasattr(store, "outcomes") else {},  # 23.5: turned out well or badly, per point
             "by_used": dict(Counter(r.used for r in records)), "by_kind": dict(Counter(r.kind for r in records)),
             "by_source": dict(Counter(x.source for x in labels)), "drawn": sum(1 for r in records if contract.blind_draw(r)),
             "shadow": shadow.measure(records, labels) if shadow.on() else {}}  # 22.4: each classifier beside the rule

@@ -198,9 +198,11 @@ def build(services: Any, root: Path | None = None) -> dict[str, Any]:
     if switches.get("train"):
         basis = "train: the workspace's switch and each project's own"
         events = consent.export_events(services.experience.read(limit=LIMIT), "train", switches, projects, draft_map)
-        records = consent.export_decisions(services.ledger.records(), services.ledger.labels(), switches, projects, draft_map)
+        records = consent.export_decisions(services.ledger.records(), services.ledger.labels(), switches, projects, draft_map,
+                                           outcomes=services.ledger.outcomes() if hasattr(services.ledger, "outcomes") else ())
         for point in sorted({d["point"] for d in records if d.get("point") in POINTS}):
             keep("decisions", point, lambda point=point: builders.decisions(records, point, workspace=workspace, consent=basis, drafts=draft_map))
+        keep("outcomes", "outcome_labels", lambda: builders.outcome_labels(records, workspace=workspace, consent=basis, drafts=draft_map))  # 23.5
         allowed = {i: p for i, p in projects.items() if consent.allowed(switches, p, "train")}
         keep("conversations", "problem_understanding", lambda: builders.conversations(events, workspace=workspace, consent=basis, drafts=draft_map))
         keep("preferences", "corrections", lambda: builders.preferences(records, workspace=workspace, consent=basis, drafts=draft_map))

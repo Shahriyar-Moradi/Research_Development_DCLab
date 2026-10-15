@@ -1178,6 +1178,15 @@ def _execute(store: ProjectStore, project_id: str, stage: str, project: dict[str
         return _execute_stage(store, project_id, stage, project, reuse_reason)
 
 
+def _after_final(project_id: str, record: dict[str, Any], run_id: str | None, p: Any) -> None:
+    """23.5: the one holdout read is the outcome of every decision the project made; a kind with its own machine keeps
+    its metric's direction there, the tabular engine in its bundle's spec."""
+    from ..ledger import outcomes
+
+    machine = getattr(p, "machine", None)
+    outcomes.from_final(project_id, record, run_id, machine.higher_is_better if machine is not None else p.bundle.spec.higher_is_better)
+
+
 def _execute_stage(store: ProjectStore, project_id: str, stage: str, project: dict[str, Any], reuse_reason: str | None,
                    parent: str | None = None) -> dict[str, Any]:
     """One stage run with its lineage (19.5): an id every event inside it carries, and its run record in the stage
@@ -1277,6 +1286,8 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
         from ..ledger import capture  # 19.7: what the stage chose among what it measured
 
         capture.stage_decisions(stage, record, p, project, project=project_id)
+        if stage == "final":  # 23.5
+            _after_final(project_id, record, run_id, p)
         project = store.get(project_id)
         project["stages"][stage] = {"status": "completed", "started": record["started_at"], "finished": record["completed_at"], "elapsed_seconds": float(elapsed),
                                     "run": run_id}
@@ -1365,6 +1376,10 @@ def approve(store: ProjectStore, project_id: str, stage: str, choice: str | None
     from ..ledger import capture  # 19.7: the rule's choice and the person's
 
     capture.approval(stage, record, choice, actor, project_id)
+    if stage == "final":  # 23.5: the final stage approved is the model promoted
+        from ..ledger import outcomes
+
+        outcomes.from_approval(project_id, record, actor)
     return project
 
 

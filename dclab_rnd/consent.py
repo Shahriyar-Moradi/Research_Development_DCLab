@@ -256,7 +256,7 @@ def export_events(events: Iterable[Any], use: str, workspace: dict[str, bool], p
 
 
 def export_decisions(records: Iterable[Any], labels: Iterable[Any], workspace: dict[str, bool],
-                     projects: dict[str, dict[str, Any]], drafts: dict[str, str] | None = None) -> list[dict[str, Any]]:
+                     projects: dict[str, dict[str, Any]], drafts: dict[str, str] | None = None, outcomes: Iterable[Any] = ()) -> list[dict[str, Any]]:
     """Decision records with their labels, for ``train`` only: states are bands (never values), reasons redacted, who
     answered or labelled named by kind, never by person; a draft's decisions follow the project it became."""
 
@@ -268,6 +268,14 @@ def export_decisions(records: Iterable[Any], labels: Iterable[Any], workspace: d
         doc = json.loads(label.model_dump_json())
         doc["by"] = _by(doc.get("by"))
         by_record.setdefault(label.record, []).append(doc)
+    outcomes_of: dict[str, list] = {}
+    for outcome in outcomes:  # 23.5: what followed, with its own stamp; a person's note redacted
+        if not core.exportable(outcome.consent, "train"):
+            continue
+        doc = json.loads(outcome.model_dump_json())
+        doc["by"] = _by(doc.get("by"))
+        doc.pop("note", None)  # a person's words stay home
+        outcomes_of.setdefault(outcome.record, []).append(doc)
     out = []
     for record in records:
         if not core.exportable(record.consent, "train"):  # 23.1: stamped at write time
@@ -282,6 +290,7 @@ def export_decisions(records: Iterable[Any], labels: Iterable[Any], workspace: d
             if a.get("reason"):
                 a["reason"] = _scrub(a["reason"], removed)
         doc["labels"] = by_record.get(record.id, [])
+        doc["outcomes"] = outcomes_of.get(record.id, [])
         out.append(doc)
     return out
 

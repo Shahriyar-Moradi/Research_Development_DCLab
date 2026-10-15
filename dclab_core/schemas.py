@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 import dclab_core.experience  # noqa: F401  (registers the experience contracts)
+import dclab_core.outcomes  # noqa: F401  (23.5: the outcome contract)
 from dclab_core.contracts import CONTRACTS
 
 SCHEMA_DIR = Path(__file__).resolve().parent / "schemas"

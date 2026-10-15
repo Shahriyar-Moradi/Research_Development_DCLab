@@ -31,13 +31,14 @@ CELL = "4111 1111 1111 1111"  # a value from a person's table
 
 
 def stores(home: Path):
+    """The product's own openers (23.1/23.3: a log opened bare, with no folder, stamps every record operate)."""
     if os.environ.get("DCLAB_DATABASE_URL"):
         from dclab_rnd.storage import db
 
         db.upgrade()
         wid = db.workspace_for(home)
-        return experience.PgLog(wid), ledger.PgLedger(wid)
-    return experience.FileLog(home / "experience", "wtest"), ledger.FileLedger(home / "ledger", "wtest")
+        return experience.open_log(home, wid), ledger.open_ledger(home, wid)
+    return experience.open_log(home, "wtest"), ledger.open_ledger(home, "wtest")
 
 
 def events(log, project="p1", visit="v1", at=None):

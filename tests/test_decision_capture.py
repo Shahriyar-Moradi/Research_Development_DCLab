@@ -90,6 +90,16 @@ class HomeToReportTest(unittest.TestCase):
     def points(self, **filters):
         return {r.point for r in self.records if all(getattr(r, k) == v for k, v in filters.items())}
 
+    def test_the_final_stage_and_its_approval_leave_an_outcome_for_the_decisions_it_followed(self):
+        """23.5 through the real engine: the holdout is the outcome of every decision of the project, and a replay adds none."""
+        rows = self.services.ledger.outcomes(project=self.project)
+        self.assertTrue(rows, "no outcome after the final stage")
+        self.assertEqual({o.observed for o in rows} - {"promotion"}, {"holdout"})  # the final stage, and its approval when the test made one
+        holdouts = [o for o in rows if o.observed == "holdout"]
+        self.assertTrue(all(o.verdict in ("well", "badly") and o.higher_is_better is not None and o.reference is not None for o in holdouts))
+        decided = {r.id for r in self.services.ledger.records(project=self.project) if r.at <= max(o.at for o in holdouts)}
+        self.assertTrue(decided <= {o.record for o in holdouts} | {o.record for o in rows}, "a decision of the project has no outcome")
+
     def test_every_point_is_captured_or_said_not_decided_here(self):
         self.assertEqual(set(ledger.CAPTURED) | set(ledger.NOT_DECIDED), set(L.POINTS))
         self.assertFalse(set(ledger.CAPTURED) & set(ledger.NOT_DECIDED))

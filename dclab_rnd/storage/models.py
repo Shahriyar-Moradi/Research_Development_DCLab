@@ -294,6 +294,15 @@ decision_label = sa.Table(  # what was right, from one source; a new label super
     sa.Column("doc", JSONB, nullable=False),  # dclab_core.decision_label.v1
     *[sa.Index(f"ix_decision_label_workspace_id_{c}", "workspace_id", c) for c in ("record_id", "point", "source")])
 
+decision_outcome = sa.Table(  # how a decision turned out, append-only (dclab_rnd/ledger/outcomes.py, 23.5)
+    "decision_outcome", metadata,
+    sa.Column("id", sa.String(80), primary_key=True),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id"), nullable=False),
+    sa.Column("at", sa.Text, nullable=False), sa.Column("record_id", sa.String(80), nullable=False), sa.Column("point", sa.Text, nullable=False),
+    sa.Column("project_id", sa.String(64)), sa.Column("run_id", sa.String(80)), sa.Column("observed", sa.Text, nullable=False),
+    sa.Column("doc", JSONB, nullable=False),  # dclab_core.outcome.v1
+    *[sa.Index(f"ix_decision_outcome_workspace_id_{c}", "workspace_id", c) for c in ("record_id", "point", "project_id")])
+
 model_pause = sa.Table(  # requests to an endpoint and model stop until a time, after a refusal that stays (models/pause.py, 10.5)
     "model_pause", metadata,
     sa.Column("key", sa.Text, primary_key=True),  # endpoint, model and a hash of the API key: never the key

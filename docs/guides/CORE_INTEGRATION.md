@@ -226,7 +226,7 @@ training is the owner's decision (its ADR 0008); `redact` keeps only what a use 
 
 ## Consent at write time (23.1)
 
-Every `ExperienceEvent` (v5 since 23.4; v3 added the stamp) and `DecisionRecord` (v2) carries `consent`: the level the record was written under,
+Every `ExperienceEvent` (v6 since 23.5; v3 added the stamp) and `DecisionRecord` (v2) carries `consent`: the level the record was written under,
 `operate` (kept to run the product, for support and audit; never leaves), `improve` or `train`
 (`dclab_core.consent.level_of` on the workspace's and the project's switches). An export keeps a record only when its
 stamp allows the use (`dclab_core.consent.exportable`) and the switches allow it now, so a later opt-in never
@@ -257,6 +257,18 @@ route of its own under the signed-in person's session, which runs `ui_payload` a
 trace id; a signed-out page sends nothing. The adapter does not read them (`KINDS_MISSING`): they are rows that
 route writes. Whether business users' pages are captured is decision D4 of the plan (route and action level, never
 contents, is the proposal).
+
+## Outcomes linked to decisions (23.5)
+
+`dclab_core.outcomes.Outcome` (v1) is how a decision turned out: the record it follows, the metric, its value and
+interval, the reference it was expected to meet, how it was observed (`holdout`, `promotion`, `business`) and the
+verdict `judge(value, reference, higher_is_better)` gives (`well` when the number holds its reference within a
+tolerance, `badly` otherwise, `unknown` without a reference). `join(records, outcomes)` gives the current outcome per
+decision and `by_point` the counts the Decisions tab shows. Where it goes there: `adapters.main_product_outcomes
+.from_experiment(row, decisions, metric, reference=…)` maps an `experiments` row's `result` onto the decisions whose
+`experiment_id` is that run; a `model_versions` promotion is mapped once the field lists carry that table
+(`FIELDS_MISSING`). The rows belong in a table of their own beside `project_decision_records` (append-only, deleted with
+the project), and the decision export carries them as `outcomes` beside `labels`, without a person's note; an outcome is never a label.
 
 ## Errors with fingerprints (23.4)
 

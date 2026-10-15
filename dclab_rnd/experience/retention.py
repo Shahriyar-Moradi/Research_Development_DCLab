@@ -163,7 +163,7 @@ def delete_decisions(ledger: Any, *, project: str | None = None, draft: str | No
     if hasattr(ledger, "engine"):
         import sqlalchemy as sa
 
-        from ..storage.models import decision_label as labels, decision_record as t
+        from ..storage.models import decision_label as labels, decision_outcome as outcomes, decision_record as t
 
         q = sa.select(t.c.id).where(t.c.workspace_id == ledger.workspace)
         q = q.where(t.c.project_id == project) if project else q.where(t.c.draft_id == draft)
@@ -173,7 +173,10 @@ def delete_decisions(ledger: Any, *, project: str | None = None, draft: str | No
             for start in range(0, len(ids), 5000):
                 chunk = ids[start:start + 5000]
                 c.execute(sa.delete(labels).where(labels.c.workspace_id == ledger.workspace, labels.c.record_id.in_(chunk)))
+                c.execute(sa.delete(outcomes).where(outcomes.c.workspace_id == ledger.workspace, outcomes.c.record_id.in_(chunk)))  # 23.5
                 c.execute(sa.delete(t).where(t.c.id.in_(chunk)))
+            if project:  # the rows of the project's drafts' decisions carry the project too
+                c.execute(sa.delete(outcomes).where(outcomes.c.workspace_id == ledger.workspace, outcomes.c.project_id == project))
             return len(ids)
     gone: set[str] = set()
 
@@ -188,6 +191,8 @@ def delete_decisions(ledger: Any, *, project: str | None = None, draft: str | No
     with held(Path(ledger.root)):  # the ledger's appenders hold its root: both folders under one lock
         _rewrite_held(Path(ledger.root) / "decisions", records) if (Path(ledger.root) / "decisions").exists() else None
         _rewrite_held(Path(ledger.root) / "labels", lambda d: None if d.get("record") in gone else d) if (Path(ledger.root) / "labels").exists() else None
+        _rewrite_held(Path(ledger.root) / "outcomes", lambda d: None if d.get("record") in gone or (project and d.get("project") == project) else d) \
+            if (Path(ledger.root) / "outcomes").exists() else None
     return len(gone)
 
 

@@ -1,0 +1,203 @@
+{
+ "package": "23.5",
+ "title": "Outcomes linked to decisions: what number followed each decision, judged against its reference",
+ "date": "2026-10-15",
+ "request": "Phase 1's gap: a decision was recorded with its answers and labels but never with what it led to. Every decision of a project should carry the outcome that followed (the final stage's holdout, a promotion, a business number a person typed), the decision sets should carry it, and the Decisions tab should show how each point turned out; adoptable by the main product.",
+ "spec": "dclab_core.outcomes.Outcome v1 with judge/join/by_point; outcome.observed events (contract v6); written by the final stage, the final stage's approval and POST /api/projects/{id}/outcome for every decision of the project; stored append-only (files or decision_outcome, migration 0018) and deleted with the project; the decision export carries them without a person's note; datasets.decisions rows gain outcome and datasets.outcome_labels is a set of its own; the Admin Decisions tab counts well/badly/none per point; adapters.main_product_outcomes maps an experiments row's result.",
+ "plan": [
+  "Contract and rule in dclab_core: Outcome, judge (a holdout within a tolerance of its CV estimate turned out well), join, by_point.",
+  "A store per backend, append-only like the ledger's other tables; retention removes a project's rows.",
+  "Write where the number is observed: the final stage, its approval, a route for a business number; one event per observation.",
+  "Carry it out: export, decision sets, an outcome_labels set, the Decisions tab.",
+  "Adapter: experiments.result onto the decisions linked to the experiment; model_versions listed as missing."
+ ],
+ "decisions": [
+  {
+   "decision": "Every decision of the project gets the project's outcome, not only the final stage's.",
+   "why": "A number follows every choice that shaped the pipeline; which ones mattered is what a model may learn from the set."
+  },
+  {
+   "decision": "The verdict compares the holdout to the chosen model's cross-validation mean within a tolerance (0.02 for a bounded metric, 5% otherwise).",
+   "why": "An honest model holds its estimate; a holdout far below it says the decisions before it misled."
+  },
+  {
+   "decision": "An outcome is never a label and effective_label never reads it.",
+   "why": "It says what followed, not what was right: a good number can follow a leak."
+  },
+  {
+   "decision": "A promotion is the final stage approved; there is no rejection in this product.",
+   "why": "The product has no model registry; the main product's model_versions is the place for both."
+  },
+  {
+   "decision": "The export drops a person's note outright.",
+   "why": "Free text has no place in a set; the number and the verdict are what the set needs."
+  },
+  {
+   "decision": "The experience event moves to v6 and the dataset manifest to v3.",
+   "why": "A kind and a builder value are part of a contract's shape (the rule since 23.2)."
+  }
+ ],
+ "change": "dclab_core outcomes.py (new), experience.py (kind, v6), datasets.py (outcome column, outcome_labels, manifest v3), schemas.py, adapters/main_product_outcomes.py (new), adapters/main_product_experience.py (KINDS_MISSING), CHANGELOG 0.42.0; dclab_rnd ledger/outcomes.py (new), ledger/__init__.py (the stores' add_outcome/outcomes), storage/models.py + migration 0018, experience/retention.py, studio/engine.py (final stage, approval), agentic/routers/projects.py (the route), ledger/labels.py (summary), consent.py (export), datasets.py (build), web admin.html; tests test_outcomes.py (new), test_experience_log, test_datasets, test_consent (its stores opened the product's way), the version pins; CORE_INTEGRATION.md, the plan.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The gate on 23.4 failed under PostgreSQL: tests/test_consent.py built its PgLog bare, and since 23.3 a log with no folder stamps every record operate.",
+   "scenario": "ExportTest exported nothing on PostgreSQL; on files it passed because a FileLog knows its folder.",
+   "cause": "The test did not open its stores the product's way.",
+   "fix": "The test's stores() uses experience.open_log and ledger.open_ledger (the folder is set there).",
+   "test": "test_consent on PostgreSQL"
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "An exported decision doc with its new outcomes key failed DecisionRecord validation in the set builders.",
+   "scenario": "datasets.decisions raised extra_forbidden; no decision set was built.",
+   "cause": "The builders strip labels only.",
+   "fix": "Every reader strips labels and outcomes.",
+   "test": "test_the_decision_sets_carry_the_outcome_and_a_deleted_project_loses_its_rows"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The outcomes builder was not in the manifest's Builder vocabulary.",
+   "scenario": "outcome_labels not built.",
+   "cause": "A Literal.",
+   "fix": "DatasetManifest v3 (v1, v2 read as v3).",
+   "test": "test_datasets"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Outcomes were written during a replay, into the real ledger.",
+   "scenario": "POST .../pipeline/rerun?step=stage:final replays the final stage on a scratch copy under experience.quiet(); observe() ignored the flag and appended a holdout outcome per decision of the real project, under the scratch run id; on PostgreSQL the rows cannot be removed.",
+   "cause": "decide(), label() and experience.record() check _QUIET; the new writer did not.",
+   "fix": "observe() returns early inside quiet(); the same for the event.",
+   "test": "test_a_replay_writes_nothing_and_a_machines_direction_is_its_own"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The newest observation won whatever it said: a promotion forced 'well' and an unjudged business number wrote 'unknown', both erasing a 'badly' holdout.",
+   "scenario": "Holdout 0.70 against a CV mean of 0.85 is badly; approving the final stage (how a project finishes) then wrote well for every decision, and the tab, the column and outcome_labels said well.",
+   "cause": "join and _current_outcome took the latest row; from_approval hard-coded the verdict.",
+   "fix": "The promotion is judged as the holdout was (its direction); one preference rule in dclab_core (judged before unjudged, business before the model's own, then newest) is used by join and the datasets.",
+   "test": "test_a_later_unjudged_number_or_a_promotion_never_erases_the_holdouts_verdict, the final-stage test"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Every project on a kind with its own machine got verdict unknown: the direction was read from a bundle those kinds do not have.",
+   "scenario": "Forecasting, ranking, anomaly, streams, entity tables, uplift, segmentation, embedded, time-to-event: rows written, all unknown, shown as 'no outcome yet'.",
+   "cause": "p.bundle.spec.higher_is_better only exists on the tabular Prepared.",
+   "fix": "_after_final reads machine.higher_is_better when the prepared object has a machine.",
+   "test": "test_a_replay_writes_nothing_and_a_machines_direction_is_its_own"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The file-to-PostgreSQL migration dropped a workspace's outcomes.",
+   "scenario": "python -m dclab_rnd.storage migrate copied records and labels only; outcomes are written once at the final stage and are not recreated.",
+   "cause": "The migration lists the ledger's tables by hand.",
+   "fix": "decision_outcomes copied beside the other two; the archive doc and the ledger docstring list the table.",
+   "test": "test_storage_migrate (copy counted)"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Decisions made in the draft (family, workflow, cleaning) never got an outcome.",
+   "scenario": "Home's decisions carry draft= with no project; the done-when says every decision that shaped it.",
+   "cause": "records(project=) only.",
+   "fix": "The drafts that became the project are read too; retention removes the outcome rows by project as well.",
+   "test": "test_the_decisions_of_the_drafts_that_became_the_project_get_its_outcome"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The promotion rows never got the run id: the stage record's run holds the RunRecord whose field is run, not id.",
+   "scenario": "run was None in production; the test used an invented shape.",
+   "cause": "A guessed key.",
+   "fix": "Read the record's run.run.",
+   "test": "the final-stage test builds the record in the real shape"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A ledger error failed the final stage after the holdout was read.",
+   "scenario": "PostgreSQL briefly down: from_final raised inside _run_stage's try; the stage was marked failed with the holdout used.",
+   "cause": "The records read sat outside any try; every other capture call is wrapped.",
+   "fix": "from_final, from_approval and the reads never raise.",
+   "test": "covered by the wrapped bodies (no test: needs a failing ledger)"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The route accepted non-finite numbers, a string for higher_is_better, a number before any final stage, and a free-text metric.",
+   "scenario": "value 'nan' answered 200 with nothing written; 'false' became True; 'retention of ACME Corp' left in the dataset rows.",
+   "cause": "Thin validation.",
+   "fix": "422 for non-finite numbers, a non-boolean direction and a metric that is not a slug; 409 before the final stage ran; the contract's metric is a slug; the permission is pinned (the default write: owner and ML engineer).",
+   "test": "test_the_final_stage_writes_an_outcome_of_every_decision_and_the_tab_counts_them"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "One transaction (or one file lock) per outcome row.",
+   "scenario": "A wide table has thousands of column decisions; the final stage and the approval each wrote that many single-row writes.",
+   "cause": "batch() called add_outcome per row.",
+   "fix": "add_outcomes(list), chunked, on both stores.",
+   "test": "the existing outcome tests through both stores"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The engine hooks were untested, and nothing pinned that an outcome is never a label.",
+   "scenario": "Deleting both hooks failed nothing.",
+   "cause": "Tests called the writer on hand-built records.",
+   "fix": "test_decision_capture drives the real final stage and checks the holdout outcomes; the decision-set test asserts label is None for an outcome-only decision.",
+   "test": "test_the_final_stage_and_its_approval_leave_an_outcome_for_the_decisions_it_followed"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A metric was a person's free text (up to 80 characters) and left through the outcome docs.",
+   "scenario": "'retention of ACME Corp' in an exported set.",
+   "cause": "The note was dropped, the metric was not.",
+   "fix": "The contract's metric is a slug.",
+   "test": "test_an_outcome_round_trips_and_the_newest_per_record_is_current"
+  },
+  {
+   "id": "R12",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The verdict compares points and ignores the interval; not said.",
+   "scenario": "A holdout below the CV mean with the reference inside its interval is 'badly'.",
+   "cause": "A design choice left unwritten.",
+   "fix": "Said in the contract's docstring and the set's limits.",
+   "test": "none"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Every decision of a project carries what followed it, with its verdict; the sets and the Decisions tab show it; the main product maps its experiments' results the same way. Reviewed: 12 findings, all fixed or written down.",
+ "lessons": [
+  "A test must open a store the product's way: a bare PostgreSQL log has no folder and no consent, and only the PostgreSQL pass shows it."
+ ],
+ "risks": [
+  "Every decision of a project shares the project's outcome: a set that learns from it must group by project, as the splits do.",
+  "The main product's model_versions is not in the field lists read; a promotion outcome waits for 23.12."
+ ],
+ "commits": []
+}

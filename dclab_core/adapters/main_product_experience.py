@@ -76,6 +76,7 @@ TERMINAL_STAGE = "terminal"
 # contract kinds the main product's tables cannot fill today, and why (never invented)
 KINDS_MISSING = {
     "consent.changed": "no consent switch on its workspace rows (23.1): the host passes the level it allows when it maps them (CONSENT_MISSING)",
+    "outcome.observed": "an outcome is a row of its own there (23.5, adapters.main_product_outcomes), not an event of its agent_events",
     "visit.started": "no visit is recorded (19.2 adds the auth session as the visit)",
     "auth.sign_in": "auth_sessions and service_tokens rows are not in the field lists read at this commit (23.3; refreshed by 23.12)",
     "auth.sign_in_failed": "no failed sign-in row in the main product: a counter and a log line (23.3)",

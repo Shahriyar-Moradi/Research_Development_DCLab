@@ -81,7 +81,7 @@ class WorkspaceTest(unittest.TestCase):
 
         out = self.built(datasets.build(self.s))
         manifest = json.loads((Path(out["decisions", "column.is_identifier"]["folder"]) / "manifest.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["schema_version"], "dclab_core.dataset_manifest.v2")
+        self.assertEqual(manifest["schema_version"], "dclab_core.dataset_manifest.v3")
         self.assertEqual(set(manifest["levels"]), {"train"})
         self.assertTrue(any("rows by level" in line for line in catalog.lines(catalog.catalog(self.home))))
 

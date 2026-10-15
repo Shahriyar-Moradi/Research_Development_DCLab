@@ -278,6 +278,16 @@ same commit, a reviewer pass, and `make check-commit`; a milestone's end gets `c
   `outcome_labels` view in the catalog.
 - **Done when:** every decision of a finished project whose stage ran has its outcome row, and the Decisions tab shows
   "approved and turned out well/badly" per point.
+- **Status: done (2026-10-15).** dclab-core 0.42.0 (`outcomes.Outcome` v1, `judge`, `join`, `by_point`; the event kind
+  `outcome.observed`, the contract at v6; `datasets.decisions` rows carry `outcome`, `datasets.outcome_labels`;
+  `adapters.main_product_outcomes`). Written by `ledger/outcomes.py` where the number is observed: the final stage's
+  holdout (`from_final`: value, interval, the CV mean as the reference, the metric's direction), the final stage's
+  approval (`from_approval`: a promotion, judged well) and `POST /api/projects/{id}/outcome` (a business number with
+  its reference and note); every decision of the project gets its row (`ledger/outcomes/` or the `decision_outcome`
+  table, migration 0018, append-only, removed with the project); one event per observation. The Decisions tab shows
+  well / badly / no outcome per point (`/api/ledger/summary` `outcomes`); `make datasets` writes
+  `outcomes/outcome_labels` and the decision sets' `outcome` column; the export drops a note. Open: there is no
+  rejection in this product (a promotion is the final stage approved); the main product's `model_versions` waits for 23.12.
 
 ### 23.6 Feedback of every kind, tied to a version
 - **Delivers:** `feedback.given` with `kind` (`thumbs`, `rating`, `correction`, `edited_output`, `override`) and the

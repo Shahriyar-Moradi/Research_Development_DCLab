@@ -161,18 +161,25 @@ def _ledger(src: Any, wid: str, url: str | None, report: dict[str, Any], engine:
     import sqlalchemy as sa
 
     from ..ledger import FileLedger, PgLedger
-    from .models import decision_label, decision_record
+    from .models import decision_label, decision_outcome, decision_record
 
     source = FileLedger(src.home / "ledger", wid)
     target = PgLedger(wid, engine)
-    for name, table, rows in (("decisions", decision_record, source.records()), ("decision_labels", decision_label, source.labels())):
+    for name, table, rows in (("decisions", decision_record, source.records()), ("decision_labels", decision_label, source.labels()),
+                              ("decision_outcomes", decision_outcome, source.outcomes())):  # 23.5
         taken: set[str] = set()
         with engine.connect() as c:  # the ids already there, a chunk at a time (a statement binds at most 65,535 values)
             for start in range(0, len(rows), 5000):
                 taken |= {r[0] for r in c.execute(sa.select(table.c.id).where(table.c.id.in_([x.id for x in rows[start:start + 5000]])))}
         fresh = [x.model_copy(update={"workspace": wid}) if hasattr(x, "workspace") else x for x in rows if x.id not in taken]
         for start in range(0, len(fresh), 5000):
-            target.add_many(fresh[start:start + 5000], []) if name == "decisions" else target.add_many([], fresh[start:start + 5000])
+            chunk = fresh[start:start + 5000]
+            if name == "decisions":
+                target.add_many(chunk, [])
+            elif name == "decision_outcomes":
+                target.add_outcomes(chunk)
+            else:
+                target.add_many([], chunk)
         report["logs"][name] = {"source": len(rows), "copied": len(fresh), "already": len(rows) - len(fresh)}
 
 

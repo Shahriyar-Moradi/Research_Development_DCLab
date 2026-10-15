@@ -31,7 +31,7 @@ from pydantic import Field, model_validator
 from dclab_core.contracts import CONTRACTS, Contract, Versioned, _version
 
 VERSION = "1"
-Builder = Literal["decisions", "conversations", "preferences", "trajectories", "workflows", "failures", "development"]
+Builder = Literal["decisions", "conversations", "preferences", "trajectories", "workflows", "failures", "development", "outcomes"]  # outcomes: 23.5
 SourceKind = Literal["decision", "label", "event", "visit", "conversation", "run", "project", "draft", "package", "flag"]
 SPLITS = (("sealed", 0.2), ("dev", 0.4))  # a group's hash below 0.2: sealed; below 0.4: dev; the rest train
 SALT = "dclab-datasets-v1"  # one salt for every set: a project is sealed (or not) everywhere at once
@@ -46,8 +46,8 @@ class Source(Contract):
 class DatasetManifest(Versioned):
     """What a dataset holds and where every row came from."""
 
-    schema_version: Literal["dclab_core.dataset_manifest.v2"] = _version("dataset_manifest", 2)
-    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.dataset_manifest.v1"})  # v2 added levels
+    schema_version: Literal["dclab_core.dataset_manifest.v3"] = _version("dataset_manifest", 3)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.dataset_manifest.v1", "dclab_core.dataset_manifest.v2"})  # v2 added levels; v3 the outcomes builder
     builder: Builder
     name: str = Field(min_length=1, max_length=120)
     version: str = Field(min_length=1, max_length=20)
@@ -66,8 +66,8 @@ class DatasetManifest(Versioned):
     @model_validator(mode="before")
     @classmethod
     def _read_v1(cls, data: Any) -> Any:
-        if isinstance(data, dict) and data.get("schema_version") == "dclab_core.dataset_manifest.v1":
-            data = {**data, "schema_version": "dclab_core.dataset_manifest.v2"}
+        if isinstance(data, dict) and data.get("schema_version") in ("dclab_core.dataset_manifest.v1", "dclab_core.dataset_manifest.v2"):
+            data = {**data, "schema_version": "dclab_core.dataset_manifest.v3"}
         return data
 
 
@@ -145,7 +145,7 @@ def decisions(docs: Iterable[dict[str, Any]], point: str, *, workspace: Optional
         if doc.get("point") != point:
             continue
         labels = [ledger.DecisionLabel.model_validate(x) for x in doc.get("labels") or []]
-        record = ledger.DecisionRecord.model_validate({k: v for k, v in doc.items() if k != "labels"})
+        record = ledger.DecisionRecord.model_validate({k: v for k, v in doc.items() if k not in ("labels", "outcomes")})
         current = ledger.current_labels(labels)
         apart: dict[str, Any] = {s: None for s in LABEL_SOURCES}
         for source in LABEL_SOURCES:
@@ -157,8 +157,9 @@ def decisions(docs: Iterable[dict[str, Any]], point: str, *, workspace: Optional
                 by_source[source] += 1
         effective = ledger.effective_label(record, labels)
         group = _group(doc, drafts)
+        outcome = _current_outcome(doc.get("outcomes") or [])
         rows.append({"record": record.id, "point": point, "subject": doc.get("subject"), "state": record.state, "options": record.options,
-                     "consent": record.consent,
+                     "consent": record.consent, "outcome": outcome,
                      "answers": [{"by": a.by, "answerer": a.answerer, "value": a.value, "confidence": a.confidence} for a in record.answers],
                      "value_used": record.value_used, "used": record.used, "labels": apart,
                      "label": {"value": effective.value, "source": effective.source} if effective is not None else None,
@@ -174,6 +175,39 @@ def decisions(docs: Iterable[dict[str, Any]], point: str, *, workspace: Optional
 
 
 # ------------------------------------------------------------------------------------------------ (b) conversations
+
+def _current_outcome(docs: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    """23.5: the newest outcome of a decision, as the set carries it (never a table's value)."""
+    if not docs:
+        return None
+    from dclab_core.outcomes import preference
+
+    o = max(docs, key=lambda d: preference(d.get("observed"), d.get("verdict"), d.get("at"), d.get("id")))
+    return {"verdict": o.get("verdict"), "metric": o.get("metric"), "value": o.get("value"), "reference": o.get("reference"),
+            "observed": o.get("observed"), "at": o.get("at")}
+
+
+def outcome_labels(docs: Iterable[dict[str, Any]], *, workspace: Optional[str] = None, consent: str = "train",
+                   drafts: Optional[dict[str, str]] = None) -> tuple[list[dict[str, Any]], DatasetManifest]:
+    """23.5: every decision that has an outcome, with what was chosen and how it turned out: the view that lets a model
+    learn which choices were followed by a good number (an outcome is not a label: it says what followed, not what was right)."""
+    rows = []
+    for doc in docs:
+        outcome = _current_outcome(doc.get("outcomes") or [])
+        if outcome is None:
+            continue
+        group = _group(doc, drafts)
+        rows.append({"record": doc.get("id"), "point": doc.get("point"), "subject": doc.get("subject"), "state": doc.get("state"),
+                     "value_used": doc.get("value_used"), "used": doc.get("used"), "consent": doc.get("consent", "operate"), "outcome": outcome,
+                     "group": group, "split": split_of(group), "sources": [("decision", doc.get("id"))]})
+    counts = Counter(r["outcome"]["verdict"] for r in rows)
+    return rows, manifest("outcomes", "outcome_labels", rows, sources_of(rows), use="train", consent=consent, workspace=workspace,
+                          counts={"verdicts": dict(counts)},
+                          policy="One row per decision with an outcome (its newest observation); whole groups split as the decision sets are.",
+                          limits=["An outcome says what number followed the decision, judged against its reference; it does not say the "
+                                  "decision was right. Every decision of a project shares the project's outcome.",
+                                  "The verdict compares points: the interval is carried beside it, not consulted."])
+
 
 def _by_conversation(events: Iterable[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     out: dict[str, list[dict[str, Any]]] = defaultdict(list)

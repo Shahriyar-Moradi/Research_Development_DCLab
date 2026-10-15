@@ -4,6 +4,19 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.42.0 (2026-10-15)
+
+Package 23.5: outcomes linked to decisions.
+
+- `outcomes`: `Outcome` v1 (`dclab_core.outcome.v1`: the decision it follows, the metric, value and interval, the
+  reference, how it was observed — holdout, promotion, business — and the verdict), `judge(value, reference,
+  higher_is_better)`, `join(records, outcomes)` (the current outcome per decision) and `by_point`.
+- `experience`: the kind `outcome.observed`; the contract moves to `dclab_core.experience_event.v6` (v1 to v5 read as v6).
+- `datasets.decisions` rows carry `outcome`; `datasets.outcome_labels` builds the set of decisions with their outcome
+  (the builder `outcomes`: `DatasetManifest` moves to v3, v1 and v2 read as v3).
+- `adapters.main_product_outcomes`: `from_experiment` maps an `experiments` row's `result` onto outcomes of the
+  decisions linked to it; `model_versions` is not in the field lists read (`FIELDS_MISSING`).
+
 ## 0.41.0 (2026-10-15)
 
 Package 23.4: errors with fingerprints.

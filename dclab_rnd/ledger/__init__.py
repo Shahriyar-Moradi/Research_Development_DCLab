@@ -7,8 +7,9 @@ record binds), as for ``dclab_rnd.experience``. Best effort: a record the contra
 answer outside its point) is reported on stderr and dropped; the decision itself stands. Inside ``experience.quiet()``
 (a replay's scratch copy) nothing is written. ``label(record, value, source, by)`` adds what was right.
 
-Where. PostgreSQL ``decision_record`` and ``decision_label`` (append-only) when ``DCLAB_DATABASE_URL`` is set;
-otherwise ``ledger/decisions/YYYY/MM/DD.jsonl`` and ``ledger/labels/YYYY/MM/DD.jsonl`` in the workspace folder.
+Where. PostgreSQL ``decision_record``, ``decision_label`` and ``decision_outcome`` (23.5: how a decision turned out;
+append-only) when ``DCLAB_DATABASE_URL`` is set; otherwise ``ledger/decisions/YYYY/MM/DD.jsonl``,
+``ledger/labels/YYYY/MM/DD.jsonl`` and ``ledger/outcomes/YYYY/MM/DD.jsonl`` in the workspace folder.
 
 The state of a column is built by :func:`column_state` from the profile the studio already keeps, in Jev's bands: a
 model trained on it answers the main product's questions on the same inputs. :data:`CAPTURED` names where each point
@@ -117,6 +118,9 @@ def batch():
         for store, items in by_store.values():
             try:
                 store.add_many([d for k, d in items if k == "record"], [d for k, d in items if k == "label"])
+                outs = [d for k, d in items if k == "outcome"]
+                if outs:
+                    store.add_outcomes(outs)
             except Exception as exc:  # noqa: BLE001 - never stop a person's work because the ledger is briefly away
                 DROPPED["count"] += len(items)
                 print(f"ledger: could not record {len(items)} decisions: {type(exc).__name__}", file=sys.stderr, flush=True)
@@ -128,6 +132,8 @@ def _write(store: Any, kind: str, doc: Any) -> None:
         pending.append((store, kind, doc))
     elif kind == "record":
         store.add(doc)
+    elif kind == "outcome":  # 23.5
+        store.add_outcomes([doc])
     else:
         store.add_label(doc)
 
@@ -158,6 +164,22 @@ class FileLedger:
 
     def add_label(self, label: Any) -> None:
         self._append("labels", label)
+
+    def add_outcomes(self, outcomes: list) -> None:  # 23.5: ledger/outcomes/YYYY/MM/DD.jsonl, one lock per day
+        by_day: dict[str, list] = {}
+        for doc in outcomes:
+            by_day.setdefault(_day(doc.at), []).append(doc)
+        for day, items in by_day.items():
+            path = self.root / "outcomes" / f"{day}.jsonl"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with _LOCK, held(self.root), path.open("a", encoding="utf-8") as out:
+                out.write("".join(d.model_dump_json() + "\n" for d in items))
+
+    def outcomes(self, *, project: str | None = None, record: str | None = None, point: str | None = None) -> list[Any]:
+        from dclab_core import outcomes as oc
+
+        return [o for o in self._read("outcomes", oc.Outcome)
+                if (project is None or o.project == project) and (record is None or o.record == record) and (point is None or o.point == point)]
 
     def add_many(self, records: list, labels: list) -> None:
         for kind, docs in (("decisions", records), ("labels", labels)):
@@ -211,6 +233,31 @@ class PgLedger:
 
     def add_label(self, label: Any) -> None:
         self.add_many([], [label])
+
+    def add_outcomes(self, outcomes: list) -> None:  # 23.5: chunked, one transaction
+        import sqlalchemy as sa
+
+        from ..storage.models import decision_outcome
+
+        with self.engine.begin() as c:
+            for start in range(0, len(outcomes), 1000):
+                c.execute(sa.insert(decision_outcome), [{"id": o.id, "workspace_id": self.workspace, "at": o.at, "record_id": o.record,
+                                                         "point": o.point, "project_id": o.project, "run_id": o.run, "observed": o.observed,
+                                                         "doc": json.loads(o.model_dump_json())} for o in outcomes[start:start + 1000]])
+
+    def outcomes(self, *, project: str | None = None, record: str | None = None, point: str | None = None) -> list[Any]:
+        import sqlalchemy as sa
+
+        from dclab_core import outcomes as oc
+
+        from ..storage.models import decision_outcome as t
+
+        q = sa.select(t.c.doc).where(t.c.workspace_id == self.workspace)
+        for column, value in ((t.c.project_id, project), (t.c.record_id, record), (t.c.point, point)):
+            if value is not None:
+                q = q.where(column == value)
+        with self.engine.connect() as c:
+            return [oc.Outcome.read(r[0]) for r in c.execute(q.order_by(t.c.at, t.c.id))]
 
     def add_many(self, records: list, labels: list) -> None:
         import sqlalchemy as sa
