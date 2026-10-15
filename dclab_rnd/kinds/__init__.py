@@ -75,7 +75,11 @@ def resolve(solution: Any, pack: str | None = None) -> ProblemKind:
         return get(declared)
     task = _value(solution, "task")
     by_pack = for_pack(pack, task)
-    if by_pack is not None and by_pack.applies(solution):  # a text pack on a table without text runs as the task's kind
+    if by_pack is not None and by_pack.key != task and by_pack.applies(solution):  # a text pack on a table without text runs as the task's kind
+        return by_pack
+    if task == "regression" and _value(solution, "spatial"):  # 20.10: blocks of places adopted under any pack are the places kind
+        return get("places")
+    if by_pack is not None and by_pack.applies(solution):
         return by_pack
     if task == "binary" and _value(solution, "text_columns"):
         return get("text_tabular")

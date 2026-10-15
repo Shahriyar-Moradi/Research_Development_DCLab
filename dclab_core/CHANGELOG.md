@@ -4,6 +4,18 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.32.0 (2026-10-15)
+
+Package 20.10: the acceptance suite of conversations found where the card misread people. No contract changes shape.
+
+- `card.problem_card`: the words name three more families (streams: sensor readings, an alert before a failure;
+  entity tables: an outcome from several related tables; text or images: an outcome read from text or images), and
+  more of how people say time to event ("how long will each subscriber stay") and uplift ("people it would make
+  buy"). `data["columns"]`: with a table, an outcome said in words counts only for a family whose outcome is computed
+  from related tables (entity tables, streams); for the others it is a column or a file of cases.
+- `conversation.read_answer`: the family answers for streams, more of time to event and uplift; an answer naming
+  several columns names its outcome first (by where it names them, not the table's order).
+
 ## 0.31.0 (2026-10-15)
 
 Package 22.8: decision models for data scientists. No contract changes shape.

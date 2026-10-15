@@ -1,0 +1,306 @@
+{
+ "package": "20.10",
+ "title": "The acceptance suite of conversations: written people carried from the first sentence to the holdout number",
+ "date": "2026-10-15",
+ "request": "For each family, a written person run from the first sentence to the report, scored on the card, the workflow, the pipeline and the holdout number against the replica's planted truth; a gate fixed before the run; done when it passes on the sealed conversations with every family listed and its interval. Built ahead of 22.9, which is measured on it.",
+ "spec": "A harness that plays each person as the product runs with no model, dev people written beside the rules, sealed people written apart and pinned, a fixed gate, and every product defect the dev failures show fixed in the product.",
+ "plan": [
+  "Play one person through the coordinator to a built project.",
+  "Score the four parts against the replica's acceptance decisions.",
+  "Write a person per kind and fix the product where they fail.",
+  "Have the sealed people written apart, pin them, review, plant faults, run the sealed set once."
+ ],
+ "decisions": [
+  {
+   "decision": "The sealed people were written by a separate agent from a brief of the replicas, without the rules, the dev people or any code, and pinned before any run.",
+   "why": "A set written beside the rules measured nothing in 20.2."
+  },
+  {
+   "decision": "The sealed run uses replica seed 1.",
+   "why": "The dev failures were fixed on the seed 0 tables."
+  },
+  {
+   "decision": "Words for another family beside a named outcome column are asked, never inferred.",
+   "why": "A word in passing must not refuse or redirect an ordinary project."
+  },
+  {
+   "decision": "A family the engine does not run is refused at the build and said as soon as it is known.",
+   "why": "Built anyway it answered another question."
+  },
+  {
+   "decision": "Nothing is tuned on the sealed failures.",
+   "why": "The set is spent; a fix judged on it would be judged by its own author."
+  }
+ ],
+ "change": "dclab_rnd/agent_eval/journeys (new: the harness, dev people, the sealed people and their hash), evidence/campaigns/journeys_v1, kinds/acceptance.py (adopt), kinds/binary.py, kinds/__init__.py, studio/pipeline.py, studio/export.py, studio/code.py, agentic/routers/projects.py, draft/api.py, draft/card.py, draft/chat.py, dclab_core card.py, conversation.py, coordinator.py (dclab-core 0.32.0), Makefile; tests/test_journeys.py (new), test_pipeline.py, test_draft_flow.py, test_coordinator.py; the plan, the roadmap, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "D1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The pipeline of every project built from a draft broke.",
+   "scenario": "Reading the pipeline of a draft-built project raised a validation error on the problem step.",
+   "cause": "The card keeps its family as a field with a value and a status; the step put the whole field where a word belongs, and the test used a made-up card.",
+   "fix": "The family is read as its value; the test builds a real card.",
+   "test": "test_a_draft_built_project_records_its_problem_card"
+  },
+  {
+   "id": "D2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A yes or no outcome cleaned into booleans trained on one class without a word.",
+   "scenario": "The person's positive label yes matched no row of a column cleaning had turned into True and False; the leakage stage then failed on a metric it could not compute.",
+   "cause": "The label was compared as text with the table's booleans.",
+   "fix": "One helper reads yes as True on a boolean column, used by the engine, the Solution save and both exports; a label in no row, or in every row, is refused with the column's values.",
+   "test": "test_a_cleaned_yes_or_no_outcome_is_read_and_a_label_in_no_row_is_refused"
+  },
+  {
+   "id": "D3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A family the engine does not run was built as a model of one column.",
+   "scenario": "An uplift problem with a bought column was built and modelled as a response model, which answers another question.",
+   "cause": "No build check knew which families the engine runs.",
+   "fix": "The build refuses such a family with its rule, and the coordinator says so as soon as the family is known.",
+   "test": "test_a_family_the_engine_does_not_run_stops_at_the_build_with_its_reason"
+  },
+  {
+   "id": "D4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Blocks of places ran as a plain regression outside the maps pack.",
+   "scenario": "A flats table with coordinates under the tabular pack adopted blocks of places but ran as regression, not places.",
+   "cause": "The kind came from the pack alone.",
+   "fix": "A regression with blocks of places is the places kind under any pack.",
+   "test": "test_blocks_of_places_run_as_the_places_kind_under_any_pack"
+  },
+  {
+   "id": "D5",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A rare event's review budget was never asked.",
+   "scenario": "The fraud person answered four questions and the budget, which sets the rare-event metric, never came.",
+   "cause": "Home asked at most four of the pack's six fields.",
+   "fix": "Home asks at most five, the conversation gate's limit.",
+   "test": "test_home_asks_a_rare_events_review_budget"
+  },
+  {
+   "id": "D6",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The words named no streams, entity tables or text, and missed common ways to say time to event and uplift.",
+   "scenario": "Raise an alert before a machine fails from its sensor readings was read as no family.",
+   "cause": "The card's word rules covered nine families.",
+   "fix": "Word rules for the three families and more wording for the two; beside a named outcome column they are asked, never inferred.",
+   "test": "test_the_families_the_words_named_nowhere"
+  },
+  {
+   "id": "D7",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "An outcome named inside a sentence was lost.",
+   "scenario": "days_subscribed, with cancelled saying whether they left was not read as the outcome.",
+   "cause": "Only an answer that was exactly a column counted.",
+   "fix": "An answer that begins with a column names it; columns are read in the order the answer names them.",
+   "test": "test_an_outcome_named_inside_a_sentence_is_that_column_and_a_word_is_not"
+  },
+  {
+   "id": "D8",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "An entity-tables outcome blocked the card.",
+   "scenario": "No order in the next 30 days was asked again as a column of the customers table.",
+   "cause": "With a table an outcome had to be a column.",
+   "fix": "For entity tables and streams the outcome in words counts, with a question to attach the table that decides it.",
+   "test": "test_an_outcome_in_words_counts_with_a_table_only_when_related_tables_compute_it"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The refused-move check could never fire.",
+   "scenario": "Every transition counted as allowed, so the gate's no refused move clause was empty.",
+   "cause": "The harness read the list of open moves instead of the verdict's status.",
+   "fix": "Refused moves are the transitions whose status is blocked.",
+   "test": "test_a_move_the_validator_refused_is_counted"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A family the engine does not run scored right on any stop.",
+   "scenario": "A ranking person who stopped at an unanswered question counted as refused.",
+   "cause": "Any stop with words was taken for the refusal.",
+   "fix": "Only a stop whose blocker is the refusal's rule counts.",
+   "test": "test_a_family_the_engine_does_not_run_stops_at_the_build_with_its_reason"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The new build refusal blocked ordinary classification projects.",
+   "scenario": "Predict churn so we know who to target with retention calls, with a churned column, was refused as uplift.",
+   "cause": "A word rule settled the family against a named outcome column.",
+   "fix": "Words beside a named outcome column put both families in play and ask the person.",
+   "test": "test_a_named_outcome_column_beside_another_familys_words_is_asked_never_refused"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The new family words overrode a named outcome column and could open the card without one.",
+   "scenario": "Which customers will churn, from their tenure, plan and monthly charges read as entity tables.",
+   "cause": "The three new families sat ahead of the task's family.",
+   "fix": "Asked beside a named column; an outcome in words on one table says the table it needs.",
+   "test": "test_an_outcome_in_words_on_one_table_says_the_table_it_needs"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A column only mentioned could become the outcome.",
+   "scenario": "We only know it once final_refund_amount is paid recorded the leak column as the target.",
+   "cause": "Any column name with an underscore counted wherever it sat.",
+   "fix": "Only an answer that begins with the column names it.",
+   "test": "test_a_column_only_mentioned_is_never_the_outcome"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The exports read a yes label differently from the engine.",
+   "scenario": "On a cleaned boolean outcome the notebook export compared with yes and got all zeros.",
+   "cause": "The mapping lived in the engine only.",
+   "fix": "One helper, used by the save, the engine and both exports.",
+   "test": "test_the_exports_read_a_yes_label_as_the_engine_does"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The harness saved the Solution without the validator.",
+   "scenario": "A save the product refuses could never show up in a journey.",
+   "cause": "The shared adopt step wrote the solution directly.",
+   "fix": "The journey saves through the graph's check and the column check, as the route; that path then found the route refusing a label file's target, fixed in the route.",
+   "test": "test_the_solution_page_saves_a_label_files_target"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The workflow part could not fail.",
+   "scenario": "Without a model the Home workflow is its template, valid by construction.",
+   "cause": "Only the Home workflow was checked.",
+   "fix": "20.6's solution workflow is built from the problem card and the data card and validated on its content.",
+   "test": "test_a_written_person_is_carried_to_the_holdout_number"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The gate did not require every family.",
+   "scenario": "A sealed set missing a family could pass.",
+   "cause": "Families were listed from the rows only.",
+   "fix": "Every family is listed, and one without a journey fails the gate.",
+   "test": "test_the_gate"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The pipeline part accepted a step not recorded.",
+   "scenario": "A stage without its run record would have passed.",
+   "cause": "Not recorded counted as run.",
+   "fix": "Every step must be done; only the analysis of a kind with its own machine may be absent.",
+   "test": "test_a_written_person_is_carried_to_the_holdout_number"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The holdout part did not say what the person stated, and ran on the dev tables.",
+   "scenario": "Five kinds were stated on the Solution page; the sealed run would read the tables the dev failures were fixed on.",
+   "cause": "The scoring did not check the kind, and one seed served both sets.",
+   "fix": "The problem must run as its kind, the row says whether the kind was stated, and the sealed run uses replica seed 1, fixed in the gate.",
+   "test": "test_a_written_person_is_carried_to_the_holdout_number"
+  },
+  {
+   "id": "R12",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "The sealed run could break on memory.",
+   "scenario": "Seven engines at once on an 8 GB machine could break the pool before anything was stored.",
+   "cause": "The default workers were all cores but one.",
+   "fix": "At most four by default.",
+   "test": "test_the_gate"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "A planted fault that took any stop for the refusal went unnoticed.",
+   "scenario": "The silent person failed on the card alone, so the test passed with the fault.",
+   "cause": "The test checked the whole row, not the refusal's part.",
+   "fix": "The test checks the refusal's part itself.",
+   "test": "test_a_family_the_engine_does_not_run_stops_at_the_build_with_its_reason"
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "Every stage read as stale right after a full run.",
+   "scenario": "The pipeline compared runs made under the fast profile with the normal profile.",
+   "cause": "The engine profile is one of a run's inputs.",
+   "fix": "The harness reads the pipeline under the profile it ran with.",
+   "test": "test_a_written_person_is_carried_to_the_holdout_number"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "dev journeys",
+   "gate": "journeys_gate_v1 read on dev: at least 85% right, interval lower end at least 0.6, every family, no refused move",
+   "result": "15 of 15 right on seed 0 and on seed 1, interval 0.796 to 1.0",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "15 of 15",
+   "limits": [
+    "Written beside the rules: not evidence."
+   ]
+  },
+  {
+   "name": "sealed journeys",
+   "gate": "journeys_gate_v1 on the sealed set, run once on replica seed 1: at least 85% right, interval lower end at least 0.6, every family, no refused move",
+   "result": "16 of 30 right, interval 0.361 to 0.698, no refused move; right on all 12 classification, regression and segmentation journeys",
+   "verdict": "fail",
+   "cost_eur": 0.0,
+   "against_gate": "16 of 30, below 85%",
+   "limits": [
+    "30 people over seeded replicas, one writer.",
+    "The writer is a model instance, not a person."
+   ]
+  },
+  {
+   "name": "planted faults",
+   "gate": "each planted fault fails a test",
+   "result": "15 of 15 planted faults caught after one test was strengthened",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "15 of 15",
+   "limits": [
+    "Faults chosen by the author."
+   ]
+  }
+ ],
+ "outcome": "The suite carries a written person from the first sentence to the holdout number the way the product runs, and found eight product defects on dev, all fixed; on the sealed people the rules reach the right card for the common families but not for people's own words for the others, and the gate fails.",
+ "lessons": [
+  "A rule-read family fits the words it was written beside: the sealed people's own phrasings for the specialised families were missed in 11 of 14 misses.",
+  "A harness check that cannot fail must be found by planting the fault it should catch.",
+  "Saving through the product's own validator in a harness finds the product's bugs, not only the harness's."
+ ],
+ "risks": [
+  "The card's family from people's own words needs the conversation reader or the person's statement.",
+  "A new sealed set needs an independent writer.",
+  "The kind's own fields are stated, not asked."
+ ],
+ "commits": []
+}

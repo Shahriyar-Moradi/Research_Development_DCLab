@@ -1,0 +1,1504 @@
+{
+  "id": "JRN-002",
+  "campaign_id": "journeys_v1",
+  "kind": "acceptance_journeys",
+  "split": "sealed",
+  "arm": "rules",
+  "journeys": "396022958402e15be807098bc54f134cb6238db76718af616ce68313312fea04",
+  "at": "2026-10-15T00:56:17+00:00",
+  "gate": {
+    "version": "journeys_gate_v1",
+    "split": "sealed",
+    "journey": "right on the card, the workflow, the pipeline and the holdout (or, for a family the engine does not run, on the card and a build refused with its reason)",
+    "suite": "at least 85% of the sealed journeys right, the lower end of the 95% Wilson interval at least 0.6, every family with a journey, and no move the graph's validator refused in any journey",
+    "seed": 1
+  },
+  "seed": 1,
+  "spent_eur": 0.0,
+  "rows": [
+    {
+      "id": "JS-01",
+      "kind": "rare_event",
+      "family": "rare_event",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": false
+      },
+      "why": [
+        "holdout: ['recall at the budget beats reviewing at random']"
+      ],
+      "asked": [
+        "target",
+        "labels",
+        "prediction_moment",
+        "action",
+        "entity"
+      ],
+      "questions": 5,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "bring_table",
+        "analyse",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "rare_event",
+        "target": "is_case",
+        "kind": "rare_event",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "roc_auc": 0.616398243045388,
+        "average_precision": 0.5019011406844106,
+        "recall_at_precision_target": 0.5,
+        "precision_target": 0.9,
+        "precision_at_k_positives": 0.5,
+        "accuracy": 0.9985401459854014,
+        "majority_baseline_accuracy": 0.997080291970803,
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "brier": 0.0015280094748077314,
+        "log_loss": 0.018966790825518446,
+        "positive_rate": 0.00291970802919708,
+        "threshold": 0.5,
+        "ap_lift": 171.90114068441065,
+        "fit_seconds": 0.36825783300446346
+      },
+      "right": false,
+      "seconds": 38.1
+    },
+    {
+      "id": "JS-02",
+      "kind": "forecasting",
+      "family": "forecasting",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "forecasting",
+        "target": "units",
+        "kind": "forecasting",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "mase": 0.7631,
+        "smape": 0.1866,
+        "mae": 15.1038
+      },
+      "right": true,
+      "seconds": 19.4
+    },
+    {
+      "id": "JS-03",
+      "kind": "segmentation",
+      "family": "segmentation",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "family"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer"
+      ],
+      "state": "problem",
+      "said": "Not built: Segmentation is not run by the engine yet: a project would model one column, which answers another question. dclab_core solves it as a library; or say the problem is another kind",
+      "got": {
+        "family": "segmentation"
+      },
+      "right": true,
+      "seconds": 2.5
+    },
+    {
+      "id": "JS-04",
+      "kind": "regression",
+      "family": "regression",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "analyse",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "regression",
+        "target": "actual_minutes",
+        "kind": "regression",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "mae": 8.142116107304892,
+        "rmse": 10.978067860061792,
+        "mape": 0.3161506917766012,
+        "r2": 0.25795307625752995,
+        "bias": 0.11064032808939633,
+        "fit_seconds": 0.027062833003583364
+      },
+      "right": true,
+      "seconds": 5.9
+    },
+    {
+      "id": "JS-05",
+      "kind": "embedded",
+      "family": "text_or_images",
+      "parts": {
+        "card": false,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [
+        "card: 'classification', the person's ['text_or_images']"
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "classification",
+        "target": "urgent",
+        "kind": "embedded",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "roc_auc": 1.0
+      },
+      "right": false,
+      "seconds": 3.4
+    },
+    {
+      "id": "JS-06",
+      "kind": "entity_tables",
+      "family": "entity_tables",
+      "parts": {
+        "card": false,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "card: 'classification', the person's ['entity_tables']",
+        "not built: stopped at problem: The problem card is not ready: Which column holds the outcome, or which file lists the known cases?"
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "family"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer"
+      ],
+      "state": "problem",
+      "said": "The problem card is not ready: Which column holds the outcome, or which file lists the known cases?",
+      "got": {
+        "family": "classification"
+      },
+      "right": false,
+      "seconds": 4.4
+    },
+    {
+      "id": "JS-07",
+      "kind": "binary",
+      "family": "classification",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "classification",
+        "target": "churned",
+        "kind": "binary",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "roc_auc": 0.7220755468369741,
+        "average_precision": 0.49891976055003645,
+        "recall_at_precision_target": 0.033112582781456956,
+        "precision_target": 0.9,
+        "precision_at_k_positives": 0.4768211920529801,
+        "accuracy": 0.7633333333333333,
+        "majority_baseline_accuracy": 0.7483333333333333,
+        "precision": 0.6956521739130435,
+        "recall": 0.10596026490066225,
+        "f1": 0.1839080459770115,
+        "brier": 0.1670599056639447,
+        "log_loss": 0.5122878024619472,
+        "positive_rate": 0.25166666666666665,
+        "threshold": 0.5,
+        "ap_lift": 1.9824626247021317,
+        "fit_seconds": 0.031078749991138466
+      },
+      "right": true,
+      "seconds": 5.2
+    },
+    {
+      "id": "JS-08",
+      "kind": "streams",
+      "family": "streams",
+      "parts": {
+        "card": false,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "card: None, the person's ['streams']",
+        "not built: stopped at problem: The problem card is not ready: What should DCLab give for each row: a yes or no, a class, a number, a forecast, or the unusual rows?"
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "family"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer"
+      ],
+      "state": "problem",
+      "said": "The problem card is not ready: What should DCLab give for each row: a yes or no, a class, a number, a forecast, or the unusual rows?",
+      "got": {
+        "family": null
+      },
+      "right": false,
+      "seconds": 5.4
+    },
+    {
+      "id": "JS-09",
+      "kind": "uplift",
+      "family": "uplift",
+      "parts": {
+        "card": false,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "card: 'classification', the person's ['uplift']",
+        "built: the engine does not run this family, and the build was not refused with a reason"
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "classification"
+      },
+      "right": false,
+      "seconds": 3.6
+    },
+    {
+      "id": "JS-10",
+      "kind": "places",
+      "family": "regression",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "regression",
+        "target": "price",
+        "kind": "places",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "mae": 145184.20115399922,
+        "rmse": 211333.4911183635,
+        "mape": 0.18029342617174998,
+        "r2": 0.7203093953793732,
+        "bias": -82888.33399655126,
+        "fit_seconds": 0.03398087499954272
+      },
+      "right": true,
+      "seconds": 66.7
+    },
+    {
+      "id": "JS-11",
+      "kind": "multiclass",
+      "family": "classification",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "classification",
+        "target": "assigned_team",
+        "kind": "multiclass",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "macro_f1": 0.4221596090415334,
+        "balanced_accuracy": 0.42821563145856256,
+        "accuracy": 0.6233333333333333,
+        "log_loss": 1.0870720364138113,
+        "per_class_f1": [
+          0.3516483516483517,
+          0.803921568627451,
+          0.41509433962264153,
+          0.0,
+          0.0,
+          0.5714285714285714,
+          0.5301204819277109,
+          0.6724137931034483,
+          0.0,
+          0.7283236994219653,
+          0.7288135593220338,
+          0.2641509433962264
+        ],
+        "worst_3_classes": [
+          {
+            "class_index": 3,
+            "f1": 0.0,
+            "source_label": "integrations"
+          },
+          {
+            "class_index": 4,
+            "f1": 0.0,
+            "source_label": "legal"
+          },
+          {
+            "class_index": 8,
+            "f1": 0.0,
+            "source_label": "security"
+          }
+        ],
+        "fit_seconds": 0.11105183299514465
+      },
+      "right": true,
+      "seconds": 13.8
+    },
+    {
+      "id": "JS-12",
+      "kind": "time_to_event",
+      "family": "time_to_event",
+      "parts": {
+        "card": false,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [
+        "card: 'forecasting', the person's ['time_to_event']"
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "analyse",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "forecasting",
+        "target": "days_subscribed",
+        "kind": "time_to_event",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "integrated_brier": 0.1044,
+        "c_index": 0.6609,
+        "auc_90": 0.6876
+      },
+      "right": false,
+      "seconds": 2.0
+    },
+    {
+      "id": "JS-13",
+      "kind": "anomaly",
+      "family": "anomaly",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "family",
+        "labels"
+      ],
+      "questions": 5,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "analyse",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "anomaly",
+        "target": null,
+        "kind": "anomaly",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "planted_recall_at_budget": 0.8649
+      },
+      "right": true,
+      "seconds": 9.1
+    },
+    {
+      "id": "JS-14",
+      "kind": "text_tabular",
+      "family": [
+        "classification",
+        "text_or_images"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "classification",
+        "target": "negative",
+        "kind": "text_tabular",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "roc_auc": 0.8773324203369935,
+        "average_precision": 0.7465976701154075,
+        "recall_at_precision_target": 0.47572815533980584,
+        "precision_target": 0.9,
+        "precision_at_k_positives": 0.6407766990291263,
+        "accuracy": 0.794,
+        "majority_baseline_accuracy": 0.794,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "brier": 0.12708193453746947,
+        "log_loss": 0.4082481526348788,
+        "positive_rate": 0.206,
+        "threshold": 0.5,
+        "ap_lift": 3.624260534540813,
+        "fit_seconds": 0.12139900001056958
+      },
+      "right": true,
+      "seconds": 6.1
+    },
+    {
+      "id": "JS-15",
+      "kind": "ranking",
+      "family": "ranking",
+      "parts": {
+        "card": false,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "card: None, the person's ['ranking']",
+        "built: the engine does not run this family, and the build was not refused with a reason"
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "family"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer"
+      ],
+      "state": "problem",
+      "said": "The problem card is not ready: What should DCLab give for each row: a yes or no, a class, a number, a forecast, or the unusual rows?",
+      "got": {
+        "family": null
+      },
+      "right": false,
+      "seconds": 3.7
+    },
+    {
+      "id": "JS-16",
+      "kind": "rare_event",
+      "family": "rare_event",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget"
+      ],
+      "questions": 5,
+      "steps": [
+        "answer",
+        "answer",
+        "bring_table",
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "rare_event",
+        "target": "is_case",
+        "kind": "rare_event",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "roc_auc": 0.8067349926793558,
+        "average_precision": 0.5037593984962406,
+        "recall_at_precision_target": 0.5,
+        "precision_target": 0.9,
+        "precision_at_k_positives": 0.5,
+        "accuracy": 0.997080291970803,
+        "majority_baseline_accuracy": 0.997080291970803,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "brier": 0.002226138597142495,
+        "log_loss": 0.018141641238439355,
+        "positive_rate": 0.00291970802919708,
+        "threshold": 0.5,
+        "ap_lift": 172.53759398496243,
+        "alert_budget": 0.057873,
+        "alerts_at_budget": 40,
+        "recall_at_budget": 0.5,
+        "precision_at_budget": 0.025,
+        "fit_seconds": 0.353897249995498,
+        "recall_at_budget_ci": {
+          "point": 0.5,
+          "low": 0.0,
+          "median": 0.5,
+          "high": 1.0,
+          "draws": 36,
+          "method": "cluster bootstrap over 47 groups"
+        }
+      },
+      "right": true,
+      "seconds": 36.1
+    },
+    {
+      "id": "JS-17",
+      "kind": "forecasting",
+      "family": "forecasting",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": false
+      },
+      "why": [
+        "holdout: ['in the engine `rain_mm` is kept out at the leakage stage and the promotion read as known ahead']"
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "forecasting",
+        "target": "units",
+        "kind": "forecasting",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "mase": 0.9147,
+        "smape": 0.2153,
+        "mae": 18.2818
+      },
+      "right": false,
+      "seconds": 16.6
+    },
+    {
+      "id": "JS-18",
+      "kind": "segmentation",
+      "family": "segmentation",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "family"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer"
+      ],
+      "state": "problem",
+      "said": "Not built: Segmentation is not run by the engine yet: a project would model one column, which answers another question. dclab_core solves it as a library; or say the problem is another kind",
+      "got": {
+        "family": "segmentation"
+      },
+      "right": true,
+      "seconds": 0.9
+    },
+    {
+      "id": "JS-19",
+      "kind": "regression",
+      "family": "regression",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "regression",
+        "target": "actual_minutes",
+        "kind": "regression",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "mae": 8.142116107304892,
+        "rmse": 10.978067860061792,
+        "mape": 0.3161506917766012,
+        "r2": 0.25795307625752995,
+        "bias": 0.11064032808939633,
+        "fit_seconds": 0.025973291994887404
+      },
+      "right": true,
+      "seconds": 4.0
+    },
+    {
+      "id": "JS-20",
+      "kind": "embedded",
+      "family": "text_or_images",
+      "parts": {
+        "card": false,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [
+        "card: 'classification', the person's ['text_or_images']"
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "classification",
+        "target": "urgent",
+        "kind": "embedded",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "roc_auc": 1.0
+      },
+      "right": false,
+      "seconds": 1.5
+    },
+    {
+      "id": "JS-21",
+      "kind": "entity_tables",
+      "family": "entity_tables",
+      "parts": {
+        "card": false,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "card: 'classification', the person's ['entity_tables']",
+        "not built: stopped at problem: The problem card is not ready: Which column holds the outcome, or which file lists the known cases?"
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "family"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer"
+      ],
+      "state": "problem",
+      "said": "The problem card is not ready: Which column holds the outcome, or which file lists the known cases?",
+      "got": {
+        "family": "classification"
+      },
+      "right": false,
+      "seconds": 2.8
+    },
+    {
+      "id": "JS-22",
+      "kind": "binary",
+      "family": "classification",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment"
+      ],
+      "questions": 2,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "classification",
+        "target": "churned",
+        "kind": "binary",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "roc_auc": 0.7220755468369741,
+        "average_precision": 0.49891976055003645,
+        "recall_at_precision_target": 0.033112582781456956,
+        "precision_target": 0.9,
+        "precision_at_k_positives": 0.4768211920529801,
+        "accuracy": 0.7633333333333333,
+        "majority_baseline_accuracy": 0.7483333333333333,
+        "precision": 0.6956521739130435,
+        "recall": 0.10596026490066225,
+        "f1": 0.1839080459770115,
+        "brier": 0.1670599056639447,
+        "log_loss": 0.5122878024619472,
+        "positive_rate": 0.25166666666666665,
+        "threshold": 0.5,
+        "ap_lift": 1.9824626247021317,
+        "fit_seconds": 0.03433462500106543
+      },
+      "right": true,
+      "seconds": 3.5
+    },
+    {
+      "id": "JS-23",
+      "kind": "streams",
+      "family": "streams",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "streams",
+        "target": null,
+        "kind": "streams",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "threshold": 0.021777,
+        "incidents": 19,
+        "caught": 19,
+        "incident_recall": 1.0,
+        "lead_time_hours_median": 37.0,
+        "alerts": 126,
+        "alerts_per_unit_day": 0.198,
+        "false_alerts_per_unit_day": 0.003,
+        "unit_days": 635.8
+      },
+      "right": true,
+      "seconds": 12.8
+    },
+    {
+      "id": "JS-24",
+      "kind": "uplift",
+      "family": "uplift",
+      "parts": {
+        "card": false,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "card: None, the person's ['uplift']",
+        "built: the engine does not run this family, and the build was not refused with a reason"
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "family"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer"
+      ],
+      "state": "problem",
+      "said": "The problem card is not ready: What should DCLab give for each row: a yes or no, a class, a number, a forecast, or the unusual rows?",
+      "got": {
+        "family": null
+      },
+      "right": false,
+      "seconds": 2.2
+    },
+    {
+      "id": "JS-25",
+      "kind": "places",
+      "family": "regression",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "regression",
+        "target": "price",
+        "kind": "places",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "mae": 145184.20115399922,
+        "rmse": 211333.4911183635,
+        "mape": 0.18029342617174998,
+        "r2": 0.7203093953793732,
+        "bias": -82888.33399655126,
+        "fit_seconds": 0.032808417003252544
+      },
+      "right": true,
+      "seconds": 51.6
+    },
+    {
+      "id": "JS-26",
+      "kind": "multiclass",
+      "family": "classification",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "classification",
+        "target": "assigned_team",
+        "kind": "multiclass",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "macro_f1": 0.4221596090415334,
+        "balanced_accuracy": 0.42821563145856256,
+        "accuracy": 0.6233333333333333,
+        "log_loss": 1.0870720364138113,
+        "per_class_f1": [
+          0.3516483516483517,
+          0.803921568627451,
+          0.41509433962264153,
+          0.0,
+          0.0,
+          0.5714285714285714,
+          0.5301204819277109,
+          0.6724137931034483,
+          0.0,
+          0.7283236994219653,
+          0.7288135593220338,
+          0.2641509433962264
+        ],
+        "worst_3_classes": [
+          {
+            "class_index": 3,
+            "f1": 0.0,
+            "source_label": "integrations"
+          },
+          {
+            "class_index": 4,
+            "f1": 0.0,
+            "source_label": "legal"
+          },
+          {
+            "class_index": 8,
+            "f1": 0.0,
+            "source_label": "security"
+          }
+        ],
+        "fit_seconds": 0.09491950001392979
+      },
+      "right": true,
+      "seconds": 12.8
+    },
+    {
+      "id": "JS-27",
+      "kind": "time_to_event",
+      "family": "time_to_event",
+      "parts": {
+        "card": false,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [
+        "card: 'regression', the person's ['time_to_event']"
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "regression",
+        "target": "days_subscribed",
+        "kind": "time_to_event",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "integrated_brier": 0.1044,
+        "c_index": 0.6609,
+        "auc_90": 0.6876
+      },
+      "right": false,
+      "seconds": 2.1
+    },
+    {
+      "id": "JS-28",
+      "kind": "anomaly",
+      "family": "anomaly",
+      "parts": {
+        "card": false,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "card: 'rare_event', the person's ['anomaly']",
+        "not built: stopped at problem: The problem card is not ready: Which column holds the outcome, or which file lists the known cases?"
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "answer"
+      ],
+      "state": "problem",
+      "said": "The problem card is not ready: Which column holds the outcome, or which file lists the known cases?",
+      "got": {
+        "family": "rare_event"
+      },
+      "right": false,
+      "seconds": 4.9
+    },
+    {
+      "id": "JS-29",
+      "kind": "text_tabular",
+      "family": [
+        "classification",
+        "text_or_images"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "classification",
+        "target": "negative",
+        "kind": "text_tabular",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "roc_auc": 0.8773324203369935,
+        "average_precision": 0.7465976701154075,
+        "recall_at_precision_target": 0.47572815533980584,
+        "precision_target": 0.9,
+        "precision_at_k_positives": 0.6407766990291263,
+        "accuracy": 0.794,
+        "majority_baseline_accuracy": 0.794,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "brier": 0.12708193453746947,
+        "log_loss": 0.4082481526348788,
+        "positive_rate": 0.206,
+        "threshold": 0.5,
+        "ap_lift": 3.624260534540813,
+        "fit_seconds": 0.11187424999661744
+      },
+      "right": true,
+      "seconds": 6.1
+    },
+    {
+      "id": "JS-30",
+      "kind": "ranking",
+      "family": "ranking",
+      "parts": {
+        "card": false,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "card: None, the person's ['ranking']",
+        "built: the engine does not run this family, and the build was not refused with a reason"
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "family"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer"
+      ],
+      "state": "problem",
+      "said": "The problem card is not ready: What should DCLab give for each row: a yes or no, a class, a number, a forecast, or the unusual rows?",
+      "got": {
+        "family": null
+      },
+      "right": false,
+      "seconds": 3.4
+    }
+  ],
+  "families": [
+    {
+      "family": "anomaly",
+      "journeys": 2,
+      "right": 1,
+      "interval": [
+        0.095,
+        0.905
+      ]
+    },
+    {
+      "family": "classification",
+      "journeys": 6,
+      "right": 6,
+      "interval": [
+        0.61,
+        1.0
+      ]
+    },
+    {
+      "family": "entity_tables",
+      "journeys": 2,
+      "right": 0,
+      "interval": [
+        0.0,
+        0.658
+      ]
+    },
+    {
+      "family": "forecasting",
+      "journeys": 2,
+      "right": 1,
+      "interval": [
+        0.095,
+        0.905
+      ]
+    },
+    {
+      "family": "ranking",
+      "journeys": 2,
+      "right": 0,
+      "interval": [
+        0.0,
+        0.658
+      ]
+    },
+    {
+      "family": "rare_event",
+      "journeys": 2,
+      "right": 1,
+      "interval": [
+        0.095,
+        0.905
+      ]
+    },
+    {
+      "family": "regression",
+      "journeys": 4,
+      "right": 4,
+      "interval": [
+        0.51,
+        1.0
+      ]
+    },
+    {
+      "family": "segmentation",
+      "journeys": 2,
+      "right": 2,
+      "interval": [
+        0.342,
+        1.0
+      ]
+    },
+    {
+      "family": "streams",
+      "journeys": 2,
+      "right": 1,
+      "interval": [
+        0.095,
+        0.905
+      ]
+    },
+    {
+      "family": "text_or_images",
+      "journeys": 2,
+      "right": 0,
+      "interval": [
+        0.0,
+        0.658
+      ]
+    },
+    {
+      "family": "time_to_event",
+      "journeys": 2,
+      "right": 0,
+      "interval": [
+        0.0,
+        0.658
+      ]
+    },
+    {
+      "family": "uplift",
+      "journeys": 2,
+      "right": 0,
+      "interval": [
+        0.0,
+        0.658
+      ]
+    }
+  ],
+  "summary": {
+    "journeys": 30,
+    "right": 16,
+    "by_part": {
+      "card": 18,
+      "workflow": 22,
+      "pipeline": 22,
+      "holdout": 20
+    }
+  },
+  "verdict": "fail: 16 of 30 journeys right (95% interval 0.361 to 0.698), 0 moves refused by the validator",
+  "status": "completed",
+  "experiment_id": "JRN-002",
+  "rule": "Scores on 30 written journeys over seeded replicas say how DCLab carries these people from their first sentence to a holdout number; they are not a claim about any other problem or about production readiness."
+}

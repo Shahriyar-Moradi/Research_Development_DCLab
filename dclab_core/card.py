@@ -48,6 +48,10 @@ FAMILIES: dict[str, str] = {
 # a family whose model learns from an outcome: the outcome must be named before a build
 NEEDS_OUTCOME = frozenset({"classification", "regression", "rare_event", "forecasting", "time_to_event", "ranking", "uplift",
                            "entity_tables", "streams", "text_or_images"})
+# a family the words may say beside a named outcome column: then asked, never inferred (20.10)
+ASKED_AGAINST_A_COLUMN = frozenset({"ranking", "uplift", "streams", "entity_tables", "text_or_images"})
+# a family whose outcome is computed from related tables, not read from a column of the main one (20.10)
+FROM_TABLES = frozenset({"entity_tables", "streams"})
 # a family whose cases are scored at a moment: what is known then decides every column (leakage)
 NEEDS_MOMENT = frozenset({"classification", "regression", "rare_event", "anomaly", "forecasting", "time_to_event", "ranking", "uplift",
                           "entity_tables", "streams", "text_or_images"})
@@ -58,13 +62,21 @@ WORDS = {  # what the person's words say, family by family (stems: "anomal" catc
                              r"chargeback\w*|(loan|credit|payment) defaults?|default(s|ed)? on (a |their |the )?(loan|payment|credit|debt)s?|"
                              r"intrusion\w*|money laundering)", re.I),
     "forecasting": re.compile(r"\b(forecast\w*|demand (per|for|each)|how many .{0,30}\b(tomorrow|next (day|week|month)))", re.I),
-    "time_to_event": re.compile(r"\b(how long (until|before)|time (to|until|before) (\w+ ){0,3}(churn|fail|leave|cancel|quit|die|default)"
+    "time_to_event": re.compile(r"\b(how long (until|before)|how long (will|does|do|would|did) (\w+ ){1,4}(stay|last|survive|remain|keep \w+)\b|time (to|until|before) (\w+ ){0,3}(churn|fail|leave|cancel|quit|die|default)"
                                 r"(s|ed|ing)?\b|time (to|until|before) (\w+ ){0,3}breaks? down|time to failure|survival analysis|time[- ]to[- ]event)", re.I),
     "ranking": re.compile(r"\b(rank\w* (items|products|results|documents|offers|listings)|recommend\w* (items|products|content|movies|songs|offers)|"
                           r"recommendations? (system|engine)|which items? to show)", re.I),
     "segmentation": re.compile(r"\b(segment (our|the) (customers|users|stores)|customer segmentation|cluster\w* (our|the) (customers|users|stores)|"
                                r"group (our|the|similar) (customers|users|stores))", re.I),
-    "uplift": re.compile(r"\b(uplift|treatment effect|incremental (effect|impact|lift|sales|revenue)|persuad\w*|who (to|should we) target)", re.I),
+    "uplift": re.compile(r"\b(uplift|treatment effect|incremental (effect|impact|lift|sales|revenue)|persuad\w*|who (to|should we) target|"
+                        r"(would|will|it) make (them |each |the customer )?(buy|stay|convert|respond|renew)|not (those|the ones) who (buy|would buy|renew) anyway)", re.I),
+    # 20.10: three families the words alone named nowhere
+    "streams": re.compile(r"\b(sensor\w*|telemetry|readings? (from|of|over)|event streams?|predictive maintenance|"
+                          r"(alert|warn\w*) (before|ahead of) (a |the |each )?\w+ (fails?|breaks?( down)?|goes down))", re.I),
+    "entity_tables": re.compile(r"\b((several|multiple|related|linked) tables|from (their|its|the) \w+, \w+,? and \w+|"
+                                r"from (their|its) (orders|events|transactions|visits|purchases|tickets|payments) and (their |its )?\w+)\b", re.I),
+    "text_or_images": re.compile(r"\b(from (its|their|the) (text|wording|words|images?|photos?|pictures?|scans?)|read(ing)? (the|its|their) "
+                                 r"(text|notes?|images?|photos?)|(classify|label|tag|sort|recogni[sz]e) (the |each |our )?(images?|photos?|pictures?|scans?))\b", re.I),
 }
 LABEL_WORDS = (  # what a person says about labels, in the order tried (a "no" first: "no file of known cases" is none)
     ("none", re.compile(r"\b(nothing is labell?ed|no labell?s?\b|not labell?ed|none (are|is) (labell?ed|confirmed)|no (known|confirmed) cases|"
@@ -150,8 +162,12 @@ def _family(brief: ProblemBrief, words: str, labels: LabelsFact, stated: Optiona
         if not settled:
             return FamilyFact(), ["rare_event", "anomaly"]
     if not settled:
-        for family in ("forecasting", "time_to_event", "ranking", "uplift"):
+        for family in ("forecasting", "time_to_event", "ranking", "uplift", "streams", "entity_tables", "text_or_images"):
             if family in hits:
+                if family in ASKED_AGAINST_A_COLUMN and brief.target_column.value and task in ("binary", "multiclass", "regression"):
+                    # 20.10: an outcome column is named and the words also say another family ("who to target", "from its
+                    # sensor readings", "from their photos"): the person says which, never a word in passing
+                    return FamilyFact(), [family, "regression" if task == "regression" else "classification"]
                 return FamilyFact(value=family, status="inferred", source="rule", reason=f"the words say {family.replace('_', ' ')}"), []
         if "segmentation" in hits and not brief.target_column.value and task is None:  # no outcome at all: groups
             return FamilyFact(value="segmentation", status="inferred", source="rule", reason="groups asked for, and no outcome named"), []
@@ -166,7 +182,8 @@ def problem_card(brief: ProblemBrief, *, words: str = "", data: Optional[Mapping
                  family: Optional[str] = None) -> ProblemCard:
     """The card of a brief. ``words``: what the person wrote (the problem and their answers), read for the family.
     ``data``: what the files say, when there are files: ``label_file`` (a file of known cases joins the table),
-    ``cases_only`` (the only table is a list of known cases), ``tables`` (how many tables). ``family``: one the person
+    ``cases_only`` (the only table is a list of known cases), ``tables`` (how many tables), ``columns`` (the table's
+    columns are known: an outcome is then a column, or for entity tables and streams the words). ``family``: one the person
     stated (a host's chosen problem kind), which no word overrides."""
     data = dict(data or {})
     labels = _labels(brief, data, words)
@@ -174,7 +191,11 @@ def problem_card(brief: ProblemBrief, *, words: str = "", data: Optional[Mapping
         raise ValueError(f"unknown family {family!r}: one of {', '.join(FAMILIES)}")
     stated_family = family
     family, in_play = _family(brief, words, labels, stated_family)
-    outcome = brief.target_column.value or brief.target_definition.value
+    fam_now = family.value or (in_play[0] if len(in_play) == 1 else None)
+    # with a table, an outcome is one of its columns or a file of cases; for a family whose outcome is computed from the
+    # related tables (no order in 30 days, a failure in the incidents), the outcome said in words is one (20.10)
+    defined = brief.target_definition.value if not data.get("columns") or fam_now in FROM_TABLES else None
+    outcome = brief.target_column.value or defined
     if not outcome and labels.value == "file" and labels.source == "data":  # a file of cases joined, never one only spoken of
         outcome = "the cases listed in the file of known cases"
     questions: list[CardQuestion] = []
@@ -189,13 +210,20 @@ def problem_card(brief: ProblemBrief, *, words: str = "", data: Optional[Mapping
         ask("data", "Add the table these known cases belong to (the full table of orders, accounts or events).",
             "A file of known cases alone has nothing to tell the cases from.", True)
     if family.value is None:
-        if in_play:
+        if in_play and set(in_play) != {"rare_event", "anomaly"}:  # 20.10: two families the words and the column each say
+            ask("family", f"Is this {' or '.join(f.replace('_', ' ') for f in in_play)}? Say which answer DCLab should give for each row.",
+                "The words say one kind of problem and the outcome column another; the kind decides the method, the split and the "
+                "metric.", True, list(in_play))
+        elif in_play:
             ask("labels", LABELS_QUESTION, "Confirmed cases mean learning from them (rare events); none means finding the "
                 "unusual rows and judging them by review (anomalies).", True, LABELS_OPTIONS)
         else:
             ask("family", "What should DCLab give for each row: a yes or no, a class, a number, a forecast, or the unusual rows?",
                 "The kind of answer decides the method, the split and the metric.", True)
     fam = family.value or (in_play[0] if len(in_play) == 1 else None)
+    if fam in FROM_TABLES and defined and not brief.target_column.value and data.get("columns") and (data.get("tables") or 0) <= 1:
+        ask("data", "Attach the table whose events decide the outcome (the incidents, the orders) to the project, by name.",
+            "The outcome is computed from that table: nothing is modelled until it is attached.", False)
     if fam in NEEDS_OUTCOME and not outcome:
         ask("outcome", "Which column holds the outcome, or which file lists the known cases?",
             "The outcome decides the task, the metric and which columns could leak it.", True)

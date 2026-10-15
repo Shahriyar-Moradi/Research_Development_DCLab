@@ -204,11 +204,17 @@ class ProjectPipelineTest(unittest.TestCase):
     def test_a_draft_built_project_records_its_problem_card(self):
         store, pid = acceptance.build(kinds.get("binary").case(0), Path(tempfile.mkdtemp()))
         project = store.get(pid)
-        project["draft"] = {"card": {"family": "binary", "problem": "x"}, "workflow": {"steps": ["a"]}}
+        from dclab_core.card import problem_card  # 20.10: the card as a build keeps it, each field with its status
+        from dclab_core.understand import understand
+
+        words = "Which subscribers will churn?"
+        card = problem_card(understand(words, {"t": ["churned", "plan"]}), words=words).model_dump(mode="json")
+        self.assertIsInstance(card["family"], dict)
+        project["draft"] = {"card": card, "workflow": {"steps": ["a"]}}
         store.save(project)
         p = pipeline.of(store, pid)
         self.assertEqual((p.step("problem").status, p.step("workflow").status), ("done", "done"))
-        self.assertEqual(p.step("problem").outputs["family"], "binary")
+        self.assertEqual(p.step("problem").outputs["family"], card["family"]["value"])
         self.assertEqual(p.step("stage:data").status, "not_run")
         self.assertEqual(core.resume(p), "stage:data")
 

@@ -39,6 +39,12 @@ class CodeRefused(ValueError):
     """The project's code cannot be written yet; the reason says why."""
 
 
+def _positive(project: dict[str, Any], solution: dict[str, Any]) -> Any:
+    from ..kinds.binary import as_table_label, profile_booleans  # the positive label as the engine reads it (20.10)
+
+    return as_table_label(solution.get("positive_label"), profile_booleans((project.get("data") or {}).get("profile"), solution.get("target")))
+
+
 def _c(value: Any) -> str:
     """A recorded value as Python source."""
     return repr(json.loads(json.dumps(value, default=str)))
@@ -233,7 +239,7 @@ assert parts["holdout_fingerprint"] == {_c(_ev(records, "data").get("split", {})
 rows = table[readable & table[{_c(target)}].notna()].reset_index(drop=True)
 test = embeddings.holdout_mask(rows[{_c(source)}], parts)
 seen = sorted({{str(v) for v in rows.loc[~test, {_c(target)}]}})  # the classes as the training rows have them
-positive = {_c(solution.get("positive_label"))} or seen[-1]
+positive = {_c(_positive(project, solution))} or seen[-1]
 y = (rows[{_c(target)}].astype(str) == str(positive)).astype(int).to_numpy()'''),
         ("features", '''X, _ = embeddings.encode(rows[''' + _c(text) + '''].astype(str).tolist(), embeddings.HashingText())  # a local baseline, not pretrained'''),
         ("models", f'''picked = embeddings.choose(X[~test], y[~test], rows[{_c(source)}][~test])  # folds grouped by source

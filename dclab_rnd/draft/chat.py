@@ -33,7 +33,7 @@ from . import plan as plans
 from . import workflow as wflow
 from .store import DraftStore, now
 
-MAX_QUESTIONS = 4
+MAX_QUESTIONS = 5  # 20.10: the conversation gate's five; at four a rare event's review budget was never asked
 MODEL_REPLIES = 5  # model requests per user message
 MODEL_STEPS = 40  # tool calls per user message (a reply may make several)
 MODEL_SECONDS = 5 * 60
@@ -401,6 +401,12 @@ class HomeAgent:
         read = read_answer(self.CARD_FIELDS.get(field, field), value, columns or None)
         if read.get("family"):
             self.record(draft_id, "family", read["family"])
+        named = read.get("target_column")
+        if field in ("target", "outcome") and named and value.strip() not in columns and \
+                re.match(rf"\s*(the\s+)?(column\s+)?{re.escape(named)}\b", value, re.I):
+            # 20.10: "days_subscribed, with cancelled saying whether they left" begins with its outcome; "a failure of the
+            # machine" or "we only know it once final_refund_amount is paid" only mention a column
+            self.record(draft_id, "target", named)
         if field in ("labels_check", "target_check"):  # the answer to a contradiction settles what it was about
             if read.get("labels"):
                 self.record(draft_id, "labels", self.LABEL_PHRASES[read["labels"]])
@@ -517,7 +523,7 @@ class HomeAgent:
             from .card import card_of
             from dclab_core.card import LABELS_OPTIONS, LABELS_QUESTION
 
-            if card_of(draft).in_play:
+            if set(card_of(draft).in_play) == {"rare_event", "anomaly"}:  # 20.10: another pair is asked as the family
                 return ("labels", LABELS_QUESTION, list(LABELS_OPTIONS),
                         "Confirmed cases mean learning from them (rare events); none means finding the unusual rows (anomalies).")
         for field in plans.fields_for(draft):

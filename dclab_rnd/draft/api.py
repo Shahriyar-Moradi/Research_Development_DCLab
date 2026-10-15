@@ -696,6 +696,14 @@ def build_blockers(drafts: DraftStore, draft_id: str, capture_card: bool = False
 
         capture.problem_card(draft, card)
     has_data = any(a.get("status") == "ready" for a in draft.get("assets") or [])
+    from dclab_core.coordinator import FAMILY_NOT_RUN
+
+    from .. import kinds
+
+    kind = kinds.get(card.family.value) if card.family.value in {k.key for k in kinds.all_kinds()} else None
+    if kind is not None and not kind.runs_in_engine:  # 20.10: built anyway, it became a model of some column: another problem
+        out.append(BuildRefused(f"{kind.title} is not run by the engine yet: a project would model one column, which answers another "
+                                "question. dclab_core solves it as a library; or say the problem is another kind", FAMILY_NOT_RUN))
     if has_data and not card.ready:  # 20.1: a project is built from a ready problem card
         out.append(BuildRefused("Not yet: " + " ".join(card.blocking[:3]), "problem card not ready"))
     if not has_data and card.in_play:  # a plan-only draft carries its questions, but not one about what the problem is

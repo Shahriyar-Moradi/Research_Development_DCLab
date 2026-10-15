@@ -53,8 +53,8 @@ def card_of(draft: dict[str, Any]) -> ProblemCard:
     target = solution.get("target") or u.get("target") or own.get("target")
     if target and target in columns:
         update["target_column"] = _stated(str(target))
-    elif target and not columns:  # before any data, the outcome in words; with a table, only a column or a file of cases is one
-        update["target_definition"] = _stated(str(target))  # ("it is anomaly detection", typed when asked the outcome, is not)
+    elif target:  # the outcome in words: before any data an outcome; with a table only for entity tables and streams (the
+        update["target_definition"] = _stated(str(target))  # card decides: "it is anomaly detection", typed when asked the outcome, is not)
     task = solution.get("task") or own.get("task") or _task_of(next((c for c in profile.get("columns") or [] if c.get("name") == target), None))
     if task in ("binary", "multiclass", "regression"):
         source = "person" if solution.get("task") else "data"
@@ -88,7 +88,7 @@ def card_of(draft: dict[str, Any]) -> ProblemCard:
     has_labels = plans.label_asset(draft) is not None
     named = bool(target and target in columns)
     data = {"label_file": has_labels, "cases_only": bool(cases) and not has_labels and not named,
-            "tables": sum(1 for a in draft.get("assets") or [] if a.get("status") == "ready")}
+            "tables": sum(1 for a in draft.get("assets") or [] if a.get("status") == "ready"), "columns": bool(columns)}
     stated = KIND_FAMILY.get(str(solution.get("kind") or "")) or (u.get("family") if u.get("family") in FAMILIES else None)  # 20.2: said in an answer
     return problem_card(brief, words=words, data=data, family=stated)
 

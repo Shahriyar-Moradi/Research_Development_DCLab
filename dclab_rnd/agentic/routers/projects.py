@@ -238,8 +238,13 @@ async def _save_solution(project_id: str, payload: SolutionBody, s: Services) ->
     p = s.project(project_id)
     body = payload.model_dump(exclude_unset=True)
     try:
+        from ...kinds.binary import as_table_label, profile_booleans
+
+        if body.get("positive_label") is not None and p.get("data"):  # 20.10: "yes" on a column cleaned into booleans is True
+            body["positive_label"] = as_table_label(body["positive_label"], profile_booleans(p["data"].get("profile"), body.get("target")))
         solution = studio_solution.Solution(**body)
-        solution.check_columns(p["data"]["columns"] if p.get("data") else [])
+        label_target = (p.get("labels") or {}).get("target")  # 20.10: a label file's target is a column of the joined table (as the intern's)
+        solution.check_columns((list(p["data"]["columns"]) + ([label_target] if label_target else [])) if p.get("data") else [])
     except Exception as exc:  # noqa: BLE001 — the solution's own wording, as one line
         raise HTTPException(422, str(exc).split("\n")[0][:400] if "validation error" not in str(exc) else "; ".join(
             line.strip() for line in str(exc).split("\n")[1:] if line.strip() and not line.strip().startswith("For further"))[:600])

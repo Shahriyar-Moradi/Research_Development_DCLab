@@ -8,6 +8,22 @@ import pandas as pd
 
 from .base import ProblemKind, _get
 
+BOOLEAN_WORDS = {"yes": "True", "y": "True", "true": "True", "1": "True", "no": "False", "n": "False", "false": "False", "0": "False"}
+
+
+def as_table_label(label: Any, booleans: bool) -> Any:
+    """The positive label as the table spells it (20.10): cleaning reads a yes/no column as booleans, and the "yes" a
+    person read in their file means True there. Used by the engine, the Solution's save and the exports alike."""
+    if label is None or not booleans:
+        return label
+    return BOOLEAN_WORDS.get(str(label).strip().lower(), str(label))
+
+
+def profile_booleans(profile: Any, column: Any) -> bool:
+    """Whether the profiled column is yes/no read as booleans."""
+    found = next((c for c in (profile or {}).get("columns") or [] if c.get("name") == column), None) or {}
+    return found.get("dtype") in ("bool", "boolean") or found.get("kind") == "boolean"
+
 
 class Binary(ProblemKind):
     key = "binary"
@@ -32,12 +48,22 @@ class Binary(ProblemKind):
         return "average_precision" if positive_rate is not None and positive_rate < 0.10 else "roc_auc"
 
     def target(self, frame: pd.DataFrame, solution: Any) -> tuple[pd.Series, list[str] | None]:
-        raw = frame[_get(solution, "target")]
+        name = _get(solution, "target")
+        raw = frame[name]
         positive = _get(solution, "positive_label")
         if positive is None:
             values = sorted(raw.dropna().unique(), key=str)
             positive = str(values[-1])
-        return (raw.astype(str).str.strip() == str(positive)).astype(int), None
+        text = raw.astype(str).str.strip()
+        booleans = pd.api.types.is_bool_dtype(raw) or str(raw.dtype) == "boolean" or set(text.dropna().unique()) <= {"True", "False", "nan"}
+        positive = as_table_label(positive, booleans)
+        y = (text == str(positive)).astype(int)
+        present = y[raw.notna()]
+        if len(present) and present.nunique() < 2:
+            seen = ", ".join(sorted({str(v) for v in raw.dropna().unique()})[:6])
+            raise ValueError(f"The positive label {_get(solution, 'positive_label')!r} is in {'every' if present.iloc[0] else 'none'} of the rows "
+                             f"of `{name}` (its values: {seen}): a yes or no outcome needs both, so choose the value that means yes")
+        return y, None
 
     def positive_rate(self, y: pd.Series) -> float | None:
         return float(y.mean())

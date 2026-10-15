@@ -154,7 +154,7 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
         _cell("code", f"frame = {_read_code(data.get('filename', 'data.csv'))}  # the project's data file\n"
               + _labels_code(project, solution)
               + f"TARGET = {solution.get('target')!r}\nDROP = {drop!r}\n"
-              + _target_code(task, solution)
+              + _target_code(task, solution, data.get("profile"))
               + f"X = frame.drop(columns=[TARGET] + [c for c in DROP if c in frame])\nprint(X.shape, y.value_counts(normalize=True).round(3).to_dict() if y.nunique() < 20 else y.describe())"),
         _cell("markdown", "## 2. Lock the holdout before looking at the target\n\n" + _split_text(time_column, group_column, regression)),
         _cell("code", _split_code(time_column, group_column, regression, data, _folds(project, records))),
@@ -190,9 +190,12 @@ def _labels_code(project: dict[str, Any], solution: dict[str, Any]) -> str:
             f"frame[{info['target']!r}] = (marked['_merge'] == 'both').astype(int).to_numpy()\n")
 
 
-def _target_code(task: str, solution: dict[str, Any]) -> str:
+def _target_code(task: str, solution: dict[str, Any], profile: Any = None) -> str:
     if task == "binary":
-        return f"y = (frame[TARGET].astype(str).str.strip() == {str(solution.get('positive_label'))!r}).astype(int)\n"
+        from ..kinds.binary import as_table_label, profile_booleans
+
+        positive = as_table_label(solution.get("positive_label"), profile_booleans(profile, solution.get("target")))  # as the engine reads it
+        return f"y = (frame[TARGET].astype(str).str.strip() == {str(positive)!r}).astype(int)\n"
     if task == "multiclass":
         return "labels = sorted(frame[TARGET].dropna().astype(str).unique())\ny = frame[TARGET].astype(str).map({l: i for i, l in enumerate(labels)}).astype(int)\n"
     return "y = pd.to_numeric(frame[TARGET], errors='coerce')\nframe = frame[y.notna()].reset_index(drop=True)\ny = y[y.notna()].reset_index(drop=True)\n"

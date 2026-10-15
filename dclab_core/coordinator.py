@@ -73,6 +73,9 @@ class Situation(Versioned):
 CONTRACTS["coordinator_situation"] = Situation
 
 
+FAMILY_NOT_RUN = "family not built yet"  # a build refusal's rule: the host runs no machine for this family
+
+
 def situation(facts: Facts) -> Situation:
     """The first state the facts do not satisfy, in order, with its blockers and the next action."""
     passed: list[str] = []
@@ -82,6 +85,10 @@ def situation(facts: Facts) -> Situation:
     def at(state: str, nxt: str, says: str, blockers: Iterable[Blocker] = ()) -> Situation:
         return Situation(state=state, passed=list(passed), blockers=list(blockers), next=nxt, says=says[:1000])
 
+    not_run = [r for r in facts.build_refusals if r.get("rule") == FAMILY_NOT_RUN]
+    if not_run:  # 20.10: a family no machine runs is said once it is known, never after more questions about it
+        return at("problem", "stop", f"Not built: {not_run[0].get('message')}",
+                  [Blocker(state="problem", code=FAMILY_NOT_RUN, question=str(r.get("message") or "")[:600]) for r in not_run])
     questions = [q for q in facts.blocking_questions if q.get("field") not in data_fields]
     if questions:
         first = questions[0]

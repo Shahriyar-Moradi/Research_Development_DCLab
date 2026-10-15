@@ -341,6 +341,28 @@ code are not one connected object a data scientist can read, run and change.
   first sentence to the report; the owner's morning first. Scored: the card, the workflow, the pipeline, the holdout
   number against the replica's planted truth. Gate fixed before the run; failures from Part 8 added as cases.
 - **Done when:** the gate passes on the sealed conversations, with every family listed and its interval.
+- **Status: built, its gate failed (2026-10-15).** `dclab_rnd/agent_eval/journeys` (`make journeys SPLIT=dev|sealed`):
+  each written person is played as the product runs, with no model (a draft per file they bring, the cases apart as on
+  the owner's morning, the coordinator walking the draft with the person answering, the build, the Solution page saved
+  through the graph's validator with what the person states, the related tables attached by name, every stage run),
+  and scored on the card, the workflow (the Home workflow and 20.6's solution workflow validate, the graph refused no
+  move), the pipeline (every step run and recorded, none stale) and the holdout (the kind's acceptance decisions against
+  the replica's planted truth, and the problem ran as its kind); a family the engine does not run is right only when
+  the build refuses it with its rule. Gate `journeys_gate_v1`: at least 85% right, the 95% Wilson interval's lower end
+  at least 0.6, every family with a journey, no refused move; the sealed run on replica seed 1. Dev (15 people, one
+  per kind, the owner's morning first): 15 of 15, written beside the rules. Sealed (30 people written by a separate
+  agent from a brief of the replicas, without the rules or the dev people, pinned before any run): **16 of 30, interval
+  0.36 to 0.70: fail** (`JRN-002`). Right on every classification, regression and segmentation journey; the misses
+  are people's own words for the other families that the rules do not read (11), a rare event's review budget never
+  reached within five questions, and a forecast whose paraphrased moment no longer said when the weather is known.
+  The dev failures fixed eight defects in the product (a draft-built project's pipeline broke on its card; a yes or no
+  outcome cleaned into booleans trained on one class without a word; the Solution page refused a label file's target;
+  a family the engine does not run was built as a model of one column; blocks of places ran as plain regression
+  outside the maps pack; a rare event's budget was never asked; the words named no streams, entity tables or text; an
+  outcome named inside a sentence was lost). Left open: the card's family from people's own words needs the
+  conversation reader (20.2's model role, measured) or the person's statement; a new sealed set by an independent
+  writer (the owner's decision, as for 20.2); the kind's own fields are stated by the person on the Solution page, not
+  asked; failures from Part 8's recorded sessions become cases once real sessions exist.
 
 ---
 

@@ -31,12 +31,16 @@ LIMIT = 5
 FAMILY_ANSWERS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("classification", re.compile(r"\b(a yes or (a )?no|yes or no|yes/no|whether|a class\b|which (class|category|team|type)|classification)\b", re.I)),
     ("forecasting", re.compile(r"\b(forecast\w*|(next|coming) (days?|weeks?|months?)|how many .{0,30}\b(tomorrow|next)\b)", re.I)),
-    ("time_to_event", re.compile(r"\b(how long (until|before)|time (to|until|before) \w+|when (it|they|each) will (fail|leave|cancel|churn))\b", re.I)),
+    ("time_to_event", re.compile(r"\b(how long (until|before)|time (to|until|before) \w+|when (it|they|each) will (fail|leave|cancel|churn)|"
+                                 r"(days|weeks|months|time) (until|before) (\w+ ){0,3}(fails?|leaves?|cancels?|churns?|quits?|ends?))\b", re.I)),
+    ("streams", re.compile(r"\b((an )?alerts? (before|ahead of) (a |the |each )?\w+ (fails?|breaks?|goes down)|from (the |its )?(sensor\w*|readings)|"
+                           r"as (the )?(readings|events) arrive)\b", re.I)),
     ("anomaly", re.compile(r"\b(anomal\w*|outlier\w*|unusual (rows|ones|orders|cases|behaviou?r|transactions)|the unusual ones|odd ones)\b", re.I)),
     ("rare_event", re.compile(r"\b(rare (events?|cases)( we (learn|know))?|learn from the confirmed)\b", re.I)),
     ("ranking", re.compile(r"\b(rank\w*|recommend\w*|an order of (items|products|results))\b", re.I)),
     ("segmentation", re.compile(r"\b(segment\w*|cluster\w*|groups?\b)", re.I)),
-    ("uplift", re.compile(r"\b(uplift|who (to|should we) (target|contact|treat)|effect of (the )?(offer|discount|campaign|treatment))\b", re.I)),
+    ("uplift", re.compile(r"\b(uplift|who (to|should we) (target|contact|treat)|effect of (the )?(offer|discount|campaign|treatment)|"
+                          r"(would|will) make (them |each )?(buy|stay|convert|respond|renew))\b", re.I)),
     ("regression", re.compile(r"\b(a number|how (much|many|long)|the (amount|price|minutes|duration|value)|regression)\b", re.I)),
 )
 # a family said outright, whatever was asked: "it is anomaly detection", the morning's answer to the outcome question
@@ -55,7 +59,10 @@ def _said(value: str) -> TextFact:
 
 
 def _named(text: str, columns: Optional[list[str]]) -> list[str]:
-    return [c for c in columns or [] if re.search(rf"(?<![\w]){re.escape(c)}(?![\w])", text)]
+    """The columns an answer names, in the order it names them ("days_subscribed, with cancelled saying..." names the
+    outcome first)."""
+    found = {c: m.start() for c in columns or [] if (m := re.search(rf"(?<![\w]){re.escape(c)}(?![\w])", text))}
+    return sorted(found, key=found.get)
 
 
 def read_answer(field: str, text: str, columns: Optional[list[str]] = None) -> dict[str, str]:

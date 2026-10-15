@@ -51,8 +51,11 @@ class MachineTest(unittest.TestCase):
         self.assertEqual((s.state, s.passed), ("meet", ["problem", "data", "links"]))
         s = machine.situation(machine.Facts(files_ready=1, analysed=True, workflow_ready=True,
                                             build_refusals=[{"rule": "family not built yet", "message": "Anomaly detection is not built yet"}]))
-        self.assertEqual((s.state, s.next), ("build", "stop"))
+        self.assertEqual((s.state, s.next), ("problem", "stop"))  # 20.10: a family no machine runs is said as soon as it is known
         self.assertIn("not built yet", s.says)  # never built while a blocker is open, and it says which one
+        s = machine.situation(machine.Facts(files_ready=1, analysed=True, workflow_ready=True,
+                                            build_refusals=[{"rule": "problem and data disagree", "message": "Which column?"}]))
+        self.assertEqual((s.state, s.next), ("build", "stop"))  # any other refusal waits for the build
         s = machine.situation(machine.Facts(files_ready=1, analysed=True, workflow_ready=True, pending_question="entity"))
         self.assertEqual((s.state, s.next, s.blockers[0].code), ("build", "answer", "question_open"))  # never with a question open
         s = machine.situation(machine.Facts(files_ready=1, analysed=True, workflow_ready=True))

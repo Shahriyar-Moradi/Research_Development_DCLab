@@ -121,6 +121,16 @@ def build(case: Case, root: Path | None, store: Any = None) -> tuple[Any, str]:
     else:
         frame = sd.load_table(sd.data_path(store, project))
         proposal = propose(frame, project["data"]["profile"], case.target, case.task, case.pack)
+    return adopt(store, project, proposal, case.target, case.task, case.moment, case.solution, case.quick)
+
+
+def adopt(store: Any, project: dict[str, Any], proposal: dict[str, Any], target: Any, task: str, moment: str,
+          statements: dict[str, Any], quick: bool = True) -> tuple[Any, str]:
+    """The person saves the Solution page: the proposal, the plan beside it adopted, and what they state themselves
+    (``statements``: the kind and its fields, a group, a budget); the same for a replica's case and a written journey
+    (20.10)."""
+    from dclab_rnd.studio.solution import Solution
+
     stated = {k: proposal.get(k) for k in Solution.model_fields if k in proposal and proposal.get(k) is not None}
     stated["forbidden"] = [{"column": f["column"], "reason": f.get("reason", "")[:600]} for f in proposal.get("forbidden") or []]
     # the person adopts the plan beside the proposal (the intern's adopt_plan move): what it forbids, and what it keeps
@@ -129,24 +139,28 @@ def build(case: Case, root: Path | None, store: Any = None) -> tuple[Any, str]:
     for decision in proposal.get("plan") or []:
         if decision.get("decision") in ("features.forbidden", "features.to_confirm"):
             for item in decision.get("choice") or []:
-                if item.get("column") and item["column"] not in {f["column"] for f in stated["forbidden"]} and item["column"] != case.target:
+                if item.get("column") and item["column"] not in {f["column"] for f in stated["forbidden"]} and item["column"] != target:
                     stated["forbidden"].append({"column": item["column"], "reason": str(item.get("reason") or item.get("question") or decision["decision"])[:600]})
         choice = decision.get("choice")
         if (decision.get("decision") == "split.strategy" and isinstance(choice, dict) and choice.get("kind") == "spatial_block"
-                and not {"time_column", "group_column", "spatial"} & set(case.solution)):  # 16.10: the plan's blocks of places, adopted
+                and not {"time_column", "group_column", "spatial"} & set(statements)):  # 16.10: the plan's blocks of places, adopted
             stated["spatial"] = {"lat_column": choice["lat_column"], "lon_column": choice["lon_column"], "block_km": float(choice["block_km"])}
             stated["group_column"] = None
-            if stated.get("kind") == case.task:  # the proposal's plain task kind was a suggestion: the pack's kind may now apply
+            if stated.get("kind") == task:  # the proposal's plain task kind was a suggestion: the pack's kind may now apply
                 stated.pop("kind")
     stated.pop("metric", None)  # the kind's default decides, as for a person who leaves it
-    stated.update({"target": case.target, "task": case.task, "prediction_moment": case.moment, **case.solution})
-    if "time_column" not in case.solution and proposal.get("time_candidates") and not stated.get("spatial"):
+    stated.update({"target": target, "task": task, "prediction_moment": moment, **statements})
+    if "time_column" not in statements and proposal.get("time_candidates") and not stated.get("spatial"):
         stated["time_column"] = proposal["time_candidates"][0]
     if stated.get("time_column"):  # the time column orders the split: the person unticks it under Forbidden, as the form asks
         stated["forbidden"] = [f for f in stated["forbidden"] if f["column"] != stated["time_column"]]
     stated["identifiers"] = [c for c in stated.get("identifiers") or [] if c not in {f["column"] for f in stated["forbidden"]}]
+    from .binary import as_table_label, profile_booleans
+
+    if stated.get("positive_label") is not None:  # as the save route does (20.10)
+        stated["positive_label"] = as_table_label(stated["positive_label"], profile_booleans(project["data"].get("profile"), stated.get("target")))
     project["solution"] = Solution(**stated).model_dump()
-    project["settings"]["quick"] = case.quick
+    project["settings"]["quick"] = quick
     store.save(project)
     from dclab_rnd.ledger import capture  # 19.7: the proposal a person accepts, as decisions (when a ledger keeps them)
 

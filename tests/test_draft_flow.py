@@ -342,7 +342,10 @@ class AgentTests(unittest.TestCase):
         agent.start(d["id"])
         for answer in ["At the monthly snapshot", "We call them", "Upload a sample"]:
             agent.reply(d["id"], answer)
-        self.store.update(d["id"], lambda x: x["questions"].append({"id": "q9", "field": "notes", "text": "x", "options": [], "answered": "y"}))
+        def fill(x):  # the questions up to the limit, answered
+            while len(x["questions"]) < MAX_QUESTIONS:
+                x["questions"].append({"id": f"q{9 + len(x['questions'])}", "field": "notes", "text": "x", "options": [], "answered": "y"})
+        self.store.update(d["id"], fill)
 
         def with_data(x):
             x["assets"] = [{"id": "a1", "name": "c.csv", "status": "ready"}]
@@ -350,7 +353,7 @@ class AgentTests(unittest.TestCase):
             x["analysis"] = {"summary": {"rows": 10, "columns": 2}, "columns": [{"name": "left"}, {"name": "plan"}], "profile": {"target_candidates": ["left", "plan"]}}
         self.store.update(d["id"], with_data)
         agent.data_ready(d["id"], {"id": "a1", "name": "c.csv"})
-        self.assertEqual(self.store.get(d["id"])["messages"][-1]["kind"], "summary")  # four questions asked: no fifth, no silence
+        self.assertEqual(self.store.get(d["id"])["messages"][-1]["kind"], "summary")  # the limit's questions asked: no more, no silence
 
     def test_a_failing_or_unreadable_planner_leaves_the_keyword_rules(self):
         class Broken:

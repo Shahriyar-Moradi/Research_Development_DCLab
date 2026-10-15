@@ -96,6 +96,13 @@ def _report(store: Any, project_id: str) -> Any:
     return solution_report.build(store, project_id, analyse=True)
 
 
+def _family(card: dict[str, Any]) -> Optional[str]:
+    """The card's family as a word: a card keeps each field with its status and source (``{"value": ...}``)."""
+    family = (card or {}).get("family")
+    family = family.get("value") if isinstance(family, dict) else family
+    return str(family) if family is not None else None
+
+
 def of(store: Any, project_id: str) -> core.Pipeline:
     """The project's pipeline now: every step, its lineage and its status."""
     project = store.get(project_id)
@@ -104,7 +111,7 @@ def of(store: Any, project_id: str) -> core.Pipeline:
     card = draft.get("card")
     steps: list[dict[str, Any]] = [
         {"id": "problem", "kind": "problem", "name": "the problem card", "record": "project.draft.card",
-         **({"status": "done", "outputs": {"card": _hash(card), "family": (card or {}).get("family")}} if card else
+         **({"status": "done", "outputs": {"card": _hash(card), "family": _family(card)}} if card else
             {"status": "not_recorded", "why": "The project was made without a problem card (the wizard): its solution states the problem."})},
         {"id": "data", "kind": "data", "name": "the table and its card", "nodes": ["WF-02"], "record": "project.data",
          **({"status": "done", "inputs": {"cleaning_steps": len(draft.get("cleaning_log") or []) or None},

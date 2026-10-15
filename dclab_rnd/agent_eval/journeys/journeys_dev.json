@@ -1,0 +1,302 @@
+[
+ {
+  "id": "JD-01",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "words": "I want build anomaly detection",
+  "answers": {
+   "prediction_moment": "After delivery, in the daily audit of the day's orders",
+   "entity": "The biker",
+   "labels": "A sample of the cases we found",
+   "budget": "About 80 a day",
+   "target": "The confirmed frauds",
+   "family": "Find the fraudulent orders",
+   "action": "The audit team reviews the flagged orders; a missed fraud costs money",
+   "data_plan": "The orders file and the file of cases we found"
+  },
+  "note": "The owner's morning: the orders and the found cases in two drafts, words that say anomaly for a rare-event problem."
+ },
+ {
+  "id": "JD-02",
+  "kind": "binary",
+  "family": "classification",
+  "words": "I want to know which subscribers will cancel at their renewal",
+  "answers": {
+   "target": "churned",
+   "prediction_moment": "At renewal time, before the subscriber decides; refunds are paid only after a cancellation",
+   "action": "We call the ones most likely to leave; a missed churner costs a subscription, a wasted call costs little",
+   "entity": "The subscriber",
+   "labels": "Yes, churned says who left",
+   "data_plan": "This table of subscribers",
+   "family": "A yes or no: will this subscriber cancel"
+  }
+ },
+ {
+  "id": "JD-03",
+  "kind": "multiclass",
+  "family": "classification",
+  "words": "Route each new support ticket to the team that should handle it",
+  "answers": {
+   "target": "assigned_team",
+   "prediction_moment": "When the ticket is created, before anyone reads it",
+   "action": "The ticket goes straight to that team's queue; a wrong team costs a day of waiting",
+   "entity": "The customer",
+   "data_plan": "The ticket table",
+   "family": "A class: the team"
+  }
+ },
+ {
+  "id": "JD-04",
+  "kind": "regression",
+  "family": "regression",
+  "words": "Estimate how many minutes each delivery will take",
+  "answers": {
+   "target": "actual_minutes",
+   "prediction_moment": "When the order is placed, before a courier is assigned",
+   "action": "We show the estimate to the customer; being late by ten minutes is worse than being early",
+   "entity": "The restaurant",
+   "data_plan": "The orders table",
+   "family": "A number: the minutes"
+  }
+ },
+ {
+  "id": "JD-05",
+  "kind": "places",
+  "family": "regression",
+  "words": "Estimate the price of each flat when it is listed",
+  "answers": {
+   "target": "price",
+   "prediction_moment": "When a flat is listed: its place, size, rooms and age are known",
+   "action": "Agents use it to suggest a listing price",
+   "data_plan": "The table of sold flats",
+   "family": "A number: the price"
+  }
+ },
+ {
+  "id": "JD-06",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "words": "Tell which product reviews are negative as soon as they are posted",
+  "answers": {
+   "target": "negative",
+   "prediction_moment": "When the review is posted, before anyone answers it",
+   "action": "Negative reviews go to the care team first",
+   "data_plan": "The reviews table",
+   "family": "A yes or no: is the review negative"
+  }
+ },
+ {
+  "id": "JD-07",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "words": "Find the rides that look unusual; nothing has ever been labelled",
+  "answers": {
+   "prediction_moment": "After delivery, in the daily audit of the day's rides; nothing is labelled yet",
+   "entity": "The biker",
+   "labels": "No, nothing is labelled",
+   "budget": "About 80 rides a day",
+   "action": "The audit team looks at the list each morning",
+   "target": "There is no outcome column; we want the unusual rides",
+   "data_plan": "The rides table",
+   "family": "The unusual rides"
+  }
+ },
+ {
+  "id": "JD-08",
+  "kind": "forecasting",
+  "family": "forecasting",
+  "words": "Forecast the units each store sells of each product over the next 7 days",
+  "answers": {
+   "target": "units",
+   "prediction_moment": "Each Sunday evening, for the next 7 days; promotions are planned weeks ahead, the weather is measured on the day",
+   "action": "The stores order stock from it",
+   "data_plan": "The daily sales table",
+   "family": "A forecast of the units for each of the next 7 days"
+  },
+  "solution": {
+   "kind": "forecasting",
+   "time_column": "date",
+   "kind_fields": {
+    "series_column": "series",
+    "horizon": 7,
+    "season": 7
+   }
+  }
+ },
+ {
+  "id": "JD-09",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "words": "How long will each new subscriber stay before cancelling?",
+  "answers": {
+   "target": "days_subscribed, with cancelled saying whether they left",
+   "prediction_moment": "At signup, before the first bill",
+   "action": "We offer a welcome discount to the ones likely to leave early",
+   "data_plan": "The subscribers table",
+   "family": "How many days until the subscriber cancels"
+  },
+  "solution": {
+   "kind": "time_to_event",
+   "time_column": null,
+   "kind_fields": {
+    "duration_column": "days_subscribed",
+    "event_column": "cancelled",
+    "start_column": "signup_date",
+    "horizons": [
+     90,
+     180,
+     365
+    ],
+    "group_column": "plan"
+   }
+  }
+ },
+ {
+  "id": "JD-10",
+  "kind": "embedded",
+  "family": [
+   "text_or_images",
+   "classification"
+  ],
+  "words": "Tell which support notes are urgent from their text",
+  "answers": {
+   "target": "urgent",
+   "prediction_moment": "When a support note arrives",
+   "action": "Urgent notes are answered first",
+   "data_plan": "The notes with their text",
+   "family": "A yes or no: is the note urgent"
+  },
+  "solution": {
+   "kind": "embedded",
+   "kind_fields": {
+    "source_column": "author",
+    "item_kind": "text",
+    "text_column": "text"
+   },
+   "identifiers": [
+    "item"
+   ]
+  }
+ },
+ {
+  "id": "JD-11",
+  "kind": "streams",
+  "family": "streams",
+  "words": "Raise an alert before a machine fails, from its sensor readings",
+  "answers": {
+   "target": "A failure of the machine in the next hours",
+   "prediction_moment": "Every six hours, for each machine",
+   "action": "A technician checks the machine",
+   "data_plan": "The sensor readings and the list of failures",
+   "family": "An alert before a machine fails"
+  },
+  "solution": {
+   "kind": "streams",
+   "kind_fields": {
+    "unit_column": "machine",
+    "time_column": "time",
+    "sensor_columns": [
+     "temperature",
+     "vibration",
+     "pressure"
+    ],
+    "incident_time_column": "failed_at"
+   }
+  }
+ },
+ {
+  "id": "JD-12",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "words": "Which customers will place no order in the next 30 days, from their orders, tickets and addresses?",
+  "answers": {
+   "target": "No order in the next 30 days",
+   "prediction_moment": "On each cutoff date, with what is known by then",
+   "action": "We send them a reminder",
+   "data_plan": "The customers table and their orders, tickets and addresses",
+   "family": "A yes or no per customer: no order in the next 30 days"
+  },
+  "solution": {
+   "kind": "entity_tables",
+   "kind_fields": {
+    "key_column": "customer_id",
+    "target_table": "orders",
+    "horizon_days": 30,
+    "absent": true,
+    "cutoffs": [
+     "2025-05-31",
+     "2025-06-30",
+     "2025-07-30",
+     "2025-08-29",
+     "2025-09-28",
+     "2025-10-28",
+     "2025-11-12",
+     "2025-11-27",
+     "2025-12-22"
+    ],
+    "event_tables": [
+     {
+      "name": "orders",
+      "time_column": "ordered_at",
+      "sum_columns": [
+       "amount"
+      ]
+     },
+     {
+      "name": "tickets",
+      "time_column": "opened_at"
+     }
+    ],
+    "joined_tables": [
+     "addresses"
+    ]
+   }
+  }
+ },
+ {
+  "id": "JD-13",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "built": false,
+  "words": "Group our customers by how they buy, to plan a campaign for each group",
+  "answers": {
+   "prediction_moment": "Now, with what we know of each customer",
+   "action": "A campaign per group",
+   "target": "There is no outcome; we want groups",
+   "data_plan": "The customers table",
+   "family": "Groups of customers"
+  }
+ },
+ {
+  "id": "JD-14",
+  "kind": "uplift",
+  "family": "uplift",
+  "built": false,
+  "words": "Who should get the offer: the customers it would make buy, not those who buy anyway",
+  "answers": {
+   "target": "bought, with got_offer saying who got the offer",
+   "prediction_moment": "When the campaign list is drawn, before any offer is sent",
+   "action": "We send the offer to the top of the list",
+   "data_plan": "Last campaign's table",
+   "family": "Who the offer would make buy"
+  }
+ },
+ {
+  "id": "JD-15",
+  "kind": "ranking",
+  "family": "ranking",
+  "built": false,
+  "words": "Rank the items each customer sees so the ones they will buy come first",
+  "answers": {
+   "target": "A purchase in the next two weeks",
+   "prediction_moment": "On 2025-04-10, the list each customer sees for the next two weeks",
+   "action": "The top ten items are shown",
+   "data_plan": "The interactions table",
+   "family": "A ranked list of items per customer"
+  }
+ }
+]
