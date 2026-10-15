@@ -35,13 +35,17 @@ def register(app, ctx) -> None:
         return await asyncio.to_thread(labels.summary, store())
 
     @router.get("/api/ledger/blind/next", response_model=Page)
-    async def ledger_blind_next(point: str | None = None):
-        """The next decision drawn for a blind label (its question, subject, state and options), or none left."""
+    async def ledger_blind_next(point: str | None = None, skip: str | None = None):
+        """The next decision drawn for a blind label (its question, subject, state and options), or none left.
+        ``skip``: decision ids, comma-separated, that this reviewer could not tell (they stay unlabelled)."""
         from ...ledger import labels
 
         if point is not None and not re.fullmatch(r"[a-z_.]{3,60}", point):
             raise HTTPException(422, "point is a decision point")
-        item = await asyncio.to_thread(labels.next_blind, store(), "blind-v1", point)
+        skipped = [x for x in (skip or "").split(",") if x][:500]
+        if not all(ID.fullmatch(x) for x in skipped):
+            raise HTTPException(422, "skip lists decision ids")
+        item = await asyncio.to_thread(labels.next_blind, store(), "blind-v1", point, skipped)
         return {"item": item}
 
     @router.post("/api/ledger/blind/{record_id}", response_model=Page)

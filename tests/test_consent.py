@@ -341,8 +341,12 @@ class ProductTest(unittest.TestCase):
         self.assertEqual([e for e in self.services.experience.read() if e.ids.visit == "vold"], [])
         self.assertEqual(self.audit("sweep_session_record")[0]["detail"]["events_deleted"], 4)
         events(self.services.experience, project="pold", visit="vold2", at=datetime.now(timezone.utc) - timedelta(days=900))
-        sweeper.sweep_due(self.services, {}, 0.0)  # off unless set
+        with mock.patch.dict(os.environ, {"DCLAB_RETENTION_EVENT_DAYS": "0", "DCLAB_RETENTION_MODEL_TEXT_DAYS": "0", "DCLAB_RETENTION_RAW_DAYS": ""}):
+            sweeper.sweep_due(self.services, {}, 0.0)  # 0 turns it off
         self.assertTrue([e for e in self.services.experience.read() if e.ids.visit == "vold2"])
+        with mock.patch.dict(os.environ, {"DCLAB_RETENTION_EVENT_DAYS": "", "DCLAB_RETENTION_MODEL_TEXT_DAYS": ""}):
+            sweeper.sweep_due(self.services, {}, 0.0)  # unset: the owner's 730 days (2026-10-15)
+        self.assertEqual([e for e in self.services.experience.read() if e.ids.visit == "vold2"], [])
 
 
 if __name__ == "__main__":

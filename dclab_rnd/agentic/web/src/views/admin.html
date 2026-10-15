@@ -445,13 +445,17 @@ DC.view('admin', {
     const { $, esc } = DC;
     const box = $('#blind-body', el);
     let r;
-    try { r = await DC.client.ledgerBlindNext({ quiet: true }); } catch (e) { DC.states.failed(box, e, { retry: () => this.loadBlind(el) }); return; }
+    this.blindSkipped = this.blindSkipped || [];
+    const query = this.blindSkipped.length ? { skip: this.blindSkipped.join(',') } : {};
+    try { r = await DC.client.ledgerBlindNext({ query, quiet: true }); } catch (e) { DC.states.failed(box, e, { retry: () => this.loadBlind(el) }); return; }
     const item = r.item;
     if (!item) { DC.states.empty(box, 'Nothing to label: every decision drawn so far has its blind label.'); return; }
     const state = Object.entries(item.state || {}).map(([k, v]) => `<dt>${esc(k.replace(/_/g, ' '))}</dt><dd class="mono small">${esc(Array.isArray(v) ? v.join(', ') : String(v))}</dd>`).join('');
     box.innerHTML = `<div><b>${esc(item.question)}</b><div class="xs muted">About the ${esc(item.subject.kind)} <code>${esc(item.subject.key)}</code> · weight ${esc(String(item.weight))}</div></div>`
       + (state ? `<dl class="kv">${state}</dl>` : '<div class="xs muted">No state was recorded for this decision.</div>')
-      + `<div class="row" data-style="flex-wrap:wrap;gap:6px">${(item.options || []).map(o => `<button type="button" class="btn sm" data-blind="${esc(o)}">${esc(o)}</button>`).join('')}</div>`;
+      + `<div class="row" data-style="flex-wrap:wrap;gap:6px">${(item.options || []).map(o => `<button type="button" class="btn sm" data-blind="${esc(o)}">${esc(o)}</button>`).join('')}`
+      + `<button type="button" class="btn sm ghost" data-blind-skip title="Leave it unlabelled: a gap is reported, a guess is not">Can't tell — next</button></div>`;
+    $('[data-blind-skip]', box).addEventListener('click', () => { this.blindSkipped.push(item.record); this.loadBlind(el); });
     box.querySelectorAll('[data-blind]').forEach(b => b.addEventListener('click', async () => {
       const raw = b.dataset.blind;
       const value = item.answer === 'noul' ? raw === 'yes' : raw;

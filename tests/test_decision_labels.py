@@ -198,6 +198,11 @@ class RoutesTest(unittest.TestCase):
         self.assertEqual(client.post("/api/ledger/blind/dr-missing-01", json={"value": True}, headers=h).status_code, 404)
         self.assertEqual(client.post(f"/api/ledger/blind/{item['record']}", json={}, headers=h).status_code, 422)
         self.assertEqual(client.post(f"/api/ledger/blind/{item['record']}", json={"value": True}, headers=h).status_code, 422)  # twice
+        following = client.get("/api/ledger/blind/next").json()["item"]
+        after = client.get("/api/ledger/blind/next", params={"skip": following["record"]}).json()["item"]
+        self.assertNotEqual(after["record"], following["record"])  # a decision the reviewer cannot tell is passed, not guessed
+        self.assertEqual(client.get("/api/ledger/blind/next").json()["item"]["record"], following["record"])  # and stays unlabelled
+        self.assertEqual(client.get("/api/ledger/blind/next", params={"skip": "a b"}).status_code, 422)
         with mock.patch.object(guard, "current", return_value=Principal(role="viewer", user_id="u1", via="session")):
             self.assertEqual(client.get("/api/ledger/summary").status_code, 403)
         with mock.patch.object(guard, "current", return_value=Principal(role="reviewer", user_id="u1", via="session")):

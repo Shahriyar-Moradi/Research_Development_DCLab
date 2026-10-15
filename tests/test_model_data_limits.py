@@ -24,7 +24,7 @@ from dclab_rnd.models import FileUsage, Gateway, settings  # noqa: E402
 
 MARK = re.compile(r"Q7Kx[0-9a-z]+")
 NUM = re.compile(r"7311\.\d{4}\b|2031-\d\d-\d\d")  # numeric and date cells (matched against the table's own values)
-CLEAN = {k: "" for k in ("OPENAI_BASE_URL", "OPENAI_MODEL", "DCLAB_LLM_BASE_URL", "DCLAB_LOG_PROMPTS", "DCLAB_INTERN_MODEL", "DCLAB_NO_LIVE_MODELS")} | {
+CLEAN = {k: "" for k in ("OPENAI_BASE_URL", "OPENAI_MODEL", "DCLAB_LLM_BASE_URL", "DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "DCLAB_LOG_PROMPTS", "DCLAB_INTERN_MODEL", "DCLAB_NO_LIVE_MODELS")} | {
     f"DCLAB_TIER_{t.upper()}_{n}": "" for t in settings.TIERS for n in ("BASE_URL", "MODEL", "API_KEY", "LOCAL")} | {"OPENAI_API_KEY": "k"}
 
 

@@ -63,13 +63,14 @@ A ──► B ──► (training data can leave the workspace)
 
 | Decision | Needed by | Proposal |
 |---|---|---|
-| Retention per class | B (19.10) | events 24 months, model text 12 months (built and off until set: DCLAB_RETENTION_EVENT_DAYS=730, DCLAB_RETENTION_MODEL_TEXT_DAYS=365) |
-| Who reads session timelines and decisions | A (19.4) | owner and admin roles |
-| Who labels blind | A (19.8) | the owner first, reviewers later |
-| A GPU for fine-tuning, and which open-source models first | H (22.5) | one small model (Qwen 2.5 1.5B or Phi-3 mini) beside the one the owner names (e.g. Laya) |
+| Retention per class | B (19.10) | **confirmed 2026-10-15**: events 24 months, model text 12 months, now the defaults (0 turns one off) |
+| Who reads session timelines and decisions | A (19.4) | **confirmed 2026-10-15**: owner and admin (the owner role here); decisions also reviewers |
+| Who labels blind | A (19.8) | **confirmed 2026-10-15**: the owner first, reviewers later; how: `docs/guides/BLIND_LABELLING.md` |
+| A GPU for fine-tuning, and which open-source models first | H (22.5) | the owner will say when (2026-10-15: training waits; data keeps being collected) |
 | The main product's ADR 0008 changed to "only with consent" | I (22.7) | in that repository |
 | Pretrained image weights, or a download approval | 16.12 (later) | the owner's choice |
 | Rotate the OpenAI key | now | — |
+| The product's model | — | **decided 2026-10-15**: Anthropic Claude Sonnet 5.5 (`DCLAB_LLM_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` in `.env`) |
 
 ## Status
 

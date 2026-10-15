@@ -26,7 +26,7 @@ else:
     MISSING = ""
 
 KEY = "sk-" + "test-" + "y" * 8  # assembled: never a key-shaped literal
-ENV = {"OPENAI_API_KEY": KEY, "OPENAI_MODEL": "gpt-6-luna", "DCLAB_TIER_STRONG_MODEL": "big-model", "DCLAB_TIER_STRONG_API_KEY": KEY}
+ENV = {"DCLAB_LLM_PROVIDER": "", "ANTHROPIC_API_KEY": "", "OPENAI_API_KEY": KEY, "OPENAI_MODEL": "gpt-6-luna", "DCLAB_TIER_STRONG_MODEL": "big-model", "DCLAB_TIER_STRONG_API_KEY": KEY}
 
 
 @unittest.skipIf(MISSING, MISSING)

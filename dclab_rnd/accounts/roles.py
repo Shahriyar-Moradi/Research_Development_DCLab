@@ -24,7 +24,7 @@ PERMISSIONS: dict[str, frozenset[str]] = {
     "approve_gate": frozenset({"owner", "reviewer"}),
     "review": frozenset({"owner", "reviewer"}),
     "admin": frozenset({"owner"}),
-    "timelines": frozenset({"owner"}),  # the owner's proposal (2026-10-13): owner and admin, which is the owner here
+    "timelines": frozenset({"owner"}),  # the owner's choice (confirmed 2026-10-15): owner and admin, which is the owner here
 }
 
 

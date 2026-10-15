@@ -4,9 +4,10 @@
   labels) in the ledger and the prompts the gateway's usage log kept for it; **deleting a session** removes its
   events. What stays is the audit's tombstone (what was deleted, by whom, when, and what could not be removed; never
   what it held).
-- **Retention per class**, off until the owner sets it (``DCLAB_RETENTION_EVENT_DAYS``: events older than that are
-  deleted; ``DCLAB_RETENTION_MODEL_TEXT_DAYS``: prompts and replies older than that are removed from their events, the
-  rest of the event kept). The owner's proposal: 730 days and 365 days.
+- **Retention per class**, the owner's choice (confirmed 2026-10-15): events are deleted after 730 days
+  (``DCLAB_RETENTION_EVENT_DAYS``), prompts and replies are removed from their events after 365 days
+  (``DCLAB_RETENTION_MODEL_TEXT_DAYS``, the rest of the event kept). Either setting changes its number; ``0`` turns it
+  off.
 
 On PostgreSQL the append-only triggers let only these functions through (``SET LOCAL dclab.privileged_delete``,
 migration 0017); on files the day files are rewritten without what is removed.
@@ -24,10 +25,14 @@ from typing import Any, Callable, Optional
 MODEL_TEXT = ("prompt", "reply")
 
 
+DEFAULT_DAYS = {"DCLAB_RETENTION_EVENT_DAYS": 730, "DCLAB_RETENTION_MODEL_TEXT_DAYS": 365}  # the owner's choice, 2026-10-15
+
+
 def days(name: str) -> Optional[int]:
+    """The days a class is kept: its setting, or the owner's default when unset; None when off (0) or unreadable."""
     raw = (os.environ.get(name) or "").strip()
     try:
-        value = int(raw) if raw else 0
+        value = int(raw) if raw else DEFAULT_DAYS.get(name, 0)
     except ValueError:
         return None
     return value if value > 0 else None

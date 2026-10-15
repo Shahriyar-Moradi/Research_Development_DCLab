@@ -12,7 +12,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 from . import current_ledger, label
 
@@ -53,16 +53,19 @@ def from_replica(project_id: str, facts: dict[str, Any] | None, replica: str, le
     return written
 
 
-def next_blind(ledger: Any = None, seed: str = "blind-v1", point: Optional[str] = None) -> Optional[dict[str, Any]]:
+def next_blind(ledger: Any = None, seed: str = "blind-v1", point: Optional[str] = None, skip: Sequence[str] = ()) -> Optional[dict[str, Any]]:
     """The next decision for a blind label: drawn with its stratum's known probability, not yet labelled blind; what
-    the reviewer sees (``dclab_core.ledger.blind_view``) and the weight its label will carry."""
+    the reviewer sees (``dclab_core.ledger.blind_view``) and the weight its label will carry. ``skip``: decisions the
+    reviewer could not tell from what they saw; they stay in the draw, unlabelled, and count as drawn and not labelled
+    (a guess would be worse than a gap: the gap is reported, a guess is not)."""
     from dclab_core import ledger as contract
 
     store = ledger if ledger is not None else current_ledger()
     if store is None:
         return None
     done = {x.record for x in store.labels() if x.source == "blind"}
-    drawn = [r for r in store.records(point=point) if r.id not in done and contract.blind_draw(r, seed)]
+    skipped = set(skip)
+    drawn = [r for r in store.records(point=point) if r.id not in done and r.id not in skipped and contract.blind_draw(r, seed)]
     # 22.4: the decisions where answers differ (a shadow classifier against the rule) are labelled first; the draw and
     # its weights are unchanged, only the order in which a reviewer meets them
     drawn.sort(key=lambda r: contract.stratum(r) != "disagree")

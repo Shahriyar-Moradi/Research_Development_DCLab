@@ -6,6 +6,11 @@ environment and falls back to the standard one, which falls back to OPENAI_API_K
     DCLAB_TIER_CHEAP_BASE_URL=http://127.0.0.1:11434/v1   DCLAB_TIER_CHEAP_MODEL=qwen2.5-coder:1.5b   (a local model)
     DCLAB_TIER_STRONG_MODEL=…   DCLAB_TIER_<TIER>_API_KEY=…   (DCLAB_INTERN_MODEL still sets the model of every tier that names none)
 
+Anthropic (``DCLAB_LLM_PROVIDER=anthropic``): the standard tier, and every tier that names no endpoint of its own, is
+Anthropic's Messages API (models/anthropic_client.py) with ``ANTHROPIC_API_KEY`` and ``claude-sonnet-5-5`` unless
+``DCLAB_TIER_<TIER>_MODEL`` or ``ANTHROPIC_MODEL`` names another; the OpenAI key and model are then never used. A tier
+whose endpoint is ``https://api.anthropic.com`` is Anthropic's whatever the provider setting says.
+
 A *purpose* names why a request is made. It decides the tier, the timeout, and the data the caller may put in the
 prompt. The table is the one place to read what any model is ever shown; the Admin page reads it.
 """
@@ -109,6 +114,26 @@ def is_local(url: str, tier_name: str | None = None) -> bool:
     return (urlparse(url).hostname or "") in LOCAL_HOSTS
 
 
+ANTHROPIC_HOST = "api.anthropic.com"
+
+
+def provider(base_url: str) -> str:
+    """Which API an endpoint speaks: "anthropic" (the Messages API, at Anthropic's host with no path) or "openai" (chat
+    completions; Anthropic's OpenAI-compatible endpoint ``https://api.anthropic.com/v1`` is one)."""
+    parsed = urlparse(base_url)
+    return "anthropic" if (parsed.hostname or "") == ANTHROPIC_HOST and parsed.path.strip("/") == "" else "openai"
+
+
+def _claude_model() -> str:
+    from .anthropic_client import DEFAULT_MODEL as CLAUDE
+
+    return os.environ.get("ANTHROPIC_MODEL", "").strip() or CLAUDE
+
+
+def anthropic_default() -> bool:
+    return os.environ.get("DCLAB_LLM_PROVIDER", "").strip().lower() == "anthropic"
+
+
 def tier(name: str) -> dict[str, Any]:
     """A tier's endpoint, model and key. The key is returned for the transport only; never put it in a response or a log.
 
@@ -122,34 +147,48 @@ def tier(name: str) -> dict[str, Any]:
     if name == TUNED:  # unset means absent: a tuned model that silently became the standard one would agree with itself
         base_url, model = _env(name, "BASE_URL"), _env(name, "MODEL")
         if not base_url or not model:
-            return {"name": name, "base_url": "", "model": "", "api_key": ""}
+            return {"name": name, "base_url": "", "model": "", "api_key": "", "provider": "openai"}
         key = _env(name, "API_KEY") or ("local" if is_local(base_url, name) else "")
-        return {"name": name, "base_url": base_url, "model": model, "api_key": key}
-    if name == "standard":
+        return {"name": name, "base_url": base_url, "model": model, "api_key": key, "provider": provider(base_url)}
+    if name == "standard" and anthropic_default() and not _env(name, "BASE_URL"):
+        from .anthropic_client import BASE_URL
+
+        base_url = BASE_URL
+        model = _env(name, "MODEL") or _claude_model()
+        key = _env(name, "API_KEY") or os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    elif name == "standard":
         base_url = _env(name, "BASE_URL") or os.environ.get("DCLAB_LLM_BASE_URL") or os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
-        model = _env(name, "MODEL") or os.environ.get("DCLAB_INTERN_MODEL") or os.environ.get("OPENAI_MODEL") or DEFAULT_MODEL
-        key = _env(name, "API_KEY") or os.environ.get("OPENAI_API_KEY") or ""
+        model = _env(name, "MODEL") or (_claude_model() if provider(base_url) == "anthropic" else
+                                         os.environ.get("DCLAB_INTERN_MODEL") or os.environ.get("OPENAI_MODEL") or DEFAULT_MODEL)
+        key = _env(name, "API_KEY") or (os.environ.get("ANTHROPIC_API_KEY", "").strip() if provider(base_url) == "anthropic"
+                                         else os.environ.get("OPENAI_API_KEY") or "")
     else:
         standard = tier("standard")
         own_url = _env(name, "BASE_URL")
         base_url = own_url or standard["base_url"]
-        model = _env(name, "MODEL") or standard["model"]
+        model = _env(name, "MODEL") or (_claude_model() if own_url and provider(own_url) == "anthropic" != standard["provider"] else standard["model"])
         same_host = not own_url or _host(own_url) == _host(standard["base_url"])
         key = _env(name, "API_KEY") or (standard["api_key"] if same_host else "")
+        if not key and provider(base_url) == "anthropic":
+            key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not key and is_local(base_url, name):
         key = "local"  # a local server (Ollama, LM Studio) needs no key; the SDK still wants one
-    return {"name": name, "base_url": base_url, "model": model, "api_key": key}
+    return {"name": name, "base_url": base_url, "model": model, "api_key": key, "provider": provider(base_url)}
 
 
 def public(name: str) -> dict[str, Any]:
     """A tier as the pages show it: no key, only whether one is set."""
     t = tier(name)
     try:
-        import openai  # noqa: F401
+        if t["provider"] == "anthropic":
+            import anthropic  # noqa: F401
+        else:
+            import openai  # noqa: F401
         sdk = True
     except ImportError:
         sdk = False
     return {"name": name, "endpoint": _host(t["base_url"]) if t["base_url"] else "not set", "model": t["model"], "sdk_installed": sdk,
+            "provider": t["provider"],
             "key_configured": bool(t["api_key"]), "available": bool(t["api_key"]) and sdk,
             "local": bool(t["base_url"]) and is_local(t["base_url"], name)}
 

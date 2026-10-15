@@ -34,7 +34,9 @@ async def intern_status(request: Request, s: Services = Depends(services)):
             "chat_ui": {"command": "make chat-ui", "intern_command": "make chat-ui-intern", "url": "http://localhost:5173/", "intern_url": "http://localhost:5173/?mode=ml-intern"},
             "tools": Toolbox(s.projects).names(), "default_budget": {"max_steps": 24, "max_minutes": 20},
             "note": ("The model plans and calls the tools; deterministic code runs every stage." if cfg["available"] else
-                     "No model is configured, so the intern follows the standard DCLab plan. Set OPENAI_API_KEY (and OPENAI_BASE_URL for the Hugging Face router or Ollama) to let a model plan.")}
+                     ("No model is configured, so the intern follows the standard DCLab plan. Set ANTHROPIC_API_KEY in .env to let Claude plan."
+                      if cfg.get("provider") == "anthropic" else
+                      "No model is configured, so the intern follows the standard DCLab plan. Set OPENAI_API_KEY (and OPENAI_BASE_URL for the Hugging Face router or Ollama) to let a model plan."))}
 
 
 @router.get("/api/intern/sessions", response_model=list[Session])

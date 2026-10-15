@@ -1,0 +1,155 @@
+{
+ "package": "owner-2026-10-15",
+ "title": "The owner's decisions of 2026-10-15: Claude Sonnet 5.5 as the product's model, retention, readers and blind labelling",
+ "date": "2026-10-15",
+ "request": "Switch the product's models from OpenAI to Anthropic Claude Sonnet 5.5; keep collecting training data without training; confirm retention (events 24 months, model text 12), readers of sessions (owner and admin) and blind labelling (the owner first), and show how to label.",
+ "spec": "Every product model purpose served by the Messages API without changing a caller; no key sent to another host; euro caps still able to stop a request; the owner's decisions as the defaults; a labelling path that never forces a guess.",
+ "plan": [
+  "Read the gateway, its settings, prices and transports.",
+  "Write a Messages API transport translating OpenAI-style messages and tools both ways.",
+  "Switch the standard tier by one setting; keep a tier's own endpoint.",
+  "Price Sonnet from the provider's page.",
+  "Make retention's defaults the owner's numbers.",
+  "Add a skip to blind labelling and write the labelling guide.",
+  "Review and fix."
+ ],
+ "decisions": [
+  {
+   "decision": "A native Messages API transport, not Anthropic's OpenAI-compatible endpoint.",
+   "why": "Tool use and structured outputs are the provider's own there; the compatible endpoint is meant for trying models."
+  },
+  {
+   "decision": "The embedding purpose is not offered on Anthropic; evidence search stays lexical.",
+   "why": "The provider has no embeddings, and the measured choice was the lexical method."
+  },
+  {
+   "decision": "The research campaign stays on an OpenAI-compatible endpoint and says so.",
+   "why": "It is a research tool outside the product's gateway."
+  },
+  {
+   "decision": "A reviewer who cannot tell skips; the decision stays drawn and unlabelled.",
+   "why": "A reported gap is honest; a guess biases every measurement made with it."
+  },
+  {
+   "decision": "Retention's numbers became the defaults, with zero turning a class off.",
+   "why": "The owner confirmed them as the policy."
+  }
+ ],
+ "change": "dclab_rnd/models/anthropic_client.py (new), settings.py, gateway.py, client.py, prices.py; secret_files.py; routers intern and runs; model_paths.py and decision_model_compare.py; experience/retention.py; accounts/roles.py; ledger/labels.py, pages/ledger.py and the Admin page (rebuilt); tests/test_anthropic_transport.py (new), run_parallel.py, the model tests' clean environments, test_consent.py, test_decision_labels.py; Makefile, requirements, .env.example, docs/guides/BLIND_LABELLING.md (new), ROADMAP.md, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "The owner's provider setting reached the model tests.",
+   "scenario": "After the switch was written to .env, thirty tests of two files failed on their tier assertions.",
+   "cause": "The server module reads .env at import, and the tests cleared only the OpenAI settings.",
+   "fix": "The parallel runner and the test targets blank the provider settings; the shared clean environments do too.",
+   "test": "tests/run_parallel.py"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The retention test expected retention off when unset.",
+   "scenario": "With the owner's defaults, an unset setting deletes events older than two years.",
+   "cause": "The test was written before the owner chose.",
+   "fix": "Zero turns a class off; unset applies the owner's days; both tested.",
+   "test": "test_the_hourly_sweep_applies_the_record_retention"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "No credit and an overload inside a stream were told as an unknown failure.",
+   "scenario": "Every turn was sent again and refused again, and an overload was never retried.",
+   "cause": "The classifier read only the error code and type.",
+   "fix": "A credit-balance refusal pauses as no credit; an overload is a provider error, retried.",
+   "test": "test_no_credit_and_an_overload_are_told_apart"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Anthropic's OpenAI-compatible address and a Claude tier without a model were handled wrongly.",
+   "scenario": "The compatible address got the Messages API at a doubled path and paused for ten minutes; the strong tier at Anthropic's host got an OpenAI model name.",
+   "cause": "The provider was read from the host alone and the model from the standard tier.",
+   "fix": "Only the host without a path is the Messages API; a Claude tier without a model gets Claude.",
+   "test": "test_anthropics_openai_compatible_url_stays_openai_and_a_claude_tier_gets_a_claude_model"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A request without a limit was cut at a lower limit than the cost estimate assumed.",
+   "scenario": "A long critique sent without a limit stopped mid JSON.",
+   "cause": "The transport kept its own default.",
+   "fix": "The transport sends the limit the estimate assumes, one shared constant.",
+   "test": "test_no_limit_is_the_limit_the_cost_estimate_assumes"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The free local checks stayed on the provider of .env.",
+   "scenario": "The local model comparison stopped with the tier not local.",
+   "cause": "Their overrides set the OpenAI settings only.",
+   "fix": "They blank the provider setting.",
+   "test": "scripts/model_paths.py"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Pages still named the OpenAI key.",
+   "scenario": "The intern told the owner to set the OpenAI key when the Claude key was missing.",
+   "cause": "The note was written for one provider.",
+   "fix": "The note follows the provider; the campaign says it needs an OpenAI-compatible endpoint.",
+   "test": "dclab_rnd/agentic/routers/intern.py"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "The serial and agent test targets read .env too.",
+   "scenario": "A serial run would read the owner's provider.",
+   "cause": "Only the parallel runner blanked it.",
+   "fix": "The test targets export the provider settings empty.",
+   "test": "Makefile"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A dated Claude model had no price.",
+   "scenario": "A snapshot name would run with no euro cap able to stop it.",
+   "cause": "Prices were matched by exact name.",
+   "fix": "A dated snapshot takes its alias's price.",
+   "test": "test_a_dated_snapshot_takes_its_alias_price_and_nothing_else_does"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "tests",
+   "gate": "the model tests and the new transport tests pass with no live call",
+   "result": "the transport, gateway, management, data limits, intern and shadow test files pass offline; no model was called",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "every file named passes",
+   "limits": [
+    "No live request was sent: the key is the owner's to add."
+   ]
+  }
+ ],
+ "outcome": "Claude Sonnet 5.5 serves the product once the owner adds the key; retention runs by the owner's numbers; blind labelling can be skipped and has a guide.",
+ "lessons": [
+  "A setting in the owner's .env is part of every test unless the runner blanks it.",
+  "Read the provider from the whole address, not the host alone.",
+  "A cost estimate is an upper bound only when the request is sent with the limit it assumed."
+ ],
+ "risks": [
+  "No live request has been made to Claude yet.",
+  "The research campaign still needs an OpenAI-compatible key."
+ ],
+ "commits": []
+}

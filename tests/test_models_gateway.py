@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / "tests"))
 import pgtest  # noqa: E402
 from dclab_rnd.models import FileUsage, Gateway, settings  # noqa: E402
 
-CLEAN = {k: "" for k in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL", "DCLAB_LLM_BASE_URL", "DCLAB_LOG_PROMPTS")} | {
+CLEAN = {k: "" for k in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL", "DCLAB_LLM_BASE_URL", "DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "DCLAB_LOG_PROMPTS")} | {
     f"DCLAB_TIER_{t.upper()}_{n}": "" for t in settings.TIERS for n in ("BASE_URL", "MODEL", "API_KEY")}
 
 

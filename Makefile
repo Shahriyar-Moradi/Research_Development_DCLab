@@ -205,6 +205,10 @@ test-pg:  ## the whole suite on PostgreSQL, in parallel: needs the local databas
 
 # Tests and the end-to-end flows never reach a live model, whatever .env configures (dclab_rnd/models/gateway.py)
 test test-serial rd-check test-pg product-e2e check-all: export DCLAB_NO_LIVE_MODELS = 1
+# The owner's .env picks the product's model provider; a test sets the model settings it reads itself (read without override)
+test test-serial rd-check test-pg product-e2e check-all check-quick check-quick-tests agent-test browser-test: export DCLAB_LLM_PROVIDER =
+test test-serial rd-check test-pg product-e2e check-all check-quick check-quick-tests agent-test browser-test: export ANTHROPIC_API_KEY =
+test test-serial rd-check test-pg product-e2e check-all check-quick check-quick-tests agent-test browser-test: export ANTHROPIC_MODEL =
 browser-test: export DCLAB_NO_LIVE_MODELS = 1
 
 check-all:  ## the gate closing a milestone: rd-check's gates, the suite on files, then on PostgreSQL, the campaign agent's tests (agent env) and the end-to-end flows; what does not need the suite runs beside it

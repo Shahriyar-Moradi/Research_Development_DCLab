@@ -195,7 +195,7 @@ class ExplainTests(unittest.TestCase):
         self.assertEqual(clean.verdicts, [(True, "")])
 
 
-CLEAN = {k: "" for k in ("OPENAI_BASE_URL", "OPENAI_MODEL", "DCLAB_LLM_BASE_URL", "DCLAB_LOG_PROMPTS", "DCLAB_NO_LIVE_MODELS")} | {"OPENAI_API_KEY": "k"}
+CLEAN = {k: "" for k in ("OPENAI_BASE_URL", "OPENAI_MODEL", "DCLAB_LLM_BASE_URL", "DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "DCLAB_LOG_PROMPTS", "DCLAB_NO_LIVE_MODELS")} | {"OPENAI_API_KEY": "k"}
 
 
 class Router:

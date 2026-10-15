@@ -24,7 +24,7 @@ async def runs(s: Services = Depends(services)):
 @router.post("/api/runs", status_code=201, response_model=Run)
 async def start(request: RunRequest, s: Services = Depends(services)):
     if not s.settings.openai_key_set:
-        raise HTTPException(409, "Set OPENAI_API_KEY in the server environment or local .env, then restart. Do not paste it in a research goal.")
+        raise HTTPException(409, "The research campaign runs on an OpenAI-compatible endpoint only (the product's Claude does not serve it): set OPENAI_API_KEY in the server environment or local .env, then restart. Do not paste it in a research goal.")
     if any(not task.done() for task in s.tasks.values()):
         raise HTTPException(409, "A research run is already active")
     run_id = uuid.uuid4().hex

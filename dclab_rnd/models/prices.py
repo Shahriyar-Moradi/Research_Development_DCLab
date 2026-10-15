@@ -29,6 +29,8 @@ PRICES: dict[str, Price] = {  # only checked prices belong here, with the date a
     # The page gives US dollars; they are entered as euros, which overstates the euro spend by the exchange rate
     # (a dollar is worth less than a euro): a cap then stops a little early, never late.
     "text-embedding-3-small": Price(0.02, 0.0, "2026-10-07", "developers.openai.com/api/docs/pricing, standard tier, USD per 1M tokens entered as EUR"),
+    "claude-sonnet-5-5": Price(2.0, 10.0, "2026-10-15", "platform.claude.com/docs/en/about-claude/pricing, base input and output, USD per 1M tokens entered as EUR"),
+    "claude-haiku-5-5": Price(0.10, 0.50, "2026-10-15", "platform.claude.com/docs/en/about-claude/pricing, prompts up to 100,000 tokens, USD per 1M tokens entered as EUR"),
     "gpt-6-luna": Price(0.10, 0.50, "2026-10-07", "developers.openai.com/api/docs/pricing, standard tier, USD per 1M tokens entered as EUR"),
 }
 
@@ -50,7 +52,18 @@ def load() -> dict[str, Price]:
     return out
 
 
-DEFAULT_OUTPUT_ESTIMATE = 4096  # output tokens assumed when a caller sets no limit
+DEFAULT_OUTPUT_ESTIMATE = 8192  # output tokens assumed when a caller sets no limit (Anthropic's requests are sent with this limit)
+
+
+def price_of(model: str, table: dict[str, Price] | None = None) -> Price | None:
+    """The model's price; a dated snapshot of a priced model (``claude-sonnet-5-5-20261001``) takes its alias's."""
+    import re
+
+    table = load() if table is None else table
+    if model in table:
+        return table[model]
+    alias = re.sub(r"-\d{8}$", "", model or "")
+    return table.get(alias) if alias != model else None
 
 
 def estimate(model: str, local: bool, prompt_chars: int, max_tokens: int | None) -> float | None:
@@ -58,7 +71,7 @@ def estimate(model: str, local: bool, prompt_chars: int, max_tokens: int | None)
     generous count) and the output limit in full. None when the model has no price; zero when local."""
     if local:
         return 0.0
-    price = load().get(model)
+    price = price_of(model)
     if price is None:
         return None
     out = max_tokens if max_tokens is not None else DEFAULT_OUTPUT_ESTIMATE
@@ -69,7 +82,7 @@ def cost(model: str, local: bool, input_tokens: int, output_tokens: int) -> tupl
     """(euros or None, basis): basis is "price" (from the table), "local" (free) or "no price" (not configured)."""
     if local:
         return 0.0, "local"
-    price = load().get(model)
+    price = price_of(model)
     if price is None:
         return None, "no price"
     return round((input_tokens * price.input + output_tokens * price.output) / 1_000_000, 6), "price"

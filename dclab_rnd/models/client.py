@@ -31,13 +31,16 @@ def failure(exc: BaseException) -> tuple[str, bool]:
     code = " ".join(str(error.get(k) or "") for k in ("code", "type")).lower() if isinstance(error, dict) else ""
     if "quota" in code or "credit" in code or "billing" in code:
         return "the model account has no credit left", True
+    message = str(error.get("message") or "").lower() if isinstance(error, dict) else ""
+    if status == 400 and "credit balance" in message:  # Anthropic says it in a 400; the words are tested, never passed on
+        return "the model account has no credit left", True
     if status in (401, 403):
         return "the provider refused the key", True
     if status == 404 or "model_not_found" in code:
         return "the model name is not available to this key", True
     if status == 429:
         return "the provider is limiting requests for now", False
-    if isinstance(status, int) and status >= 500:
+    if (isinstance(status, int) and status >= 500) or "overloaded" in code or "api_error" in code:  # an overload inside a stream comes with 200
         return "the provider had an error", False
     if type(exc).__name__ in ("APIConnectionError", "APITimeoutError", "ConnectError", "ReadTimeout"):
         return "the model endpoint could not be reached", False

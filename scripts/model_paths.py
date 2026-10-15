@@ -229,7 +229,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.ollama:  # every tier on Ollama, whatever .env routes elsewhere (checked after start)
         from dclab_rnd.models.settings import ROUTABLE
 
-        model_env = {"OPENAI_API_KEY": "ollama", "OPENAI_BASE_URL": OLLAMA, "DCLAB_LLM_BASE_URL": OLLAMA, "OPENAI_MODEL": args.ollama,
+        model_env = {"DCLAB_LLM_PROVIDER": "", "OPENAI_API_KEY": "ollama", "OPENAI_BASE_URL": OLLAMA, "DCLAB_LLM_BASE_URL": OLLAMA, "OPENAI_MODEL": args.ollama,
                      "DCLAB_INTERN_MODEL": args.ollama}
         model_env.update({f"DCLAB_TIER_{t.upper()}_{n}": "" for t in ROUTABLE for n in ("BASE_URL", "MODEL", "API_KEY", "LOCAL")})
     else:

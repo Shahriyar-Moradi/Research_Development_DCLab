@@ -40,7 +40,14 @@ BACKOFF = _number("DCLAB_MODEL_BACKOFF", 1.5)  # seconds, doubled after each att
 
 
 def _transport(t: dict[str, Any], p: settings.Purpose) -> ChatClient:
+    if t.get("provider") == "anthropic":
+        from .anthropic_client import AnthropicClient
+
+        return AnthropicClient(model=t["model"], base_url=t["base_url"], api_key=t["api_key"], timeout=p.timeout, max_retries=0)
     return ChatClient(model=t["model"], base_url=t["base_url"], api_key=t["api_key"], timeout=p.timeout, max_retries=0)
+
+
+NO_EMBEDDINGS = ("anthropic",)  # providers that serve no embeddings: the embedding purpose is not offered on them
 
 
 def user_cap() -> tuple[float | None, str | None]:
@@ -213,7 +220,10 @@ class Gateway:
         """A model serves this purpose: its tier has a key, and the SDK is installed (or a test supplies the transport).
         With DCLAB_NO_LIVE_MODELS=1 (set by make rd-check, make test-pg and make product-e2e) no live endpoint serves
         anything, whatever .env says: tests use scripted transports only."""
-        return self._tier_ready(self.route(purpose)[0])
+        serve = self.route(purpose)[0]
+        if purpose == "embedding" and settings.tier(serve).get("provider") in NO_EMBEDDINGS:
+            return False  # evidence search keeps its lexical method
+        return self._tier_ready(serve)
 
     def client(self, purpose: str, *, project_id: str | None = None, draft_id: str | None = None, model: str | None = None) -> "Bound | None":
         """A client for one purpose, or None when no model serves it (callers then take their deterministic path).

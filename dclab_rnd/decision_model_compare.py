@@ -61,7 +61,7 @@ def local_gateway(model: str | None, tuned: bool, cap_eur: float | None = None) 
     from dclab_rnd.models.gateway import Gateway
 
     if model:
-        os.environ.update({"OPENAI_API_KEY": "ollama", "OPENAI_BASE_URL": OLLAMA, "DCLAB_LLM_BASE_URL": OLLAMA, "OPENAI_MODEL": model})
+        os.environ.update({"DCLAB_LLM_PROVIDER": "", "OPENAI_API_KEY": "ollama", "OPENAI_BASE_URL": OLLAMA, "DCLAB_LLM_BASE_URL": OLLAMA, "OPENAI_MODEL": model})
         os.environ.update({f"DCLAB_TIER_{t.upper()}_{n}": "" for t in settings.ROUTABLE for n in ("BASE_URL", "MODEL", "API_KEY", "LOCAL")})
         os.environ.pop("DCLAB_INTERN_MODEL", None)  # it would name another model on the same endpoint
     tier = settings.TUNED if tuned else settings.purpose("decision_answer").tier

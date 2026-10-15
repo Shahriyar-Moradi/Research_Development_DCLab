@@ -274,7 +274,7 @@
     labSummaryRoute: ["GET", "/lab/summary", [], []],
     learnPacks: ["GET", "/learn/packs", [], []],
     learnPolicy: ["GET", "/learn/policy", [], []],
-    ledgerBlindNext: ["GET", "/ledger/blind/next", [], ["point"]],
+    ledgerBlindNext: ["GET", "/ledger/blind/next", [], ["point", "skip"]],
     ledgerBlindLabel: ["POST", "/ledger/blind/{record_id}", ["record_id"], []],
     ledgerRouting: ["GET", "/ledger/routing", [], []],
     ledgerRoute: ["POST", "/ledger/routing", [], []],
@@ -729,7 +729,7 @@
   client.path.learnPolicy = (...args) => build('learnPolicy', args).path;
   client.href.learnPolicy = (...args) => '/api' + build('learnPolicy', args).path;
   /** GET /api/ledger/blind/next: Ledger Blind Next
-   *  @param {{query?: {point?: *}, headers?: Object}} [opts]
+   *  @param {{query?: {point?: *, skip?: *}, headers?: Object}} [opts]
    *  @returns {Promise<Page>} */
   client.ledgerBlindNext = (...args) => call('ledgerBlindNext', args);
   client.path.ledgerBlindNext = (...args) => build('ledgerBlindNext', args).path;

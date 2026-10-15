@@ -181,11 +181,15 @@ def slot_databases(jobs: int, required: bool) -> list[str] | None:
         return None
 
 
+OWNER_MODEL_CHOICE = ("DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL")  # set empty, so .env (read without override) cannot set them
+
+
 def run_one(name: str, slots: Queue, pg: bool, verbose: bool, threads_one: bool = True) -> dict:
     slot = slots.get()
     tmp = tempfile.mkdtemp(prefix=f"dclab-{name.split('::')[0][5:-3]}-")
     env = {**ONE_THREAD, **os.environ, "TMPDIR": tmp} if threads_one else {**os.environ, "TMPDIR": tmp}
     env.setdefault("DCLAB_DECISION_SHADOW", "0")  # 22.4: the fitted classifiers live on some machines only; a test turns them on itself
+    env.update({k: "" for k in OWNER_MODEL_CHOICE})  # the owner's .env picks a provider; a test sets the model settings it reads itself
     if slot is not None:
         env["DCLAB_TEST_DATABASE_URL"] = slot
         if pg:
