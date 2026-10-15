@@ -198,6 +198,8 @@ class RoutesTest(unittest.TestCase):
         self.assertEqual(client.post("/api/ledger/blind/dr-missing-01", json={"value": True}, headers=h).status_code, 404)
         self.assertEqual(client.post(f"/api/ledger/blind/{item['record']}", json={}, headers=h).status_code, 422)
         self.assertEqual(client.post(f"/api/ledger/blind/{item['record']}", json={"value": True}, headers=h).status_code, 422)  # twice
+        for i in range(60, 300):  # enough drawn decisions that one is left after a skip (the ids, so the draw, are random)
+            ledger.decide("column.is_identifier", ("column", f"c{i}"), answers=[ledger.answer("rule", "r", True)], value_used=True, ledger=book, project="p1")
         following = client.get("/api/ledger/blind/next").json()["item"]
         after = client.get("/api/ledger/blind/next", params={"skip": following["record"]}).json()["item"]
         self.assertNotEqual(after["record"], following["record"])  # a decision the reviewer cannot tell is passed, not guessed
