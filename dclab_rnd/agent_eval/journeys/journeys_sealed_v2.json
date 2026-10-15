@@ -1,0 +1,695 @@
+[
+ {
+  "id": "JS2-01",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "words": "every day some couriers make fake deliveries and our auditors find maybe one in a few hundred, by luck mostly. I want the auditors to start from the most suspicious ones",
+  "answers": {
+   "target": "is_fraud, the yes/no we put on a delivery after the auditors confirm it",
+   "prediction_moment": "the day after, when we audit the deliveries that were completed the day before. at that moment nobody knows yet if a delivery is fraud",
+   "action": "auditors check the top of the list and freeze the courier payout if it is real. a missed fake costs us the fare and the bonus, checking an honest one costs 10 minutes",
+   "entity": "same biker_id, same biker_phone and same account_id come back on many deliveries",
+   "labels": "we have a separate sheet with order_id and is_fraud for the cases we confirmed",
+   "budget": "the auditors can do around 50 a day",
+   "family": "a score per delivery, the higher the more suspicious",
+   "data_plan": "the daily deliveries export plus the sheet of confirmed cases"
+  }
+ },
+ {
+  "id": "JS2-02",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "words": "Payments-integrity question for a last-mile logistics client: fraud prevalence is well under one percent of trips and we hold roughly fourteen months of investigator-confirmed cases. They want a fraud classifier that prioritises the next day's review batch.",
+  "answers": {
+   "target": "is_fraud, taken from the investigators' confirmed-cases extract",
+   "prediction_moment": "Next-day batch, after the trip has been delivered. Investigators have not looked at it yet, so is_fraud is unknown when the trip is scored.",
+   "action": "Investigators work down the ranked batch; confirmed fraud leads to a clawback of the biker_fare. Each false positive is about a quarter hour of investigator time and some friction with a legitimate biker; each false negative is an unrecovered payout.",
+   "entity": "biker_id and biker_phone recur heavily, as do account_id and sender_phone; terminal_ref is shared across many trips",
+   "labels": "A separate confirmed-cases file keyed on order_id with is_fraud; trips absent from it were never investigated rather than proven clean.",
+   "budget": "capacity of roughly 90 reviews per day",
+   "family": "binary, delivered as a calibrated probability so the batch can be sorted",
+   "data_plan": "the trips extract (created_date, account_id, biker_id, biker_phone, order_id, category, terminal_ref, status, biker_fare, sender_phone, source and destination coordinates) and the confirmed-cases file"
+  }
+ },
+ {
+  "id": "JS2-03",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "words": "Before the monthly CRM meeting I always get asked the same thing: which of our shop's regulars are going quiet? I'd love a list ahead of time.",
+  "answers": {
+   "target": "a customer who places no order in the 30 days after the date we look; you can tell from the orders table",
+   "prediction_moment": "On each cutoff date, roughly every month end, looking only at the orders and tickets up to that date",
+   "action": "CRM sends a small voucher to the people on the list. A voucher to someone who would have ordered anyway is a bit of lost margin, missing a quiet one probably loses them",
+   "entity": "the customer; customer_id is in every file",
+   "labels": "there is no label column, it comes from whether there is an order in orders after the cutoff",
+   "family": "yes or no for each customer at each cutoff, with a probability if possible",
+   "data_plan": "the customers table, plus orders (ordered_at, amount), support tickets (opened_at, severity) and addresses (city)"
+  },
+  "solution": {
+   "kind": "entity_tables",
+   "kind_fields": {
+    "key_column": "customer_id",
+    "target_table": "orders",
+    "horizon_days": 30,
+    "absent": true,
+    "cutoffs": [
+     "2025-05-31",
+     "2025-06-30",
+     "2025-07-30",
+     "2025-08-29",
+     "2025-09-28",
+     "2025-10-28",
+     "2025-11-12",
+     "2025-11-27",
+     "2025-12-22"
+    ],
+    "event_tables": [
+     {
+      "name": "orders",
+      "time_column": "ordered_at",
+      "sum_columns": [
+       "amount"
+      ]
+     },
+     {
+      "name": "tickets",
+      "time_column": "opened_at"
+     }
+    ],
+    "joined_tables": [
+     "addresses"
+    ]
+   }
+  }
+ },
+ {
+  "id": "JS2-04",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "words": "We are B2B wholesale, customer master in one table and orders, complaints, delivery addresses in other ones. I need a model per customer: next 30 days will he not buy anything? Please make features only from data before the cutoff.",
+  "answers": {
+   "target": "no order in the 30 days after the cutoff (inactivity), computed from the orders table",
+   "prediction_moment": "at each cutoff date, with orders and tickets until that day only. last_order_date and lifetime_orders in the customer table are from the export day, so not usable as they are",
+   "action": "account manager calls the customers at risk. a call is cheap, losing a wholesale customer is expensive",
+   "entity": "customer_id, it joins all tables",
+   "labels": "not labelled, derived from orders after the cutoff",
+   "family": "binary per customer per cutoff",
+   "data_plan": "customers (customer_id, signup_date, plan, region, last_order_date, lifetime_orders), orders (customer_id, ordered_at, amount), tickets (customer_id, opened_at, severity), addresses (customer_id, city)"
+  },
+  "solution": {
+   "kind": "entity_tables",
+   "kind_fields": {
+    "key_column": "customer_id",
+    "target_table": "orders",
+    "horizon_days": 30,
+    "absent": true,
+    "cutoffs": [
+     "2025-05-31",
+     "2025-06-30",
+     "2025-07-30",
+     "2025-08-29",
+     "2025-09-28",
+     "2025-10-28",
+     "2025-11-12",
+     "2025-11-27",
+     "2025-12-22"
+    ],
+    "event_tables": [
+     {
+      "name": "orders",
+      "time_column": "ordered_at",
+      "sum_columns": [
+       "amount"
+      ]
+     },
+     {
+      "name": "tickets",
+      "time_column": "opened_at"
+     }
+    ],
+    "joined_tables": [
+     "addresses"
+    ]
+   }
+  }
+ },
+ {
+  "id": "JS2-05",
+  "kind": "forecasting",
+  "family": "forecasting",
+  "words": "The bakery chain keeps running out of croissants on rainy promo days and throwing them away on others. Can we know, every Sunday, how much each shop will need for each item the coming week?",
+  "answers": {
+   "target": "units sold, per day, for each store and product",
+   "prediction_moment": "Sunday evening, for the next 7 days. We know the promotions because marketing sets them weeks before; the rain is only measured on the day, so we don't have it for next week",
+   "action": "the shops place their orders to the central kitchen with it. Too low means empty shelves, too high means bread in the bin",
+   "entity": "every store and product combination, that is the series column",
+   "labels": "units is what was really sold",
+   "family": "seven daily numbers for each store and product",
+   "data_plan": "the daily sales table with store, product, date, on_promotion, rain_mm and units"
+  },
+  "solution": {
+   "kind": "forecasting",
+   "time_column": "date",
+   "kind_fields": {
+    "series_column": "series",
+    "horizon": 7,
+    "season": 7
+   }
+  }
+ },
+ {
+  "id": "JS2-06",
+  "kind": "forecasting",
+  "family": "forecasting",
+  "words": "need weekly demand forecast by store x product, daily granularity, horizon 7d",
+  "answers": {
+   "target": "units",
+   "prediction_moment": "run Sunday evening for the following 7 days; on_promotion is planned ahead, rain_mm only measured same day",
+   "action": "feeds replenishment orders to suppliers",
+   "entity": "series = store x product",
+   "labels": "units = actual sales",
+   "family": "daily units for next 7 days per series",
+   "data_plan": "one sales table: store, product, date, on_promotion, rain_mm, units, series"
+  },
+  "solution": {
+   "kind": "forecasting",
+   "time_column": "date",
+   "kind_fields": {
+    "series_column": "series",
+    "horizon": 7,
+    "season": 7
+   }
+  }
+ },
+ {
+  "id": "JS2-07",
+  "kind": "ranking",
+  "family": "ranking",
+  "words": "Our online pharmacy's homepage shows the same bestsellers to everybody. I'd rather each visitor saw first the things they are actually going to put in the basket over the next fortnight.",
+  "answers": {
+   "target": "a purchase of the item by that user in the two weeks after 10 April 2025 (event = purchase)",
+   "prediction_moment": "the lists are made on 2025-04-10 and stay for two weeks; only views and purchases before that date can be used",
+   "action": "the first ten items of each person's list go on their homepage. A poor list just means fewer sales",
+   "entity": "users and items both appear many times",
+   "labels": "the event column says whether it was a view or a purchase",
+   "family": "an ordered list of items for every user",
+   "data_plan": "the interactions log (user_id, item_id, time, event) and the items table (item_id, category, price, created_at, lifetime_sales)"
+  },
+  "solution": {
+   "kind": "ranking",
+   "kind_fields": {
+    "user_column": "user_id",
+    "item_column": "item_id",
+    "time_column": "time",
+    "event_column": "event",
+    "relevant_event": "purchase",
+    "moment": "2025-04-10",
+    "window_days": 14,
+    "k": 10,
+    "created_column": "created_at",
+    "category_column": "category"
+   }
+  }
+ },
+ {
+  "id": "JS2-08",
+  "kind": "ranking",
+  "family": "ranking",
+  "words": "I want build a recommender system, top-10 for each user, evaluated on purchases",
+  "answers": {
+   "target": "purchase events in the event column",
+   "prediction_moment": "we cut on 2025-04-10 and recommend for next 14 days. careful, lifetime_sales in items table is counted until today so it includes the future",
+   "action": "show top 10 in the app's recommended row",
+   "entity": "user_id and item_id",
+   "labels": "event is view or purchase",
+   "family": "ranked list per user, top 10",
+   "data_plan": "event log user_id, item_id, time, event; and items table with category, price, created_at, lifetime_sales"
+  },
+  "solution": {
+   "kind": "ranking",
+   "kind_fields": {
+    "user_column": "user_id",
+    "item_column": "item_id",
+    "time_column": "time",
+    "event_column": "event",
+    "relevant_event": "purchase",
+    "moment": "2025-04-10",
+    "window_days": 14,
+    "k": 10,
+    "created_column": "created_at",
+    "category_column": "category"
+   }
+  }
+ },
+ {
+  "id": "JS2-09",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "words": "Our customers are not all the same: some come every week for small baskets, some only buy on discount, some disappeared. Can you find these types for me so the marketing team writes different messages?",
+  "answers": {
+   "target": "nothing to predict, I want types of customers by how they buy",
+   "prediction_moment": "now, with what we know about each customer, to plan the next campaigns",
+   "action": "one campaign per type. If the types are not good the message is less relevant, that's all",
+   "entity": "one customer per row (customer_id)",
+   "labels": "no labels. renewed is in the table but it should not decide the groups",
+   "family": "a group for each customer and a short description of each group",
+   "data_plan": "the customer table: orders_per_month, avg_basket, discount_share, days_since_last_order, channel, region, signup_week, renewed"
+  },
+  "solution": {
+   "kind": "segmentation",
+   "kind_fields": {
+    "outcome_column": "renewed",
+    "max_segments": 7
+   }
+  }
+ },
+ {
+  "id": "JS2-10",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "words": "Run a customer segmentation on our subscription-box base. Keep it to a handful of clusters the brand team can actually name.",
+  "answers": {
+   "target": "No target. Clusters on buying behaviour; renewed can be profiled per cluster afterwards but must not drive the clustering.",
+   "prediction_moment": "Current snapshot, at campaign planning.",
+   "action": "Each cluster gets its own campaign brief; a fuzzy cluster only dilutes the message.",
+   "entity": "customer_id, one row each",
+   "labels": "none; renewed is an outcome we may compare across clusters",
+   "family": "a cluster label per customer, at most around seven",
+   "data_plan": "single table: customer_id, orders_per_month, avg_basket, discount_share, days_since_last_order, channel, region, signup_week, renewed"
+  },
+  "solution": {
+   "kind": "segmentation",
+   "kind_fields": {
+    "outcome_column": "renewed",
+    "max_segments": 7
+   }
+  }
+ },
+ {
+  "id": "JS2-11",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "words": "When someone joins our gym app, the owners want to know right away roughly how many months we can expect to keep them. Many members are still active, so we don't know their end yet.",
+  "answers": {
+   "target": "days_subscribed; cancelled says if the person really left or is still a member",
+   "prediction_moment": "at signup, before the first bill. months_billed and tickets_so_far only grow after that, we can't use them",
+   "action": "members expected to leave early get a coaching session in the first month; the numbers also go in the budget",
+   "entity": "one subscriber per row",
+   "labels": "cancelled = 1 for those who left, 0 for the ones still with us",
+   "family": "how long until they cancel: expected days, or the chance to still be here at 90, 180 and 365 days",
+   "data_plan": "the subscribers table: subscriber_id, signup_date, plan, signup_discount, signup_week_calls, age, months_billed, tickets_so_far, days_subscribed, cancelled"
+  },
+  "solution": {
+   "kind": "time_to_event",
+   "time_column": null,
+   "kind_fields": {
+    "duration_column": "days_subscribed",
+    "event_column": "cancelled",
+    "start_column": "signup_date",
+    "horizons": [
+     90,
+     180,
+     365
+    ],
+    "group_column": "plan"
+   }
+  }
+ },
+ {
+  "id": "JS2-12",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "words": "survival model for subscriber tenure please, censored data",
+  "answers": {
+   "target": "duration days_subscribed, event flag cancelled",
+   "prediction_moment": "at signup_date, before first invoice",
+   "action": "early-churn risk goes to onboarding team",
+   "entity": "subscriber_id",
+   "labels": "cancelled 1/0",
+   "family": "survival at 90/180/365 days",
+   "data_plan": "subscriber export"
+  },
+  "solution": {
+   "kind": "time_to_event",
+   "time_column": null,
+   "kind_fields": {
+    "duration_column": "days_subscribed",
+    "event_column": "cancelled",
+    "start_column": "signup_date",
+    "horizons": [
+     90,
+     180,
+     365
+    ],
+    "group_column": "plan"
+   }
+  }
+ },
+ {
+  "id": "JS2-13",
+  "kind": "uplift",
+  "family": "uplift",
+  "words": "Last time we gave the coupon to half the list at random. Some people bought because of it, many would have bought anyway. Next time I want to give it only where it changes something.",
+  "answers": {
+   "target": "bought, compared between those who got the coupon (got_offer) and those who didn't",
+   "prediction_moment": "when we pick the list for the campaign, before anything is sent",
+   "action": "the coupon goes only to people it will push to buy. A coupon to a sure buyer is wasted money, and a few people even buy less when we contact them",
+   "entity": "the customer",
+   "labels": "got_offer = who received the coupon (randomly), bought = who purchased",
+   "family": "for each customer, how much the coupon raises the chance they buy",
+   "data_plan": "the table from last campaign: customer_id, age, app_user, past_purchases, tenure_months, region, got_offer, bought"
+  },
+  "solution": {
+   "kind": "uplift",
+   "kind_fields": {
+    "treatment_column": "got_offer",
+    "randomised": true
+   }
+  }
+ },
+ {
+  "id": "JS2-14",
+  "kind": "uplift",
+  "family": "uplift",
+  "words": "Insurance renewals: our cross-sell offer went to a randomised subset of policyholders last quarter. I need an uplift model (treatment effect per customer) to target the next wave.",
+  "answers": {
+   "target": "bought, with got_offer as the randomised treatment",
+   "prediction_moment": "At list-drawing time for the next wave, before any offer is sent.",
+   "action": "Offers go to the customers with the highest positive effect. Targeting sure things wastes the incentive; targeting people who react negatively loses business.",
+   "entity": "the customer (customer_id)",
+   "labels": "got_offer for treatment, bought for the outcome",
+   "family": "the estimated lift in purchase probability per customer",
+   "data_plan": "last quarter's campaign table: customer_id, age, app_user, past_purchases, tenure_months, region, got_offer, bought"
+  },
+  "solution": {
+   "kind": "uplift",
+   "kind_fields": {
+    "treatment_column": "got_offer",
+    "randomised": true
+   }
+  }
+ },
+ {
+  "id": "JS2-15",
+  "kind": "streams",
+  "family": "streams",
+  "words": "In the plant we have pumps that log temperature, vibration and pressure all the time. When one breaks the whole line stops. Can we know a few hours before?",
+  "answers": {
+   "target": "a breakdown coming soon; the breakdowns are in the incidents file with failed_at",
+   "prediction_moment": "every six hours, for each machine, with the readings received until then",
+   "action": "the maintenance guy goes to check the pump. If he goes for nothing too often he stops believing the alerts; a missed one stops production",
+   "entity": "the machine",
+   "labels": "the incidents file: machine and failed_at",
+   "budget": "no more than 8 alerts a day for the whole plant",
+   "family": "alert or no alert for each machine at each check",
+   "data_plan": "sensor readings (machine, time, temperature, vibration, pressure) and the incidents file (machine, failed_at)"
+  },
+  "solution": {
+   "kind": "streams",
+   "kind_fields": {
+    "unit_column": "machine",
+    "time_column": "time",
+    "sensor_columns": [
+     "temperature",
+     "vibration",
+     "pressure"
+    ],
+    "incident_time_column": "failed_at"
+   }
+  }
+ },
+ {
+  "id": "JS2-16",
+  "kind": "streams",
+  "family": "streams",
+  "words": "Predictive maintenance on IoT telemetry: score each asset every 6h for failure risk.",
+  "answers": {
+   "target": "an upcoming failure from the incidents table (failed_at)",
+   "prediction_moment": "Every 6 hours per machine, using only telemetry up to the scoring time.",
+   "action": "A work order for inspection. False alarms erode trust; misses mean unplanned downtime.",
+   "entity": "machine",
+   "labels": "incidents table: machine, failed_at",
+   "budget": "about 12 work orders a day",
+   "family": "alert yes/no per machine per check",
+   "data_plan": "telemetry (machine, time, temperature, vibration, pressure) plus incidents (machine, failed_at)"
+  },
+  "solution": {
+   "kind": "streams",
+   "kind_fields": {
+    "unit_column": "machine",
+    "time_column": "time",
+    "sensor_columns": [
+     "temperature",
+     "vibration",
+     "pressure"
+    ],
+    "incident_time_column": "failed_at"
+   }
+  }
+ },
+ {
+  "id": "JS2-17",
+  "kind": "embedded",
+  "family": "text_or_images",
+  "words": "Hospital admin office: we get messages from wards all day, some are 'printer broken', some are 'patient transfer blocked'. A person reads all of them to find the ones that cannot wait. Can a computer read them first?",
+  "answers": {
+   "target": "urgent, yes or no",
+   "prediction_moment": "when the note arrives; we only have its text and who sent it",
+   "action": "urgent notes go to the duty coordinator at once. Missing an urgent one is serious, a false alarm costs a minute",
+   "entity": "the same author sends many notes",
+   "labels": "our staff marked them, that is the urgent column",
+   "family": "yes or no per note, from what it says",
+   "data_plan": "one table: item, author, urgent, text"
+  },
+  "solution": {
+   "kind": "embedded",
+   "kind_fields": {
+    "source_column": "author",
+    "item_kind": "text",
+    "text_column": "text"
+   },
+   "identifiers": [
+    "item"
+   ]
+  }
+ },
+ {
+  "id": "JS2-18",
+  "kind": "embedded",
+  "family": [
+   "text_or_images",
+   "classification"
+  ],
+  "words": "text classification: urgent vs not, on helpdesk notes, labelled already",
+  "answers": {
+   "target": "urgent",
+   "prediction_moment": "on arrival of the note, text and author only",
+   "action": "urgent goes to the top of the queue",
+   "entity": "author repeats",
+   "labels": "urgent column",
+   "family": "binary per note",
+   "data_plan": "notes table: item, author, urgent, text"
+  },
+  "solution": {
+   "kind": "embedded",
+   "kind_fields": {
+    "source_column": "author",
+    "item_kind": "text",
+    "text_column": "text"
+   },
+   "identifiers": [
+    "item"
+   ]
+  }
+ },
+ {
+  "id": "JS2-19",
+  "kind": "places",
+  "family": "regression",
+  "words": "We buy old apartments, renovate and resell. When a flat comes on the market I want to know quickly what it is worth, from where it is, its square metres, rooms and how old the building is.",
+  "answers": {
+   "target": "price",
+   "prediction_moment": "when the flat is listed: its location (lat, lon), size_m2, rooms and age_years are known",
+   "action": "we decide whether to make an offer. Too high and we overpay, too low and we lose good deals",
+   "entity": "each flat once, but flats close to each other are similar",
+   "labels": "price, the sale price",
+   "family": "a price per flat",
+   "data_plan": "one table: lat, lon, size_m2, rooms, age_years, price"
+  }
+ },
+ {
+  "id": "JS2-20",
+  "kind": "places",
+  "family": "regression",
+  "words": "AVM for flats please, inputs are coordinates, m2, rooms, building age",
+  "answers": {
+   "target": "price",
+   "prediction_moment": "at listing",
+   "action": "suggested asking price shown to the agent",
+   "entity": "no repeated entity",
+   "labels": "price",
+   "family": "a number",
+   "data_plan": "lat, lon, size_m2, rooms, age_years, price"
+  }
+ },
+ {
+  "id": "JS2-21",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "words": "On our marketplace, shoppers leave reviews and sellers don't notice the angry ones until it's too late. I want them caught the minute they're published, using what they wrote plus the product's category and price and how many reviews the person wrote before.",
+  "answers": {
+   "target": "negative",
+   "prediction_moment": "when the review is posted, before anyone answers it; shop_reply comes later",
+   "action": "angry reviews go to the seller-care team first. A missed one stays unanswered, a false flag costs a minute",
+   "entity": "reviewers come back; past_reviews counts how many they wrote before",
+   "labels": "the negative column",
+   "family": "yes or no per review",
+   "data_plan": "the reviews table: review_id, category, price, past_reviews, review_text, shop_reply, negative"
+  }
+ },
+ {
+  "id": "JS2-22",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "words": "sentiment model on reviews, but also with the tabular columns",
+  "answers": {
+   "target": "negative (1 = negative review)",
+   "prediction_moment": "at posting time",
+   "action": "prioritise negative ones for customer care",
+   "entity": "review_id is unique",
+   "labels": "negative",
+   "family": "binary",
+   "data_plan": "reviews table with review_text and the other columns"
+  }
+ },
+ {
+  "id": "JS2-23",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "words": "Our auditors have never had a list of 'bad' deliveries, they just scroll. I'd like each morning a short list of the deliveries that look the most strange compared to the rest, and we will tell you later what they found.",
+  "answers": {
+   "target": "no outcome column; the most unusual deliveries of the day",
+   "prediction_moment": "the morning after, in the audit of yesterday's delivered rides; none has been checked yet",
+   "action": "an auditor looks at each one; what they confirm becomes our first labels",
+   "entity": "biker_id, account_id and the phones come back on many rides",
+   "labels": "nothing is labelled",
+   "budget": "about 25 a day",
+   "family": "a list of unusual rides, most unusual first",
+   "data_plan": "the rides export: created_date, account_id, biker_id, biker_phone, order_id, category, terminal_ref, status, biker_fare, sender_phone and the coordinates"
+  }
+ },
+ {
+  "id": "JS2-24",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "words": "unsupervised outlier detection on courier rides, no labels at all",
+  "answers": {
+   "target": "none; outliers",
+   "prediction_moment": "daily audit after delivery, unlabelled",
+   "action": "audit team reviews the shortlist",
+   "entity": "biker_id",
+   "labels": "none",
+   "budget": "70 per day",
+   "family": "the outlier rides",
+   "data_plan": "rides table"
+  }
+ },
+ {
+  "id": "JS2-25",
+  "kind": "binary",
+  "family": "classification",
+  "words": "Our streaming plans renew every year, and at renewal some people leave. Customer success would like to know beforehand who is thinking of leaving so they can talk to them.",
+  "answers": {
+   "target": "churned, whether the subscriber cancelled at the renewal",
+   "prediction_moment": "at renewal time, before the subscriber decides; the refund is only paid after a cancellation, so final_refund_amount is not known then",
+   "action": "customer success calls the most likely leavers with a retention offer. A call is cheap, a lost subscriber is a year of fees",
+   "entity": "one subscriber per row",
+   "labels": "the churned column",
+   "family": "yes or no, with a probability to sort the call list",
+   "data_plan": "the subscribers table: subscriber_id, signup_time, plan, monthly_fee, tenure_months, support_calls, late_payments, final_refund_amount, churned"
+  }
+ },
+ {
+  "id": "JS2-26",
+  "kind": "binary",
+  "family": "classification",
+  "words": "churn prediction pls",
+  "answers": {
+   "target": "the churned flag",
+   "prediction_moment": "at renewal",
+   "action": "retention calls",
+   "entity": "subscriber",
+   "labels": "churned",
+   "family": "binary",
+   "data_plan": "subscriber table"
+  }
+ },
+ {
+  "id": "JS2-27",
+  "kind": "multiclass",
+  "family": "classification",
+  "words": "In our SaaS support desk, tickets first go to a general inbox and someone forwards them by hand to billing, tech, logistics and so on. This takes hours. I'd like the ticket to land at the right team directly.",
+  "answers": {
+   "target": "assigned_team, the team that owned the ticket",
+   "prediction_moment": "when the ticket is created, before anyone reads it. resolved_by and first_response_minutes are only filled in later",
+   "action": "the ticket goes straight to that team's queue. A wrong team means a handover and the customer waits longer",
+   "entity": "customer_id, customers open several tickets",
+   "labels": "assigned_team",
+   "family": "one team per ticket",
+   "data_plan": "the tickets export: ticket_id, created_at, customer_id, plan, channel, product_area, subject_words, body_words, has_attachment, the mentions_ flags, resolved_by, first_response_minutes, assigned_team"
+  }
+ },
+ {
+  "id": "JS2-28",
+  "kind": "multiclass",
+  "family": "classification",
+  "words": "multi-class classifier for ticket routing",
+  "answers": {
+   "target": "assigned_team",
+   "prediction_moment": "at ticket creation",
+   "action": "auto-assign to the team queue",
+   "entity": "customer_id",
+   "labels": "assigned_team",
+   "family": "one class per ticket",
+   "data_plan": "ticket table"
+  }
+ },
+ {
+  "id": "JS2-29",
+  "kind": "regression",
+  "family": "regression",
+  "words": "Customers in our food app complain the delivery time we show is a lie. I'd like the time shown at checkout to be closer to what really happens, from the distance, how many couriers are online, weather, basket and the restaurant.",
+  "answers": {
+   "target": "actual_minutes, from order to door",
+   "prediction_moment": "when the order is placed, before a courier is assigned; delivered_at and courier_rating only exist after the delivery",
+   "action": "the number is shown at checkout. Showing too short a time makes angry customers and refunds, too long makes people cancel",
+   "entity": "restaurant_id repeats on many orders",
+   "labels": "actual_minutes, measured after each delivery",
+   "family": "a number of minutes per order",
+   "data_plan": "the orders table: order_id, order_time, restaurant_id, distance_km, couriers_online, weather, basket_items, order_value, delivered_at, courier_rating, actual_minutes"
+  }
+ },
+ {
+  "id": "JS2-30",
+  "kind": "regression",
+  "family": "regression",
+  "words": "ETA regression for food delivery orders",
+  "answers": {
+   "target": "actual_minutes",
+   "prediction_moment": "at order placement",
+   "action": "ETA shown to the customer",
+   "entity": "restaurant_id",
+   "labels": "actual_minutes",
+   "family": "minutes",
+   "data_plan": "orders table"
+  }
+ }
+]

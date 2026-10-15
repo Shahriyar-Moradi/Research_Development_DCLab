@@ -78,6 +78,18 @@ class JourneyTest(unittest.TestCase):
         with mock.patch.object(journeys, "HERE", tmp), self.assertRaises(ValueError):
             journeys.load("sealed")
 
+    def test_the_second_sealed_set_is_frozen_with_its_own_gate_and_seed(self):
+        people = journeys.load("sealed_v2")  # refused if a byte changed since it was pinned
+        by_kind = {}
+        for j in people:
+            by_kind[j["kind"]] = by_kind.get(j["kind"], 0) + 1
+        self.assertEqual(set(by_kind.values()), {2})
+        self.assertEqual(set(by_kind), {k.key for k in kinds.all_kinds()})
+        self.assertTrue(all("built" not in j for j in people))  # every kind runs in the engine
+        gate = journeys.GATES["sealed_v2"]
+        self.assertEqual((gate["seed"], gate["split"]), (2, "sealed_v2"))
+        self.assertEqual({k: v for k, v in gate.items() if k in ("journey", "suite")}, {k: journeys.GATE[k] for k in ("journey", "suite")})
+
     def test_the_gate(self):
         from dclab_core.card import FAMILIES
 

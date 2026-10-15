@@ -19,7 +19,9 @@ A family the engine does not run yet is expected to stop at the build with its r
 is scored on the card and that refusal. The gate (``GATE``, fixed before any run) is judged on the sealed journeys,
 run once; nothing is tuned on them. Since 16.15 B the engine runs segmentation, uplift and ranking: the six sealed
 journeys of those families still expect the refusal, as they were sealed (JRN-002 stands); a later play of the sealed
-set would score them wrong for that reason alone.
+set would score them wrong for that reason alone. A second sealed set (``journeys_sealed_v2.json``, ``GATE_V2``: the same
+bar on the replicas' seed 2) was written by an agent that read only the replicas' columns and the format, and frozen
+before any rule changed for v1's failures; it runs once (``--split sealed_v2``).
 """
 
 from __future__ import annotations
@@ -38,7 +40,7 @@ from unittest import mock
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 RESULTS = ROOT / "evidence" / "campaigns" / "journeys_v1" / "results"
-SEALED = {"sealed": "sealed.sha256"}
+SEALED = {"sealed": "sealed.sha256", "sealed_v2": "sealed_v2.sha256"}
 GATE = {
     "version": "journeys_gate_v1",
     "split": "sealed",
@@ -48,6 +50,12 @@ GATE = {
              "with a journey, and no move the graph's validator refused in any journey",
     "seed": 1,  # the replicas' seed for the sealed run: not the tables the dev failures were fixed on (seed 0)
 }
+# 2026-10-15: a second sealed set, written by an agent that read only the replicas' columns and the journeys' format (never
+# the rules), frozen and committed before any rule was changed for v1's failures; v1's sealed set is dev material from then
+GATE_V2 = {**GATE, "version": "journeys_gate_v2", "split": "sealed_v2",
+           "seed": 2,  # neither the dev tables (0) nor v1's sealed ones (1)
+           "author": "an agent that never read the rules, only the replicas' columns and the format"}
+GATES = {"sealed": GATE, "sealed_v2": GATE_V2}
 PARTS = ("card", "workflow", "pipeline", "holdout")
 REFUSED = "family not built yet"  # dclab_core.coordinator.FAMILY_NOT_RUN: the build's rule for a family the engine does not run
 
@@ -452,7 +460,7 @@ def store(rows: list[dict[str, Any]], split: str, result: str, arm: str = "rules
     ident = f"JRN-{n:03d}"
     doc = {"id": ident, "campaign_id": "journeys_v1", "kind": "acceptance_journeys", "split": split, "arm": arm,
            "journeys": fingerprint(HERE / f"journeys_{split}.json"), "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-           "gate": GATE, "seed": seed, "spent_eur": 0.0, "rows": rows, "families": families(rows),
+           "gate": GATES.get(split, GATE), "seed": seed, "spent_eur": 0.0, "rows": rows, "families": families(rows),
            "summary": {"journeys": len(rows), "right": sum(r["right"] for r in rows),
                        "by_part": {p: sum(bool(r["parts"].get(p)) for r in rows) for p in PARTS}},
            "verdict": result, "status": "completed", "experiment_id": ident,

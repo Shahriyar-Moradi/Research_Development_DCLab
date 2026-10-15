@@ -1,4 +1,4 @@
-"""``python -m dclab_rnd.agent_eval.journeys --split dev|sealed [--workers N] [--only ID|KIND ...] [--no-store]``."""
+"""``python -m dclab_rnd.agent_eval.journeys --split dev|sealed|sealed_v2 [--workers N] [--only ID|KIND ...] [--no-store]``."""
 
 from __future__ import annotations
 
@@ -6,32 +6,32 @@ import argparse
 import json
 import os
 
-from . import families, measure, sealed_runs, store, store_compare, verdict
+from . import GATES, SEALED, families, measure, sealed_runs, store, store_compare, verdict
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--split", default="dev", choices=("dev", "sealed"))
+    parser.add_argument("--split", default="dev", choices=("dev", "sealed", "sealed_v2"))
     parser.add_argument("--workers", type=int, default=min(4, max(1, (os.cpu_count() or 2) - 1)))  # each one an engine: memory
     parser.add_argument("--only", nargs="*")
     parser.add_argument("--no-store", action="store_true")
     parser.add_argument("--compare", action="store_true", help="22.9: every arm (the rules, each gated decision model, all) on the split")
     parser.add_argument("--seed", type=int, default=None, help="the replicas' seed (the sealed run uses the gate's)")
     args = parser.parse_args()
-    if args.split == "sealed" and sealed_runs():
+    sealed = args.split in SEALED
+    if sealed and sealed_runs(args.split):
         print("the sealed journeys were run once already: a sealed set is never run again")
         return 2
-    if args.split == "sealed" and (args.only or args.no_store):
+    if sealed and (args.only or args.no_store):
         print("the sealed journeys are run whole and stored, once")
         return 2
-    from . import GATE
-
-    if args.split == "sealed" and args.seed not in (None, GATE["seed"]):
-        print(f"the sealed journeys run on the gate's seed, {GATE['seed']}")
+    gate = GATES.get(args.split)
+    if sealed and args.seed not in (None, gate["seed"]):
+        print(f"the sealed journeys run on the gate's seed, {gate['seed']}")
         return 2
-    seed = GATE["seed"] if args.split == "sealed" else (0 if args.seed is None else args.seed)
+    seed = gate["seed"] if sealed else (0 if args.seed is None else args.seed)
     if args.compare:
-        if args.split == "sealed":
+        if sealed:
             print("the arms are compared on dev: a sealed set is run once, for its gate")
             return 2
         from . import arms, compare
