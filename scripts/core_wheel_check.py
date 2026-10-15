@@ -87,6 +87,16 @@ from dclab_core.adapters import main_product_problem_map as mppm
 fraud = problem_map.decompose("Find the fake rides our bikers make. We have a few confirmed cases and the team can review 200 a day.")
 assert fraud.size == "complex" and len(fraud.parts) == 4 and problem_map.validate(fraud) == [] and len(mppm.problem_specs(fraud)["problem_specs"]) == 4
 assert problem_map.decompose("I want to know which subscribers will cancel").size == "single"
+# 24.2: the reviewer's questions, a person's edit refused with its reason, and the three roles' prompts shipped in the wheel
+from dclab_core import mapping, prompts
+assert any(q.code == "unmarked_is_unknown" for q in mapping.review_rules(fraud)) and len(mapping.remove_part(fraud, "part2").parts) == 3
+try:
+    mapping.merge_parts(fraud, "part1", "part3")
+except mapping.MapEditRefused as refused:
+    assert "one part, one unit" in str(refused)
+else:
+    raise AssertionError("a ride and an account were merged into one part")
+assert {"decomposer", "map_reviewer", "data_need"} <= set(prompts.names())
 # 19.6: a Jev answer row read as a decision record, banded, and back
 from dclab_core.adapters import main_product_ledger as mpd
 scols = mp.recorded()["experience_tables"]["semantic_decision_answers"]

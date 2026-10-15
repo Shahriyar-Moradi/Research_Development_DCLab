@@ -1,0 +1,6 @@
+{
+  "campaign_id": "map_roles_v1",
+  "objective": "The map roles (package 24.2): 28 written problems (a dev set of 14 and a sealed set of 14: complex ones the rules' templates cover, complex ones they do not, a brief with parts, and single problems that only share words with a complex one) read by dclab_core's rules alone, by the decomposer role (proposals checked: each part on the person's words or a rule template, the map valid), and by a plain prompted model; each case scored on its size and on the F1 of its families. Gate map_gate_v1, fixed before any run: on the sealed set, a better mean F1 with the roles, no size the rules had right that the roles got wrong, and at most two cases worse.",
+  "rule": "Scores say how these readers handle these problems, not how they handle any other text, and nothing about production readiness.",
+  "command": "python -m dclab_rnd.agent_eval.complex --split dev|sealed [--yes --cap-eur N]"
+}

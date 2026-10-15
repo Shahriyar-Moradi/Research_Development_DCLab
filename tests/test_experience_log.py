@@ -44,6 +44,8 @@ def orders(n=400, seed=0):
 EVENTS, NONE = "events", "none"
 WRITE_ROUTES = {
     "POST /api/drafts": (EVENTS, ["draft.created"]),
+    "POST /api/drafts/{draft_id}/map": (EVENTS, ["graph.move"]),  # 24.2: drawing it again (redraw true) is a move; the first drawing is kept without one, as a map.size decision in the ledger
+    "POST /api/drafts/{draft_id}/map/edit": (EVENTS, ["graph.move"]),  # 24.2: a person's add, remove, merge or confirm, allowed or refused with its checks
     "POST /api/ledger/blind/{record_id}": (NONE, "a blind label is the ledger's own record (decision_label), not a session event"),
     "POST /api/feedback": (EVENTS, ["feedback.given"]),
     "PUT /api/consent": (EVENTS, ["decision.accepted"]),  # the switch, audited as a policy
@@ -131,6 +133,9 @@ class OneSessionTest(unittest.TestCase):
                     "metric": proposal["metric"], "notes": ""}
         assert c.put(f"/api/drafts/{d['id']}/solution", json=solution, headers=h).status_code == 200
         c.put(f"/api/drafts/{d['id']}/settings", json={"split": "time", "folds": 3, "quick": True, "max_rows": 400, "budget": {}}, headers=h)
+        c.post(f"/api/drafts/{d['id']}/map", json={}, headers=h)  # 24.2: the map is drawn, confirmed and drawn again: moves in the draft's conversation
+        c.post(f"/api/drafts/{d['id']}/map/edit", json={"action": "confirm"}, headers=h)
+        c.post(f"/api/drafts/{d['id']}/map", json={"redraw": True}, headers=h)
         built = c.post(f"/api/drafts/{d['id']}/build", json={}, headers=h)
         assert built.status_code == 201, built.text
         cls.project = built.json()["id"]
@@ -192,6 +197,8 @@ class OneSessionTest(unittest.TestCase):
         kinds = set(self.kinds())
         for route in exercised:  # the flow above went through these: their events are in the record
             self.assertTrue(set(WRITE_ROUTES[route][1]) <= kinds, (route, set(WRITE_ROUTES[route][1]) - kinds))
+        moves = {e.payload["move"] for e in self.events if e.kind == "graph.move" and e.ids.conversation == self.draft}
+        self.assertTrue({"map:confirm", "map:redraw"} <= moves, moves)  # the two map routes record what they say they record
         edit = next(e for e in self.events if e.kind == "draft.edited")
         self.assertEqual((edit.ids.conversation, edit.payload["before"], edit.payload["after"]),
                          (self.edited, "Find the fraud", "Find the fake deliveries among the orders"))
@@ -226,8 +233,8 @@ class OneSessionTest(unittest.TestCase):
                 and not (e.kind in ("agent.step", "tool.call") and e.ids.run == self.draft)  # the Home agent's moves: a background turn too
                 and not e.kind.startswith("pipeline.step_")]  # 23.8: each step of a run is two events: counted in test_steps, not in the flow
         self.assertEqual(mine, [
-            ("draft.created", ""), ("data.uploaded", ""), ("data.cleaned", ""), ("data.analysed", ""), ("solution.proposed", ""), ("solution.saved", ""), ("decision.accepted", "settings"), ("graph.move", "set_solution"),
-            ("draft.built", ""), ("job.started", ""), ("stage.started", "data"), ("stage.finished", "data"), ("run.recorded", ""), ("graph.move", "run_stage"),
+            ("draft.created", ""), ("data.uploaded", ""), ("data.cleaned", ""), ("data.analysed", ""), ("solution.proposed", ""), ("solution.saved", ""), ("decision.accepted", "settings"), ("graph.move", "map:confirm"), ("graph.move", "map:redraw"),
+            ("graph.move", "set_solution"), ("draft.built", ""), ("job.started", ""), ("stage.started", "data"), ("stage.finished", "data"), ("run.recorded", ""), ("graph.move", "run_stage"),
             ("job.stopped", ""), ("graph.move", "approve_stage"), ("stage.approved", "data"), ("chat.person", "project"), ("chat.agent", "project"),
             ("solution.refused", "")])  # the raising /ask failed before its question was logged; its error is the visit's, not the project's
 

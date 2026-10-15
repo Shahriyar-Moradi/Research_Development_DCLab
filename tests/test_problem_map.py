@@ -283,7 +283,9 @@ class ValidateTest(unittest.TestCase):
 
     def test_a_sub_problem_must_work_on_its_parts_unit_and_moment(self):
         self.assertIn("one part, one unit", self.issues(fresh(sub(self.fraud, "sp1", unit="account"))))
-        self.assertIn("moment differs", self.issues(fresh(sub(self.fraud, "sp1", moment="Before the ride"))))
+        said = fresh(self.fraud.model_copy(update={"parts": [p.model_copy(update={"moment": "After the ride"}) if p.id == "part1" else p for p in self.fraud.parts]}))
+        self.assertIn("moment differs", self.issues(fresh(sub(said, "sp1", moment="Before the ride"))))
+        self.assertEqual(pm.validate(fresh(sub(said, "sp1", moment="After the ride"))), [])
 
     def test_a_missing_unit_or_moment_is_a_question_for_the_reviewer_not_an_unsound_map(self):
         self.assertEqual(pm.validate(pm.decompose(CHURN)), [])

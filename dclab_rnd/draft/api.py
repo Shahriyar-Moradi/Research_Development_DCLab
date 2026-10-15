@@ -590,6 +590,41 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         met = await asyncio.to_thread(meeting, draft, drafts)  # 20.4: what the problem and the data disagree on
         return {**card.model_dump(mode="json"), "meets_data": met.model_dump(mode="json") if met is not None else None}
 
+    @router.get("/api/drafts/{draft_id}/map", response_model=Doc)
+    async def draft_map(draft_id: str):
+        """The problem map (24.2): the problem as parts and sub-problems with what each reads of the others and how their results combine,
+        the reviewer's questions, and whether the person confirmed it. A draft with no stored map shows the rules' proposal; looking writes nothing."""
+        from . import map as problem_map
+
+        draft = get(draft_id)
+        return await asyncio.to_thread(problem_map.view, draft, problem_map.advisor_for(models, draft_id=draft_id))
+
+    @router.post("/api/drafts/{draft_id}/map", response_model=Doc)
+    async def draw_map(draft_id: str, payload: AnyObject = None):
+        """Draw the map and keep it as the draft's (``redraw`` true draws it again, which drops the person's edits and confirmation)."""
+        from . import map as problem_map
+
+        get(draft_id)
+        redraw = dump(payload).get("redraw") is True  # only a JSON true: "false" and 1 are not a request to drop the person's edits
+        return await asyncio.to_thread(problem_map.draw, drafts, draft_id, advisor=problem_map.advisor_for(models, draft_id=draft_id), redraw=redraw)
+
+    @router.post("/api/drafts/{draft_id}/map/edit", response_model=Doc)
+    async def edit_map(draft_id: str, payload: AnyObject):
+        """A person's change to the map: ``action`` is add (title, family, ...), remove (part), merge (keep, other) or confirm. The validator
+        refuses a change that would make the map unsound, with its reasons (409), and the map stays as it was."""
+        from dclab_core.mapping import MapEditRefused
+
+        from . import map as problem_map
+
+        get(draft_id)
+        body = dump(payload)
+        action = body.get("action")
+        allowed = {k: v for k, v in body.items() if k in {key for keys in problem_map.EDIT_KEYS.values() for key in keys}}  # the edit's own arguments, nothing else
+        try:
+            return await asyncio.to_thread(lambda: problem_map.edit(drafts, draft_id, action if isinstance(action, str) else "", advisor=problem_map.advisor_for(models, draft_id=draft_id), **allowed))
+        except MapEditRefused as refused:
+            raise HTTPException(409, "; ".join(refused.issues)) from None
+
     @router.post("/api/drafts/{draft_id}/build", status_code=201, response_model=Project)
     async def build(draft_id: str):
         draft = get(draft_id)
@@ -715,6 +750,11 @@ def build_blockers(drafts: DraftStore, draft_id: str, capture_card: bool = False
         blocking = [m.question for m in (met.mismatches if met is not None else []) if m.blocking]
         if blocking:
             out.append(BuildRefused("Not yet: " + " ".join(blocking[:2]), "problem and data disagree"))
+    from . import map as problem_map
+
+    waiting = problem_map.blocker(draft)  # 24.2: several parts that depend on each other are built from a map the person confirmed
+    if waiting:
+        out.append(BuildRefused(waiting, "problem map not confirmed"))
     return out  # 20.7: anomaly detection without labels is built as its own kind (never as a model of some column)
 
 

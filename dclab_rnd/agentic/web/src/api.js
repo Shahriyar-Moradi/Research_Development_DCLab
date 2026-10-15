@@ -245,6 +245,9 @@
     sample: ["POST", "/drafts/{draft_id}/data/sample", ["draft_id"], []],
     syntheticData: ["POST", "/drafts/{draft_id}/data/synthetic", ["draft_id"], []],
     events: ["GET", "/drafts/{draft_id}/events", ["draft_id"], ["after", "wait"]],
+    draftMap: ["GET", "/drafts/{draft_id}/map", ["draft_id"], []],
+    drawMap: ["POST", "/drafts/{draft_id}/map", ["draft_id"], []],
+    editMap: ["POST", "/drafts/{draft_id}/map/edit", ["draft_id"], []],
     message: ["POST", "/drafts/{draft_id}/messages", ["draft_id"], []],
     choosePack: ["POST", "/drafts/{draft_id}/pack", ["draft_id"], []],
     draftSettings: ["PUT", "/drafts/{draft_id}/settings", ["draft_id"], []],
@@ -558,6 +561,25 @@
   client.events = (...args) => call('events', args);
   client.path.events = (...args) => build('events', args).path;
   client.href.events = (...args) => '/api' + build('events', args).path;
+  /** GET /api/drafts/{draft_id}/map: Draft Map
+   *  @param {string} draft_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.draftMap = (...args) => call('draftMap', args);
+  client.path.draftMap = (...args) => build('draftMap', args).path;
+  client.href.draftMap = (...args) => '/api' + build('draftMap', args).path;
+  /** POST /api/drafts/{draft_id}/map: Draw Map
+   *  @param {string} draft_id
+   *  @param {{body?: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.drawMap = (...args) => call('drawMap', args);
+  client.path.drawMap = (...args) => build('drawMap', args).path;
+  /** POST /api/drafts/{draft_id}/map/edit: Edit Map
+   *  @param {string} draft_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.editMap = (...args) => call('editMap', args);
+  client.path.editMap = (...args) => build('editMap', args).path;
   /** POST /api/drafts/{draft_id}/messages: Message
    *  @param {string} draft_id
    *  @param {{body: AnyObject, headers?: Object}} [opts]

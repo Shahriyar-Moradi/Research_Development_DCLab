@@ -442,7 +442,7 @@ DC.view('home', {
           + `<dt>Labels</dt><dd>${esc({ column: 'a column marks the cases', file: 'a file lists the known cases', none: 'nothing is labelled' }[c.labels] || 'not said')}</dd>`
           + `<dt>Outcome</dt><dd>${esc(c.outcome || 'not named')}</dd><dt>Moment</dt><dd>${esc(c.moment || 'not said')}</dd></dl>`
           + (c.ready ? '' : `<div class="callout warn small">${esc((c.blocking || [])[0] || 'Something is still open.')}</div>`) + '</div>' : '';
-        body = `<p>${esc(m.text)}</p>${card}<div class="row"><button type="button" class="btn primary sm" data-build="1">Let's build the solution</button><button type="button" class="btn sm" data-open-bring="1">Add data first</button></div>`;
+        body = `<p>${esc(m.text)}</p>${card}<div class="stack tight" data-map-box="1"></div><div class="row"><button type="button" class="btn primary sm" data-build="1">Let's build the solution</button><button type="button" class="btn sm" data-open-bring="1">Add data first</button></div>`;
       } else {
         body = `<p>${esc(m.text)}</p>${(m.actions || []).length ? `<div class="row">${m.actions.includes('upload') ? '<button type="button" class="btn sm" data-open-bring="upload">Upload a sample</button>' : ''}${m.actions.includes('connect') ? '<button type="button" class="btn sm" data-open-bring="kaggle">Connect a source</button>' : ''}${m.actions.includes('simulate') ? '<button type="button" class="btn sm" data-open-bring="synthetic">Simulate data</button>' : ''}</div>` : ''}`;
       }
@@ -450,8 +450,83 @@ DC.view('home', {
       const rate = m.id ? `<div class="row xs muted" data-style="gap:6px;margin-top:4px"><button type="button" class="link-btn" data-rate="helpful" data-ref="${esc(m.id)}" aria-label="Helpful">👍</button><button type="button" class="link-btn" data-rate="unhelpful" data-ref="${esc(m.id)}" aria-label="Not helpful">👎</button><button type="button" class="link-btn" data-edit="${esc(m.id)}" aria-label="Write my own version of this reply">✏</button></div>` : '';
       thread.insertAdjacentHTML('beforeend', `<div class="msg"><span class="avatar ai">AI</span><div class="msg-body"><div class="who">DCLab <span>${esc((m.at || '').slice(11, 16))}</span></div>${body}${rate}</div></div>`);
       DC.hydrate(thread);
+      const mapBox = m.kind === 'summary' && thread.querySelector('.msg:last-child [data-map-box]');
+      if (mapBox && S.draft) loadMap(mapBox);
       scrollThread();
     }
+
+    /* ---------- the map of the problem (24.2): one problem, or parts that depend on each other; the person edits and confirms it ---------- */
+    const FAMILIES = ['classification', 'regression', 'rare_event', 'anomaly', 'forecasting', 'time_to_event', 'ranking', 'segmentation', 'uplift', 'entity_tables', 'streams', 'text_or_images'];
+    const famText = f => String(f || '').replace(/_/g, ' ');
+    const LABELS_TEXT = { column: 'a column marks the outcome', file: 'a file lists the known cases', none: 'nothing is labelled', unknown: 'labels not said' };
+    async function loadMap(box) {
+      if (!S.draft) return;
+      box.dataset.draft = S.draft.id;
+      box.innerHTML = '<div class="muted small">Reading the problem as parts…</div>';
+      let v;
+      try { v = await DC.client.draftMap(S.draft.id, { quiet: true }); } catch (e) { DC.states.failed(box, e, { lead: 'Could not draw the map: ', retry: () => loadMap(box) }); return; }
+      renderMap(box, v);
+    }
+    function renderMap(box, v) {
+      const m = v.map, subs = m.sub_problems, titleOf = id => { const sp = subs.find(x => x.id === id); return sp ? sp.title : id; };
+      const addForm = `<details class="small"><summary>Add a part</summary><div class="row" data-style="gap:6px;flex-wrap:wrap;margin-top:6px"><input type="text" data-map-title placeholder="What it finds, in a few words" aria-label="Title of the new part"><select data-map-family aria-label="Family of the new part">${FAMILIES.map(f => `<option value="${f}">${famText(f)}</option>`).join('')}</select><button type="button" class="btn sm" data-map-act="add">Add</button></div></details>`;
+      if (m.size === 'single') {
+        box.innerHTML = `<div class="inset stack tight small" data-map-draft="${esc(box.dataset.draft || '')}"><div class="eyebrow">The map of the problem</div><div>One problem, no parts to combine: ${esc(famText(m.sub_problems[0].family))}. <span class="muted">If it is really several that depend on each other, add the part you see.</span></div>
+          ${(v.review.questions || []).length ? `<ul class="plan-list">${v.review.questions.map(q => `<li class="${q.blocking ? 'blocked' : 'done'}"><span class="pi">${q.blocking ? '!' : '?'}</span><span>${esc(q.question)}</span></li>`).join('')}</ul>` : ''}
+          ${addForm}<div class="row" data-style="gap:6px"><button type="button" class="btn sm" data-map-act="redraw">Draw it again</button></div></div>`;
+        return;
+      }
+      const partCard = p => {
+        const sp = subs.filter(x => x.part === p.id);
+        const reasons = p.why ? esc(p.why) : p.quote ? `You said: “${esc(p.quote.length > 160 ? p.quote.slice(0, 160) + '…' : p.quote)}”` : '';
+        const others = m.parts.filter(o => o.id !== p.id);
+        return `<div class="inset stack tight" data-map-part="${esc(p.id)}">
+          <div class="spread"><b>${esc(p.title)}</b><span class="row" data-style="gap:6px">${sp.map(x => `<span class="pill accent">${esc(famText(x.family))}</span>`).join('')}</span></div>
+          ${p.question ? `<div class="small">${esc(p.question)}</div>` : ''}
+          <dl class="kv small"><dt>One row is</dt><dd>${esc(p.unit || 'not said')}</dd><dt>Needed</dt><dd>${esc(p.moment || 'not said')}</dd>
+          ${sp.map(x => `<dt>Labels</dt><dd>${esc(LABELS_TEXT[x.labels] || x.labels)}</dd>`).join('')}
+          ${sp.some(x => (x.reads || []).length) ? `<dt>Uses</dt><dd>${esc(sp.flatMap(x => (x.reads || []).map(r => `${r.what === 'score' ? 'the score of' : 'the outcome of'} ${titleOf(r.sub_problem)}${r.via ? ` (by ${r.via})` : ''}`)).join('; '))}</dd>` : ''}</dl>
+          <div class="xs muted">${reasons}</div>
+          <div class="row" data-style="gap:6px;flex-wrap:wrap"><button type="button" class="btn sm" data-map-act="remove" data-part="${esc(p.id)}">Remove</button>
+          ${others.length ? `<label class="xs muted">Merge into <select data-map-merge="${esc(p.id)}" aria-label="Merge ${esc(p.title)} into another part"><option value="">…</option>${others.map(o => `<option value="${esc(o.id)}">${esc(o.title)}</option>`).join('')}</select></label>` : ''}</div>
+        </div>`;
+      };
+      const steps = (m.composition.steps || []).map(c => `<li class="done"><span class="pi">→</span><span>${esc(c.kind)} of ${esc(c.inputs.map(titleOf).join(', '))} <span class="muted">→ ${esc(c.output)}${c.joins ? ` · joined by ${esc(c.joins)}` : ''}</span></span></li>`).join('');
+      const qs = (v.review.questions || []).map(q => `<li class="${q.blocking ? 'blocked' : 'done'}"><span class="pi">${q.blocking ? '!' : '?'}</span><span>${esc(q.question)} <span class="muted xs">${esc(q.why || '')}</span></span></li>`).join('');
+      const issues = (v.issues || []).length ? `<div class="callout warn small">${v.issues.map(esc).join('<br>')}</div>` : '';
+      box.innerHTML = `<div class="inset stack tight" data-map-draft="${esc(box.dataset.draft || '')}">
+        <div class="spread"><div class="eyebrow">The map of the problem</div><span class="pill ${v.confirmed ? 'ok' : 'warn'}">${v.confirmed ? 'confirmed' : 'to confirm'}</span></div>
+        <div class="small">This is ${m.parts.length} parts that depend on each other, not one problem. Check each part, change what is wrong, then confirm.${v.stale ? ' <b>You said more since it was drawn.</b>' : ''}</div>
+        ${issues}
+        <div class="stack tight">${m.parts.map(partCard).join('')}</div>
+        ${steps ? `<div class="eyebrow">How the results combine</div><ul class="plan-list">${steps}</ul>${m.composition.budget ? `<div class="small muted">Limit you gave: ${esc(m.composition.budget)}</div>` : ''}` : ''}
+        ${qs ? `<div class="eyebrow">Still open</div><ul class="plan-list">${qs}</ul><div class="xs muted">Answer these in the chat below, in your own words.</div>` : ''}
+        ${addForm}
+        <div class="row" data-style="gap:6px;flex-wrap:wrap"><button type="button" class="btn primary sm" data-map-act="confirm"${v.confirmed ? ' disabled' : ''}>${v.confirmed ? 'Confirmed' : 'Confirm the map'}</button><button type="button" class="btn sm" data-map-act="redraw">Draw it again</button></div>
+        <div class="xs muted">${v.source === 'advisor' ? 'Drawn by the model from your words' : v.source === 'person' ? 'Changed by you' : 'Drawn by rules from your words'}; every change is checked, and refused with its reason when it would not hold together.</div>
+      </div>`;
+    }
+    async function mapAct(btn) {
+      const box = btn.closest('[data-map-box]'), id = box && box.dataset.draft;
+      if (!id) return;
+      const act = btn.dataset.mapAct, body = { action: act };
+      if (act === 'redraw' && !confirm('Draw the map again from your words? The changes you made to it, and your confirmation, are dropped.')) return;
+      if (act === 'remove') body.part = btn.dataset.part;
+      if (act === 'add') {
+        body.title = ($('[data-map-title]', box).value || '').trim(); body.family = $('[data-map-family]', box).value;
+        if (!body.title) { toast('Say in a few words what the new part finds.', { ok: false }); return; }
+      }
+      btn.disabled = true;
+      try { const v = await DC.client.editMap(id, { body }); renderMap(box, v); if (act === 'confirm') toast('Map confirmed.'); }
+      catch (err) { toast(err.message, { ok: false }); btn.disabled = false; }
+    }
+    async function mapMerge(sel) {
+      const box = sel.closest('[data-map-box]'), id = box && box.dataset.draft;
+      if (!id || !sel.value) return;
+      try { renderMap(box, await DC.client.editMap(id, { body: { action: 'merge', keep: sel.value, other: sel.dataset.mapMerge } })); }
+      catch (err) { toast(err.message, { ok: false }); sel.value = ''; }
+    }
+    el.addEventListener('change', e => { const sel = e.target.closest('[data-map-merge]'); if (sel) mapMerge(sel); });
 
     function renderPipeline(d) {
       const thread = $('#home-thread', el);
@@ -553,6 +628,7 @@ DC.view('home', {
     }
     $('#home-connect', el).addEventListener('click', () => { const card = $('#home-bring', el); if (card.hidden) openBring(); else { card.hidden = true; $('#home-connect', el).setAttribute('aria-expanded', 'false'); } });
     el.addEventListener('click', async e => {
+      const mp = e.target.closest('[data-map-act]'); if (mp) { mapAct(mp); return; }
       const ob = e.target.closest('[data-open-bring]'); if (ob) { openBring(ob.dataset.openBring); return; }
       const b = e.target.closest('[data-build]'); if (b) { build(); return; }
       const c = e.target.closest('[data-connect]');

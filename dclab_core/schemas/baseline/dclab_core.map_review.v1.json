@@ -1,0 +1,102 @@
+{
+  "$defs": {
+    "MapQuestion": {
+      "additionalProperties": false,
+      "properties": {
+        "blocking": {
+          "default": false,
+          "type": "boolean"
+        },
+        "code": {
+          "pattern": "^[a-z_]{3,40}$",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "leak",
+            "risk",
+            "missing_data",
+            "ambiguity",
+            "unit",
+            "moment",
+            "labels",
+            "composition"
+          ],
+          "type": "string"
+        },
+        "question": {
+          "maxLength": 300,
+          "minLength": 3,
+          "type": "string"
+        },
+        "source": {
+          "default": "rules",
+          "enum": [
+            "rules",
+            "model"
+          ],
+          "type": "string"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "pattern": "^(part|sp)\\d+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "why": {
+          "default": "",
+          "maxLength": 300,
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "kind",
+        "question"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "map": {
+      "maxLength": 64,
+      "type": "string"
+    },
+    "questions": {
+      "items": {
+        "$ref": "#/$defs/MapQuestion"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "ready": {
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "dclab_core.map_review.v1",
+      "default": "dclab_core.map_review.v1",
+      "type": "string"
+    },
+    "source": {
+      "default": "rules",
+      "enum": [
+        "rules",
+        "advisor"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "map",
+    "ready"
+  ],
+  "type": "object"
+}

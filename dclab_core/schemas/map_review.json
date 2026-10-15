@@ -1,0 +1,124 @@
+{
+  "$defs": {
+    "MapQuestion": {
+      "additionalProperties": false,
+      "description": "One thing to ask the person about the map, and what it rests on.",
+      "properties": {
+        "blocking": {
+          "default": false,
+          "description": "Only the rules block: the map is not confirmed while one is open.",
+          "title": "Blocking",
+          "type": "boolean"
+        },
+        "code": {
+          "description": "A stable name for the kind of question, so a repeat is recognised.",
+          "pattern": "^[a-z_]{3,40}$",
+          "title": "Code",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "leak",
+            "risk",
+            "missing_data",
+            "ambiguity",
+            "unit",
+            "moment",
+            "labels",
+            "composition"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "question": {
+          "maxLength": 300,
+          "minLength": 3,
+          "title": "Question",
+          "type": "string"
+        },
+        "source": {
+          "default": "rules",
+          "enum": [
+            "rules",
+            "model"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "pattern": "^(part|sp)\\d+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The part or sub-problem it is about, or the whole map.",
+          "title": "Target"
+        },
+        "why": {
+          "default": "",
+          "description": "What it rests on: the person's words, the map, or the data card.",
+          "maxLength": 300,
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "kind",
+        "question"
+      ],
+      "title": "MapQuestion",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.map_review.v1.json",
+  "additionalProperties": false,
+  "description": "What the reviewer asks about one map (by its fingerprint).",
+  "properties": {
+    "map": {
+      "maxLength": 64,
+      "title": "Map",
+      "type": "string"
+    },
+    "questions": {
+      "items": {
+        "$ref": "#/$defs/MapQuestion"
+      },
+      "maxItems": 20,
+      "title": "Questions",
+      "type": "array"
+    },
+    "ready": {
+      "description": "No blocking question is open.",
+      "title": "Ready",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "dclab_core.map_review.v1",
+      "default": "dclab_core.map_review.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source": {
+      "default": "rules",
+      "enum": [
+        "rules",
+        "advisor"
+      ],
+      "title": "Source",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "map",
+    "ready"
+  ],
+  "title": "MapReview",
+  "type": "object"
+}

@@ -1,0 +1,34 @@
+{
+ "id": "MAP-004",
+ "campaign_id": "map_roles_v1",
+ "kind": "map_roles_measured",
+ "split": "dev",
+ "at": "2026-10-15T23:49:56+00:00",
+ "gate": {
+  "version": "map_gate_v1",
+  "split": "sealed",
+  "better_f1": "mean families F1 with the roles > mean families F1 with the rules alone",
+  "no_size_regression": "cases whose size the rules had right and the roles got wrong == 0",
+  "few_worse": "cases scored lower with the roles than with the rules <= 2 of 14"
+ },
+ "plan": {
+  "purpose": "decomposer",
+  "tier": "standard",
+  "model": "claude-sonnet-5-5",
+  "local": false,
+  "available": true,
+  "cases": 14,
+  "max_requests": 28,
+  "max_eur": 0.476
+ },
+ "spent_eur": 0.0164,
+ "requests": 1,
+ "failures": [
+  "RuntimeError: the reply was cut at the token limit"
+ ],
+ "verdict": {
+  "gate": "map_gate_v1",
+  "status": "not scored",
+  "why": "a request failed"
+ }
+}

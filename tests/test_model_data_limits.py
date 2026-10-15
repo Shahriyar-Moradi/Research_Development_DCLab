@@ -215,6 +215,23 @@ class DataLimitTests(unittest.TestCase):
         run_role(READER, GatewayAdvisor(gw), {"field": "labels", "answer": "nothing has been confirmed yet", "columns": list(table.columns)})
         self.assertEqual(self.assertWithinLimit("conversation_reader"), set())
 
+    def test_the_map_roles_see_the_words_the_map_and_column_names_never_values(self):  # 24.2
+        from dclab_core import mapping, problem_map as pm
+        from dclab_core.datacard import card_of
+        from dclab_rnd.core_advisor import GatewayAdvisor
+
+        table = marked_table()
+        data = card_of({"customers": table}, name="marked", keep_categories=True)  # even a card that kept its categories: the roles are sent names and purposes only
+        words = "Find the fake rides our bikers make. The team can review 200 a day."
+        empty = {"content": "{}", "tool_calls": [], "usage": {}}
+        gw = gateway({"decomposer": [empty], "map_reviewer": [empty], "data_need": [empty]})
+        advisor = GatewayAdvisor(gw)
+        made, _, _ = mapping.draw(words, advisor=advisor, data=data)
+        mapping.review_with(pm.decompose(words), advisor=advisor, words=words, data=data)
+        mapping.needs_for(pm.decompose(words), data, advisor)
+        for purpose in ("decomposer", "map_reviewer", "data_need"):
+            self.assertEqual(self.assertWithinLimit(purpose), set(), purpose)
+
     def test_the_decision_answerer_sees_bands_and_names_never_values(self):  # 22.5
         from dclab_core.answerers import ModelAnswerer
         from dclab_rnd.core_advisor import GatewayAdvisor
@@ -331,7 +348,7 @@ class DataLimitTests(unittest.TestCase):
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
-                  "decision_answer", "decision_labeler"}
+                  "decision_answer", "decision_labeler", "decomposer", "map_reviewer", "data_need"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

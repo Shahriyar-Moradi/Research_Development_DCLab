@@ -353,6 +353,25 @@ def pack(draft_id: str, key: str, source: str) -> int:
 
 
 @_quiet
+def map_drawn(draft_id: str, m: Any, rules_size: str, by_model: bool) -> int:
+    """The problem map drawn (24.2): one problem or several. The rules' reading is an answer; the decomposer's, when it served, another."""
+    answers = [answer("rule", "rule:decompose", rules_size)]
+    if by_model:
+        answers.append(answer("model_role", "decomposer", m.size))
+    state = {"parts": len(m.parts), "template": _code(m.template) or "none"}
+    return int(bool(_put("map.size", ("draft", draft_id), answers, m.size, "model_role" if by_model else "rule", state=state, options=["single", "complex"],
+                         level=2 if by_model else 0, draft=draft_id, conversation=draft_id)))
+
+
+@_quiet
+def map_edited(draft_id: str, action: str, before: int, after: int) -> int:
+    """A person's change to the map (add, remove, merge, confirm): what they did, and how many parts there were before and after."""
+    return int(bool(_put("map.edit", ("draft", draft_id), [answer("person", "owner", action)], action, "person",
+                         state={"parts_before": int(before), "parts_after": int(after)}, options=["add", "remove", "merge", "confirm", "redraw"],
+                         draft=draft_id, conversation=draft_id)))
+
+
+@_quiet
 def workflow_drawn(draft_id: str, key: str, workflow: dict[str, Any], previous: dict[str, Any] | None, proposed: bool, problems: list[str]) -> int:
     """The solution workflow drawn: the pack's template, or a model's proposal the validator accepted or refused.
     Written when something was decided: a model proposed one, or the pack or the source changed."""

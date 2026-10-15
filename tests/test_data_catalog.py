@@ -238,7 +238,8 @@ class ReviewTest(unittest.TestCase):
                                answers=[a("person", "random"), a("classifier", "time", "shadow")], value_used="random", used="person")
         self.assertEqual(q.overrides([rec])["rows"], [])  # only a shadow disagreed: it never answered
         by = {k["kind"]: k for k in data_catalog.build()["event_kinds"]}
-        self.assertEqual(by["graph.move"]["emitted_by"][:1], ["dclab_rnd/experience/hooks.py"])  # the emitter, not the adapter or the queries
+        self.assertIn("dclab_rnd/experience/hooks.py", by["graph.move"]["emitted_by"])  # the emitter, not the adapter or the queries
+        self.assertNotIn("dclab_core/adapters/main_product_experience.py", by["graph.move"]["emitted_by"])
         self.assertNotIn("dclab_core/queries.py", by["graph.move"]["emitted_by"])
 
 

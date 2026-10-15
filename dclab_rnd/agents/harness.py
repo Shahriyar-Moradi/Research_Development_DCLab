@@ -50,7 +50,7 @@ AGENTS: dict[str, Agent] = {
 }
 
 ROLES: tuple[str, ...] = ("problem_analyst", "conversation_reader", "brief_checker", "solution_planner", "reporter", "critic",
-                          "feature_engineer", "data_investigator")
+                          "feature_engineer", "data_investigator", "decomposer", "map_reviewer", "data_need")
 
 MODEL_USES: dict[str, str] = {  # purpose -> why it is not an agent: one completion for one job, recorded as model.request
     "embedding": "vectors for evidence search",

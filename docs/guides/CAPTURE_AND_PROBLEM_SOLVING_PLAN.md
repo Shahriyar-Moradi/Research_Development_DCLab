@@ -401,14 +401,14 @@ same commit, a reviewer pass, and `make check-commit`; a milestone's end gets `c
   has a mapping or a listed reason in `main_product_experience.py`; the list of that repository's own packages (A.9) as
   the owner's integration plan states them.
 - **Done when:** the conformance test passes on the field lists read at one commit of the main product.
-- **Status: done for phase 1 (2026-10-16); refreshed at every package of phase 2.** dclab-core 0.49.0
-  (`adapters.conformance`: `CONTRACT_ADAPTERS`, `POINTS_NOT_MAPPED`, `problems()`). Of 21 contracts 11 have an adapter (5 read the
-  main product's rows, 6 map a library contract out to its own) and 10 are library outputs with their reason; of 52 event kinds 16
-  are produced and 36 are listed as missing with a reason; of 45 decision points 6 are read as its decision records and 25 have no
+- **Status: done for phase 1 (2026-10-16); refreshed at every package of phase 2.** dclab-core 0.51.0
+  (`adapters.conformance`: `CONTRACT_ADAPTERS`, `POINTS_NOT_MAPPED`, `problems()`). Of 22 contracts 11 have an adapter (5 read the
+  main product's rows, 6 map a library contract out to its own) and 11 are library outputs with their reason; of 52 event kinds 16
+  are produced and 36 are listed as missing with a reason; of 47 decision points 6 are read as its decision records and 27 have no
   main-product name and say why; the ids the main product's rows do not carry (visit, request, parent, trace, span, parent span)
   are listed. The gate refuses a value that is neither an existing adapter nor a library reason (the review of 23.12 found that any
-  word passed). `tests/test_conformance.py` fails when a package adds one without a mapping or a reason, and checks that every package
-  23.1 to 23.12 has its section in CORE_INTEGRATION.md. The commit of the field lists is still `7fa23b9`; the main product's head
+  word passed). `tests/test_conformance.py` fails when a package adds one without a mapping or a reason, and checks that every finished package
+  (23.1 to 23.12, 24.1, 24.2) has its section in CORE_INTEGRATION.md. The commit of the field lists is still `7fa23b9`; the main product's head
   has not moved. A section lists what each package leaves to that repository.
 
 ---
@@ -477,6 +477,22 @@ measured against the rules before it serves):
   merge parts (each a `graph.move` through the validator and a ledger decision).
 - **Done when:** on the dev set of complex problems the roles never do worse than the rules on the map's parts and
   families, and every map on Home is editable with its reasons shown.
+- **Status: done (2026-10-16).** dclab-core 0.51.0 (`mapping`: the roles `decomposer`, `map_reviewer` and `data_need` with their prompts and
+  parsers, `review_rules`, `coverage`, `fill_needs`, the edits `add_part`, `remove_part`, `merge_parts`, `MapReview` v1; the coordinator's state
+  `map`; the ledger points `map.size` and `map.edit`). The walk is `problem → map → data → …`: it draws the map, asks the person to confirm a
+  problem of several parts, and a build of one waits for that confirmation (the coordinator and the build route say the same). Home shows the map
+  in the summary: each part with its family, unit, labels, what it reads, the reason it is there, the way the results combine and the reviewer's
+  questions; the person removes, merges, adds or draws again, each edit refused with the validator's reasons or recorded as a graph move and a
+  decision; a single problem shows its questions and can be corrected too. A model's map keeps only what rests on the person's words or a template
+  the rules found, takes no label, moment or known-outcome rank from the reply, and a table or column the data card does not hold (or suspects of
+  leaking) is dropped. Measured on the 14 dev problems (live, MAP-005, €0.10): mean F1 0.94 with the roles against 0.74 with the rules, size right in
+  13 cases against 10, no size regression, worse in two (CD-01, CD-03: the fraud template's linked-accounts part, which their words never mention);
+  the plain arm reads the same reply and scored the same. "Never worse than the rules" is therefore read as the sealed gate `map_gate_v1` (no size
+  regression, at most two cases worse, a better mean F1), fixed before any run; the sealed set runs once in 24.8 and the roles serve only after it
+  passes (`DCLAB_MAP_ROLES` and `draft.map.roles_passed`). The review (9 findings) and nine problems found while building it are in the record.
+  Live spend for the package, each run under €0.5: about €0.53 over five dev runs (two cut at their token limit, stored unscored) and two probes.
+  The owner's morning (RG-01) now has two more steps, draw and confirm the map. Left open: the programme of linked projects (24.5) builds one
+  project per part; until then the build below the map is for the problem the card names.
 
 ### 24.3 The solution router and its catalogue
 - **Delivers:** `dclab_core/solutions.py`: the catalogue of approaches per family and kind (what each needs: labels,

@@ -1,0 +1,155 @@
+[
+ {
+  "id": "CD-01",
+  "words": "Our couriers and customers cheat on delivery orders. A handful of cheats were confirmed, the rest is unlabelled. Our team can look at about 100 orders a day.",
+  "gold": {
+   "size": "complex",
+   "families": [
+    "anomaly",
+    "entity_tables",
+    "ranking",
+    "rare_event"
+   ]
+  }
+ },
+ {
+  "id": "CD-02",
+  "words": "Send every new ticket to the right team, then decide how urgent it is, given that team.",
+  "gold": {
+   "size": "complex",
+   "families": [
+    "classification",
+    "classification"
+   ]
+  }
+ },
+ {
+  "id": "CD-03",
+  "words": "Find scammers among our drivers; nobody has confirmed any case. The investigators can handle 30 a day.",
+  "gold": {
+   "size": "complex",
+   "families": [
+    "anomaly",
+    "entity_tables",
+    "ranking"
+   ]
+  }
+ },
+ {
+  "id": "CD-04",
+  "words": "Predict which subscribers will cancel next month, and for those, which retention offer would change their mind.",
+  "gold": {
+   "size": "complex",
+   "families": [
+    "classification",
+    "uplift"
+   ]
+  }
+ },
+ {
+  "id": "CD-05",
+  "words": "Segment our customers by how they shop, and for each segment predict who will respond to the spring campaign.",
+  "gold": {
+   "size": "complex",
+   "families": [
+    "classification",
+    "segmentation"
+   ]
+  }
+ },
+ {
+  "id": "CD-06",
+  "words": "Detect machine failures from sensor readings, and estimate how many days are left before each machine fails.",
+  "gold": {
+   "size": "complex",
+   "families": [
+    "streams",
+    "time_to_event"
+   ]
+  }
+ },
+ {
+  "id": "CD-07",
+  "words": "First screen insurance claims for unusual patterns without any labels, then rank the claims for the audit team by how likely they are to be fraudulent.",
+  "gold": {
+   "size": "complex",
+   "families": [
+    "anomaly",
+    "ranking"
+   ]
+  }
+ },
+ {
+  "id": "CD-08",
+  "words": "Part 1: Which customers will cancel next month?\nPart 2: Forecast the monthly revenue per region.\nPart 3: Group our customers by how they use the product.",
+  "brief": true,
+  "gold": {
+   "size": "complex",
+   "families": [
+    "classification",
+    "forecasting",
+    "segmentation"
+   ]
+  }
+ },
+ {
+  "id": "CD-09",
+  "words": "Predict which orders will be returned.",
+  "gold": {
+   "size": "single",
+   "families": [
+    "classification"
+   ]
+  }
+ },
+ {
+  "id": "CD-10",
+  "words": "Estimate the delivery time of each order in minutes.",
+  "gold": {
+   "size": "single",
+   "families": [
+    "regression"
+   ]
+  }
+ },
+ {
+  "id": "CD-11",
+  "words": "Predict the priority of each support ticket at creation, using what is known before it is routed.",
+  "gold": {
+   "size": "single",
+   "families": [
+    "classification"
+   ]
+  }
+ },
+ {
+  "id": "CD-12",
+  "words": "Predict which transactions are fraudulent; the column is_fraud is the label.",
+  "gold": {
+   "size": "single",
+   "families": [
+    "classification"
+   ]
+  }
+ },
+ {
+  "id": "CD-13",
+  "words": "Find the unusual rides; nothing has ever been labelled.",
+  "gold": {
+   "size": "single",
+   "families": [
+    "anomaly"
+   ]
+  }
+ },
+ {
+  "id": "CD-14",
+  "words": "Which customers who got the discount will place orders again?",
+  "gold": {
+   "size": "single",
+   "families": [
+    "classification"
+   ]
+  }
+ }
+]

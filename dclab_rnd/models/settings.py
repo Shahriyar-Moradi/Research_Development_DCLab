@@ -64,6 +64,14 @@ PURPOSES: dict[str, Purpose] = {
                                                "files and columns (dclab_core's problem analyst, package 18.2); never rows or cell values"),
     "conversation_reader": Purpose("standard", 60, "the person's problem description, or one question's field and the person's answer to it, and the table's column names "
                                                    "(dclab_core's conversation reader, package 20.2); never rows or cell values", keeps_text=True),
+    "decomposer": Purpose("standard", 90, "the person's problem description and messages, the problem card's family, labels, unit and moment, what the rules drew as short lines "
+                                          "(parts, families, labels, ranks, reads) and the draft's table names with their column names and purposes "
+                                          "(dclab_core's decomposer, package 24.2); never rows or cell values", keeps_text=True),
+    "map_reviewer": Purpose("standard", 60, "the person's problem description and messages, the problem map as short lines, the draft's table names with their column "
+                                            "names and purposes, and the codes of the questions the rules already ask (dclab_core's map reviewer, package 24.2); "
+                                            "never rows or cell values", keeps_text=True),
+    "data_need": Purpose("standard", 60, "the problem map as short lines and the draft's table names with their column names, purposes and what one row of each is "
+                                         "(dclab_core's data-need agent, package 24.2); never rows or cell values"),
     "brief_checker": Purpose("standard", 60, "the problem's description, the names of their files and columns, and what dclab_core's rules "
                                              "read from the description with the words it rests on (package 18.2's follow-up); never rows "
                                              "or cell values"),

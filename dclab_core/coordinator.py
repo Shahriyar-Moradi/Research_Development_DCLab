@@ -2,7 +2,7 @@
 
 The coordinator walks a problem through explicit states, in order:
 
-    problem → data → links → meet → analysis → workflow → build → built
+    problem → map → data → links → meet → analysis → workflow → build → built
 
 :func:`situation` reads the facts a host gathers (the problem card, its tables and their cards, the label join, the
 meet check, what the roles handed over) and returns the first state that is not satisfied, what blocks it (each
@@ -26,8 +26,8 @@ from pydantic import Field
 
 from dclab_core.contracts import CONTRACTS, Contract, Versioned, _version
 
-STATES = ("problem", "data", "links", "meet", "analysis", "workflow", "build", "built")
-ACTIONS = ("answer", "wait_for_data", "bring_table", "analyse", "plan_workflow", "build", "done", "stop")
+STATES = ("problem", "map", "data", "links", "meet", "analysis", "workflow", "build", "built")
+ACTIONS = ("answer", "draw_map", "confirm_map", "wait_for_data", "bring_table", "analyse", "plan_workflow", "build", "done", "stop")
 DATA_QUESTIONS = ("data", "labels")  # problem-card questions a file can settle: carried to the links state
 
 
@@ -51,6 +51,11 @@ class Facts(Contract):
     cases_elsewhere: list[dict[str, Any]] = Field(default_factory=list, description=(
         "Files of known cases in other drafts that label this draft's table: draft_id, key, coverage (the walk continues there)."))
     labels_joined: bool = False
+    map_size: Optional[Literal["single", "complex"]] = Field("single", description=(
+        "24.2: the problem map's size, or None when it is not drawn yet. A host that draws no map leaves 'single': there is nothing to confirm."))
+    map_parts: int = 0
+    map_blockers: list[dict[str, Any]] = Field(default_factory=list, description="The map reviewer's blocking questions: code, question.")
+    map_confirmed: bool = False
     meet: list[dict[str, Any]] = Field(default_factory=list, description="The meet check's blocking mismatches: code, question.")
     meet_checked: bool = True
     analysed: bool = False
@@ -97,6 +102,18 @@ def situation(facts: Facts) -> Situation:
             return at("problem", "answer", f"Waiting for the answer to: {first.get('text')}", b)
         return at("problem", "stop", f"The problem card is not ready: {first.get('text')}", b)
     passed.append("problem")
+    if facts.map_size is None:
+        return at("map", "draw_map", "Drawing the problem as parts: one problem, or several that depend on each other.")
+    if facts.map_size == "complex":
+        if facts.map_blockers:
+            first = facts.map_blockers[0]
+            return at("map", "stop", f"The map of the problem does not hold: {first.get('question')}",
+                      [Blocker(state="map", code=str(m.get("code") or "map_unsound")[:60], question=str(m.get("question") or "")[:600]) for m in facts.map_blockers[:10]])
+        if not facts.map_confirmed:
+            return at("map", "confirm_map", f"The problem has {facts.map_parts} parts that depend on each other: confirm the map, or change it. "
+                      "Until the programme of linked projects exists, the build below is for the problem the card names.",
+                      [Blocker(state="map", code="map_unconfirmed", question="Confirm the map of the problem, or edit it.")])
+    passed.append("map")
     if facts.files_failed:  # a file that could not be read is never built around (the cases alone became a project once)
         return at("data", "stop", f"{facts.files_failed} file(s) could not be read: replace or remove them before going on.",
                   [Blocker(state="data", code="files_failed", question="Replace or remove the file that could not be read.",

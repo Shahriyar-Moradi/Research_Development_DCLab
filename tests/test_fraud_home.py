@@ -53,6 +53,13 @@ class FraudHomeTest(unittest.TestCase):
             if pending is None:
                 break
             agent.reply(draft_id, ANSWERS.get(pending["field"], "Upload a sample"))
+        self.confirm_map(store, draft_id)
+
+    def confirm_map(self, store, draft_id):
+        """24.2: a problem of several parts is built from a map the person confirmed; here the person confirms the one drawn from what they said."""
+        from dclab_rnd.draft import map as problem_map
+
+        problem_map.edit(store, draft_id, "confirm")
 
     def test_home_asks_the_packs_questions_and_the_project_runs_with_its_defaults(self):
         store, agent, draft_id = self.draft_with_both_files()

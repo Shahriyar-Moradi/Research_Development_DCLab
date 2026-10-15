@@ -406,10 +406,11 @@ def _assemble(pieces: list[dict[str, Any]], steps: list[dict[str, Any]], *, quot
         pid, sid = f"part{i}", ids[piece["key"]]
         part = dict(piece["part"])
         sub = dict(piece["sub"])
-        parts.append(Part(id=pid, quote=quote, why=why, **part))
+        part.setdefault("why", why)
+        parts.append(Part(id=pid, quote=quote, **part))
         reads = [Read(sub_problem=ids[key], what=what, via=via) for key, what, via in piece.get("reads", [])]
         subs.append(SubProblem(id=sid, part=pid, question=part.get("question", ""), outcome=part.get("outcome"), unit=part.get("unit"), moment=part.get("moment"),
-                               reads=reads, quote=quote, why=why, **sub))
+                               reads=reads, quote=quote, why=part["why"], **sub))
     made = []
     for step in steps:
         made.append(CompositionStep(kind=step["kind"], inputs=[ids.get(x, x) for x in step["inputs"]], output=step["output"], joins=step.get("joins"), note=step.get("note", "")))
@@ -423,30 +424,35 @@ def _fraud(words: str) -> ProblemMap:
     quote = _clip(words) or None
     u = _unit_of_words(words)
     us = _plural(u)
-    moment = f"After the {u}; how long after is a question to ask"
+    moment = None  # the words do not say when the answers are needed: the reviewer asks once, for every part
     why = (f"Fraud among {us}: a screen that needs no labels, a classifier on the confirmed cases (when there are any), the linked accounts, "
            "and the cases a team can review.")
     via = None if u == "account" else f"the account of the {u}"
     screen = {"key": "screen",
               "part": dict(title="Screen for unusual behaviour", question=f"Which {us} look unlike the rest, without any label?", unit=u, moment=moment,
-                           outcome=f"An anomaly score per {u}", risks=["Unusual is not fraud: busy places and new people look unusual."]),
+                           outcome=f"An anomaly score per {u}", risks=["Unusual is not fraud: busy places and new people look unusual."],
+                           why="A screen needs no labels: it finds what looks unlike the rest, even when nothing else is marked."),
               "sub": dict(title=f"Unusual {us}", family="anomaly", kind="anomaly", predict_rank=1, labels="none",
                           needs=[Need(table=us, why=f"Times, places, amounts and the people of each {u}.", label="none")])}
     classifier = {"key": "classifier",
                   "part": dict(title="Classify the confirmed kinds of fraud", question=f"Which {us} are like the cases already confirmed?", unit=u, moment=moment,
                                outcome="Confirmed fraud (partly known)", risks=[f"Only some frauds were found: an unmarked {u} is unknown, not clean.",
-                                                                                "Rows cluster on the same person: a random split lets the model recognise them."]),
+                                                                                "Rows cluster on the same person: a random split lets the model recognise them."],
+                               why="Some cases were confirmed: a classifier learns what they look like and reads the screen's score." if labels != "none"
+                               else "The words say no case was confirmed."),
                   "sub": dict(title="Confirmed fraud", family="rare_event", kind="rare_event", predict_rank=1, known_rank=3, labels=labels,
                               needs=[Need(table=us, why=f"The same {us} as the screen."), Need(table="known cases", label="file", why="The confirmed cases, with the key that finds each one.")]),
                   "reads": [("screen", "score", None)]}
     rings = {"key": "rings",
              "part": dict(title="Find rings of linked accounts", question="Which phones, accounts or people work together?", unit="account", moment=moment,
-                          outcome="Membership of a ring", risks=["A phone or an account may appear in two roles (sender and receiver) in different tables."]),
+                          outcome="Membership of a ring", risks=["A phone or an account may appear in two roles (sender and receiver) in different tables."],
+                          why="Fraud often works through linked accounts: phones, accounts or people that appear together."),
              "sub": dict(title="Linked accounts", family="entity_tables", kind="entity_tables", predict_rank=1, labels="none",
                          needs=[Need(table=us, why=f"The phone, account and person columns of each {u}, to join {us} to the accounts they share.")])}
     review = {"key": "review",
               "part": dict(title="Choose what the team reviews", question="Which cases should the review budget go to?", unit=u, moment=moment,
-                           outcome="A ranked list of the size of the budget", risks=["The budget, not the score, decides how many are checked."]),
+                           outcome="A ranked list of the size of the budget", risks=["The budget, not the score, decides how many are checked."],
+                           why="A team can only check so many: the list is cut to the budget in the words." if budget else "A team can only check so many: the size of the list is the question to ask."),
               "sub": dict(title="The review list", family="ranking", kind="ranking", predict_rank=2, known_rank=3, labels="unknown",
                           needs=[Need(why="How many cases the team can check in a day, and what makes a case worth checking first.")])}
     with_classifier = labels != "none"
@@ -466,10 +472,12 @@ def _routing(words: str) -> ProblemMap:
     quote = _clip(words) or None
     why = "Routing asked in two steps: the team first, then how urgent it is given the team."
     pieces = [{"key": "team",
-               "part": dict(title="Route to a team", question="Which team should handle the ticket?", unit="ticket", moment="When the ticket is created", outcome="The team that handles it"),
+               "part": dict(title="Route to a team", question="Which team should handle the ticket?", unit="ticket", moment=None, outcome="The team that handles it",
+                         why="The team comes first: the urgency is judged given the team."),
                "sub": dict(title="Team", family="classification", kind="multiclass", predict_rank=1, known_rank=3, labels="column")},
               {"key": "urgency",
-               "part": dict(title="Set the urgency", question="How urgent is the ticket, once its team is known?", unit="ticket", moment="When the ticket is created", outcome="The urgency"),
+               "part": dict(title="Set the urgency", question="How urgent is the ticket, once its team is known?", unit="ticket", moment=None, outcome="The urgency",
+                         why="The urgency is asked once the team is known: it reads the first part's score, never its outcome."),
                "sub": dict(title="Urgency", family="classification", kind="multiclass", predict_rank=2, known_rank=3, labels="column"),
                "reads": [("team", "score", None)]}]
     steps = [dict(kind="sequence", inputs=["team", "urgency"], output="routed_ticket", note="The urgency model is given the team the first one chose.")]
@@ -478,3 +486,5 @@ def _routing(words: str) -> ProblemMap:
 
 
 __all__ = ["Family", "Need", "Read", "Part", "SubProblem", "CompositionStep", "Composition", "ProblemMap", "validate", "decompose", "fingerprint", "LIBRARY_ONLY", "MAX_TEXT"]
+
+import dclab_core.mapping  # noqa: E402,F401  (the reviewer's contract, 24.2: registered once the map is defined; either module may be imported first)

@@ -30,7 +30,7 @@ SETTINGS = ("shadow", "serve")
 TEXT = 300
 # 21.4: the roles that read what the person means; a stronger model serves one only when it measured better on the
 # conversations (or the owner says so, audited, with the reason)
-UNDERSTANDING = frozenset({"problem_analyst", "conversation_reader", "brief_checker", "data_investigator"})
+UNDERSTANDING = frozenset({"problem_analyst", "conversation_reader", "brief_checker", "data_investigator", "decomposer", "map_reviewer", "data_need"})
 RANK = {"cheap": 0, "standard": 1, "strong": 2}  # how strong a tier is; tuned and local tiers are not "stronger"
 
 

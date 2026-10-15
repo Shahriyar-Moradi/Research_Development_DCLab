@@ -35,11 +35,13 @@ class Recording:
 
 
 class Coordinator:
-    def __init__(self, drafts: Any, projects: Any, agent: Any, advisor: Any = None, max_steps: int = 40):
+    def __init__(self, drafts: Any, projects: Any, agent: Any, advisor: Any = None, max_steps: int = 40, map_advisor: Any = None):
         self.drafts, self.projects, self.agent, self.advisor, self.max_steps = drafts, projects, agent, advisor, max_steps
+        self.map_advisor = map_advisor  # 24.2: the decomposer, the map reviewer and the data-need agent, when they serve (None: the rules)
 
     # ------------------------------------------------------------------ facts and where it stands
     def facts(self, draft_id: str) -> machine.Facts:
+        from . import map as problem_map
         from .api import build_blockers
         from .card import card_of, meeting
 
@@ -71,7 +73,7 @@ class Coordinator:
             cases_elsewhere=elsewhere,
             meet=[{"code": m.code, "question": m.question, "evidence": m.evidence} for m in (met.mismatches if met else []) if m.blocking],
             meet_checked=met is not None or not ready, analysed=bool(own.get("analysed")),
-            workflow_problems=problems, workflow_ready=bool(workflow.get("nodes")),
+            workflow_problems=problems, workflow_ready=bool(workflow.get("nodes")), **problem_map.facts(draft),
             build_refusals=[] if built else [{"rule": r.rule, "message": str(r)} for r in build_blockers(self.drafts, draft_id)],
             built=built)
 
@@ -134,6 +136,13 @@ class Coordinator:
     def act(self, draft_id: str, now: machine.Situation, person: Any) -> dict[str, Any]:
         if now.next == "answer":
             return self._answer(draft_id, person)
+        if now.next == "draw_map":
+            from . import map as problem_map
+
+            shown = problem_map.draw(self.drafts, draft_id, advisor=self.map_advisor)
+            return {"map": shown["map"]["size"], "parts": len(shown["map"]["parts"]), "source": shown["source"]}
+        if now.next == "confirm_map":
+            return self._confirm_map(draft_id, person)
         if now.next == "bring_table":
             return self._bring(draft_id, now)
         if now.next == "analyse":
@@ -150,6 +159,19 @@ class Coordinator:
                 return {"stopped": f"Not built: {refused}", "rule": refused.rule}
             return {"project_id": project["id"]}
         return {"stopped": now.says}
+
+    def _confirm_map(self, draft_id: str, person: Any) -> dict[str, Any]:
+        """The person confirms the map of a problem of several parts (or it stays as it is and the walk waits)."""
+        from . import map as problem_map
+
+        shown = problem_map.view(self.drafts.get(draft_id), self.map_advisor)
+        titles = ", ".join(p["title"] for p in shown["map"]["parts"][:6])
+        approve = getattr(person, "approve", None)
+        if approve is None or not approve("map", {"parts": [p["title"] for p in shown["map"]["parts"]], "families": [s["family"] for s in shown["map"]["sub_problems"]],
+                                              "composition": shown["map"]["composition"]["method"], "questions": len(shown["review"]["questions"])}):
+            return {"stopped": f"Waiting for the person to confirm the map of the problem ({titles})."}
+        problem_map.edit(self.drafts, draft_id, "confirm", who=getattr(person, "who", "person"), advisor=self.map_advisor)
+        return {"confirmed": True, "parts": len(shown["map"]["parts"])}
 
     def _answer(self, draft_id: str, person: Any) -> dict[str, Any]:
         q = self.agent.pending(self.drafts.get(draft_id))

@@ -118,6 +118,11 @@
    "version": "dclab_core.experience_session.v1"
   },
   {
+   "contract": "map_review",
+   "reads": [],
+   "version": "dclab_core.map_review.v1"
+  },
+  {
    "contract": "outcome",
    "reads": [],
    "version": "dclab_core.outcome.v1"
@@ -227,7 +232,7 @@
    "what": "Each model call whose prompt and reply were kept (train only; never a call that was shown cell values), with the check's verdict and the feedback (23.10)."
   }
  ],
- "dclab_core": "0.50.0",
+ "dclab_core": "0.51.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -448,6 +453,30 @@
    "main_product": null,
    "point": "lesson.accept",
    "subjects": [
+    "project"
+   ]
+  },
+  {
+   "about": "What did the person change in the problem map?",
+   "answer": "choice",
+   "decided_in": "draft/map.py edit: a person's add, remove, merge or confirm of the map",
+   "kind": "workflow",
+   "main_product": null,
+   "point": "map.edit",
+   "subjects": [
+    "draft",
+    "project"
+   ]
+  },
+  {
+   "about": "Is the problem one problem, or several that depend on each other?",
+   "answer": "choice",
+   "decided_in": "draft/map.py draw: the rules' reading of the words and the decomposer's, when it serves",
+   "kind": "workflow",
+   "main_product": null,
+   "point": "map.size",
+   "subjects": [
+    "draft",
     "project"
    ]
   },
@@ -1215,6 +1244,7 @@
   },
   {
    "emitted_by": [
+    "dclab_rnd/draft/map.py",
     "dclab_rnd/experience/hooks.py"
    ],
    "example": "python -m dclab_rnd.experience search --kind graph.move",

@@ -65,6 +65,8 @@ CAPTURED = {
     "problem.family": "draft/api.py build: the card's family",
     "problem.ready": "draft/api.py build: whether the card is ready",
     "problem.pack": "draft/chat.py: the pack detected or chosen",
+    "map.size": "draft/map.py draw: the rules' reading of the words and the decomposer's, when it serves",
+    "map.edit": "draft/map.py edit: a person's add, remove, merge or confirm of the map",
     "workflow.next_question": "draft/chat.py next_question: the question asked next, or none",
     "workflow.template": "draft/workflow.py: the solution workflow drawn",
     "agent.tool_choice": "agents/runtime.py: each tool a model chose among those it was offered",

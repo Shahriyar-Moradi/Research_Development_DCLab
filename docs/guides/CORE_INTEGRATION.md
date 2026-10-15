@@ -458,3 +458,24 @@ free-form key, as `brief_constraints` is) and the composition once; a map that i
 somewhere to keep the map beside the specs (a document on the project) and, for the composition to run, a pipeline that takes one
 project's predictions as another's input (24.5). Whether the main product's `parse_objective` keeps the key was not read at the pinned
 commit (the field list names no limit on it): its side checks it when it adopts the package.
+
+## The understanding agents (24.2)
+
+Three roles read what the person means, each in the pattern every role of the library follows (evidence of names and short lines, never a
+value; a typed output behind a validator; the rules as the fallback; a prompt file pinned by its hash). The host implements
+`dclab_core.advisor.Advisor` over its own gateway, sends `prompts.text(purpose)` as the system prompt and the evidence as the user message, and
+the same roles run with the same words. `decomposer` draws a `ProblemMap` from the person's words: every part quotes them or names a rule
+template, a unit and a moment are kept only as their words, and a map that `validate` refuses is dropped whole for the rules'. `map_reviewer`
+asks what the map leaves unsaid, as questions that rest on the words, the map or the data card; a model's question never blocks (the rules'
+do). `data_need` says which table and columns each sub-problem needs; a name the data card does not hold is dropped, and
+`mapping.coverage` finds what the tables lack, in code. The rules alone are `problem_map.decompose`, `mapping.review_rules` and
+`mapping.fill_needs`. A person changes a map with `add_part`, `remove_part` and `merge_parts`, each refused with the validator's reasons.
+
+Where it goes there: the coordinator's walk gains the state `map` (`coordinator.situation`: `draw_map`, then `confirm_map` when the problem
+has several parts; a host that draws no map leaves `Facts.map_size` at 'single' and is not held by it). Its assistant shows the map as the big
+picture of the problem with the reviewer's questions; an edit is a move through the validator and a decision at `map.edit` (the drawing is
+`map.size`), neither of which has a governed point of that name there (`conformance.POINTS_NOT_MAPPED` says so). A model serves a role only
+after a sealed measurement against the rules (`dclab_rnd.agent_eval.complex`: 14 dev and 14 sealed problems, the gate `map_gate_v1`); the
+measurement runs through the same `Advisor`, so the main product can run its own. What its side adds: somewhere to keep the map and its
+confirmation on the project or its draft (a document), and the build gate (a problem of several parts is built from a map a person confirmed).
+`adapters.main_product_problem_map.problem_specs` gives the confirmed map as one `ProblemSpec` proposal per sub-problem.

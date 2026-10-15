@@ -28,6 +28,7 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "outcome": "dclab_core.adapters.main_product_outcomes:from_experiment",
     "pipeline": "dclab_core.adapters.main_product_pipeline:pipeline_version",
     "problem_map": "dclab_core.adapters.main_product_problem_map:problem_specs",
+    "map_review": LIBRARY + " (the reviewer's questions about a map; the main product asks them through its own assistant)",
     "problem_brief": "dclab_core.adapters.main_product:problem_spec",
     "solution_plan": "dclab_core.adapters.main_product:problem_spec",
     "data_findings": "dclab_core.adapters.main_product:problem_profile",
@@ -54,7 +55,7 @@ POINTS_NOT_MAPPED: dict[str, str] = {
     **{p: _NO_NAME.format(what="modelling choice") for p in (
         "features.recipe", "tuning.accept", "holdout.reuse", "experiment.next")},
     **{p: _NO_NAME.format(what="conversation and workflow point (the understanding agents, the coordinator)") for p in (
-        "problem.family", "problem.pack", "workflow.next_question", "workflow.template", "workflow.move", "workflow.revisit",
+        "problem.family", "problem.pack", "map.size", "map.edit", "workflow.next_question", "workflow.template", "workflow.move", "workflow.revisit",
         "workflow.stage_approval", "workflow.stop", "agent.tool_choice")},
     **{p: _NO_NAME.format(what="reporting and learning point") for p in ("report.claim", "lesson.accept")},
 }

@@ -48,7 +48,7 @@ class MachineTest(unittest.TestCase):
         s = machine.situation(machine.Facts(files_ready=1, cases_only=True, offers=[{"draft_id": "d2", "key": "order_id", "coverage": 0.97}]))
         self.assertEqual((s.state, s.next, s.blockers[0].evidence["draft_id"]), ("links", "bring_table", "d2"))
         s = machine.situation(machine.Facts(files_ready=1, labels_joined=True, meet=[{"code": "target_absent", "question": "Which column?"}]))
-        self.assertEqual((s.state, s.passed), ("meet", ["problem", "data", "links"]))
+        self.assertEqual((s.state, s.passed), ("meet", ["problem", "map", "data", "links"]))
         s = machine.situation(machine.Facts(files_ready=1, analysed=True, workflow_ready=True,
                                             build_refusals=[{"rule": "family not built yet", "message": "Anomaly detection is not built yet"}]))
         self.assertEqual((s.state, s.next), ("problem", "stop"))  # 20.10: a family no machine runs is said as soon as it is known
@@ -60,6 +60,26 @@ class MachineTest(unittest.TestCase):
         self.assertEqual((s.state, s.next, s.blockers[0].code), ("build", "answer", "question_open"))  # never with a question open
         s = machine.situation(machine.Facts(files_ready=1, analysed=True, workflow_ready=True))
         self.assertEqual((s.state, s.next), ("build", "build"))
+
+    def test_the_map_comes_after_the_problem_is_clear_and_before_the_data(self):
+        self.assertEqual(machine.STATES[:3], ("problem", "map", "data"))
+        s = machine.situation(machine.Facts(map_size=None, files_ready=1))
+        self.assertEqual((s.state, s.next, s.passed), ("map", "draw_map", ["problem"]))
+        s = machine.situation(machine.Facts(map_size="complex", map_parts=4, files_ready=1))
+        self.assertEqual((s.state, s.next, s.blockers[0].code), ("map", "confirm_map", "map_unconfirmed"))
+        self.assertIn("4 parts", s.says)
+        s = machine.situation(machine.Facts(map_size="complex", map_parts=4, map_confirmed=True, files_ready=0))
+        self.assertEqual((s.state, s.passed), ("data", ["problem", "map"]))  # confirmed: the walk goes on to the data
+        s = machine.situation(machine.Facts(map_size="complex", map_parts=4, map_confirmed=True, map_blockers=[{"code": "map_unsound", "question": "A leak?"}]))
+        self.assertEqual((s.state, s.next, s.blockers[0].code), ("map", "stop", "map_unsound"))  # an unsound map is not walked on, confirmed or not
+        s = machine.situation(machine.Facts(map_size="single", files_ready=0))
+        self.assertEqual((s.state, s.passed), ("data", ["problem", "map"]))  # one problem: nothing to confirm
+        s = machine.situation(machine.Facts(files_ready=0))
+        self.assertEqual(s.passed, ["problem", "map"])  # a host that draws no map is not held by one
+
+    def test_a_question_of_the_card_comes_before_the_map(self):
+        s = machine.situation(machine.Facts(map_size=None, blocking_questions=[{"field": "prediction_moment", "text": "When?"}]))
+        self.assertEqual((s.state, s.next), ("problem", "stop"))
 
     def test_a_handoff_naming_a_column_the_tables_do_not_hold_is_refused_whole(self):
         card = {"tables": [{"columns": [{"name": "biker_id"}, {"name": "fare"}]}]}

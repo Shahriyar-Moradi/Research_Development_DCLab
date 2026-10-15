@@ -4,6 +4,22 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.51.0 (2026-10-16)
+
+Package 24.2: the understanding agents of phase 2.
+
+- `mapping` (new): the roles `DECOMPOSER`, `MAP_REVIEWER` and `DATA_NEED` (prompts `decomposer`, `map_reviewer`, `data_need`) behind validators:
+  every part rests on the person's words or names a rule template, a unit and a moment are kept only as the person's words, the map is refused
+  whole unless `problem_map.validate` finds nothing; a model's question rests on a quote or something the map or the data card holds and never
+  blocks; a table or a column the data card does not hold is dropped. `review_rules`, `coverage`, `fill_needs` and `find_table` run with no model;
+  `add_part`, `remove_part` and `merge_parts` are the person's edits, refused with the validator's reasons (`MapEditRefused`); `MapReview` v1
+  (`dclab_core.map_review.v1`) is the reviewer's output.
+- `coordinator`: the state `map` between `problem` and `data` (actions `draw_map`, `confirm_map`); `Facts` gains `map_size` (None: not drawn; the
+  default 'single' leaves a host that draws no map unheld), `map_parts`, `map_blockers`, `map_confirmed`.
+- `ledger`: the decision points `map.size` and `map.edit`; the state fields `parts`, `parts_before`, `parts_after` and `template`.
+- `problem_map`: the fraud and routing templates no longer write a moment the person did not give, and each part says why it is there.
+- `adapters.conformance`: `map_review` is a library output; the two points are listed as not mapped, with their reason.
+
 ## 0.50.0 (2026-10-16)
 
 Package 24.1: the problem map.
