@@ -1,0 +1,146 @@
+{
+ "package": "22.7",
+ "title": "Adoption by the main product: DCLab's decision classifiers read as its R3 reads a model",
+ "date": "2026-10-15",
+ "request": "The classifiers as a DCLab answerer in the main product's own path for custom decision models: the same purposes and state, rows shaped like its answer table, R3 runs on its side; decision datasets exported in its label format under consent. Done when the mapping is a tested adapter in dclab_core and an R3-shaped run on generated cases compares a classifier with the rule.",
+ "spec": "An adapter in dclab_core reading the main product's release fields, answer tuple, bands, level-2 policy, metrics and digests at one commit; a runner on generated dev cases; the label export through consent.",
+ "plan": [
+  "Survey what exists and the main product's R3 and releases at the recorded commit.",
+  "Record the release fields and the R3 fields.",
+  "Write the answerer, the reading, the rows and the export.",
+  "Run on generated dev cases, review against the main product's code, plant faults, fix, run again."
+ ],
+ "decisions": [
+  {
+   "decision": "Each classifier is read twice: on the state as trained and on the state the main product sends.",
+   "why": "The main product sends fewer fields; what that costs is part of the answer."
+  },
+  {
+   "decision": "The wiring there, the invocation row and the ADR are said as the main product's changes.",
+   "why": "Its repository is never changed from here."
+  },
+  {
+   "decision": "Only dev rows of the generated sets.",
+   "why": "Their sealed rows were read once by 22.3."
+  }
+ ],
+ "change": "dclab_core/adapters/main_product_r3.py (new), main_product_ledger.py (as_raw, to_semantic_answer), main_product_fields.json (releases, r3), dclab_rnd/decision_r3.py (new), consent.py (export_main_product), Makefile, docs/guides/CORE_INTEGRATION.md, dclab-core 0.34.0; tests/test_main_product_r3.py (new); the plan, the roadmap, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The answer row wrote a classifier's confident no as a yes.",
+   "scenario": "A classifier answering no at 0.97 was written with the value 0.97, which the main product reads as the probability of yes.",
+   "cause": "The classifier's confidence went where the main product reads a probability of yes.",
+   "fix": "A yes or no is the probability of yes; a choice is its label; the band and the agreement are the main product's.",
+   "test": "test_a_classifiers_confident_no_is_a_probability_near_zero_never_a_yes"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The level-2 policy let a role model override where the main product does not.",
+   "scenario": "Rule categorical_code, model identifier in its band: DCLab used the model, the main product keeps the rule; the stored role gap was 2 points too high.",
+   "cause": "No eligibility rule for semantic_role.",
+   "fix": "A model overrides at semantic_role only between numeric and categorical_code, and only a value the validator accepts; the run was redone.",
+   "test": "test_at_semantic_role_a_model_overrides_only_between_modeled_roles_the_validator_accepts"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Inside the main product's harness the column name was lost.",
+   "scenario": "Its cases keep the column apart from the fields, so the role and leakage classifiers answered without the name.",
+   "cause": "The answerer read the fields and context only.",
+   "fix": "The column is read from the case.",
+   "test": "test_the_column_comes_from_the_case_as_its_harness_builds_one"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Label rows broke the main product's supersede rules.",
+   "scenario": "Two labels on one decision both superseded the answer row, a unique index there; a measured label left a version 2 without a version 1.",
+   "cause": "Every label pointed at the record and versions were numbered before dropping.",
+   "fix": "Versions after dropping, each label superseding the one before, a time required, the answer row's columns copied.",
+   "test": "test_answer_and_label_rows_in_the_main_products_columns"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The metrics had the main product's names and other definitions.",
+   "scenario": "With half the answers unavailable the gap was half the main product's and the rates halved.",
+   "cause": "Statistics over every case and a two-sided bootstrap.",
+   "fix": "Every statistic on answered cases, rates over answered cases, one-sided bounds by cluster as there, per-band precision.",
+   "test": "test_every_statistic_counts_answered_cases_only"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The run row could not be loaded there.",
+   "scenario": "The report had no run id, time or digests, so its verification would call it tampered; long values were sliced.",
+   "cause": "The report was built without the fields the main product verifies.",
+   "fix": "The report carries its run id, time and digests computed as there; long values are refused.",
+   "test": "test_a_run_compares_the_model_with_the_rule_as_an_r3_runs_row"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An answer without a value became a no, and a plain yes was out of band.",
+   "scenario": "A classifier answer with no value was written as probability 0; a model's plain True was not in the band there.",
+   "cause": "No value was read as a no; a bool was not read as a probability.",
+   "fix": "No value is no answer; a plain yes or no is a probability of 1 or 0.",
+   "test": "test_an_answer_without_a_value_is_none_and_a_plain_yes_is_a_probability_of_one"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "An unchecked ablation went unnoticed.",
+   "scenario": "A planted fault that never checked the ai_off arm passed every test.",
+   "cause": "With no model the policy is the rule by construction.",
+   "fix": "A test gives the off arm answers and expects the ablation to fail.",
+   "test": "test_the_ablation_notices_an_off_arm_that_still_answers"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "an R3-shaped run of the classifiers against the rule",
+   "gate": "an R3-shaped run on generated cases compares a classifier with the rule",
+   "result": "on 600 generated dev cases per purpose, the role classifier's gap over the rule +0.0617 as trained and +0.0633 as sent; leakage +0.045 as trained and +0.0283 as sent with 22 in its band; identifier -0.05 as sent; the ablation holds",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "the comparison made for each of the three purposes",
+   "limits": [
+    "Generated cases whose rule is the data card's.",
+    "The main product's gates need its blind labels."
+   ]
+  },
+  {
+   "name": "planted faults",
+   "gate": "each planted fault fails a test",
+   "result": "14 of 14 planted faults caught after one test was added",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "14 of 14",
+   "limits": [
+    "Faults chosen by the author."
+   ]
+  }
+ ],
+ "outcome": "A DCLab decision classifier answers in the main product's R3 shape and is read here as it would be read there; the answer row no longer turns a classifier's no into a yes.",
+ "lessons": [
+  "Read the other side's scoring before naming metrics after it: the same names hid other definitions.",
+  "An adapter's tests must use the other side's shapes, not one's own: the column lived apart in its cases.",
+  "A confidence is not a probability of yes."
+ ],
+ "risks": [
+  "The wiring, the invocation row and the ADR are the main product's changes.",
+  "The leakage classifier sees no availability here."
+ ],
+ "commits": []
+}

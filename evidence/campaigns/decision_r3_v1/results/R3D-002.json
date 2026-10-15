@@ -1,0 +1,1368 @@
+{
+  "id": "R3D-002",
+  "campaign_id": "decision_r3_v1",
+  "kind": "r3_shaped_run",
+  "split": "dev",
+  "per_point": 600,
+  "seed": 0,
+  "runs": [
+    {
+      "answerer": "column.is_identifier.boosting@28c44957214c",
+      "state": "as trained",
+      "row": {
+        "id": "05caa8f8-5393-4c18-9fae-b9fba3b840af",
+        "candidate": "dclab:column.is_identifier.boosting@28c44957214c:as-trained",
+        "live": false,
+        "pair_release": "column.is_identifier@v1",
+        "model_id": "column.is_identifier.boosting",
+        "content_digest": "ac888fbf6c1dfaf157aa81b078c4f46edd830c79b5df3eaeabefbd759207f1a9",
+        "run_digest": "5ae0093904f2ff159d5db47637b73a0937738df9dc5439bdeb5ee7a935c17e42",
+        "cases": 600,
+        "report": {
+          "schema_version": 1,
+          "run_id": "05caa8f8-5393-4c18-9fae-b9fba3b840af",
+          "created_at": "2026-10-15T03:22:27+00:00",
+          "candidate": "dclab:column.is_identifier.boosting@28c44957214c:as-trained",
+          "live": false,
+          "partition": "both",
+          "cases": 600,
+          "points": {
+            "column.is_identifier": {
+              "key": "column.is_identifier",
+              "max_level": 1,
+              "band": {
+                "yes_at": 0.9,
+                "no_at": 0.1
+              },
+              "sources": {
+                "development": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 1.0,
+                  "ai_policy_accuracy_all": 1.0,
+                  "datasets": 37,
+                  "rule_accuracy": 1.0,
+                  "ai_policy_accuracy": 1.0,
+                  "ai_in_band_accuracy": 1.0,
+                  "disagreement_rate": 0.0,
+                  "abstain_rate": 0.0617,
+                  "in_band": {
+                    "n": 563,
+                    "n_eff": 563.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.9932,
+                    "ub": 1.0
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 65,
+                      "n_eff": 65.0,
+                      "errors": 0,
+                      "precision": 1.0,
+                      "lb": 0.9442,
+                      "ub": 1.0
+                    },
+                    "no": {
+                      "n": 498,
+                      "n_eff": 498.0,
+                      "errors": 0,
+                      "precision": 1.0,
+                      "lb": 0.9923,
+                      "ub": 1.0
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 0,
+                    "n_eff": 0.0,
+                    "errors": 0,
+                    "precision": null,
+                    "lb": null,
+                    "ub": null
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": 0.0,
+                    "lb": 0.0,
+                    "ub": 0.0,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.0004997501249375312,
+                      "0.01": 0.0004997501249375312
+                    }
+                  },
+                  "calibration_n": 600
+                },
+                "all": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 1.0,
+                  "ai_policy_accuracy_all": 1.0,
+                  "datasets": 37,
+                  "rule_accuracy": 1.0,
+                  "ai_policy_accuracy": 1.0,
+                  "ai_in_band_accuracy": 1.0,
+                  "disagreement_rate": 0.0,
+                  "abstain_rate": 0.0617,
+                  "in_band": {
+                    "n": 563,
+                    "n_eff": 563.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.9932,
+                    "ub": 1.0
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 65,
+                      "n_eff": 65.0,
+                      "errors": 0,
+                      "precision": 1.0,
+                      "lb": 0.9442,
+                      "ub": 1.0
+                    },
+                    "no": {
+                      "n": 498,
+                      "n_eff": 498.0,
+                      "errors": 0,
+                      "precision": 1.0,
+                      "lb": 0.9923,
+                      "ub": 1.0
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 0,
+                    "n_eff": 0.0,
+                    "errors": 0,
+                    "precision": null,
+                    "lb": null,
+                    "ub": null
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": 0.0,
+                    "lb": 0.0,
+                    "ub": 0.0,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.0004997501249375312,
+                      "0.01": 0.0004997501249375312
+                    }
+                  },
+                  "calibration_n": 600
+                }
+              },
+              "by_label_source": {
+                "benchmark": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 1.0,
+                  "ai_policy_accuracy_all": 1.0,
+                  "datasets": 37,
+                  "rule_accuracy": 1.0,
+                  "ai_policy_accuracy": 1.0,
+                  "ai_in_band_accuracy": 1.0,
+                  "disagreement_rate": 0.0,
+                  "abstain_rate": 0.0617,
+                  "in_band": {
+                    "n": 563,
+                    "n_eff": 563.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.9932,
+                    "ub": 1.0
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 65,
+                      "n_eff": 65.0,
+                      "errors": 0,
+                      "precision": 1.0,
+                      "lb": 0.9442,
+                      "ub": 1.0
+                    },
+                    "no": {
+                      "n": 498,
+                      "n_eff": 498.0,
+                      "errors": 0,
+                      "precision": 1.0,
+                      "lb": 0.9923,
+                      "ub": 1.0
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 0,
+                    "n_eff": 0.0,
+                    "errors": 0,
+                    "precision": null,
+                    "lb": null,
+                    "ub": null
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": 0.0,
+                    "lb": 0.0,
+                    "ub": 0.0,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.0004997501249375312,
+                      "0.01": 0.0004997501249375312
+                    }
+                  },
+                  "calibration_n": 600
+                }
+              }
+            }
+          },
+          "pair": {
+            "release": "column.is_identifier@v1",
+            "model_id": "column.is_identifier.boosting"
+          },
+          "ablation": {
+            "ai_off_equals_rule": true
+          },
+          "release_version": "28c44957214c",
+          "note": "A classifier makes no model call: semantic_decision_answers.llm_invocation_id is NOT NULL there, so these rows need an invocation row of their own or that column relaxed, the main product's change (ADR 0008).",
+          "digest": "ac888fbf6c1dfaf157aa81b078c4f46edd830c79b5df3eaeabefbd759207f1a9",
+          "run_digest": "5ae0093904f2ff159d5db47637b73a0937738df9dc5439bdeb5ee7a935c17e42"
+        },
+        "created_at": "2026-10-15T03:22:27+00:00"
+      }
+    },
+    {
+      "answerer": "column.is_identifier.boosting@28c44957214c",
+      "state": "as the main product sends it",
+      "row": {
+        "id": "83511272-3d5b-40a2-9e05-8bff6d7a8598",
+        "candidate": "dclab:column.is_identifier.boosting@28c44957214c:as-sent",
+        "live": false,
+        "pair_release": "column.is_identifier@v1",
+        "model_id": "column.is_identifier.boosting",
+        "content_digest": "e5e1a1f6ad6ac7f3f9dbdc42486780e1a547ae9ca1e152cc6a17d4a8fab8629e",
+        "run_digest": "9faa469f55712e1b8398bd76ebe78fe3deea0e9d80d531ae4ac284e24fbbd010",
+        "cases": 600,
+        "report": {
+          "schema_version": 1,
+          "run_id": "83511272-3d5b-40a2-9e05-8bff6d7a8598",
+          "created_at": "2026-10-15T03:22:27+00:00",
+          "candidate": "dclab:column.is_identifier.boosting@28c44957214c:as-sent",
+          "live": false,
+          "partition": "both",
+          "cases": 600,
+          "points": {
+            "column.is_identifier": {
+              "key": "column.is_identifier",
+              "max_level": 1,
+              "band": {
+                "yes_at": 0.9,
+                "no_at": 0.1
+              },
+              "sources": {
+                "development": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 1.0,
+                  "ai_policy_accuracy_all": 0.95,
+                  "datasets": 37,
+                  "rule_accuracy": 1.0,
+                  "ai_policy_accuracy": 0.95,
+                  "ai_in_band_accuracy": 0.945,
+                  "disagreement_rate": 0.05,
+                  "abstain_rate": 0.0917,
+                  "in_band": {
+                    "n": 545,
+                    "n_eff": 545.0,
+                    "errors": 30,
+                    "precision": 0.945,
+                    "lb": 0.9225,
+                    "ub": 0.9612
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 21,
+                      "n_eff": 21.0,
+                      "errors": 0,
+                      "precision": 1.0,
+                      "lb": 0.8454,
+                      "ub": 1.0
+                    },
+                    "no": {
+                      "n": 524,
+                      "n_eff": 524.0,
+                      "errors": 30,
+                      "precision": 0.9427,
+                      "lb": 0.9194,
+                      "ub": 0.9596
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 30,
+                    "n_eff": 30.0,
+                    "errors": 30,
+                    "precision": 0.0,
+                    "lb": 0.0,
+                    "ub": 0.1135
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": -0.05,
+                    "lb": -0.062,
+                    "ub": -0.0378,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.473,
+                      "0.01": 1.0
+                    }
+                  },
+                  "calibration_n": 600
+                },
+                "all": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 1.0,
+                  "ai_policy_accuracy_all": 0.95,
+                  "datasets": 37,
+                  "rule_accuracy": 1.0,
+                  "ai_policy_accuracy": 0.95,
+                  "ai_in_band_accuracy": 0.945,
+                  "disagreement_rate": 0.05,
+                  "abstain_rate": 0.0917,
+                  "in_band": {
+                    "n": 545,
+                    "n_eff": 545.0,
+                    "errors": 30,
+                    "precision": 0.945,
+                    "lb": 0.9225,
+                    "ub": 0.9612
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 21,
+                      "n_eff": 21.0,
+                      "errors": 0,
+                      "precision": 1.0,
+                      "lb": 0.8454,
+                      "ub": 1.0
+                    },
+                    "no": {
+                      "n": 524,
+                      "n_eff": 524.0,
+                      "errors": 30,
+                      "precision": 0.9427,
+                      "lb": 0.9194,
+                      "ub": 0.9596
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 30,
+                    "n_eff": 30.0,
+                    "errors": 30,
+                    "precision": 0.0,
+                    "lb": 0.0,
+                    "ub": 0.1135
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": -0.05,
+                    "lb": -0.062,
+                    "ub": -0.0378,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.473,
+                      "0.01": 1.0
+                    }
+                  },
+                  "calibration_n": 600
+                }
+              },
+              "by_label_source": {
+                "benchmark": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 1.0,
+                  "ai_policy_accuracy_all": 0.95,
+                  "datasets": 37,
+                  "rule_accuracy": 1.0,
+                  "ai_policy_accuracy": 0.95,
+                  "ai_in_band_accuracy": 0.945,
+                  "disagreement_rate": 0.05,
+                  "abstain_rate": 0.0917,
+                  "in_band": {
+                    "n": 545,
+                    "n_eff": 545.0,
+                    "errors": 30,
+                    "precision": 0.945,
+                    "lb": 0.9225,
+                    "ub": 0.9612
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 21,
+                      "n_eff": 21.0,
+                      "errors": 0,
+                      "precision": 1.0,
+                      "lb": 0.8454,
+                      "ub": 1.0
+                    },
+                    "no": {
+                      "n": 524,
+                      "n_eff": 524.0,
+                      "errors": 30,
+                      "precision": 0.9427,
+                      "lb": 0.9194,
+                      "ub": 0.9596
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 30,
+                    "n_eff": 30.0,
+                    "errors": 30,
+                    "precision": 0.0,
+                    "lb": 0.0,
+                    "ub": 0.1135
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": -0.05,
+                    "lb": -0.062,
+                    "ub": -0.0378,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.473,
+                      "0.01": 1.0
+                    }
+                  },
+                  "calibration_n": 600
+                }
+              }
+            }
+          },
+          "pair": {
+            "release": "column.is_identifier@v1",
+            "model_id": "column.is_identifier.boosting"
+          },
+          "ablation": {
+            "ai_off_equals_rule": true
+          },
+          "release_version": "28c44957214c",
+          "note": "A classifier makes no model call: semantic_decision_answers.llm_invocation_id is NOT NULL there, so these rows need an invocation row of their own or that column relaxed, the main product's change (ADR 0008).",
+          "digest": "e5e1a1f6ad6ac7f3f9dbdc42486780e1a547ae9ca1e152cc6a17d4a8fab8629e",
+          "run_digest": "9faa469f55712e1b8398bd76ebe78fe3deea0e9d80d531ae4ac284e24fbbd010"
+        },
+        "created_at": "2026-10-15T03:22:27+00:00"
+      }
+    },
+    {
+      "answerer": "column.semantic_role.boosting@73710656cf1b",
+      "state": "as trained",
+      "row": {
+        "id": "f108add2-0fcd-4b0e-ad57-42177dfc1666",
+        "candidate": "dclab:column.semantic_role.boosting@73710656cf1b:as-trained",
+        "live": false,
+        "pair_release": "column.semantic_role@v1",
+        "model_id": "column.semantic_role.boosting",
+        "content_digest": "a68df3986dcea4f574735483f6ed743350822c129440a8de9d5c184ef5fd1b78",
+        "run_digest": "b838d426a5f7828f1ebc0843b1ad03d4a4732945cbc7b6afd49a9081de74c239",
+        "cases": 600,
+        "report": {
+          "schema_version": 1,
+          "run_id": "f108add2-0fcd-4b0e-ad57-42177dfc1666",
+          "created_at": "2026-10-15T03:22:27+00:00",
+          "candidate": "dclab:column.semantic_role.boosting@73710656cf1b:as-trained",
+          "live": false,
+          "partition": "both",
+          "cases": 600,
+          "points": {
+            "column.semantic_role": {
+              "key": "column.semantic_role",
+              "max_level": 2,
+              "band": {
+                "confidence_at": 0.8
+              },
+              "sources": {
+                "development": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.8467,
+                  "ai_policy_accuracy_all": 0.9083,
+                  "datasets": 37,
+                  "rule_accuracy": 0.8467,
+                  "ai_policy_accuracy": 0.9083,
+                  "ai_in_band_accuracy": 0.9915,
+                  "disagreement_rate": 0.0817,
+                  "abstain_rate": 0.215,
+                  "in_band": {
+                    "n": 471,
+                    "n_eff": 471.0,
+                    "errors": 4,
+                    "precision": 0.9915,
+                    "lb": 0.9784,
+                    "ub": 0.9967
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    },
+                    "no": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 37,
+                    "n_eff": 37.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.9059,
+                    "ub": 1.0
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": 0.0617,
+                    "lb": 0.0476,
+                    "ub": 0.0751,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.0004997501249375312,
+                      "0.01": 0.0004997501249375312
+                    }
+                  },
+                  "calibration_n": 600
+                },
+                "all": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.8467,
+                  "ai_policy_accuracy_all": 0.9083,
+                  "datasets": 37,
+                  "rule_accuracy": 0.8467,
+                  "ai_policy_accuracy": 0.9083,
+                  "ai_in_band_accuracy": 0.9915,
+                  "disagreement_rate": 0.0817,
+                  "abstain_rate": 0.215,
+                  "in_band": {
+                    "n": 471,
+                    "n_eff": 471.0,
+                    "errors": 4,
+                    "precision": 0.9915,
+                    "lb": 0.9784,
+                    "ub": 0.9967
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    },
+                    "no": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 37,
+                    "n_eff": 37.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.9059,
+                    "ub": 1.0
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": 0.0617,
+                    "lb": 0.0476,
+                    "ub": 0.0751,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.0004997501249375312,
+                      "0.01": 0.0004997501249375312
+                    }
+                  },
+                  "calibration_n": 600
+                }
+              },
+              "by_label_source": {
+                "benchmark": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.8467,
+                  "ai_policy_accuracy_all": 0.9083,
+                  "datasets": 37,
+                  "rule_accuracy": 0.8467,
+                  "ai_policy_accuracy": 0.9083,
+                  "ai_in_band_accuracy": 0.9915,
+                  "disagreement_rate": 0.0817,
+                  "abstain_rate": 0.215,
+                  "in_band": {
+                    "n": 471,
+                    "n_eff": 471.0,
+                    "errors": 4,
+                    "precision": 0.9915,
+                    "lb": 0.9784,
+                    "ub": 0.9967
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    },
+                    "no": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 37,
+                    "n_eff": 37.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.9059,
+                    "ub": 1.0
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": 0.0617,
+                    "lb": 0.0476,
+                    "ub": 0.0751,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.0004997501249375312,
+                      "0.01": 0.0004997501249375312
+                    }
+                  },
+                  "calibration_n": 600
+                }
+              }
+            }
+          },
+          "pair": {
+            "release": "column.semantic_role@v1",
+            "model_id": "column.semantic_role.boosting"
+          },
+          "ablation": {
+            "ai_off_equals_rule": true
+          },
+          "release_version": "73710656cf1b",
+          "note": "A classifier makes no model call: semantic_decision_answers.llm_invocation_id is NOT NULL there, so these rows need an invocation row of their own or that column relaxed, the main product's change (ADR 0008).",
+          "digest": "a68df3986dcea4f574735483f6ed743350822c129440a8de9d5c184ef5fd1b78",
+          "run_digest": "b838d426a5f7828f1ebc0843b1ad03d4a4732945cbc7b6afd49a9081de74c239"
+        },
+        "created_at": "2026-10-15T03:22:27+00:00"
+      }
+    },
+    {
+      "answerer": "column.semantic_role.boosting@73710656cf1b",
+      "state": "as the main product sends it",
+      "row": {
+        "id": "34008d16-28cd-4fd5-88e1-2a97bd1194ab",
+        "candidate": "dclab:column.semantic_role.boosting@73710656cf1b:as-sent",
+        "live": false,
+        "pair_release": "column.semantic_role@v1",
+        "model_id": "column.semantic_role.boosting",
+        "content_digest": "1bbcf0622f58b95ef41dc3c17124560b0863458b869a39f3c0673cb8ae2e08e7",
+        "run_digest": "8ccdea0a7f9e57b270a085a7a8aab6cbbe80a82fe16861dd298a03cdfb2f19cb",
+        "cases": 600,
+        "report": {
+          "schema_version": 1,
+          "run_id": "34008d16-28cd-4fd5-88e1-2a97bd1194ab",
+          "created_at": "2026-10-15T03:22:27+00:00",
+          "candidate": "dclab:column.semantic_role.boosting@73710656cf1b:as-sent",
+          "live": false,
+          "partition": "both",
+          "cases": 600,
+          "points": {
+            "column.semantic_role": {
+              "key": "column.semantic_role",
+              "max_level": 2,
+              "band": {
+                "confidence_at": 0.8
+              },
+              "sources": {
+                "development": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.8467,
+                  "ai_policy_accuracy_all": 0.91,
+                  "datasets": 37,
+                  "rule_accuracy": 0.8467,
+                  "ai_policy_accuracy": 0.91,
+                  "ai_in_band_accuracy": 0.9188,
+                  "disagreement_rate": 0.1667,
+                  "abstain_rate": 0.0767,
+                  "in_band": {
+                    "n": 554,
+                    "n_eff": 554.0,
+                    "errors": 45,
+                    "precision": 0.9188,
+                    "lb": 0.893,
+                    "ub": 0.9387
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    },
+                    "no": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 76,
+                    "n_eff": 76.0,
+                    "errors": 19,
+                    "precision": 0.75,
+                    "lb": 0.6422,
+                    "ub": 0.8337
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": 0.0633,
+                    "lb": 0.0436,
+                    "ub": 0.0821,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.0004997501249375312,
+                      "0.01": 0.0004997501249375312
+                    }
+                  },
+                  "calibration_n": 600
+                },
+                "all": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.8467,
+                  "ai_policy_accuracy_all": 0.91,
+                  "datasets": 37,
+                  "rule_accuracy": 0.8467,
+                  "ai_policy_accuracy": 0.91,
+                  "ai_in_band_accuracy": 0.9188,
+                  "disagreement_rate": 0.1667,
+                  "abstain_rate": 0.0767,
+                  "in_band": {
+                    "n": 554,
+                    "n_eff": 554.0,
+                    "errors": 45,
+                    "precision": 0.9188,
+                    "lb": 0.893,
+                    "ub": 0.9387
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    },
+                    "no": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 76,
+                    "n_eff": 76.0,
+                    "errors": 19,
+                    "precision": 0.75,
+                    "lb": 0.6422,
+                    "ub": 0.8337
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": 0.0633,
+                    "lb": 0.0436,
+                    "ub": 0.0821,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.0004997501249375312,
+                      "0.01": 0.0004997501249375312
+                    }
+                  },
+                  "calibration_n": 600
+                }
+              },
+              "by_label_source": {
+                "benchmark": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.8467,
+                  "ai_policy_accuracy_all": 0.91,
+                  "datasets": 37,
+                  "rule_accuracy": 0.8467,
+                  "ai_policy_accuracy": 0.91,
+                  "ai_in_band_accuracy": 0.9188,
+                  "disagreement_rate": 0.1667,
+                  "abstain_rate": 0.0767,
+                  "in_band": {
+                    "n": 554,
+                    "n_eff": 554.0,
+                    "errors": 45,
+                    "precision": 0.9188,
+                    "lb": 0.893,
+                    "ub": 0.9387
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    },
+                    "no": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 76,
+                    "n_eff": 76.0,
+                    "errors": 19,
+                    "precision": 0.75,
+                    "lb": 0.6422,
+                    "ub": 0.8337
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": 0.0633,
+                    "lb": 0.0436,
+                    "ub": 0.0821,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.0004997501249375312,
+                      "0.01": 0.0004997501249375312
+                    }
+                  },
+                  "calibration_n": 600
+                }
+              }
+            }
+          },
+          "pair": {
+            "release": "column.semantic_role@v1",
+            "model_id": "column.semantic_role.boosting"
+          },
+          "ablation": {
+            "ai_off_equals_rule": true
+          },
+          "release_version": "73710656cf1b",
+          "note": "A classifier makes no model call: semantic_decision_answers.llm_invocation_id is NOT NULL there, so these rows need an invocation row of their own or that column relaxed, the main product's change (ADR 0008).",
+          "digest": "1bbcf0622f58b95ef41dc3c17124560b0863458b869a39f3c0673cb8ae2e08e7",
+          "run_digest": "8ccdea0a7f9e57b270a085a7a8aab6cbbe80a82fe16861dd298a03cdfb2f19cb"
+        },
+        "created_at": "2026-10-15T03:22:27+00:00"
+      }
+    },
+    {
+      "answerer": "feature.leakage_suspect.boosting@32e3693f7eda",
+      "state": "as trained",
+      "row": {
+        "id": "9401c685-8ec8-46a0-b780-fc84a26c15d4",
+        "candidate": "dclab:feature.leakage_suspect.boosting@32e3693f7eda:as-trained",
+        "live": false,
+        "pair_release": "feature.leakage_suspect@v1",
+        "model_id": "feature.leakage_suspect.boosting",
+        "content_digest": "a3872529492c6e1684a871d52e939188be709007c17c64f2388558ba8171eb8e",
+        "run_digest": "08deaf8004a1eac6f3bd37abfa1f0407f35eb70855e3692b93d0b094616043d5",
+        "cases": 600,
+        "report": {
+          "schema_version": 1,
+          "run_id": "9401c685-8ec8-46a0-b780-fc84a26c15d4",
+          "created_at": "2026-10-15T03:22:27+00:00",
+          "candidate": "dclab:feature.leakage_suspect.boosting@32e3693f7eda:as-trained",
+          "live": false,
+          "partition": "both",
+          "cases": 600,
+          "points": {
+            "feature.leakage_suspect": {
+              "key": "feature.leakage_suspect",
+              "max_level": 1,
+              "band": {
+                "yes_at": 0.9,
+                "no_at": null
+              },
+              "sources": {
+                "development": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.9233,
+                  "ai_policy_accuracy_all": 0.9683,
+                  "datasets": 37,
+                  "rule_accuracy": 0.9233,
+                  "ai_policy_accuracy": 0.9683,
+                  "ai_in_band_accuracy": 1.0,
+                  "disagreement_rate": 0.045,
+                  "abstain_rate": 0.8583,
+                  "in_band": {
+                    "n": 85,
+                    "n_eff": 85.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.9568,
+                    "ub": 1.0
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 85,
+                      "n_eff": 85.0,
+                      "errors": 0,
+                      "precision": 1.0,
+                      "lb": 0.9568,
+                      "ub": 1.0
+                    },
+                    "no": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 27,
+                    "n_eff": 27.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.8754,
+                    "ub": 1.0
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": 0.045,
+                    "lb": 0.0336,
+                    "ub": 0.0559,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.0004997501249375312,
+                      "0.01": 0.0004997501249375312
+                    }
+                  },
+                  "calibration_n": 600
+                },
+                "all": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.9233,
+                  "ai_policy_accuracy_all": 0.9683,
+                  "datasets": 37,
+                  "rule_accuracy": 0.9233,
+                  "ai_policy_accuracy": 0.9683,
+                  "ai_in_band_accuracy": 1.0,
+                  "disagreement_rate": 0.045,
+                  "abstain_rate": 0.8583,
+                  "in_band": {
+                    "n": 85,
+                    "n_eff": 85.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.9568,
+                    "ub": 1.0
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 85,
+                      "n_eff": 85.0,
+                      "errors": 0,
+                      "precision": 1.0,
+                      "lb": 0.9568,
+                      "ub": 1.0
+                    },
+                    "no": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 27,
+                    "n_eff": 27.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.8754,
+                    "ub": 1.0
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": 0.045,
+                    "lb": 0.0336,
+                    "ub": 0.0559,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.0004997501249375312,
+                      "0.01": 0.0004997501249375312
+                    }
+                  },
+                  "calibration_n": 600
+                }
+              },
+              "by_label_source": {
+                "benchmark": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.9233,
+                  "ai_policy_accuracy_all": 0.9683,
+                  "datasets": 37,
+                  "rule_accuracy": 0.9233,
+                  "ai_policy_accuracy": 0.9683,
+                  "ai_in_band_accuracy": 1.0,
+                  "disagreement_rate": 0.045,
+                  "abstain_rate": 0.8583,
+                  "in_band": {
+                    "n": 85,
+                    "n_eff": 85.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.9568,
+                    "ub": 1.0
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 85,
+                      "n_eff": 85.0,
+                      "errors": 0,
+                      "precision": 1.0,
+                      "lb": 0.9568,
+                      "ub": 1.0
+                    },
+                    "no": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 27,
+                    "n_eff": 27.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.8754,
+                    "ub": 1.0
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": 0.045,
+                    "lb": 0.0336,
+                    "ub": 0.0559,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.0004997501249375312,
+                      "0.01": 0.0004997501249375312
+                    }
+                  },
+                  "calibration_n": 600
+                }
+              }
+            }
+          },
+          "pair": {
+            "release": "feature.leakage_suspect@v1",
+            "model_id": "feature.leakage_suspect.boosting"
+          },
+          "ablation": {
+            "ai_off_equals_rule": true
+          },
+          "release_version": "32e3693f7eda",
+          "note": "A classifier makes no model call: semantic_decision_answers.llm_invocation_id is NOT NULL there, so these rows need an invocation row of their own or that column relaxed, the main product's change (ADR 0008).",
+          "digest": "a3872529492c6e1684a871d52e939188be709007c17c64f2388558ba8171eb8e",
+          "run_digest": "08deaf8004a1eac6f3bd37abfa1f0407f35eb70855e3692b93d0b094616043d5"
+        },
+        "created_at": "2026-10-15T03:22:27+00:00"
+      }
+    },
+    {
+      "answerer": "feature.leakage_suspect.boosting@32e3693f7eda",
+      "state": "as the main product sends it",
+      "row": {
+        "id": "be6a0336-0d1c-4243-ab20-e5b2351155cf",
+        "candidate": "dclab:feature.leakage_suspect.boosting@32e3693f7eda:as-sent",
+        "live": false,
+        "pair_release": "feature.leakage_suspect@v1",
+        "model_id": "feature.leakage_suspect.boosting",
+        "content_digest": "7ba673494faee52544bb56f258cf6224e347edecb55e6219126a2a9c6742b814",
+        "run_digest": "3da010af80eb91142a48911140b99fcf3b5fb7d5003fc938c03d421a264d6d16",
+        "cases": 600,
+        "report": {
+          "schema_version": 1,
+          "run_id": "be6a0336-0d1c-4243-ab20-e5b2351155cf",
+          "created_at": "2026-10-15T03:22:27+00:00",
+          "candidate": "dclab:feature.leakage_suspect.boosting@32e3693f7eda:as-sent",
+          "live": false,
+          "partition": "both",
+          "cases": 600,
+          "points": {
+            "feature.leakage_suspect": {
+              "key": "feature.leakage_suspect",
+              "max_level": 1,
+              "band": {
+                "yes_at": 0.9,
+                "no_at": null
+              },
+              "sources": {
+                "development": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.9233,
+                  "ai_policy_accuracy_all": 0.9517,
+                  "datasets": 37,
+                  "rule_accuracy": 0.9233,
+                  "ai_policy_accuracy": 0.9517,
+                  "ai_in_band_accuracy": 1.0,
+                  "disagreement_rate": 0.0283,
+                  "abstain_rate": 0.9633,
+                  "in_band": {
+                    "n": 22,
+                    "n_eff": 22.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.8513,
+                    "ub": 1.0
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 22,
+                      "n_eff": 22.0,
+                      "errors": 0,
+                      "precision": 1.0,
+                      "lb": 0.8513,
+                      "ub": 1.0
+                    },
+                    "no": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 17,
+                    "n_eff": 17.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.8157,
+                    "ub": 1.0
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": 0.0283,
+                    "lb": 0.02,
+                    "ub": 0.0362,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.0004997501249375312,
+                      "0.01": 0.0004997501249375312
+                    }
+                  },
+                  "calibration_n": 600
+                },
+                "all": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.9233,
+                  "ai_policy_accuracy_all": 0.9517,
+                  "datasets": 37,
+                  "rule_accuracy": 0.9233,
+                  "ai_policy_accuracy": 0.9517,
+                  "ai_in_band_accuracy": 1.0,
+                  "disagreement_rate": 0.0283,
+                  "abstain_rate": 0.9633,
+                  "in_band": {
+                    "n": 22,
+                    "n_eff": 22.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.8513,
+                    "ub": 1.0
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 22,
+                      "n_eff": 22.0,
+                      "errors": 0,
+                      "precision": 1.0,
+                      "lb": 0.8513,
+                      "ub": 1.0
+                    },
+                    "no": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 17,
+                    "n_eff": 17.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.8157,
+                    "ub": 1.0
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": 0.0283,
+                    "lb": 0.02,
+                    "ub": 0.0362,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.0004997501249375312,
+                      "0.01": 0.0004997501249375312
+                    }
+                  },
+                  "calibration_n": 600
+                }
+              },
+              "by_label_source": {
+                "benchmark": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.9233,
+                  "ai_policy_accuracy_all": 0.9517,
+                  "datasets": 37,
+                  "rule_accuracy": 0.9233,
+                  "ai_policy_accuracy": 0.9517,
+                  "ai_in_band_accuracy": 1.0,
+                  "disagreement_rate": 0.0283,
+                  "abstain_rate": 0.9633,
+                  "in_band": {
+                    "n": 22,
+                    "n_eff": 22.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.8513,
+                    "ub": 1.0
+                  },
+                  "bands": {
+                    "yes": {
+                      "n": 22,
+                      "n_eff": 22.0,
+                      "errors": 0,
+                      "precision": 1.0,
+                      "lb": 0.8513,
+                      "ub": 1.0
+                    },
+                    "no": {
+                      "n": 0,
+                      "n_eff": 0.0,
+                      "errors": 0,
+                      "precision": null,
+                      "lb": null,
+                      "ub": null
+                    }
+                  },
+                  "deployed_policy": {
+                    "n": 17,
+                    "n_eff": 17.0,
+                    "errors": 0,
+                    "precision": 1.0,
+                    "lb": 0.8157,
+                    "ub": 1.0
+                  },
+                  "gap": {
+                    "clusters": 37,
+                    "point": 0.0283,
+                    "lb": 0.02,
+                    "ub": 0.0362,
+                    "method": "cluster_bootstrap",
+                    "p_values": {
+                      "0.05": 0.0004997501249375312,
+                      "0.01": 0.0004997501249375312
+                    }
+                  },
+                  "calibration_n": 600
+                }
+              }
+            }
+          },
+          "pair": {
+            "release": "feature.leakage_suspect@v1",
+            "model_id": "feature.leakage_suspect.boosting"
+          },
+          "ablation": {
+            "ai_off_equals_rule": true
+          },
+          "release_version": "32e3693f7eda",
+          "note": "A classifier makes no model call: semantic_decision_answers.llm_invocation_id is NOT NULL there, so these rows need an invocation row of their own or that column relaxed, the main product's change (ADR 0008).",
+          "digest": "7ba673494faee52544bb56f258cf6224e347edecb55e6219126a2a9c6742b814",
+          "run_digest": "3da010af80eb91142a48911140b99fcf3b5fb7d5003fc938c03d421a264d6d16"
+        },
+        "created_at": "2026-10-15T03:22:27+00:00"
+      }
+    }
+  ],
+  "status": "completed",
+  "experiment_id": "R3D-002",
+  "spent_eur": 0.0,
+  "rule": "An R3-shaped reading of DCLab's classifiers on generated dev cases, as the main product would read them; not its R3 run (that runs there, on its cases), and not a claim about any real table."
+}

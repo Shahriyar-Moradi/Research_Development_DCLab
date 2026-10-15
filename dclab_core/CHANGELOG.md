@@ -4,6 +4,17 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.34.0 (2026-10-15)
+
+Package 22.7: adoption by the main product. A new module; no contract changes shape.
+
+- `adapters.main_product_ledger.to_semantic_answer`: a classifier's yes or no is written as the probability of yes
+  (a confident no was written as its confidence, read there as a yes), a choice as its label; `in_acting_band` and
+  `agreement` follow the main product's bands. `as_raw` is the reading.
+- `adapters.main_product_r3` (new): the state as the main product sends it (`project`), a DCLab answerer as its R3
+  `Answerer` (`R3Answerer`), the R3-shaped reading (`run`, an `r3_runs` row with its digests) and its answer and label
+  rows; `main_product_fields.json` records the releases and the R3 fields read at the same commit.
+
 ## 0.33.0 (2026-10-15)
 
 Package 21.5: what the owner's morning's other half found. No contract changes shape.

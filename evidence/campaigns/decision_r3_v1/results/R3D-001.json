@@ -1,0 +1,762 @@
+{
+  "id": "R3D-001",
+  "campaign_id": "decision_r3_v1",
+  "kind": "r3_shaped_run",
+  "split": "dev",
+  "per_point": 600,
+  "seed": 0,
+  "runs": [
+    {
+      "answerer": "column.is_identifier.boosting@28c44957214c",
+      "state": "as trained",
+      "row": {
+        "id": "f7a14ff94b11a933328f62291ae9dfb7",
+        "candidate": "dclab:column.is_identifier.boosting@28c44957214c:as-trained",
+        "live": false,
+        "pair_release": "column.is_identifier@v1",
+        "model_id": "column.is_identifier.boosting",
+        "content_digest": "0a8d5d3f6ebfc58a7dad7d0bbaa4f41f5d9e0781baee45f28bac0d44a4725f4a",
+        "run_digest": "b22748f4a948a1b7e5115ff089229bcb6879c84fbed373a91d2ff2cfee939065",
+        "cases": 600,
+        "report": {
+          "schema_version": 1,
+          "candidate": "dclab:column.is_identifier.boosting@28c44957214c:as-trained",
+          "live": false,
+          "cases": 600,
+          "points": {
+            "column.is_identifier": {
+              "key": "column.is_identifier",
+              "max_level": 1,
+              "band": {
+                "yes_at": 0.9,
+                "no_at": 0.1
+              },
+              "sources": {
+                "development": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 1.0,
+                  "ai_policy_accuracy_all": 1.0,
+                  "ai_in_band_accuracy": 1.0,
+                  "in_band": {
+                    "n": 563,
+                    "right": 563,
+                    "wilson": [
+                      0.9932,
+                      1.0
+                    ]
+                  },
+                  "disagreement_rate": 0.0,
+                  "abstain_rate": 0.0617,
+                  "gap": {
+                    "value": 0.0,
+                    "interval": [
+                      0.0,
+                      0.0
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                },
+                "all": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 1.0,
+                  "ai_policy_accuracy_all": 1.0,
+                  "ai_in_band_accuracy": 1.0,
+                  "in_band": {
+                    "n": 563,
+                    "right": 563,
+                    "wilson": [
+                      0.9932,
+                      1.0
+                    ]
+                  },
+                  "disagreement_rate": 0.0,
+                  "abstain_rate": 0.0617,
+                  "gap": {
+                    "value": 0.0,
+                    "interval": [
+                      0.0,
+                      0.0
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                }
+              },
+              "by_label_source": {
+                "benchmark": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 1.0,
+                  "ai_policy_accuracy_all": 1.0,
+                  "ai_in_band_accuracy": 1.0,
+                  "in_band": {
+                    "n": 563,
+                    "right": 563,
+                    "wilson": [
+                      0.9932,
+                      1.0
+                    ]
+                  },
+                  "disagreement_rate": 0.0,
+                  "abstain_rate": 0.0617,
+                  "gap": {
+                    "value": 0.0,
+                    "interval": [
+                      0.0,
+                      0.0
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                }
+              }
+            }
+          },
+          "pair": {
+            "release": "column.is_identifier@v1",
+            "model_id": "column.is_identifier.boosting"
+          },
+          "ablation": {
+            "ai_off_equals_rule": true
+          },
+          "release_version": "28c44957214c",
+          "note": "A classifier makes no model call: semantic_decision_answers.llm_invocation_id is NOT NULL there, so these rows need an invocation row of their own or that column relaxed, the main product's change (ADR 0008)."
+        },
+        "created_at": "2026-10-15T03:04:30+00:00"
+      }
+    },
+    {
+      "answerer": "column.is_identifier.boosting@28c44957214c",
+      "state": "as the main product sends it",
+      "row": {
+        "id": "2f5cde7c3bb6a4c73948e6ab50407618",
+        "candidate": "dclab:column.is_identifier.boosting@28c44957214c:as-sent",
+        "live": false,
+        "pair_release": "column.is_identifier@v1",
+        "model_id": "column.is_identifier.boosting",
+        "content_digest": "f6cb2fbae50bdb356e295f395f8f6fd89385118a18803c2faa710e4f92d1edfe",
+        "run_digest": "f458e3fa8170d0ed4ca20358693057711af8ec460a77b9fe11eb69480069d383",
+        "cases": 600,
+        "report": {
+          "schema_version": 1,
+          "candidate": "dclab:column.is_identifier.boosting@28c44957214c:as-sent",
+          "live": false,
+          "cases": 600,
+          "points": {
+            "column.is_identifier": {
+              "key": "column.is_identifier",
+              "max_level": 1,
+              "band": {
+                "yes_at": 0.9,
+                "no_at": 0.1
+              },
+              "sources": {
+                "development": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 1.0,
+                  "ai_policy_accuracy_all": 0.95,
+                  "ai_in_band_accuracy": 0.945,
+                  "in_band": {
+                    "n": 545,
+                    "right": 515,
+                    "wilson": [
+                      0.9225,
+                      0.9612
+                    ]
+                  },
+                  "disagreement_rate": 0.05,
+                  "abstain_rate": 0.0917,
+                  "gap": {
+                    "value": -0.05,
+                    "interval": [
+                      -0.064,
+                      -0.0355
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                },
+                "all": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 1.0,
+                  "ai_policy_accuracy_all": 0.95,
+                  "ai_in_band_accuracy": 0.945,
+                  "in_band": {
+                    "n": 545,
+                    "right": 515,
+                    "wilson": [
+                      0.9225,
+                      0.9612
+                    ]
+                  },
+                  "disagreement_rate": 0.05,
+                  "abstain_rate": 0.0917,
+                  "gap": {
+                    "value": -0.05,
+                    "interval": [
+                      -0.064,
+                      -0.0355
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                }
+              },
+              "by_label_source": {
+                "benchmark": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 1.0,
+                  "ai_policy_accuracy_all": 0.95,
+                  "ai_in_band_accuracy": 0.945,
+                  "in_band": {
+                    "n": 545,
+                    "right": 515,
+                    "wilson": [
+                      0.9225,
+                      0.9612
+                    ]
+                  },
+                  "disagreement_rate": 0.05,
+                  "abstain_rate": 0.0917,
+                  "gap": {
+                    "value": -0.05,
+                    "interval": [
+                      -0.064,
+                      -0.0355
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                }
+              }
+            }
+          },
+          "pair": {
+            "release": "column.is_identifier@v1",
+            "model_id": "column.is_identifier.boosting"
+          },
+          "ablation": {
+            "ai_off_equals_rule": true
+          },
+          "release_version": "28c44957214c",
+          "note": "A classifier makes no model call: semantic_decision_answers.llm_invocation_id is NOT NULL there, so these rows need an invocation row of their own or that column relaxed, the main product's change (ADR 0008)."
+        },
+        "created_at": "2026-10-15T03:04:30+00:00"
+      }
+    },
+    {
+      "answerer": "column.semantic_role.boosting@73710656cf1b",
+      "state": "as trained",
+      "row": {
+        "id": "7d7cc99293b2fad8b141dd9bf0e5413e",
+        "candidate": "dclab:column.semantic_role.boosting@73710656cf1b:as-trained",
+        "live": false,
+        "pair_release": "column.semantic_role@v1",
+        "model_id": "column.semantic_role.boosting",
+        "content_digest": "cf296aa26d69acee42274203475da91447eb605a23175d15375ba95e75db6c83",
+        "run_digest": "694d9e5148e44c771adb2d81c186637d4da59bc524a5505b4388eb35bb23422b",
+        "cases": 600,
+        "report": {
+          "schema_version": 1,
+          "candidate": "dclab:column.semantic_role.boosting@73710656cf1b:as-trained",
+          "live": false,
+          "cases": 600,
+          "points": {
+            "column.semantic_role": {
+              "key": "column.semantic_role",
+              "max_level": 2,
+              "band": {
+                "confidence_at": 0.8
+              },
+              "sources": {
+                "development": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.8467,
+                  "ai_policy_accuracy_all": 0.9283,
+                  "ai_in_band_accuracy": 0.9915,
+                  "in_band": {
+                    "n": 471,
+                    "right": 467,
+                    "wilson": [
+                      0.9784,
+                      0.9967
+                    ]
+                  },
+                  "disagreement_rate": 0.0817,
+                  "abstain_rate": 0.215,
+                  "gap": {
+                    "value": 0.0817,
+                    "interval": [
+                      0.0633,
+                      0.101
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                },
+                "all": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.8467,
+                  "ai_policy_accuracy_all": 0.9283,
+                  "ai_in_band_accuracy": 0.9915,
+                  "in_band": {
+                    "n": 471,
+                    "right": 467,
+                    "wilson": [
+                      0.9784,
+                      0.9967
+                    ]
+                  },
+                  "disagreement_rate": 0.0817,
+                  "abstain_rate": 0.215,
+                  "gap": {
+                    "value": 0.0817,
+                    "interval": [
+                      0.0633,
+                      0.101
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                }
+              },
+              "by_label_source": {
+                "benchmark": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.8467,
+                  "ai_policy_accuracy_all": 0.9283,
+                  "ai_in_band_accuracy": 0.9915,
+                  "in_band": {
+                    "n": 471,
+                    "right": 467,
+                    "wilson": [
+                      0.9784,
+                      0.9967
+                    ]
+                  },
+                  "disagreement_rate": 0.0817,
+                  "abstain_rate": 0.215,
+                  "gap": {
+                    "value": 0.0817,
+                    "interval": [
+                      0.0633,
+                      0.101
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                }
+              }
+            }
+          },
+          "pair": {
+            "release": "column.semantic_role@v1",
+            "model_id": "column.semantic_role.boosting"
+          },
+          "ablation": {
+            "ai_off_equals_rule": true
+          },
+          "release_version": "73710656cf1b",
+          "note": "A classifier makes no model call: semantic_decision_answers.llm_invocation_id is NOT NULL there, so these rows need an invocation row of their own or that column relaxed, the main product's change (ADR 0008)."
+        },
+        "created_at": "2026-10-15T03:04:30+00:00"
+      }
+    },
+    {
+      "answerer": "column.semantic_role.boosting@73710656cf1b",
+      "state": "as the main product sends it",
+      "row": {
+        "id": "6de25d3dfec7a94363c774a82214a852",
+        "candidate": "dclab:column.semantic_role.boosting@73710656cf1b:as-sent",
+        "live": false,
+        "pair_release": "column.semantic_role@v1",
+        "model_id": "column.semantic_role.boosting",
+        "content_digest": "1de4fd7776357c8fce03a88cfcd40fb395f61dd3e113a2958bbd763ca37c0de4",
+        "run_digest": "16655b679f223a80bf8d83958a5e473f1a4cb6898bf202c6a12d5770e11c21dc",
+        "cases": 600,
+        "report": {
+          "schema_version": 1,
+          "candidate": "dclab:column.semantic_role.boosting@73710656cf1b:as-sent",
+          "live": false,
+          "cases": 600,
+          "points": {
+            "column.semantic_role": {
+              "key": "column.semantic_role",
+              "max_level": 2,
+              "band": {
+                "confidence_at": 0.8
+              },
+              "sources": {
+                "development": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.8467,
+                  "ai_policy_accuracy_all": 0.9067,
+                  "ai_in_band_accuracy": 0.9188,
+                  "in_band": {
+                    "n": 554,
+                    "right": 509,
+                    "wilson": [
+                      0.893,
+                      0.9387
+                    ]
+                  },
+                  "disagreement_rate": 0.1667,
+                  "abstain_rate": 0.0767,
+                  "gap": {
+                    "value": 0.06,
+                    "interval": [
+                      0.0337,
+                      0.0872
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                },
+                "all": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.8467,
+                  "ai_policy_accuracy_all": 0.9067,
+                  "ai_in_band_accuracy": 0.9188,
+                  "in_band": {
+                    "n": 554,
+                    "right": 509,
+                    "wilson": [
+                      0.893,
+                      0.9387
+                    ]
+                  },
+                  "disagreement_rate": 0.1667,
+                  "abstain_rate": 0.0767,
+                  "gap": {
+                    "value": 0.06,
+                    "interval": [
+                      0.0337,
+                      0.0872
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                }
+              },
+              "by_label_source": {
+                "benchmark": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.8467,
+                  "ai_policy_accuracy_all": 0.9067,
+                  "ai_in_band_accuracy": 0.9188,
+                  "in_band": {
+                    "n": 554,
+                    "right": 509,
+                    "wilson": [
+                      0.893,
+                      0.9387
+                    ]
+                  },
+                  "disagreement_rate": 0.1667,
+                  "abstain_rate": 0.0767,
+                  "gap": {
+                    "value": 0.06,
+                    "interval": [
+                      0.0337,
+                      0.0872
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                }
+              }
+            }
+          },
+          "pair": {
+            "release": "column.semantic_role@v1",
+            "model_id": "column.semantic_role.boosting"
+          },
+          "ablation": {
+            "ai_off_equals_rule": true
+          },
+          "release_version": "73710656cf1b",
+          "note": "A classifier makes no model call: semantic_decision_answers.llm_invocation_id is NOT NULL there, so these rows need an invocation row of their own or that column relaxed, the main product's change (ADR 0008)."
+        },
+        "created_at": "2026-10-15T03:04:30+00:00"
+      }
+    },
+    {
+      "answerer": "feature.leakage_suspect.boosting@32e3693f7eda",
+      "state": "as trained",
+      "row": {
+        "id": "439fc16b83465f1e2a9916761afc7d41",
+        "candidate": "dclab:feature.leakage_suspect.boosting@32e3693f7eda:as-trained",
+        "live": false,
+        "pair_release": "feature.leakage_suspect@v1",
+        "model_id": "feature.leakage_suspect.boosting",
+        "content_digest": "e472f897089f224bbace6824e0da7fcba456a8b3d41524e0e362fb92c075209e",
+        "run_digest": "a3d2296a9e0ed1c380fb0f0f6bf4700d6dd8f171343a5bb0836b37439978a18a",
+        "cases": 600,
+        "report": {
+          "schema_version": 1,
+          "candidate": "dclab:feature.leakage_suspect.boosting@32e3693f7eda:as-trained",
+          "live": false,
+          "cases": 600,
+          "points": {
+            "feature.leakage_suspect": {
+              "key": "feature.leakage_suspect",
+              "max_level": 1,
+              "band": {
+                "yes_at": 0.9,
+                "no_at": null
+              },
+              "sources": {
+                "development": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.9233,
+                  "ai_policy_accuracy_all": 0.9683,
+                  "ai_in_band_accuracy": 1.0,
+                  "in_band": {
+                    "n": 85,
+                    "right": 85,
+                    "wilson": [
+                      0.9568,
+                      1.0
+                    ]
+                  },
+                  "disagreement_rate": 0.045,
+                  "abstain_rate": 0.8583,
+                  "gap": {
+                    "value": 0.045,
+                    "interval": [
+                      0.0315,
+                      0.0582
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                },
+                "all": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.9233,
+                  "ai_policy_accuracy_all": 0.9683,
+                  "ai_in_band_accuracy": 1.0,
+                  "in_band": {
+                    "n": 85,
+                    "right": 85,
+                    "wilson": [
+                      0.9568,
+                      1.0
+                    ]
+                  },
+                  "disagreement_rate": 0.045,
+                  "abstain_rate": 0.8583,
+                  "gap": {
+                    "value": 0.045,
+                    "interval": [
+                      0.0315,
+                      0.0582
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                }
+              },
+              "by_label_source": {
+                "benchmark": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.9233,
+                  "ai_policy_accuracy_all": 0.9683,
+                  "ai_in_band_accuracy": 1.0,
+                  "in_band": {
+                    "n": 85,
+                    "right": 85,
+                    "wilson": [
+                      0.9568,
+                      1.0
+                    ]
+                  },
+                  "disagreement_rate": 0.045,
+                  "abstain_rate": 0.8583,
+                  "gap": {
+                    "value": 0.045,
+                    "interval": [
+                      0.0315,
+                      0.0582
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                }
+              }
+            }
+          },
+          "pair": {
+            "release": "feature.leakage_suspect@v1",
+            "model_id": "feature.leakage_suspect.boosting"
+          },
+          "ablation": {
+            "ai_off_equals_rule": true
+          },
+          "release_version": "32e3693f7eda",
+          "note": "A classifier makes no model call: semantic_decision_answers.llm_invocation_id is NOT NULL there, so these rows need an invocation row of their own or that column relaxed, the main product's change (ADR 0008)."
+        },
+        "created_at": "2026-10-15T03:04:30+00:00"
+      }
+    },
+    {
+      "answerer": "feature.leakage_suspect.boosting@32e3693f7eda",
+      "state": "as the main product sends it",
+      "row": {
+        "id": "21afbffe994f08fadc66dd3b7da486bd",
+        "candidate": "dclab:feature.leakage_suspect.boosting@32e3693f7eda:as-sent",
+        "live": false,
+        "pair_release": "feature.leakage_suspect@v1",
+        "model_id": "feature.leakage_suspect.boosting",
+        "content_digest": "bf067e22e31ca1237fcc838a3e2c638289efda8ac098e8bab79b84bdd41d4cad",
+        "run_digest": "263be1ecb0fdb957a4e58f2bcc5dccc503368afa6af0d4a415a418ce1be2922a",
+        "cases": 600,
+        "report": {
+          "schema_version": 1,
+          "candidate": "dclab:feature.leakage_suspect.boosting@32e3693f7eda:as-sent",
+          "live": false,
+          "cases": 600,
+          "points": {
+            "feature.leakage_suspect": {
+              "key": "feature.leakage_suspect",
+              "max_level": 1,
+              "band": {
+                "yes_at": 0.9,
+                "no_at": null
+              },
+              "sources": {
+                "development": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.9233,
+                  "ai_policy_accuracy_all": 0.9517,
+                  "ai_in_band_accuracy": 1.0,
+                  "in_band": {
+                    "n": 22,
+                    "right": 22,
+                    "wilson": [
+                      0.8513,
+                      1.0
+                    ]
+                  },
+                  "disagreement_rate": 0.0283,
+                  "abstain_rate": 0.9633,
+                  "gap": {
+                    "value": 0.0283,
+                    "interval": [
+                      0.0187,
+                      0.0385
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                },
+                "all": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.9233,
+                  "ai_policy_accuracy_all": 0.9517,
+                  "ai_in_band_accuracy": 1.0,
+                  "in_band": {
+                    "n": 22,
+                    "right": 22,
+                    "wilson": [
+                      0.8513,
+                      1.0
+                    ]
+                  },
+                  "disagreement_rate": 0.0283,
+                  "abstain_rate": 0.9633,
+                  "gap": {
+                    "value": 0.0283,
+                    "interval": [
+                      0.0187,
+                      0.0385
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                }
+              },
+              "by_label_source": {
+                "benchmark": {
+                  "total": 600,
+                  "n": 600,
+                  "unavailable_rate": 0.0,
+                  "rule_accuracy_all": 0.9233,
+                  "ai_policy_accuracy_all": 0.9517,
+                  "ai_in_band_accuracy": 1.0,
+                  "in_band": {
+                    "n": 22,
+                    "right": 22,
+                    "wilson": [
+                      0.8513,
+                      1.0
+                    ]
+                  },
+                  "disagreement_rate": 0.0283,
+                  "abstain_rate": 0.9633,
+                  "gap": {
+                    "value": 0.0283,
+                    "interval": [
+                      0.0187,
+                      0.0385
+                    ],
+                    "clusters": 37
+                  },
+                  "datasets": 37
+                }
+              }
+            }
+          },
+          "pair": {
+            "release": "feature.leakage_suspect@v1",
+            "model_id": "feature.leakage_suspect.boosting"
+          },
+          "ablation": {
+            "ai_off_equals_rule": true
+          },
+          "release_version": "32e3693f7eda",
+          "note": "A classifier makes no model call: semantic_decision_answers.llm_invocation_id is NOT NULL there, so these rows need an invocation row of their own or that column relaxed, the main product's change (ADR 0008)."
+        },
+        "created_at": "2026-10-15T03:04:30+00:00"
+      }
+    }
+  ],
+  "status": "completed",
+  "experiment_id": "R3D-001",
+  "spent_eur": 0.0,
+  "rule": "An R3-shaped reading of DCLab's classifiers on generated dev cases, as the main product would read them; not its R3 run (that runs there, on its cases), and not a claim about any real table."
+}

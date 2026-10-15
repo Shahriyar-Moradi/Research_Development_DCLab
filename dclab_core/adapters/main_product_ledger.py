@@ -165,19 +165,54 @@ def to_semantic_answer(record: DecisionRecord, model_id: str, release_version: s
         raise ValueError("a row needs its workspace (workspace_id is NOT NULL there)")
     rule, model = record.answer("rule"), record.answer("classifier") or record.answer("model_role")
     rule_value = None if rule is None else (rule.raw if rule.raw is not None else rule.value)
+    raw, confidence = (as_raw(record.point, model) if model else (None, None))
+    if raw is None:
+        model = None  # an answer with no value is no answer
+    in_band = banded(point.jev, {"value": raw}, confidence) if model else None  # the main product's own bands decide, never the answerer's
+    if model is None:
+        agreement = "unavailable"
+    elif in_band is None:
+        agreement = "abstain"
+    else:
+        agreement = "agree" if rule is not None and _comparable(point.jev, rule.value) == _comparable(point.jev, in_band) else "disagree"
     return {"decision_point_key": point.main_product or point.jev, "purpose": point.jev, "release_version": release_version, "model_id": model_id,
             "question_key": record.subject.key, "question_digest": question_digest, "data_class": "metadata",
             "evidence_partition": record.evidence_partition or PARTITIONS.get(point.jev, "metadata"),
             "primitive": point.answer if point.answer in ("noul", "choice", "score") else "choice",
-            "answer": {"value": model.raw if model.raw is not None else model.value} if model else {},
-            "confidence": model.confidence if model else None, "in_acting_band": bool(model and model.value is not None),
-            "rule_answer": {"value": rule_value} if rule else None, "agreement": record.agreement(), "level": record.level,
+            "answer": {"value": raw} if model else {},
+            "confidence": confidence, "in_acting_band": in_band is not None,
+            "rule_answer": {"value": rule_value} if rule else None, "agreement": agreement, "level": record.level,
             "policy_outcome": record.policy_outcome,
             # the rule's own words when its value was used (a leakage rule says "exclude", read as yes)
             "value_used": {"value": rule.raw if rule is not None and rule.raw is not None and record.used in ("rule", "none")
                            and record.value_used == rule.value else record.value_used},
             "project_id": record.project, "workspace_id": record.workspace, "agent_run_id": record.run,
             "experiment_id": record.experiment, "dataset_id": record.dataset}
+
+
+def as_raw(point: str, answer: Answer) -> tuple[Any, Optional[float]]:
+    """An answer as the main product reads one (22.7): Jev's own raw answer as it came; a classifier's yes or no as the
+    probability of yes with no confidence (a confident no is a probability near 0, never its confidence); a choice as
+    its label with its confidence."""
+    from dclab_core.answerers import _option
+
+    if answer.value is None and answer.raw is None:
+        return None, None  # no answer (a score's raw answer stands though it is never in its band)
+    noul = POINTS[point].answer == "noul"
+    if answer.by != "classifier":
+        raw = answer.raw if answer.raw is not None else answer.value
+        if noul and isinstance(raw, bool):  # a model's plain yes or no is read there as a probability of 1 or 0
+            raw = 1.0 if raw else 0.0
+        return raw, answer.confidence
+    if noul:
+        value = _option(answer.value)
+        sure = 1.0 if answer.confidence is None else float(answer.confidence)
+        return round(sure if value is True else 1.0 - sure, 6), None
+    return answer.value, answer.confidence
+
+
+def _comparable(purpose: str, value: Any) -> Any:
+    return _rule_value(purpose, value) if purpose == "feature.leakage_suspect" else value
 
 
 def from_decision_record(row: Mapping[str, Any]) -> Optional[DecisionRecord]:

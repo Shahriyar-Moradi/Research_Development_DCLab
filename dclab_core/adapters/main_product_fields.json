@@ -1,1171 +1,1284 @@
 {
-  "about": "Field lists of DCLab main product contracts that dclab_core's outputs map onto (package 17.8). Recorded by reading the code at one commit with the gh CLI, read only; nothing of the main product is copied or imported. When the main product changes a contract, read it again at a new commit, update this file, and the mapping tests show what moved.",
-  "repository": "Shahriyar-Moradi/DCLab",
-  "commit": "7fa23b977685634c9e103771a9a502c96830afde",
-  "commit_date": "2026-10-09T04:58:26Z",
-  "read_on": "2026-10-12",
-  "read_with": "gh api repos/Shahriyar-Moradi/DCLab/contents/<path>?ref=<commit> (read only)",
-  "contracts": {
-    "ProblemSpec": {
-      "path": "apps/api/app/services/problem_spec_service.py",
-      "symbol": "_content_payload (the content digest); limits from ProblemSpecCreateRequest in apps/api/app/domain/workspace_identity.py",
-      "version": null,
-      "fields": {
-        "task_type": "str",
-        "business_objective": "str",
-        "target_column": "str | None",
-        "prediction_unit": "str | None",
-        "prediction_time_column": "str | None",
-        "prediction_horizon": "str | None",
-        "primary_metric": "str | None",
-        "constraints": "dict[str, Any]",
-        "success_criteria": "dict[str, Any]"
-      },
-      "max_length": {
-        "task_type": 64,
-        "business_objective": 4000,
-        "target_column": 256,
-        "prediction_unit": 128,
-        "prediction_time_column": 256,
-        "prediction_horizon": 128,
-        "primary_metric": 128
-      },
-      "json_max_bytes": 16384,
-      "json_max_bytes_applies_to": [
-        "constraints",
-        "success_criteria"
-      ],
-      "constraints_structured_keys": {
-        "primary_metric_reason": "str",
-        "metric_constraints": "list[{metric: str, op: '>=' | '<=', value: float}]",
-        "cost_matrix": "{false_positive: float >= 0, false_negative: float >= 0} (binary and classification only)"
-      },
-      "not_content": {
-        "status": "str: draft | locked (a person locks it)",
-        "plan": "UUID | None: an ExperimentPlanProposal whose target_column and primary_metric fill the spec"
-      },
-      "task_types": [
-        "binary",
-        "multiclass",
-        "regression",
-        "classification"
-      ]
-    },
-    "ProblemProfile": {
-      "path": "apps/api/app/engine/modeling/problem_profile.py",
-      "symbol": "ProblemProfile (dataclass); built by build_problem_profile(train, target=, task_type=) on the locked training partition",
-      "version": "dclab.problem_profile.v1",
-      "fields": {
-        "task_type": "str",
-        "target": "str",
-        "row_count": "int",
-        "feature_count": "int",
-        "class_distribution": "dict[str, int] | None",
-        "minority_class_fraction": "float | None",
-        "imbalance_ratio": "float | None",
-        "regression_target": "dict[str, Any] | None",
-        "numeric_columns": "list[str]",
-        "categorical_columns": "list[str]",
-        "boolean_columns": "list[str]",
-        "datetime_columns": "list[str]",
-        "identifier_columns": "list[str]",
-        "free_text_columns": "list[str]",
-        "high_cardinality_columns": "list[str]",
-        "high_missing_columns": "list[str]",
-        "constant_columns": "list[str]",
-        "repeated_entity_candidates": "list[dict[str, Any]]",
-        "time_candidates": "list[dict[str, Any]]",
-        "geo_coordinate_candidates": "list[dict[str, Any]]",
-        "version": "str"
-      },
-      "nested": {
-        "regression_target": [
-          "count",
-          "missing_count",
-          "mean",
-          "std",
-          "min",
-          "max",
-          "median"
-        ],
-        "repeated_entity_candidates[]": [
-          "column",
-          "unique_count",
-          "unique_ratio",
-          "repeated_rows",
-          "max_rows_per_entity",
-          "mean_rows_per_entity",
-          "row_count",
-          "missing_count",
-          "identifier_likelihood"
-        ],
-        "time_candidates[]": [
-          "column",
-          "parse_rate",
-          "unique_count",
-          "unique_ratio",
-          "span_seconds",
-          "monotonic_increasing",
-          "name_tokens",
-          "strong_name",
-          "datetime_role"
-        ],
-        "geo_coordinate_candidates[]": [
-          "lat_column",
-          "lon_column",
-          "row_count",
-          "lat_in_range_fraction",
-          "lon_in_range_fraction"
-        ]
-      }
-    },
-    "MetricPlan": {
-      "path": "apps/api/app/engine/modeling/metric_planner.py",
-      "symbol": "MetricPlan (dataclass); plan_metrics(profile, objective)",
-      "version": "dclab.metric_plan.v1",
-      "fields": {
-        "primary_metric": "str",
-        "secondary_metrics": "list[str]",
-        "reason": "str",
-        "version": "str"
-      }
-    },
-    "HoldoutPlan": {
-      "path": "apps/api/app/engine/modeling/holdout_planner.py",
-      "symbol": "HoldoutPlan (dataclass); plan_holdout(frame, target=, task_type=)",
-      "version": "dclab.holdout_plan.v1",
-      "fields": {
-        "strategy": "str",
-        "test_size": "float",
-        "random_state": "int",
-        "stratified": "bool",
-        "group_column": "str | None",
-        "time_column": "str | None",
-        "reason": "str",
-        "evidence": "dict[str, Any]",
-        "plan_version": "str"
-      },
-      "defaults": {
-        "test_size": 0.2,
-        "random_state": 42
-      }
-    },
-    "ValidationPlan": {
-      "path": "apps/api/app/engine/modeling/validation_planner.py",
-      "symbol": "ValidationPlan (dataclass); plan_validation(profile, ...)",
-      "version": "dclab.validation_plan.v1",
-      "fields": {
-        "strategy": "str",
-        "requested_folds": "int",
-        "actual_folds": "int | None",
-        "shuffle": "bool",
-        "random_state": "int",
-        "group_column": "str | None",
-        "time_column": "str | None",
-        "stratified": "bool",
-        "reason": "str",
-        "fallback_reason": "str | None",
-        "evidence": "dict[str, Any]",
-        "version": "str"
-      },
-      "defaults": {
-        "requested_folds": 5,
-        "random_state": 42
-      }
-    },
-    "Objective": {
-      "path": "apps/api/app/engine/modeling/objective.py",
-      "symbol": "Objective (dataclass); parse_objective(task_type, primary_metric=, constraints=) reads it from a ProblemSpec",
-      "version": "dclab.objective.v1",
-      "fields": {
-        "primary_metric": "str | None",
-        "primary_metric_reason": "str | None",
-        "constraints": "list[MetricConstraint{metric: str, op: str, value: float}]",
-        "cost_false_positive": "float | None",
-        "cost_false_negative": "float | None",
-        "version": "str"
-      }
-    },
-    "DecisionThreshold": {
-      "path": "apps/api/app/engine/modeling/objective.py",
-      "symbol": "select_decision_threshold(y_oof, scores_oof, objective) -> dict (THRESHOLD_VERSION)",
-      "version": "dclab.decision_threshold.v1",
-      "fields": {
-        "version": "str",
-        "value": "float",
-        "source": "str: default | cost_matrix | constraints | primary_metric",
-        "selected_on": "str: out_of_fold_cv",
-        "oof_row_count": "int",
-        "goal_metric": "str | None",
-        "threshold_status": "str: not_requested | satisfied | unsatisfiable",
-        "status": "str",
-        "reason": "str",
-        "expected_cost": "float | None",
-        "constraints": "list[dict]",
-        "oof_at_threshold": "dict[str, float]"
-      },
-      "nested": {
-        "oof_at_threshold": [
-          "tp",
-          "fp",
-          "fn",
-          "tn",
-          "precision",
-          "recall",
-          "specificity",
-          "f1",
-          "accuracy",
-          "balanced_accuracy"
-        ]
-      }
-    },
-    "ExperimentPlan": {
-      "path": "apps/api/app/domain/run_plans.py",
-      "symbol": "ExperimentPlan (frozen pydantic, extra=forbid): the payload of an ExperimentPlanProposal, one field group per decision point (PLAN_FIELDS)",
-      "version": null,
-      "fields": {
-        "target_column": "str | None",
-        "primary_metric": "str | None (pattern ^[a-z][a-z0-9_]{0,63}$)",
-        "split": "PlanSplit | None",
-        "families": "tuple[str, ...] | None (1-16 registry family keys)",
-        "max_training_seconds": "float | None (0 < x <= 600)",
-        "missing_values": "dict[str, impute_median | impute_most_frequent | drop_column] | None"
-      }
-    },
-    "PlanSplit": {
-      "path": "apps/api/app/domain/run_plans.py",
-      "symbol": "PlanSplit (frozen pydantic, extra=forbid)",
-      "version": null,
-      "fields": {
-        "strategy": "Literal['stratified_random', 'random', 'group_disjoint', 'temporal_future']",
-        "group_column": "str | None",
-        "time_column": "str | None",
-        "test_size": "float | None (0.05-0.5; the code-owned floor is 0.2)"
-      }
-    },
-    "ExperimentReview": {
-      "path": "apps/api/app/agents/classes/experiment_critic.py",
-      "symbol": "ExperimentReview: the payload of an ExperimentReviewProposal at decision point experiment.review",
-      "version": null,
-      "fields": {
-        "verdict": "Literal['promote_candidate', 'needs_work', 'reject']",
-        "summary": "str (max 2000)",
-        "cv_metrics": "list[CvMetricCitation{experiment_id: UUID, metric: str, value: float}] (max 20)",
-        "findings": "list[FindingCitation{check: str, status: pass | warning | fail | not_evaluated, note: str}] (max 10)",
-        "confidence": "float (0-1)"
-      },
-      "nested": {
-        "findings[]": [
-          "check",
-          "status",
-          "note"
-        ]
-      }
-    },
-    "ExperimentChangeSet": {
-      "path": "apps/api/app/domain/experiment_changes.py",
-      "symbol": "ExperimentChangeSet: what a branched experiment changes (proposal:experiment_change at improve.next_action)",
-      "version": null,
-      "fields": {
-        "schema_version": "Literal[1]",
-        "changes": "list[ExperimentChange] (1-32; discriminated by kind)"
-      }
-    }
+ "about": "Field lists of DCLab main product contracts that dclab_core's outputs map onto (package 17.8). Recorded by reading the code at one commit with the gh CLI, read only; nothing of the main product is copied or imported. When the main product changes a contract, read it again at a new commit, update this file, and the mapping tests show what moved.",
+ "repository": "Shahriyar-Moradi/DCLab",
+ "commit": "7fa23b977685634c9e103771a9a502c96830afde",
+ "commit_date": "2026-10-09T04:58:26Z",
+ "read_on": "2026-10-12",
+ "read_with": "gh api repos/Shahriyar-Moradi/DCLab/contents/<path>?ref=<commit> (read only)",
+ "contracts": {
+  "ProblemSpec": {
+   "path": "apps/api/app/services/problem_spec_service.py",
+   "symbol": "_content_payload (the content digest); limits from ProblemSpecCreateRequest in apps/api/app/domain/workspace_identity.py",
+   "version": null,
+   "fields": {
+    "task_type": "str",
+    "business_objective": "str",
+    "target_column": "str | None",
+    "prediction_unit": "str | None",
+    "prediction_time_column": "str | None",
+    "prediction_horizon": "str | None",
+    "primary_metric": "str | None",
+    "constraints": "dict[str, Any]",
+    "success_criteria": "dict[str, Any]"
+   },
+   "max_length": {
+    "task_type": 64,
+    "business_objective": 4000,
+    "target_column": 256,
+    "prediction_unit": 128,
+    "prediction_time_column": 256,
+    "prediction_horizon": 128,
+    "primary_metric": 128
+   },
+   "json_max_bytes": 16384,
+   "json_max_bytes_applies_to": [
+    "constraints",
+    "success_criteria"
+   ],
+   "constraints_structured_keys": {
+    "primary_metric_reason": "str",
+    "metric_constraints": "list[{metric: str, op: '>=' | '<=', value: float}]",
+    "cost_matrix": "{false_positive: float >= 0, false_negative: float >= 0} (binary and classification only)"
+   },
+   "not_content": {
+    "status": "str: draft | locked (a person locks it)",
+    "plan": "UUID | None: an ExperimentPlanProposal whose target_column and primary_metric fill the spec"
+   },
+   "task_types": [
+    "binary",
+    "multiclass",
+    "regression",
+    "classification"
+   ]
   },
-  "vocabularies": {
-    "primary_metrics_classification": "binary and multiclass together: a ProblemSpec may say 'classification' before the target is inspected",
-    "primary_metrics": {
-      "binary": [
-        "pr_auc",
-        "roc_auc",
-        "f1",
-        "balanced_accuracy",
-        "accuracy",
-        "log_loss",
-        "brier_score"
-      ],
-      "multiclass": [
-        "macro_f1",
-        "weighted_f1",
-        "balanced_accuracy",
-        "accuracy",
-        "log_loss",
-        "roc_auc_ovr"
-      ],
-      "regression": [
-        "mae",
-        "rmse",
-        "mse",
-        "r2",
-        "median_absolute_error"
-      ]
-    },
-    "secondary_metrics": {
-      "binary": [
-        "pr_auc",
-        "roc_auc",
-        "f1",
-        "precision",
-        "recall",
-        "balanced_accuracy",
-        "accuracy",
-        "log_loss",
-        "brier_score"
-      ],
-      "multiclass": [
-        "balanced_accuracy",
-        "accuracy",
-        "weighted_f1",
-        "macro_precision",
-        "macro_recall",
-        "log_loss",
-        "roc_auc_ovr"
-      ],
-      "regression": [
-        "rmse",
-        "r2",
-        "mse"
-      ]
-    },
-    "metric_aliases": {
-      "auc": "roc_auc",
-      "roc-auc": "roc_auc",
-      "average_precision": "pr_auc",
-      "pr-auc": "pr_auc",
-      "f1_macro": "macro_f1",
-      "macro-f1": "macro_f1",
-      "f1_weighted": "weighted_f1",
-      "logloss": "log_loss",
-      "brier": "brier_score"
-    },
-    "holdout_strategies": [
-      "stratified_random",
-      "random",
-      "group_disjoint",
-      "temporal_future",
-      "unsupported"
+  "ProblemProfile": {
+   "path": "apps/api/app/engine/modeling/problem_profile.py",
+   "symbol": "ProblemProfile (dataclass); built by build_problem_profile(train, target=, task_type=) on the locked training partition",
+   "version": "dclab.problem_profile.v1",
+   "fields": {
+    "task_type": "str",
+    "target": "str",
+    "row_count": "int",
+    "feature_count": "int",
+    "class_distribution": "dict[str, int] | None",
+    "minority_class_fraction": "float | None",
+    "imbalance_ratio": "float | None",
+    "regression_target": "dict[str, Any] | None",
+    "numeric_columns": "list[str]",
+    "categorical_columns": "list[str]",
+    "boolean_columns": "list[str]",
+    "datetime_columns": "list[str]",
+    "identifier_columns": "list[str]",
+    "free_text_columns": "list[str]",
+    "high_cardinality_columns": "list[str]",
+    "high_missing_columns": "list[str]",
+    "constant_columns": "list[str]",
+    "repeated_entity_candidates": "list[dict[str, Any]]",
+    "time_candidates": "list[dict[str, Any]]",
+    "geo_coordinate_candidates": "list[dict[str, Any]]",
+    "version": "str"
+   },
+   "nested": {
+    "regression_target": [
+     "count",
+     "missing_count",
+     "mean",
+     "std",
+     "min",
+     "max",
+     "median"
     ],
-    "validation_strategies": [
-      "StratifiedKFold",
-      "KFold",
-      "StratifiedGroupKFold",
-      "GroupKFold",
-      "TimeSeriesSplit",
-      "unsupported"
+    "repeated_entity_candidates[]": [
+     "column",
+     "unique_count",
+     "unique_ratio",
+     "repeated_rows",
+     "max_rows_per_entity",
+     "mean_rows_per_entity",
+     "row_count",
+     "missing_count",
+     "identifier_likelihood"
     ],
-    "plan_split_strategies": [
-      "stratified_random",
-      "random",
-      "group_disjoint",
-      "temporal_future"
+    "time_candidates[]": [
+     "column",
+     "parse_rate",
+     "unique_count",
+     "unique_ratio",
+     "span_seconds",
+     "monotonic_increasing",
+     "name_tokens",
+     "strong_name",
+     "datetime_role"
     ],
-    "portfolio_families": {
-      "classification": [
-        "logistic_regression",
-        "random_forest",
-        "xgboost",
-        "lightgbm",
-        "catboost"
-      ],
-      "regression": [
-        "linear_regression",
-        "random_forest_regressor",
-        "xgboost_regressor",
-        "lightgbm_regressor",
-        "catboost_regressor"
-      ]
-    },
-    "portfolio_source": "apps/api/app/engine/search/generator.py open_ingest_families (each family only when installed)",
-    "dummy_families": [
-      "majority",
-      "mean",
-      "median"
-    ],
-    "change_kinds": [
-      "hyperparameter_override",
-      "family_include",
-      "family_exclude",
-      "class_weighting",
-      "threshold_objective",
-      "metric_override",
-      "feature_transform_add",
-      "feature_transform_remove"
-    ],
-    "missing_value_transforms": [
-      "impute_median",
-      "impute_most_frequent",
-      "drop_column"
-    ],
-    "finding_statuses": [
-      "pass",
-      "warning",
-      "fail",
-      "not_evaluated"
-    ],
-    "code_pattern": "^[a-z][a-z0-9_]{0,63}$"
-  },
-  "plan_fields": {
-    "path": "apps/api/app/domain/run_plans.py",
-    "symbol": "PLAN_FIELDS",
-    "fields": {
-      "target.column": [
-        "target_column"
-      ],
-      "spec.objective": [
-        "primary_metric"
-      ],
-      "split.strategy": [
-        "split"
-      ],
-      "training.families_budget": [
-        "families",
-        "max_training_seconds"
-      ],
-      "column.missing_value_action": [
-        "missing_values"
-      ]
-    }
-  },
-  "decision_points": {
-    "path": "apps/api/app/agents/governance/decision_points.py",
-    "symbol": "REGISTRY (every point starts at L0; cap is the highest level code allows)",
-    "points": {
-      "target.column": {
-        "stage": "run_target_resolution",
-        "pattern": "ai_before",
-        "ai_kind": "agent:dataset_investigator",
-        "rule_id": "lab_decision_ledger.record_target_selection",
-        "effects": [
-          "proposal:problem_spec"
-        ],
-        "evidence_partition": "metadata",
-        "cap": 1
-      },
-      "spec.objective": {
-        "stage": "propose_problem_spec",
-        "pattern": "ai_before",
-        "ai_kind": "agent:experiment_planner",
-        "rule_id": "metric_planner.default_metric",
-        "effects": [
-          "proposal:problem_spec"
-        ],
-        "evidence_partition": "metadata",
-        "cap": 1
-      },
-      "column.is_identifier": {
-        "stage": "run_column_roles",
-        "pattern": "cross_check",
-        "ai_kind": "jev:column.is_identifier",
-        "rule_id": "schema_inference.identifier.v1",
-        "effects": [
-          "exclusion"
-        ],
-        "evidence_partition": "metadata",
-        "cap": 1
-      },
-      "column.semantic_role": {
-        "stage": "run_column_roles",
-        "pattern": "cross_check",
-        "ai_kind": "jev:column.semantic_role",
-        "rule_id": "split_column_roles.v3",
-        "effects": [
-          "branch_change:feature_transform_add"
-        ],
-        "evidence_partition": "metadata",
-        "cap": 2
-      },
-      "column.missing_value_action": {
-        "stage": "run_train_only_decisions",
-        "pattern": "ai_before",
-        "ai_kind": "agent:dataset_investigator",
-        "rule_id": "missing_value_rules.v1",
-        "effects": [
-          "branch_change:feature_transform_add"
-        ],
-        "evidence_partition": "train",
-        "cap": 2
-      },
-      "feature.leakage_suspect": {
-        "stage": "run_train_only_decisions",
-        "pattern": "cross_check",
-        "ai_kind": "jev:feature.leakage_suspect",
-        "rule_id": "leakage_auditor.v1",
-        "effects": [
-          "flag"
-        ],
-        "evidence_partition": "train",
-        "cap": 1
-      },
-      "split.strategy": {
-        "stage": "run_holdout_lock",
-        "pattern": "ai_before",
-        "ai_kind": "agent:experiment_planner",
-        "rule_id": "holdout_planner.v1",
-        "effects": [
-          "split_plan"
-        ],
-        "evidence_partition": "metadata",
-        "cap": 1
-      },
-      "training.families_budget": {
-        "stage": "run_preprocessing_setup",
-        "pattern": "ai_before",
-        "ai_kind": "agent:experiment_planner",
-        "rule_id": "portfolio.v1",
-        "effects": [
-          "search_config"
-        ],
-        "evidence_partition": "train",
-        "cap": 2
-      },
-      "experiment.review": {
-        "stage": "agents.run",
-        "pattern": "ai_after",
-        "ai_kind": "agent:experiment_critic",
-        "rule_id": "pipeline_verifier.v1",
-        "effects": [
-          "none"
-        ],
-        "evidence_partition": "train",
-        "cap": 1
-      },
-      "improve.next_action": {
-        "stage": "labs.improve",
-        "pattern": "cross_check",
-        "ai_kind": "agent:improvement_hypothesis",
-        "rule_id": "rule_proposer.v1",
-        "effects": [
-          "proposal:experiment_change"
-        ],
-        "evidence_partition": "train",
-        "cap": 1
-      },
-      "ops.diagnose": {
-        "stage": "monitoring.drift_window",
-        "pattern": "ai_after",
-        "ai_kind": "agent:dataset_investigator",
-        "rule_id": "drift_finding.v1",
-        "effects": [
-          "notify"
-        ],
-        "evidence_partition": "train",
-        "cap": 3
-      },
-      "ops.retrain": {
-        "stage": "ops.agent",
-        "pattern": "ai_before",
-        "ai_kind": "agent:ops",
-        "rule_id": null,
-        "effects": [
-          "job:experiments.run"
-        ],
-        "evidence_partition": "metadata",
-        "cap": 2
-      },
-      "ops.release": {
-        "stage": "ops.agent",
-        "pattern": "ai_before",
-        "ai_kind": "agent:ops",
-        "rule_id": "release_gate.v1",
-        "effects": [
-          "proposal:model_release"
-        ],
-        "evidence_partition": "train",
-        "cap": 1
-      },
-      "ops.rollback": {
-        "stage": "ops.agent",
-        "pattern": "ai_before",
-        "ai_kind": "agent:ops",
-        "rule_id": "ops.rollback_threshold.v1",
-        "effects": [
-          "proposal:ref_move"
-        ],
-        "evidence_partition": "train",
-        "cap": 1
-      },
-      "command.intent_route": {
-        "stage": "assistant.turn",
-        "pattern": "ai_before",
-        "ai_kind": "jev:command.intent_route",
-        "rule_id": null,
-        "effects": [
-          "none"
-        ],
-        "evidence_partition": "metadata",
-        "cap": 1
-      },
-      "proposal.completeness": {
-        "stage": "proposal.validated",
-        "pattern": "ai_after",
-        "ai_kind": "jev:proposal.completeness",
-        "rule_id": "validator_verdict",
-        "effects": [
-          "none"
-        ],
-        "evidence_partition": "metadata",
-        "cap": 0
-      }
-    },
-    "lead_tools": [
-      "create_problem_spec",
-      "propose_problem_spec",
-      "record_decision",
-      "request_agent_review",
-      "move_ref",
-      "run_experiment",
-      "branch_experiment",
-      "predict"
+    "geo_coordinate_candidates[]": [
+     "lat_column",
+     "lon_column",
+     "row_count",
+     "lat_in_range_fraction",
+     "lon_in_range_fraction"
     ]
+   }
   },
-  "files_read": [
-    "apps/api/app/agents/assistant/service.py",
-    "apps/api/app/agents/classes/common.py",
-    "apps/api/app/agents/classes/dataset_investigator.py",
-    "apps/api/app/agents/classes/experiment_critic.py",
-    "apps/api/app/agents/classes/experiment_planner.py",
-    "apps/api/app/agents/gateway/budget.py",
-    "apps/api/app/agents/gateway/contract.py",
-    "apps/api/app/agents/gateway/service.py",
-    "apps/api/app/agents/governance/decision_points.py",
-    "apps/api/app/agents/harness/service.py",
-    "apps/api/app/agents/prompt_releases.py",
-    "apps/api/app/api/v1.py",
-    "apps/api/app/db/models.py",
-    "apps/api/app/domain/agent_records.py",
-    "apps/api/app/domain/decision_records.py",
-    "apps/api/app/domain/experiment_changes.py",
-    "apps/api/app/domain/observability.py",
-    "apps/api/app/domain/operating_points.py",
-    "apps/api/app/domain/run_plans.py",
-    "apps/api/app/domain/workspace_identity.py",
-    "apps/api/app/engine/features/contract.py",
-    "apps/api/app/engine/modeling/holdout_planner.py",
-    "apps/api/app/engine/modeling/leakage_auditor.py",
-    "apps/api/app/engine/modeling/metric_planner.py",
-    "apps/api/app/engine/modeling/objective.py",
-    "apps/api/app/engine/modeling/problem_profile.py",
-    "apps/api/app/engine/modeling/validation_planner.py",
-    "apps/api/app/engine/models/registry.py",
-    "apps/api/app/engine/reporting/report.py",
-    "apps/api/app/engine/search/generator.py",
-    "apps/api/app/services/auto_train/decision_points.py",
-    "apps/api/app/services/auto_train/decisions.py",
-    "apps/api/app/services/auto_train/finalize.py",
-    "apps/api/app/services/auto_train/holdout.py",
-    "apps/api/app/services/auto_train/load_profile.py",
-    "apps/api/app/services/auto_train/plan_points.py",
-    "apps/api/app/services/auto_train_service.py",
-    "apps/api/app/services/decision_point_service.py",
-    "apps/api/app/services/problem_spec_service.py",
-    "apps/api/app/services/run_plan_service.py",
-    "apps/api/app/services/technical_run_report.py",
-    "apps/api/app/services/workflow_execution_service.py",
-    "apps/api/tests/test_benchmark_harness.py",
-    "apps/web/lib/application/studio-wizard.ts",
-    "benchmarks/harness/run.py",
-    "docs/adr/0007-improve-loop.md",
-    "apps/api/app/agents/semantic/releases.py",
-    "apps/api/app/agents/semantic/policy.py",
-    "apps/api/app/agents/semantic/typesafe_jev.py",
-    "apps/api/app/agents/semantic/port.py"
+  "MetricPlan": {
+   "path": "apps/api/app/engine/modeling/metric_planner.py",
+   "symbol": "MetricPlan (dataclass); plan_metrics(profile, objective)",
+   "version": "dclab.metric_plan.v1",
+   "fields": {
+    "primary_metric": "str",
+    "secondary_metrics": "list[str]",
+    "reason": "str",
+    "version": "str"
+   }
+  },
+  "HoldoutPlan": {
+   "path": "apps/api/app/engine/modeling/holdout_planner.py",
+   "symbol": "HoldoutPlan (dataclass); plan_holdout(frame, target=, task_type=)",
+   "version": "dclab.holdout_plan.v1",
+   "fields": {
+    "strategy": "str",
+    "test_size": "float",
+    "random_state": "int",
+    "stratified": "bool",
+    "group_column": "str | None",
+    "time_column": "str | None",
+    "reason": "str",
+    "evidence": "dict[str, Any]",
+    "plan_version": "str"
+   },
+   "defaults": {
+    "test_size": 0.2,
+    "random_state": 42
+   }
+  },
+  "ValidationPlan": {
+   "path": "apps/api/app/engine/modeling/validation_planner.py",
+   "symbol": "ValidationPlan (dataclass); plan_validation(profile, ...)",
+   "version": "dclab.validation_plan.v1",
+   "fields": {
+    "strategy": "str",
+    "requested_folds": "int",
+    "actual_folds": "int | None",
+    "shuffle": "bool",
+    "random_state": "int",
+    "group_column": "str | None",
+    "time_column": "str | None",
+    "stratified": "bool",
+    "reason": "str",
+    "fallback_reason": "str | None",
+    "evidence": "dict[str, Any]",
+    "version": "str"
+   },
+   "defaults": {
+    "requested_folds": 5,
+    "random_state": 42
+   }
+  },
+  "Objective": {
+   "path": "apps/api/app/engine/modeling/objective.py",
+   "symbol": "Objective (dataclass); parse_objective(task_type, primary_metric=, constraints=) reads it from a ProblemSpec",
+   "version": "dclab.objective.v1",
+   "fields": {
+    "primary_metric": "str | None",
+    "primary_metric_reason": "str | None",
+    "constraints": "list[MetricConstraint{metric: str, op: str, value: float}]",
+    "cost_false_positive": "float | None",
+    "cost_false_negative": "float | None",
+    "version": "str"
+   }
+  },
+  "DecisionThreshold": {
+   "path": "apps/api/app/engine/modeling/objective.py",
+   "symbol": "select_decision_threshold(y_oof, scores_oof, objective) -> dict (THRESHOLD_VERSION)",
+   "version": "dclab.decision_threshold.v1",
+   "fields": {
+    "version": "str",
+    "value": "float",
+    "source": "str: default | cost_matrix | constraints | primary_metric",
+    "selected_on": "str: out_of_fold_cv",
+    "oof_row_count": "int",
+    "goal_metric": "str | None",
+    "threshold_status": "str: not_requested | satisfied | unsatisfiable",
+    "status": "str",
+    "reason": "str",
+    "expected_cost": "float | None",
+    "constraints": "list[dict]",
+    "oof_at_threshold": "dict[str, float]"
+   },
+   "nested": {
+    "oof_at_threshold": [
+     "tp",
+     "fp",
+     "fn",
+     "tn",
+     "precision",
+     "recall",
+     "specificity",
+     "f1",
+     "accuracy",
+     "balanced_accuracy"
+    ]
+   }
+  },
+  "ExperimentPlan": {
+   "path": "apps/api/app/domain/run_plans.py",
+   "symbol": "ExperimentPlan (frozen pydantic, extra=forbid): the payload of an ExperimentPlanProposal, one field group per decision point (PLAN_FIELDS)",
+   "version": null,
+   "fields": {
+    "target_column": "str | None",
+    "primary_metric": "str | None (pattern ^[a-z][a-z0-9_]{0,63}$)",
+    "split": "PlanSplit | None",
+    "families": "tuple[str, ...] | None (1-16 registry family keys)",
+    "max_training_seconds": "float | None (0 < x <= 600)",
+    "missing_values": "dict[str, impute_median | impute_most_frequent | drop_column] | None"
+   }
+  },
+  "PlanSplit": {
+   "path": "apps/api/app/domain/run_plans.py",
+   "symbol": "PlanSplit (frozen pydantic, extra=forbid)",
+   "version": null,
+   "fields": {
+    "strategy": "Literal['stratified_random', 'random', 'group_disjoint', 'temporal_future']",
+    "group_column": "str | None",
+    "time_column": "str | None",
+    "test_size": "float | None (0.05-0.5; the code-owned floor is 0.2)"
+   }
+  },
+  "ExperimentReview": {
+   "path": "apps/api/app/agents/classes/experiment_critic.py",
+   "symbol": "ExperimentReview: the payload of an ExperimentReviewProposal at decision point experiment.review",
+   "version": null,
+   "fields": {
+    "verdict": "Literal['promote_candidate', 'needs_work', 'reject']",
+    "summary": "str (max 2000)",
+    "cv_metrics": "list[CvMetricCitation{experiment_id: UUID, metric: str, value: float}] (max 20)",
+    "findings": "list[FindingCitation{check: str, status: pass | warning | fail | not_evaluated, note: str}] (max 10)",
+    "confidence": "float (0-1)"
+   },
+   "nested": {
+    "findings[]": [
+     "check",
+     "status",
+     "note"
+    ]
+   }
+  },
+  "ExperimentChangeSet": {
+   "path": "apps/api/app/domain/experiment_changes.py",
+   "symbol": "ExperimentChangeSet: what a branched experiment changes (proposal:experiment_change at improve.next_action)",
+   "version": null,
+   "fields": {
+    "schema_version": "Literal[1]",
+    "changes": "list[ExperimentChange] (1-32; discriminated by kind)"
+   }
+  }
+ },
+ "vocabularies": {
+  "primary_metrics_classification": "binary and multiclass together: a ProblemSpec may say 'classification' before the target is inspected",
+  "primary_metrics": {
+   "binary": [
+    "pr_auc",
+    "roc_auc",
+    "f1",
+    "balanced_accuracy",
+    "accuracy",
+    "log_loss",
+    "brier_score"
+   ],
+   "multiclass": [
+    "macro_f1",
+    "weighted_f1",
+    "balanced_accuracy",
+    "accuracy",
+    "log_loss",
+    "roc_auc_ovr"
+   ],
+   "regression": [
+    "mae",
+    "rmse",
+    "mse",
+    "r2",
+    "median_absolute_error"
+   ]
+  },
+  "secondary_metrics": {
+   "binary": [
+    "pr_auc",
+    "roc_auc",
+    "f1",
+    "precision",
+    "recall",
+    "balanced_accuracy",
+    "accuracy",
+    "log_loss",
+    "brier_score"
+   ],
+   "multiclass": [
+    "balanced_accuracy",
+    "accuracy",
+    "weighted_f1",
+    "macro_precision",
+    "macro_recall",
+    "log_loss",
+    "roc_auc_ovr"
+   ],
+   "regression": [
+    "rmse",
+    "r2",
+    "mse"
+   ]
+  },
+  "metric_aliases": {
+   "auc": "roc_auc",
+   "roc-auc": "roc_auc",
+   "average_precision": "pr_auc",
+   "pr-auc": "pr_auc",
+   "f1_macro": "macro_f1",
+   "macro-f1": "macro_f1",
+   "f1_weighted": "weighted_f1",
+   "logloss": "log_loss",
+   "brier": "brier_score"
+  },
+  "holdout_strategies": [
+   "stratified_random",
+   "random",
+   "group_disjoint",
+   "temporal_future",
+   "unsupported"
   ],
-  "experience_tables": {
-    "agent_runs": [
-      "id",
-      "workspace_id",
-      "project_id",
-      "kind",
-      "agent_key",
-      "agent_version",
-      "prompt_release_id",
-      "runtime",
-      "runtime_version",
-      "provider",
-      "model",
-      "purpose",
-      "decision_point_key",
-      "subject_kind",
-      "experiment_id",
-      "dataset_id",
-      "problem_spec_id",
-      "split_plan_id",
-      "model_version_id",
-      "parent_run_id",
-      "context_digest",
-      "policy_digest",
-      "tool_catalog_digest",
-      "data_class",
-      "outcome_scope",
-      "status",
-      "limits",
-      "usage",
-      "held_micros",
-      "cost_micros",
-      "currency",
-      "error_code",
-      "idempotency_key",
-      "idempotency_digest",
-      "created_by_user_id",
-      "created_by_service_token_id",
-      "title",
-      "page_context",
-      "last_activity_at",
-      "started_at",
-      "finished_at",
-      "budget_released_at",
-      "created_at"
-    ],
-    "agent_events": [
-      "id",
-      "workspace_id",
-      "run_id",
-      "seq",
-      "type",
-      "payload",
-      "payload_digest",
-      "llm_invocation_id",
-      "created_at"
-    ],
-    "llm_invocations": [
-      "id",
-      "workspace_id",
-      "workflow_run_id",
-      "experiment_id",
-      "project_id",
-      "agent_run_id",
-      "provider_kind",
-      "purpose",
-      "provider",
-      "model",
-      "mode",
-      "prompt_version",
-      "schema_version",
-      "input_evidence_digest",
-      "redaction_summary",
-      "llm_used",
-      "reason",
-      "status",
-      "validator_verdict",
-      "safe_output",
-      "final_decision",
-      "latency_ms",
-      "input_tokens",
-      "output_tokens",
-      "total_tokens",
-      "estimated_cost",
-      "started_at",
-      "completed_at",
-      "created_at",
-      "prompt_release_id",
-      "cache_hit",
-      "cost_micros",
-      "currency",
-      "data_class",
-      "outcome_scope",
-      "agent_role",
-      "decision_point_key",
-      "refusal_code",
-      "budget_reservation_id",
-      "budget_settled",
-      "provider_request_id",
-      "provider_resolved_model"
-    ],
-    "project_decision_records": [
-      "id",
-      "workspace_id",
-      "project_id",
-      "decision_type",
-      "state",
-      "subject_kind",
-      "problem_spec_id",
-      "dataset_id",
-      "split_plan_id",
-      "feature_set_version_id",
-      "experiment_id",
-      "candidate_id",
-      "model_version_id",
-      "subject_digest",
-      "actor_kind",
-      "actor_user_id",
-      "actor_rule",
-      "actor_agent_run_id",
-      "actor_service_token_id",
-      "rationale",
-      "rationale_untrusted",
-      "facts",
-      "evidence_refs",
-      "details",
-      "schema_version",
-      "policy_version",
-      "supersedes_id",
-      "idempotency_key",
-      "event_at",
-      "recorded_at"
-    ],
-    "ml_run_events": [
-      "id",
-      "workspace_id",
-      "workflow_run_id",
-      "experiment_id",
-      "sequence",
-      "stage",
-      "event_type",
-      "status",
-      "timestamp",
-      "duration_ms",
-      "payload",
-      "created_at"
-    ],
-    "experiments": [
-      "id",
-      "workspace_id",
-      "project_id",
-      "workflow_run_id",
-      "pipeline_id",
-      "pipeline_version_id",
-      "run_number",
-      "pipeline_name",
-      "pipeline_index",
-      "pipeline_purpose",
-      "environment_id",
-      "task_id",
-      "dataset_id",
-      "parent_pipeline_run_id",
-      "branch_key",
-      "branch_reason",
-      "source_dataset_id",
-      "split_plan_id",
-      "intent",
-      "change_set",
-      "status",
-      "failure_reason",
-      "config",
-      "result",
-      "artifact_dir",
-      "git_commit",
-      "seed",
-      "started_at",
-      "ended_at",
-      "scientific_evidence_locked_at",
-      "created_at"
-    ],
-    "pipeline_stage_runs": [
-      "id",
-      "workspace_id",
-      "project_id",
-      "pipeline_run_id",
-      "stage_key",
-      "stage_type",
-      "sequence",
-      "name",
-      "status",
-      "started_at",
-      "completed_at",
-      "duration_ms",
-      "input_summary",
-      "output_summary",
-      "failure_code",
-      "failure_reason",
-      "created_at"
-    ],
-    "semantic_decision_answers": [
-      "id",
-      "workspace_id",
-      "project_id",
-      "experiment_id",
-      "dataset_id",
-      "llm_invocation_id",
-      "agent_run_id",
-      "decision_point_key",
-      "purpose",
-      "release_version",
-      "model_id",
-      "question_key",
-      "question_digest",
-      "data_class",
-      "evidence_partition",
-      "primitive",
-      "answer",
-      "probabilities",
-      "confidence",
-      "in_acting_band",
-      "rule_answer",
-      "agreement",
-      "level",
-      "policy_outcome",
-      "value_used",
-      "cache_hit",
-      "latency_ms",
-      "ground_truth",
-      "labeled_by_user_id",
-      "labeled_at",
-      "label_source",
-      "labels_version",
-      "supersedes_label_id",
-      "created_at"
-    ]
+  "validation_strategies": [
+   "StratifiedKFold",
+   "KFold",
+   "StratifiedGroupKFold",
+   "GroupKFold",
+   "TimeSeriesSplit",
+   "unsupported"
+  ],
+  "plan_split_strategies": [
+   "stratified_random",
+   "random",
+   "group_disjoint",
+   "temporal_future"
+  ],
+  "portfolio_families": {
+   "classification": [
+    "logistic_regression",
+    "random_forest",
+    "xgboost",
+    "lightgbm",
+    "catboost"
+   ],
+   "regression": [
+    "linear_regression",
+    "random_forest_regressor",
+    "xgboost_regressor",
+    "lightgbm_regressor",
+    "catboost_regressor"
+   ]
   },
-  "experience_vocabularies": {
-    "agent_events.type": [
-      "run_started",
-      "context_built",
-      "budget_reserved",
-      "user_message",
-      "llm_call_started",
-      "llm_call_finished",
-      "step_validated",
-      "step_rejected",
-      "tool_call_requested",
-      "tool_call_denied",
-      "tool_call_finished",
-      "proposal_created",
-      "proposal_auto_applied",
-      "assistant_message",
-      "clarification_requested",
-      "budget_exhausted",
-      "budget_settled",
-      "run_finished",
-      "run_failed",
-      "thread_closed",
-      "replay_checked"
+  "portfolio_source": "apps/api/app/engine/search/generator.py open_ingest_families (each family only when installed)",
+  "dummy_families": [
+   "majority",
+   "mean",
+   "median"
+  ],
+  "change_kinds": [
+   "hyperparameter_override",
+   "family_include",
+   "family_exclude",
+   "class_weighting",
+   "threshold_objective",
+   "metric_override",
+   "feature_transform_add",
+   "feature_transform_remove"
+  ],
+  "missing_value_transforms": [
+   "impute_median",
+   "impute_most_frequent",
+   "drop_column"
+  ],
+  "finding_statuses": [
+   "pass",
+   "warning",
+   "fail",
+   "not_evaluated"
+  ],
+  "code_pattern": "^[a-z][a-z0-9_]{0,63}$"
+ },
+ "plan_fields": {
+  "path": "apps/api/app/domain/run_plans.py",
+  "symbol": "PLAN_FIELDS",
+  "fields": {
+   "target.column": [
+    "target_column"
+   ],
+   "spec.objective": [
+    "primary_metric"
+   ],
+   "split.strategy": [
+    "split"
+   ],
+   "training.families_budget": [
+    "families",
+    "max_training_seconds"
+   ],
+   "column.missing_value_action": [
+    "missing_values"
+   ]
+  }
+ },
+ "decision_points": {
+  "path": "apps/api/app/agents/governance/decision_points.py",
+  "symbol": "REGISTRY (every point starts at L0; cap is the highest level code allows)",
+  "points": {
+   "target.column": {
+    "stage": "run_target_resolution",
+    "pattern": "ai_before",
+    "ai_kind": "agent:dataset_investigator",
+    "rule_id": "lab_decision_ledger.record_target_selection",
+    "effects": [
+     "proposal:problem_spec"
     ],
-    "project_decision_records.decision_type": [
-      "winner_locked",
-      "split_plan_created",
-      "ref_initialized",
-      "problem_spec_locked",
-      "ref_moved",
-      "champion_promoted",
-      "experiment_accepted",
-      "experiment_rejected",
-      "proposal_accepted",
-      "proposal_rejected",
-      "decision_point_resolved",
-      "proposal_reverted",
-      "operating_point_chosen"
+    "evidence_partition": "metadata",
+    "cap": 1
+   },
+   "spec.objective": {
+    "stage": "propose_problem_spec",
+    "pattern": "ai_before",
+    "ai_kind": "agent:experiment_planner",
+    "rule_id": "metric_planner.default_metric",
+    "effects": [
+     "proposal:problem_spec"
     ],
-    "project_decision_records.actor_kind": [
-      "human",
-      "rule",
-      "agent"
+    "evidence_partition": "metadata",
+    "cap": 1
+   },
+   "column.is_identifier": {
+    "stage": "run_column_roles",
+    "pattern": "cross_check",
+    "ai_kind": "jev:column.is_identifier",
+    "rule_id": "schema_inference.identifier.v1",
+    "effects": [
+     "exclusion"
     ],
-    "ml_run_events.status": [
-      "queued",
-      "running",
-      "completed",
-      "failed",
-      "skipped",
-      "started",
-      "fail",
-      "error",
-      "skip",
-      "not_applicable"
+    "evidence_partition": "metadata",
+    "cap": 1
+   },
+   "column.semantic_role": {
+    "stage": "run_column_roles",
+    "pattern": "cross_check",
+    "ai_kind": "jev:column.semantic_role",
+    "rule_id": "split_column_roles.v3",
+    "effects": [
+     "branch_change:feature_transform_add"
     ],
-    "ml_run_events.rules": {
-      "missing_status": "completed",
-      "intra_stage_prefixes": [
-        "cv_fold_",
-        "candidate_"
-      ],
-      "terminal_stage": "terminal",
-      "terminal_event": "pipeline_terminal",
-      "source": "apps/api/app/services/workflow_execution_service.py: _stage_status, apply_live_stage_from_event"
-    },
-    "agent_runs.status": [
-      "queued",
-      "running",
-      "waiting_user",
-      "completed",
-      "failed",
-      "rejected_by_validator",
-      "over_budget",
-      "timed_out",
-      "cancelled",
-      "closed"
+    "evidence_partition": "metadata",
+    "cap": 2
+   },
+   "column.missing_value_action": {
+    "stage": "run_train_only_decisions",
+    "pattern": "ai_before",
+    "ai_kind": "agent:dataset_investigator",
+    "rule_id": "missing_value_rules.v1",
+    "effects": [
+     "branch_change:feature_transform_add"
     ],
-    "agent_runs.kind": [
-      "assistant",
-      "lead",
-      "specialist",
-      "ops"
+    "evidence_partition": "train",
+    "cap": 2
+   },
+   "feature.leakage_suspect": {
+    "stage": "run_train_only_decisions",
+    "pattern": "cross_check",
+    "ai_kind": "jev:feature.leakage_suspect",
+    "rule_id": "leakage_auditor.v1",
+    "effects": [
+     "flag"
     ],
-    "semantic_decision_answers.primitive": [
-      "noul",
-      "choice",
-      "score"
+    "evidence_partition": "train",
+    "cap": 1
+   },
+   "split.strategy": {
+    "stage": "run_holdout_lock",
+    "pattern": "ai_before",
+    "ai_kind": "agent:experiment_planner",
+    "rule_id": "holdout_planner.v1",
+    "effects": [
+     "split_plan"
     ],
-    "semantic_decision_answers.agreement": [
-      "agree",
-      "disagree",
-      "abstain",
-      "unavailable"
+    "evidence_partition": "metadata",
+    "cap": 1
+   },
+   "training.families_budget": {
+    "stage": "run_preprocessing_setup",
+    "pattern": "ai_before",
+    "ai_kind": "agent:experiment_planner",
+    "rule_id": "portfolio.v1",
+    "effects": [
+     "search_config"
     ],
-    "semantic_decision_answers.policy_outcome": [
-      "rule",
-      "ai",
-      "review",
-      "human"
+    "evidence_partition": "train",
+    "cap": 2
+   },
+   "experiment.review": {
+    "stage": "agents.run",
+    "pattern": "ai_after",
+    "ai_kind": "agent:experiment_critic",
+    "rule_id": "pipeline_verifier.v1",
+    "effects": [
+     "none"
     ],
-    "semantic_decision_answers.label_source": [
-      "blind",
-      "benchmark",
-      "user_decision_exposed"
+    "evidence_partition": "train",
+    "cap": 1
+   },
+   "improve.next_action": {
+    "stage": "labs.improve",
+    "pattern": "cross_check",
+    "ai_kind": "agent:improvement_hypothesis",
+    "rule_id": "rule_proposer.v1",
+    "effects": [
+     "proposal:experiment_change"
     ],
-    "semantic_decision_answers.level": [
-      0,
-      1,
-      2,
-      3
+    "evidence_partition": "train",
+    "cap": 1
+   },
+   "ops.diagnose": {
+    "stage": "monitoring.drift_window",
+    "pattern": "ai_after",
+    "ai_kind": "agent:dataset_investigator",
+    "rule_id": "drift_finding.v1",
+    "effects": [
+     "notify"
     ],
-    "jev.purposes": [
-      "column.is_identifier",
-      "column.semantic_role",
-      "feature.leakage_suspect",
-      "command.intent_route",
-      "proposal.completeness"
+    "evidence_partition": "train",
+    "cap": 3
+   },
+   "ops.retrain": {
+    "stage": "ops.agent",
+    "pattern": "ai_before",
+    "ai_kind": "agent:ops",
+    "rule_id": null,
+    "effects": [
+     "job:experiments.run"
     ],
-    "jev.bands": {
-      "dtype": [
-        "integer",
-        "float",
-        "boolean",
-        "datetime",
-        "string",
-        "categorical",
-        "other"
-      ],
-      "ratio": [
-        "none",
-        "under_1pct",
-        "from_1_to_10pct",
-        "from_10_to_50pct",
-        "from_50_to_90pct",
-        "from_90_to_99pct",
-        "over_99pct",
-        "all"
-      ],
-      "cardinality": [
-        "constant",
-        "binary",
-        "low",
-        "medium",
-        "high",
-        "very_high"
-      ],
-      "value_pattern": [
-        "digits",
-        "mixed",
-        "date_like",
-        "long_text",
-        "short_text",
-        "not_text"
-      ],
-      "task": [
-        "binary_classification",
-        "multiclass_classification",
-        "regression"
-      ],
-      "role": [
-        "numeric",
-        "categorical_code",
-        "identifier",
-        "datetime",
-        "free_text",
-        "other"
-      ],
-      "availability": [
-        "before_prediction",
-        "after_outcome",
-        "unknown"
-      ],
-      "count": [
-        "none",
-        "one",
-        "several"
-      ]
-    },
-    "jev.acting_bands": {
-      "column.is_identifier": {
-        "yes_at": 0.9,
-        "no_at": 0.1
-      },
-      "feature.leakage_suspect": {
-        "yes_at": 0.9,
-        "no_at": null
-      },
-      "column.semantic_role": {
-        "confidence_at": 0.8
-      },
-      "command.intent_route": {
-        "confidence_at": 0.8
-      },
-      "proposal.completeness": {}
-    }
+    "evidence_partition": "metadata",
+    "cap": 2
+   },
+   "ops.release": {
+    "stage": "ops.agent",
+    "pattern": "ai_before",
+    "ai_kind": "agent:ops",
+    "rule_id": "release_gate.v1",
+    "effects": [
+     "proposal:model_release"
+    ],
+    "evidence_partition": "train",
+    "cap": 1
+   },
+   "ops.rollback": {
+    "stage": "ops.agent",
+    "pattern": "ai_before",
+    "ai_kind": "agent:ops",
+    "rule_id": "ops.rollback_threshold.v1",
+    "effects": [
+     "proposal:ref_move"
+    ],
+    "evidence_partition": "train",
+    "cap": 1
+   },
+   "command.intent_route": {
+    "stage": "assistant.turn",
+    "pattern": "ai_before",
+    "ai_kind": "jev:command.intent_route",
+    "rule_id": null,
+    "effects": [
+     "none"
+    ],
+    "evidence_partition": "metadata",
+    "cap": 1
+   },
+   "proposal.completeness": {
+    "stage": "proposal.validated",
+    "pattern": "ai_after",
+    "ai_kind": "jev:proposal.completeness",
+    "rule_id": "validator_verdict",
+    "effects": [
+     "none"
+    ],
+    "evidence_partition": "metadata",
+    "cap": 0
+   }
   },
-  "experience_payload_keys": {
-    "user_message": [
-      "message"
-    ],
-    "assistant_message": [
-      "kind",
-      "message",
-      "citations",
-      "llm_used",
-      "fallback",
-      "templated",
-      "actions"
-    ],
-    "tool_call_finished": [
-      "call",
-      "tool",
-      "argument_digest",
-      "ok",
-      "code",
-      "proposal_id",
-      "preview"
-    ],
-    "tool_call_denied": [
-      "call",
-      "tool",
-      "code",
-      "hook"
-    ],
-    "step_rejected": [
-      "call",
-      "reason",
-      "refusal",
-      "reasons"
-    ],
-    "run_failed": [
-      "status",
-      "error_code",
-      "proposal_ids"
-    ],
-    "proposal_created": [
-      "proposal_id",
-      "tool",
-      "type",
-      "status",
-      "code"
-    ],
-    "llm_invocations.currency": "USD (apps/api/app/agents/gateway/budget.py CURRENCY)"
-  },
-  "experience_read_on": "2026-10-13",
-  "lineage_read_on": "2026-10-14 (experiments and pipeline_stage_runs from apps/api/app/db/models.py; agent_runs statuses and kinds from apps/api/app/domain/agent_records.py)",
-  "ledger_read_on": "2026-10-14 (semantic_decision_answers from apps/api/app/db/models.py; vocabularies from apps/api/app/domain/agent_records.py; Jev's bands and acting bands from apps/api/app/agents/semantic/releases.py, its raw answer {value} from semantic/policy.py and typesafe_jev.py)",
-  "pipeline_read_on": "2026-10-15 (pipeline_versions: graph_definition JSONB, config JSONB, content_digest String(64) from apps/api/app/db/models.py; content_digest = SHA-256 of json.dumps({config, graph_definition}, sort_keys, compact separators, default=str) from apps/api/app/services/workflow_execution_service.py)",
-  "pipeline_version_fields": [
-    "id",
-    "workspace_id",
-    "project_id",
-    "pipeline_id",
-    "workflow_version_id",
-    "version",
-    "graph_definition",
-    "config",
-    "content_digest",
-    "created_at",
-    "locked_at"
+  "lead_tools": [
+   "create_problem_spec",
+   "propose_problem_spec",
+   "record_decision",
+   "request_agent_review",
+   "move_ref",
+   "run_experiment",
+   "branch_experiment",
+   "predict"
   ]
+ },
+ "files_read": [
+  "apps/api/app/agents/assistant/service.py",
+  "apps/api/app/agents/classes/common.py",
+  "apps/api/app/agents/classes/dataset_investigator.py",
+  "apps/api/app/agents/classes/experiment_critic.py",
+  "apps/api/app/agents/classes/experiment_planner.py",
+  "apps/api/app/agents/gateway/budget.py",
+  "apps/api/app/agents/gateway/contract.py",
+  "apps/api/app/agents/gateway/service.py",
+  "apps/api/app/agents/governance/decision_points.py",
+  "apps/api/app/agents/harness/service.py",
+  "apps/api/app/agents/prompt_releases.py",
+  "apps/api/app/api/v1.py",
+  "apps/api/app/db/models.py",
+  "apps/api/app/domain/agent_records.py",
+  "apps/api/app/domain/decision_records.py",
+  "apps/api/app/domain/experiment_changes.py",
+  "apps/api/app/domain/observability.py",
+  "apps/api/app/domain/operating_points.py",
+  "apps/api/app/domain/run_plans.py",
+  "apps/api/app/domain/workspace_identity.py",
+  "apps/api/app/engine/features/contract.py",
+  "apps/api/app/engine/modeling/holdout_planner.py",
+  "apps/api/app/engine/modeling/leakage_auditor.py",
+  "apps/api/app/engine/modeling/metric_planner.py",
+  "apps/api/app/engine/modeling/objective.py",
+  "apps/api/app/engine/modeling/problem_profile.py",
+  "apps/api/app/engine/modeling/validation_planner.py",
+  "apps/api/app/engine/models/registry.py",
+  "apps/api/app/engine/reporting/report.py",
+  "apps/api/app/engine/search/generator.py",
+  "apps/api/app/services/auto_train/decision_points.py",
+  "apps/api/app/services/auto_train/decisions.py",
+  "apps/api/app/services/auto_train/finalize.py",
+  "apps/api/app/services/auto_train/holdout.py",
+  "apps/api/app/services/auto_train/load_profile.py",
+  "apps/api/app/services/auto_train/plan_points.py",
+  "apps/api/app/services/auto_train_service.py",
+  "apps/api/app/services/decision_point_service.py",
+  "apps/api/app/services/problem_spec_service.py",
+  "apps/api/app/services/run_plan_service.py",
+  "apps/api/app/services/technical_run_report.py",
+  "apps/api/app/services/workflow_execution_service.py",
+  "apps/api/tests/test_benchmark_harness.py",
+  "apps/web/lib/application/studio-wizard.ts",
+  "benchmarks/harness/run.py",
+  "docs/adr/0007-improve-loop.md",
+  "apps/api/app/agents/semantic/releases.py",
+  "apps/api/app/agents/semantic/policy.py",
+  "apps/api/app/agents/semantic/typesafe_jev.py",
+  "apps/api/app/agents/semantic/port.py"
+ ],
+ "experience_tables": {
+  "agent_runs": [
+   "id",
+   "workspace_id",
+   "project_id",
+   "kind",
+   "agent_key",
+   "agent_version",
+   "prompt_release_id",
+   "runtime",
+   "runtime_version",
+   "provider",
+   "model",
+   "purpose",
+   "decision_point_key",
+   "subject_kind",
+   "experiment_id",
+   "dataset_id",
+   "problem_spec_id",
+   "split_plan_id",
+   "model_version_id",
+   "parent_run_id",
+   "context_digest",
+   "policy_digest",
+   "tool_catalog_digest",
+   "data_class",
+   "outcome_scope",
+   "status",
+   "limits",
+   "usage",
+   "held_micros",
+   "cost_micros",
+   "currency",
+   "error_code",
+   "idempotency_key",
+   "idempotency_digest",
+   "created_by_user_id",
+   "created_by_service_token_id",
+   "title",
+   "page_context",
+   "last_activity_at",
+   "started_at",
+   "finished_at",
+   "budget_released_at",
+   "created_at"
+  ],
+  "agent_events": [
+   "id",
+   "workspace_id",
+   "run_id",
+   "seq",
+   "type",
+   "payload",
+   "payload_digest",
+   "llm_invocation_id",
+   "created_at"
+  ],
+  "llm_invocations": [
+   "id",
+   "workspace_id",
+   "workflow_run_id",
+   "experiment_id",
+   "project_id",
+   "agent_run_id",
+   "provider_kind",
+   "purpose",
+   "provider",
+   "model",
+   "mode",
+   "prompt_version",
+   "schema_version",
+   "input_evidence_digest",
+   "redaction_summary",
+   "llm_used",
+   "reason",
+   "status",
+   "validator_verdict",
+   "safe_output",
+   "final_decision",
+   "latency_ms",
+   "input_tokens",
+   "output_tokens",
+   "total_tokens",
+   "estimated_cost",
+   "started_at",
+   "completed_at",
+   "created_at",
+   "prompt_release_id",
+   "cache_hit",
+   "cost_micros",
+   "currency",
+   "data_class",
+   "outcome_scope",
+   "agent_role",
+   "decision_point_key",
+   "refusal_code",
+   "budget_reservation_id",
+   "budget_settled",
+   "provider_request_id",
+   "provider_resolved_model"
+  ],
+  "project_decision_records": [
+   "id",
+   "workspace_id",
+   "project_id",
+   "decision_type",
+   "state",
+   "subject_kind",
+   "problem_spec_id",
+   "dataset_id",
+   "split_plan_id",
+   "feature_set_version_id",
+   "experiment_id",
+   "candidate_id",
+   "model_version_id",
+   "subject_digest",
+   "actor_kind",
+   "actor_user_id",
+   "actor_rule",
+   "actor_agent_run_id",
+   "actor_service_token_id",
+   "rationale",
+   "rationale_untrusted",
+   "facts",
+   "evidence_refs",
+   "details",
+   "schema_version",
+   "policy_version",
+   "supersedes_id",
+   "idempotency_key",
+   "event_at",
+   "recorded_at"
+  ],
+  "ml_run_events": [
+   "id",
+   "workspace_id",
+   "workflow_run_id",
+   "experiment_id",
+   "sequence",
+   "stage",
+   "event_type",
+   "status",
+   "timestamp",
+   "duration_ms",
+   "payload",
+   "created_at"
+  ],
+  "experiments": [
+   "id",
+   "workspace_id",
+   "project_id",
+   "workflow_run_id",
+   "pipeline_id",
+   "pipeline_version_id",
+   "run_number",
+   "pipeline_name",
+   "pipeline_index",
+   "pipeline_purpose",
+   "environment_id",
+   "task_id",
+   "dataset_id",
+   "parent_pipeline_run_id",
+   "branch_key",
+   "branch_reason",
+   "source_dataset_id",
+   "split_plan_id",
+   "intent",
+   "change_set",
+   "status",
+   "failure_reason",
+   "config",
+   "result",
+   "artifact_dir",
+   "git_commit",
+   "seed",
+   "started_at",
+   "ended_at",
+   "scientific_evidence_locked_at",
+   "created_at"
+  ],
+  "pipeline_stage_runs": [
+   "id",
+   "workspace_id",
+   "project_id",
+   "pipeline_run_id",
+   "stage_key",
+   "stage_type",
+   "sequence",
+   "name",
+   "status",
+   "started_at",
+   "completed_at",
+   "duration_ms",
+   "input_summary",
+   "output_summary",
+   "failure_code",
+   "failure_reason",
+   "created_at"
+  ],
+  "semantic_decision_answers": [
+   "id",
+   "workspace_id",
+   "project_id",
+   "experiment_id",
+   "dataset_id",
+   "llm_invocation_id",
+   "agent_run_id",
+   "decision_point_key",
+   "purpose",
+   "release_version",
+   "model_id",
+   "question_key",
+   "question_digest",
+   "data_class",
+   "evidence_partition",
+   "primitive",
+   "answer",
+   "probabilities",
+   "confidence",
+   "in_acting_band",
+   "rule_answer",
+   "agreement",
+   "level",
+   "policy_outcome",
+   "value_used",
+   "cache_hit",
+   "latency_ms",
+   "ground_truth",
+   "labeled_by_user_id",
+   "labeled_at",
+   "label_source",
+   "labels_version",
+   "supersedes_label_id",
+   "created_at"
+  ]
+ },
+ "experience_vocabularies": {
+  "agent_events.type": [
+   "run_started",
+   "context_built",
+   "budget_reserved",
+   "user_message",
+   "llm_call_started",
+   "llm_call_finished",
+   "step_validated",
+   "step_rejected",
+   "tool_call_requested",
+   "tool_call_denied",
+   "tool_call_finished",
+   "proposal_created",
+   "proposal_auto_applied",
+   "assistant_message",
+   "clarification_requested",
+   "budget_exhausted",
+   "budget_settled",
+   "run_finished",
+   "run_failed",
+   "thread_closed",
+   "replay_checked"
+  ],
+  "project_decision_records.decision_type": [
+   "winner_locked",
+   "split_plan_created",
+   "ref_initialized",
+   "problem_spec_locked",
+   "ref_moved",
+   "champion_promoted",
+   "experiment_accepted",
+   "experiment_rejected",
+   "proposal_accepted",
+   "proposal_rejected",
+   "decision_point_resolved",
+   "proposal_reverted",
+   "operating_point_chosen"
+  ],
+  "project_decision_records.actor_kind": [
+   "human",
+   "rule",
+   "agent"
+  ],
+  "ml_run_events.status": [
+   "queued",
+   "running",
+   "completed",
+   "failed",
+   "skipped",
+   "started",
+   "fail",
+   "error",
+   "skip",
+   "not_applicable"
+  ],
+  "ml_run_events.rules": {
+   "missing_status": "completed",
+   "intra_stage_prefixes": [
+    "cv_fold_",
+    "candidate_"
+   ],
+   "terminal_stage": "terminal",
+   "terminal_event": "pipeline_terminal",
+   "source": "apps/api/app/services/workflow_execution_service.py: _stage_status, apply_live_stage_from_event"
+  },
+  "agent_runs.status": [
+   "queued",
+   "running",
+   "waiting_user",
+   "completed",
+   "failed",
+   "rejected_by_validator",
+   "over_budget",
+   "timed_out",
+   "cancelled",
+   "closed"
+  ],
+  "agent_runs.kind": [
+   "assistant",
+   "lead",
+   "specialist",
+   "ops"
+  ],
+  "semantic_decision_answers.primitive": [
+   "noul",
+   "choice",
+   "score"
+  ],
+  "semantic_decision_answers.agreement": [
+   "agree",
+   "disagree",
+   "abstain",
+   "unavailable"
+  ],
+  "semantic_decision_answers.policy_outcome": [
+   "rule",
+   "ai",
+   "review",
+   "human"
+  ],
+  "semantic_decision_answers.label_source": [
+   "blind",
+   "benchmark",
+   "user_decision_exposed"
+  ],
+  "semantic_decision_answers.level": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "jev.purposes": [
+   "column.is_identifier",
+   "column.semantic_role",
+   "feature.leakage_suspect",
+   "command.intent_route",
+   "proposal.completeness"
+  ],
+  "jev.bands": {
+   "dtype": [
+    "integer",
+    "float",
+    "boolean",
+    "datetime",
+    "string",
+    "categorical",
+    "other"
+   ],
+   "ratio": [
+    "none",
+    "under_1pct",
+    "from_1_to_10pct",
+    "from_10_to_50pct",
+    "from_50_to_90pct",
+    "from_90_to_99pct",
+    "over_99pct",
+    "all"
+   ],
+   "cardinality": [
+    "constant",
+    "binary",
+    "low",
+    "medium",
+    "high",
+    "very_high"
+   ],
+   "value_pattern": [
+    "digits",
+    "mixed",
+    "date_like",
+    "long_text",
+    "short_text",
+    "not_text"
+   ],
+   "task": [
+    "binary_classification",
+    "multiclass_classification",
+    "regression"
+   ],
+   "role": [
+    "numeric",
+    "categorical_code",
+    "identifier",
+    "datetime",
+    "free_text",
+    "other"
+   ],
+   "availability": [
+    "before_prediction",
+    "after_outcome",
+    "unknown"
+   ],
+   "count": [
+    "none",
+    "one",
+    "several"
+   ]
+  },
+  "jev.acting_bands": {
+   "column.is_identifier": {
+    "yes_at": 0.9,
+    "no_at": 0.1
+   },
+   "feature.leakage_suspect": {
+    "yes_at": 0.9,
+    "no_at": null
+   },
+   "column.semantic_role": {
+    "confidence_at": 0.8
+   },
+   "command.intent_route": {
+    "confidence_at": 0.8
+   },
+   "proposal.completeness": {}
+  }
+ },
+ "experience_payload_keys": {
+  "user_message": [
+   "message"
+  ],
+  "assistant_message": [
+   "kind",
+   "message",
+   "citations",
+   "llm_used",
+   "fallback",
+   "templated",
+   "actions"
+  ],
+  "tool_call_finished": [
+   "call",
+   "tool",
+   "argument_digest",
+   "ok",
+   "code",
+   "proposal_id",
+   "preview"
+  ],
+  "tool_call_denied": [
+   "call",
+   "tool",
+   "code",
+   "hook"
+  ],
+  "step_rejected": [
+   "call",
+   "reason",
+   "refusal",
+   "reasons"
+  ],
+  "run_failed": [
+   "status",
+   "error_code",
+   "proposal_ids"
+  ],
+  "proposal_created": [
+   "proposal_id",
+   "tool",
+   "type",
+   "status",
+   "code"
+  ],
+  "llm_invocations.currency": "USD (apps/api/app/agents/gateway/budget.py CURRENCY)"
+ },
+ "experience_read_on": "2026-10-13",
+ "lineage_read_on": "2026-10-14 (experiments and pipeline_stage_runs from apps/api/app/db/models.py; agent_runs statuses and kinds from apps/api/app/domain/agent_records.py)",
+ "ledger_read_on": "2026-10-14 (semantic_decision_answers from apps/api/app/db/models.py; vocabularies from apps/api/app/domain/agent_records.py; Jev's bands and acting bands from apps/api/app/agents/semantic/releases.py, its raw answer {value} from semantic/policy.py and typesafe_jev.py)",
+ "pipeline_read_on": "2026-10-15 (pipeline_versions: graph_definition JSONB, config JSONB, content_digest String(64) from apps/api/app/db/models.py; content_digest = SHA-256 of json.dumps({config, graph_definition}, sort_keys, compact separators, default=str) from apps/api/app/services/workflow_execution_service.py)",
+ "pipeline_version_fields": [
+  "id",
+  "workspace_id",
+  "project_id",
+  "pipeline_id",
+  "workflow_version_id",
+  "version",
+  "graph_definition",
+  "config",
+  "content_digest",
+  "created_at",
+  "locked_at"
+ ],
+ "jev_releases": {
+  "_source": "apps/api/app/agents/semantic/releases.py at the recorded commit (RELEASES), read 2026-10-15 for 22.7",
+  "column.is_identifier": {
+   "version": 1,
+   "primitive": "noul",
+   "subject_fields": [
+    "column",
+    "dtype",
+    "name_tokens",
+    "uniqueness",
+    "nulls"
+   ],
+   "context_fields": [],
+   "yes_at": 0.9,
+   "no_at": 0.1,
+   "max_level": 1
+  },
+  "column.semantic_role": {
+   "version": 1,
+   "primitive": "choice",
+   "subject_fields": [
+    "column",
+    "dtype",
+    "cardinality",
+    "value_pattern",
+    "nulls"
+   ],
+   "context_fields": [],
+   "choices": [
+    "numeric",
+    "categorical_code",
+    "identifier",
+    "datetime",
+    "free_text",
+    "other"
+   ],
+   "confidence_at": 0.8,
+   "max_level": 2
+  },
+  "feature.leakage_suspect": {
+   "version": 1,
+   "primitive": "noul",
+   "subject_fields": [
+    "column",
+    "dtype",
+    "availability"
+   ],
+   "context_fields": [
+    "target",
+    "task"
+   ],
+   "yes_at": 0.9,
+   "no_at": null,
+   "max_level": 1
+  }
+ },
+ "r3": {
+  "_source": "apps/api/app/services/r3_evaluation_service.py and alembic 0077_r3_runs.py at the recorded commit, read 2026-10-15 for 22.7",
+  "points": [
+   "column.is_identifier",
+   "column.semantic_role",
+   "feature.leakage_suspect"
+  ],
+  "answerer": "Callable[[JevRelease, list[Case]], list[Answer]]; Answer = tuple[dict, float | None] | None: a yes/no's value is the probability of yes (confidence None), a choice's value is its label with its confidence, None is unavailable",
+  "case_fields": [
+   "dataset",
+   "variant",
+   "partition",
+   "purpose",
+   "column",
+   "fields",
+   "context",
+   "rule",
+   "label",
+   "weight",
+   "source",
+   "accepts"
+  ],
+  "partitions": [
+   "development",
+   "sealed"
+  ],
+  "runs_columns": [
+   "id",
+   "candidate",
+   "live",
+   "pair_release",
+   "model_id",
+   "content_digest",
+   "run_digest",
+   "cases",
+   "report",
+   "created_at",
+   "recorded_at"
+  ],
+  "metrics": [
+   "total",
+   "n",
+   "unavailable_rate",
+   "rule_accuracy_all",
+   "ai_policy_accuracy_all",
+   "rule_accuracy",
+   "ai_policy_accuracy",
+   "ai_in_band_accuracy",
+   "disagreement_rate",
+   "abstain_rate",
+   "in_band",
+   "gap"
+  ],
+  "not_null": {
+   "semantic_decision_answers.llm_invocation_id": "a foreign key to llm_invocations: every answer row there comes from a model call"
+  }
+ }
 }

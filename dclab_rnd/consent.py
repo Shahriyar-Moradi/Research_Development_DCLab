@@ -173,6 +173,28 @@ def export_decisions(records: Iterable[Any], labels: Iterable[Any], workspace: d
     return out
 
 
+def export_main_product(records: Iterable[Any], labels: Iterable[Any], workspace: dict[str, bool],
+                        projects: dict[str, dict[str, Any]], drafts: dict[str, str] | None = None) -> dict[str, Any]:
+    """22.7: the decisions of the main product's Jev purposes in its label format (``semantic_decision_answers``'
+    ``ground_truth``, ``label_source`` and ``labels_version``), through the one way records leave (``export_decisions``:
+    refused without ``train``, bands only, nobody named). A label source it has no word for (``measured``) stays here
+    and is counted; nothing is sent by this function: what the main product receives, and under which of its own
+    consents (its ADR 0008), is its change."""
+    from dclab_core.adapters.main_product_r3 import label_rows, releases
+
+    points = set(releases())
+    out, left = [], {}
+    for doc in export_decisions(records, labels, workspace, projects, drafts):
+        if doc["point"] not in points:
+            continue
+        rows, skipped = label_rows(doc["labels"], answer_id=doc["id"])  # the main product maps this record to its answer row
+        for k, v in skipped.items():
+            left[k] = left.get(k, 0) + v
+        out.append({"decision": {k: doc.get(k) for k in ("id", "point", "subject", "state", "options", "answers", "value_used", "used", "level")},
+                    "labels": rows})
+    return {"decisions": out, "left_out": left, "points": sorted(points)}
+
+
 def tombstone(kind: str, ident: str) -> dict[str, Any]:
     """What a deletion leaves behind: what was deleted, never what it held."""
     from datetime import datetime, timezone
@@ -184,5 +206,5 @@ def consented_projects(projects: Any, workspace: dict[str, bool], use: str) -> d
     return {p["id"]: p for p in projects.list() if allowed(workspace, p, use)}
 
 
-__all__ = ["USES", "workspace_consent", "set_workspace_consent", "project_consent", "allowed", "export_events", "export_decisions",
+__all__ = ["USES", "workspace_consent", "set_workspace_consent", "project_consent", "allowed", "export_events", "export_decisions", "export_main_product",
            "ConsentRefused", "tombstone", "consented_projects", "draft_projects"]

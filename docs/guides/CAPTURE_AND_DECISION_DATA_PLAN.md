@@ -504,6 +504,23 @@ by the same gates; the ledger feeds all of them, each in its own training format
   consent decided (off by default, customer data once on; its ADR 0008 amended there).
 - **Done when:** the mapping is a tested adapter in `dclab_core`, and an R3-shaped run on generated cases compares a
   classifier with the rule.
+- **Status: done on DCLab's side (2026-10-15).** `dclab_core/adapters/main_product_r3.py` (dclab-core 0.34.0): a DCLab
+  answerer as the main product's R3 `Answerer` (`R3Answerer`: a yes or no as the probability of yes, a choice as its
+  label with its confidence, the state as the main product sends it for the purpose, the column read from its case);
+  the R3-shaped reading (`run`): its bands, its level-2 policy (at semantic_role a model overrides only between numeric
+  and categorical_code, and only a value its validator accepts), every statistic on the answered cases, one-sided 95%
+  bounds by table cluster, Kish-weighted precision per band, the ai_off ablation, and an `r3_runs` row whose report
+  carries its run id, time and digests as the main product verifies them; `answer_rows` and `label_rows` (versions
+  numbered after DCLab's `measured` labels are left out, each label superseding the one before, the answer row's
+  columns copied); `consent.export_main_product`, the only way labelled decisions leave for it (the `train` consent,
+  Jev purposes only). The existing `to_semantic_answer` wrote a classifier's confident no as a yes; fixed. `make
+  decision-r3` on 600 generated dev cases per purpose (`R3D-002`; `R3D-001` scored the role point without the level-2
+  rule): the role classifier's gap over the rule is +6.2 points as trained [+4.8, +7.5] and +6.3 on the state the
+  main product sends; the leakage classifier +4.5 as trained and +2.8 as sent (only 22 of 600 in its band: no
+  availability exists here); the identifier classifier loses 5 points on the narrower state (the rule is exact on
+  these cases). Left open, the main product's own changes: the answerer wired beside its `port_answerer`, an
+  invocation row for a classifier's answers (`llm_invocation_id` is NOT NULL there) or that column relaxed, and the
+  ADR 0008 amendment; its R3 gates need its blind labels.
 
 ---
 

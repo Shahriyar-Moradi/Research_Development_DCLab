@@ -255,3 +255,19 @@ its label, and `to_semantic_answer(record, ...)` writes a record back as that ro
 trained in this studio (Part 11) answers there through the same columns, as another answerer beside Jev, shadow first
 and promoted only through its own R3 gates. `from_decision_record` reads `project_decision_records` at their points.
 What its side adds for 19.7: the state itself (the bands its caller already builds for Jev, kept beside the digest).
+
+## A decision model of this studio in the main product's R3 (22.7)
+
+`adapters.main_product_r3` gives a DCLab answerer (a fitted classifier, `answerers.ClassifierAnswerer`) the shape the
+main product's R3 run calls: `R3Answerer(model)(release, cases)` returns one `({"value": ...}, confidence)` per case (a
+yes or no as the probability of yes, a choice as its label with its confidence, None when it does not answer), reading
+each case's state as the main product sends it for the purpose (`project`: its release's subject and context fields).
+Where it goes there: beside `ai_off`, `ScriptedAnswerer` and `port_answerer` in `r3_evaluation_service.py`, as the
+answerer of an R3 run with a `dclab:<name>@<version>` candidate; promotion stays its own R3 gates (blind labels, level
+caps). What its side changes before any row is written: a classifier makes no model call, and
+`semantic_decision_answers.llm_invocation_id` is NOT NULL, so its answer rows need an invocation row of their own or
+that column relaxed (ADR 0008). `run` reads an R3-shaped run here (by partition and label source, the ai_off
+ablation, the digests as its report's) and `answer_rows` / `label_rows` write its rows' content;
+`dclab_rnd.consent.export_main_product` is the only way labelled decisions leave this studio for it (the `train`
+consent, Jev purposes only, its label format; DCLab's `measured` labels stay here). `make decision-r3` runs the reading
+on generated cases.
