@@ -220,12 +220,22 @@ same commit, a reviewer pass, and `make check-commit`; a milestone's end gets `c
   The stores learn their workspace folder when opened, so the worker and a direct writer stamp as the server does.
 
 ### 23.2 The browser's events
-- **Delivers:** `ui.page_viewed`, `ui.action` (route pattern, element name, duration), `ui.upload_started`,
+- **Delivers:** `ui.page_viewed` (view, pane, route), `ui.action` (view, element name, target), `ui.upload_started`,
   `ui.upload_finished`, `ui.error_shown`, batched from `core.js` to `POST /api/experience/ui` with the visit; never a
   form's contents or a query string; off for a signed-out page; the browser test (`make browser-test`) checks a page
   view lands with its visit.
 - **Done when:** opening Home, the wizard and a project leaves the page views and the actions in the visit's timeline.
 - **Decision D4** (the owner, for the main product): capture at route and action level for business users too.
+- **Status: done (2026-10-15).** dclab-core 0.39.0 (the five kinds, `UI_KINDS`, `ui_payload`); `POST /api/experience/ui`
+  (any signed-in role; at most 50 a batch; a value that is not a route, an element's name or a code is refused, so a
+  form's contents never enter); `core.js` notes a page view at every `show`, an action at every button, link or data
+  element clicked (its id or data name, never its text), an error shown at every failed toast or load, and Home notes
+  an upload's start and end; batched twenty at a time or every two seconds and on page hide (kept alive through the
+  unload); `make browser-test` has the check `ui` (a click, the Learn page and the wizard in the browser's own
+  visit's timeline). The reviewer's pass moved the contract to `experience_event.v4` (a kind vocabulary is part of
+  a contract's shape; v1 to v3 read as v4), made a signed-out page record nothing (a quiet request never opens the
+  sign-in box), and refused an infinite count. Open: a page-side rule, not a check, keeps element ids fixed words
+  (never a column's or a file's name).
 
 ### 23.3 Sign-in and session events
 - **Delivers:** `auth.sign_in`, `auth.sign_in_failed` (reason code), `auth.sign_out`, `auth.session_expired`,
@@ -234,6 +244,15 @@ same commit, a reviewer pass, and `make check-commit`; a milestone's end gets `c
   octet removed; a sign-in session id on the visit.
 - **Done when:** a failed sign-in and a revoked token appear on the Sessions page with their reasons; nothing in them
   is a secret.
+- **Status: done (2026-10-15).** dclab-core 0.40.0 (the eight kinds, `hash_user_agent`, `truncate_ip`); the accounts
+  API writes a sign-in (password or identity provider) with its session id, a failed sign-in with its reason code
+  (`bad_credentials`, `no_workspace`), a sign-out, a token's creation (its name as the person's words) and revocation,
+  a workspace switch and a role change (by the owner or the identity provider's groups) into the user's workspace's
+  record, as the person, under the visit where there is one; an expired session is said once, by the request whose
+  delete removed it. A password, a token or a raw address never enters; the audit keeps its rows as before. The
+  reviewer's pass: another workspace's record is opened whole from the pool so its stamp is its own (a bare log is
+  stamped `operate`); a failed sign-in is one event a minute per address and browser; the IPv6 prefix never keeps a
+  host group; the identity-provider sign-in carries its session id too; a bearer caller's sign-out writes no event.
 
 ### 23.4 Errors with fingerprints
 - **Delivers:** every `error.raised` carries a fingerprint (the exception type and the top frame inside our code), the

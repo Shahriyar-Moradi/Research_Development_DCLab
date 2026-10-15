@@ -63,20 +63,40 @@ class ContractTest(unittest.TestCase):
                 self.assertEqual(x.ExperienceEvent.read(event.model_dump_json()), event)
                 self.assertEqual(set(event.classes.values()), set(fields.values()))
 
-    def test_a_v2_event_reads_as_v3_at_operate_and_a_stamp_is_kept(self):
+    def test_a_v2_event_reads_as_v4_at_operate_and_a_stamp_is_kept(self):
         import json
 
         e = x.make("chat.person", "person", IDS, {"text": "hi", "surface": "home"}, id="ev000001", at=at(0), consent="train")
         self.assertEqual(e.consent, "train")
         doc = json.loads(e.model_dump_json())
         old = {k: v for k, v in doc.items() if k != "consent"} | {"schema_version": "dclab_core.experience_event.v2"}
-        self.assertEqual((x.ExperienceEvent.read(old).schema_version, x.ExperienceEvent.read(old).consent), ("dclab_core.experience_event.v3", "operate"))
+        self.assertEqual((x.ExperienceEvent.read(old).schema_version, x.ExperienceEvent.read(old).consent), ("dclab_core.experience_event.v4", "operate"))
         self.assertEqual(x.ExperienceEvent.read(doc).consent, "train")
         with self.assertRaises(Exception):
             x.make("chat.person", "person", IDS, {"text": "hi"}, id="ev000002", at=at(0), consent="whatever")
         changed = x.make("consent.changed", "person", IDS, {"scope": "workspace", "use": "train", "on": True, "was": False, "level": "train",
                                                            "notice_version": "2026-10-15"}, id="ev000003", at=at(1))
         self.assertEqual(set(changed.classes.values()), {"meta"})
+
+    def test_an_ipv6_prefix_never_keeps_a_host_group_and_a_count_is_finite(self):
+        self.assertEqual(x.truncate_ip("2001:db8::1"), "2001:db8:0::")
+        self.assertEqual(x.truncate_ip("2001:db8:85a3:0:0:8a2e:370:7334"), "2001:db8:85a3::")
+        self.assertEqual(x.truncate_ip("::1"), "0:0:0::")
+        self.assertIsNone(x.truncate_ip("2001:db8"))
+        with self.assertRaises(ValueError):
+            x.ui_payload("ui.upload_started", {"view": "home", "bytes": float("inf")})
+
+    def test_a_user_agent_is_a_hash_and_an_address_loses_its_last_part(self):
+        self.assertEqual(len(x.hash_user_agent("Mozilla/5.0 (Macintosh)")), 16)
+        self.assertNotEqual(x.hash_user_agent("Mozilla/5.0 (Macintosh)"), x.hash_user_agent("Mozilla/5.0 (Windows)"))
+        self.assertIsNone(x.hash_user_agent(""))
+        self.assertEqual(x.truncate_ip("203.0.113.9"), "203.0.113.x")
+        self.assertEqual(x.truncate_ip("2001:db8:85a3::8a2e:370:7334"), "2001:db8:85a3::")
+        self.assertIsNone(x.truncate_ip("not an address"))
+        e = x.make("auth.sign_in", "person", IDS, {"via": "password", "session": "s1", "agent": "abcd", "net": "203.0.113.x"}, id="ev000010", at=at(0))
+        self.assertEqual(set(e.classes.values()), {"meta"})
+        named = x.make("auth.token_created", "person", IDS, {"token": "t1", "name": "my laptop"}, id="ev000011", at=at(0))
+        self.assertEqual(named.classes["name"], "person_text")  # a token's name is the person's own words
 
     def test_what_may_not_be_recorded_is_refused(self):
         good = x.make("chat.person", "person", IDS, {"text": "hello"}, id="ev-good")

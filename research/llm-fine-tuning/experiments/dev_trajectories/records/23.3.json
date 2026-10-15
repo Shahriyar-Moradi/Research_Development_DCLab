@@ -1,0 +1,139 @@
+{
+ "package": "23.3",
+ "title": "Sign-in and session events in the record: sign-ins and their failures, sign-outs, expiries, tokens, switches and roles",
+ "date": "2026-10-15",
+ "request": "Phase 1's third remaining gap: a durable history of sign-ins (with failures and their reasons), sign-outs, session expiry, token create and revoke, workspace switches and role changes, as events under the visit, with a user-agent hash and a truncated address; adoptable by the main product.",
+ "spec": "Eight kinds in the contract and two pure helpers; the accounts API writes them into the user's workspace's record; an expired session said once; never a token, a password or a raw address.",
+ "plan": [
+  "Put the kinds and the helpers in dclab_core.",
+  "Write at every sign-in path, sign-out, token route, switch and role change.",
+  "Have the store say when a session expired, once.",
+  "Test under password auth on PostgreSQL."
+ ],
+ "decisions": [
+  {
+   "decision": "A failed sign-in has one reason code for a wrong e-mail and a wrong password.",
+   "why": "The record must not say more than the answer the guesser got."
+  },
+  {
+   "decision": "A sign-in is written to the user's first workspace, a failure to the server's.",
+   "why": "No request principal exists at sign-in; the audit does the same."
+  },
+  {
+   "decision": "The store that deletes an expired session says so, and identify writes the event.",
+   "why": "A deleted row is seen once, so the event is written once."
+  }
+ ],
+ "change": "dclab_core experience.py (kinds, hash_user_agent, truncate_ip), adapters, CHANGELOG 0.40.0; dclab_rnd accounts/api.py (_auth_event and its callers), accounts/store.py (the expiry signal), accounts/guard.py (identify); tests test_accounts (AuthEventsTests), test_core_experience; CORE_INTEGRATION.md, the plan.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The test client has no network address.",
+   "scenario": "The sign-in event carried no net field under the test client.",
+   "cause": "truncate_ip gives None for a name.",
+   "fix": "The test allows an absent address.",
+   "test": "test_sign_in_sessions_tokens_switches_and_roles_are_in_the_record"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The test picked the wrong sign-in.",
+   "scenario": "The sign-out's session was compared with an earlier session's.",
+   "cause": "The record reads oldest first; the test took the first sign-in.",
+   "fix": "The newest sign-in by its time.",
+   "test": "test_sign_in_sessions_tokens_switches_and_roles_are_in_the_record"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The published schema lacked the auth.* kinds.",
+   "scenario": "test_the_published_schemas_are_the_generated_ones failed.",
+   "cause": "make core-schemas not rerun after the kinds were added.",
+   "fix": "make core-schemas (under v4, with 23.2).",
+   "test": "test_core_contracts"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A sign-in into another workspace than the request's was written through a bare log and stamped with the request's workspace's consent.",
+   "scenario": "The default workspace has train on and W2 off; a user whose first workspace is W2 signs in: the event lands in W2 stamped train and leaves in W2's export.",
+   "cause": "A bare log has no folder; the stamp fell back to the current services.",
+   "fix": "The other workspace is opened whole from the pool when a request is at hand; a bare log or book is stamped operate unless it is the current workspace's.",
+   "test": "test_sign_in_sessions_tokens_switches_and_roles_are_in_the_record, test_consent"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Every wrong password wrote an event; nothing bounded an anonymous flood.",
+   "scenario": "A guesser fills the default workspace's event table.",
+   "cause": "Limits run for signed-in callers only.",
+   "fix": "One auth.sign_in_failed a minute per address and browser.",
+   "test": "test_sign_in_sessions_tokens_switches_and_roles_are_in_the_record (three wrong passwords, one event)"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "Parallel reads of one expired cookie each said the session expired.",
+   "scenario": "A page reload fires several requests; 59 of 60 rounds gave more than one event.",
+   "cause": "The signal was set whether or not the delete removed the row.",
+   "fix": "Set only when the delete's rowcount is one.",
+   "test": "test_sign_in_sessions_tokens_switches_and_roles_are_in_the_record (sequential; the parallel case follows from the rowcount)"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "truncate_ip kept a host group of an IPv6 address written with '::'.",
+   "scenario": "2001:db8::1 became 2001:db8:1::.",
+   "cause": "Groups after the '::' were joined in.",
+   "fix": "Only the groups before '::' form the prefix, padded with zeros.",
+   "test": "test_an_ipv6_prefix_never_keeps_a_host_group_and_a_count_is_finite"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The identity-provider sign-in carried no session id; the password path read the session back for it.",
+   "scenario": "A sign-out could not be tied to an OIDC sign-in.",
+   "cause": "Two paths written differently.",
+   "fix": "Both carry digest(token); the extra read is gone.",
+   "test": "test_sign_in_sessions_tokens_switches_and_roles_are_in_the_record"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The auth test class inherited the fixture's eleven tests and ran them again; the secret check never looked at the raw cookie or token.",
+   "scenario": "Fifteen tests became twenty-six; a leaked token would have passed.",
+   "cause": "Inheritance for the fixture.",
+   "fix": "The test lives in the fixture's class; the cookie and the API token are asserted absent.",
+   "test": "test_accounts (15 tests)"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A bearer caller with a cookie wrote a sign-out as the token's user while the cookie's session was deleted.",
+   "scenario": "Two users' sessions crossed in the record.",
+   "cause": "The event did not check how the caller was identified.",
+   "fix": "Written only for a session caller.",
+   "test": "none (the branch is a guard)"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Every sign-in and session change is in the workspace's record with its reason, without a secret. Reviewed: 8 findings fixed.",
+ "lessons": [
+  "An expiry is seen only by the store that deletes it: let it say so once."
+ ],
+ "risks": [
+  "The main product's auth and token rows are not in the field lists yet; the adapter lists the kinds until 23.12 refreshes them."
+ ],
+ "commits": []
+}

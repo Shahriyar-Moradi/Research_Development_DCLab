@@ -209,9 +209,12 @@ class RoutesTest(unittest.TestCase):
         routes = [r for r in api_routes(self.client.app) if getattr(r, "path", "").startswith("/api/experience")]
         self.assertEqual(sorted((m, r.path) for r in routes for m in r.methods),  # reading them, and deleting a session (19.10)
                          [("DELETE", "/api/experience/sessions/{visit}"), ("GET", "/api/experience/search"), ("GET", "/api/experience/sessions"),
-                          ("GET", "/api/experience/sessions/{visit}")])
+                          ("GET", "/api/experience/sessions/{visit}"), ("POST", "/api/experience/ui")])
         for route in routes:
             for method in route.methods:
+                if (method, route.path) == ("POST", "/api/experience/ui"):  # 23.2: the browser writes its own events, as any signed-in role
+                    self.assertEqual(guard.permission(method, route.path), "read")
+                    continue
                 self.assertEqual(guard.permission(method, route.path), "timelines", route.path)
         self.assertEqual([role for role in ROLES if allows(role, "timelines")], ["owner"])
         with acting(Principal(role="reviewer", user_id="u1")), self.assertRaises(HTTPException) as refused:

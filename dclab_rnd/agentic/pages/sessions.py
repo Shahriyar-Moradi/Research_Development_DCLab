@@ -15,7 +15,7 @@ import asyncio
 import re
 from typing import Any
 
-from fastapi import HTTPException
+from fastapi import Body, HTTPException
 
 from ..api_models import Page, Router
 
@@ -169,6 +169,32 @@ def register(app, ctx) -> None:
     async def experience_session(visit: str, model_text: bool = False):
         """One visit's timeline as it happened; prompts and replies only with model_text=true, a tool's values never."""
         return await asyncio.to_thread(one, ctx, _id("visit", visit), model_text)
+
+    @router.post("/api/experience/ui", response_model=Page)
+    async def experience_ui(body: Any = Body(None)):
+        """The browser's own events (23.2): {"events": [{"kind": "ui.page_viewed", "view": "home", ...}, ...]}, at most 50 a
+        batch, written to the request's visit; a value that is not a route, an element's name or a code is refused, so a
+        form's contents never enter. Every signed-in role may send them; a signed-out page gets 401 and sends nothing."""
+        from dclab_core import experience as contract
+
+        from ... import experience
+
+        items = body.get("events") if isinstance(body, dict) else None
+        if not isinstance(items, list) or len(items) > 50:
+            raise HTTPException(422, "events is a list of at most 50 browser events")
+        recorded = refused = 0
+        for item in items:
+            kind = item.get("kind") if isinstance(item, dict) else None
+            if kind not in contract.UI_KINDS:
+                refused += 1
+                continue
+            try:
+                payload = contract.ui_payload(kind, {k: v for k, v in item.items() if k != "kind"})
+            except ValueError:
+                refused += 1
+                continue
+            recorded += await asyncio.to_thread(experience.record, kind, "person", payload) is not None
+        return {"recorded": recorded, "refused": refused}
 
     @router.get("/api/experience/search", response_model=Page)
     async def experience_search(person: str | None = None, project: str | None = None, draft: str | None = None,

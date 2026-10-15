@@ -25,6 +25,7 @@ read as v2 by :meth:`ExperienceEvent.read`, since every v1 event is a valid v2 e
 from __future__ import annotations
 
 import json
+import math
 import re
 from collections import Counter
 from collections.abc import Iterable, Mapping
@@ -53,7 +54,7 @@ SECRET = re.compile(
     r"|(?i:\bbearer\s+[A-Za-z0-9._~+/-]{20,})"
     r"|[a-z][a-z0-9+.-]*://[^\s/:@]+:[^\s/@]+@")                # a password in a connection string
 SHAREABLE = frozenset({"meta", "count"})  # what any export may keep
-READ_AS_CURRENT = frozenset({"dclab_core.experience_event.v1", "dclab_core.experience_event.v2"})  # read as v3: each a subset (v3 added consent)
+READ_AS_CURRENT = frozenset({"dclab_core.experience_event.v1", "dclab_core.experience_event.v2", "dclab_core.experience_event.v3"})  # read as v4: each a subset (v3 added consent; v4 the ui.* and auth.* kinds)
 FINAL_STAGES = frozenset({"final", "terminal"})  # the last stage: this studio's, and the main product's
 
 M, C, P, A, X, V = "meta", "count", "person_text", "agent_text", "model_text", "cell_values"
@@ -64,6 +65,21 @@ KINDS: dict[str, dict[str, str]] = {
     # a sitting: from the first request to the last
     "visit.started": {"surface": M, "client": M},
     "visit.ended": {"reason": M, "seconds": C},
+    # 23.3: sign-in and sessions; a user agent as a hash, a network address without its last part, never a token or a password
+    "auth.sign_in": {"via": M, "session": M, "agent": M, "net": M},
+    "auth.sign_in_failed": {"reason": M, "via": M, "agent": M, "net": M},
+    "auth.sign_out": {"session": M},
+    "auth.session_expired": {"session": M},
+    "auth.token_created": {"token": M, "name": P},
+    "auth.token_revoked": {"token": M},
+    "auth.workspace_switched": {"from": M, "to": M},
+    "auth.role_changed": {"member": M, "was": M, "role": M, "by": M},
+    # 23.2: the browser's own events: a page, an element, a file's kind, a code; never a form's contents (``ui_payload`` refuses them)
+    "ui.page_viewed": {"view": M, "pane": M, "route": M},
+    "ui.action": {"view": M, "name": M, "target": M},
+    "ui.upload_started": {"view": M, "file_kind": M, "bytes": C},
+    "ui.upload_finished": {"view": M, "status": M, "seconds": C},
+    "ui.error_shown": {"view": M, "code": M, "status": M},
     # chat, on Home or with the intern
     "chat.person": {"text": P, "answers_question": M, "surface": M},
     "chat.agent": {"text": A, "kind": M, "question_field": M, "options": A, "surface": M},
@@ -158,7 +174,7 @@ class ExperienceEvent(Versioned):
 
     model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False, json_schema_extra=_vocabulary)
 
-    schema_version: Literal["dclab_core.experience_event.v3"] = _version("experience_event", 3)
+    schema_version: Literal["dclab_core.experience_event.v4"] = _version("experience_event", 4)
     id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{6,80}$")
     at: str = Field(description="ISO 8601 with microseconds, UTC.")
     seq: int = Field(default=0, ge=0)
@@ -245,6 +261,58 @@ def _meta(value: Any) -> bool:
 
 def _number(value: Any) -> bool:
     return value is None or (isinstance(value, (int, float)) and not isinstance(value, bool))
+
+
+def hash_user_agent(user_agent: Any) -> Optional[str]:
+    """A browser's user-agent string as sixteen hex characters (23.3): enough to tell two browsers apart, never the string."""
+    import hashlib
+
+    text = str(user_agent or "").strip()
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16] if text else None
+
+
+def truncate_ip(address: Any) -> Optional[str]:
+    """A network address with its last part removed (23.3): ``203.0.113.x`` for IPv4, the first three groups and ``::``
+    for IPv6; None for anything else."""
+    text = str(address or "").strip()
+    if not text:
+        return None
+    if re.fullmatch(r"\d{1,3}(\.\d{1,3}){3}", text):
+        return ".".join(text.split(".")[:3]) + ".x"
+    if ":" in text:  # the groups before a "::" are the prefix; those after it belong to the host and never enter
+        head = [g for g in text.split("::")[0].split(":") if g != ""]
+        if len(head) < 3 and "::" not in text:
+            return None
+        groups = (head + ["0", "0", "0"])[:3]
+        return ":".join(groups) + "::"
+    return None
+
+
+UI_KINDS = frozenset(k for k in KINDS if k.startswith("ui."))
+UI_NAME = re.compile(r"^[A-Za-z0-9_./#:@-]{1,80}$")  # a route pattern, an element's id or data name, a code: never words a person typed
+
+
+def ui_payload(kind: str, payload: Mapping[str, Any]) -> dict[str, Any]:
+    """A browser event's payload as the record may keep it (23.2): only the kind's own fields; a name must look like a
+    route, an element or a code (no spaces, no punctuation of prose), a count must be a non-negative number. Anything
+    else is refused: a form's contents, a query string, a message, a file's name cannot pass."""
+    if kind not in UI_KINDS:
+        raise ValueError(f"not a browser event kind: {kind!r}")
+    fields = KINDS[kind]
+    out: dict[str, Any] = {}
+    for name, cls in fields.items():
+        value = payload.get(name)
+        if value is None or value == "":
+            continue
+        if cls == C:
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+                raise ValueError(f"{kind}.{name} is a count")
+            out[name] = value
+        else:
+            if not isinstance(value, str) or not UI_NAME.fullmatch(value):
+                raise ValueError(f"{kind}.{name} is a route, an element's name or a code")
+            out[name] = value
+    return out
 
 
 def make(kind: str, actor: str, ids: Mapping[str, Any] | Ids, payload: Mapping[str, Any] | None = None, *, id: str,

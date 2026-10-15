@@ -201,7 +201,8 @@ class Accounts:
             if row is None:
                 return None
             if row.expires < now or row.started + SESSION_MAX_DAYS * 86400 < now:
-                c.execute(sa.delete(t).where(t.c.id == row.id))
+                if c.execute(sa.delete(t).where(t.c.id == row.id)).rowcount:  # the request that removed it says so, once
+                    self.expired_session = {"id": row.id, "user_id": row.user_id, "workspace_id": row.workspace_id}  # 23.3: read by identify
                 return None
             if now - row.last_seen > 60:  # one write a minute at most
                 c.execute(sa.update(t).where(t.c.id == row.id).values(last_seen=now, expires=min(now + SESSION_HOURS * 3600,

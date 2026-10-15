@@ -4,6 +4,26 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.40.0 (2026-10-15)
+
+Package 23.3: sign-in and session events.
+
+- `experience`: the kinds `auth.sign_in`, `auth.sign_in_failed`, `auth.sign_out`, `auth.session_expired`,
+  `auth.token_created`, `auth.token_revoked`, `auth.workspace_switched`, `auth.role_changed`; `hash_user_agent` and
+  `truncate_ip`.
+- `adapters.main_product_experience.KINDS_MISSING` lists them until the main product's auth and token rows are in the
+  field lists.
+
+## 0.39.0 (2026-10-15)
+
+Package 23.2: the browser's own events. The experience event moves to `dclab_core.experience_event.v4` (a kind
+vocabulary is part of the contract's shape: a v3 reader would refuse the new kinds); v1 to v3 are read as v4.
+
+- `experience`: the kinds `ui.page_viewed`, `ui.action`, `ui.upload_started`, `ui.upload_finished`, `ui.error_shown`;
+  `UI_KINDS` and `ui_payload` (only a kind's fields; a value must be a route, an element's name or a code, a count a
+  non-negative number; an empty string is left out).
+- `adapters.main_product_experience.KINDS_MISSING` lists them: the web app's own sender writes them there.
+
 ## 0.38.0 (2026-10-15)
 
 Package 23.1: consent stamped at write time.

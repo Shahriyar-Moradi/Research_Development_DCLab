@@ -1,0 +1,130 @@
+{
+ "package": "23.2",
+ "title": "The browser's own events: page views, actions, uploads and errors shown, in the record under the visit",
+ "date": "2026-10-15",
+ "request": "Phase 1's second remaining gap: UI events from the web app (page viewed, element acted on, upload started and finished, error shown) under the visit, never a form's contents; adoptable by the main product.",
+ "spec": "Five kinds in the contract with a validator that refuses anything but routes, names, codes and counts; a batched route under the visit; the page noting views, actions, uploads and errors; a browser check.",
+ "plan": [
+  "Put the kinds and the validator in dclab_core.",
+  "Add the route beside the sessions' routes, open to any signed-in role.",
+  "Hook the page's show, click, toast, failed and upload paths.",
+  "Test the validator, the route and the guard; add the browser check."
+ ],
+ "decisions": [
+  {
+   "decision": "An action is named by its id or data name, never by its text.",
+   "why": "A button's text can hold a column's name or a value; an id never does."
+  },
+  {
+   "decision": "The validator refuses values with spaces or the punctuation of prose.",
+   "why": "A form's contents, a query string or a message cannot pass as a route or a code."
+  },
+  {
+   "decision": "The route is open to every signed-in role and a signed-out page sends nothing.",
+   "why": "The record is of the person's own sitting; a signed-out page has no visit of a person."
+  }
+ ],
+ "change": "dclab_core experience.py (kinds, UI_KINDS, ui_payload), adapters/main_product_experience.py, CHANGELOG 0.39.0; dclab_rnd pages/sessions.py (the route), accounts/guard.py; web core.js (the ui module, hooks, export), views/home.html (uploads), api.js and the static build; scripts/browser_e2e.py (the check); tests test_ui_events (new), test_experience_finder, test_web_client; CORE_INTEGRATION.md, the plan.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The upload event's field was named like the envelope's kind.",
+   "scenario": "A batch item's kind collided with the file's kind.",
+   "cause": "One name for two things.",
+   "fix": "The file's kind is file_kind.",
+   "test": "test_the_events_land_under_the_visit_and_nothing_typed_enters"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "gap",
+   "defect": "An empty pane failed the validator.",
+   "scenario": "Every page view without a pane would have been refused.",
+   "cause": "The name pattern needs one character.",
+   "fix": "An empty string is left out, not refused.",
+   "test": "test_only_routes_names_codes_and_counts_pass"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "Two tests listed the routes and the browser checks as they were.",
+   "scenario": "The finder's route test and the web-client test failed on the additions.",
+   "cause": "Lists written before the package.",
+   "fix": "The browser route listed apart with its permission; the check added.",
+   "test": "test_only_the_owner_reads_timelines"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Five kinds were added to the experience event while it stayed v3; the frozen v3 baseline differed from the generated schema.",
+   "scenario": "tests.test_core_contracts refused the shape change under the same version; a v3 reader in the main product would refuse a ui.* event.",
+   "cause": "A kind vocabulary is part of a contract's shape.",
+   "fix": "experience_event.v4 (v1 to v3 read as v4), make core-schemas, the pins in the wheel check and the tests.",
+   "test": "test_core_contracts, test_a_v2_event_reads_as_v4_at_operate_and_a_stamp_is_kept"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A signed-out page recorded the Sign in click; its batch was answered 401 and the page replaced the sign-in error with 'Your session ended'.",
+   "scenario": "DCLAB_AUTH=password, a wrong password, click Sign in: two seconds later the message changes and the config is dropped; every click posts again.",
+   "cause": "The click hook ran before sign-in and a 401 on a quiet request still opened the sign-in box.",
+   "fix": "ui.note records nothing while the page is signed out; request() leaves the 401 of a quiet call alone.",
+   "test": "test_sign_in_sessions_tokens_switches_and_roles_are_in_the_record (a signed-out POST is 401 and writes nothing)"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The browser check proved a page view of Learn only: no click, no wizard.",
+   "scenario": "The package's done-when names Home, the wizard and a project.",
+   "cause": "The check was written for the smallest case.",
+   "fix": "The check clicks the Learn link, opens the wizard and expects ui.action and the two views in the visit's timeline.",
+   "test": "scripts/browser_e2e.py check_ui_events (needs Chromium, pending the owner's approval)"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "An infinite count passed the validator; the file store wrote Infinity and PostgreSQL refused the row.",
+   "scenario": "curl sends bytes 1e400: json.loads gives inf; recorded on files, lost on PostgreSQL and counted as neither recorded nor refused.",
+   "cause": "The count check tested the sign and NaN only.",
+   "fix": "math.isfinite.",
+   "test": "test_an_ipv6_prefix_never_keeps_a_host_group_and_a_count_is_finite"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The batch sent on page hide could be cancelled by the unload, and a batch was spliced off before the client was checked.",
+   "scenario": "Closing the tab after the last clicks loses them.",
+   "cause": "fetch without keepalive.",
+   "fix": "keepalive: true on the batch; the queue is checked before it is spliced.",
+   "test": "none (browser behaviour)"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The validator would accept a column name as an element name if a page ever built an id from one.",
+   "scenario": "Today no page does (ids and data names are fixed words); the pane comes from the address bar verbatim.",
+   "cause": "The rule lives on the page side.",
+   "fix": "The rule is written where names are read; left open as a page-side rule, not a check.",
+   "test": "none"
+  }
+ ],
+ "measurements": [],
+ "outcome": "The browser's page views, actions, uploads and errors are in the record under the visit, and nothing a person typed can enter through them. Reviewed (6 findings fixed, one left as a page-side rule); the contract is v4.",
+ "lessons": [
+  "A browser event's name must come from an id, never from what the element shows.",
+  "A validator in the contract makes the same refusal hold in every product that sends the events."
+ ],
+ "risks": [
+  "make browser-test runs on a machine with Chromium; the unit tests cover the route and the validator without it."
+ ],
+ "commits": []
+}

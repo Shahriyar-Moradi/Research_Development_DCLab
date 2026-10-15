@@ -46,6 +46,7 @@ SPECIAL = {
     ("GET", "/api/experience/sessions"): "timelines",
     ("GET", "/api/experience/sessions/{visit}"): "timelines",
     ("GET", "/api/experience/search"): "timelines",
+    ("POST", "/api/experience/ui"): "read",  # 23.2: the browser's own events, from any signed-in role; never a form's contents
     # the decision ledger and its blind labels (19.8): the owner and reviewers
     ("GET", "/api/ledger/summary"): "review",
     ("GET", "/api/ledger/routing"): "review",
@@ -117,9 +118,15 @@ def identify(headers: dict[str, str], cookies: dict[str, str], settings: Any, de
         return _principal(accounts, found["user_id"], found["workspace_id"], via="token")
     token = cookies.get(COOKIE)
     if token:
+        accounts.expired_session = None
         found = accounts.session(token)
         if found is not None:
             return _principal(accounts, found["user_id"], found["workspace_id"], via="session", session_id=found["id"], csrf=found["csrf"])
+        gone = getattr(accounts, "expired_session", None)
+        if gone:  # 23.3: the row went with this read, so the event is written once
+            from .api import _auth_event
+
+            _auth_event(gone["workspace_id"], "auth.session_expired", {"session": gone["id"]}, gone["user_id"])
     return ANONYMOUS
 
 

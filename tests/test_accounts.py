@@ -269,6 +269,67 @@ class AccountsTests(unittest.TestCase):
         self.assertEqual(client.post("/api/auth/workspace", json={"workspace_id": "wnotmine"}).status_code, 404)
 
 
+    def test_sign_in_sessions_tokens_switches_and_roles_are_in_the_record(self):
+        """23.3: every sign-in and session change is in the workspace's record, with no token, password or raw address."""
+        import sqlalchemy as sa
+
+        from dclab_rnd.storage.models import user_session
+
+        w1 = self.app.state.services.experience
+        client = self.sign_in("ds1")
+        events = [e for e in w1.read(user=self.users["ds1"]["id"]) if e.kind.startswith("auth.")]
+        signed = max((e for e in events if e.kind == "auth.sign_in"), key=lambda e: e.at)  # this test's sign-in, not setUpClass's
+        self.assertEqual(signed.payload["via"], "password")
+        self.assertEqual(len(signed.payload["agent"]), 16)
+        self.assertTrue("net" not in signed.payload or signed.payload["net"].endswith((".x", "::")))  # the test client has no address
+        self.assertTrue(signed.payload["session"])
+        from dclab_rnd.accounts import api as auth_api
+
+        anonymous = self.TestClient(self.app)
+        csrf = anonymous.get("/api/config").json()["csrf"]
+        auth_api._FAILURES_SEEN.clear()
+        for _ in range(3):  # a flood of wrong passwords is one event a minute per address and browser
+            anonymous.post("/api/auth/password", json={"email": self.users["ds1"]["email"], "password": "wrong password!"}, headers={"X-DCLab-Token": csrf})
+        failed = [e for e in w1.read() if e.kind == "auth.sign_in_failed"]
+        self.assertEqual(failed[-1].payload["reason"], "bad_credentials")
+        self.assertIsNone(failed[-1].ids.user)
+        self.assertEqual(len([e for e in failed if e.at >= signed.at]), 1)
+        # a signed-out page may not write browser events, and the refusal writes nothing
+        before = len([e for e in w1.read() if e.kind.startswith("ui.")])
+        self.assertEqual(anonymous.post("/api/experience/ui", json={"events": [{"kind": "ui.page_viewed", "view": "home"}]}, headers={"X-DCLab-Token": csrf}).status_code, 401)
+        self.assertEqual(len([e for e in w1.read() if e.kind.startswith("ui.")]), before)
+        made = client.post("/api/auth/tokens", json={"name": "my laptop"}).json()
+        client.delete(f"/api/auth/tokens/{made['id']}")
+        tokens = [e for e in w1.read(user=self.users["ds1"]["id"]) if e.kind in ("auth.token_created", "auth.token_revoked")]
+        self.assertEqual([(e.kind, e.payload["token"]) for e in tokens[-2:]], [("auth.token_created", made["id"]), ("auth.token_revoked", made["id"])])
+        self.assertEqual(tokens[-2].payload["name"], "my laptop")
+        again_cookie = client.cookies.get("dclab_session")
+        self.assertTrue(again_cookie)
+        client.post("/api/auth/signout")
+        out = [e for e in w1.read(user=self.users["ds1"]["id"]) if e.kind == "auth.sign_out"]
+        self.assertEqual(out[-1].payload["session"], signed.payload["session"])
+        blob = " ".join(str(e.payload) for e in w1.read() if e.kind.startswith("auth."))
+        self.assertNotIn(PASSWORD, blob)
+        self.assertNotIn(made["token"], blob)  # the API token itself, shown once
+        self.assertNotIn(again_cookie, blob)
+        self.assertNotIn("Mozilla", blob)
+        self.assertNotIn("127.0.0.1", blob)
+        self.assertNotIn("testclient", blob)
+        # the owner changes a member's role: recorded as the owner's; a session that expires is said once
+        self.clients["owner1"].patch(f"/api/workspace/members/{self.users['view1']['id']}", json={"role": "reviewer"})
+        roles = [e for e in w1.read() if e.kind == "auth.role_changed"]
+        self.assertEqual((roles[-1].payload["member"], roles[-1].payload["role"], roles[-1].payload["by"]), (self.users["view1"]["id"], "reviewer", "owner"))
+        self.clients["owner1"].patch(f"/api/workspace/members/{self.users['view1']['id']}", json={"role": "viewer"})
+        again = self.sign_in("ds1")
+        session = max((e for e in w1.read(user=self.users["ds1"]["id"]) if e.kind == "auth.sign_in"), key=lambda e: e.at).payload["session"]
+        with self.accounts.engine.begin() as c:
+            c.execute(sa.update(user_session).where(user_session.c.id == session).values(expires=0))
+        self.assertEqual(again.get("/api/auth/me").json()["signed_in"], False)
+        again.get("/api/auth/me")
+        expired = [e for e in w1.read() if e.kind == "auth.session_expired" and e.payload.get("session") == session]
+        self.assertEqual(len(expired), 1)
+
+
 class PoolTests(unittest.TestCase):
     def test_a_database_away_or_a_broken_workspace_stops_nothing(self):
         from types import SimpleNamespace

@@ -226,7 +226,7 @@ training is the owner's decision (its ADR 0008); `redact` keeps only what a use 
 
 ## Consent at write time (23.1)
 
-Every `ExperienceEvent` (v3) and `DecisionRecord` (v2) carries `consent`: the level the record was written under,
+Every `ExperienceEvent` (v4 since 23.2; v3 added the stamp) and `DecisionRecord` (v2) carries `consent`: the level the record was written under,
 `operate` (kept to run the product, for support and audit; never leaves), `improve` or `train`
 (`dclab_core.consent.level_of` on the workspace's and the project's switches). An export keeps a record only when its
 stamp allows the use (`dclab_core.consent.exportable`) and the switches allow it now, so a later opt-in never
@@ -235,6 +235,28 @@ version shown. Where it goes there: the adapter's `events(..., consent=)` takes 
 workspace settings (`CONSENT_MISSING` says it has none on its rows today); its side adds a `consent_level` column to
 the tables it exports from (additive) and stamps it from the same rule when a row is written. A row mapped without a
 level is `operate`.
+
+## Sign-in and session events (23.3)
+
+The kinds `auth.sign_in`, `auth.sign_in_failed`, `auth.sign_out`, `auth.session_expired`, `auth.token_created`,
+`auth.token_revoked`, `auth.workspace_switched` and `auth.role_changed` are the contract, with
+`dclab_core.experience.hash_user_agent` (sixteen hex characters) and `truncate_ip` (the address without its last
+part); a token's name is the person's words (`person_text`), everything else meta; never a token, a password or a raw
+address. Where it goes there: the sign-in service writes `auth.sign_in` and `auth.sign_in_failed` (a reason code, the
+method), the session store writes sign-out and expiry once, the token service its create and revoke, the membership
+service the role change with who made it; the rows live in its `auth_events` table (the document's package 2) and the
+adapter maps them once that table is in the field lists (`KINDS_MISSING` names each until then).
+
+## The browser's events (23.2)
+
+The kinds `ui.page_viewed`, `ui.action`, `ui.upload_started`, `ui.upload_finished` and `ui.error_shown` are the
+contract; `dclab_core.experience.ui_payload(kind, payload)` keeps only each kind's fields and refuses any value that is
+not a route, an element's id or data name, a code or a count, so a form's contents, a query string or a message cannot
+enter. Where it goes there: the web app batches them (twenty at a time or every two seconds, and on page hide) to a
+route of its own under the signed-in person's session, which runs `ui_payload` and writes them with the request's
+trace id; a signed-out page sends nothing. The adapter does not read them (`KINDS_MISSING`): they are rows that
+route writes. Whether business users' pages are captured is decision D4 of the plan (route and action level, never
+contents, is the proposal).
 
 ## The problem card (20.1)
 

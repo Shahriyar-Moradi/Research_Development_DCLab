@@ -336,11 +336,14 @@ DC.view('home', {
     async function uploadFile(file) {
       if (!file) return;
       try { await ensureDraft(); } catch (e) { return; }
+      const t0 = Date.now();
+      DC.ui.note('ui.upload_started', { view: 'home', file_kind: (file.name.split('.').pop() || 'file').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) || 'file', bytes: file.size });
       try {
         toast(`Uploading ${file.name}…`);
         await DC.client.upload(S.draft.id, { query: { filename: file.name }, body: file, headers: { 'Content-Type': 'application/octet-stream' } });
+        DC.ui.note('ui.upload_finished', { view: 'home', status: 'ok', seconds: (Date.now() - t0) / 1000 });
         $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } catch (err) { toast(err.message, { ok: false }); }
+      } catch (err) { DC.ui.note('ui.upload_finished', { view: 'home', status: 'failed', seconds: (Date.now() - t0) / 1000 }); toast(err.message, { ok: false }); }
     }
     $('#home-file', el).addEventListener('change', e => uploadFile(e.target.files[0]));
     const drop = $('#home-drop', el);

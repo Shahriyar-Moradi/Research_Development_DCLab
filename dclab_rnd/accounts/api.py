@@ -24,9 +24,10 @@ from fastapi.responses import JSONResponse, Response
 
 from ..agentic.api_models import AnyObject, Doc, Page, Router
 from .guard import COOKIE
+from .. import context
 from .principal import current
 from .roles import LABELS, ROLES
-from .store import SESSION_MAX_DAYS, AccountError, Accounts
+from .store import SESSION_MAX_DAYS, AccountError, Accounts, digest
 
 router = Router()
 
@@ -61,12 +62,15 @@ async def sign_in(payload: AnyObject, request: Request):
     user = await asyncio.to_thread(accounts.check_password, str(body.get("email") or ""), str(body.get("password") or ""))
     if user is None:
         await asyncio.sleep(0.3)  # a wrong password costs the guesser time
+        _auth_event(getattr(context.services(), "workspace_id", None), "auth.sign_in_failed", {"reason": "bad_credentials", "via": "password"}, request=request)
         raise HTTPException(401, "The email or the password is not right")
     spaces = await asyncio.to_thread(accounts.workspaces_of, user["id"])
     if not spaces:
+        _auth_event(getattr(context.services(), "workspace_id", None), "auth.sign_in_failed", {"reason": "no_workspace", "via": "password"}, user["id"], request)
         raise HTTPException(403, "This account is not a member of any workspace yet")
     token, csrf = await asyncio.to_thread(accounts.start_session, user["id"], spaces[0][0])
     _audit_account(spaces[0][0], "sign_in", "sign_in", user, {"via": "password"})
+    _auth_event(spaces[0][0], "auth.sign_in", {"via": "password", "session": digest(token)}, user["id"], request)  # the session's id is the token's digest
     response = JSONResponse({"signed_in": True, "csrf": csrf, "workspace_id": spaces[0][0]})
     response.set_cookie(COOKIE, token, max_age=SESSION_MAX_DAYS * 86400, httponly=True, samesite="lax",
                         secure=bool(_settings(request).cookie_secure), path="/")
@@ -77,6 +81,9 @@ async def sign_in(payload: AnyObject, request: Request):
 async def sign_out(request: Request):
     token = request.cookies.get(COOKIE)
     if token and _settings(request).auth != "none":
+        who = current()
+        if who is not None and who.signed_in and who.via == "session":  # a bearer caller's cookie is not its own session
+            _auth_event(who.workspace_id, "auth.sign_out", {"session": getattr(who, "session_id", None)}, who.user_id)
         await asyncio.to_thread(Accounts().end_session, token)
     response = JSONResponse({"signed_in": False})
     response.delete_cookie(COOKIE, path="/")
@@ -99,6 +106,7 @@ async def switch_workspace(payload: AnyObject, request: Request):
     if who.via != "session":
         raise HTTPException(409, "An API token acts in its own workspace")
     await asyncio.to_thread(accounts.switch_session, request.cookies[COOKIE], target)
+    _auth_event(who.workspace_id, "auth.workspace_switched", {"from": who.workspace_id, "to": target}, who.user_id)
     return {"workspace_id": target}
 
 
@@ -164,6 +172,56 @@ async def _keep_an_owner(accounts: Accounts, workspace_id: str, user_id: str, ro
         raise HTTPException(409, "A workspace keeps at least one owner")
 
 
+_FAILURES_SEEN: dict[tuple[Any, Any], float] = {}
+
+
+def _first_failure_this_minute(net: Any, agent: Any, now: float | None = None) -> bool:
+    """23.3: whether a failed sign-in from this address and browser is the first in a minute (the rest are not recorded)."""
+    import time
+
+    now = time.time() if now is None else now
+    if len(_FAILURES_SEEN) > 1000:
+        for key in [k for k, t in _FAILURES_SEEN.items() if now - t >= 60]:
+            del _FAILURES_SEEN[key]
+    last = _FAILURES_SEEN.get((net, agent))
+    if last is not None and now - last < 60:
+        return False
+    _FAILURES_SEEN[(net, agent)] = now
+    return True
+
+
+def _auth_event(workspace_id: str | None, kind: str, payload: dict[str, Any], user_id: str | None = None, request: Any = None) -> None:
+    """23.3: a sign-in or session event in the record of ``workspace_id`` (a sign-in has no request principal yet: the
+    workspace is the user's first), with the user agent hashed and the address cut, never a token or a password."""
+    from dclab_core import experience as contract
+
+    from .. import context, experience
+
+    if request is not None and kind in ("auth.sign_in", "auth.sign_in_failed"):
+        payload = {**payload, "agent": contract.hash_user_agent(request.headers.get("user-agent")),
+                   "net": contract.truncate_ip(getattr(getattr(request, "client", None), "host", None))}
+    if kind == "auth.sign_in_failed" and not _first_failure_this_minute(payload.get("net"), payload.get("agent")):
+        return  # a flood of wrong passwords is one event a minute per address and browser, not a table of them
+    log = None
+    if workspace_id:
+        services = context.services()
+        log = getattr(services, "experience", None) if services is not None and getattr(services, "workspace_id", None) == workspace_id else None
+        if log is None and request is not None:  # another workspace's record, opened whole: its stamp is its own (23.1)
+            try:
+                log = getattr(request.app.state.pool.get(workspace_id), "experience", None)
+            except Exception:  # noqa: BLE001 - no pool (a bare router), or the workspace is gone
+                log = None
+        if log is None:
+            try:
+                log = experience.PgLog(workspace_id)  # no folder known: stamped operate, never leaves
+            except Exception:  # noqa: BLE001 - no database: no record of sign-ins (files have no sign-in)
+                log = None
+    try:
+        experience.record(kind, "person", payload, log=log, **({"user": user_id} if user_id else {}))
+    except Exception:  # noqa: BLE001 - never stop a sign-in because the record is away
+        pass
+
+
 def _audit_account(workspace_id: str, kind: str, move: str, user: dict[str, Any], args: dict[str, Any]) -> None:
     """A sign-in, or a role the provider's groups set, in that workspace's audit (no request principal exists yet)."""
     from .. import audit
@@ -178,6 +236,7 @@ def _audit_member(move: str, user_id: str, role: str | None) -> None:
     services = context.services()
     audit.record(getattr(services, "audit", None), "role_change", "human", move=move, status="allowed",
                  args={"member": user_id, "role": role, "role_label": LABELS.get(role or "")})
+    _auth_event(getattr(services, "workspace_id", None), "auth.role_changed", {"member": user_id, "role": role, "by": "owner"})
 
 
 # ---------------------------------------------------------------------- API tokens (one's own)
@@ -191,6 +250,7 @@ async def tokens(request: Request):
 async def new_token(payload: AnyObject, request: Request):
     accounts, who = _on(request), _signed_in()
     token, record = await asyncio.to_thread(accounts.create_token, who.user_id, who.workspace_id, str(_body(payload).get("name") or ""))
+    _auth_event(who.workspace_id, "auth.token_created", {"token": record["id"], "name": record.get("name")}, who.user_id)
     return {**record, "token": token, "note": "Shown once: copy it now. It acts as you in this workspace, with your role."}
 
 
@@ -199,6 +259,7 @@ async def revoke_token(token_id: str, request: Request):
     accounts, who = _on(request), _signed_in()
     if not await asyncio.to_thread(accounts.revoke_token, who.user_id, token_id):
         raise HTTPException(404, "No such token")
+    _auth_event(who.workspace_id, "auth.token_revoked", {"token": token_id}, who.user_id)
     return Response(status_code=204)
 
 
@@ -248,7 +309,9 @@ async def oidc_callback(request: Request, code: str = "", state: str = ""):
     token, _ = await asyncio.to_thread(accounts.start_session, user["id"], workspace)
     for changed, old, new in changes:  # the provider's groups changed a membership: that workspace's audit says so
         _audit_account(changed, "role_change", "set_role_from_groups", user, {"was": old, "role": new, "role_label": LABELS.get(new or "")})
+        _auth_event(changed, "auth.role_changed", {"member": user["id"], "was": old, "role": new, "by": "identity_provider"}, user["id"])
     _audit_account(workspace, "sign_in", "sign_in", user, {"via": "identity provider"})
+    _auth_event(workspace, "auth.sign_in", {"via": "identity_provider", "session": digest(token)}, user["id"], request)
     response = RedirectResponse("/", status_code=302)
     response.set_cookie(COOKIE, token, max_age=SESSION_MAX_DAYS * 86400, httponly=True, samesite="lax",
                         secure=bool(_settings(request).cookie_secure), path="/")

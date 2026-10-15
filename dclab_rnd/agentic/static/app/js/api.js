@@ -257,6 +257,7 @@
     experienceSessions: ["GET", "/experience/sessions", [], ["limit"]],
     deleteSession: ["DELETE", "/experience/sessions/{visit}", ["visit"], []],
     experienceSession: ["GET", "/experience/sessions/{visit}", ["visit"], ["model_text"]],
+    experienceUi: ["POST", "/experience/ui", [], []],
     giveFeedback: ["POST", "/feedback", [], []],
     internStatus: ["GET", "/intern", [], []],
     internList: ["GET", "/intern/sessions", [], []],
@@ -626,6 +627,11 @@
   client.experienceSession = (...args) => call('experienceSession', args);
   client.path.experienceSession = (...args) => build('experienceSession', args).path;
   client.href.experienceSession = (...args) => '/api' + build('experienceSession', args).path;
+  /** POST /api/experience/ui: Experience Ui
+   *  @param {{body?: *, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.experienceUi = (...args) => call('experienceUi', args);
+  client.path.experienceUi = (...args) => build('experienceUi', args).path;
   /** POST /api/feedback: Give Feedback
    *  @param {{body?: *, headers?: Object}} [opts]
    *  @returns {Promise<Page>} */

@@ -373,6 +373,12 @@ def _consent_now(log: Any, project: str | None) -> str:
     root = getattr(log, "root", None)
     home = getattr(log, "home", None) or (Path(root).parent if root is not None else None)
     try:
+        if home is None:  # a log opened bare: only the current workspace's switches may stamp it
+            from .. import context
+
+            services = context.services()
+            if services is None or getattr(log, "workspace", None) != getattr(services, "workspace_id", None):
+                return "operate"
         return consents.current_level(home=home, project=project)
     except Exception:  # noqa: BLE001 - a stamp that cannot be read is the lowest: the event never leaves
         return "operate"

@@ -19,6 +19,7 @@ check passes; a failing check saves a screenshot under the output folder (--out,
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -211,6 +212,23 @@ def check_pages(b: Browser) -> str:
     return f"{len(seen)} pages without a console error, an uncaught error, a CSP violation or a failed load"
 
 
+def check_ui_events(b: Browser) -> str:
+    """23.2: the page views and the actions the browser made are in the record, under the browser's own visit."""
+    b.view("home")
+    b.page.evaluate("() => { const a = document.querySelector('a[href=\"#learn\"]') || document.querySelector('a[href^=\"#\"]'); if (a) a.click(); }")
+    b.view("learn")
+    b.view("new")  # the wizard
+    b.page.evaluate("() => DC.ui.flush()")
+    time.sleep(1.0)
+    latest = b.api("/experience/sessions")["sessions"]
+    check(bool(latest), "no session in the record")
+    visit = latest[0]["visit"]
+    text = json.dumps(b.api(f"/experience/sessions/{visit}"))
+    check('"ui.page_viewed"' in text and '"learn"' in text and '"new"' in text, "the browser's page views are not in its visit's timeline")
+    check('"ui.action"' in text, "the click on the page is not in its visit's timeline")
+    return f"page views and actions of visit {visit} are in the record"
+
+
 def check_mobile(b: Browser) -> str:
     wide = []
     for name in VIEWS:
@@ -230,7 +248,7 @@ CULPRIT = """() => { const w = document.documentElement.clientWidth;
   return el ? el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\\s+/).join('.') : '') + ' "' + (el.textContent || '').trim().slice(0, 40) + '"' : '?'; }"""
 
 
-CHECKS = {"flow": (check_flow, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "mobile": (check_mobile, 375)}
+CHECKS = {"flow": (check_flow, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "ui": (check_ui_events, 1280), "mobile": (check_mobile, 375)}
 
 
 def main(argv: list[str] | None = None) -> int:

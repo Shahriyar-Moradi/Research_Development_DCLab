@@ -152,9 +152,35 @@
   }
 
   /* ---------------- toast / drawer / modal ---------------- */
+  /* ---------------- the browser's own events (23.2): page views, actions, uploads, errors shown ----------------
+     Batched to POST /api/experience/ui under the visit; names are ids, data names or codes, never a form's contents
+     (the server refuses anything else). A signed-out page is answered 401 and the batch is dropped. */
+  const ui = {
+    queue: [], timer: null, since: Date.now(),
+    note(kind, payload) {
+      const auth = server.config && server.config.auth;
+      if (auth && auth.mode !== 'none' && !auth.signed_in) return;  // a signed-out page records nothing (and never trips the sign-in box)
+      this.queue.push({ kind, ...payload });
+      if (this.queue.length >= 20) this.flush(); else if (!this.timer) this.timer = setTimeout(() => this.flush(), 2000);
+    },
+    async flush() {
+      clearTimeout(this.timer); this.timer = null;
+      if (!this.queue.length || !DC.client || !DC.client.experienceUi) return;
+      const events = this.queue.splice(0, 50);
+      try { await DC.client.experienceUi({ body: { events }, quiet: true, keepalive: true }); } catch (e) { /* the record is not the person's concern */ }
+      if (this.queue.length) this.flush();
+    },
+    name(el) {  // what was acted on: an id or a data name; never the element's text. Rule for the pages: an id or a data name is a fixed word of the page, never built from a column's or a file's name
+      const d = el.dataset || {};
+      return (el.id || d.action || d.go || d.nav || d.ptab || d.tab || d.record || d.seg || d.toggle || el.tagName.toLowerCase()).toString().slice(0, 80);
+    },
+  };
+  window.addEventListener('pagehide', () => ui.flush());
+
   function toast(text, opts = {}) {
     const box = $('#toasts');
     if (!box) return;
+    if (opts.ok === false) ui.note('ui.error_shown', { view: state.view || 'home', code: 'toast' });
     const el = document.createElement('div');
     el.className = 'toast';
     el.setAttribute('role', 'status');
@@ -600,6 +626,7 @@
   function show(name, paneId) {
     const changed = state.view !== name;
     state.view = name;
+    if (changed || paneId) ui.note('ui.page_viewed', { view: name, pane: paneId || '', route: '#' + name + (paneId ? '/' + paneId : '') });
     $$('.view').forEach(v => { v.hidden = v.id !== 'view-' + name; });
     const el = $('#view-' + name);
     const def = VIEWS[name];
@@ -756,6 +783,8 @@
   }
   document.addEventListener('click', e => {
     const t = e.target;
+    const acted = t.closest('button, a[href], [data-go], [data-record], [data-ptab], [data-tab], [data-action]');
+    if (acted) ui.note('ui.action', { view: state.view || 'home', name: ui.name(acted), target: acted.tagName.toLowerCase() });
     const rec = t.closest('[data-record]');
     if (rec) { e.preventDefault(); openRecord(rec.dataset.record); return; }
     const ptab = t.closest('.ptab[data-ptab]');
@@ -848,6 +877,7 @@
   async function api(path, opts = {}, retried = false) {
     const { quiet, ...fetchOpts } = opts;  // quiet: a miss the caller expects (a draft deleted meanwhile), not a failure of the page
     opts = fetchOpts;
+    opts.quiet = !!quiet;
     // a read counts against the page that is loading when it starts (not whichever page is loading when it fails)
     const watch = loading.current && loading.current.name === state.view ? loading.current : null;
     try { return await request(path, opts, retried); } catch (err) {
@@ -862,8 +892,9 @@
     if (body != null && typeof body === 'object' && !(body instanceof Blob) && !(body instanceof ArrayBuffer) && !(body instanceof FormData)) {
       body = JSON.stringify(body); headers['Content-Type'] = 'application/json';
     }
-    const res = await fetch('/api' + path, Object.assign({}, opts, { headers, body }));
-    if (res.status === 401 && cfg.auth && cfg.auth.mode !== 'none') { server.config = null; showSignIn(cfg.auth.mode, 'Your session ended; sign in again.'); }
+    const { quiet, ...fetchOpts } = opts;
+    const res = await fetch('/api' + path, Object.assign({}, fetchOpts, { headers, body }));
+    if (res.status === 401 && !quiet && cfg.auth && cfg.auth.mode !== 'none') { server.config = null; showSignIn(cfg.auth.mode, 'Your session ended; sign in again.'); }
     if (res.status === 403 && !retried && (opts.method || 'GET') !== 'GET') {
       // The server restarted and issued a new request token: fetch it once and try again. A role refusal (package 10.2)
       // is a 403 too, but saying so again would not change it: only the token's refusal is retried.
@@ -890,6 +921,7 @@
     },
     failed(box, error, { lead = '', retry, cols } = {}) {
       const why = (error && error.message) || String(error || 'The server did not answer.');
+      ui.note('ui.error_shown', { view: state.view || 'home', code: 'failed', ...(error && error.status ? { status: String(error.status) } : {}) });
       this.put(box, `<div class="empty" role="alert">${esc(lead)}${esc(why)}${retry ? ' <button type="button" class="btn sm" data-state-retry>Try again</button>' : ''}</div>`, cols);
       const again = retry && box && box.querySelector('[data-state-retry]');
       if (again) again.addEventListener('click', () => { states.loading(box, { cols }); retry(); }, { once: true });
@@ -1161,7 +1193,7 @@
     });
   }
 
-  window.DC = { states, loading, showSignIn, explanation, synthetic, loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
+  window.DC = { ui, states, loading, showSignIn, explanation, synthetic, loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
   const start = () => config().catch(() => null).then(boot);  // the server says first whether someone must sign in
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else setTimeout(start, 0);
 })();

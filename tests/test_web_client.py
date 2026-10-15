@@ -108,7 +108,7 @@ class BrowserTestsTests(unittest.TestCase):
         from dclab_rnd.agentic.web import build
 
         self.assertEqual(browser_e2e.VIEWS, build.VIEWS)  # a new page is checked for errors and for 375 px too (13.2)
-        self.assertEqual(set(browser_e2e.CHECKS), {"flow", "stats", "pages", "mobile"})
+        self.assertEqual(set(browser_e2e.CHECKS), {"flow", "stats", "pages", "ui", "mobile"})
 
 
 class StatesTests(unittest.TestCase):
