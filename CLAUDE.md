@@ -65,7 +65,7 @@ Environments: `.venv` from `requirements/base.txt` (ML work); `.venv-agent` (Pyt
 
 The product and its foundation are built package by package from `docs/guides/PRODUCT_BUILD_PLAYBOOK.md` and
 `docs/guides/AGENTIC_FOUNDATION_PLAN.md`. Use the `dclab-package` skill for one package and the `dclab-reviewer`
-subagent to review its diff before committing. Every package also gets its development-trajectory record (`dev_trajectories/records/<package>.json`, the reviewer's findings and the fixes included) and `make sft-dev`, in the same commit. When compacting, keep the package in progress, the files changed and
+subagent to review its diff before committing. Milestones J and K (`docs/guides/CAPTURE_AND_PROBLEM_SOLVING_PLAN.md`, Part D): every package puts its contract and rules in `dclab_core`, its wiring in `dclab_rnd`, and an adapter plus a `CORE_INTEGRATION.md` section for the main product; `make core-wheel-check` and the adapter conformance tests are part of its gate. Every package also gets its development-trajectory record (`dev_trajectories/records/<package>.json`, the reviewer's findings and the fixes included) and `make sft-dev`, in the same commit. When compacting, keep the package in progress, the files changed and
 the last gate's result (`make check-quick` per package, `make check-all` at a milestone's end).
 
 ## Gotchas

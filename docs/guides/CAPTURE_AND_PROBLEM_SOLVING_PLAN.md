@@ -295,7 +295,7 @@ same commit, a reviewer pass, and `make check-commit`; a milestone's end gets `c
   joins them without a change here.
 - **Done when:** one request's log lines, events and model requests share one trace id end to end, through a job.
 
-### 23.12 The main product's side, kept current
+### 23.12 The main product's side: the conformance gate of every package
 - **Delivers:** the adapters and `CORE_INTEGRATION.md` extended for every contract phase 2 adds (the problem map, the
   solution map, outcomes, the new ledger points and event kinds); a conformance test that every kind the studio emits
   has a mapping or a listed reason in `main_product_experience.py`; the list of that repository's own packages (A.9) as
@@ -419,7 +419,56 @@ measured against the rules before it serves):
 
 ---
 
-## Part D. Order, effort and the decisions for the owner
+## Part D. Adoptable by the main product: the rule for every package
+
+The owner's requirement (2026-10-15): everything in phases 1 and 2 must be adoptable by the main product
+(github.com/Shahriyar-Moradi/DCLab). Its head is still `7fa23b9`, the commit the adapters' field lists were read at
+(`dclab_core/adapters/main_product_fields.json`), so the mapping below starts from current ground. The rule, for every
+package of J and K, is the one `dclab_core` already follows, made part of each package's gate:
+
+1. **The contract and the rules live in `dclab_core`.** Every new record shape is a versioned contract with its JSON
+   Schema (`make core-schemas`), and every rule that produces or judges one (the decomposer's templates, the router's
+   catalogue, the composition, the consent stamp, the sensitivity scan, the error fingerprint, the catalog builder, the
+   standard queries, the dataset builders) is a pure function over contract objects: numpy, pandas, scikit-learn and
+   pydantic only, never a store, a route or `dclab_rnd`. `make core-wheel-check` runs it in a clean Python 3.12.
+2. **The studio's part is wiring only** (`dclab_rnd`): its stores, its routes, its pages, its jobs call the core.
+3. **The main product's part is an adapter and a section**: `dclab_core/adapters/main_product_*.py` maps that
+   product's rows (field names from `main_product_fields.json`, read at one commit, never copied) onto the contract, a
+   row it cannot fill is `None` with a listed reason, and `docs/guides/CORE_INTEGRATION.md` gains a section saying
+   where each call goes there. The wiring inside that repository is its own change, under the owner's integration plan.
+4. **The gate.** A package of J or K is done only when: its contract is in the wheel and its schema published; the
+   adapter's conformance test passes on the field lists (`tests/test_core_adapters.py` and its siblings); the
+   integration section exists; and nothing in `dclab_core` imports the studio. 23.12 is that gate, run at every package
+   and refreshed when the main product's commit moves.
+
+What goes where, package by package:
+
+| Package | In `dclab_core` (the wheel) | In the studio (`dclab_rnd`) | The main product: adapter here, change there |
+|---|---|---|---|
+| 23.1 consent stamp | `experience` v3 and `ledger` v2 with `consent`; `consent.level_for(workspace, project)` and `exportable(record, use)` | the stamp at every writer; the consent page's counts | adapter reads its workspace settings into the stamp; there: a `consent_level` column on its event tables (additive) |
+| 23.2 UI events | the `ui.*` kinds and their payload classes; a validator that refuses form contents | `core.js` batching to `/api/experience/ui` | the kinds are the contract; there: the Next.js sender and a route |
+| 23.3 sign-in events | the `auth.*` kinds; `experience.hash_user_agent`, `truncate_ip` | the audit's auth rows emitted as events | adapter maps `auth_sessions` and `service_tokens` rows; there: an `auth_events` table |
+| 23.4 error fingerprints | `errors.fingerprint(exc_type, frames)`; the `error.raised` payload | the hook on every job and request; the Sessions grouping | adapter maps `status`/`failure_reason` rows; there: an `error_events` table |
+| 23.5 outcomes | `ledger.Outcome` v1, `outcomes.join(decisions, outcomes)` | the final stage and the promotion write them; the route for a business number | adapter maps `experiments.result` and `model_versions` to outcomes |
+| 23.6 feedback kinds | the `feedback.given` kinds and targets; `datasets.conversations` with an edit as the label | the buttons on messages and notes | adapter maps proposal accept/reject/revert and Jev labels to feedback events; there: a `feedback` table and route |
+| 23.7 column sensitivity | `datacard.sensitivity()` (names and shapes, never values); the classes on `ColumnCard` | the data card page; the data-limit tests | adapter maps `dataset_columns.sensitivity_class` both ways |
+| 23.8 steps inside a stage | `lineage.RunRecord.steps` and `lineage.compare(replay, record)` | the engine writes each step; `make replay` compares | adapter maps `ml_run_events` and `pipeline_stage_runs` to steps |
+| 23.9 catalog and queries | `catalog.build()` from the contracts (kinds, points, builders, audit kinds); `queries.*` as functions over events and decisions | `make catalog`, `docs/DATA_CATALOG.md`, the Sessions tab's request lookup | the catalog page is generated the same way there; the queries run on its adapted rows |
+| 23.10 the lake's shape | `datasets.episodes` and `datasets.model_calls` builders; the columnar writer as the extra `dclab-core[parquet]` | the nightly job; the rebuild after a deletion | the builders run on its adapted events; there: its own schedule |
+| 23.11 trace ids | `tracing.traceparent()` parse and format; span ids on `Ids` | the middleware and the worker | adapter joins its `request_id`; there: the `traceparent` header on its edge |
+| 23.12 conformance | the `NOT_MAPPED` lists per adapter | — | the test on the field lists; a refresh when the main product's commit moves |
+| 24.1 problem map | `problem_map.py`: `ProblemMap` v1, the rule decomposer, `validate` | Home's map page | adapter: a map from its `ProblemSpec` and wizard answers; there: a map document on its project |
+| 24.2 understanding agents | the roles `decomposer`, `map_reviewer`, `data_need` with prompts, validators and fallbacks | the coordinator's `map` state; the edits as moves | the roles run over its gateway through the `Advisor` it implements (CORE_INTEGRATION.md) |
+| 24.3 solution router | `solutions.py`: the catalogue, `route()`, the `solution_router` role; the ledger point `solution.route` | the Home proposal | adapter: candidates as proposals through its governed decision points |
+| 24.4 solution map | `SolutionMap` v1, `validate` (one holdout design) | the big-picture page with drill-down | adapter: a map onto its `ExperimentPlan` and `HoldoutPlan`; there: the page |
+| 24.5 programmes | `Programme` v1, `compose.py` (sequence, fusion, gate, budget; scored once) | the programme store, the graph rule, the report per programme | adapter: a programme over its projects; there: the composition run in its pipeline |
+| 24.6 the fraud programme | the replica with its planted parts | the acceptance and the journey | the replica is the same test material there |
+| 24.7 capture of phase 2 | the kinds, the points, the builders `problem_maps` and `routes` | the writers | adapter maps its map and route rows; `NOT_MAPPED` says what it lacks |
+| 24.8 measurement | — | the journeys and the gate | its own sealed run through the adapter is its choice |
+
+What never crosses, as today: a cell value, a prompt, a person's id, a key, a path of this machine.
+
+## Part E. Order, effort and the decisions for the owner
 
 **Order.** 23.1 → 23.2 → 23.5 → 23.6 → 23.4 → 23.3 → 23.7 → 23.9 → 23.8 → 23.10 → 23.11 → 23.12 (milestone J, its
 `check-all`), then 24.1 → 24.2 → 24.3 → 24.4 → 24.5 → 24.6 → 24.7 → 24.8 (milestone K, its `check-all`). 23.12 is
