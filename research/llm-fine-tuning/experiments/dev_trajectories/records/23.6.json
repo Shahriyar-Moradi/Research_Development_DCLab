@@ -1,0 +1,139 @@
+{
+ "package": "23.6",
+ "title": "Feedback of every kind, tied to the version that wrote what was judged; an edit becomes the example's reply",
+ "date": "2026-10-16",
+ "request": "Phase 1's feedback gap: a thumb existed on Home's replies, but nothing kept a score, a correction, a person's own version of a reply, an override, or which version of the agent wrote what was judged. A thumb should create the event with the message's version; an edited reply should become a conversation row whose label is the edit; adoptable by the main product.",
+ "spec": "dclab_core.feedback (kinds, targets, check, verdict); feedback.given gains kind, version, score and edited, chat.agent gains message and version (experience contract v7); POST /api/feedback runs the core's check and stamps the version of the message judged; datasets.conversations uses an edit as the reply, a thumb up as the mark and a thumb down as the end of the example; Home gets an edit control, a stage's explanation gets thumbs; the main product's accept, reject and revert of a proposal map to the same kind.",
+ "plan": [
+  "The rules in dclab_core: five kinds, seven targets, one check and one verdict function (an edit beats a rejection beats an approval).",
+  "Stamp what wrote a message: the release (library version and a digest of the prompts, tool schemas and validator) on every chat.agent event, with the message's id.",
+  "The route resolves the version of the message judged from the log, else the release now.",
+  "The conversations builder reads the verdicts; rows carry the label and the originals.",
+  "The buttons (Home's edit, stage explanations' thumbs) and the adapter."
+ ],
+ "decisions": [
+  {
+   "decision": "The version is the release (core version and prompts digest) stamped on the chat.agent event, and a thumb inherits the version of the message it judges.",
+   "why": "A thumb is about the prompts and rules that wrote the message, not the ones running when the person clicked."
+  },
+  {
+   "decision": "An edit beats a rejection beats an approval; the newest thumb of a message stands.",
+   "why": "A person who turned a reply down and then wrote the better one gave the label; a changed mind is the last thumb."
+  },
+  {
+   "decision": "A thumb down ends the example before that reply; it does not drop the whole conversation.",
+   "why": "What came before was accepted; what the person rejected is not taught, and nothing after it follows from it."
+  },
+  {
+   "decision": "The original reply stays in edits, never in messages.",
+   "why": "A set that trains on the edit must not also hold the text the person replaced."
+  },
+  {
+   "decision": "The experience event moves to v7 for the new fields.",
+   "why": "The rule since 23.2: a kind's fields are part of the contract's shape."
+  }
+ ],
+ "change": "dclab_core feedback.py (new), experience.py (fields, v7), datasets.py (conversations), adapters/main_product_experience.py (feedback_events), CHANGELOG 0.43.0, schemas; dclab_rnd experience/__init__.py (release), experience/hooks.py (message and version on chat.agent), agentic/pages/ledger.py (the route), web home.html and core.js (the buttons); tests test_feedback.py (new), the version pins; CORE_INTEGRATION.md, the plan.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The old route dropped a ref shorter than six characters, so a Home message id like m1 was never in the event.",
+   "scenario": "on was 'answer' with no id: a thumb could not be joined to its message.",
+   "cause": "One ID pattern for decisions and messages.",
+   "fix": "The core's check accepts an id's shape of 1 to 80 characters.",
+   "test": "test_each_kind_is_checked_into_a_payload"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "gap",
+   "defect": "Two assertions of the new test were wrong about the example's length and about which events an export keeps.",
+   "scenario": "A conversation has the problem, two agent replies and an answer: five messages with the system line; an event with no project follows the workspace's switch.",
+   "cause": "The test was written from memory of the builder.",
+   "fix": "The assertions say what the builder and the export do, and the export test shows the redaction.",
+   "test": "test_feedback ConversationsTest, test_an_edit_leaves_only_as_redacted_person_text_and_with_consent"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The export redacted the message ids, so an edit or a thumb hit the wrong message once a set was built.",
+   "scenario": "Home message ids are m plus ten hex characters; the redaction reads about 99% of them as ids and writes [ID]: every message shared one bucket, so an edit of the second reply replaced both, a thumb down on the second dropped the whole conversation, and the version was lost.",
+   "cause": "_scrub runs on every payload field, meta included; the tests used ids (m1, m2) that survive it and never went through the export.",
+   "fix": "The fields the server makes itself (chat.agent message and version, feedback version and target) are exempt when they are an id's shape; a test runs real-shaped ids through export_events and the builder.",
+   "test": "test_an_edit_and_a_thumb_reach_the_message_they_were_given_on_after_the_export"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Any signed-in role could write training labels: a Business viewer's edit became the example's reply.",
+   "scenario": "A viewer posts an edited_output for someone else's draft; stamped at the workspace's level, it leaves in the next make datasets.",
+   "cause": "POST /api/feedback is open to every role (a thumb used to be a record only); now a thumb or an edit changes a set.",
+   "fix": "The event carries the person's role; a viewer's feedback is recorded and ignored by verdict(), and a viewer's edit is refused with 403.",
+   "test": "test_a_viewers_feedback_is_recorded_and_counts_for_nothing"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A message whose version could not be found was stamped with today's release, claiming prompts that did not write it; a failed fingerprint was cached as 'none' for the process.",
+   "scenario": "A message from before the stamp, a note, or an unreadable log.",
+   "cause": "A fallback to the release now.",
+   "fix": "No version when it cannot be found; release() returns 'prompts-unknown' and does not remember a failure.",
+   "test": "test_a_thumb_is_tied_to_the_version_of_the_message_it_judges, test_a_home_reply_carries_its_id_and_the_release_that_wrote_it"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A rating that was a list or a dict gave a 500; an override of a decision neither checked it nor existed.",
+   "scenario": "POST {on: answer, rating: [x]}: TypeError unhashable.",
+   "cause": "A dict lookup with an unchecked value.",
+   "fix": "A rating must be a string; an override of a decision looks the decision up (404) without making a label.",
+   "test": "test_a_bad_request_is_refused_and_writes_nothing"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "edits[].index did not point into the final messages when consecutive agent replies were merged.",
+   "scenario": "Two agent replies in a row become one turn; the edit's index was where the pre-merge position was.",
+   "cause": "The index was computed before the merge.",
+   "fix": "The index is the turn the message ended up in.",
+   "test": "test_an_edit_and_a_thumb_reach_the_message_they_were_given_on_after_the_export"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The edit box said saved when the route had recorded nothing.",
+   "scenario": "The contract refused a credential-shaped edit; the route answered recorded false with 200.",
+   "cause": "The page did not read the answer.",
+   "fix": "The page throws when recorded is false.",
+   "test": "none (browser)"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The plan said the intern's messages carry the version; they did not.",
+   "scenario": "A future thumb on an intern answer would fall back.",
+   "cause": "A claim written before the code.",
+   "fix": "The intern's answers carry the release; the status says they have no message id yet.",
+   "test": "none"
+  }
+ ],
+ "measurements": [],
+ "outcome": "A thumb, a score, a correction, an edited reply or an override is one event with the version of what was judged; an edit is the reply of the example it came from. Reviewed: 7 findings fixed. The experience event moved once, to v7, for 23.6 and 23.7 together.",
+ "lessons": [
+  "Stamp the producer's version on what it writes, so feedback can inherit it later; the click happens under a different release."
+ ],
+ "risks": [
+  "The release is the whole prompt set's digest: any prompt change makes every earlier message a different version, which is the point, but a finer version per purpose would let an edit be traced to one prompt.",
+  "The intern's own chat page has no buttons yet; its messages carry the version already."
+ ],
+ "commits": []
+}

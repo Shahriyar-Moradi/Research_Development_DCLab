@@ -1,0 +1,135 @@
+{
+ "package": "23.9",
+ "title": "The data catalog and the standard questions: everything recorded is described by generated pages, and support opens a request id as a timeline",
+ "date": "2026-10-16",
+ "request": "Phase 1's findability gap: what the studio records, where, in what shape, for how long and under which consent lived in prose that could drift; and the questions support and the owner ask most had no home. A generated catalog the gate keeps fresh, the standard questions as functions, a request id as a timeline; adoptable by the main product.",
+ "spec": "dclab_core.catalog (the contract-derived half of the catalog) and dclab_core.queries (nine questions as pure functions); dclab_rnd.data_catalog writes docs/DATA_CATALOG.md and data_catalog.json from the contracts and the code and --check is a gate of make rd-gates; dclab_rnd/experience/queries.py reads the log and ledger for them (CLI query, GET /api/experience/queries/NAME); a request id is a filter of the log, finder.search, the route, the CLI and the Admin Sessions tab.",
+ "plan": [
+  "The contract-derived parts (kinds with field classes, points, contracts) in dclab_core, so another host renders the same page.",
+  "The studio adds what only it knows: where each kind is emitted (by scanning the code), tables with files, retention, consent; a missing description fails the generator.",
+  "The nine questions as pure functions over lists; the studio's module reads the log and ledger.",
+  "A request filter through the log (files and PostgreSQL), the finder, the route, the CLI and the Admin form.",
+  "The drift gate in rd-gates and a test that every kind recorded in the code is in the vocabulary."
+ ],
+ "decisions": [
+  {
+   "decision": "The catalog is generated, never edited; descriptions live next to what they describe or in NOTES, and a table or builder with none fails the generator.",
+   "why": "A page written by hand drifts; the gate that fails when something is added undescribed is what keeps it true."
+  },
+  {
+   "decision": "Where a kind is emitted is found by scanning the source for its quoted name.",
+   "why": "No second list to keep; a kind nobody emits shows as emitted by the host."
+  },
+  {
+   "decision": "The questions are pure functions over lists in dclab_core, with the studio's reader beside them.",
+   "why": "The main product asks the same questions of its adapted rows; the window is passed in, so nothing reads the clock."
+  },
+  {
+   "decision": "The request id is a filter of the log itself, not a text search.",
+   "why": "It is indexed on PostgreSQL and a file store can skip nothing but the lines; text search would match the id inside other fields."
+  }
+ ],
+ "change": "dclab_core catalog.py and queries.py (new), CHANGELOG 0.45.0; dclab_rnd data_catalog.py (new), experience/queries.py (new), experience/__init__.py (request filter on both logs), experience/finder.py, experience/__main__.py (query, --request), agentic/pages/sessions.py (queries route, request), accounts/guard.py, web admin.html (request field); Makefile (catalog, rd-gates); docs DATA_CATALOG.md and data_catalog.json (generated); tests test_data_catalog.py (new), test_experience_finder; CORE_INTEGRATION.md, the plan.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The first version put the question logic in the studio over its log, which the main product could not use.",
+   "scenario": "The Part D row says the queries run on its adapted rows.",
+   "cause": "Written against the log's read() before the adoptability rule was applied.",
+   "fix": "The logic moved into dclab_core.queries as pure functions over lists; the studio's module only reads and calls.",
+   "test": "test_the_core_answers_over_plain_lists"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "flaky",
+   "defect": "The drift test failed whenever any module that names a kind in quotes was added, because owners are scanned from the source.",
+   "scenario": "Adding dclab_core/queries.py changed 'emitted by' lists in the committed catalog.",
+   "cause": "The scan sees every file, as designed.",
+   "fix": "None needed: that is the gate working; the catalog is regenerated with make catalog.",
+   "test": "test_the_committed_catalog_is_what_the_code_generates"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "'What a deletion removes' undercounted: it read the newest 100,000 events and filtered them, and never counted the prompts the usage log keeps.",
+   "scenario": "A project whose events are older than the newest 100,000 showed 0 events; with DCLAB_LOG_PROMPTS=1 the most sensitive text a deletion clears was missing.",
+   "cause": "One capped, unfiltered read for every question.",
+   "fix": "One filtered read per id with no cap; a prompts row counted by the same rule forget_prompts clears; training counted in the store (stamped_counts).",
+   "test": "test_a_deletion_counts_what_forget_removes_not_the_newest_slice, test_it_counts_the_prompts_a_deletion_clears_and_the_replies_that_failed_their_check"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "'Which model calls failed their check' read the transport outcome, not the check.",
+   "scenario": "A reply the model returned and cited.py rejected has outcome ok and showed nothing.",
+   "cause": "Check verdicts go to model_output_check, not to an event.",
+   "fix": "failed_calls adds the usage log's failing checks (purpose, tier, model, count, last reason).",
+   "test": "test_it_counts_the_prompts_a_deletion_clears_and_the_replies_that_failed_their_check"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The route and the Admin field refused request ids the server accepts.",
+   "scenario": "A proxy's X-Request-ID such as svc.7f3a9c01 is stored on events and got 422.",
+   "cause": "A looser id pattern than observe._VALID_ID.",
+   "fix": "The request id is validated by the server's own pattern.",
+   "test": "test_a_request_id_a_proxy_chose_opens_and_a_token_label_never_shows"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The catalog's 'Emitted by' column listed readers: the adapter, the queries, the Admin page.",
+   "scenario": "graph.move showed the adapter, queries.py and admin.html and hid hooks.py behind '+3'.",
+   "cause": "Every module naming a kind in quotes was an owner.",
+   "fix": "Readers (the library, the finders, retention, the catalog, the Admin page) are left out; a kind no studio module names is the host's.",
+   "test": "test_an_overridden_decision_ignores_a_shadow_answer_and_the_catalog_names_emitters_not_readers"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The request timeline printed a field a person typed (a token's label).",
+   "scenario": "what() returned name=Maryam's laptop for auth.token_created.",
+   "cause": "It did not check the field's class.",
+   "fix": "Only meta fields are named.",
+   "test": "test_a_request_id_a_proxy_chose_opens_and_a_token_label_never_shows"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The catalog was thinner than the text asks: no owner for a decision point, a builder that needs no consent said it needed train, a missing file path.",
+   "scenario": "development (the owner's own records) listed 'train'.",
+   "cause": "A default.",
+   "fix": "Points carry where they are decided (ledger.CAPTURED), builders their own need, model_output_check its file; the consent and retention are global sections, said so in the plan.",
+   "test": "test_it_lists_every_kind_point_audit_kind_builder_and_table"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "overrides treated a shadow classifier's answer as the rule's; training said 'ready for training' for rows that can never leave.",
+   "scenario": "A shadow answer after a None rule value became 'the rule said'.",
+   "cause": "The answers were scanned without their source.",
+   "fix": "A shadow is skipped; training is retitled 'records by the level they were written under'.",
+   "test": "test_an_overridden_decision_ignores_a_shadow_answer_and_the_catalog_names_emitters_not_readers"
+  }
+ ],
+ "measurements": [],
+ "outcome": "docs/DATA_CATALOG.md lists every kind, point, audit kind, builder and table with its owner, retention and consent; the gate fails on drift; nine questions answer on the log, the route and the command line; a request id opens as a timeline. Reviewed: 7 findings fixed.",
+ "lessons": [
+  "Apply the adoptability rule before writing the first version of a reader: a function over a log cannot be moved to another host, a function over a list can."
+ ],
+ "risks": [
+  "The Admin page has the request field but no menu of the nine questions; the route and the command line have them.",
+  "Owners are found by quoted names: a kind built from variables would show as emitted by the host."
+ ],
+ "commits": []
+}

@@ -54,7 +54,7 @@ def _lineage(args, parser) -> int:
     except (KeyError, ValueError) as exc:  # an unknown project, stage or path; a table that changed on disk (DataError)
         parser.error(str(exc.args[0]) if exc.args else "not found")
     print(json.dumps(out, indent=2, ensure_ascii=False, default=str))
-    reproduced = all(out.get(k) for k in ("replayed", "same_inputs", "same_value", "same_numbers"))
+    reproduced = all(out.get(k) for k in ("replayed", "same_inputs", "same_value", "same_numbers")) and out.get("same_steps") is not False  # 23.8
     return 0 if args.command != "replay" or reproduced else 1
 
 
@@ -90,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
     grouped.add_argument("--days", type=int, default=30)
     grouped.add_argument("--json", action="store_true")
     find = sub.add_parser("search")
-    for name in ("kind", "project", "draft", "person", "text", "code", "since", "until"):
+    for name in ("kind", "project", "draft", "person", "text", "code", "since", "until", "request"):
         find.add_argument(f"--{name}")
     find.add_argument("--limit", type=int, default=50)
     find.add_argument("--json", action="store_true")
@@ -100,6 +100,12 @@ def main(argv: list[str] | None = None) -> int:
     again = sub.add_parser("replay")
     again.add_argument("project")
     again.add_argument("stage")
+    asked = sub.add_parser("query", help="23.9: a standard question of the record (see dclab_rnd/experience/queries.py)")
+    asked.add_argument("name")
+    for arg in ("request", "project", "draft", "visit"):
+        asked.add_argument(f"--{arg}")
+    asked.add_argument("--days", type=int)
+    asked.add_argument("--json", action="store_true")
     listed = sub.add_parser("catalog", help="every dataset make datasets built (19.13), or one set's sessions")
     listed.add_argument("--lineage", metavar="BUILDER/NAME", help="the sessions one dataset came from")
     listed.add_argument("--json", action="store_true")
@@ -140,6 +146,28 @@ def main(argv: list[str] | None = None) -> int:
         items = cat.catalog(home)
         print(json.dumps(items, indent=2, ensure_ascii=False) if args.json else "\n".join(cat.lines(items)) or "No datasets yet: make datasets")
         return 0
+    if args.command == "query":
+        from ..ledger import open_ledger
+        from ..settings import Settings
+        from . import queries
+
+        home = Path(Settings.load().agent_home)
+        try:
+            from ..models import open_usage
+
+            answer = queries.run(args.name, log, open_ledger(home, getattr(log, "workspace", None)), request=args.request, project=args.project,
+                                 draft=args.draft, visit=args.visit, days=args.days, usage=open_usage(home))
+        except (ValueError, TypeError) as exc:
+            parser.error(str(exc))
+        if args.json:
+            print(json.dumps(answer, indent=2, ensure_ascii=False, default=str))
+            return 0
+        print(answer["title"])
+        for row in answer["rows"]:
+            print("  " + "  |  ".join("" if cell is None else str(cell) for cell in row))
+        if not answer["rows"]:
+            print("  (nothing)")
+        return 0
     if args.command == "errors":
         from .finder import errors as grouped_errors
 
@@ -171,9 +199,9 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"    ! {f.detector} ({f.severity}): {f.message}")
         return 0
     if args.command == "search":
-        query = {k: getattr(args, k) for k in ("kind", "project", "draft", "person", "text", "code", "since", "until")}
+        query = {k: getattr(args, k) for k in ("kind", "project", "draft", "person", "text", "code", "since", "until", "request")}
         if not any(query.values()):
-            parser.error("name at least one of --kind, --project, --draft, --person, --text, --code, --since, --until")
+            parser.error("name at least one of --kind, --project, --draft, --person, --text, --code, --since, --until, --request")
         try:
             found = finder.search(log, **query, limit=args.limit)
         except ValueError as exc:  # an unknown kind, a date that is not one

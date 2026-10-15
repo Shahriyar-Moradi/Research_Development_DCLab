@@ -122,10 +122,14 @@ def profile_table(frame: pd.DataFrame) -> dict[str, Any]:
         numbers = pd.to_numeric(non_null, errors="coerce") if kind == "numeric" and id_like else None
         sequence_like = bool(numbers is not None and numbers.notna().all() and unique
                              and float(numbers.max() - numbers.min() + 1) <= 1.05 * unique)  # 1, 2, 3, …: a counter, not an amount
+        from dclab_core import sensitivity
+
+        cls, why = sensitivity.classify(name, non_null)  # 23.7: by name and by the shape of its values
         columns.append({
             "name": str(name), "kind": kind, "dtype": str(series.dtype),
             "missing_rate": float(series.isna().mean()), "unique": unique, "unique_ratio": unique_ratio,
-            "preview": preview,
+            "preview": [] if cls != "none" else preview,  # a person's data reaches a model by name only
+            "sensitivity": cls, "sensitivity_why": why,
             "id_like": id_like and kind not in ("datetime", "text"), "name_id_like": bool(ID_NAMES.search(str(name))) and kind not in ("datetime", "text"),
             "sequence_like": sequence_like,
             "time_like": kind == "datetime" or (bool(TIME_NAMES.search(str(name))) and kind == "numeric"),

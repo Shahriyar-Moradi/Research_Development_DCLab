@@ -115,7 +115,8 @@ def _rerun_run(s: Any, payload: dict[str, Any]) -> None:
     result = pipeline.rerun(s.projects, pid, step)
     control = current()
     keep = {k: result.get(k) for k in ("replayed", "same_numbers", "same_value", "same_choice", "same", "numbers_compared", "compared_with_runs",
-                                        "run", "original_run", "metric", "original", "rerun", "why", "differ", "changed_numbers")}
+                                        "run", "original_run", "metric", "original", "rerun", "why", "differ", "changed_numbers", "same_steps",
+                                        "first_step_difference", "steps_compared")}
     s.projects.log(pid, "pipeline_rerun", {"job": control.job["id"] if control else None, "step": step, **{k: v for k, v in keep.items() if v is not None}})
     if step == "stage:final" and result.get("replayed"):  # the holdout read again in a scratch copy: said in the audit trail
         audit.record_for(s.projects, "replay", "human", project={"id": pid}, move="replay_final", status="allowed", run=result.get("run"),

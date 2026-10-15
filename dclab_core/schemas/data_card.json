@@ -235,6 +235,39 @@
           "title": "Role",
           "type": "string"
         },
+        "sensitivity": {
+          "anyOf": [
+            {
+              "enum": [
+                "restricted",
+                "pii",
+                "sensitive",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "v3 (23.7): what the name and the shape of the values say the column holds; not none: it reaches a model by name only.",
+          "title": "Sensitivity"
+        },
+        "sensitivity_why": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "v3: the rule in words, never a value.",
+          "title": "Sensitivity Why"
+        },
         "shape": {
           "anyOf": [
             {
@@ -682,7 +715,7 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.data_card.v2.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.data_card.v3.json",
   "additionalProperties": false,
   "description": "The tables of one problem without their rows: columns in bands, relations, problems.",
   "properties": {
@@ -717,8 +750,8 @@
       "type": "array"
     },
     "schema_version": {
-      "const": "dclab_core.data_card.v2",
-      "default": "dclab_core.data_card.v2",
+      "const": "dclab_core.data_card.v3",
+      "default": "dclab_core.data_card.v3",
       "title": "Schema Version",
       "type": "string"
     },

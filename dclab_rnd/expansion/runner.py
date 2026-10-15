@@ -46,6 +46,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
+from dclab_core import steps as _steps  # 23.8: a run's steps are collected when a host asks; free otherwise
 from dclab_rnd.expansion import CAMPAIGN_ID
 from dclab_rnd.expansion.datasets import (
     DATASET_ORDER,
@@ -1206,9 +1207,11 @@ def fit_and_predict(
     weighting = params.pop("review__class_weight", None)
     params = params or None
     recipe = make_recipe(bundle, recipe_name, include_blocked)
-    recipe.fit(X_fit, y_fit)
-    fit_matrix, names = recipe.transform(X_fit)
-    eval_matrix, _ = recipe.transform(X_eval)
+    with _steps.step(f"recipe {recipe_name}: fit and transform", "transform", params={"recipe": recipe_name}, shape_in=X_fit.shape) as s:
+        recipe.fit(X_fit, y_fit)
+        fit_matrix, names = recipe.transform(X_fit)
+        eval_matrix, _ = recipe.transform(X_eval)
+        s.out(shape=fit_matrix.shape, produced=fit_matrix)
     fraction = bundle.spec.settings.get("fit_negative_fraction")
     y_values = y_fit.to_numpy()
     from .detectors import DETECTORS
@@ -1228,15 +1231,20 @@ def fit_and_predict(
             raise ValueError("a log target needs a regression target above -1")
         y_rows = np.log1p(y_rows.astype(float))
     present = np.unique(y_rows) if task == "multiclass" else None
-    if present is not None and not np.array_equal(present, np.arange(len(present))):
-        # a tiny class can be missing from a training fold; XGBoost needs labels 0..k-1, so fit on contiguous codes and
-        # remember the classes they stand for (predict_scores maps the probabilities back to every class)
-        model.fit(fit_matrix[rows], np.searchsorted(present, y_rows), **fit_kwargs)
-        model.dclab_classes_ = present.astype(int)
-    else:
-        model.fit(fit_matrix[rows], y_rows, **fit_kwargs)
+    with _steps.step(f"model {family}: fit", "fit", params={"family": family, **{k: v for k, v in (params or {}).items() if isinstance(v, (str, int, float, bool))}},
+                     shape_in=(len(rows), fit_matrix.shape[1])) as s:
+        if present is not None and not np.array_equal(present, np.arange(len(present))):
+            # a tiny class can be missing from a training fold; XGBoost needs labels 0..k-1, so fit on contiguous codes and
+            # remember the classes they stand for (predict_scores maps the probabilities back to every class)
+            model.fit(fit_matrix[rows], np.searchsorted(present, y_rows), **fit_kwargs)
+            model.dclab_classes_ = present.astype(int)
+        else:
+            model.fit(fit_matrix[rows], y_rows, **fit_kwargs)
+        s.out(shape=(len(rows), fit_matrix.shape[1]))
     fit_seconds = time.perf_counter() - started
-    predictions = predict_scores(model, eval_matrix, task, _n_classes(bundle))
+    with _steps.step(f"model {family}: predict", "predict", shape_in=eval_matrix.shape) as s:
+        predictions = predict_scores(model, eval_matrix, task, _n_classes(bundle))
+        s.out(shape=np.shape(predictions), produced=predictions)
     if target == "log1p":
         predictions = np.expm1(predictions)
     if clip == "fit_range" and task == "timeseries_regression":
@@ -1282,12 +1290,18 @@ def cross_validate(
         y_fit = y_train.iloc[fit_idx].reset_index(drop=True)
         X_valid = X_train.iloc[valid_idx].reset_index(drop=True)
         y_valid = y_train.iloc[valid_idx].reset_index(drop=True)
-        out = fit_and_predict(
-            bundle, recipe_name, family, params, X_fit, y_fit, X_valid,
-            include_blocked=include_blocked, seed=RANDOM_STATE + fold,
-        )
-        metrics = compute_metrics(task, y_valid, out["predictions"], n_classes=n_classes, precision_target=precision_target,
-                                  alert_budget=bundle.spec.settings.get("alert_budget"))
+        with _steps.step(f"fold {fold}: {config_id or recipe_name + '/' + family}", "fold", params={"fit_rows": len(fit_idx), "validation_rows": len(valid_idx)},
+                         shape_in=X_fit.shape, fold=fold):
+            out = fit_and_predict(
+                bundle, recipe_name, family, params, X_fit, y_fit, X_valid,
+                include_blocked=include_blocked, seed=RANDOM_STATE + fold,
+            )
+        with _steps.step(f"fold {fold}: metrics of {config_id or recipe_name + '/' + family}", "metric", params={"config": config_id or f"{recipe_name}/{family}"},
+                         fold=fold, shape_in=(len(valid_idx),)) as s:
+            metrics = compute_metrics(task, y_valid, out["predictions"], n_classes=n_classes, precision_target=precision_target,
+                                      alert_budget=bundle.spec.settings.get("alert_budget"))
+            primary = bundle.spec.primary_metric
+            s.out(metric=primary, value=metrics.get(primary) if isinstance(metrics.get(primary), (int, float)) else None)
         metrics.update(
             fold=fold,
             fit_rows=out["fit_rows"],

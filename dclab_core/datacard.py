@@ -37,6 +37,7 @@ import numpy as np
 import pandas as pd
 from pydantic import Field
 
+from dclab_core import sensitivity
 from dclab_core.contracts import CONTRACTS, Contract, Versioned, _version
 from dclab_core.bands import CARDINALITY_BANDS, DTYPE_KINDS, RATIO_BANDS, VALUE_PATTERNS, cardinality_band, name_tokens, ratio_band
 
@@ -96,6 +97,9 @@ class ColumnCard(Contract):
     purpose: Optional[Purpose] = Field(None, description="v2 (20.3): what the column is for in the problem.")
     why: Optional[str] = Field(None, max_length=300, description="v2: the rule that gave the purpose, in words.")
     unit: Optional[str] = Field(None, max_length=20, description="v2: the unit its name says (km, minutes, EUR…).")
+    sensitivity: Optional[Literal["restricted", "pii", "sensitive", "none"]] = Field(None, description="v3 (23.7): what the name and the shape of "
+                                                                                         "the values say the column holds; not none: it reaches a model by name only.")
+    sensitivity_why: Optional[str] = Field(None, max_length=80, description="v3: the rule in words, never a value.")
 
 
 class TableCard(Contract):
@@ -141,8 +145,8 @@ class Problem(Contract):
 class DataCard(Versioned):
     """The tables of one problem without their rows: columns in bands, relations, problems."""
 
-    schema_version: Literal["dclab_core.data_card.v2"] = _version("data_card", 2)
-    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.data_card.v1"})  # a stored v1 card stays readable
+    schema_version: Literal["dclab_core.data_card.v3"] = _version("data_card", 3)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.data_card.v1", "dclab_core.data_card.v2"})  # a stored v1 or v2 card stays readable
     name: str = Field(min_length=1, max_length=200)
     synthetic: bool = Field(False, description="Built from a synthetic table (a replica, or drawn from another card).")
     tables: list[TableCard] = Field(min_length=1, max_length=20)
@@ -157,9 +161,10 @@ class DataCard(Versioned):
 
     @classmethod
     def read(cls, document):
-        """A card as stored; a v1 card (19.11) is read as v2: v2 only added fields, each optional."""
+        """A card as stored; a v1 or v2 card is read as v3: each only added fields, all optional."""
         data = json.loads(document) if isinstance(document, (str, bytes)) else dict(document)
-        if data.get("schema_version") == "dclab_core.data_card.v1":
+        if data.get("schema_version") in ("dclab_core.data_card.v1", "dclab_core.data_card.v2"):
+            data = sensitivity.upgrade_card(data)  # a card from before 23.7 may hold category names and ranges of a personal column
             data["schema_version"] = cls.model_fields["schema_version"].default
         return super().read(data)
 
@@ -350,7 +355,9 @@ def column_card(name: str, series: pd.Series, keep_categories: bool = False) -> 
             decimals = -int(math.floor(math.log10(spread))) + 2  # a hundredth of the spread: where values lie, not one of them
             out["quantiles"] = [float(round(float(x), decimals)) for x in q]
             out["step"] = _step(numbers)
-    return ColumnCard(**out)
+    cls, why = sensitivity.classify(name, values)
+    out.update(sensitivity=cls, sensitivity_why=why)
+    return ColumnCard(**sensitivity.strip(out, cls))  # a column that holds a person's data keeps no value, however it was drawn
 
 
 # ------------------------------------------------------------------------------------------------ relations

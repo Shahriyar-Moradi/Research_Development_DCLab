@@ -132,7 +132,11 @@ def stage_run(run: str, project: dict[str, Any], stage: str, *, previous: dict[s
               record: Optional[dict[str, Any]] = None, params: Optional[dict[str, Any]] = None, started: str, finished: Optional[str],
               seconds: Optional[float], status: str = "completed", error: Optional[str] = None, parent: Optional[str] = None,
               seed: Optional[int] = None) -> contract.RunRecord:
-    """The run record of one stage run, from the project as it ran, the earlier stages it read, and what it wrote."""
+    """The run record of one stage run, from the project as it ran, the earlier stages it read, and what it wrote; with the
+    steps the run took (23.8) when it was collecting them."""
+    from dclab_core import steps as run_steps
+
+    taken = run_steps.current()
     inputs = inputs_of(project, previous, prepared, seed)
     outputs = contract.RunOutputs()
     if record is not None:
@@ -145,7 +149,8 @@ def stage_run(run: str, project: dict[str, Any], stage: str, *, previous: dict[s
                                       numbers=contract.numbers(record.get("evidence") or {}, "evidence"))
     return contract.RunRecord(run=run, kind="stage", name=stage, project=project.get("id"), parent=parent, status=status, started=started,
                               finished=finished, seconds=seconds, inputs=inputs, params=contract.flat(params or {}), outputs=outputs,
-                              code=code(), error=(error or None) and error[:600])
+                              code=code(), error=(error or None) and error[:600],
+                              steps=list(taken.steps) if taken is not None else [], steps_dropped=taken.dropped if taken is not None else 0)
 
 
 def trace(store: Any, project_id: str, path: str) -> dict[str, Any]:
@@ -166,6 +171,8 @@ def trace(store: Any, project_id: str, path: str) -> dict[str, Any]:
         except KeyError:
             raise KeyError(f"no value at {path!r} in the {head} record") from None
         run = records[head].get("run")
+        if isinstance(run, dict):  # the steps are listed by stage_steps and decision_steps: a clicked number does not carry them
+            run = {**{k: v for k, v in run.items() if k != "steps"}, "steps": len(run.get("steps") or [])}
         return {"path": path, "stage": head, "value": _scalar(value), "run": run,
                 "note": None if run else "This stage ran before runs were recorded (19.5): rerun it to record its run."}
     if head in REPORT_ROOTS:
@@ -186,15 +193,63 @@ def _scalar(value: Any) -> Any:
 
 
 def runs(store: Any, project_id: str) -> dict[str, Any]:
-    """Each stage's latest run as recorded, by stage (None for a stage that ran before runs were recorded)."""
+    """Each stage's latest run as recorded, by stage (None for a stage that ran before runs were recorded). A run's steps
+    are counted here (``steps`` is how many): ``decision_steps`` and ``stage_steps`` list them."""
     from .store import STAGE_KEYS
 
     out: dict[str, Any] = {}
     for stage in STAGE_KEYS:
         record = store.read_stage(project_id, stage)
         if record:
-            out[stage] = record.get("run")
+            run = record.get("run")
+            out[stage] = {**{k: v for k, v in run.items() if k != "steps"}, "steps": len(run.get("steps") or [])} if isinstance(run, dict) else run
     return out
+
+
+def stage_steps(store: Any, project_id: str, stage: str) -> dict[str, Any]:
+    """23.8: the steps a stage's latest run took, in order (empty for a run from before steps were recorded)."""
+    from .store import STAGE_KEYS
+
+    if stage not in STAGE_KEYS:
+        raise KeyError(f"unknown stage {stage!r}")
+    run = (store.read_stage(project_id, stage) or {}).get("run")
+    if not isinstance(run, dict):
+        raise KeyError(f"the {stage} stage has no run record")
+    return {"stage": stage, "run": run.get("run"), "steps": run.get("steps") or [], "dropped": run.get("steps_dropped", 0),
+            "note": None if run.get("steps") else "This run took no recorded steps: it ran before steps were recorded (23.8), or is a machine's single step."}
+
+
+def decision_steps(store: Any, ledger: Any, project_id: str, record_id: str) -> dict[str, Any]:
+    """23.8: the exact numbers a decision was made on: the decision's run, the stage whose record holds it, and that run's
+    steps that carry a metric (each fold's score, the holdout's) in order, with the digest of what each produced."""
+    from .store import STAGE_KEYS
+
+    record = next((r for r in ledger.records(project=project_id) if r.id == record_id), None) if ledger is not None else None
+    if record is None:
+        raise KeyError(f"no decision {record_id!r} in this project")
+    out = {"decision": record.id, "point": record.point, "used": record.used, "value_used": record.value_used, "run": record.run, "stage": None, "steps": []}
+    if not record.run:
+        return {**out, "note": "This decision was not made inside a run: no steps belong to it."}
+    for stage in STAGE_KEYS:
+        run = (store.read_stage(project_id, stage) or {}).get("run")
+        if isinstance(run, dict) and run.get("run") == record.run:
+            steps = run.get("steps") or []
+            numbers = [s for s in steps if s.get("metric") is not None or s.get("kind") in ("fit", "transform")]
+            return {**out, "stage": stage, "steps": numbers or steps, "all_steps": len(steps),
+                    "note": None if steps else "That run took no recorded steps (it ran before 23.8)."}
+    from .. import experience
+
+    log = experience.current_log()  # the stage ran again: the steps of that run are still events
+    if log is not None:
+        events = [e for e in log.read(project=project_id, kinds=["pipeline.step_finished"], limit=100_000) if e.payload.get("run") == record.run]
+        if events:
+            steps = [{"index": e.payload.get("index"), "name": e.payload.get("step"), "kind": e.payload.get("kind"), "fold": e.payload.get("fold"),
+                      "metric": e.payload.get("metric"), "value": e.payload.get("value"), "digest": e.payload.get("digest")} for e in events]
+            steps.sort(key=lambda s: (s["index"] is None, s["index"]))
+            numbers = [s for s in steps if s["metric"] is not None or s["kind"] in ("fit", "transform")]
+            return {**out, "stage": None, "steps": numbers or steps, "all_steps": len(steps), "from_events": True,
+                    "note": "The stage has run again since: these are the steps of that earlier run as the record kept them."}
+    return {**out, "note": "The stage that made this decision has run again since, and no event of that run's steps is left."}
 
 
 def replay(store: Any, project_id: str, stage: str) -> dict[str, Any]:

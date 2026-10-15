@@ -23,7 +23,7 @@ import json
 import math
 import re
 from collections.abc import Iterable, Mapping
-from typing import Any, Literal, Optional, Union
+from typing import Any, ClassVar, Literal, Optional, Union
 
 from pydantic import Field, model_validator
 
@@ -34,6 +34,29 @@ RunKind = Literal["stage", "pipeline", "agent", "job"]
 RunStatus = Literal["completed", "failed", "stopped"]
 MAX_NUMBERS = 400   # numbers kept per run: the record's numeric leaves, the first ones in reading order
 MAX_TEXT = 300
+
+
+StepKind = Literal["load", "clean", "impute", "encode", "transform", "fold", "fit", "predict", "metric", "select", "other"]
+MAX_STEPS = 600  # a run keeps at most this many; the rest are counted, not kept
+SAMPLE_ROWS, SAMPLE_COLS = 5000, 200  # a digest reads at most this much of a matrix, and its shape
+
+
+class Step(Contract):
+    """One action of a run (package 23.8, ``dclab_core.steps``): what it was, with what, on what shape, and a digest of what it made."""
+
+    index: int = Field(ge=0)
+    name: str = Field(min_length=1, max_length=120)
+    kind: StepKind
+    params: dict[str, Scalar] = Field(default_factory=dict, max_length=16)
+    rows_in: Optional[int] = Field(default=None, ge=0)
+    cols_in: Optional[int] = Field(default=None, ge=0)
+    rows_out: Optional[int] = Field(default=None, ge=0)
+    cols_out: Optional[int] = Field(default=None, ge=0)
+    fold: Optional[int] = Field(default=None, ge=0)
+    metric: Optional[str] = Field(default=None, max_length=80)
+    value: Optional[float] = None
+    seconds: float = Field(default=0.0, ge=0)
+    digest: Optional[str] = Field(default=None, max_length=16, description="A hash of what the step produced (``steps.digest_of``); equal for a faithful rerun.")
 
 
 class RunInputs(Contract):
@@ -74,7 +97,8 @@ class RunCode(Contract):
 class RunRecord(Versioned):
     """One run: what it read, what it was told, what it made, and the code that ran it."""
 
-    schema_version: Literal["dclab_core.run_record.v1"] = _version("run_record")
+    schema_version: Literal["dclab_core.run_record.v2"] = _version("run_record", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.run_record.v1"})  # v2 added steps; a stored v1 record stays readable
     run: str = Field(min_length=1, max_length=80)
     kind: RunKind
     name: str = Field(min_length=1, max_length=120, description="The stage, the pipeline step or the agent.")
@@ -93,6 +117,9 @@ class RunRecord(Versioned):
     code: RunCode = Field(default_factory=RunCode)
     error: Optional[str] = Field(default=None, max_length=600, description="Why a failed run failed (its type and message).")
     fingerprint: str = Field(default="", max_length=64, description="The hash of the inputs and parameters (:func:`fingerprint`).")
+    steps: list[Step] = Field(default_factory=list, max_length=MAX_STEPS, description="v2 (23.8): what the run did, one entry per cleaning "
+                              "action, transform, fold, fit, prediction and metric, each with a digest of what it produced.")
+    steps_dropped: int = Field(default=0, ge=0, description="v2: steps taken beyond MAX_STEPS and not kept.")
 
     @model_validator(mode="before")
     @classmethod
@@ -100,6 +127,8 @@ class RunRecord(Versioned):
         """The fingerprint is computed here; one given must match it (a record is never edited after its run)."""
         if not isinstance(data, Mapping):
             return data
+        if data.get("schema_version") == "dclab_core.run_record.v1":
+            data = {**data, "schema_version": "dclab_core.run_record.v2"}
         raw = data.get("inputs") or {}
         inputs = raw if isinstance(raw, RunInputs) else RunInputs.model_validate(raw)
         expected = fingerprint(inputs, data.get("params") or {})
@@ -182,7 +211,12 @@ def compare(original: RunRecord, rerun: RunRecord, tolerance: float = 1e-9) -> d
     b_numbers = {k: v for k, v in rerun.outputs.numbers.items() if not TIMING.search(k)}
     changed_numbers = sorted(k for k in set(a_numbers) | set(b_numbers)
                              if k not in a_numbers or k not in b_numbers or abs(a_numbers[k] - b_numbers[k]) > tolerance)
+    from dclab_core import steps as _steps
+
+    walked = _steps.compare(original.steps, rerun.steps) if original.steps else None  # 23.8: where the rerun first differs (none recorded: nothing to compare)
     return {"same_inputs": not changed_inputs and not changed_params, "changed_inputs": changed_inputs, "changed_params": changed_params,
+            "same_steps": walked["identical"] if walked else None, "first_step_difference": walked["first_difference"] if walked else None,
+            "steps_compared": min(len(original.steps), len(rerun.steps)),
             "same_numbers": not changed_numbers, "changed_numbers": changed_numbers[:50], "numbers_compared": len(a_numbers),
             "same_code": not code, "changed_code": code, "same_value": same_value, "same_choice": original.outputs.chosen == rerun.outputs.chosen,
             "original": original.outputs.value, "rerun": rerun.outputs.value, "metric": original.outputs.metric}
@@ -200,7 +234,7 @@ def event_payload(record: RunRecord) -> dict[str, Any]:
     return {"run": record.run, "run_kind": record.kind, "name": record.name, "status": record.status, "fingerprint": record.fingerprint,
             "inputs": _short(flat_inputs), "params": _short(record.params), "outputs": _short(outputs), "code": _short(code),
             "upstream": record.inputs.upstream[:50], "parent": record.parent, "seconds": record.seconds,
-            "numbers": len(record.outputs.numbers)}
+            "numbers": len(record.outputs.numbers), "steps": len(record.steps)}
 
 
 def _short(mapping: Mapping[str, Any]) -> dict[str, Scalar]:

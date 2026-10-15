@@ -254,7 +254,8 @@
     evidenceAsk: ["POST", "/evidence/ask", [], []],
     evidenceRecord: ["GET", "/evidence/{record_id}", ["record_id"], []],
     experienceErrors: ["GET", "/experience/errors", [], ["days"]],
-    experienceSearch: ["GET", "/experience/search", [], ["person", "project", "draft", "kind", "text", "code", "since", "until", "limit"]],
+    experienceQuery: ["GET", "/experience/queries/{name}", ["name"], ["request", "project", "draft", "visit", "days"]],
+    experienceSearch: ["GET", "/experience/search", [], ["person", "project", "draft", "kind", "text", "code", "since", "until", "limit", "request"]],
     experienceSessions: ["GET", "/experience/sessions", [], ["limit"]],
     deleteSession: ["DELETE", "/experience/sessions/{visit}", ["visit"], []],
     experienceSession: ["GET", "/experience/sessions/{visit}", ["visit"], ["model_text"]],
@@ -326,6 +327,7 @@
     solutionProposal: ["POST", "/projects/{project_id}/solution/proposal", ["project_id"], []],
     approveStage: ["POST", "/projects/{project_id}/stages/{stage}/approve", ["project_id", "stage"], []],
     runStage: ["POST", "/projects/{project_id}/stages/{stage}/run", ["project_id", "stage"], ["wait", "reuse_reason"]],
+    projectSteps: ["GET", "/projects/{project_id}/steps", ["project_id"], ["stage", "decision"]],
     uploadTable: ["PUT", "/projects/{project_id}/tables/{name}", ["project_id", "name"], ["filename"]],
     research: ["GET", "/research", [], []],
     researchFile: ["GET", "/research/file", [], ["path"]],
@@ -610,8 +612,15 @@
   client.experienceErrors = (...args) => call('experienceErrors', args);
   client.path.experienceErrors = (...args) => build('experienceErrors', args).path;
   client.href.experienceErrors = (...args) => '/api' + build('experienceErrors', args).path;
+  /** GET /api/experience/queries/{name}: Experience Query
+   *  @param {string} name
+   *  @param {{query?: {request?: *, project?: *, draft?: *, visit?: *, days?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.experienceQuery = (...args) => call('experienceQuery', args);
+  client.path.experienceQuery = (...args) => build('experienceQuery', args).path;
+  client.href.experienceQuery = (...args) => '/api' + build('experienceQuery', args).path;
   /** GET /api/experience/search: Experience Search
-   *  @param {{query?: {person?: *, project?: *, draft?: *, kind?: *, text?: *, code?: *, since?: *, until?: *, limit?: *}, headers?: Object}} [opts]
+   *  @param {{query?: {person?: *, project?: *, draft?: *, kind?: *, text?: *, code?: *, since?: *, until?: *, limit?: *, request?: *}, headers?: Object}} [opts]
    *  @returns {Promise<Page>} */
   client.experienceSearch = (...args) => call('experienceSearch', args);
   client.path.experienceSearch = (...args) => build('experienceSearch', args).path;
@@ -1054,6 +1063,13 @@
    *  @returns {Promise<Project>} */
   client.runStage = (...args) => call('runStage', args);
   client.path.runStage = (...args) => build('runStage', args).path;
+  /** GET /api/projects/{project_id}/steps: Project Steps
+   *  @param {string} project_id
+   *  @param {{query?: {stage?: *, decision?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.projectSteps = (...args) => call('projectSteps', args);
+  client.path.projectSteps = (...args) => build('projectSteps', args).path;
+  client.href.projectSteps = (...args) => '/api' + build('projectSteps', args).path;
   /** PUT /api/projects/{project_id}/tables/{name}: Upload Table
    *  @param {string} project_id
    *  @param {string} name

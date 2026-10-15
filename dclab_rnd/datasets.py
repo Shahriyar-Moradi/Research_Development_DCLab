@@ -68,6 +68,9 @@ def anonymous_card(card: dict[str, Any] | None) -> dict[str, Any] | None:
 
     if not card:
         return card
+    from dclab_core import sensitivity
+
+    card = sensitivity.upgrade_card(card)  # a card stored before 23.7 may still name the categories and ranges of a personal column
     names = {t.get("name"): (t.get("name") if t.get("name") == "labels" else f"table_{i + 1}{Path(str(t.get('name'))).suffix[:10]}")
              for i, t in enumerate(card.get("tables") or [])}
 

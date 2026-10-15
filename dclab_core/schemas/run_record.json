@@ -323,9 +323,184 @@
       },
       "title": "RunOutputs",
       "type": "object"
+    },
+    "Step": {
+      "additionalProperties": false,
+      "description": "One action of a run (package 23.8, ``dclab_core.steps``): what it was, with what, on what shape, and a digest of what it made.",
+      "properties": {
+        "cols_in": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cols In"
+        },
+        "cols_out": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cols Out"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "maxLength": 16,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A hash of what the step produced (``steps.digest_of``); equal for a faithful rerun.",
+          "title": "Digest"
+        },
+        "fold": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fold"
+        },
+        "index": {
+          "minimum": 0,
+          "title": "Index",
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "load",
+            "clean",
+            "impute",
+            "encode",
+            "transform",
+            "fold",
+            "fit",
+            "predict",
+            "metric",
+            "select",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "metric": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metric"
+        },
+        "name": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "params": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxProperties": 16,
+          "title": "Params",
+          "type": "object"
+        },
+        "rows_in": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rows In"
+        },
+        "rows_out": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rows Out"
+        },
+        "seconds": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Seconds",
+          "type": "number"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "index",
+        "name",
+        "kind"
+      ],
+      "title": "Step",
+      "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.run_record.v1.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.run_record.v2.json",
   "additionalProperties": false,
   "description": "One run: what it read, what it was told, what it made, and the code that ran it.",
   "properties": {
@@ -471,8 +646,8 @@
       "type": "string"
     },
     "schema_version": {
-      "const": "dclab_core.run_record.v1",
-      "default": "dclab_core.run_record.v1",
+      "const": "dclab_core.run_record.v2",
+      "default": "dclab_core.run_record.v2",
       "title": "Schema Version",
       "type": "string"
     },
@@ -501,6 +676,22 @@
       ],
       "title": "Status",
       "type": "string"
+    },
+    "steps": {
+      "description": "v2 (23.8): what the run did, one entry per cleaning action, transform, fold, fit, prediction and metric, each with a digest of what it produced.",
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "maxItems": 600,
+      "title": "Steps",
+      "type": "array"
+    },
+    "steps_dropped": {
+      "default": 0,
+      "description": "v2: steps taken beyond MAX_STEPS and not kept.",
+      "minimum": 0,
+      "title": "Steps Dropped",
+      "type": "integer"
     },
     "workspace": {
       "anyOf": [

@@ -15,6 +15,7 @@ from __future__ import annotations
 import re
 from collections import Counter
 
+VERSION = "redact-1"  # named in every dataset manifest (23.10): a change of the rules is a new version, and the sets built under it say so
 DATE = r"\d{4}-\d{2}-\d{2}"
 PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("EMAIL", re.compile(r"\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b")),

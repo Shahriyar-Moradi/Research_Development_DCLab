@@ -343,8 +343,34 @@ DC.view('home', {
       const rated = e.target.closest('[data-rate]');
       if (rated && S.draft) {
         rated.parentElement.querySelectorAll('[data-rate]').forEach(b => { b.disabled = true; });
-        try { await DC.client.giveFeedback({ body: { on: 'answer', ref: rated.dataset.ref, rating: rated.dataset.rate, draft: S.draft.id } }); toast('Thanks: noted.'); }
+        try { await DC.client.giveFeedback({ body: { on: 'answer', ref: rated.dataset.ref, kind: 'thumbs', rating: rated.dataset.rate, draft: S.draft.id } }); toast('Thanks: noted.'); }
         catch (err) { toast(err.message, { ok: false }); }
+      }
+      /* 23.6: the person's own version of a reply. It is kept beside the original and becomes the example's reply. */
+      const editing = e.target.closest('[data-edit]');
+      if (editing && S.draft) {
+        const body = editing.closest('.msg-body');
+        if (!body.querySelector('[data-edit-box]')) {
+          const shown = body.querySelector('p, .q');
+          body.insertAdjacentHTML('beforeend', `<div class="stack tight" data-edit-box><textarea rows="3" maxlength="4000" aria-label="Your version of this reply">${esc(shown ? shown.textContent : '')}</textarea>`
+            + `<div class="row"><button type="button" class="btn sm primary" data-edit-save="${esc(editing.dataset.edit)}">Save my version</button><button type="button" class="btn sm" data-edit-cancel="1">Cancel</button></div></div>`);
+        }
+        return;
+      }
+      if (e.target.closest('[data-edit-cancel]')) { e.target.closest('[data-edit-box]').remove(); return; }
+      const saving = e.target.closest('[data-edit-save]');
+      if (saving && S.draft) {
+        const box = saving.closest('[data-edit-box]');
+        const edited = box.querySelector('textarea').value.trim();
+        if (!edited) { toast('Write your version first.', { ok: false }); return; }
+        saving.disabled = true;
+        try {
+          const r = await DC.client.giveFeedback({ body: { on: 'answer', ref: saving.dataset.editSave, kind: 'edited_output', edited, draft: S.draft.id } });
+          if (!r || !r.recorded) throw new Error('Not saved: try again in a moment.');
+          box.remove(); toast('Kept: your version is saved beside the original.');
+        }
+        catch (err) { saving.disabled = false; toast(err.message, { ok: false }); }
+        return;
       }
       const res = e.target.closest('[data-resume]');
       if (res) { e.preventDefault(); if (await resume(res.dataset.resume)) { DC.selectPane(el, 'overview'); $('#home-chat', el).scrollIntoView({ behavior: 'smooth' }); } }
@@ -421,7 +447,7 @@ DC.view('home', {
         body = `<p>${esc(m.text)}</p>${(m.actions || []).length ? `<div class="row">${m.actions.includes('upload') ? '<button type="button" class="btn sm" data-open-bring="upload">Upload a sample</button>' : ''}${m.actions.includes('connect') ? '<button type="button" class="btn sm" data-open-bring="kaggle">Connect a source</button>' : ''}${m.actions.includes('simulate') ? '<button type="button" class="btn sm" data-open-bring="synthetic">Simulate data</button>' : ''}</div>` : ''}`;
       }
       // 19.9: was this answer helpful? It joins the session record, never changes the conversation
-      const rate = m.id ? `<div class="row xs muted" data-style="gap:6px;margin-top:4px"><button type="button" class="link-btn" data-rate="helpful" data-ref="${esc(m.id)}" aria-label="Helpful">👍</button><button type="button" class="link-btn" data-rate="unhelpful" data-ref="${esc(m.id)}" aria-label="Not helpful">👎</button></div>` : '';
+      const rate = m.id ? `<div class="row xs muted" data-style="gap:6px;margin-top:4px"><button type="button" class="link-btn" data-rate="helpful" data-ref="${esc(m.id)}" aria-label="Helpful">👍</button><button type="button" class="link-btn" data-rate="unhelpful" data-ref="${esc(m.id)}" aria-label="Not helpful">👎</button><button type="button" class="link-btn" data-edit="${esc(m.id)}" aria-label="Write my own version of this reply">✏</button></div>` : '';
       thread.insertAdjacentHTML('beforeend', `<div class="msg"><span class="avatar ai">AI</span><div class="msg-body"><div class="who">DCLab <span>${esc((m.at || '').slice(11, 16))}</span></div>${body}${rate}</div></div>`);
       DC.hydrate(thread);
       scrollThread();
@@ -469,6 +495,10 @@ DC.view('home', {
       if (missing.length) charts += `<div class="inset"><div class="eyebrow">Missing values</div>${DC.charts.barsH(missing.map(c => ({ label: c.name, value: c.missing_rate, valueText: pctTxt(c.missing_rate), cls: c.missing_rate > 0.3 ? 'warn' : '' })), { width: 420, labelW: 140, valW: 60, min: 0, max: 1, rowH: 24, ticks: [0, 0.5, 1], tickFmt: v => (v * 100) + '%', aria: 'Missing values by column' })}</div>`;
       if (num) charts += `<div class="inset"><div class="eyebrow">Distribution · ${esc(num.name)}</div>${DC.charts.vbars(num.hist.counts.map((v, i) => ({ value: v, label: i === 0 || i === num.hist.counts.length - 1 ? Number(num.hist.edges[i]).toPrecision(3) : null })), { width: 420, height: 140, aria: 'Histogram of ' + num.name })}</div>`;
       if (cat) charts += `<div class="inset"><div class="eyebrow">Top values · ${esc(cat.name)}</div>${DC.charts.barsH(cat.top.slice(0, 6).map(([v, n]) => ({ label: String(v).slice(0, 18), value: n, valueText: fmtN(n) })), { width: 420, labelW: 140, valW: 70, rowH: 22, aria: 'Top values of ' + cat.name })}</div>`;
+      const personal = (((a.profile || {}).columns) || cols).filter(c => c.sensitivity && c.sensitivity !== 'none');  // 23.7: every column, not only the 60 charted
+      const guard = personal.length ? `<div class="inset stack tight"><div class="eyebrow">Personal data: by name only</div><div class="row small" data-style="flex-wrap:wrap;gap:6px">${personal.slice(0, 12).map(c =>
+        `<span class="pill outline">${esc(c.name)} · ${esc({ restricted: 'secret or id', pii: 'personal', sensitive: 'sensitive' }[c.sensitivity] || c.sensitivity)}</span>`).join('')}${personal.length > 12 ? `<span class="muted">and ${personal.length - 12} more</span>` : ''}</div>`
+        + `<span class="xs muted">${personal.length === 1 ? 'This column is' : 'These columns are'} shown by name and class: no example, category name or prefix is kept or sent to a model. A sensitive column keeps its overall distribution; the outcome you choose to predict keeps its class names, since they define the task.</span></div>` : '';
       const hl = (a.highlights || []).slice(0, 5).map(h => `<li class="${h.severity === 'warning' ? 'blocked' : 'done'}"><span class="pi">${h.severity === 'warning' ? '!' : 'i'}</span><span><b>${esc(h.title)}</b> <span class="muted">${esc(h.text)}</span></span></li>`).join('');
       const ct = a.cases_table && (a.cases_table.tables || []).length ? a.cases_table : null;  // 21.3: known cases, and the table they label
       const bring = ct ? `<div class="inset stack tight"><div class="eyebrow">Known cases: the table they label</div>${ct.tables.map(t =>
@@ -478,6 +508,7 @@ DC.view('home', {
         ${bring}
         <div class="stats"><div class="stat"><span class="v">${fmtN(s.rows)}</span><span class="l">rows${s.sampled_rows ? ' · charts on a sample' : ''}</span></div><div class="stat"><span class="v">${fmtN(s.columns)}</span><span class="l">${esc(kinds || 'columns')}</span></div><div class="stat"><span class="v">${pctTxt(s.missing_cell_rate)}</span><span class="l">missing cells</span></div><div class="stat"><span class="v">${fmtN(s.duplicate_rows)}</span><span class="l">duplicate rows left</span></div></div>
         ${hl ? `<ul class="plan-list">${hl}</ul>` : ''}
+        ${guard}
         <div class="grid g2">${charts}</div>
         <div class="xs muted">Descriptive only: nothing here looks at the outcome yet. Relations with the target are checked on training rows after the split (WF-04).</div>
       </div>`;

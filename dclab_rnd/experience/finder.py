@@ -101,11 +101,12 @@ def _has_code(event: Any, code: str) -> bool:
 
 def search(log: ExperienceLog, *, person: str | None = None, project: str | None = None, draft: str | None = None,
            kind: str | None = None, text: str | None = None, code: str | None = None, since: str | None = None,
-           until: str | None = None, visit: str | None = None, limit: int = 50, scan: int = SCAN) -> dict[str, Any]:
-    """The events that match every condition given, newest first (at most ``limit``), and their visits' cards."""
+           until: str | None = None, visit: str | None = None, limit: int = 50, scan: int = SCAN, request: str | None = None) -> dict[str, Any]:
+    """The events that match every condition given, newest first (at most ``limit``), and their visits' cards. ``request``
+    (23.9): every event one request left, which is what support opens a request id to see."""
     kinds, refused_only = kinds_for(kind)
     read = log.read(visit=visit, project=project, conversation=draft, user=person, since=since, until=until, kinds=kinds,
-                    refused_only=refused_only, limit=scan)
+                    refused_only=refused_only, limit=scan, request=request)
     capped = len(read) >= scan
     found = [e for e in reversed(read) if (not text or _has_text(e, text)) and (not code or _has_code(e, code))]
     visits: list[str] = []

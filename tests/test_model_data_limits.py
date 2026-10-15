@@ -337,5 +337,97 @@ class DataLimitTests(unittest.TestCase):
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))
 
 
+
+PERSONAL = re.compile(r"Q7Kxmail\w*@example\.org|\+1 415 555 \d{4}|4111 1111 1111 1111|Q7Kxdx\d")
+
+
+def personal_table(rows=200):
+    """A table with an e-mail (named), a contact (found by its values), a phone, a card number and a diagnosis."""
+    t = marked_table(rows)
+    t["email"] = [f"Q7Kxmail{i}@example.org" for i in range(rows)]
+    t["contact"] = [f"Q7Kxmail{i + rows}@example.org" for i in range(rows)]
+    t["phone"] = [f"+1 415 555 {1000 + i}" for i in range(rows)]
+    t["wallet"] = ["4111 1111 1111 1111"] * rows
+    t["diagnosis"] = [f"Q7Kxdx{i % 4}" for i in range(rows)]
+    return t
+
+
+class PersonalDataTests(unittest.TestCase):
+    """23.7: a column that holds a person's data reaches a model by name only, whatever the purpose may see of other cells."""
+
+    def setUp(self):
+        env = mock.patch.dict(os.environ, CLEAN)
+        env.start()
+        self.addCleanup(env.stop)
+        Capture.prompts = {}
+
+    def personal_seen(self):
+        return {m for prompts in Capture.prompts.values() for p in prompts for m in PERSONAL.findall(p)}
+
+    def test_the_home_agent_never_sees_a_personal_value_and_still_sees_the_names(self):
+        from dclab_rnd.draft import analyze
+        from dclab_rnd.draft.chat import HomeAgent
+        from dclab_rnd.draft.store import DraftStore
+
+        store = DraftStore(Path(tempfile.mkdtemp()))
+        d = store.create("Predict which customers churn next month")
+        store.update(d["id"], lambda x: x.update(analysis=analyze.analyze(personal_table()), assets=[{"id": "a1", "status": "ready"}], active_asset="a1"))
+        gw = gateway({"home_agent": [tool_call("get_profile", {}, 1), tool_call("get_analysis", {}, 2),
+                                     tool_call("get_profile", {"columns": ["email", "phone", "wallet", "diagnosis"]}, 3)]})
+        HomeAgent(store, gw.client("home_agent", draft_id=d["id"])).reply(d["id"], "Customers who churn within 30 days")
+        prompts = " ".join(Capture.prompts.get("home_agent", []))
+        self.assertTrue(Capture.prompts.get("home_agent"), "the Home agent was never asked")
+        self.assertEqual(self.personal_seen(), set())
+        for name in ("email", "phone", "wallet", "diagnosis"):
+            self.assertIn(name, prompts)  # the names reach it: the model can say "these look personal"
+
+    def test_the_intern_never_sees_a_personal_value(self):
+        from dclab_rnd.intern import Intern, SessionStore
+        from dclab_rnd.intern.tools import Toolbox
+        from dclab_rnd.studio import ProjectStore, data
+
+        store = ProjectStore(Path(tempfile.mkdtemp()) / "projects")
+        pid = store.create("People", "general", "Predict churn")["id"]
+        personal_table().to_parquet(store.data_dir(pid) / "t.parquet", index=False)
+        data.attach_data(store, pid, "t.parquet")
+        gw = gateway({"intern": [tool_call("describe_data", {"project_id": pid}, 1), tool_call("finish", {"report": "done"}, 2)]})
+        intern = Intern(SessionStore(Path(tempfile.mkdtemp())), Toolbox(store), gw.client("intern"))
+        intern.run(intern.start("Describe the data", project_id=pid)["id"])
+        self.assertTrue(Capture.prompts.get("intern"), "the intern was never asked")
+        self.assertEqual(self.personal_seen(), set())
+        self.assertIn("sensitivity", " ".join(Capture.prompts["intern"]))
+
+    def test_the_decision_states_and_the_analyst_see_no_personal_value(self):
+        from dclab_core.analyse import analyse
+        from dclab_rnd.core_advisor import GatewayAdvisor
+        from dclab_rnd.ledger import column_state
+        from dclab_rnd.studio.data import profile_table
+
+        table = personal_table()
+        for column in profile_table(table)["columns"]:
+            self.assertNotRegex(json.dumps(column_state(column, len(table)), default=str), PERSONAL)  # a state is bands
+        gw = gateway({"data_investigator": [{"content": '{"after": []}', "tool_calls": [], "usage": {}}]})
+        analyse({"customers": table}, target="churned", task="binary", moment="At the monthly snapshot.", advisor=GatewayAdvisor(gw))
+        self.assertEqual(self.personal_seen(), set())
+
+    def test_the_leakage_reviewer_and_the_decision_answerer_see_no_personal_value(self):
+        from dclab_core.answerers import ModelAnswerer
+        from dclab_rnd.core_advisor import GatewayAdvisor
+        from dclab_rnd.ledger import column_state
+        from dclab_rnd.studio import data, leakage_review, solution
+
+        table = personal_table()
+        profile = data.profile_table(table)
+        proposal = solution.propose(table, profile, "churned")
+        gw = gateway({"leakage_review": [{"content": "{\"columns\": []}", "tool_calls": [], "usage": {}}],
+                      "decision_answer": [{"content": '{"answer": "no", "reason": "a band"}', "tool_calls": [], "usage": {}}] * len(table.columns)})
+        leakage_review.review(profile, "At the monthly snapshot of each customer.", proposal["forbidden"], "churned", proposal["identifiers"], gw.client("leakage_review"))
+        answerer = ModelAnswerer(GatewayAdvisor(gw), {"column.is_identifier"})
+        for column in profile["columns"]:
+            answerer.answer("column.is_identifier", column_state(column, len(table)), ["yes", "no"])
+        self.assertTrue(Capture.prompts.get("leakage_review") and Capture.prompts.get("decision_answer"))
+        self.assertEqual(self.personal_seen(), set())
+
+
 if __name__ == "__main__":
     unittest.main()

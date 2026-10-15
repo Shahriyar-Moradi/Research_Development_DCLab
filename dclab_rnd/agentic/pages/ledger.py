@@ -157,43 +157,64 @@ def register(app, ctx) -> None:
 
     @router.post("/api/feedback", response_model=Page)
     async def give_feedback(body: Any = Body(None)):
-        """A person's feedback (19.9): {"on": answer | proposal | decision | report, "ref": its id, "rating": helpful |
-        unhelpful | wrong, "reason": optional, "draft" or "project": where}. It joins the session record; "wrong" on a
-        yes/no decision from someone who may change the work or review it is also that person's label saying the
-        opposite (a correction)."""
+        """A person's feedback (19.9, 23.6): {"on": answer | message | step | proposal | decision | note | report, "ref": its
+        id, "kind": thumbs | rating | correction | edited_output | override (from the rating when not given), "rating":
+        helpful | unhelpful | wrong, "score": 1 to 5, "edited": the reply as the person would have it, "reason": optional,
+        "draft", "project" or "conversation": where}. It joins the session record with the version of the message
+        judged; "wrong" on a yes/no decision from someone who may change the work or review it is also that person's
+        label saying the opposite (a correction)."""
         return await asyncio.to_thread(feedback, body if isinstance(body, dict) else {}, store())
 
     app.include_router(router)
 
 
-ON = ("answer", "proposal", "decision", "report")
-RATINGS = ("helpful", "unhelpful", "wrong")
+def message_version(on: str, ref: str, conversation: str | None) -> str | None:
+    """23.6: the release that wrote the message judged (the chat.agent event carrying its id); None when that cannot be
+    found (a message from before the stamp, a note, a log that cannot be read): the release now would claim today's
+    prompts wrote what they did not."""
+    from ... import experience
+
+    log = experience.current_log()
+    if log is not None and ref and on in ("answer", "message"):
+        try:
+            for e in reversed(log.read(conversation=conversation, kinds=["chat.agent"], limit=2000) if conversation else
+                              log.read(kinds=["chat.agent"], limit=2000)):
+                if e.payload.get("message") == ref and e.payload.get("version"):
+                    return str(e.payload["version"])
+        except Exception:  # noqa: BLE001 - a log that cannot be read: no version
+            pass
+    return None
 
 
 def feedback(body: dict[str, Any], book: Any) -> dict[str, Any]:
+    from dclab_core import feedback as core
     from dclab_core.ledger import POINTS
 
     from ... import experience, ledger
     from ...accounts.principal import current
     from ...accounts.roles import allows
 
-    on, rating = body.get("on"), body.get("rating")
-    ref, reason = str(body.get("ref") or "")[:80], str(body.get("reason") or "").strip()[:300]
-    if on not in ON or rating not in RATINGS:
-        raise HTTPException(422, f"on is one of {', '.join(ON)} and rating one of {', '.join(RATINGS)}")
-    ref = ref if ID.fullmatch(ref) else ""  # "on" is meta and leaves with an export: only an id's shape, never free text
-    ids = {k: str(body[k])[:64] for k in ("draft", "project") if isinstance(body.get(k), str) and re.fullmatch(r"[0-9a-zA-Z_-]{1,64}", body[k])}
+    who = current()
+    role = who.role if who is not None else "owner"  # no accounts: the local owner
+    try:
+        payload = core.check({**body, "role": role})
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from None
+    if payload["kind"] == "edited_output" and role in core.READ_ONLY:
+        raise HTTPException(403, "Your role can react to a reply but not rewrite it: what DCLab learns from is for the people who change the work")
+    on, _, ref = payload["on"].partition(":")
+    rating = payload["rating"]
+    ids = {k: str(body[k])[:64] for k in ("draft", "project", "conversation") if isinstance(body.get(k), str) and re.fullmatch(r"[0-9a-zA-Z_-]{1,64}", body[k])}
+    conversation = ids.get("draft") or ids.get("conversation")
     record = None
-    if on == "decision" and rating == "wrong" and book is not None and ref:
+    if on == "decision" and rating in ("wrong", "overridden") and book is not None and ref:
         record = next((r for r in book.records() if r.id == ref), None)
         if record is None:
             raise HTTPException(404, "No such decision")
-    event = experience.record("feedback.given", "person", {"on": f"{on}:{ref}" if ref else on, "rating": rating, "reason": reason or None},
-                              conversation=ids.get("draft"), project=ids.get("project"))
+    event = experience.record("feedback.given", "person", {**payload, "version": message_version(on, ref, conversation)},
+                              conversation=conversation, project=ids.get("project"))
     labelled = None
-    who = current()
-    role = who.role if who is not None else "owner"  # no accounts: the local owner
-    point = POINTS.get(record.point) if record is not None else None
+    point = POINTS.get(record.point) if record is not None and rating == "wrong" else None
     if point is not None and point.answer == "noul" and isinstance(record.value_used, bool) and (allows(role, "write") or allows(role, "review")):
         by = f"person:{who.user_id}" if who is not None and who.user_id else "person"
         if not any(x.source == "user_decision_exposed" and x.by == by for x in book.labels(record=record.id)):  # once per person

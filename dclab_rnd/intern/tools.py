@@ -13,6 +13,8 @@ applies, and whether a person can unblock it.
 
 from __future__ import annotations
 
+from dclab_core import sensitivity
+
 import json
 import time
 from pathlib import Path
@@ -229,7 +231,9 @@ class Toolbox:
             return {"error": "The project has no data yet. Call use_sample, or ask the person to upload a table in the notebook."}
         profile = project["data"]["profile"]
         return {"filename": project["data"]["filename"], "rows": project["data"]["rows"], "column_count": profile["column_count"],
-                "columns": [{"name": c["name"], "kind": c["kind"], "missing": round(c["missing_rate"], 3), "unique": c["unique"], "examples": c["preview"][:3]} for c in profile["columns"]],
+                "columns": [{"name": c["name"], "kind": c["kind"], "missing": round(c["missing_rate"], 3), "unique": c["unique"], "examples": c["preview"][:3],
+                             **({"sensitivity": c["sensitivity"]} if c.get("sensitivity", "none") != "none" else {})}
+                            for c in (sensitivity.upgrade_column(col) for col in profile["columns"])],  # a profile from before 23.7 is brought up to the rule here
                 "target_candidates": profile["target_candidates"], "time_candidates": profile["time_candidates"],
                 "id_candidates": profile["id_candidates"], "text_candidates": profile["text_candidates"],
                 "suggestion": project.get("suggestion"), "solution": project.get("solution"),

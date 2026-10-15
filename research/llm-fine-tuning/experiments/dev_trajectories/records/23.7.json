@@ -1,0 +1,171 @@
+{
+ "package": "23.7",
+ "title": "Column sensitivity: a column that holds a person's data is found by its name and the shape of its values, and reaches a model by name only",
+ "date": "2026-10-16",
+ "request": "Phase 1's sensitivity gap: nothing told which columns hold a person's data, so example values, category names and top values of an e-mail or a phone column reached the profile, the Home analysis and the intern's description. Classes pii, sensitive and restricted from name tokens and value shapes, never keeping a value; a personal column reaches a model by name only and a dataset never holds its values; adoptable by the main product.",
+ "spec": "dclab_core.sensitivity (classify, of_name, of_values with the Luhn check, strip); ColumnCard.sensitivity and sensitivity_why (data card v3); the profile keeps no preview and the Home analysis no top values, histogram or range for such a column; the intern's describe_data names the class and gives no example; data.analysed carries the column-to-class map (event v7); Home's analysis card lists them; the data-limit tests plant personal columns and require that no purpose sees a value.",
+ "plan": [
+  "The rules in dclab_core: restricted (secrets, card numbers by Luhn, national ids, IBANs), pii, sensitive, none; a count, flag or rate about such data is not that data.",
+  "Put the class on the column card and strip what carries values at the source, so every caller is protected.",
+  "The same at the profile and the Home analysis, which are what the models and the UI read.",
+  "Carry the class in the event and show it on Home.",
+  "Prove it with tests that plant personal values in every table the callers read and look for them in every prompt."
+ ],
+ "decisions": [
+  {
+   "decision": "Strip at the source (the card, the profile, the analysis) rather than at each model call.",
+   "why": "A fix at each caller would miss the next one; the data-limit tests then check the callers."
+  },
+  {
+   "decision": "pii and restricted lose their whole distribution; sensitive keeps it but no category name or example.",
+   "why": "A phone number's quantiles are a number someone could be called on; a diagnosis' shares are a statistic."
+  },
+  {
+   "decision": "A count, flag or rate about a kind of data is not that data (email_opens, has_phone, phone_type).",
+   "why": "Marking them would blind the tools to ordinary features for no protection."
+  },
+  {
+   "decision": "A bare 'name' column, and name with a person word (customer, patient, member), is pii; product_name is not.",
+   "why": "The entity's own name is the common case; qualified names of things are not people."
+  },
+  {
+   "decision": "The event carries the map of column to class, as meta.",
+   "why": "Names are already in the event; the class lets a later reader know why a column has no values."
+  }
+ ],
+ "change": "dclab_core sensitivity.py (new), datacard.py (ColumnCard fields, v3, column_card), experience.py (data.analysed field), CHANGELOG 0.44.0, schemas; dclab_rnd studio/data.py (profile), draft/analyze.py, intern/tools.py, experience/hooks.py, web home.html; tests test_sensitivity.py (new), test_model_data_limits.py (PersonalDataTests), the version pins; CORE_INTEGRATION.md, the plan.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "leakage",
+   "defect": "The first name rules read email_opens as an e-mail column and date_of_birth as nothing.",
+   "scenario": "A churn table's email_opens count lost its quantiles; a date_of_birth column kept its values.",
+   "cause": "Adjacent-pair matching and no notion of a column that is about a kind of data.",
+   "fix": "A set of 'about' words (count, flag, rate, opens, type...) and small words dropped before pairing.",
+   "test": "test_a_name_gives_a_class_and_a_count_about_it_does_not"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "leakage",
+   "defect": "The Home analysis and the profile were the real carriers of values (top values, histogram, previews), not only the data card.",
+   "scenario": "A card-only fix would have left the intern's describe_data and the Home agent's get_profile seeing three emails per column.",
+   "cause": "Three different descriptions of a column in three modules.",
+   "fix": "strip() is applied in column_card, profile_table and the analysis; one rule for what carries a value.",
+   "test": "test_the_profile_and_the_analysis_keep_no_value_of_a_personal_column, PersonalDataTests"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The name rules missed common spellings: phone_num, phone1, email1, card_no, cc_num, account_no, postal_code, fname, lname.",
+   "scenario": "A phone_num column with plain digits kept its examples in describe_data; a postal_code the same.",
+   "cause": "num was read as 'number of' (about), digit-suffixed names did not tokenise, and the pairs listed only the long forms.",
+   "fix": "Trailing digits dropped from tokens, num no longer 'about', the short forms of the card and account pairs, postal, fname, lname and msisdn added.",
+   "test": "test_the_common_spellings_of_the_same_columns_are_named"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The value shapes missed real forms: a card or phone column made float by a missing row (a sixteen-digit card number written with a trailing .0), a column mixing e-mails and phones, placeholders diluting the share, a sorted file, lowercase IBANs and IPv6.",
+   "scenario": "A 300-row cc_num column with NaNs had class none, and its previews, category names and range reached the profile, the card and the analysis.",
+   "cause": "One 60% threshold for every shape, the first 200 values only, no normalisation.",
+   "fix": "Floats written as whole numbers read as numbers, placeholders leave the share, an even sample across the column, a fifth of a column is enough for an e-mail, the shapes that mix count together, lowercase IBANs and IPv6 added.",
+   "test": "test_numbers_written_as_floats_mixed_columns_and_placeholders_are_found"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Data written before 23.7 was never re-stripped: a stored profile kept its previews and a stored v1 or v2 card its category names and ranges, and an exported card took them as they were.",
+   "scenario": "describe_data on a project attached before the change returned three e-mail addresses as examples; the failure and workflow datasets carried an old card as stored.",
+   "cause": "The class was computed where a description is made, not where it is read or leaves.",
+   "fix": "upgrade_column and upgrade_card classify and strip any older description at the three boundaries: describe_data, DataCard.read for v1 and v2, anonymous_card.",
+   "test": "test_a_profile_and_a_card_stored_before_the_class_existed_are_brought_up_to_the_rule, test_describe_data_and_an_exported_card_clean_what_was_stored_earlier"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "False positives on the owner's own datasets: latitude and longitude of business places, PhoneService (yes/no), word_freq_mail, handle_time, race_time, orientation_deg.",
+   "scenario": "HyperAck's four coordinates lost their histogram, quantiles and previews.",
+   "cause": "Names read as personal without asking whether they are about the thing or the thing.",
+   "fix": "Coordinates are personal only as a home location; frequency, time, service, size, degrees and id words mark a column as about the data, not the data.",
+   "test": "test_a_business_place_a_yes_no_and_a_word_frequency_are_not_personal"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The levels of a sensitive column reached the final record as feature names (diagnosis=flu), and the Home note promised more than it did for the outcome column.",
+   "scenario": "top_final_features listed the 20 most important features by name.",
+   "cause": "The encoder names a level into a feature; the promise said 'never sent'.",
+   "fix": "Features named for a level of a personal column are left out of the final record; the Home note says the outcome you predict keeps its class names, since they define the task.",
+   "test": "test_the_final_features_name_no_level_of_a_personal_column (the rule), the Prepared attribute"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The per-purpose claim was under-tested and one existing test went vacuous.",
+   "scenario": "The Home-agent test passed before the change; PrivacyTest used a column named dob, now personal, so its range assertions were trivially true.",
+   "cause": "Tests written for the new behaviour only.",
+   "fix": "The leakage reviewer and the decision answerer are checked; the vacuous test uses a neutral column and a separate dob assertion.",
+   "test": "test_the_leakage_reviewer_and_the_decision_answerer_see_no_personal_value"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Home's card listed only the 60 charted columns, cut at 12 with no count.",
+   "scenario": "A wide table's personal columns beyond the 60th were not named.",
+   "cause": "The list came from the charted columns.",
+   "fix": "From the whole profile, with 'and N more'.",
+   "test": "none (browser)"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The cleaning log quoted up to three values that failed to read as numbers or dates.",
+   "scenario": "A phone column read as numbers quoted '07911 123456' in the cleaning log shown on Home.",
+   "cause": "A helper that quotes failures, for any column.",
+   "fix": "Nothing is quoted for a column whose name or failures look personal.",
+   "test": "test_the_cleaning_log_quotes_no_failed_value_of_a_personal_column"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The adoptability note asserted a main-product field that was never read.",
+   "scenario": "CORE_INTEGRATION said dataset_columns.sensitivity_class is the same four classes.",
+   "cause": "An expectation written as a fact.",
+   "fix": "FIELDS_MISSING names it as expected and unverified, and a test fails when the field lists gain it.",
+   "test": "test_the_main_products_column_class_waits_for_the_field_lists_that_name_it"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the rules over the owner's sample data",
+   "gate": "no ordinary column of the project and public datasets is marked personal",
+   "result": "22 files of 12 datasets, 269 columns, 20,000 rows read of each: 1 column marked (adult.race, sensitive), the rest none",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "1 of 269 marked, and it is the one that is",
+   "limits": [
+    "Names and shapes are heuristics; these datasets hold no e-mail, phone or card column to find."
+   ]
+  }
+ ],
+ "outcome": "A replica with an e-mail, a phone, a card number and a diagnosis column is marked, and no card, profile, analysis, event, synthetic table or prompt carries a value of them. Reviewed: 9 findings fixed.",
+ "lessons": [
+  "Find every description of a column before fixing one: three modules each had their own carrier of values."
+ ],
+ "risks": [
+  "Names and shapes are heuristics: a column of free text holding addresses is not caught by either.",
+  "The main product's dataset_columns.sensitivity_class is not in the field lists read; the mapping is described, not coded (23.12)."
+ ],
+ "commits": []
+}

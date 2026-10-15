@@ -109,6 +109,11 @@ def _describe(name: str, full: pd.Series, sample: pd.Series, fact: dict[str, Any
                        "median_words": float(text.str.split().str.len().median()) if len(text) else None}
     if kind != "text" and len(present):  # share of all rows, so a mostly empty column is not "constant"
         out["top_share"] = float(present.astype(str).value_counts().iloc[0] / len(sample))
+    cls = fact.get("sensitivity") or "none"
+    if cls != "none":  # 23.7: what a person's data looks like is not shown, kept or sent; the name and the class are
+        from dclab_core import sensitivity
+
+        out = {**sensitivity.strip(out, cls), "sensitivity": cls}
     return out
 
 

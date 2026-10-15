@@ -19,6 +19,7 @@ values).
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -31,6 +32,8 @@ PROJECT_TTL = 10.0  # seconds a project's switches are kept in memory by a write
 _WORKSPACE: dict[str, tuple[tuple[int, int], dict[str, bool]]] = {}  # home -> ((consent.json's mtime_ns, size), switches)
 _STORES: dict[str, Any] = {}  # home -> the project store a writer with no services opens for the stamp (4)
 _PROJECTS: dict[str, tuple[float, dict[str, bool] | None]] = {}  # project id -> (read at, switches; None: no such project)
+SERVER_IDS = frozenset({("chat.agent", "message"), ("chat.agent", "version"), ("feedback.given", "version"), ("feedback.given", "on")})  # 23.6
+SERVER_ID = re.compile(r"[0-9a-zA-Z_.:/-]{1,100}")
 SHAREABLE = ("meta", "count", "person_text", "agent_text")  # what may leave with consent; text redacted on the way out
 
 
@@ -246,7 +249,10 @@ def export_events(events: Iterable[Any], use: str, workspace: dict[str, bool], p
         for name, value in kept.payload.items():
             if event.kind == "data.uploaded" and name == "name" and isinstance(value, str):
                 value = ("file" + Path(value).suffix[:10]) if value else value  # a file's name can be a person's
-            payload[name] = _scrub(value, removed)
+            if (event.kind, name) in SERVER_IDS and isinstance(value, str) and SERVER_ID.fullmatch(value):
+                payload[name] = value  # a message's id and the release that wrote it are the server's own words: the scrub would read them as ids
+            else:
+                payload[name] = _scrub(value, removed)
         doc = json.loads(kept.model_dump_json())
         doc["payload"] = payload
         doc["redacted_text"] = removed

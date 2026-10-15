@@ -237,6 +237,28 @@ class ProjectPipelineTest(unittest.TestCase):
         self.assertFalse(r.json()["replayed"])
         self.assertEqual(r.json()["job"]["status"], "done")  # a job: the limits on jobs at once and Stop apply
 
+    def test_a_rerun_carries_the_step_result_into_the_activity_the_route_answers_from(self):
+        from unittest import mock
+
+        from dclab_rnd.jobs import handlers
+        from dclab_rnd.studio import pipeline
+
+        logged = []
+
+        class Projects:
+            def log(self, pid, kind, payload):
+                logged.append((pid, kind, payload))
+
+        class Services:
+            projects = Projects()
+
+        result = {"replayed": True, "same_numbers": True, "same_value": True, "same_steps": False, "steps_compared": 9,
+                  "first_step_difference": {"position": 3, "recorded": {"name": "fold 1"}, "replayed": {"name": "fold 1"}}}
+        with mock.patch.object(pipeline, "rerun", return_value=result):
+            handlers._rerun_run(Services(), {"project_id": "p1", "step": "stage:models"})
+        payload = logged[-1][2]
+        self.assertEqual((payload["same_steps"], payload["steps_compared"], payload["first_step_difference"]["position"]), (False, 9, 3))
+
 
 if __name__ == "__main__":
     unittest.main()

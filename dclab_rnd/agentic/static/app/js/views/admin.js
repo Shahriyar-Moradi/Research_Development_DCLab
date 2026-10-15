@@ -278,6 +278,7 @@ DC.view('admin', {
     if (v('#sess-project')) q.project = v('#sess-project');
     if (v('#sess-person')) q.person = v('#sess-person');
     if (v('#sess-draft')) q.draft = v('#sess-draft');
+    if (v('#sess-request')) q.request = v('#sess-request');
     if (v('#sess-text')) q.text = v('#sess-text');
     if (v('#sess-code')) q.code = v('#sess-code');
     // the days are the viewer's own (the times shown are local): local midnight, sent in UTC with its offset written out
@@ -308,7 +309,7 @@ DC.view('admin', {
     DC.states.loading(body, { cols: 6 });
     let r, found = null;
     try {
-      if (searching) { found = await DC.client.experienceSearch({ query: { ...q, limit: 100 }, quiet: true }); }
+      if (searching) { found = await DC.client.experienceSearch({ query: { ...q, limit: q.request ? 200 : 100 }, quiet: true }); }
       r = await DC.client.experienceSessions({ query: { limit: 50 }, quiet: true });
     } catch (e) { DC.states.failed(body, e, { retry: () => this.loadSessions(el), cols: 6 }); return; }
     if (!this.S.sessKinds) {
@@ -333,7 +334,7 @@ DC.view('admin', {
     foundBox.hidden = !searching;
     if (found) {
       foundBox.innerHTML = `<b>${found.total}</b> matching event${found.total === 1 ? '' : 's'} in <b>${found.visits}</b> session${found.visits === 1 ? '' : 's'}${found.capped ? ` · read the newest ${found.scanned.toLocaleString()} events only: narrow the dates to see older ones` : ''}.`
-        + (found.events.length ? `<div class="stack tight" data-style="margin-top:8px">${found.events.slice(0, 12).map(e => `<div class="row"><span class="mono xs">${esc(this.when(e.at))}</span> ${this.what(e)}</div>`).join('')}</div>` : '');
+        + (found.events.length ? `<div class="stack tight" data-style="margin-top:8px">${found.events.slice(0, q.request ? 200 : 12).map(e => `<div class="row"><span class="mono xs">${esc(this.when(e.at))}</span> ${this.what(e)}</div>`).join('')}</div>` : '');
     }
     const cards = found ? found.sessions : r.items;
     if (!cards.length) {

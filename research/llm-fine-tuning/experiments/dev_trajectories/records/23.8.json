@@ -1,0 +1,159 @@
+{
+ "package": "23.8",
+ "title": "Steps inside a stage: a run records what it did, one entry at a time, with a digest of what each produced",
+ "date": "2026-10-16",
+ "request": "Phase 1's gap: a stage's run record said what it read and what it made, not how it got there; a decision could not be traced to the exact numbers it was made on, and a replay that diverged could not say where. One entry per transform, fold, fit, prediction and metric, with shapes, parameters, the fold, the metric and its value, the time and a digest; adoptable by the main product.",
+ "spec": "dclab_core.steps (Step, collect, step, digest_of, compare; free when nothing collects); RunRecord v2 with steps; the events pipeline.step_started and pipeline.step_finished; the runner and the engine record the recipe fit and transform, model fit, prediction, fold and fold metric, the split, the holdout metrics and interval; GET /api/projects/{id}/steps?stage= or ?decision=; a replay reports same_steps and the first step whose digest differs; the adapter reads the main product's fold and candidate rows as steps.",
+ "plan": [
+  "The contract and the recorder in dclab_core as a context that costs nothing when nothing collects, so library code can call it freely.",
+  "A digest of what a step produced: bounded, rounded, deterministic, keeping no value.",
+  "Instrument the runner's fit_and_predict and cross_validate and the engine's data and final stages; collect in the engine's run wrapper; put the steps in the stage's run record.",
+  "Two events per step under the run; the route and the decision trace; the replay's comparison.",
+  "The adapter for the main product's rows that already are steps."
+ ],
+ "decisions": [
+  {
+   "decision": "A step's index is where it began; the log keeps steps in that order though an outer fold ends after its inner steps.",
+   "why": "A reader and a replay compare by position: the order must be the order of the work, not the order of the endings."
+  },
+  {
+   "decision": "A digest reads at most 5000 rows and 200 columns, rounded to six decimals, with the shape.",
+   "why": "A faithful rerun must give the same digest on any machine, and hashing a whole matrix per fold would cost more than the fold."
+  },
+  {
+   "decision": "At most 600 steps per run; the rest are counted.",
+   "why": "A models stage runs six families, two optimisations and folds; the record must stay readable and small."
+  },
+  {
+   "decision": "Step is defined with the run record it belongs to.",
+   "why": "steps imports the contract base and the contract base imports lineage: putting Step in lineage keeps the import order one-way."
+  },
+  {
+   "decision": "A kind's machine is one step.",
+   "why": "Its internals are not instrumented; the stage still shows that a machine ran, and what it produced is the stage record."
+  }
+ ],
+ "change": "dclab_core steps.py (new), lineage.py (Step, RunRecord v2, compare, event payload), experience.py (the step kinds, run.recorded steps), adapters/main_product_experience.py (steps_from_run_events), CHANGELOG 0.46.0, schemas; dclab_rnd expansion/runner.py, studio/engine.py, studio/lineage.py (stage_steps, decision_steps, runs), agentic/routers/projects.py (the steps route), experience/__main__.py (replay fails on a step difference); tests test_steps.py (new), test_experience_log; CORE_INTEGRATION.md, the plan.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Steps were listed in the order they ended, so a fold came after the fit inside it and a position-by-position comparison pinned the wrong step.",
+   "scenario": "A replay with step 2's digest changed reported position 1.",
+   "cause": "The index was taken at the start, the list appended at the end.",
+   "fix": "A slot is reserved when a step begins and filled when it ends.",
+   "test": "test_every_stage_run_records_its_steps_and_the_models_stage_has_a_fold_for_every_fit, test_a_replay_repeats_every_step_and_pins_a_change_to_the_first_step_that_differs"
+  },
+  {
+   "id": "S2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "steps imported the contract base, which imports lineage, which imports steps.",
+   "scenario": "import dclab_rnd.expansion.runner failed in a fresh interpreter.",
+   "cause": "A cycle that only shows when steps is imported first.",
+   "fix": "Step lives in lineage.",
+   "test": "test_intern (imports the runner first)"
+  },
+  {
+   "id": "S3",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The run event did not know about steps and refused the new count.",
+   "scenario": "run.recorded refused: fields not in the vocabulary: ['steps'].",
+   "cause": "event_payload gained a field the vocabulary lacks.",
+   "fix": "steps is a count of run.recorded.",
+   "test": "test_lineage"
+  },
+  {
+   "id": "S4",
+   "source": "test",
+   "severity": "gap",
+   "defect": "test_experience_log lists every event of the main flow; the step events are many.",
+   "scenario": "The expected sequence failed with pipeline.step_started inside it.",
+   "cause": "A new kind in the flow.",
+   "fix": "The flow test leaves pipeline.step_* out; test_steps counts them.",
+   "test": "test_the_sequence_is_exactly_the_flow_on_either_store"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The pipeline rerun route dropped every step result.",
+   "scenario": "POST .../pipeline/rerun?step=stage:models after a change in one fold's predictions answered with same_numbers only; the step walk reached only make replay.",
+   "cause": "The job logs a fixed key list and the route answers from the logged payload.",
+   "fix": "same_steps, first_step_difference and steps_compared are in the list; a test runs the handler with a replay that differs.",
+   "test": "test_a_rerun_carries_the_step_result_into_the_activity_the_route_answers_from"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A change in a metric, or past row 5000, was never pinned to a step: compare ignored the value, fit/fold/metric steps had no digest, and a digest read only the first 5000 rows.",
+   "scenario": "Two metric steps of 0.81 and 0.55 compared identical; two 20,000-element arrays differing at index 15,000 had equal digests.",
+   "cause": "Digests existed only for arrays and read a bounded sample.",
+   "fix": "A metric step is digested by its value; an array digest adds a checksum of the whole array and the sample is rounded to six decimals with signed zero normalised; the bootstrap interval is digested as an array.",
+   "test": "test_a_real_change_in_a_metric_is_pinned_to_the_first_metric_step_that_differs, test_a_digest_is_the_same_for_the_same_numbers_and_not_for_others"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A decision did not trace cleanly: metric steps carried no candidate, and a decision of a stage that ran again returned nothing.",
+   "scenario": "54 steps for a models decision with the candidate recoverable only by position; a superseded run returned steps [].",
+   "cause": "The config id was only in the fold step, which the decision view filtered out; the superseded run was only read from the stage record.",
+   "fix": "The metric step names its candidate; a superseded run's steps are read from its pipeline.step_finished events.",
+   "test": "test_a_decision_of_a_stage_that_ran_again_is_read_from_the_events_of_its_run"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The package text asked for imputation and encoding as steps; a recipe is one transform step.",
+   "scenario": "No clean, impute, encode or select step is ever emitted.",
+   "cause": "The frame recipe is one object.",
+   "fix": "Said in CORE_INTEGRATION and the status as a limit of the granularity.",
+   "test": "none"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A step's own failure could change a run: Step refuses nan and inf, digest_of raises on some sparse formats, the Step build in finally replaced the body's exception.",
+   "scenario": "A parameter of nan; a COO matrix.",
+   "cause": "The recording was not wrapped.",
+   "fix": "Digest and both Step builds are guarded; a non-finite parameter is left out.",
+   "test": "test_a_step_that_raises_is_kept_and_the_error_goes_on_and_a_callback_never_stops_a_run"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "A digest could differ for equal numbers: -0.0 against 0.0, rounding at nine decimals flipping on a 1e-12 jitter.",
+   "scenario": "A replay on another BLAS reported a false difference.",
+   "cause": "Too fine a rounding.",
+   "fix": "Six decimals, plus 0.0.",
+   "test": "test_a_digest_is_the_same_for_the_same_numbers_and_not_for_others"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "same_steps was None when the rerun had none but the original had some; trace returned the whole run with its steps; thousands of events per project; the route, the replay exit code and the real divergence were untested.",
+   "scenario": "make replay exited 0 for a rerun with no steps.",
+   "cause": "Several small omissions.",
+   "fix": "The comparison runs whenever the original has steps; trace returns a count; a start event is written only for units of work (a split, a transform, a fold), every step still ends with an event; tests for the route, the exit code and a real divergent replay.",
+   "test": "test_the_steps_route_answers_for_a_stage_a_decision_and_refuses_what_it_cannot, test_the_replay_command_fails_when_a_step_differs"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Every stage run records its steps with their digests; a replay names the first step that differs; a decision traces to the steps that carry its numbers. Reviewed: 7 findings fixed (the granularity of imputation and encoding is a stated limit).",
+ "lessons": [
+  "A recorder that is free when idle can be called from library code: no host needs to be threaded through the runner."
+ ],
+ "risks": [
+  "The draft's cleaning actions are events of the draft, not steps of a run; a kind's machine takes one step.",
+  "A digest of a bounded sample cannot see a change in rows past the sample; the shape and the metric steps still can."
+ ],
+ "commits": []
+}

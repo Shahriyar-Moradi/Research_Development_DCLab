@@ -31,7 +31,8 @@ from pydantic import Field, model_validator
 from dclab_core.contracts import CONTRACTS, Contract, Versioned, _version
 
 VERSION = "1"
-Builder = Literal["decisions", "conversations", "preferences", "trajectories", "workflows", "failures", "development", "outcomes"]  # outcomes: 23.5
+Builder = Literal["decisions", "conversations", "preferences", "trajectories", "workflows", "failures", "development", "outcomes", "episodes",
+                  "model_calls"]  # outcomes: 23.5; episodes and model_calls: 23.10
 SourceKind = Literal["decision", "label", "event", "visit", "conversation", "run", "project", "draft", "package", "flag"]
 SPLITS = (("sealed", 0.2), ("dev", 0.4))  # a group's hash below 0.2: sealed; below 0.4: dev; the rest train
 SALT = "dclab-datasets-v1"  # one salt for every set: a project is sealed (or not) everywhere at once
@@ -46,8 +47,8 @@ class Source(Contract):
 class DatasetManifest(Versioned):
     """What a dataset holds and where every row came from."""
 
-    schema_version: Literal["dclab_core.dataset_manifest.v3"] = _version("dataset_manifest", 3)
-    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.dataset_manifest.v1", "dclab_core.dataset_manifest.v2"})  # v2 added levels; v3 the outcomes builder
+    schema_version: Literal["dclab_core.dataset_manifest.v4"] = _version("dataset_manifest", 4)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.dataset_manifest.v1", "dclab_core.dataset_manifest.v2", "dclab_core.dataset_manifest.v3"})  # v2 added levels; v3 the outcomes builder; v4 the scrubber and the commit
     builder: Builder
     name: str = Field(min_length=1, max_length=120)
     version: str = Field(min_length=1, max_length=20)
@@ -62,12 +63,15 @@ class DatasetManifest(Versioned):
     policy: str = Field(max_length=600, description="How rows were grouped and split.")
     limits: list[str] = Field(default_factory=list, max_length=20)
     levels: dict[str, int] = Field(default_factory=dict, description="v2 (23.1): rows by the consent level their records were written under.")
+    scrubber: Optional[str] = Field(default=None, max_length=40, description="v4 (23.10): the version of the redaction rules the text in the rows went through.")
+    commit: Optional[str] = Field(default=None, max_length=64, description="v4: the commit of the code that built the set (None outside a repository).")
+    files: list[str] = Field(default_factory=list, max_length=20, description="v4: the files of the set (rows.jsonl, rows.parquet, sealed.jsonl…).")
 
     @model_validator(mode="before")
     @classmethod
     def _read_v1(cls, data: Any) -> Any:
-        if isinstance(data, dict) and data.get("schema_version") in ("dclab_core.dataset_manifest.v1", "dclab_core.dataset_manifest.v2"):
-            data = {**data, "schema_version": "dclab_core.dataset_manifest.v3"}
+        if isinstance(data, dict) and data.get("schema_version") in ("dclab_core.dataset_manifest.v1", "dclab_core.dataset_manifest.v2", "dclab_core.dataset_manifest.v3"):
+            data = {**data, "schema_version": "dclab_core.dataset_manifest.v4"}
         return data
 
 
@@ -122,7 +126,9 @@ def manifest(builder: str, name: str, rows: list[dict[str, Any]], sources: Itera
         if ident and (kind, ident) not in seen:
             seen.add((kind, ident))
             out.append(Source(kind=kind, id=str(ident)[:120]))
-    return DatasetManifest(builder=builder, name=name[:120], version=VERSION, built_at=now(), workspace=workspace, use=use, consent=consent[:300],
+    from dclab_core.redact import VERSION as SCRUBBER
+
+    return DatasetManifest(builder=builder, name=name[:120], version=VERSION, built_at=now(), workspace=workspace, use=use, consent=consent[:300], scrubber=SCRUBBER,
                            rows=len(rows), splits=dict(Counter(r.get("split", "train") for r in rows)), counts=counts or {}, sources=out,
                            policy=policy[:600], limits=list(limits)[:20], levels=dict(Counter(str(r.get("consent") or "unknown") for r in rows)))
 
@@ -226,13 +232,25 @@ SYSTEM = ("You are DCLab's Home agent. Understand the person's problem before an
 
 def conversations(events: Iterable[dict[str, Any]], *, workspace: Optional[str] = None, consent: str = "train",
                   drafts: Optional[dict[str, str]] = None) -> tuple[list[dict[str, Any]], DatasetManifest]:
-    """Chat examples from Home conversations that ended in a build (the person accepted the problem as understood)."""
+    """Chat examples from Home conversations that ended in a build (the person accepted the problem as understood). 23.6:
+    a reply the person edited is the example's reply (the original kept in ``edits``), a thumb up marks it, and a
+    thumb down on a reply ends the example before it (what the person rejected is not taught)."""
+    from dclab_core import feedback
+
     rows = []
     for conversation, items in _by_conversation(events).items():
         kinds = [e["kind"] for e in items]
         if "draft.created" not in kinds or "draft.built" not in kinds:
             continue
+        said: dict[str, list[dict[str, Any]]] = defaultdict(list)  # message id -> the feedback on it
+        for e in items:
+            p = e.get("payload") or {}
+            target, _, ref = str(p.get("on") or "").partition(":")
+            if e["kind"] == "feedback.given" and ref and target in feedback.MESSAGE_TARGETS:
+                said[ref].append(p)
         messages = [{"role": "system", "content": SYSTEM}]
+        edits: list[dict[str, Any]] = []
+        approved = False
         for e in items:
             p = e.get("payload") or {}
             if e["kind"] == "draft.created" and p.get("problem"):
@@ -240,15 +258,27 @@ def conversations(events: Iterable[dict[str, Any]], *, workspace: Optional[str] 
             elif e["kind"] == "chat.person" and p.get("text") and p.get("surface", "home") == "home":
                 messages.append({"role": "user", "content": str(p["text"])})
             elif e["kind"] == "chat.agent" and p.get("text") and p.get("surface", "home") == "home":
-                messages.append({"role": "assistant", "content": str(p["text"])})
+                verdict = feedback.verdict(said.get(str(p.get("message") or ""), []))
+                if verdict and verdict["label"] == "rejected":
+                    break  # a reply the person turned down is not an example, nor is anything after it
+                if verdict and verdict["label"] == "edit":
+                    edits.append({"at": len(messages), "original": str(p["text"])[:4000], "version": p.get("version")})  # `at`: its place before the merge
+                    messages.append({"role": "assistant", "content": verdict["text"]})
+                else:
+                    approved = approved or bool(verdict and verdict["label"] == "approved")
+                    messages.append({"role": "assistant", "content": str(p["text"])})
             elif e["kind"] == "draft.built":
                 break
         merged: list[dict[str, str]] = []
-        for m in messages:  # two turns in a row from one side are one turn
+        place: dict[int, int] = {}  # a message's position before the merge -> the turn it ended up in
+        for position, m in enumerate(messages):  # two turns in a row from one side are one turn
             if merged and merged[-1]["role"] == m["role"] and m["role"] != "system":
                 merged[-1] = {"role": m["role"], "content": merged[-1]["content"] + "\n" + m["content"]}
             else:
                 merged.append(m)
+            place[position] = len(merged) - 1
+        for edit in edits:
+            edit["index"] = place[edit.pop("at")]
         if not any(m["role"] == "assistant" for m in merged):
             continue
         while merged and merged[-1]["role"] != "assistant":
@@ -256,10 +286,14 @@ def conversations(events: Iterable[dict[str, Any]], *, workspace: Optional[str] 
         project = next(((e.get("ids") or {}).get("project") for e in items if (e.get("ids") or {}).get("project")), None)
         group = group_of(project, conversation, None, drafts, f"conversation:{conversation}")
         rows.append({"conversation": conversation, "messages": merged, "group": group, "split": split_of(group), "consent": lowest(e.get("consent") for e in items),
+                     "label": "edit" if edits else "thumbs_up" if approved else None, "edits": edits,
                      "sources": [("conversation", conversation)] + [("event", e.get("id")) for e in items]})
     return rows, manifest("conversations", "conversations.problem_understanding", rows, sources_of(rows), use="train", consent=consent, workspace=workspace,
-                          policy="One example per built draft; grouped with the project it became, split as every set.",
-                          limits=["Text is as the export redacted it.", "A conversation not built is left out: its understanding was not accepted."])
+                          counts={"labels": dict(Counter(r["label"] or "none" for r in rows))},
+                          policy="One example per built draft; grouped with the project it became, split as every set. A reply the person edited "
+                                 "is the reply (the original in `edits`); a thumb up marks the example; a thumb down ends it before that reply.",
+                          limits=["Text is as the export redacted it.", "A conversation not built is left out: its understanding was not accepted.",
+                                  "An edit is a person's wording, redacted like any text; the original agent reply stays in `edits`, not in `messages`."])
 
 
 # ------------------------------------------------------------------------------------------------ (c) preferences
@@ -317,6 +351,121 @@ def trajectories(events: Iterable[dict[str, Any]], *, workspace: Optional[str] =
     return rows, manifest("trajectories", "trajectories.agent_runs", rows, sources_of(rows), use="train", consent=consent, workspace=workspace,
                           policy="One example per run with two steps or more; grouped by its project, split as every set.",
                           limits=["A tool's arguments and results are cell values: they never leave, only their names."])
+
+
+# ------------------------------------------------------------------------------------------------ (d2) episodes and model calls (23.10)
+
+def episodes(events: Iterable[dict[str, Any]], records: Iterable[dict[str, Any]] = (), *, text: bool = False, workspace: Optional[str] = None,
+             consent: str = "train", drafts: Optional[dict[str, str]] = None) -> tuple[list[dict[str, Any]], DatasetManifest]:
+    """One row per turn of a conversation (a draft's or an intern session's): what the person said, what the agent answered, the
+    steps the runs took, the model calls, the moves the validator allowed or refused, the decisions made, the feedback and the
+    outcomes, joined by the ids and the time window of the turn. Every number is a count or a sum of the events named in
+    ``event_ids`` (and the decisions in ``decisions``), so a row traces to its sources. ``text``: the person's words and the
+    problem are kept (train); without it (improve) the row has no free text at all, only codes and counts."""
+    docs = sorted((e for e in events), key=lambda e: (e.get("at") or "", e.get("seq") or 0))
+    by_conversation: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    by_project: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for e in docs:
+        ids = e.get("ids") or {}
+        if ids.get("conversation"):
+            by_conversation[ids["conversation"]].append(e)
+        if ids.get("project") and not ids.get("conversation"):
+            by_project[ids["project"]].append(e)
+    records = list(records)
+    rows = []
+    for conversation, items in by_conversation.items():
+        starts = [e for e in items if e["kind"] in ("chat.person", "draft.created")]
+        if not starts:
+            continue
+        project = next(((e.get("ids") or {}).get("project") for e in items if (e.get("ids") or {}).get("project")), None) \
+            or (drafts or {}).get(conversation) or next(((e.get("payload") or {}).get("project") for e in items if e["kind"] == "draft.built"), None)
+        pool = sorted(items + by_project.get(project, []), key=lambda e: (e.get("at") or "", e.get("seq") or 0)) if project else items
+        for index, start in enumerate(starts):
+            end = starts[index + 1]["at"] if index + 1 < len(starts) else None
+            window = [e for e in pool if (e.get("at") or "") >= start["at"] and (end is None or (e.get("at") or "") < end)]
+            sp = start.get("payload") or {}
+            message = sp.get("text") or sp.get("problem")
+            kinds = Counter(e["kind"] for e in window)
+            finished = [e for e in window if e["kind"] == "pipeline.step_finished"]
+            calls = [e for e in window if e["kind"] == "model.request"]
+            replies = [e for e in window if e["kind"] == "chat.agent"]
+            decided = [r for r in records if (r.get("conversation") == conversation or (project and r.get("project") == project))
+                       and start["at"] <= (r.get("at") or "") and (end is None or (r.get("at") or "") < end)]
+            group = group_of(project, conversation, None, drafts, f"conversation:{conversation}")
+            rows.append({
+                "conversation": conversation, "project": project, "turn": index, "at": start["at"],
+                "message": str(message) if text and message else None, "message_chars": len(str(message)) if message else 0,
+                "agent": {"replies": len(replies), "kinds": sorted({str((e.get("payload") or {}).get("kind")) for e in replies if (e.get("payload") or {}).get("kind")}),
+                          "chars": sum(len(str((e.get("payload") or {}).get("text") or "")) for e in replies)},
+                "steps": {"finished": len(finished), "seconds": round(sum(float((e.get("payload") or {}).get("seconds") or 0.0) for e in finished), 3),
+                          "metrics": [{"step": (e.get("payload") or {}).get("step"), "metric": (e.get("payload") or {}).get("metric"),
+                                       "value": (e.get("payload") or {}).get("value"), "fold": (e.get("payload") or {}).get("fold")}
+                                      for e in finished if (e.get("payload") or {}).get("metric")][:60]},
+                "model_calls": {"n": len(calls), "tokens_in": sum(int((e.get("payload") or {}).get("input_tokens") or 0) for e in calls),
+                                "tokens_out": sum(int((e.get("payload") or {}).get("output_tokens") or 0) for e in calls),
+                                "cost": round(sum(float((e.get("payload") or {}).get("cost") or 0.0) for e in calls), 6),
+                                "failed": sum(1 for e in calls if str((e.get("payload") or {}).get("outcome") or "ok") != "ok"),
+                                "purposes": sorted({str((e.get("payload") or {}).get("purpose")) for e in calls if (e.get("payload") or {}).get("purpose")})},
+                "moves": [{"move": (e.get("payload") or {}).get("move"), "allowed": (e.get("payload") or {}).get("allowed")} for e in window if e["kind"] == "graph.move"][:40],
+                "stages": [{"stage": (e.get("payload") or {}).get("stage"), "kind": e["kind"]} for e in window if e["kind"] in ("stage.finished", "stage.failed")][:20],
+                "decisions": [{"id": r.get("id"), "point": r.get("point"), "used": r.get("used")} for r in decided][:80],
+                "feedback": [{"kind": (e.get("payload") or {}).get("kind"), "rating": (e.get("payload") or {}).get("rating"), "on": (e.get("payload") or {}).get("on")}
+                             for e in window if e["kind"] == "feedback.given"][:20],
+                "outcomes": [{"verdict": (e.get("payload") or {}).get("verdict"), "observed": (e.get("payload") or {}).get("observed"),
+                              "metric": (e.get("payload") or {}).get("metric"), "value": (e.get("payload") or {}).get("value")} for e in window if e["kind"] == "outcome.observed"][:20],
+                "errors": kinds.get("error.raised", 0) + kinds.get("stage.failed", 0),
+                "event_ids": [e.get("id") for e in window][:500], "consent": lowest(e.get("consent") for e in window),
+                "group": group, "split": split_of(group),
+                "sources": [("conversation", conversation)] + [("event", e.get("id")) for e in window] + [("decision", r.get("id")) for r in decided]})
+    return rows, manifest("episodes", "episodes.turns", rows, sources_of(rows), use="train" if text else "improve", consent=consent, workspace=workspace,
+                          policy="One row per turn of a conversation: from a person's message to the next; project events of the same window are joined "
+                                 "by the project; grouped by project, split as every set.",
+                          limits=["A count or a sum is of the events named in event_ids; the decisions are the ledger's records in the window."]
+                          + ([] if text else ["Built under improve: no free text, no message, only codes and counts."]))
+
+
+def model_calls(events: Iterable[dict[str, Any]], *, workspace: Optional[str] = None, consent: str = "train",
+                drafts: Optional[dict[str, str]] = None) -> tuple[list[dict[str, Any]], DatasetManifest]:
+    """Each model call whose prompt and reply the workspace kept (train only), with the verdict of the code that checked the reply
+    and the feedback a person gave the message it produced. ``events`` are exported with model text allowed and redacted; a
+    call whose purpose was shown cell values never has a prompt or a reply, so is not here."""
+    from dclab_core import feedback as fb
+
+    docs = [e for e in events]
+    checks = {(e.get("ids") or {}).get("model_request"): e for e in docs if e.get("kind") == "model.checked" and (e.get("ids") or {}).get("model_request")}
+    messages: dict[str, list[str]] = defaultdict(list)  # a model request -> the ids of the chat messages it produced
+    for e in docs:
+        rid = (e.get("ids") or {}).get("model_request")
+        if e.get("kind") == "chat.agent" and rid and (e.get("payload") or {}).get("message"):
+            messages[rid].append(str(e["payload"]["message"]))
+    feedback: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for e in docs:
+        target, _, ref = str((e.get("payload") or {}).get("on") or "").partition(":")
+        if e.get("kind") == "feedback.given" and ref and target in fb.MESSAGE_TARGETS:
+            feedback[ref].append(e.get("payload") or {})
+    rows = []
+    for e in docs:
+        p = e.get("payload") or {}
+        if e.get("kind") != "model.request" or not (p.get("prompt") or p.get("reply")):
+            continue
+        ids = e.get("ids") or {}
+        rid = ids.get("model_request")
+        mine = [x for m in messages.get(rid, []) for x in feedback.get(m, [])] if rid else []
+        verdict = fb.verdict(mine)
+        check = checks.get(rid)
+        group = group_of(ids.get("project"), ids.get("conversation"), None, drafts, f"request:{e.get('id')}")
+        rows.append({"request": e.get("id"), "model_request": rid, "purpose": p.get("purpose"), "tier": p.get("tier"), "model": p.get("model"),
+                     "tokens_in": p.get("input_tokens"), "tokens_out": p.get("output_tokens"), "cost": p.get("cost"), "seconds": p.get("seconds"),
+                     "outcome": p.get("outcome"), "prompt": p.get("prompt"), "reply": p.get("reply"),
+                     "check": {"passed": (check.get("payload") or {}).get("passed"), "reason": (check.get("payload") or {}).get("reason")} if check else None,
+                     "feedback": [{"kind": f.get("kind"), "rating": f.get("rating")} for f in mine][:10],
+                     "label": verdict["label"] if verdict else None, "edited": verdict.get("text") if verdict and verdict["label"] == "edit" else None,
+                     "consent": e.get("consent"), "group": group, "split": split_of(group),
+                     "sources": [("event", e.get("id"))] + ([("event", check.get("id"))] if check else [])})
+    return rows, manifest("model_calls", "model_calls.kept", rows, sources_of(rows), use="train", consent=consent, workspace=workspace,
+                          policy="One row per model call whose prompt or reply was kept; grouped by project or conversation, split as every set.",
+                          limits=["Text is as the export redacted it; a purpose shown cell values keeps neither prompt nor reply, so its calls are not here.",
+                                  "The check is joined by the model request's id; the feedback through the chat message that request produced."])
 
 
 # ------------------------------------------------------------------------------------------------ (e) workflows

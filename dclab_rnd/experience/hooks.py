@@ -87,9 +87,12 @@ def from_draft_event(draft_id: str, kind: str, data: dict[str, Any] | None) -> N
             record("chat.person", "person", {"text": text, "surface": "home"}, **ids)
         elif message.get("role") == "agent":
             question = message.get("question") or {}
+            from . import last_model_request, release
+
             record("chat.agent", "agent", {"text": text, "kind": message.get("kind"), "question_field": question.get("field"),
                                            "options": [str(o)[:120] for o in question.get("options") or []][:12] or None,
-                                           "surface": "home"}, **ids)
+                                           "surface": "home", "message": str(message.get("id") or "")[:80] or None, "version": release()},
+                   model_request=last_model_request() if message.get("by") == "model" else None, **ids)  # 23.10: only a reply a model wrote joins its request
     elif kind == "pipeline":
         step, asset = data.get("step"), data.get("asset")
         if step == "queued" and isinstance(asset, dict):
@@ -110,7 +113,9 @@ def from_draft_event(draft_id: str, kind: str, data: dict[str, Any] | None) -> N
         roles = {str(c.get("name"))[:120]: _role(c) for c in columns[:200]}
         record("data.analysed", "system", {"rows": profile.get("rows"), "columns": profile.get("column_count") or len(columns),
                                            "column_names": [str(c.get("name"))[:120] for c in columns][:200] or None,
-                                           "roles": roles or None}, **ids)
+                                           "roles": roles or None,
+                                           "sensitivity": {str(c.get("name"))[:120]: c["sensitivity"] for c in columns[:200]
+                                                           if c.get("sensitivity") not in (None, "none")} or None}, **ids)
         cases = analysis.get("cases_table")
         if cases:
             record("data.cases_found", "system", {"keys": cases.get("keys"), "case_kinds": sorted(cases.get("case_kinds") or {}),
@@ -147,7 +152,9 @@ def from_activity(project_id: str, kind: str, payload: Any) -> None:
     elif kind == "question":
         record("chat.person", "person", {"text": p.get("question"), "surface": "project"}, **ids)
     elif kind == "answer":
-        record("chat.agent", "agent", {"text": p.get("answer"), "kind": "answer", "surface": "project"}, **ids)
+        from . import release
+
+        record("chat.agent", "agent", {"text": p.get("answer"), "kind": "answer", "surface": "project", "version": release()}, **ids)
 
 
 @_quiet
@@ -186,6 +193,15 @@ def from_model_request(entry: dict[str, Any], messages: list[dict[str, Any]] | N
                                       "seconds": entry.get("seconds"), "outcome": entry.get("outcome"),
                                       "prompt": prompt[:20000] if prompt else None, "reply": (reply or None) if keep else None},
            project=entry.get("project_id"), conversation=entry.get("draft_id"), model_request=entry.get("id"), run=entry.get("run"))
+
+
+@_quiet
+def from_model_check(purpose: str, tier: Any, model: str, passed: bool, reason: str | None) -> None:
+    """The verdict of the code that checks a model's reply (23.10), under the id of the request it answered."""
+    from . import last_model_request
+
+    record("model.checked", "system", {"purpose": purpose, "tier": tier, "model": model, "passed": "yes" if passed else "no", "reason": (reason or "")[:300] or None},
+           model_request=last_model_request())
 
 
 @_quiet

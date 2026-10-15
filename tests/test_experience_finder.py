@@ -208,7 +208,7 @@ class RoutesTest(unittest.TestCase):
     def test_only_the_owner_reads_timelines(self):
         routes = [r for r in api_routes(self.client.app) if getattr(r, "path", "").startswith("/api/experience")]
         self.assertEqual(sorted((m, r.path) for r in routes for m in r.methods),  # reading them, and deleting a session (19.10)
-                         [("DELETE", "/api/experience/sessions/{visit}"), ("GET", "/api/experience/errors"), ("GET", "/api/experience/search"),
+                         [("DELETE", "/api/experience/sessions/{visit}"), ("GET", "/api/experience/errors"), ("GET", "/api/experience/queries/{name}"), ("GET", "/api/experience/search"),
                           ("GET", "/api/experience/sessions"), ("GET", "/api/experience/sessions/{visit}"), ("POST", "/api/experience/ui")])
         for route in routes:
             for method in route.methods:

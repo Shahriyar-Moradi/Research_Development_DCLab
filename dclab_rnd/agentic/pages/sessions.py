@@ -98,6 +98,17 @@ def _id(name: str, value: str | None) -> str | None:
     return value
 
 
+def _request_id(value: str | None) -> str | None:
+    """A request id as the server accepts one (``observe``: a proxy's ``X-Request-ID`` may carry dots, 8 to 64 characters)."""
+    from ... import observe
+
+    if value in (None, ""):
+        return None
+    if not observe._VALID_ID.fullmatch(value):
+        raise HTTPException(422, "request is an id")
+    return value
+
+
 def latest(ctx, limit: int) -> dict[str, Any]:
     from ... import experience
 
@@ -170,6 +181,28 @@ def register(app, ctx) -> None:
         """One visit's timeline as it happened; prompts and replies only with model_text=true, a tool's values never."""
         return await asyncio.to_thread(one, ctx, _id("visit", visit), model_text)
 
+    @router.get("/api/experience/queries/{name}", response_model=Page)
+    async def experience_query(name: str, request: str | None = None, project: str | None = None, draft: str | None = None,
+                               visit: str | None = None, days: int | None = None):
+        """23.9: one of the standard questions of the record (see ``dclab_rnd/experience/queries.py``): what happened in a
+        request, a project's story, where checks refuse most, failed model calls, overridden decisions, outcomes, cost per
+        week, what is ready for training, what a deletion removes. The owner only (timelines)."""
+        from ...experience import queries
+
+        log = _log(ctx)
+        if log is None:
+            raise HTTPException(404, "This server keeps no record")
+        if days is not None and not 1 <= days <= 365:
+            raise HTTPException(422, "days is 1 to 365")
+        try:
+            return await asyncio.to_thread(queries.run, name, log, getattr(ctx, "ledger", None), request=_request_id(request),
+                                           project=_id("project", project), draft=_id("draft", draft), visit=_id("visit", visit), days=days,
+                                           usage=getattr(getattr(ctx, "gateway", None), "usage", None))
+        except TypeError as exc:  # an argument this question does not take
+            raise HTTPException(422, str(exc)) from None
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+
     @router.get("/api/experience/errors", response_model=Page)
     async def experience_errors(days: int = 30):
         """23.4: the last days' errors grouped by fingerprint, the biggest group first, with up to three request ids each."""
@@ -209,14 +242,15 @@ def register(app, ctx) -> None:
     @router.get("/api/experience/search", response_model=Page)
     async def experience_search(person: str | None = None, project: str | None = None, draft: str | None = None,
                                 kind: str | None = None, text: str | None = None, code: str | None = None,
-                                since: str | None = None, until: str | None = None, limit: int = 50):
-        """Events matching every condition given, newest first, and the visits they belong to."""
+                                since: str | None = None, until: str | None = None, limit: int = 50, request: str | None = None):
+        """Events matching every condition given, newest first, and the visits they belong to; ``request``: every event one
+        request id left (23.9)."""
         if limit < 1 or limit > 500:
             raise HTTPException(422, "limit is 1 to 500")
         if text is not None and len(text) > 200 or code is not None and len(code) > 80:
             raise HTTPException(422, "text is at most 200 characters and code at most 80")
         return await asyncio.to_thread(find, ctx, person=_id("person", person), project=_id("project", project),
-                                       draft=_id("draft", draft), kind=kind or None, text=text or None, code=code or None,
+                                       draft=_id("draft", draft), request=_request_id(request), kind=kind or None, text=text or None, code=code or None,
                                        since=_when("since", since), until=_when("until", until), limit=limit)
 
     app.include_router(router)

@@ -126,7 +126,7 @@ class ExperienceLog(Protocol):
     def read(self, *, visit: str | None = None, project: str | None = None, conversation: str | None = None,
              since: str | None = None, until: str | None = None, user: str | None = None,
              kinds: Iterable[str] | None = None, visits: Iterable[str] | None = None, refused_only: bool = False,
-             limit: int = 5000) -> list[contract.ExperienceEvent]: ...  # the newest ``limit``
+             limit: int = 5000, request: str | None = None) -> list[contract.ExperienceEvent]: ...  # the newest ``limit``
     def visits(self, limit: int = 50) -> list[str]: ...  # newest first
 
 
@@ -175,8 +175,8 @@ class FileLog:
     def read(self, *, visit: str | None = None, project: str | None = None, conversation: str | None = None,
              since: str | None = None, until: str | None = None, user: str | None = None,
              kinds: Iterable[str] | None = None, visits: Iterable[str] | None = None, refused_only: bool = False,
-             limit: int = 5000) -> list[contract.ExperienceEvent]:
-        q = _Query(visit, project, conversation, since, until, user, kinds, refused_only)
+             limit: int = 5000, request: str | None = None) -> list[contract.ExperienceEvent]:
+        q = _Query(visit, project, conversation, since, until, user, kinds, refused_only, request)
         among = frozenset(visits) if visits is not None else None
         out = []
         for path in self._files():
@@ -229,8 +229,8 @@ def refused(event: Any) -> bool:
 class _Query:
     """What a reading asks for: ids that must be equal, a time window (``until`` excluded), kinds."""
 
-    def __init__(self, visit, project, conversation, since, until, user, kinds, refused_only=False):
-        self.ids = {"visit": visit, "project": project, "conversation": conversation, "user": user}
+    def __init__(self, visit, project, conversation, since, until, user, kinds, refused_only=False, request=None):
+        self.ids = {"visit": visit, "project": project, "conversation": conversation, "user": user, "request": request}
         self.refused_only = refused_only
         self.since = _utc(since) if since else None
         self.until = _utc(until) if until else None
@@ -271,13 +271,14 @@ class PgLog:
     def read(self, *, visit: str | None = None, project: str | None = None, conversation: str | None = None,
              since: str | None = None, until: str | None = None, user: str | None = None,
              kinds: Iterable[str] | None = None, visits: Iterable[str] | None = None, refused_only: bool = False,
-             limit: int = 5000) -> list[contract.ExperienceEvent]:
+             limit: int = 5000, request: str | None = None) -> list[contract.ExperienceEvent]:
         import sqlalchemy as sa
 
         from ..storage.models import experience_event as t
 
         q = sa.select(t.c.doc).where(t.c.workspace_id == self.workspace)
-        for column, value in ((t.c.visit, visit), (t.c.project_id, project), (t.c.conversation, conversation), (t.c.user_id, user)):
+        for column, value in ((t.c.visit, visit), (t.c.project_id, project), (t.c.conversation, conversation), (t.c.user_id, user),
+                              (t.c.request_id, request)):
             if value is not None:
                 q = q.where(column == value)
         if kinds is not None:
@@ -382,6 +383,27 @@ def _consent_now(log: Any, project: str | None) -> str:
         return consents.current_level(home=home, project=project)
     except Exception:  # noqa: BLE001 - a stamp that cannot be read is the lowest: the event never leaves
         return "operate"
+
+
+_RELEASE: list[str] = []
+
+
+def release() -> str:
+    """23.6: the version of what writes a message — the library and every prompt, tool schema and validator rule
+    (``prompts.fingerprints``) — as ``core-<version>/prompts-<8 hex>``; a thumb or an edit is tied to it."""
+    if not _RELEASE:
+        import hashlib
+
+        import dclab_core
+
+        try:
+            from ..prompts import fingerprints
+
+            digest = hashlib.sha256(repr(sorted(fingerprints().items())).encode()).hexdigest()[:8]
+        except Exception:  # noqa: BLE001 - a registry that cannot be read: the library's version alone, and not remembered
+            return f"core-{dclab_core.__version__}/prompts-unknown"
+        _RELEASE.append(f"core-{dclab_core.__version__}/prompts-{digest}")
+    return _RELEASE[0]
 
 
 def model_text_allowed() -> bool:

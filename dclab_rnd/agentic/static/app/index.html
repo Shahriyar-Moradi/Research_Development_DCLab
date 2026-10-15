@@ -2063,6 +2063,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
         <label class="sr-only" for="sess-kind">Kind of event</label><select id="sess-kind" data-style="width:auto"><option value="">Any event</option><option value="refused">Refused by a check</option><option value="errors">Errors</option></select>
         <label class="sr-only" for="sess-project">Project</label><select id="sess-project" data-style="width:auto"><option value="">Any project</option></select>
         <label class="sr-only" for="sess-person">Person</label><select id="sess-person" data-style="width:auto" hidden><option value="">Anyone</option></select>
+        <label class="sr-only" for="sess-request">Request id</label><input id="sess-request" type="search" maxlength="80" placeholder="Request id" data-style="width:150px">
         <label class="sr-only" for="sess-draft">Draft</label><input id="sess-draft" type="search" maxlength="80" placeholder="Draft id" data-style="width:120px">
         <label class="sr-only" for="sess-text">Words</label><input id="sess-text" type="search" maxlength="200" placeholder="Words people or agents wrote" data-style="width:220px">
         <label class="sr-only" for="sess-code">Code</label><input id="sess-code" type="search" maxlength="80" placeholder="Error code or rule" data-style="width:150px">

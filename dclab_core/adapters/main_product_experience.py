@@ -15,6 +15,7 @@ not store today (a visit and a request id), which its side of package 19.2 adds.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -22,6 +23,7 @@ from typing import Any, Optional
 from dclab_core import errors
 from dclab_core.adapters.main_product import recorded
 from dclab_core.experience import ExperienceEvent, make
+from dclab_core.steps import MAX_STEPS, Step
 
 # agent_events.type -> kind
 AGENT_EVENT_KINDS = {
@@ -73,9 +75,19 @@ RUN_STATUS = {"queued": "queued", "running": "running", "completed": "completed"
               "started": "running", "fail": "failed", "error": "failed", "skip": "skipped", "not_applicable": "skipped"}
 INTRA_STAGE_PREFIXES = ("cv_fold_", "candidate_")
 TERMINAL_STAGE = "terminal"
+# fields of its own that map onto a contract here but are not in the field lists read at the pinned commit (23.5, 23.7): a test fails
+# when the lists gain them, so the mapping is written then, not guessed now
+FIELDS_MISSING = {
+    "dataset_columns.sensitivity_class": "expected to hold a column's sensitivity class (23.7: dclab_core.sensitivity.classify gives restricted, pii, "
+                                         "sensitive or none); no dataset_* table is in the lists read, so its names and values are unverified",
+}
+
 # contract kinds the main product's tables cannot fill today, and why (never invented)
 KINDS_MISSING = {
     "consent.changed": "no consent switch on its workspace rows (23.1): the host passes the level it allows when it maps them (CONSENT_MISSING)",
+    "model.checked": "the verdict of the code that checks a model's reply is not a row of its own there (23.10): the host records it where it checks",
+    "pipeline.step_started": "its fold and candidate rows are steps of a run, read by steps_from_run_events() (23.8), not events",
+    "pipeline.step_finished": "its fold and candidate rows are steps of a run, read by steps_from_run_events() (23.8), not events",
     "outcome.observed": "an outcome is a row of its own there (23.5, adapters.main_product_outcomes), not an event of its agent_events",
     "visit.started": "no visit is recorded (19.2 adds the auth session as the visit)",
     "auth.sign_in": "auth_sessions and service_tokens rows are not in the field lists read at this commit (23.3; refreshed by 23.12)",
@@ -99,7 +111,7 @@ KINDS_MISSING = {
     "solution.refused": "a refused problem spec is a validator's step_rejected, read as decision.refused",
     "stage.approved": "approvals are decision records of other types",
     "agent.step": "its agent steps are the agent_events read as their own kinds",
-    "feedback.given": "no feedback table",
+    "feedback.given": "no feedback table: a person's accept, reject and revert of a proposal map through feedback_events() (23.6)",
     "export.made": "downloads are not recorded",
     "job.started": "ml_jobs are not read yet", "job.stopped": "ml_jobs are not read yet",
 }
@@ -216,6 +228,27 @@ def from_decision_record(row: Mapping[str, Any]) -> Optional[ExperienceEvent]:
     return make(kind, actor, ids, body, id=f"mp-pdr-{row['id']}", at=_at(row["event_at"]), source=f"project_decision_records:{point}")
 
 
+FEEDBACK_DECISIONS = {"proposal_accepted": ("thumbs", "helpful"), "proposal_rejected": ("thumbs", "unhelpful"), "proposal_reverted": ("override", "overridden")}
+
+
+def feedback_events(decisions: Iterable[Mapping[str, Any]], consent: str = "operate") -> list[ExperienceEvent]:
+    """23.6: a person's accept, reject and revert of an agent's proposal (``project_decision_records``) as ``feedback.given``,
+    beside the decision event the same row already is. Only rows a person made (``actor_kind`` user); the rationale is
+    the person's reason unless it is untrusted; the target is the proposal's subject digest."""
+    out = []
+    for row in decisions:
+        check_columns("project_decision_records", row)
+        if row["decision_type"] not in FEEDBACK_DECISIONS or ACTORS.get(row["actor_kind"]) != "person":
+            continue
+        kind, rating = FEEDBACK_DECISIONS[row["decision_type"]]
+        ref = re.sub(r"[^0-9a-zA-Z_.:-]", "", str(row.get("subject_digest") or row["id"]))[:80]
+        reason = None if row.get("rationale_untrusted") else (row.get("rationale") or None)
+        ids = {"workspace": _id(row["workspace_id"]), "user": _id(row.get("actor_user_id")), "project": _id(row["project_id"])}
+        out.append(make("feedback.given", "person", ids, {"kind": kind, "on": f"proposal:{ref}" if ref else "proposal", "rating": rating, "reason": reason},
+                        id=f"mp-fb-{row['id']}", at=_at(row["event_at"]), source=f"project_decision_records:{row['decision_type']}", consent=consent))
+    return out
+
+
 def from_run_event(row: Mapping[str, Any]) -> Optional[ExperienceEvent]:
     """One ``ml_run_events`` row as a stage boundary, by the main product's own rules; a step inside a stage (a fold, a
     candidate), a queued or skipped stage, and the terminal row are not boundaries of a stage (None)."""
@@ -247,6 +280,28 @@ def from_run_event(row: Mapping[str, Any]) -> Optional[ExperienceEvent]:
             body.update(errors.fingerprint(str(body["code"]), []))  # 23.4: the main product's rows group by their code
     return make(kind, "system", ids, body, id=f"mp-run-{row['id']}", at=_at(row["timestamp"]), seq=int(row["sequence"]),
                 source=f"ml_run_events:{name}"[:120])
+
+
+def steps_from_run_events(rows: Iterable[Mapping[str, Any]], *, run_id: Optional[str] = None) -> list[Step]:
+    """23.8: the ``ml_run_events`` rows that are steps inside a stage (``cv_fold_*``, ``candidate_*``: the ones ``from_run_event``
+    leaves out) as ``Step`` entries in the order of their ``sequence``: a fold is a ``fold`` step, a candidate scored a ``fit``,
+    with the duration, the fold and the metric and value the payload names when they are numbers. The main product keeps no
+    digest of what a step produced, so none is claimed; ``run_id`` keeps one run's rows when the rows of several are given."""
+    mine = [r for r in rows if str(r.get("event_type") or "").startswith(INTRA_STAGE_PREFIXES)
+            and (run_id is None or str(r.get("workflow_run_id")) == str(run_id))]
+    out = []
+    for index, row in enumerate(sorted(mine, key=lambda r: int(r["sequence"]))[:MAX_STEPS]):
+        check_columns("ml_run_events", row)
+        data = dict(row.get("payload") or {})
+        name = str(row["event_type"])
+        fold = data.get("fold", data.get("fold_index"))
+        value = data.get("value", data.get("score"))
+        out.append(Step(index=index, name=name[:120], kind="fold" if name.startswith("cv_fold") else "fit", params={"stage": str(row.get("stage") or "")[:40]},
+                        fold=int(fold) if isinstance(fold, int) and not isinstance(fold, bool) and fold >= 0 else None,
+                        metric=str(data["metric"])[:80] if isinstance(data.get("metric"), str) else None,
+                        value=float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) and value == value else None,
+                        seconds=round(float(row["duration_ms"]) / 1000, 4) if isinstance(row.get("duration_ms"), (int, float)) else 0.0))
+    return out
 
 
 def from_run_record(record: Any, run_row: Optional[Mapping[str, Any]] = None) -> ExperienceEvent:

@@ -81,6 +81,15 @@ def _quote(values: list[Any], limit: int = 3) -> str:
     return ", ".join(repr(str(v)[:30]) for v in values[:limit])
 
 
+def _quoted(column: Any, failed: Any) -> str:
+    """``: 'a', 'b'`` for the values that failed to read, unless the column may hold a person's data (by its name, or by what the failures look like)."""
+    from dclab_core import sensitivity
+
+    if sensitivity.of_name(column) is not None or sensitivity.of_values(list(failed)[:50]) is not None:
+        return ""
+    return f": {_quote(failed.tolist())}"
+
+
 def _names(columns: list[Any], limit: int = 5) -> str:
     shown = ", ".join(f"`{c}`" for c in columns[:limit])
     return shown + (f" and {len(columns) - limit} more" if len(columns) > limit else "")
@@ -162,7 +171,7 @@ def _step_numbers(frame: pd.DataFrame) -> tuple[pd.DataFrame, Entry | None]:
         if reads.map(lambda r: r[1]).any():
             note += " (values were percentages, kept as written: 45% → 45)"
         if len(failed):
-            note += f" ({len(failed)} value{'s' if len(failed) > 1 else ''} that did not read as numbers became missing: {_quote(failed.tolist())})"
+            note += f" ({len(failed)} value{'s' if len(failed) > 1 else ''} that did not read as numbers became missing{_quoted(column, failed)})"
         frame[column] = converted
         total += int(present.sum())
         touched.append(column)
@@ -194,7 +203,7 @@ def _step_dates(frame: pd.DataFrame) -> tuple[pd.DataFrame, Entry | None]:
         if str(parsed.dtype).endswith(", UTC]"):
             note += " (stored in UTC)"
         if len(failed):
-            note += f" ({len(failed)} value{'s' if len(failed) > 1 else ''} that did not read as dates became missing: {_quote(failed.tolist())})"
+            note += f" ({len(failed)} value{'s' if len(failed) > 1 else ''} that did not read as dates became missing{_quoted(column, failed)})"
         frame[column] = converted
         total += int(present.sum())
         touched.append(column)

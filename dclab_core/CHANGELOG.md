@@ -4,6 +4,57 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.46.0 (2026-10-16)
+
+Package 23.8: steps inside a stage.
+
+- `steps` (new): `Step` (name, kind, parameters, rows and columns in and out, fold, metric and value, time, a digest of what it
+  produced), the `collect()` and `step()` context managers (free when nothing collects; a callback that raises never stops a
+  run), `digest_of` (a bounded, rounded hash of arrays, frames and sparse matrices), and `compare(recorded, replayed)`
+  (the first step whose name, kind, fold or digest differs; time is not compared).
+- `lineage`: `RunRecord` moves to `dclab_core.run_record.v2` (`steps`, `steps_dropped`; a v1 record reads as v2);
+  `compare` adds `same_steps` and `first_step_difference`; `event_payload` carries the step count.
+- `experience`: the kinds `pipeline.step_started` and `pipeline.step_finished` (committed with 23.6 and 23.7 in
+  `dclab_core.experience_event.v7`).
+- `adapters.main_product_experience.steps_from_run_events`: the main product's fold and candidate rows (the ones
+  `from_run_event` leaves out) as steps.
+
+## 0.45.0 (2026-10-16)
+
+Package 23.9: the catalog and the standard questions.
+
+- `catalog`: `build(emitted_by)` gives the parts of a data catalog that follow from the contracts: every event kind with the
+  class of each field, what never leaves and the level an export needs, the decision points, the contracts with their
+  versions, and the field classes. A host adds where each kind is emitted, its tables and retention, and renders the page.
+- `queries`: nine standard questions as pure functions over events, decisions, labels and outcomes (`request`,
+  `project_story`, `rejections`, `failed_calls`, `overrides`, `outcomes_by_point`, `cost`, `training`, `deletion`), so the
+  main product asks them of its adapted rows.
+
+## 0.44.0 (2026-10-16)
+
+Package 23.7: column sensitivity. (Committed with 23.6: the experience event moves once, to v7, for both.)
+
+- `sensitivity`: `classify(name, values)` gives a column a class (`restricted`, `pii`, `sensitive`, `none`) from its name's
+  tokens and the shape of its values (e-mail, phone, IP, card number by the Luhn check, national id, IBAN) with the
+  rule in words and never a value; `strip(doc, class)` removes what carries a column's values from a description of it.
+- `datacard`: `ColumnCard` gains `sensitivity` and `sensitivity_why`; a column that is not `none` keeps no category name,
+  prefix, shape or example, and a `pii` or `restricted` one nothing of its distribution; the contract moves to
+  `dclab_core.data_card.v3` (v1 and v2 read as v3).
+- `experience`: `data.analysed` gains `sensitivity` (column to class).
+
+## 0.43.0 (2026-10-16)
+
+Package 23.6: feedback of every kind, tied to a version.
+
+- `feedback`: `check(body)` validates a request into a `feedback.given` payload (kinds `thumbs`, `rating`,
+  `correction`, `edited_output`, `override`; targets answer, message, step, proposal, decision, note, report) and
+  `verdict(feedback)` reads the feedback on one message: the person's edit (the label), an approval or a rejection.
+- `experience`: `feedback.given` gains `kind`, `version` (the release that wrote what was judged), `score`, `edited`;
+  `chat.agent` gains `message` and `version`; the contract moves to `dclab_core.experience_event.v7` (v1 to v6 read as v7).
+- `datasets.conversations`: a person's edit of a reply is the example's reply (the original kept beside it), a thumb up
+  marks the example, a thumb down ends it before that reply; rows carry `label` and `edits`.
+- `adapters.main_product_experience.feedback_events`: a person's accept, reject and revert of a proposal as feedback.
+
 ## 0.42.0 (2026-10-15)
 
 Package 23.5: outcomes linked to decisions.

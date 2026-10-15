@@ -226,7 +226,7 @@ training is the owner's decision (its ADR 0008); `redact` keeps only what a use 
 
 ## Consent at write time (23.1)
 
-Every `ExperienceEvent` (v6 since 23.5; v3 added the stamp) and `DecisionRecord` (v2) carries `consent`: the level the record was written under,
+Every `ExperienceEvent` (v7 since 23.6 and 23.7; v3 added the stamp) and `DecisionRecord` (v2) carries `consent`: the level the record was written under,
 `operate` (kept to run the product, for support and audit; never leaves), `improve` or `train`
 (`dclab_core.consent.level_of` on the workspace's and the project's switches). An export keeps a record only when its
 stamp allows the use (`dclab_core.consent.exportable`) and the switches allow it now, so a later opt-in never
@@ -257,6 +257,64 @@ route of its own under the signed-in person's session, which runs `ui_payload` a
 trace id; a signed-out page sends nothing. The adapter does not read them (`KINDS_MISSING`): they are rows that
 route writes. Whether business users' pages are captured is decision D4 of the plan (route and action level, never
 contents, is the proposal).
+
+## Steps inside a stage (23.8)
+
+`dclab_core.steps` records what a run did, one `Step` at a time: `with collect() as log:` around a run and `with step(name,
+kind, params=…, shape_in=…, fold=…) as s: … s.out(shape=…, metric=…, value=…, produced=array)` around each action (a cleaning
+action, a transform, a fold, a fit, a prediction, a metric). Nothing is recorded, and nothing costs, when no `collect()` is
+active, so library code calls `step()` freely. `digest_of` hashes at most the first 5000 rows and 200 columns of what a step
+produced, rounded to six decimals, so a faithful rerun gives the same digest and a table's values are never kept.
+`RunRecord` (v2) carries `steps`; `lineage.compare(original, rerun)` returns `same_steps` and the first step that
+differs; `steps.compare` does the same for two lists. Where it goes there: its pipeline code wraps the same actions; its
+`ml_run_events` fold and candidate rows already are steps, and `main_product_experience.steps_from_run_events(rows)` reads them
+that way (no digest: it keeps none). A recipe is one `transform` step here (its imputation and encoding are inside it, not
+separate steps), a metric step's digest is that of its value, and a digest reads a bounded sample (six decimals) plus a checksum of the whole
+array, so a change past the sample still moves it. The events `pipeline.step_started` and `pipeline.step_finished` carry each step under
+its run's id so a collector can follow a stage while it runs.
+
+## The catalog and the standard questions (23.9)
+
+`dclab_core.catalog.build(emitted_by)` is the contract-derived half of a data catalog: every event kind with the class of
+each field, what never leaves, the level an export needs, the decision points and the contracts with their versions. A host
+adds where each kind is emitted, its tables and its retention and renders a page; here `python -m dclab_rnd.data_catalog`
+writes `docs/DATA_CATALOG.md` and `docs/data_catalog.json` and `--check` (in `make rd-gates`) fails when they drift, so a
+new kind, point, audit kind, builder or table cannot be added without being described. `dclab_core.queries` holds the
+nine questions support and the owner ask most (what happened in a request, a project's story, where checks refuse most,
+failed model calls, overridden decisions, whether approved ones turned out well, spend per week, what is ready for
+training, what a deletion removes) as functions over lists of events, records, labels and outcomes: feed them
+`main_product_experience.events(...)` and the ledger adapter's records and the answers are the same. A request id opens as
+a timeline: the host filters events by `ids.request` (indexed here as `request_id`).
+
+## Column sensitivity (23.7)
+
+`dclab_core.sensitivity.classify(name, values)` gives a column one of `restricted` (a secret, a card number found by the
+Luhn check, a national id's or an IBAN's shape), `pii` (an e-mail, a phone number, a name, an address, a date of birth,
+an IP address), `sensitive` (health, religion, ethnicity, orientation, politics, income) or `none`, from the tokens of
+its name (a count, a flag or a rate about such data is not that data: `email_opens`, `has_phone`) and the shape of up to
+200 of its values, with the rule in words and never a value. `strip(doc, class)` removes what carries a column's values
+from any description of it: examples, category names, prefixes and shapes for all three classes, and the distribution
+(quantiles, histogram, time range, shares) for `restricted` and `pii`. `ColumnCard` carries `sensitivity` and
+`sensitivity_why` (the data card is v3; v1 and v2 read as v3), and `data.analysed` carries the column-to-class map.
+Where it goes there: the main product is expected to keep a per-column class (`dataset_columns.sensitivity_class`), but no
+`dataset_*` table is in the field lists read at the pinned commit, so the mapping is not written and its names are unverified
+(`main_product_experience.FIELDS_MISSING`, and a test that fails when the lists gain the table). Until 23.12 reads it, a host
+runs `classify` over a table's columns where it profiles one, keeps the rule that a column that is not `none` reaches a model by
+name only, and brings an older stored profile or card up with `upgrade_column` / `upgrade_card` (what `DataCard.read` does for a
+v1 or v2 card).
+
+## Feedback of every kind, tied to a version (23.6)
+
+`dclab_core.feedback.check(body)` turns a request into the `feedback.given` payload: a `kind` (`thumbs`, `rating` with a
+score of 1 to 5, `correction`, `edited_output` with the reply as the person would have it, `override` of a decision, a
+proposal or a step), the target as `<kind>:<id>` (answer, message, step, proposal, decision, note or report) and a
+reason; `verdict(feedback)` reads the feedback on one message for a training example (an edit is the reply, a thumb
+down ends the example, a thumb up marks it). The host resolves the `version` of what was judged: here the release
+(`core-<version>/prompts-<digest>`) stamped on the `chat.agent` event that carries the message's id, so a thumb is
+tied to the prompts and rules that wrote it. `datasets.conversations` uses the verdicts as the label. Where it goes
+there: the web app's buttons post to a route of its own that runs `check` and stamps the version of the message it
+finds; `adapters.main_product_experience.feedback_events(project_decision_records rows)` maps a person's accept, reject
+and revert of a proposal onto the same kind, so both products' feedback reads alike.
 
 ## Outcomes linked to decisions (23.5)
 

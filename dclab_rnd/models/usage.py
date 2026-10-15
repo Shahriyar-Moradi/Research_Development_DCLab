@@ -55,6 +55,7 @@ class UsageLog(Protocol):
     def spent(self, since: str, project_id: str | None = None, user_id: str | None = None, purpose: str | None = None) -> float: ...
     def record_check(self, entry: dict[str, Any]) -> None: ...
     def failing(self, since: str) -> list[dict[str, Any]]: ...
+    def count_prompts(self, project_id: str | None = None, draft_id: str | None = None) -> int: ...
 
 
 def _totals(entries: list[dict[str, Any]]) -> dict[str, Any]:
@@ -142,6 +143,12 @@ class FileUsage:
 
     def totals(self, since: str | None = None, project_id: str | None = None) -> dict[str, Any]:
         return _totals([e for e in self._all() if (not since or str(e.get("at")) >= since) and (not project_id or e.get("project_id") == project_id)])
+
+    def count_prompts(self, project_id: str | None = None, draft_id: str | None = None) -> int:
+        """23.9: how many prompts ``forget_prompts`` would remove for a project or a draft."""
+        if not (project_id or draft_id) or not self.path.is_file():
+            return 0
+        return sum(1 for e in self._all() if e.get("prompt") and ((project_id and e.get("project_id") == project_id) or (draft_id and e.get("draft_id") == draft_id)))
 
     def forget_prompts(self, before: str | None = None, project_id: str | None = None, draft_id: str | None = None) -> int:
         """Prompts removed (19.10): those older than ``before``, or of a deleted project or draft. The rest of each row
@@ -243,6 +250,17 @@ class PgUsage:
 
     def totals(self, since: str | None = None, project_id: str | None = None) -> dict[str, Any]:
         return _totals(self._query(since, project_id))
+
+    def count_prompts(self, project_id: str | None = None, draft_id: str | None = None) -> int:
+        import sqlalchemy as sa
+
+        from ..storage.models import model_request as t
+
+        which = [c for c in ((t.c.project_id == project_id) if project_id else None, (t.c.draft_id == draft_id) if draft_id else None) if c is not None]
+        if not which:
+            return 0
+        with self.engine.connect() as c:
+            return int(c.execute(sa.select(sa.func.count()).select_from(t).where(t.c.workspace_id == self.workspace_id, t.c.prompt.isnot(None), sa.or_(*which))).scalar() or 0)
 
     def forget_prompts(self, before: str | None = None, project_id: str | None = None, draft_id: str | None = None) -> int:
         import sqlalchemy as sa

@@ -34,7 +34,7 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.dataset_manifest.v3.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.dataset_manifest.v4.json",
   "additionalProperties": false,
   "description": "What a dataset holds and where every row came from.",
   "properties": {
@@ -47,7 +47,9 @@
         "workflows",
         "failures",
         "development",
-        "outcomes"
+        "outcomes",
+        "episodes",
+        "model_calls"
       ],
       "title": "Builder",
       "type": "string"
@@ -55,6 +57,20 @@
     "built_at": {
       "title": "Built At",
       "type": "string"
+    },
+    "commit": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "v4: the commit of the code that built the set (None outside a repository).",
+      "title": "Commit"
     },
     "consent": {
       "description": "The basis, in words.",
@@ -71,6 +87,15 @@
       },
       "title": "Counts",
       "type": "object"
+    },
+    "files": {
+      "description": "v4: the files of the set (rows.jsonl, rows.parquet, sealed.jsonl\u2026).",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Files",
+      "type": "array"
     },
     "levels": {
       "additionalProperties": {
@@ -106,10 +131,24 @@
       "type": "integer"
     },
     "schema_version": {
-      "const": "dclab_core.dataset_manifest.v3",
-      "default": "dclab_core.dataset_manifest.v3",
+      "const": "dclab_core.dataset_manifest.v4",
+      "default": "dclab_core.dataset_manifest.v4",
       "title": "Schema Version",
       "type": "string"
+    },
+    "scrubber": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "v4 (23.10): the version of the redaction rules the text in the rows went through.",
+      "title": "Scrubber"
     },
     "sources": {
       "items": {

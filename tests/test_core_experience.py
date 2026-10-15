@@ -63,14 +63,14 @@ class ContractTest(unittest.TestCase):
                 self.assertEqual(x.ExperienceEvent.read(event.model_dump_json()), event)
                 self.assertEqual(set(event.classes.values()), set(fields.values()))
 
-    def test_a_v2_event_reads_as_v6_at_operate_and_a_stamp_is_kept(self):
+    def test_a_v2_event_reads_as_v7_at_operate_and_a_stamp_is_kept(self):
         import json
 
         e = x.make("chat.person", "person", IDS, {"text": "hi", "surface": "home"}, id="ev000001", at=at(0), consent="train")
         self.assertEqual(e.consent, "train")
         doc = json.loads(e.model_dump_json())
         old = {k: v for k, v in doc.items() if k != "consent"} | {"schema_version": "dclab_core.experience_event.v2"}
-        self.assertEqual((x.ExperienceEvent.read(old).schema_version, x.ExperienceEvent.read(old).consent), ("dclab_core.experience_event.v6", "operate"))
+        self.assertEqual((x.ExperienceEvent.read(old).schema_version, x.ExperienceEvent.read(old).consent), ("dclab_core.experience_event.v7", "operate"))
         self.assertEqual(x.ExperienceEvent.read(doc).consent, "train")
         with self.assertRaises(Exception):
             x.make("chat.person", "person", IDS, {"text": "hi"}, id="ev000002", at=at(0), consent="whatever")

@@ -232,7 +232,7 @@ class RefusalTest(unittest.TestCase):
 
     def test_a_version_one_card_is_read_as_version_two(self):
         old = {"schema_version": "dclab_core.data_card.v1", "name": "t", "tables": [{"name": "t", "rows": 0}]}
-        self.assertEqual(dc.DataCard.read(old).schema_version, "dclab_core.data_card.v2")
+        self.assertEqual(dc.DataCard.read(old).schema_version, "dclab_core.data_card.v3")
 
 
 if __name__ == "__main__":

@@ -273,6 +273,12 @@ class Gateway:
                                      "passed": bool(passed), "reason": (reason or "")[:300] or None})
         except Exception:  # noqa: BLE001 — a check that cannot be logged must not change the answer
             pass
+        try:  # 23.10: and an event, joined to the request whose reply it judged
+            from ..experience import hooks
+
+            hooks.from_model_check(purpose, tier or settings.purpose(purpose).tier, model, bool(passed), reason)
+        except Exception:  # noqa: BLE001
+            pass
 
     def summary(self) -> dict[str, Any]:
         """What the pages show: tiers without keys, purposes with what they may see, usage, and models that keep failing."""

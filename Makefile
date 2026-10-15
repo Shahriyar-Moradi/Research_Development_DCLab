@@ -1,4 +1,4 @@
-.PHONY: datasets decisions-gen decision-models decisions-export decision-gate benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all check-quick check-quick-tests check-commit core-schemas core-wheel-check code-check journeys harness-eval decision-r3 benchmark-v4 pitfalls-by-kind results-by-kind
+.PHONY: catalog datasets decisions-gen decision-models decisions-export decision-gate benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all check-quick check-quick-tests check-commit core-schemas core-wheel-check code-check journeys harness-eval decision-r3 benchmark-v4 pitfalls-by-kind results-by-kind
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -14,7 +14,7 @@ RUN_TESTS = $(PYTHON) tests/run_parallel.py $(if $(JOBS),--jobs $(JOBS),)
 # rd-check's record, freshness and build checks: independent of each other, so they run at the same time
 RD_GATES = "-m dclab_rnd validate" "-m dclab_rnd sync --check" "-m dclab_rnd campaign verify" "-m dclab_rnd.evidence_index check" \
 	"research/llm-fine-tuning/experiments/sft/build_sft_dataset_v3.py --check" "-m dclab_rnd.research_map --check" \
-	"docs/product-demo/build.py --check" "-m dclab_rnd.agentic.web.build --check" "-m dclab_rnd.agent_eval.judged --check"
+	"docs/product-demo/build.py --check" "-m dclab_rnd.agentic.web.build --check" "-m dclab_rnd.agent_eval.judged --check" "-m dclab_rnd.data_catalog --check"
 
 help:  ## list the available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
@@ -336,6 +336,9 @@ new-track:  ## scaffold research/NAME from the template: make new-track NAME=x T
 	@test -n "$(NAME)" || (echo 'usage: make new-track NAME=my-idea TITLE="My idea" PREFIX=MI' && exit 1)
 	$(PYTHON) scripts/new_research_track.py "$(NAME)" "$(or $(TITLE),$(NAME))" $(if $(PREFIX),--prefix $(PREFIX),)
 	$(PYTHON) -m dclab_rnd.research_map
+
+catalog:  ## regenerate docs/DATA_CATALOG.md and docs/data_catalog.json from the contracts and the code (23.9; rd-gates fails when they drift)
+	$(PYTHON) -m dclab_rnd.data_catalog
 
 core-schemas:  ## regenerate dclab_core/schemas/*.json from the contracts (the library the main product adopts)
 	$(PYTHON) -m dclab_core.schemas

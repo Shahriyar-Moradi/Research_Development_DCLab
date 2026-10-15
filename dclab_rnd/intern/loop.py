@@ -100,7 +100,7 @@ class Intern:
         from .. import experience  # 19.3: the intern's answer, or how the turn ended, in the session's record
 
         if session.get("final"):
-            experience.record("chat.agent", "agent", {"text": str(session["final"])[:4000], "kind": "answer", "surface": "intern"},
+            experience.record("chat.agent", "agent", {"text": str(session["final"])[:4000], "kind": "answer", "surface": "intern", "version": experience.release()},
                               conversation=session["id"], project=session.get("project_id"))
         elif session.get("error"):
             from dclab_core import errors as fingerprints

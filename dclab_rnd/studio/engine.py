@@ -18,6 +18,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from dclab_core import steps as run_steps  # 23.8: the steps a run takes, collected when its record is being made
 from dclab_rnd import kinds
 from dclab_rnd.categoricals import HEURISTIC_RULE, category_code_columns
 from dclab_rnd.expansion import datasets as ds
@@ -91,6 +92,7 @@ class Prepared:
         self.critic: Any = None  # the critic's advisor (18.6) when the project turns it on, set on every prepare
         self.kind: kinds.ProblemKind = kinds.get(solution.task)  # the problem kind (16.1), set on every prepare
         self.decided: list[Any] = []  # 22.9: the column decisions a routed decision model made here (ledger.use.Choice)
+        self.personal: set[str] = set()  # 23.7: the columns that hold a person's data (their levels are not named in a record)
 
     @property
     def task(self) -> str:
@@ -241,6 +243,10 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     code_rule = "declared in the R&D dataset catalog for this sample" if declared is not None else HEURISTIC_RULE
     recipes = _register_recipes(bundle.spec, X, roles, datetime_time, project.get("feature_programs"), kind)
     prepared = Prepared(frame, solution, bundle, roles, class_labels, recipes, sampling, code_rule)
+    from dclab_core import sensitivity
+
+    prepared.personal = {c["name"] for c in ((project.get("data") or {}).get("profile") or {}).get("columns", [])
+                         if sensitivity.upgrade_column(c).get("sensitivity", "none") != "none"}  # 23.7: columns that hold a person's data
     prepared.kind = kind
     prepared.decided = decided
     prepared.plan, prepared.label_info = project.get("plan"), project.get("labels")
@@ -386,6 +392,8 @@ def _label(metric: str) -> str:
 def stage_data(p: Prepared, eid: str) -> tuple[dict, list, str]:
     bundle, spec = p.bundle, p.bundle.spec
     X_tr, y_tr, X_te = bundle.X_train, bundle.y_train, bundle.X_test
+    with run_steps.step("split: train and holdout", "load", params={"holdout_split": bundle.holdout_description[:80]}, shape_in=(bundle.source_rows, X_tr.shape[1])) as s:
+        s.out(shape=X_tr.shape, produced=y_tr)  # the rows the train side holds, by the target they carry
     profiles = []
     for column in X_tr.columns:
         series = X_tr[column]
@@ -1011,21 +1019,26 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
     final = rn.fit_and_predict(bundle, recipe, family, selected["model_params"] or None, bundle.X_train, bundle.y_train, bundle.X_test)
     final_seconds = time.perf_counter() - started
     predictions, y_test = final["predictions"], bundle.y_test
-    holdout = rn.compute_metrics(task, y_test, predictions, n_classes=n_classes, detail=True, precision_target=float(spec.settings.get("precision_target", 0.9)),
-                                 alert_budget=spec.settings.get("alert_budget"))
+    with run_steps.step("holdout: metrics", "metric", shape_in=(len(y_test),)) as s:  # the one read of the holdout
+        holdout = rn.compute_metrics(task, y_test, predictions, n_classes=n_classes, detail=True, precision_target=float(spec.settings.get("precision_target", 0.9)),
+                                     alert_budget=spec.settings.get("alert_budget"))
+        s.out(metric=metric, value=holdout.get(metric) if isinstance(holdout.get(metric), (int, float)) else None)
     holdout["fit_seconds"] = float(final_seconds)
     if task == "multiclass" and p.class_labels:
         for item in holdout.get("worst_3_classes", []):
             item["source_label"] = p.class_labels[item["class_index"]]
     metric_fn = rn.budget_metric_fn(spec.settings["alert_budget"]) if metric == "recall_at_budget" else rn.primary_metric_fn(task, metric, n_classes)
     clustered = spec.split_strategy in ("group", "time_group")
-    ci = rn.bootstrap_ci(y_test.to_numpy(), predictions, metric_fn, groups=bundle.groups("test") if clustered else None)
+    with run_steps.step("holdout: bootstrap interval", "metric", params={"clustered": clustered}, shape_in=(len(y_test),)) as s:
+        ci = rn.bootstrap_ci(y_test.to_numpy(), predictions, metric_fn, groups=bundle.groups("test") if clustered else None)
+        s.out(metric=metric, value=(ci or {}).get("low") if isinstance(ci, dict) else None, produced=np.array([ci.get("low"), ci.get("high")], dtype=float) if isinstance(ci, dict) and ci.get("low") is not None and ci.get("high") is not None else None)
     if spec.settings.get("alert_budget") and metric != "recall_at_budget":  # 15.3: recall at the budget, with its interval too
         holdout["recall_at_budget_ci"] = rn.bootstrap_ci(y_test.to_numpy(), predictions, rn.budget_metric_fn(spec.settings["alert_budget"]),
                                                          groups=bundle.groups("test") if clustered else None)
     baselines = _baselines(p, predictions)
     importance = rn._importance(final["model"], final["names"])
-    top_features = [{"feature": k, "normalized_importance": v} for k, v in sorted(importance.items(), key=lambda kv: -kv[1])[:20]]
+    top_features = [{"feature": k, "normalized_importance": v} for k, v in sorted(importance.items(), key=lambda kv: -kv[1])[:20]
+                    if not any(k.startswith(f"{name}=") for name in getattr(p, "personal", ()))]  # "diagnosis=flu" names a value of a sensitive column
     cv_mean, holdout_value = rn._mean(selected, metric), holdout[metric]
     evidence: dict[str, Any] = {
         "feature_recipe": recipe, "model": family, "configuration_results": [baseline, *tuned], "optimization_search_space": candidates,
@@ -1196,7 +1209,18 @@ def _execute_stage(store: ProjectStore, project_id: str, stage: str, project: di
 
     run_id = lineage.new_run()
     previous = {k: store.read_stage(project_id, k) for k in STAGE_KEYS[:STAGE_KEYS.index(stage)]}
-    with experience.bind(run=run_id):
+    def started(step: Any) -> None:  # 23.8: a coarse step (a split, a transform, a fold) is announced; every step ends with an event (nothing inside a replay)
+        if step.kind in ("fit", "predict", "metric"):
+            return
+        experience.record("pipeline.step_started", "system", {"run": run_id, "step": step.name, "kind": step.kind, "index": step.index, "fold": step.fold},
+                          project=project_id)
+
+    def finished(step: Any) -> None:
+        experience.record("pipeline.step_finished", "system", {"run": run_id, "step": step.name, "kind": step.kind, "index": step.index, "fold": step.fold,
+                                                                "metric": step.metric, "value": step.value, "seconds": step.seconds, "digest": step.digest},
+                          project=project_id)
+
+    with experience.bind(run=run_id), run_steps.collect(started, finished):
         return _run_stage(store, project_id, stage, project, reuse_reason, run_id, parent, previous)
 
 
@@ -1224,7 +1248,8 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
             params = {"machine": p.kind.key}
             if stage == "final":
                 project["holdout_uses"] = int(project.get("holdout_uses", 0)) + 1
-            evidence, claims, summary, decision = p.machine.run(stage, eid, previous)
+            with run_steps.step(f"{p.kind.key} machine: {stage}", "other", params={"machine": p.kind.key}):
+                evidence, claims, summary, decision = p.machine.run(stage, eid, previous)
             if stage == "final":
                 evidence["holdout_uses_in_this_project"] = project["holdout_uses"]
                 if reuse_reason:

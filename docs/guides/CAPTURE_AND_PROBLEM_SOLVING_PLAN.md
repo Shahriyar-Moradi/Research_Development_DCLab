@@ -296,6 +296,13 @@ same commit, a reviewer pass, and `make check-commit`; a milestone's end gets `c
   an edit as its label (the document's `sft_chat`).
 - **Done when:** a thumbs on a message creates the event with the message's version; an edited reply becomes a
   conversation row whose label is the edit.
+- **Status: done (2026-10-16).** dclab-core 0.43.0 (`feedback.check` and `verdict`; `feedback.given` gains `kind`,
+  `version`, `score`, `edited`, `chat.agent` gains `message` and `version`; the contract at v7;
+  `datasets.conversations` uses an edit as the reply, a thumb up as the mark and a thumb down as the end of the
+  example, rows carry `label` and `edits`; `main_product_experience.feedback_events`). `POST /api/feedback` runs the
+  core's check and stamps the version of the message judged (the release that wrote it: library version and prompts
+  digest). The buttons: Home's thumbs and a new edit control on every agent reply, thumbs on a stage's explanation.
+  A viewer's feedback is recorded with its role and does not count toward a set (an edit by a viewer is refused). Open: the intern's own chat page has no buttons yet (its answers carry the version, not yet a message id).
 
 ### 23.7 Column sensitivity
 - **Delivers:** `DataCard` columns gain `sensitivity` (`pii`, `sensitive`, `restricted`, `none`) from name tokens and
@@ -304,6 +311,14 @@ same commit, a reviewer pass, and `make check-commit`; a milestone's end gets `c
   on Home shows the classes; `data.columns_profiled` carries them.
 - **Done when:** a replica with an e-mail and a phone column marks both, no event or set shows a value of them, and the
   intern's `describe_data` gives them no example values.
+- **Status: done (2026-10-16).** dclab-core 0.44.0 (`sensitivity.classify`, `strip`; `ColumnCard.sensitivity` and
+  `sensitivity_why`, the data card at v3; `data.analysed` carries the class map, the event at v7, with 23.6). The profile that
+  every caller reads keeps no `preview` for a column that is not `none`; the Home analysis drops its top values,
+  histogram and range (all three classes lose the names, `pii` and `restricted` the whole distribution); the intern's
+  `describe_data` names the class and gives no example; the data-limit tests plant an e-mail, a phone and a card column
+  and require that no purpose sees a value of them; Home's analysis card lists them by name and class. Open: the
+  main product's `dataset_columns.sensitivity_class` is not in the field lists read (23.12 refreshes them), so its
+  mapping is described in CORE_INTEGRATION.md, not coded.
 
 ### 23.8 Steps inside a stage
 - **Delivers:** `RunRecord.steps`: one entry per cleaning action, imputation, encoding, feature transform, fold, model
@@ -312,6 +327,15 @@ same commit, a reviewer pass, and `make check-commit`; a milestone's end gets `c
   step by step and compares the digests.
 - **Done when:** a decision can be traced to the exact numbers it was made on, and a replay reports the first step whose
   digest differs.
+- **Status: done (2026-10-16).** dclab-core 0.46.0 (`steps`: `Step`, `collect`, `step`, `digest_of`, `compare`; `RunRecord` v2
+  with `steps`; the events `pipeline.step_started` and `pipeline.step_finished`; `steps_from_run_events` for the main
+  product). The runner records, when a stage collects, each recipe fit and transform, model fit, prediction, fold and fold
+  metric; the engine adds the split, the holdout's metrics and its interval, and one step for a kind's machine. A stage's run
+  record holds them (at most 600, the rest counted), each step is two events under the run, `GET /api/projects/{id}/steps?stage=`
+  lists a stage's and `?decision=` the steps that carry the numbers a decision was made on, and a replay (`make replay`, the
+  pipeline rerun) reports `same_steps` and the first step whose digest differs (the command fails on it). Open: the draft's
+  cleaning actions are events of the draft, not steps of a run; a kind's machine takes one step, not one per fold; a recipe is one
+  `transform` step (its imputation and encoding are inside it, not steps of their own).
 
 ### 23.9 The catalog and the standard queries
 - **Delivers:** `make catalog` generates `docs/DATA_CATALOG.md` and `data_catalog.json` from the contracts: every event
@@ -323,6 +347,15 @@ same commit, a reviewer pass, and `make check-commit`; a milestone's end gets `c
   workspace costs per week, what is ready for training, what a deletion must remove; the Sessions tab takes a request id.
 - **Done when:** support can open any request id as a timeline; the catalog lists every kind the code emits and the
   gate fails when one is added without it.
+- **Status: done (2026-10-16).** dclab-core 0.45.0 (`catalog.build`, `queries`: nine questions as pure functions).
+  `python -m dclab_rnd.data_catalog` / `make catalog` writes `docs/DATA_CATALOG.md` and `docs/data_catalog.json` (every event
+  kind with its fields' classes, what never leaves and where it is emitted by scanning the code; the decision points, audit
+  kinds, dataset builders, tables with their file paths, contracts, retention and consent); `--check` is a gate of
+  `make rd-gates`, and a table or a builder with no description fails it. `dclab_rnd/experience/queries.py` reads the log
+  and the ledger for them: `python -m dclab_rnd.experience query NAME`, `GET /api/experience/queries/NAME` (owner). A
+  request id is a filter of the log (files and PostgreSQL), `finder.search`, the route, `search --request` and a field on
+  the Admin Sessions tab, which lists up to 200 of its events. Open: the Admin page has the request field but not a menu of
+  the standard questions yet (the route and the command line have them).
 
 ### 23.10 The lake's shape
 - **Delivers:** `make datasets` also writes columnar files (Parquet beside the JSONL, when pyarrow is present) and two
@@ -495,7 +528,7 @@ What goes where, package by package:
 | 23.4 error fingerprints | `errors.fingerprint(exc_type, frames)`; the `error.raised` payload | the hook on every job and request; the Sessions grouping | adapter maps `status`/`failure_reason` rows; there: an `error_events` table |
 | 23.5 outcomes | `ledger.Outcome` v1, `outcomes.join(decisions, outcomes)` | the final stage and the promotion write them; the route for a business number | adapter maps `experiments.result` and `model_versions` to outcomes |
 | 23.6 feedback kinds | the `feedback.given` kinds and targets; `datasets.conversations` with an edit as the label | the buttons on messages and notes | adapter maps proposal accept/reject/revert and Jev labels to feedback events; there: a `feedback` table and route |
-| 23.7 column sensitivity | `datacard.sensitivity()` (names and shapes, never values); the classes on `ColumnCard` | the data card page; the data-limit tests | adapter maps `dataset_columns.sensitivity_class` both ways |
+| 23.7 column sensitivity | `sensitivity.classify` (names and shapes, never values), `strip`, `upgrade_card`; the classes on `ColumnCard` | the data card page; the data-limit tests | expected `dataset_columns.sensitivity_class`, not in the field lists read (`FIELDS_MISSING`): mapped after 23.12 |
 | 23.8 steps inside a stage | `lineage.RunRecord.steps` and `lineage.compare(replay, record)` | the engine writes each step; `make replay` compares | adapter maps `ml_run_events` and `pipeline_stage_runs` to steps |
 | 23.9 catalog and queries | `catalog.build()` from the contracts (kinds, points, builders, audit kinds); `queries.*` as functions over events and decisions | `make catalog`, `docs/DATA_CATALOG.md`, the Sessions tab's request lookup | the catalog page is generated the same way there; the queries run on its adapted rows |
 | 23.10 the lake's shape | `datasets.episodes` and `datasets.model_calls` builders; the columnar writer as the extra `dclab-core[parquet]` | the nightly job; the rebuild after a deletion | the builders run on its adapted events; there: its own schedule |

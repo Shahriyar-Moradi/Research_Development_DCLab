@@ -55,7 +55,8 @@ SECRET = re.compile(
     r"|[a-z][a-z0-9+.-]*://[^\s/:@]+:[^\s/@]+@")                # a password in a connection string
 SHAREABLE = frozenset({"meta", "count"})  # what any export may keep
 READ_AS_CURRENT = frozenset({"dclab_core.experience_event.v1", "dclab_core.experience_event.v2", "dclab_core.experience_event.v3",
-                             "dclab_core.experience_event.v4", "dclab_core.experience_event.v5"})  # read as v6: each a subset (v3 added consent; v4 the ui.* and auth.* kinds; v5 the error fingerprint; v6 outcome.observed)
+                             "dclab_core.experience_event.v4", "dclab_core.experience_event.v5",
+                             "dclab_core.experience_event.v6"})  # read as v7: each a subset (v3 added consent; v4 the ui.* and auth.* kinds; v5 the error fingerprint; v6 outcome.observed; v7 feedback kinds, column sensitivity and the pipeline steps)
 FINAL_STAGES = frozenset({"final", "terminal"})  # the last stage: this studio's, and the main product's
 
 M, C, P, A, X, V = "meta", "count", "person_text", "agent_text", "model_text", "cell_values"
@@ -83,7 +84,7 @@ KINDS: dict[str, dict[str, str]] = {
     "ui.error_shown": {"view": M, "code": M, "status": M},
     # chat, on Home or with the intern
     "chat.person": {"text": P, "answers_question": M, "surface": M},
-    "chat.agent": {"text": A, "kind": M, "question_field": M, "options": A, "surface": M},
+    "chat.agent": {"text": A, "kind": M, "question_field": M, "options": A, "surface": M, "message": M, "version": M},  # 23.6: the message's id and the release that wrote it
     # a draft: Home before a project exists
     "draft.created": {"problem": P, "pack": M},
     "draft.edited": {"field": M, "before": P, "after": P},
@@ -92,7 +93,7 @@ KINDS: dict[str, dict[str, str]] = {
     # data
     "data.uploaded": {"name": M, "bytes": C, "rows": C, "columns": C, "source": M},
     "data.cleaned": {"steps": C, "rows_before": C, "rows_after": C},
-    "data.analysed": {"rows": C, "columns": C, "column_names": M, "roles": M, "findings": C},
+    "data.analysed": {"rows": C, "columns": C, "column_names": M, "roles": M, "findings": C, "sensitivity": M},  # 23.7: column -> class, only the ones that are not none
     "data.labels_joined": {"key": M, "label_rows": C, "rows_marked": C, "not_found": C},
     "data.cases_found": {"keys": M, "case_kinds": M, "tables_matched": C},
     # the solution: what is predicted, at which moment, without which columns
@@ -109,6 +110,7 @@ KINDS: dict[str, dict[str, str]] = {
     "agent.step": {"agent": M, "n": C, "state": M, "reply": A, "tool": M, "verdict": M, "seconds": C},
     # a tool's arguments and result can hold a table's values: they are cell values; their names and a code are meta
     "tool.call": {"tool": M, "scope": M, "argument_names": M, "arguments": V, "verdict": M, "code": M, "result": V},
+    "model.checked": {"purpose": M, "tier": M, "model": M, "passed": M, "reason": A},  # 23.10: the code that checks a reply, and its verdict
     "model.request": {"purpose": M, "tier": M, "model": M, "input_tokens": C, "output_tokens": C, "cost": C, "currency": M,
                       "seconds": C, "outcome": M, "prompt": X, "reply": X},
     # decisions: proposed by an agent or a rule, accepted, overridden or refused by a person or a check
@@ -117,7 +119,7 @@ KINDS: dict[str, dict[str, str]] = {
     "decision.overridden": {"point": M, "proposed": M, "chosen": M, "reason": P},
     "decision.refused": {"point": M, "choice": M, "rule": M, "reason": A},
     # quality signals
-    "feedback.given": {"on": M, "rating": M, "reason": P},
+    "feedback.given": {"on": M, "rating": M, "reason": P, "kind": M, "version": M, "score": C, "edited": P, "role": M},  # 23.6: kinds, the judged message's version, an edit
     "outcome.observed": {"metric": M, "value": C, "reference": C, "observed": M, "verdict": M, "decisions": C, "note": P},  # 23.5
     "consent.changed": {"scope": M, "use": M, "on": M, "was": M, "level": M, "notice_version": M},  # 23.1: a switch moved
     "export.made": {"what": M, "format": M},
@@ -125,8 +127,10 @@ KINDS: dict[str, dict[str, str]] = {
     "job.stopped": {"kind": M, "by": M, "status": M},
     "error.raised": {"where": M, "code": M, "message": A, "fingerprint": M, "frame": M, "status": M},  # a message may quote a value: agent text, never meta; 23.4: the fingerprint groups
     # a run's lineage (v2, package 19.5): the flat parts of a dclab_core.lineage.RunRecord; the record stays with the host
+    "pipeline.step_started": {"run": M, "step": M, "kind": M, "index": C, "fold": C},  # 23.8
+    "pipeline.step_finished": {"run": M, "step": M, "kind": M, "index": C, "fold": C, "metric": M, "value": C, "seconds": C, "digest": M},
     "run.recorded": {"run": M, "run_kind": M, "name": M, "status": M, "fingerprint": M, "inputs": M, "params": M, "outputs": M, "code": M,
-                     "upstream": M, "parent": M, "seconds": C, "numbers": C},
+                     "upstream": M, "parent": M, "seconds": C, "numbers": C, "steps": C},
 }
 
 
@@ -176,7 +180,7 @@ class ExperienceEvent(Versioned):
 
     model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False, json_schema_extra=_vocabulary)
 
-    schema_version: Literal["dclab_core.experience_event.v6"] = _version("experience_event", 6)
+    schema_version: Literal["dclab_core.experience_event.v7"] = _version("experience_event", 7)
     id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{6,80}$")
     at: str = Field(description="ISO 8601 with microseconds, UTC.")
     seq: int = Field(default=0, ge=0)

@@ -223,7 +223,8 @@ class OneSessionTest(unittest.TestCase):
                                          or (e.kind == "chat.agent" and e.ids.project == self.project))
                 and not (e.kind.startswith("job.") and e.payload.get("kind") == "pipeline")  # a background job's end races the next request
                 and not (e.kind == "run.recorded" and e.payload.get("run_kind") in ("agent", "pipeline"))  # background: they race the next request
-                and not (e.kind in ("agent.step", "tool.call") and e.ids.run == self.draft)]  # the Home agent's moves: a background turn too
+                and not (e.kind in ("agent.step", "tool.call") and e.ids.run == self.draft)  # the Home agent's moves: a background turn too
+                and not e.kind.startswith("pipeline.step_")]  # 23.8: each step of a run is two events: counted in test_steps, not in the flow
         self.assertEqual(mine, [
             ("draft.created", ""), ("data.uploaded", ""), ("data.cleaned", ""), ("data.analysed", ""), ("solution.proposed", ""), ("solution.saved", ""), ("decision.accepted", "settings"), ("graph.move", "set_solution"),
             ("draft.built", ""), ("job.started", ""), ("stage.started", "data"), ("stage.finished", "data"), ("run.recorded", ""), ("graph.move", "run_stage"),

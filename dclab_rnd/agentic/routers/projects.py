@@ -380,6 +380,22 @@ async def project_lineage(project_id: str, path: str | None = None, s: Services 
         raise HTTPException(404, str(exc.args[0]) if exc.args else "No such path") from None
 
 
+@router.get("/api/projects/{project_id}/steps", response_model=Page)
+async def project_steps(project_id: str, stage: str | None = None, decision: str | None = None, s: Services = Depends(services)):
+    """23.8: the steps inside a stage's latest run (``stage``), or the steps that carry the numbers a decision was made on
+    (``decision``, a decision record's id): each with its parameters, shapes, fold, metric and value, time and the digest of what
+    it produced. A replay (``POST .../pipeline/rerun`` or ``make replay``) reports the first step whose digest differs."""
+    s.project(project_id)
+    if (stage is None) == (decision is None):
+        raise HTTPException(422, "name a stage or a decision")
+    try:
+        if decision is not None:
+            return await asyncio.to_thread(studio_lineage.decision_steps, s.projects, getattr(s, "ledger", None), project_id, decision)
+        return await asyncio.to_thread(studio_lineage.stage_steps, s.projects, project_id, stage)
+    except KeyError as exc:
+        raise HTTPException(404, str(exc.args[0]) if exc.args else "Not found") from None
+
+
 @router.get("/api/projects/{project_id}/decisions", response_model=Page)
 async def project_decisions(project_id: str, s: Services = Depends(services)):
     """22.8: for each column of the project's table (the first 40), what DCLab would decide on its identifier, time,

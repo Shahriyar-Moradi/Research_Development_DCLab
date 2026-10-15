@@ -253,7 +253,9 @@
     const cite = id => REC[id] ? chip(id) : `<span class="tag" title="${esc(id)}">${esc(id.replace(/^PRJ-[^-]+-/, ''))}</span>`;
     return `<div class="explain"><span class="row"><span class="eyebrow">${esc(title || 'Explained')}</span><span class="pill outline">written by a model from these records</span></span>`
       + `<p>${x.sentences.map(s => `${esc(s.text)} ${(s.cites || []).map(cite).join('')}`).join(' ')}</p>`
-      + `<span class="xs muted">${esc(x.label || '')}${x.dropped ? ` ${x.dropped} sentence${x.dropped === 1 ? ' was' : 's were'} removed.` : ''} The deterministic notes are unchanged.</span></div>`;
+      + `<span class="xs muted">${esc(x.label || '')}${x.dropped ? ` ${x.dropped} sentence${x.dropped === 1 ? ' was' : 's were'} removed.` : ''} The deterministic notes are unchanged.</span>`
+      + (record.stage ? `<span class="row xs muted" data-style="gap:6px"><button type="button" class="link-btn" data-note-rate="helpful" data-stage="${esc(record.stage)}" aria-label="This explanation helped">👍</button>`
+        + `<button type="button" class="link-btn" data-note-rate="unhelpful" data-stage="${esc(record.stage)}" aria-label="This explanation did not help">👎</button></span>` : '') + `</div>`;
   }
   const ID_RE = /\b(DCLAB-R\d{2}|WF-\d{2}|EXP-\d{3}|PIT-\d{3}|LEAK-[a-z_]+|FINDING-[a-z-]+|DATASET-[a-z_]+)\b/g;
   function linkIds(text) {
@@ -781,6 +783,16 @@
       ta.remove();
     }
   }
+  document.addEventListener('click', async e => {  // 23.6: a thumb on a stage's explanation, tied to the open project
+    const rated = e.target.closest('[data-note-rate]');
+    if (!rated) return;
+    rated.parentElement.querySelectorAll('[data-note-rate]').forEach(b => { b.disabled = true; });
+    try {
+      const project = await currentProject.id();
+      await DC.client.giveFeedback({ body: { on: 'note', ref: rated.dataset.stage, rating: rated.dataset.noteRate, project: project || undefined } });
+      toast('Thanks: noted.');
+    } catch (err) { toast(err.message, { ok: false }); }
+  });
   document.addEventListener('click', e => {
     const t = e.target;
     const acted = t.closest('button, a[href], [data-go], [data-record], [data-ptab], [data-tab], [data-action]');

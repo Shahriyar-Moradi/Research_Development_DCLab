@@ -50,7 +50,7 @@ def _module(path: Path) -> str:
 
 
 # an optional extra a module may import only inside the function that needs it (17.7: the PDF renderer), never on import
-OPTIONAL_LAZY = {"report.py": {"reportlab"}}
+OPTIONAL_LAZY = {"report.py": {"reportlab"}, "columnar.py": {"pyarrow"}}
 
 
 def _function_imports(tree: ast.AST) -> list[str]:

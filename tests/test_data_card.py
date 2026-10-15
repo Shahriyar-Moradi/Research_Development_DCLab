@@ -134,9 +134,10 @@ class PrivacyTest(unittest.TestCase):
         paid = pd.Series(np.r_[rng.integers(30, 90, 199) * 1000, 250_000])  # one person earns far more than the rest
         self.assertNotIn(250_000.0, dc.column_card("paid", paid).quantiles)
         births = pd.Series(pd.to_datetime(["1951-03-07"] + ["1988-11-02"] * 30 + ["1990-01-01"] * 30))
-        born = dc.column_card("dob", births)
+        born = dc.column_card("registered", births)
         self.assertNotIn("1951-03-07", (born.start, born.end))  # the oldest person's birthday is not the range
-        self.assertIsNone(dc.column_card("dob", births.head(3)).start)  # three people: no range at all
+        self.assertIsNone(dc.column_card("registered", births.head(3)).start)  # three people: no range at all
+        self.assertIsNone(dc.column_card("dob", births).start)  # named a date of birth: no range of any size (23.7)
         age = pd.Series([30] * 25 + [97])
         self.assertIsNone(dc.column_card("age", age).categories)  # one 97-year-old is a person
         self.assertEqual(dc.column_card("age", pd.Series([30] * 25 + [40] * 6)).categories, ["30", "40"])
