@@ -4,6 +4,20 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.50.0 (2026-10-16)
+
+Package 24.1: the problem map.
+
+- `problem_map` (new): `ProblemMap` v1 (`dclab_core.problem_map.v1`: parts, sub-problems with their reads, a composition of ordered steps, a
+  size and a fingerprint of the structure), `decompose` (rules: the brief's parts, a fraud problem, a routing asked as a team and then an
+  urgency, a forecast with planned promotions, else one part; a template needs the words to say its shape and the problem card not to say
+  another family) and `validate` (units and moments agree between a part and its sub-problems, no outcome read before it is known, a key
+  wherever two units meet, no cycle, a composition built in order from sub-problems and earlier outputs that leaves nothing solved out,
+  a stale fingerprint, the size).
+- `adapters.main_product_problem_map.problem_specs`: one `ProblemSpec` proposal per sub-problem with its place in the map in the free-form
+  `constraints["dclab_problem_map"]`, and the composition once; a map that is not sound maps onto nothing.
+- `adapters.conformance`: `problem_map` is a mapped-out contract.
+
 ## 0.49.0 (2026-10-16)
 
 Package 23.12: the conformance gate.

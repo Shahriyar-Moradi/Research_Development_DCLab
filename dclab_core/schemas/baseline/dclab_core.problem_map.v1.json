@@ -1,0 +1,478 @@
+{
+  "$defs": {
+    "Composition": {
+      "additionalProperties": false,
+      "properties": {
+        "budget": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "method": {
+          "default": "none",
+          "enum": [
+            "none",
+            "sequence",
+            "fusion",
+            "gate",
+            "budget",
+            "mixed"
+          ],
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/CompositionStep"
+          },
+          "maxItems": 40,
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "CompositionStep": {
+      "additionalProperties": false,
+      "properties": {
+        "inputs": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 40,
+          "type": "array"
+        },
+        "joins": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "kind": {
+          "enum": [
+            "sequence",
+            "fusion",
+            "gate",
+            "budget"
+          ],
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "maxLength": 600,
+          "type": "string"
+        },
+        "output": {
+          "maxLength": 60,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "output"
+      ],
+      "type": "object"
+    },
+    "Need": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 40,
+          "type": "array"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "enum": [
+                "column",
+                "file",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "table": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "why": {
+          "default": "",
+          "maxLength": 600,
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "Part": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^part\\d+$",
+          "type": "string"
+        },
+        "moment": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "question": {
+          "default": "",
+          "maxLength": 600,
+          "type": "string"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "risks": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "type": "array"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "why": {
+          "default": "",
+          "maxLength": 600,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title"
+      ],
+      "type": "object"
+    },
+    "Read": {
+      "additionalProperties": false,
+      "properties": {
+        "sub_problem": {
+          "maxLength": 40,
+          "minLength": 1,
+          "type": "string"
+        },
+        "via": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "what": {
+          "enum": [
+            "score",
+            "outcome"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "sub_problem",
+        "what"
+      ],
+      "type": "object"
+    },
+    "SubProblem": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "default": "engine",
+          "enum": [
+            "engine",
+            "library"
+          ],
+          "type": "string"
+        },
+        "family": {
+          "enum": [
+            "classification",
+            "regression",
+            "rare_event",
+            "anomaly",
+            "forecasting",
+            "time_to_event",
+            "ranking",
+            "segmentation",
+            "uplift",
+            "entity_tables",
+            "streams",
+            "text_or_images"
+          ],
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^sp\\d+$",
+          "type": "string"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "maxLength": 60,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "known_rank": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "labels": {
+          "default": "unknown",
+          "enum": [
+            "column",
+            "file",
+            "none",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "moment": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "needs": {
+          "items": {
+            "$ref": "#/$defs/Need"
+          },
+          "maxItems": 10,
+          "type": "array"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "part": {
+          "pattern": "^part\\d+$",
+          "type": "string"
+        },
+        "predict_rank": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "question": {
+          "default": "",
+          "maxLength": 600,
+          "type": "string"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reads": {
+          "items": {
+            "$ref": "#/$defs/Read"
+          },
+          "maxItems": 10,
+          "type": "array"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "why": {
+          "default": "",
+          "maxLength": 600,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "part",
+        "title",
+        "family"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "composition": {
+      "$ref": "#/$defs/Composition"
+    },
+    "fingerprint": {
+      "default": "",
+      "maxLength": 64,
+      "type": "string"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "parts": {
+      "items": {
+        "$ref": "#/$defs/Part"
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.problem_map.v1",
+      "default": "dclab_core.problem_map.v1",
+      "type": "string"
+    },
+    "size": {
+      "enum": [
+        "single",
+        "complex"
+      ],
+      "type": "string"
+    },
+    "source": {
+      "default": "rules",
+      "enum": [
+        "rules",
+        "model",
+        "person"
+      ],
+      "type": "string"
+    },
+    "sub_problems": {
+      "items": {
+        "$ref": "#/$defs/SubProblem"
+      },
+      "maxItems": 40,
+      "minItems": 1,
+      "type": "array"
+    },
+    "template": {
+      "anyOf": [
+        {
+          "maxLength": 60,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "schema_version",
+    "size",
+    "parts",
+    "sub_problems"
+  ],
+  "type": "object"
+}

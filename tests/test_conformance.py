@@ -82,10 +82,17 @@ class GateTest(unittest.TestCase):
         with mock.patch.dict(mp.KINDS_MISSING, {"not.a.kind": "reason"}):
             self.assertTrue(any("not a kind" in p for p in conformance.problems()))
 
-    def test_every_package_of_phase_one_has_its_section_in_the_integration_guide(self):
+    def test_every_finished_package_has_its_section_in_the_integration_guide(self):
         text = (ROOT / "docs" / "guides" / "CORE_INTEGRATION.md").read_text(encoding="utf-8")
-        headings = re.findall(r"^## .*\((23\.\d+)\)\s*$", text, re.M)
-        self.assertEqual(sorted(set(headings), key=lambda s: int(s.split(".")[1])), [f"23.{n}" for n in range(1, 13)])
+        headings = {h for h in re.findall(r"^## .*\(((?:23|24)\.\d+)\)\s*$", text, re.M)}
+        phase_one = {f"23.{n}" for n in range(1, 13)}
+        self.assertTrue(phase_one <= headings, f"no section for {sorted(phase_one - headings)}")
+        # a package of phase 2 is finished when the plan says "done" in its status: it has a section too
+        plan = (ROOT / "docs" / "guides" / "CAPTURE_AND_PROBLEM_SOLVING_PLAN.md").read_text(encoding="utf-8")
+        sections = re.split(r"^### (?=\d+\.\d+ )", plan, flags=re.M)[1:]
+        finished = {section.split(" ", 1)[0] for section in sections if section.startswith("24.") and "**Status: done" in section.split("\n## ", 1)[0]}
+        self.assertEqual(finished - headings, set(), f"finished packages with no section: {sorted(finished - headings)}")
+        self.assertIn("24.1", finished)
 
     def test_the_library_imports_nothing_of_the_studio_and_the_wheel_check_exercises_the_new_modules(self):
         import ast

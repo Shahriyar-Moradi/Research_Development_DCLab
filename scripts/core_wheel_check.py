@@ -81,6 +81,12 @@ with steps.collect() as step_log:
         s.out(value=0.5)
 assert len(step_log.steps) == 1 and tracing.parse_traceparent("00-" + "a" * 32 + "-" + "b" * 16 + "-01").trace_id == "a" * 32
 assert queries.cost([])["rows"] == [] and len(catalog.build()["event_kinds"]) > 40 and conformance.problems() == [], conformance.problems()
+# 24.1: a problem map drawn from words, judged, and mapped to the main product's problem specs
+from dclab_core import problem_map
+from dclab_core.adapters import main_product_problem_map as mppm
+fraud = problem_map.decompose("Find the fake rides our bikers make. We have a few confirmed cases and the team can review 200 a day.")
+assert fraud.size == "complex" and len(fraud.parts) == 4 and problem_map.validate(fraud) == [] and len(mppm.problem_specs(fraud)["problem_specs"]) == 4
+assert problem_map.decompose("I want to know which subscribers will cancel").size == "single"
 # 19.6: a Jev answer row read as a decision record, banded, and back
 from dclab_core.adapters import main_product_ledger as mpd
 scols = mp.recorded()["experience_tables"]["semantic_decision_answers"]

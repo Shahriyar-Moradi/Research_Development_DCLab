@@ -1,0 +1,561 @@
+{
+  "$defs": {
+    "Composition": {
+      "additionalProperties": false,
+      "properties": {
+        "budget": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A review budget or a limit on what the composed system may flag, in words.",
+          "title": "Budget"
+        },
+        "method": {
+          "default": "none",
+          "enum": [
+            "none",
+            "sequence",
+            "fusion",
+            "gate",
+            "budget",
+            "mixed"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/CompositionStep"
+          },
+          "maxItems": 40,
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "title": "Composition",
+      "type": "object"
+    },
+    "CompositionStep": {
+      "additionalProperties": false,
+      "properties": {
+        "inputs": {
+          "description": "Sub-problem ids and the outputs of earlier steps, in order.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 40,
+          "title": "Inputs",
+          "type": "array"
+        },
+        "joins": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The key that joins the inputs' units, when they differ (the account of a ride).",
+          "title": "Joins"
+        },
+        "kind": {
+          "enum": [
+            "sequence",
+            "fusion",
+            "gate",
+            "budget"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "maxLength": 600,
+          "title": "Note",
+          "type": "string"
+        },
+        "output": {
+          "maxLength": 60,
+          "minLength": 1,
+          "title": "Output",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "output"
+      ],
+      "title": "CompositionStep",
+      "type": "object"
+    },
+    "Need": {
+      "additionalProperties": false,
+      "description": "What a sub-problem needs of the data: a table, columns by name (never values), a label situation.",
+      "properties": {
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 40,
+          "title": "Columns",
+          "type": "array"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "enum": [
+                "column",
+                "file",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "table": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Table"
+        },
+        "why": {
+          "default": "",
+          "maxLength": 600,
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "title": "Need",
+      "type": "object"
+    },
+    "Part": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^part\\d+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "moment": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When the answer is needed, and what is known then.",
+          "title": "Moment"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outcome"
+        },
+        "question": {
+          "default": "",
+          "maxLength": 600,
+          "title": "Question",
+          "type": "string"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The person's words this part comes from.",
+          "title": "Quote"
+        },
+        "risks": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Risks",
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What one row of this part is: a ride, an account, a ticket.",
+          "title": "Unit"
+        },
+        "why": {
+          "default": "",
+          "description": "The rule that drew it, when it is not the person's words.",
+          "maxLength": 600,
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title"
+      ],
+      "title": "Part",
+      "type": "object"
+    },
+    "Read": {
+      "additionalProperties": false,
+      "description": "Another sub-problem's output this one reads: its score (the model's prediction) or its outcome (what became known).",
+      "properties": {
+        "sub_problem": {
+          "maxLength": 40,
+          "minLength": 1,
+          "title": "Sub Problem",
+          "type": "string"
+        },
+        "via": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The key that joins this unit to the other's, when they differ (the account of a ride).",
+          "title": "Via"
+        },
+        "what": {
+          "enum": [
+            "score",
+            "outcome"
+          ],
+          "title": "What",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sub_problem",
+        "what"
+      ],
+      "title": "Read",
+      "type": "object"
+    },
+    "SubProblem": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "default": "engine",
+          "enum": [
+            "engine",
+            "library"
+          ],
+          "title": "Engine",
+          "type": "string"
+        },
+        "family": {
+          "enum": [
+            "classification",
+            "regression",
+            "rare_event",
+            "anomaly",
+            "forecasting",
+            "time_to_event",
+            "ranking",
+            "segmentation",
+            "uplift",
+            "entity_tables",
+            "streams",
+            "text_or_images"
+          ],
+          "title": "Family",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^sp\\d+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "maxLength": 60,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The problem kind the engine runs, when finer than the family.",
+          "title": "Kind"
+        },
+        "known_rank": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When its outcome becomes known, after it was predicted (an investigation's verdict is late); None: never in time to use.",
+          "title": "Known Rank"
+        },
+        "labels": {
+          "default": "unknown",
+          "enum": [
+            "column",
+            "file",
+            "none",
+            "unknown"
+          ],
+          "title": "Labels",
+          "type": "string"
+        },
+        "moment": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Moment"
+        },
+        "needs": {
+          "items": {
+            "$ref": "#/$defs/Need"
+          },
+          "maxItems": 10,
+          "title": "Needs",
+          "type": "array"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outcome"
+        },
+        "part": {
+          "pattern": "^part\\d+$",
+          "title": "Part",
+          "type": "string"
+        },
+        "predict_rank": {
+          "default": 0,
+          "description": "When its prediction is made, in the order of the whole problem (0 first).",
+          "minimum": 0,
+          "title": "Predict Rank",
+          "type": "integer"
+        },
+        "question": {
+          "default": "",
+          "maxLength": 600,
+          "title": "Question",
+          "type": "string"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quote"
+        },
+        "reads": {
+          "items": {
+            "$ref": "#/$defs/Read"
+          },
+          "maxItems": 10,
+          "title": "Reads",
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "why": {
+          "default": "",
+          "maxLength": 600,
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "part",
+        "title",
+        "family"
+      ],
+      "title": "SubProblem",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.problem_map.v1.json",
+  "additionalProperties": false,
+  "description": "A problem as parts, sub-problems and how they combine.",
+  "properties": {
+    "composition": {
+      "$ref": "#/$defs/Composition"
+    },
+    "fingerprint": {
+      "default": "",
+      "description": "The hash of the structure (units, moments, families, labels, ranks, needs, reads, composition): the same map, the same fingerprint.",
+      "maxLength": 64,
+      "title": "Fingerprint",
+      "type": "string"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Notes",
+      "type": "array"
+    },
+    "parts": {
+      "items": {
+        "$ref": "#/$defs/Part"
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "title": "Parts",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.problem_map.v1",
+      "default": "dclab_core.problem_map.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "size": {
+      "enum": [
+        "single",
+        "complex"
+      ],
+      "title": "Size",
+      "type": "string"
+    },
+    "source": {
+      "default": "rules",
+      "enum": [
+        "rules",
+        "model",
+        "person"
+      ],
+      "title": "Source",
+      "type": "string"
+    },
+    "sub_problems": {
+      "items": {
+        "$ref": "#/$defs/SubProblem"
+      },
+      "maxItems": 40,
+      "minItems": 1,
+      "title": "Sub Problems",
+      "type": "array"
+    },
+    "template": {
+      "anyOf": [
+        {
+          "maxLength": 60,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The rule template that drew it, or 'brief' (the person's parts) or 'single'.",
+      "title": "Template"
+    }
+  },
+  "required": [
+    "schema_version",
+    "size",
+    "parts",
+    "sub_problems"
+  ],
+  "title": "ProblemMap",
+  "type": "object"
+}

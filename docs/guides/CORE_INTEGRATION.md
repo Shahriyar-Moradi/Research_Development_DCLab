@@ -437,3 +437,24 @@ ablation, the digests as its report's) and `answer_rows` / `label_rows` write it
 `dclab_rnd.consent.export_main_product` is the only way labelled decisions leave this studio for it (the `train`
 consent, Jev purposes only, its label format; DCLab's `measured` labels stay here). `make decision-r3` runs the reading
 on generated cases.
+
+
+## The problem map (24.1)
+
+`dclab_core.problem_map.ProblemMap` (v1) is a problem as parts, sub-problems and how they combine. Each part has its question, unit
+and moment; each sub-problem is shaped like a problem card (a family from `bands.FAMILIES`, the label situation, an outcome, what it
+needs of the data by name, what it reads of the others, `predict_rank` and `known_rank` for when); a composition is ordered steps
+(sequence, fusion, gate, budget), each on sub-problems and the outputs of earlier steps, with the key that joins two units. A small
+problem is a map with one part and one sub-problem. `decompose(words, parts=...)` draws a map by rules (an explicit brief with parts
+becomes the map's parts; a fraud problem, a routing asked as a team and then an urgency have templates; anything else is one part) and
+`validate(map)` judges any map, whoever drew it, and returns every issue in words: an outcome read before it is known is a leak, a
+read across units says its key, no cycle, a composition built in order that leaves nothing solved out, a stale fingerprint, the size.
+The constructor checks shape, `validate` meaning: a missing unit or moment is a question for the map reviewer (24.2), not an error.
+
+Where it goes there: the main product states one problem per `ProblemSpec` and relates no two.
+`adapters.main_product_problem_map.problem_specs(map)` gives one `ProblemSpec` proposal per sub-problem (the task type where it has
+one, a reason where it has none, `multiclass` kept) with the sub-problem's place in the map in `constraints["dclab_problem_map"]` (a
+free-form key, as `brief_constraints` is) and the composition once; a map that is not sound maps onto nothing. What its side adds:
+somewhere to keep the map beside the specs (a document on the project) and, for the composition to run, a pipeline that takes one
+project's predictions as another's input (24.5). Whether the main product's `parse_objective` keeps the key was not read at the pinned
+commit (the field list names no limit on it): its side checks it when it adopts the package.

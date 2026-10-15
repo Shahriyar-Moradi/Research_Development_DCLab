@@ -402,8 +402,8 @@ same commit, a reviewer pass, and `make check-commit`; a milestone's end gets `c
   the owner's integration plan states them.
 - **Done when:** the conformance test passes on the field lists read at one commit of the main product.
 - **Status: done for phase 1 (2026-10-16); refreshed at every package of phase 2.** dclab-core 0.49.0
-  (`adapters.conformance`: `CONTRACT_ADAPTERS`, `POINTS_NOT_MAPPED`, `problems()`). Of 20 contracts 10 have an adapter (5 read the
-  main product's rows, 5 map a library contract out to its own) and 10 are library outputs with their reason; of 52 event kinds 16
+  (`adapters.conformance`: `CONTRACT_ADAPTERS`, `POINTS_NOT_MAPPED`, `problems()`). Of 21 contracts 11 have an adapter (5 read the
+  main product's rows, 6 map a library contract out to its own) and 10 are library outputs with their reason; of 52 event kinds 16
   are produced and 36 are listed as missing with a reason; of 45 decision points 6 are read as its decision records and 25 have no
   main-product name and say why; the ids the main product's rows do not carry (visit, request, parent, trace, span, parent span)
   are listed. The gate refuses a value that is neither an existing adapter nor a library reason (the review of 23.12 found that any
@@ -458,6 +458,15 @@ measured against the rules before it serves):
   a kind the engine runs (or a library kind, said); a map with one leaf is a single problem.
 - **Done when:** the fraud replica's brief yields a map with its four parts and the right families, the churn replica
   yields a single map, and a map whose leaf reads a later leaf's outcome is refused with the reason.
+- **Status: done (2026-10-16).** dclab-core 0.50.0 (`problem_map`: `ProblemMap` v1, `decompose`, `validate`, `fingerprint`;
+  `adapters.main_product_problem_map.problem_specs`). The fraud words give four parts (a screen with no labels, a classifier on the
+  confirmed cases, the linked accounts, the review list) fused on the account of the unit and cut to the budget in the words; a
+  denial of confirmed cases drops the classifier; a routing asked as a team and then an urgency is a sequence; a forecast with
+  planned promotions stays one problem with its need named; the 15 dev journeys stay single. The review (9 findings) made the
+  composition ordered and complete, the fingerprint cover units, moments, needs, keys and budget, a stale one refused, the templates
+  need the card not to say another family and no label column to be stated, and the crash paths (a long budget phrase, 13 parts,
+  a part that is not a record) clipped. Left open: the router (24.3) reads the map; the understanding agents (24.2) turn a missing
+  unit or moment into a question and read what the rules cannot.
 
 ### 24.2 The understanding agents
 - **Delivers:** the roles `decomposer`, `map_reviewer` and `data_need`, each with its evidence (the brief, the card,

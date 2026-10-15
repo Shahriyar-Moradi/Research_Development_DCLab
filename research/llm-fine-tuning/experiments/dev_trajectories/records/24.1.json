@@ -1,0 +1,182 @@
+{
+  "package": "24.1",
+  "title": "The problem map: a problem as parts, sub-problems and an ordered composition, drawn by rules and judged by one validator",
+  "date": "2026-10-16",
+  "request": "Phase 2 of the owner's plan: an agentic system that understands a problem, breaks a complex one into parts and sub-problems with a big-picture workflow, and composes their solutions; and the rule that every package is adoptable by the main product.",
+  "spec": "dclab_core.problem_map (ProblemMap v1, decompose, validate, fingerprint), adapters.main_product_problem_map.problem_specs, the conformance entry, the schema and its baseline, CHANGELOG 0.50.0, a CORE_INTEGRATION section.",
+  "plan": [
+    "A contract that a person, a rule and later a model can all fill, and one validator that judges all of them the same way.",
+    "Templates only where the words say the shape; anything else stays one problem, so no single problem is split by accident.",
+    "A map the main product can hold: one ProblemSpec proposal per sub-problem, the places in the map in a free-form key, the composition once."
+  ],
+  "decisions": [
+    {
+      "decision": "The constructor checks shape; validate returns every issue in words.",
+      "why": "A person's edit can be shown all its reasons at once, and a model's map is judged by the same function as the rules' map."
+    },
+    {
+      "decision": "A missing unit or moment is a question for the reviewer (24.2), not an unsound map.",
+      "why": "The words often do not say; refusing the map would force a guess, and a guessed moment is where leakage starts."
+    },
+    {
+      "decision": "Ranks order the moments: an outcome must be known strictly before a reader's rank, and after its own prediction.",
+      "why": "One integer per sub-problem is enough to name the leak a late verdict would cause, and to say which read is allowed."
+    },
+    {
+      "decision": "A composition is built in order from sub-problems and earlier outputs, with the key where two units meet, and leaves out no sub-problem nobody reads.",
+      "why": "The composer of 24.5 must be able to run it step by step; a result that is left out is a part of the problem silently dropped."
+    },
+    {
+      "decision": "The fingerprint is the structure (units, moments, families, labels, ranks, needs, reads with keys, steps in order, budget), not the wording.",
+      "why": "Ledger points and the adapter key on it; two maps that validate differently must not share one."
+    }
+  ],
+  "change": "dclab_core problem_map.py (new), adapters/main_product_problem_map.py (new), adapters/conformance.py, contracts.py, schemas/problem_map.json and its baseline, CHANGELOG 0.50.0 and the version, scripts/core_wheel_check.py, docs (CORE_INTEGRATION, the plan), tests/test_problem_map.py (74 tests), tests/test_conformance.py.",
+  "findings": [
+    {
+      "id": "S1",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "The budget pattern missed the way people say it.",
+      "scenario": "'the team can review 200 a day' gave no budget, so the review step had none.",
+      "cause": "The pattern knew 'reviewers can check N' only.",
+      "fix": "Reviewer, team, we and they, check, review, handle and investigate, a count or 'a few', and 'N cases a day' are read; the phrase is clipped.",
+      "test": "test_problem_map FraudTest test_a_budget_is_found_in_the_ways_people_say_it"
+    },
+    {
+      "id": "S2",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "The fraud template said 'ride' for every unit.",
+      "scenario": "'Find fraudulent insurance claims' got parts about rides, couriers and bikers.",
+      "cause": "The template was written from one example.",
+      "fix": "The unit is the first thing the words name (ride, order, delivery, claim, account), else the actor; titles, tables and the key follow it.",
+      "test": "test_the_unit_is_what_the_words_name_not_always_a_ride"
+    },
+    {
+      "id": "S3",
+      "source": "self",
+      "severity": "gap",
+      "defect": "An outcome known at the reader's own moment passed the leak rule.",
+      "scenario": "A test set the outcome earlier than its own prediction.",
+      "cause": "The rule compared with greater-than only.",
+      "fix": "An outcome must be known strictly before the reader's rank, and after its own prediction.",
+      "test": "test_an_outcome_known_at_the_readers_own_moment_is_not_before_it"
+    },
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The composition checks were far weaker than their message.",
+      "scenario": "A budget step before the fusion that makes its input, a step feeding on its own output, two steps feeding each other, an output equal to a sub-problem id, duplicate outputs, a step with no inputs and a composition naming only sp1 all returned no issue.",
+      "cause": "Any step's output was accepted as an input.",
+      "fix": "The steps are walked in order: an input is a sub-problem or an earlier output, an output is a new name, a step has inputs, and a sub-problem nobody reads must feed a step.",
+      "test": "test_problem_map CompositionTest"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A map changed after it was made kept its fingerprint through validate and the adapter.",
+      "scenario": "model_copy changed sp1's family to regression: validate gave no issue and the specs carried the old fingerprint, which ledger points would key on.",
+      "cause": "model_copy skips the validators and validate never compared the fingerprint; the fingerprint was not among the fields set, so a dump without defaults dropped it.",
+      "fix": "validate names a stale fingerprint, the adapter refuses it, and the fingerprint is a set field.",
+      "test": "FingerprintTest test_a_map_changed_after_it_was_made_has_a_stale_fingerprint_that_validate_names_and_the_adapter_refuses"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The fingerprint left out structure that validate depends on.",
+      "scenario": "Dropping a read's key kept the fingerprint and turned a sound map into an unsound one; a different budget or a reordered sequence gave the same one.",
+      "cause": "It hashed ids, families and sorted reads only.",
+      "fix": "It covers units, moments, labels, ranks, needs, reads with their keys, the steps in order with their keys, and the budget.",
+      "test": "FingerprintTest test_everything_validate_depends_on_changes_it"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The templates split sentences that only shared words with them.",
+      "scenario": "A priority question 'before it is routed' became a team and urgency sequence; 'abusive comments in orders' and a fully labelled 'is_fraud' column got the fraud template; a discount question about orders was forced to forecasting.",
+      "cause": "Single words were enough, and the card's family was overridden.",
+      "fix": "A routing needs a team, a connector and an urgency in that order; 'abuse' is not fraud; a stated label column is one problem; a template needs the card not to say another family; a forecast template needs the card to say forecasting.",
+      "test": "test_a_sentence_that_only_shares_words_with_fraud_is_not_given_the_template; test_a_routing_sentence_must_ask_the_team_and_then_the_urgency; test_the_card_family_is_never_overridden_by_a_template"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A denial of confirmed cases became labels 'file'.",
+      "scenario": "'None of them were confirmed', 'We have not confirmed any yet' and 'There are no known cases' all kept a classifier on a file of known cases.",
+      "cause": "The words 'confirmed' and 'known' matched whatever came with them.",
+      "fix": "A clause that mentions confirmed cases with a negation denies them; a clause without one says they exist; nothing said is unknown; a denial drops the classifier.",
+      "test": "test_confirmed_cases_that_exist_make_a_classifier_and_a_denial_does_not"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "decompose raised on three kinds of input.",
+      "scenario": "A budget phrase with a 700-digit number, a brief of 13 parts, and a part that is not a record each raised.",
+      "cause": "Text was not clipped to the contract's limits; a step allowed 12 inputs; parts were assumed to be dictionaries.",
+      "fix": "The budget phrase is clipped, a step takes as many inputs as there are sub-problems, a brief is cut at 20 parts with a note, and what is not a part is skipped.",
+      "test": "test_an_absurd_budget_phrase_is_clipped_not_a_crash; test_a_brief_of_many_parts_is_read_and_one_of_too_many_is_cut_with_a_note; test_a_brief_part_that_is_not_a_part_is_skipped_not_a_crash"
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The unit rule compared only the unit a sub-problem set itself, and a fusion across units had no key.",
+      "scenario": "A sub-problem with no unit under an account part could read a ride sub-problem with no key; the leak was reported only after the key was added; the fraud template's own fusion mixed rides and accounts with nowhere to say how they join.",
+      "cause": "An elif chain, and the key existed only on reads.",
+      "fix": "The effective unit is the sub-problem's own, else its part's; both issues are reported; a step has a joins key and the joined result is on the first input's unit.",
+      "test": "test_the_effective_unit_is_the_sub_problems_own_else_its_parts; test_a_read_across_units_says_its_key_and_the_leak_is_reported_beside_it; test_inputs_on_different_units_say_the_key_that_joins_them"
+    },
+    {
+      "id": "R8",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Rank holes: an outcome known when it is predicted, and an outcome of a sub-problem with no label.",
+      "scenario": "known_rank equal to predict_rank passed; a sub-problem with labels none could have a known outcome that another read.",
+      "cause": "The check was a strict less-than and labels were not compared with ranks.",
+      "fix": "known_rank no later than predict_rank is refused, as is a known rank on a sub-problem that says no label exists.",
+      "test": "test_an_outcome_known_no_later_than_its_own_prediction_is_nothing_to_predict; test_a_sub_problem_with_no_label_has_no_outcome_that_becomes_known"
+    },
+    {
+      "id": "R9",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The adapter had a dead size branch, dropped multiclass, could produce an empty objective, and a test could not fail.",
+      "scenario": "constraints never exceed the limit; kind multiclass became classification; a blank title gave an empty business_objective; a test asserted the word 'rows' is absent.",
+      "cause": "Written before the contract's limits were fixed.",
+      "fix": "The branch is replaced by a test of the largest place; multiclass is kept; titles are stripped and non-blank and the objective falls back to the id; a test checks that no string or list in the contract is unbounded, so a table cannot be stored in a map.",
+      "test": "AdapterTest test_the_largest_place_in_a_map_is_far_below_the_main_products_size_limit; ContractTest test_nothing_in_a_map_is_unbounded_so_a_table_cannot_be_stored_in_one"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "dev journeys split by the rules",
+      "gate": "At most 0 of the 15 single-problem sentences of the dev journeys are split into parts (written before the templates).",
+      "fixed_before_run": true,
+      "result": "0 of 15 sentences split; every map validates.",
+      "verdict": "pass",
+      "limits": [
+        "Only single-problem sentences: it shows no false split, not that every complex problem is found. The sealed set is read once, at the end of the phase."
+      ],
+      "against_gate": "0 split against a limit of 0 of 15: met."
+    }
+  ],
+  "outcome": "A person's words become a validated map; the fraud problem is four parts (three when no case was confirmed) with the right families, a churn question is one; a leak, a missing key, a cycle and a composition that cannot run are each refused with their reason; the main product holds the map as one spec proposal per sub-problem.",
+  "lessons": [
+    "A template that fires on words alone splits problems that only share them: require the shape, and let the card's own reading veto it.",
+    "A hash used as an identity must cover everything the validator reads, and the validator must check the hash, or an edited copy keeps the old name.",
+    "Test a negation: 'confirmed' in a sentence says nothing about whether any case was.",
+    "Walk a composition in order: a set of names hides the step that uses a result before it is made."
+  ],
+  "risks": [
+    "The templates cover a fraud problem and a two-step routing; the model decomposer (24.2) reads the rest, and is switched on only after a sealed measurement against these rules.",
+    "Whether the main product's parse_objective keeps the free-form key was not readable at the pinned commit."
+  ],
+  "commits": []
+}

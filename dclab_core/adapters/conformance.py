@@ -11,10 +11,10 @@ from __future__ import annotations
 from typing import Any
 
 from dclab_core.adapters import (main_product, main_product_experience, main_product_ledger, main_product_lineage, main_product_outcomes,
-                                 main_product_pipeline)
+                                 main_product_pipeline, main_product_problem_map)
 
 ADAPTERS = {m.__name__: m for m in (main_product, main_product_experience, main_product_ledger, main_product_lineage, main_product_outcomes,
-                                    main_product_pipeline)}  # the modules a ``module:function`` below may name
+                                    main_product_pipeline, main_product_problem_map)}  # the modules a ``module:function`` below may name
 LIBRARY = "library output: no row of the main product maps onto it; the host renders or stores it from the library's calls (CORE_INTEGRATION.md)"
 
 #: contract name -> ``module:function`` of the adapter that fills it from the main product's rows, or the reason it has none
@@ -27,6 +27,7 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "decision_model_card": LIBRARY + " (the library's record of a classifier it fitted)",
     "outcome": "dclab_core.adapters.main_product_outcomes:from_experiment",
     "pipeline": "dclab_core.adapters.main_product_pipeline:pipeline_version",
+    "problem_map": "dclab_core.adapters.main_product_problem_map:problem_specs",
     "problem_brief": "dclab_core.adapters.main_product:problem_spec",
     "solution_plan": "dclab_core.adapters.main_product:problem_spec",
     "data_findings": "dclab_core.adapters.main_product:problem_profile",

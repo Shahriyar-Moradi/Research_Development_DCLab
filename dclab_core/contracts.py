@@ -387,3 +387,4 @@ import dclab_core.decision_models  # noqa: E402,F401  (decision model cards, 22.
 import dclab_core.coordinator  # noqa: E402,F401  (the coordinator's situation, 21.2)
 import dclab_core.solution_workflow  # noqa: E402,F401  (the solution workflow, 20.6)
 import dclab_core.pipeline  # noqa: E402,F401  (the pipeline of workflows, 20.8)
+import dclab_core.problem_map  # noqa: E402,F401  (the problem map, 24.1)
