@@ -1,0 +1,113 @@
+{
+ "package": "20.10c",
+ "title": "The second sealed journeys set's misses fixed on dev, a third frozen first",
+ "date": "2026-10-15",
+ "request": "After the second sealed set failed at 24 of 30, fix its misses without tuning on the people that will judge the fixes.",
+ "spec": "A third sealed set by an independent agent, frozen before any change; the second set's misses fixed as dev material; the third run once.",
+ "plan": [
+  "Freeze the third set and commit it with the second run's result.",
+  "Read the misses.",
+  "Fix each with a test, including the product's dead end.",
+  "Run all dev material.",
+  "Commit, gate, run the third set once."
+ ],
+ "decisions": [
+  {
+   "decision": "A prediction moment of eight characters is enough for the Solution page.",
+   "why": "Home accepted 'at renewal' and the page refused it: a dead end for a person who answered."
+  },
+  {
+   "decision": "A count said for next month beside a yes or no column is asked, never read as a forecast.",
+   "why": "How many customers will churn next month is a churn problem with that column."
+  },
+  {
+   "decision": "A forecast whose moment came from the problem sentence keeps its covariates out until someone says they are known ahead.",
+   "why": "Keeping a column out costs accuracy; reading one in that is not known costs the result."
+  }
+ ],
+ "change": "dclab_core/card.py; dclab_rnd/draft/chat.py; dclab_rnd/kinds/forecasting.py; dclab_rnd/studio/solution.py; journeys (the third set, its gate); tests problem_card, journeys, core_forecast.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Two people's short moments were refused after Home accepted them.",
+   "scenario": "'At renewal' and 'at listing' stopped the journey at the Solution page.",
+   "cause": "The page asked for twelve characters, Home for none.",
+   "fix": "Eight characters.",
+   "test": "tests/test_journeys.py"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Three families said in words the rules did not read.",
+   "scenario": "How much each shop needs the coming week; how many months we keep them with members still active; many would have bought anyway.",
+   "cause": "The patterns knew other phrasings.",
+   "fix": "Each phrasing read, tied to its context.",
+   "test": "test_the_second_sealed_sets_words_are_read"
+  },
+  {
+   "id": "M3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "An outcome named after a word was lost.",
+   "scenario": "'duration days_subscribed' left the card without its outcome.",
+   "cause": "Only an answer that began with the column was read as naming it.",
+   "fix": "Up to two words such as duration or target may come before it.",
+   "test": "test_an_outcome_named_inside_a_sentence_is_that_column_and_a_word_is_not"
+  },
+  {
+   "id": "M4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A verb's other form was not read as known ahead.",
+   "scenario": "'Marketing sets them weeks before' left the promotion unknown.",
+   "cause": "Only 'set' was in the pattern.",
+   "fix": "Every form of the verbs.",
+   "test": "test_set_weeks_before_is_known_ahead_and_measured_on_the_day_is_not"
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A count for next month beside a yes or no column was read as forecasting.",
+   "scenario": "How many customers will churn next month became a forecast.",
+   "cause": "Forecasting was never asked against a column.",
+   "fix": "Asked beside a yes or no column.",
+   "test": "test_the_second_sealed_sets_words_are_read"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The disk filled while journeys ran in parallel.",
+   "scenario": "Free space fell to under two gigabytes with swap near full.",
+   "cause": "Several engines at once on a full disk.",
+   "fix": "Fewer workers; the owner told.",
+   "test": "none"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "dev material",
+   "gate": "every dev journey and every card on the earlier sealed sets right",
+   "result": "dev 15 of 15; the first sealed set's cards 30 of 30; the second set 29 of 30, its miss a forecast whose moment came from the problem sentence",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "every dev journey right and every card right",
+   "limits": [
+    "Dev material: the fixes were made on these people."
+   ]
+  }
+ ],
+ "outcome": "The second set's misses are fixed on dev but one; the third sealed set judges them.",
+ "lessons": [
+  "A page that refuses what an earlier page accepted is a dead end: the two must share one rule.",
+  "Freeze the next sealed set before reading the last one's misses as dev material."
+ ],
+ "risks": [
+  "A forecast's known-ahead columns stay unknown when the moment came from the problem sentence."
+ ],
+ "commits": []
+}

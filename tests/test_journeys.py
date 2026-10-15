@@ -157,6 +157,8 @@ class FoundOnDevTest(unittest.TestCase):
         store = DraftStore(Path(tempfile.mkdtemp()))
         agent = HomeAgent(store, None)
         for said, expected in (("days_subscribed, with cancelled saying whether they left", "days_subscribed"),
+                               ("duration days_subscribed, event flag cancelled", "days_subscribed"),  # 20.10 v2: a word before it
+                               ("we only know it once cancelled is set", None),
                                ("A failure of the machine in the next hours", None), ("machine", None)):
             d = store.create("x")["id"]
             store.update(d, lambda x: x.update(analysis={"profile": {"columns": [{"name": n} for n in ("machine", "days_subscribed", "cancelled")]}}))

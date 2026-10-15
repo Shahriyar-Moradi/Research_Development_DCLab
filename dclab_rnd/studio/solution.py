@@ -79,7 +79,8 @@ class Solution(BaseModel):
     target: str | None = None  # 20.7: none only for a kind that reads no outcome (anomaly detection without labels)
     task: Literal["binary", "multiclass", "regression"]
     positive_label: str | None = None
-    prediction_moment: str = Field(min_length=12, max_length=2000, description="When the prediction is made and what is known then.")
+    # 8: "at renewal", "at listing" are moments a person says and Home accepts (20.10 v2: at 12 they were a dead end on this page)
+    prediction_moment: str = Field(min_length=8, max_length=2000, description="When the prediction is made and what is known then.")
     forbidden: list[Forbidden] = Field(default_factory=list, max_length=200)
     identifiers: list[str] = Field(default_factory=list, max_length=50)
     time_column: str | None = None

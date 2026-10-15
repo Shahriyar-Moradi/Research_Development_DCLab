@@ -325,6 +325,22 @@ class PeoplesOwnWordsTest(unittest.TestCase):
         self.assertIsNone(c.family.value)
         self.assertIn("time_to_event", c.in_play)
 
+    def test_the_second_sealed_sets_words_are_read(self):
+        """20.10 v2's misses, now dev material: a need in the coming week, months kept with members still active, buying anyway."""
+        from dclab_core.card import WORDS
+
+        said = {"forecasting": "Every Sunday, how much each shop will need for each item the coming week",
+                "time_to_event": "How many months can we expect to keep them? Many members are still active, so we don't know their end yet",
+                "uplift": "Some bought because of the coupon, many would have bought anyway"}
+        for family, text in said.items():
+            self.assertIn(family, [f for f, p in WORDS.items() if p.search(text)], text)
+        brief = understand("How many customers will churn next month?", {"t.csv": ["churned", "tenure"]})
+        brief = brief.model_copy(update={"target_column": TextFact(value="churned", status="stated", quote="churned", source="person"),
+                                         "task": brief.task.model_copy(update={"value": "binary", "status": "inferred", "reason": "two values"})})
+        c = problem_card(brief, words="How many customers will churn next month?")
+        self.assertIn("forecasting", c.in_play)  # asked beside the churned column, never inferred
+        self.assertIsNone(c.family.value)
+
     def test_a_shape_only_answer_is_marked_and_a_named_family_is_not(self):
         from dclab_core.conversation import read_answer
 

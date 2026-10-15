@@ -14,7 +14,7 @@ from .base import ProblemKind
 
 
 AHEAD = re.compile(r"\b(?:ahead|in advance|beforehand|planned|scheduled|booked|announced|"
-                   r"(?:set|fixed|decided|agreed|published|chosen) (?:\w+ ){0,2}(?:weeks?|days?|months?) (?:before|earlier))\b", re.I)  # 20.10 v2: "set weeks before"
+                   r"(?:sets?|fix(?:es|ed)?|decide[sd]?|agree[sd]?|publish(?:es|ed)?|chos(?:e|en)|plan(?:s|ned)?) (?:\w+ ){0,2}(?:weeks?|days?|months?) (?:before|earlier))\b", re.I)  # 20.10 v2: "set weeks before"
 ON_THE_DAY = re.compile(r"\b(?:on the day|measured|observed|recorded|afterwards|later|not known|unknown)\b", re.I)
 
 
