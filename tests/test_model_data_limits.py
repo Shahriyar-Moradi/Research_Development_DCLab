@@ -228,6 +228,21 @@ class DataLimitTests(unittest.TestCase):
             answerer.answer("column.is_identifier", column_state(column, len(table)), ["yes", "no"])
         self.assertEqual(self.assertWithinLimit("decision_answer"), set())
 
+    def test_the_labeller_sees_the_blind_view_bands_and_names_never_values(self):  # 19.8b: Claude helps label
+        from dclab_rnd import ledger
+        from dclab_rnd.ledger import column_state, model_labels
+        from dclab_rnd.studio.data import profile_table
+
+        table = marked_table()
+        book = ledger.FileLedger(Path(tempfile.mkdtemp()) / "ledger", "w1")
+        for column in profile_table(table)["columns"] * 20:  # enough decisions that some are drawn
+            ledger.decide("column.is_identifier", ("column", column["name"]), answers=[ledger.answer("rule", "r", False)], value_used=False,
+                          state=column_state(column, len(table)), ledger=book)
+        gw = gateway({"decision_labeler": [{"content": '{"answer": "no", "confidence": "low", "reason": "a band"}', "tool_calls": [], "usage": {}}] * 200})
+        ask, _ = model_labels.asker(gw, cap_eur=1.0)
+        self.assertGreater(model_labels.to_label(book, ask, "scripted")["asked"], 0)
+        self.assertEqual(self.assertWithinLimit("decision_labeler"), set())
+
     def test_the_data_investigator_sees_column_names_and_shares_never_values(self):
         from dclab_core.analyse import analyse
         from dclab_rnd.core_advisor import GatewayAdvisor
@@ -316,7 +331,7 @@ class DataLimitTests(unittest.TestCase):
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
-                  "decision_answer"}
+                  "decision_answer", "decision_labeler"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

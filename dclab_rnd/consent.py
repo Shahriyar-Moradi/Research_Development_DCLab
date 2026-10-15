@@ -98,7 +98,7 @@ def _by(value: str | None) -> str | None:
     if not value:
         return value
     kind, _, name = str(value).partition(":")
-    return value if kind in ("replica", "measured", "benchmark", "rule") and name else kind
+    return value if kind in ("replica", "measured", "benchmark", "rule", "model") and name else kind  # a model's name is not a person
 
 
 def draft_projects(drafts: Any) -> dict[str, str]:

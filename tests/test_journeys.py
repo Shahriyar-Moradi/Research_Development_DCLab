@@ -82,7 +82,7 @@ class JourneyTest(unittest.TestCase):
         from dclab_rnd.agent_eval.journeys import __main__ as cli
 
         for argv in (["--split", "sealed_v4"], ["--split", "sealed_v4", "--spent", "--reader"]):  # no reader arm; a set never run
-            with mock.patch.object(sys, "argv", ["journeys", *argv]), mock.patch.object(journeys, "sealed_runs", return_value=[]):
+            with mock.patch.object(sys, "argv", ["journeys", *argv]), mock.patch.object(cli, "sealed_runs", return_value=[]):
                 self.assertEqual(cli.main(), 2, argv)
         self.assertIn("reader", journeys.GATES["sealed_v4"])  # the reader's rule, fixed before the run
         with mock.patch.object(journeys, "RESULTS", Path(tempfile.mkdtemp())):

@@ -56,12 +56,63 @@
    "cause": "The sets listed four sources.",
    "fix": "A model column of its own, with its name.",
    "test": "test_the_identifier_set_keeps_its_labels_apart"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Every stored label of the old version was lost or broke reads.",
+   "scenario": "A label written before the change vanished from the files and made the database's reads fail.",
+   "cause": "Reading checked the version before the upgrade could run.",
+   "fix": "A contract declares the older versions it reads; the data card's v1 too.",
+   "test": "test_a_stored_v1_label_is_still_read_on_files"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "One model label broke the decision sets.",
+   "scenario": "Building the sets refused a model label whose name had been cut to its kind.",
+   "cause": "The export kept only a person's kind, and treated a model like a person.",
+   "fix": "A model keeps its name.",
+   "test": "test_a_model_label_goes_through_the_export_into_the_decision_set"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The cap or a provider refusal ended the run with a traceback.",
+   "scenario": "A capped run printed no counts and no spend.",
+   "cause": "Nothing caught the refusal.",
+   "fix": "The run stops, keeps what it wrote and says why.",
+   "test": "test_a_refusal_stops_the_run_and_says_why"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "What the labeller may see understated project points.",
+   "scenario": "A project's id and its aggregate measures went unlisted on the Admin page.",
+   "cause": "The text named column points only.",
+   "fix": "The purpose names them.",
+   "test": "none"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A test checked keys the view never had.",
+   "scenario": "The blind view test could not fail.",
+   "cause": "It asserted absent keys of another shape.",
+   "fix": "It checks the view's keys are within the blind view's.",
+   "test": "test_the_model_sees_the_blind_view_only_and_its_labels_are_kept_apart"
   }
  ],
  "measurements": [],
  "outcome": "Claude can label the drawn decisions as a second opinion; the owner's labels stay the truth.",
  "lessons": [
-  "A model's label is a second opinion: give it a source of its own, never one that reads as truth."
+  "A model's label is a second opinion: give it a source of its own, never one that reads as truth.",
+  "A new contract version must be read through the same path stored documents take, and tested there."
  ],
  "risks": [
   "Claude's labels were not run on the owner's ledger yet: the dev database needs make dev's migration first."

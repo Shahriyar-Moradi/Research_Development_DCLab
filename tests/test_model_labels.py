@@ -37,7 +37,8 @@ class ModelLabelsTest(unittest.TestCase):
         counts = model_labels.to_label(self.book, ask, "claude-sonnet-5-5")
         drawn = [r for r in self.book.records() if contract.blind_draw(r, model_labels.SEED)]
         self.assertEqual((counts["asked"], counts["labelled"]), (len(drawn), len(drawn)))
-        self.assertTrue(all("value_used" not in v and "answers" not in v for v in seen))  # never DCLab's answer
+        shown = {k for v in seen for k in v}
+        self.assertTrue(shown <= {"record", "point", "question", "answer", "subject", "state", "options", "weight", "seed"}, shown)
         written = [x for x in self.book.labels() if x.source == "model"]
         self.assertTrue(all(x.by == "model:claude-sonnet-5-5" and x.weight and x.value is True for x in written))
         record = next(r for r in self.book.records() if r.id == written[0].record)
@@ -46,10 +47,11 @@ class ModelLabelsTest(unittest.TestCase):
         self.assertEqual(model_labels.to_label(self.book, ask, "claude-sonnet-5-5")["asked"], 0)  # once per model
 
     def test_unsure_and_off_list_answers_write_nothing(self):
-        counts = model_labels.to_label(self.book, lambda view: {"answer": None, "reason": "cannot tell"}, "m", limit=3)
-        self.assertEqual((counts["unsure"], counts["labelled"]), (3, 0))
-        counts = model_labels.to_label(self.book, lambda view: {"answer": "maybe"}, "m", limit=3)
-        self.assertEqual((counts["refused"], counts["labelled"]), (3, 0))
+        drawn = sum(1 for r in self.book.records() if contract.blind_draw(r, model_labels.SEED))  # ids are random: so is the draw's size
+        counts = model_labels.to_label(self.book, lambda view: {"answer": None, "reason": "cannot tell"}, "m")
+        self.assertEqual((counts["unsure"], counts["labelled"]), (drawn, 0))
+        counts = model_labels.to_label(self.book, lambda view: {"answer": "maybe"}, "m")
+        self.assertEqual((counts["refused"], counts["labelled"]), (drawn, 0))
 
     def test_a_model_label_names_its_model_and_v1_labels_still_read(self):
         with self.assertRaises(ValueError):
@@ -59,6 +61,42 @@ class ModelLabelsTest(unittest.TestCase):
                                                      "point": "column.is_identifier", "value": True, "source": "benchmark", "by": "replica",
                                                      "at": "2026-10-15T00:00:00+00:00"})
         self.assertEqual(old.schema_version, "dclab_core.decision_label.v2")
+
+
+@unittest.skipIf(MISSING, MISSING)
+class StoredAndExportedTest(unittest.TestCase):
+    def test_a_stored_v1_label_is_still_read_on_files(self):
+        import json
+
+        book = ledger.FileLedger(Path(tempfile.mkdtemp()) / "ledger", "w1")
+        r = ledger.decide("column.is_identifier", ("column", "c1"), answers=[ledger.answer("rule", "r", True)], value_used=True, ledger=book)
+        ledger.label(r, True, "benchmark", "replica:x", ledger=book)
+        self.assertEqual(len(book.labels()), 1)
+        for path in Path(book.root).rglob("*.jsonl"):  # the label as a v1 writer stored it
+            text = path.read_text(encoding="utf-8").replace("dclab_core.decision_label.v2", "dclab_core.decision_label.v1")
+            path.write_text(text, encoding="utf-8")
+        self.assertEqual(len(book.labels()), 1)
+        self.assertEqual(contract.DecisionLabel.read(json.loads(json.dumps({"schema_version": "dclab_core.decision_label.v1", "id": "dl0000009",
+                         "record": "r1", "point": "column.is_identifier", "value": True, "source": "blind", "by": "reviewer", "weight": 10.0,
+                         "at": "2026-10-15T00:00:00+00:00"}))).schema_version, "dclab_core.decision_label.v2")
+
+    def test_a_model_label_goes_through_the_export_into_the_decision_set(self):
+        from dclab_rnd import consent
+
+        self.assertEqual(consent._by("model:claude-sonnet-5-5"), "model:claude-sonnet-5-5")  # a model's name is not a person
+        self.assertEqual(consent._by("person:u1"), "person")
+
+    def test_a_refusal_stops_the_run_and_says_why(self):
+        book = ledger.FileLedger(Path(tempfile.mkdtemp()) / "ledger", "w1")
+        for i in range(60):
+            ledger.decide("column.is_identifier", ("column", f"c{i}"), answers=[ledger.answer("rule", "r", True)], value_used=True, ledger=book)
+
+        def capped(view):
+            raise RuntimeError("BudgetExceeded: this run has used its budget")
+
+        counts = model_labels.to_label(book, capped, "m")
+        self.assertEqual((counts["stopped"], counts["asked"], counts["labelled"]), (1, 1, 0))
+        self.assertIn("BudgetExceeded", counts["why_stopped"])
 
 
 if __name__ == "__main__":

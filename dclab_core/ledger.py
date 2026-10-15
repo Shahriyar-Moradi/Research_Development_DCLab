@@ -32,7 +32,7 @@ Adapters: ``dclab_core.adapters.main_product_ledger`` reads the main product's `
 from __future__ import annotations
 
 import re
-from typing import Any, Literal, Optional, Union
+from typing import Any, ClassVar, Literal, Optional, Union
 
 from pydantic import Field, field_validator, model_validator
 
@@ -310,6 +310,7 @@ class DecisionLabel(Versioned):
     """What the right value of a decision was, from one source; a new label supersedes an older one, never edits it."""
 
     schema_version: Literal["dclab_core.decision_label.v2"] = _version("decision_label", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.decision_label.v1"})  # stored labels stay readable
     id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{6,80}$")
     record: str = Field(min_length=1, max_length=80, description="The decision record it labels.")
     point: str

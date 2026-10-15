@@ -39,7 +39,7 @@ def to_label(store: Any, ask: Callable[[dict[str, Any]], Optional[dict[str, Any]
 
     by = f"model:{model}"[:120]
     done = {x.record for x in store.labels() if x.source == "model" and x.by == by}
-    out = {"asked": 0, "labelled": 0, "unsure": 0, "refused": 0}
+    out = {"asked": 0, "labelled": 0, "unsure": 0, "refused": 0, "stopped": 0}
     for record in store.records(point=point):
         if limit is not None and out["asked"] >= limit:
             break
@@ -47,7 +47,12 @@ def to_label(store: Any, ask: Callable[[dict[str, Any]], Optional[dict[str, Any]
             continue
         view = contract.blind_view(record)
         out["asked"] += 1
-        reply = ask(view) or {}
+        try:
+            reply = ask(view) or {}
+        except RuntimeError as error:  # the cap reached or the provider refusing: stop, keep what was written, say why
+            out["stopped"] = 1
+            out["why_stopped"] = str(error)[:200]
+            break
         if reply.get("answer") is None:
             out["unsure"] += 1
             continue

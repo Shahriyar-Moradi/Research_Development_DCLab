@@ -31,7 +31,7 @@ import json
 import math
 import re
 from collections.abc import Mapping
-from typing import Any, Literal, Optional
+from typing import Any, ClassVar, Literal, Optional
 
 import numpy as np
 import pandas as pd
@@ -142,6 +142,7 @@ class DataCard(Versioned):
     """The tables of one problem without their rows: columns in bands, relations, problems."""
 
     schema_version: Literal["dclab_core.data_card.v2"] = _version("data_card", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.data_card.v1"})  # a stored v1 card stays readable
     name: str = Field(min_length=1, max_length=200)
     synthetic: bool = Field(False, description="Built from a synthetic table (a replica, or drawn from another card).")
     tables: list[TableCard] = Field(min_length=1, max_length=20)

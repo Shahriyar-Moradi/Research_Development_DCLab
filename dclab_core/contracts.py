@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from typing import Any, Literal, Optional, Union
+from typing import Any, ClassVar, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
 
@@ -57,12 +57,13 @@ class Versioned(Contract):
     """A contract a host stores on its own: it carries its version, and reading requires it."""
 
     model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False, json_schema_extra=_require_version)
+    READS: ClassVar[frozenset[str]] = frozenset()  # older versions this one still reads (its validator upgrades them)
 
     @classmethod
     def read(cls, document: Union[str, bytes, Mapping[str, Any]]):
         data = json.loads(document) if isinstance(document, (str, bytes)) else dict(document)
         expected = cls.model_fields["schema_version"].default
-        if data.get("schema_version") != expected:
+        if data.get("schema_version") != expected and data.get("schema_version") not in cls.READS:
             raise ValueError(f"expected schema_version {expected!r}, found {data.get('schema_version')!r}")
         return cls.model_validate(data)
 
