@@ -223,7 +223,11 @@ def _trap(case_id: str) -> str:
     if found is None:
         from .benchmark_v3 import CASES as BENCHMARK_V3
 
-        found = next(c.trap for c in BENCHMARK_V3 if c.id == case_id)
+        found = next((c.trap for c in BENCHMARK_V3 if c.id == case_id), None)
+    if found is None:  # 16.14: v4, every case filed by its kind
+        from .benchmark_v4 import CASES as BENCHMARK_V4
+
+        found = next(c.trap for c in BENCHMARK_V4 if c.id == case_id)
     return found
 
 

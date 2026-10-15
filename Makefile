@@ -1,4 +1,4 @@
-.PHONY: datasets decisions-gen decision-models decisions-export decision-gate benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all check-quick check-quick-tests check-commit core-schemas core-wheel-check code-check journeys harness-eval decision-r3
+.PHONY: datasets decisions-gen decision-models decisions-export decision-gate benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all check-quick check-quick-tests check-commit core-schemas core-wheel-check code-check journeys harness-eval decision-r3 benchmark-v4 pitfalls-by-kind results-by-kind
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -338,6 +338,15 @@ core-schemas:  ## regenerate dclab_core/schemas/*.json from the contracts (the l
 
 core-wheel-check:  ## build dclab_core's wheel, install it in a clean Python 3.12 with only its dependencies (uv) and run a smoke call (~90 s)
 	$(PYTHON) scripts/core_wheel_check.py
+
+benchmark-v4:  ## 16.14: the benchmark filed by kind, results per kind with intervals (SPLIT=dev, or SPLIT=test once with OUT=evidence/campaigns/benchmark_v4/results/BEN4-<n>_test_scripted.json)
+	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_eval.benchmark_v4 --split $(or $(SPLIT),dev) $(if $(OUT),--output $(OUT),)
+
+pitfalls-by-kind:  ## 16.14: each tabular kind's pitfalls on its replica (a wrong split, a kept leak), three seeds, never overwritten
+	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.pitfalls_by_kind $(ARGS)
+
+results-by-kind:  ## 16.14: one row per kind: its acceptance, the benchmark by kind, its pitfalls, each with its interval
+	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_eval.by_kind
 
 decision-r3:  ## 22.7: an R3-shaped run of the decision classifiers against the rule on the generated dev cases, as the main product reads one (its state, its bands)
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.decision_r3 $(ARGS)

@@ -71,13 +71,18 @@ def scope_of(project: dict[str, Any], record: dict[str, Any]) -> dict[str, Any]:
     """Where a lesson holds, written by code from the record: never by a model."""
     evidence = record.get("evidence") or {}
     rows = (evidence.get("train_rows") or 0) + (evidence.get("holdout_rows") or 0)
+    from .studio.trajectories import problem_kind
+
     return {"project": project.get("name"), "project_id": project.get("id"), "dataset": (record.get("provenance") or {}).get("filename"),
             "task": record.get("task_type") or record.get("task"), "metric": record.get("primary_metric"), "rows": rows or None,
-            "split": evidence.get("holdout_split") or (record.get("provenance") or {}).get("holdout")}
+            "split": evidence.get("holdout_split") or (record.get("provenance") or {}).get("holdout"),
+            "problem_kind": problem_kind(project)}  # 16.14: a lesson is filed by the kind its project ran as
 
 
 def scope_line(scope: dict[str, Any]) -> str:
     parts = [f"project {scope.get('project')}", f"dataset {scope.get('dataset')}", f"task {scope.get('task')}"]
+    if scope.get("problem_kind"):
+        parts.append(f"kind {scope['problem_kind']}")
     if scope.get("rows"):
         parts.append(f"{scope['rows']} rows")
     if scope.get("metric"):
@@ -365,7 +370,8 @@ def as_record(lesson: dict[str, Any]) -> dict[str, Any]:
             f"accepted by a {((lesson.get('review') or {}).get('by') or 'reviewer')}.")  # no date here: every number in the text is one a sentence citing it may state
     return {"record_id": record_id(lesson), "type": TYPE, "title": f"Workspace lesson: {_line(lesson['claim'], 110)}", "text": text,
             "metadata": {"workspace_lesson": True, "label": LABEL, "project_id": lesson.get("project_id"), "project": lesson.get("project_name"),
-                         "scope": scope, "task_type": scope.get("task"), "dataset": scope.get("dataset"), "status": lesson.get("status"),
+                         "scope": scope, "task_type": scope.get("task"), "problem_kind": scope.get("problem_kind"),
+                         "dataset": scope.get("dataset"), "status": lesson.get("status"),
                          "written_by": lesson.get("written_by"), "reviewed_by": (lesson.get("review") or {}).get("by"),
                          "experiment_id": lesson.get("experiment_id"), "final_run": _completed(lesson),
                          "edited": bool((lesson.get("review") or {}).get("changed"))},
@@ -411,3 +417,9 @@ def merged(base: Any, store: LessonStore | None = None) -> Any:
 
 def records(lessons: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     return [as_record(l) for l in lessons]
+
+
+def by_kind(kind: str, store: LessonStore | None = None) -> list[dict[str, Any]]:
+    """16.14: the accepted lessons of projects that ran as ``kind``. A lesson accepted before 16.14 has no kind in its
+    scope and is not found by kind (its project may since have changed its solution: the kind is never guessed)."""
+    return [l for l in offered(store) if ((l.get("scope") or {}).get("problem_kind")) == kind]

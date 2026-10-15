@@ -37,6 +37,8 @@ PITFALLS = "evidence/campaigns/pitfalls_v1"
 VERIFY = "evidence/campaigns/agent_verification_v1"
 CODES = "evidence/campaigns/category_codes_v1"
 KINDS = "evidence/campaigns/kinds_v1"  # 16.14: each problem kind's decisions on its replica
+PITFALLS_KIND = "evidence/campaigns/pitfalls_by_kind_v1"  # 16.14: each tabular kind's pitfalls on its replica
+BENCH4 = "evidence/campaigns/benchmark_v4"  # 16.14: the benchmark filed by kind
 
 # Evidence that lives outside a track folder but belongs to it.
 RELATED = {
@@ -62,12 +64,17 @@ RELATED = {
     "mlops-and-deployment": {"campaigns": [], "tracks": ["time-series-forecasting", "evaluation-and-trust"]},
     "recommender-systems": {"campaigns": [KINDS], "tracks": []},
     "causal-inference-and-experimentation": {"campaigns": [KINDS], "tracks": []},
+    "tabular-regression": {"campaigns": [KINDS, PITFALLS_KIND, BENCH4], "tracks": ["tabular-classification", "places-and-spatial"]},
+    "places-and-spatial": {"campaigns": [KINDS, PITFALLS_KIND], "tracks": ["tabular-regression", "driving-maps"]},
 }
+for _track in ("tabular-classification", "nlp-and-text", "anomaly-and-fraud-detection"):  # 16.14: their kinds' pitfalls and benchmark
+    RELATED[_track]["campaigns"] = [*RELATED[_track]["campaigns"], *([PITFALLS_KIND] if _track != "anomaly-and-fraud-detection" else []), BENCH4]
 EXPANSION_TRACK = {"credit_card_fraud": "anomaly-and-fraud-detection", "bike_sharing_daily": "time-series-forecasting",
                    "ecommerce_clothing_reviews": "nlp-and-text", "letter_recognition": "ml-methodology"}
 METRIC = {"roc_auc": "ROC-AUC", "average_precision": "average precision", "macro_f1": "macro-F1", "mae": "MAE"}
 THEMES = {
-    "Tabular modeling": ["tabular-classification", "churn-prediction", "tabular-foundation-models", "data-science-foundations"],
+    "Tabular modeling": ["tabular-classification", "tabular-regression", "places-and-spatial", "churn-prediction", "tabular-foundation-models",
+                         "data-science-foundations"],
     "Methodology and trust": ["ml-methodology", "evaluation-and-trust", "mlops-and-deployment", "causal-inference-and-experimentation"],
     "Agents and language models": ["agentic-ml-copilot", "llm-fine-tuning", "workflow-model", "workflow-actions", "cross-industry-workflows"],
     "Other data types": ["time-series-forecasting", "nlp-and-text", "anomaly-and-fraud-detection", "recommender-systems"],
@@ -267,8 +274,9 @@ def track_data(track_dir: Path, files: list[str]) -> dict:
             and (f.startswith(f"{base}/reports/") or re.search(r"(REPORT|BENCHMARK|ROADMAP|PLAN|GUIDE|SPEC|MODEL)", Path(f).name.upper()))]
     notebooks = _group([f for f in mine if f.endswith(".ipynb")], base, 12)
     reports = _group(docs, base, 12)
+    kinds = _kinds_of(track)
     return {
-        "name": track, "title": title, "status": status, "idea": question, "theme": theme_of(track),
+        "name": track, "title": title, "status": status, "idea": question, "theme": theme_of(track), "kinds": kinds,
         "path": base, "readme": f"{base}/README.md", "index": f"{base}/INDEX.md",
         "champion": {"definition": definition, "rows": rows},
         "experiments": experiments, "campaigns": campaigns,
@@ -340,6 +348,50 @@ def preview(rel: str) -> dict:
 # --------------------------------------------------------------------------- INDEX.md
 
 
+def _kinds_of(track: str) -> list[dict]:
+    """16.14: the problem kinds whose evidence this track holds, each with its acceptance, pitfalls and benchmark row."""
+    try:
+        from dclab_rnd import kinds as registry
+        from dclab_rnd.agent_eval import by_kind
+    except ImportError:  # an environment without pandas reads no kind
+        return []
+    out = []
+    for kind in registry.all_kinds():
+        if kind.evidence_track == track:
+            out.append({"key": kind.key, "title": kind.title, "description": kind.description, "aliases": list(kind.aliases),
+                        "runs_in_engine": bool(kind.runs_in_engine), **by_kind.row(kind.key)})
+    return out
+
+
+def _kind_lines(k: dict, base: str) -> list[str]:
+    lines = [f"### {k['title']} (`{k['key']}`)", "", k["description"], ""]
+    if k.get("aliases"):
+        lines += [f"Also called: {', '.join(k['aliases'])}.", ""]
+    acc = k.get("acceptance")
+    if acc:
+        lines.append(f"- **Acceptance on its replica**: every decision held on {acc['seeds_all_held']} of {acc['seeds']} seeds "
+                     f"(95% interval {acc['ci95']}), {link(acc['record'], acc['path'], base)}.")
+    pit = k.get("pitfalls")
+    if pit:
+        for name, p in pit.items():
+            if name != "record":
+                lines.append(f"- **Pitfall {name.replace('_', ' ')}** ({pit['record']}): " + (
+                    f"the wrong way looks better by {p['mean']} on average (95% interval {p['ci95']})." if p.get("measured") else
+                    f"no difference measured on this replica (mean {p['mean']}, 95% interval {p['ci95']}): it plants no such effect."))
+    bench = k.get("benchmark")
+    if isinstance(bench, dict):
+        for split, cells in sorted(bench.items()):
+            std = cells.get("standard") or {}
+            alarms = std.get("false_alarms", [0, 0])
+            lines.append(f"- **Benchmark v4, {'sealed' if split == 'test' else split}** ({cells.get('record')}): the standard plan kept "
+                         f"{std.get('leaks_caught', [0, 0])[0]} of {std.get('leaks_caught', [0, 0])[1]} leaks out (95% {std.get('leaks_caught_ci95')}), "
+                         + (f"{alarms[0]} false alarms of {alarms[1]} (95% {std.get('false_alarms_ci95')})." if alarms[1] else "false alarms not measured."))
+    elif bench:
+        lines.append(f"- **Benchmark**: {bench}.")
+    lines.append("")
+    return lines
+
+
 def render_index(t: dict) -> str:
     base = t["path"]
     lines = [f"# {t['title']} · index", "",
@@ -407,6 +459,11 @@ def render_index(t: dict) -> str:
     if not t["reports"]:
         lines.append("Research notes live in [README.md](README.md) until there is enough material for `reports/`.")
     lines.append("")
+
+    if t.get("kinds"):
+        lines += ["## Problem kinds", "", "The kinds whose evidence this track holds (16.14), each from its stored results.", ""]
+        for k in t["kinds"]:
+            lines += _kind_lines(k, base)
 
     if t["related"]:
         lines += ["## Related tracks", "", " · ".join(link(r, f"research/{r}/INDEX.md", base) for r in t["related"]), ""]

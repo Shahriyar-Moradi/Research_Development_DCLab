@@ -667,6 +667,22 @@ def _pitfall_records(root: Path) -> list[Record]:
     return out
 
 
+def _kind_pitfall_records(root: Path) -> list[Record]:
+    """16.14: what a kind's pitfalls cost on its replica (``pitfalls_by_kind``), filed by the kind."""
+    out = []
+    for path in sorted(root.glob("evidence/campaigns/*/results/PIK-*.json")):
+        result = _read_json(path)
+        claims = " ".join(c.get("statement", "") for c in result.get("claims", []))
+        limits = sorted({lim for c in result.get("claims", []) for lim in c.get("limitations", [])})
+        out.append(Record(record_id=result["experiment_id"], type="pitfall", title=f"{result['experiment_id']} · {result.get('title', result['pitfall'])}",
+                          text=(f"Pitfall experiment {result['experiment_id']} on the {result['problem_kind']} kind: {result['question']} "
+                                f"Setup: {result.get('setup_summary', '')} Findings: {claims}" + (f" Limitations: {' '.join(limits)}" if limits else "")),
+                          metadata={"pitfall": result["pitfall"], "problem_kind": result["problem_kind"], "track": result.get("track"),
+                                    "campaign": result.get("campaign_id")},
+                          citations=[path.relative_to(root).as_posix()]))
+    return out
+
+
 def _kind_aliases() -> dict[str, tuple[str, ...]]:
     """The names each kind of problem goes by, from the kinds' own declarations (empty without the studio's packages)."""
     try:
@@ -818,6 +834,7 @@ def build_records(root: Path = ROOT) -> list[dict[str, Any]]:
     records += _pitfall_records(root)
     records += _category_code_records(root)
     records += _kind_records(root)
+    records += _kind_pitfall_records(root)  # 16.14
     seen: set[str] = set()
     unique = []
     for record in records:

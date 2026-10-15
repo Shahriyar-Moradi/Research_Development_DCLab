@@ -1,0 +1,6 @@
+{
+  "campaign_id": "benchmark_v4",
+  "objective": "Benchmark v4 (package 16.14): every case filed by its problem kind and the scripted policies' results reported per kind with 95% Wilson intervals. v3's bases and traps on new seeds (binary, regression and rare-event bases filed as those kinds), plus the planted leaks of the binary, regression and text_tabular kinds' own replicas (seeds 0 and 1 dev, 2 to 4 sealed). The sealed fingerprints are committed in dclab_rnd/agent_eval/benchmark_v4_sealed.json before its one run.",
+  "rule": "Scripted policies on seeded, planted traps: evidence about these policies on these cases, not about any model's readiness for production. Four kinds only: the scripted policies judge a table with one yes or no or numeric outcome; every other kind is judged by its acceptance on its replica (kinds_v1). BEN4-001 is a dev run that stopped on the scorer's case lookup (fixed); BEN4-002 is the dev run.",
+  "command": "make benchmark-v4 SPLIT=dev|test"
+}

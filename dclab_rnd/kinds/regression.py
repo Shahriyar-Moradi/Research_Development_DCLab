@@ -23,7 +23,7 @@ class Regression(ProblemKind):
     baselines = ("training_mean", "training_median")
     checks = ("PIT-001", "PIT-002", "PIT-004", "PIT-005", "PIT-006")
     reliability = ("errors by size of the target", "drift by time", "capped or censored targets")
-    evidence_track = "time-series-forecasting"
+    evidence_track = "tabular-regression"
     aliases = ('regression', 'predicting a number', 'delivery time', 'minutes')  # 16.14: the names this kind of problem goes by (read into its evidence record)
     stratify = False
 

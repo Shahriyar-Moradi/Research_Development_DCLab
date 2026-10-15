@@ -254,7 +254,29 @@ def kind_checks(kind: str) -> dict[str, Any]:
             "capability": {"status": row.get("status"), "missing": row.get("missing", []),
                            "decisions": [{"decision": c["decision"], "ok": c["ok"]} for c in stored.get("checks", [])]},
             "evidence": [_brief(r) for r in evidence], "track": k.evidence_track,
-            "track_readme": f"research/{k.evidence_track}/README.md" if k.evidence_track else None}
+            "track_readme": f"research/{k.evidence_track}/README.md" if k.evidence_track else None,
+            # 16.14: its pitfalls measured on its replica, the benchmark per kind, and the lessons of projects that ran as it
+            "pitfalls": [_brief(r) for r in index.records if r["type"] == "pitfall" and r["metadata"].get("problem_kind") == k.key],
+            "results": _kind_results(k.key), "lessons": [l.get("claim") for l in _kind_lessons(k.key)][:5]}
+
+
+def _kind_results(kind: str) -> Any:
+    from dclab_rnd.agent_eval import by_kind
+
+    try:
+        found = by_kind.row(kind)
+    except Exception as exc:  # noqa: BLE001 - results that cannot be read are said, never invented
+        return {"error": f"results unreadable: {type(exc).__name__}"}
+    return {k: v for k, v in found.items() if k in ("acceptance", "benchmark")}
+
+
+def _kind_lessons(kind: str) -> list[dict[str, Any]]:
+    from dclab_rnd import lessons
+
+    try:
+        return lessons.by_kind(kind)
+    except Exception:  # noqa: BLE001 - no lesson store here
+        return []
 
 
 def decide(point: str, state: dict[str, Any], options: list[str] | None = None) -> dict[str, Any]:
