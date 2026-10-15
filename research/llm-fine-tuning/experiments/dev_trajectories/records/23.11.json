@@ -1,0 +1,116 @@
+{
+  "package": "23.11",
+  "title": "Trace ids for a collector: one request, one W3C trace, spans for its jobs, model requests and agent steps",
+  "date": "2026-10-16",
+  "request": "Phase 1's last observability gap: a request had an id, but a collector (OpenTelemetry, a log store) joins by trace and span ids; the log lines, the events, the jobs a request queued and its model requests shared no id that a tool could follow end to end. Adoptable by the main product.",
+  "spec": "dclab_core.tracing (parse and format the W3C traceparent, derive a trace id from a request id); Ids gains trace, span, parent_span (event v8); the edge continues or derives a trace and answers with a traceparent; events and log lines carry the ids; a job runs in the request's trace in its own span; a model request, an agent step and a tool call are spans; the record is read by trace (an indexed column on PostgreSQL).",
+  "plan": [
+    "The header and the derivation as pure functions in the core.",
+    "A trace context in observe that every event and log line reads; a span context manager.",
+    "The edge binds the trace and the request's span and answers with a traceparent; the job takes the trace and the request's span as its parent.",
+    "Model requests, agent steps and tool calls are spans.",
+    "Read by trace on both logs, the finder, the route and the command line; the adapter's stamp for rows that have a request id."
+  ],
+  "decisions": [
+    {
+      "decision": "A request that offers only a trace is known by its first 16 characters.",
+      "why": "Logs, the Admin lookup and X-Request-ID already speak in request ids: the trace names it when nothing else does."
+    },
+    {
+      "decision": "A request id that came without a trace gets a trace derived from it (its SHA-256), so one request id is always one trace.",
+      "why": "A collector joins by trace; the main product's rows carry only a request id and must land in the same trace its edge would have made."
+    },
+    {
+      "decision": "The trace id is a column of its own on PostgreSQL, not a path into the document.",
+      "why": "Reading one request's events by trace is the point of the id; the index follows the other id columns."
+    },
+    {
+      "decision": "An agent step and a tool call get a span when they are recorded, not while they run.",
+      "why": "The agent writes its trace row after the step; the span id is what a collector joins by."
+    }
+  ],
+  "change": "dclab_core tracing.py (new), experience.py (Ids, v8), adapters/main_product_experience.py (with_trace), CHANGELOG 0.48.0; dclab_rnd observe.py (TRACE, span, log fields), agentic/server.py (the edge), experience/__init__.py (ids from the trace, the origin, the trace filter), experience/finder.py, experience/__main__.py, agentic/pages/sessions.py, jobs/worker.py (the job's span), models/gateway.py (a model request is a span), experience/hooks.py (steps and tool calls), storage/models.py + migration 0019; tests test_tracing.py (new); CORE_INTEGRATION.md, the plan.",
+  "findings": [
+    {
+      "id": "S1",
+      "source": "test",
+      "severity": "gap",
+      "defect": "The tests shared a client and one trace id: an event from the model-request test was found under the request test's trace.",
+      "scenario": "The span assertion failed with a span from another test.",
+      "cause": "One constant for every test.",
+      "fix": "A trace of its own per test, and a request that records events (a draft).",
+      "test": "test_tracing"
+    },
+    {
+      "id": "S2",
+      "source": "test",
+      "severity": "gap",
+      "defect": "Creating a project records no event, so a test that expected the request's events found none.",
+      "scenario": "assertTrue(events) passed only because another test had left one.",
+      "cause": "Assumed an event per write route.",
+      "fix": "The test uses POST /api/drafts, which records draft.created.",
+      "test": "test_a_request_with_a_traceparent_continues_it_and_answers_with_the_same_trace_and_a_span_of_its_own"
+    },
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "An export kept the trace, span and parent span ids, which undo the stripping of the request id.",
+      "scenario": "The request id is 32 hex characters, so the trace equals it; or a caller sends only a traceparent, so the request id is the trace's first 16 characters; the parent span is the caller's own. export_events removed only user and request.",
+      "cause": "The list of ids that stay home was written before the trace ids existed.",
+      "fix": "One list, HOME_IDS: user, request, trace, span, parent span. Exports hold the project and nothing that joins an event to a request or a log line.",
+      "test": "test_lake ExportTextTest test_the_ids_that_join_an_event_to_a_person_a_request_or_a_trace_stay_home"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "A streamed model request and an embedding were not spans of their own: two streams of one turn shared the turn's span.",
+      "scenario": "Only complete() wrapped the call in a span; stream() (used whenever the Home agent or the intern shows text as it arrives) and embed() sent their model.request events with the outer span and no parent.",
+      "cause": "The span was put in the one method the first test called.",
+      "fix": "stream() and embed() take a span around the call; a transport without streaming still goes through complete().",
+      "test": "test_tracing GatewayTest test_complete_stream_and_embed_are_each_a_span_of_the_running_trace"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Outside a request or a job every span started its own trace, so a run's steps and model requests never shared one.",
+      "scenario": "A script, the campaign loop or an evaluation called hooks.from_trace twice with no trace running: each step got a new trace.",
+      "cause": "span() starts a trace when none runs, and nothing above the steps started one.",
+      "fix": "A run (agents.runtime.run) and a session (harness.session) are spans, their end event inside; the campaign command line sets one trace for the command.",
+      "test": "test_tracing RunOutsideARequestTest (a session, a model loop, a session inside a request)"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The done-when item that log lines, events and model requests share a trace was tested only at the formatter and by hand.",
+      "scenario": "Deleting the gateway's span, or the middleware's trace, left every test passing.",
+      "cause": "The tests called the pieces, not the path.",
+      "fix": "A request's JSON log line is read and compared with its events' trace and span; the gateway test goes through Gateway.complete, stream and embed.",
+      "test": "test_tracing EdgeTest test_a_requests_log_line_and_its_events_carry_the_same_trace"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "with_trace said the derived trace is what the edge would have put in the traceparent; that holds only for a request that came without one.",
+      "scenario": "A request offered a traceparent: the edge names it trace[:16], and a hash of that prefix is not the trace.",
+      "cause": "The docstring described one of two paths.",
+      "fix": "The docstring says which path it covers and that the host which kept the header gives the trace itself.",
+      "test": "docstring; test_tracing AdapterTest"
+    }
+  ],
+  "measurements": [],
+  "outcome": "One request's log lines, events and model requests share a trace id, through the job it queued.",
+  "lessons": [
+    "Give each test its own id when the store is shared; a constant makes tests read each other's events.",
+    "A list of ids that stay home is a contract: every id a package adds is added to it or decided about, in the same commit."
+  ],
+  "risks": [
+    "Work in a thread the request did not start carries no trace (a context variable does not cross a bare thread).",
+    "The model-request usage table keeps no trace id; its event does."
+  ],
+  "commits": []
+}

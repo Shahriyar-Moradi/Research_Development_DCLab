@@ -13,6 +13,7 @@ Deterministic code still owns every decision: a tool that changes a project goes
 
 from __future__ import annotations
 
+import functools
 import json
 import re
 import time
@@ -78,6 +79,19 @@ def _text(result: Any, chars: int = 4000) -> str:
     return text if len(text) <= chars else text[:chars] + f"… [{len(text) - chars} more characters omitted]"
 
 
+def _in_span(fn: Callable[..., Any]) -> Callable[..., Any]:
+    """23.11: a run is a span of the trace running (a new trace when none runs: a script, the campaign): its steps, tool calls and model
+    requests are spans inside it, so they share one trace instead of one each."""
+    @functools.wraps(fn)
+    def wrapped(*args: Any, **kwargs: Any) -> Any:
+        from .. import observe
+
+        with observe.span():
+            return fn(*args, **kwargs)
+    return wrapped
+
+
+@_in_span
 def run(policy: Policy, client: Any, registry: Registry, messages: list[dict[str, Any]], context: Any = None,
         on_step: Callable[[Step], None] | None = None, stream: Callable[[str], None] | None = None,
         steps_used: int = 0, started: float | None = None, trace: Any = None, contexts: dict[str, Any] | None = None) -> RunResult:

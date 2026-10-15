@@ -44,6 +44,10 @@ def main():
     store = Store(Path(os.environ.get("DCLAB_AGENT_HOME", ROOT / "agent_runs")))
     from ..models import for_workspace, install
     install(for_workspace(store.home))  # campaign requests made from the command line are counted in the workspace's usage log
+    if args.command in ("run", "resume", "replay"):  # 23.11: a command line run is one trace: its steps and model requests share it
+        from dclab_core import tracing
+        from .. import observe
+        observe.TRACE.set((tracing.new_trace_id(), tracing.new_span_id(), None))
     if args.command == "serve":
         import uvicorn
         from .server import app

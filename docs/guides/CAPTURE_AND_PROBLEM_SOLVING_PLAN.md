@@ -365,12 +365,35 @@ same commit, a reviewer pass, and `make check-commit`; a milestone's end gets `c
   rows; each manifest names the scrubber version and the builder's commit.
 - **Done when:** a seeded workspace at `train` produces episodes whose every number traces to event ids; at `improve`
   no free text; a deletion is followed by a rebuild that no longer holds the rows.
+- **Status: done (2026-10-16).** dclab-core 0.47.0 (`datasets.episodes`, `datasets.model_calls`, `columnar`, `redact.VERSION`,
+  the manifest at v4 with `scrubber`, `commit` and `files`, the event kind `model.checked`). `make datasets` writes
+  `rows.parquet` beside `rows.jsonl` when pyarrow is installed, the episodes under train (with the person's words) and under
+  improve alone (codes and counts only, no decision), and the model calls under train (the gateway keeps a prompt and a reply
+  only when the workspace asks and the purpose is one allowed to keep it, `Purpose.keeps_text`: the Home agent, the schema
+  simulator, the conversation reader and the two decision roles, not a purpose shown another project's lessons, a file's name or
+  the evidence records; redacted again on the way out; the consent notice moved to 2026-10-16 and the Admin text says so). The worker
+  rebuilds the sets right after a deletion or a withdrawal of consent (`forget` and the consent switches leave a `.stale` marker,
+  `datasets.sweep_due` takes it under the folder's lock and clears it before the build, so a deletion during a build is not lost; a
+  build that raises is tried again in an hour) and once a day where a switch is on (`DCLAB_DATASETS_NIGHTLY=0` turns off the daily
+  one only). A turn's window is its own events up to the next message; a project's events that name no conversation belong to the
+  one turn that started last before them. Open: a project with train off while the workspace has it on gets no episodes (the
+  improve variant is built only when train is off for the whole workspace); the check is joined to its call by the last model
+  request of the context; the timed retention sweeps do not mark the sets stale (the daily build covers them).
 
 ### 23.11 Trace ids for a collector
 - **Delivers:** the request id accepted and emitted as W3C `traceparent`; agent steps, tool calls, model requests and
   jobs carry span ids beside `ids.parent`; the JSON log lines carry both, so an OpenTelemetry collector (decision D3)
   joins them without a change here.
 - **Done when:** one request's log lines, events and model requests share one trace id end to end, through a job.
+- **Status: done (2026-10-16).** dclab-core 0.48.0 (`tracing`: `parse_traceparent`, `format_traceparent`, `trace_id_for`; `Ids`
+  gains `trace`, `span` and `parent_span`, the event at v8; `main_product_experience.with_trace`). The edge continues a
+  `traceparent` or derives the trace from the request id (a request that offers only a trace is known by its first 16
+  characters), binds a span for the request and answers with a `traceparent`; every event and log line of the request carries
+  `trace_id`, `span_id` (and the parent), a queued job runs in the same trace in a span of its own with the request's span as
+  its parent, and a model request, an agent step and a tool call are spans inside it. `read(trace=)`, `finder.search`,
+  `GET /api/experience/search?trace=`, `search --trace` and an indexed `experience_event.trace_id` (migration 0019) find them.
+  Open: the model-request table keeps no trace id of its own (its event does); work done in a thread the request did not start
+  carries no trace.
 
 ### 23.12 The main product's side: the conformance gate of every package
 - **Delivers:** the adapters and `CORE_INTEGRATION.md` extended for every contract phase 2 adds (the problem map, the
@@ -378,6 +401,15 @@ same commit, a reviewer pass, and `make check-commit`; a milestone's end gets `c
   has a mapping or a listed reason in `main_product_experience.py`; the list of that repository's own packages (A.9) as
   the owner's integration plan states them.
 - **Done when:** the conformance test passes on the field lists read at one commit of the main product.
+- **Status: done for phase 1 (2026-10-16); refreshed at every package of phase 2.** dclab-core 0.49.0
+  (`adapters.conformance`: `CONTRACT_ADAPTERS`, `POINTS_NOT_MAPPED`, `problems()`). Of 20 contracts 10 have an adapter (5 read the
+  main product's rows, 5 map a library contract out to its own) and 10 are library outputs with their reason; of 52 event kinds 16
+  are produced and 36 are listed as missing with a reason; of 45 decision points 6 are read as its decision records and 25 have no
+  main-product name and say why; the ids the main product's rows do not carry (visit, request, parent, trace, span, parent span)
+  are listed. The gate refuses a value that is neither an existing adapter nor a library reason (the review of 23.12 found that any
+  word passed). `tests/test_conformance.py` fails when a package adds one without a mapping or a reason, and checks that every package
+  23.1 to 23.12 has its section in CORE_INTEGRATION.md. The commit of the field lists is still `7fa23b9`; the main product's head
+  has not moved. A section lists what each package leaves to that repository.
 
 ---
 

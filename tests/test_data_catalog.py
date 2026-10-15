@@ -43,7 +43,7 @@ class CatalogTest(unittest.TestCase):
         self.assertEqual({b["builder"] for b in doc["dataset_builders"]}, set(get_args(datasets.Builder)))
         self.assertEqual({t["table"] for t in doc["tables"]}, set(metadata.tables))
         by = {k["kind"]: k for k in doc["event_kinds"]}
-        self.assertEqual(by["model.request"]["never_leaves"], ["prompt", "reply"])  # model text stays home
+        self.assertEqual((by["model.request"]["never_leaves"], by["model.request"]["train_only"]), ([], ["prompt", "reply"]))  # model text: train only (23.10)
         self.assertEqual(by["tool.call"]["never_leaves"], ["arguments", "result"])    # a tool's values too
         self.assertIn("dclab_rnd/experience/hooks.py", by["stage.failed"]["emitted_by"])
         self.assertEqual(by["feedback.given"]["leaves_at"], "improve")

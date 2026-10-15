@@ -1,0 +1,139 @@
+{
+ "package": "23.10",
+ "title": "The lake's shape: episodes and model calls as sets, columns beside the rows, the scrubber and the commit in each manifest, a rebuild after every deletion and once a day",
+ "date": "2026-10-16",
+ "request": "Phase 1's last storage gap: the sets were rows of JSONL with no turn-level view, no model-call view, no columnar form, a manifest that did not say which redaction or which code produced it, and no rebuild after a deletion: a deleted project could stay in a set until someone ran make datasets. Adoptable by the main product.",
+ "spec": "dclab_core.datasets.episodes and model_calls; the manifest at v4 (scrubber, commit, files); dclab_core.columnar (Parquet beside the JSONL, optional); the event kind model.checked; make datasets writes the episodes under train (with the person's words) and under improve alone (codes and counts), the model calls under train, the columns, and every manifest names the scrubber and the commit; the worker's sweep rebuilds once a day where a switch is on and right after a deletion.",
+ "plan": [
+  "The two builders as pure functions in the core, over exported events and the ledger's records: a turn from a person's message to the next, joined by ids and the time window.",
+  "Every number of an episode a count or a sum of events named in the row; without text=True, no free text at all.",
+  "A model call joined to its check by the request id and to the feedback on the message the request produced; the check becomes an event.",
+  "The columnar writer as an optional extra; the manifest names the redaction version, the code's commit and the files.",
+  "The rebuild: a marker left by a deletion, a day's age, one lock for every worker."
+ ],
+ "decisions": [
+  {
+   "decision": "A turn is the window from one person's message to the next, and the project's events of that window join it by the project id.",
+   "why": "Stage runs and moves carry the project, not the draft or session a person talked in; the window is what ties a message to what it set going."
+  },
+  {
+   "decision": "Under improve alone an episode carries no decision and no text; the model calls are train only.",
+   "why": "Decisions leave for train only, and a prompt or a reply is the model's text, the most it can be."
+  },
+  {
+   "decision": "A deletion leaves a marker and the next sweep rebuilds, rather than rebuilding inside the deletion.",
+   "why": "A deletion must not wait on a build, and the worker already holds the lock and the services."
+  },
+  {
+   "decision": "Nested values become JSON text in the columnar file.",
+   "why": "One type per column; the few nested columns read back with json.loads and the JSONL stays the source of truth."
+  },
+  {
+   "decision": "The check is joined by the request id of the context, and a Home reply joins its request only when it says a model wrote it.",
+   "why": "A rule's reply after a model call must not inherit the call's check or feedback."
+  }
+ ],
+ "change": "dclab_core datasets.py (episodes, model_calls, manifest v4), columnar.py (new), redact.py (VERSION), experience.py (model.checked), pyproject (parquet extra), CHANGELOG 0.47.0; dclab_rnd datasets.py (columns, commit, the sets, mark_stale, sweep_due), consent.py (export with model text for train), experience/hooks.py (the check event, a reply's request), experience/retention.py (forget marks stale), models/gateway.py (the check event), jobs/worker.py (the sweep), draft/chat.py (by=model), data_catalog.py; tests test_lake.py (new); CORE_INTEGRATION.md, the plan.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "pyarrow imported at the top of the columnar module broke the core's import boundary test.",
+   "scenario": "test_the_core_imports_only_the_safe_standard_library failed on columnar.py.",
+   "cause": "An optional extra outside the allowed lazy list.",
+   "fix": "The import is inside available() and the module is listed with the other optional extras.",
+   "test": "test_core_contracts BoundaryTest"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A column of mixed kinds crashed the whole build, so the deletion rebuild never happened.",
+   "scenario": "outcome_labels.value_used holds strings, booleans and numbers; pyarrow raised, keep() did not catch a write, .stale was never cleared and the worker retried every minute, rereading up to ten million events.",
+   "cause": "scalars were passed to pyarrow as they were; _write sat outside the try; an old parquet outlived a failed write.",
+   "fix": "A mixed or nested column is JSON text in every row, a file that cannot be written is removed and the build goes on, keep() guards the write, and a failed build is tried again in an hour.",
+   "test": "test_a_column_that_mixes_kinds_is_written_as_text_and_a_file_that_cannot_be_written_leaves_no_old_one, test_one_set_that_cannot_be_written_never_costs_the_others, test_a_deletion_during_a_build_is_not_lost_and_a_build_that_fails_waits_an_hour"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Model prompts and replies leave under train while every statement shown to the owner said they never do, and the notice was unchanged.",
+   "scenario": "An owner who turned train on under the 2026-10-15 notice consented to something the notice did not say.",
+   "cause": "The export was added without updating the words.",
+   "fix": "The Admin text, the docstrings, the catalog and the archive say prompts and replies leave only under train, redacted; the notice is 2026-10-16.",
+   "test": "test_the_committed_catalog_is_what_the_code_generates, test_it_lists_every_kind_point_audit_kind_builder_and_table"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A kept prompt could quote another project's lessons or a file's name; the guard was 'no cell values'.",
+   "scenario": "project A (train on) asks a question; the evidence_answer prompt carries project B's (train off) lesson with its file name.",
+   "cause": "A negative rule over purposes.",
+   "fix": "An allowlist, Purpose.keeps_text, applied by the export; embeddings and every purpose shown lessons or file names keep nothing.",
+   "test": "test_only_a_purpose_shown_the_persons_own_words_keeps_its_text_and_it_is_redacted, test_it_is_refused_for_improve"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A deletion during a build was lost: the sweep cleared the marker after the build.",
+   "scenario": "build starts, owner deletes a project, build ends and deletes .stale; the sets keep the deleted rows for a day.",
+   "cause": "The marker was cleared after, not before.",
+   "fix": "Cleared before the build under the lock; written again if the build raises.",
+   "test": "test_a_deletion_during_a_build_is_not_lost_and_a_build_that_fails_waits_an_hour"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Turning off the daily build also turned off the deletion rebuild, and withdrawing every switch left the sets on disk.",
+   "scenario": "DCLAB_DATASETS_NIGHTLY=0 with a stale marker; both switches off with sets present.",
+   "cause": "One early return and a 'due' that needed a switch.",
+   "fix": "The daily switch skips only the daily build; a withdrawal marks the sets and a sweep removes them.",
+   "test": "test_the_sets_are_rebuilt_once_a_day_where_consent_allows_and_never_when_it_does_not"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Episode windows were wrong across conversations and event_ids was capped.",
+   "scenario": "A project event a month later was in the last turn of every conversation of the project, counted twice; a turn of 701 steps named 500 events.",
+   "cause": "An open-ended last window and a [:500] cap.",
+   "fix": "A project event belongs to the one turn that started last before it, within six hours of that conversation's last event; no cap on event_ids and totals beside the cut lists; times are compared as instants.",
+   "test": "test_a_project_event_belongs_to_one_turn_and_later_work_to_none, test_a_long_turn_names_every_event_and_says_how_many_of_a_cut_list_there_were, test_a_time_written_with_an_offset_is_the_instant_it_names"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A project with train off while the workspace has it on gets no episodes.",
+   "scenario": "Improve-only project in a train workspace.",
+   "cause": "The improve variant is built only when train is off for the workspace.",
+   "fix": "Said as a limit in the plan; per-project variants would need two manifests for one set.",
+   "test": "none"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Failure paths untested, and the dirty commit, the second whole-log export and the CHANGELOG version were wrong or silent.",
+   "scenario": "A build from uncommitted code named a clean commit.",
+   "cause": "Written for the main path.",
+   "fix": "The manifest says +dirty; the model-call export reads only the kinds it uses; the CHANGELOG says what 0.46.0 and 0.47.0 hold; tests for the failure paths.",
+   "test": "test_lake (20 tests)"
+  }
+ ],
+ "measurements": [],
+ "outcome": "A seeded workspace at train writes the episodes and the model calls with columns, the scrubber and the commit; at improve alone the episodes carry no text; a deletion is followed by a rebuild that holds none of its rows. Reviewed: 8 findings fixed (one a stated limit).",
+ "lessons": [
+  "A rebuild after a deletion is a marker and a sweep: the deletion stays fast and the set stays honest."
+ ],
+ "risks": [
+  "The check joins its call by the last model request of the context: a verdict right after another call could inherit it.",
+  "A prompt the gateway kept is redacted by rule: a name written in lower case passes."
+ ],
+ "commits": []
+}

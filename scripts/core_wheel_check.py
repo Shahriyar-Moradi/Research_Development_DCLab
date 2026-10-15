@@ -68,7 +68,19 @@ xcols = mp.recorded()["experience_tables"]["experiments"]
 run = mpl.from_experiment({c: None for c in xcols} | {"id": "e1", "workspace_id": "w1", "status": "COMPLETED", "seed": 7, "git_commit": "abc",
                                                      "started_at": "2026-10-14T08:00:00+00:00", "result": {"mae": 3.2}})
 ev = mpx.from_run_record(run)
-assert (run.outputs.numbers, ev.kind, ev.schema_version) == ({"mae": 3.2}, "run.recorded", "dclab_core.experience_event.v7"), (run, ev)
+assert (run.outputs.numbers, ev.kind, ev.schema_version) == ({"mae": 3.2}, "run.recorded", "dclab_core.experience_event.v8"), (run, ev)
+# 23.4 to 23.12 from the installed wheel: the fingerprint, an outcome, feedback, the sensitivity scan, a step, the trace, the queries,
+# the catalog and the conformance gate (every module the wheel must carry)
+from dclab_core import catalog, errors, feedback, outcomes, queries, sensitivity, steps, tracing
+from dclab_core.adapters import conformance
+assert len(errors.fingerprint("ValueError", [("dclab_core.plan", "plan")])["fingerprint"]) == 12
+assert outcomes.judge(0.84, 0.85, True) == "well" and feedback.check({"on": "answer", "ref": "m1", "rating": "helpful"})["kind"] == "thumbs"
+assert sensitivity.classify("email", ["a@b.co"] * 4)[0] == "pii" and sensitivity.classify("price", [1, 2, 3])[0] == "none"
+with steps.collect() as step_log:
+    with steps.step("fit", "fit") as s:
+        s.out(value=0.5)
+assert len(step_log.steps) == 1 and tracing.parse_traceparent("00-" + "a" * 32 + "-" + "b" * 16 + "-01").trace_id == "a" * 32
+assert queries.cost([])["rows"] == [] and len(catalog.build()["event_kinds"]) > 40 and conformance.problems() == [], conformance.problems()
 # 19.6: a Jev answer row read as a decision record, banded, and back
 from dclab_core.adapters import main_product_ledger as mpd
 scols = mp.recorded()["experience_tables"]["semantic_decision_answers"]

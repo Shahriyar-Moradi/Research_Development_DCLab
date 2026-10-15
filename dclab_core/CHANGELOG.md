@@ -4,6 +4,42 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.49.0 (2026-10-16)
+
+Package 23.12: the conformance gate.
+
+- `adapters.conformance`: `CONTRACT_ADAPTERS` (every contract: the adapter that fills it, or why it has none), `POINTS_NOT_MAPPED`
+  (every decision point without a main-product name: why), `problems()` (what is missing or wrong, empty when conformant) and
+  `summary()`. `main_product_experience.IDS_MISSING` lists the parent id, the trace, the span and the parent span (23.11).
+- `conformance.FROM_ROWS` says which five adapters read the main product's rows and which five map a library contract out to its own;
+  a value of `CONTRACT_ADAPTERS` is an existing `module:function` or a reason starting "library output" (a word is no adapter);
+  `produced_kinds()`; a point read through `DECISION_TYPE_POINTS` is mapped; `data_findings` is mapped by `problem_profile`.
+
+## 0.48.0 (2026-10-16)
+
+Package 23.11: trace ids for a collector.
+
+- `tracing` (new): `parse_traceparent`, `format_traceparent` (W3C `00-<trace>-<span>-<flags>`), `new_trace_id`, `new_span_id`,
+  `trace_id_for(request_id)` (the request id itself when it is 32 hex characters, else the first 32 of its SHA-256: the same request
+  id always gives the same trace).
+- `experience`: `Ids` gains `trace`, `span` and `parent_span`; the contract moves to `dclab_core.experience_event.v8`
+  (v1 to v7 read as v8).
+
+## 0.47.0 (2026-10-16)
+
+Package 23.10: the lake's shape.
+
+- `datasets`: the builders `episodes` (one row per turn of a conversation: the message, the steps, the model calls, the moves,
+  the decisions, the feedback and the outcomes, joined by ids and the turn's time window; a project event that names no
+  conversation belongs to exactly one turn; every number a count or a sum of all the events named in `event_ids`, a cut list
+  says its total; no free text unless `text=True`, which is train) and `model_calls` (each call whose prompt and reply were
+  kept, with the verdict of its check and the feedback on the message it produced). `DatasetManifest` moves to
+  `dclab_core.dataset_manifest.v4`: `scrubber`, `commit` and `files`; v1 to v3 read as v4. (The builders, the manifest move, `columnar`,
+  `redact.VERSION` and the kind `model.checked` were committed with 23.9 under 0.46.0; this version wires and fixes them.)
+- `columnar` (a set's rows as Parquet beside the JSONL; a column of mixed kinds or nested values as JSON text; a file that cannot
+  be written is removed and the build goes on; the optional extra `dclab-core[parquet]`); `catalog`: model text is "leaves at
+  train, redacted" (`TRAIN_ONLY`), and the consent notice moves to 2026-10-16.
+
 ## 0.46.0 (2026-10-16)
 
 Package 23.8: steps inside a stage.

@@ -15,10 +15,11 @@ CLASS_NOTES = {
     "count": ("C", "numbers; leaves at improve and train"),
     "person_text": ("P", "what a person typed; leaves redacted"),
     "agent_text": ("A", "what an agent said; leaves redacted"),
-    "model_text": ("X", "a prompt or a reply; never leaves"),
+    "model_text": ("X", "a prompt or a reply; leaves only at train, redacted, and only if the workspace kept it and the purpose was allowed to keep it"),
     "cell_values": ("V", "a value of a table; never recorded"),
 }
 LEAVES = frozenset({"meta", "count", "person_text", "agent_text"})
+TRAIN_ONLY = frozenset({"model_text"})  # leaves at train alone
 
 
 def classes() -> dict[str, Any]:
@@ -37,8 +38,10 @@ def event_kinds(emitted_by: Optional[Mapping[str, list[str]]] = None) -> list[di
         for field, cls in fields.items():
             names.setdefault(cls, []).append(field)
         out.append({"kind": kind, "family": kind.split(".")[0], "fields": dict(sorted(fields.items())),
-                    "never_leaves": sorted(f for c, n in names.items() if c not in LEAVES for f in n),
-                    "leaves_at": "improve" if any(c in LEAVES for c in names) else "never", "emitted_by": list(emitted_by.get(kind, []))})
+                    "never_leaves": sorted(f for c, n in names.items() if c not in LEAVES and c not in TRAIN_ONLY for f in n),
+                    "train_only": sorted(f for c, n in names.items() if c in TRAIN_ONLY for f in n),
+                    "leaves_at": "improve" if any(c in LEAVES for c in names) else "train" if any(c in TRAIN_ONLY for c in names) else "never",
+                    "emitted_by": list(emitted_by.get(kind, []))})
     return out
 
 

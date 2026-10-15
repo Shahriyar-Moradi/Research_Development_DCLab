@@ -42,7 +42,7 @@ _PENDING: dict[str, str] = {}
 _PENDING_LOCK = threading.Lock()
 PENDING_MAX = 10_000
 _SEQ = itertools.count(1)
-ID_FIELDS = ("user", "visit", "conversation", "project", "run", "job", "request", "model_request", "parent")
+ID_FIELDS = ("user", "visit", "conversation", "project", "run", "job", "request", "model_request", "parent", "trace", "span", "parent_span")
 VISIT_IDLE_SECONDS = 30 * 60
 DROPPED = {"count": 0}  # events the contract refused or the log could not take, since the process started
 
@@ -96,9 +96,10 @@ def bound() -> dict[str, Any]:
 
 
 def origin() -> dict[str, Any]:
-    """What a job carries from the request that queued it: the visit and the request."""
+    """What a job carries from the request that queued it: the visit and the request, and (23.11) its trace and the span it ran in,
+    which become the job's trace and its parent span."""
     ids = _ids({})
-    return {k: ids[k] for k in ("visit", "request") if ids.get(k)}
+    return {k: ids[k] for k in ("visit", "request", "trace", "span") if ids.get(k)}
 
 
 def _ids(extra: dict[str, Any]) -> dict[str, Any]:
@@ -109,6 +110,12 @@ def _ids(extra: dict[str, Any]) -> dict[str, Any]:
     request = observe.REQUEST_ID.get()
     if request and "request" not in ids:
         ids["request"] = request
+    trace = observe.TRACE.get()
+    if trace:  # 23.11: the trace and the span this event is recorded in (a bound one wins)
+        ids.setdefault("trace", trace[0])
+        ids.setdefault("span", trace[1])
+        if trace[2]:
+            ids.setdefault("parent_span", trace[2])
     person = current()
     if person is not None and person.user_id and "user" not in ids:
         ids["user"] = person.user_id
@@ -126,7 +133,7 @@ class ExperienceLog(Protocol):
     def read(self, *, visit: str | None = None, project: str | None = None, conversation: str | None = None,
              since: str | None = None, until: str | None = None, user: str | None = None,
              kinds: Iterable[str] | None = None, visits: Iterable[str] | None = None, refused_only: bool = False,
-             limit: int = 5000, request: str | None = None) -> list[contract.ExperienceEvent]: ...  # the newest ``limit``
+             limit: int = 5000, request: str | None = None, trace: str | None = None) -> list[contract.ExperienceEvent]: ...  # the newest ``limit``
     def visits(self, limit: int = 50) -> list[str]: ...  # newest first
 
 
@@ -175,8 +182,8 @@ class FileLog:
     def read(self, *, visit: str | None = None, project: str | None = None, conversation: str | None = None,
              since: str | None = None, until: str | None = None, user: str | None = None,
              kinds: Iterable[str] | None = None, visits: Iterable[str] | None = None, refused_only: bool = False,
-             limit: int = 5000, request: str | None = None) -> list[contract.ExperienceEvent]:
-        q = _Query(visit, project, conversation, since, until, user, kinds, refused_only, request)
+             limit: int = 5000, request: str | None = None, trace: str | None = None) -> list[contract.ExperienceEvent]:
+        q = _Query(visit, project, conversation, since, until, user, kinds, refused_only, request, trace)
         among = frozenset(visits) if visits is not None else None
         out = []
         for path in self._files():
@@ -229,8 +236,8 @@ def refused(event: Any) -> bool:
 class _Query:
     """What a reading asks for: ids that must be equal, a time window (``until`` excluded), kinds."""
 
-    def __init__(self, visit, project, conversation, since, until, user, kinds, refused_only=False, request=None):
-        self.ids = {"visit": visit, "project": project, "conversation": conversation, "user": user, "request": request}
+    def __init__(self, visit, project, conversation, since, until, user, kinds, refused_only=False, request=None, trace=None):
+        self.ids = {"visit": visit, "project": project, "conversation": conversation, "user": user, "request": request, "trace": trace}
         self.refused_only = refused_only
         self.since = _utc(since) if since else None
         self.until = _utc(until) if until else None
@@ -264,21 +271,21 @@ class PgLog:
         rows = [{"id": e.id, "workspace_id": self.workspace, "at": e.at, "seq": e.seq, "kind": e.kind, "actor": e.actor,
                  "visit": e.ids.visit, "user_id": e.ids.user, "conversation": e.ids.conversation, "project_id": e.ids.project,
                  "run_id": e.ids.run, "job_id": e.ids.job, "request_id": e.ids.request, "model_request": e.ids.model_request,
-                 "doc": json.loads(e.model_dump_json())} for e in events]
+                 "trace_id": e.ids.trace, "doc": json.loads(e.model_dump_json())} for e in events]
         with self.engine.begin() as c:
             c.execute(sa.insert(t), rows)
 
     def read(self, *, visit: str | None = None, project: str | None = None, conversation: str | None = None,
              since: str | None = None, until: str | None = None, user: str | None = None,
              kinds: Iterable[str] | None = None, visits: Iterable[str] | None = None, refused_only: bool = False,
-             limit: int = 5000, request: str | None = None) -> list[contract.ExperienceEvent]:
+             limit: int = 5000, request: str | None = None, trace: str | None = None) -> list[contract.ExperienceEvent]:
         import sqlalchemy as sa
 
         from ..storage.models import experience_event as t
 
         q = sa.select(t.c.doc).where(t.c.workspace_id == self.workspace)
         for column, value in ((t.c.visit, visit), (t.c.project_id, project), (t.c.conversation, conversation), (t.c.user_id, user),
-                              (t.c.request_id, request)):
+                              (t.c.request_id, request), (t.c.trace_id, trace)):
             if value is not None:
                 q = q.where(column == value)
         if kinds is not None:

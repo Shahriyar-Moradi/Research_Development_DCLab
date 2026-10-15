@@ -121,8 +121,12 @@ TABLES_NOT_READ = {
     "data_access_events": "data access by purpose; read when 19.6's consent and retention work needs it",
     "ml_jobs": "the queue; its runs are read through ml_run_events",
 }
-IDS_MISSING = {"visit": "no visit id on its rows: auth_sessions is per sign-in and not stamped on events (19.2)",
-               "request": "X-Request-Id is bound per request but not stored (19.2)"}
+IDS_MISSING = {"parent": "no parent id on its rows: an agent run's parent is its conversation (``conversation_of``) and a run record's parent travels in ``RunRecord.parent``, not in the event's ids",
+               "visit": "no visit id on its rows: auth_sessions is per sign-in and not stamped on events (19.2)",
+               "request": "X-Request-Id is bound per request but not stored (19.2); with_trace() stamps it where the host knows it (23.11)",
+               "trace": "its agent_events, llm_invocations, ml_run_events and project_decision_records carry no trace_id yet (A.9 lists the column as its own change); with_trace() derives one from a request id (23.11)",
+               "span": "no span_id on its rows (23.11); the same change as the trace_id",
+               "parent_span": "no parent span id on its rows (23.11); the same change as the trace_id"}
 CONSENT_MISSING = ("no consent level on its rows (23.1): the host passes the level its workspace settings allow when it maps them "
                    "(``events(..., consent=)``); a row mapped without one is ``operate`` and never leaves")
 
@@ -229,6 +233,25 @@ def from_decision_record(row: Mapping[str, Any]) -> Optional[ExperienceEvent]:
 
 
 FEEDBACK_DECISIONS = {"proposal_accepted": ("thumbs", "helpful"), "proposal_rejected": ("thumbs", "unhelpful"), "proposal_reverted": ("override", "overridden")}
+
+
+def with_trace(events: Iterable[ExperienceEvent], request_of: Any) -> list[ExperienceEvent]:
+    """23.11: events with the trace of the request they belong to. ``request_of(event)`` gives the request id the host knows for an
+    event (its ``request_id`` column, a log line's id) or None; the event gets that request id and the trace id
+    ``tracing.trace_id_for`` derives from it: the id this studio's edge puts in the ``traceparent`` it answers a request that came
+    WITHOUT one. A request that came with a ``traceparent`` is named from the trace it was given (the request id is the trace's first
+    16 characters), so its trace is the caller's, not a hash of the id: the host that kept the header gives that trace itself. An
+    event with no request is returned as it is."""
+    from dclab_core.tracing import trace_id_for
+
+    out = []
+    for e in events:
+        request = request_of(e)
+        if not request:
+            out.append(e)
+            continue
+        out.append(e.model_copy(update={"ids": e.ids.model_copy(update={"request": str(request)[:80], "trace": trace_id_for(str(request))})}))
+    return out
 
 
 def feedback_events(decisions: Iterable[Mapping[str, Any]], consent: str = "operate") -> list[ExperienceEvent]:

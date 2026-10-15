@@ -56,7 +56,7 @@ SECRET = re.compile(
 SHAREABLE = frozenset({"meta", "count"})  # what any export may keep
 READ_AS_CURRENT = frozenset({"dclab_core.experience_event.v1", "dclab_core.experience_event.v2", "dclab_core.experience_event.v3",
                              "dclab_core.experience_event.v4", "dclab_core.experience_event.v5",
-                             "dclab_core.experience_event.v6"})  # read as v7: each a subset (v3 added consent; v4 the ui.* and auth.* kinds; v5 the error fingerprint; v6 outcome.observed; v7 feedback kinds, column sensitivity and the pipeline steps)
+                             "dclab_core.experience_event.v6", "dclab_core.experience_event.v7"})  # read as v8: v8 added trace, span and parent_span to the ids; read as v7: each a subset (v3 added consent; v4 the ui.* and auth.* kinds; v5 the error fingerprint; v6 outcome.observed; v7 feedback kinds, column sensitivity and the pipeline steps)
 FINAL_STAGES = frozenset({"final", "terminal"})  # the last stage: this studio's, and the main product's
 
 M, C, P, A, X, V = "meta", "count", "person_text", "agent_text", "model_text", "cell_values"
@@ -173,6 +173,9 @@ class Ids(Contract):
     request: Optional[str] = Field(default=None, max_length=80)
     model_request: Optional[str] = Field(default=None, max_length=80)
     parent: Optional[str] = Field(default=None, max_length=80)
+    trace: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{32}$", description="v8 (23.11): the W3C trace id of the request, shared by its events, its jobs and its model requests.")
+    span: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{16}$", description="v8: the span this event was recorded in (the request's, a job's, a step's, a model request's).")
+    parent_span: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{16}$", description="v8: the span that span ran inside.")
 
 
 class ExperienceEvent(Versioned):
@@ -180,7 +183,7 @@ class ExperienceEvent(Versioned):
 
     model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False, json_schema_extra=_vocabulary)
 
-    schema_version: Literal["dclab_core.experience_event.v7"] = _version("experience_event", 7)
+    schema_version: Literal["dclab_core.experience_event.v8"] = _version("experience_event", 8)
     id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{6,80}$")
     at: str = Field(description="ISO 8601 with microseconds, UTC.")
     seq: int = Field(default=0, ge=0)

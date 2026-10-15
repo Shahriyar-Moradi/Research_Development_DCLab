@@ -255,7 +255,7 @@
     evidenceRecord: ["GET", "/evidence/{record_id}", ["record_id"], []],
     experienceErrors: ["GET", "/experience/errors", [], ["days"]],
     experienceQuery: ["GET", "/experience/queries/{name}", ["name"], ["request", "project", "draft", "visit", "days"]],
-    experienceSearch: ["GET", "/experience/search", [], ["person", "project", "draft", "kind", "text", "code", "since", "until", "limit", "request"]],
+    experienceSearch: ["GET", "/experience/search", [], ["person", "project", "draft", "kind", "text", "code", "since", "until", "limit", "request", "trace"]],
     experienceSessions: ["GET", "/experience/sessions", [], ["limit"]],
     deleteSession: ["DELETE", "/experience/sessions/{visit}", ["visit"], []],
     experienceSession: ["GET", "/experience/sessions/{visit}", ["visit"], ["model_text"]],
@@ -620,7 +620,7 @@
   client.path.experienceQuery = (...args) => build('experienceQuery', args).path;
   client.href.experienceQuery = (...args) => '/api' + build('experienceQuery', args).path;
   /** GET /api/experience/search: Experience Search
-   *  @param {{query?: {person?: *, project?: *, draft?: *, kind?: *, text?: *, code?: *, since?: *, until?: *, limit?: *, request?: *}, headers?: Object}} [opts]
+   *  @param {{query?: {person?: *, project?: *, draft?: *, kind?: *, text?: *, code?: *, since?: *, until?: *, limit?: *, request?: *, trace?: *}, headers?: Object}} [opts]
    *  @returns {Promise<Page>} */
   client.experienceSearch = (...args) => call('experienceSearch', args);
   client.path.experienceSearch = (...args) => build('experienceSearch', args).path;

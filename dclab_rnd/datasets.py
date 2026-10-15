@@ -30,6 +30,17 @@ REFUSED = (re.compile(r"\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b"), re.compile(r"(?<![\w
 LIMIT = 10_000_000
 
 
+def _commit() -> str | None:
+    """The commit of the code that builds a set (None outside a repository and without DCLAB_COMMIT)."""
+    try:
+        from .studio.lineage import code
+
+        found = code()
+        return (found.commit + "+dirty") if found.commit and found.dirty else found.commit  # a build from uncommitted code says so
+    except Exception:  # noqa: BLE001 - a set is built without it
+        return None
+
+
 def _clean(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int]:
     kept, refused = [], 0
     for row in rows:
@@ -57,6 +68,12 @@ def _write(root: Path, builder: str, name: str, rows: list[dict[str, Any]], mani
         from dclab_core.datasets import refit
 
         manifest = refit(manifest, rows, f"{refused} rows refused: an e-mail address or a path")
+    from dclab_core import columnar
+
+    columnar.write_parquet(folder / "rows.parquet", open_rows)  # 23.10: the same rows as columns, when pyarrow is installed (no file otherwise)
+    columnar.write_parquet(folder / "sealed.parquet", sealed)
+    files = [f for f in ("rows.jsonl", "rows.parquet", "sealed.jsonl", "sealed.parquet") if (folder / f).exists()]
+    manifest = manifest.model_copy(update={"commit": _commit(), "files": files})
     (folder / "manifest.json").write_text(manifest.model_dump_json(indent=1) + "\n", encoding="utf-8")
     return {"builder": builder, "name": name, "rows": len(rows), "sealed": len(sealed), "refused": refused, "folder": str(folder), "kept": rows}
 
@@ -189,11 +206,11 @@ def build(services: Any, root: Path | None = None) -> dict[str, Any]:
     def keep(builder: str, name: str, make: Any) -> list[dict[str, Any]]:
         try:
             rows, manifest = make()
-        except Exception as exc:  # noqa: BLE001 - one set that cannot be built never costs the others
+            done = _write(root, builder, name, rows, manifest)
+        except Exception as exc:  # noqa: BLE001 - one set that cannot be built or written never costs the others
             out["not_built"].append({"use": builder, "why": f"{name}: {type(exc).__name__}"})
             print(f"datasets: {builder}/{name} not built: {type(exc).__name__}: {exc}"[:400], file=sys.stderr, flush=True)
             return []
-        done = _write(root, builder, name, rows, manifest)
         written.add((root / builder / name).resolve())
         out["built"].append({k: v for k, v in done.items() if k != "kept"})
         return done["kept"]
@@ -206,6 +223,10 @@ def build(services: Any, root: Path | None = None) -> dict[str, Any]:
         for point in sorted({d["point"] for d in records if d.get("point") in POINTS}):
             keep("decisions", point, lambda point=point: builders.decisions(records, point, workspace=workspace, consent=basis, drafts=draft_map))
         keep("outcomes", "outcome_labels", lambda: builders.outcome_labels(records, workspace=workspace, consent=basis, drafts=draft_map))  # 23.5
+        keep("episodes", "turns", lambda: builders.episodes(events, records, text=True, workspace=workspace, consent=basis, drafts=draft_map))  # 23.10
+        calls = [d for d in consent.export_events(services.experience.read(kinds=["model.request", "model.checked", "chat.agent", "feedback.given"], limit=LIMIT),
+                                                  "train", switches, projects, draft_map, model_text=True)]  # only the kinds the set reads
+        keep("model_calls", "kept", lambda: builders.model_calls(calls, workspace=workspace, consent=basis, drafts=draft_map))
         allowed = {i: p for i, p in projects.items() if consent.allowed(switches, p, "train")}
         keep("conversations", "problem_understanding", lambda: builders.conversations(events, workspace=workspace, consent=basis, drafts=draft_map))
         keep("preferences", "corrections", lambda: builders.preferences(records, workspace=workspace, consent=basis, drafts=draft_map))
@@ -222,6 +243,8 @@ def build(services: Any, root: Path | None = None) -> dict[str, Any]:
             reviews = {}
         kept = keep("failures", "benchmark_candidates", lambda: builders.failures(_sessions(services, events, all_drafts, switches, projects, draft_map),
                                                                                      reviews, workspace=workspace, consent=basis))
+        if not switches.get("train"):  # 23.10: under improve alone the episodes carry codes and counts, no free text and no decision (those leave for train only)
+            keep("episodes", "turns", lambda: builders.episodes(events, [], text=False, workspace=workspace, consent=basis, drafts=draft_map))
         accepted = [r for r in kept if r.get("review") == "accept"]
         path = root / "failures" / "benchmark_candidates" / "accepted.jsonl"
         if accepted:
@@ -252,6 +275,80 @@ def development(root: Path) -> dict[str, Any]:
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "manifest.json").write_text(manifest.model_dump_json(indent=1) + "\n", encoding="utf-8")
     return {"builder": "development", "name": "records", "rows": len(rows), "sealed": 0, "refused": 0, "folder": str(folder)}
+
+
+# ------------------------------------------------------------------------------------------------ keeping the sets fresh (23.10)
+
+STALE = ".stale"   # a deletion left it: some set held rows that are gone
+BUILT = ".built"   # when the sets were last built
+NIGHTLY_SECONDS = 24 * 3600
+
+
+def mark_stale(home: Path) -> None:
+    """A deletion removed rows some set may hold: the next sweep rebuilds the sets the consent allows (and removes the rest)."""
+    root = Path(home) / FOLDER
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+        (root / STALE).write_text(_stamp(), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _stamp() -> str:
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+FAILED = ".failed"  # a build that raised, when: the next attempt waits an hour
+RETRY_SECONDS = 3600
+
+
+def _has_sets(root: Path) -> bool:
+    return any(f.is_dir() and f.parent.name != "development" for f in root.glob("*/*")) if root.exists() else False
+
+
+def sweep_due(services: Any, now: float | None = None) -> dict[str, Any] | None:
+    """Rebuild the sets when: a deletion or a withdrawal marked them stale; every switch is off while sets still sit on disk (a
+    withdrawal clears them); or the last build is a day old and some switch is on (``DCLAB_DATASETS_NIGHTLY=0`` turns off that
+    last one, never the first two). None when nothing was due. Safe from every worker: the check and the build happen under the
+    folder's lock, and a deletion during a build leaves its marker for the next sweep. A build that raises is tried again in an
+    hour."""
+    import os
+    import time
+
+    from . import consent
+    from .filelock import held
+
+    clock = now if now is not None else time.time()
+    home = Path(services.store.home)
+    root = home / FOLDER
+
+    def due() -> bool:
+        switches = consent.workspace_consent(home)
+        built, failed = root / BUILT, root / FAILED
+        if failed.exists() and clock - failed.stat().st_mtime < RETRY_SECONDS:
+            return False
+        if (root / STALE).exists() or (not any(switches.values()) and _has_sets(root)):
+            return True
+        nightly = (os.environ.get("DCLAB_DATASETS_NIGHTLY") or "1").strip() != "0"
+        return nightly and any(switches.values()) and (not built.exists() or clock - built.stat().st_mtime >= NIGHTLY_SECONDS)
+
+    if not due():
+        return None
+    with held(root):
+        if not due():  # another worker built while this one waited
+            return None
+        (root / STALE).unlink(missing_ok=True)  # before the build: a deletion that lands during it marks the sets again
+        try:
+            result = build(services)
+        except Exception:
+            mark_stale(home)
+            (root / FAILED).write_text(_stamp(), encoding="utf-8")
+            raise
+        (root / FAILED).unlink(missing_ok=True)
+        (root / BUILT).write_text(_stamp(), encoding="utf-8")
+        return result
 
 
 def main(argv: list[str] | None = None) -> int:

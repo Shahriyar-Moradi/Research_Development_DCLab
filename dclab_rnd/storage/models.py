@@ -268,12 +268,13 @@ experience_event = sa.Table(  # every event of every session, append-only: a tri
     sa.Column("job_id", sa.String(64)),
     sa.Column("request_id", sa.String(80)),
     sa.Column("model_request", sa.String(80)),
+    sa.Column("trace_id", sa.String(32)),  # 23.11: the W3C trace of the request, shared by its events, jobs and model requests
     sa.Column("doc", JSONB, nullable=False),  # the event whole (dclab_core.experience_event, v1 or v2)
     sa.Index("ix_experience_event_workspace_id_at", "workspace_id", "at"),
     sa.Index("ix_experience_event_workspace_id_visit", "workspace_id", "visit"),
     sa.Index("ix_experience_event_workspace_id_project_id", "workspace_id", "project_id"),
     sa.Index("ix_experience_event_workspace_id_conversation", "workspace_id", "conversation"),
-    *[sa.Index(f"ix_experience_event_workspace_id_{c}", "workspace_id", c) for c in ("user_id", "run_id", "job_id", "request_id", "model_request", "kind")])
+    *[sa.Index(f"ix_experience_event_workspace_id_{c}", "workspace_id", c) for c in ("user_id", "run_id", "job_id", "request_id", "model_request", "kind", "trace_id")])
 
 decision_record = sa.Table(  # every decision DCLab makes, append-only (dclab_rnd/ledger, 19.7)
     "decision_record", metadata,

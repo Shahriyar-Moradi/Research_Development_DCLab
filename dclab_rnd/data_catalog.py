@@ -164,11 +164,11 @@ def render(doc: dict[str, Any]) -> str:
     lines += [""] + [f"- {r['what']}: `{r['setting']}`" + (f", default {r['default_days']} days" if r["default_days"] else "") for r in doc["retention"]]
     lines += ["", "## Field classes", "", "| Class | Letter | Meaning |", "|---|---|---|"]
     lines += [f"| {k} | {v['letter']} | {v['meaning']} |" for k, v in doc["classes"].items()]
-    lines += ["", f"## Event kinds ({len(doc['event_kinds'])})", "", "| Kind | Fields (class) | Never leaves | Export needs | Emitted by | Example |", "|---|---|---|---|---|---|"]
+    lines += ["", f"## Event kinds ({len(doc['event_kinds'])})", "", "| Kind | Fields (class) | Never leaves | Only at train | Export needs | Emitted by | Example |", "|---|---|---|---|---|---|---|"]
     for k in doc["event_kinds"]:
         fields = ", ".join(f"{f} ({CLASS_NOTES_LETTER[c]})" for f, c in k["fields"].items())
         owners = ", ".join(f"`{o}`" for o in k["emitted_by"][:3]) + (f" +{len(k['emitted_by']) - 3}" if len(k["emitted_by"]) > 3 else "") or "the host (an adapter, the browser's sender)"
-        lines.append(f"| `{k['kind']}` | {fields or '—'} | {', '.join(k['never_leaves']) or '—'} | {k['leaves_at']} | {owners} | `{k['example']}` |")
+        lines.append(f"| `{k['kind']}` | {fields or '—'} | {', '.join(k['never_leaves']) or '—'} | {', '.join(k['train_only']) or '—'} | {k['leaves_at']} | {owners} | `{k['example']}` |")
     lines += ["", f"## Decision points ({len(doc['decision_points'])})", "", "Every record of a point leaves under the consent of the event kinds' rule: written at `train`, "
               "train switch on, project allowing it; its example is `python -m dclab_rnd.ledger.shadow recorded` or the Decisions tab.", "",
               "| Point | Kind | Answer | Subjects | About | Decided in |", "|---|---|---|---|---|---|"]

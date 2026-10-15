@@ -226,7 +226,7 @@ training is the owner's decision (its ADR 0008); `redact` keeps only what a use 
 
 ## Consent at write time (23.1)
 
-Every `ExperienceEvent` (v7 since 23.6 and 23.7; v3 added the stamp) and `DecisionRecord` (v2) carries `consent`: the level the record was written under,
+Every `ExperienceEvent` (v8 since 23.11; v3 added the stamp) and `DecisionRecord` (v2) carries `consent`: the level the record was written under,
 `operate` (kept to run the product, for support and audit; never leaves), `improve` or `train`
 (`dclab_core.consent.level_of` on the workspace's and the project's switches). An export keeps a record only when its
 stamp allows the use (`dclab_core.consent.exportable`) and the switches allow it now, so a later opt-in never
@@ -257,6 +257,56 @@ route of its own under the signed-in person's session, which runs `ui_payload` a
 trace id; a signed-out page sends nothing. The adapter does not read them (`KINDS_MISSING`): they are rows that
 route writes. Whether business users' pages are captured is decision D4 of the plan (route and action level, never
 contents, is the proposal).
+
+## The conformance gate, and what stays the main product's own (23.12)
+
+`dclab_core.adapters.conformance.problems()` is the gate every package of phase 1 and 2 passes: every contract of the library has
+an adapter (`CONTRACT_ADAPTERS`: five read the main product's rows into the library's record, five map the library's contract out
+to the main product's own, such as a `ProblemSpec` proposal; `FROM_ROWS` says which) or says why it has none (a library output the
+host stores or renders; a value is an existing `module:function` or a reason that starts with "library output"); every event kind is produced by an adapter or listed in `main_product_experience.KINDS_MISSING` with a
+reason; every decision point has a name in the main product (`Point.main_product`), is read as one of its decision record types
+(`main_product_ledger.DECISION_TYPE_POINTS`) or has a reason in `POINTS_NOT_MAPPED`; every id
+of the record is filled or listed in `IDS_MISSING`; and the tables the adapters read are still in the field lists read at the
+pinned commit (`main_product_fields.json`, commit `7fa23b9`). The studio's `tests/test_conformance.py` runs it and fails when a
+package adds a contract, a kind, a point or an id without a mapping or a reason; the main product's repository runs the same
+function in its own tests, and again after it re-reads its commit (the field lists are then refreshed and the lists above shrink).
+
+What each package leaves to that repository, from the owner's integration plan (A.9 of the capture plan): its `auth_events`
+table and one audit row per governed action (23.3); `feedback` and `error_events` tables and their routes (23.4, 23.6); the web
+app's sender of the UI events (23.2); a `consent_level` column on its event tables (23.1); `trace_id`, `span_id` and `episode_id`
+columns on `agent_events`, `llm_invocations`, `ml_run_events`, `project_decision_records` and `data_access_events`, and the
+`traceparent` header on its edge (23.11); a per-column sensitivity class on `dataset_columns` (23.7); its own schedule for the
+dataset builders and the rebuild after a deletion (23.10); the content vault with per-workspace keys and OpenTelemetry. None of
+these is a change to the library: each is read through an adapter once the column exists and the field lists name it.
+
+## Trace ids for a collector (23.11)
+
+`dclab_core.tracing` reads and writes the W3C `traceparent` (`00-<trace id>-<parent span id>-<flags>`: 32 and 16 lower-case hex
+characters) and derives a trace id from a request id (`trace_id_for`: the id itself when it already is 32 hex characters, else
+the first 32 of its SHA-256, so one request id is always one trace). `Ids` carries `trace`, `span` and `parent_span` beside
+`request`. Where it goes there: the edge accepts a `traceparent` (or derives the trace from `X-Request-ID`), binds the trace
+and a span for the request, answers with a `traceparent` naming its span, and writes the ids on every event and log line; a job
+carries the trace and the request's span and runs in a span of its own; a model request, an agent step and a tool call are
+spans inside whatever ran. Here that is `observe.span`, the middleware in `agentic/server.py`, `jobs/worker._acting`, the gateway
+and `experience/hooks.from_trace`; the log lines carry `trace_id`, `span_id` and `parent_span_id`, so an OpenTelemetry
+collector joins them without a change. The records are read by trace (`trace=` on the log, the finder, `/api/experience/search`,
+`search --trace`; PostgreSQL has an indexed `trace_id` column, migration 0019). The main product's rows with a request id are
+stamped by `main_product_experience.with_trace(events, request_of)`.
+
+## The lake's shape (23.10)
+
+`dclab_core.datasets.episodes(events, records, text=…)` and `model_calls(events)` build two sets from exported events
+(`consent.export_events` here; `main_product_experience.events` with the host's own redaction there) and the ledger's decision
+records. An **episode** is a turn: from a person's message to the next, with the project's events of the same window joined by
+the project id; its numbers (model calls, tokens, steps, moves, errors) are counts and sums of the events listed in
+`event_ids`, its decisions are the records in the window, and without `text=True` it has no free text at all (the improve level).
+A **model call** is one `model.request` whose prompt or reply the host kept (never a purpose that was shown cell values), joined
+to its check (`model.checked`, same model request id) and to the feedback on the chat message that request produced. Every
+`DatasetManifest` (v4) names `scrubber` (`redact.VERSION`), the builder's `commit` and its `files`. `columnar.write_parquet`
+writes the same rows as columns (`pip install "dclab-core[parquet]"`; nested values as JSON text). Where it goes there: its
+nightly job calls the builders over its adapted events, and a deletion marks the sets stale so the next run rebuilds them;
+here `datasets.sweep_due` does both (the worker calls it every minute: stale after a deletion, else once a day where a switch
+is on; `DCLAB_DATASETS_NIGHTLY=0` turns it off).
 
 ## Steps inside a stage (23.8)
 

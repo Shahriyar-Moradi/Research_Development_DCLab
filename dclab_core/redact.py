@@ -7,7 +7,8 @@ set aside: "the Owner Jane Roe" keeps "the Owner"; a single capitalised word pas
 counts say what was removed. It errs on removing: a training example loses a word, never leaks one.
 
 It is a rule, not a guarantee: a name written in lower case, or a value with no shape, passes. That is why a table's
-values (``cell_values``) and model prompts never leave at all, redacted or not (``dclab_core.experience`` classes).
+values (``cell_values``) never leave at all, redacted or not (``dclab_core.experience`` classes), and a model's prompts and replies leave
+only under train, after this redaction and only for the purposes that were shown no data of the person's.
 """
 
 from __future__ import annotations

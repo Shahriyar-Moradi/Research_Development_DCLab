@@ -368,8 +368,11 @@ class Bound:
     def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int | None = 1800, **options: Any) -> dict[str, Any]:
         self._route()
         snapshot = copy.deepcopy(messages) if self._shadow_tier else None  # the caller appends to its list after the answer
-        out = self._call(lambda: self._transport.complete(messages, tools, max_tokens, **options), messages, can_retry=lambda: True,
-                         max_tokens=max_tokens, tools=tools)
+        from .. import observe
+
+        with observe.span():  # 23.11: a model request is a span of the trace it was made in; its event carries the ids
+            out = self._call(lambda: self._transport.complete(messages, tools, max_tokens, **options), messages, can_retry=lambda: True,
+                             max_tokens=max_tokens, tools=tools)
         if snapshot is not None:
             self._shadow(snapshot, tools, max_tokens, out)
         return out
@@ -378,7 +381,10 @@ class Bound:
         """Embeddings through the same door as every other request: routed, capped, retried and counted in the usage log."""
         self._route()
         messages = [{"role": "user", "content": t} for t in texts]
-        return self._call(lambda: self._transport.embed(texts), messages, can_retry=lambda: True, max_tokens=1)
+        from .. import observe
+
+        with observe.span():  # 23.11: an embedding request is a span of its own, like a completion
+            return self._call(lambda: self._transport.embed(texts), messages, can_retry=lambda: True, max_tokens=1)
 
     def stream(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int | None = 1800, on_text=None) -> dict[str, Any]:
         self._route()
@@ -396,8 +402,11 @@ class Bound:
             return out
         snapshot = copy.deepcopy(messages) if self._shadow_tier else None
         # once a word has reached the user a retry would repeat it, so only a stream that sent nothing is retried
-        out = self._call(lambda: send(messages, tools, max_tokens, on_text=relay), messages, can_retry=lambda: not heard.is_set(),
-                         max_tokens=max_tokens, tools=tools)
+        from .. import observe
+
+        with observe.span():  # 23.11: a streamed request is a span of its own: two streams of one turn are two spans, not the turn's
+            out = self._call(lambda: send(messages, tools, max_tokens, on_text=relay), messages, can_retry=lambda: not heard.is_set(),
+                             max_tokens=max_tokens, tools=tools)
         if snapshot is not None:
             self._shadow(snapshot, tools, max_tokens, out)  # the shadow answers whole, after the user has the served answer
         return out

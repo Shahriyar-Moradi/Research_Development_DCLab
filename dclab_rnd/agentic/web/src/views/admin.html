@@ -804,8 +804,8 @@ DC.view('admin', {
     if (!box) return;
     let c;
     try { c = await DC.client.readConsent({ quiet: true }); } catch (e) { DC.states.failed(box, e, { retry: () => this.loadConsent(el) }); return; }
-    const words = { improve: ['Use what happens here to improve DCLab', 'Sessions and decisions read by the DCLab team and turned into test cases. Text is redacted (names, e-mails, phone numbers, addresses, ids, amounts); table values and model prompts never leave.'],
-                    train: ['Use it to train DCLab\'s models', 'The same, plus the decision records (their states hold bands, never values). A project takes part only when its own switch is on too.'] };
+    const words = { improve: ['Use what happens here to improve DCLab', 'Sessions and decisions read by the DCLab team and turned into test cases. Text is redacted (names, e-mails, phone numbers, addresses, ids, amounts); table values never leave, and model prompts and replies only under training.'],
+                    train: ['Use it to train DCLab\'s models', 'The same, plus the decision records (their states hold bands, never values) and, redacted, the prompts and replies of the model calls this workspace chose to keep (DCLAB_LOG_PROMPTS) for the few purposes that were shown no data. A project takes part only when its own switch is on too.'] };
     box.innerHTML = '<b>Consent</b>' + c.uses.map(u => `<label class="switch"><input type="checkbox" data-consent="${esc(u)}" ${c.workspace[u] ? 'checked' : ''}><span class="track"></span><span>${esc(words[u][0])}<span class="xs muted" data-style="display:block">${esc(words[u][1])}</span></span></label>`).join('');
     box.querySelectorAll('[data-consent]').forEach(input => input.addEventListener('change', async () => {
       try { await DC.client.setConsent({ body: { use: input.dataset.consent, on: input.checked } }); toast('Saved. The change is in the audit log.'); }

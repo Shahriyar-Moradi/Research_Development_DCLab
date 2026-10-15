@@ -165,15 +165,19 @@ def from_trace(row: dict[str, Any]) -> None:
         ids["conversation"] = row.get("run_id")
     from . import last_model_request
 
-    record("agent.step", "agent", {"agent": row.get("agent"), "n": row.get("n"), "state": str(row.get("state") or "")[:300] or None,
-                                   "reply": text if isinstance(text := row.get("reply_text"), str) and text else None, "tool": row.get("tool"),
-                                   "verdict": row.get("verdict"), "seconds": row.get("seconds")},
-           model_request=row.get("model_request") or (last_model_request() if row.get("reply") is not None else None), **ids)  # only a model's reply joins its request
-    if row.get("tool"):
-        arguments = row.get("arguments")
-        names = sorted(arguments)[:50] if isinstance(arguments, dict) else None
-        record("tool.call", "agent", {"tool": row.get("tool"), "argument_names": names, "arguments": arguments if isinstance(arguments, dict) else None,
-                                      "verdict": row.get("verdict"), "result": row.get("result")}, **ids)
+    from .. import observe
+
+    with observe.span():  # 23.11: the step is a span; its tool call, below, a span inside it
+        record("agent.step", "agent", {"agent": row.get("agent"), "n": row.get("n"), "state": str(row.get("state") or "")[:300] or None,
+                                       "reply": text if isinstance(text := row.get("reply_text"), str) and text else None, "tool": row.get("tool"),
+                                       "verdict": row.get("verdict"), "seconds": row.get("seconds")},
+               model_request=row.get("model_request") or (last_model_request() if row.get("reply") is not None else None), **ids)  # only a model's reply joins its request
+        if row.get("tool"):
+            arguments = row.get("arguments")
+            names = sorted(arguments)[:50] if isinstance(arguments, dict) else None
+            with observe.span():
+                record("tool.call", "agent", {"tool": row.get("tool"), "argument_names": names, "arguments": arguments if isinstance(arguments, dict) else None,
+                                              "verdict": row.get("verdict"), "result": row.get("result")}, **ids)
 
 
 @_quiet

@@ -4,7 +4,8 @@ Two uses, each a switch the owner decided (2026-10-13): **improve** (use what ha
 by the team, turned into benchmark cases) and **train** (use it to train DCLab's models). Each is off by default, per
 workspace and per project; a use is allowed for a project only when both its workspace and the project allow it.
 Customer data is included when the switches are on (the owner's answer), but never as a table's values: those
-(``cell_values``) and model prompts never leave, whatever the consent.
+(``cell_values``) never leave, whatever the consent; a model's prompts and replies leave only under **train**, redacted, when
+the workspace chose to keep them and the purpose was one allowed to (``models.settings.Purpose.keeps_text``; 23.10).
 
 The workspace's switches live in ``consent.json`` in the workspace folder; a project's in its settings (``consent``;
 the earlier training opt-in, ``share_for_training``, counts as its ``train``). Only an owner changes them (the
@@ -32,6 +33,7 @@ PROJECT_TTL = 10.0  # seconds a project's switches are kept in memory by a write
 _WORKSPACE: dict[str, tuple[tuple[int, int], dict[str, bool]]] = {}  # home -> ((consent.json's mtime_ns, size), switches)
 _STORES: dict[str, Any] = {}  # home -> the project store a writer with no services opens for the stamp (4)
 _PROJECTS: dict[str, tuple[float, dict[str, bool] | None]] = {}  # project id -> (read at, switches; None: no such project)
+HOME_IDS = ("user", "request", "trace", "span", "parent_span")  # ids an export never carries: they join an event to a person, a request, a log line or a caller's trace
 SERVER_IDS = frozenset({("chat.agent", "message"), ("chat.agent", "version"), ("feedback.given", "version"), ("feedback.given", "on")})  # 23.6
 SERVER_ID = re.compile(r"[0-9a-zA-Z_.:/-]{1,100}")
 SHAREABLE = ("meta", "count", "person_text", "agent_text")  # what may leave with consent; text redacted on the way out
@@ -55,6 +57,13 @@ def set_workspace_consent(home: Path, use: str, on: bool, who: str = "owner") ->
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(current, indent=1) + "\n", encoding="utf-8")
     tmp.replace(path)
+    if not on:  # 23.10: sets built under a use that is now off are removed by the next sweep
+        try:
+            from . import datasets
+
+            datasets.mark_stale(home)
+        except Exception:  # noqa: BLE001 - the switch is saved whether or not the marker is
+            pass
     return current
 
 
@@ -225,8 +234,23 @@ def draft_projects(drafts: Any) -> dict[str, str]:
     return out
 
 
+def _may_keep_text(event: Any, wanted: bool) -> bool:
+    """23.10: a model's prompt and reply leave (under train) only from a purpose that was shown the person's own words and bands
+    (``Purpose.keeps_text``): not one shown another project's lessons, a file's name, or the evidence records."""
+    if not wanted:
+        return False
+    if event.kind != "model.request":
+        return True  # the other kinds have no model text; the flag only widens what they may carry (nothing)
+    try:
+        from .models import settings as model_settings
+
+        return bool(model_settings.purpose(str(event.payload.get("purpose"))).keeps_text)
+    except Exception:  # noqa: BLE001 - an unknown purpose keeps nothing
+        return False
+
+
 def export_events(events: Iterable[Any], use: str, workspace: dict[str, bool], projects: dict[str, dict[str, Any]],
-                  drafts: dict[str, str] | None = None) -> list[dict[str, Any]]:
+                  drafts: dict[str, str] | None = None, *, model_text: bool = False) -> list[dict[str, Any]]:
     """The events that may leave for ``use``: refused outright when the workspace does not allow it; each kept only
     when its project allows it (a draft's events follow the project it became, ``drafts``; an event of an unknown or
     deleted project never leaves); only shareable fields, every string redacted (a file's name too: only its
@@ -237,6 +261,9 @@ def export_events(events: Iterable[Any], use: str, workspace: dict[str, bool], p
         raise ValueError(f"use is one of {', '.join(USES)}")
     if not workspace.get(use):
         raise ConsentRefused(f"the workspace does not allow use for {use}")
+    if model_text and use != "train":
+        raise ConsentRefused("a model's prompts and replies leave only for train")
+    shareable = SHAREABLE + (("model_text",) if model_text else ())  # 23.10: model_calls keeps them, redacted, and only what the gateway kept
     out = []
     drafts = drafts or {}
     for event in events:
@@ -244,7 +271,7 @@ def export_events(events: Iterable[Any], use: str, workspace: dict[str, bool], p
             continue
         if not core.exportable(event.consent, use):  # 23.1: the level it was written under, whatever the switches say now
             continue
-        kept = contract.redact(event, SHAREABLE)
+        kept = contract.redact(event, shareable if _may_keep_text(event, model_text) else SHAREABLE)
         payload, removed = {}, {}
         for name, value in kept.payload.items():
             if event.kind == "data.uploaded" and name == "name" and isinstance(value, str):
@@ -256,7 +283,7 @@ def export_events(events: Iterable[Any], use: str, workspace: dict[str, bool], p
         doc = json.loads(kept.model_dump_json())
         doc["payload"] = payload
         doc["redacted_text"] = removed
-        doc["ids"] = {k: v for k, v in doc["ids"].items() if k not in ("user", "request")}  # who and which request stay home
+        doc["ids"] = {k: v for k, v in doc["ids"].items() if k not in HOME_IDS}  # who, which request and which trace stay home (a trace id is a request id, or a caller's)
         out.append(doc)
     return out
 

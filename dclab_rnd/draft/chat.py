@@ -702,7 +702,7 @@ class HomeAgent:
         finally:
             self.store.emit(draft_id, "status", {"thinking": False})
         if out.stopped == "answered" and out.final:
-            self.say(draft_id, out.final, message_id=model.live)  # the chat event replaces the live bubble
+            self.say(draft_id, out.final, message_id=model.live, by="model")  # the chat event replaces the live bubble; by: a model wrote it (23.10 joins it to its request)
         elif out.stopped == "tools_as_text" and model.live:
             self.store.emit(draft_id, "token", {"id": model.live, "drop": True})  # tool calls written as text are not a reply
         self.store.update(draft_id, lambda d: d["agent"].update(mode="model", turns=d["agent"].get("turns", 0) + 1))

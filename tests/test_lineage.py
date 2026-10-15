@@ -76,12 +76,12 @@ class RunRecordTest(unittest.TestCase):
     def test_the_session_record_carries_a_run_as_v2_and_reads_v1(self):
         payload = l.event_payload(record(parent="run0"))
         event = x.make("run.recorded", "system", {"workspace": "w1", "run": "run1"}, payload, id="ev0000001", at=T0)
-        self.assertEqual(event.schema_version, "dclab_core.experience_event.v7")
+        self.assertEqual(event.schema_version, "dclab_core.experience_event.v8")
         self.assertEqual((event.payload["parent"], event.payload["outputs"]["value"]), ("run0", 12.1))
         self.assertTrue(all(c in ("meta", "count") for c in event.classes.values()))  # a run's lineage is never a table's values
         old = x.make("job.started", "system", {"workspace": "w1"}, {"kind": "stage"}, id="ev0000002", at=T0).model_dump(mode="json")
         old["schema_version"] = "dclab_core.experience_event.v1"
-        self.assertEqual(x.ExperienceEvent.read(old).schema_version, "dclab_core.experience_event.v7")
+        self.assertEqual(x.ExperienceEvent.read(old).schema_version, "dclab_core.experience_event.v8")
         with self.assertRaises(ValueError):
             x.ExperienceEvent.read({**old, "schema_version": "dclab_core.experience_event.v0"})
 

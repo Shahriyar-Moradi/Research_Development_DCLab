@@ -98,6 +98,15 @@ def _id(name: str, value: str | None) -> str | None:
     return value
 
 
+def _trace_id(value: str | None) -> str | None:
+    """A W3C trace id: 32 lower-case hex characters."""
+    if value in (None, ""):
+        return None
+    if not re.fullmatch(r"[0-9a-f]{32}", value):
+        raise HTTPException(422, "trace is 32 hexadecimal characters")
+    return value
+
+
 def _request_id(value: str | None) -> str | None:
     """A request id as the server accepts one (``observe``: a proxy's ``X-Request-ID`` may carry dots, 8 to 64 characters)."""
     from ... import observe
@@ -242,7 +251,7 @@ def register(app, ctx) -> None:
     @router.get("/api/experience/search", response_model=Page)
     async def experience_search(person: str | None = None, project: str | None = None, draft: str | None = None,
                                 kind: str | None = None, text: str | None = None, code: str | None = None,
-                                since: str | None = None, until: str | None = None, limit: int = 50, request: str | None = None):
+                                since: str | None = None, until: str | None = None, limit: int = 50, request: str | None = None, trace: str | None = None):
         """Events matching every condition given, newest first, and the visits they belong to; ``request``: every event one
         request id left (23.9)."""
         if limit < 1 or limit > 500:
@@ -250,7 +259,7 @@ def register(app, ctx) -> None:
         if text is not None and len(text) > 200 or code is not None and len(code) > 80:
             raise HTTPException(422, "text is at most 200 characters and code at most 80")
         return await asyncio.to_thread(find, ctx, person=_id("person", person), project=_id("project", project),
-                                       draft=_id("draft", draft), request=_request_id(request), kind=kind or None, text=text or None, code=code or None,
+                                       draft=_id("draft", draft), request=_request_id(request), trace=_trace_id(trace), kind=kind or None, text=text or None, code=code or None,
                                        since=_when("since", since), until=_when("until", until), limit=limit)
 
     app.include_router(router)

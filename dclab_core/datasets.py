@@ -23,7 +23,7 @@ from __future__ import annotations
 import hashlib
 from collections import Counter, defaultdict
 from collections.abc import Iterable
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, ClassVar, Literal, Optional
 
 from pydantic import Field, model_validator
@@ -355,72 +355,119 @@ def trajectories(events: Iterable[dict[str, Any]], *, workspace: Optional[str] =
 
 # ------------------------------------------------------------------------------------------------ (d2) episodes and model calls (23.10)
 
+GAP_HOURS = 6  # a project event this long after a conversation's last own event is not part of any of its turns
+
+
+def _when(at: Any) -> datetime:
+    """An event's or a record's time as an aware UTC datetime (a string with Z or an offset compares by the instant, not the text)."""
+    try:
+        moment = datetime.fromisoformat(str(at).replace("Z", "+00:00"))
+    except ValueError:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    return moment.astimezone(timezone.utc) if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
+
+
 def episodes(events: Iterable[dict[str, Any]], records: Iterable[dict[str, Any]] = (), *, text: bool = False, workspace: Optional[str] = None,
              consent: str = "train", drafts: Optional[dict[str, str]] = None) -> tuple[list[dict[str, Any]], DatasetManifest]:
     """One row per turn of a conversation (a draft's or an intern session's): what the person said, what the agent answered, the
     steps the runs took, the model calls, the moves the validator allowed or refused, the decisions made, the feedback and the
-    outcomes, joined by the ids and the time window of the turn. Every number is a count or a sum of the events named in
-    ``event_ids`` (and the decisions in ``decisions``), so a row traces to its sources. ``text``: the person's words and the
-    problem are kept (train); without it (improve) the row has no free text at all, only codes and counts."""
-    docs = sorted((e for e in events), key=lambda e: (e.get("at") or "", e.get("seq") or 0))
-    by_conversation: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    by_project: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    outcomes, joined by the ids and the turn's time window. A conversation's own events belong to the turn they fall in; an event
+    of its project that names no conversation belongs to exactly one turn: the latest to have started before it, within
+    ``GAP_HOURS`` of that conversation's last own event (so nothing is counted in two rows, and later work is in none). Every number
+    is a count or a sum of the events named in ``event_ids``; the lists that are cut say how many there were (``*_total``).
+    ``text``: the person's words and the problem are kept (train); without it (improve) the row has no free text at all."""
+    docs = sorted(events, key=lambda e: (_when(e.get("at")), e.get("seq") or 0))
+    own: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    shared: dict[str, list[dict[str, Any]]] = defaultdict(list)  # project events with no conversation
     for e in docs:
         ids = e.get("ids") or {}
         if ids.get("conversation"):
-            by_conversation[ids["conversation"]].append(e)
-        if ids.get("project") and not ids.get("conversation"):
-            by_project[ids["project"]].append(e)
-    records = list(records)
-    rows = []
-    for conversation, items in by_conversation.items():
+            own[ids["conversation"]].append(e)
+        elif ids.get("project"):
+            shared[ids["project"]].append(e)
+    records = sorted(records, key=lambda r: _when(r.get("at")))
+    turns: list[dict[str, Any]] = []
+    for conversation, items in own.items():
         starts = [e for e in items if e["kind"] in ("chat.person", "draft.created")]
         if not starts:
             continue
         project = next(((e.get("ids") or {}).get("project") for e in items if (e.get("ids") or {}).get("project")), None) \
             or (drafts or {}).get(conversation) or next(((e.get("payload") or {}).get("project") for e in items if e["kind"] == "draft.built"), None)
-        pool = sorted(items + by_project.get(project, []), key=lambda e: (e.get("at") or "", e.get("seq") or 0)) if project else items
+        last = _when(items[-1].get("at"))
         for index, start in enumerate(starts):
-            end = starts[index + 1]["at"] if index + 1 < len(starts) else None
-            window = [e for e in pool if (e.get("at") or "") >= start["at"] and (end is None or (e.get("at") or "") < end)]
-            sp = start.get("payload") or {}
-            message = sp.get("text") or sp.get("problem")
-            kinds = Counter(e["kind"] for e in window)
-            finished = [e for e in window if e["kind"] == "pipeline.step_finished"]
-            calls = [e for e in window if e["kind"] == "model.request"]
-            replies = [e for e in window if e["kind"] == "chat.agent"]
-            decided = [r for r in records if (r.get("conversation") == conversation or (project and r.get("project") == project))
-                       and start["at"] <= (r.get("at") or "") and (end is None or (r.get("at") or "") < end)]
-            group = group_of(project, conversation, None, drafts, f"conversation:{conversation}")
-            rows.append({
-                "conversation": conversation, "project": project, "turn": index, "at": start["at"],
-                "message": str(message) if text and message else None, "message_chars": len(str(message)) if message else 0,
-                "agent": {"replies": len(replies), "kinds": sorted({str((e.get("payload") or {}).get("kind")) for e in replies if (e.get("payload") or {}).get("kind")}),
-                          "chars": sum(len(str((e.get("payload") or {}).get("text") or "")) for e in replies)},
-                "steps": {"finished": len(finished), "seconds": round(sum(float((e.get("payload") or {}).get("seconds") or 0.0) for e in finished), 3),
-                          "metrics": [{"step": (e.get("payload") or {}).get("step"), "metric": (e.get("payload") or {}).get("metric"),
-                                       "value": (e.get("payload") or {}).get("value"), "fold": (e.get("payload") or {}).get("fold")}
-                                      for e in finished if (e.get("payload") or {}).get("metric")][:60]},
-                "model_calls": {"n": len(calls), "tokens_in": sum(int((e.get("payload") or {}).get("input_tokens") or 0) for e in calls),
-                                "tokens_out": sum(int((e.get("payload") or {}).get("output_tokens") or 0) for e in calls),
-                                "cost": round(sum(float((e.get("payload") or {}).get("cost") or 0.0) for e in calls), 6),
-                                "failed": sum(1 for e in calls if str((e.get("payload") or {}).get("outcome") or "ok") != "ok"),
-                                "purposes": sorted({str((e.get("payload") or {}).get("purpose")) for e in calls if (e.get("payload") or {}).get("purpose")})},
-                "moves": [{"move": (e.get("payload") or {}).get("move"), "allowed": (e.get("payload") or {}).get("allowed")} for e in window if e["kind"] == "graph.move"][:40],
-                "stages": [{"stage": (e.get("payload") or {}).get("stage"), "kind": e["kind"]} for e in window if e["kind"] in ("stage.finished", "stage.failed")][:20],
-                "decisions": [{"id": r.get("id"), "point": r.get("point"), "used": r.get("used")} for r in decided][:80],
-                "feedback": [{"kind": (e.get("payload") or {}).get("kind"), "rating": (e.get("payload") or {}).get("rating"), "on": (e.get("payload") or {}).get("on")}
-                             for e in window if e["kind"] == "feedback.given"][:20],
-                "outcomes": [{"verdict": (e.get("payload") or {}).get("verdict"), "observed": (e.get("payload") or {}).get("observed"),
-                              "metric": (e.get("payload") or {}).get("metric"), "value": (e.get("payload") or {}).get("value")} for e in window if e["kind"] == "outcome.observed"][:20],
-                "errors": kinds.get("error.raised", 0) + kinds.get("stage.failed", 0),
-                "event_ids": [e.get("id") for e in window][:500], "consent": lowest(e.get("consent") for e in window),
-                "group": group, "split": split_of(group),
-                "sources": [("conversation", conversation)] + [("event", e.get("id")) for e in window] + [("decision", r.get("id")) for r in decided]})
+            end = _when(starts[index + 1]["at"]) if index + 1 < len(starts) else None
+            t0 = _when(start["at"])
+            window = [e for e in items if _when(e["at"]) >= t0 and (end is None or _when(e["at"]) < end)]
+            turns.append({"conversation": conversation, "project": project, "index": index, "start": start, "t0": t0, "end": end, "last": last,
+                          "events": window, "records": [r for r in records if r.get("conversation") == conversation and _when(r.get("at")) >= t0
+                                                        and (end is None or _when(r.get("at")) < end)]})
+    by_project: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for turn in turns:
+        if turn["project"]:
+            by_project[turn["project"]].append(turn)
+
+    def owner(project: Optional[str], moment: datetime) -> Optional[dict[str, Any]]:
+        """The one turn a project-level event or record belongs to."""
+        near = [t for t in by_project.get(project or "", []) if t["t0"] <= moment <= t["last"] + timedelta(hours=GAP_HOURS)]
+        return max(near, key=lambda t: (t["t0"], t["conversation"])) if near else None
+
+    for project, items in shared.items():
+        for e in items:
+            turn = owner(project, _when(e["at"]))
+            if turn is not None:
+                turn["events"].append(e)
+    for r in records:
+        if not r.get("conversation") and r.get("project"):
+            turn = owner(r["project"], _when(r.get("at")))
+            if turn is not None:
+                turn["records"].append(r)
+    rows = []
+    for turn in sorted(turns, key=lambda t: (t["conversation"], t["index"])):
+        window = sorted(turn["events"], key=lambda e: (_when(e.get("at")), e.get("seq") or 0))
+        decided, sp = turn["records"], turn["start"].get("payload") or {}
+        message = sp.get("text") or sp.get("problem")
+        kinds = Counter(e["kind"] for e in window)
+        finished = [e for e in window if e["kind"] == "pipeline.step_finished"]
+        metrics = [e for e in finished if (e.get("payload") or {}).get("metric")]
+        calls = [e for e in window if e["kind"] == "model.request"]
+        replies = [e for e in window if e["kind"] == "chat.agent"]
+        moves = [e for e in window if e["kind"] == "graph.move"]
+        feedback_given = [e for e in window if e["kind"] == "feedback.given"]
+        observed = [e for e in window if e["kind"] == "outcome.observed"]
+        project = turn["project"]
+        group = group_of(project, turn["conversation"], None, drafts, f"conversation:{turn['conversation']}")
+        rows.append({
+            "conversation": turn["conversation"], "project": project, "turn": turn["index"], "at": turn["start"]["at"],
+            "message": str(message) if text and message else None, "message_chars": len(str(message)) if message else 0,
+            "agent": {"replies": len(replies), "kinds": sorted({str((e.get("payload") or {}).get("kind")) for e in replies if (e.get("payload") or {}).get("kind")}),
+                      "chars": sum(len(str((e.get("payload") or {}).get("text") or "")) for e in replies)},
+            "steps": {"finished": len(finished), "seconds": round(sum(float((e.get("payload") or {}).get("seconds") or 0.0) for e in finished), 3),
+                      "metrics": [{"step": (e.get("payload") or {}).get("step"), "metric": (e.get("payload") or {}).get("metric"),
+                                   "value": (e.get("payload") or {}).get("value"), "fold": (e.get("payload") or {}).get("fold")} for e in metrics[:60]],
+                      "metrics_total": len(metrics)},
+            "model_calls": {"n": len(calls), "tokens_in": sum(int((e.get("payload") or {}).get("input_tokens") or 0) for e in calls),
+                            "tokens_out": sum(int((e.get("payload") or {}).get("output_tokens") or 0) for e in calls),
+                            "cost": round(sum(float((e.get("payload") or {}).get("cost") or 0.0) for e in calls), 6),
+                            "failed": sum(1 for e in calls if str((e.get("payload") or {}).get("outcome") or "ok") != "ok"),
+                            "purposes": sorted({str((e.get("payload") or {}).get("purpose")) for e in calls if (e.get("payload") or {}).get("purpose")})},
+            "moves": [{"move": (e.get("payload") or {}).get("move"), "allowed": (e.get("payload") or {}).get("allowed")} for e in moves[:40]], "moves_total": len(moves),
+            "stages": [{"stage": (e.get("payload") or {}).get("stage"), "kind": e["kind"]} for e in window if e["kind"] in ("stage.finished", "stage.failed")][:20],
+            "decisions": [{"id": r.get("id"), "point": r.get("point"), "used": r.get("used")} for r in decided[:80]], "decisions_total": len(decided),
+            "feedback": [{"kind": (e.get("payload") or {}).get("kind"), "rating": (e.get("payload") or {}).get("rating"), "on": (e.get("payload") or {}).get("on")}
+                         for e in feedback_given[:20]], "feedback_total": len(feedback_given),
+            "outcomes": [{"verdict": (e.get("payload") or {}).get("verdict"), "observed": (e.get("payload") or {}).get("observed"),
+                          "metric": (e.get("payload") or {}).get("metric"), "value": (e.get("payload") or {}).get("value")} for e in observed[:20]],
+            "outcomes_total": len(observed),
+            "errors": kinds.get("error.raised", 0) + kinds.get("stage.failed", 0),
+            "event_ids": [e.get("id") for e in window], "consent": lowest(e.get("consent") for e in window),
+            "group": group, "split": split_of(group),
+            "sources": [("conversation", turn["conversation"])] + [("event", e.get("id")) for e in window] + [("decision", r.get("id")) for r in decided]})
     return rows, manifest("episodes", "episodes.turns", rows, sources_of(rows), use="train" if text else "improve", consent=consent, workspace=workspace,
-                          policy="One row per turn of a conversation: from a person's message to the next; project events of the same window are joined "
-                                 "by the project; grouped by project, split as every set.",
-                          limits=["A count or a sum is of the events named in event_ids; the decisions are the ledger's records in the window."]
+                          policy="One row per turn of a conversation: from a person's message to the next. A project's events that name no conversation "
+                                 "join the one turn that started last before them (within six hours of that conversation's last event); grouped by project, "
+                                 "split as every set.",
+                          limits=["A count or a sum is of the events named in event_ids (all of them); a list that is cut (metrics, moves, decisions, "
+                                  "feedback, outcomes) says its total beside it.", "The decisions are the ledger's records in the window."]
                           + ([] if text else ["Built under improve: no free text, no message, only codes and counts."]))
 
 

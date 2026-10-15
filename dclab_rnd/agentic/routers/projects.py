@@ -120,6 +120,10 @@ async def patch_project(project_id: str, payload: ProjectPatch, s: Services = De
         from ... import consent as consents, experience
 
         consents.invalidate(project_id)  # 23.1: the next record of this project is stamped with the new level
+        if not on:
+            from ... import datasets
+
+            datasets.mark_stale(s.store.home)  # 23.10: what was built from this project under the use now off is removed by the next sweep
         experience.record("consent.changed", "person", {"scope": "project", "use": use, "on": on, "was": not on,
                                                         "level": core.level_of(consents.workspace_consent(s.store.home), consents.project_consent(p)),
                                                         "notice_version": consents.NOTICE_VERSION}, project=project_id)
@@ -129,6 +133,10 @@ async def patch_project(project_id: str, payload: ProjectPatch, s: Services = De
         from ... import consent as consents, experience
 
         consents.invalidate(project_id)
+        if not legacy_moved:
+            from ... import datasets
+
+            datasets.mark_stale(s.store.home)
         experience.record("consent.changed", "person", {"scope": "project", "use": "train", "on": legacy_moved, "was": not legacy_moved,
                                                         "level": core.level_of(consents.workspace_consent(s.store.home), consents.project_consent(p)),
                                                         "notice_version": consents.NOTICE_VERSION}, project=project_id)

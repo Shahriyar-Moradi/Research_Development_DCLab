@@ -51,7 +51,8 @@ for the owner only.
 ## What leaves
 
 Nothing leaves a workspace without its owner's switch (`consent.py`): the datasets are built only from what the
-consent export lets through (redacted text; never a table's values, a model prompt, a person's id or a request's id).
+consent export lets through (redacted text; never a table's values, a person's id or a request's id; a model's prompts and replies only under
+train, redacted, for the purposes allowed to keep them). The notice moved to 2026-10-16 with that change (23.10).
 Since 23.1 every event and decision carries the level it was written under (`consent`: `operate`, `improve`,
 `train`); a record written before a switch was turned on never leaves, however the switches stand later, and every
 change of a switch is a `consent.changed` event in the record with the notice version shown.

@@ -17,6 +17,7 @@ instance, a worker) serves its own; Prometheus adds them up.
 
 from __future__ import annotations
 
+import contextlib
 import contextvars
 import json
 import logging
@@ -30,6 +31,8 @@ from datetime import datetime, timezone
 from typing import Any
 
 REQUEST_ID: contextvars.ContextVar[str | None] = contextvars.ContextVar("dclab_request_id", default=None)
+# 23.11: (trace id, the span now, the span it runs inside) of whatever is running: a request, a job, a model call, an agent step
+TRACE: contextvars.ContextVar[tuple[str, str, str | None] | None] = contextvars.ContextVar("dclab_trace", default=None)
 _VALID_ID = re.compile(r"[A-Za-z0-9._-]{8,64}")
 
 log = logging.getLogger("dclab")
@@ -44,6 +47,11 @@ class JsonFormatter(logging.Formatter):
         request_id = REQUEST_ID.get()
         if request_id:
             entry["request_id"] = request_id
+        trace = TRACE.get()
+        if trace:  # 23.11: the ids an OpenTelemetry collector joins log lines, events and model requests by
+            entry["trace_id"], entry["span_id"] = trace[0], trace[1]
+            if trace[2]:
+                entry["parent_span_id"] = trace[2]
         entry.update(getattr(record, "fields", {}) or {})
         if record.exc_info:
             entry["error"] = record.exc_info[0].__name__ if record.exc_info[0] else "error"  # the type only: an exception's text can hold values
@@ -57,7 +65,8 @@ class PlainFormatter(logging.Formatter):
         super().__init__("%(asctime)s %(levelname)s %(name)s %(message)s")
 
     def format(self, record: logging.LogRecord) -> str:
-        fields = {**({"request_id": REQUEST_ID.get()} if REQUEST_ID.get() else {}), **(getattr(record, "fields", {}) or {})}
+        fields = {**({"request_id": REQUEST_ID.get()} if REQUEST_ID.get() else {}),
+                  **({"trace_id": TRACE.get()[0], "span_id": TRACE.get()[1]} if TRACE.get() else {}), **(getattr(record, "fields", {}) or {})}
         shown = " ".join(f"{k}={v}" for k, v in fields.items() if v is not None)
         line = logging.Formatter.format(self, logging.makeLogRecord({**record.__dict__, "exc_info": None, "exc_text": None}))
         return f"{line} {shown}" if shown else line
@@ -88,9 +97,28 @@ def method_label(method: str) -> str:
     return method if method in METHODS else "OTHER"
 
 
+def valid_request_id(offered: str | None) -> bool:
+    return bool(offered and _VALID_ID.fullmatch(offered))
+
+
 def request_id(offered: str | None) -> str:
     """The id a request is known by: the one the caller (a proxy) sent when it is a plain token, else a new one."""
-    return offered if offered and _VALID_ID.fullmatch(offered) else secrets.token_hex(8)
+    return offered if valid_request_id(offered) else secrets.token_hex(8)
+
+
+@contextlib.contextmanager
+def span(trace_id: str | None = None, parent: str | None = None):
+    """A span of the trace now running (a new trace when none runs and none is given): events and log lines inside carry its ids,
+    and the span it ran inside as its parent. A job passes the trace and the span of the request that queued it."""
+    from dclab_core import tracing
+
+    current = TRACE.get()
+    trace = trace_id or (current[0] if current else tracing.new_trace_id())
+    token = TRACE.set((trace, tracing.new_span_id(), parent or (current[1] if current else None)))
+    try:
+        yield TRACE.get()
+    finally:
+        TRACE.reset(token)
 
 
 def json_lines() -> bool:

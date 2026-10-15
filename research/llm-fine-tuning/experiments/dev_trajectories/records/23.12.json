@@ -1,0 +1,80 @@
+{
+  "package": "23.12",
+  "title": "The conformance gate: every contract, event kind, decision point and id has a mapping in an adapter or a written reason, and a test fails when a package adds one without",
+  "date": "2026-10-16",
+  "request": "The owner's rule that everything in phases 1 and 2 is adoptable by the main product, made a gate: the adapters and the integration guide kept current for every contract a package adds, and a list of what each package leaves to that repository. Done when the conformance test passes on the field lists read at one commit.",
+  "spec": "dclab_core.adapters.conformance (CONTRACT_ADAPTERS, POINTS_NOT_MAPPED, problems(), summary()); KINDS_MISSING and IDS_MISSING completed (trace, span, parent_span); tests/test_conformance.py runs the gate, proves each kind of omission fails it, requires a section for every package 23.1 to 23.12 and that the library imports nothing of the studio; the wheel check exercises the new modules; CORE_INTEGRATION.md says what stays the main product's own.",
+  "plan": [
+    "One function that lists what is missing or wrong, pure, so the main product runs it on its side.",
+    "A reason in words for everything the adapters leave: contracts that are library outputs, the 29 points the main product has no name for, the ids its rows lack.",
+    "A test that proves the gate by breaking each part of it.",
+    "The guide: a section per package and one list of what each leaves to that repository."
+  ],
+  "decisions": [
+    {
+      "decision": "A contract with no adapter is a library output with a reason, not a gap.",
+      "why": "Half the contracts (the cards, the report, the workflow) are the library's own results which a host stores or renders; the gate asks that this be said, not that a row be invented."
+    },
+    {
+      "decision": "The decision points the main product has no name for are listed with the reason that they are this studio's steps.",
+      "why": "Its decisions of the kind are project_decision_records of other types, already read as decision events; inventing a governed point would make a claim about its code."
+    },
+    {
+      "decision": "The gate lives in the library as a function, and the studio's test calls it.",
+      "why": "The main product adopts packages one at a time and moves its commit: it must be able to run the same check."
+    }
+  ],
+  "change": "dclab_core adapters/conformance.py (new), adapters/main_product_experience.py (IDS_MISSING), CHANGELOG 0.49.0; scripts/core_wheel_check.py; tests test_conformance.py (new), test_core_experience; CORE_INTEGRATION.md, the plan.",
+  "findings": [
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The gate accepted any word as an adapter: a value without a colon counted as one.",
+      "scenario": "CONTRACT_ADAPTERS['outcome']='TODO' and a function name that does not exist both returned no problems; the summary still said 10 adapted.",
+      "cause": "problems() checked only values that looked like module:function.",
+      "fix": "A value is an existing module:function or a reason that starts with 'library output'; anything else is a problem.",
+      "test": "test_conformance test_a_value_that_is_neither_an_existing_adapter_nor_a_library_reason_fails_the_gate"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The docs and the summary said every adapted contract is filled from the main product's rows; five are mapped out to its own records.",
+      "scenario": "problem_brief, solution_plan, decision and data_findings point to problem_spec, which takes the library's brief and plan and gives a ProblemSpec proposal; pipeline goes out as a pipeline_versions row; data_findings pointed at a function that never reads findings.",
+      "cause": "One dict held two directions.",
+      "fix": "FROM_ROWS names the five that read rows; the summary counts read from rows, mapped out and library only; data_findings points at problem_profile.",
+      "test": "test_conformance test_the_summary_says_which_adapters_read_rows_and_which_map_out"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The gate listed the parent id as filled although no adapter fills it, and counted a produced kind as missing.",
+      "scenario": "Ids.parent is set by no adapter function and had no IDS_MISSING reason; feedback.given was produced and also listed in KINDS_MISSING, so 37 of 52 'missing' double-counted it.",
+      "cause": "The filled and produced sets were literals written by hand.",
+      "fix": "parent leaves the filled set and has its reason; produced_kinds() is one function for the gate and the summary, and a produced kind is not counted missing.",
+      "test": "test_conformance test_no_adapter_fills_the_parent_id_so_the_gate_lists_it; test_a_kind_an_adapter_produces_is_not_counted_missing..."
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Four decision points were listed as having no main-product record although its decision records are read at them.",
+      "scenario": "threshold.operating_point, experiment.accept, model.promote and problem.ready are read by from_decision_record through DECISION_TYPE_POINTS.",
+      "cause": "The gate looked at Point.main_product only.",
+      "fix": "A point read through DECISION_TYPE_POINTS is mapped and leaves the list; listing one in both is a problem.",
+      "test": "test_conformance test_a_kind_an_adapter_produces_is_not_counted_missing_and_a_point_read_as_a_record_needs_no_reason"
+    }
+  ],
+  "measurements": [],
+  "outcome": "The adapters are conformant at the pinned commit; adding a package's contract, kind, point or id without a mapping or a reason fails the gate; phase 2 runs it at every package.",
+  "lessons": [
+    "Write the omissions down: a list of what is not mapped, with the reason, is more useful to the other repository than a claim that everything is.",
+    "A gate that checks the shape of a value passes a word that has the shape: make every value resolve to something."
+  ],
+  "risks": [
+    "The pinned commit has not moved (7fa23b9); the field lists are re-read when it does and the lists shrink."
+  ],
+  "commits": []
+}

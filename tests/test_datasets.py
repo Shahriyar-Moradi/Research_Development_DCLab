@@ -162,7 +162,7 @@ class WorkspaceTest(unittest.TestCase):
                           visit="vmix", project=self.p2)
         experience.record("error.raised", "system", {"where": "x", "code": "E_X"}, log=log, at="2026-10-13T11:02:00+00:00", visit="vmix", project=self.p2)
         out = self.built(datasets.build(self.s))
-        text = "".join(f.read_text() for f in Path(out["failures", "benchmark_candidates"]["folder"]).glob("*"))
+        text = "".join(f.read_text() for f in Path(out["failures", "benchmark_candidates"]["folder"]).glob("*") if f.suffix in (".json", ".jsonl"))
         self.assertNotIn("falcon", text)
         self.assertNotIn("vmix", text)  # with p2's events set aside, nothing in that visit is flagged
 

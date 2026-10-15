@@ -90,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
     grouped.add_argument("--days", type=int, default=30)
     grouped.add_argument("--json", action="store_true")
     find = sub.add_parser("search")
-    for name in ("kind", "project", "draft", "person", "text", "code", "since", "until", "request"):
+    for name in ("kind", "project", "draft", "person", "text", "code", "since", "until", "request", "trace"):
         find.add_argument(f"--{name}")
     find.add_argument("--limit", type=int, default=50)
     find.add_argument("--json", action="store_true")
@@ -199,9 +199,9 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"    ! {f.detector} ({f.severity}): {f.message}")
         return 0
     if args.command == "search":
-        query = {k: getattr(args, k) for k in ("kind", "project", "draft", "person", "text", "code", "since", "until", "request")}
+        query = {k: getattr(args, k) for k in ("kind", "project", "draft", "person", "text", "code", "since", "until", "request", "trace")}
         if not any(query.values()):
-            parser.error("name at least one of --kind, --project, --draft, --person, --text, --code, --since, --until, --request")
+            parser.error("name at least one of --kind, --project, --draft, --person, --text, --code, --since, --until, --request, --trace")
         try:
             found = finder.search(log, **query, limit=args.limit)
         except ValueError as exc:  # an unknown kind, a date that is not one

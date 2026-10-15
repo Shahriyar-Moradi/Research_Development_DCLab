@@ -36,16 +36,17 @@ class Purpose:
     may_see: str  # in words, for the Admin page and for reviewers of a caller
     stream: bool = False
     cell_values: int = 0  # most distinct cell values of the user's data one request may contain (tests/test_model_data_limits.py)
+    keeps_text: bool = False  # 23.10: its prompts and replies may be kept (DCLAB_LOG_PROMPTS) and, redacted, leave under train: only a purpose shown the person's own words and bands
 
 
 PURPOSES: dict[str, Purpose] = {
     "home_agent": Purpose("standard", 90, "the problem sentence, the user's answers, column summaries (name, kind, missing rate, unique count) "
-                                          "and descriptive findings; never rows or cell values", stream=True, cell_values=0),
+                                          "and descriptive findings; never rows or cell values", stream=True, cell_values=0, keeps_text=True),
     "embedding": Purpose("cheap", 60, "the text of the evidence records (rules, pitfalls, leakage precedents, experiments) and the question typed into the "
                                       "evidence search, to find the records that answer it; no rows, no cell values, and not a workspace's lessons"),
     "parse_pattern": Purpose("cheap", 60, "up to 20 lines of a file no built-in reader can parse (400 characters each); "
                                           "DCLAB_MODEL_READS_SAMPLE_LINES=0 turns this off", cell_values=20 * 40),
-    "synthetic_schema": Purpose("standard", 120, "the description of the table to simulate, the problem sentence and the user's answers; no data"),
+    "synthetic_schema": Purpose("standard", 120, "the description of the table to simulate, the problem sentence and the user's answers; no data", keeps_text=True),
     "evidence_answer": Purpose("cheap", 60, "the question and the text of the evidence records it retrieved, which can include this workspace's accepted "
                                             "lessons (a project's aggregate results, its name, dataset file name, row count and split); no rows"),
     "stage_notes": Purpose("standard", 60, "a stage record's title, summary, claims with their limits (aggregate results with their intervals), its notes "
@@ -62,7 +63,7 @@ PURPOSES: dict[str, Purpose] = {
     "problem_analyst": Purpose("standard", 60, "the problem's description (the person's own words, up to 20 paragraphs) and the names of their "
                                                "files and columns (dclab_core's problem analyst, package 18.2); never rows or cell values"),
     "conversation_reader": Purpose("standard", 60, "the person's problem description, or one question's field and the person's answer to it, and the table's column names "
-                                                   "(dclab_core's conversation reader, package 20.2); never rows or cell values"),
+                                                   "(dclab_core's conversation reader, package 20.2); never rows or cell values", keeps_text=True),
     "brief_checker": Purpose("standard", 60, "the problem's description, the names of their files and columns, and what dclab_core's rules "
                                              "read from the description with the words it rests on (package 18.2's follow-up); never rows "
                                              "or cell values"),
@@ -82,12 +83,12 @@ PURPOSES: dict[str, Purpose] = {
                                                  "never rows or cell values"),
     "decision_answer": Purpose("cheap", 60, "one decision's question and options, and what is known about its column: the column's name, "
                                             "its name tokens and bands (storage type, share of distinct and missing values, the shape of its "
-                                            "written values) and the outcome column's name (package 22.5); never rows or cell values"),
+                                            "written values) and the outcome column's name (package 22.5); never rows or cell values", keeps_text=True),
     "decision_labeler": Purpose("standard", 60, "what a blind reviewer sees of one decision: its point, question and options, its subject "
                                                 "(a column's or table's name) and the state (the column's name, its name tokens and bands, "
                                                 "the outcome column's name; for a project's or a workflow's decision, its id and aggregate measures such as a "
                                                 "cross-validated mean, a holdout value or an apparent lift, and codes such as the metric or the "
-                                                "split); never DCLab's answer, rows or cell values (blind labels by a model)"),
+                                                "split); never DCLab's answer, rows or cell values (blind labels by a model)", keeps_text=True),
     "intern": Purpose("strong", 180, "the task, and the results of the tools it calls: data profiles (with up to three example values per "
                                      "column from describe_data), stage records and evidence records (with this workspace's accepted lessons: other "
                                      "projects' aggregate results and scope); never whole rows", cell_values=3 * 200),

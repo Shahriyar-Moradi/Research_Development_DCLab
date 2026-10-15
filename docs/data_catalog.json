@@ -41,7 +41,7 @@
   "model_text": {
    "leaves": false,
    "letter": "X",
-   "meaning": "a prompt or a reply; never leaves"
+   "meaning": "a prompt or a reply; leaves only at train, redacted, and only if the workspace kept it and the purpose was allowed to keep it"
   },
   "person_text": {
    "leaves": true,
@@ -110,7 +110,7 @@
   {
    "contract": "experience_event",
    "reads": [],
-   "version": "dclab_core.experience_event.v7"
+   "version": "dclab_core.experience_event.v8"
   },
   {
    "contract": "experience_session",
@@ -222,7 +222,7 @@
    "what": "Each model call whose prompt and reply were kept (train only; never a call that was shown cell values), with the check's verdict and the feedback (23.10)."
   }
  ],
- "dclab_core": "0.46.0",
+ "dclab_core": "0.49.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -750,7 +750,8 @@
    },
    "kind": "agent.step",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -766,7 +767,8 @@
    },
    "kind": "auth.role_changed",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -779,7 +781,8 @@
    },
    "kind": "auth.session_expired",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -795,7 +798,8 @@
    },
    "kind": "auth.sign_in",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -811,7 +815,8 @@
    },
    "kind": "auth.sign_in_failed",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -824,7 +829,8 @@
    },
    "kind": "auth.sign_out",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -838,7 +844,8 @@
    },
    "kind": "auth.token_created",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -851,7 +858,8 @@
    },
    "kind": "auth.token_revoked",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -865,7 +873,8 @@
    },
    "kind": "auth.workspace_switched",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -886,7 +895,8 @@
    },
    "kind": "chat.agent",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -902,7 +912,8 @@
    },
    "kind": "chat.person",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -921,7 +932,8 @@
    },
    "kind": "consent.changed",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -939,7 +951,8 @@
    },
    "kind": "data.analysed",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -954,7 +967,8 @@
    },
    "kind": "data.cases_found",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -969,7 +983,8 @@
    },
    "kind": "data.cleaned",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -985,7 +1000,8 @@
    },
    "kind": "data.labels_joined",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1002,7 +1018,8 @@
    },
    "kind": "data.uploaded",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1018,7 +1035,8 @@
    },
    "kind": "decision.accepted",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1034,7 +1052,8 @@
    },
    "kind": "decision.overridden",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [],
@@ -1048,7 +1067,8 @@
    },
    "kind": "decision.proposed",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1066,7 +1086,8 @@
    },
    "kind": "decision.refused",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1081,7 +1102,8 @@
    },
    "kind": "draft.built",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1095,7 +1117,8 @@
    },
    "kind": "draft.created",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1110,7 +1133,8 @@
    },
    "kind": "draft.edited",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1124,7 +1148,8 @@
    },
    "kind": "draft.refused",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1146,7 +1171,8 @@
    },
    "kind": "error.raised",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [],
@@ -1158,7 +1184,8 @@
    },
    "kind": "export.made",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1178,7 +1205,8 @@
    },
    "kind": "feedback.given",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1196,7 +1224,8 @@
    },
    "kind": "graph.move",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1210,7 +1239,8 @@
    },
    "kind": "job.started",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1226,7 +1256,8 @@
    },
    "kind": "job.stopped",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1243,7 +1274,8 @@
    },
    "kind": "model.checked",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1267,7 +1299,8 @@
    },
    "kind": "model.request",
    "leaves_at": "improve",
-   "never_leaves": [
+   "never_leaves": [],
+   "train_only": [
     "prompt",
     "reply"
    ]
@@ -1289,7 +1322,8 @@
    },
    "kind": "outcome.observed",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1311,7 +1345,8 @@
    },
    "kind": "pipeline.step_finished",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1328,7 +1363,8 @@
    },
    "kind": "pipeline.step_started",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1356,7 +1392,8 @@
    },
    "kind": "run.recorded",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1374,7 +1411,8 @@
    },
    "kind": "solution.proposed",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1389,7 +1427,8 @@
    },
    "kind": "solution.refused",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1408,7 +1447,8 @@
    },
    "kind": "solution.saved",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1424,7 +1464,8 @@
    },
    "kind": "stage.approved",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1441,7 +1482,8 @@
    },
    "kind": "stage.failed",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1458,7 +1500,8 @@
    },
    "kind": "stage.finished",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1472,7 +1515,8 @@
    },
    "kind": "stage.started",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1494,7 +1538,8 @@
    "never_leaves": [
     "arguments",
     "result"
-   ]
+   ],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1509,7 +1554,8 @@
    },
    "kind": "ui.action",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1524,7 +1570,8 @@
    },
    "kind": "ui.error_shown",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1539,7 +1586,8 @@
    },
    "kind": "ui.page_viewed",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1554,7 +1602,8 @@
    },
    "kind": "ui.upload_finished",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [
@@ -1569,7 +1618,8 @@
    },
    "kind": "ui.upload_started",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [],
@@ -1581,7 +1631,8 @@
    },
    "kind": "visit.ended",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   },
   {
    "emitted_by": [],
@@ -1593,7 +1644,8 @@
    },
    "kind": "visit.started",
    "leaves_at": "improve",
-   "never_leaves": []
+   "never_leaves": [],
+   "train_only": []
   }
  ],
  "retention": [
@@ -1805,6 +1857,7 @@
     "job_id",
     "request_id",
     "model_request",
+    "trace_id",
     "doc"
    ],
    "files": "experience/YYYY/MM/DD/<visit>.jsonl",

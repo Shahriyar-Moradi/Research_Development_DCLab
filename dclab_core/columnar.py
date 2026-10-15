@@ -24,21 +24,46 @@ def available() -> bool:
     return True
 
 
+BIG = 2**62
+
+
+def _kind(value: Any) -> str:
+    if value is None:
+        return "none"
+    if isinstance(value, bool):
+        return "bool"
+    if isinstance(value, int) and abs(value) >= BIG:
+        return "json"  # beyond what a 64-bit column holds
+    if isinstance(value, (int, float)):
+        return "num"
+    return "str" if isinstance(value, str) else "json"
+
+
 def frame_of(rows: Iterable[dict[str, Any]]) -> Any:
-    """A pandas frame of the rows: scalars as they are, anything nested as JSON text."""
+    """A pandas frame of the rows: a column of one scalar kind as it is; a column that is nested, or mixes kinds (a string in one
+    row, a boolean or a number in another), as JSON text in every row, so the file always writes and reads back."""
     import pandas as pd
 
-    flat = [{k: (v if isinstance(v, SCALARS) else json.dumps(v, ensure_ascii=False, default=str, sort_keys=True)) for k, v in row.items()} for row in rows]
-    return pd.DataFrame(flat)
+    rows = [dict(r) for r in rows]
+    keys = list(dict.fromkeys(k for r in rows for k in r))
+    as_json = {k for k in keys if len({kind for kind in (_kind(r.get(k)) for r in rows) if kind != "none"}) > 1
+               or any(_kind(r.get(k)) == "json" for r in rows)}
+    return pd.DataFrame([{k: (json.dumps(r[k], ensure_ascii=False, default=str, sort_keys=True) if k in as_json and r.get(k) is not None else r.get(k)) for k in keys}
+                         for r in rows])
 
 
 def write_parquet(path: Path, rows: Iterable[dict[str, Any]]) -> bool:
-    """Write the rows as a Parquet file; False (and no file) when pyarrow is not installed or there are no rows."""
+    """Write the rows as a Parquet file; False (and no file) when pyarrow is not installed, there are no rows, or the file cannot be
+    written. An older file is removed first: a file that holds rows the JSONL no longer holds must not outlive them."""
+    Path(path).unlink(missing_ok=True)
     rows = list(rows)
     if not rows or not available():
+        return False
+    try:
+        frame_of(rows).to_parquet(path, index=False)
+    except Exception:  # noqa: BLE001 - the columns are a convenience: the JSONL stands, and the build goes on
         Path(path).unlink(missing_ok=True)
         return False
-    frame_of(rows).to_parquet(path, index=False)
     return True
 
 

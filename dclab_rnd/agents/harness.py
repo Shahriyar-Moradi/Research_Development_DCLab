@@ -141,17 +141,20 @@ def session(agent: str, run_id: Optional[str] = None, store: Any = None, state: 
     began = datetime.now(timezone.utc).isoformat(timespec="microseconds")
     clock, error, interrupted = time.monotonic(), None, False
     conversation = current.run_id if agent.split(".")[0] in ("home", "intern") else None
-    try:
-        with experience.bind(run=current.run_id, conversation=conversation):  # what it asks (a role, a model) joins its run
-            yield current
-    except BaseException as exc:
-        error = f"{type(exc).__name__}: {str(exc)[:500]}"
-        interrupted = not isinstance(exc, Exception)
-        raise
-    finally:
-        from ..experience import hooks
+    from .. import observe
 
-        hooks.from_agent_session(agent, current, began, time.monotonic() - clock, error, interrupted, params)
+    with observe.span():  # 23.11: the run is a span; its steps, its end and what it asks are spans or events of one trace
+        try:
+            with experience.bind(run=current.run_id, conversation=conversation):  # what it asks (a role, a model) joins its run
+                yield current
+        except BaseException as exc:
+            error = f"{type(exc).__name__}: {str(exc)[:500]}"
+            interrupted = not isinstance(exc, Exception)
+            raise
+        finally:
+            from ..experience import hooks
+
+            hooks.from_agent_session(agent, current, began, time.monotonic() - clock, error, interrupted, params)
 
 
 def step(agent: str, run_id: str, tool: Optional[str], arguments: Optional[dict[str, Any]] = None, result: Any = None,

@@ -24,7 +24,7 @@ Level = Literal["operate", "improve", "train"]
 LEVELS: tuple[str, ...] = ("operate", "improve", "train")
 USES: tuple[str, ...] = ("improve", "train")
 LADDER = {"operate": 0, "improve": 1, "train": 2}
-NOTICE_VERSION = "2026-10-15"  # the version of the notice that lists every stream kept (docs/guides/EXPERIENCE_ARCHIVE.md)
+NOTICE_VERSION = "2026-10-16"  # the version of the notice that lists every stream kept (docs/guides/EXPERIENCE_ARCHIVE.md)
 
 
 def level_of(workspace: Mapping[str, Any], project: Optional[Mapping[str, Any]] = None) -> str:

@@ -187,8 +187,16 @@ def create_app(home=None) -> FastAPI:
     async def observe_requests(request: Request, call_next):
         # The outermost layer (package 12.4): a request id the response carries back, the request's time and status in
         # the counters, and one log line with its route (the path pattern, never the values), never a query or a body.
+        from dclab_core import tracing
+
+        offered = tracing.parse_traceparent(request.headers.get("traceparent"))  # 23.11: a proxy or a caller's trace continues here
         rid = observe.request_id(request.headers.get("x-request-id"))
+        if offered and not observe.valid_request_id(request.headers.get("x-request-id")):
+            rid = offered.trace_id[:16]  # no request id offered: the trace names it
+        trace = offered.trace_id if offered else tracing.trace_id_for(rid)
+        span_id = tracing.new_span_id()
         token, clock, status = observe.REQUEST_ID.set(rid), time.perf_counter(), 500
+        trace_token = observe.TRACE.set((trace, span_id, offered.parent_span if offered else None))
         try:
             try:
                 response = await call_next(request)
@@ -197,6 +205,7 @@ def create_app(home=None) -> FastAPI:
                 response = JSONResponse({"detail": "Internal error", "request_id": rid}, status_code=500)
             status = response.status_code
             response.headers["X-Request-ID"] = rid
+            response.headers["traceparent"] = tracing.format_traceparent(trace, span_id, offered.sampled if offered else True)
             return response
         finally:
             path = request.url.path
@@ -210,6 +219,7 @@ def create_app(home=None) -> FastAPI:
                 observe.request_line(status, method=method, route=route, ms=round(seconds * 1000, 1),
                               user=getattr(who, "user_id", None), workspace=getattr(who, "workspace_id", None))
             observe.REQUEST_ID.reset(token)
+            observe.TRACE.reset(trace_token)
 
     for router in ROUTERS:
         app.include_router(router)

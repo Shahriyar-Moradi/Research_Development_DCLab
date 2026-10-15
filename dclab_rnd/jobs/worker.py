@@ -123,6 +123,9 @@ def _acting(env: Any, job: dict[str, Any]):
     stack.enter_context(context.using(env))
     origin = job.get("origin") or {}  # 19.2: the job's events join the visit and the request that queued it
     payload = job.get("payload") or {}
+    from .. import observe
+
+    stack.enter_context(observe.span(trace_id=origin.get("trace"), parent=origin.get("span")))  # 23.11: the job runs in the request's trace, in a span of its own
     stack.enter_context(experience.bind(visit=origin.get("visit"), request=origin.get("request"), job=job["id"], project=payload.get("project_id"),
                                         conversation=payload.get("draft_id") or payload.get("session_id")))
     user = job.get("user")
@@ -301,11 +304,17 @@ class Worker:
         """Raw uploads past DCLAB_RETENTION_RAW_DAYS (package 12.5): on a thread of its own, so a long sweep never delays a heartbeat."""
         from .. import retention
 
+        from .. import datasets
+
         state: dict[str, float] = {}
         while not halt.wait(60):
             try:
                 retention.sweep_due(self.env, state, time.monotonic())
             except Exception:  # noqa: BLE001 — the next hour tries again
+                traceback.print_exc()
+            try:  # 23.10: the sets, once a day where consent allows and after a deletion
+                datasets.sweep_due(self.env)
+            except Exception:  # noqa: BLE001
                 traceback.print_exc()
 
     def recover(self) -> list[dict[str, Any]]:

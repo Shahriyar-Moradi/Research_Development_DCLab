@@ -219,4 +219,12 @@ def forget(*, project: str | None = None, draft: str | None = None, visit: str |
         except Exception as exc:  # noqa: BLE001
             out.setdefault("failed", []).append(name)
             print(f"retention: could not remove the {name} of what was deleted: {type(exc).__name__}", file=sys.stderr, flush=True)
+    home = getattr(log, "home", None) or getattr(ledger, "home", None)
+    if home is not None and (out.get("events") or out.get("decisions")):  # 23.10: a set may hold what was just removed: rebuild it
+        try:
+            from .. import datasets
+
+            datasets.mark_stale(home)
+        except Exception:  # noqa: BLE001 - the deletion stands whether or not the marker is written
+            pass
     return out

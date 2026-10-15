@@ -63,19 +63,19 @@ class ContractTest(unittest.TestCase):
                 self.assertEqual(x.ExperienceEvent.read(event.model_dump_json()), event)
                 self.assertEqual(set(event.classes.values()), set(fields.values()))
 
-    def test_a_v2_event_reads_as_v7_at_operate_and_a_stamp_is_kept(self):
+    def test_a_v2_event_reads_as_v8_at_operate_and_a_stamp_is_kept(self):
         import json
 
         e = x.make("chat.person", "person", IDS, {"text": "hi", "surface": "home"}, id="ev000001", at=at(0), consent="train")
         self.assertEqual(e.consent, "train")
         doc = json.loads(e.model_dump_json())
         old = {k: v for k, v in doc.items() if k != "consent"} | {"schema_version": "dclab_core.experience_event.v2"}
-        self.assertEqual((x.ExperienceEvent.read(old).schema_version, x.ExperienceEvent.read(old).consent), ("dclab_core.experience_event.v7", "operate"))
+        self.assertEqual((x.ExperienceEvent.read(old).schema_version, x.ExperienceEvent.read(old).consent), ("dclab_core.experience_event.v8", "operate"))
         self.assertEqual(x.ExperienceEvent.read(doc).consent, "train")
         with self.assertRaises(Exception):
             x.make("chat.person", "person", IDS, {"text": "hi"}, id="ev000002", at=at(0), consent="whatever")
         changed = x.make("consent.changed", "person", IDS, {"scope": "workspace", "use": "train", "on": True, "was": False, "level": "train",
-                                                           "notice_version": "2026-10-15"}, id="ev000003", at=at(1))
+                                                           "notice_version": "2026-10-16"}, id="ev000003", at=at(1))
         self.assertEqual(set(changed.classes.values()), {"meta"})
 
     def test_an_ipv6_prefix_never_keeps_a_host_group_and_a_count_is_finite(self):
@@ -299,7 +299,7 @@ class MainProductTest(unittest.TestCase):
         row = self.agent_event("user_message", {"text": "hi"}, 1) | {"session_id": "s1"}
         with self.assertRaisesRegex(ValueError, "read the main product again"):
             mp.from_agent_event(row, self.run)
-        self.assertEqual(set(mp.IDS_MISSING), {"visit", "request"})
+        self.assertEqual(set(mp.IDS_MISSING), {"visit", "request", "parent", "trace", "span", "parent_span"})
 
 
 if __name__ == "__main__":

@@ -56,6 +56,20 @@
           "default": null,
           "title": "Parent"
         },
+        "parent_span": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{16}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "v8: the span that span ran inside.",
+          "title": "Parent Span"
+        },
         "project": {
           "anyOf": [
             {
@@ -94,6 +108,34 @@
           ],
           "default": null,
           "title": "Run"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{16}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "v8: the span this event was recorded in (the request's, a job's, a step's, a model request's).",
+          "title": "Span"
+        },
+        "trace": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{32}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "v8 (23.11): the W3C trace id of the request, shared by its events, its jobs and its model requests.",
+          "title": "Trace"
         },
         "user": {
           "anyOf": [
@@ -136,7 +178,7 @@
     },
     "JsonValue": {}
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v7.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v8.json",
   "additionalProperties": false,
   "allOf": [
     {
@@ -12009,8 +12051,8 @@
       "type": "array"
     },
     "schema_version": {
-      "const": "dclab_core.experience_event.v7",
-      "default": "dclab_core.experience_event.v7",
+      "const": "dclab_core.experience_event.v8",
+      "default": "dclab_core.experience_event.v8",
       "title": "Schema Version",
       "type": "string"
     },
