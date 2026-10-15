@@ -38,10 +38,16 @@ fixes, planted faults, its development record for the owner's SFT, a commit push
 | **G** | **Pipeline and code** | 20.8 the pipeline of workflows · 20.9 code for each step | every project as a pipeline with lineage, and its code (notebook and package) that reproduces its numbers | 10–12 |
 | **H** | **Decision models in use, both uses** | 22.4 shadow in the studio · 22.5 open-source models: export, fine-tune, compare · 22.6 a model per decision · 22.8 for data scientists · 22.9 inside the workflow | ask "is this a leak?" in the notebook and get a model's answer with its evidence; the coordinator uses a decision model where it beat the rules; a fine-tuned open-source model compared on the same gates | 18–22 |
 | **I** | **Proof and adoption** | 20.10 the acceptance suite of conversations · 21.5 evaluation from real sessions · 22.7 adoption by the main product · 16.14 open halves (results and pitfalls by kind) · 16.15 B (segmentation, uplift, ranking in the engine) · 15.11 the real challenge data on the owner's machine | every family solved from a written conversation, measured; recorded sessions as regression tests; the main product's mapping tested | 16–20 |
+| **J** | **Capture, the last gaps** | 23.1 consent stamped at write time · 23.2 the browser's events · 23.3 sign-in events · 23.4 errors with fingerprints · 23.5 outcomes linked to decisions · 23.6 feedback of every kind · 23.7 column sensitivity · 23.8 steps inside a stage · 23.9 the catalog and the standard queries · 23.10 the lake's shape · 23.11 trace ids · 23.12 the main product's side | everything a person or an agent does is in the record under the consent it was written with, findable by one id, and built into the sets without a hand | 25–35 |
+| **K** | **Complex problems** | 24.1 the problem map · 24.2 the understanding agents · 24.3 the solution router and its catalogue · 24.4 the solution map · 24.5 programmes and the composition · 24.6 the fraud programme replica · 24.7 capture of phase 2 · 24.8 measurement and switch-on | a complex problem broken into its parts, each routed to a solution with its alternatives kept, composed and scored once on one holdout; every map, route and composition in the record | 45–60 |
 
 **Total: about 126–152 working hours.** In calendar time, about 13 to 16 days of continuous work, and realistically
 4 to 5 weeks with the owner's answers, real-use tests, reviews and machine time. Live model use: only in 20.2, 21.4,
 22.5 and 20.10, each run capped at €0.5 under the owner's rule; fine-tuning runs (22.5) need a GPU.
+
+`CAPTURE_AND_PROBLEM_SOLVING_PLAN.md` (2026-10-15) audits the owner's capture document against the repository and holds
+the packages of J and K in full: J finishes phase 1 (capture everything), K is phase 2 (the agentic system that
+understands, decomposes, routes and composes). J before K: K's records ride on J's stamps, outcomes and catalog.
 
 ## Order and why
 
