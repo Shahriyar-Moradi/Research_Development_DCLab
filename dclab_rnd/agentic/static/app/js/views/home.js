@@ -245,7 +245,7 @@ DC.view('home', {
       const on = !!(v.settings && v.settings.on);
       $('#home-twin', el).hidden = !on;
       $('#home-to', el).hidden = !on;
-      $('#home-lanes', el).className = on ? 'grid g2' : 'stack';
+      $('#home-lanes', el).className = on ? 'grid g-chat' : 'stack';
       if (!on) return;
       S.twin = v;
       drawTwinStatus(v.status);

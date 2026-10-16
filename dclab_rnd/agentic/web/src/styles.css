@@ -363,11 +363,17 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 0; }
 .g-side { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; }
 .g-side-l { grid-template-columns: 300px minmax(0, 1fr); align-items: start; }
 .g-3-1 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); align-items: start; }
+/* Home's conversation takes three quarters of the width; Claude's column is the narrow one and stays in sight beside it (owner, 2026-10-16) */
+.g-chat { grid-template-columns: minmax(0, 3.4fr) minmax(240px, 1fr); align-items: start; }
+.g-chat > #home-twin { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+#home-chat .thread { min-height: 56vh; gap: 18px; }
+#home-chat .msg-body { font-size: 14.5px; }
+#home-chat .composer textarea { min-height: 150px; font-size: 16px; line-height: 1.5; }
 .span-2 { grid-column: span 2; }
 .span-all { grid-column: 1 / -1; }
 .grid > *, .stack > *, .row > * { min-width: 0; }
 @media (max-width: 1240px) { .g5 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .g-side { grid-template-columns: minmax(0, 1fr) 300px; } }
-@media (max-width: 1100px) { .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .g-3-1, .g-side, .g-side-l { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1100px) { .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .g-chat, .g-3-1, .g-side, .g-side-l { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 760px) { .g2, .g3, .g5 { grid-template-columns: minmax(0, 1fr); } .span-2 { grid-column: auto; } }
 @media (max-width: 520px) { .g4 { grid-template-columns: minmax(0, 1fr); } }
 

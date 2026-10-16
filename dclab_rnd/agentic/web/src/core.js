@@ -971,7 +971,7 @@
   function stream(path, onEvent) {
     const src = new EventSource('/api' + path);
     const handler = e => { let data = e.data; try { data = JSON.parse(e.data); } catch (err) { /* plain text */ } onEvent(e.type, data); };
-    ['message', 'chat', 'token', 'pipeline', 'analysis', 'workflow', 'question', 'status', 'error', 'done'].forEach(t => src.addEventListener(t, handler));
+    ['message', 'chat', 'token', 'pipeline', 'analysis', 'workflow', 'plan', 'twin', 'question', 'status', 'error', 'done'].forEach(t => src.addEventListener(t, handler));
     return () => src.close();
   }
   /* Repeat fn every ms until it returns true or the returned stop function is called. */

@@ -745,6 +745,20 @@ class ApiTests(unittest.TestCase):
             said = wait(lambda: next((m for m in self.draft(d["id"])["messages"] if m["role"] == "agent" and "build failed" in m["text"]), None))
         self.assertIn("disk full", said["text"])
 
+    def test_the_page_listens_to_every_kind_of_event_a_draft_emits(self):
+        """Live (2026-10-16): the page's stream listed its event kinds by hand and left out "twin" and "plan": Claude's replies
+        and the understanding panel never updated until a reload. Every kind the server emits must be one the page hears."""
+        import re
+
+        root = Path(__file__).resolve().parents[1] / "dclab_rnd"
+        emitted = set()
+        for path in root.rglob("*.py"):
+            emitted |= set(re.findall(r"(?:store|drafts)\.emit\([A-Za-z_.\[\]\"']+, \"([a-z_]+)\"", path.read_text(encoding="utf-8")))
+        core = (root / "agentic" / "web" / "src" / "core.js").read_text(encoding="utf-8")
+        listened = set(re.findall(r"'([a-z]+)'", re.search(r"\[('message'.*?)\]\.forEach\(t => src\.addEventListener", core, re.S).group(1)))
+        self.assertTrue(emitted >= {"chat", "twin", "plan"}, emitted)
+        self.assertEqual(emitted - listened, set(), "events the server emits and the page never hears")
+
     def test_full_flow_sample_then_build(self):
         c = self.client
         self.assertEqual(len(c.get("/api/packs").json()), len(pack.PACKS))

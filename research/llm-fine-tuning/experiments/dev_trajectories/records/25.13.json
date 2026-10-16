@@ -205,6 +205,36 @@
       "cause": "The one-step build was reachable by words and a small composer button that read like a wizard.",
       "fix": "A primary \"Create project from chat\" button in the conversation's header sends \"Create a project from this chat\" (an order the build reads), shows Creating… until DCLab answers and Open the project once built; the wizard stays as Review step by step instead.",
       "test": "test_build_now_is_an_order_never_a_sentence_about_the_problem"
+    },
+    {
+      "id": "O7",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "The Claude beside DCLab panel showed nothing and never changed.",
+      "scenario": "Live: the lane answered six times for the owner's chat (€0.35) while the page still read \"Claude answers after DCLab's first turn\" and €0.00.",
+      "cause": "The page's event stream listed its kinds by hand and left out twin and plan, so Claude's status, replies and the understanding panel arrived on the wire and were dropped until a reload.",
+      "fix": "Both kinds are on the list, and a test fails when the server emits a draft event kind the page does not hear.",
+      "test": "test_the_page_listens_to_every_kind_of_event_a_draft_emits"
+    },
+    {
+      "id": "O8",
+      "source": "owner",
+      "severity": "gap",
+      "defect": "The chat was too small beside Claude's column and the box too short to see the analysis well.",
+      "scenario": "The conversation and Claude's panel were two equal halves.",
+      "cause": "The Home lanes were a two-equal-columns grid.",
+      "fix": "The conversation takes about three and a half parts to one for Claude's column, which stays in sight beside it; the thread has a taller minimum, larger text and a taller message box.",
+      "test": "checked live at 1900 px"
+    },
+    {
+      "id": "S2",
+      "source": "self",
+      "severity": "privacy",
+      "defect": "Copying the test records into the dev workspace also copied the test server's Claude switch.",
+      "scenario": "agent_runs/twin.json was overwritten with the test workspace's, turning Claude beside DCLab on at the owner's dev server with a €9 cap and no audit entry.",
+      "cause": "The copy command took the whole twin folder's neighbour file along.",
+      "fix": "The file is removed (the switch is off by default again) and the owner told; the rule is in memory: copy records, never config.",
+      "test": "checked on the dev server"
     }
   ],
   "measurements": [
