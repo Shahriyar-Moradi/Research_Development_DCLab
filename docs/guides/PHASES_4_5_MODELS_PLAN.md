@@ -98,6 +98,11 @@ trained language model of DCLab's, a single clean store that every model reads, 
   `target.column`) on dev, is at least equal elsewhere, its calibration error is under 0.05, and it answers within the
   latency budget on the target hardware; then the sealed set once. The training run is the owner's (GPU, Part E).
 
+- **Status: prepared (2026-10-16); the run is the owner's.** `python -m dclab_rnd.lake export --target decisions|solver` writes
+  the training files from gold (never a sealed or evaluation-only row) for the existing LoRA script and MLX;
+  `research/llm-fine-tuning/experiments/lake/TRAINING.md` is the runbook (bases, hardware, recipe, how a run is recorded and
+  judged). First export: decisions 19,530 train and 5,436 validation rows (5,793 from OpenML tables).
+
 ### 26.5 The combination: decision models inside the workflow model's loop
 - **Delivers:** the Home agent and the intern call the decision models as tools (the `decide` tool of 22.8 exists) at
   every typed point instead of reasoning it out in text; the workflow model (Phase 5's model when it exists, the

@@ -214,7 +214,7 @@ def detect_task(frame: pd.DataFrame, target: str) -> dict[str, Any]:
     numeric = pd.api.types.is_numeric_dtype(series)
     if unique == 2:
         values = sorted(series.unique(), key=str)
-        positive = _positive_label(values)
+        positive = _positive_label(values, {k: int(v) for k, v in series.value_counts().items()})
         rate = float((series == positive).mean())
         return {"task": "binary", "classes": [str(v) for v in values], "positive_label": str(positive), "positive_rate": rate,
                 "note": f"Two classes; `{positive}` is treated as the positive class ({rate:.1%} of rows)."}
@@ -229,7 +229,15 @@ def detect_task(frame: pd.DataFrame, target: str) -> dict[str, Any]:
             "note": f"{unique} distinct labels; consider grouping rare labels before modeling."}
 
 
-def _positive_label(values: list[Any]) -> Any:
+EVENT_WORDS = ("fraud", "fake", "churn", "default", "spam", "anomal", "suspicious", "suspect", "attack", "fail", "cancel", "abuse",
+               "bad", "positive", "accepted", "event", "case")
+NOT_EVENT_WORDS = ("genuine", "normal", "legit", "no_", "not_", "non_", "negative", "ok", "good")
+
+
+def _positive_label(values: list[Any], counts: dict[Any, int] | None = None) -> Any:
+    """The class the model flags: an explicit yes or 1; else the one whose name says the event (live, 2026-10-16:
+    ``fake_return`` against ``genuine_or_no_return`` once fell to the alphabetical last, the genuine one); else, with
+    counts, the rarer class (the event a model is asked to catch is nearly always the rare one); else the last."""
     text = {str(v).strip().lower(): v for v in values}
     for key in ("1", "true", "yes", "y", "positive", "churn", "fraud", "default", "accepted", "bad", "spam"):
         if key in text:
@@ -237,6 +245,11 @@ def _positive_label(values: list[Any]) -> Any:
     numeric = [v for v in values if isinstance(v, (int, float, np.integer, np.floating))]
     if len(numeric) == 2:
         return max(numeric)
+    said = [v for v in values if any(w in str(v).lower() for w in EVENT_WORDS) and not any(w in str(v).lower() for w in NOT_EVENT_WORDS)]
+    if len(said) == 1:
+        return said[0]
+    if counts and len(counts) == 2 and len(set(counts.values())) == 2:
+        return min(counts, key=lambda k: counts[k])
     return values[-1]
 
 

@@ -827,11 +827,15 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         if asset is None:
             raise HTTPException(409, "There is no table to train on yet: upload or connect one, or say “simulate data” and I'll make a synthetic one.")
         u = draft.get("understanding") or {}
-        if not draft.get("solution") and not (card_of(draft).family.value == "anomaly" and plans.label_asset(draft) is None):
-            columns = [str(c.get("name")) for c in (draft.get("analysis") or {}).get("columns") or []]
-            said = [u.get("target")] + [q.get("answered") for q in draft.get("questions") or [] if q.get("field") == "target"]
-            said.append((asset.get("suggestion") or {}).get("target"))
-            target = next((str(v) for v in said if isinstance(v, str) and v in columns), None)
+        columns = [str(c.get("name")) for c in (draft.get("analysis") or {}).get("columns") or []]
+        said = [u.get("target")] + [q.get("answered") for q in draft.get("questions") or [] if q.get("field") == "target"]
+        said.append((asset.get("suggestion") or {}).get("target"))
+        named = next((str(v) for v in said if isinstance(v, str) and v in columns), None)
+        # live, 2026-10-16: words that read "nothing labelled" built an anomaly project on a table whose simulated label
+        # column was named: a named outcome column means a supervised solution, whatever the card inferred
+        unlabelled = card_of(draft).family.value == "anomaly" and plans.label_asset(draft) is None and named is None
+        if not draft.get("solution") and not unlabelled:
+            target = named
             if target is None:
                 raise HTTPException(409, "Which column is the outcome the model should learn? Name it (for example “the outcome is is_fraud”), then say build again.")
             asked = {"target": target, **({"prediction_moment": u["prediction_moment"]} if u.get("prediction_moment") else {})}

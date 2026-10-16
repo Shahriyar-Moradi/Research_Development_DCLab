@@ -24,7 +24,7 @@
       "why": "Banded features repeat across tables; an identical input in train and sealed measures recall, not judgement."
     }
   ],
-  "change": "dclab_core/lake.py (new), contracts, conformance, CHANGELOG 0.59.0, schemas; dclab_rnd/lake/__init__.py, __main__.py, openml.py, selfplay.py (new); Makefile lake; .gitignore lake/; tests/test_training_lake.py (new); plan, integration guide, CLAUDE.md, catalog.",
+  "change": "dclab_core/lake.py (new), contracts, conformance, CHANGELOG 0.59.0, schemas; dclab_rnd/lake/__init__.py, __main__.py, openml.py, selfplay.py (new); Makefile lake; .gitignore lake/; tests/test_training_lake.py (new); plan, integration guide, CLAUDE.md, catalog. Also dclab_rnd/lake/train.py (export) and TRAINING.md; studio/data.py (the positive class); draft/api.py (the one-step build).",
   "findings": [
     {
       "id": "R1",
@@ -165,6 +165,26 @@
       "cause": "The input held only the column bands.",
       "fix": "The auditor's train-only signals are part of the input.",
       "test": "test_a_verified_solve_teaches_and_its_masked_twin_names_nothing"
+    },
+    {
+      "id": "M1",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "A one-step build made the genuine class the positive one.",
+      "scenario": "Live replay: fake_return against genuine_or_no_return; the agent had to turn it round.",
+      "cause": "No exact event word matched, so the alphabetical last class won.",
+      "fix": "Event words inside a class name pick it; with none, the rarer class; an explicit yes or 1 first as before.",
+      "test": "test_the_flagged_class_is_the_event_not_the_alphabetical_last"
+    },
+    {
+      "id": "M2",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "A one-step build made an anomaly project with no outcome on a labelled table.",
+      "scenario": "Live replay: the words read nothing labelled while the simulated table named is_fake_return; the agent had to set the target.",
+      "cause": "The card's anomaly family skipped the supervised solution.",
+      "fix": "A named outcome column means a supervised solution whatever the card inferred.",
+      "test": "checked on the replay"
     }
   ],
   "measurements": [

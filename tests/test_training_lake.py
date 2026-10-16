@@ -191,5 +191,45 @@ class PublicAndSelfplayTests(unittest.TestCase):
         self.assertIn(case.facts["leak"], [f["column"] for f in leak["forbidden"]])  # verified: the planted leak is kept out
 
 
+class ExportTests(unittest.TestCase):
+    def test_the_training_files_hold_no_sealed_or_evaluation_only_row(self):
+        from dclab_rnd.lake.train import export
+
+        with tempfile.TemporaryDirectory() as tmp:
+            lake = Path(tmp) / "lake"
+            gold = lake / "gold" / "decisions" / "column.is_identifier" / "v1"
+            gold.mkdir(parents=True)
+            rows = {"train": [sample(1, group="g1"), sample(2, group="g2")], "dev": [sample(3, group="g3", split="dev")],
+                    "sealed": [sample(4, group="g4", split="sealed")]}
+            for split, items in rows.items():
+                (gold / f"{split}.jsonl").write_text("".join(i.model_dump_json() + "\n" for i in items))
+            solver = lake / "gold" / "solver" / "understand_problem" / "v1"
+            solver.mkdir(parents=True)
+            (solver / "eval_only.jsonl").write_text(example(9, origin="teacher_claude", split="eval_only", group="g9").model_dump_json() + "\n")
+            (solver / "train.jsonl").write_text(example(8, origin="verified_synthetic", group="g8").model_dump_json() + "\n")
+            m = export("decisions", lake, Path(tmp) / "out_d", {"column.is_identifier": 2.0})
+            self.assertEqual((m["train"], m["val"]), (4, 1))  # weight 2 doubles train only
+            self.assertEqual(m["refused"]["sealed (never exported)"], 1)
+            text = (Path(tmp) / "out_d" / "train.chat.jsonl").read_text()
+            self.assertNotIn("s4", text)
+            first = json.loads(text.splitlines()[0])["messages"]
+            self.assertEqual([x["role"] for x in first], ["system", "user", "assistant"])
+            self.assertTrue((Path(tmp) / "out_d" / "valid.jsonl").exists())  # the names mlx_lm reads
+            m = export("solver", lake, Path(tmp) / "out_s")
+            self.assertEqual((m["train"], m["refused"]["eval_only (never exported)"]), (1, 1))  # Claude's answer never a target
+            self.assertNotIn("y9", (Path(tmp) / "out_s" / "train.chat.jsonl").read_text())
+
+
+class PositiveClassTests(unittest.TestCase):
+    def test_the_flagged_class_is_the_event_not_the_alphabetical_last(self):
+        """Live (2026-10-16): fake_return against genuine_or_no_return made the genuine returns the positive class."""
+        from dclab_rnd.studio.data import _positive_label
+
+        self.assertEqual(_positive_label(["fake_return", "genuine_or_no_return"]), "fake_return")
+        self.assertEqual(_positive_label(["a", "b"], {"a": 900, "b": 100}), "b")  # the rarer, when the names say nothing
+        self.assertEqual(_positive_label(["no", "yes"]), "yes")
+        self.assertEqual(_positive_label([0, 1]), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
