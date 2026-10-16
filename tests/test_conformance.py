@@ -50,7 +50,7 @@ class GateTest(unittest.TestCase):
     def test_the_summary_says_which_adapters_read_rows_and_which_map_out(self):
         summary = conformance.summary()
         self.assertEqual(summary["contracts_read_from_rows"] + summary["contracts_mapped_out"] + summary["contracts_library_only"], summary["contracts"])
-        self.assertEqual(summary["contracts_read_from_rows"], 5)
+        self.assertEqual(summary["contracts_read_from_rows"], 6)
         self.assertEqual(conformance.CONTRACT_ADAPTERS["data_findings"], "dclab_core.adapters.main_product:problem_profile")  # the function that reads findings
 
     def test_a_kind_an_adapter_produces_is_not_counted_missing_and_a_point_read_as_a_record_needs_no_reason(self):
@@ -84,15 +84,19 @@ class GateTest(unittest.TestCase):
 
     def test_every_finished_package_has_its_section_in_the_integration_guide(self):
         text = (ROOT / "docs" / "guides" / "CORE_INTEGRATION.md").read_text(encoding="utf-8")
-        headings = {h for h in re.findall(r"^## .*\(((?:23|24)\.\d+)\)\s*$", text, re.M)}
+        headings = {h for h in re.findall(r"^## .*\(((?:23|24|25)\.\d+)\)\s*$", text, re.M)}
         phase_one = {f"23.{n}" for n in range(1, 13)}
         self.assertTrue(phase_one <= headings, f"no section for {sorted(phase_one - headings)}")
         # a package of phase 2 is finished when the plan says "done" in its status: it has a section too
         plan = (ROOT / "docs" / "guides" / "CAPTURE_AND_PROBLEM_SOLVING_PLAN.md").read_text(encoding="utf-8")
         sections = re.split(r"^### (?=\d+\.\d+ )", plan, flags=re.M)[1:]
         finished = {section.split(" ", 1)[0] for section in sections if section.startswith("24.") and "**Status: done" in section.split("\n## ", 1)[0]}
+        phase3 = (ROOT / "docs" / "guides" / "PHASE3_AI_FIRST_PLAN.md").read_text(encoding="utf-8")
+        finished |= {section.split(" ", 1)[0] for section in re.split(r"^### (?=\d+\.\d+ )", phase3, flags=re.M)[1:]
+                     if section.startswith("25.") and "**Status: done" in section.split("\n## ", 1)[0]}
         self.assertEqual(finished - headings, set(), f"finished packages with no section: {sorted(finished - headings)}")
         self.assertIn("24.1", finished)
+        self.assertIn("25.1", finished)
 
     def test_the_library_imports_nothing_of_the_studio_and_the_wheel_check_exercises_the_new_modules(self):
         import ast

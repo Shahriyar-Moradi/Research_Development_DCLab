@@ -4,6 +4,20 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.56.0 (2026-10-16)
+
+Package 25.1: the twin, the system's answer and an AI-first agent's answer to the same step.
+
+- `twin` (new): `TwinStep` v1 (`dclab_core.twin_step.v1`): one step answered by both approaches on one input (its fingerprint on the step and on both answers; two inputs are refused),
+  each answer an `ArmAnswer` (the value in the step's shape, what it said, its reasons, the tools it used, whether the step's validator accepted it, tokens, cost, seconds, status),
+  the `Difference` of every field, the `Truth` (planted, a person's pick, measured, a label) and the `Verdict`. `STEPS`: the Home steps (understanding, the next question, the
+  pack, the map, the routes, the workflow, ready), the solution's column decisions, the stages' choices and the report's summary, and `decision:<point>` for every ledger point;
+  fields compared as equal, set, ranked, numeric, text by key terms or mapping. `effectiveness` gives `TwinMatrix` v1 (`dclab_core.twin_matrix.v1`): per step, each arm's
+  accuracy with its interval, the agreement, what one got right that the other missed, the AI with the validator's fallback, median cost and time, and the mode by
+  `twin_rule_v1` (software, software reviewed by the AI, the AI checked by the software, the AI, undecided below 10 judged steps; ties to the software).
+- `adapters.main_product_twin` (new): `semantic_decision_answers` rows as twin steps: the rule the system arm, Jev the AI-first arm, the question digest the input, a label row
+  the truth.
+
 ## 0.55.0 (2026-10-16)
 
 Package 24.7: the capture of phase 2.

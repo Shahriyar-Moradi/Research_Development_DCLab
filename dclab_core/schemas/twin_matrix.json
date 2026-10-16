@@ -1,0 +1,276 @@
+{
+  "$defs": {
+    "StepEffect": {
+      "additionalProperties": false,
+      "properties": {
+        "agreement": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Share of steps where both arms answered and every field was the same.",
+          "title": "Agreement"
+        },
+        "ai_accuracy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ai Accuracy"
+        },
+        "ai_failed": {
+          "default": 0,
+          "description": "Steps where the AI arm failed, abstained or hit its cap.",
+          "title": "Ai Failed",
+          "type": "integer"
+        },
+        "ai_interval": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Ai Interval",
+          "type": "array"
+        },
+        "ai_only_right": {
+          "default": 0,
+          "description": "The system wrong, the AI right.",
+          "title": "Ai Only Right",
+          "type": "integer"
+        },
+        "ai_right": {
+          "default": 0,
+          "description": "Right with the AI's answer, and the system's where the AI gave none (failed, capped, abstained).",
+          "title": "Ai Right",
+          "type": "integer"
+        },
+        "checked_accuracy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checked Accuracy"
+        },
+        "checked_right": {
+          "default": 0,
+          "description": "Right when the AI's answer is used where the validator accepts it and the system's elsewhere.",
+          "title": "Checked Right",
+          "type": "integer"
+        },
+        "cost_eur": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Median cost per step, per arm.",
+          "title": "Cost Eur",
+          "type": "object"
+        },
+        "fields": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "description": "Per field: judged, the system right, the AI right.",
+          "title": "Fields",
+          "type": "object"
+        },
+        "judged": {
+          "description": "Steps with a truth.",
+          "minimum": 0,
+          "title": "Judged",
+          "type": "integer"
+        },
+        "mode": {
+          "default": "undecided",
+          "enum": [
+            "software",
+            "software_reviewed",
+            "ai_checked",
+            "ai",
+            "undecided"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Reasons",
+          "type": "array"
+        },
+        "review_precision": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Of the disagreements, the share where the system was wrong.",
+          "title": "Review Precision"
+        },
+        "review_recall": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Of the system's errors, the share where the AI differed and was right.",
+          "title": "Review Recall"
+        },
+        "seconds": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Median time per step, per arm.",
+          "title": "Seconds",
+          "type": "object"
+        },
+        "step": {
+          "maxLength": 80,
+          "title": "Step",
+          "type": "string"
+        },
+        "steps": {
+          "description": "Twin steps recorded.",
+          "minimum": 0,
+          "title": "Steps",
+          "type": "integer"
+        },
+        "system_accuracy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "System Accuracy"
+        },
+        "system_interval": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "System Interval",
+          "type": "array"
+        },
+        "system_only_right": {
+          "default": 0,
+          "description": "The AI wrong, the system right.",
+          "title": "System Only Right",
+          "type": "integer"
+        },
+        "system_right": {
+          "default": 0,
+          "title": "System Right",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "step",
+        "steps",
+        "judged"
+      ],
+      "title": "StepEffect",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.twin_matrix.v1.json",
+  "additionalProperties": false,
+  "description": "Where the AI, the software, or the two together are best, step by step.",
+  "properties": {
+    "rule": {
+      "const": "twin_rule_v1",
+      "default": "twin_rule_v1",
+      "title": "Rule",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.twin_matrix.v1",
+      "default": "dclab_core.twin_matrix.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source": {
+      "description": "What the steps were: a measurement on planted truth, live sessions, both.",
+      "maxLength": 200,
+      "title": "Source",
+      "type": "string"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/StepEffect"
+      },
+      "maxItems": 200,
+      "title": "Steps",
+      "type": "array"
+    },
+    "totals": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Totals",
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "source"
+  ],
+  "title": "TwinMatrix",
+  "type": "object"
+}

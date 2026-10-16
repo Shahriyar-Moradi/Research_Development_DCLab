@@ -1,0 +1,383 @@
+{
+  "$defs": {
+    "ArmAnswer": {
+      "additionalProperties": false,
+      "properties": {
+        "answerer": {
+          "maxLength": 120,
+          "type": "string"
+        },
+        "arm": {
+          "enum": [
+            "system",
+            "ai_first"
+          ],
+          "type": "string"
+        },
+        "cost_eur": {
+          "default": 0.0,
+          "minimum": 0,
+          "type": "number"
+        },
+        "dropped": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        "input_fingerprint": {
+          "default": "",
+          "maxLength": 64,
+          "type": "string"
+        },
+        "input_tokens": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "note": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "output_tokens": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "refusals": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "said": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "seconds": {
+          "default": 0.0,
+          "minimum": 0,
+          "type": "number"
+        },
+        "status": {
+          "default": "answered",
+          "enum": [
+            "answered",
+            "abstained",
+            "failed",
+            "capped",
+            "skipped"
+          ],
+          "type": "string"
+        },
+        "tools": {
+          "items": {
+            "$ref": "#/$defs/ToolUse"
+          },
+          "maxItems": 60,
+          "type": "array"
+        },
+        "valid": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "value": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "arm",
+        "answerer"
+      ],
+      "type": "object"
+    },
+    "Difference": {
+      "additionalProperties": false,
+      "properties": {
+        "ai_first": {
+          "$ref": "#/$defs/JsonValue",
+          "default": null
+        },
+        "compare": {
+          "enum": [
+            "equal",
+            "set",
+            "ranked",
+            "numeric",
+            "text",
+            "mapping"
+          ],
+          "type": "string"
+        },
+        "field": {
+          "maxLength": 80,
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "same",
+            "differs",
+            "only_system",
+            "only_ai",
+            "neither"
+          ],
+          "type": "string"
+        },
+        "only_ai": {
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "maxItems": 60,
+          "type": "array"
+        },
+        "only_system": {
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "maxItems": 60,
+          "type": "array"
+        },
+        "system": {
+          "$ref": "#/$defs/JsonValue",
+          "default": null
+        }
+      },
+      "required": [
+        "field",
+        "compare",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "JsonValue": {},
+    "ToolUse": {
+      "additionalProperties": false,
+      "properties": {
+        "arguments": {
+          "default": "",
+          "maxLength": 400,
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 80,
+          "type": "string"
+        },
+        "ok": {
+          "default": true,
+          "type": "boolean"
+        },
+        "seconds": {
+          "default": 0.0,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "Truth": {
+      "additionalProperties": false,
+      "properties": {
+        "note": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source": {
+          "enum": [
+            "planted",
+            "person_pick",
+            "measured",
+            "label"
+          ],
+          "type": "string"
+        },
+        "value": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "type": "object"
+    },
+    "Verdict": {
+      "additionalProperties": false,
+      "properties": {
+        "ai_first": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "type": "object"
+        },
+        "fields": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "system": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "type": "object"
+        },
+        "winner": {
+          "default": "unjudged",
+          "enum": [
+            "system",
+            "ai_first",
+            "both",
+            "neither",
+            "unjudged"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "ai_first": {
+      "$ref": "#/$defs/ArmAnswer"
+    },
+    "at": {
+      "maxLength": 40,
+      "type": "string"
+    },
+    "differences": {
+      "items": {
+        "$ref": "#/$defs/Difference"
+      },
+      "maxItems": 40,
+      "type": "array"
+    },
+    "id": {
+      "maxLength": 80,
+      "type": "string"
+    },
+    "input_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "input_summary": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "dclab_core.twin_step.v1",
+      "default": "dclab_core.twin_step.v1",
+      "type": "string"
+    },
+    "session": {
+      "maxLength": 80,
+      "type": "string"
+    },
+    "step": {
+      "maxLength": 80,
+      "type": "string"
+    },
+    "subject": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "system": {
+      "$ref": "#/$defs/ArmAnswer"
+    },
+    "truth": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Truth"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "verdict": {
+      "$ref": "#/$defs/Verdict"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "session",
+    "step",
+    "at",
+    "input_fingerprint",
+    "system",
+    "ai_first"
+  ],
+  "type": "object"
+}

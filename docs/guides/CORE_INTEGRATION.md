@@ -571,3 +571,16 @@ Where it goes there: the main product can run the same people against the librar
 journeys did not (2 of 10 against a bar of 85%), so `draft.map.roles_passed()` is false and the rules serve; the rules arm itself was also under the bar (2 of 10), and the misses are
 listed as open work in the plan.
 
+
+## The twin: the system and an AI-first agent on one step (25.1)
+
+`dclab_core.twin` is the record of two approaches answering one step on one input: the system (rules, roles, validators) and an AI-first agent (a model solving the step its own
+way). A `TwinStep` carries the input's fingerprint on the step and on both answers, so a difference is a difference of approach; `compare` gives each field's `Difference`, `judge`
+the verdict against a truth (planted, a person's pick, measured, a label), and `effectiveness` a `TwinMatrix`: per step, each arm's accuracy with its interval, the agreement, the
+cost and time, and the mode the evidence recommends by `twin_rule_v1` (software; software reviewed by the AI; the AI checked by the software; the AI; undecided below 10 judged
+steps), fixed in the library before any run.
+
+Where it goes there: the main product already has twin steps without the name. `semantic_decision_answers` keeps the rule's answer and Jev's on one question digest, and a label
+row says which was right; `adapters.main_product_twin.twin_steps(rows, session)` reads them as `decision:<point>` steps (the rule the system arm, Jev the AI-first arm with its
+model and release as the answerer), so `effectiveness` gives the main product the same matrix per governed point. What its rows do not hold (Jev's reasons, the cost, which is in
+`llm_invocations`) is empty, never guessed (`NOT_MAPPED`). Running a second agent beside its own steps is that repository's change; the contract and the rule are the library's.

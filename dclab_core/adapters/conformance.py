@@ -11,10 +11,10 @@ from __future__ import annotations
 from typing import Any
 
 from dclab_core.adapters import (main_product, main_product_experience, main_product_ledger, main_product_lineage, main_product_outcomes,
-                                 main_product_pipeline, main_product_problem_map)
+                                 main_product_pipeline, main_product_problem_map, main_product_twin)
 
 ADAPTERS = {m.__name__: m for m in (main_product, main_product_experience, main_product_ledger, main_product_lineage, main_product_outcomes,
-                                    main_product_pipeline, main_product_problem_map)}  # the modules a ``module:function`` below may name
+                                    main_product_pipeline, main_product_problem_map, main_product_twin)}  # the modules a ``module:function`` below may name
 LIBRARY = "library output: no row of the main product maps onto it; the host renders or stores it from the library's calls (CORE_INTEGRATION.md)"
 
 #: contract name -> ``module:function`` of the adapter that fills it from the main product's rows, or the reason it has none
@@ -44,11 +44,13 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "coordinator_situation": LIBRARY + " (where a conversation stands on the way to a build)",
     "solution_workflow": LIBRARY + " (the workflow drawn from the two cards)",
     "solution_report": LIBRARY + " (rendered from the records of a project)",
+    "twin_step": "dclab_core.adapters.main_product_twin:twin_steps",
+    "twin_matrix": LIBRARY + " (``twin.effectiveness`` over adapted twin steps)",
 }
 
 #: the contracts whose adapter READS the main product's rows into the library's record; every other adapter above maps a library
 #: contract OUT to the main product's own (a ``ProblemSpec`` proposal, a pipeline version): both are adapters, in different directions
-FROM_ROWS = frozenset({"experience_event", "run_record", "decision_record", "decision_label", "outcome"})
+FROM_ROWS = frozenset({"experience_event", "run_record", "decision_record", "decision_label", "outcome", "twin_step"})
 
 _NO_NAME = "the main product has no governed decision point of this name: it is this studio's {what}; its decisions of the kind are project_decision_records of other types, read as decision events"
 POINTS_NOT_MAPPED: dict[str, str] = {

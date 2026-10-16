@@ -114,6 +114,12 @@ row = {c: None for c in scols} | {"id": "a1", "workspace_id": "w1", "purpose": "
                                   "created_at": "2026-10-14T08:00:00+00:00"}
 rec, _ = mpd.from_semantic_answer(row)
 assert (rec.agreement(), mpd.to_semantic_answer(rec, "jev", "1", "d" * 64)["answer"]) == ("agree", {"value": 0.95}), rec
+# 25.1: the twin: the same Jev row as a twin step (the rule the system arm, Jev the AI-first arm), and the rule's mode from the installed wheel
+from dclab_core import twin
+from dclab_core.adapters import main_product_twin as mpt
+pair = mpt.twin_steps([row], session="wheel")[0]
+assert (pair.step, pair.system.value, pair.ai_first.value) == ("decision:column.is_identifier", {"value": True}, {"value": True}), pair
+assert twin.mode_of({"judged": 12, "system_right": 6, "ai_right": 11, "checked_right": 11})[0] == "ai"
 def norm(name):
     return re.sub(r"[-_.]+", "-", name).lower()
 dists = sorted(f"{norm(d.metadata['Name'])}=={d.version}" for d in metadata.distributions())

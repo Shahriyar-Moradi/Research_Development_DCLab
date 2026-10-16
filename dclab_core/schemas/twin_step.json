@@ -1,0 +1,447 @@
+{
+  "$defs": {
+    "ArmAnswer": {
+      "additionalProperties": false,
+      "properties": {
+        "answerer": {
+          "description": "Who answered: 'rules', a role with its prompt version, 'ai_first@v1', a model id.",
+          "maxLength": 120,
+          "title": "Answerer",
+          "type": "string"
+        },
+        "arm": {
+          "enum": [
+            "system",
+            "ai_first"
+          ],
+          "title": "Arm",
+          "type": "string"
+        },
+        "cost_eur": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Cost Eur",
+          "type": "number"
+        },
+        "dropped": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "What was cut to fit: characters of 'said', reasons, tools, refusals.",
+          "title": "Dropped",
+          "type": "object"
+        },
+        "input_fingerprint": {
+          "default": "",
+          "maxLength": 64,
+          "title": "Input Fingerprint",
+          "type": "string"
+        },
+        "input_tokens": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Input Tokens",
+          "type": "integer"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "output_tokens": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Output Tokens",
+          "type": "integer"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Reasons",
+          "type": "array"
+        },
+        "refusals": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Refusals",
+          "type": "array"
+        },
+        "said": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the arm said to the person, if anything.",
+          "title": "Said"
+        },
+        "seconds": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Seconds",
+          "type": "number"
+        },
+        "status": {
+          "default": "answered",
+          "enum": [
+            "answered",
+            "abstained",
+            "failed",
+            "capped",
+            "skipped"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tools": {
+          "items": {
+            "$ref": "#/$defs/ToolUse"
+          },
+          "maxItems": 60,
+          "title": "Tools",
+          "type": "array"
+        },
+        "valid": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether the step's validator accepted this answer (None: not checked, or no validator).",
+          "title": "Valid"
+        },
+        "value": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "description": "The answer in the step's shape (STEPS).",
+          "title": "Value",
+          "type": "object"
+        }
+      },
+      "required": [
+        "arm",
+        "answerer"
+      ],
+      "title": "ArmAnswer",
+      "type": "object"
+    },
+    "Difference": {
+      "additionalProperties": false,
+      "properties": {
+        "ai_first": {
+          "$ref": "#/$defs/JsonValue",
+          "default": null
+        },
+        "compare": {
+          "enum": [
+            "equal",
+            "set",
+            "ranked",
+            "numeric",
+            "text",
+            "mapping"
+          ],
+          "title": "Compare",
+          "type": "string"
+        },
+        "field": {
+          "maxLength": 80,
+          "title": "Field",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "same",
+            "differs",
+            "only_system",
+            "only_ai",
+            "neither"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "only_ai": {
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "maxItems": 60,
+          "title": "Only Ai",
+          "type": "array"
+        },
+        "only_system": {
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "maxItems": 60,
+          "title": "Only System",
+          "type": "array"
+        },
+        "system": {
+          "$ref": "#/$defs/JsonValue",
+          "default": null
+        }
+      },
+      "required": [
+        "field",
+        "compare",
+        "kind"
+      ],
+      "title": "Difference",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "ToolUse": {
+      "additionalProperties": false,
+      "properties": {
+        "arguments": {
+          "default": "",
+          "description": "The call's arguments, as short text (names and codes; never a row).",
+          "maxLength": 400,
+          "title": "Arguments",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 80,
+          "title": "Name",
+          "type": "string"
+        },
+        "ok": {
+          "default": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "seconds": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ToolUse",
+      "type": "object"
+    },
+    "Truth": {
+      "additionalProperties": false,
+      "properties": {
+        "note": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "source": {
+          "enum": [
+            "planted",
+            "person_pick",
+            "measured",
+            "label"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "value": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "description": "The right answer for the fields it covers (a subset of the step's fields).",
+          "title": "Value",
+          "type": "object"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "Truth",
+      "type": "object"
+    },
+    "Verdict": {
+      "additionalProperties": false,
+      "properties": {
+        "ai_first": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "title": "Ai First",
+          "type": "object"
+        },
+        "fields": {
+          "description": "The fields judged: the truth's.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Fields",
+          "type": "array"
+        },
+        "system": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "title": "System",
+          "type": "object"
+        },
+        "winner": {
+          "default": "unjudged",
+          "enum": [
+            "system",
+            "ai_first",
+            "both",
+            "neither",
+            "unjudged"
+          ],
+          "title": "Winner",
+          "type": "string"
+        }
+      },
+      "title": "Verdict",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.twin_step.v1.json",
+  "additionalProperties": false,
+  "description": "One step answered by both approaches on one input.",
+  "properties": {
+    "ai_first": {
+      "$ref": "#/$defs/ArmAnswer"
+    },
+    "at": {
+      "maxLength": 40,
+      "title": "At",
+      "type": "string"
+    },
+    "differences": {
+      "description": "Computed from the two answers; a stored one that differs is refused.",
+      "items": {
+        "$ref": "#/$defs/Difference"
+      },
+      "maxItems": 40,
+      "title": "Differences",
+      "type": "array"
+    },
+    "id": {
+      "maxLength": 80,
+      "title": "Id",
+      "type": "string"
+    },
+    "input_fingerprint": {
+      "description": "SHA-256 of the input both arms answered (fingerprint()).",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Fingerprint",
+      "type": "string"
+    },
+    "input_summary": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "description": "What the input held, as names and counts (the host decides; never rows).",
+      "title": "Input Summary",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "dclab_core.twin_step.v1",
+      "default": "dclab_core.twin_step.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "session": {
+      "description": "The twin session (one per draft or project).",
+      "maxLength": 80,
+      "title": "Session",
+      "type": "string"
+    },
+    "step": {
+      "maxLength": 80,
+      "title": "Step",
+      "type": "string"
+    },
+    "subject": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "What the step is about where there are several (a part, a column, a stage).",
+      "title": "Subject"
+    },
+    "system": {
+      "$ref": "#/$defs/ArmAnswer"
+    },
+    "truth": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Truth"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "verdict": {
+      "$ref": "#/$defs/Verdict",
+      "description": "Computed from the answers and the truth; a stored one that differs is refused."
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "session",
+    "step",
+    "at",
+    "input_fingerprint",
+    "system",
+    "ai_first"
+  ],
+  "title": "TwinStep",
+  "type": "object"
+}

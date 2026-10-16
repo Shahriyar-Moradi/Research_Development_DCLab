@@ -1,0 +1,231 @@
+{
+  "$defs": {
+    "StepEffect": {
+      "additionalProperties": false,
+      "properties": {
+        "agreement": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ai_accuracy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ai_failed": {
+          "default": 0,
+          "type": "integer"
+        },
+        "ai_interval": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": "array"
+        },
+        "ai_only_right": {
+          "default": 0,
+          "type": "integer"
+        },
+        "ai_right": {
+          "default": 0,
+          "type": "integer"
+        },
+        "checked_accuracy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "checked_right": {
+          "default": 0,
+          "type": "integer"
+        },
+        "cost_eur": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": "object"
+        },
+        "fields": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "type": "object"
+        },
+        "judged": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "mode": {
+          "default": "undecided",
+          "enum": [
+            "software",
+            "software_reviewed",
+            "ai_checked",
+            "ai",
+            "undecided"
+          ],
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "type": "array"
+        },
+        "review_precision": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "review_recall": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "seconds": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": "object"
+        },
+        "step": {
+          "maxLength": 80,
+          "type": "string"
+        },
+        "steps": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "system_accuracy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "system_interval": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": "array"
+        },
+        "system_only_right": {
+          "default": 0,
+          "type": "integer"
+        },
+        "system_right": {
+          "default": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "step",
+        "steps",
+        "judged"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "rule": {
+      "const": "twin_rule_v1",
+      "default": "twin_rule_v1",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.twin_matrix.v1",
+      "default": "dclab_core.twin_matrix.v1",
+      "type": "string"
+    },
+    "source": {
+      "maxLength": 200,
+      "type": "string"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/StepEffect"
+      },
+      "maxItems": 200,
+      "type": "array"
+    },
+    "totals": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "source"
+  ],
+  "type": "object"
+}

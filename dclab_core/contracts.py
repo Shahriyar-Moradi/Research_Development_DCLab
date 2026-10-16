@@ -388,3 +388,4 @@ import dclab_core.coordinator  # noqa: E402,F401  (the coordinator's situation, 
 import dclab_core.solution_workflow  # noqa: E402,F401  (the solution workflow, 20.6)
 import dclab_core.pipeline  # noqa: E402,F401  (the pipeline of workflows, 20.8)
 import dclab_core.problem_map  # noqa: E402,F401  (the problem map, 24.1)
+import dclab_core.twin  # noqa: E402,F401  (the twin: the system and an AI-first agent on one step, 25.1)
