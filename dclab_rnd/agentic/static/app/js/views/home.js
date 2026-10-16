@@ -377,7 +377,7 @@ DC.view('home', {
           + `<dt>Labels</dt><dd>${esc({ column: 'a column marks the cases', file: 'a file lists the known cases', none: 'nothing is labelled' }[c.labels] || 'not said')}</dd>`
           + `<dt>Outcome</dt><dd>${esc(c.outcome || 'not named')}</dd><dt>Moment</dt><dd>${esc(c.moment || 'not said')}</dd></dl>`
           + (c.ready ? '' : `<div class="callout warn small">${esc((c.blocking || [])[0] || 'Something is still open.')}</div>`) + '</div>' : '';
-        body = `<p>${esc(m.text)}</p>${card}<div class="stack tight" data-map-box="1"></div><div class="row"><button type="button" class="btn primary sm" data-build="1">Create project from chat</button><button type="button" class="btn sm" data-open-bring="1">Add data first</button></div>`;
+        body = `<p>${esc(m.text)}</p>${card}<div class="stack tight" data-map-box="1"></div><div class="row"><button type="button" class="btn primary sm" data-build="1">Build this chat as a project</button><button type="button" class="btn sm" data-open-bring="1">Add data first</button></div>`;
       } else {
         body = `<p>${esc(m.text)}</p>${(m.actions || []).length ? `<div class="row">${m.actions.includes('upload') ? '<button type="button" class="btn sm" data-open-bring="upload">Upload a sample</button>' : ''}${m.actions.includes('connect') ? '<button type="button" class="btn sm" data-open-bring="kaggle">Connect a source</button>' : ''}${m.actions.includes('simulate') ? '<button type="button" class="btn sm" data-open-bring="synthetic">Simulate data</button>' : ''}${m.actions.includes('confirm_map') ? '<button type="button" class="btn primary sm" data-map-build="1">Confirm the map and build</button>' : ''}</div>${m.actions.includes('show_map') ? '<div class="stack tight" data-map-box="1"></div>' : ''}` : ''}`;
       }
@@ -725,28 +725,27 @@ DC.view('home', {
     }
     function creating(on) {  // the header button while DCLab builds: it answers with the plan, or with what is missing first
       const b = $('#home-create', el); if (!b) return;
-      b.disabled = on; b.textContent = on ? 'Creating…' : (S.draft && S.draft.project_id ? 'Open the project' : 'Create project from chat');
+      b.disabled = on; b.textContent = on ? 'Building…' : (S.draft && S.draft.project_id ? 'Open the project' : 'Build this chat as a project');
     }
     $('#home-create', el).addEventListener('click', build);
-    /* The page's own "Create project from chat" (always in sight): with a conversation open it builds; otherwise it starts one
-       from the sentence in the box, or opens the latest open conversation, and says what comes next (owner, 2026-10-16) */
-    async function createFromChat() {
-      const toChat = () => $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' });
-      if (S.draft && S.draft.status === 'open') { toChat(); return build(); }
-      if (S.draft && S.draft.project_id) return build();
-      if ($('#home-task', el).value.trim().length >= 8) {
-        try { await ensureDraft(); toChat(); toast('Conversation started. DCLab asks a few questions first; press Create project from chat when you are ready.'); }
-        catch (e) { if (e.message !== 'no problem') toast(e.message, { ok: false }); }
-        return;
-      }
-      try {
-        const open = (await DC.client.listDrafts()).filter(d => d.status === 'open').sort((a, b) => String(b.updated).localeCompare(String(a.updated)));
-        if (open.length && await resume(open[0].id)) { remember(open[0].id); toChat(); toast('Your latest conversation is open. Press Create project from chat to build it, or start a new one above.'); return; }
-      } catch (e) { /* no list: fall through to the sentence box */ }
-      $('#home-task', el).focus();
-      toast('Describe your problem in one sentence first: DCLab asks a few questions, then this button builds the project.', { ok: false });
+    /* The header's "New project from chat" (the owner, 2026-10-16: a completely new project, never the old chat): the open
+       conversation is put away (it stays in Projects and Needs you, to resume from there), the box is cleared and focused,
+       and the page says what comes next */
+    function newChat() {
+      if (S.close) { S.close(); S.close = null; }
+      S.draft = null; S.analysis = {}; S.assets = {};
+      remember(null);
+      $('#home-thread', el).innerHTML = '';
+      $('#home-reply', el).value = '';
+      showDraftPanels(false);
+      creating(false);
+      const box = $('#home-task', el);
+      box.value = '';
+      box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      box.focus();
+      toast('A new project: describe the problem in one sentence and press Draft the solution. Your earlier conversation is kept under Projects.');
     }
-    el.addEventListener('click', e => { if (e.target.closest('[data-create-chat]')) createFromChat(); });
+    el.addEventListener('click', e => { if (e.target.closest('[data-new-chat]')) newChat(); });
     function wizard() {  // the step-by-step path: data, solution draft, split and budget, then "Review and start"
       if (!S.draft) return;
       DC.state.draftId = S.draft.id;
