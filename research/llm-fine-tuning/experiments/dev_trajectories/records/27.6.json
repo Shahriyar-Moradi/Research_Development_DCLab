@@ -46,6 +46,36 @@
       "cause": "The purpose was added without its test.",
       "fix": "The solver's questions, built as self-play builds them on a table of marked values, reach the model with no value.",
       "test": "test_the_solver_sees_bands_and_names_never_values"
+    },
+    {
+      "id": "M1",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "Claude scored near zero on the solver benchmark while answering right in substance.",
+      "scenario": "SLV-002: 22 of 82 answers readable; it chose the right time column and task under its own keys, and long answers were cut at 600 tokens.",
+      "cause": "The question did not state the answer's keys; a trained model learns them, a model asked cold must guess.",
+      "fix": "Each question states its answer format (keys and allowed values) in training and in the benchmark; the examples were restated without solving again; answers get 1,500 tokens.",
+      "test": "test_a_verified_solve_teaches_and_its_masked_twin_names_nothing"
+    },
+    {
+      "id": "M2",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "A correct kind of problem would have been marked wrong.",
+      "scenario": "The format offered forecasting and other kinds as tasks while the truth holds the base task (binary, multiclass, regression).",
+      "cause": "Task and kind were one field in the format.",
+      "fix": "The task offers only the base tasks; the kind is its own field.",
+      "test": "SLV-003"
+    },
+    {
+      "id": "M3",
+      "source": "measurement",
+      "severity": "leakage",
+      "defect": "Different seeds of one replica made the very same problem in bands.",
+      "scenario": "The gold rules refused the solver sets: one example id under several groups.",
+      "cause": "Deduplication kept one copy per group, not per split.",
+      "fix": "One copy per split, whatever its group; a third of the self-play examples were duplicates, so the replicas need more variety.",
+      "test": "test_generated_sets_keep_their_sealed_partition_and_learn_nothing_of_it"
     }
   ],
   "measurements": [],

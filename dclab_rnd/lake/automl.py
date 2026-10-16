@@ -86,14 +86,19 @@ def evaluate(rows: list[dict[str, Any]], seed: int = 0) -> dict[str, Any]:
         if not train or not test:
             continue
         labels = [winner(r) for r in train]
-        frequent = Counter(labels).most_common(1)[0][0]
+        wins = Counter(labels)
         model = RandomForestClassifier(n_estimators=200, min_samples_leaf=2, random_state=seed).fit([features(r) for r in train], labels)
-        predicted = model.predict([features(r) for r in test])
-        for r, p in zip(test, predicted):
-            picks["meta_model"].append(regret(r, str(p)))
+        probabilities = model.predict_proba([features(r) for r in test])
+        classes = list(model.classes_)
+        for r, prob in zip(test, probabilities):
+            # every picker chooses among the families this problem's screen tried (what a real run would offer it)
+            candidates = [s["model"] for s in r["screen"] if s.get("model")]
+            score = dict(zip(classes, prob))
+            pick = max(candidates, key=lambda f: (score.get(f, 0.0), wins.get(f, 0)))
+            picks["meta_model"].append(regret(r, pick))
             picks["always_xgboost"].append(regret(r, "xgboost"))
             picks["always_random_forest"].append(regret(r, "random_forest"))
-            picks["most_frequent_winner"].append(regret(r, frequent))
+            picks["most_frequent_winner"].append(regret(r, max(candidates, key=lambda f: wins.get(f, 0))))
             picks["oracle"].append(0.0)
     meta = picks["meta_model"]
     out = {name: {"mean_regret": round(sum(v) / len(v), 4) if v else None, "interval": _boot(v, seed), "best_picked": sum(1 for x in v if x == 0)}
@@ -106,11 +111,12 @@ def evaluate(rows: list[dict[str, Any]], seed: int = 0) -> dict[str, Any]:
             "families": dict(Counter(winner(r) for r in rows))}
 
 
-def run(store: bool = False) -> dict[str, Any]:
+def run(store: bool = False, supersedes: dict[str, str] | None = None) -> dict[str, Any]:
     rows = screens()
     result = evaluate(rows) if len({r["kind"] for r in rows}) >= 2 else {"problems": len(rows), "note": "fewer than two problem kinds: nothing to judge yet"}
     doc = {"campaign_id": "automl_v1", "kind": "learned_automl", "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-           "source": "lake/bronze/selfplay/screens.jsonl", "result": result, "status": "completed", "rule": RULE}
+           "source": "lake/bronze/selfplay/screens.jsonl", "result": result, "status": "completed", "rule": RULE,
+           **({"supersedes": supersedes} if supersedes else {})}
     if store and result.get("pickers"):
         results = CAMPAIGN / "results"
         results.mkdir(parents=True, exist_ok=True)

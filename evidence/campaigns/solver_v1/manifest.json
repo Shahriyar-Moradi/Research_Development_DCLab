@@ -1,0 +1,6 @@
+{
+  "campaign_id": "solver_v1",
+  "objective": "Package 27.6: the ML-solver benchmark. An answerer (DCLab's rules, the configured model, the owner's tuned model) answers the problem type, the leakage judgment and the split design of verified invented problems; each answer is scored against the replica's planted facts, with Wilson intervals, cost and the share answered.",
+  "rule": "A measurement on verified invented problems (replicas of each engine kind, solved by DCLab's engine and kept only when every acceptance decision passed), scored against the traps the replicas plant. It says how an answerer reads these kinds of problems, not how it does on real ones, and never that a model is ready for production.",
+  "command": "python -m dclab_rnd.lake benchmark --answerer rules|configured|tuned [--split dev|sealed]"
+}

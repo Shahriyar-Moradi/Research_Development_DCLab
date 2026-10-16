@@ -136,7 +136,7 @@ def model_answerer(tier: str, cap_eur: float | None) -> tuple[Callable[[list[dic
 
     def ask(messages: list[dict[str, str]]) -> dict[str, Any] | None:
         try:
-            out = client.complete(messages[:2], None, 600)
+            out = client.complete(messages[:2], None, 1500)
         except Exception:  # noqa: BLE001 — a refused or failed request is an unanswered case, never a stop
             return None
         return _json(str(out.get("content") or ""))

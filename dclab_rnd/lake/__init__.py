@@ -255,17 +255,17 @@ def decontaminate(rows: list[Any], key: Callable[[Any], str]) -> tuple[list[Any]
     for r in rows:
         by_split[r.provenance.split].add(key(r))
     held = {"train": by_split["dev"] | by_split["sealed"], "dev": by_split["sealed"]}
-    seen: set[str] = set()
+    seen: set[tuple[str, str]] = set()
     out, why = [], Counter()
     for r in rows:
         k, split = key(r), r.provenance.split
         if k in held.get(split, ()):
             why[f"{split} row identical to an evaluation row"] += 1
             continue
-        if (k, split, r.provenance.group) in seen:
+        if (k, split) in seen:  # one copy per split, whatever its group: two seeds can make the very same problem in bands
             why["duplicate"] += 1
             continue
-        seen.add((k, split, r.provenance.group))
+        seen.add((k, split))
         out.append(r)
     return out, why
 

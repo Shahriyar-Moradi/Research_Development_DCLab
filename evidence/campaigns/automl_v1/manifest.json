@@ -1,0 +1,6 @@
+{
+  "campaign_id": "automl_v1",
+  "objective": "Package 26.6a: a family picked from a table's meta-features against always-XGBoost, always-random-forest and the most frequent winner, by normalised regret on held-out problem kinds.",
+  "rule": "A measurement on verified invented problems of DCLab's engine kinds: how close a family picked from meta-features comes to the best family of each problem's own screen, judged on problem kinds the meta-model never saw. It says nothing yet about real tables, nor that any pick beats a tuned search.",
+  "command": "python -m dclab_rnd.lake automl --store"
+}

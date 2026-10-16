@@ -178,6 +178,7 @@ class PublicAndSelfplayTests(unittest.TestCase):
             done = P.solve(["binary"], seeds=1)
             got = P.examples()
         self.assertEqual((done["problems"], done["rejected"]), (1, 0))
+        self.assertTrue(all("answer_format" in json.loads(e.messages[1]["content"]) for e in got))  # a model asked cold sees the contract too
         self.assertEqual({e.family for e in got}, {"problem_type", "leakage_judgment", "split_design", "algorithm_choice", "read_results"})
         self.assertEqual(L.gold_problems(got), [])
         case = next(k for k in kinds.all_kinds() if k.key == "binary").case(0)

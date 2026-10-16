@@ -82,6 +82,8 @@ trained language model of DCLab's, a single clean store that every model reads, 
   licence kept; options sorted so the outcome is never in a learnable place. The fetch runs (resumable); the retraining on real tables
   and the sealed set of real tables follow when it is done.
 
+  **So far:** about 1,200 datasets fetched; 20,773 labelled real columns per column point in gold (each table in one split), 619
+  outcome-column and 595 task samples; the decisions export holds 37,065 training rows, 30,776 of them from OpenML.
 ### 26.3 Decision models for the workflow
 - **Delivers:** generation 1 classifiers for the workflow points the ledger records (the next question, the next move,
   ask or act, the pack, the route of a sub-problem, when to stop), trained on the recorded sessions, the journeys and
@@ -123,6 +125,11 @@ Two tracks, because "as good as XGBoost" is a claim to be measured, not assumed:
 - **Done when (both):** on a sealed set of at least 30 real classification datasets never used to tune, the mean
   normalised score and the mean rank against tuned XGBoost and random forest, with bootstrap intervals by dataset;
   reported by table size, where it wins and where it loses. Neither is called better unless the interval says so.
+
+- **Status of 26.6a (2026-10-16): built, measuring.** `python -m dclab_rnd.lake automl`: a meta-model picks the family from a
+  table's meta-features, trained on the self-play screens (every family's cross-validated score on training folds), judged
+  leaving one problem kind out at a time by normalised regret against always-XGBoost, always-random-forest and the most frequent
+  winner. 26.6b (the in-context tabular model) waits on a GPU budget.
 
 ### 26.7 Your own decision models: the fine-tuning kit for companies and engineers
 - **Delivers:** a workspace exports its consented decisions in the gold shape; a fine-tune of DCLab's base decision
@@ -180,6 +187,13 @@ write a report with its uncertainty; and drive DCLab's tools step by step as an 
 - **Done when:** a test session in a tester workspace yields one complete episode per agent step with its outcome, and
   `make lake` turns it into examples of four families without hand work.
 
+- **Status: findings (2026-10-16), mapping waits on two things.** (1) Every event keeps the consent level it was written under
+  (23.1), so nothing recorded while train consent was off can ever become training data: only sessions recorded after the owner
+  switches "use to train" on reach the lake. A project's own consent is also off by default, and a draft's conversation follows
+  the project it became. (2) The session sets (episodes, trajectories, workflows) do not say which model made each move; a project
+  the intern solved with Claude holds Claude's outputs, which may not be training targets. They stay in silver until each row
+  carries the answering model (then DCLab's own and people's moves go to gold, Claude's to evaluation).
+
 ### 27.3 Verified synthetic solving ("self-play" with known answers)
 - **Delivers:** a generator that takes invented problems (the benchmark generator and the replicas, extended to every
   engine kind) and solves them with DCLab's engine and agents, keeping a trajectory only when it is verified: the
@@ -188,11 +202,12 @@ write a report with its uncertainty; and drive DCLab's tools step by step as an 
 - **Done when:** at least 2,000 verified trajectories over at least 200 distinct invented problems across every engine
   kind, with a rejection log (what failed verification and why).
 
-- **Status: built (2026-10-16); the volume run follows.** `dclab_rnd/lake/selfplay.py` (`python -m dclab_rnd.lake selfplay`): every
-  engine kind's replica by seed, solved by the engine with no model, kept only when every acceptance decision passes; five families
-  (problem type, leakage judgment with the train-only signals the auditor measured, split design, algorithm choice, reading results),
-  the naming families twice (names, and names masked inside free text too); a rejection log.
-
+- **Status: built and run (2026-10-16).** `dclab_rnd/lake/selfplay.py` (`python -m dclab_rnd.lake selfplay`, resumable): every
+  engine kind's replica by seed, solved by the engine with no model, kept only when every acceptance decision passes; five families,
+  the naming families twice (names, and names masked inside free text too); each question states its answer format. **Run:** 193 of
+  200 problems verified over 10 kinds (7 rejected with their reasons), 1,544 examples of which 1,060 are distinct: seeds of one
+  replica often make the same problem in bands, so the replicas need more variety (wording, names, sizes, traps) to reach the
+  2,000 distinct examples this package asks for.
 ### 27.4 Public corpora (after the owner's yes)
 - **Delivers:** OpenML tasks and runs (dataset metadata, flows, scores) as dataset-to-pipeline-to-score examples and as
   real-table rows for 26.2; Kaggle only where the licence allows, through the connector (the owner's key).
@@ -220,6 +235,9 @@ write a report with its uncertainty; and drive DCLab's tools step by step as an 
   sealed split read once per answerer and model. The gateway purpose `solver_answer` (its prompt `prompts/solver_answer.md`,
   the same system text self-play trains on). Left: the model-driven solving of whole problems through DCLab's tools.
 
+  **First baselines (dev, 82 questions on 22 problems):** DCLab's rules (SLV-003) problem type 16 of 16, leak and identifier kept
+  out 34 of 34, the time column 28 of 32; Claude asked cold (SLV-004, €0.46) 15 of 16, 28 of 34 (0.66 to 0.92), 14 of 32 (0.28 to
+  0.61). SLV-002 is superseded: its questions did not state the answer's keys, and Claude, right in substance, was unreadable.
 ### 27.7 Train and evaluate
 - **Delivers:** the recipe and the runs: supervised fine-tuning on the gold mix (all families) → tool-use fine-tuning on
   the verified trajectories → preference tuning (DPO) from outcomes and people's edits and picks → optionally
@@ -250,6 +268,10 @@ write a report with its uncertainty; and drive DCLab's tools step by step as an 
 5. **Order.** Recommended: 26.1 (the lake) first, because both phases read it; then 26.2 and 27.3 in parallel (real
    tables, verified synthetic solving); then 27.5 and 27.6 (clean data and the benchmark) before any training run;
    then 26.4 and 27.7 (the training runs); 26.6 and 26.8 as research tracks beside them.
+
+6. **Consent for training, from now on.** Sessions become training data only when they are recorded under train consent:
+   switch "use to train" on for your development workspace (Admin → Consent), and decide whether new projects should
+   inherit it (today each project starts off). Recommended: on for your own workspace now; testers' kits already set it.
 
 **The owner's answers (2026-10-16):** OpenML metadata, yes. Claude's outputs: evaluation only. Training: DCLab
 prepares the data, the recipes, the benchmark and the run scripts; the owner runs the training on a GPU. Budget for

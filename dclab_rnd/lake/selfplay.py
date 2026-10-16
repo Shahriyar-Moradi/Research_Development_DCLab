@@ -53,9 +53,27 @@ def _columns(table: Any, target: str | None, masked: bool) -> tuple[list[dict[st
     return out, alias
 
 
-def _ask(question: str, given: dict[str, Any], answer: dict[str, Any]) -> list[dict[str, str]]:
+# The answer each family asks for, stated in the question (live, 2026-10-16: a model asked cold answered right in substance
+# under its own keys, and the benchmark could not read it): a trained model and a model asked cold see the same contract.
+FORMATS: dict[str, dict[str, Any]] = {
+    "problem_type": {"task": "binary | multiclass | regression (the base task the model learns)", "kind": "the kind of problem, e.g. churn, forecasting, rare_event, uplift, time_to_event", "why": "one sentence"},
+    "leakage_judgment": {"forbidden": [{"column": "a column name as given", "reason": "why it is unknown at the moment or encodes the outcome"}],
+                         "identifiers": ["a column name as given"]},
+    "split_design": {"holdout": "how the holdout is drawn", "time_column": "a column name as given, or null", "group_column": "a column name as given, or null",
+                     "cross_validation": "how the training rows are folded"},
+    "algorithm_choice": {"feature_recipe": "a recipe name", "model": "a model family", "ranking": ["model families, best first"], "selection_rule": "one sentence"},
+    "read_results": {"primary_metric": "a metric name", "value": "a number", "interval": "the interval given, or null", "beats_baseline": "true, false or null",
+                     "holdout_read_once": "true or false", "claim": "what may be claimed, in one sentence"},
+}
+
+
+def _ask(question: str, given: dict[str, Any], answer: dict[str, Any], family: str | None = None) -> list[dict[str, str]]:
+    asked = {"question": question, **given}
+    if family in FORMATS:
+        asked["answer_format"] = FORMATS[family]
+        asked["answer_only"] = "Reply with this JSON object only, its keys exactly as written, and nothing else."
     return [{"role": "system", "content": system()},
-            {"role": "user", "content": json.dumps({"question": question, **given}, ensure_ascii=False, sort_keys=True, default=str)},
+            {"role": "user", "content": json.dumps(asked, ensure_ascii=False, sort_keys=True, default=str)},
             {"role": "assistant", "content": json.dumps(answer, ensure_ascii=False, sort_keys=True, default=str)}]
 
 
@@ -81,7 +99,7 @@ def examples_of(kind: Any, seed: int, case: Any, run: Any, checks: list[dict[str
     out = []
 
     def add(family: str, question: str, given: dict[str, Any], answer: dict[str, Any]) -> None:
-        msgs = _ask(question, given, answer)
+        msgs = _ask(question, given, answer, family)
         eid = "sp_" + L.fingerprint([family, msgs])[:24]
         out.append(L.TrainingExample(example_id=eid, family=family, messages=msgs, verification=ok, quality=0.8, provenance=prov))  # type: ignore[arg-type]
 
@@ -204,3 +222,19 @@ def examples() -> list[L.TrainingExample]:
     if not path.is_file():
         return []
     return [L.TrainingExample.read(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def restate(path: Path | None = None) -> int:
+    """Give every example already solved its family's answer format (the solves stay; only the question changes)."""
+    path = path or OUT / "examples.jsonl"
+    rows = [L.TrainingExample.read(x) for x in path.read_text(encoding="utf-8").splitlines() if x.strip()] if path.is_file() else []
+    out = []
+    for e in rows:
+        asked = json.loads(e.messages[1]["content"])
+        question = asked.pop("question")
+        for k in ("answer_format", "answer_only"):
+            asked.pop(k, None)
+        msgs = _ask(question, asked, json.loads(e.messages[2]["content"]), e.family)
+        out.append(e.model_copy(update={"messages": msgs, "example_id": "sp_" + L.fingerprint([e.family, msgs])[:24]}))
+    path.write_text("".join(e.model_dump_json() + "\n" for e in out), encoding="utf-8")
+    return len(out)

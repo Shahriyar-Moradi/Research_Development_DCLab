@@ -1,0 +1,115 @@
+{
+  "id": "AML-001",
+  "experiment_id": "AML-001",
+  "campaign_id": "automl_v1",
+  "kind": "learned_automl",
+  "at": "2026-10-16T18:23:18+00:00",
+  "source": "lake/bronze/selfplay/screens.jsonl",
+  "result": {
+    "problems": 179,
+    "kinds": [
+      "binary",
+      "embedded",
+      "forecasting",
+      "multiclass",
+      "places",
+      "rare_event",
+      "regression",
+      "text_tabular",
+      "time_to_event",
+      "uplift"
+    ],
+    "pickers": {
+      "meta_model": {
+        "mean_regret": 0.7279,
+        "interval": [
+          0.6683,
+          0.7858
+        ],
+        "best_picked": 28
+      },
+      "always_xgboost": {
+        "mean_regret": 0.7859,
+        "interval": [
+          0.7499,
+          0.822
+        ],
+        "best_picked": 1
+      },
+      "always_random_forest": {
+        "mean_regret": 1.0,
+        "interval": [
+          1.0,
+          1.0
+        ],
+        "best_picked": 0
+      },
+      "most_frequent_winner": {
+        "mean_regret": 0.5963,
+        "interval": [
+          0.5303,
+          0.661
+        ],
+        "best_picked": 48
+      },
+      "oracle": {
+        "mean_regret": 0.0,
+        "interval": [
+          0.0,
+          0.0
+        ],
+        "best_picked": 179
+      }
+    },
+    "paired": {
+      "always_xgboost": {
+        "meta_better": 54,
+        "meta_worse": 42,
+        "difference": 0.058,
+        "difference_interval": [
+          0.0205,
+          0.0969
+        ]
+      },
+      "always_random_forest": {
+        "meta_better": 78,
+        "meta_worse": 0,
+        "difference": 0.2721,
+        "difference_interval": [
+          0.2146,
+          0.3319
+        ]
+      },
+      "most_frequent_winner": {
+        "meta_better": 0,
+        "meta_worse": 35,
+        "difference": -0.1316,
+        "difference_interval": [
+          -0.1755,
+          -0.0866
+        ]
+      }
+    },
+    "families": {
+      "extra_trees": 16,
+      "xgboost": 1,
+      "logistic_regression": 24,
+      "naive": 20,
+      "kaplan_meier": 14,
+      "discrete_boosted": 4,
+      "cox": 1,
+      "uplift_tree": 4,
+      "x_learner": 6,
+      "response_model": 4,
+      "t_learner": 3,
+      "random": 1,
+      "1.0": 14,
+      "10.0": 4,
+      "lightgbm": 48,
+      "ridge": 7,
+      "hist_gradient_boosting": 8
+    }
+  },
+  "status": "completed",
+  "rule": "A measurement on verified invented problems of DCLab's engine kinds: how close a family picked from meta-features comes to the best family of each problem's own screen, judged on problem kinds the meta-model never saw. It says nothing yet about real tables, nor that any pick beats a tuned search."
+}

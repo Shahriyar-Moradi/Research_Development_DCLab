@@ -1,0 +1,53 @@
+{
+  "id": "SLV-002",
+  "experiment_id": "SLV-002",
+  "campaign_id": "solver_v1",
+  "kind": "solver_benchmark",
+  "at": "2026-10-16T18:35:43+00:00",
+  "answerer": {
+    "name": "configured",
+    "tier": "standard",
+    "model": "claude-sonnet-5-5"
+  },
+  "split": "dev",
+  "cases": 82,
+  "problems": 22,
+  "families": {
+    "leakage_judgment": {
+      "n": 34,
+      "right": 6,
+      "accuracy": 0.1765,
+      "interval": [
+        0.0835,
+        0.3351
+      ],
+      "answered": 11,
+      "leak_caught": 8,
+      "extra_flags": 0
+    },
+    "problem_type": {
+      "n": 16,
+      "right": 0,
+      "accuracy": 0.0,
+      "interval": [
+        0.0,
+        0.1936
+      ],
+      "answered": 11
+    },
+    "split_design": {
+      "n": 32,
+      "right": 0,
+      "accuracy": 0.0,
+      "interval": [
+        0.0,
+        0.1072
+      ],
+      "answered": 0
+    }
+  },
+  "cap_eur": 2.0,
+  "spent_eur": 0.6046,
+  "status": "completed",
+  "rule": "A measurement on verified invented problems (replicas of each engine kind, solved by DCLab's engine and kept only when every acceptance decision passed), scored against the traps the replicas plant. It says how an answerer reads these kinds of problems, not how it does on real ones, and never that a model is ready for production."
+}

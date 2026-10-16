@@ -185,6 +185,26 @@
       "cause": "The card's anomaly family skipped the supervised solution.",
       "fix": "A named outcome column means a supervised solution whatever the card inferred.",
       "test": "checked on the replay"
+    },
+    {
+      "id": "M3",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "The learned AutoML was judged on families a problem never screened.",
+      "scenario": "AML-001: a survival or uplift family picked for another kind counted as the worst choice.",
+      "cause": "Pickers chose from every family seen in training.",
+      "fix": "Every picker chooses among the families the problem screened; AML-002 supersedes AML-001: the meta-model beats always-XGBoost but not yet the most frequent winner.",
+      "test": "test_a_meta_model_that_reads_the_table_beats_a_fixed_family_where_the_winner_depends_on_it"
+    },
+    {
+      "id": "M4",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "A forecasting kind's solves were all rejected with a type error.",
+      "scenario": "Self-play called the kind's own-machine acceptance on the engine's run.",
+      "cause": "Own-machine kinds check the engine's run with accept_engine.",
+      "fix": "They use accept_engine; the false rejections were cleared and solved.",
+      "test": "selfplay run: forecasting 20 of 20 verified"
     }
   ],
   "measurements": [
@@ -197,6 +217,28 @@
       "cost_eur": 0.0,
       "limits": [
         "The workspaces' own sets are empty until their train consent and each project's consent are on."
+      ]
+    },
+    {
+      "name": "self-play volume run",
+      "gate": "every acceptance decision passes",
+      "fixed_before_run": true,
+      "result": "193 of 200 invented problems verified over 10 engine kinds, 1,544 examples (1,060 distinct), 179 model screens; 7 rejected with their reasons",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "Invented problems; seeds of one replica repeat in bands."
+      ]
+    },
+    {
+      "name": "learned AutoML (AML-002)",
+      "gate": "none fixed: a first measurement",
+      "fixed_before_run": false,
+      "result": "179 problems from 9 kinds, one kind held out at a time; normalised regret: meta-model 0.46 (0.40-0.53), most frequent winner 0.40 (0.33-0.46), always XGBoost 0.79, always random forest 1.00",
+      "verdict": "not scored",
+      "cost_eur": 0.0,
+      "limits": [
+        "179 problems from 9 kinds; meta-features are bands only."
       ]
     }
   ],
