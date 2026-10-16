@@ -1,0 +1,64 @@
+{
+ "package": "26.7",
+ "title": "A company's own decision models: exported, fine-tuned on DCLab's base, gated and served in its workspace",
+ "date": "2026-10-17",
+ "request": "Let every company and machine-learning engineer fine-tune their own decision models from DCLab's.",
+ "spec": "dclab_core/own_models.py (stacking on the base classifier), dclab_rnd/own_models.py (export, fit, gate, status, current), routing and shadow reading a workspace's own models.",
+ "plan": [
+  "Keep every row in the workspace folder.",
+  "Never change the base model: read its answer as features.",
+  "Judge on the workspace's own sealed projects, once per decision; route only in that workspace."
+ ],
+ "decisions": [
+  {
+   "decision": "Fine-tuning is stacking on the base model's probabilities.",
+   "why": "A company has few rows; the base model's reading carries what it knows, and it stays untouched."
+  },
+  {
+   "decision": "To act, an own model needs its shadow measurement, not DCLab's journeys.",
+   "why": "The journeys are DCLab's replicas, not the company's decisions."
+  }
+ ],
+ "change": "own_models (core and studio), routing.passed(home), switch(home), answer finding own@ models, shadow answering own models in shadow.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The own model's gate compared it with the person's corrections instead of the rule.",
+   "scenario": "After a person's correction value_used is the person's value, so the rule looked nearly perfect.",
+   "cause": "value_used was taken as the rule's answer.",
+   "fix": "The rule's own answer is read from the record's answers.",
+   "test": "test_gated_once_on_its_own_sealed_decisions_and_then_a_candidate_in_its_workspace_only"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A workspace's sealed decisions could be judged again after new projects arrived.",
+   "scenario": "The read mark was one fingerprint of the whole set.",
+   "cause": "Adding a sealed project changed the fingerprint.",
+   "fix": "The ids read are kept; a later gate judges only decisions never read.",
+   "test": ""
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "An own model could not be served.",
+   "scenario": "Nothing read own_models.passed.",
+   "cause": "Routing and shadow loaded only DCLab's folders.",
+   "fix": "routing.switch and answer, and shadow, read the workspace's own models.",
+   "test": "test_a_passed_own_model_is_routed_in_its_workspace_only_and_answers_there"
+  }
+ ],
+ "measurements": [],
+ "outcome": "A workspace fine-tunes, gates and serves its own decision model end to end in its folder, and DCLab's base model is untouched.",
+ "lessons": [
+  "After a person's correction, the record's used value is theirs: compare with the rule's own answer."
+ ],
+ "risks": [
+  "The LoRA path for a company's own language model is 27.10."
+ ],
+ "commits": []
+}

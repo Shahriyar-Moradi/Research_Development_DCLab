@@ -273,6 +273,16 @@ class CaptureTest(unittest.TestCase):
             agent.next_turn(draft["id"])
         self.assertEqual([r.value_used for r in self.store.records(point="workflow.next_question")], ["none", "target"])
 
+    def test_nothing_is_recorded_while_a_question_waits_for_its_answer(self):
+        from dclab_rnd.ledger import capture
+
+        draft = {"id": "d-pending", "understanding": {}, "questions": [{"id": "q1", "field": "target", "answered": None}], "pack": None}
+        self.assertEqual(capture.next_question(draft, None), 0)  # 26.3: nothing was decided while it waits
+        draft["questions"][0]["answered"] = "late"
+        self.assertEqual(capture.next_question(draft, ("labels_check", "", [], "")), 1)
+        record = self.store.records(point="workflow.next_question")[-1]
+        self.assertEqual((record.value_used, record.state["steps_left"]), ("labels", 4))  # a check is recorded as its own field
+
     def test_a_saved_solution_is_one_write(self):
         from dclab_rnd.ledger import capture
 

@@ -1,4 +1,4 @@
-.PHONY: lake twin-eval tester-setup share collect catalog datasets decisions-gen decision-models decisions-export decision-gate benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all check-quick check-quick-tests check-commit core-schemas core-wheel-check code-check journeys harness-eval decision-r3 benchmark-v4 pitfalls-by-kind results-by-kind
+.PHONY: lake twin-eval tester-setup share collect catalog datasets decisions-gen decision-models decisions-export decision-gate workflow-models solver-data own-models benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all check-quick check-quick-tests check-commit core-schemas core-wheel-check code-check journeys harness-eval decision-r3 benchmark-v4 pitfalls-by-kind results-by-kind
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -289,6 +289,12 @@ decision-models:  ## 22.2: a classifier per decision point on the generated sets
 decisions-export:  ## 22.5: the decision sets as chat JSONL (with a dataset card), a parquet table and typed questions; sealed rows never written
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.decision_export
 
+workflow-models:  ## 26.3: the workflow points' classifiers from journeys: ARGS=collect|train ("gate --yes" judges them once on the sealed journeys)
+	DCLAB_NO_LIVE_MODELS=1 DCLAB_DECISION_SHADOW=0 $(PYTHON) -m dclab_rnd.workflow_models $(ARGS)
+
+own-models:  ## 26.7: this workspace's own decision models: ARGS="export|fit|status" (and "gate --yes", once); its rows never leave the workspace folder
+	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.own_models $(ARGS)
+
 decision-gate:  ## 22.3: each classifier judged once on its sealed decisions by decision_gate_v1 (fixed before the run); prints the plan, ARGS=--yes runs it
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.decision_gate_run $(ARGS)
 
@@ -372,6 +378,11 @@ harness-eval:  ## 21.5: the regression cases (the owner's morning first), accept
 
 lake:  ## 26.1: the training lake: bronze (inputs and hashes), silver (every source normalised, redacted), gold (one set per decision point and task family, checked); manifest in research/llm-fine-tuning/experiments/lake/
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.lake build $(ARGS)
+
+solver-data:  ## 27.5: the lake rebuilt with its cleaning pass (pure states, personal data, near duplicates, evaluation tables, quality, a card per set), then the training files of both models
+	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.lake build
+	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.lake export --target decisions
+	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.lake export --target solver --weights leakage_judgment=2,split_design=2
 
 twin-eval:  ## 25.8: the blind twin runs on studied samples judged against the planted truth, the matrix stored in evidence/campaigns/twin_v1 (ARGS="--run hyperack,telco_churn --yes --cap-eur 1.5" runs Claude first)
 	$(PYTHON) -m dclab_rnd.twin eval $(ARGS)

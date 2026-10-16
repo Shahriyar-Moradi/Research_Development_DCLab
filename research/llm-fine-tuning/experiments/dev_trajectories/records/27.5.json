@@ -1,0 +1,92 @@
+{
+ "package": "27.5",
+ "title": "Clean, deduplicate, decontaminate, score: one pass and a card for every gold set",
+ "date": "2026-10-17",
+ "request": "Training data organised, structured and clean: nothing personal, no duplicate, nothing an evaluation reads.",
+ "spec": "dclab_core/clean.py, the lake build's clean_decisions and clean_examples, eval_seeds, cards per set, make solver-data.",
+ "plan": [
+  "Features must be pure states; personal identifiers dropped; near duplicates and evaluation rows out of train and dev; a quality score; a card per set."
+ ],
+ "decisions": [
+  {
+   "decision": "Only what identifies a person is personal data.",
+   "why": "Row counts, feature ranges and prices in a study are its content; redaction's broad patterns are for people's free text."
+  },
+  {
+   "decision": "A self-play example of a table an evaluation reads is kept out of train and dev.",
+   "why": "dev is the training run's validation file."
+  }
+ ],
+ "change": "clean (impure, personal on JSON strings, near_key keeping digits, dedupe, quality with the reasoning part, cards), lake build, the test fixture's state field.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Most verified results and algorithm examples were dropped as personal data.",
+   "scenario": "Sixteen-digit metrics matched the card and identifier patterns.",
+   "cause": "Redaction ran on raw JSON.",
+   "fix": "Only JSON strings are checked, and only identifying kinds count.",
+   "test": "test_personal_data_is_found_and_a_measured_number_is_not_it"
+  },
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "296 of 330 research answers were dropped as personal data.",
+   "scenario": "Row counts, V1-V28 and $50 matched the ID and amount patterns.",
+   "cause": "Every redaction kind counted.",
+   "fix": "Only email, IBAN, card, IP, phone and address count.",
+   "test": ""
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Evaluation tables reached the validation file.",
+   "scenario": "selfplay:uplift:3 was kept in dev while benchmark v4's sealed run reads seed 3.",
+   "cause": "The seed filter applied to train only.",
+   "fix": "Train and dev; the programme's seed added.",
+   "test": "test_an_example_of_a_table_an_evaluation_reads_never_trains"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Near duplicates ignored the numbers the examples are about.",
+   "scenario": "Results of other seeds collapsed into one.",
+   "cause": "Every digit was normalised to zero.",
+   "fix": "Digits stay.",
+   "test": "test_near_duplicates_compare_without_case_or_punctuation_but_keep_their_numbers"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Every card claimed every origin.",
+   "scenario": "A construction-only set claimed OpenML and people's labels.",
+   "cause": "Claims were one text per kind.",
+   "fix": "Claims follow the origins the rows have.",
+   "test": "test_every_written_set_has_its_card"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "latent",
+   "defect": "A fixture's state held a field no real state has.",
+   "scenario": "The purity check dropped the fixture rows.",
+   "cause": "The test used a made-up field g.",
+   "fix": "The fixture uses a real field.",
+   "test": ""
+  }
+ ],
+ "measurements": [],
+ "outcome": "Every gold set is cleaned, scored and carded; make solver-data rebuilds the lake and both training files.",
+ "lessons": [
+  "A cleaning rule tuned for people's text must not be run on measurements."
+ ],
+ "risks": [
+  "Self-play repeats in bands: after cleaning the solver families are a few hundred rows."
+ ],
+ "commits": []
+}

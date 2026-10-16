@@ -84,7 +84,8 @@ def truth(row: dict[str, Any]) -> dict[str, Any]:
 
 
 def _json(text: str) -> dict[str, Any] | None:
-    match = re.search(r"\{.*\}", text or "", re.S)
+    text = re.sub(r"<think>.*?</think>", "", text or "", flags=re.S)  # 27.9: a reasoning model's answer follows its thinking
+    match = re.search(r"\{.*\}", text, re.S)
     try:
         return json.loads(match.group(0)) if match else None
     except ValueError:

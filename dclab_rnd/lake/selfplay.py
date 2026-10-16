@@ -77,6 +77,24 @@ def _ask(question: str, given: dict[str, Any], answer: dict[str, Any], family: s
             {"role": "assistant", "content": json.dumps(answer, ensure_ascii=False, sort_keys=True, default=str)}]
 
 
+def primary_of(metrics: dict[str, Any], interval: Any, reported: Any = None) -> str | None:
+    """27.9: the primary metric is the one the engine reported, the one its interval was drawn for (a first match in a
+    fixed order paired a rare event's ROC-AUC with its average precision's interval)."""
+    if reported in metrics:
+        return str(reported)
+    point = interval.get("point") if isinstance(interval, dict) else None
+    if isinstance(point, (int, float)):
+        match = [m for m, v in metrics.items() if isinstance(v, (int, float)) and abs(float(v) - float(point)) < 1e-9]
+        if match:
+            return next((m for m in ("average_precision", "roc_auc", "r2", "mae", "accuracy") if m in match), match[0])
+    return next((m for m in ("roc_auc", "average_precision", "r2", "mae", "accuracy") if m in metrics), None)
+
+
+def beats_chance(primary: str | None, metrics: dict[str, Any], baseline: dict[str, Any]) -> bool | None:
+    chance = {"roc_auc": 0.5, "r2": 0.0, "average_precision": (baseline.get("majority_class") or {}).get("average_precision_random_ranking")}.get(primary or "")
+    return (metrics[primary] > chance) if primary and isinstance(chance, (int, float)) else None
+
+
 def examples_of(kind: Any, seed: int, case: Any, run: Any, checks: list[dict[str, Any]], masked: bool) -> list[L.TrainingExample]:
     """The families one verified solve teaches, in one naming variant."""
     columns, alias = _columns(case.table, case.target, masked)
@@ -126,10 +144,9 @@ def examples_of(kind: Any, seed: int, case: Any, run: Any, checks: list[dict[str
     metrics = final.get("holdout_metrics") or {}
     ci = final.get("holdout_primary_metric_ci")
     if metrics and not masked:
-        primary = next((m for m in ("roc_auc", "average_precision", "r2", "mae", "accuracy") if m in metrics), None)
+        primary = primary_of(metrics, ci, final.get("metric"))
         baseline = final.get("baselines") or {}
-        chance = {"roc_auc": 0.5, "r2": 0.0, "average_precision": (baseline.get("majority_class") or {}).get("average_precision_random_ranking")}.get(primary)
-        beats = (metrics[primary] > chance) if primary and isinstance(chance, (int, float)) else None
+        beats = beats_chance(primary, metrics, baseline)
         add("read_results", "What do the holdout results say, with their uncertainty, and what may be claimed?",
             {"task": case.task, "holdout_metrics": {k: v for k, v in metrics.items() if isinstance(v, (int, float))}, "primary_interval": ci,
              "baselines": baseline, "holdout_uses": final.get("holdout_uses_in_this_project")},
@@ -225,7 +242,8 @@ def examples() -> list[L.TrainingExample]:
 
 
 def restate(path: Path | None = None) -> int:
-    """Give every example already solved its family's answer format (the solves stay; only the question changes)."""
+    """Give every example already solved its family's answer format (the solves stay; only the question changes), and
+    (27.9) a results example its primary metric as the engine measured its interval."""
     path = path or OUT / "examples.jsonl"
     rows = [L.TrainingExample.read(x) for x in path.read_text(encoding="utf-8").splitlines() if x.strip()] if path.is_file() else []
     out = []
@@ -234,7 +252,13 @@ def restate(path: Path | None = None) -> int:
         question = asked.pop("question")
         for k in ("answer_format", "answer_only"):
             asked.pop(k, None)
-        msgs = _ask(question, asked, json.loads(e.messages[2]["content"]), e.family)
+        answer = json.loads(e.messages[2]["content"])
+        if e.family == "read_results":  # 27.9: the primary metric is the one its interval was drawn for
+            metrics = asked.get("holdout_metrics") or {}
+            primary = primary_of(metrics, asked.get("primary_interval"))
+            if primary and primary != answer.get("primary_metric"):
+                answer.update(primary_metric=primary, value=metrics.get(primary), beats_baseline=beats_chance(primary, metrics, asked.get("baselines") or {}))
+        msgs = _ask(question, asked, answer, e.family)
         out.append(e.model_copy(update={"messages": msgs, "example_id": "sp_" + L.fingerprint([e.family, msgs])[:24]}))
     path.write_text("".join(e.model_dump_json() + "\n" for e in out), encoding="utf-8")
     return len(out)

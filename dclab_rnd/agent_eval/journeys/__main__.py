@@ -21,6 +21,8 @@ def main() -> int:
     parser.add_argument("--yes", action="store_true", help="send the reader's requests (with --reader)")
     parser.add_argument("--cap-eur", type=float, default=0.5, help="the reader's spend cap for the whole run")
     parser.add_argument("--spent", action="store_true", help="read a sealed set already run as dev material: nothing is stored")
+    parser.add_argument("--live-arms", action="store_true", help="26.5: the rules, the workflow model alone, and the workflow model with the "
+                                                                    "decision models, on dev (with --yes and --cap-eur)")
     args = parser.parse_args()
     sealed = args.split in SEALED
     if args.spent:
@@ -60,6 +62,8 @@ def main() -> int:
         return 0
     if args.reader:
         return _reader_arm(args, seed)
+    if args.live_arms:
+        return _live_arms(args, seed)
     rows = measure(args.split, seed, args.workers, args.only)
     for r in rows:
         mark = "ok  " if r["right"] else "MISS"
@@ -122,6 +126,73 @@ def _reader_arm(args, seed: int) -> int:
         for arm, rows in by_arm.items():
             print(store(rows, args.split, verdict(rows), arm=arm, seed=seed, spent_eur=spent if arm == "reader" else 0.0,
                         extra={"reader_against_rules": against} if arm == "reader" else None))
+    return 0
+
+
+def _live_arms(args, seed: int) -> int:
+    """26.5: the third arm. The rules alone; the workflow model alone (the configured model as the Home agent and the
+    roles, every decision point on the rules: its routing is empty); and the workflow model with the decision models
+    (the same, with every model that passed its sealed gate routed to act, and the Home agent's decide_point answering
+    from them). Played in this process (the clients live here), on dev only, each live arm with half the cap."""
+    from . import arms, compare, load, play
+
+    if args.split != "dev":
+        print("the live arms are compared on dev: a sealed set is run once, for its own gate")
+        return 2
+    people = [j for j in load(args.split) if not args.only or j["id"] in args.only or j["kind"] in args.only]
+    gated = arms()
+    combined = gated.get("all") or next((doc for name, doc in gated.items() if name != "rules" and not name.endswith("@check")), {"decisions": {}})
+    routed = {"workflow_model": {"decisions": {}}, "workflow_model+decision_models": combined}
+    if not args.yes:
+        print(f"Plan: {len(people)} people, three arms (the rules; the configured model as the Home agent and the roles; the same with "
+              f"{sorted((combined.get('decisions') or {})) or 'no gated model'} routed to act), capped at {args.cap_eur} EUR for both live arms. "
+              "Add --yes to send the requests.")
+        return 0
+    from dotenv import load_dotenv
+
+    from dclab_rnd.core_advisor import GatewayAdvisor
+    from dclab_rnd.models.gateway import Gateway
+    from dclab_rnd.settings import ROOT
+
+    load_dotenv(ROOT / ".env", override=False)
+    os.environ.pop("DCLAB_NO_LIVE_MODELS", None)
+    by_arm = {"rules": measure(args.split, seed, args.workers, args.only)}
+    spent, models, incomplete = 0.0, {}, []
+    for name, doc in routed.items():
+        gateway = Gateway()
+        client = gateway.client("home_agent")
+        if client is None:
+            print("no model can serve the Home agent here (no key, or DCLAB_NO_LIVE_MODELS): nothing live to run")
+            return 2
+        client.run_limit_eur = args.cap_eur / 4  # half the cap per live arm: half for the Home agent, half for the roles
+        live = {"client": client, "advisor": GatewayAdvisor(gateway, cap_eur=args.cap_eur / 4)}
+        rows, most = [], 0.0
+        for j in people:
+            before = client.spent_eur + live["advisor"].spent_eur()
+            left = min(client.run_limit_eur - client.spent_eur, args.cap_eur / 4 - live["advisor"].spent_eur())
+            if rows and left < 1.5 * most:  # the next journey could run out mid-way: it would quietly fall back to the rules
+                incomplete.append(f"{name}: stopped before {j['id']} (EUR {left:.3f} left, a journey took up to EUR {most:.3f})")
+                break
+            try:
+                rows.append(play(j, seed, doc, live))
+            except Exception as error:  # noqa: BLE001 - a journey that breaks is wrong, with its reason
+                rows.append({"id": j["id"], "kind": j["kind"], "family": j["family"], "parts": {}, "right": False,
+                             "why": [f"broke: {type(error).__name__}: {str(error)[:300]}"]})
+            most = max(most, client.spent_eur + live["advisor"].spent_eur() - before)
+        by_arm[name] = rows
+        spent += client.spent_eur + live["advisor"].spent_eur()  # what the clients cost, a broken journey's requests included
+        models[name] = sorted({m for r in rows for m in (r.get("models") or {}).values()})
+    result = compare(by_arm)
+    for arm, a in result["arms"].items():
+        print(f"{'ok  ' if a['ok'] else 'WORSE'} {arm:32} {a['right']}/{a['journeys']} right  {json.dumps(a['parts'])}  changed by a decision model "
+              f"{a['decisions_by_model']}, held for review {a['held_for_review']}, refused by the validator {a['refused_by_validator']}")
+    print(result["verdict"], f"spent EUR {spent:.4f} of {args.cap_eur}")
+    if incomplete:  # an arm cut short by its budget is not an arm of the people it did not play: nothing is stored
+        print("not stored, an arm was cut short by the cap: " + "; ".join(incomplete))
+        return 1
+    if not args.no_store and not args.only:
+        print(store_compare(by_arm, result, args.split, seed, spent_eur=round(spent, 4), routing={"rules": {"decisions": {}}, **routed},
+                            extra={"arm_kind": "live_arms_26_5", "models": models, "cap_eur": args.cap_eur}))
     return 0
 
 

@@ -29,6 +29,7 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--lake", type=Path, default=LAKE)
     e.add_argument("--out", type=Path, default=None)
     e.add_argument("--weights", default="", help="set=weight,...: repeat or thin a set in train (e.g. leakage_judgment=2)")
+    e.add_argument("--no-think", action="store_true", help="27.9: write the solver's answers without their verified <think> block")
     o = sub.add_parser("openml", help="26.2: fetch and profile OpenML's public tables (resumable; the owner's yes, 2026-10-16)")
     o.add_argument("--limit", type=int, default=1200)
     p = sub.add_parser("selfplay", help="27.3: solve the engine kinds' replicas by seed, keep only verified solves")
@@ -49,8 +50,8 @@ def main(argv: list[str] | None = None) -> int:
         from .train import export
 
         weights = {k: float(v) for k, _, v in (w.partition("=") for w in args.weights.split(",") if w)}
-        m = export(args.target, args.lake, args.out, weights)
-        print(json.dumps({k: m[k] for k in ("target", "train", "val", "by_origin", "refused")}, indent=1))
+        m = export(args.target, args.lake, args.out, weights, thinking=not args.no_think)
+        print(json.dumps({k: m[k] for k in ("target", "train", "val", "by_origin", "with_reasoning", "refused")}, indent=1))
         return 0
     if args.command == "benchmark":
         from . import benchmark

@@ -21,6 +21,10 @@ from pathlib import Path
 from typing import Any, Optional
 
 TECHNICAL = ("column.is_identifier", "column.time", "column.group", "column.category_code", "column.semantic_role", "feature.leakage_suspect")
+# 26.5: the workflow points an agent asks about the problem (26.3's classifiers answer them); the rules' answer is the caller's
+WORKFLOW = ("problem.family", "problem.ready", "workflow.next_question")
+# 26.5: the cautions a routed model may add and never remove (the studio's validators: solution.py's leak check, the identifiers)
+CAUTIONS = ("feature.leakage_suspect", "column.is_identifier", "column.group")
 EVIDENCE = {"column.is_identifier": ("DCLAB-R04", "DCLAB-R02"), "column.group": ("DCLAB-R02",), "column.time": ("DCLAB-R02",),
             "column.category_code": ("DCLAB-R11",), "column.semantic_role": ("DCLAB-R11", "DCLAB-R03"),
             "feature.leakage_suspect": ("DCLAB-R04", "DCLAB-R05", "DCLAB-R01")}
@@ -39,6 +43,14 @@ class DecideError(ValueError):
 
 
 def options_of(point: str) -> list[str]:
+    if point == "problem.family":
+        from dclab_core.ledger import FAMILIES
+
+        return list(FAMILIES)
+    if point == "workflow.next_question":
+        from dclab_core.workflow_labels import QUESTIONS
+
+        return list(QUESTIONS)
     return list(OPTIONS.get(point) or ["yes", "no"])
 
 
@@ -115,8 +127,8 @@ def workspace_routing(home: Optional[str] = None) -> tuple[dict[str, Any], str]:
 def _check(point: str, state: dict[str, Any], options: Optional[list[Any]]) -> tuple[dict[str, Any], list[str]]:
     from dclab_core.ledger import check_state
 
-    if point not in TECHNICAL:
-        raise DecideError(f"{point!r} is not a technical decision one asks about a column: {', '.join(TECHNICAL)}")
+    if point not in TECHNICAL and point not in WORKFLOW:
+        raise DecideError(f"{point!r} is not a decision asked here: {', '.join(TECHNICAL + WORKFLOW)}")
     if not isinstance(state, dict):
         raise DecideError("the state is an object of bands")
     state = {k: v for k, v in state.items() if v is not None}
@@ -131,24 +143,37 @@ def _check(point: str, state: dict[str, Any], options: Optional[list[Any]]) -> t
 
 
 def ask(point: str, state: dict[str, Any], options: Optional[list[Any]] = None, routing_doc: Optional[dict[str, Any]] = None,
-        recorded: Any = None, home: Optional[str] = None) -> dict[str, Any]:
+        recorded: Any = None, home: Optional[str] = None, rule_value: Any = None, rule_name: Optional[str] = None) -> dict[str, Any]:
     """One technical decision answered from a column's state: what DCLab would do, with the rule (the project's recorded
-    one when ``recorded`` is its decision record), the classifiers and their confidence, the disagreement, the evidence."""
+    one when ``recorded`` is its decision record), the classifiers and their confidence, the disagreement, the evidence.
+    26.5: a workflow point (``WORKFLOW``) is answered from the problem's state, its rule's answer given by the caller
+    (``rule_value``, by ``rule_name``): the bands' rule reads columns only. Inside a routing scope (a journey's arm) the
+    scope's routing is the one read."""
     from dclab_core.answerers import RecordedRule, _key
     from dclab_core.ledger import POINTS
 
     from .ledger import routing, shadow
 
     state, options = _check(point, state, options)
+    from dclab_core.ledger import Answer
+
+    from .ledger import use
+
     if recorded is not None:
         ruled, source = RecordedRule().of(recorded), "the project's recorded decision"
+    elif point in WORKFLOW:
+        ruled = Answer(by="rule", answerer=rule_name or "rule:home", value=rule_value) if rule_value is not None else None
+        source = "the rules' current answer, as the caller gave it" if ruled is not None else "none given"
     else:
         ruled, source = rule(point, state), "bands (an approximation: a project's own rules read its whole table)"
-    if routing_doc is None:
+    if routing_doc is None and use.scoped() is not None:
+        routing_doc, where = use.scoped(), "scope"
+    elif routing_doc is None:
         routing_doc, where = workspace_routing(home)
     else:
         where = "workspace"
-    models = [m for m in shadow.answerers() if point in m.points] if shadow.banded(state) else []
+    readable = shadow.banded(state) or (point in WORKFLOW and any(v is not None for k, v in state.items() if k not in shadow.NAMES))
+    models = [m for m in shadow.answerers() if point in m.points] if readable else []
     verdicts = shadow.gate_results()
     answers = []
     for m in models:
@@ -160,12 +185,16 @@ def ask(point: str, state: dict[str, Any], options: Optional[list[Any]] = None, 
             answers.append({"answerer": got.answerer, "value": got.value, "confidence": got.confidence,
                             "sealed_gate": verdicts.get(got.answerer) or "not judged"})
     value, used, level, _, review = routing.answer(routing_doc, point, state, options, ruled, models)
+    refused = None
+    if used not in ("rule", "none") and point in CAUTIONS and ruled is not None and ruled.value is True and value is False:
+        value, used, refused = ruled.value, "rule", "the rules flagged it: a model never frees a column the rules hold back"
     if recorded is not None and level < 2:  # the project's own decision is what it did (a person may have overridden the rule)
         value, used = recorded.value_used, recorded.used
     differ = sorted({a["answerer"] for a in answers if ruled is not None and a["value"] is not None and _key(a["value"]) != _key(ruled.value)})
     return {"point": point, "question": POINTS[point].about, "answer": value, "decided_by": used, "level": level, "review": review,
             "rule": {"answerer": ruled.answerer, "value": ruled.value, "reason": ruled.reason} if ruled is not None else None,
             "rule_source": source, "routing": where, "models": answers, "disagree": differ, "evidence": _evidence(point), "options": options,
+            "refused_by_validator": refused,
             "note": ("A model differs from the rule: shown, never hidden; the rule's answer stands unless a model was routed to act."
                      if differ else None)}
 

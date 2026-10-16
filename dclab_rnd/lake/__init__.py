@@ -270,7 +270,123 @@ def decontaminate(rows: list[Any], key: Callable[[Any], str]) -> tuple[list[Any]
     return out, why
 
 
+def eval_seeds() -> set[int]:
+    """27.5: the replicas' seeds an evaluation reads (benchmark v4's dev and sealed seeds, the journeys' dev and sealed
+    seeds, the workflow models' sealed journeys): a self-play example of those tables is never a training row."""
+    from ..agent_eval import benchmark_v4
+    from ..agent_eval.journeys import GATES
+    from ..agent_eval.journeys.programme import GATE as PROGRAMME
+    from ..workflow_models import GATE as WORKFLOW
+
+    return {0, *(s for v in benchmark_v4.REPLICA_SEEDS.values() for s in v), *(g["seed"] for g in GATES.values()), int(WORKFLOW["seed"]),
+            int(PROGRAMME["seed"])}
+
+
+def truth_problems(r: L.TrainingExample, text: str) -> list[str]:
+    """27.9: a self-play trace must reach the replica's planted truth (its leak and identifier, its time column), the facts
+    the replica was built with, not DCLab's answer."""
+    if r.family not in ("leakage_judgment", "split_design"):
+        return []
+    from .benchmark import truth
+
+    try:
+        t = truth(r.model_dump(mode="json"))
+    except Exception:  # noqa: BLE001 - a replica that cannot be rebuilt: no trace is kept without its truth
+        return ["the replica's truth could not be read"]
+    if r.family == "leakage_judgment":
+        return [f"the planted column `{c}` is not in the trace" for c in [*t["leak"], *t["identifier"]] if f"`{c}`" not in text]
+    if t["time_column"] and f"ordered in time by `{t['time_column']}`" not in text:
+        return [f"the planted time column `{t['time_column']}` is not the trace's"]
+    return []
+
+
+def reason(rows: list[L.TrainingExample]) -> tuple[list[L.TrainingExample], Counter]:
+    """27.9: each example's verified reasoning (``dclab_core.reasoning``) kept as its rationale, the `<think>` its export
+    writes; a trace that is not grounded in the example's own numbers and columns is not kept (the example stays, with none);
+    a self-play example whose answer misses the replica's planted leak, identifier or time column is dropped (the engine may
+    have handled the trap its own way, but the answer as written would teach that nothing is there)."""
+    from dclab_core import reasoning
+
+    out, why = [], Counter()
+    for r in rows:
+        if r.rationale:
+            out.append(r)
+            continue
+        steps, problems = reasoning.of_messages(r.family, r.messages)
+        if steps and not problems and r.provenance.source == "selfplay":
+            missed = truth_problems(r, "\n".join(steps))
+            if missed:  # the answer itself misses what the replica planted: it would teach a wrong answer, so it goes
+                why["answer misses the replica's planted truth (example dropped)"] += 1
+                continue
+        if steps and not problems:
+            out.append(r.model_copy(update={"rationale": "\n".join(steps)[:4000]}))
+            why["reasoning kept"] += 1
+        else:
+            out.append(r)
+            why["reasoning not grounded" if steps else "no reasoning for this family yet"] += 1
+    return out, why
+
+
+def clean_decisions(rows: list[L.DecisionSample]) -> tuple[list[L.DecisionSample], Counter]:
+    """27.5: a sample whose features are not a pure state, or whose text holds personal data, is dropped; then duplicates
+    and evaluation rows (``decontaminate``)."""
+    from dclab_core import clean
+
+    kept, why = [], Counter()
+    for r in rows:
+        if clean.impure(r.features):
+            why["features not a pure state (a value)"] += 1
+        elif clean.personal([r.state_text, r.subject_ref]):
+            why["personal data"] += 1
+        else:
+            kept.append(r)
+    out, more = decontaminate(kept, lambda r: L.fingerprint([r.decision_point, r.features, r.label]))
+    return out, why + more
+
+
+def clean_examples(rows: list[L.TrainingExample], seeds: set[int]) -> tuple[list[L.TrainingExample], Counter]:
+    """27.5: personal data dropped; a self-play example of a table an evaluation reads kept out of train; exact and near
+    duplicates (and train rows nearly equal to an evaluation row) dropped; each kept example scored."""
+    from dclab_core import clean
+
+    kept, why = [], Counter()
+    for r in rows:
+        if clean.personal([m.get("content") for m in r.messages] + [r.rationale]):
+            why["personal data"] += 1
+            continue
+        group = r.provenance.group.split(":")
+        if r.provenance.split in ("train", "dev") and group[0] == "selfplay" and len(group) == 3 and group[2].isdigit() and int(group[2]) in seeds:
+            why[f"{r.provenance.split} example of a table an evaluation reads"] += 1  # dev is the training run's validation file
+            continue
+        kept.append(r.model_copy(update={"quality": clean.quality(r.family, r.messages, r.verification.passed, reasoned=bool(r.rationale))}))
+    out, more = clean.dedupe(kept, lambda r: clean.near_key(r.messages), lambda r: r.provenance.split)
+    return out, why + more
+
+
+CLAIMS = {"decision_sample": (["How a model reads these decision points on the sources below, split by whole table or project."],
+                               ["Nothing about tables of another kind than its sources.",
+                                "That a model trained on it is ready for production: real tables and blind labels decide that."]),
+          "training_example": (["How a model answers these task families on the sources below."],
+                               ["That a model trained on it solves problems end to end: 27.6's benchmark measures that, once."]),
+          "eval_record": (["Comparison and evaluation only: what another answerer (Claude) said on the same steps."],
+                          ["Nothing may be trained on it (the owner's decision of 2026-10-16)."])}
+BY_ORIGIN = {  # 27.5: what a set may claim follows the origins its rows have, never a fixed text
+    "construction": "Labels planted by construction in invented tables: exact for the planted kinds, silent on others.",
+    "public_catalog": "Labels from public datasets' own marks (OpenML's row identifier, default target and column types): real tables, "
+                      "marks as their uploaders set them.",
+    "verified_synthetic": "Invented problems solved by DCLab's engine and kept only when every planted trap was caught: verified, not real.",
+    "research_record": "Answers from the R&D's own research records, each cited.",
+    "human_exposed": "A person's corrections after seeing DCLab's answer (exposed, not blind).",
+    "human_blind": "Labels from people who did not see any model's answer.",
+    "measured_outcome": "Labels measured from what happened afterwards (an outcome, a holdout comparison).",
+    "teacher_claude": "Claude's answers: evaluation only, never a training target.",
+    "dev_record": "DCLab's build history, written in Claude Code sessions: evaluation only.",
+}
+
+
 def write_set(folder: Path, kind: str, name: str, rows: list[Any], inputs: list[dict[str, str]], dropped: Counter) -> dict[str, Any]:
+    from dclab_core import clean
+
     problems = L.gold_problems(rows)
     manifest = L.manifest_of(name, VERSION, kind, rows, inputs, dropped, now(), commit())
     if problems:  # nothing is written: the previous build's files were removed with the whole gold folder
@@ -282,6 +398,15 @@ def write_set(folder: Path, kind: str, name: str, rows: list[Any], inputs: list[
     for split, items in by_split.items():
         (folder / f"{split}.jsonl").write_text("".join(i.model_dump_json() + "\n" for i in items), encoding="utf-8")
     (folder / "manifest.json").write_text(manifest.model_dump_json(indent=1) + "\n", encoding="utf-8")
+    claims, limits = CLAIMS[kind]
+    origins = sorted({r.provenance.origin for r in rows})
+    claims = [*claims, *(BY_ORIGIN[o] for o in origins if o in BY_ORIGIN)]
+    if "public_catalog" not in origins and kind != "eval_record":
+        limits = [*limits, "Nothing about real tables: none of its rows comes from one."]
+    licences = Counter(str(r.provenance.licence or "not recorded") for r in rows)
+    c = clean.card(name, kind, json.loads(manifest.model_dump_json()), dropped, licences, claims, limits)
+    (folder / "card.json").write_text(json.dumps(c, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    (folder / "CARD.md").write_text(clean.card_markdown(c), encoding="utf-8")
     return {"name": name, "written": True, "manifest": json.loads(manifest.model_dump_json())}
 
 
@@ -332,6 +457,7 @@ def build(lake: Path = LAKE, homes: Iterable[Path] | None = None, manifest_path:
     examples = chat_corpus(SFT_V3, "evidence_answer", "research_record", "sft/out_v3", run, verified)
     examples += chat_corpus(SFT_DEV, "engineering", "dev_record", "sft/out_dev", run, verified)
     examples += selfplay.examples()
+    examples, reasoned = reason(examples)
     teacher = eval_records(evaluation)
     # silver: each source's rows as read, with provenance
     silver = lake / "silver"
@@ -351,7 +477,7 @@ def build(lake: Path = LAKE, homes: Iterable[Path] | None = None, manifest_path:
     for d in decisions:
         by_point[d.decision_point].append(d)
     for point, rows in sorted(by_point.items()):
-        kept, why = decontaminate(rows, lambda r: L.fingerprint([r.decision_point, r.features, r.label]))
+        kept, why = clean_decisions(rows)
         sources = {r.provenance.source for r in rows}
         sets.append(write_set(lake / "gold" / "decisions" / point / VERSION, "decision_sample", f"decisions/{point}", kept,
                               [i for i in run.inputs if point in i["path"] or "datasets" in i["path"] or "openml" in i["path"]],
@@ -359,8 +485,9 @@ def build(lake: Path = LAKE, homes: Iterable[Path] | None = None, manifest_path:
     by_family: dict[str, list[L.TrainingExample]] = defaultdict(list)
     for e in examples:
         by_family[e.family].append(e)
+    seeds = eval_seeds()
     for family, rows in sorted(by_family.items()):
-        kept, why = decontaminate(rows, lambda r: L.fingerprint(r.messages))
+        kept, why = clean_examples(rows, seeds)
         sets.append(write_set(lake / "gold" / "solver" / family / VERSION, "training_example", f"solver/{family}", kept,
                               [i for i in run.inputs if "sft" in i["path"] or "selfplay" in i["path"]], _merged(run, {r.provenance.source for r in rows}, why)))
     for name, rows in sorted(teacher.items()):
@@ -370,6 +497,7 @@ def build(lake: Path = LAKE, homes: Iterable[Path] | None = None, manifest_path:
     summary = {"name": "DCLab training lake", "version": VERSION, "builder_commit": commit(),
                "workspaces_read": len(homes) - len(run.skipped), "workspaces_skipped": [s["why"] for s in run.skipped], "inputs": len(run.inputs),
                "silver_only": {k: len(v) for k, v in sorted(others.items())},
+               "reasoning": dict(reasoned),  # 27.9: the examples that carry a verified trace (their `<think>`), and those without
                "dropped_by_source": {k: dict(v) for k, v in sorted(run.dropped.items()) if v},
                "sets": [{"name": s["name"], "written": s["written"], **({"problems": s["problems"]} if not s["written"] else {}),
                          **{k: s["manifest"][k] for k in ("rows", "by_split", "by_origin", "by_family", "groups", "dropped")}} for s in sets],

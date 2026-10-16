@@ -493,8 +493,10 @@ def store(rows: list[dict[str, Any]], split: str, result: str, arm: str = "rules
     return path
 
 
-def store_compare(by_arm: dict[str, list[dict[str, Any]]], result: dict[str, Any], split: str, seed: int) -> Path:
-    """22.9's measurement, beside the journeys' runs: one result with every arm."""
+def store_compare(by_arm: dict[str, list[dict[str, Any]]], result: dict[str, Any], split: str, seed: int, spent_eur: float = 0.0,
+                  routing: Optional[dict[str, Any]] = None, extra: Optional[dict[str, Any]] = None) -> Path:
+    """22.9's measurement, beside the journeys' runs: one result with every arm. 26.5: ``routing`` the arms' own (a live
+    arm's), ``spent_eur`` what the live arms cost, ``extra`` what the run adds (its models, its cap)."""
     out = ROOT / "evidence" / "campaigns" / "decision_workflow_v1" / "results"
     out.mkdir(parents=True, exist_ok=True)
     n = 1 + max([int(p.name.split("_")[0].split("-")[1]) for p in out.glob("DWF-*.json")] or [0])
@@ -506,8 +508,9 @@ def store_compare(by_arm: dict[str, list[dict[str, Any]]], result: dict[str, Any
                     "model is measured on its own"},
            "arms": {arm: [{k: r.get(k) for k in ("id", "kind", "right", "parts", "why", "decisions", "by_model", "agreed", "refused_by_validator",
                                                  "refused_moves", "holdout")} for r in rows] for arm, rows in by_arm.items()},
-           "summary": result["arms"], "verdict": result["verdict"], "spent_eur": 0.0, "status": "completed", "experiment_id": ident,
-           "routing": arms(),  # 21.5: which answerer at which level each arm ran, read by the decision switch
+           "summary": result["arms"], "verdict": result["verdict"], "spent_eur": spent_eur, "status": "completed", "experiment_id": ident,
+           "routing": arms() if routing is None else routing,  # 21.5: which answerer at which level each arm ran, read by the decision switch
+           **(extra or {}),
            "rule": "Arms on the dev journeys over seeded replicas: what each routed decision model changes in these journeys, not a "
                    "claim about any other problem; routing a model in a workspace still needs its audited switch."}
     path = out / f"{ident}_{split}.json"

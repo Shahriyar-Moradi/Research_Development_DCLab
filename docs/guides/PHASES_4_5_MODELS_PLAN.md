@@ -7,6 +7,8 @@ machine-learning engineer fine-tune their own decision models from DCLab's; exte
 uses. Phase 5: fine-tune a language model (large or small) that is very good at solving machine-learning problems,
 with all the data it needs collected under the hood of DCLab, organised, structured and clean.
 
+**The three models** (the owner's clarification, 2026-10-17; `THREE_MODELS.md` maps each to its data): Model 1, the solver LLM (Qwen3 8B class) that understands a problem, reasons step by step and lays out the solution workflow; Model 2, the decision models, small classifiers per decision point and the line that must stand beside XGBoost and random forests; Model 3, the combination, the workflow model calling the decision models at every typed decision. All three for DCLab first, then as a service through which companies and developers train their own.
+
 This plan builds on the owner's *DCLab Decision Model Plan* (2026-10-13, 13 pages: the decision points, the six label
 sources, the sample record, generations 1 and 2, the R3 gates, the third backend) and on what was built since. It
 does not restate that plan; it says what is done, what is left of it, and what phases 4 and 5 add.
@@ -92,6 +94,13 @@ trained language model of DCLab's, a single clean store that every model reads, 
 - **Done when:** each point has a card beside the rule's score; a point that does not beat the rule stays in shadow
   (that is the expected result for most points until real sessions accumulate).
 
+- **Status: built (2026-10-17), two reviews fixed (11 findings).** `dclab_core/workflow_labels.py` and `python -m dclab_rnd.workflow_models
+  collect|relabel|train|gate`: the dev and spent journeys played with a ledger on the rules alone (302 plays), each workflow decision labelled
+  by the answers its journey accepts (never DCLab's own; the product's rules, the question cap, a re-ask, a file of cases, a blocked route, not
+  judged), a card per point for the family, ready, the next question and the route; twelve points say why they get none. The sealed set
+  (`journeys_workflow_sealed.json`, 30 people by an independent agent) is read once by `decision_gate_v1`: see DWM. Left: recorded sessions'
+  outcome labels (27.2).
+
 ### 26.4 Generation 2: one small language model for every decision
 - **Delivers:** the LoRA fine-tune of the decision plan's generation 2 (a 1.5B to 4B open model) on the gold decision
   sets of 26.1 to 26.3, answering every point in its typed form with a probability read from the choice tokens and
@@ -112,6 +121,11 @@ trained language model of DCLab's, a single clean store that every model reads, 
   A third arm on the journeys and the twin runs: **workflow model + decision models**, beside the rules and Claude.
 - **Done when:** that arm is measured on the dev journeys and the twin runs against the rules and against the workflow
   model alone; it is switched on per point only where it measured better.
+
+- **Status: built (2026-10-17).** `decide` answers the workflow points and reads a journey arm's routing; the Home agent's `decide_point`
+  (a read tool from the draft's own state, a routed model never freeing a column the rules hold back); `python -m dclab_rnd.agent_eval.journeys
+  --live-arms --yes --cap-eur N`: the rules, the workflow model alone, the two together, an arm cut short by its cap not stored. Left: the twin
+  runs' third lane.
 
 ### 26.6 A classifier from the decision line that stands beside XGBoost and random forests
 Two tracks, because "as good as XGBoost" is a claim to be measured, not assumed:
@@ -138,6 +152,11 @@ Two tracks, because "as good as XGBoost" is a claim to be measured, not assumed:
   their consent is `train`.
 - **Done when:** a tester workspace (25.11) fine-tunes, gates and serves its own model end to end, and the base model is
   untouched by it.
+
+- **Status: built (2026-10-17).** `make own-models ARGS=export|fit|status` (and `gate --yes`): a workspace's labelled decisions, kept in its
+  folder; its own model stacked on DCLab's base classifier (read, never changed); judged once per decision on its own sealed projects against
+  the rule's own answer; routed only in its workspace (`routing.switch(..., home=)`), in shadow first, acting after its shadow measurement.
+  Left: a company's own language models (27.10).
 
 ### 26.8 Beyond tables: images and other kinds
 - **Delivers (research, after 26.1 to 26.5):** the decision points of image classification (labels' quality, near
@@ -208,6 +227,28 @@ write a report with its uncertainty; and drive DCLab's tools step by step as an 
   200 problems verified over 10 kinds (7 rejected with their reasons), 1,544 examples of which 1,060 are distinct: seeds of one
   replica often make the same problem in bands, so the replicas need more variety (wording, names, sizes, traps) to reach the
   2,000 distinct examples this package asks for.
+### 27.9 Verified reasoning traces (Model 1's `<think>`)
+- **Delivers:** a reasoning trace for every verified self-play problem and every built project, written from DCLab's own
+  records, never from a model: the problem card's reading, each decision's reason and the evidence it cites, the engine's
+  measured numbers (the leak's apparent lift, the folds' scores), in the order the solution workflow takes them; kept as
+  the example's rationale and as the `<think>` block of the exported chat rows, and checked against the replica's truth
+  (a trace that names a wrong leak or a number that is not in the records is dropped). `solution_design` examples (the
+  problem to its whole workflow) from the same problems.
+- **Done when:** every self-play family and `solution_design` carry a verified trace; a test fails on a trace with a
+  number its records do not hold.
+
+- **Status: built (2026-10-17).** `dclab_core/reasoning.py`: traces for problem type, leakage, split, algorithm choice and reading results,
+  kept only when grounded in the example's own numbers and columns and reaching the replica's planted truth (1,466 of 1,544; 78 examples whose
+  answer missed the planted leak dropped); exported as `<think>` before the answer, the question asking to think first (`--no-think` to leave it
+  out). Left: `solution_design` (a self-play rerun keeping the solution workflow) and traces from sessions (27.2).
+
+### 27.10 A company's own solver and workflow models
+- **Delivers:** the 26.7 path extended to sessions: a workspace exports its own consented sessions as solver and agent
+  examples in the gold shape (the same builders, inside its folder), the LoRA recipe run on them, the same benchmark on
+  its own sealed sessions, and its model behind its workspace's tuned tier only.
+- **Done when:** a tester workspace exports, and its export passes the cleaning of 27.5; the training job runner and
+  per-tenant serving are the owner's infrastructure decision.
+
 ### 27.4 Public corpora (after the owner's yes)
 - **Delivers:** OpenML tasks and runs (dataset metadata, flows, scores) as dataset-to-pipeline-to-score examples and as
   real-table rows for 26.2; Kaggle only where the licence allows, through the connector (the owner's key).
@@ -221,6 +262,11 @@ write a report with its uncertainty; and drive DCLab's tools step by step as an 
   length, agreement), and a dataset card per set. `make solver-data` runs it end to end.
 - **Done when:** a test fails on a duplicated example across splits, on a cell value, on an evaluation case in
   training; the card says what each set can and cannot claim.
+
+- **Status: built (2026-10-17).** `dclab_core/clean.py` and the lake build: pure states, personal identifiers (not a study's numbers), near
+  duplicates keeping their numbers, no example of a table an evaluation reads in train or dev, a quality score with the reasoning part, a card
+  per set whose claims follow its rows' origins; `make solver-data`. After cleaning: decisions 35,456 train and 9,505 validation rows; the solver
+  785 and 158 (461 with a verified think).
 
 ### 27.6 The benchmark for the solver
 - **Delivers:** what the model is judged on before any training: the agent judgment suite (planted traps), benchmark v4

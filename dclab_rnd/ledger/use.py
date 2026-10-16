@@ -73,6 +73,11 @@ def recording() -> Iterator[list[Choice]]:
         _SEEN.reset(token)
 
 
+def scoped() -> Optional[dict[str, Any]]:
+    """The routing a scope set (a journey's arm), or None outside one."""
+    return _SCOPE.get()
+
+
 def routing_doc() -> dict[str, Any]:
     doc = _SCOPE.get()
     if doc is not None:

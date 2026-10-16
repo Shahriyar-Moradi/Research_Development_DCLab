@@ -1006,6 +1006,75 @@ def get_profile(turn: Turn, /, **args: Any) -> dict[str, Any]:
             **{k: profile.get(k) or [] for k in ("target_candidates", "time_candidates", "id_candidates", "text_candidates")}}
 
 
+def decide_point(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    """26.5: a typed decision answered by DCLab's decision models beside its rules, from the draft's own state (bands,
+    counts and flags, never a value): a column's (its role, an identifier, a time, a group, a code, a leak), or the
+    problem's (its family, whether it is ready to build, the next question). The answer to act on follows the
+    workspace's routing (the rules' unless a model passed its sealed gate and was switched on); a disagreement is shown."""
+    from .. import decide as D
+    from ..ledger import column_state
+    from .card import card_of
+
+    point = str(args.get("point") or "")
+    draft = turn.agent.store.get(turn.draft_id)
+    analysis = draft.get("analysis") or {}
+    try:
+        if point in D.TECHNICAL:
+            name = str(args.get("column") or "")
+            column = next((c for c in analysis.get("columns") or [] if c.get("name") == name), None)
+            if column is None:
+                return {"error": f"No column {name!r} in the prepared table: name one get_profile lists."}
+            state = column_state(column, (analysis.get("summary") or {}).get("rows"))
+            target = (draft.get("understanding") or {}).get("target")
+            if target in {c.get("name") for c in analysis.get("columns") or []} and target != name:
+                state["target"] = target
+            out = D.ask(point, {k: v for k, v in state.items() if v is not None})
+        elif point in D.WORKFLOW:
+            state, value = _problem_state(turn.agent, draft, point, card_of(draft))
+            out = D.ask(point, state, rule_value=value, rule_name="rule:home")
+        else:
+            return {"error": f"{point!r} is not asked here: {', '.join(D.TECHNICAL + D.WORKFLOW)}"}
+    except D.DecideError as e:
+        return {"error": str(e)}
+    return {k: out.get(k) for k in ("point", "question", "answer", "decided_by", "level", "review", "rule", "models", "disagree", "note", "refused_by_validator")}
+
+
+def _problem_state(agent: HomeAgent, draft: dict[str, Any], point: str, card: Any) -> tuple[dict[str, Any], Any]:
+    """The state the ledger records at a problem point (as ``ledger.capture`` writes it) and the rules' answer there."""
+    u = draft.get("understanding") or {}
+    if point == "workflow.next_question":
+        from dclab_core.workflow_labels import QUESTION_LIMIT
+
+        questions = [q for q in draft.get("questions") or [] if not q.get("superseded")]
+        state = {"open_questions": sum(1 for f in ("target", "prediction_moment", "action") if not u.get(f)), "step": len(questions),
+                 "steps_left": max(QUESTION_LIMIT - len(questions), 0), "labels": capture_labels(draft),
+                 "outcome_known": bool(u.get("target")), "moment_known": bool(u.get("prediction_moment")),
+                 "pack": capture_code((draft.get("pack") or {}).get("key"))}
+        from dclab_core.workflow_labels import SAME
+
+        if any(not q.get("answered") for q in questions):
+            return state, None  # a question waits for its answer: the rules decide nothing yet (as the ledger records it)
+        asked = agent.next_question(draft)
+        return state, (capture_code(SAME.get(asked[0], asked[0])) or "none") if asked else "none"
+    base = {"labels": card.labels.value if card.labels.value in ("column", "file", "none") else "unknown",
+            "open_questions": len(card.questions or []), "outcome_known": bool(card.outcome)}
+    if point == "problem.family":
+        return base, card.family.value
+    return {**base, "family": card.family.value}, bool(card.ready)
+
+
+def capture_labels(draft: dict[str, Any]) -> str:
+    from ..ledger.capture import _labels_band
+
+    return _labels_band(draft)
+
+
+def capture_code(value: Any) -> Any:
+    from ..ledger.capture import _code
+
+    return _code(value)
+
+
 def get_analysis(turn: Turn, /, **args: Any) -> dict[str, Any]:
     analysis = turn.agent.store.get(turn.draft_id).get("analysis") or {}
     if not analysis.get("columns"):
@@ -1135,6 +1204,12 @@ def register(registry: Registry) -> None:
         {"columns": {"type": "array", "items": S}, "offset": {"type": "integer"}}, [], "read")
     add("get_analysis", "The descriptive analysis of the prepared table: size, column kinds, missing share, duplicate rows, findings worth a question, and the strongest feature-to-feature correlations. Says nothing about the outcome.",
         {}, [], "read")
+    add("decide_point", "Ask DCLab's decision models a typed decision instead of reasoning it out: a column's (column.semantic_role, "
+        "column.is_identifier, column.time, column.group, column.category_code, feature.leakage_suspect; give column) or the problem's "
+        "(problem.family, problem.ready, workflow.next_question). Returns the answer to act on, the rules' and each model's answer, and any "
+        "disagreement.", {"point": {**S, "enum": ["column.semantic_role", "column.is_identifier", "column.time", "column.group",
+                                                   "column.category_code", "feature.leakage_suspect", "problem.family", "problem.ready",
+                                                   "workflow.next_question"]}, "column": S}, ["point"], "read")
     add("build_solution", "Build the project from what was settled and start DCLab's agent, which plans, trains and checks the model. "
         "Only after the user asked to build, train or go ahead.", {}, [], "write")
     add("simulate_data", "Generate a synthetic table. Only after the user asked for simulated data.",

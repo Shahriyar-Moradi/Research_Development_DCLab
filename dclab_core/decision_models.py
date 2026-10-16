@@ -228,10 +228,11 @@ def _oof(point: str, family: str, strength: float, rows: list[Mapping[str, Any]]
 
 def train(point: str, train_rows: Iterable[Mapping[str, Any]], dev_rows: Iterable[Mapping[str, Any]] = (),
           exclude: Iterable[str] = (), folds: int = 5, families: Iterable[str] = FAMILIES,
-          strengths: Iterable[float] = STRENGTHS) -> tuple["_answerers.ClassifierAnswerer", ModelCard]:
+          strengths: Iterable[float] = STRENGTHS, limits: Optional[list[str]] = None) -> tuple["_answerers.ClassifierAnswerer", ModelCard]:
     """The classifier for ``point``: chosen by out-of-fold accuracy over table-grouped folds of ``train_rows`` (a tie
     goes to the smaller strength, then to the logistic model), refitted on all of them and calibrated on the same
-    folds, measured on ``dev_rows`` beside the rule. Sealed rows are refused."""
+    folds, measured on ``dev_rows`` beside the rule. Sealed rows are refused. ``limits``: what the card says its rows
+    cannot show (the generated tables' by default; 26.3's workflow models say their journeys')."""
     rows, dev_rows = _labelled(train_rows), list(dev_rows)
     if any(r.get("split") == "sealed" for r in [*rows, *dev_rows]):
         raise ValueError("sealed rows are never trained, tuned or measured on here")
@@ -272,7 +273,7 @@ def train(point: str, train_rows: Iterable[Mapping[str, Any]], dev_rows: Iterabl
                      oof_accuracy={k: round(v, 4) for k, v in scores.items()},
                      calibration=f"Platt scaling on the same {len(splits)} table-grouped folds of the training rows",
                      dev=dev_score, rule_dev=rule_score, dev_by_source=by_source, dev_calibration_error=ece,
-                     limits=["Measured on dev rows; the sealed partition is read once, under 22.3's gate.",
+                     limits=list(limits) if limits is not None else ["Measured on dev rows; the sealed partition is read once, under 22.3's gate.",
                              "Trained on generated tables (22.1): it learns these planted kinds, not real tables.",
                              "A group is a base and a seed: dev holds new seeds of the same bases as training, not new "
                              "kinds of table, so dev measures reading planted kinds in tables like those trained on.",

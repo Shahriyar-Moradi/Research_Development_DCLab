@@ -1,0 +1,266 @@
+{
+ "schema_version": "dclab_core.decision_model_card.v1",
+ "point": "workflow.next_question",
+ "name": "workflow.next_question.logistic",
+ "version": "442552004b29",
+ "family": "logistic",
+ "strength": 0.1,
+ "features": 15,
+ "fields": [
+  "labels",
+  "moment_known",
+  "open_questions",
+  "outcome_known",
+  "pack",
+  "step",
+  "steps_left"
+ ],
+ "excluded": [],
+ "trained_on": 936,
+ "trained_set": "a212ec6d5e9c5271b54f7a5c27ea2a9887c3cb38b81b3241f58f22da4ec5da5a",
+ "groups": 107,
+ "label_sources": {
+  "benchmark": 936
+ },
+ "chosen_by": "out-of-fold accuracy over 5 folds grouped by table; best logistic:0.1",
+ "oof_accuracy": {
+  "logistic:0.1": 1.0,
+  "logistic:1.0": 1.0,
+  "logistic:10.0": 1.0,
+  "boosting:0.1": 1.0,
+  "boosting:1.0": 1.0,
+  "boosting:10.0": 1.0
+ },
+ "calibration": "Platt scaling on the same 5 table-grouped folds of the training rows",
+ "dev": {
+  "n": 384,
+  "accuracy": 0.9948,
+  "accuracy_ci": [
+   0.9812,
+   0.9986
+  ],
+  "precision": 0.9956,
+  "precision_ci": [
+   0.9844,
+   1.0
+  ],
+  "recall": 0.994,
+  "recall_ci": [
+   0.98,
+   1.0
+  ],
+  "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+  "answered": 384,
+  "per_class": {
+   "action": {
+    "n": 112,
+    "precision": 0.9825,
+    "precision_ci": [
+     0.9383,
+     0.9952
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9668,
+     1.0
+    ]
+   },
+   "none": {
+    "n": 84,
+    "precision": 1.0,
+    "precision_ci": [
+     0.9552,
+     1.0
+    ],
+    "recall": 0.9762,
+    "recall_ci": [
+     0.9173,
+     0.9934
+    ]
+   },
+   "prediction_moment": {
+    "n": 92,
+    "precision": 1.0,
+    "precision_ci": [
+     0.9599,
+     1.0
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9599,
+     1.0
+    ]
+   },
+   "target": {
+    "n": 96,
+    "precision": 1.0,
+    "precision_ci": [
+     0.9615,
+     1.0
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9615,
+     1.0
+    ]
+   }
+  }
+ },
+ "rule_dev": {
+  "n": 384,
+  "accuracy": 0.9792,
+  "accuracy_ci": [
+   0.9594,
+   0.9894
+  ],
+  "precision": 0.9783,
+  "precision_ci": [
+   0.9535,
+   1.0
+  ],
+  "recall": 0.9821,
+  "recall_ci": [
+   0.9701,
+   1.0
+  ],
+  "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+  "answered": 384,
+  "per_class": {
+   "action": {
+    "n": 112,
+    "precision": 1.0,
+    "precision_ci": [
+     0.9644,
+     1.0
+    ],
+    "recall": 0.9286,
+    "recall_ci": [
+     0.8654,
+     0.9634
+    ]
+   },
+   "none": {
+    "n": 84,
+    "precision": 0.913,
+    "precision_ci": [
+     0.8377,
+     0.9553
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9563,
+     1.0
+    ]
+   },
+   "prediction_moment": {
+    "n": 92,
+    "precision": 1.0,
+    "precision_ci": [
+     0.9599,
+     1.0
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9599,
+     1.0
+    ]
+   },
+   "target": {
+    "n": 96,
+    "precision": 1.0,
+    "precision_ci": [
+     0.9615,
+     1.0
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9615,
+     1.0
+    ]
+   }
+  }
+ },
+ "dev_by_source": {
+  "benchmark": {
+   "n": 384,
+   "accuracy": 0.9948,
+   "accuracy_ci": [
+    0.9812,
+    0.9986
+   ],
+   "precision": 0.9956,
+   "precision_ci": [
+    0.9844,
+    1.0
+   ],
+   "recall": 0.994,
+   "recall_ci": [
+    0.98,
+    1.0
+   ],
+   "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+   "answered": 384,
+   "per_class": {
+    "action": {
+     "n": 112,
+     "precision": 0.9825,
+     "precision_ci": [
+      0.9383,
+      0.9952
+     ],
+     "recall": 1.0,
+     "recall_ci": [
+      0.9668,
+      1.0
+     ]
+    },
+    "none": {
+     "n": 84,
+     "precision": 1.0,
+     "precision_ci": [
+      0.9552,
+      1.0
+     ],
+     "recall": 0.9762,
+     "recall_ci": [
+      0.9173,
+      0.9934
+     ]
+    },
+    "prediction_moment": {
+     "n": 92,
+     "precision": 1.0,
+     "precision_ci": [
+      0.9599,
+      1.0
+     ],
+     "recall": 1.0,
+     "recall_ci": [
+      0.9599,
+      1.0
+     ]
+    },
+    "target": {
+     "n": 96,
+     "precision": 1.0,
+     "precision_ci": [
+      0.9615,
+      1.0
+     ],
+     "recall": 1.0,
+     "recall_ci": [
+      0.9615,
+      1.0
+     ]
+    }
+   }
+  }
+ },
+ "dev_calibration_error": 0.062,
+ "limits": [
+  "Measured on dev rows of journeys: written people played through the Home conversation on the rules alone, each label the set of answers its journey accepts (workflow_labels_v2); the sealed journeys are read once, under the gate fixed before.",
+  "A group is a person (a set and an id): dev holds other people of the same problem kinds, so dev measures reading these kinds of conversation, not real sessions, whose words and order vary more.",
+  "On dev the rules' answer counts right when the journey accepts it, the classifier's only when it is the label it learned (the first accepted); the sealed gate counts every accepted answer for both.",
+  "The state is what the ledger records (counts, flags and codes, never the person's words): a classifier sees less than the rules, which read the words; matching the rules is the expected result until real sessions accumulate."
+ ]
+}

@@ -4,6 +4,31 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.61.0 (2026-10-17)
+
+Packages 26.7, 27.5 and 27.9: a company's own decision models, the cleaning pass, verified reasoning traces.
+
+- `own_models` (new): `tune` fine-tunes DCLab's base classifier for a point on a company's own decisions by stacking (the base
+  model's probabilities read as `base:<value>` features beside the state; the base is never changed), `TunedAnswerer` answers like
+  every answerer, `LIMITS` says what its card cannot claim.
+- `clean` (new): `impure` (a decision's features must be a state of bands, a table-level sample checked column by column),
+  `personal` (what `redact` would replace), `near_key` and `dedupe` (one copy per split, exact or near; no train row nearly equal
+  to an evaluation row), `quality` (0 to 1 per example), `card` and `card_markdown` (a dataset card per set).
+- `reasoning` (new): `trace` (the steps from an example's own inputs to its verified answer, for problem type, leakage, split,
+  algorithm choice and reading results), `grounded` (no number, no column the example does not hold), `think` (the `<think>`
+  block), `of_messages`.
+
+## 0.60.0 (2026-10-17)
+
+Package 26.3: decision models for the workflow's own points.
+
+- `workflow_labels` (new): the labels of the workflow points (`problem.family`, `problem.ready`, `workflow.next_question`,
+  `solution.route`) from a written journey's truth (`Truth`, `truth_of`, `label` → `Label`: the answers the journey accepts and the
+  one learned, never chosen by DCLab's answer), `canonical` (an accepted answer scored as the label, for the rules and a model
+  alike), `QUESTIONS` (every field the Home conversation can ask) and `SAME`; `NOT_LEARNED` names every other workflow point with
+  the reason it gets no classifier from journeys.
+- `decision_models.train` takes `limits`: what the card says its rows cannot show (the generated tables' by default).
+
 ## 0.59.0 (2026-10-16)
 
 Package 26.1 (with 27.1): the training lake's records, for DCLab's own decision models and its ML-solver model.

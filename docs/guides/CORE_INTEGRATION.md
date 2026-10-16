@@ -672,3 +672,31 @@ and the rules a gold set passes (`gold_problems`: one split per group, sealed ro
 `DecisionSample` rows through `adapters/main_product_ledger` (its decision records) and the same builders, under its own consent
 levels; its own public-table and synthetic sources may feed the same shapes. Training stays outside both products: the gold sets
 and their manifests are what a training run reads.
+
+## Decision models for the workflow (26.3)
+
+The library's: `dclab_core.workflow_labels`, how a workflow decision is labelled from what a written case says is true (the family,
+ready to build, the next question, the route of a sub-problem), and the reasons the other workflow points get no classifier; the
+classifiers themselves are `decision_models.train` and `decision_gate.verdict`, as for the column points. Where it goes there: the main
+product's governed workflow points (its `semantic_decision_answers` of a workflow kind, read through `adapters/main_product_ledger`)
+can be labelled the same way from its own written acceptance cases; its R3 answerer (`adapters/main_product_r3`) serves a workflow
+classifier like a column one, in shadow until it passes its own sealed gate. The studio's runner (`dclab_rnd/workflow_models.py`) and
+its sealed journeys stay here.
+
+## A company's own decision models (26.7)
+
+The library's: `dclab_core.own_models.tune`, a decision point's own model for one company, stacked on DCLab's base classifier (its
+answer read as features, never changed), chosen and calibrated by `decision_models.train` on folds grouped by the company's
+projects, and judged by `decision_gate.verdict` on its own sealed projects. Where it goes there: the main product's tenant
+exports its labelled `semantic_decision_answers` (through `adapters/main_product_ledger`) in the decision sets' shape, the tuned
+model is the tenant's R3 answerer (`adapters/main_product_r3`) behind its own routing, in shadow first. The studio's runner
+(`dclab_rnd/own_models.py`, `make own-models`) keeps every row in the workspace folder.
+
+## Cleaning and reasoning for training data (27.5, 27.9)
+
+The library's: `dclab_core.clean` (pure states, personal data, near duplicates, evaluation rows, quality, dataset cards) and
+`dclab_core.reasoning` (a verified trace from an example's own inputs to its answer, rejected when it states a number or a column
+the example does not hold, written as the `<think>` block). Where it goes there: any training set the main product builds from its
+records passes the same cleaning before it leaves, and its reasoning traces are built by the same rules from its own records, never
+from a model's text.
+

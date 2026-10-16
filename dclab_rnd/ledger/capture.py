@@ -427,19 +427,37 @@ def workflow_drawn(draft_id: str, key: str, workflow: dict[str, Any], previous: 
                          state={"pack": _code(key)}, level=2 if model else 0, draft=draft_id, conversation=draft_id)))
 
 
+def _labels_band(draft: dict[str, Any]) -> str:
+    """Whether the cases come as a file of their own (then the outcome question is withdrawn: the file defines them)."""
+    try:
+        from ..draft.plan import label_asset
+
+        return "file" if label_asset(draft) is not None else "unknown"
+    except Exception:  # noqa: BLE001 - a draft the helper cannot read: unknown
+        return "unknown"
+
+
 @_quiet
 def next_question(draft: dict[str, Any], asked: Any) -> int:
     """The question actually asked next (its field), or none: recorded after the agent asked, so a question the plan
-    wanted but could not ask (too many, or still pending) is recorded as none."""
+    wanted but could not ask (too many) is recorded as none. 26.3: the options are every field Home can ask, a field
+    asked under a second name (a contradiction's check) is recorded under its own, the state says how many questions
+    are left before the conversation's cap, and nothing is recorded while a question waits for its answer (nothing
+    was decided then)."""
+    from dclab_core.workflow_labels import QUESTION_LIMIT, QUESTIONS, SAME
+
     field = asked[0] if asked else None
     u = draft.get("understanding") or {}
     questions = [q for q in draft.get("questions") or [] if not q.get("superseded")]
+    if field is None and any(not q.get("answered") for q in questions):
+        return 0  # a question is pending: the next one is not decided yet
     state = {"open_questions": sum(1 for f in ("target", "prediction_moment", "action") if not u.get(f)), "step": len(questions),
+             "steps_left": max(QUESTION_LIMIT - len(questions), 0), "labels": _labels_band(draft),
              "outcome_known": bool(u.get("target")), "moment_known": bool(u.get("prediction_moment")),
              "pack": _code((draft.get("pack") or {}).get("key"))}
-    value = _code(field) or "none"
+    value = _code(SAME.get(field, field)) or "none"
     return int(bool(_put("workflow.next_question", ("conversation", draft["id"]), [answer("rule", "rule:plan_fields", value)], value, "rule",
-                         state=state, options=["target", "prediction_moment", "action", "labels", "none"], draft=draft["id"], conversation=draft["id"])))
+                         state=state, options=list(QUESTIONS), draft=draft["id"], conversation=draft["id"])))
 
 
 @_quiet

@@ -1,0 +1,84 @@
+{
+ "package": "27.9",
+ "title": "Verified reasoning traces: the think the solver model learns, from DCLab's own records",
+ "date": "2026-10-17",
+ "request": "Capture reasoning data and store it as think, so the model has a reasoning capability (the owner, 2026-10-17).",
+ "spec": "dclab_core/reasoning.py (trace, grounded, think), lake.reason with the replica's truth, the export writing think before the answer, the benchmark reading after it, self-play's primary metric fixed.",
+ "plan": [
+  "Write each trace from the example's own inputs to its verified answer.",
+  "Keep it only when every number and column is the example's own and it reaches the replica's planted truth.",
+  "Export it as think, with the question asking to think first."
+ ],
+ "decisions": [
+  {
+   "decision": "Traces are written by rules, never by a model.",
+   "why": "Claude's outputs are evaluation only; a rule's trace can be checked number by number."
+  },
+  {
+   "decision": "An example whose answer misses the planted truth is dropped, not only its trace.",
+   "why": "The answer as written would teach that nothing is there."
+  }
+ ],
+ "change": "reasoning (traces of five families, grounding, think), lake reason and truth_problems, train._with_think and THINK_FIRST, --no-think, benchmark._json, selfplay primary_of and beats_chance with restate.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Results examples paired a metric with another metric's interval.",
+   "scenario": "A rare event's answer named ROC-AUC 0.874 with average precision's interval around 0.569.",
+   "cause": "The primary metric was the first of a fixed list present.",
+   "fix": "The primary is the engine's, or the one its interval was drawn for; 134 stored examples corrected.",
+   "test": "test_the_primary_metric_is_the_one_its_interval_was_drawn_for"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "latent",
+   "defect": "A number at a sentence's end escaped the grounding check.",
+   "scenario": "An invented 0.74 followed by a full stop was not seen.",
+   "cause": "The pattern refused a number followed by a dot.",
+   "fix": "A full stop after a number ends it.",
+   "test": "test_a_trace_with_a_number_or_a_column_its_records_do_not_hold_is_not_grounded"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "Forecasting and time-to-event answers omitted the planted leak.",
+   "scenario": "rain_mm and tickets_so_far were not forbidden though planted.",
+   "cause": "The engine handled the leak its own way and the run passed.",
+   "fix": "Such examples are dropped (78).",
+   "test": "test_a_selfplay_example_whose_answer_misses_the_planted_leak_is_dropped"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The think target contradicted the question's reply-with-JSON-only.",
+   "scenario": "A trained model would learn to ignore the instruction.",
+   "cause": "The question was unchanged.",
+   "fix": "With a trace, the question asks to think first.",
+   "test": "test_the_question_asks_to_think_first_when_its_target_thinks"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A trace could write None as a number.",
+   "scenario": "A missing holdout count or positives count.",
+   "cause": "No guard.",
+   "fix": "The sentence is left out when the number is missing.",
+   "test": ""
+  }
+ ],
+ "measurements": [],
+ "outcome": "1,466 verified self-play examples carry a grounded trace; the solver's training file writes it as think (461 rows).",
+ "lessons": [
+  "A trace checked only against its own example can still repeat a wrong answer: check it against the planted truth."
+ ],
+ "risks": [
+  "solution_design examples need a self-play rerun with the solution workflow kept; sessions' traces wait on train consent (27.2)."
+ ],
+ "commits": []
+}

@@ -1,0 +1,173 @@
+{
+ "package": "26.3",
+ "title": "Decision models for the workflow: classifiers for the family, ready, next question and route, from journeys",
+ "date": "2026-10-17",
+ "request": "Phase 4: decision models for the workflow's own decisions, not only the data-science ones; a point that does not beat the rule stays in shadow.",
+ "spec": "dclab_core/workflow_labels.py (labels from a journey's truth), dclab_rnd/workflow_models.py (collect, relabel, train, gate), journeys_workflow_sealed.json (30 people, hash pinned), shadow and routing reading the workflow models.",
+ "plan": [
+  "Freeze a new sealed set of journeys before training anything: every earlier sealed set was spent and had shaped the rules.",
+  "Play the dev and spent journeys with a ledger of their own, on the rules alone, and label each workflow decision from the journey's truth.",
+  "Train one classifier per point with the column points' code; judge each once on the sealed journeys by the column points' gate."
+ ],
+ "decisions": [
+  {
+   "decision": "The sealed set was written by an agent that read only the journeys' format, the kinds and their replicas.",
+   "why": "A set written by someone who knows the rules tests the rules' author, not the rules."
+  },
+  {
+   "decision": "A label is the set of answers the journey accepts, and the rules and a model are both scored right inside it.",
+   "why": "Taking DCLab's answer as the label whenever it was acceptable made the rules right by construction."
+  },
+  {
+   "decision": "The product's own rules (the question cap, a re-ask with the columns, a file of cases defining the outcome, a blocked route) are not labelled.",
+   "why": "Labelling them wrong gave a model a margin for ignoring the product's limits."
+  },
+  {
+   "decision": "Twelve workflow points get no classifier, each with its reason.",
+   "why": "The validator owns the moves, the person owns the map edits, and the agents' points need recorded sessions' outcomes."
+  }
+ ],
+ "change": "workflow_labels (Truth, Label with accepted sets, canonical, QUESTIONS, QUESTION_LIMIT), the runner, capture.next_question (every askable field as options, a check under its own name, the cap and the label file in the state, nothing recorded while a question waits), shadow.answerable and both model folders, routing.passed reading DWM results, decision_models.train's limits.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The route classifier's dev margin came from routes the rules refused.",
+   "scenario": "When every approach was blocked by an unmet need the rules chose none, the label named the expected approach, and a one-option list gave the classifier the answer.",
+   "cause": "The label ignored that the refusal was the product's rule.",
+   "fix": "A route the rules refused is not labelled.",
+   "test": "test_a_route_is_labelled_by_what_the_journey_expects_and_a_refusal_is_not"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "For three points the label was DCLab's own answer whenever that answer was acceptable.",
+   "scenario": "1334 of 1366 next-question labels equalled the rules' answer; a model giving another acceptable answer was graded wrong.",
+   "cause": "The label picked the rules' value out of the acceptable ones.",
+   "fix": "Labels became accepted sets, the learned value the first accepted in a fixed order, and both answerers are scored by membership (canonical).",
+   "test": "test_the_family_label_never_follows_dclabs_answer"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A family the person stated counted as the rules' answer.",
+   "scenario": "44 of 280 family rows were the person's own family.",
+   "cause": "capture records the stated family as the decision.",
+   "fix": "Rows used by a person are left out of the family set and counted in the manifest.",
+   "test": "test_a_stated_family_is_left_out_and_the_rules_are_scored_by_what_is_accepted"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A sealed journey that failed to play shrank the gate's count without failing it.",
+   "scenario": "verdict was called without the expected count.",
+   "cause": "Failed plays were recorded, not judged.",
+   "fix": "A failed sealed play fails every point.",
+   "test": "test_a_sealed_journey_that_did_not_play_fails_every_point"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A crash after the sealed set was opened left it unspent.",
+   "scenario": "Only result files marked the set read.",
+   "cause": "No marker before reading.",
+   "fix": "A read marker is written before the sealed set is opened; every verdict is computed before any result is written.",
+   "test": "test_a_crash_after_the_sealed_set_is_opened_still_spends_it"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Two sets reuse journey ids, so two people shared a group.",
+   "scenario": "JS-01 to JS-10 exist in the first sealed set and in the programme's.",
+   "cause": "The group was the id alone.",
+   "fix": "A person is the set and the id.",
+   "test": "test_collecting_never_opens_the_sealed_journeys"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Programme journeys were played outside an empty routing scope.",
+   "scenario": "A workspace routing a model would have shaped the rules' baseline.",
+   "cause": "Only the standard journeys set the scope.",
+   "fix": "Every play runs in an empty scope with shadows off.",
+   "test": ""
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Contradiction checks were recorded under their own names, outside the options.",
+   "scenario": "labels_check and target_check would be graded wrong for a model that cannot answer them.",
+   "cause": "The recorded field was the raw one.",
+   "fix": "The capture records a check under its field.",
+   "test": "test_nothing_is_recorded_while_a_question_waits_for_its_answer"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The labels overruled Home's five-question cap and its re-ask of a known outcome.",
+   "scenario": "Every one of the rules' 34 misses was a stop at the cap or that re-ask: the whole margin.",
+   "cause": "The state did not say the cap was reached.",
+   "fix": "The state records steps_left; the cap and the re-ask are not labelled.",
+   "test": "test_the_conversations_own_rules_are_not_judged"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Once the card was settled the learned answer was a further question, never to stop.",
+   "scenario": "A promoted model would ask for the data plan on every turn.",
+   "cause": "The first accepted answer was a further field.",
+   "fix": "Once settled, stopping is the learned answer.",
+   "test": ""
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The training rows came from plays made before the fixes.",
+   "scenario": "The gate would play with other code than training.",
+   "cause": "raw.jsonl was rebuilt from the first collection.",
+   "fix": "Collected again with the fixed code.",
+   "test": ""
+  },
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "A file of cases defines the outcome, yet the state counted the outcome as open.",
+   "scenario": "18 rules' misses were stops while the outcome question had been withdrawn by the product.",
+   "cause": "The state lacked the label situation.",
+   "fix": "The state records labels=file and the outcome is then not open.",
+   "test": "test_the_conversations_own_rules_are_not_judged"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The next question's options listed five fields while Home asks ten.",
+   "scenario": "138 labels fell outside the options a classifier renormalises over.",
+   "cause": "The capture's options were the plan's first five.",
+   "fix": "Every askable field is an option (QUESTIONS).",
+   "test": ""
+  }
+ ],
+ "measurements": [],
+ "outcome": "Four workflow points have cards beside the rules' score, the other twelve say why they have none; the sealed journeys are judged once by the column points' gate.",
+ "lessons": [
+  "A label must never be chosen by the answer it judges; take the set of acceptable answers and score everyone inside it.",
+  "When the rules look wrong on a labelled set, look first for the product's own rule the labels ignore."
+ ],
+ "risks": [
+  "Journeys are written people: dev measures these conversations, not real sessions."
+ ],
+ "commits": []
+}

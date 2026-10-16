@@ -1,0 +1,64 @@
+{
+ "package": "26.5",
+ "title": "The combination: decision models inside the workflow model's loop, and the third arm",
+ "date": "2026-10-17",
+ "request": "Phase 4: combine DCLab's decision models with the workflow model so the workflow model decides more, faster, each decision checked.",
+ "spec": "decide.ask answers the workflow points too and reads a journey arm's routing; the Home agent's decide_point tool; the prompt sentence; journeys --live-arms (the rules, the workflow model alone, the two together), capped.",
+ "plan": [
+  "Offer the decision models to the Home agent as a read tool built from the draft's own state.",
+  "Keep every validator: a routed model may add a caution, never remove one.",
+  "Measure the third arm live on the dev journeys under a cap."
+ ],
+ "decisions": [
+  {
+   "decision": "decide_point builds the state itself from the draft.",
+   "why": "A model filling a state of bands from text would invent bands."
+  },
+  {
+   "decision": "A live arm cut short by its budget is not stored.",
+   "why": "A model arm whose last journeys fell back to the rules would measure the rules."
+  }
+ ],
+ "change": "decide (WORKFLOW points, rule_value, scope routing, CAUTIONS), chat.decide_point and _problem_state, use.scoped, the prompt, journeys __main__ _live_arms and store_compare's routing and spend.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "decide_point reported disagreements that were not.",
+   "scenario": "The rules' raw field (target_check) was compared with models trained on target.",
+   "cause": "The rule's answer was not read as the ledger records it.",
+   "fix": "The rule's answer goes through SAME and none while a question waits.",
+   "test": "test_the_next_question_is_answered_from_the_drafts_state"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A routed model's answer was acted on without the point's validator.",
+   "scenario": "A model routed at level 3 answering no for order_id would free an identifier.",
+   "cause": "decide.ask applied no check.",
+   "fix": "A model may never free a column the rules hold back.",
+   "test": "test_a_routed_model_never_frees_a_column_the_rules_hold_back"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "An exhausted live arm silently became the rules, and broken journeys' cost was not counted.",
+   "scenario": "The Home client falls back to its script when its budget runs out.",
+   "cause": "The loop did not watch the budget; spend was summed from rows.",
+   "fix": "The arm stops before a journey could run out and is then not stored; spend is read from the clients.",
+   "test": ""
+  }
+ ],
+ "measurements": [],
+ "outcome": "The workflow model can ask the decision models at every typed decision, through the validator; the live measurement of the three arms follows.",
+ "lessons": [
+  "A tool a model calls must apply the same validator as the code path it replaces."
+ ],
+ "risks": [
+  "The twin runs' third lane is not built."
+ ],
+ "commits": []
+}

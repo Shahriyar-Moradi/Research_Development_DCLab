@@ -34,7 +34,10 @@ ROOT = Path(__file__).resolve().parents[2]
 MODELS = ROOT / "research/llm-fine-tuning/experiments/decisions/models_v1"
 RESULTS = ROOT / "evidence/campaigns/decision_shadow_v1/results"
 GATE = ROOT / "evidence/campaigns/decision_models_v1/results"
+WORKFLOW_MODELS = ROOT / "research/llm-fine-tuning/experiments/decisions/workflow_models_v1"  # 26.3: the workflow points' classifiers
+WORKFLOW_GATE = ROOT / "evidence/campaigns/workflow_models_v1/results"
 BANDS = ("dtype", "uniqueness", "nulls", "cardinality", "value_pattern")  # a state with none of these holds only a name
+NAMES = ("column", "target")
 
 
 def on() -> bool:
@@ -42,17 +45,22 @@ def on() -> bool:
 
 
 @functools.lru_cache(maxsize=4)
-def answerers(models: str = str(MODELS)) -> tuple[Any, ...]:
-    """The fitted classifiers whose bytes match ``fitted.json`` and whose card describes them; none when none is here."""
+def answerers(models: Optional[str] = None) -> tuple[Any, ...]:
+    """The fitted classifiers whose bytes match ``fitted.json`` and whose card describes them; none when none is here.
+    By default the column points' (22.2) and the workflow points' (26.3); ``models``: one folder only."""
+    folders = [MODELS, WORKFLOW_MODELS] if models is None else [Path(models)]
+    return tuple(m for folder in folders for m in _load(folder))
+
+
+def _load(folder: Path) -> list[Any]:
     try:
         import joblib
     except ImportError:
-        return ()
-    folder = Path(models)
+        return []
     try:
         hashes = json.loads((folder / "fitted.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return ()
+        return []
     out = []
     for card_path in sorted(folder.glob("*.json")):
         fitted = card_path.with_suffix(".joblib")
@@ -68,7 +76,17 @@ def answerers(models: str = str(MODELS)) -> tuple[Any, ...]:
         if getattr(model, "version", None) == card.get("version") and getattr(model, "point", None) == card.get("point"):
             model.name = card.get("name") or model.name
             out.append(model)
-    return tuple(out)
+    return out
+
+
+def _own() -> list[Any]:
+    """26.7: this workspace's own models, answering in shadow beside DCLab's."""
+    try:
+        from ..own_models import current
+
+        return current()
+    except Exception:  # noqa: BLE001 - no own model here
+        return []
 
 
 def warm() -> None:
@@ -81,12 +99,25 @@ def banded(state: dict[str, Any]) -> bool:
     return any(state.get(k) is not None for k in BANDS)
 
 
+def answerable(record: Any) -> bool:
+    """Whether a classifier has something to answer from: a column decision's bands, or (26.3) a workflow decision's
+    counts, flags and codes (any field but a name)."""
+    from dclab_core.ledger import POINTS
+
+    if banded(record.state):
+        return True
+    point = POINTS.get(record.point)
+    return point is not None and point.kind == "workflow" and any(v is not None for k, v in record.state.items() if k not in NAMES)
+
+
 def _answers(model: Any, records: list[Any]) -> list[Any]:
     """The classifier's answers for many records of its point, in one prediction: as ``ClassifierAnswerer.answer`` gives
     them one by one (renormalised over each decision's options; None below its confidence or with no option it knows)."""
     from dclab_core.answerers import _key, _option, features
     from dclab_core.ledger import Answer
 
+    if hasattr(model, "answer_many"):  # 26.7: an own model reads its base model's answer first
+        return model.answer_many(records[0].point, [r.state for r in records], [list(r.options) for r in records]) if records else []
     if model.model is None or not records:
         return [None] * len(records)
     probas = model.model.predict_proba([features(r.state, model.exclude) for r in records])
@@ -115,13 +146,13 @@ def add_many(records: list[Any], models: Optional[Iterable[Any]] = None) -> list
 
     if models is None and not on():
         return records
-    models = list(answerers() if models is None else models)
+    models = list([*answerers(), *_own()] if models is None else models)
     if not models:
         return records
     extra: dict[int, list[Any]] = {}
     for m in models:
         name = f"{m.name}@{m.version}"
-        mine = [(i, r) for i, r in enumerate(records) if r.point in m.points and banded(r.state) and not any(a.answerer == name for a in r.answers)]
+        mine = [(i, r) for i, r in enumerate(records) if r.point in m.points and answerable(r) and not any(a.answerer == name for a in r.answers)]
         try:
             got = _answers(m, [r for _, r in mine])
         except Exception:  # noqa: BLE001 - a model that fails answers nothing; the decisions are recorded all the same
@@ -142,9 +173,9 @@ def add(record: Any, models: Optional[Iterable[Any]] = None) -> Any:
 
 
 def gate_results() -> dict[str, str]:
-    """Each classifier's verdict from its sealed gate (22.3), by ``name@version``."""
+    """Each classifier's verdict from its sealed gate (22.3; 26.3 for the workflow points), by ``name@version``."""
     out = {}
-    for path in sorted(GATE.glob("DMG-*.json")):
+    for path in [*sorted(GATE.glob("DMG-*.json")), *sorted(WORKFLOW_GATE.glob("DWM-*.json"))]:
         doc = json.loads(path.read_text(encoding="utf-8"))
         out[f"{doc['model']['name']}@{doc['model']['version']}"] = doc.get("result")
     return out
@@ -173,9 +204,9 @@ def measure(records: Iterable[Any], labels: Iterable[Any], models: Optional[Iter
     for m in models:
         name = f"{m.name}@{m.version}"
         mine = [r for r in records if r.point in m.points]
-        missing = [r for r in mine if _recorded(r, name) is None and banded(r.state)] if answer else []
+        missing = [r for r in mine if _recorded(r, name) is None and answerable(r)] if answer else []
         fresh = dict(zip((r.id for r in missing), _answers(m, missing))) if missing else {}
-        row = {"point": next(iter(m.points)), "gate": gates.get(name), "decisions": len(mine), "without_bands": sum(not banded(r.state) for r in mine),
+        row = {"point": next(iter(m.points)), "gate": gates.get(name), "decisions": len(mine), "without_bands": sum(not answerable(r) for r in mine),
                "answered": 0, "with_rule": 0, "agree": 0, "disagree": 0, "labelled_disagreements": 0, "right_on_disagreements": 0,
                "rule_right_on_disagreements": 0, "weighted_disagreements": 0.0, "weighted_right": 0.0, "weighted_rule_right": 0.0,
                "labels_by_source": {}, "labelled": 0, "right": 0}

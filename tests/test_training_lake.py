@@ -59,7 +59,7 @@ class LakeBuildTests(unittest.TestCase):
         self.tmp = Path(tempfile.mkdtemp())
 
     def decision_row(self, record, group, split, value, kind="column"):
-        return {"record": record, "point": "column.is_identifier", "subject": {"kind": kind, "key": "id"}, "state": {"dtype": "integer", "uniqueness": "all", "g": group},
+        return {"record": record, "point": "column.is_identifier", "subject": {"kind": kind, "key": "id"}, "state": {"dtype": "integer", "uniqueness": "all", "column": group},
                 "options": ["yes", "no"], "answers": [{"by": "rule", "value": True}], "label": {"value": value, "source": "benchmark"}, "group": group, "split": split}
 
     def build(self, homes, sft=None, dev=None):
@@ -95,7 +95,7 @@ class LakeBuildTests(unittest.TestCase):
         gen.mkdir(parents=True)
         rows = [self.decision_row("r1", "dataset:a", "train", True), self.decision_row("r2", "dataset:b", "dev", False),
                 self.decision_row("r3", "dataset:c", "train", None)]
-        same = {**self.decision_row("r5", "dataset:e", "train", True), "state": {"dtype": "integer", "uniqueness": "all", "g": "dataset:d"}}
+        same = {**self.decision_row("r5", "dataset:e", "train", True), "state": {"dtype": "integer", "uniqueness": "all", "column": "dataset:d"}}
         (gen / "rows.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows + [same]))
         (gen / "sealed.jsonl").write_text(json.dumps(self.decision_row("r4", "dataset:d", "train", True)) + "\n")
         summary = self.build([])

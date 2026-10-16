@@ -1,0 +1,104 @@
+{
+ "schema_version": "dclab_core.decision_model_card.v1",
+ "point": "problem.ready",
+ "name": "problem.ready.logistic",
+ "version": "6db1df614de8",
+ "family": "logistic",
+ "strength": 0.1,
+ "features": 19,
+ "fields": [
+  "family",
+  "labels",
+  "open_questions",
+  "outcome_known"
+ ],
+ "excluded": [],
+ "trained_on": 196,
+ "trained_set": "47b3b13707474b2bd73fe5d3bf6bc3ebd92b058fd0d3d9ab629d9446c08395c4",
+ "groups": 98,
+ "label_sources": {
+  "benchmark": 196
+ },
+ "chosen_by": "out-of-fold accuracy over 5 folds grouped by table; best logistic:0.1",
+ "oof_accuracy": {
+  "logistic:0.1": 0.9796,
+  "logistic:1.0": 0.9796,
+  "logistic:10.0": 0.9796,
+  "boosting:0.1": 0.9796,
+  "boosting:1.0": 0.9796,
+  "boosting:10.0": 0.9796
+ },
+ "calibration": "Platt scaling on the same 5 table-grouped folds of the training rows",
+ "dev": {
+  "n": 84,
+  "accuracy": 0.9048,
+  "accuracy_ci": [
+   0.8232,
+   0.9509
+  ],
+  "precision": 0.9048,
+  "precision_ci": [
+   0.8232,
+   0.9509
+  ],
+  "recall": 1.0,
+  "recall_ci": [
+   0.9519,
+   1.0
+  ],
+  "intervals": "Wilson, 95%",
+  "answered": 84,
+  "per_class": {}
+ },
+ "rule_dev": {
+  "n": 84,
+  "accuracy": 0.9048,
+  "accuracy_ci": [
+   0.8232,
+   0.9509
+  ],
+  "precision": 0.9048,
+  "precision_ci": [
+   0.8232,
+   0.9509
+  ],
+  "recall": 1.0,
+  "recall_ci": [
+   0.9519,
+   1.0
+  ],
+  "intervals": "Wilson, 95%",
+  "answered": 84,
+  "per_class": {}
+ },
+ "dev_by_source": {
+  "benchmark": {
+   "n": 84,
+   "accuracy": 0.9048,
+   "accuracy_ci": [
+    0.8232,
+    0.9509
+   ],
+   "precision": 0.9048,
+   "precision_ci": [
+    0.8232,
+    0.9509
+   ],
+   "recall": 1.0,
+   "recall_ci": [
+    0.9519,
+    1.0
+   ],
+   "intervals": "Wilson, 95%",
+   "answered": 84,
+   "per_class": {}
+  }
+ },
+ "dev_calibration_error": 0.0514,
+ "limits": [
+  "Measured on dev rows of journeys: written people played through the Home conversation on the rules alone, each label the set of answers its journey accepts (workflow_labels_v2); the sealed journeys are read once, under the gate fixed before.",
+  "A group is a person (a set and an id): dev holds other people of the same problem kinds, so dev measures reading these kinds of conversation, not real sessions, whose words and order vary more.",
+  "On dev the rules' answer counts right when the journey accepts it, the classifier's only when it is the label it learned (the first accepted); the sealed gate counts every accepted answer for both.",
+  "The state is what the ledger records (counts, flags and codes, never the person's words): a classifier sees less than the rules, which read the words; matching the rules is the expected result until real sessions accumulate."
+ ]
+}

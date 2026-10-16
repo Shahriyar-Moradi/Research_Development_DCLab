@@ -48,18 +48,23 @@ def entry(doc: dict[str, Any], point: str) -> dict[str, Any]:
     return dict(((doc.get("decisions") or {}).get(point)) or {})
 
 
-def passed() -> dict[str, dict[str, Any]]:
-    """The answerers whose sealed gate (22.3) passed, by ``name@version``, with the verdict's figures."""
+def passed(home: Optional[Any] = None) -> dict[str, dict[str, Any]]:
+    """The answerers whose sealed gate (22.3; 26.3 for the workflow points) passed, by ``name@version``, with the verdict's figures;
+    with ``home`` (26.7), also that workspace's own models that passed on its own sealed decisions (``own``: True)."""
     import json
 
-    from .shadow import GATE
+    from .shadow import GATE, WORKFLOW_GATE
 
     out = {}
-    for path in sorted(GATE.glob("DMG-*.json")):
+    for path in [*sorted(GATE.glob("DMG-*.json")), *sorted(WORKFLOW_GATE.glob("DWM-*.json"))]:
         doc = json.loads(path.read_text(encoding="utf-8"))
         if doc.get("result") == "pass":
             out[f"{doc['model']['name']}@{doc['model']['version']}"] = {"point": doc["point"], "verdict": doc.get("verdict") or {},
                                                                        "gate": doc["gate"]["version"], "family": doc["model"].get("family")}
+    if home is not None:
+        from ..own_models import passed as own
+
+        out.update(own(home))
     return out
 
 
@@ -93,10 +98,12 @@ def ready_to_act(name: str, measured: Optional[dict[str, Any]]) -> Optional[str]
 
 
 def switch(store: Any, audit_log: Any, point: str, answerer: Optional[str], level: int, role: Optional[str], reason: str = "",
-           bar: float = BAR, measured: Optional[dict[str, Any]] = None, by_system: bool = False) -> dict[str, Any]:
+           bar: float = BAR, measured: Optional[dict[str, Any]] = None, by_system: bool = False, home: Optional[Any] = None) -> dict[str, Any]:
     """One audited change of a point's answerer (None and level 0: the rule alone). Above shadow the answerer must have
     passed its sealed gate, and to act it must have been measured in shadow (``measured``: ``shadow.measure``); a
-    reviewer or the owner decides, with a reason kept in the audit trail. ``by_system``: DCLab's own demotion."""
+    reviewer or the owner decides, with a reason kept in the audit trail. ``by_system``: DCLab's own demotion. ``home`` (26.7):
+    the workspace whose own models may be routed (after their own sealed pass; to act, their shadow measurement, the journeys
+    being DCLab's replicas, not the company's decisions)."""
     from dclab_core.ledger import POINTS
 
     if point not in POINTS:
@@ -115,12 +122,16 @@ def switch(store: Any, audit_log: Any, point: str, answerer: Optional[str], leve
     if not isinstance(bar, (int, float)) or not 0.5 <= float(bar) <= 1.0:
         raise DecisionRoutingError("the bar is an accuracy between 0.5 and 1")
     if level and not by_system:
-        gates = passed()
+        gates = passed(home)
         if answerer not in gates:
             raise DecisionRoutingError(f"{answerer} has not passed its sealed gate: it may answer in shadow only")
         if gates[answerer]["point"] != point:
             raise DecisionRoutingError(f"{answerer} was judged at {gates[answerer]['point']}, not {point}")
-        if level >= 2:
+        if level >= 2 and gates[answerer].get("own"):
+            why = ready_to_act(answerer, measured)
+            if why:
+                raise DecisionRoutingError(why)
+        elif level >= 2:
             from ..agent_eval.journeys import workflow_measured
 
             run = workflow_measured(answerer, point, level)  # 21.5: measured inside the workflow at this level, on its own
@@ -171,6 +182,10 @@ def answer(doc: dict[str, Any], point: str, state: dict[str, Any], options: list
     found = None
     if name:
         found = next((a for a in (shadow.answerers() if answerers is None else answerers) if f"{a.name}@{a.version}" == name), None)
+        if found is None and answerers is None and str(name).startswith("own@"):  # 26.7: this workspace's own model
+            from ..own_models import current
+
+            found = next((a for a in current() if f"{a.name}@{a.version}" == name), None)
     got = None
     if found is not None and level:
         try:
