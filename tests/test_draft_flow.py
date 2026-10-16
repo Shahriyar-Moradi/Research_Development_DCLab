@@ -555,18 +555,39 @@ class AgentTests(unittest.TestCase):
         self.assertIn("summary", [m.get("kind") for m in draft["messages"][-3:]])  # a question from the person gets the plan so far first
 
     def test_build_now_is_an_order_never_a_sentence_about_the_problem(self):
-        from dclab_rnd.draft.chat import ASSENT, BUILD_NOW
+        from dclab_rnd.draft.chat import ASSENT, asks_to_build, build_order
 
         for order in ("ok build model", "build the model", "Let's build the solution", "yes build it", "train the model now", "go ahead and build",
-                      "Create a project from this chat", "create project", "make a project please"):
-            self.assertTrue(BUILD_NOW.search(order), order)
+                      "Create a project from this chat", "create project", "make a project please",
+                      "build", "build now", "Yes, build now", "ye s build now"):  # the owner's own words, live (2026-10-16)
+            self.assertTrue(build_order(order), order)
         for sentence in ("I want to build a model to predict churn", "Should we build a model or use rules?",
                          "Can you train a model on last year only?", "We need to build models per region", "go ahead",
-                         "I want to create a project for churn", "Should we create a project or wait for data?"):
-            self.assertFalse(BUILD_NOW.search(sentence), sentence)
+                         "I want to create a project for churn", "Should we create a project or wait for data?",
+                         "Start date is the signup day", "don't build yet", "what do you need to build model"):
+            self.assertFalse(build_order(sentence), sentence)
         self.assertTrue(ASSENT.search("yes"))
         for reply in ("Yes, the refund is known only after delivery", "ok, but first explain the columns", "Start date is the signup day"):
             self.assertFalse(ASSENT.search(reply), reply)
+        offer = {"role": "agent", "kind": "text", "text": "Scoring is settled. I haven't built anything yet. Shall I build the model now?"}
+        self.assertTrue(asks_to_build([offer, {"role": "user", "text": "yes"}]))  # a yes to DCLab's own offer
+        self.assertFalse(asks_to_build([{"role": "agent", "kind": "text", "text": "When is the prediction made?"}, {"role": "user", "text": "yes"}]))
+
+    def test_what_the_person_said_is_never_asked_again(self):
+        """Live (2026-10-16): answered in the person's own words, the action and the review budget were asked again, and the
+        data was asked for with a simulated table ready. A recorded field closes its question; a known one is never asked."""
+        d = self.store.create("Flag fraudulent refunds filed by store staff")
+        HomeAgent(self.store, None).start(d["id"])
+        agent = HomeAgent(self.store, None)
+        open_q = agent.pending(self.store.get(d["id"]))
+        agent.note(d["id"], open_q["field"], "Fraudulent refunds filed by staff", "stated", "model", "fraudulent refunds")  # told, not clicked
+        draft = self.store.get(d["id"])
+        self.assertTrue(next(q for q in draft["questions"] if q["id"] == open_q["id"])["answered"])
+        self.assertIsNone(agent.ask(d["id"], open_q["field"], "What is the outcome again?"))  # never asked twice
+        agent.ask(d["id"], "data_plan", "Can you bring a sample?", ["Upload a sample", "Simulate data"])
+        self.store.update(d["id"], lambda x: x["assets"].append({"id": "a1", "status": "ready", "name": "sim.parquet"}))
+        self.assertNotEqual((agent.pending(self.store.get(d["id"])) or {}).get("field"), "data_plan")  # a table is here
+        self.assertIsNone(agent.ask(d["id"], "data_plan", "Can you bring a sample?"))
 
     def test_the_model_builds_only_on_the_persons_word(self):
         """25.13 review: build_solution passes the guard on an order, or on a bare yes to an offer to build; never otherwise."""

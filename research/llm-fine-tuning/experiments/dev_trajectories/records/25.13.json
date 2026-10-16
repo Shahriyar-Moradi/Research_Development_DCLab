@@ -235,6 +235,46 @@
       "cause": "The copy command took the whole twin folder's neighbour file along.",
       "fix": "The file is removed (the switch is off by default again) and the owner told; the rule is in memory: copy records, never config.",
       "test": "checked on the dev server"
+    },
+    {
+      "id": "O9",
+      "source": "owner",
+      "severity": "gap",
+      "defect": "The side menu could not be hidden, so the chat and Claude's column stayed narrow.",
+      "scenario": "The owner wanted more of the screen for the conversation, the analysis and Claude's panel.",
+      "cause": "The menu was fixed on a wide screen; only a narrow one could slide it away.",
+      "fix": "A menu button beside the DCLab logo hides the menu (the page takes the whole width, up to 2200 px); the top bar's menu button brings it back; the choice is remembered in the browser.",
+      "test": "checked live: the chat went from 986 to 1255 px and Claude's column from 290 to 369 px; scripts/browser_e2e.py walks it"
+    },
+    {
+      "id": "O10",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "\"build\", \"build now\", \"Yes, build now\" and \"ye s build now\" never built, and the agent blamed the system.",
+      "scenario": "Live: the owner typed each of them; the model called build_solution, the guard refused, and the model said the go-ahead was not registered.",
+      "cause": "The order was matched against fixed phrases that required an object after build and an exact yes.",
+      "fix": "An order is read by its intent: agreeing or polite words (typos included), a build verb, then only words that name what or when; a question or a describing sentence never is.",
+      "test": "test_build_now_is_an_order_never_a_sentence_about_the_problem"
+    },
+    {
+      "id": "O11",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "A yes to DCLab's own \"Shall I build the model now?\" was not taken.",
+      "scenario": "Live: the owner answered yes and DCLab asked what to do with flagged returns instead.",
+      "cause": "The offer was recognised only in the words build it or build the solution.",
+      "fix": "A bare yes builds when DCLab's message just before asked whether to build, in any words.",
+      "test": "test_build_now_is_an_order_never_a_sentence_about_the_problem"
+    },
+    {
+      "id": "O12",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "Questions the person had answered were asked again, and data was asked for with a table ready.",
+      "scenario": "Live: the action (answered at 14:18), the review budget (14:19) and the data (simulated at 14:20) were asked again at 14:38, 14:41 and 14:43.",
+      "cause": "An answer given in the person's own words was recorded without closing its question, and the turn that must never be silent re-said the first question not marked answered.",
+      "fix": "Recording a field closes its question; a question about a field already known (the outcome as its column once a table is there, the data once a table is on its way) is never open or asked again, and the tool says what the person already said.",
+      "test": "test_what_the_person_said_is_never_asked_again"
     }
   ],
   "measurements": [
@@ -247,6 +287,17 @@
       "cost_eur": 0.6,
       "limits": [
         "One draft, synthetic data; quick mode."
+      ]
+    },
+    {
+      "name": "live replay of the owner's 14:17 chat on the fixed code",
+      "gate": "none: a check that the path works",
+      "fixed_before_run": true,
+      "result": "ye s build now built the project and started the agent; no answered field was asked again; the data was not asked for once the simulated table was ready; the outcome's column was asked once the table existed.",
+      "verdict": "pass",
+      "cost_eur": 0.6,
+      "limits": [
+        "One conversation, replayed by a script."
       ]
     }
   ],

@@ -56,13 +56,52 @@ PROFILE_PAGE = 40  # columns the model sees at a time, in its state and from get
 PROFILE_FIELDS = ("name", "kind", "missing_rate", "unique")  # what the model may know about a column: no values
 FIELDS = ("target", "prediction_moment", "action", "costs", "data_plan", "entity", "labels", "budget")  # the last three: a pack's (15.6)
 BUILD_WORDS = re.compile(r"\b(let'?s build|build (it|the solution)|go ahead|start the project|ready to build)\b", re.I)
-# 25.13: a message that is an order to build now, as a whole ("ok build model", "train it now"); a sentence that describes
-# the problem or asks ("we want to build a model that…", "should we build a model?") is never taken for the order
-BUILD_NOW = re.compile(r"^\W*((ok(ay)?|yes|yeah|please|now|so|great|good|sure|alright|fine)\b[\s,!.]*)*"
-                       r"(let'?s build( it| the (solution|models?))?|(please )?(build|train) (it|the solution|(the |a |my )?models?)|"
-                       r"run (it|the stages)|go ahead and (build|train)( it)?|start (building|training)( it)?|"
-                       r"(create|make|build) (a |the )?(new )?project( (from|of|for) (this|the|my) (chat|conversation))?)(\s+(now|please))?\W*$", re.I)
-ASSENT = re.compile(r"^\W*(yes|yeah|yep|ok(ay)?|sure|go( ahead| for it)?|do it|please do|proceed|start)(\s+(please|now|do it|go ahead))?\W*$", re.I)  # a bare yes
+# 25.13: a message that is an order to build now, read by its intent rather than an exact phrase (live, 2026-10-16: "build",
+# "build now", "Yes, build now" and "ye s build now" were all missed): agreeing or polite words, then a build verb, then only
+# words that name what to build or when. A sentence that describes the problem or asks ("we want to build a model that…",
+# "should we build a model?", "start date is the signup day") is never taken for the order.
+_ORDER_FILLERS = frozenset("""yes yeah yep yup ye ya y s ok okay k please pls sure so now then alright fine great good perfect cool
+    right go ahead and let's lets let us just can could would you u kindly""".split())
+_ORDER_VERBS = frozenset(("build", "train", "create", "make", "run", "start"))
+_ORDER_OBJECTS = frozenset("""it the a an my this that model models solution project now please from chat conversation stages new
+    building training right away then again pls for me one here""".split())
+
+
+def build_order(text: str) -> bool:
+    """Whether a message is, as a whole, an order to build (or train) now."""
+    if "?" in text:
+        return False
+    words = re.findall(r"[a-z']+", text.lower())
+    if not words or len(words) > 12:
+        return False
+    i = 0
+    while i < len(words) and words[i] in _ORDER_FILLERS:
+        i += 1
+    if i >= len(words) or words[i] not in _ORDER_VERBS:
+        return False
+    rest = words[i + 1:]
+    if words[i] in ("run", "start", "make", "create") and not rest:  # "start" alone answers something else
+        return False
+    return all(w in _ORDER_OBJECTS for w in rest)
+
+
+ASSENT = re.compile(r"^\W*(yes|yeah|yep|yup|ye ?s|yse|ok(ay)?|sure|go( ahead| for it)?|do it|please do|proceed|start)(\W+(please|now|do it|go ahead))?\W*$", re.I)  # a bare yes
+OFFER = re.compile(r"\b(build|train)\b[^.?!]*\?", re.I)  # DCLab asked whether to build ("Shall I build the model now?")
+
+
+def asks_to_build(messages: list[dict[str, Any]]) -> bool:
+    """The person's last message is an order to build, or a bare yes to DCLab's own offer to build just before it."""
+    at = next((i for i in range(len(messages) - 1, -1, -1) if messages[i].get("role") == "user"), None)
+    if at is None:
+        return False
+    said = messages[at].get("text") or ""
+    if build_order(said):
+        return True
+    before = next((m for m in reversed(messages[:at]) if m.get("role") == "agent"), None) or {}
+    offered = before.get("kind") == "summary" or bool(OFFER.search(before.get("text") or "")) or bool(BUILD_WORDS.search(before.get("text") or ""))
+    return bool(ASSENT.search(said)) and offered
+
+
 SIM_ROWS = 10_000  # the owner (2026-10-16): a simulated table is at most 10,000 rows
 SIMULATE_WORDS = re.compile(r"\b(simulat\w*|synthetic|fake data|generate (some )?data)\b", re.I)
 
@@ -155,6 +194,8 @@ class HomeAgent:
         over = len(asked) >= MAX_QUESTIONS and field not in self.CONTRADICTIONS.values()  # 21.5: the words and the data disagreeing
         if over or any(q.get("field") == field and not q.get("answered") for q in draft["questions"]):  # is asked past the cap, once
             return None
+        if self.settled(draft, field) and field not in self.CONTRADICTIONS.values():
+            return None  # the person said it already, or the table is here: asking again is what they found unintelligent
         q = {"id": f"q{len(draft['questions']) + 1}", "field": field, "text": question, "options": (options or [])[:4], "why": why, "answered": None}
 
         def add(d):
@@ -163,11 +204,42 @@ class HomeAgent:
         return self.say(draft_id, question, kind="question", question=q)
 
     def pending(self, draft: dict[str, Any]) -> dict[str, Any] | None:
-        return next((q for q in draft["questions"] if not q.get("answered")), None)
+        """The open question: not answered, and about something still unknown (live, 2026-10-16: a field the person had told
+        in their own words, and the data once a table was ready, were asked again)."""
+        for q in draft["questions"]:
+            if q.get("answered") or self.settled(draft, q.get("field")):
+                continue
+            return q
+        return None
+
+    @staticmethod
+    def settled(draft: dict[str, Any], field: Any, value: Any = None) -> bool:
+        """Whether a field is known well enough never to be asked again: the data once a table is on its way, the outcome
+        as its column once a table with columns is there (in words before), any other field once recorded."""
+        if field == "data_plan" and any(a.get("status") in ("ready", "queued", "structuring", "cleaning", "analysing") for a in draft.get("assets") or []):
+            return True
+        if field not in plans.ALL_FIELDS:
+            return False
+        known = value if value is not None else (draft.get("understanding") or {}).get(field)
+        if not known:
+            return False
+        if field == "target":
+            columns = {c.get("name") for c in ((draft.get("analysis") or {}).get("columns") or [])}
+            return not columns or str(known) in columns or plans.label_asset(draft) is not None
+        return True
+
+    @classmethod
+    def _close(cls, d: dict[str, Any], field: str, value: str) -> None:
+        """A field recorded, however it came: the question about it is answered (never asked again)."""
+        if cls.settled(d, field, value.strip()):
+            for q in d.get("questions") or []:
+                if q.get("field") == field and not q.get("answered"):
+                    q["answered"] = value.strip()[:400]
 
     def record(self, draft_id: str, field: str, value: str) -> None:
         def put(d):
             d.setdefault("understanding", {})[field] = value.strip()[:400]
+            self._close(d, field, value)
         self.store.update(draft_id, put)
 
     def note(self, draft_id: str, field: str, value: str, status: str, source: str, quote: str | None) -> None:
@@ -175,6 +247,7 @@ class HomeAgent:
         def put(d):
             d.setdefault("understanding", {})[field] = value.strip()[:400]
             d["plan"] = {**plans.empty(), **(d.get("plan") or {}), field: plans.entry(status, source, quote)}
+            self._close(d, field, value)
         self.store.update(draft_id, put)
 
     def update_plan(self, draft_id: str) -> dict[str, Any]:
@@ -395,7 +468,7 @@ class HomeAgent:
             d["messages"].append(msg)
         self.store.update(draft_id, add)
         self.store.emit(draft_id, "chat", msg)
-        if BUILD_NOW.search(text):  # 25.13: "build it" builds and trains, as the button does
+        if asks_to_build(self.store.get(draft_id)["messages"]):  # 25.13: "build it" (or yes to an offer) builds, as the button does
             done = self.on_request(draft_id, "build", {})
             if done is not None:
                 self.built(draft_id, done)
@@ -870,7 +943,11 @@ class Turn:
 def ask_user(turn: Turn, /, **args: Any) -> dict[str, Any]:
     field = args.get("field") if args.get("field") in FIELDS else "notes"
     msg = turn.agent.ask(turn.draft_id, field, str(args.get("question", ""))[:300], [str(o)[:60] for o in args.get("options") or []], str(args.get("why", ""))[:200])
-    return {"asked": bool(msg), "note": None if msg else "Question limit reached or the same question is open."}
+    if msg:
+        return {"asked": True}
+    known = (turn.agent.store.get(turn.draft_id).get("understanding") or {}).get(field)
+    return {"asked": False, "note": (f"Not asked: the user already said {field}: \"{str(known)[:160]}\". Use it; ask about something still open, or answer them."
+                                     if known else "Not asked: the question limit is reached, the same question is open, or a table is already here.")}
 
 
 def record(turn: Turn, /, **args: Any) -> dict[str, Any]:
@@ -1018,13 +1095,8 @@ class DraftGuard:
             if (agent.store.get(draft_id).get("pack") or {}).get("source") == "user":
                 return {"error": "The user chose the pack; ask before changing it."}
         elif tool.move == "build":  # 25.13: only on the person's word, never on the model's own initiative
-            messages = agent.store.get(draft_id)["messages"]
-            at = next((i for i in range(len(messages) - 1, -1, -1) if messages[i].get("role") == "user"), None)
-            said = (messages[at].get("text") or "") if at is not None else ""
-            before = next((m for m in reversed(messages[:at or 0]) if m.get("role") == "agent"), None) or {}
-            offered = before.get("kind") == "summary" or bool(BUILD_WORDS.search(before.get("text") or ""))
-            if not (BUILD_NOW.search(said) or (ASSENT.search(said) and offered)):  # a bare "yes" only to an offer to build
-                return {"error": "The user has not asked to build yet: ask them whether to build now."}
+            if not asks_to_build(agent.store.get(draft_id)["messages"]):  # a bare "yes" only to an offer to build
+                return {"error": "The user's last message is not an order to build: end your reply with the question \"Shall I build it now?\" and wait."}
         elif tool.move == "simulate":
             if any(a.get("status") in PREPARING for a in agent.store.get(draft_id)["assets"]):
                 return {"error": "Data is already being prepared; wait for it."}
