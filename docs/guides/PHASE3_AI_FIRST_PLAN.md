@@ -259,7 +259,13 @@ Messages transport (which returns Claude's thinking, which the OpenAI-compatible
   left out: it exists only where the shown answer was wrong; a level or a threshold compared as a number)); `dclab_rnd/evaluation.py`,
   `GET /api/evaluation` (reviewers and the owner), Admin → **Evaluation** (Claude and DCLab step by step with the mode, cost and time; every
   model by point with precision, recall, F1, accuracy, its interval and n, filtered by model, point or truth). The review (18 findings, with
-  25.10's) is fixed and tested. Left open: `make twin-eval` and its stored matrix (a live run, ≤ 0.5).
+  25.10's) is fixed and tested. **The measurement (2026-10-16):** `make twin-eval` (`dclab_rnd/twin/evaluate.py`) reads the blind
+  runs on studied samples and stores the matrix in `evidence/campaigns/twin_v1/` (TWN-001: six samples, bank marketing, HyperAck, bike
+  sharing, clothing reviews, online shoppers and Telco, €7.84 for Claude's lane). On the solution's columns against the planted truth
+  (12 judged), Claude was right 7 times (58%, 95% 32% to 81%), the rules twice (17%, 5% to 45%); Claude named the outcome 12 times of 12,
+  the rules 4 (they ask the person rather than guess, and ranked a weekday column first on HyperAck); on online shoppers neither matched
+  the R&D's nine forbidden browsing columns. twin_rule_v1 says `ai` for that step; every other step is undecided (no planted truth for
+  it yet). Six samples, one model: no claim beyond them.
 
 ### 25.9 DCLab learns from the expert: adopt what won
 - **Delivers:** from 25.8's matrix, per section of the expert trace and per Home step: where the mode is `ai_checked`,

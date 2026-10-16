@@ -1,0 +1,836 @@
+{
+  "id": "TWN-001",
+  "campaign_id": "twin_v1",
+  "kind": "twin_effectiveness",
+  "at": "2026-10-16T12:11:30+00:00",
+  "source": "blind twin runs on studied samples, judged against the R&D's planted solution",
+  "runs": [
+    {
+      "run_id": "20261016-100832-215130",
+      "sample": "bank_marketing",
+      "model": "claude-sonnet-5-5",
+      "status": {
+        "workflow": "completed",
+        "ai_first": "completed"
+      },
+      "holdout": {
+        "metric": "roc_auc",
+        "workflow": 0.7769689343227832,
+        "ai_first": 0.7693908410711998,
+        "difference_ai_first_minus_workflow": -0.007578093251583429
+      },
+      "seconds": {
+        "workflow": 17.0,
+        "ai_first": 155.4
+      },
+      "eur": {
+        "workflow": 0.0,
+        "ai_first": 1.1174
+      },
+      "requests": {
+        "workflow": 0,
+        "ai_first": 27
+      },
+      "judged": [
+        {
+          "step": "solution.columns",
+          "winner": "both",
+          "differs": []
+        },
+        {
+          "step": "stage.data",
+          "winner": "unjudged",
+          "differs": [
+            "metric"
+          ]
+        },
+        {
+          "step": "stage.features",
+          "winner": "unjudged",
+          "differs": []
+        },
+        {
+          "step": "stage.models",
+          "winner": "unjudged",
+          "differs": [
+            "family"
+          ]
+        }
+      ],
+      "design": [
+        {
+          "version": 1,
+          "checkpoint": "initial",
+          "parsed": true,
+          "problems": 0
+        },
+        {
+          "version": 2,
+          "checkpoint": "data",
+          "parsed": true,
+          "problems": 6
+        },
+        {
+          "version": 3,
+          "checkpoint": "leakage",
+          "parsed": false,
+          "problems": 2
+        },
+        {
+          "version": 4,
+          "checkpoint": "models",
+          "parsed": true,
+          "problems": 0
+        },
+        {
+          "version": 5,
+          "checkpoint": "final",
+          "parsed": true,
+          "problems": 6
+        }
+      ]
+    },
+    {
+      "run_id": "20261016-112025-a15b8e",
+      "sample": "hyperack",
+      "model": "claude-sonnet-5-5",
+      "status": {
+        "workflow": "completed",
+        "ai_first": "completed"
+      },
+      "holdout": null,
+      "seconds": {
+        "workflow": 0.0,
+        "ai_first": 195.0
+      },
+      "eur": {
+        "workflow": 0.0,
+        "ai_first": 1.295
+      },
+      "requests": {
+        "workflow": 0,
+        "ai_first": 31
+      },
+      "judged": [
+        {
+          "step": "solution.columns",
+          "winner": "ai_first",
+          "differs": [
+            "target",
+            "task",
+            "identifiers",
+            "leakage",
+            "time",
+            "group"
+          ]
+        },
+        {
+          "step": "stage.data",
+          "winner": "unjudged",
+          "differs": [
+            "split",
+            "metric"
+          ]
+        },
+        {
+          "step": "stage.features",
+          "winner": "unjudged",
+          "differs": [
+            "recipe"
+          ]
+        },
+        {
+          "step": "stage.models",
+          "winner": "unjudged",
+          "differs": [
+            "family"
+          ]
+        }
+      ],
+      "design": [
+        {
+          "version": 1,
+          "checkpoint": "initial",
+          "parsed": true,
+          "problems": 1
+        },
+        {
+          "version": 2,
+          "checkpoint": "data",
+          "parsed": true,
+          "problems": 4
+        },
+        {
+          "version": 3,
+          "checkpoint": "leakage",
+          "parsed": true,
+          "problems": 0
+        },
+        {
+          "version": 4,
+          "checkpoint": "models",
+          "parsed": true,
+          "problems": 5
+        },
+        {
+          "version": 5,
+          "checkpoint": "final",
+          "parsed": true,
+          "problems": 1
+        }
+      ]
+    },
+    {
+      "run_id": "20261016-112855-921d50",
+      "sample": "bike_sharing_daily",
+      "model": "claude-sonnet-5-5",
+      "status": {
+        "workflow": "completed",
+        "ai_first": "completed"
+      },
+      "holdout": null,
+      "seconds": {
+        "workflow": 1.0,
+        "ai_first": 129.7
+      },
+      "eur": {
+        "workflow": 0.0,
+        "ai_first": 1.3962
+      },
+      "requests": {
+        "workflow": 0,
+        "ai_first": 32
+      },
+      "judged": [
+        {
+          "step": "solution.columns",
+          "winner": "ai_first",
+          "differs": [
+            "target",
+            "task",
+            "identifiers",
+            "leakage",
+            "time",
+            "group"
+          ]
+        },
+        {
+          "step": "stage.data",
+          "winner": "unjudged",
+          "differs": [
+            "split",
+            "metric"
+          ]
+        },
+        {
+          "step": "stage.features",
+          "winner": "unjudged",
+          "differs": [
+            "recipe"
+          ]
+        },
+        {
+          "step": "stage.models",
+          "winner": "unjudged",
+          "differs": [
+            "family"
+          ]
+        }
+      ],
+      "design": [
+        {
+          "version": 1,
+          "checkpoint": "initial",
+          "parsed": true,
+          "problems": 6
+        },
+        {
+          "version": 2,
+          "checkpoint": "data",
+          "parsed": true,
+          "problems": 5
+        },
+        {
+          "version": 3,
+          "checkpoint": "leakage",
+          "parsed": true,
+          "problems": 0
+        },
+        {
+          "version": 4,
+          "checkpoint": "models",
+          "parsed": true,
+          "problems": 6
+        },
+        {
+          "version": 5,
+          "checkpoint": "final",
+          "parsed": true,
+          "problems": 0
+        }
+      ]
+    },
+    {
+      "run_id": "20261016-113617-286709",
+      "sample": "ecommerce_clothing_reviews",
+      "model": "claude-sonnet-5-5",
+      "status": {
+        "workflow": "completed",
+        "ai_first": "completed"
+      },
+      "holdout": null,
+      "seconds": {
+        "workflow": 1.0,
+        "ai_first": 491.2
+      },
+      "eur": {
+        "workflow": 0.0,
+        "ai_first": 1.3932
+      },
+      "requests": {
+        "workflow": 0,
+        "ai_first": 35
+      },
+      "judged": [
+        {
+          "step": "solution.columns",
+          "winner": "ai_first",
+          "differs": [
+            "target",
+            "task",
+            "identifiers",
+            "leakage",
+            "time",
+            "group"
+          ]
+        },
+        {
+          "step": "stage.data",
+          "winner": "unjudged",
+          "differs": [
+            "split",
+            "metric"
+          ]
+        },
+        {
+          "step": "stage.features",
+          "winner": "unjudged",
+          "differs": [
+            "recipe"
+          ]
+        },
+        {
+          "step": "stage.models",
+          "winner": "unjudged",
+          "differs": [
+            "family"
+          ]
+        }
+      ],
+      "design": [
+        {
+          "version": 1,
+          "checkpoint": "initial",
+          "parsed": true,
+          "problems": 1
+        },
+        {
+          "version": 2,
+          "checkpoint": "data",
+          "parsed": true,
+          "problems": 4
+        },
+        {
+          "version": 3,
+          "checkpoint": "leakage",
+          "parsed": true,
+          "problems": 0
+        },
+        {
+          "version": 4,
+          "checkpoint": "models",
+          "parsed": true,
+          "problems": 4
+        }
+      ]
+    },
+    {
+      "run_id": "20261016-114806-2ba186",
+      "sample": "online_shoppers",
+      "model": "claude-sonnet-5-5",
+      "status": {
+        "workflow": "completed",
+        "ai_first": "completed"
+      },
+      "holdout": null,
+      "seconds": {
+        "workflow": 39.0,
+        "ai_first": 242.4
+      },
+      "eur": {
+        "workflow": 0.0,
+        "ai_first": 1.3689
+      },
+      "requests": {
+        "workflow": 0,
+        "ai_first": 30
+      },
+      "judged": [
+        {
+          "step": "solution.columns",
+          "winner": "neither",
+          "differs": []
+        },
+        {
+          "step": "stage.data",
+          "winner": "unjudged",
+          "differs": [
+            "metric"
+          ]
+        },
+        {
+          "step": "stage.features",
+          "winner": "unjudged",
+          "differs": []
+        },
+        {
+          "step": "stage.models",
+          "winner": "unjudged",
+          "differs": []
+        }
+      ],
+      "design": [
+        {
+          "version": 1,
+          "checkpoint": "initial",
+          "parsed": true,
+          "problems": 1
+        },
+        {
+          "version": 2,
+          "checkpoint": "data",
+          "parsed": true,
+          "problems": 4
+        },
+        {
+          "version": 3,
+          "checkpoint": "leakage",
+          "parsed": true,
+          "problems": 0
+        },
+        {
+          "version": 4,
+          "checkpoint": "models",
+          "parsed": true,
+          "problems": 0
+        }
+      ]
+    },
+    {
+      "run_id": "20261016-115746-c3bb98",
+      "sample": "telco_churn",
+      "model": "claude-sonnet-5-5",
+      "status": {
+        "workflow": "completed",
+        "ai_first": "completed"
+      },
+      "holdout": null,
+      "seconds": {
+        "workflow": 0.0,
+        "ai_first": 332.5
+      },
+      "eur": {
+        "workflow": 0.0,
+        "ai_first": 1.2698
+      },
+      "requests": {
+        "workflow": 0,
+        "ai_first": 32
+      },
+      "judged": [
+        {
+          "step": "solution.columns",
+          "winner": "ai_first",
+          "differs": [
+            "target",
+            "task",
+            "identifiers",
+            "leakage",
+            "time",
+            "group"
+          ]
+        },
+        {
+          "step": "stage.data",
+          "winner": "unjudged",
+          "differs": [
+            "split",
+            "metric"
+          ]
+        },
+        {
+          "step": "stage.features",
+          "winner": "unjudged",
+          "differs": [
+            "recipe"
+          ]
+        },
+        {
+          "step": "stage.models",
+          "winner": "unjudged",
+          "differs": [
+            "family"
+          ]
+        }
+      ],
+      "design": [
+        {
+          "version": 1,
+          "checkpoint": "initial",
+          "parsed": true,
+          "problems": 0
+        },
+        {
+          "version": 2,
+          "checkpoint": "data",
+          "parsed": true,
+          "problems": 4
+        },
+        {
+          "version": 3,
+          "checkpoint": "leakage",
+          "parsed": true,
+          "problems": 0
+        },
+        {
+          "version": 4,
+          "checkpoint": "models",
+          "parsed": true,
+          "problems": 5
+        },
+        {
+          "version": 5,
+          "checkpoint": "final",
+          "parsed": true,
+          "problems": 0
+        }
+      ]
+    }
+  ],
+  "matrix": {
+    "schema_version": "dclab_core.twin_matrix.v1",
+    "rule": "twin_rule_v1",
+    "source": "blind twin runs on studied samples, judged against the R&D's planted solution",
+    "steps": [
+      {
+        "step": "home.understanding",
+        "steps": 6,
+        "judged": 0,
+        "agreement": 0.0,
+        "system_right": 0,
+        "ai_right": 0,
+        "checked_right": 0,
+        "system_accuracy": null,
+        "ai_accuracy": null,
+        "checked_accuracy": null,
+        "system_interval": [
+          null,
+          null
+        ],
+        "ai_interval": [
+          null,
+          null
+        ],
+        "ai_only_right": 0,
+        "system_only_right": 0,
+        "review_recall": null,
+        "review_precision": null,
+        "ai_failed": 0,
+        "cost_eur": {
+          "system": 0.0,
+          "ai_first": 0.0
+        },
+        "seconds": {
+          "system": 0.0,
+          "ai_first": 0.0
+        },
+        "fields": {},
+        "mode": "undecided",
+        "reasons": [
+          "0 judged steps; the rule needs 10"
+        ]
+      },
+      {
+        "step": "home.map",
+        "steps": 6,
+        "judged": 0,
+        "agreement": 0.8333,
+        "system_right": 0,
+        "ai_right": 0,
+        "checked_right": 0,
+        "system_accuracy": null,
+        "ai_accuracy": null,
+        "checked_accuracy": null,
+        "system_interval": [
+          null,
+          null
+        ],
+        "ai_interval": [
+          null,
+          null
+        ],
+        "ai_only_right": 0,
+        "system_only_right": 0,
+        "review_recall": null,
+        "review_precision": null,
+        "ai_failed": 0,
+        "cost_eur": {
+          "system": 0.0,
+          "ai_first": 0.0
+        },
+        "seconds": {
+          "system": 0.0,
+          "ai_first": 0.0
+        },
+        "fields": {},
+        "mode": "undecided",
+        "reasons": [
+          "0 judged steps; the rule needs 10"
+        ]
+      },
+      {
+        "step": "home.workflow",
+        "steps": 6,
+        "judged": 0,
+        "agreement": null,
+        "system_right": 0,
+        "ai_right": 0,
+        "checked_right": 0,
+        "system_accuracy": null,
+        "ai_accuracy": null,
+        "checked_accuracy": null,
+        "system_interval": [
+          null,
+          null
+        ],
+        "ai_interval": [
+          null,
+          null
+        ],
+        "ai_only_right": 0,
+        "system_only_right": 0,
+        "review_recall": null,
+        "review_precision": null,
+        "ai_failed": 0,
+        "cost_eur": {
+          "system": null,
+          "ai_first": 0.0
+        },
+        "seconds": {
+          "system": null,
+          "ai_first": 0.0
+        },
+        "fields": {},
+        "mode": "undecided",
+        "reasons": [
+          "0 judged steps; the rule needs 10"
+        ]
+      },
+      {
+        "step": "solution.columns",
+        "steps": 12,
+        "judged": 12,
+        "agreement": 0.5,
+        "system_right": 2,
+        "ai_right": 7,
+        "checked_right": 7,
+        "system_accuracy": 0.1667,
+        "ai_accuracy": 0.5833,
+        "checked_accuracy": 0.5833,
+        "system_interval": [
+          0.047,
+          0.448
+        ],
+        "ai_interval": [
+          0.3195,
+          0.8067
+        ],
+        "ai_only_right": 5,
+        "system_only_right": 0,
+        "review_recall": 0.5,
+        "review_precision": 1.0,
+        "ai_failed": 0,
+        "cost_eur": {
+          "system": 0.0,
+          "ai_first": 0.558702
+        },
+        "seconds": {
+          "system": 0.0,
+          "ai_first": 0.0
+        },
+        "fields": {
+          "target": {
+            "judged": 12,
+            "system": 4,
+            "ai_first": 12
+          },
+          "leakage": {
+            "judged": 12,
+            "system": 2,
+            "ai_first": 7
+          }
+        },
+        "mode": "ai",
+        "reasons": [
+          "the AI is right 58% against the system's 17%; the validator adds nothing"
+        ]
+      },
+      {
+        "step": "stage.data",
+        "steps": 12,
+        "judged": 0,
+        "agreement": 0.0,
+        "system_right": 0,
+        "ai_right": 0,
+        "checked_right": 0,
+        "system_accuracy": null,
+        "ai_accuracy": null,
+        "checked_accuracy": null,
+        "system_interval": [
+          null,
+          null
+        ],
+        "ai_interval": [
+          null,
+          null
+        ],
+        "ai_only_right": 0,
+        "system_only_right": 0,
+        "review_recall": null,
+        "review_precision": null,
+        "ai_failed": 0,
+        "cost_eur": {
+          "system": 0.0,
+          "ai_first": 0.0
+        },
+        "seconds": {
+          "system": 0.0,
+          "ai_first": 0.0
+        },
+        "fields": {},
+        "mode": "undecided",
+        "reasons": [
+          "0 judged steps; the rule needs 10"
+        ]
+      },
+      {
+        "step": "stage.features",
+        "steps": 6,
+        "judged": 0,
+        "agreement": 1.0,
+        "system_right": 0,
+        "ai_right": 0,
+        "checked_right": 0,
+        "system_accuracy": null,
+        "ai_accuracy": null,
+        "checked_accuracy": null,
+        "system_interval": [
+          null,
+          null
+        ],
+        "ai_interval": [
+          null,
+          null
+        ],
+        "ai_only_right": 0,
+        "system_only_right": 0,
+        "review_recall": null,
+        "review_precision": null,
+        "ai_failed": 0,
+        "cost_eur": {
+          "system": 0.0,
+          "ai_first": 0.0
+        },
+        "seconds": {
+          "system": 0.0,
+          "ai_first": 0.0
+        },
+        "fields": {},
+        "mode": "undecided",
+        "reasons": [
+          "0 judged steps; the rule needs 10"
+        ]
+      },
+      {
+        "step": "stage.models",
+        "steps": 12,
+        "judged": 0,
+        "agreement": 0.25,
+        "system_right": 0,
+        "ai_right": 0,
+        "checked_right": 0,
+        "system_accuracy": null,
+        "ai_accuracy": null,
+        "checked_accuracy": null,
+        "system_interval": [
+          null,
+          null
+        ],
+        "ai_interval": [
+          null,
+          null
+        ],
+        "ai_only_right": 0,
+        "system_only_right": 0,
+        "review_recall": null,
+        "review_precision": null,
+        "ai_failed": 0,
+        "cost_eur": {
+          "system": 0.0,
+          "ai_first": 0.0
+        },
+        "seconds": {
+          "system": 0.0,
+          "ai_first": 0.0
+        },
+        "fields": {},
+        "mode": "undecided",
+        "reasons": [
+          "0 judged steps; the rule needs 10"
+        ]
+      }
+    ],
+    "totals": {
+      "steps": 60.0,
+      "judged": 12.0,
+      "cost_eur_system": 0.0,
+      "cost_eur_ai_first": 7.840584
+    }
+  },
+  "steps": 60,
+  "spent_eur": 7.8405,
+  "summary": {
+    "runs": 6,
+    "samples": [
+      "bank_marketing",
+      "bike_sharing_daily",
+      "ecommerce_clothing_reviews",
+      "hyperack",
+      "online_shoppers",
+      "telco_churn"
+    ],
+    "steps": 60,
+    "modes": {
+      "home.understanding": "undecided",
+      "home.map": "undecided",
+      "home.workflow": "undecided",
+      "solution.columns": "ai",
+      "stage.data": "undecided",
+      "stage.features": "undecided",
+      "stage.models": "undecided"
+    }
+  },
+  "status": "completed",
+  "experiment_id": "TWN-001",
+  "rule": "A measurement on these samples with these caps and this model: where each arm was right on the planted truth, and what it cost. It is not a claim about other problems or about production readiness; a step below the rule's minimum of judged cases stays undecided."
+}
