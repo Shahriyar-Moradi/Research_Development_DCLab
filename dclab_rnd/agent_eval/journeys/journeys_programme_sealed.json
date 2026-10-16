@@ -1,0 +1,252 @@
+[
+  {
+    "id": "JS-01",
+    "programme": "fraud_programme",
+    "words": "I run operations for our bike delivery platform and we believe some riders are closing deliveries they never made, and that some groups of customer accounts are working with particular riders to create fake orders. Our review team can only look at a small slice of rides each day, so I need one prioritised list for them. I have the rides, the accounts and the cases our investigators have confirmed.",
+    "answers": {
+      "prediction_moment": "Each ride is judged at the moment it is closed as delivered, using what we know about the ride, the account and the rider at that time.",
+      "entity": "Both the rider and the customer account, because the same riders and the same accounts show up again and again.",
+      "labels": "Investigators have confirmed a number of rides as fraud. The list is incomplete, with more of the cheating-rider kind than of the fake-order kind. Rides that are not on it are simply not reviewed yet.",
+      "budget": "The team can check about two percent of the day's rides.",
+      "target": "Rides that are fraud: either closed without the rider moving, or part of a fake-order group.",
+      "family": "I think it is really two related problems that feed one review list.",
+      "action": "The team opens the top of the list each morning, checks those rides, and records what they find.",
+      "data_plan": "I will upload the rides file, the accounts file and the confirmed cases file."
+    },
+    "brings": ["rides", "accounts", "cases"],
+    "when_blocked": "stop",
+    "expect": {
+      "size": "complex",
+      "families": ["rare_event", "entity_tables", "ranking"],
+      "approaches": ["rare_event", "entity_tables", "review_budgeted"],
+      "composes": true,
+      "why": "Two linked kinds of fraud (rides that go nowhere, and account groups feeding one rider) plus a small review budget make several dependent parts, and with all three files and confirmed cases the pieces combine into one cut list that can be judged on the confirmed rides."
+    },
+    "note": "A formal head of operations who names both kinds of fraud, states the budget as a share of rides, and brings every file."
+  },
+  {
+    "id": "JS-02",
+    "programme": "fraud_programme",
+    "words": "Hi, I'm not a data person. I run a small delivery startup and I think we are getting scammed: some of my bikers cheat and I also see weird customer orders. Can you build something that tells my team which orders to look at?",
+    "answers": {
+      "prediction_moment": "When the order is finished, I guess. Whatever we know about it right then.",
+      "entity": "The bikers for sure, and the customers who order a lot from the same biker.",
+      "labels": "Our fraud guy marked some of the bad orders in a file. Not all of them, he only had time for some. Most of them are bikers faking the trip.",
+      "budget": "A few hundred orders a day is what my two guys can look at.",
+      "target": "The scam orders, both the bikers that cheat and the fake customers.",
+      "family": "No idea what kind of problem this is, you tell me.",
+      "action": "My two guys look at the orders you show them and tell me what is real.",
+      "data_plan": "I can export three files: the orders, the customers and the fraud guy's list. If one of them turns out to be a problem, just skip that part and go on, I can't spend weeks on it."
+    },
+    "brings": ["rides", "accounts", "cases"],
+    "when_blocked": "drop",
+    "expect": {
+      "size": "complex",
+      "families": ["rare_event", "entity_tables", "ranking"],
+      "approaches": ["rare_event", "entity_tables", "review_budgeted"],
+      "composes": true,
+      "why": "Cheating bikers and fake customers working with them are two dependent problems under a daily review limit, and all three files are present so each part can be learned from the confirmed cases and combined into one list."
+    },
+    "note": "A data-shy founder who describes everything in everyday words, gives the budget as a loose count, and is happy to skip a part."
+  },
+  {
+    "id": "JS-03",
+    "programme": "fraud_programme",
+    "words": "I'm a risk analyst at a bike courier company. We have confirmed cases of couriers closing jobs with no movement, and we suspect colluding customer accounts too, but the account data sits with another team and I cannot get it. We can review a limited number of rides per day, so I need an ordered shortlist.",
+    "answers": {
+      "prediction_moment": "At ride close. Only the ride's own details and the courier's history up to that moment may be used, nothing from after the close.",
+      "entity": "The courier mainly. The customer side matters too but I cannot see those accounts.",
+      "labels": "Confirmed cases from investigations, a partial list, skewed to the no-movement kind. Anything not on the list is unverified, not clean.",
+      "budget": "Around two hundred rides a day.",
+      "target": "Rides that are fraudulent, starting with the no-movement ones.",
+      "family": "Fraud finding, with a limited number of rides we can review on top.",
+      "action": "Investigators work the shortlist from the top down and add what they confirm to the cases list.",
+      "data_plan": "The ride export and the confirmed cases file. The accounts file is owned by another team and I cannot get it in time, so please go on without the linked-accounts part rather than wait, because the ride-level part matters most right now."
+    },
+    "brings": ["rides", "cases"],
+    "when_blocked": "drop",
+    "expect": {
+      "size": "complex",
+      "families": ["rare_event", "entity_tables", "ranking"],
+      "approaches": ["rare_event", null, "review_budgeted"],
+      "composes": true,
+      "why": "The problem still has three parts, but without the accounts file the linked-accounts part has nothing to work on, so the shortlist rests on the ride-level score cut to the budget and can still be judged on the confirmed cases."
+    },
+    "note": "A precise risk analyst who knows the cases are partial and unmarked means unknown, and who chooses to drop the part that needs a file he cannot get."
+  },
+  {
+    "id": "JS-04",
+    "programme": "fraud_programme",
+    "words": "Bikers fake deliveries. Customers fake orders. Both. We need a list of rides to check. Not many.",
+    "answers": {
+      "prediction_moment": "After the ride ends.",
+      "entity": "Bikers. Customers too.",
+      "labels": "Investigators confirmed some. Not all. Mostly the biker kind.",
+      "budget": "Two people check some each morning.",
+      "target": "Fake rides.",
+      "family": "Fraud. Two kinds.",
+      "action": "They check the list. Then block the bikers or the accounts.",
+      "data_plan": "Rides file. Confirmed file. No accounts file yet. I can get it from tech. I will wait for it, do not go on without it."
+    },
+    "brings": ["rides", "cases"],
+    "when_blocked": "stop",
+    "expect": {
+      "size": "complex",
+      "families": ["rare_event", "entity_tables", "ranking"],
+      "approaches": ["rare_event", null, "review_budgeted"],
+      "composes": true,
+      "why": "Two kinds of fraud and a small review limit make three parts, the linked-accounts part cannot work without the accounts file, and the remaining ride-level list can be judged on the confirmed cases, though this person prefers to wait for the missing file."
+    },
+    "note": "Writes in short blunt sentences, gives the budget without a number, and wants to stop and fetch the accounts file."
+  },
+  {
+    "id": "JS-05",
+    "programme": "fraud_programme",
+    "words": "So we've been having this thing for a while, my cousin who drives for us noticed that some of the other riders seem to finish deliveries very quickly and the customer never says anything, and then I also noticed a lot of new customer accounts appear at the same time and order from the same few riders, I don't know if it's the same people, but anyway the team can only look at a few each day, so can you tell us which ones?",
+    "answers": {
+      "prediction_moment": "When the delivery is marked done, we look at it that day, with the ride and the account details we have then.",
+      "entity": "The riders, definitely, and the customers who all seem to be connected, though I do not really know how.",
+      "labels": "Nobody ever confirmed anything. We never really checked properly, we just have suspicions, so I have no list of bad ones.",
+      "budget": "We can look at maybe a hundred rides a day, the two of us and my cousin if he is free.",
+      "target": "The deliveries that are not real, whoever is behind them.",
+      "family": "I could not say, we only have suspicions.",
+      "action": "We look at the top ones and if it seems wrong we talk to the rider or close the accounts.",
+      "data_plan": "I have the rides file and the accounts file. There is no file of confirmed cases because we never confirmed any. Let's just do what we can with these two, and then we will check the first list ourselves and write down which ones were real."
+    },
+    "brings": ["rides", "accounts"],
+    "when_blocked": "drop",
+    "expect": {
+      "size": "complex",
+      "families": ["anomaly", "entity_tables", "ranking"],
+      "approaches": ["anomaly", "anomaly", "review_budgeted"],
+      "composes": false,
+      "why": "With nothing ever confirmed there are no outcomes to learn from, so both detection parts can only look for the unusual (rides that go nowhere fast, account groups sharing a phone or device around one biker) and the combined list can be built for the team but cannot be judged on any confirmed case."
+    },
+    "note": "A rambling owner with two vague observations, no confirmed cases at all, and a plan to label the first list themselves."
+  },
+  {
+    "id": "JS-06",
+    "programme": "fraud_programme",
+    "words": "We want to find unusual deliveries in our rides data, the ones that end where they started within a minute or two. Nobody has investigated anything yet, we just want to see which rides look strange.",
+    "answers": {
+      "prediction_moment": "After each ride closes, we would look at the day's rides together. Nothing about what happens later is needed.",
+      "entity": "Just the rides themselves. Maybe the riders, but we have not thought about that.",
+      "labels": "None. Nobody has confirmed any case. We just want to see the strange ones.",
+      "budget": "Not decided. We would just read the strangest ones.",
+      "target": "Rides that look wrong: they end where they started within a minute or two.",
+      "family": "Finding odd rides.",
+      "action": "We look at them and decide whether there is a problem.",
+      "data_plan": "Only the rides file."
+    },
+    "brings": ["rides"],
+    "when_blocked": "drop",
+    "expect": {
+      "size": "single",
+      "families": ["anomaly"],
+      "approaches": ["anomaly"],
+      "composes": false,
+      "why": "It is one question about the rides alone with no labels, so the unusual rides are found by their own shape, and with no confirmed case there is nothing to judge a list on."
+    },
+    "note": "A concise analyst whose whole problem is unusual rides, with no mention of accounts, a budget or any investigation."
+  },
+  {
+    "id": "JS-07",
+    "programme": "fraud_programme",
+    "words": "Good day. In our company we have a problem of collusion: some biker and some customer accounts make together false orders for take the fare, and also some biker finish the delivery without moving. We are a small team, we can check only part of the rides every day, so we need a list from the data.",
+    "answers": {
+      "prediction_moment": "When the biker press delivered. We know the ride, the account and the history from before.",
+      "entity": "The biker and the customer account, both. Some accounts are opened together with the same phone.",
+      "labels": "Investigators confirmed some rides. It is not complete. More cases of biker who do not move, less of the false orders.",
+      "budget": "One hundred fifty rides every day.",
+      "target": "The false rides, of the two kinds.",
+      "family": "Fraud problem with two sides, I think they are connected.",
+      "action": "Two persons check the list and write if it is fraud or not.",
+      "data_plan": "I have three files: the rides, the accounts and the confirmed cases. I prefer to wait and fix a file if something is wrong with it."
+    },
+    "brings": ["rides", "accounts", "cases"],
+    "when_blocked": "stop",
+    "expect": {
+      "size": "complex",
+      "families": ["rare_event", "entity_tables", "ranking"],
+      "approaches": ["rare_event", "entity_tables", "review_budgeted"],
+      "composes": true,
+      "why": "Two connected kinds of fraud and a fixed daily review count make several dependent parts, and with rides, accounts and confirmed cases all present each part has a way to be learned and the pieces combine into one list judged on the confirmed rides."
+    },
+    "note": "A non-native English speaker who says collusion, gives an exact daily count, and brings all three files."
+  },
+  {
+    "id": "JS-08",
+    "programme": "fraud_programme",
+    "words": "Something feels off with our deliveries lately and I think we are losing money on some of them. Can you help me work out what is going on?",
+    "answers": {
+      "prediction_moment": "When a delivery is done, I suppose. We would look at what we know about it then.",
+      "entity": "Probably the bikers, I am not sure.",
+      "labels": "Investigators have marked some deliveries as fraud. I do not know how many, and I am sure they did not look at all of them.",
+      "budget": "I have no idea yet, we have not decided anything about that.",
+      "target": "The deliveries that were not really done, the ones where we lose money.",
+      "family": "No idea.",
+      "action": "Someone on the team looks at them and sees what happened.",
+      "data_plan": "The rides export and the list the investigators made. If something is missing, just work with what we have."
+    },
+    "brings": ["rides", "cases"],
+    "when_blocked": "drop",
+    "expect": {
+      "size": "single",
+      "families": ["rare_event"],
+      "approaches": ["rare_event"],
+      "composes": true,
+      "why": "Everything they say points to one ride-level problem, deliveries not really made, that investigators have partly confirmed, with no sign of linked accounts or a review limit, so it is one problem learned from the confirmed rides and judged on them."
+    },
+    "note": "A vague owner who names no kind of fraud, no accounts and no budget, but does have the investigators' list."
+  },
+  {
+    "id": "JS-09",
+    "programme": "fraud_programme",
+    "words": "I lead trust and safety, and we think there are groups of customer accounts that were opened together, share a phone or a device, and order almost only from one biker to collect fares. Every single order looks normal, so I want to find those groups of accounts.",
+    "answers": {
+      "prediction_moment": "As accounts place their orders, using what we know about the account, its phone and device, and its rides so far.",
+      "entity": "The customer accounts and the biker they keep ordering from.",
+      "labels": "Investigators confirmed a few rides as fake orders, they are in the file. It is only part of it.",
+      "budget": "No daily limit for this. There should not be many groups to read.",
+      "target": "The accounts working with a biker on fake orders to collect fares, which is abuse of the fare system.",
+      "family": "Linked accounts.",
+      "action": "We freeze the accounts and look into the biker.",
+      "data_plan": "The rides file, the accounts file and the confirmed cases file. If the accounts file does not work out, I would rather drop this and tell you, since it is the whole point."
+    },
+    "brings": ["rides", "accounts", "cases"],
+    "when_blocked": "drop",
+    "expect": {
+      "size": "single",
+      "families": ["entity_tables"],
+      "approaches": ["entity_tables"],
+      "composes": true,
+      "why": "The whole question is about linked customer accounts and the rider they feed, which only the accounts table shows, with no other kind of fraud and no review limit mentioned, so it is one problem learned from the confirmed cases."
+    },
+    "note": "A trust and safety lead who only cares about the account groups, so the programme should not be split into more parts than he asked for."
+  },
+  {
+    "id": "JS-10",
+    "programme": "fraud_programme",
+    "words": "We are a regional courier operator and I am worried about ghost deliveries, and about customer accounts that seem to be set up together just to feed fares to certain riders. All I have at the moment is the ride log. My supervisors can check roughly one ride in fifty.",
+    "answers": {
+      "prediction_moment": "At the end of each ride, with what the ride log tells us then.",
+      "entity": "Riders and customer accounts.",
+      "labels": "Nothing confirmed. We have never run an investigation, so there is no list.",
+      "budget": "About one ride in fifty.",
+      "target": "Ghost deliveries and the fake orders around them.",
+      "family": "Not sure, it is probably fraud of two kinds.",
+      "action": "Supervisors check the list and begin the first investigations.",
+      "data_plan": "Only the ride log for now. The customer accounts are in a different system and I would need IT to export them, so I would rather stop here and get that file before we go further."
+    },
+    "brings": ["rides"],
+    "when_blocked": "stop",
+    "expect": {
+      "size": "complex",
+      "families": ["anomaly", "entity_tables", "ranking"],
+      "approaches": ["anomaly", null, "review_budgeted"],
+      "composes": false,
+      "why": "Both kinds of fraud and a review limit make three parts, but with only the ride log the account-link part cannot work and the ride part can only look for unusual rides, and with no confirmed case the review list cannot be judged on anything."
+    },
+    "note": "A regional operator who wants both kinds of fraud found but brings only the ride log, has no confirmed cases, and prefers to stop and fetch the accounts export."
+  }
+]
