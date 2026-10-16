@@ -1,0 +1,579 @@
+[
+ {
+  "id": "JW-01",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "words": "need to cach the fake deliverys some of our bikers are doing, ops already caught a few and put them in a sheet",
+  "answers": {
+   "prediction_moment": "Every morning we go over yesterday's rides",
+   "entity": "The biker who did the ride",
+   "labels": "Only the ones ops caught, they are in a separate sheet; most rides were never checked",
+   "budget": "Ops can look at maybe 50 rides a day",
+   "target": "Whether the ride was a fake one, from the sheet",
+   "action": "Ops calls the biker and holds the payout if it's fake",
+   "data_plan": "The rides export and the sheet of caught cases"
+  },
+  "note": "An operations lead at a delivery start-up, typing fast on a phone, with a hand-kept sheet of caught frauds."
+ },
+ {
+  "id": "JW-02",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "words": "Looking for a PU-learning setup: order-level ride data, fraud prevalence well under 1%, positives only from an investigations extract.",
+  "answers": {
+   "target": "A fraud flag from the investigations extract, matched to the rides by order_id",
+   "labels": "Positive-unlabelled: the investigations covered a sample, unlabelled rides are not confirmed clean",
+   "entity": "biker_id; a handful of bikers account for most of the cases",
+   "prediction_moment": "Post-delivery batch scoring, once a day",
+   "data_plan": "rides table plus the investigations extract as a second file"
+  },
+  "note": "A trust-and-safety data scientist who speaks in method names and leaves the review budget out."
+ },
+ {
+  "id": "JW-03",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "words": "So our online shop keeps losing people without noticing. They just stop ordering at some point. We have the customer list, every order with its amount, the support tickets they opened and their addresses, all in separate tables, and I'd like to know each month who is about to go quiet.",
+  "answers": {
+   "target": "A customer who places no order at all in the next 30 days",
+   "prediction_moment": "At the end of each month, using only what happened up to that day",
+   "entity": "The customer",
+   "action": "Customers about to go quiet get a coupon by email",
+   "data_plan": "Four tables: customers, orders, tickets and addresses, linked by customer_id",
+   "family": "Yes or no per customer: silent for the next 30 days"
+  },
+  "solution": {
+   "kind": "entity_tables",
+   "kind_fields": {
+    "key_column": "customer_id",
+    "target_table": "orders",
+    "horizon_days": 30,
+    "absent": true,
+    "cutoffs": [
+     "2025-05-31",
+     "2025-06-30",
+     "2025-07-31",
+     "2025-08-31",
+     "2025-09-30",
+     "2025-10-31",
+     "2025-11-30"
+    ],
+    "event_tables": [
+     {
+      "name": "orders",
+      "time_column": "ordered_at",
+      "sum_columns": [
+       "amount"
+      ]
+     },
+     {
+      "name": "tickets",
+      "time_column": "opened_at"
+     }
+    ],
+    "joined_tables": [
+     "addresses"
+    ]
+   }
+  },
+  "note": "The founder of a small e-commerce shop, chatty, who has already exported every table separately."
+ },
+ {
+  "id": "JW-04",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "words": "predict customer will stop buy, data is many table",
+  "answers": {
+   "entity": "Customer",
+   "target": "If he not buy anything in next one month",
+   "data_plan": "Customer table, order table, also ticket table and address table"
+  },
+  "note": "A non-native English speaking analyst at a retailer, very short answers, never says when the prediction is made."
+ },
+ {
+  "id": "JW-05",
+  "kind": "forecasting",
+  "family": "forecasting",
+  "words": "I think I need a regression model to predict sales for each store and each product",
+  "answers": {
+   "target": "units",
+   "prediction_moment": "Sunday night, for each day of the coming week; promotions are decided long before, rain we only know on the day",
+   "action": "Store managers place their stock orders from it",
+   "data_plan": "Daily sales history per store and product",
+   "family": "Units per day for the next 7 days, for every store and product"
+  },
+  "solution": {
+   "kind": "forecasting",
+   "time_column": "date",
+   "kind_fields": {
+    "series_column": "series",
+    "horizon": 7,
+    "season": 7,
+    "known_ahead": [
+     "on_promotion"
+    ]
+   }
+  },
+  "note": "A supply-chain planner who names regression for what is a demand forecast."
+ },
+ {
+  "id": "JW-06",
+  "kind": "forecasting",
+  "family": "forecasting",
+  "words": "can u build me a model for our sales file",
+  "answers": {
+   "target": "the units column",
+   "data_plan": "the sales file, one row per store, product and day"
+  },
+  "note": "A busy retail owner who gives the file and almost nothing else."
+ },
+ {
+  "id": "JW-07",
+  "kind": "ranking",
+  "family": "ranking",
+  "words": "We want a recommendation engine: which products to put in front of each user on the homepage",
+  "answers": {
+   "target": "The user buys the product within two weeks",
+   "prediction_moment": "As of 5 April 2025, for the two weeks after",
+   "entity": "The user",
+   "action": "The homepage has five slots per user",
+   "data_plan": "The log of views and purchases, and the product catalogue",
+   "family": "An ordered list of products for each user"
+  },
+  "solution": {
+   "kind": "ranking",
+   "kind_fields": {
+    "user_column": "user_id",
+    "item_column": "item_id",
+    "time_column": "time",
+    "event_column": "event",
+    "relevant_event": "purchase",
+    "moment": "2025-04-05",
+    "window_days": 14,
+    "k": 5,
+    "created_column": "created_at",
+    "category_column": "category",
+    "items_table": "items"
+   }
+  },
+  "note": "A product manager at an online store who knows the slot count and the log's layout."
+ },
+ {
+  "id": "JW-08",
+  "kind": "ranking",
+  "family": "ranking",
+  "words": "personalised sorting of items for evry customer?? they mostly just look, sometimes buy",
+  "answers": {
+   "target": "buy",
+   "data_plan": "the click log and the item list",
+   "family": "items in order for each customer"
+  },
+  "note": "A junior developer at a marketplace, misspells, gives no moment and no list length."
+ },
+ {
+  "id": "JW-09",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "words": "I want to train a classifier that puts our customers into personas",
+  "answers": {
+   "target": "We don't have personas yet, nobody has ever labelled a customer",
+   "prediction_moment": "Now, from what we know about each customer today",
+   "action": "Marketing writes one message per persona",
+   "data_plan": "The customer table: orders per month, basket size, discount use, days since last order, channel",
+   "family": "Groups of similar customers"
+  },
+  "solution": {
+   "kind": "segmentation",
+   "kind_fields": {
+    "max_segments": 5,
+    "columns": [
+     "orders_per_month",
+     "avg_basket",
+     "discount_share",
+     "days_since_last_order",
+     "channel"
+    ]
+   }
+  },
+  "note": "A marketing manager who says classifier but has no labels and wants personas."
+ },
+ {
+  "id": "JW-10",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "words": "cluster customers",
+  "answers": {
+   "action": "One campaign per cluster",
+   "data_plan": "customers table; renewed is there too, only to describe the clusters afterwards"
+  },
+  "solution": {
+   "kind": "segmentation",
+   "kind_fields": {
+    "outcome_column": "renewed",
+    "max_segments": 6
+   }
+  },
+  "note": "A terse CRM analyst who wants groups and mentions the renewal column only to describe them."
+ },
+ {
+  "id": "JW-11",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "labels": "column",
+  "words": "Survival analysis on subscriber tenure, right-censored actives, want S(t) at 3 and 12 months by plan.",
+  "answers": {
+   "target": "days_subscribed, with cancelled as the event indicator",
+   "prediction_moment": "At signup",
+   "labels": "Every subscriber has a duration; cancelled is 0 for the ones still active",
+   "data_plan": "The subscribers table",
+   "family": "Time until cancellation"
+  },
+  "solution": {
+   "kind": "time_to_event",
+   "time_column": null,
+   "kind_fields": {
+    "duration_column": "days_subscribed",
+    "event_column": "cancelled",
+    "start_column": "signup_date",
+    "horizons": [
+     90,
+     365
+    ],
+    "group_column": "plan"
+   }
+  },
+  "note": "A biostatistician turned product analyst, precise and short."
+ },
+ {
+  "id": "JW-12",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "words": "I was going to do logistic regression on churn for new signups but half of our subscribers are still active so I don't know if they'll churn or not. I really want to know how long each new one will stay",
+  "answers": {
+   "target": "How many days they stay; cancelled says if they already left",
+   "prediction_moment": "Right when they sign up",
+   "action": "An onboarding call for the ones likely to leave in the first three months",
+   "data_plan": "Our subscribers export"
+  },
+  "note": "A growth analyst at a subscription box company who starts from the wrong method and notices the problem."
+ },
+ {
+  "id": "JW-13",
+  "kind": "uplift",
+  "family": "uplift",
+  "labels": "column",
+  "words": "Which customers should actually get the discount? Last time we sent it to a random half and I want to know who it changed.",
+  "answers": {
+   "target": "bought",
+   "prediction_moment": "When we draw the list for the next campaign, before anything is sent",
+   "action": "Only the customers the discount makes buy get it next time",
+   "data_plan": "Last campaign's table with got_offer and bought",
+   "family": "Who buys because of the discount, not anyway"
+  },
+  "solution": {
+   "kind": "uplift",
+   "kind_fields": {
+    "treatment_column": "got_offer",
+    "randomised": true
+   }
+  },
+  "note": "A CRM lead who ran a randomised test and asks the right question."
+ },
+ {
+  "id": "JW-14",
+  "kind": "uplift",
+  "family": "uplift",
+  "words": "I want a propensity model for who buys after the promo, so we can stop wasting it on people who would buy anyway",
+  "answers": {
+   "target": "bought, and got_offer says who received the promo",
+   "action": "Promos go to the top of the list",
+   "data_plan": "The campaign table"
+  },
+  "note": "A performance marketer who names propensity for an uplift problem and does not say how the promo was assigned."
+ },
+ {
+  "id": "JW-15",
+  "kind": "streams",
+  "family": "streams",
+  "labels": "file",
+  "words": "Predictive maintenance for our machines. Temperature, vibration and pressure every hour, and a log of every breakdown.",
+  "answers": {
+   "target": "A breakdown in the next 24 hours",
+   "prediction_moment": "Every eight hours, at each shift change, for each machine",
+   "entity": "The machine",
+   "labels": "The breakdown log: which machine failed and when",
+   "action": "The shift's technician inspects the flagged machines",
+   "data_plan": "The hourly readings and the breakdown log",
+   "family": "An early warning before a breakdown"
+  },
+  "solution": {
+   "kind": "streams",
+   "kind_fields": {
+    "unit_column": "machine",
+    "time_column": "time",
+    "sensor_columns": [
+     "temperature",
+     "vibration",
+     "pressure"
+    ],
+    "incident_time_column": "failed_at",
+    "incidents_table": "incidents",
+    "horizon_hours": 24
+   }
+  },
+  "note": "A maintenance engineer at a plant who knows the sensors and keeps a breakdown log."
+ },
+ {
+  "id": "JW-16",
+  "kind": "streams",
+  "family": "streams",
+  "labels": "file",
+  "words": "we need anomaly detection on the sensor data to see failures coming",
+  "answers": {
+   "entity": "Each machine",
+   "labels": "We have the list of times each machine failed",
+   "budget": "About three alerts a day across all 24 machines",
+   "data_plan": "The sensor readings table and the failures table"
+  },
+  "note": "A plant manager who says anomaly detection although the failures are logged."
+ },
+ {
+  "id": "JW-17",
+  "kind": "embedded",
+  "family": [
+   "text_or_images",
+   "classification"
+  ],
+  "labels": "column",
+  "words": "Our helpdesk notes are long free text, I need the urgent ones flagged. Heads up: the same person writes lots of notes and some are copy-pasted.",
+  "answers": {
+   "target": "urgent",
+   "prediction_moment": "As soon as a note comes in",
+   "action": "Urgent notes jump the queue",
+   "data_plan": "The notes table with the text and who wrote it",
+   "family": "Urgent or not, from the text"
+  },
+  "solution": {
+   "kind": "embedded",
+   "kind_fields": {
+    "source_column": "author",
+    "item_kind": "text",
+    "text_column": "text"
+   },
+   "identifiers": [
+    "item"
+   ]
+  },
+  "note": "A support operations manager who already noticed repeated authors and copied notes."
+ },
+ {
+  "id": "JW-18",
+  "kind": "embedded",
+  "family": [
+   "text_or_images",
+   "classification"
+  ],
+  "words": "We have photos from the inspection line, several shots per scene, and each one is tagged square or circle. Can a model tell them apart?",
+  "answers": {
+   "target": "label",
+   "prediction_moment": "When a new photo is taken",
+   "data_plan": "The photos and a table with scene, shot and label",
+   "family": "Square or circle, from the photo"
+  },
+  "solution": {
+   "kind": "embedded",
+   "kind_fields": {
+    "source_column": "scene",
+    "item_kind": "image"
+   },
+   "identifiers": [
+    "item"
+   ]
+  },
+  "note": "A quality engineer with tagged images, several shots of one scene each."
+ },
+ {
+  "id": "JW-19",
+  "kind": "places",
+  "family": "regression",
+  "labels": "column",
+  "words": "house price prediction w/ lat lon",
+  "answers": {
+   "target": "price",
+   "prediction_moment": "At listing time: location, size_m2, rooms and age_years are known",
+   "data_plan": "Sold flats with lat, lon, size_m2, rooms, age_years and price",
+   "family": "A number, the price"
+  },
+  "note": "A proptech developer, terse, who knows the columns."
+ },
+ {
+  "id": "JW-20",
+  "kind": "places",
+  "family": "regression",
+  "words": "I am real estate agent, I want to know price of apartment from where it is located and how big",
+  "answers": {
+   "target": "The price it sold",
+   "action": "I tell the owner what price to ask",
+   "family": "The price"
+  },
+  "note": "A non-native English speaking estate agent, no data plan and no moment."
+ },
+ {
+  "id": "JW-21",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "labels": "column",
+  "words": "Need sentiment analysis with ChatGPT on our product reviews",
+  "answers": {
+   "target": "negative (1 for a negative review)",
+   "prediction_moment": "As soon as the review is posted, before the shop replies",
+   "action": "Negative reviews go to customer care within the hour",
+   "data_plan": "The reviews export: review_text, category, price, past_reviews and negative",
+   "family": "Negative or not"
+  },
+  "note": "An e-commerce manager who names a tool instead of the problem, with a labelled reviews export."
+ },
+ {
+  "id": "JW-22",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "words": "customers write reviews on the site and some of them are really angry and by the time we see it it's too late, i'd love some kind of early warning thing that reads them and tells us, we also know the price and category of each product",
+  "answers": {
+   "target": "Whether the review is negative",
+   "action": "Someone from care answers it the same day"
+  },
+  "note": "A shop owner who rambles, mentions the structured fields but not when the warning is needed."
+ },
+ {
+  "id": "JW-23",
+  "kind": "binary",
+  "family": "classification",
+  "labels": "column",
+  "words": "Can you build a model for this data?",
+  "answers": {
+   "target": "churned",
+   "prediction_moment": "At renewal, before the subscriber decides",
+   "entity": "The subscriber",
+   "labels": "churned is yes or no for everyone",
+   "action": "The retention team calls the risky ones",
+   "data_plan": "This subscribers table",
+   "family": "Will they leave, yes or no"
+  },
+  "note": "A manager who uploads a file and says build a model, then answers every question when asked."
+ },
+ {
+  "id": "JW-24",
+  "kind": "binary",
+  "family": "classification",
+  "labels": "column",
+  "words": "Binary churn classifier, AUC-optimised, on our subscriber snapshot. Positive class = churned yes.",
+  "answers": {
+   "target": "churned",
+   "prediction_moment": "A month before each renewal date",
+   "action": "A retention offer to the top decile",
+   "data_plan": "Subscriber snapshot: plan, monthly_fee, tenure_months, support_calls, late_payments, churned"
+  },
+  "note": "A data engineer in jargon who lists the columns."
+ },
+ {
+  "id": "JW-25",
+  "kind": "multiclass",
+  "family": "classification",
+  "labels": "column",
+  "words": "auto asign new tickets to the rigth team pls",
+  "answers": {
+   "target": "assigned_team",
+   "prediction_moment": "When the ticket is opened, nobody has replied yet",
+   "entity": "Customer",
+   "data_plan": "Tickets table"
+  },
+  "note": "A helpdesk team lead, misspells, quick answers."
+ },
+ {
+  "id": "JW-26",
+  "kind": "multiclass",
+  "family": "classification",
+  "words": "I want to cluster our support tickets by which team handles them",
+  "answers": {
+   "target": "assigned_team, we already know it for every old ticket",
+   "action": "New tickets go to that team's queue",
+   "data_plan": "The ticket history",
+   "family": "Which team"
+  },
+  "note": "An operations analyst who says cluster for a routing problem with known teams."
+ },
+ {
+  "id": "JW-27",
+  "kind": "regression",
+  "family": "regression",
+  "labels": "column",
+  "words": "ETA prediction for food delivery orders",
+  "answers": {
+   "target": "actual_minutes",
+   "prediction_moment": "At checkout, before a courier picks it up",
+   "entity": "The restaurant",
+   "action": "The app shows the customer the ETA",
+   "data_plan": "Orders table",
+   "family": "Minutes until delivery"
+  },
+  "note": "A product engineer at a food delivery app, short and precise."
+ },
+ {
+  "id": "JW-28",
+  "kind": "regression",
+  "family": "regression",
+  "words": "hello, in our restaurant delivery business customers always ask how long is it going to take and our guess is often wrong, maybe the computer can say better how many minutes",
+  "answers": {
+   "target": "The minutes from order to delivered",
+   "action": "We tell the customer on the phone"
+  },
+  "note": "A non-native English speaking owner of a delivery service, polite and vague."
+ },
+ {
+  "id": "JW-29",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "labels": "none",
+  "words": "something weird is going on with some bikers' rides but honestly we've never checked or labelled a single one",
+  "answers": {
+   "labels": "None, nobody has ever reviewed a ride",
+   "entity": "The biker",
+   "budget": "We could check around 40 rides a day",
+   "prediction_moment": "Each day, on the rides delivered the day before",
+   "target": "There's no outcome, we just want the strange rides",
+   "data_plan": "The rides table"
+  },
+  "solution": {
+   "kind": "anomaly",
+   "labels": "none",
+   "time_column": null,
+   "kind_fields": {
+    "entity_column": "biker_id",
+    "time_column": "created_date",
+    "key_column": "order_id"
+   }
+  },
+  "note": "A city manager at a delivery company with a hunch and no labels."
+ },
+ {
+  "id": "JW-30",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "labels": "none",
+  "words": "Train a fraud classifier on our ride data",
+  "answers": {
+   "labels": "We don't have any fraud labels, nothing was ever confirmed",
+   "action": "An auditor reviews whatever looks off",
+   "data_plan": "The rides export"
+  },
+  "note": "A finance controller who asks for a classifier but has nothing labelled."
+ }
+]
