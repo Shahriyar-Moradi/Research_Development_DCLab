@@ -728,6 +728,25 @@ DC.view('home', {
       b.disabled = on; b.textContent = on ? 'Creating…' : (S.draft && S.draft.project_id ? 'Open the project' : 'Create project from chat');
     }
     $('#home-create', el).addEventListener('click', build);
+    /* The page's own "Create project from chat" (always in sight): with a conversation open it builds; otherwise it starts one
+       from the sentence in the box, or opens the latest open conversation, and says what comes next (owner, 2026-10-16) */
+    async function createFromChat() {
+      const toChat = () => $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (S.draft && S.draft.status === 'open') { toChat(); return build(); }
+      if (S.draft && S.draft.project_id) return build();
+      if ($('#home-task', el).value.trim().length >= 8) {
+        try { await ensureDraft(); toChat(); toast('Conversation started. DCLab asks a few questions first; press Create project from chat when you are ready.'); }
+        catch (e) { if (e.message !== 'no problem') toast(e.message, { ok: false }); }
+        return;
+      }
+      try {
+        const open = (await DC.client.listDrafts()).filter(d => d.status === 'open').sort((a, b) => String(b.updated).localeCompare(String(a.updated)));
+        if (open.length && await resume(open[0].id)) { remember(open[0].id); toChat(); toast('Your latest conversation is open. Press Create project from chat to build it, or start a new one above.'); return; }
+      } catch (e) { /* no list: fall through to the sentence box */ }
+      $('#home-task', el).focus();
+      toast('Describe your problem in one sentence first: DCLab asks a few questions, then this button builds the project.', { ok: false });
+    }
+    el.addEventListener('click', e => { if (e.target.closest('[data-create-chat]')) createFromChat(); });
     function wizard() {  // the step-by-step path: data, solution draft, split and budget, then "Review and start"
       if (!S.draft) return;
       DC.state.draftId = S.draft.id;
