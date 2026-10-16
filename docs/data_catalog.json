@@ -80,9 +80,10 @@
     "dclab_core.dataset_manifest.v1",
     "dclab_core.dataset_manifest.v2",
     "dclab_core.dataset_manifest.v3",
-    "dclab_core.dataset_manifest.v4"
+    "dclab_core.dataset_manifest.v4",
+    "dclab_core.dataset_manifest.v5"
    ],
-   "version": "dclab_core.dataset_manifest.v5"
+   "version": "dclab_core.dataset_manifest.v6"
   },
   {
    "contract": "decision",
@@ -110,6 +111,11 @@
    "version": "dclab_core.decision_record.v2"
   },
   {
+   "contract": "evaluation_board",
+   "reads": [],
+   "version": "dclab_core.evaluation_board.v1"
+  },
+  {
    "contract": "experience_event",
    "reads": [],
    "version": "dclab_core.experience_event.v9"
@@ -118,6 +124,11 @@
    "contract": "experience_session",
    "reads": [],
    "version": "dclab_core.experience_session.v1"
+  },
+  {
+   "contract": "expert_trace",
+   "reads": [],
+   "version": "dclab_core.expert_trace.v1"
   },
   {
    "contract": "map_review",
@@ -267,9 +278,14 @@
    "builder": "routes",
    "needs": "train",
    "what": "A sub-problem routed to an approach: its state, the candidates with the codes that refuted them, the one chosen and what became of it; codes and counts only (24.7)."
+  },
+  {
+   "builder": "twin",
+   "needs": "train",
+   "what": "What the system and Claude, as the AI-first expert, answered on the same inputs: every twin step, the preference pairs a truth decided, the expert's records with what became of them, and Claude's answers as a teacher's beside the rule's at the ledger's points, one set per use (workflow, technical); Claude's words redacted (25.7)."
   }
  ],
- "dclab_core": "0.56.0",
+ "dclab_core": "0.58.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -994,6 +1010,7 @@
   },
   {
    "emitted_by": [
+    "dclab_rnd/draft/api.py",
     "dclab_rnd/experience/hooks.py",
     "dclab_rnd/intern/loop.py"
    ],
@@ -1117,6 +1134,8 @@
   },
   {
    "emitted_by": [
+    "dclab_rnd/agentic/pages/twin.py",
+    "dclab_rnd/draft/api.py",
     "dclab_rnd/draft/coordinator.py",
     "dclab_rnd/experience/hooks.py"
    ],

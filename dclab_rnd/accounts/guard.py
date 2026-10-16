@@ -66,6 +66,13 @@ SPECIAL = {
     ("GET", "/api/datasets"): "admin",
     ("GET", "/api/projects/{project_id}/export/code"): "write",  # 20.9: the folder holds the project's data
     ("GET", "/api/datasets/lineage"): "admin",
+    # Claude beside the system (25.4): the owner's switch; the sessions are the record's, as the timelines
+    ("GET", "/api/twin/settings"): "read",
+    ("PUT", "/api/twin/settings"): "admin",
+    ("GET", "/api/twin/sessions"): "timelines",
+    ("GET", "/api/evaluation"): "review",  # 25.8: every model's scores, as the decision ledger's summary
+    ("PUT", "/api/workspace/budgets/{user_id}"): "admin",  # 25.10: one person's monthly model limit, the owner's
+    ("GET", "/api/workspace/budgets"): "admin",
 }
 
 

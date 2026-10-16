@@ -58,7 +58,7 @@ class ContractTest(unittest.TestCase):
         self.assertIn("holdout_vs_best_leaf", core_ledger.Evidence.model_fields["kind"].annotation.__args__)
 
     def test_the_manifest_is_v5_and_reads_v4(self):
-        self.assertEqual(builders.DatasetManifest.model_fields["schema_version"].default, "dclab_core.dataset_manifest.v5")
+        self.assertEqual(builders.DatasetManifest.model_fields["schema_version"].default, "dclab_core.dataset_manifest.v6")
         self.assertEqual(sorted(set(builders.Builder.__args__) & {"problem_maps", "routes"}), ["problem_maps", "routes"])
 
     def test_the_new_decision_point_is_declared_with_its_state(self):
@@ -87,7 +87,7 @@ class BuildersTest(unittest.TestCase):
         self.assertTrue(row["corrected"])
         self.assertEqual(row["edits"], [{"action": "add", "by": "person", "part": "part2", "keep": None, "other": None, "from": "aaaa", "to": "bbbb"}], "no reason text in an edit")
         self.assertEqual((row["group"], row["split"] in ("train", "dev", "sealed")), ("project:p1", True))
-        self.assertEqual((m.builder, m.name, m.schema_version), ("problem_maps", "maps.brief_to_map", "dclab_core.dataset_manifest.v5"))
+        self.assertEqual((m.builder, m.name, m.schema_version), ("problem_maps", "maps.brief_to_map", "dclab_core.dataset_manifest.v6"))
         self.assertEqual(m.counts["corrected"], {"yes": 1})
         self.assertEqual(m.counts["outcome"], {"beat_best_leaf": 1})
         self.assertEqual({(s.kind, s.id) for s in m.sources}, {("draft", "d1"), ("project", "p1")})

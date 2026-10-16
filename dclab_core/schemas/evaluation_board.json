@@ -1,0 +1,258 @@
+{
+  "$defs": {
+    "ClassScore": {
+      "additionalProperties": false,
+      "properties": {
+        "f1": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "F1"
+        },
+        "label": {
+          "maxLength": 120,
+          "title": "Label",
+          "type": "string"
+        },
+        "precision": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Precision"
+        },
+        "recall": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recall"
+        },
+        "support": {
+          "description": "Cases whose truth is this class (items, for a set).",
+          "minimum": 0,
+          "title": "Support",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "label",
+        "support"
+      ],
+      "title": "ClassScore",
+      "type": "object"
+    },
+    "Score": {
+      "additionalProperties": false,
+      "description": "One answerer at one decision point (or one field of a twin step), against one source of truth.",
+      "properties": {
+        "abstained": {
+          "minimum": 0,
+          "title": "Abstained",
+          "type": "integer"
+        },
+        "accuracy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Accuracy"
+        },
+        "accuracy_interval": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Accuracy Interval",
+          "type": "array"
+        },
+        "answered": {
+          "minimum": 0,
+          "title": "Answered",
+          "type": "integer"
+        },
+        "answerer": {
+          "maxLength": 160,
+          "title": "Answerer",
+          "type": "string"
+        },
+        "by": {
+          "default": "",
+          "description": "rule, model_role, classifier, person, ai_first, system.",
+          "maxLength": 40,
+          "title": "By",
+          "type": "string"
+        },
+        "classes": {
+          "items": {
+            "$ref": "#/$defs/ClassScore"
+          },
+          "maxItems": 50,
+          "title": "Classes",
+          "type": "array"
+        },
+        "confusion": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "tp, fp, fn, tn for a flag or a set (tn only for a flag).",
+          "title": "Confusion",
+          "type": "object"
+        },
+        "coverage": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Coverage"
+        },
+        "f1": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "F1"
+        },
+        "kind": {
+          "enum": [
+            "flag",
+            "choice",
+            "set",
+            "text",
+            "numeric"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "n": {
+          "description": "Cases with a truth.",
+          "minimum": 0,
+          "title": "N",
+          "type": "integer"
+        },
+        "point": {
+          "description": "A ledger point, or a twin step and its field ('home.pack:pack').",
+          "maxLength": 120,
+          "title": "Point",
+          "type": "string"
+        },
+        "precision": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Precision"
+        },
+        "recall": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recall"
+        },
+        "truth": {
+          "description": "The source of the truth: planted, benchmark, blind, measured, a person's pick, a label.",
+          "maxLength": 60,
+          "title": "Truth",
+          "type": "string"
+        }
+      },
+      "required": [
+        "answerer",
+        "point",
+        "kind",
+        "truth",
+        "n",
+        "answered",
+        "abstained"
+      ],
+      "title": "Score",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.evaluation_board.v1.json",
+  "additionalProperties": false,
+  "description": "Every answerer's scores, as the dashboard shows them.",
+  "properties": {
+    "schema_version": {
+      "const": "dclab_core.evaluation_board.v1",
+      "default": "dclab_core.evaluation_board.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scores": {
+      "items": {
+        "$ref": "#/$defs/Score"
+      },
+      "maxItems": 2000,
+      "title": "Scores",
+      "type": "array"
+    },
+    "source": {
+      "description": "Where the cases came from.",
+      "maxLength": 300,
+      "title": "Source",
+      "type": "string"
+    },
+    "totals": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Totals",
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "source"
+  ],
+  "title": "EvaluationBoard",
+  "type": "object"
+}

@@ -221,6 +221,7 @@
     newToken: ["POST", "/auth/tokens", [], []],
     revokeToken: ["DELETE", "/auth/tokens/{token_id}", ["token_id"], []],
     switchWorkspace: ["POST", "/auth/workspace", [], []],
+    myBudget: ["GET", "/budget", [], []],
     configuration: ["GET", "/config", [], []],
     connectorsStatus: ["GET", "/connectors", [], []],
     kaggleSearch: ["POST", "/connectors/kaggle/search", [], []],
@@ -255,6 +256,12 @@
     draftSolution: ["PUT", "/drafts/{draft_id}/solution", ["draft_id"], []],
     draftSolutionMap: ["GET", "/drafts/{draft_id}/solution-map", ["draft_id"], []],
     draftProposal: ["POST", "/drafts/{draft_id}/solution/proposal", ["draft_id"], []],
+    twinView: ["GET", "/drafts/{draft_id}/twin", ["draft_id"], []],
+    twinBudget: ["POST", "/drafts/{draft_id}/twin/budget", ["draft_id"], []],
+    twinMessage: ["POST", "/drafts/{draft_id}/twin/messages", ["draft_id"], []],
+    twinPick: ["POST", "/drafts/{draft_id}/twin/pick", ["draft_id"], []],
+    editUnderstanding: ["POST", "/drafts/{draft_id}/understanding", ["draft_id"], []],
+    evaluationBoard: ["GET", "/evaluation", [], []],
     evidenceLibrary: ["GET", "/evidence", [], []],
     evidenceAsk: ["POST", "/evidence/ask", [], []],
     evidenceRecord: ["GET", "/evidence/{record_id}", ["record_id"], []],
@@ -337,6 +344,8 @@
     runStage: ["POST", "/projects/{project_id}/stages/{stage}/run", ["project_id", "stage"], ["wait", "reuse_reason"]],
     projectSteps: ["GET", "/projects/{project_id}/steps", ["project_id"], ["stage", "decision"]],
     uploadTable: ["PUT", "/projects/{project_id}/tables/{name}", ["project_id", "name"], ["filename"]],
+    projectTwinRuns: ["GET", "/projects/{project_id}/twin", ["project_id"], []],
+    runTwin: ["POST", "/projects/{project_id}/twin", ["project_id"], []],
     research: ["GET", "/research", [], []],
     researchFile: ["GET", "/research/file", [], ["path"]],
     agentRoles: ["GET", "/roles", [], []],
@@ -350,7 +359,12 @@
     samples: ["GET", "/samples", [], []],
     studioStatus: ["GET", "/studio", [], []],
     syntheticTemplates: ["GET", "/synthetic/templates", [], []],
+    twinSessions: ["GET", "/twin/sessions", [], ["limit"]],
+    twinSettings: ["GET", "/twin/settings", [], []],
+    setTwinSettings: ["PUT", "/twin/settings", [], []],
     workspace: ["GET", "/workspace", [], []],
+    memberBudgets: ["GET", "/workspace/budgets", [], []],
+    setMemberBudget: ["PUT", "/workspace/budgets/{user_id}", ["user_id"], []],
     members: ["GET", "/workspace/members", [], []],
     addMember: ["POST", "/workspace/members", [], []],
     removeMember: ["DELETE", "/workspace/members/{user_id}", ["user_id"], []],
@@ -418,6 +432,12 @@
    *  @returns {Promise<Page>} */
   client.switchWorkspace = (...args) => call('switchWorkspace', args);
   client.path.switchWorkspace = (...args) => build('switchWorkspace', args).path;
+  /** GET /api/budget: My Budget
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.myBudget = (...args) => call('myBudget', args);
+  client.path.myBudget = (...args) => build('myBudget', args).path;
+  client.href.myBudget = (...args) => '/api' + build('myBudget', args).path;
   /** GET /api/config: Configuration
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Config>} */
@@ -622,6 +642,43 @@
    *  @returns {Promise<Doc>} */
   client.draftProposal = (...args) => call('draftProposal', args);
   client.path.draftProposal = (...args) => build('draftProposal', args).path;
+  /** GET /api/drafts/{draft_id}/twin: Twin View
+   *  @param {string} draft_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.twinView = (...args) => call('twinView', args);
+  client.path.twinView = (...args) => build('twinView', args).path;
+  client.href.twinView = (...args) => '/api' + build('twinView', args).path;
+  /** POST /api/drafts/{draft_id}/twin/budget: Twin Budget
+   *  @param {string} draft_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.twinBudget = (...args) => call('twinBudget', args);
+  client.path.twinBudget = (...args) => build('twinBudget', args).path;
+  /** POST /api/drafts/{draft_id}/twin/messages: Twin Message
+   *  @param {string} draft_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.twinMessage = (...args) => call('twinMessage', args);
+  client.path.twinMessage = (...args) => build('twinMessage', args).path;
+  /** POST /api/drafts/{draft_id}/twin/pick: Twin Pick
+   *  @param {string} draft_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.twinPick = (...args) => call('twinPick', args);
+  client.path.twinPick = (...args) => build('twinPick', args).path;
+  /** POST /api/drafts/{draft_id}/understanding: Edit Understanding
+   *  @param {string} draft_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.editUnderstanding = (...args) => call('editUnderstanding', args);
+  client.path.editUnderstanding = (...args) => build('editUnderstanding', args).path;
+  /** GET /api/evaluation: Evaluation Board
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.evaluationBoard = (...args) => call('evaluationBoard', args);
+  client.path.evaluationBoard = (...args) => build('evaluationBoard', args).path;
+  client.href.evaluationBoard = (...args) => '/api' + build('evaluationBoard', args).path;
   /** GET /api/evidence: Evidence Library
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Page>} */
@@ -1130,6 +1187,19 @@
    *  @returns {Promise<Project>} */
   client.uploadTable = (...args) => call('uploadTable', args);
   client.path.uploadTable = (...args) => build('uploadTable', args).path;
+  /** GET /api/projects/{project_id}/twin: Project Twin Runs
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.projectTwinRuns = (...args) => call('projectTwinRuns', args);
+  client.path.projectTwinRuns = (...args) => build('projectTwinRuns', args).path;
+  client.href.projectTwinRuns = (...args) => '/api' + build('projectTwinRuns', args).path;
+  /** POST /api/projects/{project_id}/twin: Run Twin
+   *  @param {string} project_id
+   *  @param {{body?: *, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.runTwin = (...args) => call('runTwin', args);
+  client.path.runTwin = (...args) => build('runTwin', args).path;
   /** GET /api/research: Research
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Page>} */
@@ -1212,12 +1282,41 @@
   client.syntheticTemplates = (...args) => call('syntheticTemplates', args);
   client.path.syntheticTemplates = (...args) => build('syntheticTemplates', args).path;
   client.href.syntheticTemplates = (...args) => '/api' + build('syntheticTemplates', args).path;
+  /** GET /api/twin/sessions: Twin Sessions
+   *  @param {{query?: {limit?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.twinSessions = (...args) => call('twinSessions', args);
+  client.path.twinSessions = (...args) => build('twinSessions', args).path;
+  client.href.twinSessions = (...args) => '/api' + build('twinSessions', args).path;
+  /** GET /api/twin/settings: Twin Settings
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.twinSettings = (...args) => call('twinSettings', args);
+  client.path.twinSettings = (...args) => build('twinSettings', args).path;
+  client.href.twinSettings = (...args) => '/api' + build('twinSettings', args).path;
+  /** PUT /api/twin/settings: Set Twin Settings
+   *  @param {{body?: *, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.setTwinSettings = (...args) => call('setTwinSettings', args);
+  client.path.setTwinSettings = (...args) => build('setTwinSettings', args).path;
   /** GET /api/workspace: Workspace
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Workspace>} */
   client.workspace = (...args) => call('workspace', args);
   client.path.workspace = (...args) => build('workspace', args).path;
   client.href.workspace = (...args) => '/api' + build('workspace', args).path;
+  /** GET /api/workspace/budgets: Member Budgets
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.memberBudgets = (...args) => call('memberBudgets', args);
+  client.path.memberBudgets = (...args) => build('memberBudgets', args).path;
+  client.href.memberBudgets = (...args) => '/api' + build('memberBudgets', args).path;
+  /** PUT /api/workspace/budgets/{user_id}: Set Member Budget
+   *  @param {string} user_id
+   *  @param {{body?: *, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.setMemberBudget = (...args) => call('setMemberBudget', args);
+  client.path.setMemberBudget = (...args) => build('setMemberBudget', args).path;
   /** GET /api/workspace/members: Members
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Array<Doc>>} */

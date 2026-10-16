@@ -257,6 +257,64 @@ def _sessions(services: Any, exported: list[dict[str, Any]], drafts: dict[str, d
     return out
 
 
+def _twin_items(home: Path, switches: dict[str, bool], projects: dict[str, dict[str, Any]], drafts: dict[str, dict[str, Any]]
+                ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """25.7: the twin folder's steps and expert records this workspace's train consent allows: a Home session's when its
+    draft (or the project it became) allows it; a twin run's when its seed is a studied sample, or a project or draft that
+    allows it. Each step with where it came from; the latest line of each step's id."""
+    from . import consent
+
+    def ok(project_id: str | None = None, draft_id: str | None = None) -> bool:
+        if draft_id and not project_id:
+            project_id = (drafts.get(draft_id) or {}).get("project_id")
+        project = projects.get(str(project_id)) if project_id else None
+        if project_id and project is None:
+            return False  # a project gone, or another workspace's: nothing of it leaves
+        return consent.allowed(switches, project, "train")
+
+    def lines(path: Path) -> list[dict[str, Any]]:
+        out = []
+        for line in path.read_text(encoding="utf-8").splitlines() if path.is_file() else []:
+            try:
+                out.append(json.loads(line))
+            except ValueError:
+                continue
+        return out
+
+    root = Path(home) / "twin"
+    items: dict[str, dict[str, Any]] = {}
+    for row in lines(root / "index.jsonl"):
+        draft_id = row.get("draft_id")
+        if not draft_id or draft_id not in drafts or not ok(draft_id=draft_id):
+            continue
+        for step in lines(root / row["path"] / "steps.jsonl"):
+            items[f"{row['session']}:{step.get('id')}"] = {"step": step, "where": {"draft": draft_id}}
+    traces: list[dict[str, Any]] = []
+    for manifest in sorted((root / "runs").glob("*/run.json")) if (root / "runs").is_dir() else []:
+        try:
+            run = json.loads(manifest.read_text(encoding="utf-8"))
+        except ValueError:
+            continue
+        kind, _, ref = str(run.get("seed") or "").partition(":")
+        if kind == "project" and not ok(project_id=ref) or kind == "draft" and not ok(draft_id=ref) or kind not in ("sample", "project", "draft"):
+            continue
+        where = {"run": run.get("run_id"), **({"project": ref} if kind == "project" else {"draft": ref} if kind == "draft" else {})}
+        folder = manifest.parent
+        for name in ("steps.jsonl", "expert_steps.jsonl"):
+            for step in lines(folder / name):
+                items[f"{run.get('run_id')}:{name}:{step.get('id')}"] = {"step": step, "where": where}
+        first = next((s for s in lines(folder / "expert_steps.jsonl") if s.get("step") == "solution.columns"), None)
+        outcome = None
+        try:
+            outcome = (json.loads((folder / "ai_first" / "design" / "summary.json").read_text(encoding="utf-8")) or {}).get("outcome")
+        except (OSError, ValueError):
+            pass
+        for trace in lines(folder / "ai_first" / "design" / "expert.jsonl"):
+            traces.append({"trace": trace, "run": run.get("run_id"), "blind": bool(run.get("blind")), "outcome": outcome,
+                           "columns_winner": ((first or {}).get("verdict") or {}).get("winner")})
+    return list(items.values()), traces
+
+
 def build(services: Any, root: Path | None = None) -> dict[str, Any]:
     """Every set this workspace's consent allows, written under its datasets folder; what was built, and what not. A
     set this build does not write (its use switched off, its project withdrawn or deleted, its point gone) is removed:
@@ -310,6 +368,18 @@ def build(services: Any, root: Path | None = None) -> dict[str, Any]:
         keep("workflows", "problem_to_pipeline", lambda: builders.workflows(_workflow_items(services, allowed), workspace=workspace, consent=basis))
         keep("problem_maps", "brief_to_map", lambda: builders.problem_maps(_map_items(services, allowed), workspace=workspace, consent=basis))  # 24.7: assembled inside keep, so
         keep("routes", "sub_problem_to_approach", lambda: builders.routes(_map_items(services, allowed), workspace=workspace, consent=basis))  # a draft it cannot read costs these two sets only
+        try:  # 25.7: the twin's sets: what the system and Claude answered on the same inputs, and Claude's answers as a teacher's
+            twin_items, traces = _twin_items(home, switches, projects, all_drafts)
+            decisions_by: dict[tuple[str, str], list[dict[str, Any]]] = {}
+            for d in records:
+                owner = d.get("project") or draft_map.get(d.get("draft") or "") or d.get("draft")
+                decisions_by.setdefault((str(owner), str(d.get("point"))), []).append(d)
+            twin = builders.twin_sets(twin_items, decisions_by, traces=traces, workspace=workspace, consent=basis, drafts=draft_map)
+        except Exception as exc:  # noqa: BLE001 - the twin folder unreadable costs its sets only
+            out["not_built"].append({"use": "twin", "why": type(exc).__name__})
+            twin = {}
+        for name, made in twin.items():
+            keep("twin", name, lambda made=made: made)
     else:
         out["not_built"].append({"use": "train", "why": "the workspace's switch is off"})
     if switches.get("improve"):

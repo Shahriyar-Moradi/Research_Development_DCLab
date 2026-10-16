@@ -1,0 +1,26 @@
+{
+  "package": "25.4",
+  "title": "The twin on Home, live: Claude beside every Home conversation, behind the owner's switch, both answers kept step by step",
+  "date": "2026-10-16",
+  "request": "Phase 3: in the Home chat and its decisions, see at the same time how Claude solves the problem and how the current system does; keep everything from both in a separate, organised folder.",
+  "spec": "dclab_rnd twin home (the switch, the session folder, the system's view of each Home step, the redacted sample, Claude's turn in a thread after each Home turn), the Home prompt, the draft routes and the twin page.",
+  "plan": [
+    "One switch for the owner, off by default, with a cap per draft and a monthly cap.",
+    "Claude's turn never delays or fails the system's: it runs after the system's turn in a thread of its own.",
+    "Both answers to each Home step become a twin step; the sample's rows never reach the folder."
+  ],
+  "decisions": [
+    {"decision": "Claude sees the redacted sample only with the owner's sample switch on, and a column that holds a person's data is left out.", "why": "The owner allowed a small redacted sample for this arm only, off by default."},
+    {"decision": "A message to Claude alone is never shown to the system.", "why": "The comparison must keep the system's input as it would be without the twin."}
+  ],
+  "change": "dclab_rnd/twin/home.py (new), prompts/ai_first_home.md (new), dclab_rnd/draft/api.py (the twin after each turn, a message to Claude alone, the twin view, a deleted draft's session), dclab_rnd/agentic/pages/twin.py (new), pages/__init__.py, accounts/guard.py, tests/test_twin_home.py (new), docs.",
+  "findings": [
+    {"id": "S1", "source": "test", "severity": "behaviour", "defect": "The system's pack was compared as a record, not as its key.", "scenario": "The differences said the system's pack was a whole object beside Claude's word.", "cause": "The draft keeps its pack with its source and reason.", "fix": "The system's answer is the pack's key.", "test": "test_a_turn_writes_the_session_folder_and_leaves_the_system_as_it_was"},
+    {"id": "S2", "source": "self", "severity": "gap", "defect": "The sample could exceed what the purpose may be shown.", "scenario": "Twenty rows of a wide table would pass the purpose's cell limit.", "cause": "Only the rows were limited.", "fix": "The sample keeps at most forty columns.", "test": "test_the_sample_is_redacted_its_personal_columns_left_out_and_never_stored"}
+  ],
+  "measurements": [],
+  "outcome": "The live twin works on a scripted transport and in the browser on a scripted session.",
+  "lessons": ["A second arm must run after the first and apart from it, so the first never waits or fails because of it."],
+  "risks": ["Live cost: each Home turn is one Claude request within the owner's caps."],
+  "commits": []
+}

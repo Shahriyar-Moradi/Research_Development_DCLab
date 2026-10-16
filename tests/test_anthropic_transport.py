@@ -202,3 +202,54 @@ class TranslationTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ThinkingTests(unittest.TestCase):
+    """25.3: Claude's thinking asked for, kept beside the reply, and sent back first in its tool turn."""
+
+    def test_thinking_is_asked_for_kept_and_sent_back_with_the_tool_turn(self):
+        fake = FakeMessages(reply(NS(type="thinking", thinking="The target is churn; check the dates.", signature="sig-1"),
+                                  NS(type="text", text="Reading the data."),
+                                  NS(type="tool_use", id="t1", name="describe_data", input={"project_id": "p"}), stop="tool_use"))
+        client = client_with(fake)
+        client.thinking = "adaptive"
+        out = client.complete([{"role": "system", "content": "s"}, {"role": "user", "content": "go"}], [{"type": "function", "function": {"name": "describe_data", "parameters": {}}}],
+                              temperature=0.2)
+        sent = fake.sent[-1]
+        self.assertEqual(sent["thinking"], {"type": "adaptive"})
+        self.assertNotIn("temperature", sent)  # the API refuses a temperature with thinking
+        self.assertEqual(out["thinking"], [{"text": "The target is churn; check the dates.", "signature": "sig-1"}])
+        blocks = out["assistant_message"]["thinking_blocks"]
+        _, turns = anthropic_client.to_messages([{"role": "user", "content": "go"}, out["assistant_message"],
+                                                 {"role": "tool", "tool_call_id": "t1", "content": "{}"}])
+        self.assertEqual(turns[1]["content"][0], blocks[0])  # the thinking block comes first in its assistant turn
+        self.assertEqual(turns[1]["content"][-1]["type"], "tool_use")
+
+    def test_a_budget_leaves_room_for_the_reply_and_off_sends_nothing(self):
+        fake = FakeMessages(reply(NS(type="text", text="ok")))
+        client = client_with(fake)
+        client.complete([{"role": "user", "content": "go"}], None, 3200, thinking="enabled:3000")
+        self.assertEqual(fake.sent[-1]["thinking"], {"type": "enabled", "budget_tokens": 3000})
+        self.assertEqual(fake.sent[-1]["max_tokens"], 6200)  # the reply keeps its whole limit above the thinking budget
+        client.complete([{"role": "user", "content": "go"}], None, 1800, thinking="adaptive")
+        self.assertEqual(fake.sent[-1]["max_tokens"], 1800 + anthropic_client.ADAPTIVE_HEADROOM)
+        self.assertEqual(client.effective_max_tokens(1800, {"thinking": "enabled:abc"}), 1800 + 4000)  # a misspelt budget is the default
+        client.thinking = "adaptive"
+        client.complete([{"role": "user", "content": "go"}], None, 2000, thinking="off")
+        self.assertNotIn("thinking", fake.sent[-1])
+        out = client.complete([{"role": "user", "content": "go"}], None, 2000, thinking="off")
+        self.assertNotIn("thinking", out)
+
+    def test_a_400_about_thinking_is_named_and_nothing_else_is(self):
+        from dclab_rnd.models import client as base
+
+        class Bad(Exception):
+            status_code = 400
+            body = {"error": {"type": "invalid_request_error", "message": "thinking is not supported for this model"}}
+
+        class Other(Bad):
+            body = {"error": {"type": "invalid_request_error", "message": "prompt is too long"}}
+
+        self.assertEqual(base.failure(Bad())[0], base.THINKING_REFUSED)
+        self.assertNotEqual(base.failure(Other())[0], base.THINKING_REFUSED)
+

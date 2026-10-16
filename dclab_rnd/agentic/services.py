@@ -26,7 +26,8 @@ from .store import Store
 
 BUSY = {"stage": "This project is already running a stage", "intern": "This session is still working",
         "pipeline": "This file is already being processed", "synthetic": "Synthetic data is already being generated for this draft",
-        "rerun": "This step is already being rerun", "programme": "This project's programme is already running"}
+        "rerun": "This step is already being rerun", "programme": "This project's programme is already running",
+        "twin": "A twin run of this project is already running"}
 
 
 class Services:
@@ -47,6 +48,7 @@ class Services:
         # every model request goes through it; the routing moves a purpose to another model or names a shadow (A6.4)
         self.gateway = models.Gateway(models.open_usage(self.store.home), project_cap=self.project_cap, project_private=self.project_private,
                                       routing=open_routing(self.store.home), shadows=open_shadows(self.store.home))
+        self.gateway.home = self.store.home  # 25.10: the workspace whose people's own limits (budgets.json) the gateway reads
         if primary:  # the process's fallback is the server's own workspace; a request or job names its own (dclab_rnd.context)
             models.install(self.gateway)  # the engine's stage notes run outside a request
         self.tasks: dict[str, asyncio.Task] = {}  # research runs (the legacy campaign; not in the job table)

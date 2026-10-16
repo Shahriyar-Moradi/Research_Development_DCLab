@@ -50,8 +50,9 @@ def _transport(t: dict[str, Any], p: settings.Purpose) -> ChatClient:
 NO_EMBEDDINGS = ("anthropic",)  # providers that serve no embeddings: the embedding purpose is not offered on them
 
 
-def user_cap() -> tuple[float | None, str | None]:
-    """The signed-in person's monthly euro limit and id (package 10.6); (None, None) without accounts or a person."""
+def user_cap(home=None) -> tuple[float | None, str | None]:
+    """The signed-in person's monthly euro limit and id (package 10.6; 25.10: their own when the owner set one in the
+    workspace in ``home``); (None, None) without accounts or a person."""
     from ..accounts.principal import current
 
     who = current()
@@ -61,7 +62,7 @@ def user_cap() -> tuple[float | None, str | None]:
 
     if not limits.on():
         return None, None
-    return limits.limits()["model_eur"]["user"], who.user_id
+    return limits.user_monthly(who.user_id, home), who.user_id  # 25.10: their own limit when the owner set one
 
 
 def workspace_cap() -> float | None:
@@ -146,12 +147,12 @@ class Gateway:
                 if spent + estimate > wcap:
                     return (f"the workspace has used its monthly budget: €{spent:.2f} of €{wcap:.2f}, €{max(0.0, wcap - spent):.2f} left"), nothing
                 keys.append("w")
-            ucap, uid = user_cap()
+            ucap, uid = user_cap(getattr(self, "home", None))
             if ucap is not None and since:
                 spent = self.usage.spent(since, user_id=uid) + self._held.get("u:" + uid, 0.0)
                 if spent + estimate > ucap:
                     return (f"you have used your monthly model budget: €{spent:.2f} of €{ucap:.2f}, €{max(0.0, ucap - spent):.2f} left; "
-                            "it resets on the 1st, or the owner raises DCLAB_LIMIT_USER_MONTHLY_EUR"), nothing
+                            "it resets on the 1st, or the owner raises your limit (Admin, budgets)"), nothing
                 keys.append("u:" + uid)
             for key in keys:
                 self._held[key] = self._held.get(key, 0.0) + estimate
@@ -182,7 +183,7 @@ class Gateway:
         wcap = workspace_cap()
         if wcap is not None and self.usage.spent(since) >= wcap > 0:
             return f"the workspace has used its monthly budget of €{wcap:.2f}"
-        ucap, uid = user_cap()
+        ucap, uid = user_cap(getattr(self, "home", None))
         if ucap is not None and self.usage.spent(since, user_id=uid) >= ucap > 0:
             return f"you have used your monthly model budget of €{ucap:.2f}"
         return None

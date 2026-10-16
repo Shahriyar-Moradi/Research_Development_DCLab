@@ -349,10 +349,39 @@ class DataLimitTests(unittest.TestCase):
         seen = self.assertWithinLimit("reporter")
         self.assertFalse({m for m in seen if not m.startswith(("Q7Kxcls", "Q7Kxrare"))}, seen)  # the target's classes only
 
+    def test_the_ai_first_expert_sees_the_profile_never_values(self):  # 25.3: the twin run's expert record of the problem
+        from dclab_rnd.twin.claude import Transcript, TwinGateway
+        from dclab_rnd.twin.design import Designer
+        from dclab_rnd.twin.lane import Lane
+
+        home = Path(tempfile.mkdtemp())
+        sent = []
+
+        class Recording:
+            model, base_url = "claude-test", "https://api.anthropic.com"
+
+            def complete(self, messages, tools=None, max_tokens=None, **options):
+                sent.extend(str(m.get("content")) for m in messages)
+                return {"content": "{}", "tool_calls": [], "usage": {"input_tokens": 1, "output_tokens": 1}}
+
+        gw = TwinGateway(Recording(), Transcript(home / "t.jsonl"))
+        lane = Lane("ai_first", home / "ai_first", gw)
+        pid = lane.projects.create("Marked", "general", "Predict churn")["id"]
+        marked_table().to_csv(lane.projects.data_dir(pid) / "t.csv", index=False)
+        from dclab_rnd.studio import data as sd
+
+        sd.attach_data(lane.projects, pid, "t.csv")
+        lane.project_id = pid
+        Designer(lane, gw).initial()
+        self.assertTrue(sent, "the expert was never asked")
+        seen = {m for p in sent for m in MARK.findall(p)} | {m for p in sent for m in NUM.findall(p) if m in DataLimitTests.CELLS}
+        self.assertEqual(seen, set())  # the profile's names and counts only: no example value reaches the expert's record
+        self.assertGreaterEqual(settings.PURPOSES["ai_first"].cell_values, 0)
+
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
-                  "decision_answer", "decision_labeler", "decomposer", "map_reviewer", "data_need", "solution_router"}
+                  "decision_answer", "decision_labeler", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

@@ -1,0 +1,25 @@
+{
+  "package": "25.6",
+  "title": "A twin run started from a project: the system and Claude on the project's table, as a job, the comparison on the project's page",
+  "date": "2026-10-16",
+  "request": "Phase 3: run Claude beside the current system on any part of DCLab, the project's stages included, and see both at once.",
+  "spec": "The job kind twin, the routes to start a project's twin run and list its runs, the project page's Claude beside pane; lanes kept as files also on a PostgreSQL workspace.",
+  "plan": [
+    "Start a twin run of the project as a job so it can be stopped and counted like any other.",
+    "Show each run's lanes, differences, judged steps, the comparison and the expert's story on the project's page.",
+    "Leave the project itself untouched."
+  ],
+  "decisions": [
+    {"decision": "The lanes keep files even when the workspace is on PostgreSQL, and the run is no longer refused there.", "why": "Only the lane's audit reached the database; with a file audit of its own each lane is a folder, and the owner's development server is on PostgreSQL."},
+    {"decision": "Claude's stage choices are not written into the project's ledger.", "why": "The ledger is written where a decision is made; the project made none, and the teacher sets of 25.7 hold Claude's answers beside the rule's."}
+  ],
+  "change": "dclab_rnd/jobs/handlers.py (twin), agentic/services.py (its busy message), agentic/routers/projects.py (two routes), web/src/views/project.html (the pane), twin/__init__.py and lane.py (files under PostgreSQL), tests/test_twin_runs.py.",
+  "findings": [
+    {"id": "S1", "source": "self", "severity": "behaviour", "defect": "A twin run was refused on a workspace kept in PostgreSQL.", "scenario": "The owner's development server uses PostgreSQL: a project's twin run would have failed at once.", "cause": "The run refused any database because a lane's audit went to it.", "fix": "A lane's audit is a file of its own; the refusal is gone and the source project is read from the workspace's own stores.", "test": "test_a_job_runs_both_lanes_on_the_projects_table_and_leaves_the_project_as_it_was"}
+  ],
+  "measurements": [],
+  "outcome": "A project's twin run works as a job on a scripted transport.",
+  "lessons": ["Before refusing a storage mode, find the one writer that needs it and give that writer a file."],
+  "risks": ["A live run spends within the workspace's session budget each time it is started."],
+  "commits": []
+}

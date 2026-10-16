@@ -1,5 +1,6 @@
 """The kinds of job (package 10.3): stage runs, draft data pipelines, synthetic data, intern turns, and (20.8) a
-pipeline step rerun from its record, and (24.5) a programme.
+pipeline step rerun from its record, (24.5) a programme, and (25.6) a twin run of a project: the current system and Claude
+on the same problem in two lanes.
 
 ``env`` is the app's ``Services`` (``agentic/services.py``): the stores, the model gateway and the draft work, the same
 in the server and in ``python -m dclab_rnd.worker``. A payload holds ids and plain values only, so any worker can run it.
@@ -148,6 +149,29 @@ def _programme_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[st
     s.projects.log(payload["project_id"], "programme_run", {"job": job["id"], "state": "not_finished", "why": TEXT.get(reason, "The programme ended before it finished")})
 
 
+# ---------------------------------------------------------------------- a twin run of a project: the system and Claude side by side (25.6)
+
+def _twin_run(s: Any, payload: dict[str, Any]) -> None:
+    from .. import twin
+    from ..twin import home as twin_home
+
+    settings = twin_home.settings(s.store.home)
+    if not settings["on"]:
+        raise RuntimeError("Claude beside the system is off in this workspace (the owner's switch)")
+    checkpoint()
+    progress(stage="twin", step=1, of=1)
+    manifest = twin.run(f"project:{payload['project_id']}", home=s.store.home, source_home=s.store.home, blind=bool(payload.get("blind", True)),
+                        cap_eur=float(payload.get("cap_eur") or settings["session_eur"]), max_requests=int(payload.get("max_requests") or 80),
+                        run_id=payload["run_id"], log=lambda *a: None)
+    s.projects.log(payload["project_id"], "twin_run", {"run": payload["run_id"], "lanes": {k: v.get("status") for k, v in (manifest.get("lanes") or {}).items()},
+                                                       "differences": manifest.get("differences"), "spent_eur": (manifest.get("model_usage") or {}).get("eur")})
+
+
+def _twin_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
+    s.projects.log(payload["project_id"], "twin_run", {"run": payload.get("run_id"), "state": "not_finished",
+                                                       "why": TEXT.get(reason) or job.get("error") or "The twin run ended before it finished"})
+
+
 def register() -> None:
     handler("stage", _stage_run, _stage_settle)
     handler("pipeline", _pipeline_run, _pipeline_settle)
@@ -155,6 +179,7 @@ def register() -> None:
     handler("intern", _intern_run, _intern_settle)
     handler("rerun", _rerun_run, _rerun_settle)
     handler("programme", _programme_run, _programme_settle)
+    handler("twin", _twin_run, _twin_settle)
 
 
 register()

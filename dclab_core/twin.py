@@ -410,7 +410,7 @@ def compare(step: str, system: Mapping[str, Any], ai: Mapping[str, Any]) -> list
 
 def judge(step: str, system: ArmAnswer, ai: ArmAnswer, truth: Optional[Truth]) -> Verdict:
     """Each arm against the truth, field by field; an arm that did not answer is wrong on every field."""
-    if truth is None or not truth.value:
+    if truth is None or not truth.value or system.status == "skipped":  # a step the system never makes is not a contest
         return Verdict()
     s = spec(step)
     fields = [f for f in s.fields if f in truth.value]

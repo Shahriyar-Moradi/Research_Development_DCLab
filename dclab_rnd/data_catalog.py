@@ -48,6 +48,7 @@ NOTES: dict[str, str] = {
     "builder:episodes": "One row per turn of a conversation: the message, the steps, the model calls, the moves, the decisions, the feedback and the outcomes, joined by ids (23.10); no free text under improve.",
     "builder:problem_maps": "A person's words as a problem map of parts: the map first drawn, the one built from, the person's edits as the correction, and what the programme did against its best leaf (24.7).",
     "builder:routes": "A sub-problem routed to an approach: its state, the candidates with the codes that refuted them, the one chosen and what became of it; codes and counts only (24.7).",
+    "builder:twin": "What the system and Claude, as the AI-first expert, answered on the same inputs: every twin step, the preference pairs a truth decided, the expert's records with what became of them, and Claude's answers as a teacher's beside the rule's at the ledger's points, one set per use (workflow, technical); Claude's words redacted (25.7).",
     "builder:model_calls": "Each model call whose prompt and reply were kept (train only; never a call that was shown cell values), with the check's verdict and the feedback (23.10).",
     # where the files live when there is no database
     "files:experience_event": "experience/YYYY/MM/DD/<visit>.jsonl",

@@ -5,7 +5,10 @@ With about 1,000 users one person must not starve the rest. Four limits, each pe
     requests       API requests a minute                  DCLAB_LIMIT_REQUESTS_PER_MINUTE (600) / DCLAB_LIMIT_WORKSPACE_REQUESTS_PER_MINUTE (3000)
     upload_bytes   bytes brought in a day (uploads, imports)  DCLAB_LIMIT_UPLOAD_MB_PER_DAY (2000) / DCLAB_LIMIT_WORKSPACE_UPLOAD_MB_PER_DAY (10000)
     jobs           jobs queued or running at once         DCLAB_LIMIT_JOBS_PER_USER (4) / DCLAB_LIMIT_JOBS_PER_WORKSPACE (16)
-    model_eur      model spend a month (priced models)    DCLAB_LIMIT_USER_MONTHLY_EUR (25) / DCLAB_WORKSPACE_MONTHLY_EUR (the gateway's cap)
+    model_eur      model spend a month (priced models)    DCLAB_LIMIT_USER_MONTHLY_EUR (15) / DCLAB_WORKSPACE_MONTHLY_EUR (the gateway's cap)
+
+A person's monthly model limit is 15 by default (the owner's choice, 2026-10-16; prices are entered in dollars as euros),
+and the owner may set one person's own in the workspace's ``budgets.json`` (``set_user_monthly``, audited by its route).
 
 Counters live in PostgreSQL (``usage_counter``, one row per scope, kind and window, incremented in one statement), so
 every app instance counts the same. A request over a limit gets 429 with what was exceeded, by whom, and when it
@@ -30,7 +33,7 @@ DEFAULTS = {  # (per user, per workspace)
     "requests": (("DCLAB_LIMIT_REQUESTS_PER_MINUTE", 600), ("DCLAB_LIMIT_WORKSPACE_REQUESTS_PER_MINUTE", 3000)),
     "upload_bytes": (("DCLAB_LIMIT_UPLOAD_MB_PER_DAY", 2000), ("DCLAB_LIMIT_WORKSPACE_UPLOAD_MB_PER_DAY", 10000)),
     "jobs": (("DCLAB_LIMIT_JOBS_PER_USER", 4), ("DCLAB_LIMIT_JOBS_PER_WORKSPACE", 16)),
-    "model_eur": (("DCLAB_LIMIT_USER_MONTHLY_EUR", 25), (None, None)),  # the workspace's monthly cap is the gateway's (models/gateway.py)
+    "model_eur": (("DCLAB_LIMIT_USER_MONTHLY_EUR", 15), (None, None)),  # the workspace's monthly cap is the gateway's (models/gateway.py)
 }
 WORDS = {"requests": "requests a minute", "upload_bytes": "MB brought in a day", "jobs": "jobs running at once", "model_eur": "euros of model use this month"}
 
@@ -166,8 +169,64 @@ def summary(user_id: str | None, workspace_id: str | None, spent_user: float | N
             jobs_mine: int, jobs_all: int) -> dict[str, Any]:
     """What the Admin page shows: each limit, per user and per workspace, with what is used now."""
     caps = limits()
+    caps["model_eur"] = {**caps["model_eur"], "user": user_monthly(user_id)}  # 25.10: the person's own, when the owner set one
     req, up = (used(k, user_id, workspace_id) for k in ("requests", "upload_bytes"))
     rows = {"requests": (req["user"], req["workspace"]), "upload_bytes": (up["user"], up["workspace"]), "jobs": (jobs_mine, jobs_all),
             "model_eur": (spent_user, spent_workspace)}
     return {"on": True, "limits": [{"kind": k, "words": WORDS[k], "user": {"used": rows[k][0], "limit": caps[k]["user"]},
                                     "workspace": {"used": rows[k][1], "limit": caps[k]["workspace"]}} for k in DEFAULTS]}
+
+
+# ---------------------------------------------------------------------------- a person's own monthly model limit (25.10)
+BUDGETS_FILE = "budgets.json"
+MAX_USER_MONTHLY = 1000.0
+
+
+def _home(home: Any = None) -> Any:
+    from pathlib import Path
+
+    if home is not None:
+        return Path(home)
+    from . import context
+
+    store = getattr(context.services(), "store", None)
+    return Path(store.home) if store is not None else None
+
+
+def user_budgets(home: Any = None) -> dict[str, float]:
+    import json
+
+    path = _home(home)
+    path = path / BUDGETS_FILE if path is not None else None
+    if path is None or not path.is_file():
+        return {}
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8")).get("users") or {}
+        return {str(k): float(v) for k, v in raw.items() if isinstance(v, (int, float)) and not isinstance(v, bool) and 0 < float(v) <= MAX_USER_MONTHLY}
+    except (ValueError, AttributeError):
+        return {}
+
+
+def user_monthly(user_id: str | None, home: Any = None) -> float | None:
+    """A person's monthly model limit: their own when the owner set one, else the default (15)."""
+    own = user_budgets(home).get(str(user_id)) if user_id else None
+    return own if own is not None else limits()["model_eur"]["user"]
+
+
+def set_user_monthly(home: Any, user_id: str, eur: float | None) -> dict[str, float]:
+    """The owner sets (or, with None, clears) one person's monthly model limit."""
+    import json
+
+    if eur is not None and (isinstance(eur, bool) or not isinstance(eur, (int, float)) or not 0 < float(eur) <= MAX_USER_MONTHLY):
+        raise ValueError(f"a monthly limit is a number of euros above 0 and at most {MAX_USER_MONTHLY:,.0f}")
+    path = _home(home) / BUDGETS_FILE
+    budgets = user_budgets(home)
+    if eur is None:
+        budgets.pop(str(user_id), None)
+    else:
+        budgets[str(user_id)] = round(float(eur), 2)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps({"users": budgets}, indent=2), encoding="utf-8")
+    tmp.replace(path)
+    return budgets
+

@@ -64,6 +64,10 @@ PURPOSES: dict[str, Purpose] = {
                                                "files and columns (dclab_core's problem analyst, package 18.2); never rows or cell values"),
     "conversation_reader": Purpose("standard", 60, "the person's problem description, or one question's field and the person's answer to it, and the table's column names "
                                                    "(dclab_core's conversation reader, package 20.2); never rows or cell values", keeps_text=True),
+    "ai_first": Purpose("standard", 180, "phase 3's AI-first agent (Claude as a machine-learning expert, 25.3): the problem's description and the person's messages, "
+                                        "the table's profile (names, kinds, missing rates, unique counts; no example values), the stages' compact records, and, on Home with "
+                                        "the owner's sample switch on (25.4), up to 20 redacted rows; its whole exchange is kept in the twin folder", cell_values=20 * 40,
+                        keeps_text=True),
     "decomposer": Purpose("standard", 90, "the person's problem description and messages, the problem card's family, labels, unit and moment, what the rules drew as short lines "
                                           "(parts, families, labels, ranks, reads) and the draft's table names with their column names and purposes "
                                           "(dclab_core's decomposer, package 24.2); never rows or cell values", keeps_text=True),

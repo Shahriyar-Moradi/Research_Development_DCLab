@@ -149,6 +149,13 @@ DC.view('admin', {
       await this.loadTokens(el);
     });
     el.addEventListener('click', async e => {
+      const save = e.target.closest('[data-member-budget-save]');
+      if (save) {  // 25.10: one person's monthly model budget, the owner's; audited and in the session record
+        const id = save.dataset.memberBudgetSave, value = Number($(`[data-member-budget="${id}"]`, el).value);
+        try { await DC.client.setMemberBudget(id, { body: { monthly_eur: value } }); toast(`Saved: €${value.toFixed(2)} a month. The change is in the audit log.`); }
+        catch (err) { toast(err.message, { ok: false }); }
+        return;
+      }
       const out = e.target.closest('[data-member-remove]');
       if (out) {
         try { await DC.client.removeMember(out.dataset.memberRemove); toast('Removed: their sessions and tokens in this workspace ended.'); }
@@ -176,7 +183,7 @@ DC.view('admin', {
     if (intern.status === 'fulfilled') this.paintModels(el, intern.value, gw.status === 'fulfilled' ? gw.value : null);
     this.paintStats(el, pol.value, lim.status === 'fulfilled' ? lim.value : null, intern.status === 'fulfilled' ? intern.value : null);
     this.S.offset = 0;
-    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadDatasets(el)]);
+    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadDatasets(el), this.loadEvaluation(el), this.loadTwin(el)]);
   },
 
   // 19.13: the catalog of the datasets, and the sessions each came from
@@ -221,6 +228,58 @@ DC.view('admin', {
       box.innerHTML = `<b>${esc(l.path)}</b>: ${n(l.sessions.length)} session${l.sessions.length === 1 ? '' : 's'}`
         + (l.sessions.length ? `<div class="row wrap small">${l.sessions.slice(0, 60).map(s => `<span class="pill outline mono">${esc(s.visit)} · ${n(s.events)}</span>`).join(' ')}</div>` : '');
     }));
+  },
+
+  async loadTwin(el) {
+    const { $ } = DC;
+    let r;
+    try { r = await DC.client.twinSettings({ quiet: true }); } catch (err) { $('#twin-note', el).textContent = err.message; return; }
+    const t = r.settings;
+    $('#twin-on', el).checked = !!t.on; $('#twin-sample', el).checked = !!t.sample;
+    $('#twin-session', el).value = t.session_eur; $('#twin-monthly', el).value = t.monthly_eur;
+    const save = $('#twin-save', el);
+    if (!save.dataset.bound) {
+      save.dataset.bound = '1';
+      save.addEventListener('click', async () => {
+        const body = { on: $('#twin-on', el).checked, sample: $('#twin-sample', el).checked,
+                       session_eur: Number($('#twin-session', el).value), monthly_eur: Number($('#twin-monthly', el).value) };
+        try { await DC.client.setTwinSettings({ body }); DC.toast('Saved. The change is in the audit log.'); }
+        catch (err) { DC.toast(err.message, { ok: false }); }
+        await this.loadTwin(el);
+      });
+    }
+  },
+
+  async loadEvaluation(el) {
+    const { $, esc } = DC;
+    let r;
+    try { r = await DC.client.evaluationBoard({ quiet: true }); } catch (e) { DC.states.failed($('#ev-models', el), e, { retry: () => this.loadEvaluation(el), cols: 9 }); return; }
+    const n = v => Number(v || 0).toLocaleString('en-US');
+    const pct = v => (v === null || v === undefined) ? '—' : `${(v * 100).toFixed(1)}%`;
+    const sec = v => (v === null || v === undefined) ? '—' : `${Number(v).toFixed(1)} s`;
+    const sm = r.summary || {};
+    $('#ev-stats', el).innerHTML = [[n(sm.answerers), 'answerers scored'], [n(sm.points), 'decision points'], [n(sm.cases), 'distinct cases with a truth'],
+      [n(sm.judged_twin_steps), 'steps where Claude and DCLab were judged or compared by a person']].map(([v, l]) => `<div class="stat"><span class="v">${esc(v)}</span><span class="l">${esc(l)}</span></div>`).join('');
+    const steps = (r.twin || {}).steps || [];
+    if (steps.length) $('#ev-twin', el).innerHTML = steps.map(s => `<tr><td class="mono small">${esc(s.step)}</td><td class="num mono small">${n(s.judged)} of ${n(s.steps)}</td>`
+      + `<td class="num mono small">${pct(s.system_accuracy)}</td><td class="num mono small">${pct(s.ai_accuracy)}</td><td class="num mono small">${pct(s.checked_accuracy)}</td>`
+      + `<td class="num mono small">${pct(s.agreement)}</td><td class="num mono small">${s.cost_eur && s.cost_eur.ai_first != null ? '€' + Number(s.cost_eur.ai_first).toFixed(3) : '—'}</td>`
+      + `<td class="num mono small">${sec((s.seconds || {}).system)} · ${sec((s.seconds || {}).ai_first)}</td>`
+      + `<td><span class="pill ${s.mode === 'undecided' ? 'outline' : s.mode.startsWith('ai') ? 'accent' : 'ok'}" title="${esc((s.reasons || []).join(' '))}">${esc(s.mode.replace(/_/g, ' '))}</span></td></tr>`).join('');
+    else DC.states.empty($('#ev-twin', el), 'No step answered by both yet: turn Claude beside DCLab on (Home), or run a twin run.', { cols: 9 });
+    const rows = (r.board || {}).scores || [];
+    const draw = q => {
+      const shown = rows.filter(s => !q || (s.answerer + ' ' + s.point + ' ' + s.by + ' ' + s.truth).toLowerCase().includes(q.toLowerCase()));
+      if (!shown.length) { DC.states.empty($('#ev-models', el), rows.length ? 'Nothing matches the filter.' : 'No labelled decision yet: scores appear once a decision has a truth.', { cols: 9 }); return; }
+      $('#ev-models', el).innerHTML = shown.map(s => `<tr><td class="small">${esc(s.answerer)}<div class="xs muted">${esc(s.by)}</div></td><td class="mono small">${esc(s.point)}</td>`
+        + `<td class="small">${esc(s.truth.replace(/_/g, ' '))}</td><td class="num mono small">${n(s.n)}</td>`
+        + `<td class="num mono small" title="95% interval ${pct(s.accuracy_interval[0])} to ${pct(s.accuracy_interval[1])}">${pct(s.accuracy)}</td>`
+        + `<td class="num mono small">${pct(s.precision)}</td><td class="num mono small">${pct(s.recall)}</td><td class="num mono small">${pct(s.f1)}</td>`
+        + `<td class="num mono small">${pct(s.coverage)}</td></tr>`).join('');
+    };
+    draw('');
+    const f = $('#ev-filter', el);
+    if (f && !f.dataset.bound) { f.dataset.bound = '1'; f.addEventListener('input', () => draw(f.value)); }
   },
 
   async loadDecisions(el) {
@@ -496,18 +555,21 @@ DC.view('admin', {
     const auth = cfg.auth || {};
     const body = $('#members-table tbody', el);
     if (auth.mode === 'none' || !auth.signed_in) {
-      body.innerHTML = '<tr><td colspan="4"><div class="empty">No accounts on this server: it is one owner on this machine. Set DCLAB_AUTH=password (or oidc, for your company\'s identity provider) and add the first owner with python -m dclab_rnd.accounts add.</div></td></tr>';
+      body.innerHTML = '<tr><td colspan="5"><div class="empty">No accounts on this server: it is one owner on this machine. Set DCLAB_AUTH=password (or oidc, for your company\'s identity provider) and add the first owner with python -m dclab_rnd.accounts add.</div></td></tr>';
       $('#tokens-list', el).innerHTML = '<div class="empty">API tokens come with accounts. Without them, MCP clients on this machine use /mcp as the owner.</div>';
       return;
     }
     const owner = auth.role === 'owner';
     const roles = [['owner', 'Owner'], ['data_scientist', 'ML engineer'], ['reviewer', 'Reviewer'], ['viewer', 'Business viewer']];
     let members = [];
-    try { members = await DC.client.members({ quiet: true }); } catch (err) { DC.states.failed(body, err, { retry: () => this.loadMembers(el), cols: 4 }); return; }
+    try { members = await DC.client.members({ quiet: true }); } catch (err) { DC.states.failed(body, err, { retry: () => this.loadMembers(el), cols: 5 }); return; }
+    let budgets = { users: {}, default: 15 };
+    if (owner) { try { budgets = await DC.client.memberBudgets({ quiet: true }); } catch (err) { /* shown as the default */ } }
     $('#members-sub', el).textContent = `${members.length} member${members.length === 1 ? '' : 's'} · ${owner ? 'you manage them as the owner' : 'the owner manages them'}`;
     body.innerHTML = members.map(m => `<tr><td><div class="cell-main">${esc(m.name || m.email)}</div><div class="cell-sub">${esc(m.email)}${m.id === auth.user_id ? ' · you' : ''}</div></td>
       <td>${owner ? `<select data-member-role="${esc(m.id)}" aria-label="Role of ${esc(m.email)}">${roles.map(([k, l]) => `<option value="${k}" ${k === m.role ? 'selected' : ''}>${l}</option>`).join('')}</select>` : esc(m.role_label)}</td>
       <td class="small">${m.single_sign_on ? 'company account' : m.password ? 'password' : '—'}</td>
+      <td>${owner ? `<span class="row"><label class="sr-only" for="budget-${esc(m.id)}">Monthly model budget of ${esc(m.email)}</label><input id="budget-${esc(m.id)}" type="number" min="0.01" step="0.5" value="${esc(String((budgets.users || {})[m.id] ?? budgets.default ?? 15))}" data-style="width:80px" data-member-budget="${esc(m.id)}"><button type="button" class="btn sm" data-member-budget-save="${esc(m.id)}">Save</button></span>` : '—'}</td>
       <td>${owner && m.id !== auth.user_id ? `<button type="button" class="btn sm" data-member-remove="${esc(m.id)}">Remove</button>` : ''}</td></tr>`).join('');
     const add = $('#member-add', el);
     add.hidden = !owner;

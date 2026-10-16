@@ -17,6 +17,11 @@ consent, every source by id, the counts, and how it was split. The builders:
 * :func:`problem_maps` (24.7): the words a person said understood as a card, the problem map first drawn, the one they built from, the edits between, and what the
   programme that followed did against its best leaf. :func:`routes` (24.7): a sub-problem's state, the candidate approaches with what blocked them, the one chosen and
   what became of it.
+* :func:`twin_sets` (25.7): what the system and the AI-first agent (Claude) answered on the same inputs: every twin step,
+  the preference pairs where the truth chose one, the expert's records with what became of them, and the **teacher
+  decisions** (Claude's answer at a ledger point beside the rule's, the state and the truth), one set per use: the
+  workflow decisions inside DCLab (routing, scoring, classifying the next move) and the technical decisions of data
+  science (a column's role, a leak, the split, the metric, the family), for decision models of either kind.
 * :func:`failures`: the sessions a failure detector flagged (``signals``), as candidate benchmark cases; only those a
   reviewer accepted are cases, and they go to a new benchmark version, never into a sealed set.
 """
@@ -35,8 +40,8 @@ from dclab_core.contracts import CONTRACTS, Contract, Versioned, _version
 
 VERSION = "1"
 Builder = Literal["decisions", "conversations", "preferences", "trajectories", "workflows", "failures", "development", "outcomes", "episodes",
-                  "model_calls", "problem_maps", "routes"]  # outcomes: 23.5; episodes and model_calls: 23.10; problem_maps and routes: 24.7
-SourceKind = Literal["decision", "label", "event", "visit", "conversation", "run", "project", "draft", "package", "flag"]
+                  "model_calls", "problem_maps", "routes", "twin"]  # outcomes: 23.5; episodes and model_calls: 23.10; problem_maps and routes: 24.7; twin: 25.7
+SourceKind = Literal["decision", "label", "event", "visit", "conversation", "run", "project", "draft", "package", "flag", "step"]
 SPLITS = (("sealed", 0.2), ("dev", 0.4))  # a group's hash below 0.2: sealed; below 0.4: dev; the rest train
 SALT = "dclab-datasets-v1"  # one salt for every set: a project is sealed (or not) everywhere at once
 LABEL_SOURCES = ("benchmark", "measured", "user_decision_exposed", "blind", "model")  # model: a second opinion, never the effective label
@@ -50,9 +55,9 @@ class Source(Contract):
 class DatasetManifest(Versioned):
     """What a dataset holds and where every row came from."""
 
-    schema_version: Literal["dclab_core.dataset_manifest.v5"] = _version("dataset_manifest", 5)
+    schema_version: Literal["dclab_core.dataset_manifest.v6"] = _version("dataset_manifest", 6)
     READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.dataset_manifest.v1", "dclab_core.dataset_manifest.v2", "dclab_core.dataset_manifest.v3",
-                                                 "dclab_core.dataset_manifest.v4"})  # v2 added levels; v3 the outcomes builder; v4 the scrubber and the commit; v5 the problem_maps and routes builders
+                                                 "dclab_core.dataset_manifest.v4", "dclab_core.dataset_manifest.v5"})  # v2 added levels; v3 the outcomes builder; v4 the scrubber and the commit; v5 the problem_maps and routes builders; v6 the twin builder and the step source
     builder: Builder
     name: str = Field(min_length=1, max_length=120)
     version: str = Field(min_length=1, max_length=20)
@@ -75,8 +80,8 @@ class DatasetManifest(Versioned):
     @classmethod
     def _read_v1(cls, data: Any) -> Any:
         if isinstance(data, dict) and data.get("schema_version") in ("dclab_core.dataset_manifest.v1", "dclab_core.dataset_manifest.v2", "dclab_core.dataset_manifest.v3",
-                                                                    "dclab_core.dataset_manifest.v4"):
-            data = {**data, "schema_version": "dclab_core.dataset_manifest.v5"}
+                                                                    "dclab_core.dataset_manifest.v4", "dclab_core.dataset_manifest.v5"):
+            data = {**data, "schema_version": "dclab_core.dataset_manifest.v6"}
         return data
 
 
@@ -623,3 +628,100 @@ def failures(sessions: Iterable[dict[str, Any]], reviews: Optional[dict[str, dic
 
 __all__ = ["group_of", "sources_of", "refit", "SALT", "DatasetManifest", "Source", "decisions", "conversations", "preferences", "trajectories", "workflows", "problem_maps", "routes", "failures", "manifest",
            "split_of", "LABEL_SOURCES", "VERSION"]
+
+
+# ------------------------------------------------------------------------------------------------ (h) the twin (25.7)
+
+# a twin step's field and the ledger point it answers (the teacher sets): the same decision, asked of Claude and of the rules
+TEACHER_POINTS: dict[tuple[str, str], str] = {
+    ("home.pack", "pack"): "problem.pack", ("home.understanding", "family"): "problem.family", ("home.understanding", "labels"): "labels.situation",
+    ("home.understanding", "target_column"): "target.column", ("home.map", "size"): "map.size", ("home.next_question", "field"): "workflow.next_question",
+    ("solution.columns", "target"): "target.column", ("solution.columns", "task"): "task.framing", ("stage.data", "split"): "split.strategy",
+    ("stage.data", "metric"): "metric.primary", ("stage.models", "family"): "model.family", ("stage.features", "recipe"): "features.recipe",
+}
+
+
+def _redacted(text: Any, n: int = 2000) -> Optional[str]:
+    if not text:
+        return None
+    from dclab_core.redact import redact_text
+
+    out, _ = redact_text(str(text)[:n])
+    return out
+
+
+def _arm(a: dict[str, Any]) -> dict[str, Any]:
+    return {"answerer": a.get("answerer"), "model": a.get("model"), "status": a.get("status"), "value": a.get("value"),
+            "said": _redacted(a.get("said")), "reasons": [_redacted(r, 400) for r in a.get("reasons") or []][:12],
+            "tools": [t.get("name") for t in a.get("tools") or []][:60], "cost_eur": a.get("cost_eur")}
+
+
+def twin_sets(items: Iterable[dict[str, Any]], decisions_by: Optional[dict[tuple[str, str], list[dict[str, Any]]]] = None, *,
+              traces: Iterable[dict[str, Any]] = (), workspace: Optional[str] = None, consent: str = "train",
+              drafts: Optional[dict[str, str]] = None) -> dict[str, tuple[list[dict[str, Any]], DatasetManifest]]:
+    """The twin's sets. ``items``: twin steps (as dicts) with ``where`` ({"draft"} or {"run", "project"}); ``decisions_by``:
+    the exported decision records by (draft or project, point), to join a teacher row with the state the rule saw;
+    ``traces``: expert records with ``run``, ``blind`` and ``outcome``. Text Claude wrote is redacted; no row holds a
+    table's value (the steps are bounded by their contract)."""
+    from dclab_core.ledger import POINTS
+
+    steps, pairs, teacher = [], [], {"technical": [], "workflow": []}
+    for item in items:
+        st, where = item["step"], item.get("where") or {}
+        group = group_of(where.get("project"), where.get("draft"), None, drafts, f"run:{where.get('run')}" if where.get("run") else "twin")
+        verdict, truth = st.get("verdict") or {}, st.get("truth")
+        base = {"id": st["id"], "step": st["step"], "subject": st.get("subject"), "input": st.get("input_summary") or {},
+                "system": _arm(st["system"]), "ai_first": _arm(st["ai_first"]),
+                "differs": [d["field"] for d in st.get("differences") or [] if d.get("kind") not in ("same", "neither")],
+                "truth": {"value": truth["value"], "source": truth["source"]} if truth else None, "winner": verdict.get("winner"),
+                "group": group, "split": split_of(group), "sources": [("step", st["id"])] + ([("draft", where["draft"])] if where.get("draft") else [])
+                + ([("run", where["run"])] if where.get("run") else [])}
+        steps.append(base)
+        if verdict.get("winner") in ("system", "ai_first"):
+            win, lose = ("system", "ai_first") if verdict["winner"] == "system" else ("ai_first", "system")
+            pairs.append({**{k: base[k] for k in ("id", "step", "subject", "input", "truth", "group", "split", "sources")},
+                          "chosen": {"arm": win, "value": st[win].get("value"), "said": _redacted(st[win].get("said"))},
+                          "rejected": {"arm": lose, "value": st[lose].get("value"), "said": _redacted(st[lose].get("said"))}})
+        owner = where.get("project") or (drafts or {}).get(where.get("draft") or "") or where.get("draft")
+        for (step_name, field), point in TEACHER_POINTS.items():
+            if step_name != st["step"] or point not in POINTS:
+                continue
+            claude = (st["ai_first"].get("value") or {}).get(field) if st["ai_first"].get("status") == "answered" else None
+            if claude is None:
+                continue
+            rule_value = (st["system"].get("value") or {}).get(field) if st["system"].get("status") == "answered" else None
+            known = [d for d in (decisions_by or {}).get((str(owner), point), []) if str(d.get("at") or "") <= str(st.get("at") or "~")]
+            record = max(known, key=lambda d: str(d.get("at") or ""), default=None)
+            rule = next((a for a in (record or {}).get("answers") or [] if a.get("by") == "rule"), None)
+            row = {"point": point, "use": POINTS[point].kind, "step": st["step"], "field": field, "subject": (record or {}).get("subject"),
+                   "state": (record or {}).get("state"), "options": (record or {}).get("options"),
+                   "rule": {"answerer": rule.get("answerer"), "value": rule.get("value")} if rule else ({"answerer": "system", "value": rule_value} if rule_value is not None else None),
+                   "teacher": {"answerer": st["ai_first"].get("answerer"), "model": st["ai_first"].get("model"), "value": claude},
+                   "truth": (truth or {}).get("value", {}).get(field) if truth else None, "truth_source": truth["source"] if truth and field in (truth.get("value") or {}) else None,
+                   "record": (record or {}).get("id"), "group": group, "split": split_of(group),
+                   "sources": base["sources"] + ([("decision", record["id"])] if record else [])}
+            teacher[POINTS[point].kind].append(row)
+    experts = []
+    for t in traces:
+        trace, run = t["trace"], str(t.get("run") or "")
+        group = f"run:{run}"
+        verified = bool(t.get("blind")) and t.get("columns_winner") in ("ai_first", "both")
+        experts.append({"run": run, "version": trace.get("version"), "checkpoint": trace.get("checkpoint"), "trace": trace, "outcome": t.get("outcome"),
+                        "blind": bool(t.get("blind")), "verified": verified, "group": group, "split": split_of(group), "sources": [("run", run)]})
+    policy = "Grouped by the project, else the draft, else the twin run; whole groups to sealed, dev or train as every set."
+    lim = ["Claude's answers are a teacher's, never a label: a row's truth is a planted, measured or labelled one, or a person's pick."]
+    out = {"twin.steps": (steps, manifest("twin", "twin.steps", steps, sources_of(steps), use="train", consent=consent, workspace=workspace, policy=policy,
+                                          counts={"by_winner": dict(Counter(str(r["winner"]) for r in steps))}, limits=lim)),
+           "twin.preferences": (pairs, manifest("twin", "twin.preferences", pairs, sources_of(pairs), use="train", consent=consent, workspace=workspace,
+                                                policy=policy, counts={"chosen": dict(Counter(r["chosen"]["arm"] for r in pairs))},
+                                                limits=["A pair only where a truth chose one side."])),
+           "twin.expert": (experts, manifest("twin", "twin.expert", experts, sources_of(experts), use="train", consent=consent, workspace=workspace,
+                                             policy="One row per version of the expert's record; grouped by its run.",
+                                             counts={"verified": dict(Counter(str(r["verified"]) for r in experts))},
+                                             limits=["verified: a blind run whose first version was right on the planted solution; the rest are candidates."]))}
+    for use, rows in teacher.items():
+        out[f"twin.teacher.{use}"] = (rows, manifest("twin", f"twin.teacher.{use}", rows, sources_of(rows), use="train", consent=consent, workspace=workspace,
+                                                     policy=policy, counts={"by_point": dict(Counter(r["point"] for r in rows))},
+                                                     limits=lim + ["The state is the ledger record's the rule decided on, when one was written before the step; else none."]))
+    return out
+

@@ -49,6 +49,13 @@ WRITE_ROUTES = {
     "POST /api/ledger/blind/{record_id}": (NONE, "a blind label is the ledger's own record (decision_label), not a session event"),
     "POST /api/feedback": (EVENTS, ["feedback.given"]),
     "PUT /api/consent": (EVENTS, ["decision.accepted"]),  # the switch, audited as a policy
+    "PUT /api/twin/settings": (EVENTS, ["decision.accepted"]),  # 25.4: the owner's switch for Claude beside the system, audited as a policy
+    "POST /api/drafts/{draft_id}/twin/messages": (EVENTS, ["chat.person"]),  # 25.4: a message to Claude alone (surface twin); Claude's lane is the twin folder
+    "POST /api/drafts/{draft_id}/twin/pick": (EVENTS, ["decision.accepted"]),  # 25.5: the person's pick between the two answers (point twin.pick)
+    "POST /api/drafts/{draft_id}/understanding": (EVENTS, ["chat.person"]),  # 25.5: a correction in the person's words, a message of the conversation
+    "POST /api/drafts/{draft_id}/twin/budget": (EVENTS, ["decision.accepted"]),  # 25.10: a draft's Claude budget raised, audited
+    "PUT /api/workspace/budgets/{user_id}": (EVENTS, ["decision.accepted"]),  # 25.10: one person's monthly limit set by the owner, audited
+    "POST /api/projects/{project_id}/twin": (EVENTS, ["job.started", "run.recorded"]),  # 25.6: a twin run of the project as a job
     "PATCH /api/drafts/{draft_id}": (EVENTS, ["draft.edited"]),
     "DELETE /api/drafts/{draft_id}": (NONE, "the deletion is audited (its tombstone) and what the draft left is removed from the record (19.10)"),
     "PUT /api/drafts/{draft_id}/data": (EVENTS, ["data.uploaded", "data.cleaned", "data.analysed", "run.recorded"]),  # a label file: no analysis of its own

@@ -77,6 +77,26 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
     def agent(draft_id: str | None = None) -> HomeAgent:
         return work_now().agent(draft_id)
 
+    def workspace() -> tuple[Path, Any]:
+        """The request's workspace folder and gateway (package 10.2: read per call), for the twin (25.4)."""
+        from .. import context
+
+        ctx = context.services() or services
+        if ctx is not None and getattr(ctx, "store", None) is not None:
+            home = Path(ctx.store.home)
+        else:  # a test without services: the configured workspace folder
+            from ..settings import Settings
+
+            home = Path(Settings().agent_home)
+        return home, getattr(ctx, "gateway", None) or models
+
+    def twin_after(draft_id: str, event: str, text: str | None = None, to: str = "both") -> None:
+        """25.4: Claude's turn beside the system's, in a thread of its own; nothing when the owner's switch is off."""
+        from ..twin import home as twin_home
+
+        home, gateway = workspace()
+        twin_home.after_turn(drafts, gateway, home, draft_id, event, text, to)
+
     def drafts_exists(draft_id: str) -> bool:
         try:
             drafts.get(draft_id)
@@ -134,7 +154,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         from .. import experience  # 19.3: the problem as the person first wrote it
 
         experience.record("draft.created", "person", {"problem": problem[:2000], "pack": key}, conversation=draft["id"])
-        background(draft["id"] + ":agent", lambda: agent(draft["id"]).start(draft["id"]))
+        background(draft["id"] + ":agent", lambda: (agent(draft["id"]).start(draft["id"]), twin_after(draft["id"], "start")))
         return draft
 
     def trace_of(draft_id: str) -> list[dict[str, Any]]:
@@ -167,6 +187,12 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         from ..experience import retention  # 19.10: and what it left in the session record and the decision ledger
 
         gone = await asyncio.to_thread(retention.forget, draft=draft_id, usage=getattr(models, "usage", None))
+        try:  # 25.4: and its twin session
+            from ..twin import home as twin_home
+
+            gone["twin_sessions"] = await asyncio.to_thread(twin_home.Sessions(workspace()[0]).forget, draft_id)
+        except Exception:  # noqa: BLE001
+            pass
         audit.record_for(drafts, "deletion", "human", draft_id=draft_id, move="delete_draft", status="allowed",
                          assets=len(draft.get("assets") or []), project_id=draft.get("project_id"), files=len(forgotten), **gone)
         try:
@@ -332,8 +358,101 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         busy = await asyncio.to_thread(answering, draft_id)  # first: nothing awaits between the check below and registering the turn
         if busy or ((draft_id + ":agent") in jobs and not jobs[draft_id + ":agent"].done()):
             raise HTTPException(409, "The agent is still answering")
-        background(draft_id + ":agent", lambda: agent(draft_id).reply(draft_id, text))
+        background(draft_id + ":agent", lambda: (agent(draft_id).reply(draft_id, text), twin_after(draft_id, "reply", text)))
         return {"accepted": True}
+
+    @router.post("/api/drafts/{draft_id}/twin/messages", status_code=202, response_model=Doc)
+    async def twin_message(draft_id: str, payload: AnyObject):
+        """25.4: a message to Claude alone (the system never sees it); Claude answers in its own lane."""
+        get(draft_id)
+        text = str(dump(payload).get("text", "")).strip()
+        if not text:
+            raise HTTPException(422, "Write a message first")
+        from ..twin import home as twin_home
+
+        home, _gateway = workspace()
+        if not twin_home.settings(home)["on"]:
+            raise HTTPException(409, "Claude beside the system is off in this workspace (the owner's switch)")
+        from .. import experience  # every action is in the session record: a message to Claude alone too
+
+        experience.record("chat.person", "person", {"text": text[:4000], "surface": "twin"}, conversation=draft_id)
+        await asyncio.to_thread(twin_after, draft_id, "message", text[:4000], "claude")
+        return {"accepted": True}
+
+    @router.post("/api/drafts/{draft_id}/understanding", response_model=Doc)
+    async def edit_understanding(draft_id: str, payload: AnyObject):
+        """25.5: the person corrects a field of the understanding ({"field", "value"}); recorded from their words through the draft guard."""
+        get(draft_id)
+        body = dump(payload)
+        field, value = str(body.get("field") or ""), str(body.get("value") or "")
+        if await asyncio.to_thread(answering, draft_id):
+            raise HTTPException(409, "The agent is still answering")
+        try:
+            result = await asyncio.to_thread(lambda: HomeAgent(drafts, None).edit(draft_id, field, value))
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+        if "error" in result:
+            raise HTTPException(422, result["error"])
+        twin_after(draft_id, "edit", f"{field}: {value}")
+        return drafts.get(draft_id)
+
+    @router.post("/api/drafts/{draft_id}/twin/pick", response_model=Doc)
+    async def twin_pick(draft_id: str, payload: AnyObject):
+        """25.5: the person says which answer to a Home step is right ({"step", "arm": "system" | "ai_first"}): the step's truth, a person's pick."""
+        get(draft_id)
+        body = dump(payload)
+        from ..twin import home as twin_home
+
+        home, gateway = workspace()
+        try:
+            out = await asyncio.to_thread(twin_home.HomeTwin(drafts, gateway, home).pick, draft_id, str(body.get("step") or ""), str(body.get("arm") or ""))
+        except (KeyError, ValueError) as exc:
+            raise HTTPException(422, str(exc).strip("'")) from None
+        from .. import experience
+
+        experience.record("decision.accepted", "person", {"point": "twin.pick", "choice": {"step": out["step"], "arm": out["arm"]}, "by": "person"},
+                          conversation=draft_id)
+        return out
+
+    @router.post("/api/drafts/{draft_id}/twin/budget", response_model=Doc)
+    async def twin_budget(draft_id: str, payload: AnyObject):
+        """25.10: add to this draft's Claude budget ({"add_eur": n}; 1.5 by default), within the person's own monthly limit; audited."""
+        get(draft_id)
+        from .. import audit, limits
+        from ..accounts.principal import current
+        from ..experience import hooks
+        from ..twin import home as twin_home
+
+        body = dump(payload)
+        add = body.get("add_eur", twin_home.RAISE_STEP)
+        home, gateway = workspace()
+        who = current()
+        room = None
+        if limits.on() and who is not None and who.user_id:  # what is left of the person's own month
+            from ..models.usage import month_start
+
+            usage = getattr(gateway, "usage", None)
+            cap = limits.user_monthly(who.user_id, home)
+            spent = usage.spent(month_start(), user_id=who.user_id) if usage is not None else 0.0
+            room = None if cap is None else max(0.0, cap - spent)
+        try:
+            out = await asyncio.to_thread(twin_home.HomeTwin(drafts, gateway, home).raise_budget, draft_id, add,
+                                          getattr(who, "user_id", None) or "owner", room)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+        audit.record_for(drafts, "policy", "human", draft_id=draft_id, move="raise_twin_budget", status="allowed",
+                         args={"before": out["before"], "after": out["session_eur"]})
+        hooks.settings_changed({"twin_session_eur": out["session_eur"]}, conversation=draft_id)
+        return out
+
+    @router.get("/api/drafts/{draft_id}/twin", response_model=Doc)
+    async def twin_view(draft_id: str):
+        """25.4: Claude's lane on this draft: its conversation, its last record, and each Home step's two answers."""
+        get(draft_id)
+        from ..twin import home as twin_home
+
+        home, gateway = workspace()
+        return await asyncio.to_thread(twin_home.HomeTwin(drafts, gateway, home).view, draft_id)
 
     @router.post("/api/drafts/{draft_id}/pack", response_model=Draft)
     async def choose_pack(draft_id: str, payload: AnyObject):

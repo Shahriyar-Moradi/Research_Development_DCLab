@@ -19,6 +19,7 @@ and a copy of the folder is the backup.
 | Datasets (19.12) | `datasets/<builder>/<name>/`: `rows.jsonl`, `sealed.jsonl`, `manifest.json` | (files only) | `make datasets` |
 | Failure candidates reviewed (19.12) | `datasets/failures/reviews.json`; accepted ones in `.../accepted.jsonl` | (files only) | a reviewer |
 | The audit: who did what, and every deletion's tombstone | `audit.jsonl` | `audit_event` | `audit.py` |
+| Claude beside the system (phase 3, 25.2–25.5): the twin folder, both approaches side by side | `twin/index.jsonl`, `twin/sessions/YYYY/MM/DD/<session>/` (a Home session: `session.json`, `conversation.jsonl`, `ai_first.jsonl`, `system.jsonl`, `thinking.jsonl`, `steps.jsonl`, `picks.jsonl`), `twin/runs/<run>/` (a whole problem in two lanes, each a workspace folder; `steps.jsonl`, `expert_steps.jsonl`, Claude's expert record in `ai_first/design/`); the switch in `twin.json` | (files only, in both modes) | `dclab_rnd/twin` |
 
 The files of the session record and the ledger are append-only; only a deletion or a retention sweep rewrites them
 (`experience/retention.py`), under the folder's lock that every appender holds (`filelock.py`). On PostgreSQL the
@@ -36,7 +37,7 @@ One folder per set: `<builder>/<name>/` with
   projects, packages) and how it was split.
 
 The builders are `decisions` (one set per decision point), `conversations`, `preferences`, `trajectories`,
-`workflows`, `problem_maps` and `routes` (24.7: the words a person said and the map of parts first drawn, built from and corrected, with what the programme did against its best leaf; a sub-problem's state, candidate approaches, the one chosen and what became of it), `failures`, `outcomes` (23.5: each decision with the number that followed it) and `development` (the development records, the owner's own: `development/manifest.json`,
+`workflows`, `problem_maps` and `routes` (24.7: the words a person said and the map of parts first drawn, built from and corrected, with what the programme did against its best leaf; a sub-problem's state, candidate approaches, the one chosen and what became of it), `failures`, `outcomes` (23.5: each decision with the number that followed it), `twin` (25.7: what the system and Claude answered on the same inputs: `twin.steps`, `twin.preferences` where a truth chose one, `twin.expert` the expert's records with what became of them, and Claude's answers as a teacher's beside the rule's at the ledger's points, `twin.teacher.workflow` and `twin.teacher.technical`, the material of the decision models of either use) and `development` (the development records, the owner's own: `development/manifest.json`,
 pointing at `research/llm-fine-tuning/experiments/sft/out_dev`). A rebuild replaces a set's files in place; the
 manifest says when it was built.
 

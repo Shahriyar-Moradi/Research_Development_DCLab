@@ -7,6 +7,12 @@ reply's ``tool_use`` blocks come back as ``tool_calls``. ``response_format`` ask
 ``output_config.format`` (structured outputs); a plain JSON object is asked for in the system prompt. Anthropic serves
 no embeddings: ``embed`` is refused, and the gateway does not offer the ``embedding`` purpose on this provider.
 
+Thinking (25.3): ``thinking="adaptive"`` or ``thinking="enabled:<budget tokens>"`` (an option of ``complete``, or the
+client's ``thinking`` attribute) asks for Claude's extended thinking; the reply's thinking blocks come back as
+``thinking`` (``[{"text", "signature"}]``, and ``redacted_thinking``, a count) and ride on the assistant message as
+``thinking_blocks``, which ``to_messages`` sends back first in that assistant turn, as the API requires during tool use.
+A temperature is not sent with thinking (the API refuses the two together).
+
 Set it with ``DCLAB_LLM_PROVIDER=anthropic`` and ``ANTHROPIC_API_KEY`` in ``.env`` (models/settings.py).
 """
 
@@ -22,6 +28,7 @@ DEFAULT_MODEL = "claude-sonnet-5-5"
 from .prices import DEFAULT_OUTPUT_ESTIMATE as DEFAULT_MAX_TOKENS  # the Messages API needs a limit; the cost estimate assumes the same one
 FINISH = {"end_turn": "stop", "stop_sequence": "stop", "tool_use": "tool_calls", "max_tokens": "length", "refusal": "content_filter"}
 JSON_ONLY = "Reply with one JSON object and nothing else."
+ADAPTIVE_HEADROOM = 8000  # 25.3: tokens added to a request's limit for adaptive thinking, above the reply's own
 
 
 def _text(content: Any) -> str:
@@ -51,7 +58,8 @@ def to_messages(messages: list[dict[str, Any]]) -> tuple[str, list[dict[str, Any
             if text:
                 system.append(text)
         elif role == "assistant":
-            blocks: list[dict[str, Any]] = []
+            blocks: list[dict[str, Any]] = [dict(b) for b in m.get("thinking_blocks") or [] if isinstance(b, dict)
+                                            and b.get("type") in ("thinking", "redacted_thinking")]
             text = _text(m.get("content"))
             if text:
                 blocks.append({"type": "text", "text": text})
@@ -81,11 +89,29 @@ def to_tools(tools: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     return out
 
 
+def thinking_param(setting: Any) -> dict[str, Any] | None:
+    """``adaptive`` -> ``{"type": "adaptive"}``; ``enabled:N`` -> ``{"type": "enabled", "budget_tokens": N}``; off -> None."""
+    if not setting or str(setting).strip().lower() in ("0", "off", "none", "false"):
+        return None
+    text = str(setting).strip().lower()
+    if text.startswith("enabled"):
+        _, _, n = text.partition(":")
+        try:
+            budget = int(n or 4000)
+        except ValueError:
+            budget = 4000  # a misspelt budget is the default one, never a failure of the request
+        return {"type": "enabled", "budget_tokens": max(1024, budget)}
+    return {"type": "adaptive"}
+
+
 def _options(options: dict[str, Any], system: str) -> tuple[dict[str, Any], str]:
     """The caller's options as the Messages API takes them, and the system prompt (a JSON request may add a line)."""
     out: dict[str, Any] = {}
+    thinking = thinking_param(options.get("thinking"))
+    if thinking:
+        out["thinking"] = thinking
     for name in ("temperature", "top_p"):
-        if options.get(name) is not None:
+        if options.get(name) is not None and not thinking:
             out[name] = options[name]
     if options.get("stop"):
         stop = options["stop"]
@@ -102,10 +128,16 @@ def _options(options: dict[str, Any], system: str) -> tuple[dict[str, Any], str]
 
 def from_message(message: Any) -> dict[str, Any]:
     """A Messages API reply in the shape ``ChatClient.complete`` returns."""
-    text, calls = [], []
+    text, calls, thought, raw_thinking, redacted = [], [], [], [], 0
     for block in getattr(message, "content", None) or []:
         kind = getattr(block, "type", None)
-        if kind == "text":
+        if kind == "thinking":
+            thought.append({"text": getattr(block, "thinking", "") or "", "signature": getattr(block, "signature", "") or ""})
+            raw_thinking.append({"type": "thinking", "thinking": thought[-1]["text"], "signature": thought[-1]["signature"]})
+        elif kind == "redacted_thinking":
+            redacted += 1
+            raw_thinking.append({"type": "redacted_thinking", "data": getattr(block, "data", "") or ""})
+        elif kind == "text":
             text.append(getattr(block, "text", "") or "")
         elif kind == "tool_use":
             arguments = getattr(block, "input", None)
@@ -114,23 +146,30 @@ def from_message(message: Any) -> dict[str, Any]:
     usage = getattr(message, "usage", None)
     content = "".join(text)
     stop = getattr(message, "stop_reason", None)
-    return {
+    out = {
         "content": content, "tool_calls": calls, "finish_reason": FINISH.get(stop, stop),
         "usage": {"input_tokens": (getattr(usage, "input_tokens", 0) or 0) + (getattr(usage, "cache_read_input_tokens", 0) or 0)
                                   + (getattr(usage, "cache_creation_input_tokens", 0) or 0),
                   "output_tokens": getattr(usage, "output_tokens", 0) or 0},
         "assistant_message": {"role": "assistant", "content": content,
                               **({"tool_calls": [{"id": c["id"], "type": "function", "function": {"name": c["name"], "arguments": json.dumps(c["arguments"])}}
-                                                 for c in calls]} if calls else {})},
+                                                 for c in calls]} if calls else {}),
+                              **({"thinking_blocks": raw_thinking} if raw_thinking else {})},
     }
+    if thought or redacted:
+        out["thinking"] = thought
+        out["redacted_thinking"] = redacted
+    return out
 
 
 class AnthropicClient(ChatClient):
     """``ChatClient`` over the Messages API: the same pause after a refusal that stays, the same safe failure reasons
     (Anthropic's errors carry a status and an error type, read by ``client.failure``; their message is never passed on)."""
 
-    def __init__(self, model: str | None = None, base_url: str | None = None, api_key: str | None = None, timeout: float = 180, max_retries: int = 1):
+    def __init__(self, model: str | None = None, base_url: str | None = None, api_key: str | None = None, timeout: float = 180, max_retries: int = 1,
+                 thinking: str | None = None):
         self.model = model or DEFAULT_MODEL
+        self.thinking = thinking  # 25.3: "adaptive", "enabled:<budget>", or None (off)
         self.base_url = base_url or BASE_URL
         self.api_key = api_key or ""
         self._client = None
@@ -144,10 +183,25 @@ class AnthropicClient(ChatClient):
             self._client = anthropic.Anthropic(base_url=self.base_url, api_key=self.api_key, timeout=self.timeout, max_retries=self.max_retries)
         return self._client
 
+    def effective_max_tokens(self, max_tokens: int | None, options: dict[str, Any] | None = None) -> int:
+        """The limit sent: the caller's for the reply, plus the thinking's room on top (a budget, or a fixed headroom for
+        adaptive thinking), so thinking never eats the reply. The cost estimate reads the same number."""
+        options = dict(options or {})
+        if self.thinking and "thinking" not in options:
+            options["thinking"] = self.thinking
+        limit = max_tokens or DEFAULT_MAX_TOKENS
+        thinking = thinking_param(options.get("thinking"))
+        if thinking:
+            limit += int(thinking.get("budget_tokens") or ADAPTIVE_HEADROOM)
+        return limit
+
     def _request(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None, max_tokens: int | None, options: dict[str, Any]) -> dict[str, Any]:
         system, turns = to_messages(messages)
+        if self.thinking and "thinking" not in options:
+            options = {**options, "thinking": self.thinking}
         extra, system = _options(options, system)
-        kwargs: dict[str, Any] = {"model": self.model, "messages": turns, "max_tokens": max_tokens or DEFAULT_MAX_TOKENS, **extra}
+        limit = self.effective_max_tokens(max_tokens, options)
+        kwargs: dict[str, Any] = {"model": self.model, "messages": turns, "max_tokens": limit, **extra}
         if system:
             kwargs["system"] = system
         if tools:

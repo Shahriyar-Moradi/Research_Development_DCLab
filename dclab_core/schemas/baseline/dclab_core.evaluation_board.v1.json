@@ -1,0 +1,220 @@
+{
+  "$defs": {
+    "ClassScore": {
+      "additionalProperties": false,
+      "properties": {
+        "f1": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "label": {
+          "maxLength": 120,
+          "type": "string"
+        },
+        "precision": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "recall": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "support": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "label",
+        "support"
+      ],
+      "type": "object"
+    },
+    "Score": {
+      "additionalProperties": false,
+      "properties": {
+        "abstained": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "accuracy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "accuracy_interval": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": "array"
+        },
+        "answered": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "answerer": {
+          "maxLength": 160,
+          "type": "string"
+        },
+        "by": {
+          "default": "",
+          "maxLength": 40,
+          "type": "string"
+        },
+        "classes": {
+          "items": {
+            "$ref": "#/$defs/ClassScore"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "confusion": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        "coverage": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "f1": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "kind": {
+          "enum": [
+            "flag",
+            "choice",
+            "set",
+            "text",
+            "numeric"
+          ],
+          "type": "string"
+        },
+        "n": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "point": {
+          "maxLength": 120,
+          "type": "string"
+        },
+        "precision": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "recall": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "truth": {
+          "maxLength": 60,
+          "type": "string"
+        }
+      },
+      "required": [
+        "answerer",
+        "point",
+        "kind",
+        "truth",
+        "n",
+        "answered",
+        "abstained"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "dclab_core.evaluation_board.v1",
+      "default": "dclab_core.evaluation_board.v1",
+      "type": "string"
+    },
+    "scores": {
+      "items": {
+        "$ref": "#/$defs/Score"
+      },
+      "maxItems": 2000,
+      "type": "array"
+    },
+    "source": {
+      "maxLength": 300,
+      "type": "string"
+    },
+    "totals": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "source"
+  ],
+  "type": "object"
+}

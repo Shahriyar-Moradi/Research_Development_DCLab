@@ -120,6 +120,16 @@ from dclab_core.adapters import main_product_twin as mpt
 pair = mpt.twin_steps([row], session="wheel")[0]
 assert (pair.step, pair.system.value, pair.ai_first.value) == ("decision:column.is_identifier", {"value": True}, {"value": True}), pair
 assert twin.mode_of({"judged": 12, "system_right": 6, "ai_right": 11, "checked_right": 11})[0] == "ai"
+# 25.3: an expert's record read from an answer, its workflow checked, its decisions on the ledger's points, from the installed wheel
+from dclab_core import expert
+trace = expert.read({"problem": {"target": "churned"}, "problem_type": {"family": "classification", "task": "binary"},
+                     "solution_workflow": [{"id": "S1", "tool": "run_stage", "stage": "final"}, {"id": "S2", "tool": "run_stage", "stage": "leakage"}]})
+assert "the holdout is read before the leakage audit" in trace.problems and expert.intents(trace)["target.column"] == {"-": "churned"}
+# 25.7, 25.8: the twin's sets and every answerer's scores, from the installed wheel
+from dclab_core import datasets as wheel_sets, evaluation
+flag = evaluation.score("rules", "feature.leakage_suspect", "flag", "planted", [(True, True), (False, True), (True, False), (False, False)])
+assert (flag.accuracy, flag.precision, flag.recall) == (0.5, 0.5, 0.5), flag
+assert set(wheel_sets.twin_sets([{"step": json.loads(pair.model_dump_json()), "where": {"draft": "d1"}}])) >= {"twin.steps", "twin.teacher.technical"}
 def norm(name):
     return re.sub(r"[-_.]+", "-", name).lower()
 dists = sorted(f"{norm(d.metadata['Name'])}=={d.version}" for d in metadata.distributions())

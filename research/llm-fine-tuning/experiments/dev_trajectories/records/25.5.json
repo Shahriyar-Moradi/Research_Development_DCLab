@@ -1,0 +1,25 @@
+{
+  "package": "25.5",
+  "title": "Side by side on Home: Claude's lane, the differences with the person's pick, and the understanding panel the person can correct",
+  "date": "2026-10-16",
+  "request": "Phase 3: see both approaches at the same time, especially the differences; and a Home that understands problems better, with much more interaction.",
+  "spec": "The Home page: the understanding panel with each field's status and words and a correction in the person's words, Claude's lane with its conversation, differences and reading, the send-to choice; the routes for an edit and a pick.",
+  "plan": [
+    "Draw the plan events the page ignored, as a panel of what DCLab understood.",
+    "Let the person correct a field in their own words, recorded through the same guard as any record.",
+    "Show each step's differences and let the person say which side is right: that is the step's truth."
+  ],
+  "decisions": [
+    {"decision": "A correction is a message of the conversation and a record through the draft guard.", "why": "The guard requires a record to rest on the person's own words; the correction is those words."},
+    {"decision": "A side is offered as right only where it said something.", "why": "Choosing a side that gave no answer on the differing fields would store a truth of nothing."}
+  ],
+  "change": "dclab_rnd/agentic/web/src/views/home.html, the regenerated client and app, dclab_rnd/draft/chat.py (HomeAgent.edit), dclab_rnd/draft/api.py (the edit and pick routes), dclab_rnd/twin/home.py (pick), tests/test_twin_home.py.",
+  "findings": [
+    {"id": "S1", "source": "self", "severity": "behaviour", "defect": "A pick for a side that said nothing would fail.", "scenario": "The page offered DCLab is right on fields where DCLab gave no answer.", "cause": "Both buttons were drawn for every difference.", "fix": "A side's button shows only where it answered a differing field.", "test": "checked in the browser"}
+  ],
+  "measurements": [],
+  "outcome": "Both lanes and the panel work at 1280 and 375 pixels on a scripted session.",
+  "lessons": ["Draw what the server already sends before inventing new events."],
+  "risks": ["The browser suite waits for the owner's Chromium download."],
+  "commits": []
+}

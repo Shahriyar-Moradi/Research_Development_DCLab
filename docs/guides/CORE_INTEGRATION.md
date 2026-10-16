@@ -584,3 +584,57 @@ Where it goes there: the main product already has twin steps without the name. `
 row says which was right; `adapters.main_product_twin.twin_steps(rows, session)` reads them as `decision:<point>` steps (the rule the system arm, Jev the AI-first arm with its
 model and release as the answerer), so `effectiveness` gives the main product the same matrix per governed point. What its rows do not hold (Jev's reasons, the cost, which is in
 `llm_invocations`) is empty, never guessed (`NOT_MAPPED`). Running a second agent beside its own steps is that repository's change; the contract and the rule are the library's.
+
+## Twin runs: the current system and Claude on one problem (25.2)
+
+This package is the studio's: `dclab_rnd/twin` runs one problem in two lanes at once (the current system, and Claude as an AI-first agent with the same tools and validator),
+each a workspace folder of its own, and writes the comparison as `dclab_core.twin` steps judged against the truth a blind seed plants. Nothing new enters the library. Where it goes
+there: the main product can run the same comparison on its own projects, with its pipeline as the system lane and its agent loop as the AI-first lane, and hand each pair of answers
+to `twin.step` with the fingerprint of what each lane was given; its own rule-and-Jev pairs already become twin steps through `adapters.main_product_twin` (25.1).
+
+## The expert's record (25.3)
+
+`dclab_core.expert.ExpertTrace` is how an AI-first agent, asked to act as a machine-learning expert, writes down its reading of a problem: the problem, its type, the data, the
+exploration, the preparation, the problem's workflow, the algorithms, the evaluation and the solution's workflow, with the changes from version to version and the evidence behind
+each. `read` takes a model's parsed answer and never refuses (what is missing is in `problems`); `workflow_problems` checks the workflow on the principles of
+`solution_workflow`; `intents` puts its decisions on the ledger's points; `twin_steps` sets a version beside the system's answers. The prompt the studio uses is
+`dclab_rnd/prompts/ai_first_expert.md`.
+
+Where it goes there: the main product's agent can be asked for the same record before it acts on a project (through its own gateway, with the Advisor it implements), and keep it
+beside its `ExperimentPlan`; `intents` gives the decisions at its governed points through the ledger's names (`POINTS[...].main_product`), so each sits beside the rule's and Jev's
+on the same question. No row of the main product maps onto a trace (`CONTRACT_ADAPTERS` says so).
+
+## Claude beside the system on Home, live (25.4)
+
+The studio's: while its Home agent talks with a person, Claude, as the expert of 25.3, answers each Home step from the same conversation and data
+in a thread of its own, behind the owner's switch and caps, and each pair of answers is a `dclab_core.twin` step in the twin folder. Where it goes
+there: the main product's assistant can run the same arm beside its own wizard through its gateway, with the expert prompt and the twin step as the
+record; the steps it writes are read by `twin.effectiveness` exactly as here.
+
+## Side by side on Home, and the understanding panel (25.5)
+
+The studio's page: Claude's lane beside the conversation, the differences per step with the person's pick (a twin step's `person_pick` truth), and
+the understanding panel where the person corrects any field in their own words through the draft guard. Where it goes there: the pick is the
+library's `Truth(source="person_pick")`; the main product's own page records it on its steps the same way, so its matrix and this studio's agree.
+
+## A twin run from a project (25.6)
+
+The studio's: a project's page starts a twin run of 25.2 and 25.3 as a job, both lanes on the project's table, and shows the comparison and the
+expert's story; nothing of the project changes. Where it goes there: the main product can offer the same button on a project, with its pipeline as
+one lane and its agent as the other, and keep each pair of answers as a twin step.
+
+## The twin's training sets (25.7)
+
+`dclab_core.datasets.twin_sets` builds, from twin steps and expert records, the sets of phase 3: every step (`twin.steps`), the preference pairs a
+truth decided (`twin.preferences`), the expert's records with what became of them (`twin.expert`), and the teacher rows, one set per use
+(`twin.teacher.workflow`: routing, scoring and choosing the next move inside the product; `twin.teacher.technical`: a column's role, a leak, the
+split, the metric, the family), each with the rule's answer, the teacher's (Claude's) and the truth, and the state the rule decided on when a
+ledger record was written before the step (`TEACHER_POINTS` maps a step's field to its point). Where it goes there: its own twin steps and its
+`semantic_decision_answers` (through `adapters.main_product_twin`) feed the same builder; the teacher sets are the material for its decision
+models of either kind, and a teacher's answer is never a label there either.
+
+## Budgets: a person's month and a draft's Claude (25.10)
+
+The studio's: a person's monthly model limit (15 by default, the owner's own per person), a draft's Claude budget raised within that room, each
+change audited and in the session record. Where it goes there: the main product has its own per-person and per-workspace quotas; the rule worth
+keeping is that a raise is bounded by the person's room this month and recorded with who, before and after.

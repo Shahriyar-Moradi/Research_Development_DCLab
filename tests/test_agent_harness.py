@@ -35,6 +35,7 @@ PROBES = {
     "team": "tests/test_team.py::test_the_teams_moves_are_steps_of_its_run",
     "campaign": "tests/test_agentic.py::test_the_campaign_runs_in_the_harness_and_its_requests_are_recorded",
     "coordinator": "tests/test_coordinator.py::test_the_mornings_walk_is_a_run_of_the_coordinator",
+    "twin": "tests/test_twin_runs.py::test_the_run_is_a_session_of_the_twin_agent",
 }
 
 # The only functions that call a registered tool, each recording the call as a step (the loop, the standard plan, the
@@ -106,6 +107,8 @@ class EnumerationTest(unittest.TestCase):
 def _source_of(entry):
     module, _, path = entry.partition(":")
     file = ROOT / (module.replace(".", "/") + ".py")
+    if not file.is_file():  # a package: its __init__
+        file = ROOT / module.replace(".", "/") / "__init__.py"
     text = file.read_text(encoding="utf-8")
     scope = ast.parse(text).body
     node = None

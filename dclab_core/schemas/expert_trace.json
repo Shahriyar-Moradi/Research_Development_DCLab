@@ -1,0 +1,1216 @@
+{
+  "$defs": {
+    "Algorithm": {
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "maxLength": 120,
+          "title": "Family",
+          "type": "string"
+        },
+        "rank": {
+          "default": 0,
+          "maximum": 50,
+          "minimum": 0,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "why": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Why"
+        }
+      },
+      "required": [
+        "family"
+      ],
+      "title": "Algorithm",
+      "type": "object"
+    },
+    "Algorithms": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline"
+        },
+        "ranked": {
+          "items": {
+            "$ref": "#/$defs/Algorithm"
+          },
+          "maxItems": 12,
+          "title": "Ranked",
+          "type": "array"
+        },
+        "would_change": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What evidence would change the choice.",
+          "title": "Would Change"
+        }
+      },
+      "title": "Algorithms",
+      "type": "object"
+    },
+    "Alternative": {
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "maxLength": 120,
+          "title": "Family",
+          "type": "string"
+        },
+        "why_not": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Why Not"
+        }
+      },
+      "required": [
+        "family"
+      ],
+      "title": "Alternative",
+      "type": "object"
+    },
+    "Change": {
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "After"
+        },
+        "because": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Because"
+        },
+        "before": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Before"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The number or finding that made the change.",
+          "title": "Evidence"
+        },
+        "field": {
+          "maxLength": 120,
+          "title": "Field",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field"
+      ],
+      "title": "Change",
+      "type": "object"
+    },
+    "ColumnRead": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 120,
+          "title": "Name",
+          "type": "string"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "feature, target, identifier, time, group, leak, text, constant, \u2026",
+          "title": "Role"
+        },
+        "why": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Why"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ColumnRead",
+      "type": "object"
+    },
+    "EdaItem": {
+      "additionalProperties": false,
+      "properties": {
+        "answer": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The aggregate answer (counts, rates, ranges); never a row.",
+          "title": "Answer"
+        },
+        "conclusion": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conclusion"
+        },
+        "question": {
+          "maxLength": 400,
+          "title": "Question",
+          "type": "string"
+        },
+        "tool": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool"
+        }
+      },
+      "required": [
+        "question"
+      ],
+      "title": "EdaItem",
+      "type": "object"
+    },
+    "Evaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline"
+        },
+        "holdout": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout"
+        },
+        "metric": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metric"
+        },
+        "split": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Split"
+        },
+        "split_column": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Split Column"
+        },
+        "split_why": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Split Why"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Threshold"
+        }
+      },
+      "title": "Evaluation",
+      "type": "object"
+    },
+    "LeakSuspect": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "exclude, review or keep",
+          "title": "Action"
+        },
+        "column": {
+          "maxLength": 120,
+          "title": "Column",
+          "type": "string"
+        },
+        "test": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Test"
+        },
+        "why": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Why"
+        }
+      },
+      "required": [
+        "column"
+      ],
+      "title": "LeakSuspect",
+      "type": "object"
+    },
+    "Part": {
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Family"
+        },
+        "moment": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Moment"
+        },
+        "reads": {
+          "description": "The parts whose outputs it reads.",
+          "items": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Reads",
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 120,
+          "title": "Title",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "title": "Part",
+      "type": "object"
+    },
+    "PrepStep": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "items": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "maxItems": 40,
+          "title": "Columns",
+          "type": "array"
+        },
+        "inside_folds": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Fitted inside the training folds (it learns from data) or not.",
+          "title": "Inside Folds"
+        },
+        "step": {
+          "maxLength": 400,
+          "title": "Step",
+          "type": "string"
+        },
+        "why": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Why"
+        }
+      },
+      "required": [
+        "step"
+      ],
+      "title": "PrepStep",
+      "type": "object"
+    },
+    "Problem": {
+      "additionalProperties": false,
+      "properties": {
+        "constraints": {
+          "items": {
+            "maxLength": 400,
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Constraints",
+          "type": "array"
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The decision the prediction serves.",
+          "title": "Decision"
+        },
+        "moment": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When the prediction is made and what is known then.",
+          "title": "Moment"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outcome"
+        },
+        "outcome_known": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How and when the outcome becomes known.",
+          "title": "Outcome Known"
+        },
+        "restatement": {
+          "anyOf": [
+            {
+              "maxLength": 1200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Restatement"
+        },
+        "success": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Success"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The column holding the outcome, if one does.",
+          "title": "Target"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        }
+      },
+      "title": "Problem",
+      "type": "object"
+    },
+    "ProblemType": {
+      "additionalProperties": false,
+      "properties": {
+        "alternatives": {
+          "items": {
+            "$ref": "#/$defs/Alternative"
+          },
+          "maxItems": 8,
+          "title": "Alternatives",
+          "type": "array"
+        },
+        "family": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "One of classification, regression, rare_event, anomaly, forecasting, time_to_event, ranking, segmentation, uplift, entity_tables, streams, text_or_images where it fits.",
+          "title": "Family"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The kind within the family (binary, multiclass, a horizon, \u2026).",
+          "title": "Kind"
+        },
+        "labels": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "One of column, file, none, unknown.",
+          "title": "Labels"
+        },
+        "task": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Task"
+        },
+        "why": {
+          "anyOf": [
+            {
+              "maxLength": 1200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Why"
+        }
+      },
+      "title": "ProblemType",
+      "type": "object"
+    },
+    "ProblemWorkflow": {
+      "additionalProperties": false,
+      "properties": {
+        "composition": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Composition"
+        },
+        "parts": {
+          "items": {
+            "$ref": "#/$defs/Part"
+          },
+          "maxItems": 12,
+          "title": "Parts",
+          "type": "array"
+        },
+        "size": {
+          "anyOf": [
+            {
+              "enum": [
+                "single",
+                "complex"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size"
+        }
+      },
+      "title": "ProblemWorkflow",
+      "type": "object"
+    },
+    "Retrospective": {
+      "additionalProperties": false,
+      "properties": {
+        "what_changed": {
+          "items": {
+            "maxLength": 400,
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "What Changed",
+          "type": "array"
+        },
+        "what_worked": {
+          "items": {
+            "maxLength": 400,
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "What Worked",
+          "type": "array"
+        },
+        "would_do_differently": {
+          "items": {
+            "maxLength": 400,
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Would Do Differently",
+          "type": "array"
+        }
+      },
+      "title": "Retrospective",
+      "type": "object"
+    },
+    "Route": {
+      "additionalProperties": false,
+      "properties": {
+        "from_step": {
+          "maxLength": 12,
+          "title": "From Step",
+          "type": "string"
+        },
+        "to_step": {
+          "maxLength": 12,
+          "title": "To Step",
+          "type": "string"
+        },
+        "when": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "When"
+        }
+      },
+      "required": [
+        "from_step",
+        "to_step"
+      ],
+      "title": "Route",
+      "type": "object"
+    },
+    "TableRead": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "items": {
+            "$ref": "#/$defs/ColumnRead"
+          },
+          "maxItems": 120,
+          "title": "Columns",
+          "type": "array"
+        },
+        "grain": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What one row is.",
+          "title": "Grain"
+        },
+        "groups": {
+          "items": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "maxItems": 40,
+          "title": "Groups",
+          "type": "array"
+        },
+        "identifiers": {
+          "items": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "maxItems": 40,
+          "title": "Identifiers",
+          "type": "array"
+        },
+        "leak_suspects": {
+          "items": {
+            "$ref": "#/$defs/LeakSuspect"
+          },
+          "maxItems": 40,
+          "title": "Leak Suspects",
+          "type": "array"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "quality": {
+          "items": {
+            "maxLength": 400,
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Quality",
+          "type": "array"
+        },
+        "times": {
+          "items": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "maxItems": 40,
+          "title": "Times",
+          "type": "array"
+        }
+      },
+      "title": "TableRead",
+      "type": "object"
+    },
+    "WorkflowStep": {
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "items": {
+            "maxLength": 12,
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "After",
+          "type": "array"
+        },
+        "decision_rule": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decision Rule"
+        },
+        "does": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Does"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence"
+        },
+        "id": {
+          "maxLength": 12,
+          "title": "Id",
+          "type": "string"
+        },
+        "stage": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stage"
+        },
+        "tool": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool"
+        },
+        "wf": {
+          "anyOf": [
+            {
+              "maxLength": 8,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Wf"
+        },
+        "why": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Why"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "WorkflowStep",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.expert_trace.v1.json",
+  "additionalProperties": false,
+  "description": "One version of the expert's record: the first one before anything runs, then one per checkpoint.",
+  "properties": {
+    "algorithms": {
+      "$ref": "#/$defs/Algorithms"
+    },
+    "changes": {
+      "items": {
+        "$ref": "#/$defs/Change"
+      },
+      "maxItems": 40,
+      "title": "Changes",
+      "type": "array"
+    },
+    "checkpoint": {
+      "default": "initial",
+      "maxLength": 40,
+      "title": "Checkpoint",
+      "type": "string"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confidence"
+    },
+    "data": {
+      "items": {
+        "$ref": "#/$defs/TableRead"
+      },
+      "maxItems": 12,
+      "title": "Data",
+      "type": "array"
+    },
+    "eda": {
+      "items": {
+        "$ref": "#/$defs/EdaItem"
+      },
+      "maxItems": 40,
+      "title": "Eda",
+      "type": "array"
+    },
+    "evaluation": {
+      "$ref": "#/$defs/Evaluation"
+    },
+    "model": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model"
+    },
+    "preprocessing": {
+      "items": {
+        "$ref": "#/$defs/PrepStep"
+      },
+      "maxItems": 40,
+      "title": "Preprocessing",
+      "type": "array"
+    },
+    "problem": {
+      "$ref": "#/$defs/Problem"
+    },
+    "problem_type": {
+      "$ref": "#/$defs/ProblemType"
+    },
+    "problem_workflow": {
+      "$ref": "#/$defs/ProblemWorkflow"
+    },
+    "problems": {
+      "description": "What was missing or misshapen in the answer it was read from.",
+      "items": {
+        "maxLength": 400,
+        "type": "string"
+      },
+      "maxItems": 60,
+      "title": "Problems",
+      "type": "array"
+    },
+    "questions": {
+      "description": "What the expert would ask the person.",
+      "items": {
+        "maxLength": 400,
+        "type": "string"
+      },
+      "maxItems": 12,
+      "title": "Questions",
+      "type": "array"
+    },
+    "retrospective": {
+      "$ref": "#/$defs/Retrospective",
+      "description": "Only at the end of a run."
+    },
+    "risks": {
+      "items": {
+        "maxLength": 400,
+        "type": "string"
+      },
+      "maxItems": 12,
+      "title": "Risks",
+      "type": "array"
+    },
+    "routes": {
+      "items": {
+        "$ref": "#/$defs/Route"
+      },
+      "maxItems": 20,
+      "title": "Routes",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.expert_trace.v1",
+      "default": "dclab_core.expert_trace.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "solution_workflow": {
+      "items": {
+        "$ref": "#/$defs/WorkflowStep"
+      },
+      "maxItems": 40,
+      "title": "Solution Workflow",
+      "type": "array"
+    },
+    "version": {
+      "default": 1,
+      "maximum": 99,
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "title": "ExpertTrace",
+  "type": "object"
+}

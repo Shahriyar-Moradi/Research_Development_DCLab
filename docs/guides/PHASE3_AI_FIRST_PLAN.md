@@ -109,6 +109,15 @@ Messages transport (which returns Claude's thinking, which the OpenAI-compatible
   tool calls and minutes; nothing sent without `--yes`, refused under `DCLAB_NO_LIVE_MODELS`.
 - **Done when:** a run on a scripted transport writes both lanes, the comparison and the steps; the workflow lane's
   stage records equal a plain run's; the main workspace is never written; a run over its cap stops with the reason.
+- **Status: done (2026-10-16).** `dclab_rnd/twin/` (lanes, the Claude client on the native transport, the comparison, `steps.jsonl` judged against
+  a sample's planted truth, the CLI), each lane's own ledger, session record and audit through its services, the agent `twin` in the harness,
+  `docs/guides/TWIN_RUNS.md`. Differences from the plan, said: no new purpose (Claude serves every existing purpose of its lane through the lane's
+  client); the design monitor of A6.7 is 25.3. The review (8 findings) put the seeds inside the lanes' services (the main workspace held their events),
+  ran the run as a session of the harness, judged only blind runs against the sample (a given solution made the system right by construction) and left a
+  time or group column out of the leak truth, reported a capped lane as stopped with its reason, made the euro cap 1.5 by default and reserved before each
+  request (and the workspace's monthly cap), fingerprinted each lane's own input (its table's SHA-256, whether it was given the solution), gave each
+  lane its own routing and lessons, and gave the lane client the gateway's `purpose`, its private scope and its model-request events. Left open: a
+  live run (≤ 0.5).
 
 ### 25.3 Claude the expert: how it understands, analyses and designs, monitored and kept
 - **Why:** the owner (2026-10-16): store how Claude understands the problem and the data, how it analyses and explores
@@ -138,6 +147,16 @@ Messages transport (which returns Claude's thinking, which the OpenAI-compatible
 - **Done when:** a scripted run writes the trace, the design files and the thinking; each section compares with the
   system's record as twin steps; a trace whose solution workflow fails `solution_workflow.validate` is kept with the
   reasons and never used.
+- **Status: done (2026-10-16).** dclab-core 0.57.0 (`expert`: `ExpertTrace` v1, `read`, `workflow_problems`, `intents`, `step_values`,
+  `twin_steps`); `dclab_rnd/twin/design.py` (A6.7 on main: the record before acting, the monitor's timeline, the revisions after the checkpoint
+  stages, the retrospective, the adherence, `DESIGN.md`, `expert.jsonl`, `intents.jsonl` on the ledger's points, `sft_candidates.jsonl`) and
+  `expert_steps.jsonl` (each version against the current system, judged on a blind seed); `prompts/ai_first_expert.md` (the expert of twenty years)
+  and `prompts/ai_first_follow.md`; the purpose `ai_first`; Claude's thinking through the native transport (`DCLAB_TWIN_THINKING`, adaptive by
+  default; kept in `transcripts/thinking.jsonl` and in `designs.jsonl`, sent back first in its tool turn; asked once more without it when the API
+  refuses it). Differences from the plan, said: the workflow is checked by `expert.workflow_problems` on the principles of `solution_workflow`
+  (that module's `validate` takes the two cards' workflow, not an agent's tool steps); the record's decisions are keyed on the ledger's points in
+  `intents.jsonl` and joined to the lanes' ledger records by 25.7, not written as shadow answers (the ledger is written where a decision is made).
+  Left open: a live run (≤ 0.5); the expert on Home (25.4).
 
 ### 25.4 The twin on Home, live
 - **Delivers:** the workspace switch `twin.json` (on, sample, session cap 1.5, monthly cap 30), owner only and audited
@@ -152,6 +171,13 @@ Messages transport (which returns Claude's thinking, which the OpenAI-compatible
 - **Done when:** with the switch off nothing is written and no model asked; with it on a scripted conversation leaves
   the same system state as with it off and a session folder whose steps cover each Home step reached; a failing Claude
   never fails the system's turn; a member who is not the owner cannot change the switch.
+- **Status: done (2026-10-16).** `dclab_rnd/twin/home.py` (the switch, the session folder with its index and README, the system's view of
+  each Home step, the redacted sample, `HomeTwin.turn` in a thread of its own after each Home turn, `after_turn`), `prompts/ai_first_home.md`,
+  the routes `POST /api/drafts/{id}/twin/messages`, `GET /api/drafts/{id}/twin`, the page `pages/twin.py` (`/api/twin/settings`, the
+  owner's and audited; `/api/twin/sessions`), a deleted draft's session removed with it. Differences from the plan, said: the folder is
+  files in both storage modes (the owner asked for a separate folder); the experience kinds `twin.session` and `twin.step` are 25.7's (the
+  record of a Home turn is its draft's events and the folder); the readiness to build and the routes are compared through `home.ready` and
+  `home.map`, not one step per route.
 
 ### 25.5 Side by side on Home, and the understanding panel
 - **Delivers:** Home with two lanes when the switch is on (the system, Claude), a differences strip under each step,
@@ -161,6 +187,12 @@ Messages transport (which returns Claude's thinking, which the OpenAI-compatible
   words, through the guard); the `plan` events drawn; the reason of each question shown.
 - **Done when:** the browser test drives a conversation with both lanes at 1280 and 375 px; a pick is stored as the
   step's truth; an edit in the panel changes the card through the guard.
+- **Status: done (2026-10-16).** Home: the understanding panel ("What DCLab understood": each field with its status and the person's words, a
+  "Correct" that records the person's own words through the draft guard, `POST /api/drafts/{id}/understanding`, `HomeAgent.edit`; the `plan`
+  events drawn), Claude's lane beside the conversation (its conversation, the differences per step with a pick, its reading), the "send to"
+  choice (both, DCLab only, Claude only); `POST /api/drafts/{id}/twin/pick` stores the pick as the step's truth. Checked in the browser at
+  1280 and 375 px on a scripted session (a pick shown as chosen; no horizontal scroll; no console error). Left open: `make browser-test`
+  waits for the owner's Chromium download; Claude's design and thinking are read in the folder, not yet on the page.
 
 ### 25.6 The twin on a project: start a twin run from the page
 - **Delivers:** "Run with Claude beside" on a project (owner switch on): a twin run of 25.2 and 25.3 seeded from the
@@ -168,6 +200,11 @@ Messages transport (which returns Claude's thinking, which the OpenAI-compatible
   run's stage choices written to the project's ledger as shadow answers (`ai_first@v1`), never as the project's own.
 - **Done when:** a job run on a scripted transport leaves the project's records unchanged and its decisions with an
   `ai_first` shadow answer; the page shows both.
+- **Status: done (2026-10-16).** The job kind `twin` (`jobs/handlers.py`), `POST /api/projects/{id}/twin` (blind by default, the owner's switch,
+  the workspace's session budget) and `GET /api/projects/{id}/twin` (each run's lanes, differences, judged steps, `COMPARE.md` and `DESIGN.md`), the
+  project page's "Claude beside" pane; a lane is a folder of files also when the workspace is on PostgreSQL (its audit a file of its own), so the
+  refusal to run under PostgreSQL went. Difference from the plan, said: Claude's stage choices are not written into the project's ledger as shadow
+  answers (the ledger is written where a decision is made, and the project made none); they become teacher rows beside the rule's in 25.7.
 
 ### 25.7 Capture into training data: every decision Claude makes, for the decision models
 - **Why:** the owner (2026-10-16): capture and store every decision and every step Claude makes, as data for the
@@ -190,13 +227,39 @@ Messages transport (which returns Claude's thinking, which the OpenAI-compatible
 - **Done when:** a twin run on a scripted transport leaves Claude's answers on the lane's ledger records beside the
   rule's; a workspace without train consent builds nothing; with it, the sets are written per use without a row of the
   sample, and a teacher label never replaces a planted one.
+- **Status: done (2026-10-16).** dclab-core 0.58.0 (`datasets.twin_sets`, `DatasetManifest` v6 with the builder `twin` and the source kind
+  `step`): `twin.steps`, `twin.preferences` (a pair only where a truth chose one side), `twin.expert` (each version with what became of it,
+  `verified` on a blind run whose first version was right), `twin.teacher.workflow` and `twin.teacher.technical` (Claude's answer at a ledger
+  point beside the rule's, with the state of the latest ledger record before the step and the truth when there is one; `TEACHER_POINTS`);
+  Claude's words redacted; built by `make datasets` under the workspace's train consent, a Home session only when its draft (or the project it
+  became) allows it, a twin run only for a studied sample or an allowed project or draft. Differences from the plan, said: Claude's answers are
+  joined to the ledger's records in the sets, not written into the ledger (no new kind of label: a teacher's answer is never a label); the
+  experience kinds `twin.session` and `twin.step` were not added (the twin folder is the record, findable through its index).
 
-### 25.8 Where Claude, software, or both: the measurement
+### 25.8 Where Claude, software, or both: the measurement and the evaluation dashboard
+- **Why:** the owner (2026-10-16): an evaluation part to see how Claude and the entire system perform, and a dashboard
+  with every model's evaluation metrics: precision, recall, F1 and accuracy.
 - **Delivers:** `make twin-eval`: both lanes on the replicas and the dev journeys, where the truth is planted, step by
   step, capped (≤ 0.5 a run); the matrix of 25.1 in `evidence/campaigns/twin_v1/`; the same matrix from the live
-  sessions (person picks, measured outcomes); the Admin page "Claude and the system" (per step: each arm's accuracy,
-  agreement, cost, time, the mode); a written analysis.
-- **Done when:** the dev run is stored with its matrix and every step has a mode or "undecided" with its count.
+  sessions (person picks, measured outcomes). `dclab_core.evaluation` (new): per answerer (the rules, Claude, each role,
+  each fitted decision classifier, Jev through its adapter) and per decision point or twin step, against the truth
+  (planted, measured, labelled, a person's pick): the confusion counts, accuracy, precision, recall and F1 (per class
+  and macro for a choice, per item for a set such as the leak columns), each with its count and an interval, never a
+  number without the cases behind it; read from the twin steps and the ledger's labelled records. The dashboard: an
+  **Evaluation** page (Admin, the owner's) with Claude against the system per step (each arm's accuracy, agreement,
+  cost, time, the mode of `twin_rule_v1`) and a table of every model by decision point (precision, recall, F1,
+  accuracy, n), filterable by source of truth; `/api/evaluation`.
+- **Done when:** the dev run is stored with its matrix; every step has a mode or "undecided" with its count; the
+  dashboard shows each answerer's precision, recall, F1 and accuracy with n, computed by the library and checked
+  against hand-counted cases in a test.
+- **Status: the dashboard done (2026-10-16); the measurement open.** dclab-core 0.58.0 (`evaluation`: `EvaluationBoard` v1, `score` for a flag,
+  a choice, a set, text and numbers with one rule for undefined ratios (scikit-learn's `zero_division=0` where the truth has positives; the macro
+  over every class answered or true), blind labels weighed as drawn (the interval on the effective n), `from_twin_steps` (each system answer to
+  one question once; a person's pick left to the twin matrix, never scored as accuracy), `from_ledger` (a correction of what a person was shown
+  left out: it exists only where the shown answer was wrong; a level or a threshold compared as a number)); `dclab_rnd/evaluation.py`,
+  `GET /api/evaluation` (reviewers and the owner), Admin → **Evaluation** (Claude and DCLab step by step with the mode, cost and time; every
+  model by point with precision, recall, F1, accuracy, its interval and n, filtered by model, point or truth). The review (18 findings, with
+  25.10's) is fixed and tested. Left open: `make twin-eval` and its stored matrix (a live run, ≤ 0.5).
 
 ### 25.9 DCLab learns from the expert: adopt what won
 - **Delivers:** from 25.8's matrix, per section of the expert trace and per Home step: where the mode is `ai_checked`,
@@ -208,6 +271,26 @@ Messages transport (which returns Claude's thinking, which the OpenAI-compatible
   that the truth vindicated become the SFT set for the owner's own model (25.7).
 - **Done when:** a step switched on is measured not worse on the journeys (`make journeys`, `make harness-eval`
   17/17), and a refused answer falls back to the rules.
+
+### 25.10 Budgets: 15 a person, a draft's Claude budget raised, every change kept
+- **Why:** the owner (2026-10-16): a budget button to add to a session's budget; every signed-in person has a limit of
+  $15 (prices here are entered in dollars as euros); save it and keep the person's action; and the Home "Needs you"
+  list as a dropdown.
+- **Delivers:** the person's monthly model limit 15 by default (`DCLAB_LIMIT_USER_MONTHLY_EUR`), the owner's own limit
+  for one person in the workspace's `budgets.json` (`PUT /api/workspace/budgets/{user_id}`, audited), read by the
+  gateway's per-person cap and the Admin budgets; `GET /api/budget` (the person's month: limit, spent, left); "Add
+  €1.50" on Claude's lane (`POST /api/drafts/{id}/twin/budget`): a draft's Claude cap raised within the person's room
+  this month and at most 15 a draft, kept in the session's `budget.jsonl` (who, before, after), the audit
+  (`raise_twin_budget`) and the session record (a settings decision); "Needs you" a dropdown with its count.
+- **Done when:** the default is 15 and a person's own replaces it; a raise past the person's room or the bound is
+  refused; every raise is in the three records; a member who is not the owner cannot set a person's limit.
+- **Status: done (2026-10-16).** `limits.user_monthly` and `budgets.json` (read by the gateway through its workspace's folder, also inside a twin
+  run's lanes), `GET /api/budget`, `GET`/`PUT /api/workspace/budgets[/{user_id}]` (the owner's; a request without `monthly_eur` changes nothing),
+  Admin → Members → *Model budget a month*, Admin → Budgets & data → *Claude beside DCLab* (the switch, the sample, the caps), "Add €1.50" on
+  Home, a project's twin run capped by what is left of the person's month; every change in the audit and the session record, a draft's raises
+  in its `budget.jsonl`; `session.json` written whole under one lock per folder (two raises at once are two). A raised draft still follows a
+  higher workspace default. Every twin row names the person it was for; `docs/guides/TESTERS.md` says how trusted testers sign in and where
+  everything they do is kept.
 
 ## The next phase: fine-tuning the decision models
 
@@ -230,5 +313,5 @@ is the starting point; the run is the owner's.
 
 ## Part E. Order, effort, spend
 
-Order: 25.1 → 25.2 → 25.3 → 25.4 → 25.5 → 25.6 → 25.7 → 25.8 → 25.9 (milestone L, its `check-all`). Live use while
+Order: 25.1 → 25.2 → 25.3 → 25.4 → 25.5 → 25.8 (the dashboard first, as the owner asked) → 25.10 → 25.6 → 25.7 → 25.8 (the measurement) → 25.9 (milestone L, its `check-all`). Live use while
 building: the dev measurement of 25.8, each run capped at 0.5; the product's arm is the owner's switch with its 1.5 cap.

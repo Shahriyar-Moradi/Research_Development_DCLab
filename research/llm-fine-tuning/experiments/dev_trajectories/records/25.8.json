@@ -1,0 +1,169 @@
+{
+  "package": "25.8",
+  "title": "The evaluation dashboard: how Claude and the whole system perform, and every model's precision, recall, F1 and accuracy",
+  "date": "2026-10-16",
+  "request": "The owner asked for an evaluation part to see the performance of Claude and of the entire system, and a dashboard with every model's evaluation metrics: precision, recall, F1 and accuracy.",
+  "spec": "dclab_core evaluation (EvaluationBoard v1, score, from_twin_steps, from_ledger), dclab_rnd evaluation (the board from the twin folder and the ledger), GET /api/evaluation, the Admin Evaluation tab.",
+  "plan": [
+    "Score every answerer the same way at every point against its truth, with the cases behind each number.",
+    "Set Claude beside the system step by step with the mode the fixed rule recommends.",
+    "Check every metric against cases counted by hand."
+  ],
+  "decisions": [
+    {
+      "decision": "One rule for undefined ratios for every kind of answer, as scikit-learn's zero_division=0 where the truth has positives.",
+      "why": "Three kinds of answer with three conventions made the same miss read as a dash in one table and a zero in another."
+    },
+    {
+      "decision": "A person's pick is not scored as accuracy; it stays in the twin matrix as a preference.",
+      "why": "The pick makes the chosen side right by construction."
+    },
+    {
+      "decision": "A person's correction of an answer they were shown is left out of the scores.",
+      "why": "It is accepted only where the shown answer was wrong, so it would score that answer wrong every time."
+    }
+  ],
+  "change": "dclab_core/evaluation.py (new), contracts, conformance, schemas; dclab_rnd/evaluation.py (new), agentic/pages/evaluation.py (new), pages/__init__.py, accounts/guard.py, web/src/views/admin.html; tests/test_evaluation.py (new).",
+  "findings": [
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The gate failed on the new contract.",
+      "scenario": "The schema baseline and the conformance entry of the board were missing.",
+      "cause": "The contract was registered without its baseline or its adapter line.",
+      "fix": "The baseline is written and the board is library output in the conformance tables.",
+      "test": "tests.test_conformance, tests.test_core_contracts"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The system arm was counted twice in every twin run.",
+      "scenario": "A run's steps and its expert record's steps carried the same system answer and truth, so the system had two cases where there was one.",
+      "cause": "Both files were read and the system was keyed only by its name.",
+      "fix": "The same system answer to the same question in one session counts once, and the twin matrix reads the run's own steps only.",
+      "test": "test_both_arms_of_twin_steps_are_scored_on_the_same_cases"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A person's correction of what they were shown scored the shown answer wrong by construction.",
+      "scenario": "With every label a correction, the rule showed an accuracy of zero.",
+      "cause": "Such a label is accepted only when it contradicts the shown answer.",
+      "fix": "Corrections are left out of the scores and the page says which truths it reads.",
+      "test": "test_blind_labels_weigh_and_a_correction_of_what_was_shown_is_left_out"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Blind labels were scored without their weights.",
+      "scenario": "The blind draw over-samples disagreements, so every shown answerer looked worse than it is.",
+      "cause": "The weight of each blind label was ignored.",
+      "fix": "Counts are weighed by the label's weight and the interval reads the effective number of cases.",
+      "test": "test_blind_labels_weigh_and_a_correction_of_what_was_shown_is_left_out"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A person's pick was scored as accuracy.",
+      "scenario": "One pick gave the chosen side a perfect score and the other none.",
+      "cause": "The pick's truth is the chosen answer.",
+      "fix": "Picks stay in the twin matrix as a preference and are not in the model table.",
+      "test": "test_the_board_reads_the_twin_folder_and_the_route_is_the_reviewers"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A set answerer that never answered showed perfect scores.",
+      "scenario": "Two empty truths and no answers gave a precision and a recall of one.",
+      "cause": "Nothing to find and nothing claimed was read as perfect even with no answer.",
+      "fix": "Without an answer the numbers are undefined.",
+      "test": "test_one_rule_for_undefined_ratios_and_the_macro_over_every_class"
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Undefined precision was handled three different ways and the macro left out classes only answered.",
+      "scenario": "All positives missed showed a dash; a class only predicted did not count in the macro.",
+      "cause": "Each kind had its own convention.",
+      "fix": "One convention for all kinds and the macro over every class answered or true.",
+      "test": "test_one_rule_for_undefined_ratios_and_the_macro_over_every_class"
+    },
+    {
+      "id": "R8",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The macro was computed after the classes were cut to fifty.",
+      "scenario": "Sixty-one classes gave a macro over the first fifty in alphabetical order.",
+      "cause": "The stored list's bound was applied before the mean.",
+      "fix": "The macro is over every class; only the stored list is cut.",
+      "test": "test_one_rule_for_undefined_ratios_and_the_macro_over_every_class"
+    },
+    {
+      "id": "R9",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A level or a threshold was compared as a string.",
+      "scenario": "A rule's one against a label's one point zero was scored wrong.",
+      "cause": "Every non-flag point was a choice.",
+      "fix": "A level and the numeric points are compared as numbers.",
+      "test": "test_blind_labels_weigh_and_a_correction_of_what_was_shown_is_left_out"
+    },
+    {
+      "id": "R10",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The page counted each scored answer as a case.",
+      "scenario": "One pick showed two cases with a truth.",
+      "cause": "The total summed every answerer's count.",
+      "fix": "The total counts distinct cases.",
+      "test": "test_the_board_reads_the_twin_folder_and_the_route_is_the_reviewers"
+    },
+    {
+      "id": "R11",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Rows could not be filtered by their truth and the twin table had no time.",
+      "scenario": "Typing planted found nothing; the plan asked for time beside cost.",
+      "cause": "The filter read only the answerer and the point.",
+      "fix": "The filter reads the truth too and the table shows each side's time.",
+      "test": "checked in the browser"
+    },
+    {
+      "id": "R18",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "A flag answer that was not a flag was read by its truthiness.",
+      "scenario": "The word no against a true truth counted as a hit.",
+      "cause": "Any value was cast to a flag.",
+      "fix": "A value that is not a flag is no answer.",
+      "test": "test_one_rule_for_undefined_ratios_and_the_macro_over_every_class"
+    },
+    {
+      "id": "S1",
+      "source": "test",
+      "severity": "gap",
+      "defect": "A test expected an undefined F1 where precision and recall were both zero.",
+      "scenario": "All five positives missed.",
+      "cause": "The expectation was wrong: F1 is zero then.",
+      "fix": "The test expects zero.",
+      "test": "test_one_rule_for_undefined_ratios_and_the_macro_over_every_class"
+    }
+  ],
+  "measurements": [],
+  "outcome": "The dashboard shows each model's scores with the cases behind them; the live measurement is open.",
+  "lessons": [
+    "A truth chosen by a person between two answers is a preference, not a score.",
+    "Write the convention for undefined ratios once and apply it to every kind."
+  ],
+  "risks": [
+    "Few labelled cases yet: most rows will read undecided or carry wide intervals."
+  ],
+  "commits": []
+}

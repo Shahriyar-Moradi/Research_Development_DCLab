@@ -4,6 +4,33 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.58.0 (2026-10-16)
+
+Package 25.7: the twin's training sets; package 25.8 (its dashboard): every answerer's evaluation.
+
+- `evaluation` (new): `EvaluationBoard` v1 (`dclab_core.evaluation_board.v1`): each answerer (the rules, the roles, the classifiers, the AI-first agent)
+  at each decision point or twin step's field, against its truth, with `n`, the answered share, accuracy with a Wilson interval, precision, recall
+  and F1: the positive class for a flag (a missed or unanswered positive is a false negative), the macro mean over the truth's classes for a choice
+  (a class never named has precision 0, as scikit-learn's `zero_division=0`), items summed over the cases for a set; text and numbers by accuracy.
+  `from_twin_steps` scores both arms on the same judged cases; `from_ledger` every answer on a labelled decision against its effective label.
+- `datasets`: `twin_sets` (the builder `twin`: `twin.steps`, `twin.preferences`, `twin.expert`, `twin.teacher.workflow`, `twin.teacher.technical`,
+  with `TEACHER_POINTS`); `DatasetManifest` v6 (`dclab_core.dataset_manifest.v6`; v1 to v5 read as v6): the builder `twin` and the source kind `step`.
+
+## 0.57.0 (2026-10-16)
+
+Package 25.3: the expert's record, how an AI-first agent asked to act as a machine-learning expert of twenty years understands, explores and designs.
+
+- `expert` (new): `ExpertTrace` v1 (`dclab_core.expert_trace.v1`): one version of the record in typed sections, each beside the system's own record of the same thing: the
+  problem (restatement, the decision it serves, the unit, the moment, the outcome and how it is known), the problem's type (family, kind, task, labels, why, the alternatives
+  set aside), the data (each table's grain, the columns' roles, identifiers, times, groups, leak suspects with the test that settles them), the exploration (each question,
+  the tool, the aggregate answer, the conclusion), the preparation (each step, whether it is fitted inside the folds), the problem's workflow (its parts and how they
+  compose), the algorithms (ranked with why, the baseline, what would change the choice), the evaluation, the solution's workflow (steps on WF-01 to WF-10 with the tool, the
+  why, the evidence, the rule, the dependencies) and its routes back, the risks, the questions for the person, the changes from the last version with the evidence, the
+  retrospective. `read` builds one leniently from a model's answer (what is missing is kept in `problems`, never refused); `workflow_problems` checks the workflow on its
+  content (the holdout read once, after the leakage audit, no model chosen before it, ids, dependencies, routes, tools); `intents` keys its decisions by the ledger's points;
+  `twin_steps` compares a version with the system's answers as twin steps (25.1); a step the system never makes there is a skipped arm.
+- `twin`: a step whose system arm was skipped (the system makes no such step there) is not judged: an answer nobody contested is no win.
+
 ## 0.56.0 (2026-10-16)
 
 Package 25.1: the twin, the system's answer and an AI-first agent's answer to the same step.

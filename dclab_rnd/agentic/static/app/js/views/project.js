@@ -283,6 +283,35 @@ DC.view('project', {
         DC.hydrate($('#validator-out', el));
       } catch (e) { $('#validator-out', el).innerHTML = `<div class="callout bad"><span class="ic">${icon('alert')}</span><span>${esc(e.message)}</span></div>`; }
     }
+    /* ---------- 25.6: Claude beside DCLab on this project ---------- */
+    async function loadTwin() {
+      const body = $('#proj-twin-runs', el);
+      if (!isReal(proj)) { DC.states.empty(body, 'Open a project of yours: a twin run needs its table.', { cols: 6 }); return; }
+      let r;
+      try { r = await DC.client.projectTwinRuns(REAL[proj].id, { quiet: true }); } catch (e) { DC.states.failed(body, e, { retry: loadTwin, cols: 6 }); return; }
+      S_TWIN = r.runs || [];
+      if (!S_TWIN.length) { DC.states.empty(body, 'No twin run yet. One run asks Claude within the workspace\'s session budget.', { cols: 6 }); return; }
+      const h = x => (x == null ? '—' : Number(x).toFixed(4));
+      body.innerHTML = S_TWIN.map((t, i) => `<tr data-twin-row="${i}" class="clickable"><td class="mono small">${esc(t.run_id)}</td><td>${esc((t.status || {}).workflow || '—')}</td><td>${esc((t.status || {}).ai_first || '—')}</td>`
+        + `<td class="mono small">${t.holdout ? `${h(t.holdout.workflow)} · ${h(t.holdout.ai_first)}` : '—'}</td>`
+        + `<td class="small">${esc([...((t.differences || {}).solution || []), ...((t.differences || {}).stages || [])].join(', ') || 'none')}</td>`
+        + `<td class="small">${esc((t.judged || []).map(j => `${j.step}: ${j.winner}`).join(' · ') || 'not judged (not blind, or a project seed)')}</td></tr>`).join('');
+    }
+    let S_TWIN = [];
+    $('#proj-twin-runs', el).addEventListener('click', e => {
+      const row = e.target.closest('[data-twin-row]'); if (!row) return;
+      const t = S_TWIN[Number(row.dataset.twinRow)], box = $('#proj-twin-detail', el);
+      box.hidden = false;
+      box.innerHTML = `<h3>The comparison</h3><pre class="mono xs" data-style="white-space:pre-wrap">${esc(t.compare_md || 'Not written yet.')}</pre>`
+        + (t.design_md ? `<h3>How Claude, as the expert, designed it</h3><pre class="mono xs" data-style="white-space:pre-wrap">${esc(t.design_md)}</pre>` : '');
+    });
+    $('#proj-twin-run', el).addEventListener('click', async e => {
+      if (!isReal(proj)) { toast('Open a project of yours first.', { ok: false }); return; }
+      e.target.disabled = true;
+      try { const r = await DC.client.runTwin(REAL[proj].id, { body: { blind: true } }); toast(`Twin run ${r.run_id} started as a job: it shows here when it ends.`); }
+      catch (err) { toast(err.message, { ok: false }); }
+      finally { e.target.disabled = false; loadTwin(); }
+    });
     async function openReal(key, keepStep) {
       const p = await DC.client.getProject(key.slice(2));
       REAL[key] = p; P[key] = fromApi(p);
@@ -334,6 +363,7 @@ DC.view('project', {
       if (isReal(p)) { realValidator(); drawRealVerdict(); DC.setProjectLabel && DC.setProjectLabel(P[p].title); }
       else { $('#move-select', el).innerHTML = SAMPLE_MOVES; delete $('#move-select', el).dataset.real; drawValidator(); DC.setProjectLabel && DC.setProjectLabel(P[p].title + ' · sample'); }
       drawStats(); drawGraph(); drawLog(); drawNode(keepStep && selected ? selected : P[p].current); drawTeam(); DC.hydrate(el);
+      loadTwin();
     }
     this.setProject = setProject; this.openReal = openReal; this.switcher = switcher;
     const SAMPLE_MOVES = $('#move-select', el).innerHTML;

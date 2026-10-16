@@ -395,6 +395,29 @@ class HomeAgent:
                     self.store.emit(draft_id, "status", {"note": f"The model was unavailable ({reason}); DCLab continues with its standard questions."})
         self.script_turn(draft_id, text)
 
+    @turn
+    def edit(self, draft_id: str, field: str, value: str) -> dict[str, Any]:
+        """25.5: the person corrects one field of the understanding on the page. Their words are a message of the
+        conversation (kind ``edit``), and the field is recorded from them through the draft guard, as any record is."""
+        if field not in plans.ALL_FIELDS:
+            raise ValueError(f"{field} is not a field of the understanding; one of {', '.join(plans.ALL_FIELDS)}")
+        value = value.strip()[:400]
+        if not value:
+            raise ValueError("write the value first")
+        msg = {"id": "u" + secrets.token_hex(5), "role": "user", "kind": "edit", "field": field, "text": value, "at": now()}
+        self.store.update(draft_id, lambda d: d["messages"].append(msg))
+        self.store.emit(draft_id, "chat", msg)
+        result = self.run_tool(draft_id, "record", {"field": field, "value": value, "quote": value, "status": "stated"})
+        if "error" not in result:
+            def answered(d):
+                for q in d.get("questions") or []:
+                    if q.get("field") == field and not q.get("answered"):
+                        q["answered"] = True
+            self.store.update(draft_id, answered)
+            self.update_plan(draft_id)
+            self.refresh_workflow(draft_id)
+        return result
+
     def take_answer(self, draft_id: str, q: dict[str, Any], value: str) -> None:
         """The user's message answers the open question: record it, redraw the workflow, ask the next thing."""
         draft = self.store.get(draft_id)

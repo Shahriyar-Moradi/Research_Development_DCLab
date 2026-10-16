@@ -1,0 +1,25 @@
+{
+  "package": "25.7",
+  "title": "The twin's training sets: every step, the preference pairs, the expert's records, and Claude's answers as a teacher's beside the rule's, per use",
+  "date": "2026-10-16",
+  "request": "The owner wants every decision and step Claude makes captured as data for decision models of two uses: models that route, score and classify inside DCLab's workflows, and Jev-like classifiers for data-science decisions; an open model or one trained from scratch.",
+  "spec": "dclab_core datasets twin_sets and DatasetManifest v6; dclab_rnd datasets reading the twin folder under the workspace's train consent.",
+  "plan": [
+    "Keep every twin step as a row, and a preference pair wherever a truth chose one side.",
+    "Join Claude's answer at each ledger point with the state the rule decided on, one set per use.",
+    "Never let a teacher's answer become a label, and redact what Claude wrote."
+  ],
+  "decisions": [
+    {"decision": "The teacher sets join Claude's answers to the ledger's records instead of writing new labels.", "why": "A model's answer is a second opinion; the labels keep their order of strength (planted, measured, a person)."},
+    {"decision": "A Home session is used only when its draft, or the project it became, allows training; a twin run only for a studied sample or an allowed project or draft.", "why": "The consent of a project reaches everything built from it."}
+  ],
+  "change": "dclab_core/datasets.py (twin_sets, TEACHER_POINTS, manifest v6), dclab_rnd/datasets.py (_twin_items, the build), tests/test_twin_datasets.py (new), docs.",
+  "findings": [
+    {"id": "S1", "source": "test", "severity": "privacy", "defect": "Claude's reply could carry an address the person wrote into a set.", "scenario": "A reply quoting an e-mail address went into a step row.", "cause": "The arm's words were copied whole.", "fix": "What Claude wrote goes through the redaction rules before it enters a row; the writer still refuses a row with an address.", "test": "test_the_sets_and_the_teacher_rows_by_use"}
+  ],
+  "measurements": [],
+  "outcome": "The five twin sets are built under train consent from the twin folder.",
+  "lessons": ["A teacher's answer and a label are different columns, always."],
+  "risks": ["Until live runs accumulate, the sets are small; the decision models wait for them."],
+  "commits": []
+}

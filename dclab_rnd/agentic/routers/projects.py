@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from pathlib import Path
 from typing import Any
 
 from fastapi import Body, Depends, HTTPException, Request
@@ -509,6 +510,73 @@ async def run_programme(project_id: str, body: Any = Body(None), wait: bool = Tr
     if done.get("status") == "failed":
         raise HTTPException(409, done.get("error") or "The programme ended without a result")
     return {**(await asyncio.to_thread(lambda: studio_programme.view(s.project(project_id)))), "job": {"id": job["id"], "status": done.get("status")}}
+
+
+@router.post("/api/projects/{project_id}/twin", response_model=Page)
+async def run_twin(project_id: str, body: Any = Body(None), s: Services = Depends(services)):
+    """25.6: a twin run of this project as a job: the current system and Claude, as the AI-first expert, on the same table in
+    two lanes (each a folder of its own; nothing of the project changes), compared step by step. ``{"blind": true}`` (the
+    default) keeps the known solution from both lanes. Needs the owner's switch on and Claude reachable; capped at the
+    workspace's session budget."""
+    import secrets
+    from datetime import datetime, timezone
+
+    from ...twin import home as twin_home
+
+    project = s.project(project_id)
+    if not twin_home.settings(s.store.home)["on"]:
+        raise HTTPException(409, "Claude beside the system is off in this workspace (the owner's switch, Admin)")
+    if not project.get("data"):
+        raise HTTPException(409, "Bring the data first: a twin run compares the two on the project's table")
+    body = body if isinstance(body, dict) else {}
+    from ... import limits
+    from ...accounts.principal import current
+
+    cap = float(twin_home.settings(s.store.home)["session_eur"])
+    who = current()
+    if limits.on() and who is not None and who.user_id:  # 25.10: never past what is left of the person's own month
+        from ...models.usage import month_start
+
+        mine = limits.user_monthly(who.user_id, s.store.home)
+        if mine is not None:
+            left = max(0.0, mine - float(s.gateway.usage.spent(month_start(), user_id=who.user_id)))
+            if left <= 0:
+                raise HTTPException(409, "Your monthly model budget is used up: the owner can raise your limit (Admin, budgets)")
+            cap = min(cap, left)
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(3)
+    job = s.submit("twin", f"{project_id}:twin", {"project_id": project_id, "run_id": run_id, "blind": body.get("blind", True) is not False,
+                                                  "cap_eur": round(cap, 4)})
+    return {"job": job, "run_id": run_id}
+
+
+@router.get("/api/projects/{project_id}/twin", response_model=Page)
+async def project_twin_runs(project_id: str, s: Services = Depends(services)):
+    """25.6: this project's twin runs, newest first: each lane's status, the differences, the steps judged, and the comparison and the
+    expert's story as text (COMPARE.md, DESIGN.md)."""
+    import json as _json
+
+    from ... import twin
+
+    s.project(project_id)
+
+    def read() -> list[dict[str, Any]]:
+        out = []
+        for r in reversed(twin.list_runs(s.store.home)):
+            if r.get("seed") != f"project:{project_id}":
+                continue
+            folder = Path(r["path"])
+            compare = {}
+            try:
+                compare = _json.loads((folder / "compare.json").read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                pass
+            text = lambda p: p.read_text(encoding="utf-8")[:60_000] if p.is_file() else None  # noqa: E731
+            out.append({**{k: r.get(k) for k in ("run_id", "model", "started", "finished", "status", "differences")},
+                        "holdout": compare.get("holdout"), "judged": compare.get("judged"), "expert_judged": compare.get("expert_judged"),
+                        "compare_md": text(folder / "COMPARE.md"), "design_md": text(folder / "ai_first" / "design" / "DESIGN.md")})
+        return out[:20]
+
+    return {"runs": await asyncio.to_thread(read)}
 
 
 @router.post("/api/projects/{project_id}/programme/drop", response_model=Page)

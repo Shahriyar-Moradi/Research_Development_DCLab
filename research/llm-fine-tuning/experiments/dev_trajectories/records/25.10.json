@@ -1,0 +1,125 @@
+{
+  "package": "25.10",
+  "title": "Budgets: fifteen a month per person, a draft's Claude budget raised, the Needs-you list as a dropdown, and testers' actions kept under their name",
+  "date": "2026-10-16",
+  "request": "The owner asked for a button to add to a session's budget, a fifteen-dollar limit for every signed-in person, every such action saved, the Needs-you panel as a dropdown, and sign-in for trusted friends with everything they do recorded.",
+  "spec": "dclab_rnd limits (the default, a person's own in budgets.json), the gateway's per-person cap, the twin budget raise and its route, the member budget routes and the Admin controls, the Home dropdown, the person on every twin row, docs/guides/TESTERS.md.",
+  "plan": [
+    "Make the person's monthly limit fifteen and let the owner set one person's own.",
+    "Let a draft's Claude budget be raised within the person's room this month, recorded three ways.",
+    "Name the person on everything the twin keeps."
+  ],
+  "decisions": [
+    {
+      "decision": "A raise never passes what is left of the person's month or fifteen a draft.",
+      "why": "The person's limit is the bound the owner set; a draft cannot spend around it."
+    },
+    {
+      "decision": "The gateway reads people's own limits from its workspace's folder, not from the request's context.",
+      "why": "Inside a twin run's lanes the context has no workspace store, and the owner's limit would have fallen back to the default."
+    }
+  ],
+  "change": "dclab_rnd/limits.py, models/gateway.py, agentic/services.py, twin/home.py, draft/api.py, agentic/pages/twin.py, agentic/routers/projects.py, accounts/guard.py, web views home and admin, .env.example, docs; tests in test_twin_home and test_limits.",
+  "findings": [
+    {
+      "id": "R12",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Concurrent updates to a draft's session file were lost or read half-written.",
+      "scenario": "A turn's spend and a raise at once lost one of them; two raises at once had one effect.",
+      "cause": "Each request made its own lock, the raise read outside any lock, and the file was rewritten in place.",
+      "fix": "One lock per folder for every instance, the raise read and written under it, and the file replaced whole.",
+      "test": "test_a_raised_draft_follows_a_higher_default_and_two_raises_at_once_are_two"
+    },
+    {
+      "id": "R13",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A raised draft stopped following the workspace default.",
+      "scenario": "The owner raised the default above a draft's raised cap and the draft stayed lower.",
+      "cause": "The draft's own cap replaced the default.",
+      "fix": "The cap is the higher of the two.",
+      "test": "test_a_raised_draft_follows_a_higher_default_and_two_raises_at_once_are_two"
+    },
+    {
+      "id": "R14",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A request with a typo cleared a person's limit.",
+      "scenario": "Sending monthly instead of monthly_eur returned success and cleared it.",
+      "cause": "A missing key read as null.",
+      "fix": "The route refuses a request without the key.",
+      "test": "test_the_switch_is_the_owners_and_a_message_to_claude_needs_it_on"
+    },
+    {
+      "id": "R15",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Inside a twin run the owner's limit for a person fell back to the default.",
+      "scenario": "A person limited to five could spend up to fifteen in a project's twin run.",
+      "cause": "The limit was read from the request's context, which a lane does not carry.",
+      "fix": "The gateway carries its workspace's folder, the raise and the run read the person's room from it, and a twin run is capped by that room.",
+      "test": "test_the_switch_is_the_owners_and_a_message_to_claude_needs_it_on"
+    },
+    {
+      "id": "R16",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The docs still said twenty-five and the refusal named a setting.",
+      "scenario": "The settings example and the refusal text pointed at the old default and an environment variable.",
+      "cause": "They were written before the change.",
+      "fix": "Fifteen in the example and the refusal points to the owner's Admin control.",
+      "test": "tests.test_config"
+    },
+    {
+      "id": "R17",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The development records were missing.",
+      "scenario": "The commit would have lacked its records.",
+      "cause": "They were not written yet.",
+      "fix": "Records are written with the reviewer's findings.",
+      "test": "make sft-dev"
+    },
+    {
+      "id": "G1",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "New write routes did not say what they record.",
+      "scenario": "The session-record test listed the twin message, pick, understanding and settings routes as unrecorded.",
+      "cause": "The routes were added without their events.",
+      "fix": "A message to Claude alone is a person's chat event, a pick and the switches are decisions, each route says so.",
+      "test": "test_every_write_route_says_what_it_records"
+    },
+    {
+      "id": "G2",
+      "source": "test",
+      "severity": "latent",
+      "defect": "The Home routes reached into the draft store's folder.",
+      "scenario": "The storage rule found a path joined from the store's home.",
+      "cause": "A fallback for tests without services built the workspace path from the store.",
+      "fix": "The fallback reads the configured workspace folder.",
+      "test": "test_no_code_outside_the_stores_reaches_into_their_folders"
+    },
+    {
+      "id": "O1",
+      "source": "owner",
+      "severity": "gap",
+      "defect": "Testers' actions in the twin folder did not say whose they were.",
+      "scenario": "Trusted friends will test; the owner wants everything they do kept.",
+      "cause": "The folder kept turns and picks without the person.",
+      "fix": "Every Claude turn, message, pick and raise names the account it was for, and the session lists its people.",
+      "test": "test_every_turn_and_pick_says_whose_it_is"
+    }
+  ],
+  "measurements": [],
+  "outcome": "Budgets work per person and per draft, recorded; testers have a guide and their actions are named.",
+  "lessons": [
+    "A lock that each request creates locks nothing.",
+    "Carry the workspace on the object that needs it rather than reading it from a context that may not be there."
+  ],
+  "risks": [
+    "The testers must reach the server: a deployment or a tunnel is the owner's decision."
+  ],
+  "commits": []
+}

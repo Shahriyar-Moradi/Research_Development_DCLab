@@ -20,7 +20,8 @@
             "project",
             "draft",
             "package",
-            "flag"
+            "flag",
+            "step"
           ],
           "title": "Kind",
           "type": "string"
@@ -34,7 +35,7 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.dataset_manifest.v5.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.dataset_manifest.v6.json",
   "additionalProperties": false,
   "description": "What a dataset holds and where every row came from.",
   "properties": {
@@ -51,7 +52,8 @@
         "episodes",
         "model_calls",
         "problem_maps",
-        "routes"
+        "routes",
+        "twin"
       ],
       "title": "Builder",
       "type": "string"
@@ -133,8 +135,8 @@
       "type": "integer"
     },
     "schema_version": {
-      "const": "dclab_core.dataset_manifest.v5",
-      "default": "dclab_core.dataset_manifest.v5",
+      "const": "dclab_core.dataset_manifest.v6",
+      "default": "dclab_core.dataset_manifest.v6",
       "title": "Schema Version",
       "type": "string"
     },

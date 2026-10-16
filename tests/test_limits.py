@@ -224,5 +224,25 @@ class LimitsSettingsTests(unittest.TestCase):
         self.assertIsNone(values["jobs"]["user"])
 
 
+class PersonBudgetTests(unittest.TestCase):
+    """25.10: 15 a month a person by default; the owner sets one person's own; the gateway reads it."""
+
+    def test_the_default_is_fifteen_and_a_persons_own_overrides_it(self):
+        import tempfile
+
+        from dclab_rnd import limits
+
+        home = Path(tempfile.mkdtemp())
+        with mock.patch.dict(os.environ, {"DCLAB_LIMIT_USER_MONTHLY_EUR": ""}):
+            self.assertEqual(limits.user_monthly("u1", home), 15)
+            limits.set_user_monthly(home, "u1", 40)
+            self.assertEqual((limits.user_monthly("u1", home), limits.user_monthly("u2", home)), (40, 15))
+            limits.set_user_monthly(home, "u1", None)
+            self.assertEqual(limits.user_monthly("u1", home), 15)
+        for bad in (0, -1, 5000, True, "ten"):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                limits.set_user_monthly(home, "u1", bad)
+
+
 if __name__ == "__main__":
     unittest.main()

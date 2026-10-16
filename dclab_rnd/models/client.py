@@ -19,6 +19,9 @@ PAUSE_SECONDS = 600  # after a refusal that will not go away by itself (no credi
 # the pause is shared by every app instance and worker (models/pause.py: a row with an expiry on PostgreSQL)
 
 
+THINKING_REFUSED = "the model would not take extended thinking"
+
+
 def failure(exc: BaseException) -> tuple[str, bool]:
     """Why a model request failed, in words safe to show, and whether trying again soon is pointless.
 
@@ -34,6 +37,8 @@ def failure(exc: BaseException) -> tuple[str, bool]:
     message = str(error.get("message") or "").lower() if isinstance(error, dict) else ""
     if status == 400 and "credit balance" in message:  # Anthropic says it in a 400; the words are tested, never passed on
         return "the model account has no credit left", True
+    if status == 400 and "thinking" in message:  # 25.3: the model or the conversation would not take extended thinking (tested, never passed on)
+        return THINKING_REFUSED, False
     if status in (401, 403):
         return "the provider refused the key", True
     if status == 404 or "model_not_found" in code:

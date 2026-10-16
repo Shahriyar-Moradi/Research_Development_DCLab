@@ -91,6 +91,8 @@ DC.view('home', {
     function showDraftPanels(on) {
       $('#home-solution', el).hidden = !on;
       $('#home-chat', el).hidden = !on;
+      $('#home-understand', el).hidden = !on;
+      if (!on) { $('#home-twin', el).hidden = true; $('#home-lanes', el).className = 'stack'; }
     }
     async function ensureDraft() {
       if (S.draft && S.draft.status === 'open') return S.draft;
@@ -111,6 +113,8 @@ DC.view('home', {
       S.close = stream(DC.client.path.events(draft.id), onEvent);
       drawPacks();
       updateDataPill();
+      drawUnderstanding(draft);
+      loadTwin();
     }
     async function resume(id) {
       try { const d = await DC.client.readDraft(id, { quiet: true }); if (d.status === 'open') { openDraft(d); return true; } } catch (e) { /* gone */ }
@@ -176,7 +180,119 @@ DC.view('home', {
       else if (kind === 'analysis') { S.analysis[data.asset] = data.analysis; }
       else if (kind === 'workflow') drawWorkflow(data.workflow, data.rejected);
       else if (kind === 'status') onStatus(data);
+      else if (kind === 'plan') { if (S.draft) { S.draft.plan = data.plan; S.draft.understanding = data.understanding; } drawUnderstanding(S.draft); }
+      else if (kind === 'twin') onTwin(data);
     }
+
+    /* ---------- 25.5: what DCLab understood, editable ---------- */
+    const FIELD_LABELS = { target: 'Outcome', prediction_moment: 'Moment of prediction', action: 'What is done with it', data_plan: 'The data', costs: 'Costs', entity: 'Entity', labels: 'Labels', budget: 'Review budget' };
+    function drawUnderstanding(draft) {
+      const box = $('#home-und-fields', el); if (!box || !draft) return;
+      const plan = draft.plan || {}, und = draft.understanding || {};
+      const fields = Object.keys(FIELD_LABELS).filter(f => f in plan || f in und || ['target', 'prediction_moment', 'action', 'data_plan'].includes(f));
+      box.innerHTML = fields.map(f => {
+        const p = plan[f] || {}, v = und[f];
+        const status = p.status || (v ? 'stated' : 'unknown');
+        const pill = status === 'stated' ? 'ok' : status === 'inferred' ? 'info' : 'warn';
+        return `<div class="stack tight" data-und="${esc(f)}"><div class="spread"><b class="small">${esc(FIELD_LABELS[f])}</b><span class="pill ${pill}">${esc(status)}</span></div>`
+          + `<div class="small">${v ? esc(v) : '<span class="muted">not known yet</span>'}</div>`
+          + (p.quote ? `<div class="xs muted">“${esc(String(p.quote).slice(0, 160))}”</div>` : '')
+          + `<div class="row"><button type="button" class="link-btn small" data-und-edit="${esc(f)}">Correct</button></div></div>`;
+      }).join('');
+      const next = $('#home-und-next', el);
+      if (plan.next) { next.textContent = 'next: ' + (FIELD_LABELS[plan.next] || plan.next); next.hidden = false; } else next.hidden = true;
+    }
+    $('#home-und-fields', el).addEventListener('click', async e => {
+      const ed = e.target.closest('[data-und-edit]');
+      if (ed) {
+        const card = ed.closest('[data-und]');
+        if (!card.querySelector('[data-und-box]')) {
+          const cur = (S.draft.understanding || {})[ed.dataset.undEdit] || '';
+          card.insertAdjacentHTML('beforeend', `<div class="stack tight" data-und-box><textarea rows="2" maxlength="400" aria-label="${esc(FIELD_LABELS[ed.dataset.undEdit])}, in your words">${esc(cur)}</textarea>`
+            + `<div class="row"><button type="button" class="btn sm primary" data-und-save="${esc(ed.dataset.undEdit)}">Save</button><button type="button" class="btn sm" data-und-cancel="1">Cancel</button></div></div>`);
+        }
+        return;
+      }
+      if (e.target.closest('[data-und-cancel]')) { e.target.closest('[data-und-box]').remove(); return; }
+      const sv = e.target.closest('[data-und-save]');
+      if (sv && S.draft) {
+        const value = sv.closest('[data-und-box]').querySelector('textarea').value.trim();
+        if (!value) { toast('Write it in your words first.', { ok: false }); return; }
+        sv.disabled = true;
+        try { S.draft = await DC.client.editUnderstanding(S.draft.id, { body: { field: sv.dataset.undSave, value } }); drawUnderstanding(S.draft); toast('Recorded in your words.'); }
+        catch (err) { sv.disabled = false; toast(err.status === 409 ? 'DCLab is still answering; try again in a moment.' : err.message, { ok: false }); }
+      }
+    });
+
+    /* ---------- 25.5: Claude beside DCLab ---------- */
+    const STEP_LABELS = { 'home.understanding': 'What the problem is', 'home.next_question': 'What to ask next', 'home.pack': 'Domain pack', 'home.map': 'Parts of the problem',
+                          'home.workflow': 'Solution workflow', 'home.ready': 'Ready to build' };
+    const show = v => (v == null ? '—' : Array.isArray(v) ? (v.length ? v.join(', ') : 'none') : typeof v === 'object' ? JSON.stringify(v) : String(v));
+    async function loadTwin() {
+      if (!S.draft) return;
+      let v;
+      try { v = await DC.client.twinView(S.draft.id, { quiet: true }); } catch (e) { return; }
+      const on = !!(v.settings && v.settings.on);
+      $('#home-twin', el).hidden = !on;
+      $('#home-to', el).hidden = !on;
+      $('#home-lanes', el).className = on ? 'grid g2' : 'stack';
+      if (!on) return;
+      S.twin = v;
+      const spent = v.session ? v.session.spent_eur || 0 : 0;
+      const cap = v.cap_eur != null ? v.cap_eur : v.settings.session_eur;
+      $('#home-twin-spent', el).textContent = `€${spent.toFixed(2)} of €${Number(cap).toFixed(2)}`;
+      DC.client.myBudget({ quiet: true }).then(b => {
+        const btn = $('#home-twin-budget', el);
+        btn.title = b.on ? `Your month: €${Number(b.spent_eur).toFixed(2)} of €${Number(b.monthly_eur).toFixed(2)} used; €${Number(b.left_eur).toFixed(2)} left` : 'Add to this draft\'s Claude budget';
+      }).catch(() => {});
+      const thread = $('#home-twin-thread', el);
+      thread.innerHTML = (v.conversation || []).length ? v.conversation.map(m => m.role === 'claude'
+        ? `<div class="msg"><span class="avatar b">C</span><div class="msg-body"><div class="who">Claude</div><p>${esc(m.text)}</p></div></div>`
+        : `<div class="msg me"><div class="msg-body"><div class="who">You, to Claude only</div><p>${esc(m.text)}</p></div></div>`).join('')
+        : '<div class="empty">Claude answers after DCLab\'s first turn.</div>';
+      let n = 0;
+      const rows = (v.steps || []).map(st => {
+        const diffs = (st.differences || []).filter(d => d.kind !== 'same' && d.kind !== 'neither');
+        n += diffs.length ? 1 : 0;
+        const picked = st.truth && st.truth.source === 'person_pick';
+        return `<div class="list-item"><div class="li-main"><span class="li-title">${esc(STEP_LABELS[st.step] || st.step)}${diffs.length ? '' : ' <span class="pill ok">same</span>'}</span>`
+          + diffs.map(d => `<span class="li-sub"><b>${esc(d.field)}</b> · DCLab: ${esc(show(d.system))} · Claude: ${esc(show(d.ai_first))}</span>`).join('')
+          + (diffs.length ? (picked ? `<span class="row"><span class="pill info">you chose ${st.verdict.winner === 'ai_first' ? 'Claude' : st.verdict.winner === 'system' ? 'DCLab' : st.verdict.winner}</span></span>`
+            : `<span class="row">${diffs.some(d => d.system != null) ? `<button type="button" class="btn sm" data-pick="${esc(st.step)}" data-arm="system">DCLab is right</button>` : ''}`
+              + `${diffs.some(d => d.ai_first != null) ? `<button type="button" class="btn sm" data-pick="${esc(st.step)}" data-arm="ai_first">Claude is right</button>` : ''}</span>`) : '')
+          + '</div></div>';
+      });
+      $('#home-twin-diff', el).innerHTML = rows.length ? rows.join('') : '<div class="empty">No step answered by both yet.</div>';
+      $('#home-twin-ndiff', el).textContent = n;
+      const r = v.record;
+      $('#home-twin-record', el).innerHTML = r ? [
+        ['Problem', r.problem && r.problem.restatement], ['One prediction is about', r.problem && r.problem.unit], ['Moment', r.problem && r.problem.moment],
+        ['Outcome', r.problem && r.problem.outcome], ['Kind of problem', r.problem_type && [r.problem_type.family, r.problem_type.task].filter(Boolean).join(' · ')],
+        ['Why', r.problem_type && r.problem_type.why],
+        ['Algorithms', ((r.algorithms || {}).ranked || []).slice().sort((a, b) => (a.rank || 99) - (b.rank || 99)).map(a => a.family).join(' → ')],
+        ['Split and metric', r.evaluation && [r.evaluation.split, r.evaluation.metric].filter(Boolean).join(' · ')],
+        ['Workflow', (r.solution_workflow || []).map(s => s.wf).filter(Boolean).join(' → ')],
+        ['Questions it would ask', (r.questions || []).join(' · ')], ['Risks', (r.risks || []).join(' · ')]]
+        .filter(([, val]) => val).map(([k, val]) => `<div><b>${esc(k)}</b>: ${esc(val)}</div>`).join('') : '<div class="empty">No reading yet.</div>';
+    }
+    function onTwin(d) {
+      if (d.status === 'capped' || d.status === 'failed' || d.status === 'unavailable') $('#home-twin-note', el).textContent = d.note || d.status;
+      loadTwin();
+    }
+    $('#home-twin-budget', el).addEventListener('click', async e => {
+      if (!S.draft) return;
+      e.target.disabled = true;
+      try { const r = await DC.client.twinBudget(S.draft.id, { body: { add_eur: 1.5 } }); toast(`This draft's Claude budget is now €${Number(r.session_eur).toFixed(2)}.`); loadTwin(); }
+      catch (err) { toast(err.message, { ok: false }); }
+      finally { e.target.disabled = false; }
+    });
+    $('#home-twin', el).addEventListener('click', async e => {
+      const pk = e.target.closest('[data-pick]');
+      if (!pk || !S.draft) return;
+      pk.disabled = true;
+      try { await DC.client.twinPick(S.draft.id, { body: { step: pk.dataset.pick, arm: pk.dataset.arm } }); toast('Noted: kept as the truth of this step.'); loadTwin(); }
+      catch (err) { pk.disabled = false; toast(err.message, { ok: false }); }
+    });
     function onStatus(d) {
       if (d.pack) { if (S.draft) S.draft.pack = d.pack; drawPacks(); $('#home-sol-pack', el).textContent = (S.packs.find(p => p.key === d.pack.key) || {}).name || d.pack.key; }
       if ('thinking' in d) setThinking(d.thinking);
@@ -442,6 +558,12 @@ DC.view('home', {
     async function send(text) {
       text = (text || '').trim(); if (!text) return;
       try { await ensureDraft(); } catch (e) { return; }
+      const to = $('#home-to', el).hidden ? 'both' : $('#home-to', el).value;
+      if (to === 'claude') {
+        try { await DC.client.twinMessage(S.draft.id, { body: { text } }); $('#home-reply', el).value = ''; toast('Sent to Claude only: DCLab does not see it.'); }
+        catch (err) { toast(err.message, { ok: false }); }
+        return;
+      }
       try { await DC.client.message(S.draft.id, { body: { text } }); $('#home-reply', el).value = ''; }
       catch (err) { toast(err.status === 409 ? 'DCLab is still answering; send again in a moment.' : err.message, { ok: false }); }
     }

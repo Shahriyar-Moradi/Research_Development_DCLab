@@ -170,9 +170,9 @@
           </div>
         </div>
       </div>
-      <div class="panel" data-f="home.inbox" data-tour="inbox">
-        <div class="panel-head"><h2>Needs you</h2><span class="pill bad">3</span></div>
-        <div class="list">
+      <details class="panel" data-f="home.inbox" data-tour="inbox" id="home-inbox">
+        <summary class="panel-head" data-style="cursor:pointer;list-style:none"><h2>Needs you</h2><span class="row"><span class="pill bad">3</span><span class="muted small" aria-hidden="true">▾</span></span></summary>
+        <div class="list" data-style="max-height:420px;overflow:auto">
           <a class="list-item" href="#project" data-project="hyperack">
             <span class="avatar ai">AI</span>
             <div class="li-main"><span class="li-title">When is the HyperAck prediction made?</span><span class="li-sub">At order creation, at the courier offer, or after assignment? This decides which columns are allowed.</span><span class="row"><span class="pill warn">Question</span><span class="tag">WF-01</span></span></div>
@@ -186,7 +186,7 @@
             <div class="li-main"><span class="li-title">Telco churn: choose the outcome window</span><span class="li-sub">30 or 90 days after the snapshot? The solution was reopened and later steps are on hold.</span><span class="row"><span class="pill warn">Revisit</span><span class="tag">WF-01</span></span></div>
           </a>
         </div>
-      </div>
+      </details>
     </div>
     <div class="panel" id="home-solution" hidden data-f="home.solution">
       <div class="panel-head">
@@ -197,6 +197,12 @@
       <div class="panel-foot bar" id="home-sol-foot"><span class="legend"><span><i class="ok"></i>done</span><span><i></i>in progress</span><span><i class="s3"></i>waiting for data</span><span><i class="s4"></i>allowed revisit</span><span><i class="sq s2"></i>approval gate</span></span><span class="muted small" id="home-sol-node"></span></div>
     </div>
 
+    <div class="panel" id="home-understand" hidden data-f="home.understanding">
+      <div class="panel-head"><div class="panel-title"><h2>What DCLab understood</h2><span class="sub">Each field with how it is known and the words it rests on. Correct any of them: your words are recorded, and the questions and the workflow follow.</span></div><span class="pill outline" id="home-und-next" hidden></span></div>
+      <div class="panel-body"><div class="grid g2" id="home-und-fields"></div></div>
+    </div>
+
+    <div class="grid g2" id="home-lanes">
     <div class="panel" id="home-chat" hidden data-f="home.chat">
       <div class="panel-head"><div class="panel-title"><h2>Conversation</h2><span class="sub" id="home-chat-sub">A few questions to understand the problem, and the data as it gets ready.</span></div><span class="pill outline" id="home-chat-mode" hidden></span></div>
       <div class="panel-body"><div class="thread" id="home-thread" aria-live="polite"></div></div>
@@ -207,10 +213,32 @@
           <div class="composer-bar">
             <button type="button" class="btn sm ghost" data-open-bring="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Connect data</button>
             <button type="button" class="btn sm" id="home-build">Let's build the solution</button>
+            <label class="sr-only" for="home-to">Send to</label>
+            <select id="home-to" data-style="width:auto" hidden>
+              <option value="both">To DCLab and Claude</option>
+              <option value="system">To DCLab only</option>
+              <option value="claude">To Claude only</option>
+            </select>
             <button type="button" class="btn primary send" id="home-send">Send<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
           </div>
         </div>
       </div>
+    </div>
+    <div class="panel" id="home-twin" hidden data-f="home.twin">
+      <div class="panel-head"><div class="panel-title"><h2>Claude beside DCLab</h2><span class="sub">Claude, as a machine-learning expert, reads the same conversation and data and answers each step its own way. Its answers never change DCLab's.</span></div>
+        <div class="row"><span class="pill outline" id="home-twin-spent"></span><button type="button" class="btn sm" id="home-twin-budget" title="Add to this draft's Claude budget, within your monthly model budget">Add €1.50</button></div></div>
+      <div class="tabs" data-tabs="htwin" role="tablist">
+        <button type="button" class="tab" data-tab="talk" role="tab" aria-selected="true">Conversation</button>
+        <button type="button" class="tab" data-tab="diff" role="tab" aria-selected="false">Differences <span class="pill" id="home-twin-ndiff">0</span></button>
+        <button type="button" class="tab" data-tab="record" role="tab" aria-selected="false">Its reading</button>
+      </div>
+      <div class="panel-body">
+        <div data-tab-panel="htwin:talk"><div class="thread" id="home-twin-thread" aria-live="polite"><div class="empty">Claude answers after DCLab's first turn.</div></div></div>
+        <div data-tab-panel="htwin:diff" hidden><div class="list" id="home-twin-diff"><div class="empty">No step answered by both yet.</div></div></div>
+        <div data-tab-panel="htwin:record" hidden><div class="stack tight small" id="home-twin-record"><div class="empty">No reading yet.</div></div></div>
+      </div>
+      <div class="panel-foot bar"><span class="muted small" id="home-twin-note">Kept in the workspace's twin folder, both sides, step by step.</span></div>
+    </div>
     </div>
   </div>
 
@@ -467,6 +495,15 @@
     <div class="panel" id="node-panel">
       <div class="panel-head"><div class="panel-title"><span class="eyebrow" id="node-eyebrow">Selected step</span><h3 id="node-title">WF-10 · Knowledge capture</h3></div></div>
       <div class="panel-body small"><div class="stack tight" id="node-body"></div></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="twin" data-label="Claude beside">
+    <div class="panel" data-f="proj.twin">
+      <div class="panel-head"><div class="panel-title"><h2>Claude beside DCLab on this project</h2><span class="sub">A twin run puts the same table through DCLab's own system and through Claude, as an AI-first machine-learning expert, at the same time, each in a folder of its own; nothing of this project changes. Blind: neither side is told the known solution.</span></div>
+        <button type="button" class="btn sm primary" id="proj-twin-run">Run with Claude beside</button></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Run</th><th>DCLab</th><th>Claude</th><th>Holdout (DCLab · Claude)</th><th>Where they differ</th><th>Against the truth</th></tr></thead><tbody id="proj-twin-runs"></tbody></table></div>
+      <div class="panel-body stack tight small" id="proj-twin-detail" hidden></div>
     </div>
   </div>
 
@@ -1921,7 +1958,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
   <div class="pane" data-pane="members" data-label="Members">
     <div class="panel" data-f="admin.members">
       <div class="panel-head"><div class="panel-title"><h2>Members</h2><span class="sub" id="members-sub">Who belongs to this workspace, and in which role</span></div></div>
-      <div class="table-wrap"><table class="data compact" id="members-table"><thead><tr><th>Member</th><th>Role</th><th>Signs in with</th><th></th></tr></thead><tbody><tr><td colspan="4"><div class="empty">Loading…</div></td></tr></tbody></table></div>
+      <div class="table-wrap"><table class="data compact" id="members-table"><thead><tr><th>Member</th><th>Role</th><th>Signs in with</th><th>Model budget a month</th><th></th></tr></thead><tbody><tr><td colspan="5"><div class="empty">Loading…</div></td></tr></tbody></table></div>
       <form class="panel-body row" id="member-add" hidden>
         <label class="sr-only" for="member-email">Email</label><input id="member-email" type="email" placeholder="name@company.com" required data-style="flex:2;min-width:180px">
         <label class="sr-only" for="member-name">Name</label><input id="member-name" type="text" placeholder="Name (optional)" data-style="flex:1;min-width:120px">
@@ -1966,6 +2003,16 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
   </div>
 
   <div class="pane" data-pane="budgets" data-label="Budgets & data">
+    <div class="panel" data-f="admin.twin">
+      <div class="panel-head"><div class="panel-title"><h3>Claude beside DCLab</h3><span class="sub">Claude, as an AI-first machine-learning expert, answers every Home step beside DCLab's own system; both are kept in the twin folder and compared on the Evaluation tab. The owner's switch.</span></div></div>
+      <div class="panel-body grid g2 small" id="twin-settings">
+        <label class="switch"><input type="checkbox" id="twin-on"><span class="track"></span><span>Run Claude beside every Home conversation</span></label>
+        <label class="switch"><input type="checkbox" id="twin-sample"><span class="track"></span><span>Let Claude see up to 20 redacted rows (columns with a person's data left out)</span></label>
+        <div class="field"><label for="twin-session">Each draft's Claude budget (€)</label><input id="twin-session" type="number" min="0.01" max="15" step="0.5"></div>
+        <div class="field"><label for="twin-monthly">Every draft's Claude together, a month (€)</label><input id="twin-monthly" type="number" min="0.01" max="500" step="1"></div>
+        <div class="row"><button type="button" class="btn sm primary" id="twin-save">Save</button><span class="muted xs" id="twin-note"></span></div>
+      </div>
+    </div>
     <div class="panel" data-f="admin.limits">
       <div class="panel-head"><div class="panel-title"><h3>Limits</h3><span class="sub" id="limits-sub">So that one person cannot starve the rest</span></div></div>
       <div class="table-wrap"><table class="data compact" id="limits-table"><thead><tr><th>Limit</th><th class="num">You</th><th class="num">This workspace</th></tr></thead><tbody><tr><td colspan="3"><div class="empty">Loading…</div></td></tr></tbody></table></div>
@@ -2030,6 +2077,24 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
     <div class="panel" data-f="admin.shadow">
       <div class="panel-head"><div class="panel-title"><h2>Classifiers in shadow</h2><span class="sub">Each answers beside the rule and is never used: how often it agrees, and how often it is right where they differ and a label says</span></div></div>
       <div class="table-wrap"><table class="data compact"><thead><tr><th>Classifier</th><th>Sealed gate</th><th>Decisions</th><th>Agrees with the rule</th><th>Differs</th><th>Right where it differs</th></tr></thead><tbody id="shadow-body"></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="evaluation" data-label="Evaluation">
+    <div class="stats" id="ev-stats">
+      <div class="stat"><span class="v">—</span><span class="l">answerers scored</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">decision points</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">distinct cases with a truth</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">steps where Claude and DCLab were judged</span></div>
+    </div>
+    <div class="panel" data-f="admin.twin_eval">
+      <div class="panel-head"><div class="panel-title"><h2>Claude and DCLab, step by step</h2><span class="sub">On the same input: how often each was right against a planted truth (a blind twin run), how often a person preferred it where they differed (Home), how often they agree, and what the evidence recommends (twin_rule_v1, fixed before any run)</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Step</th><th class="num">Judged</th><th class="num">DCLab right</th><th class="num">Claude right</th><th class="num">Claude, checked</th><th class="num">Agreement</th><th class="num">Claude's cost</th><th class="num">Time (DCLab · Claude)</th><th>Mode</th></tr></thead><tbody id="ev-twin"></tbody></table></div>
+    </div>
+    <div class="panel" data-f="admin.models_eval">
+      <div class="panel-head"><div class="panel-title"><h2>Every model, every decision</h2><span class="sub">Precision, recall, F1 and accuracy of each answerer (the rules, Claude, the roles, the classifiers) at each decision point, against its truth (planted, measured, a blind label weighed as it was drawn); n is the number of cases behind each line. Filter by model, point or truth</span></div>
+        <label class="sr-only" for="ev-filter">Filter</label><input type="search" id="ev-filter" placeholder="Filter by model, point or truth" data-style="max-width:240px"></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Answerer</th><th>Point</th><th>Truth</th><th class="num">n</th><th class="num">Accuracy</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">F1</th><th class="num">Answered</th></tr></thead><tbody id="ev-models"></tbody></table></div>
     </div>
   </div>
 

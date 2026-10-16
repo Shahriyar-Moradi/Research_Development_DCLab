@@ -46,6 +46,8 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "solution_report": LIBRARY + " (rendered from the records of a project)",
     "twin_step": "dclab_core.adapters.main_product_twin:twin_steps",
     "twin_matrix": LIBRARY + " (``twin.effectiveness`` over adapted twin steps)",
+    "evaluation_board": LIBRARY + " (scores over adapted twin steps and decision records)",
+    "expert_trace": LIBRARY + " (an AI-first agent's record of a problem and its solution; the main product's Jev answers single questions and writes none)",
 }
 
 #: the contracts whose adapter READS the main product's rows into the library's record; every other adapter above maps a library
