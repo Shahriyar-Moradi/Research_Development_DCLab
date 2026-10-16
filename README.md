@@ -86,6 +86,11 @@ uv pip install --python .venv-agent/bin/python -r requirements/agent.lock.txt
 
 CI uses only `requirements/ci.txt` (numpy, pandas, scikit-learn, pyarrow). That is enough for the tests, the evidence checks, the copilot, the agent tools and the evidence index.
 
+## Testing it as a trusted friend
+
+Clone it, run it on your machine with your own Anthropic key, and send your records to the owner with `make share`:
+`docs/guides/TESTERS.md` has the steps (`make tester-setup`, the notice you agree to, what is sent and what is not).
+
 ## Work on your own computer
 
 Everything is in GitHub, so moving from a cloud session to your laptop is a pull:

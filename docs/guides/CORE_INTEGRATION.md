@@ -638,3 +638,10 @@ models of either kind, and a teacher's answer is never a label there either.
 The studio's: a person's monthly model limit (15 by default, the owner's own per person), a draft's Claude budget raised within that room, each
 change audited and in the session record. Where it goes there: the main product has its own per-person and per-workspace quotas; the rule worth
 keeping is that a raise is bounded by the person's room this month and recorded with who, before and after.
+
+## Trusted testers on their own machines (25.11)
+
+The studio's: a tester's local workspace records everything, `make share` sends what changed (and the tables they agree to) to the owner's private
+records repository, `make collect` rebuilds each tester's workspace on the owner's side, where the evaluation and the datasets read it. Where it goes
+there: the main product serves its users from its own servers and keeps their records there; the rule worth keeping is the bundle with its manifest
+(each file's SHA-256, checked before it is applied, never a path outside the person's folder) and the agreement per table.

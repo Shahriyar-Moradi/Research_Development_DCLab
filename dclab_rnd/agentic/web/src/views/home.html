@@ -190,6 +190,7 @@
         <button type="button" class="tab" data-tab="record" role="tab" aria-selected="false">Its reading</button>
       </div>
       <div class="panel-body">
+        <div class="callout info small" id="home-twin-status" hidden><span class="ic">${icon:info}</span><span></span></div>
         <div data-tab-panel="htwin:talk"><div class="thread" id="home-twin-thread" aria-live="polite"><div class="empty">Claude answers after DCLab's first turn.</div></div></div>
         <div data-tab-panel="htwin:diff" hidden><div class="list" id="home-twin-diff"><div class="empty">No step answered by both yet.</div></div></div>
         <div data-tab-panel="htwin:record" hidden><div class="stack tight small" id="home-twin-record"><div class="empty">No reading yet.</div></div></div>
@@ -353,7 +354,8 @@ DC.view('home', {
       loadTwin();
     }
     async function resume(id) {
-      try { const d = await DC.client.readDraft(id, { quiet: true }); if (d.status === 'open') { openDraft(d); return true; } } catch (e) { /* gone */ }
+      try { const d = await DC.client.readDraft(id, { quiet: true }); if (d.status === 'open') { openDraft(d); return true; } }
+      catch (e) { if (e.status !== 404) return false; }  // a slow or failed read keeps the draft remembered; only a draft that is gone is forgotten
       remember(null); return false;
     }
     $('#home-start', el).addEventListener('click', async () => {
@@ -474,6 +476,7 @@ DC.view('home', {
       $('#home-lanes', el).className = on ? 'grid g2' : 'stack';
       if (!on) return;
       S.twin = v;
+      drawTwinStatus(v.status);
       const spent = v.session ? v.session.spent_eur || 0 : 0;
       const cap = v.cap_eur != null ? v.cap_eur : v.settings.session_eur;
       $('#home-twin-spent', el).textContent = `€${spent.toFixed(2)} of €${Number(cap).toFixed(2)}`;
@@ -509,11 +512,21 @@ DC.view('home', {
         ['Split and metric', r.evaluation && [r.evaluation.split, r.evaluation.metric].filter(Boolean).join(' · ')],
         ['Workflow', (r.solution_workflow || []).map(s => s.wf).filter(Boolean).join(' → ')],
         ['Questions it would ask', (r.questions || []).join(' · ')], ['Risks', (r.risks || []).join(' · ')]]
-        .filter(([, val]) => val).map(([k, val]) => `<div><b>${esc(k)}</b>: ${esc(val)}</div>`).join('') : '<div class="empty">No reading yet.</div>';
+        .filter(([, val]) => val).map(([k, val]) => `<div><b>${esc(k)}</b>: ${esc(val)}</div>`).join('')
+        + ((v.thinking || []).length ? `<details><summary class="small"><b>Its thinking</b> (summarized by the model, last turn)</summary>${v.thinking.map(t => `<p class="small muted" data-style="white-space:pre-wrap">${esc(t)}</p>`).join('')}</details>` : '')
+        : '<div class="empty">No reading yet.</div>';
+    }
+    /* where Claude's lane stands, kept on the session: thinking, answered, capped (add budget), unavailable (no model), failed */
+    function drawTwinStatus(st) {
+      const box = $('#home-twin-status', el);
+      if (!st || st.state === 'answered') { box.hidden = true; return; }
+      box.hidden = false;
+      box.className = 'callout small ' + (st.state === 'thinking' ? 'info' : st.state === 'capped' ? 'warn' : 'bad');
+      $('span:last-child', box).textContent = st.state === 'thinking' ? 'Claude is thinking: it reads the conversation and the data (about half a minute)…' : (st.note || st.state);
     }
     function onTwin(d) {
-      if (d.status === 'capped' || d.status === 'failed' || d.status === 'unavailable') $('#home-twin-note', el).textContent = d.note || d.status;
-      loadTwin();
+      drawTwinStatus({ state: d.status, note: d.note });
+      if (d.status !== 'thinking') loadTwin();
     }
     $('#home-twin-budget', el).addEventListener('click', async e => {
       if (!S.draft) return;

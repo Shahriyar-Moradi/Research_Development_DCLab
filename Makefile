@@ -1,4 +1,4 @@
-.PHONY: catalog datasets decisions-gen decision-models decisions-export decision-gate benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all check-quick check-quick-tests check-commit core-schemas core-wheel-check code-check journeys harness-eval decision-r3 benchmark-v4 pitfalls-by-kind results-by-kind
+.PHONY: tester-setup share collect catalog datasets decisions-gen decision-models decisions-export decision-gate benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all check-quick check-quick-tests check-commit core-schemas core-wheel-check code-check journeys harness-eval decision-r3 benchmark-v4 pitfalls-by-kind results-by-kind
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -357,6 +357,15 @@ results-by-kind:  ## 16.14: one row per kind: its acceptance, the benchmark by k
 
 decision-r3:  ## 22.7: an R3-shaped run of the decision classifiers against the rule on the generated dev cases, as the main product reads one (its state, its bands)
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.decision_r3 $(ARGS)
+
+tester-setup:  ## 25.11: a trusted tester's first step (NAME=, EMAIL=, REPO= the owner's private records repository); shows the notice, needs AGREE=yes
+	$(PYTHON) -m dclab_rnd.testers setup --name "$(NAME)" --email "$(EMAIL)" --repo "$(REPO)" $(if $(filter yes,$(AGREE)),--agree,)
+
+share:  ## 25.11: a tester sends what changed in their workspace (and the tables they agree to) to the owner's records repository
+	$(PYTHON) -m dclab_rnd.testers share $(ARGS)
+
+collect:  ## 25.11: the owner pulls the records repository (RECORDS= its clone) and rebuilds every tester under <workspace>/testers/
+	$(PYTHON) -m dclab_rnd.testers collect $(if $(RECORDS),--records "$(RECORDS)",) $(ARGS) && $(PYTHON) -m dclab_rnd.testers list
 
 harness-eval:  ## 21.5: the regression cases (the owner's morning first), accepted session cases (ARGS="--home DIR") and the dev journeys, graded step by step; a change to a prompt, a model or a gate is on only after it passes
 	$(if $(findstring --live,$(ARGS)),,DCLAB_NO_LIVE_MODELS=1) $(PYTHON) -m dclab_rnd.agent_eval.regression $(ARGS)

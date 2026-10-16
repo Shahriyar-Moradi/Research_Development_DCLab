@@ -1,0 +1,81 @@
+{
+  "package": "25.12",
+  "title": "Live fixes: Claude's refusal of the expert prompt, the thinking's text, the lane's status, and the remembered draft",
+  "date": "2026-10-16",
+  "request": "The owner found that nothing worked: no answer, Claude never called. The owner gave ten dollars to test live and record everything, and asked to keep the expert prompt and use the model's reasoning.",
+  "spec": "The expert prompt reworded as a solution design (the persona and the failures kept), summarized thinking asked for, a refusal said on the lane, the lane's status kept on the session, Home's remembered draft kept across a failed read.",
+  "plan": [
+    "Reproduce on the owner's real key, bisect what fails, fix it, and prove it on the owner's own example."
+  ],
+  "decisions": [
+    {
+      "decision": "The two passages Claude refused are not reworded to slip past the refusal; the deliverable is asked for, and the reasoning comes from the API's summarized thinking.",
+      "why": "The refusal is the model's own safeguard; the product needs the design, and the supported way to see the reasoning is extended thinking."
+    }
+  ],
+  "change": "dclab_rnd/prompts/ai_first_expert.md, ai_first_follow.md, ai_first_home.md, dclab_rnd/models/anthropic_client.py, dclab_rnd/twin/home.py, design.py, the Home page.",
+  "findings": [
+    {
+      "id": "O1",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "Nothing seemed to work on the page the owner tried.",
+      "scenario": "The owner used the scripted test server left open in the browser pane, with live models off by design.",
+      "cause": "A test server without a model was left where the owner would see it, and the lane hid why Claude did not answer.",
+      "fix": "The test server is stopped after checks, and the lane says why Claude cannot answer.",
+      "test": "checked live"
+    },
+    {
+      "id": "M1",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "Claude refused the expert prompt with no output.",
+      "scenario": "Live: the stop reason was a refusal with zero output tokens, with and without thinking, on a churn problem too.",
+      "cause": "Two passages asked the model to write down how it thinks so it could be kept and compared.",
+      "fix": "The prompt asks for a solution design; the persona and the failure lessons are kept word for word; a refusal is said on the lane, never hidden as unreadable.",
+      "test": "checked live on the owner's example"
+    },
+    {
+      "id": "M2",
+      "source": "measurement",
+      "severity": "gap",
+      "defect": "Claude's thinking came back empty.",
+      "scenario": "The thinking blocks arrived with no text.",
+      "cause": "Newer models omit the thinking's text unless a summary is asked for.",
+      "fix": "Every thinking request asks for a summarized display, kept in thinking.jsonl and shown under its reading.",
+      "test": "test_thinking_is_asked_for_kept_and_sent_back_with_the_tool_turn"
+    },
+    {
+      "id": "S1",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "A failed read on load forgot the remembered draft.",
+      "scenario": "Reloading Home while the server was busy left the page empty.",
+      "cause": "Any error was treated as a deleted draft.",
+      "fix": "Only a draft that is gone is forgotten.",
+      "test": "checked in the browser"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "live Home with Claude beside, the owner's fraud example",
+      "gate": "none: a check that both sides answer",
+      "fixed_before_run": true,
+      "result": "DCLab's Home agent with Claude read the return fraud into the understanding and asked when to catch a return; Claude's lane proposed anomaly scoring, investigator review of the top and a random sample as the first labels, two turns.",
+      "verdict": "pass",
+      "cost_eur": 0.3,
+      "limits": [
+        "One conversation; not a measurement of quality."
+      ]
+    }
+  ],
+  "outcome": "Claude answers on Home beside DCLab live, with its reasoning summarized.",
+  "lessons": [
+    "Run the real path with the real key before calling a feature done.",
+    "Never leave a test server where the owner will try the product."
+  ],
+  "risks": [
+    "Training models on Claude's outputs needs the owner's check of Anthropic's terms."
+  ],
+  "commits": []
+}

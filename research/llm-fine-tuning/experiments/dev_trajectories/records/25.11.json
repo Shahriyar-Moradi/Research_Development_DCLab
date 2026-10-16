@@ -1,0 +1,165 @@
+{
+  "package": "25.11",
+  "title": "Trusted testers on their own machines: everything they do recorded and sent to the owner's private records repository",
+  "date": "2026-10-16",
+  "request": "The owner wants trusted friends to clone the repository and use DCLab locally, with everything they do recorded and fetched back; a private GitHub repository, records plus the tables a tester agrees to, each tester's own key.",
+  "spec": "dclab_rnd testers (setup, share, collect, summary) and its command line, the make targets, the owner's evaluation reading the collected testers, docs/guides/TESTERS.md.",
+  "plan": [
+    "Show the notice and need the tester's agreement before anything is set.",
+    "Send only what changed, whole files with a manifest of their hashes, through git.",
+    "Rebuild each tester's workspace on the owner's side, applying only what matches its manifest and stays inside the tester's folder."
+  ],
+  "decisions": [
+    {
+      "decision": "A table goes only with the tester's yes, asked again when its content changes, and without it its cells are taken out of the records that quote them.",
+      "why": "A no to a table must mean its values do not leave, not just its file."
+    },
+    {
+      "decision": "A tester's workspace must keep its records in files.",
+      "why": "On PostgreSQL the records are in the database and a share would send almost nothing, silently."
+    }
+  ],
+  "change": "dclab_rnd/testers (new), Makefile, dclab_rnd/evaluation.py, .gitignore, .env.example, README, docs, tests/test_testers.py (new).",
+  "findings": [
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Two shares in the same second overwrote each other's bundle and lost files.",
+      "scenario": "A second share replaced the first's manifest; its files were never collected nor sent again.",
+      "cause": "The bundle folder was named to the second.",
+      "fix": "Bundles are named to the microsecond with a random suffix, so they never meet and stay in order of time.",
+      "test": "test_cells_of_a_refused_table_never_leave_and_deletions_and_offline_bundles_reach_the_owner"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A bundle committed offline was never pushed.",
+      "scenario": "After a share without push, the next share found nothing new and stopped before pushing.",
+      "cause": "Files were marked shared at commit time.",
+      "fix": "A file is marked shared only once pushed; a share first pushes any commit not yet pushed; a rejected push pulls and tries once more.",
+      "test": "test_cells_of_a_refused_table_never_leave_and_deletions_and_offline_bundles_reach_the_owner"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "A refused table's values still left inside the records.",
+      "scenario": "A project's previews, a draft's top values and an intern session's examples quoted cells of a table the tester said no to.",
+      "cause": "Records were copied whole.",
+      "fix": "Without the table's yes, the keys that quote cells are taken out of the project, draft and session records sent.",
+      "test": "test_cells_of_a_refused_table_never_leave_and_deletions_and_offline_bundles_reach_the_owner"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "On PostgreSQL a share sent almost nothing.",
+      "scenario": "The guide offered make dev, which keeps records in the database.",
+      "cause": "The records live in the database there.",
+      "fix": "Setup and share refuse a workspace on PostgreSQL; the guide says make notebook with the database setting empty.",
+      "test": "test_a_workspace_on_postgresql_or_without_consent_shares_nothing"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The command never read .env.",
+      "scenario": "The owner's records path and a workspace folder set in .env were ignored.",
+      "cause": "The command did not load the file the server loads.",
+      "fix": "The command loads .env first.",
+      "test": "make collect"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "A share did not check consent.",
+      "scenario": "With the workspace's consent turned off, a share still sent everything.",
+      "cause": "Consent was set at setup and never read again.",
+      "fix": "A share refuses when the workspace's consent is off.",
+      "test": "test_a_workspace_on_postgresql_or_without_consent_shares_nothing"
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "A table's yes was remembered by its path only.",
+      "scenario": "New real data under the name of an earlier sample was sent without asking.",
+      "cause": "The answer was keyed by path.",
+      "fix": "The answer is kept with the table's hash and asked again when it changes; earlier answers can be forgotten.",
+      "test": "test_a_changed_table_is_asked_about_again_and_the_cap_is_enforced"
+    },
+    {
+      "id": "R8",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A file was hashed before it was copied.",
+      "scenario": "An appended event between the two made the copy disagree with its manifest and be skipped silently.",
+      "cause": "The hash was taken from the source.",
+      "fix": "The copy is hashed; skipped files are counted and said.",
+      "test": "test_a_bundle_cannot_write_outside_the_testers_folder_or_read_through_a_link"
+    },
+    {
+      "id": "R9",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "One malformed manifest stopped the whole collection.",
+      "scenario": "A bundle with a broken manifest raised and no tester was collected.",
+      "cause": "Nothing caught a manifest that could not be read.",
+      "fix": "Such a bundle is skipped and said; the others are applied.",
+      "test": "test_a_bundle_cannot_write_outside_the_testers_folder_or_read_through_a_link"
+    },
+    {
+      "id": "R10",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "Deletions never reached the owner.",
+      "scenario": "A project the tester deleted stayed on the owner's side forever.",
+      "cause": "Only changed files were sent.",
+      "fix": "The manifest names the files deleted since the last share and the collection deletes them.",
+      "test": "test_cells_of_a_refused_table_never_leave_and_deletions_and_offline_bundles_reach_the_owner"
+    },
+    {
+      "id": "R11",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "A link inside a bundle was followed when reading.",
+      "scenario": "A bundle's file that linked to an owner's file copied it into the tester's folder.",
+      "cause": "Sources were not checked for links.",
+      "fix": "A link, a source outside the bundle or a destination outside the tester's folder is never applied.",
+      "test": "test_a_bundle_cannot_write_outside_the_testers_folder_or_read_through_a_link"
+    },
+    {
+      "id": "R12",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The cap was not set when a line already existed.",
+      "scenario": "An empty or higher monthly cap stayed while the notice promised fifteen.",
+      "cause": "Setup only added a missing line.",
+      "fix": "A missing, empty or higher cap is set to fifteen; a lower one stays.",
+      "test": "test_a_changed_table_is_asked_about_again_and_the_cap_is_enforced"
+    },
+    {
+      "id": "R13",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "The owner's records clone was not ignored by git.",
+      "scenario": "Every tester's records could have been committed to the code repository.",
+      "cause": "The folder was not in the ignore list.",
+      "fix": "It is in the ignore list.",
+      "test": ".gitignore"
+    }
+  ],
+  "measurements": [],
+  "outcome": "Testers can share their records and agreed tables; the owner collects them; tested on a local bare repository.",
+  "lessons": [
+    "A no to sharing a file must also cover every other file that quotes it.",
+    "Mark a thing sent only when it has left."
+  ],
+  "risks": [
+    "In one shared repository a tester could write into another's folder."
+  ],
+  "commits": []
+}

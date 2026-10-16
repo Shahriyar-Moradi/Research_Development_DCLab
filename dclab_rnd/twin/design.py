@@ -310,6 +310,9 @@ class Designer:
             self.event("design_failed", checkpoint=checkpoint, outcome=f"{type(exc).__name__}: {str(exc)[:300]}")
             return None
         raw = str(out.get("content") or "")
+        if out.get("finish_reason") == "content_filter":  # the model declined: an event, never a failure of the run
+            self.event("design_declined", checkpoint=checkpoint, outcome="the provider's refusal")
+            return None
         version = len(self.versions) + 1
         cut = out.get("finish_reason") == "length"  # the answer hit its limit: what it holds is kept, and said
         try:  # an answer that cannot be read is a version with problems, never an error in the agent's run
@@ -335,9 +338,8 @@ class Designer:
         return entry
 
     def initial(self) -> dict[str, Any] | None:
-        user = ("DESIGN REQUEST: initial\n\nWrite your record of this problem and its solution before anything runs: how you understand the problem "
-                "and the data, what you would explore, how you would prepare it, what kind of problem it is, the algorithms, the parts, the evaluation "
-                "and the workflow. The tools listed are the ones the agent can call; the workflow steps are the ones the validator checks.\n\n"
+        user = ("DESIGN REQUEST: initial\n\nThe solution design for this project, before anything runs. The tools listed are the ones the agent "
+                "can call; the workflow steps are the ones the validator checks.\n\n"
                 + json.dumps(self.context(), ensure_ascii=False, default=str))
         return self._ask("initial", user)
 
@@ -353,7 +355,7 @@ class Designer:
         user = (f"{head}\n\nYour current design (v{cur['version'] if cur else 0}):\n" + json.dumps(cur["design"] if cur else None, ensure_ascii=False)
                 + "\n\nWhat the agent did since then (one row per tool call):\n" + json.dumps(since, ensure_ascii=False, default=str)
                 + "\n\nThe evidence:\n" + json.dumps(evidence, ensure_ascii=False, default=str)
-                + "\n\nWrite the whole record again, revised from this evidence: put what the evidence answered into \"eda\" (question, answer, "
+                + "\n\nThe whole design again, updated from this evidence: what the evidence answered in \"eda\" (question, answer, "
                 "conclusion), and every change in \"changes\" (an empty list if nothing changed).")
         return self._ask("final" if final else checkpoint, user)
 

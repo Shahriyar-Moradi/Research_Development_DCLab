@@ -292,6 +292,37 @@ Messages transport (which returns Claude's thinking, which the OpenAI-compatible
   higher workspace default. Every twin row names the person it was for; `docs/guides/TESTERS.md` says how trusted testers sign in and where
   everything they do is kept.
 
+### 25.11 Trusted testers on their own machines
+- **Why:** the owner (2026-10-16): trusted friends clone the repository and use DCLab locally; everything they do is
+  recorded and comes back to the owner. The owner's choices: a private GitHub repository as the way back, records and
+  the tables a tester agrees to, each tester's own Anthropic key.
+- **Delivers:** `dclab_rnd/testers` (`make tester-setup`, `make share`, `make collect`): the notice and the tester's
+  agreement, their id, consent and Claude beside DCLab on, the month capped at 15 in their `.env`, the records
+  repository cloned; a share sends every record file that changed since the last (a table only with the tester's
+  yes, once per table; never `.env`, a key or a file over 45 MB) as a bundle with its manifest, committed and pushed;
+  the owner's collection pulls and rebuilds each tester's workspace under `testers/<id>/`, checked against the
+  manifest's hashes and never outside that folder; the Evaluation page reads every collected tester;
+  `docs/guides/TESTERS.md`.
+- **Done when:** on a local bare repository, a share sends only what changed and only agreed tables, the owner's
+  collection rebuilds the tester's folder with the latest copy of each file, and a bundle naming a path outside it
+  writes nothing.
+- **Status: done (2026-10-16).** As delivered; tested on a local bare repository (nothing reaches a real remote). The
+  review (13 findings) made bundle names unique and in order of time, marked a file shared only once pushed (an offline
+  bundle goes with the next share), took a refused table's cell values out of the records that quote them, asked again
+  about a table whose content changed, refused a workspace on PostgreSQL or with its consent off, read `.env`, hashed
+  the copy that was sent, skipped a broken manifest, a link or a path outside the tester's folder, carried deletions
+  to the owner, enforced the cap and ignored the records clone in git. Left open: the owner makes the private
+  repository and invites the testers; one repository per tester if testers must not see each other's folders.
+
+### 25.12 Live fixes
+- **Why:** the owner tried the page and nothing answered; a live check on the owner's key found Claude refusing the
+  expert prompt (two passages asked it to write down how it thinks so it could be kept and compared), its thinking
+  arriving without text, and the lane hiding why.
+- **Status: done (2026-10-16).** The prompt asks for a solution design (the persona and the failure lessons kept),
+  every thinking request asks for a summarized display (kept in `thinking.jsonl`, shown under Claude's reading), a
+  refusal is said on the lane, the lane's state (thinking, answered, declined, capped, not reachable, failed) is kept
+  on the session, Home keeps its remembered draft across a failed read. Checked live on the owner's fraud example.
+
 ## The next phase: fine-tuning the decision models
 
 Phase 3 collects the data; the next phase (its own plan, written when the sets of 25.7 hold enough) fine-tunes on it:

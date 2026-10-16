@@ -100,8 +100,8 @@ def thinking_param(setting: Any) -> dict[str, Any] | None:
             budget = int(n or 4000)
         except ValueError:
             budget = 4000  # a misspelt budget is the default one, never a failure of the request
-        return {"type": "enabled", "budget_tokens": max(1024, budget)}
-    return {"type": "adaptive"}
+        return {"type": "enabled", "budget_tokens": max(1024, budget), "display": "summarized"}
+    return {"type": "adaptive", "display": "summarized"}  # newer models omit the thinking's text unless a summary is asked for
 
 
 def _options(options: dict[str, Any], system: str) -> tuple[dict[str, Any], str]:

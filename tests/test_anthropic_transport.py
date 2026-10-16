@@ -216,7 +216,7 @@ class ThinkingTests(unittest.TestCase):
         out = client.complete([{"role": "system", "content": "s"}, {"role": "user", "content": "go"}], [{"type": "function", "function": {"name": "describe_data", "parameters": {}}}],
                               temperature=0.2)
         sent = fake.sent[-1]
-        self.assertEqual(sent["thinking"], {"type": "adaptive"})
+        self.assertEqual(sent["thinking"], {"type": "adaptive", "display": "summarized"})  # the thinking's text, summarized, comes back
         self.assertNotIn("temperature", sent)  # the API refuses a temperature with thinking
         self.assertEqual(out["thinking"], [{"text": "The target is churn; check the dates.", "signature": "sig-1"}])
         blocks = out["assistant_message"]["thinking_blocks"]
@@ -229,7 +229,7 @@ class ThinkingTests(unittest.TestCase):
         fake = FakeMessages(reply(NS(type="text", text="ok")))
         client = client_with(fake)
         client.complete([{"role": "user", "content": "go"}], None, 3200, thinking="enabled:3000")
-        self.assertEqual(fake.sent[-1]["thinking"], {"type": "enabled", "budget_tokens": 3000})
+        self.assertEqual(fake.sent[-1]["thinking"], {"type": "enabled", "budget_tokens": 3000, "display": "summarized"})
         self.assertEqual(fake.sent[-1]["max_tokens"], 6200)  # the reply keeps its whole limit above the thinking budget
         client.complete([{"role": "user", "content": "go"}], None, 1800, thinking="adaptive")
         self.assertEqual(fake.sent[-1]["max_tokens"], 1800 + anthropic_client.ADAPTIVE_HEADROOM)

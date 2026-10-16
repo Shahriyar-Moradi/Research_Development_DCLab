@@ -419,14 +419,17 @@ class HomeTwin:
             self.sessions.append(folder, "conversation.jsonl", {"at": now(), "role": "user", "user": person(), "text": text[:4000]})
         refused = self.refusal(folder, s)
         if refused:
-            self._tell(draft_id, {"session": session, "status": "capped", "note": refused})
+            self._status(folder, draft_id, session, "capped", refused)
             return {"status": "capped", "note": refused}
         conversation = [{"role": r.get("role"), "text": r.get("text")} for r in self.sessions.rows(folder, "conversation.jsonl")]
         payload, summary = given(self.drafts, draft, conversation, s["sample"])
         client = self.gateway.client("ai_first", draft_id=draft_id) if self.gateway is not None else None
         if client is None:
-            self._tell(draft_id, {"session": session, "status": "unavailable", "note": "no model serves the AI-first arm here"})
-            return {"status": "unavailable"}
+            note = ("Claude is not reachable on this server: no model is configured for it (set ANTHROPIC_API_KEY and "
+                    "DCLAB_LLM_PROVIDER=anthropic in .env and restart), or live models are switched off (DCLAB_NO_LIVE_MODELS)")
+            self._status(folder, draft_id, session, "unavailable", note)
+            return {"status": "unavailable", "note": note}
+        self._status(folder, draft_id, session, "thinking", "Claude is reading the conversation and the data")
         spent = float(self.sessions.manifest(folder).get("spent_eur") or 0.0)
         client.run_limit_eur = max(0.0, self.cap(folder, s) - spent)
         system_prompt = prompts.text("ai_first_expert") + "\n\n" + prompts.text("ai_first_home")
@@ -440,9 +443,15 @@ class HomeTwin:
         except Exception as exc:  # noqa: BLE001 — Claude failing never fails the system's turn
             row = {"at": at, "user": person(), "event": event, "to": to, "given": summary, "status": "failed", "error": f"{type(exc).__name__}: {str(exc)[:300]}"}
             self.sessions.append(folder, "ai_first.jsonl", row)
-            self._tell(draft_id, {"session": session, "status": "failed", "note": row["error"]})
+            self._status(folder, draft_id, session, "failed", "Claude's request failed: " + row["error"])
             return row
         cost = max(0.0, float(getattr(client, "spent_eur", 0.0) or 0.0) - before)
+        if out.get("finish_reason") == "content_filter":  # the model declined (Anthropic's stop reason "refusal"): said, never hidden
+            row = {"at": at, "user": person(), "event": event, "to": to, "given": summary, "status": "declined", "cost_eur": round(cost, 6)}
+            self.sessions.append(folder, "ai_first.jsonl", row)
+            self.sessions.update(folder, spent_eur=round(cost, 6))
+            self._status(folder, draft_id, session, "declined", "Claude declined to answer this request (the provider's refusal); DCLab's own answer stands")
+            return row
         raw_answer = str(out.get("content") or "")
         raw, problems = expert.extract(raw_answer)
         take = raw or {}
@@ -481,10 +490,17 @@ class HomeTwin:
             self.sessions.append(folder, "steps.jsonl", json.loads(record.model_dump_json()))
             written.append({"step": step, "differs": [d.field for d in record.differences if d.kind not in ("same", "neither")]})
         people = sorted({*(self.sessions.manifest(folder).get("people") or []), *([row["user"]] if row["user"] else [])})
-        self.sessions.update(folder, spent_eur=round(cost, 6), turns=1, steps=len(written), last=now(), people=people)
+        self.sessions.update(folder, spent_eur=round(cost, 6), turns=1, steps=len(written), last=now(), people=people,
+                             status={"state": row["status"], "note": None if raw else "Claude answered, but not as a readable record", "at": now()})
         self._tell(draft_id, {"session": session, "status": row["status"], "reply": row["reply"], "steps": written, "cost_eur": round(cost, 6),
                               "question": (take.get("next_question") or {}) if isinstance(take.get("next_question"), dict) else {}})
         return {**row, "steps": written}
+
+    def _status(self, folder: Path, draft_id: str, session: str, state: str, note: str) -> None:
+        """Where Claude's lane stands (thinking, answered, capped, unavailable, failed), kept on the session so the page shows
+        it after a reload, and told to the page now."""
+        self.sessions.update(folder, status={"state": state, "note": note[:600], "at": now()})
+        self._tell(draft_id, {"session": session, "status": state, "note": note[:600]})
 
     def _tell(self, draft_id: str, payload: dict[str, Any]) -> None:
         try:
@@ -541,13 +557,19 @@ class HomeTwin:
         s = settings(self.home)
         folder = self.sessions.find(f"draft-{draft_id}")
         if folder is None or not folder.is_dir():
-            return {"settings": s, "session": None, "conversation": [], "steps": [], "record": None}
+            reachable = self.gateway is not None and self.gateway.client("ai_first", draft_id=draft_id) is not None
+            status = None if reachable or not s["on"] else {"state": "unavailable", "note": "Claude is not reachable on this server: no model is configured "
+                                                            "for it (ANTHROPIC_API_KEY and DCLAB_LLM_PROVIDER=anthropic in .env), or live models are switched off"}
+            return {"settings": s, "session": None, "conversation": [], "steps": [], "record": None, "status": status, "cap_eur": s["session_eur"]}
         steps: dict[str, dict[str, Any]] = {}
         for r in self.sessions.rows(folder, "steps.jsonl"):
             steps[r["step"]] = r
         turns = [r for r in self.sessions.rows(folder, "ai_first.jsonl") if r.get("trace")]
-        return {"settings": s, "session": self.sessions.manifest(folder), "cap_eur": self.cap(folder, s), "conversation": self.sessions.rows(folder, "conversation.jsonl")[-60:],
-                "steps": [steps[k] for k in HOME_STEPS if k in steps], "record": turns[-1]["trace"] if turns else None}
+        thoughts = self.sessions.rows(folder, "thinking.jsonl")
+        manifest = self.sessions.manifest(folder)
+        return {"settings": s, "session": manifest, "status": manifest.get("status"), "cap_eur": self.cap(folder, s), "conversation": self.sessions.rows(folder, "conversation.jsonl")[-60:],
+                "steps": [steps[k] for k in HOME_STEPS if k in steps], "record": turns[-1]["trace"] if turns else None,
+                "thinking": [t for t in (thoughts[-1].get("thinking") if thoughts else []) if t][:6]}
 
 
 def after_turn(drafts: Any, gateway: Any, home: Path, draft_id: str, event: str, text: Optional[str] = None, to: str = "both",
