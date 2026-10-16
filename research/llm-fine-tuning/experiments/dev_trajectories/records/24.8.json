@@ -1,0 +1,139 @@
+{
+  "package": "24.8",
+  "title": "Measurement and switch-on: journeys v5, a sealed set by an independent author, the gate fixed before the run, and the switches that follow it",
+  "date": "2026-10-16",
+  "request": "Phase 2 of the owner's plan: measure the new roles against the rules on the same people, on a sealed set written by someone who never read the rules, and let a role serve the product only after it passes.",
+  "spec": "dclab_rnd agent_eval journeys programme (six dev people, ten sealed people, two arms, the gate in code, the once-only command), the complex suite's sealed pass read by draft.map.roles_passed, the advisor's optional memory for a measurement; evidence/campaigns/journeys_programme_v1 and map_roles_v1.",
+  "plan": [
+    "The sealed people are written by an agent given only the three files' columns, the format and the vocabulary, and frozen by hash before the harness is written.",
+    "The gate (the bar, the arms' comparison) is in code and committed before any sealed run; nothing is tuned on the sealed set.",
+    "Two arms on the same people, the rules and the map roles served by the model; a role serves the product only if both the decomposer's sealed brief gate and the roles arm's sealed journey gate passed.",
+    "A live run needs a euro cap, a priced model and an arm a model actually answered; the sealed set is run once and stored whole."
+  ],
+  "decisions": [
+    {
+      "decision": "Wilson's lower end is 0.55 and the share 85% for ten people.",
+      "why": "The earlier bar (0.6) cannot be met by 9 of 10 (0.596); 9 of 10 is the smallest count at 85%, so the lower end is set to what it gives, before any run."
+    },
+    {
+      "decision": "A person who stops at a blocked part is right when the holdout stays closed with the reason said, whatever the expert's composes says.",
+      "why": "The expert's 'composes' is whether the pieces could be combined once the files are there; a person who waits for the file must not be made to read the holdout."
+    },
+    {
+      "decision": "A part is right when every part the expert expects is drawn with the expert's approach and at most one is drawn beyond them.",
+      "why": "A careful analyst may add a screen the expert did not ask for; a missing part or a wrong approach is the failure."
+    },
+    {
+      "decision": "The roles do not serve: they stay off, and nothing in the product changes.",
+      "why": "The gate failed (2 of 10 against the bar of 9, and not above the rules); the decomposer alone passed the brief gate, which is not enough."
+    }
+  ],
+  "change": "dclab_rnd/agent_eval/journeys/programme.py (the format, the two arms, the gate, the command), journeys_programme_dev.json (six people), journeys_programme_sealed.json and sealed_programme.sha256 (the independent author's ten, frozen), draft/map.py roles_passed (both sealed passes), complex.sealed_passed, core_advisor memo, the campaign's manifest and results JPR-001 to 004 and MAP-006; tests test_programme_journey, test_advisor_cache.",
+  "findings": [
+    {
+      "id": "H1",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "The first live roles arm sent nothing and said it had passed.",
+      "scenario": "103 asks, EUR 0 spent, the roles arm identical to the rules arm: 'as good as the rules'.",
+      "cause": "The journey ran inside the private scope that forbids model requests; the count was of asks, not of requests that reached a model.",
+      "fix": "The roles arm leaves the private scope; the command refuses to score an arm no model answered (no request sent, nothing spent) and counts what was sent per purpose; the vacuous records were deleted unpushed.",
+      "test": "test_programme_journey SealedTest test_a_roles_arm_that_no_model_answered_is_refused_not_scored_against_the_rules"
+    },
+    {
+      "id": "H2",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "A dropped leaf made the composition look stale in the pipeline.",
+      "scenario": "JP-03: after the person dropped the rings, the composition and the holdout steps read 'must run again'.",
+      "cause": "The composition's step depended on the dropped leaf's step, which has no run.",
+      "fix": "A dropped leaf is listed with its reason and is no input of the composition.",
+      "test": "test_studio_programme BlockedTest"
+    },
+    {
+      "id": "H3",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "A single problem the rules drew was routed to a kind the table suggested.",
+      "scenario": "'Find the unusual deliveries' was routed to binary: the older detection read a status column as a yes or no, while the build uses the card's family.",
+      "cause": "compute_routes passed the detected kind whatever the family.",
+      "fix": "For a single map the rules drew, a detected kind outside the map's family is not the route; a person's own single map keeps the detection to say why it was set aside.",
+      "test": "test_draft_map RoutesOnHomeTest"
+    },
+    {
+      "id": "H4",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The advisor's memory changed every caller.",
+      "scenario": "Three existing tests ask the same question twice and expect two requests.",
+      "cause": "The memory was always on.",
+      "fix": "It is an option (memo) the measurement command turns on; the sealed roles arm was made with it on.",
+      "test": "test_advisor_cache; test_agent_harness; test_analyst_measure; test_team"
+    },
+    {
+      "id": "H5",
+      "source": "measurement",
+      "severity": "gap",
+      "defect": "The roles arm cost more than the cap allowed.",
+      "scenario": "The dev roles arm spent EUR 0.42 of 0.5 on six people: 51 of 74 requests were the router asked the same thing again.",
+      "cause": "A route is recomputed several times with nothing changed.",
+      "fix": "The measuring advisor answers an identical question once: the sealed arm spent EUR 0.31 on ten people (43 of 80 asks answered from its memory).",
+      "test": "test_advisor_cache"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "decomposer on the sealed briefs (map_gate_v1)",
+      "gate": "Fixed 2026-10-16 before any live run: on the sealed set a better mean families F1 with the roles than with the rules, no case whose size the rules had right and the roles got wrong, at most two of 14 scored lower.",
+      "fixed_before_run": true,
+      "result": "MAP-006: roles mean F1 0.990 against 0.667 for the rules, size right 14 of 14 against 8, exact 13 against 6, one case scored lower (CS-01), no size regression; EUR 0.097.",
+      "verdict": "pass",
+      "cost_eur": 0.0974,
+      "limits": [
+        "Fourteen written briefs; the model is a drafting aid whose parts the rules check.",
+        "It reads a brief, not a conversation with answers."
+      ]
+    },
+    {
+      "name": "sealed programme journeys, the rules arm",
+      "gate": "journeys_programme_gate_v1, fixed in code before the run: at least 85% right with the interval's lower end at least 0.55, no refused move, no double read.",
+      "fixed_before_run": true,
+      "result": "The third result of the campaign, replica seed 5, run once: 2 of 10 right (interval 0.057 to 0.51); by part card 6 of 10, workflow 5 of 10, pipeline 5 of 7, holdout 2 of 7.",
+      "verdict": "fail",
+      "against_gate": "2 of 10 right against a bar of 85%, and the interval's lower end 0.057 against 0.55.",
+      "next": "The misses are findings, not tuning: the sealed set is dev material from now.",
+      "limits": [
+        "The writer is a model instance, not a person.",
+        "Three of the ten share one programme on one seed, so a fusion whose gain is not shown there makes all three miss together.",
+        "The expert's expectation is one analyst's reading: two misses are disagreements about size."
+      ]
+    },
+    {
+      "name": "sealed programme journeys, the roles arm",
+      "gate": "The roles arm right on at least as many journeys and as many of each part as the rules arm, every request answered, no refused move, within the cap, and the suite bar itself.",
+      "fixed_before_run": true,
+      "result": "The fourth result of the campaign, same people, same seed: 2 of 10 right; card 7 of 10, workflow 3 of 10, pipeline 4 of 7, holdout 2 of 7; 80 asks, 37 sent to a model, 0 failed, EUR 0.3065. The roles lost JS-03 and JS-04 (they drew no linked-accounts part) and gained JS-06 and JS-08 (they read one problem as one).",
+      "verdict": "fail",
+      "cost_eur": 0.3065,
+      "against_gate": "2 of 10 right is under the suite bar, and the workflow part is right on 3 of 10 after the roles lost JS-03 and JS-04 on it, so they are below the rules there.",
+      "next": "The roles stay off: draft.map.roles_passed() reads both stored sealed passes and the journeys one is a fail.",
+      "limits": [
+        "The same model instance wrote neither the people nor the rules, but the author and the roles are both models.",
+        "The decomposer served by the model drops parts a brief's reading keeps."
+      ]
+    }
+  ],
+  "outcome": "The sealed run is stored once with both arms and the roles do not serve: the decomposer passed its brief gate, and the journeys show the rules and the roles both below the bar. What the sealed set found is listed as open work: a conversation that stops for want of an outcome when nothing is labelled, a single anomaly worded as unusual deliveries read as a classification, the fraud template drawn for two problems an expert reads as one, and a fusion that does not beat its best leaf on one seed.",
+  "lessons": [
+    "Count what reached the model, not what was asked of it.",
+    "A bar is chosen for the number of people it will judge.",
+    "An independent author finds what the rules' author cannot: two of the ten are disagreements about what the problem is.",
+    "A measurement's helper must not change the product it measures: make it an option."
+  ],
+  "risks": [
+    "The sealed set is spent: its misses can be fixed, but never measured on it again.",
+    "The rules' fraud template is eager (two single problems drawn as four parts).",
+    "No human wrote the sealed people."
+  ],
+  "commits": []
+}

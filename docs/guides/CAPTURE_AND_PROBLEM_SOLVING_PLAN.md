@@ -587,6 +587,19 @@ measured against the rules before it serves):
   read once); each new role compared with the rules on the same people; a role serves the product only after it is
   right on at least as many people as the rules and passes the bar.
 - **Done when:** the sealed run is stored once, with both arms, and the switches follow its result.
+- **Status: done (2026-10-16), with a failing result stored as the plan asked.** The sealed programme journeys (`journeys_programme_sealed.json`, ten people written by an agent given only the three files'
+  columns, the format and the vocabulary; SHA-256 pinned in the commit before the harness was written) were run once, both arms, on the replica's seed 5, against a gate fixed in code
+  (`journeys_programme_gate_v1`: 85% right, the interval's lower end at least 0.55, no refused move, no double read; the roles must match or beat the rules on the journeys and on each part). Results:
+  the rules arm 2 of 10 right (JPR-003, interval 0.057 to 0.51), the roles arm 2 of 10 (JPR-004, EUR 0.3065, 80 asks, 37 sent to a model, none failed); both under the bar, and the roles below the rules
+  on the workflow part (3 against 5). The decomposer alone passed its sealed brief gate (MAP-006: mean F1 0.990 against 0.667, size right 14 of 14 against 8; EUR 0.097). The switches follow the result:
+  `draft.map.roles_passed()` needs both passes, so the roles stay off and the rules serve. The dev run (six people written beside the rules, not evidence): the rules 6 of 6 (JPR-001), the roles 1 of 6
+  (JPR-002, EUR 0.42). What the sealed set found, listed as open work (the set is dev material from now, nothing tuned on it): (1) three people with all the files missed together on one seed, where the
+  fusion's gain (+0.171, interval -0.092 to +0.512) was not above zero; (2) two people with no confirmed case were stopped at the problem card (the conversation could not settle an outcome when nothing is
+  labelled); (3) 'unusual deliveries' alone was read as a classification; (4) two problems an expert reads as one were drawn as four parts by the fraud template; (5) the model's decomposition drops the
+  linked accounts or the review list. Differences from the plan, said: the dev set holds six complex people and the 15 single ones stay the older journeys' (`journeys_dev.json`); three of the sealed ten are
+  single problems and are scored on the card and the workflow only; a person who stops at a blocked part is right when the holdout stays closed with the reason said.
+- **Milestone K (24.1 to 24.8) is built:** the problem map, the understanding agents, the router, the solution map, programmes with their one read of the holdout, the fraud replica and its journey, the capture
+  of phase 2, and the measurement. Every role stays off until a measurement says otherwise; the rules carry the product.
 
 ---
 

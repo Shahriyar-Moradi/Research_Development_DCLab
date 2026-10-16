@@ -556,3 +556,18 @@ reasons and `solution.compose` in `conformance.POINTS_NOT_MAPPED`; the host that
 payloads are in `experience.KINDS`), and builds the two sets with `datasets.problem_maps` and `datasets.routes` over items it assembles (the maps, the edits, the routes, the programme's
 outcome). A route is recorded again when the tables change it; a programme's drop of a leaf is a `problem.part_changed`.
 
+## Measurement and switch-on (24.8)
+
+The roles of phase 2 (the decomposer, the map reviewer, the data-need agent and the solution router) are the library's; whether a model serves them is the host's decision, and the
+library's rule for it is the one every role here follows: a model serves a role only after a measurement fixed before it ran, on people it was not tuned on, showed it right on at
+least as many people as the rules and over the bar. The measurement is `dclab_rnd/agent_eval` in this studio: the decomposer against the rules on 28 written briefs (`complex`, the
+sealed 14 run once), and the programme journeys (`journeys/programme.py`: six dev people, ten sealed people written by an agent that was given only the files' columns, the format and
+the vocabulary), each person played from the first sentence to the one read of the holdout, or to the reason it stays closed, with two arms on the same people (the rules, and the
+roles served by the model). Its parts and its bar are in code (`GATE`); a part that does not apply is not scored; a run needs a euro cap and a priced model, and an arm no model
+answered is refused rather than scored against the rules.
+
+Where it goes there: the main product can run the same people against the library it adopts (the sealed file and its hash are plain files; the journeys' `expect` is the vocabulary of
+`solutions.CATALOGUE` and `bands.FAMILIES`), and keeps its own switch. In this studio the result of 2026-10-16 is that the decomposer passed its brief gate and the roles arm of the
+journeys did not (2 of 10 against a bar of 85%), so `draft.map.roles_passed()` is false and the rules serve; the rules arm itself was also under the bar (2 of 10), and the misses are
+listed as open work in the plan.
+

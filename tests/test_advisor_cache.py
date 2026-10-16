@@ -1,4 +1,4 @@
-"""An advisor answers the same question once: an identical ask (same purpose, same evidence) is a route recomputed with nothing changed, and paying for it twice
+"""A measuring advisor (``memo=True``) answers the same question once: an identical ask (same purpose, same evidence) is a route recomputed with nothing changed, and paying for it twice
 is how a measurement runs out of its cap. An error is never kept."""
 
 import json
@@ -43,7 +43,7 @@ class Gate:
 class AdvisorCacheTest(unittest.TestCase):
     def test_an_identical_ask_is_answered_once_and_a_different_one_is_sent(self):
         client = Client([json.dumps({"choice": "anomaly"}), json.dumps({"choice": "rare_event"})])
-        advisor = GatewayAdvisor(Gate(client))
+        advisor = GatewayAdvisor(Gate(client), memo=True)
         a = advisor.ask("solution_router", {"sub": "sp1", "route": {"chosen": "anomaly"}})
         b = advisor.ask("solution_router", {"route": {"chosen": "anomaly"}, "sub": "sp1"})  # the same evidence, its keys in another order
         c = advisor.ask("solution_router", {"sub": "sp2", "route": {"chosen": "anomaly"}})
@@ -53,18 +53,24 @@ class AdvisorCacheTest(unittest.TestCase):
 
     def test_the_same_evidence_for_another_purpose_is_another_question(self):
         client = Client([json.dumps({"x": 1}), json.dumps({"y": 2})])
-        advisor = GatewayAdvisor(Gate(client))
+        advisor = GatewayAdvisor(Gate(client), memo=True)
         advisor.ask("decomposer", {"words": "w"})
         advisor.ask("map_reviewer", {"words": "w"})
         self.assertEqual(client.sent, 2)
 
     def test_an_error_is_never_kept_and_is_asked_again(self):
         client = Client([RuntimeError("provider down"), json.dumps({"ok": True})])
-        advisor = GatewayAdvisor(Gate(client))
+        advisor = GatewayAdvisor(Gate(client), memo=True)
         with self.assertRaises(RuntimeError):
             advisor.ask("decomposer", {"words": "w"})
         self.assertEqual(advisor.ask("decomposer", {"words": "w"}), {"ok": True})
         self.assertEqual(client.sent, 2)
+
+    def test_an_advisor_that_is_not_measuring_asks_every_time(self):
+        client = Client([json.dumps({"n": 1}), json.dumps({"n": 2})])
+        advisor = GatewayAdvisor(Gate(client))
+        self.assertEqual([advisor.ask("decomposer", {"words": "w"}), advisor.ask("decomposer", {"words": "w"})], [{"n": 1}, {"n": 2}])
+        self.assertEqual((client.sent, advisor.hits), (2, {}))
 
     def test_no_model_serving_is_not_kept_either(self):
         advisor = GatewayAdvisor(Gate(None))

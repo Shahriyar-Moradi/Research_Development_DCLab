@@ -1,0 +1,727 @@
+{
+ "id": "MAP-006",
+ "campaign_id": "map_roles_v1",
+ "kind": "map_roles_measured",
+ "split": "sealed",
+ "at": "2026-10-16T03:46:19+00:00",
+ "gate": {
+  "version": "map_gate_v1",
+  "split": "sealed",
+  "better_f1": "mean families F1 with the roles > mean families F1 with the rules alone",
+  "no_size_regression": "cases whose size the rules had right and the roles got wrong == 0",
+  "few_worse": "cases scored lower with the roles than with the rules <= 2 of 14"
+ },
+ "plan": {
+  "purpose": "decomposer",
+  "tier": "standard",
+  "model": "claude-sonnet-5-5",
+  "local": false,
+  "available": true,
+  "cases": 14,
+  "max_requests": 14,
+  "max_eur": 0.406
+ },
+ "spent_eur": 0.0974,
+ "rows": [
+  {
+   "case": "CS-01",
+   "gold": {
+    "size": "complex",
+    "families": [
+     "anomaly",
+     "entity_tables",
+     "ranking",
+     "rare_event"
+    ]
+   },
+   "values": {
+    "rules": [
+     "anomaly",
+     "entity_tables",
+     "ranking",
+     "rare_event"
+    ],
+    "roles": [
+     "anomaly",
+     "entity_tables",
+     "rare_event"
+    ],
+    "plain": [
+     "anomaly",
+     "entity_tables",
+     "rare_event"
+    ]
+   },
+   "sources": {
+    "roles": "advisor"
+   },
+   "scores": {
+    "rules": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 4
+    },
+    "roles": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 0.8571,
+     "parts": 3
+    },
+    "plain": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 0.8571,
+     "parts": 3
+    }
+   }
+  },
+  {
+   "case": "CS-02",
+   "gold": {
+    "size": "complex",
+    "families": [
+     "classification",
+     "classification"
+    ]
+   },
+   "values": {
+    "rules": [
+     "classification"
+    ],
+    "roles": [
+     "classification",
+     "classification"
+    ],
+    "plain": [
+     "classification",
+     "classification"
+    ]
+   },
+   "sources": {
+    "roles": "advisor"
+   },
+   "scores": {
+    "rules": {
+     "size": "single",
+     "size_ok": false,
+     "f1": 0.6667,
+     "parts": 1
+    },
+    "roles": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 2
+    },
+    "plain": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 2
+    }
+   }
+  },
+  {
+   "case": "CS-03",
+   "gold": {
+    "size": "complex",
+    "families": [
+     "classification",
+     "uplift"
+    ]
+   },
+   "values": {
+    "rules": [
+     "uplift"
+    ],
+    "roles": [
+     "classification",
+     "uplift"
+    ],
+    "plain": [
+     "classification",
+     "uplift"
+    ]
+   },
+   "sources": {
+    "roles": "advisor"
+   },
+   "scores": {
+    "rules": {
+     "size": "single",
+     "size_ok": false,
+     "f1": 0.6667,
+     "parts": 1
+    },
+    "roles": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 2
+    },
+    "plain": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 2
+    }
+   }
+  },
+  {
+   "case": "CS-04",
+   "gold": {
+    "size": "complex",
+    "families": [
+     "anomaly",
+     "ranking"
+    ]
+   },
+   "values": {
+    "rules": [
+     "anomaly"
+    ],
+    "roles": [
+     "anomaly",
+     "ranking"
+    ],
+    "plain": [
+     "anomaly",
+     "ranking"
+    ]
+   },
+   "sources": {
+    "roles": "advisor"
+   },
+   "scores": {
+    "rules": {
+     "size": "single",
+     "size_ok": false,
+     "f1": 0.6667,
+     "parts": 1
+    },
+    "roles": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 2
+    },
+    "plain": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 2
+    }
+   }
+  },
+  {
+   "case": "CS-05",
+   "gold": {
+    "size": "complex",
+    "families": [
+     "forecasting",
+     "segmentation"
+    ]
+   },
+   "values": {
+    "rules": [
+     "forecasting"
+    ],
+    "roles": [
+     "forecasting",
+     "segmentation"
+    ],
+    "plain": [
+     "forecasting",
+     "segmentation"
+    ]
+   },
+   "sources": {
+    "roles": "advisor"
+   },
+   "scores": {
+    "rules": {
+     "size": "single",
+     "size_ok": false,
+     "f1": 0.6667,
+     "parts": 1
+    },
+    "roles": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 2
+    },
+    "plain": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 2
+    }
+   }
+  },
+  {
+   "case": "CS-06",
+   "gold": {
+    "size": "complex",
+    "families": [
+     "classification",
+     "time_to_event"
+    ]
+   },
+   "values": {
+    "rules": [
+     "classification",
+     "time_to_event"
+    ],
+    "roles": [
+     "classification",
+     "time_to_event"
+    ],
+    "plain": [
+     "classification",
+     "time_to_event"
+    ]
+   },
+   "sources": {
+    "roles": "advisor"
+   },
+   "scores": {
+    "rules": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 2
+    },
+    "roles": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 2
+    },
+    "plain": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 2
+    }
+   }
+  },
+  {
+   "case": "CS-07",
+   "gold": {
+    "size": "complex",
+    "families": [
+     "classification",
+     "ranking",
+     "regression"
+    ]
+   },
+   "values": {
+    "rules": [
+     "forecasting"
+    ],
+    "roles": [
+     "classification",
+     "ranking",
+     "regression"
+    ],
+    "plain": [
+     "classification",
+     "ranking",
+     "regression"
+    ]
+   },
+   "sources": {
+    "roles": "advisor"
+   },
+   "scores": {
+    "rules": {
+     "size": "single",
+     "size_ok": false,
+     "f1": 0.0,
+     "parts": 1
+    },
+    "roles": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 3
+    },
+    "plain": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 3
+    }
+   }
+  },
+  {
+   "case": "CS-08",
+   "gold": {
+    "size": "complex",
+    "families": [
+     "classification",
+     "regression"
+    ]
+   },
+   "values": {
+    "rules": [
+     "classification"
+    ],
+    "roles": [
+     "classification",
+     "regression"
+    ],
+    "plain": [
+     "classification",
+     "regression"
+    ]
+   },
+   "sources": {
+    "roles": "advisor"
+   },
+   "scores": {
+    "rules": {
+     "size": "single",
+     "size_ok": false,
+     "f1": 0.6667,
+     "parts": 1
+    },
+    "roles": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 2
+    },
+    "plain": {
+     "size": "complex",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 2
+    }
+   }
+  },
+  {
+   "case": "CS-09",
+   "gold": {
+    "size": "single",
+    "families": [
+     "classification"
+    ]
+   },
+   "values": {
+    "rules": [
+     "classification"
+    ],
+    "roles": [
+     "classification"
+    ],
+    "plain": [
+     "classification"
+    ]
+   },
+   "sources": {
+    "roles": "advisor"
+   },
+   "scores": {
+    "rules": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 1
+    },
+    "roles": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 1
+    },
+    "plain": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 1
+    }
+   }
+  },
+  {
+   "case": "CS-10",
+   "gold": {
+    "size": "single",
+    "families": [
+     "regression"
+    ]
+   },
+   "values": {
+    "rules": [
+     "classification"
+    ],
+    "roles": [
+     "regression"
+    ],
+    "plain": [
+     "regression"
+    ]
+   },
+   "sources": {
+    "roles": "advisor"
+   },
+   "scores": {
+    "rules": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 0.0,
+     "parts": 1
+    },
+    "roles": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 1
+    },
+    "plain": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 1
+    }
+   }
+  },
+  {
+   "case": "CS-11",
+   "gold": {
+    "size": "single",
+    "families": [
+     "anomaly"
+    ]
+   },
+   "values": {
+    "rules": [
+     "classification"
+    ],
+    "roles": [
+     "anomaly"
+    ],
+    "plain": [
+     "anomaly"
+    ]
+   },
+   "sources": {
+    "roles": "advisor"
+   },
+   "scores": {
+    "rules": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 0.0,
+     "parts": 1
+    },
+    "roles": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 1
+    },
+    "plain": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 1
+    }
+   }
+  },
+  {
+   "case": "CS-12",
+   "gold": {
+    "size": "single",
+    "families": [
+     "classification"
+    ]
+   },
+   "values": {
+    "rules": [
+     "classification"
+    ],
+    "roles": [
+     "classification"
+    ],
+    "plain": [
+     "classification"
+    ]
+   },
+   "sources": {
+    "roles": "advisor"
+   },
+   "scores": {
+    "rules": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 1
+    },
+    "roles": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 1
+    },
+    "plain": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 1
+    }
+   }
+  },
+  {
+   "case": "CS-13",
+   "gold": {
+    "size": "single",
+    "families": [
+     "forecasting"
+    ]
+   },
+   "values": {
+    "rules": [
+     "forecasting"
+    ],
+    "roles": [
+     "forecasting"
+    ],
+    "plain": [
+     "forecasting"
+    ]
+   },
+   "sources": {
+    "roles": "advisor"
+   },
+   "scores": {
+    "rules": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 1
+    },
+    "roles": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 1
+    },
+    "plain": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 1
+    }
+   }
+  },
+  {
+   "case": "CS-14",
+   "gold": {
+    "size": "single",
+    "families": [
+     "segmentation"
+    ]
+   },
+   "values": {
+    "rules": [
+     "segmentation"
+    ],
+    "roles": [
+     "segmentation"
+    ],
+    "plain": [
+     "segmentation"
+    ]
+   },
+   "sources": {
+    "roles": "advisor"
+   },
+   "scores": {
+    "rules": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 1
+    },
+    "roles": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 1
+    },
+    "plain": {
+     "size": "single",
+     "size_ok": true,
+     "f1": 1.0,
+     "parts": 1
+    }
+   }
+  }
+ ],
+ "summary": {
+  "rules": {
+   "cases": 14,
+   "mean_f1": 0.6667,
+   "size_right": 8,
+   "exact": 6
+  },
+  "roles": {
+   "cases": 14,
+   "mean_f1": 0.9898,
+   "size_right": 14,
+   "exact": 13,
+   "worse_than_rules": [
+    "CS-01"
+   ],
+   "better_than_rules": [
+    "CS-02",
+    "CS-03",
+    "CS-04",
+    "CS-05",
+    "CS-07",
+    "CS-08",
+    "CS-10",
+    "CS-11"
+   ],
+   "size_regressions": []
+  },
+  "plain": {
+   "cases": 14,
+   "mean_f1": 0.9898,
+   "size_right": 14,
+   "exact": 13,
+   "worse_than_rules": [
+    "CS-01"
+   ],
+   "better_than_rules": [
+    "CS-02",
+    "CS-03",
+    "CS-04",
+    "CS-05",
+    "CS-07",
+    "CS-08",
+    "CS-10",
+    "CS-11"
+   ],
+   "size_regressions": []
+  }
+ },
+ "requests": 14,
+ "failures": [],
+ "verdict": {
+  "gate": "map_gate_v1",
+  "status": "pass",
+  "checks": {
+   "better_f1": true,
+   "no_size_regression": true,
+   "few_worse": true
+  },
+  "plain_mean_f1": 0.9898
+ },
+ "experiment_id": "MAP-006",
+ "status": "completed",
+ "completed_at": "2026-10-16T03:46:19+00:00"
+}

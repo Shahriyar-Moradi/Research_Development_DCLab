@@ -1,0 +1,607 @@
+{
+  "id": "JPR-003",
+  "campaign_id": "journeys_programme_v1",
+  "kind": "programme_journeys",
+  "split": "sealed",
+  "arm": "rules",
+  "journeys": "178bcdf197455ce25dae04449556ea56db8c64fd6fd75e65f7f609f96fb86c78",
+  "at": "2026-10-16T04:02:23+00:00",
+  "gate": {
+    "version": "journeys_programme_gate_v1",
+    "split": "sealed",
+    "journey": "right on the card (the size, and for one problem its family), the workflow (every part the expert expects is drawn with the expert's approach, at most one part beyond them, no graph move refused), the pipeline, and the holdout (a person who goes on and has the confirmed cases gets a composed result never worse than its best leaf, above it with the interval when all three leaves ran, read once; a person who stops at a blocked part, or who has no confirmed case, leaves it closed with the reason said); a part that does not apply is not scored",
+    "suite": "at least 85% of the sealed journeys right, the lower end of their 95% Wilson interval at least 0.55, no graph move refused, no holdout read twice",
+    "roles": "the roles arm (the decomposer, the map reviewer, the data-need agent and the solution router served by the model) is right on at least as many journeys as the rules arm and on at least as many of each part, every request answered, no graph move refused, within the cap; a role serves the product only then",
+    "seed": 5,
+    "author": "an agent given only the three files' columns, the journeys' format and the vocabulary of families and approaches; it never read the rules, the dev people or any code"
+  },
+  "seed": 5,
+  "spent_eur": 0.0,
+  "rows": [
+    {
+      "id": "JS-01",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "accounts",
+        "cases"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": false
+      },
+      "why": [
+        "holdout: ['all 3 leaves ran and the composition did not beat the best leaf: 0.1712 (-0.092 to 0.5119)']"
+      ],
+      "asked": [
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "complex",
+        "family": "rare_event",
+        "families": [
+          "anomaly",
+          "rare_event",
+          "entity_tables",
+          "ranking"
+        ],
+        "approaches": [
+          "anomaly",
+          "rare_event",
+          "entity_tables",
+          "review_budgeted"
+        ]
+      },
+      "refused_moves": 0,
+      "holdout_uses": 1,
+      "holdout": {
+        "composed": 0.8597,
+        "best_leaf": 0.6885,
+        "difference": 0.1712,
+        "low": -0.092,
+        "high": 0.5119,
+        "leaves": 3,
+        "chosen": "rank_max"
+      },
+      "seconds": 75.0,
+      "right": false
+    },
+    {
+      "id": "JS-02",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "accounts",
+        "cases"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": false
+      },
+      "why": [
+        "holdout: ['all 3 leaves ran and the composition did not beat the best leaf: 0.1712 (-0.092 to 0.5119)']"
+      ],
+      "asked": [
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "complex",
+        "family": "rare_event",
+        "families": [
+          "anomaly",
+          "rare_event",
+          "entity_tables",
+          "ranking"
+        ],
+        "approaches": [
+          "anomaly",
+          "rare_event",
+          "entity_tables",
+          "review_budgeted"
+        ]
+      },
+      "refused_moves": 0,
+      "holdout_uses": 1,
+      "holdout": {
+        "composed": 0.8597,
+        "best_leaf": 0.6885,
+        "difference": 0.1712,
+        "low": -0.092,
+        "high": 0.5119,
+        "leaves": 3,
+        "chosen": "rank_max"
+      },
+      "seconds": 66.7,
+      "right": false
+    },
+    {
+      "id": "JS-03",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "cases"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget",
+        "family"
+      ],
+      "questions": 5,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "analyse",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "complex",
+        "family": "rare_event",
+        "families": [
+          "anomaly",
+          "rare_event",
+          "entity_tables",
+          "ranking"
+        ],
+        "approaches": [
+          "anomaly",
+          "rare_event",
+          null,
+          "review_budgeted"
+        ]
+      },
+      "refused_moves": 0,
+      "holdout_uses": 1,
+      "holdout": {
+        "composed": 0.5082,
+        "best_leaf": 0.5082,
+        "difference": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "leaves": 2,
+        "chosen": "blk1"
+      },
+      "seconds": 85.5,
+      "right": true
+    },
+    {
+      "id": "JS-04",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "cases"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "complex",
+        "family": "rare_event",
+        "families": [
+          "anomaly",
+          "rare_event",
+          "entity_tables",
+          "ranking"
+        ],
+        "approaches": [
+          "anomaly",
+          "rare_event",
+          null,
+          "review_budgeted"
+        ]
+      },
+      "refused_moves": 0,
+      "holdout_uses": 0,
+      "seconds": 48.4,
+      "right": true
+    },
+    {
+      "id": "JS-05",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "accounts"
+      ],
+      "parts": {
+        "card": false,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "card: read as None ([]), the expert's 'complex' ['anomaly', 'entity_tables', 'ranking']",
+        "not built: stopped at problem: The problem card is not ready: What should DCLab give for each row: a yes or no, a class, a number, a forecast, or the unusual rows?"
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "family"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer"
+      ],
+      "state": "problem",
+      "said": "The problem card is not ready: What should DCLab give for each row: a yes or no, a class, a number, a forecast, or the unusual rows?",
+      "got": {
+        "size": null,
+        "family": null,
+        "families": []
+      },
+      "seconds": 17.2,
+      "right": false
+    },
+    {
+      "id": "JS-06",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": false,
+        "pipeline": null,
+        "holdout": null
+      },
+      "why": [
+        "workflow: parts expected but not drawn with that approach: [('anomaly', 'anomaly')]; drawn [('classification', 'binary')]"
+      ],
+      "asked": [
+        "target",
+        "labels",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "single",
+        "family": "anomaly",
+        "families": [
+          "classification"
+        ],
+        "approaches": [
+          "binary"
+        ]
+      },
+      "refused_moves": 0,
+      "seconds": 21.7,
+      "right": false
+    },
+    {
+      "id": "JS-07",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "accounts",
+        "cases"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": false
+      },
+      "why": [
+        "holdout: ['all 3 leaves ran and the composition did not beat the best leaf: 0.1712 (-0.092 to 0.5119)']"
+      ],
+      "asked": [
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget",
+        "family"
+      ],
+      "questions": 5,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "analyse",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "complex",
+        "family": "rare_event",
+        "families": [
+          "anomaly",
+          "rare_event",
+          "entity_tables",
+          "ranking"
+        ],
+        "approaches": [
+          "anomaly",
+          "rare_event",
+          "entity_tables",
+          "review_budgeted"
+        ]
+      },
+      "refused_moves": 0,
+      "holdout_uses": 1,
+      "holdout": {
+        "composed": 0.8597,
+        "best_leaf": 0.6885,
+        "difference": 0.1712,
+        "low": -0.092,
+        "high": 0.5119,
+        "leaves": 3,
+        "chosen": "rank_max"
+      },
+      "seconds": 80.0,
+      "right": false
+    },
+    {
+      "id": "JS-08",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "cases"
+      ],
+      "parts": {
+        "card": false,
+        "workflow": false,
+        "pipeline": null,
+        "holdout": null
+      },
+      "why": [
+        "card: read as 'complex' (['anomaly', 'rare_event', 'entity_tables', 'ranking']), the expert's 'single' ['rare_event']",
+        "workflow: 3 parts drawn beyond the expert's: [('anomaly', 'anomaly'), ('entity_tables', None), ('ranking', 'review_budgeted')]"
+      ],
+      "asked": [
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "complex",
+        "family": "rare_event",
+        "families": [
+          "anomaly",
+          "rare_event",
+          "entity_tables",
+          "ranking"
+        ],
+        "approaches": [
+          "anomaly",
+          "rare_event",
+          null,
+          "review_budgeted"
+        ]
+      },
+      "refused_moves": 0,
+      "seconds": 38.3,
+      "right": false
+    },
+    {
+      "id": "JS-09",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "accounts",
+        "cases"
+      ],
+      "parts": {
+        "card": false,
+        "workflow": false,
+        "pipeline": null,
+        "holdout": null
+      },
+      "why": [
+        "card: read as 'complex' (['anomaly', 'rare_event', 'entity_tables', 'ranking']), the expert's 'single' ['entity_tables']",
+        "workflow: parts expected but not drawn with that approach: [('entity_tables', 'entity_tables')]; drawn [('anomaly', 'anomaly'), ('entity_tables', None), ('ranking', 'review_budgeted'), ('rare_event', 'rare_event')]"
+      ],
+      "asked": [
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "complex",
+        "family": "rare_event",
+        "families": [
+          "anomaly",
+          "rare_event",
+          "entity_tables",
+          "ranking"
+        ],
+        "approaches": [
+          "anomaly",
+          "rare_event",
+          null,
+          "review_budgeted"
+        ]
+      },
+      "refused_moves": 0,
+      "seconds": 22.5,
+      "right": false
+    },
+    {
+      "id": "JS-10",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides"
+      ],
+      "parts": {
+        "card": false,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "card: read as None ([]), the expert's 'complex' ['anomaly', 'entity_tables', 'ranking']",
+        "not built: stopped at problem: The problem card is not ready: Which column holds the outcome, or which file lists the known cases?"
+      ],
+      "asked": [
+        "target",
+        "labels",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer"
+      ],
+      "state": "problem",
+      "said": "The problem card is not ready: Which column holds the outcome, or which file lists the known cases?",
+      "got": {
+        "size": null,
+        "family": "rare_event",
+        "families": []
+      },
+      "seconds": 7.4,
+      "right": false
+    }
+  ],
+  "summary": {
+    "journeys": 10,
+    "right": 2,
+    "by_part": {
+      "card": {
+        "right": 6,
+        "applies": 10
+      },
+      "workflow": {
+        "right": 5,
+        "applies": 10
+      },
+      "pipeline": {
+        "right": 5,
+        "applies": 7
+      },
+      "holdout": {
+        "right": 2,
+        "applies": 7
+      }
+    }
+  },
+  "verdict": "fail: 2 of 10 journeys right (95% interval 0.057 to 0.51), 0 moves refused by the validator, 0 holdouts read twice",
+  "status": "completed",
+  "experiment_id": "JPR-003",
+  "completed_at": "2026-10-16T04:02:23+00:00",
+  "rule": "Scores on 10 written journeys over a seeded replica say how DCLab carries these people from their first sentence to a holdout number, or stops them with the reason; they are not a claim about any other problem or about production readiness."
+}

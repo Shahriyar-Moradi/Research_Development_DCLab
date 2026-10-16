@@ -18,8 +18,9 @@ Package 24.7: the capture of phase 2.
   (`dclab_core.decision_label.v3`; v1 and v2 read as v3): the evidence kind `holdout_vs_best_leaf`.
 - `datasets`: two builders. `problem_maps` (brief to map: the problem card, the map first drawn, the map built from, the person's edits as the correction, and what the programme did
   against its best leaf) and `routes` (sub-problem to approach: the state, the candidates with the codes that refuted them, the one chosen, what became of it; codes and counts only);
-  `episodes` rows carry the map and programme events of their turn (`problem_parts`: codes and counts, no reason text). `DatasetManifest` v5 (`dclab_core.dataset_manifest.v5`; v1 to
+  `problem_maps` takes the host's decision that a person corrected the map (`corrected`), made before any redaction; `episodes` rows carry the map and programme events of their turn (`problem_parts`: codes and counts, no reason text). `DatasetManifest` v5 (`dclab_core.dataset_manifest.v5`; v1 to
   v4 read as v5) names the two builders.
+- `ledger`: `solution.compose` is never drawn for a blind review (a reviewer cannot answer it from counts and names, and a guess would outrank the measured label); a second look at a holdout already read labels nothing.
 - `adapters.main_product_experience`: the five kinds are listed as missing there, each with its reason; `adapters.conformance`: `solution.compose` has no governed point there.
 
 ## 0.54.0 (2026-10-16)

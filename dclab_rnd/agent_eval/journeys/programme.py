@@ -387,7 +387,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             except ValueError:
                 print("refused: the model has no price, so no euro cap can stop it (add it to the price table)", file=sys.stderr)
                 return 2
-    inner = GatewayAdvisor(gateway, max_tokens=2500, cap_eur=args.cap_eur)
+    inner = GatewayAdvisor(gateway, max_tokens=2500, cap_eur=args.cap_eur, memo=True)  # an identical ask is paid for once (the sealed run of 24.8 was made so)
     advisor = Counting(inner)
     by_arm["roles"] = measure(args.split, seed, {"map_advisor": advisor}, args.only)
     spent = round(inner.spent_eur(), 4)
