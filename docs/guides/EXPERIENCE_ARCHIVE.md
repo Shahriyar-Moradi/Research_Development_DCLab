@@ -25,6 +25,24 @@ The files of the session record and the ledger are append-only; only a deletion 
 (`experience/retention.py`), under the folder's lock that every appender holds (`filelock.py`). On PostgreSQL the
 same tables refuse an update or a delete except from those two functions (migrations 0017, 0018).
 
+## Outside the workspace: live tests, backups, measurements and the build history
+
+Everything below is on the owner's disk (never in the session scratchpad, which `/private/tmp` clears on a reboot) and,
+except the committed results, kept out of git. A live test that calls a real model writes to a durable folder from the
+start and is verified by checksum after.
+
+| What | Where | Committed |
+|---|---|---|
+| A live test's whole workspace (drafts, Home conversations, Claude beside them, projects built, agent sessions, every model call with its cost, events, decisions) and the scripts that drove it | `agent_runs/live_tests/<date>_<topic>/` (`workspace/`, `driver/`, `README.md`) | no |
+| Twin runs and Home twin sessions the Evaluation page reads | `agent_runs/twin/runs/`, `agent_runs/twin/sessions/` | no |
+| A backup: the database (pg_dump) and the workspace folder, with SHA-256 hashes | `backups/<time>/` (`database.dump`, `files.tar.gz`, `manifest.json`), by `make backup`; `make restore` puts it back | no |
+| Measurements: one immutable JSON per result, a correction is a new result that names the one it supersedes | `evidence/campaigns/<campaign>/results/` (twin: `twin_v1/`, harness: `harness_v1/`, agent eval: `agent_eval_v1/`) | yes |
+| How DCLab is built and fixed: the curated records, and the raw session transcripts | `research/llm-fine-tuning/experiments/dev_trajectories/records/` (committed), `.../raw/` by `make dev-archive` (local only) | records only |
+| Decision benchmarks (the rules' labelled decisions on invented tables, a sealed partition) | `research/llm-fine-tuning/experiments/decisions/` | the manifest; rows by `make decisions-gen` |
+
+Everything here is on one disk. A second copy somewhere else (an external drive, or the private records repository of
+`docs/guides/TESTERS.md`) is the owner's to make; `make backup TO=<that folder>` writes there directly.
+
 ## The datasets
 
 One folder per set: `<builder>/<name>/` with
