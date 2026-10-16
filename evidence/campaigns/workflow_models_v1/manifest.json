@@ -1,0 +1,14 @@
+{
+  "campaign_id": "workflow_models_v1",
+  "objective": "Package 26.3: generation-1 classifiers for the workflow's decision points (the family, ready to build, the next question, the route), trained on journeys and judged once on a sealed set of journeys by decision_gate_v1 beside the rules.",
+  "gate": {
+    "version": "workflow_models_gate_v1",
+    "decision_gate": "decision_gate_v1",
+    "seed": 5,
+    "set": "journeys_workflow_sealed.json (30 people, two per kind, written by an agent that read only the format, the kinds and their replicas)",
+    "rule": "Each point's model judged once by decision_gate_v1 (the column points' thresholds, unchanged) beside the rule on the same sealed decisions, by person; a model that does not pass stays in shadow.",
+    "seen_before": "Labels v2 (accepted sets, after the review of 26.3); dev figures of the cards: problem.family 0.526 against the rules' 0.895 (the recorded state holds no words): expected to fail; problem.ready 0.905 against 0.905: no margin, expected to fail; workflow.next_question 0.995 against 0.979 (third collection, after the second review: the rules' 18 misses on dev rows are all one behaviour, a rare-event conversation with a file of cases that stops after the budget while the action is open and the person could answer it): it passes only if that behaviour appears for enough sealed people for the margin's lower bound to stay above zero, unlikely; solution.route 0.909 against 0.879 (66 decisions): the margin's lower bound is unlikely to be above zero, expected to fail."
+  },
+  "rule": "Each point's model judged once by decision_gate_v1 (the column points' thresholds, unchanged) beside the rule on the same sealed decisions, by person; a model that does not pass stays in shadow.",
+  "command": "python -m dclab_rnd.workflow_models gate --yes"
+}

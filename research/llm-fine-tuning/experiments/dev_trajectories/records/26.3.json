@@ -160,11 +160,27 @@
    "test": ""
   }
  ],
- "measurements": [],
- "outcome": "Four workflow points have cards beside the rules' score, the other twelve say why they have none; the sealed journeys are judged once by the column points' gate.",
+ "measurements": [
+  {
+   "name": "workflow models on the sealed journeys (DWM-001 to DWM-004)",
+   "gate": "decision_gate_v1 unchanged: accuracy lower bound 0.90, precision and recall lower bounds 0.80, margin over the rule's lower bound above 0, the rule's right answers kept (at most 0.02 turned)",
+   "fixed_before_run": true,
+   "result": "family 0.5455 against the rules' 0.8182 (11 decisions, margin lower bound -0.5455); ready 0.8333 against 0.8333 (12, margin lower bound 0.0); route 0.875 against 0.875 (8, margin lower bound 0.0); next question 0.8172 against 0.828 (93 decisions, 30 people, margin lower bound -0.033; it was 0.995 on dev)",
+   "verdict": "fail",
+   "cost_eur": 0.0,
+   "against_gate": "Every point fails: family's margin lower bound -0.5455, ready's, route's 0.0 and next question's -0.033 are not above 0, and every accuracy lower bound is below 0.90.",
+   "next": "The four stay in shadow; recorded sessions' decisions with outcome labels (27.2) are their next training rows.",
+   "limits": [
+    "Three points have 8 to 12 sealed decisions: most sealed people stated their own family, which is not the rules' decision.",
+    "The next question fell from 0.995 on dev to 0.8172 on people written by another author: the dev people were too alike."
+   ]
+  }
+ ],
+ "outcome": "Four workflow points have cards beside the rules' score; judged once on 30 sealed people, none beats the rules (DWM-001 to 004), so all stay in shadow, as expected before the run. Twelve other points say why they get no classifier.",
  "lessons": [
   "A label must never be chosen by the answer it judges; take the set of acceptable answers and score everyone inside it.",
-  "When the rules look wrong on a labelled set, look first for the product's own rule the labels ignore."
+  "When the rules look wrong on a labelled set, look first for the product's own rule the labels ignore.",
+  "Written dev people resemble each other: a classifier at 0.995 on them fell to 0.82 on people another author wrote."
  ],
  "risks": [
   "Journeys are written people: dev measures these conversations, not real sessions."

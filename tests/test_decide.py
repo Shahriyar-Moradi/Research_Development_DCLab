@@ -95,15 +95,22 @@ class DecideTest(unittest.TestCase):
     def test_a_model_routed_to_act_gives_the_answer(self):
         class Says:
             by, name, version, points = "classifier", "leak.test", "t1", frozenset({"feature.leakage_suspect"})
+            value = True
 
             def answer(self, point, state, options):
-                return contract.Answer(by="classifier", answerer="leak.test@t1", value=False, confidence=0.9)
+                return contract.Answer(by="classifier", answerer="leak.test@t1", value=self.value, confidence=0.9)
 
-        state = {"column": "final_refund_amount", "name_tokens": ["final", "refund", "amount"], "dtype": "float"}
         routed = {"decisions": {"feature.leakage_suspect": {"answerer": "leak.test@t1", "level": 3, "bar": 0.9}}}
+        quiet = {"column": "zone", "name_tokens": ["zone"], "dtype": "string"}  # the rules do not flag it: a model may add the caution
+        with mock.patch.object(shadow, "answerers", return_value=(Says(),)):
+            got = decide.ask("feature.leakage_suspect", quiet, routing_doc=routed)
+        self.assertEqual((got["rule"]["value"], got["answer"], got["decided_by"], got["level"]), (False, True, "classifier", 3))
+        Says.value = False  # 26.5: freeing a column the rules flag is the validator's to refuse, whatever the level
+        state = {"column": "final_refund_amount", "name_tokens": ["final", "refund", "amount"], "dtype": "float"}
         with mock.patch.object(shadow, "answerers", return_value=(Says(),)):
             got = decide.ask("feature.leakage_suspect", state, routing_doc=routed)
-        self.assertEqual((got["answer"], got["decided_by"], got["level"]), (False, "classifier", 3))
+        self.assertEqual((got["answer"], got["decided_by"], got["level"]), (True, "rule", 3))
+        self.assertTrue(got["refused_by_validator"])
 
     def test_a_persons_override_is_recorded_as_a_label(self):
         store = ledger.FileLedger(Path(self.home) / "ledger", "w")

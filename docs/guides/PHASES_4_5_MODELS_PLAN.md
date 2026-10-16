@@ -98,8 +98,10 @@ trained language model of DCLab's, a single clean store that every model reads, 
   collect|relabel|train|gate`: the dev and spent journeys played with a ledger on the rules alone (302 plays), each workflow decision labelled
   by the answers its journey accepts (never DCLab's own; the product's rules, the question cap, a re-ask, a file of cases, a blocked route, not
   judged), a card per point for the family, ready, the next question and the route; twelve points say why they get none. The sealed set
-  (`journeys_workflow_sealed.json`, 30 people by an independent agent) is read once by `decision_gate_v1`: see DWM. Left: recorded sessions'
-  outcome labels (27.2).
+  (`journeys_workflow_sealed.json`, 30 people by an independent agent) was read once by `decision_gate_v1` (DWM-001 to 004): **every point
+  fails and stays in shadow**, as expected before the run: family 0.55 against the rules' 0.82 (11 decisions), ready 0.83 against 0.83 (12),
+  route 0.88 against 0.88 (8), next question 0.82 against 0.83 (93); the next question fell from 0.995 on dev, whose people were too alike.
+  Left: recorded sessions' outcome labels (27.2).
 
 ### 26.4 Generation 2: one small language model for every decision
 - **Delivers:** the LoRA fine-tune of the decision plan's generation 2 (a 1.5B to 4B open model) on the gold decision

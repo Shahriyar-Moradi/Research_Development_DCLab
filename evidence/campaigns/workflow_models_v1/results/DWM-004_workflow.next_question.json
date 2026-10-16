@@ -1,0 +1,295 @@
+{
+  "id": "DWM-004",
+  "experiment_id": "DWM-004",
+  "campaign_id": "workflow_models_v1",
+  "kind": "workflow_model_gate",
+  "status": "completed",
+  "at": "2026-10-16T23:11:29+00:00",
+  "point": "workflow.next_question",
+  "model": {
+    "name": "workflow.next_question.logistic",
+    "version": "442552004b29",
+    "family": "logistic",
+    "strength": 0.1,
+    "trained_set": "a212ec6d5e9c5271b54f7a5c27ea2a9887c3cb38b81b3241f58f22da4ec5da5a"
+  },
+  "gate": {
+    "version": "workflow_models_gate_v1",
+    "decision_gate": "decision_gate_v1",
+    "seed": 5,
+    "set": "journeys_workflow_sealed.json (30 people, two per kind, written by an agent that read only the format, the kinds and their replicas)",
+    "rule": "Each point's model judged once by decision_gate_v1 (the column points' thresholds, unchanged) beside the rule on the same sealed decisions, by person; a model that does not pass stays in shadow.",
+    "seen_before": "Labels v2 (accepted sets, after the review of 26.3); dev figures of the cards: problem.family 0.526 against the rules' 0.895 (the recorded state holds no words): expected to fail; problem.ready 0.905 against 0.905: no margin, expected to fail; workflow.next_question 0.995 against 0.979 (third collection, after the second review: the rules' 18 misses on dev rows are all one behaviour, a rare-event conversation with a file of cases that stops after the budget while the action is open and the person could answer it): it passes only if that behaviour appears for enough sealed people for the margin's lower bound to stay above zero, unlikely; solution.route 0.909 against 0.879 (66 decisions): the margin's lower bound is unlikely to be above zero, expected to fail.",
+    "thresholds": {
+      "scored_share_min": 1.0,
+      "accuracy_lower_min": 0.9,
+      "precision_lower_min": 0.8,
+      "recall_lower_min": 0.8,
+      "margin_lower_min": 0.0,
+      "class_min_rows": 30,
+      "class_recall_min": 0.7,
+      "turned_max": 0.02,
+      "draws": 2000
+    }
+  },
+  "sealed": {
+    "decisions": 93,
+    "people": 30,
+    "fingerprint": "bfdf5153902ec8ffd87721553bf1af608da18bc3e988742e1ea41c166fd296eb",
+    "plays": 30,
+    "failed_plays": []
+  },
+  "verdict": {
+    "gate": "decision_gate_v1",
+    "pass": false,
+    "criteria": [
+      {
+        "criterion": "every sealed decision scored",
+        "value": "93/93",
+        "need": "100%",
+        "pass": true
+      },
+      {
+        "criterion": "accuracy, 95% lower bound (by table group)",
+        "value": 0.7262,
+        "need": ">= 0.9",
+        "pass": false
+      },
+      {
+        "criterion": "precision, 95% lower bound (by table group)",
+        "value": 0.7492,
+        "need": ">= 0.8",
+        "pass": false
+      },
+      {
+        "criterion": "recall, 95% lower bound (by table group)",
+        "value": 0.7032,
+        "need": ">= 0.8",
+        "pass": false
+      },
+      {
+        "criterion": "margin over the rule, 95% lower bound (by table group)",
+        "value": -0.033,
+        "need": "> 0.0",
+        "pass": false
+      },
+      {
+        "criterion": "no class it misses",
+        "value": "none",
+        "need": "no class with 30+ decisions below recall 0.7",
+        "pass": true
+      },
+      {
+        "criterion": "the rule's right decisions kept",
+        "value": 0.013,
+        "need": "<= 0.02 turned wrong",
+        "pass": true
+      }
+    ],
+    "bounds": {
+      "model": {
+        "accuracy": [
+          0.8172,
+          0.7262,
+          0.8835
+        ],
+        "precision": [
+          0.8286,
+          0.7492,
+          0.8912
+        ],
+        "recall": [
+          0.8038,
+          0.7032,
+          0.8789
+        ]
+      },
+      "rule": {
+        "accuracy": [
+          0.828,
+          0.7349,
+          0.8972
+        ],
+        "precision": [
+          0.8382,
+          0.7583,
+          0.9049
+        ],
+        "recall": [
+          0.8147,
+          0.7176,
+          0.8902
+        ]
+      },
+      "note": "[value, 95% lower, 95% upper], bootstrap of whole table groups; the gate reads these"
+    },
+    "model": {
+      "n": 93,
+      "accuracy": 0.8172,
+      "accuracy_ci": [
+        0.7266,
+        0.8826
+      ],
+      "precision": 0.8286,
+      "precision_ci": [
+        0.7492,
+        0.8912
+      ],
+      "recall": 0.8038,
+      "recall_ci": [
+        0.7032,
+        0.8789
+      ],
+      "intervals": "bootstrap of 2000 draws, clustered by table group, 95%",
+      "answered": 93,
+      "per_class": {
+        "action": {
+          "n": 20,
+          "precision": 0.6842,
+          "precision_ci": [
+            0.4601,
+            0.8464
+          ],
+          "recall": 0.65,
+          "recall_ci": [
+            0.4329,
+            0.8188
+          ]
+        },
+        "none": {
+          "n": 23,
+          "precision": 1.0,
+          "precision_ci": [
+            0.7719,
+            1.0
+          ],
+          "recall": 0.5652,
+          "recall_ci": [
+            0.3681,
+            0.7437
+          ]
+        },
+        "prediction_moment": {
+          "n": 21,
+          "precision": 0.7241,
+          "precision_ci": [
+            0.5428,
+            0.853
+          ],
+          "recall": 1.0,
+          "recall_ci": [
+            0.8454,
+            1.0
+          ]
+        },
+        "target": {
+          "n": 29,
+          "precision": 0.9062,
+          "precision_ci": [
+            0.7578,
+            0.9676
+          ],
+          "recall": 1.0,
+          "recall_ci": [
+            0.883,
+            1.0
+          ]
+        }
+      }
+    },
+    "rule": {
+      "n": 93,
+      "accuracy": 0.828,
+      "accuracy_ci": [
+        0.7387,
+        0.8912
+      ],
+      "precision": 0.8382,
+      "precision_ci": [
+        0.7583,
+        0.9049
+      ],
+      "recall": 0.8147,
+      "recall_ci": [
+        0.7176,
+        0.8902
+      ],
+      "intervals": "bootstrap of 2000 draws, clustered by table group, 95%",
+      "answered": 93,
+      "per_class": {
+        "action": {
+          "n": 20,
+          "precision": 0.7222,
+          "precision_ci": [
+            0.4913,
+            0.875
+          ],
+          "recall": 0.65,
+          "recall_ci": [
+            0.4329,
+            0.8188
+          ]
+        },
+        "none": {
+          "n": 23,
+          "precision": 1.0,
+          "precision_ci": [
+            0.7847,
+            1.0
+          ],
+          "recall": 0.6087,
+          "recall_ci": [
+            0.4079,
+            0.7784
+          ]
+        },
+        "prediction_moment": {
+          "n": 21,
+          "precision": 0.7241,
+          "precision_ci": [
+            0.5428,
+            0.853
+          ],
+          "recall": 1.0,
+          "recall_ci": [
+            0.8454,
+            1.0
+          ]
+        },
+        "target": {
+          "n": 29,
+          "precision": 0.9062,
+          "precision_ci": [
+            0.7578,
+            0.9676
+          ],
+          "recall": 1.0,
+          "recall_ci": [
+            0.883,
+            1.0
+          ]
+        }
+      }
+    },
+    "margin": {
+      "difference": -0.0108,
+      "lower": -0.033,
+      "upper": 0.0
+    },
+    "turned": [
+      1,
+      77
+    ],
+    "groups": 30,
+    "decisions": 93,
+    "not_yet": "Blind cases (the main product's R3 asks for them): the generated sets have benchmark labels only; decision_gate_v2 adds the blind labels of 22.4's disagreements.",
+    "demotion": {
+      "accuracy_lower_below": 0.85,
+      "margin_lower_below": -0.02,
+      "turned_above": 0.05
+    },
+    "scope": "Evidence about this model on these generated decisions, not a claim that it is ready for production."
+  },
+  "result": "fail",
+  "rule": "One run of workflow.next_question.logistic on 93 sealed decisions of written journeys, judged by a gate fixed before it, an answer counted right when the journey accepts it; evidence about these conversations with no model, not about real sessions nor production readiness."
+}
