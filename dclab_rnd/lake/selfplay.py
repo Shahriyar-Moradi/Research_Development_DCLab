@@ -25,9 +25,13 @@ from dclab_core import lake as L
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "lake" / "bronze" / "selfplay"
-SYSTEM = ("You are DCLab's machine-learning solver. You read a problem as DCLab describes it (the columns as bands and "
-          "names, the outcome, the moment a prediction is made) and answer the one question asked, as JSON, using only "
-          "what is given. Never use information unavailable at the prediction moment; never read a holdout twice.")
+PROMPT = "solver_answer"  # dclab_rnd/prompts/solver_answer.md: the same system text in training and when served (27.6)
+
+
+def system() -> str:
+    from .. import prompts
+
+    return prompts.text(PROMPT).strip()
 
 
 def _columns(table: Any, target: str | None, masked: bool) -> tuple[list[dict[str, Any]], dict[str, str]]:
@@ -50,7 +54,7 @@ def _columns(table: Any, target: str | None, masked: bool) -> tuple[list[dict[st
 
 
 def _ask(question: str, given: dict[str, Any], answer: dict[str, Any]) -> list[dict[str, str]]:
-    return [{"role": "system", "content": SYSTEM},
+    return [{"role": "system", "content": system()},
             {"role": "user", "content": json.dumps({"question": question, **given}, ensure_ascii=False, sort_keys=True, default=str)},
             {"role": "assistant", "content": json.dumps(answer, ensure_ascii=False, sort_keys=True, default=str)}]
 

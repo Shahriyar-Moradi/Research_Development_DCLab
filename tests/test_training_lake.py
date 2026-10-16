@@ -231,5 +231,24 @@ class PositiveClassTests(unittest.TestCase):
         self.assertEqual(_positive_label([0, 1]), 1)
 
 
+class SolverBenchmarkTests(unittest.TestCase):
+    def test_answers_are_scored_against_the_planted_truth_never_against_dclabs_answer(self):
+        from dclab_rnd.lake import benchmark as B
+
+        row = {"family": "leakage_judgment", "provenance": {"group": "selfplay:binary:0"},
+               "messages": [{"role": "system", "content": ""}, {"role": "user", "content": "{}"}, {"role": "assistant", "content": "{}"}]}
+        caught = B.score(row, {"forbidden": [{"column": "final_refund_amount"}], "identifiers": ["subscriber_id"]})
+        self.assertEqual((caught["right"], caught["extra"]), (True, 0))
+        missed = B.score(row, {"forbidden": [], "identifiers": ["subscriber_id"]})
+        self.assertEqual((missed["right"], missed["leak_caught"]), (False, False))
+        self.assertEqual(B.score(row, None), {"family": "leakage_judgment", "answered": False, "right": False})
+        split = {**row, "family": "split_design"}
+        self.assertTrue(B.score(split, {"time_column": "signup_time"})["right"])
+        self.assertFalse(B.score({**row, "family": "problem_type"}, {"task": "regression"})["right"])
+        with self.assertRaises(ValueError):
+            B.run("rules", "train", store=False)  # never the training split
+        self.assertEqual(B.wilson(0, 0), [None, None])
+
+
 if __name__ == "__main__":
     unittest.main()

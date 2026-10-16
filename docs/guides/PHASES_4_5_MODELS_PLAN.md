@@ -214,6 +214,12 @@ write a report with its uncertainty; and drive DCLab's tools step by step as an 
   the holdout score against the rules and against Claude, cost and time. The gate fixed before the runs.
 - **Done when:** the configured model and the rules are measured on it as baselines, and its sealed part is frozen.
 
+- **Status: built (2026-10-16).** `python -m dclab_rnd.lake benchmark --answerer rules|configured|tuned [--split dev|sealed]`:
+  the self-play cases of dev or sealed (never train), scored against the replica's planted facts (the task, the leak and the
+  identifier, the time column) with Wilson intervals, cost and the share answered; results in `evidence/campaigns/solver_v1/`; the
+  sealed split read once per answerer and model. The gateway purpose `solver_answer` (its prompt `prompts/solver_answer.md`,
+  the same system text self-play trains on). Left: the model-driven solving of whole problems through DCLab's tools.
+
 ### 27.7 Train and evaluate
 - **Delivers:** the recipe and the runs: supervised fine-tuning on the gold mix (all families) → tool-use fine-tuning on
   the verified trajectories → preference tuning (DPO) from outcomes and people's edits and picks → optionally

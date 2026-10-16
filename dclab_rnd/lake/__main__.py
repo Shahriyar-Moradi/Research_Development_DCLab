@@ -16,6 +16,12 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--home", type=Path, action="append", default=[], help="another workspace to read (repeatable)")
     b.add_argument("--lake", type=Path, default=LAKE)
     sub.add_parser("summary", help="the committed manifest's counts")
+    bm = sub.add_parser("benchmark", help="27.6: an answerer on the verified invented problems, scored against their planted truth")
+    bm.add_argument("--answerer", choices=("rules", "configured", "tuned"), required=True)
+    bm.add_argument("--split", choices=("dev", "sealed"), default="dev")
+    bm.add_argument("--limit", type=int, default=120)
+    bm.add_argument("--cap-eur", type=float, default=None)
+    bm.add_argument("--yes", action="store_true", help="send the questions to a model (without it, only the plan is printed)")
     e = sub.add_parser("export", help="26.4/27.7: training files from gold (never sealed nor evaluation-only rows)")
     e.add_argument("--target", choices=("decisions", "solver"), required=True)
     e.add_argument("--lake", type=Path, default=LAKE)
@@ -43,6 +49,15 @@ def main(argv: list[str] | None = None) -> int:
         weights = {k: float(v) for k, _, v in (w.partition("=") for w in args.weights.split(",") if w)}
         m = export(args.target, args.lake, args.out, weights)
         print(json.dumps({k: m[k] for k in ("target", "train", "val", "by_origin", "refused")}, indent=1))
+        return 0
+    if args.command == "benchmark":
+        from . import benchmark
+
+        if args.answerer != "rules" and not args.yes:
+            print(f"would ask the {args.answerer} model up to {args.limit} questions (cap €{args.cap_eur}); add --yes to run")
+            return 0
+        doc = benchmark.run(args.answerer, args.split, args.limit, args.cap_eur)
+        print(json.dumps({k: doc.get(k) for k in ("id", "answerer", "split", "cases", "problems", "families", "spent_eur")}, indent=1, default=str))
         return 0
     if args.command == "summary":
         print(MANIFEST.read_text(encoding="utf-8") if MANIFEST.exists() else "no lake built yet: make lake")

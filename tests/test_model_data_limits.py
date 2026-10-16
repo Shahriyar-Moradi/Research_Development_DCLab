@@ -249,6 +249,18 @@ class DataLimitTests(unittest.TestCase):
             answerer.answer("column.is_identifier", column_state(column, len(table)), ["yes", "no"])
         self.assertEqual(self.assertWithinLimit("decision_answer"), set())
 
+    def test_the_solver_sees_bands_and_names_never_values(self):  # 27.6: the benchmark's questions, built as self-play builds them
+        from dclab_rnd.lake.selfplay import _ask, _columns
+
+        table = marked_table()
+        gw = gateway({"solver_answer": [{"content": '{"task": "binary"}', "tool_calls": [], "usage": {}}] * 2})
+        client = gw.client("solver_answer")
+        for masked in (False, True):
+            columns, _ = _columns(table, "outcome", masked)
+            messages = _ask("What kind of machine-learning problem is this?", {"columns": columns, "outcome": "outcome", "prediction_moment": "at month end"}, {})
+            client.complete(messages[:2], None, 200)
+        self.assertEqual(self.assertWithinLimit("solver_answer"), set())
+
     def test_the_labeller_sees_the_blind_view_bands_and_names_never_values(self):  # 19.8b: Claude helps label
         from dclab_rnd import ledger
         from dclab_rnd.ledger import column_state, model_labels
@@ -381,7 +393,7 @@ class DataLimitTests(unittest.TestCase):
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
-                  "decision_answer", "decision_labeler", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first"}
+                  "decision_answer", "decision_labeler", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first", "solver_answer"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

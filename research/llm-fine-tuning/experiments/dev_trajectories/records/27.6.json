@@ -1,0 +1,60 @@
+{
+  "package": "27.6",
+  "title": "The ML-solver's benchmark: any answerer on verified invented problems, scored against their planted truth",
+  "date": "2026-10-16",
+  "request": "Phase 5: a model very good at solving ML problems needs a measurement before any training run.",
+  "spec": "dclab_rnd/lake/benchmark.py (python -m dclab_rnd.lake benchmark), the gateway purpose solver_answer with its prompt file, evidence/campaigns/solver_v1.",
+  "plan": [
+    "Score against the replica's planted facts, never DCLab's own answer.",
+    "One prompt file for training and serving.",
+    "Read the sealed split once per answerer and model."
+  ],
+  "decisions": [
+    {
+      "decision": "The truth is the replica's facts, so the rules are measured too.",
+      "why": "Scoring against DCLab's answer would make the rules perfect by definition."
+    }
+  ],
+  "change": "benchmark.py, __main__, selfplay (the prompt file), prompts/solver_answer.md, models/settings.py, agents/harness.py, tests.",
+  "findings": [
+    {
+      "id": "G1",
+      "source": "test",
+      "severity": "gap",
+      "defect": "The new contracts' frozen schemas did not match their final shape.",
+      "scenario": "The baseline was written before the contracts' last fields (the sealed flag, the evaluation kind).",
+      "cause": "core-schemas never rewrites an existing baseline.",
+      "fix": "The never-released v1 baselines were regenerated once.",
+      "test": "test_no_contract_changes_shape_under_the_same_version"
+    },
+    {
+      "id": "G2",
+      "source": "test",
+      "severity": "gap",
+      "defect": "The research index was stale twice.",
+      "scenario": "A new file in the research folder after the index was built.",
+      "cause": "The index was regenerated before the runbook was written.",
+      "fix": "Regenerated after the last file.",
+      "test": "make research-index --check"
+    },
+    {
+      "id": "G3",
+      "source": "test",
+      "severity": "privacy",
+      "defect": "A new model purpose had no data-limit test.",
+      "scenario": "The suite requires each purpose to prove it sends no cell value.",
+      "cause": "The purpose was added without its test.",
+      "fix": "The solver's questions, built as self-play builds them on a table of marked values, reach the model with no value.",
+      "test": "test_the_solver_sees_bands_and_names_never_values"
+    }
+  ],
+  "measurements": [],
+  "outcome": "A benchmark any answerer can be judged on, with intervals, before and after training.",
+  "lessons": [
+    "Score a model against a truth the system did not write."
+  ],
+  "risks": [
+    "Until the self-play volume run, the dev and sealed splits are small."
+  ],
+  "commits": []
+}

@@ -14,6 +14,10 @@
           ],
           "type": "string"
         },
+        "from_sealed": {
+          "default": false,
+          "type": "boolean"
+        },
         "group": {
           "maxLength": 200,
           "type": "string"
@@ -154,7 +158,7 @@
       "type": "string"
     },
     "state_text": {
-      "maxLength": 4000,
+      "maxLength": 16000,
       "type": "string"
     },
     "subject_kind": {

@@ -98,6 +98,10 @@ PURPOSES: dict[str, Purpose] = {
     "decision_answer": Purpose("cheap", 60, "one decision's question and options, and what is known about its column: the column's name, "
                                             "its name tokens and bands (storage type, share of distinct and missing values, the shape of its "
                                             "written values) and the outcome column's name (package 22.5); never rows or cell values", keeps_text=True),
+    "solver_answer": Purpose("standard", 90, "one question about a problem as DCLab describes it: each column's name (or a masked name), "
+                                             "its bands (storage type, share of distinct and missing values, the shape of its written values), "
+                                             "the outcome's name, the prediction moment, measures computed on training rows only (a column's "
+                                             "signal against the outcome, the holdout's metrics once read); never rows or cell values (27.6)"),
     "decision_labeler": Purpose("standard", 60, "what a blind reviewer sees of one decision: its point, question and options, its subject "
                                                 "(a column's or table's name) and the state (the column's name, its name tokens and bands, "
                                                 "the outcome column's name; for a project's or a workflow's decision, its id and aggregate measures such as a "
