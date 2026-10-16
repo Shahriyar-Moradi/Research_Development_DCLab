@@ -15,6 +15,13 @@
           ],
           "default": null
         },
+        "defers": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "type": "array"
+        },
         "family": {
           "maxLength": 40,
           "type": "string"
@@ -229,6 +236,17 @@
           ],
           "default": null
         },
+        "seed": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "share": {
+          "default": 0.2,
+          "exclusiveMaximum": 0.5,
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
         "strategy": {
           "enum": [
             "stratified",
@@ -388,6 +406,13 @@
     "map": {
       "maxLength": 64,
       "type": "string"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 10,
+      "type": "array"
     },
     "schema_version": {
       "const": "dclab_core.solution_map.v1",
