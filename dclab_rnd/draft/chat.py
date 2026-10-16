@@ -60,7 +60,8 @@ BUILD_WORDS = re.compile(r"\b(let'?s build|build (it|the solution)|go ahead|star
 # the problem or asks ("we want to build a model that…", "should we build a model?") is never taken for the order
 BUILD_NOW = re.compile(r"^\W*((ok(ay)?|yes|yeah|please|now|so|great|good|sure|alright|fine)\b[\s,!.]*)*"
                        r"(let'?s build( it| the (solution|models?))?|(please )?(build|train) (it|the solution|(the |a |my )?models?)|"
-                       r"run (it|the stages)|go ahead and (build|train)( it)?|start (building|training)( it)?)(\s+(now|please))?\W*$", re.I)
+                       r"run (it|the stages)|go ahead and (build|train)( it)?|start (building|training)( it)?|"
+                       r"(create|make|build) (a |the )?(new )?project( (from|of|for) (this|the|my) (chat|conversation))?)(\s+(now|please))?\W*$", re.I)
 ASSENT = re.compile(r"^\W*(yes|yeah|yep|ok(ay)?|sure|go( ahead| for it)?|do it|please do|proceed|start)(\s+(please|now|do it|go ahead))?\W*$", re.I)  # a bare yes
 SIM_ROWS = 10_000  # the owner (2026-10-16): a simulated table is at most 10,000 rows
 SIMULATE_WORDS = re.compile(r"\b(simulat\w*|synthetic|fake data|generate (some )?data)\b", re.I)

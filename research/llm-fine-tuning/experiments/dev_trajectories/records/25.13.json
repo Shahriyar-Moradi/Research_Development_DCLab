@@ -195,6 +195,16 @@
       "cause": "The live test server was pointed at the scratchpad.",
       "fix": "The whole workspace copied (checksums verified) to agent_runs/live_tests/2026-10-16_phase3/, the twin runs into agent_runs/twin/, and the live server now writes there.",
       "test": "checked by checksum"
+    },
+    {
+      "id": "O6",
+      "source": "owner",
+      "severity": "gap",
+      "defect": "Creating a project from the chat had no clear button.",
+      "scenario": "The owner asked for a button that does what typing \"build the model\" did; the only one was \"Let's build the solution\" in the composer.",
+      "cause": "The one-step build was reachable by words and a small composer button that read like a wizard.",
+      "fix": "A primary \"Create project from chat\" button in the conversation's header sends \"Create a project from this chat\" (an order the build reads), shows Creating… until DCLab answers and Open the project once built; the wizard stays as Review step by step instead.",
+      "test": "test_build_now_is_an_order_never_a_sentence_about_the_problem"
     }
   ],
   "measurements": [

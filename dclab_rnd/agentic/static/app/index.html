@@ -204,15 +204,15 @@
 
     <div class="grid g2" id="home-lanes">
     <div class="panel" id="home-chat" hidden data-f="home.chat">
-      <div class="panel-head"><div class="panel-title"><h2>Conversation</h2><span class="sub" id="home-chat-sub">A few questions to understand the problem, and the data as it gets ready.</span></div><span class="pill outline" id="home-chat-mode" hidden></span></div>
+      <div class="panel-head"><div class="panel-title"><h2>Conversation</h2><span class="sub" id="home-chat-sub">A few questions to understand the problem, and the data as it gets ready.</span></div><span class="row" data-style="gap:8px;align-items:center"><span class="pill outline" id="home-chat-mode" hidden></span><button type="button" class="btn primary sm" id="home-create" title="DCLab builds the project from what this chat settled and its agent plans and runs it">Create project from chat</button></span></div>
       <div class="panel-body"><div class="thread" id="home-thread" aria-live="polite"></div></div>
       <div class="panel-foot">
         <div class="composer">
           <label class="sr-only" for="home-reply">Reply to DCLab</label>
-          <textarea id="home-reply" placeholder="Answer, ask, or say “let's build the solution”."></textarea>
+          <textarea id="home-reply" placeholder="Answer, ask, or say “create a project”."></textarea>
           <div class="composer-bar">
             <button type="button" class="btn sm ghost" data-open-bring="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Connect data</button>
-            <button type="button" class="btn sm" id="home-build">Let's build the solution</button><button type="button" class="link-btn small" data-wizard="1">or review step by step</button>
+            <button type="button" class="link-btn small" data-wizard="1">Review step by step instead</button>
             <label class="sr-only" for="home-to">Send to</label>
             <select id="home-to" data-style="width:auto" hidden>
               <option value="both">To DCLab and Claude</option>

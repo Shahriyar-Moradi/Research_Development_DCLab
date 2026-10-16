@@ -108,6 +108,7 @@ DC.view('home', {
       $('#home-thread', el).innerHTML = '';
       $('#home-task', el).value = draft.problem;
       showDraftPanels(true);
+      creating(false);
       DC.client.internStatus().then(i => { const m = $('#home-chat-mode', el); m.textContent = i.mode === 'llm' ? 'model · ' + i.model : 'standard questions'; m.hidden = false; }).catch(() => {});
       if (S.close) S.close();
       S.close = stream(DC.client.path.events(draft.id), onEvent);
@@ -348,6 +349,10 @@ DC.view('home', {
 
     function renderMessage(m) {
       setThinking(false);
+      if (m.role === 'agent' && S.draft) {
+        if (m.kind === 'build' && m.project_id) S.draft.project_id = m.project_id;
+        creating(false);
+      }
       const thread = $('#home-thread', el);
       const live = m.id && $(`[data-live="${m.id}"]`, thread);
       if (live) live.remove();
@@ -372,7 +377,7 @@ DC.view('home', {
           + `<dt>Labels</dt><dd>${esc({ column: 'a column marks the cases', file: 'a file lists the known cases', none: 'nothing is labelled' }[c.labels] || 'not said')}</dd>`
           + `<dt>Outcome</dt><dd>${esc(c.outcome || 'not named')}</dd><dt>Moment</dt><dd>${esc(c.moment || 'not said')}</dd></dl>`
           + (c.ready ? '' : `<div class="callout warn small">${esc((c.blocking || [])[0] || 'Something is still open.')}</div>`) + '</div>' : '';
-        body = `<p>${esc(m.text)}</p>${card}<div class="stack tight" data-map-box="1"></div><div class="row"><button type="button" class="btn primary sm" data-build="1">Let's build the solution</button><button type="button" class="btn sm" data-open-bring="1">Add data first</button></div>`;
+        body = `<p>${esc(m.text)}</p>${card}<div class="stack tight" data-map-box="1"></div><div class="row"><button type="button" class="btn primary sm" data-build="1">Create project from chat</button><button type="button" class="btn sm" data-open-bring="1">Add data first</button></div>`;
       } else {
         body = `<p>${esc(m.text)}</p>${(m.actions || []).length ? `<div class="row">${m.actions.includes('upload') ? '<button type="button" class="btn sm" data-open-bring="upload">Upload a sample</button>' : ''}${m.actions.includes('connect') ? '<button type="button" class="btn sm" data-open-bring="kaggle">Connect a source</button>' : ''}${m.actions.includes('simulate') ? '<button type="button" class="btn sm" data-open-bring="synthetic">Simulate data</button>' : ''}${m.actions.includes('confirm_map') ? '<button type="button" class="btn primary sm" data-map-build="1">Confirm the map and build</button>' : ''}</div>${m.actions.includes('show_map') ? '<div class="stack tight" data-map-box="1"></div>' : ''}` : ''}`;
       }
@@ -710,18 +715,24 @@ DC.view('home', {
     /* ---------- build ---------- */
     async function build() {
       // 25.13: one step, the agentic way: the project is built from what the chat settled and DCLab's agent carries out the plan
-      // (the chat shows the plan and links to follow it); what is still missing comes back as a message, never a dead end
-      // The button says it in the chat, so it goes the same way as typing "build it" (to DCLab, whatever the send-to choice)
+      // (the chat shows the plan and links to follow it); what is still missing comes back as a message, never a dead end.
+      // The button says it in the chat, so it goes the same way as typing "build it" (to DCLab, whatever the send-to choice).
       if (!S.draft) { toast('Start with one sentence first.', { ok: false }); return; }
-      try { await DC.client.message(S.draft.id, { body: { text: "Let's build the solution" } }); }
-      catch (err) { toast(err.status === 409 ? 'DCLab is still answering; press it again in a moment.' : err.message, { ok: false }); }
+      if (S.draft.project_id) { DC.state.projectId = S.draft.project_id; location.hash = 'project'; return; }  // built already: open it
+      creating(true);
+      try { await DC.client.message(S.draft.id, { body: { text: 'Create a project from this chat' } }); }
+      catch (err) { creating(false); toast(err.status === 409 ? 'DCLab is still answering; press it again in a moment.' : err.message, { ok: false }); }
     }
+    function creating(on) {  // the header button while DCLab builds: it answers with the plan, or with what is missing first
+      const b = $('#home-create', el); if (!b) return;
+      b.disabled = on; b.textContent = on ? 'Creating…' : (S.draft && S.draft.project_id ? 'Open the project' : 'Create project from chat');
+    }
+    $('#home-create', el).addEventListener('click', build);
     function wizard() {  // the step-by-step path: data, solution draft, split and budget, then "Review and start"
       if (!S.draft) return;
       DC.state.draftId = S.draft.id;
       location.hash = 'new';
     }
-    $('#home-build', el).addEventListener('click', build);
 
     /* ---------- activity: what runs now (/api/ops/jobs) and what is new in the evidence (/api/ops/evidence-recent) ---------- */
     const ACT = { stop: null };

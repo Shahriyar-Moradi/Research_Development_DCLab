@@ -557,10 +557,12 @@ class AgentTests(unittest.TestCase):
     def test_build_now_is_an_order_never_a_sentence_about_the_problem(self):
         from dclab_rnd.draft.chat import ASSENT, BUILD_NOW
 
-        for order in ("ok build model", "build the model", "Let's build the solution", "yes build it", "train the model now", "go ahead and build"):
+        for order in ("ok build model", "build the model", "Let's build the solution", "yes build it", "train the model now", "go ahead and build",
+                      "Create a project from this chat", "create project", "make a project please"):
             self.assertTrue(BUILD_NOW.search(order), order)
         for sentence in ("I want to build a model to predict churn", "Should we build a model or use rules?",
-                         "Can you train a model on last year only?", "We need to build models per region", "go ahead"):
+                         "Can you train a model on last year only?", "We need to build models per region", "go ahead",
+                         "I want to create a project for churn", "Should we create a project or wait for data?"):
             self.assertFalse(BUILD_NOW.search(sentence), sentence)
         self.assertTrue(ASSENT.search("yes"))
         for reply in ("Yes, the refund is known only after delivery", "ok, but first explain the columns", "Start date is the signup day"):

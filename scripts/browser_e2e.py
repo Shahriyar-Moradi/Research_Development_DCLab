@@ -118,7 +118,8 @@ def check_flow(b: Browser) -> str:
         page.wait_for_function("n => document.querySelectorAll('.ask-card[data-done] .ask-option[aria-pressed=\"true\"]').length >= n", arg=answered, timeout=60_000)
     check(answered >= 1, "the chat asked no question with options")
 
-    page.click("#home-build")
+    check(page.locator("#home-create").is_visible(), "no Create project from chat button on Home")  # 25.13: the one-step build
+    page.click("#home-chat [data-wizard]")  # the step-by-step path, which this test walks
     page.wait_for_selector("#view-new:not([hidden]) .panel[data-new-step='2']:not([hidden])", timeout=30_000)
     page.wait_for_selector("#wz-data-next:not([disabled])", timeout=60_000)
     page.click("#wz-data-next")
