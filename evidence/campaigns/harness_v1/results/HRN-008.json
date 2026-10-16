@@ -1,0 +1,1059 @@
+{
+  "id": "HRN-008",
+  "campaign_id": "harness_v1",
+  "kind": "harness_regression",
+  "at": "2026-10-16T00:45:58+00:00",
+  "gate": {
+    "version": "harness_gate_v1",
+    "cases": "every regression case and every accepted session case right: each step check and each part of its journey",
+    "journeys": "every dev journey right",
+    "flags": "no failure flag a case was made of comes back"
+  },
+  "fingerprints": {
+    "prompt:base_audit": "00ca260f5f22ef4e",
+    "prompt:evidence_answer": "1d5a29ab7625c442",
+    "prompt:home_agent": "cdd86dda083d9f04",
+    "prompt:home_plan": "4a5997517306687b",
+    "prompt:intern": "940712db9ba17a4e",
+    "prompt:intern_memory": "03299d06968ff8e7",
+    "prompt:leakage_review": "8a2ad6a0c8b4464f",
+    "prompt:lesson_proposal": "82be48a747b7fa03",
+    "prompt:notebook_fixes": "ba2518c858e53ff2",
+    "prompt:parse_pattern": "0c7f52395e5d583d",
+    "prompt:stage_critique": "0c28d31fea660837",
+    "prompt:stage_explain": "2bb437ac6f749d1e",
+    "prompt:synthetic_schema": "90f444b5eed17145",
+    "prompt:tools_as_text": "12bbc00ec34548c6",
+    "tools:project": "b4f789ff10a0dc6d",
+    "tools:draft": "0805399dc3bc6442",
+    "tools:session": "efe01ef63a00e175",
+    "tools:campaign": "959a1dfb09b41b8f",
+    "validator:graph": "286160517fa70d45",
+    "core_prompts": "409091b1a11478c4",
+    "gate:harness": "2f9c10239a1521e7",
+    "gate:journeys": "3156cd06b5ec6113",
+    "gate:conversation": "d4832ced94b9a4bc",
+    "cases:regression": "4ba68092d5abf8e3",
+    "cases:journeys": "c7e5e577ed3aa221",
+    "gate:judgment": "38742988b91dc5f9",
+    "gate:roles": "1f7e905c77228dfe",
+    "gate:team": "855046dbbff87f86",
+    "gate:layer": "c67a63b4c60f55d0",
+    "gate:analyst": "e42138fa7c7ee0db",
+    "gate:investigator": "1c1ad22fd73cf8f1",
+    "gate:decision_models": "073823c4b04346b5",
+    "gate:decision_routing": "17f613d6c9a851bc"
+  },
+  "models": {},
+  "live": false,
+  "seed": 0,
+  "spent_eur": 0.0,
+  "rows": [
+    {
+      "id": "RG-01",
+      "source": "written",
+      "kind": "rare_event",
+      "passed": true,
+      "right": true,
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "checks": [
+        {
+          "step": "each question asked once",
+          "ok": true,
+          "detail": "asked ['target', 'prediction_moment', 'entity', 'labels', 'budget']"
+        },
+        {
+          "step": "the right questions, in order",
+          "ok": true,
+          "detail": "asked ['target', 'prediction_moment', 'entity', 'labels', 'budget'], expected exactly ['target', 'prediction_moment', 'entity', 'labels', 'budget']"
+        },
+        {
+          "step": "no build before the analysis",
+          "ok": true,
+          "detail": "steps ['answer', 'answer', 'draw_map', 'confirm_map', 'bring_table', 'analyse', 'answer', 'answer', 'answer', 'build']"
+        },
+        {
+          "step": "the coordinator's steps, in order",
+          "ok": true,
+          "detail": "steps ['answer', 'answer', 'draw_map', 'confirm_map', 'bring_table', 'analyse', 'answer', 'answer', 'answer', 'build'], expected exactly ['answer', 'answer', 'draw_map', 'confirm_map', 'bring_table', 'analyse', 'answer', 'answer', 'answer', 'build']"
+        },
+        {
+          "step": "the right hand-offs",
+          "ok": true,
+          "detail": "hand-offs [{'role': 'data_investigator', 'allowed': False, 'refused_columns': ['driver_rating']}]"
+        },
+        {
+          "step": "no failure flag comes back",
+          "ok": true,
+          "detail": "flags []"
+        }
+      ],
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget"
+      ],
+      "coordinator": [
+        "answer",
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "bring_table",
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": false,
+          "refused_columns": [
+            "driver_rating"
+          ],
+          "source": "rules"
+        }
+      ],
+      "flags": [],
+      "seconds": 26.1,
+      "models": {}
+    },
+    {
+      "id": "RG-02",
+      "source": "written",
+      "kind": "rare_event",
+      "passed": true,
+      "right": true,
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "checks": [
+        {
+          "step": "each question asked once",
+          "ok": true,
+          "detail": "asked ['target', 'prediction_moment', 'entity', 'labels', 'budget', 'labels_check']"
+        },
+        {
+          "step": "the right questions, in order",
+          "ok": true,
+          "detail": "asked ['target', 'prediction_moment', 'entity', 'labels', 'budget', 'labels_check'], expected ['target', 'labels', 'labels_check']"
+        },
+        {
+          "step": "no build before the analysis",
+          "ok": true,
+          "detail": "steps ['answer', 'answer', 'draw_map', 'bring_table', 'answer', 'answer', 'draw_map', 'answer', 'answer', 'analyse', 'build']"
+        },
+        {
+          "step": "the coordinator's steps, in order",
+          "ok": true,
+          "detail": "steps ['answer', 'answer', 'draw_map', 'bring_table', 'answer', 'answer', 'draw_map', 'answer', 'answer', 'analyse', 'build'], expected in order ['bring_table', 'analyse', 'build']"
+        },
+        {
+          "step": "no failure flag comes back",
+          "ok": true,
+          "detail": "flags []"
+        }
+      ],
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget",
+        "labels_check"
+      ],
+      "coordinator": [
+        "answer",
+        "answer",
+        "draw_map",
+        "bring_table",
+        "answer",
+        "answer",
+        "draw_map",
+        "answer",
+        "answer",
+        "analyse",
+        "build"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "flags": [],
+      "seconds": 28.9,
+      "models": {}
+    },
+    {
+      "id": "JD-01",
+      "source": "journey",
+      "kind": "rare_event",
+      "passed": true,
+      "right": true,
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "checks": [
+        {
+          "step": "each question asked once",
+          "ok": true,
+          "detail": "asked ['target', 'prediction_moment', 'entity', 'labels', 'budget']"
+        },
+        {
+          "step": "no build before the analysis",
+          "ok": true,
+          "detail": "steps ['answer', 'answer', 'draw_map', 'confirm_map', 'bring_table', 'analyse', 'answer', 'answer', 'answer', 'build']"
+        },
+        {
+          "step": "no failure flag comes back",
+          "ok": true,
+          "detail": "flags []"
+        }
+      ],
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget"
+      ],
+      "coordinator": [
+        "answer",
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "bring_table",
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "flags": [],
+      "seconds": 26.1,
+      "models": {}
+    },
+    {
+      "id": "JD-02",
+      "source": "journey",
+      "kind": "binary",
+      "passed": true,
+      "right": true,
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "checks": [
+        {
+          "step": "each question asked once",
+          "ok": true,
+          "detail": "asked ['target', 'prediction_moment', 'action']"
+        },
+        {
+          "step": "no build before the analysis",
+          "ok": true,
+          "detail": "steps ['answer', 'answer', 'draw_map', 'analyse', 'answer', 'build']"
+        },
+        {
+          "step": "no failure flag comes back",
+          "ok": true,
+          "detail": "flags []"
+        }
+      ],
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "coordinator": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "flags": [],
+      "seconds": 4.1,
+      "models": {}
+    },
+    {
+      "id": "JD-03",
+      "source": "journey",
+      "kind": "multiclass",
+      "passed": true,
+      "right": true,
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "checks": [
+        {
+          "step": "each question asked once",
+          "ok": true,
+          "detail": "asked ['target', 'prediction_moment', 'action']"
+        },
+        {
+          "step": "no build before the analysis",
+          "ok": true,
+          "detail": "steps ['answer', 'answer', 'draw_map', 'analyse', 'answer', 'build']"
+        },
+        {
+          "step": "no failure flag comes back",
+          "ok": true,
+          "detail": "flags []"
+        }
+      ],
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "coordinator": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "flags": [],
+      "seconds": 8.0,
+      "models": {}
+    },
+    {
+      "id": "JD-04",
+      "source": "journey",
+      "kind": "regression",
+      "passed": true,
+      "right": true,
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "checks": [
+        {
+          "step": "each question asked once",
+          "ok": true,
+          "detail": "asked ['target', 'prediction_moment', 'action']"
+        },
+        {
+          "step": "no build before the analysis",
+          "ok": true,
+          "detail": "steps ['answer', 'answer', 'draw_map', 'analyse', 'answer', 'build']"
+        },
+        {
+          "step": "no failure flag comes back",
+          "ok": true,
+          "detail": "flags []"
+        }
+      ],
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "coordinator": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "flags": [],
+      "seconds": 3.2,
+      "models": {}
+    },
+    {
+      "id": "JD-05",
+      "source": "journey",
+      "kind": "places",
+      "passed": true,
+      "right": true,
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "checks": [
+        {
+          "step": "each question asked once",
+          "ok": true,
+          "detail": "asked ['target', 'prediction_moment', 'action']"
+        },
+        {
+          "step": "no build before the analysis",
+          "ok": true,
+          "detail": "steps ['answer', 'answer', 'draw_map', 'analyse', 'answer', 'build']"
+        },
+        {
+          "step": "no failure flag comes back",
+          "ok": true,
+          "detail": "flags []"
+        }
+      ],
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "coordinator": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "flags": [],
+      "seconds": 34.8,
+      "models": {}
+    },
+    {
+      "id": "JD-06",
+      "source": "journey",
+      "kind": "text_tabular",
+      "passed": true,
+      "right": true,
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "checks": [
+        {
+          "step": "each question asked once",
+          "ok": true,
+          "detail": "asked ['target', 'prediction_moment', 'action']"
+        },
+        {
+          "step": "no build before the analysis",
+          "ok": true,
+          "detail": "steps ['answer', 'answer', 'draw_map', 'analyse', 'answer', 'build']"
+        },
+        {
+          "step": "no failure flag comes back",
+          "ok": true,
+          "detail": "flags []"
+        }
+      ],
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "coordinator": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "flags": [],
+      "seconds": 4.7,
+      "models": {}
+    },
+    {
+      "id": "JD-07",
+      "source": "journey",
+      "kind": "anomaly",
+      "passed": true,
+      "right": true,
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "checks": [
+        {
+          "step": "each question asked once",
+          "ok": true,
+          "detail": "asked ['target', 'labels', 'prediction_moment', 'action']"
+        },
+        {
+          "step": "no build before the analysis",
+          "ok": true,
+          "detail": "steps ['answer', 'answer', 'answer', 'draw_map', 'analyse', 'answer', 'build']"
+        },
+        {
+          "step": "no failure flag comes back",
+          "ok": true,
+          "detail": "flags []"
+        }
+      ],
+      "why": [],
+      "asked": [
+        "target",
+        "labels",
+        "prediction_moment",
+        "action"
+      ],
+      "coordinator": [
+        "answer",
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "flags": [],
+      "seconds": 6.2,
+      "models": {}
+    },
+    {
+      "id": "JD-08",
+      "source": "journey",
+      "kind": "forecasting",
+      "passed": true,
+      "right": true,
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "checks": [
+        {
+          "step": "each question asked once",
+          "ok": true,
+          "detail": "asked ['target', 'prediction_moment', 'action']"
+        },
+        {
+          "step": "no build before the analysis",
+          "ok": true,
+          "detail": "steps ['answer', 'answer', 'draw_map', 'analyse', 'answer', 'build']"
+        },
+        {
+          "step": "no failure flag comes back",
+          "ok": true,
+          "detail": "flags []"
+        }
+      ],
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "coordinator": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "flags": [],
+      "seconds": 10.9,
+      "models": {}
+    },
+    {
+      "id": "JD-09",
+      "source": "journey",
+      "kind": "time_to_event",
+      "passed": true,
+      "right": true,
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "checks": [
+        {
+          "step": "each question asked once",
+          "ok": true,
+          "detail": "asked ['target', 'prediction_moment', 'action']"
+        },
+        {
+          "step": "no build before the analysis",
+          "ok": true,
+          "detail": "steps ['answer', 'answer', 'draw_map', 'analyse', 'answer', 'build']"
+        },
+        {
+          "step": "no failure flag comes back",
+          "ok": true,
+          "detail": "flags []"
+        }
+      ],
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "coordinator": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "flags": [],
+      "seconds": 1.7,
+      "models": {}
+    },
+    {
+      "id": "JD-10",
+      "source": "journey",
+      "kind": "embedded",
+      "passed": true,
+      "right": true,
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "checks": [
+        {
+          "step": "each question asked once",
+          "ok": true,
+          "detail": "asked ['target', 'prediction_moment', 'action', 'family']"
+        },
+        {
+          "step": "no build before the analysis",
+          "ok": true,
+          "detail": "steps ['answer', 'answer', 'answer', 'answer', 'draw_map', 'analyse', 'build']"
+        },
+        {
+          "step": "no failure flag comes back",
+          "ok": true,
+          "detail": "flags []"
+        }
+      ],
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "family"
+      ],
+      "coordinator": [
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "build"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "flags": [],
+      "seconds": 1.2,
+      "models": {}
+    },
+    {
+      "id": "JD-11",
+      "source": "journey",
+      "kind": "streams",
+      "passed": true,
+      "right": true,
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "checks": [
+        {
+          "step": "each question asked once",
+          "ok": true,
+          "detail": "asked ['target', 'prediction_moment', 'action']"
+        },
+        {
+          "step": "no build before the analysis",
+          "ok": true,
+          "detail": "steps ['answer', 'answer', 'draw_map', 'analyse', 'answer', 'build']"
+        },
+        {
+          "step": "no failure flag comes back",
+          "ok": true,
+          "detail": "flags []"
+        }
+      ],
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "coordinator": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "flags": [],
+      "seconds": 8.8,
+      "models": {}
+    },
+    {
+      "id": "JD-12",
+      "source": "journey",
+      "kind": "entity_tables",
+      "passed": true,
+      "right": true,
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "checks": [
+        {
+          "step": "each question asked once",
+          "ok": true,
+          "detail": "asked ['prediction_moment', 'target', 'action']"
+        },
+        {
+          "step": "no build before the analysis",
+          "ok": true,
+          "detail": "steps ['answer', 'draw_map', 'analyse', 'answer', 'answer', 'build']"
+        },
+        {
+          "step": "no failure flag comes back",
+          "ok": true,
+          "detail": "flags []"
+        }
+      ],
+      "why": [],
+      "asked": [
+        "prediction_moment",
+        "target",
+        "action"
+      ],
+      "coordinator": [
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "flags": [],
+      "seconds": 4.9,
+      "models": {}
+    },
+    {
+      "id": "JD-13",
+      "source": "journey",
+      "kind": "segmentation",
+      "passed": true,
+      "right": true,
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "checks": [
+        {
+          "step": "each question asked once",
+          "ok": true,
+          "detail": "asked ['target', 'prediction_moment', 'action']"
+        },
+        {
+          "step": "no build before the analysis",
+          "ok": true,
+          "detail": "steps ['draw_map', 'analyse', 'answer', 'answer', 'answer', 'build']"
+        },
+        {
+          "step": "no failure flag comes back",
+          "ok": true,
+          "detail": "flags []"
+        }
+      ],
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "coordinator": [
+        "draw_map",
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "flags": [],
+      "seconds": 8.0,
+      "models": {}
+    },
+    {
+      "id": "JD-14",
+      "source": "journey",
+      "kind": "uplift",
+      "passed": true,
+      "right": true,
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "checks": [
+        {
+          "step": "each question asked once",
+          "ok": true,
+          "detail": "asked ['target', 'prediction_moment', 'action', 'family']"
+        },
+        {
+          "step": "no build before the analysis",
+          "ok": true,
+          "detail": "steps ['answer', 'answer', 'answer', 'answer', 'draw_map', 'analyse', 'build']"
+        },
+        {
+          "step": "no failure flag comes back",
+          "ok": true,
+          "detail": "flags []"
+        }
+      ],
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "family"
+      ],
+      "coordinator": [
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "build"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "flags": [],
+      "seconds": 9.0,
+      "models": {}
+    },
+    {
+      "id": "JD-15",
+      "source": "journey",
+      "kind": "ranking",
+      "passed": true,
+      "right": true,
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "checks": [
+        {
+          "step": "each question asked once",
+          "ok": true,
+          "detail": "asked ['target', 'prediction_moment', 'family']"
+        },
+        {
+          "step": "no build before the analysis",
+          "ok": true,
+          "detail": "steps ['answer', 'answer', 'answer', 'draw_map', 'analyse', 'build']"
+        },
+        {
+          "step": "no failure flag comes back",
+          "ok": true,
+          "detail": "flags []"
+        }
+      ],
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "family"
+      ],
+      "coordinator": [
+        "answer",
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "build"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "flags": [],
+      "seconds": 5.4,
+      "models": {}
+    }
+  ],
+  "summary": {
+    "cases": 17,
+    "passed": 17,
+    "by_source": {
+      "journey": [
+        15,
+        15
+      ],
+      "written": [
+        2,
+        2
+      ]
+    }
+  },
+  "verdict": "pass: 17 of 17 right on every step and part",
+  "status": "completed",
+  "experiment_id": "HRN-008",
+  "rule": "The suite says these written and recorded cases still go as they should with what this run ran; it is not a claim about any other session or about production readiness."
+}

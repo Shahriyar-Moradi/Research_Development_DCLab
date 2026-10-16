@@ -158,11 +158,21 @@
    "version": "dclab_core.review.v1"
   },
   {
+   "contract": "route",
+   "reads": [],
+   "version": "dclab_core.route.v1"
+  },
+  {
    "contract": "run_record",
    "reads": [
     "dclab_core.run_record.v1"
    ],
    "version": "dclab_core.run_record.v2"
+  },
+  {
+   "contract": "solution_map",
+   "reads": [],
+   "version": "dclab_core.solution_map.v1"
   },
   {
    "contract": "solution_plan",
@@ -232,7 +242,7 @@
    "what": "Each model call whose prompt and reply were kept (train only; never a call that was shown cell values), with the check's verdict and the feedback (23.10)."
   }
  ],
- "dclab_core": "0.51.0",
+ "dclab_core": "0.53.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -624,6 +634,18 @@
    "main_product": null,
    "point": "report.claim",
    "subjects": [
+    "project"
+   ]
+  },
+  {
+   "about": "Which approach solves this sub-problem?",
+   "answer": "value",
+   "decided_in": "draft/map.py store_routes: the approach the router chose for each sub-problem, the rules' and the advisor's",
+   "kind": "workflow",
+   "main_product": null,
+   "point": "solution.route",
+   "subjects": [
+    "draft",
     "project"
    ]
   },

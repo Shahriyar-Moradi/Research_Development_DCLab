@@ -1,0 +1,162 @@
+{
+  "$defs": {
+    "Candidate": {
+      "additionalProperties": false,
+      "properties": {
+        "approach": {
+          "maxLength": 40,
+          "type": "string"
+        },
+        "blocking": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 13,
+          "type": "array"
+        },
+        "evidence_track": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "preconditions": {
+          "items": {
+            "$ref": "#/$defs/Precondition"
+          },
+          "maxItems": 13,
+          "type": "array"
+        },
+        "rank": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 6,
+          "type": "array"
+        },
+        "unknown": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 13,
+          "type": "array"
+        }
+      },
+      "required": [
+        "approach",
+        "rank"
+      ],
+      "type": "object"
+    },
+    "Precondition": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "maxLength": 40,
+          "type": "string"
+        },
+        "met": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "why": {
+          "default": "",
+          "maxLength": 300,
+          "type": "string"
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/Candidate"
+      },
+      "maxItems": 16,
+      "type": "array"
+    },
+    "chosen": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "family": {
+      "maxLength": 40,
+      "type": "string"
+    },
+    "map": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reason": {
+      "default": "",
+      "maxLength": 300,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.route.v1",
+      "default": "dclab_core.route.v1",
+      "type": "string"
+    },
+    "single": {
+      "default": false,
+      "type": "boolean"
+    },
+    "source": {
+      "default": "rules",
+      "enum": [
+        "rules",
+        "advisor",
+        "detected"
+      ],
+      "type": "string"
+    },
+    "sub_problem": {
+      "maxLength": 40,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "sub_problem",
+    "family"
+  ],
+  "type": "object"
+}

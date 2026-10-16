@@ -261,6 +261,265 @@ class HomeMapTest(unittest.TestCase):
 
 
 @unittest.skipIf(MISSING, MISSING)
+class RoutesOnHomeTest(unittest.TestCase):
+    """24.3 on Home: each part of the map is routed to an approach, shown with the others and what blocks them, kept with the map and the data card it
+    was made for, and recorded as a decision once, again only when the approach changes."""
+
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp())
+        self.store = DraftStore(self.home / "drafts")
+        self.log = experience.FileLog(self.home / "experience", "wtest")
+        self.book = ledger.FileLedger(self.home / "ledger", "wtest")
+        self.log.home = self.book.home = self.home
+        experience.install(self.log)
+        ledger.install(self.book)
+        self.addCleanup(experience.install, None)
+        self.addCleanup(ledger.install, None)
+
+    def routed(self):
+        return [r for r in self.book.records() if r.point == "solution.route"]
+
+    def test_the_fraud_map_shows_each_part_routed_with_the_others_and_what_blocks_them(self):
+        draft = self.store.create(FRAUD)["id"]
+        routes = home_map.view(self.store.get(draft))["routes"]
+        self.assertEqual({k: v["chosen"] for k, v in routes.items()}, {"sp1": "anomaly", "sp2": "rare_event", "sp3": "entity_tables", "sp4": "review_budgeted"})
+        self.assertTrue(routes["sp4"]["title"].startswith("The cases a team can review"))
+        blocked = {c["approach"]: c["blocking"] for c in routes["sp4"]["candidates"]}
+        self.assertEqual(blocked["ranking"], ["not_budget_step"])
+        self.assertEqual(self.routed(), [])  # looking records nothing
+
+    def test_a_single_problem_keeps_the_kind_the_detection_found(self):
+        from dclab_rnd import kinds
+
+        draft = self.store.create(CHURN)["id"]
+        shown = home_map.draw(self.store, draft)
+        detected = kinds.detect(CHURN)["key"]
+        self.assertEqual((shown["routes"]["sp1"]["chosen"], shown["routes"]["sp1"]["source"], shown["routes"]["sp1"]["single"]), (detected, "detected", True))
+        self.assertEqual([(r.value_used, r.used) for r in self.routed()], [(detected, "rule")])
+
+    def test_confirming_routes_every_part_and_records_one_decision_for_each(self):
+        draft = self.store.create(FRAUD)["id"]
+        home_map.draw(self.store, draft)
+        self.assertEqual(self.routed(), [])
+        home_map.edit(self.store, draft, "confirm")
+        got = {(r.subject.key, r.value_used) for r in self.routed()}
+        self.assertEqual(len(self.routed()), 4)
+        self.assertEqual({v for _, v in got}, {"anomaly", "rare_event", "entity_tables", "review_budgeted"})
+        first = self.routed()[0]
+        self.assertEqual(first.point, "solution.route")
+        self.assertIn("anomaly", first.options)
+        self.assertTrue({"family", "labels", "parts"} <= set(first.state))
+
+    def test_routing_again_with_nothing_changed_records_nothing_more(self):
+        draft = self.store.create(FRAUD)["id"]
+        home_map.draw(self.store, draft)
+        home_map.edit(self.store, draft, "confirm")
+        before = len(self.routed())
+        home_map.store_routes(self.store, draft)
+        self.assertEqual(len(self.routed()), before)
+
+    def test_the_stored_routes_belong_to_the_map_and_the_data_they_were_made_for(self):
+        draft = self.store.create(FRAUD)["id"]
+        home_map.draw(self.store, draft)
+        home_map.edit(self.store, draft, "confirm")
+        stored = self.store.get(draft)["problem_map"]["routes"]
+        self.assertEqual(stored["map"], home_map.current(self.store.get(draft)).fingerprint)
+        home_map.edit(self.store, draft, "remove", part="part2")  # another map: the stored routes are not its routes
+        shown = home_map.view(self.store.get(draft))
+        self.assertEqual(sorted(shown["routes"]), ["sp1", "sp3", "sp4"])
+
+    def test_a_route_the_advisor_chooses_is_a_decision_with_both_answers(self):
+        from dclab_core.agents import ScriptedAdvisor
+
+        draft = self.store.create(FRAUD)["id"]
+        home_map.draw(self.store, draft)
+        advisor = ScriptedAdvisor({"solution_router": lambda evidence: {"choice": "anomaly", "reason": "a screen reads a few confirmed cases well"} if "sp2" in evidence["sub_problem"] else None})
+        home_map.edit(self.store, draft, "confirm", advisor=advisor)
+        record = next(r for r in self.routed() if r.subject.key == draft and r.value_used == "anomaly" and len(r.answers) == 2)
+        self.assertEqual([(a.by, a.answerer) for a in record.answers], [("rule", "rule:route"), ("model_role", "solution_router")])
+        self.assertEqual((record.used, record.level), ("model_role", 2))
+
+    def test_the_routes_reach_the_main_products_spec_proposals_in_the_free_form_key(self):
+        from dclab_core.adapters import main_product_problem_map as adapter
+
+        draft = self.store.create(FRAUD)["id"]
+        home_map.draw(self.store, draft)
+        m = home_map.current(self.store.get(draft))
+        routes = home_map.compute_routes(self.store.get(draft), m)
+        out = adapter.problem_specs(m, routes)
+        here = out["problem_specs"]["sp2"]["fields"]["constraints"][adapter.KEY]
+        self.assertEqual(here["route"]["chosen"], "rare_event")
+        self.assertEqual([c["approach"] for c in here["route"]["candidates"]], ["rare_event", "anomaly"])
+        self.assertIn("proposal", out["problem_specs"]["sp2"]["notes"]["route"])
+
+    def test_a_decision_is_recorded_only_for_a_part_whose_approach_is_new_or_changed(self):
+        draft = self.store.create(FRAUD)["id"]
+        home_map.draw(self.store, draft)
+        home_map.edit(self.store, draft, "confirm")
+        self.assertEqual(len(self.routed()), 4)
+        home_map.edit(self.store, draft, "remove", part="part2")
+        home_map.edit(self.store, draft, "confirm")  # sp1, sp3 and sp4 are routed to what they were: nothing more is recorded
+        self.assertEqual(len(self.routed()), 4)
+        home_map.edit(self.store, draft, "add", title="Check the couriers' hours", family="anomaly", unit="ride", labels="none")
+        home_map.edit(self.store, draft, "confirm")
+        self.assertEqual(len(self.routed()), 5)  # the new part, once
+
+    def test_each_decision_names_its_sub_problem_so_two_parts_of_one_draft_are_not_alike(self):
+        draft = self.store.create("Route each new support ticket to the team that should handle it, then set how urgent it is.")["id"]
+        m = home_map.draw(self.store, draft)["map"]
+        self.assertEqual(m["size"], "complex")
+        home_map.edit(self.store, draft, "confirm")
+        self.assertEqual({r.state["sub_problem"] for r in self.routed()}, {"sp1", "sp2"})
+
+    def test_routes_made_while_the_data_card_changed_are_not_marked_as_made_for_the_new_one(self):
+        draft = self.store.create(FRAUD)["id"]
+        home_map.draw(self.store, draft)
+        home_map.edit(self.store, draft, "confirm")
+        before = self.store.get(draft)["problem_map"]["routes"]["data"]
+
+        def card(d):
+            d["data_card"] = {"schema_version": "dclab_core.data_card.v3", "name": "t", "tables": [{"name": "t", "rows": 5, "columns": []}]}
+        self.store.update(draft, card)
+        shown = home_map.view(self.store.get(draft))  # the stored routes were made for another data card: routed again, by the rules, now
+        self.assertEqual(sorted(shown["routes"]), ["sp1", "sp2", "sp3", "sp4"])
+        self.assertNotEqual(before, home_map._data_digest(self.store.get(draft)))
+
+    def test_a_stored_route_that_no_longer_reads_is_routed_again(self):
+        draft = self.store.create(FRAUD)["id"]
+        home_map.draw(self.store, draft)
+        home_map.edit(self.store, draft, "confirm")
+
+        def spoil(d):
+            d["problem_map"]["routes"]["routes"]["sp1"] = {"nonsense": True}
+        self.store.update(draft, spoil)
+        shown = home_map.view(self.store.get(draft))
+        self.assertEqual(shown["routes"]["sp1"]["chosen"], "anomaly")
+
+    def test_a_map_edited_down_to_one_part_is_routed_by_its_own_family_not_by_the_detection(self):
+        draft = self.store.create(FRAUD)["id"]
+        home_map.draw(self.store, draft)
+        for part in ("part1", "part2", "part4"):
+            shown = home_map.edit(self.store, draft, "remove", part=part)
+        self.assertEqual(shown["map"]["size"], "single")
+        route = shown["routes"]["sp3"]
+        self.assertEqual(route["source"], "rules")  # the person's own single map: the detected kind of the words is not used
+        self.assertIn("the person's own reading", route["reason"])
+
+    def test_a_part_with_no_approach_shows_none_and_is_recorded_without_a_value(self):
+        draft = self.store.create(FRAUD)["id"]
+        agent = HomeAgent(self.store, None)
+        agent.start(draft)
+        upload(self.store, agent, draft, "rides.csv", dfr.generate(seed=0, n_orders=3000, n_bikers=120).rides)
+        home_map.draw(self.store, draft)
+        shown = home_map.edit(self.store, draft, "confirm")
+        rings = shown["routes"]["sp3"]
+        self.assertIsNone(rings["chosen"])  # one table beside the cases: the entity kind needs the table of events
+        self.assertIn("several_tables", next(c for c in rings["candidates"] if c["approach"] == "entity_tables")["blocking"])
+        self.assertIn("refuted", rings["reason"])
+        record = next(r for r in self.routed() if r.state.get("sub_problem") == "sp3")
+        self.assertIsNone(record.value_used)
+
+    def test_the_data_card_reaches_the_route_and_the_coordinators_analysis_routes_again(self):
+        from unittest import mock
+
+        draft = self.store.create(FRAUD)["id"]
+        agent = HomeAgent(self.store, None)
+        agent.start(draft)
+        home_map.draw(self.store, draft)
+        upload(self.store, agent, draft, "rides.csv", dfr.generate(seed=0, n_orders=3000, n_bikers=120).rides)
+        self.store.update(draft, known_for_routes)
+        # the confirmation routes once; the analysis routes again with whatever the data card shows then (the hook is the coordinator's)
+        home_map.edit(self.store, draft, "confirm")
+        calls = []
+        real = home_map.store_routes
+        with mock.patch.object(home_map, "store_routes", side_effect=lambda *a, **k: calls.append(a[1]) or real(*a, **k)):
+            Coordinator(self.store, ProjectStore(self.home / "projects"), agent)._analyse(draft)
+        self.assertEqual(calls, [draft])
+        routes = self.store.get(draft)["problem_map"]["routes"]
+        self.assertEqual(routes["data"], home_map._data_digest(self.store.get(draft)))
+        sp3 = routes["routes"]["sp3"]["candidates"][0]
+        self.assertEqual({p["code"]: p["met"] for p in sp3["preconditions"]}["several_tables"], False)
+
+
+def known_for_routes(draft):
+    draft.setdefault("understanding", {}).update({"prediction_moment": "After the ride, in the daily audit of the day's rides", "target": "status"})
+
+
+@unittest.skipIf(MISSING, MISSING)
+class SolutionMapOnHomeTest(unittest.TestCase):
+    """24.4 on Home: the problem map answered beside it: a block for each part linked to the part it answers, its approach, its split and the steps of its
+    workflow; one holdout for the whole, read once by the composition. Looking writes nothing and asks no model."""
+
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp())
+        self.store = DraftStore(self.home / "drafts")
+
+    def test_each_block_answers_a_part_and_the_holdout_is_read_once_by_the_composition(self):
+        draft = self.store.create(FRAUD)["id"]
+        v = home_map.solution_view(self.store.get(draft))
+        self.assertEqual((v["size"], [b["sub_problem"] for b in v["blocks"]]), ("complex", ["sp1", "sp2", "sp3", "sp4"]))
+        self.assertEqual([b["part_title"] for b in v["blocks"]][:2], ["Screen for unusual behaviour", "Classify the confirmed kinds of fraud"])
+        self.assertEqual([b["approach"] for b in v["blocks"]], ["anomaly", "rare_event", "entity_tables", "review_budgeted"])
+        self.assertTrue(all(b["final"] == "deferred" for b in v["blocks"]))
+        self.assertEqual([s["output"] for s in v["steps"] if s["reads_holdout"]], ["holdout_score"])
+        self.assertEqual((v["holdout"]["read_by"], v["issues"], v["blockers"]), ("composition", [], []))
+        self.assertEqual(len({json.dumps(b["split"], sort_keys=True) for b in v["blocks"]}), 1)  # every leaf splits as the whole does
+
+    def test_each_blocks_workflow_steps_are_there_to_drill_into(self):
+        v = home_map.solution_view(self.store.get(self.store.create(FRAUD)["id"]))
+        for b in v["blocks"]:
+            ids = [s["id"] for s in b["workflow"]]
+            self.assertIn("lock_holdout", ids)
+            self.assertIn("final_once", ids)
+            self.assertTrue(all(s["purpose"] and s["name"] for s in b["workflow"]))
+
+    def test_a_deferred_leafs_final_score_is_marked_as_the_compositions_to_run(self):
+        v = home_map.solution_view(self.store.get(self.store.create(FRAUD)["id"]))
+        for b in v["blocks"]:
+            self.assertEqual(b["defers"], ["final_once"])
+            self.assertEqual([s["id"] for s in b["workflow"] if s["deferred"]], ["final_once"])
+        single = home_map.solution_view(self.store.get(self.store.create(CHURN)["id"]))
+        self.assertEqual([s["deferred"] for s in single["blocks"][0]["workflow"]].count(True), 0)
+        self.assertTrue(any("time and by entity together" in n for n in home_map.solution_view(self.store.get(self._with_data()))["notes"]))
+
+    def _with_data(self):
+        draft = self.store.create(FRAUD)["id"]
+        agent = HomeAgent(self.store, None)
+        agent.start(draft)
+        upload(self.store, agent, draft, "rides.csv", dfr.generate(seed=0, n_orders=3000, n_bikers=120).rides)
+        return draft
+
+    def test_a_single_problem_has_one_block_that_scores_its_own_holdout(self):
+        v = home_map.solution_view(self.store.get(self.store.create(CHURN)["id"]))
+        self.assertEqual((v["size"], len(v["blocks"]), v["blocks"][0]["final"], v["steps"], v["holdout"]["read_by"]), ("single", 1, "own", [], "leaf"))
+
+    def test_the_split_follows_the_data_card_entities_and_time(self):
+        draft = self.store.create(FRAUD)["id"]
+        agent = HomeAgent(self.store, None)
+        agent.start(draft)
+        upload(self.store, agent, draft, "rides.csv", dfr.generate(seed=0, n_orders=3000, n_bikers=120).rides)
+        split = home_map.solution_view(self.store.get(draft))["holdout"]["split"]
+        self.assertEqual(split["strategy"], "time_group")
+        self.assertTrue(split["keys"] and split["moment"])
+
+    def test_a_part_with_no_approach_is_said_and_the_map_is_still_drawn(self):
+        draft = self.store.create(FRAUD)["id"]
+        agent = HomeAgent(self.store, None)
+        agent.start(draft)
+        upload(self.store, agent, draft, "rides.csv", dfr.generate(seed=0, n_orders=3000, n_bikers=120).rides)
+        v = home_map.solution_view(self.store.get(draft))
+        self.assertIsNone(next(b for b in v["blocks"] if b["sub_problem"] == "sp3")["approach"])
+        self.assertEqual(len(v["blockers"]), 1)
+        self.assertIn("sp3", v["blockers"][0])
+
+    def test_looking_writes_nothing(self):
+        draft = self.store.create(FRAUD)["id"]
+        before = json.dumps(self.store.get(draft), sort_keys=True)
+        home_map.solution_view(self.store.get(draft))
+        self.assertEqual(json.dumps(self.store.get(draft), sort_keys=True), before)
+
+
+@unittest.skipIf(MISSING, MISSING)
 class BuildGateTest(unittest.TestCase):
     def setUp(self):
         self.home = Path(tempfile.mkdtemp())
@@ -350,10 +609,19 @@ class RoutesTest(unittest.TestCase):
         self.assertEqual(self.client.get("/api/drafts/nope/map").status_code, 404)
         self.assertEqual(self.client.post("/api/drafts/nope/map/edit", json={"action": "confirm"}, headers=self.h).status_code, 404)
 
+    def test_the_solution_map_is_shown_through_its_route_and_an_unknown_draft_is_not_found(self):
+        did = self.draft()
+        got = self.client.get(f"/api/drafts/{did}/solution-map")
+        self.assertEqual(got.status_code, 200, got.text)
+        body = got.json()
+        self.assertEqual((body["size"], len(body["blocks"]), body["holdout"]["read_by"]), ("complex", 4, "composition"))
+        self.assertEqual(self.client.get("/api/drafts/nope/solution-map").status_code, 404)
+
     def test_the_routes_are_checked_like_every_other_route(self):
         from dclab_rnd.accounts.guard import permission
 
         self.assertEqual(permission("GET", "/api/drafts/x/map"), permission("GET", "/api/drafts/x/card"))
+        self.assertEqual(permission("GET", "/api/drafts/x/solution-map"), permission("GET", "/api/drafts/x/card"))
         self.assertEqual(permission("POST", "/api/drafts/x/map/edit"), permission("POST", "/api/drafts/x/pack"))
 
 

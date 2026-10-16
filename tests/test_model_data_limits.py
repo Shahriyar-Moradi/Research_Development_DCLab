@@ -229,7 +229,11 @@ class DataLimitTests(unittest.TestCase):
         made, _, _ = mapping.draw(words, advisor=advisor, data=data)
         mapping.review_with(pm.decompose(words), advisor=advisor, words=words, data=data)
         mapping.needs_for(pm.decompose(words), data, advisor)
-        for purpose in ("decomposer", "map_reviewer", "data_need"):
+        from dclab_core import solutions
+
+        m = pm.decompose(words)
+        solutions.route_with(m.sub_problems[1], data, m, advisor=GatewayAdvisor(gateway({"solution_router": [empty]})))  # 24.3: lines about the candidates, never values
+        for purpose in ("decomposer", "map_reviewer", "data_need", "solution_router"):
             self.assertEqual(self.assertWithinLimit(purpose), set(), purpose)
 
     def test_the_decision_answerer_sees_bands_and_names_never_values(self):  # 22.5
@@ -348,7 +352,7 @@ class DataLimitTests(unittest.TestCase):
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
-                  "decision_answer", "decision_labeler", "decomposer", "map_reviewer", "data_need"}
+                  "decision_answer", "decision_labeler", "decomposer", "map_reviewer", "data_need", "solution_router"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

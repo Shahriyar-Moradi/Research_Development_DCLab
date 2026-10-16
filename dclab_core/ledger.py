@@ -58,7 +58,7 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "rows": (BAND, SIZE_BANDS), "columns": (COUNT, ()), "classes": (COUNT, ()), "positive_rate": (BAND, RATIO_BANDS),
     "has_time": (FLAG, ()), "has_groups": (FLAG, ()), "has_text": (FLAG, ()), "tables": (COUNT, ()),
     "moment_known": (FLAG, ()), "outcome_known": (FLAG, ()), "open_questions": (COUNT, ()), "blocking": (COUNT, ()),
-    "parts": (COUNT, ()), "parts_before": (COUNT, ()), "parts_after": (COUNT, ()), "template": (CODE, ()),  # 24.2: the problem map's size and the rule that drew it
+    "parts": (COUNT, ()), "parts_before": (COUNT, ()), "parts_after": (COUNT, ()), "template": (CODE, ()), "sub_problem": (CODE, ()),  # 24.2: the problem map's size and the rule that drew it
     # measurements a decision can be made on (aggregates, never a row)
     "apparent_lift": (MEASURE, ()), "optimism_gap": (MEASURE, ()), "tuning_gain": (MEASURE, ()), "cv_mean": (MEASURE, ()),
     "cv_std": (MEASURE, ()), "holdout_value": (MEASURE, ()), "baseline_value": (MEASURE, ()), "share": (RATIO, ()),
@@ -165,6 +165,7 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     _p("problem.pack", W, DP, "value", "Which domain pack does it start from?"),
     _p("map.size", W, DP, "choice", "Is the problem one problem, or several that depend on each other?", choices=("single", "complex")),
     _p("map.edit", W, DP, "choice", "What did the person change in the problem map?", choices=("add", "remove", "merge", "confirm", "redraw")),
+    _p("solution.route", W, DP, "value", "Which approach solves this sub-problem?"),
     _p("workflow.next_question", W, "conversation", "value", "Which question is asked next, if any?"),
     _p("workflow.template", W, DP, "value", "Which solution workflow does it follow?"),
     _p("workflow.move", W, "workflow", "noul", "Is this move allowed now?"),

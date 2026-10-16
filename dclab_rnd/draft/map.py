@@ -34,7 +34,7 @@ def roles_passed() -> bool:
 def advisor_for(gateway: Any, *, draft_id: Optional[str] = None, cap_eur: Optional[float] = None, force: bool = False) -> Any:
     """The gateway's advisor for the three roles, or None: off, no model serves one of them, or they did not pass their measurement.
     ``force``: a measurement asks for them."""
-    if gateway is None or not all(gateway.available(p) for p in ("decomposer", "map_reviewer", "data_need")):
+    if gateway is None or not all(gateway.available(p) for p in ("decomposer", "map_reviewer", "data_need", "solution_router")):
         return None
     if not force and not (switched_on() and roles_passed()):
         return None
@@ -126,6 +126,99 @@ def _review(m: pm.ProblemMap, draft: dict[str, Any], advisor: Any = None) -> map
     return mapping.review_with(m, advisor=advisor, words=words_of(draft), data=data_card_of(draft))[0]
 
 
+# ---------------------------------------------------------------------------------------------------------------- the solution router (24.3)
+
+def _data_digest(draft: dict[str, Any]) -> str:
+    return _digest(json.dumps(draft.get("data_card") or {}, sort_keys=True, default=str))
+
+
+def compute_routes(draft: dict[str, Any], m: pm.ProblemMap, advisor: Any = None) -> dict[str, Any]:
+    """The route of every sub-problem of the map against the draft's data card; a single problem keeps the kind the detection found (never
+    replaced). With the advisor serving, it may choose among the candidates the data does not refute."""
+    from dclab_core import solutions
+
+    data = data_card_of(draft)
+    detected = None
+    if m.size == "single":
+        from .. import kinds
+
+        detected = kinds.detect(words_of(draft), (draft.get("analysis") or {}).get("profile"))["key"]
+    return {s.id: solutions.route_with(s, data, m, detected, advisor)[0] for s in m.sub_problems}
+
+
+def route_view(r: Any) -> dict[str, Any]:
+    """A route as the page shows it: the approach chosen with its title and reason, and every candidate with what blocks it or is not known yet."""
+    from dclab_core import solutions
+
+    return {"chosen": r.chosen, "title": solutions.BY_ID[r.chosen].title if r.chosen else None, "reason": r.reason, "source": r.source, "single": r.single,
+            "candidates": [{"approach": c.approach, "title": solutions.BY_ID[c.approach].title, "rank": c.rank, "blocking": c.blocking, "unknown": c.unknown,
+                            "track": c.evidence_track} for c in r.candidates]}
+
+
+def store_routes(drafts: Any, draft_id: str, advisor: Any = None) -> dict[str, Any]:
+    """Route every sub-problem of the draft's map now and keep the routes with the map and the data card they were made for. A decision is
+    recorded for each sub-problem whose approach is new or changed (the data may arrive after the map was confirmed). Returns the routes' view."""
+    from dclab_core import solutions
+    from ..ledger import capture
+
+    draft = drafts.get(draft_id)
+    m = current(draft)
+    if m is None:
+        return {}
+    routes = compute_routes(draft, m, advisor)
+    old = ((stored(draft) or {}).get("routes") or {}).get("routes") or {}
+    data = data_card_of(draft)
+    digest = _data_digest(draft)  # of the data card the routes were made against: one that arrived while a model was thinking is not 'already routed'
+
+    def keep(d: dict[str, Any]) -> None:
+        if d.get("problem_map") and (current(d) or m).fingerprint == m.fingerprint:
+            d["problem_map"]["routes"] = {"map": m.fingerprint, "data": digest, "routes": {k: json.loads(v.model_dump_json()) for k, v in routes.items()}}
+    drafts.update(draft_id, keep)
+    for sid, r in routes.items():
+        if (old.get(sid) or {}).get("chosen") != r.chosen or (old.get(sid) or {}).get("source") != r.source:
+            sub = next(x for x in m.sub_problems if x.id == sid)
+            capture.route_chosen(draft_id, sub, r, data, len(m.parts))
+    return {k: route_view(v) for k, v in routes.items()}
+
+
+def stored_routes(draft: dict[str, Any], m: pm.ProblemMap) -> dict[str, Any]:
+    """The routes as objects: the stored ones when they were made for this map and this data card, else the rules' now (looking asks no model)."""
+    from dclab_core import solutions
+
+    held = (stored(draft) or {}).get("routes") or {}
+    if held.get("map") == m.fingerprint and held.get("data") == _data_digest(draft):
+        try:
+            return {k: solutions.Route.model_validate(v) for k, v in held["routes"].items()}
+        except Exception:  # noqa: BLE001 - a stored route that no longer reads is routed again
+            pass
+    return compute_routes(draft, m)
+
+
+def routes_view(draft: dict[str, Any], m: pm.ProblemMap) -> dict[str, Any]:
+    """The routes for the page."""
+    return {k: route_view(v) for k, v in stored_routes(draft, m).items()}
+
+
+def solution_view(draft: dict[str, Any], m: Optional[pm.ProblemMap] = None) -> dict[str, Any]:
+    """The solution map for the page (24.4): a block per part with its approach, its split and the steps of its workflow, the composition's steps, the
+    one holdout design and what stops it (a part with no approach, an issue of the validator). Built from the map and the routes as they are now."""
+    from dclab_core import solution_map, solutions
+
+    m = m or current(draft) or propose(draft)[0]
+    sm = solution_map.solution_map(m, stored_routes(draft, m), data_card_of(draft))
+    parts = {p.id: p for p in m.parts}
+    issues = solution_map.validate(sm, m)
+
+    def block(b: Any) -> dict[str, Any]:
+        return {"id": b.id, "part": b.part, "part_title": parts[b.part].title if b.part in parts else b.part, "sub_problem": b.sub_problem, "title": b.title, "family": b.family,
+                "approach": b.approach, "approach_title": solutions.BY_ID[b.approach].title if b.approach else None, "track": b.track, "final": b.final,
+                "split": json.loads(b.split.model_dump_json()),
+                "defers": b.defers,
+                "workflow": [{"id": s.id, "block": s.block, "name": s.name, "purpose": s.purpose, "gate": s.gate, "kind": s.kind, "deferred": s.id in b.defers} for s in b.workflow.steps]}
+    return {"map": m.fingerprint, "fingerprint": sm.fingerprint, "size": m.size, "blocks": [block(b) for b in sm.blocks],
+            "steps": [json.loads(s.model_dump_json()) for s in sm.steps], "holdout": json.loads(sm.holdout.model_dump_json()), "blockers": sm.blockers, "notes": sm.notes, "issues": issues}
+
+
 # ---------------------------------------------------------------------------------------------------------------- what the API shows
 
 def facts(draft: dict[str, Any]) -> dict[str, Any]:
@@ -149,7 +242,7 @@ def view(draft: dict[str, Any], advisor: Any = None) -> dict[str, Any]:
         review = mapping.review(m, data_card_of(draft), extra=[mapping.MapQuestion.model_validate(q) for q in (held.get("review") or {}).get("questions", []) if q.get("source") == "model"],
                                 source=(held.get("review") or {}).get("source", "rules"))
     drawn = bool(held) and current(draft) is not None
-    return {"drawn": drawn, "map": json.loads(m.model_dump_json()), "source": source, "reason": reason, "issues": pm.validate(m),
+    return {"drawn": drawn, "map": json.loads(m.model_dump_json()), "source": source, "reason": reason, "issues": pm.validate(m), "routes": routes_view(draft, m),
             "review": json.loads(review.model_dump_json()), "confirmed": bool(held and held.get("confirmed")) or m.size == "single",
             "needs_confirmation": m.size == "complex" and not (held and held.get("confirmed")),
             "stale": stale(draft),
@@ -166,7 +259,7 @@ def _remember(drafts: Any, draft_id: str, m: pm.ProblemMap, review: mapping.MapR
         if action:
             history.append(action)
         d["problem_map"] = {"map": json.loads(m.model_dump_json()), "source": source, "reason": reason, "words": words or old.get("words") or _digest(words_of(d)),
-                            "rules": rules or old.get("rules"), "review": json.loads(review.model_dump_json()), "confirmed": confirmed, "history": history[-50:]}
+                            "rules": rules or old.get("rules"), "routes": old.get("routes"), "review": json.loads(review.model_dump_json()), "confirmed": confirmed, "history": history[-50:]}
     return drafts.update(draft_id, keep)
 
 
@@ -196,6 +289,8 @@ def draw(drafts: Any, draft_id: str, *, advisor: Any = None, redraw: bool = Fals
         capture.map_edited(draft_id, "redraw", len(held.parts), len(made.parts))
     capture.map_drawn(draft_id, made, rules_size, source == "advisor")
     refresh_review(drafts, draft_id, advisor)
+    if made.size == "single":  # nothing to confirm: its approach is the detected kind, routed now
+        store_routes(drafts, draft_id, advisor)
     return view(drafts.get(draft_id), advisor)
 
 
@@ -267,7 +362,7 @@ def edit(drafts: Any, draft_id: str, action: str, *, who: str = "person", adviso
             step.update(keep=kw.get("keep"), other=kw.get("other"))
         history = [*(prior.get("history") or []), step][-50:]
         d["problem_map"] = {"map": json.loads(made.model_dump_json()), "source": "person" if action != "confirm" else prior.get("source", "rules"),
-                            "reason": prior.get("reason", "") if action == "confirm" else "edited by the person", "words": prior.get("words") or _digest(words_of(d)), "rules": prior.get("rules"),
+                            "reason": prior.get("reason", "") if action == "confirm" else "edited by the person", "words": prior.get("words") or _digest(words_of(d)), "rules": prior.get("rules"), "routes": prior.get("routes"),
                             "review": json.loads(mapping.review(made, data_card_of(d)).model_dump_json()), "confirmed": action == "confirm", "history": history}
     try:
         drafts.update(draft_id, apply)
@@ -282,6 +377,8 @@ def edit(drafts: Any, draft_id: str, action: str, *, who: str = "person", adviso
                                                "rules": ["problem_map.validate"]}, conversation=draft_id)
     capture.map_edited(draft_id, action, len(held.parts), len(made.parts))
     refresh_review(drafts, draft_id, advisor)
+    if action == "confirm" or made.size == "single":  # a confirmed map is routed (again, when the data arrived since)
+        store_routes(drafts, draft_id, advisor)
     return view(drafts.get(draft_id), advisor)
 
 

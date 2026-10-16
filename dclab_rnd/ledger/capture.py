@@ -372,6 +372,27 @@ def map_edited(draft_id: str, action: str, before: int, after: int) -> int:
 
 
 @_quiet
+def route_chosen(draft_id: str, sub: Any, route: Any, data: Any, parts: int) -> int:
+    """The approach routed to for one sub-problem (24.2's map, 24.3's catalogue): the rules' choice, the advisor's when it served, with the
+    candidates as the options. The state holds the family, the label situation and what the data card shows (counts and flags, never a value)."""
+    rules_choice = route.chosen if route.source != "advisor" else None
+    answers = []
+    if route.source == "advisor":
+        base = next((c.approach for c in route.candidates if not c.blocking), None)
+        answers = [answer("rule", "rule:route", base), answer("model_role", "solution_router", route.chosen)]
+    else:
+        answers = [answer("rule", "rule:route", rules_choice, reason=route.reason[:600] or None)]
+    tables = getattr(data, "tables", None) or []
+    columns = [c for t in tables for c in (getattr(t, "columns", None) or [])]
+    state = {"family": sub.family, "labels": sub.labels if sub.labels in ("column", "file", "none") else "unknown", "parts": int(parts), "sub_problem": _code(sub.id) or "sp",
+             "tables": len(tables), "has_time": any(getattr(c, "purpose", None) == "time" for c in columns),
+             "has_text": any(getattr(c, "purpose", None) == "text" for c in columns)}
+    by = "model_role" if route.source == "advisor" else "rule"
+    return int(bool(_put("solution.route", ("draft", draft_id), answers, route.chosen, by, state=state, options=[c.approach for c in route.candidates],
+                         level=2 if by == "model_role" else 0, draft=draft_id, conversation=draft_id)))
+
+
+@_quiet
 def workflow_drawn(draft_id: str, key: str, workflow: dict[str, Any], previous: dict[str, Any] | None, proposed: bool, problems: list[str]) -> int:
     """The solution workflow drawn: the pack's template, or a model's proposal the validator accepted or refused.
     Written when something was decided: a model proposed one, or the pack or the source changed."""

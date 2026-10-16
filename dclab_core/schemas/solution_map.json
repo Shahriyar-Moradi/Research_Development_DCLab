@@ -1,0 +1,531 @@
+{
+  "$defs": {
+    "Block": {
+      "additionalProperties": false,
+      "properties": {
+        "approach": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The approach the router chose; None when none fits yet.",
+          "title": "Approach"
+        },
+        "defers": {
+          "description": "The steps of the leaf's workflow that the composition runs in its place (the final score): the leaf never runs them.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "title": "Defers",
+          "type": "array"
+        },
+        "family": {
+          "maxLength": 40,
+          "title": "Family",
+          "type": "string"
+        },
+        "final": {
+          "description": "own: the leaf scores the holdout itself (a single problem); deferred: it hands its predictions to the composition, which reads the holdout once.",
+          "enum": [
+            "own",
+            "deferred"
+          ],
+          "title": "Final",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^blk\\d+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "part": {
+          "pattern": "^part\\d+$",
+          "title": "Part",
+          "type": "string"
+        },
+        "split": {
+          "$ref": "#/$defs/SplitDesign"
+        },
+        "sub_problem": {
+          "pattern": "^sp\\d+$",
+          "title": "Sub Problem",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "track": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Track"
+        },
+        "workflow": {
+          "$ref": "#/$defs/SolutionWorkflow"
+        }
+      },
+      "required": [
+        "id",
+        "part",
+        "sub_problem",
+        "title",
+        "family",
+        "workflow",
+        "split",
+        "final"
+      ],
+      "title": "Block",
+      "type": "object"
+    },
+    "HoldoutDesign": {
+      "additionalProperties": false,
+      "properties": {
+        "chosen_on": {
+          "const": "validation",
+          "default": "validation",
+          "title": "Chosen On",
+          "type": "string"
+        },
+        "read_by": {
+          "enum": [
+            "leaf",
+            "composition"
+          ],
+          "title": "Read By",
+          "type": "string"
+        },
+        "split": {
+          "$ref": "#/$defs/SplitDesign"
+        },
+        "step": {
+          "anyOf": [
+            {
+              "maxLength": 60,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The output name of the one step that reads it, for a composition.",
+          "title": "Step"
+        }
+      },
+      "required": [
+        "split",
+        "read_by"
+      ],
+      "title": "HoldoutDesign",
+      "type": "object"
+    },
+    "SolutionStep": {
+      "additionalProperties": false,
+      "properties": {
+        "inputs": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 40,
+          "title": "Inputs",
+          "type": "array"
+        },
+        "joins": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Joins"
+        },
+        "kind": {
+          "enum": [
+            "sequence",
+            "fusion",
+            "gate",
+            "budget",
+            "score"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "maxLength": 600,
+          "title": "Note",
+          "type": "string"
+        },
+        "output": {
+          "maxLength": 60,
+          "minLength": 1,
+          "title": "Output",
+          "type": "string"
+        },
+        "reads_holdout": {
+          "default": false,
+          "title": "Reads Holdout",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "output"
+      ],
+      "title": "SolutionStep",
+      "type": "object"
+    },
+    "SolutionWorkflow": {
+      "additionalProperties": false,
+      "description": "The steps of one problem's solution, in order, and what they rest on.",
+      "properties": {
+        "family": {
+          "maxLength": 40,
+          "title": "Family",
+          "type": "string"
+        },
+        "findings_used": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 200,
+          "title": "Findings Used",
+          "type": "array"
+        },
+        "problems": {
+          "description": "Why a proposal was refused (empty when valid).",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Problems",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "dclab_core.solution_workflow.v1",
+          "default": "dclab_core.solution_workflow.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source": {
+          "default": "template",
+          "enum": [
+            "template",
+            "model"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/Step"
+          },
+          "maxItems": 60,
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version",
+        "family"
+      ],
+      "title": "SolutionWorkflow",
+      "type": "object"
+    },
+    "SplitDesign": {
+      "additionalProperties": false,
+      "description": "How rows are split, pinned: by which keys (an entity never on both sides inside the training folds) and which moment (the latest period is the\nholdout), the share the holdout takes and the seed that draws what is random. One design is shared by every leaf.",
+      "properties": {
+        "keys": {
+          "description": "The entity columns whose rows stay on one side.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "title": "Keys",
+          "type": "array"
+        },
+        "moment": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The time column the holdout follows, or None.",
+          "title": "Moment"
+        },
+        "seed": {
+          "default": 0,
+          "description": "Draws what the split leaves to chance, the same for every leaf.",
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "share": {
+          "default": 0.2,
+          "description": "The share of rows (the latest, or a stratified draw) that is the holdout.",
+          "exclusiveMaximum": 0.5,
+          "exclusiveMinimum": 0,
+          "title": "Share",
+          "type": "number"
+        },
+        "strategy": {
+          "enum": [
+            "stratified",
+            "time",
+            "group",
+            "time_group"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "strategy"
+      ],
+      "title": "SplitDesign",
+      "type": "object"
+    },
+    "Step": {
+      "additionalProperties": false,
+      "properties": {
+        "block": {
+          "description": "The workflow block it belongs to, WF-01 to WF-10.",
+          "title": "Block",
+          "type": "string"
+        },
+        "check": {
+          "description": "What proves the step was done right.",
+          "maxLength": 400,
+          "title": "Check",
+          "type": "string"
+        },
+        "columns": {
+          "description": "The columns it acts on.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 200,
+          "title": "Columns",
+          "type": "array"
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "maxLength": 60,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The decision it makes: a plan key (analyse.AFFECTS), or none.",
+          "title": "Decision"
+        },
+        "gate": {
+          "default": false,
+          "description": "A person signs before the next step runs.",
+          "title": "Gate",
+          "type": "boolean"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]{1,60}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "enum": [
+              "table",
+              "label file",
+              "training rows",
+              "holdout",
+              "findings",
+              "columns kept",
+              "chosen model",
+              "approval",
+              "holdout score",
+              "report"
+            ],
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Inputs",
+          "type": "array"
+        },
+        "kind": {
+          "default": "family",
+          "enum": [
+            "safety",
+            "family",
+            "card",
+            "finding"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 80,
+          "title": "Name",
+          "type": "string"
+        },
+        "outputs": {
+          "items": {
+            "enum": [
+              "table",
+              "label file",
+              "training rows",
+              "holdout",
+              "findings",
+              "columns kept",
+              "chosen model",
+              "approval",
+              "holdout score",
+              "report"
+            ],
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Outputs",
+          "type": "array"
+        },
+        "purpose": {
+          "maxLength": 400,
+          "title": "Purpose",
+          "type": "string"
+        },
+        "rests_on": {
+          "description": "The findings it answers.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 200,
+          "title": "Rests On",
+          "type": "array"
+        },
+        "rule": {
+          "description": "The principle it rests on.",
+          "maxLength": 200,
+          "title": "Rule",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "block",
+        "name",
+        "purpose",
+        "check",
+        "rule"
+      ],
+      "title": "Step",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.solution_map.v1.json",
+  "additionalProperties": false,
+  "description": "A problem map answered: a block per sub-problem, the composition's steps, and the one holdout design.",
+  "properties": {
+    "blockers": {
+      "description": "The sub-problems with no approach yet, with why.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 40,
+      "title": "Blockers",
+      "type": "array"
+    },
+    "blocks": {
+      "items": {
+        "$ref": "#/$defs/Block"
+      },
+      "maxItems": 40,
+      "minItems": 1,
+      "title": "Blocks",
+      "type": "array"
+    },
+    "fingerprint": {
+      "default": "",
+      "maxLength": 64,
+      "title": "Fingerprint",
+      "type": "string"
+    },
+    "holdout": {
+      "$ref": "#/$defs/HoldoutDesign"
+    },
+    "map": {
+      "description": "The fingerprint of the problem map it answers.",
+      "maxLength": 64,
+      "title": "Map",
+      "type": "string"
+    },
+    "notes": {
+      "description": "What the split or the build did that the person should know (a column left out, a combined split).",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 10,
+      "title": "Notes",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.solution_map.v1",
+      "default": "dclab_core.solution_map.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source": {
+      "default": "rules",
+      "enum": [
+        "rules",
+        "model",
+        "person"
+      ],
+      "title": "Source",
+      "type": "string"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/SolutionStep"
+      },
+      "maxItems": 40,
+      "title": "Steps",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "map",
+    "blocks",
+    "holdout"
+  ],
+  "title": "SolutionMap",
+  "type": "object"
+}

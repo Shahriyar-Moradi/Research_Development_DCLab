@@ -213,6 +213,26 @@
       "cause": "An edit read the map outside the draft's update.",
       "fix": "One update reads, checks and writes; removed ids are never reused; a merge needs equal unit and moment; `into` names the step; the sealed test says at most once; the decomposer's purpose names the unit and moment it is shown.",
       "test": "test_draft_map test_two_edits_at_once_are_both_kept_and_a_confirm_never_brings_a_removed_part_back; test_a_removed_id_is_not_used_again_by_a_part_added_later"
+    },
+    {
+      "id": "S10",
+      "source": "test",
+      "severity": "gap",
+      "defect": "The setting that switches the roles on was not documented.",
+      "scenario": "The gate's config test failed: DCLAB_MAP_ROLES is read by the code and was in no example file.",
+      "cause": "The switch was added with the code and the example file was not.",
+      "fix": "It is documented in .env.example with its safe default (off).",
+      "test": "test_config test_every_setting_the_code_reads_is_documented"
+    },
+    {
+      "id": "S11",
+      "source": "test",
+      "severity": "gap",
+      "defect": "The measurement's records lacked the keys every other suite's records carry.",
+      "scenario": "The Lab page lists every campaign's results by experiment_id and status; the new results had neither and its test failed.",
+      "cause": "The writer was written before the page's reading was looked at.",
+      "fix": "The writer adds experiment_id, status and completed_at, as the other suites do, and the five records written so far got the same three keys (unpushed, so no registered evidence was changed).",
+      "test": "test_pages_lab test_campaigns_come_from_the_campaign_folders"
     }
   ],
   "measurements": [

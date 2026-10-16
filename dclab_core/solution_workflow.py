@@ -391,3 +391,4 @@ def propose(current: SolutionWorkflow, proposed: Any) -> tuple[SolutionWorkflow,
 
 
 __all__ = ["SAFETY", "SAFETY_ORDER", "FAMILY_STEPS", "FAMILIES", "Step", "SolutionWorkflow", "solution_workflow", "validate", "propose"]
+import dclab_core.solution_map  # noqa: E402,F401  (the solution map contract, 24.4: registered once the workflow is defined; either module may be imported first)

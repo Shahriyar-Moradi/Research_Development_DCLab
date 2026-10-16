@@ -504,6 +504,15 @@ measured against the rules before it serves):
 - **Done when:** for each replica the router's first candidate is the kind its acceptance runs, with the alternatives
   and their blocking preconditions listed; the owner's fraud example routes its parts to anomaly, rare event with
   partial labels, entity tables and a budgeted review.
+- **Status: done (2026-10-16).** dclab-core 0.52.0 (`solutions`: the catalogue of 16 approaches for the 12 families, `check`, `route`, `routes`, the role
+  `solution_router`, `Route` v1; the ledger point `solution.route`; `problem_specs(map, routes=)`). Each need of each approach is met, unmet or unknown, in
+  names and counts (an outcome nobody named is unknown, never a guess from the table); the chosen approach is the first none refutes; the others are listed
+  with what blocks them; a single problem the rules drew keeps the kind the detection found (and it is said when the data refutes it); a model may choose only a
+  candidate the data does not refute and whose needs are met (or the rules' own choice). On each of the 15 kinds' replicas the first candidate is that kind, and the
+  fraud words route to a screen with no labels, a rare event on the cases found, entity tables and a budgeted review. Home shows each part's approach with the others
+  and what blocks them, and records a `solution.route` decision once, again only when a part's approach changes. Found by the review (10 findings) and kept:
+  with only the rides and the file of cases uploaded the rings part has no approach (the entity kind needs a table of events beside the cases): the map says so
+  instead of pretending. Left open: the router role serves only after a sealed measurement (24.8), as the other roles.
 
 ### 24.4 The solution map
 - **Delivers:** `SolutionMap` v1: a block per part, a solution workflow (20.6) per leaf, the composition steps (join by
@@ -514,6 +523,13 @@ measured against the rules before it serves):
   drill-down to the leaf's workflow, its pipeline steps and the code of each step (20.8, 20.9).
 - **Done when:** the fraud map's leaves share one split and the composition's holdout read is the only one; a leaf
   split by time beside one split at random is refused.
+- **Status: done (2026-10-16).** dclab-core 0.53.0 (`solution_map`: `SolutionMap` v1, `solution_map`, `validate`, `split_for`;
+  `adapters.main_product_problem_map.holdout_plan`). The fraud map has a block for each part, one split for all (by time and by entity from the data card), the
+  composition's steps ending in the one step that reads the holdout; a leaf split at random beside leaves split by time, a leaf that scores the holdout itself, an
+  early or second reading of the holdout, a broken workflow and a step on what nothing made are each refused with their reason. Home draws the solution beside the
+  problem: each block linked to the part it answers, with its approach, its research track, whether it hands its predictions to the composition, and the steps of its
+  workflow to drill into; and the one holdout in words. The review (6 findings) made the deferral a checked list of steps (every leaf's final score is the composition's to run and the holdout is read by one step in the whole map), the composition and its score checked, the split design coherent and pinned (share, seed) and related to each workflow, a finding that would lock the holdout again a blocker, and the fingerprint cover every step's content. Left open: the drill-down to a leaf's pipeline steps and the code of each step (20.8, 20.9) comes with the
+  programme (24.5), when a project exists for each leaf; a part's unit is not yet tied to a split key.
 
 ### 24.5 Programmes: linked projects and the composition
 - **Delivers:** a programme document owning the map: one project per leaf, the data attached by name (16.15 C), the

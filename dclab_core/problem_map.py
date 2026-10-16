@@ -488,3 +488,4 @@ def _routing(words: str) -> ProblemMap:
 __all__ = ["Family", "Need", "Read", "Part", "SubProblem", "CompositionStep", "Composition", "ProblemMap", "validate", "decompose", "fingerprint", "LIBRARY_ONLY", "MAX_TEXT"]
 
 import dclab_core.mapping  # noqa: E402,F401  (the reviewer's contract, 24.2: registered once the map is defined; either module may be imported first)
+import dclab_core.solutions  # noqa: E402,F401  (the route contract, 24.3: registered once the map is defined; either module may be imported first)

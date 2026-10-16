@@ -97,6 +97,14 @@ except mapping.MapEditRefused as refused:
 else:
     raise AssertionError("a ride and an account were merged into one part")
 assert {"decomposer", "map_reviewer", "data_need"} <= set(prompts.names())
+# 24.3: the router puts the fraud problem's parts where the plan says, from the installed wheel
+from dclab_core import solutions
+assert {k: r.chosen for k, r in solutions.routes(fraud).items()} == {"sp1": "anomaly", "sp2": "rare_event", "sp3": "entity_tables", "sp4": "review_budgeted"}
+assert "solution_router" in prompts.names() and len(solutions.CATALOGUE) == 16
+# 24.4: the solution map of the fraud problem shares one holdout, read once by the composition, from the installed wheel
+from dclab_core import solution_map
+fraud_solution = solution_map.solution_map(fraud, solutions.routes(fraud))
+assert solution_map.validate(fraud_solution, fraud) == [] and [s.output for s in fraud_solution.steps if s.reads_holdout] == ["holdout_score"]
 # 19.6: a Jev answer row read as a decision record, banded, and back
 from dclab_core.adapters import main_product_ledger as mpd
 scols = mp.recorded()["experience_tables"]["semantic_decision_answers"]

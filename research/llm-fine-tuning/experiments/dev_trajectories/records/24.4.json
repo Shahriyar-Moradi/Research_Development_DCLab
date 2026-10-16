@@ -1,0 +1,110 @@
+{
+  "package": "24.4",
+  "title": "The solution map: the problem map answered, a block per part, with one holdout for the whole read once by the composition",
+  "date": "2026-10-16",
+  "request": "Phase 2 of the owner's plan: show the solution beside the problem as a big picture, with one honest holdout for the whole.",
+  "spec": "dclab_core.solution_map (SolutionMap v1, solution_map, validate, split_for), the adapter's holdout_plan, the draft's solution view and route, the panel on Home.",
+  "plan": [
+    "One split for every leaf, drawn from the data card's entities and time.",
+    "No leaf reads the holdout on its own in a map of several parts: the composition's last step reads it once, and nothing is chosen on it.",
+    "A part with no approach is a blocker the map names, not an unsound map."
+  ],
+  "decisions": [
+    {
+      "decision": "The leaves' workflows stay the 20.6 workflows, valid on their own; the map defers their final score to the composition.",
+      "why": "Each workflow already holds the safety steps; what the map adds is that the holdout is read once for the whole, not once per leaf."
+    },
+    {
+      "decision": "The one holdout is a HoldoutPlan proposal for every project of the programme; time and entity together is 'unsupported' there.",
+      "why": "The main product's own planner answers unsupported for that combination: the field says so and a person decides."
+    },
+    {
+      "decision": "A blocker is information, not an error.",
+      "why": "A part with no approach yet (the rings with no table of events) is a gap the person can close; refusing the whole map would hide the rest."
+    }
+  ],
+  "change": "dclab_core solution_map.py (new), problem_map tail import, conformance, adapters, schemas, CHANGELOG 0.53.0; dclab_rnd draft/map.py (solution_view), draft/api.py (the route), the Home page; tests test_solution_map and the Home solution tests.",
+  "findings": [
+    {
+      "id": "S1",
+      "source": "self",
+      "severity": "gap",
+      "defect": "The solution view is drawn from the routes as they are now, so a part with no approach showed a split of 'stratified' before any data card.",
+      "scenario": "A draft with no table shows the random split in words.",
+      "cause": "With no data card there is nothing to split by.",
+      "fix": "The panel says the split in words and which keys and moment, so the person sees it change when the data arrives.",
+      "test": "test_draft_map SolutionMapOnHomeTest test_the_split_follows_the_data_card_entities_and_time"
+    },
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Importing the solution workflow first failed, and its tests were skipped without notice.",
+      "scenario": "python -c 'import dclab_core.solution_workflow' raised an import error from the map's tail import; the file's except ImportError turned the 14 tests of 20.6 into skips.",
+      "cause": "The solution map was registered from the problem map's tail and imported the workflow at its top.",
+      "fix": "The contract registers from the end of the solution workflow, and the map imports the problem map only where it uses it.",
+      "test": "test_solution_map test_every_module_of_the_workflow_and_the_map_imports_first_in_a_fresh_interpreter"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "Deferral was a flag nothing checked: five steps read the holdout.",
+      "scenario": "Every deferred leaf's workflow still had its own final score reading the holdout, beside the composition's: the done-when's single reading held only by a label.",
+      "cause": "validate looked at the flag, not at the steps.",
+      "fix": "A block lists the steps it defers (its final score), the validator counts every step of every workflow that reads the holdout and is not deferred, and the page marks each deferred step as run by the composition.",
+      "test": "test_solution_map ValidateTest test_a_leaf_that_scores_the_holdout_on_its_own_is_refused_and_so_is_one_that_only_says_it_defers; test_the_holdout_is_read_by_one_step_in_the_whole_map"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "The composition and its score were not checked.",
+      "scenario": "A score with no inputs or the wrong ones, a deleted budget step, an empty fusion, a duplicate output, an output that is a sub-problem's id and a result made and never used all passed validate.",
+      "cause": "The composition rules lived in the problem map and were not reused.",
+      "fix": "The score takes the last composed result and nothing else, every other result is used, steps are built in order with inputs, and with the problem map they are its steps.",
+      "test": "test_solution_map ValidateTest"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The split design could be incoherent, unpinned and unrelated to the workflows.",
+      "scenario": "A time split with no moment, a group split with no keys, seven entity columns silently cut to four, several time columns, a workflow with no grouping step for a key of the split, and no fraction or seed anywhere.",
+      "cause": "The design was a label beside workflows built from the same card.",
+      "fix": "The design refuses an incoherent combination, pins the share and the seed, the builder notes what it left out, and validate relates each workflow's grouping and time steps to the split.",
+      "test": "test_solution_map ValidateTest test_a_split_design_must_be_coherent_pinned_and_the_same_for_every_leaf; test_a_workflow_that_does_not_group_or_split_as_the_map_does_is_refused"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "A finding could lock the holdout again in every leaf and leave the map's split as it was.",
+      "scenario": "An entity warning on a column the data card did not name added a relock step to all four leaves while the map said stratified.",
+      "cause": "Findings reached the leaves' workflows and not the split.",
+      "fix": "A leaf whose workflow locks the holdout again is a blocker the map names (one holdout is locked once for the whole map) and a refused workflow in validate.",
+      "test": "test_solution_map test_a_finding_that_would_lock_the_holdout_again_is_a_blocker_and_a_workflow_that_does_it_is_refused"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "A combined split by time and entity was declared as if realizable, and the fingerprint missed content.",
+      "scenario": "Leaf steps say no entity on both sides and every training row earlier; changing a grouping step's columns left the fingerprint and validate unchanged.",
+      "cause": "The combined split was only named; the fingerprint hashed step ids.",
+      "fix": "The map notes that the holdout is the latest period and entities stay on one side inside the training folds, which the main product has no verified holdout for; the fingerprint covers every step's content, titles, notes, blockers and source.",
+      "test": "test_solution_map test_the_fingerprint_follows_the_content_of_a_workflow_step_a_title_and_a_note; test_a_split_by_time_and_entity_is_noted_as_a_combined_split_a_person_decides"
+    }
+  ],
+  "measurements": [],
+  "outcome": "The fraud problem's solution is four blocks with one split, three combining steps and one reading of the holdout; every way of reading the holdout twice or early, of splitting a leaf differently or of scoring a leaf on its own is refused with its reason.",
+  "lessons": [
+    "The holdout is a property of the whole: design it once, above the leaves.",
+    "An honest gap (a part with no approach) is better drawn than hidden."
+  ],
+  "risks": [
+    "The drill-down to a leaf's pipeline steps and the code of each step waits for the programme (24.5).",
+    "The unit of a part is not tied to a split key: a leaf whose unit has no key column is not flagged yet."
+  ],
+  "commits": []
+}

@@ -72,6 +72,7 @@ def main(argv: list[str] | None = None) -> int:
     record = {"id": next_id(), "campaign_id": "map_roles_v1", "kind": "map_roles_measured", "split": args.split, "at": at, "gate": GATE, "plan": the_plan,
               "spent_eur": round(advisor.spent_eur(), 4), **result,
               "verdict": verdict(result, args.split) if scored else {"gate": GATE["version"], "status": "not scored", "why": "a request failed"}}
+    record.update(experiment_id=record["id"], status="completed" if scored else "failed", completed_at=at)  # as the other suites' records, so the Lab page lists it
     RESULTS.mkdir(parents=True, exist_ok=True)
     out = RESULTS / f"{record['id']}_{args.split}{'' if scored else '_unscored'}.json"
     out.write_text(json.dumps(record, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")

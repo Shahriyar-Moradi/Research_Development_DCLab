@@ -252,6 +252,7 @@
     choosePack: ["POST", "/drafts/{draft_id}/pack", ["draft_id"], []],
     draftSettings: ["PUT", "/drafts/{draft_id}/settings", ["draft_id"], []],
     draftSolution: ["PUT", "/drafts/{draft_id}/solution", ["draft_id"], []],
+    draftSolutionMap: ["GET", "/drafts/{draft_id}/solution-map", ["draft_id"], []],
     draftProposal: ["POST", "/drafts/{draft_id}/solution/proposal", ["draft_id"], []],
     evidenceLibrary: ["GET", "/evidence", [], []],
     evidenceAsk: ["POST", "/evidence/ask", [], []],
@@ -604,6 +605,13 @@
    *  @returns {Promise<Draft>} */
   client.draftSolution = (...args) => call('draftSolution', args);
   client.path.draftSolution = (...args) => build('draftSolution', args).path;
+  /** GET /api/drafts/{draft_id}/solution-map: Draft Solution Map
+   *  @param {string} draft_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.draftSolutionMap = (...args) => call('draftSolutionMap', args);
+  client.path.draftSolutionMap = (...args) => build('draftSolutionMap', args).path;
+  client.href.draftSolutionMap = (...args) => '/api' + build('draftSolutionMap', args).path;
   /** POST /api/drafts/{draft_id}/solution/proposal: Draft Proposal
    *  @param {string} draft_id
    *  @param {{body?: (AnyObject|null), headers?: Object}} [opts]

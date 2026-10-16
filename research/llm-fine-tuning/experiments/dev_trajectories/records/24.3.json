@@ -1,0 +1,166 @@
+{
+  "package": "24.3",
+  "title": "The solution router and its catalogue: for each sub-problem the approaches that could solve it, ranked, each need judged met, unmet or unknown",
+  "date": "2026-10-16",
+  "request": "Phase 2 of the owner's plan: after the problem is understood as parts, route each part to candidate solutions with reasons, adoptable by the main product.",
+  "spec": "dclab_core.solutions (CATALOGUE, check, candidates_for, route, routes, the role SOLUTION_ROUTER, Route v1), the ledger point solution.route, the draft's routes and their view, the approach shown on Home.",
+  "plan": [
+    "A catalogue whose entries are the engine's own kinds, each saying what it needs and which research track measured it.",
+    "Needs judged on the data card and the map, never guessed: unknown is a state, not a refusal.",
+    "A single problem keeps the detected kind; a model may only choose a candidate the data does not refute."
+  ],
+  "decisions": [
+    {
+      "decision": "A need is met, unmet or unknown; only an unmet need blocks.",
+      "why": "No data card or no named outcome means the need cannot be judged yet, and a guess would refute the right approach."
+    },
+    {
+      "decision": "An outcome is the column the card names, for the one part that owns it, or the column a part's own words name; never the table's first candidate.",
+      "why": "A card names one outcome: judging every part on it routes a ticket's team and urgency to a yes or no."
+    },
+    {
+      "decision": "The detected kind is used only for a single problem the rules drew, and the refutation is said when the data refutes it.",
+      "why": "The detection is today's behaviour and is never replaced, but a person's own map says its own family, and a silent refusal hides the reason."
+    },
+    {
+      "decision": "The rings part has no approach when only the rides and the file of cases are uploaded.",
+      "why": "The entity kind builds features from a table of events beside the cases; saying so tells the person what to bring."
+    }
+  ],
+  "change": "dclab_core solutions.py and a prompt (new), problem_map tail import, agents, ledger, conformance, adapters, schemas, CHANGELOG 0.52.0; dclab_rnd draft/map.py, capture, models settings, harness roles, the Home page; tests test_solutions and the Home routing tests.",
+  "findings": [
+    {
+      "id": "S1",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "A column named got_offer was not found as a treatment.",
+      "scenario": "The uplift replica's treatment column is got_offer; the first router refused to route its own replica.",
+      "cause": "A word boundary does not break at an underscore.",
+      "fix": "Names are read as their words (got_offer, gotOffer, Got Offer are alike).",
+      "test": "test_solutions CheckTest test_a_treatment_and_a_duration_are_found_by_the_words_of_the_columns_names"
+    },
+    {
+      "id": "S2",
+      "source": "self",
+      "severity": "gap",
+      "defect": "Another import cycle: the route contract registered from the contracts' tail while the problem map was half defined.",
+      "scenario": "Importing the problem map first failed and the Home tests were skipped without notice.",
+      "cause": "The same shape as the roles module of 24.2.",
+      "fix": "The contract registers from the end of the problem map; every module imports first in a fresh interpreter.",
+      "test": "test_decision_models ImportTest"
+    },
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A guessed outcome refuted the right approach.",
+      "scenario": "Ticket words and the ticket-routing replica uploaded: both parts routed to binary because a two-valued flag was taken as the outcome, and two decisions of binary were recorded.",
+      "cause": "The outcome came from the table's first candidate when the card named none.",
+      "fix": "An outcome is named by the card (for the one part that owns it) or by the part's own words, else unknown.",
+      "test": "test_solutions NeedsTest test_an_outcome_nobody_named_is_unknown_never_the_tables_first_candidate"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A detected kind was chosen even from another family or refuted, and nothing said so.",
+      "scenario": "Fraud words, confirmed, then the parts removed down to the rings: it routed to binary, blocked by labels, with the reason 'keeps the kind the detection found'.",
+      "cause": "The detection won whatever the map said.",
+      "fix": "The detection is used for a single problem the rules drew; a person's own single map is routed by its family; a refuted kind is chosen and the refutation is in the reason and on the page.",
+      "test": "test_solutions DetectedTest"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The file of known cases counted as a second table.",
+      "scenario": "The rides and a cases file gave '2 tables', so the entity kind was chosen with no table of events.",
+      "cause": "Table roles were not read.",
+      "fix": "Tables beside the labels are counted.",
+      "test": "test_solutions NeedsTest test_a_file_of_known_cases_is_not_a_table_of_events"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A city and a zip made two columns of place.",
+      "scenario": "A regression part with only city and zip routed to the places kind, which needs a latitude and longitude pair.",
+      "cause": "Purposes were counted, not pairs.",
+      "fix": "A pair of latitude and longitude columns, found as the library's own detection finds it.",
+      "test": "test_solutions NeedsTest test_two_columns_of_place_need_a_latitude_and_a_longitude_not_a_city_and_a_zip"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A small count was refuted as a number.",
+      "scenario": "An outcome of eleven whole values blocked regression and places, so nothing was chosen.",
+      "cause": "A number needed more than twenty values.",
+      "fix": "A float is a number; a whole number of few values is unknown; text is refuted.",
+      "test": "test_solutions NeedsTest test_a_number_is_met_for_a_float_unknown_for_a_few_whole_values_refuted_for_text"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A rare event with labels not yet said went to the screen with no labels.",
+      "scenario": "A person-added rare-event part (labels unknown) was routed to anomaly because it had fewer unknown needs.",
+      "cause": "The fewer unknown needs came before the more specific approach.",
+      "fix": "Order by refutation, the kind the map names, specificity, then unknown needs.",
+      "test": "test_solutions NeedsTest test_a_rare_event_with_labels_not_yet_said_routes_to_the_rare_event_kind_not_the_screen"
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Decisions were recorded again for parts that had not changed, and two parts were alike.",
+      "scenario": "Confirm, remove a part, confirm: seven decisions, three repeated; a ticket's team and urgency records were identical.",
+      "cause": "Edits rebuilt the stored map without its routes; the record named only the draft.",
+      "fix": "The routes are carried across edits; the data digest is the snapshot the routes were made against; each record names its sub-problem.",
+      "test": "test_draft_map RoutesOnHomeTest test_a_decision_is_recorded_only_for_a_part_whose_approach_is_new_or_changed"
+    },
+    {
+      "id": "R8",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Catalogue needs were missing or guessed.",
+      "scenario": "Streams did not ask for the incidents table, uplift for a binary outcome, forecasting for a number; a treatment or duration not found by name refuted the family's only approach; a card with no purposes made time, entity and place false.",
+      "cause": "Needs were written from the kinds' titles, not their fields.",
+      "fix": "The needs follow the kinds' own fields; a name not found is unknown; a card without purposes leaves those needs unknown; the kind the map names is asked first.",
+      "test": "test_solutions NeedsTest"
+    },
+    {
+      "id": "R9",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A model could choose a candidate whose needs nothing had met.",
+      "scenario": "With no data card a model chose text_tabular, whose needs were all unknown.",
+      "cause": "Only refuted candidates were refused.",
+      "fix": "A model's choice must have its needs met, unless it is the rules' own choice; a route made for another map is not attached by the adapter.",
+      "test": "test_solutions RoleTest test_a_choice_whose_needs_are_not_yet_known_is_refused_unless_it_is_the_rules_own"
+    },
+    {
+      "id": "R10",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Tests that could not fail, and paths no test reached.",
+      "scenario": "Two assertions were always true; deleting the coordinator's call that routes again after the analysis left everything passing; no test had a card with no named outcome.",
+      "cause": "Tests were written from the first draft's behaviour.",
+      "fix": "The assertions say what they claim; the hook is tested; every engine kind must be in the catalogue; a card with no outcome, a stale route, a route that no longer reads and a map edited down to one part are tested.",
+      "test": "test_solutions; test_draft_map RoutesOnHomeTest"
+    }
+  ],
+  "measurements": [],
+  "outcome": "Each part of a map is routed to an approach from a catalogue of the engine's own kinds, with the others and what blocks them; the fraud words route to a screen, a rare event, entity tables and a budgeted review; every kind's replica routes first to that kind; a model may only choose among candidates the data does not refute.",
+  "lessons": [
+    "A need nobody has judged is unknown, and unknown is not refused: a guess refutes the right answer.",
+    "A card that names one outcome is judged only for the part that owns it.",
+    "A test over the replicas that names the outcome and the family by hand hides the guess it was meant to catch: also test the card that names nothing.",
+    "A record of a decision names what it is about: two parts of one draft must not be alike."
+  ],
+  "risks": [
+    "The router role serves only after the sealed measurement of 24.8.",
+    "The catalogue's needs follow the kinds' fields at this commit: a kind that changes its needs changes the catalogue's, and a test holds that every kind is in it."
+  ],
+  "commits": []
+}

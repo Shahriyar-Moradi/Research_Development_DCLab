@@ -67,6 +67,7 @@ CAPTURED = {
     "problem.pack": "draft/chat.py: the pack detected or chosen",
     "map.size": "draft/map.py draw: the rules' reading of the words and the decomposer's, when it serves",
     "map.edit": "draft/map.py edit: a person's add, remove, merge or confirm of the map",
+    "solution.route": "draft/map.py store_routes: the approach the router chose for each sub-problem, the rules' and the advisor's",
     "workflow.next_question": "draft/chat.py next_question: the question asked next, or none",
     "workflow.template": "draft/workflow.py: the solution workflow drawn",
     "agent.tool_choice": "agents/runtime.py: each tool a model chose among those it was offered",

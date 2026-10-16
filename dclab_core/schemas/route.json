@@ -1,0 +1,191 @@
+{
+  "$defs": {
+    "Candidate": {
+      "additionalProperties": false,
+      "properties": {
+        "approach": {
+          "maxLength": 40,
+          "title": "Approach",
+          "type": "string"
+        },
+        "blocking": {
+          "description": "The needs the data card or the map refutes.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 13,
+          "title": "Blocking",
+          "type": "array"
+        },
+        "evidence_track": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence Track"
+        },
+        "preconditions": {
+          "items": {
+            "$ref": "#/$defs/Precondition"
+          },
+          "maxItems": 13,
+          "title": "Preconditions",
+          "type": "array"
+        },
+        "rank": {
+          "minimum": 1,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 6,
+          "title": "Reasons",
+          "type": "array"
+        },
+        "unknown": {
+          "description": "The needs not known yet: a question for the person or the data.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 13,
+          "title": "Unknown",
+          "type": "array"
+        }
+      },
+      "required": [
+        "approach",
+        "rank"
+      ],
+      "title": "Candidate",
+      "type": "object"
+    },
+    "Precondition": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "maxLength": 40,
+          "title": "Code",
+          "type": "string"
+        },
+        "met": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "True: the data card and the map meet it; False: they refute it; None: not known yet.",
+          "title": "Met"
+        },
+        "why": {
+          "default": "",
+          "maxLength": 300,
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "title": "Precondition",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.route.v1.json",
+  "additionalProperties": false,
+  "description": "The approaches for one sub-problem, ranked, with the one chosen and why.",
+  "properties": {
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/Candidate"
+      },
+      "maxItems": 16,
+      "title": "Candidates",
+      "type": "array"
+    },
+    "chosen": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The approach routed to; None when every candidate is refuted.",
+      "title": "Chosen"
+    },
+    "family": {
+      "maxLength": 40,
+      "title": "Family",
+      "type": "string"
+    },
+    "map": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The fingerprint of the map the route was made for.",
+      "title": "Map"
+    },
+    "reason": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Reason",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.route.v1",
+      "default": "dclab_core.route.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "single": {
+      "default": false,
+      "title": "Single",
+      "type": "boolean"
+    },
+    "source": {
+      "default": "rules",
+      "enum": [
+        "rules",
+        "advisor",
+        "detected"
+      ],
+      "title": "Source",
+      "type": "string"
+    },
+    "sub_problem": {
+      "maxLength": 40,
+      "title": "Sub Problem",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "sub_problem",
+    "family"
+  ],
+  "title": "Route",
+  "type": "object"
+}

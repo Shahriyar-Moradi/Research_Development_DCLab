@@ -599,6 +599,15 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         draft = get(draft_id)
         return await asyncio.to_thread(problem_map.view, draft, problem_map.advisor_for(models, draft_id=draft_id))
 
+    @router.get("/api/drafts/{draft_id}/solution-map", response_model=Doc)
+    async def draft_solution_map(draft_id: str):
+        """The solution map (24.4): the problem map answered, a block per part (its approach, its split, the steps of its workflow), the composition's
+        steps and one holdout design for the whole, read once by the composition. Looking writes nothing and asks no model."""
+        from . import map as problem_map
+
+        draft = get(draft_id)
+        return await asyncio.to_thread(problem_map.solution_view, draft)
+
     @router.post("/api/drafts/{draft_id}/map", response_model=Doc)
     async def draw_map(draft_id: str, payload: AnyObject = None):
         """Draw the map and keep it as the draft's (``redraw`` true draws it again, which drops the person's edits and confirmation)."""

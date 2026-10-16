@@ -479,3 +479,34 @@ after a sealed measurement against the rules (`dclab_rnd.agent_eval.complex`: 14
 measurement runs through the same `Advisor`, so the main product can run its own. What its side adds: somewhere to keep the map and its
 confirmation on the project or its draft (a document), and the build gate (a problem of several parts is built from a map a person confirmed).
 `adapters.main_product_problem_map.problem_specs` gives the confirmed map as one `ProblemSpec` proposal per sub-problem.
+
+## The solution router (24.3)
+
+`dclab_core.solutions` is the catalogue of approaches and the rules that route a sub-problem of a map to them. Each of its 16 entries serves one or
+more of the 12 families and says what it needs (labels, a binary or many-class or numeric outcome, a long-text column, two columns of place, a time
+column, an entity column, several tables, a treatment, a duration, a budget step) and which research track measured it; the entries are the studio's
+problem kinds by key, and `review_budgeted` (the scores of other parts fused and cut to a team's budget) is the one that is a composition, not a model.
+`route(sub, data_card, map, detected=)` judges every need of every approach for the family as met, unmet or unknown (never guessed: no data card or
+no named outcome is unknown), ranks the approaches with none refuted first, chooses the first, and lists the others with what blocks them. A single
+problem keeps the kind the host's own detection found. The role `solution_router` may choose among the candidates (a choice outside the catalogue or
+one the data card refutes is refused, and a single problem is never asked). `Route` v1 is the stored record.
+
+Where it goes there: the host passes its detected kind for a single problem and a data card of its tables (`datacard.card_of`); the route is a proposal
+at the point `solution.route` (the main product has no governed point of that name: `conformance.POINTS_NOT_MAPPED` says so), kept by
+`adapters.main_product_problem_map.problem_specs(map, routes=)` in each sub-problem's free-form place. What its side adds: the approach choice screen
+(Home shows each part's approach with the others and what blocks them) and, for its own runs, the mapping from an approach to its model families.
+
+## The solution map (24.4)
+
+`dclab_core.solution_map.SolutionMap` (v1) is the problem map answered. It has a block per sub-problem (the approach the router chose, the solution workflow
+(20.6) of that leaf and the split it uses), the composition's steps (a sequence, a fusion of scores on a key, a gate, a budget) and a last step that scores the
+composed result, and one holdout design for the whole. The rules it holds: every leaf splits on the same keys and the same moment; in a map of several parts no
+leaf scores the holdout on its own (each hands its predictions to the composition); the composition's last step reads the holdout once and nothing is chosen on it
+(the fusion's weights, a gate's threshold and the budget's cut are chosen on validation before). `validate(map, problem_map)` refuses a leaf split by time beside one
+split at random, a leaf that scores the holdout itself, a composition that reads the holdout early or twice, a workflow that does not hold and a step on what
+nothing made. A part with no approach is a blocker the map names, not an unsound map. `split_for(data_card)` draws the one split from the card's entities and time.
+
+Where it goes there: the one holdout is a `HoldoutPlan` proposal for every project of the programme
+(`adapters.main_product_problem_map.holdout_plan`; its planner has no verified holdout for time and entity together and answers 'unsupported', so a person
+decides). Each block's workflow maps as the plan's decisions do (`DECISIONS`), and the approach is a proposal in the sub-problem's place in the map. What its side
+adds: the page that draws the solution beside the problem with each block linked to its part, and the run of the composition (24.5).

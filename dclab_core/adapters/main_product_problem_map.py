@@ -20,7 +20,7 @@ FIELDS = ("task_type", "business_objective", "target_column", "prediction_unit",
 KEY = "dclab_problem_map"
 
 
-def _spec(m: core.ProblemMap, s: core.SubProblem) -> dict[str, Any]:
+def _spec(m: core.ProblemMap, s: core.SubProblem, route: Any = None) -> dict[str, Any]:
     limits = mp.recorded()["contracts"]["ProblemSpec"]["max_length"]
     notes: dict[str, str] = {}
     task = "multiclass" if s.family == "classification" and s.kind == "multiclass" else mp.FAMILY_TO_TASK.get(s.family)
@@ -36,6 +36,9 @@ def _spec(m: core.ProblemMap, s: core.SubProblem) -> dict[str, Any]:
             "predict_rank": s.predict_rank, "known_rank": s.known_rank,
             "reads": [{"sub_problem": r.sub_problem, "what": r.what, **({"via": mp._clip(r.via, 200)} if r.via else {})} for r in s.reads],
             "composed_by": [c.output for c in m.composition.steps if s.id in c.inputs]}
+    if route is not None:  # 24.3: the approach the router chose and the others with what blocks them: a proposal, never a setting of the main product
+        here["route"] = {"chosen": route.chosen, "source": route.source, "candidates": [{"approach": c.approach, "blocked_by": list(c.blocking)} for c in route.candidates][:12]}
+        notes["route"] = "the approach is a proposal in the free-form key: the main product's runs choose their own model families, and a person decides"
     objective = mp._clip(s.question or s.title or s.id, limits["business_objective"])
     unit = mp._clip(s.unit, limits["prediction_unit"]) if s.unit else None  # the contract's own limit (120) is under the main product's (128): nothing is cut
     if not s.unit:
@@ -47,13 +50,17 @@ def _spec(m: core.ProblemMap, s: core.SubProblem) -> dict[str, Any]:
     return mp._out("ProblemSpec", fields, notes, decision_point="spec.objective", about=f"{s.id} of the problem map {m.fingerprint}")
 
 
-def problem_specs(problem_map: Any) -> dict[str, Any]:
-    """One ``ProblemSpec`` proposal per sub-problem, the composition once, and what the main product cannot hold."""
+def problem_specs(problem_map: Any, routes: Any = None) -> dict[str, Any]:
+    """One ``ProblemSpec`` proposal per sub-problem, the composition once, and what the main product cannot hold. ``routes``: the router's
+    route per sub-problem id (``dclab_core.solutions.Route`` or its JSON), kept beside each sub-problem's place in the map."""
+    from dclab_core.solutions import Route
+
     m = mp._as(core.ProblemMap, problem_map)
+    routes = {k: r for k, r in ((k, mp._as(Route, v)) for k, v in (routes or {}).items()) if r.map in (None, m.fingerprint)}  # a route made for another map is not this map's
     issues = core.validate(m)
     if issues:
         raise ValueError("the map is not sound, so it maps onto nothing: " + "; ".join(issues))
-    specs = {s.id: _spec(m, s) for s in m.sub_problems}  # a spec's constraints hold one sub-problem's place (at most 10 reads, each key clipped): far below json_max_bytes, and a test holds the largest
+    specs = {s.id: _spec(m, s, routes.get(s.id)) for s in m.sub_problems}  # a spec's constraints hold one sub-problem's place (at most 10 reads, each key clipped): far below json_max_bytes, and a test holds the largest
     composition = {"method": m.composition.method, "budget": m.composition.budget,
                    "steps": [{"kind": c.kind, "inputs": list(c.inputs), "output": c.output, **({"joins": mp._clip(c.joins, 200)} if c.joins else {})} for c in m.composition.steps]}
     return {"contract": "ProblemMap", "fingerprint": m.fingerprint, "size": m.size, "template": m.template,
@@ -63,4 +70,31 @@ def problem_specs(problem_map: Any) -> dict[str, Any]:
                            "parts": "a part groups sub-problems by unit and moment; it is carried in each spec's place in the map, not as a record"}}
 
 
-__all__ = ["problem_specs", "FIELDS", "KEY"]
+def holdout_plan(solution_map: Any) -> dict[str, Any]:
+    """The solution map's one holdout design as the main product's ``HoldoutPlan`` proposal (24.4): every project of the programme takes it, and the
+    composition reads the holdout once. A split by time and by entity together has no verified holdout there (its own planner answers 'unsupported'): the
+    field says so and a person decides."""
+    from dclab_core.solution_map import SolutionMap
+
+    sm = mp._as(SolutionMap, solution_map)
+    split = sm.holdout.split
+    kind = "time_and_group" if split.strategy == "time_group" else split.strategy
+    strategy = mp.SPLIT_TO_HOLDOUT.get(kind)
+    notes = {"test_size": "the map pins the share and the seed so every leaf draws the same holdout; the main product's floor (0.2) holds", "random_state": "the map's seed",
+             "reason": "one holdout for the whole programme: every leaf splits as the whole does, and the composition reads it once, after the person's gate"}
+    if strategy == "unsupported":
+        notes["strategy"] = ("rows repeat for an entity and the outcome moves over time: the main product has no verified combined holdout, and its own "
+                             "planner answers 'unsupported' here too; a person decides")
+    group = split.keys[0] if split.keys and strategy in ("group_disjoint", "unsupported") else None
+    time = split.moment if strategy in ("temporal_future", "unsupported") else None
+    if len(split.keys) > 1:
+        notes["group_column"] = f"the map names {len(split.keys)} entity columns; the main product's plan takes one (the first)"
+    fields = {"strategy": strategy, "test_size": split.share, "random_state": split.seed,
+              "stratified": (strategy == "stratified_random") if strategy not in (None, "unsupported") else None,
+              "group_column": group, "time_column": time,
+              "reason": notes["reason"], "evidence": {"problem_map": sm.map, "read_by": sm.holdout.read_by, "blocks": len(sm.blocks)},
+              "plan_version": mp.recorded()["contracts"]["HoldoutPlan"]["version"]}
+    return mp._out("HoldoutPlan", fields, notes, decision_point="split.strategy", about=f"the one holdout of the solution map {sm.fingerprint}")
+
+
+__all__ = ["problem_specs", "holdout_plan", "FIELDS", "KEY"]

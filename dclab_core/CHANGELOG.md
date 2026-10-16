@@ -4,6 +4,37 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.53.0 (2026-10-16)
+
+Package 24.4: the solution map.
+
+- `solution_map` (new): `SolutionMap` v1 (`dclab_core.solution_map.v1`): a block per sub-problem (the approach routed to, the solution workflow of that leaf,
+  the split it uses, and whether it scores the holdout itself or hands its predictions to the composition), the composition's steps ending in one step that
+  scores the composed result, and one `HoldoutDesign` for the whole; `solution_map` builds it from a problem map, its routes and the data card; `validate`
+  refuses leaves that split differently, a leaf that scores the holdout on its own in a map of several parts, a composition that reads the holdout before its
+  last step or more than once, a workflow that does not hold, a step on what nothing made, and a stale fingerprint; `split_for` draws the one split from the
+  data card's entities and time.
+- `adapters.main_product_problem_map.holdout_plan` gives the one holdout as a `HoldoutPlan` proposal (a split by time and entity together is 'unsupported'
+  there, as its own planner says).
+- `adapters.conformance`: `solution_map` is mapped by `holdout_plan`.
+- 0.52.0's router: the review of 24.3 made an outcome nobody named unknown (never a guess from the table's candidates), a card's one outcome judged only for
+  the part that owns it, a count of a few values not refuted as a number, two columns of place a latitude and longitude pair, a file of known cases not a
+  table of events, a treatment or duration found by name or unknown, the approach the map itself names asked first, and a detected kind used only for a single
+  problem the rules drew (and said when the data refutes it).
+
+## 0.52.0 (2026-10-16)
+
+Package 24.3: the solution router and its catalogue.
+
+- `solutions` (new): `CATALOGUE` (16 approaches for the 12 families: what each needs, its strengths and risks, the research track that measured it; the
+  studio's problem kinds by key, and `review_budgeted`, the one that is a composition), `check` (one need judged met, unmet or unknown, in names and
+  counts), `candidates_for` and `route` (the candidates ranked with each need judged, the chosen one the first none refutes, the alternatives with
+  what blocks them; a single problem keeps the kind the host detected), `routes`, the role `SOLUTION_ROUTER` (prompt `solution_router`: a choice must
+  be a candidate in the catalogue that the data card does not refute) and `route_with`; `Route` v1 (`dclab_core.route.v1`).
+- `ledger`: the decision point `solution.route`.
+- `adapters.main_product_problem_map.problem_specs(map, routes=)` keeps the route in the sub-problem's free-form place.
+- `adapters.conformance`: `route` is a library output; the point is listed as not mapped, with its reason.
+
 ## 0.51.0 (2026-10-16)
 
 Package 24.2: the understanding agents of phase 2.

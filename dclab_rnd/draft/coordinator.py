@@ -231,6 +231,9 @@ class Coordinator:
             own["analysed"] = True
             own.setdefault("handoffs", []).append(json.loads(json.dumps(record, default=str)))
         self.drafts.update(draft_id, keep)
+        from . import map as problem_map
+
+        problem_map.store_routes(self.drafts, draft_id, self.map_advisor)  # the data card is there now: each part is routed against it
         return {k: record.get(k) for k in ("role", "source", "allowed", "refused_columns")}
 
     def _decided(self, draft_id: str, verdict: machine.HandoffVerdict) -> None:

@@ -261,11 +261,25 @@ DC.view('home', {
     }
     function renderMap(box, v) {
       const m = v.map, subs = m.sub_problems, titleOf = id => { const sp = subs.find(x => x.id === id); return sp ? sp.title : id; };
+      const NEEDS = { labels: 'known outcomes', binary_target: 'an outcome of two values', many_classes: 'an outcome of several classes', number_target: 'a numeric outcome', text_column: 'a long-text column',
+        place_columns: 'two columns of place', time_column: 'a time column', entity_column: 'an entity column', several_tables: 'several tables', treatment_column: 'a column that says who was treated',
+        duration_column: 'a duration column', budget_step: 'a review budget', not_budget_step: 'not a review list' };
+      const routeBox = sp => {
+        const r = (v.routes || {})[sp.id];
+        if (!r) return '';
+        const others = (r.candidates || []).filter(c => c.approach !== r.chosen);
+        const blocked = c => c.blocking.length ? `blocked: it needs ${c.blocking.map(b => NEEDS[b] || b).join(', ')}` : (c.unknown.length ? `possible: still to settle ${c.unknown.map(b => NEEDS[b] || b).join(', ')}` : 'possible');
+        const mine = (r.candidates || []).find(c => c.approach === r.chosen);
+        const warn = mine && mine.blocking.length ? `<div class="callout warn small">The data or the map refutes this approach: it needs ${mine.blocking.map(b => esc(NEEDS[b] || b)).join(', ')}.</div>` : '';
+        return `<div class="small"><b>Approach:</b> ${r.chosen ? esc(r.title) : '<span class="muted">none fits yet</span>'} <span class="muted xs">${esc(r.reason || '')}</span></div>${warn}`
+          + (others.length ? `<details class="xs"><summary>${others.length} other approach${others.length === 1 ? '' : 'es'}</summary><ul class="plan-list">${others.map(c => `<li class="${c.blocking.length ? 'blocked' : 'done'}"><span class="pi">${c.blocking.length ? '!' : '·'}</span><span>${esc(c.title)} <span class="muted">${esc(blocked(c))}</span></span></li>`).join('')}</ul></details>` : '');
+      };
       const addForm = `<details class="small"><summary>Add a part</summary><div class="row" data-style="gap:6px;flex-wrap:wrap;margin-top:6px"><input type="text" data-map-title placeholder="What it finds, in a few words" aria-label="Title of the new part"><select data-map-family aria-label="Family of the new part">${FAMILIES.map(f => `<option value="${f}">${famText(f)}</option>`).join('')}</select><button type="button" class="btn sm" data-map-act="add">Add</button></div></details>`;
       if (m.size === 'single') {
-        box.innerHTML = `<div class="inset stack tight small" data-map-draft="${esc(box.dataset.draft || '')}"><div class="eyebrow">The map of the problem</div><div>One problem, no parts to combine: ${esc(famText(m.sub_problems[0].family))}. <span class="muted">If it is really several that depend on each other, add the part you see.</span></div>
+        box.innerHTML = `<div class="inset stack tight small" data-map-draft="${esc(box.dataset.draft || '')}"><div class="eyebrow">The map of the problem</div><div>One problem, no parts to combine: ${esc(famText(m.sub_problems[0].family))}. <span class="muted">If it is really several that depend on each other, add the part you see.</span></div>${routeBox(m.sub_problems[0])}
           ${(v.review.questions || []).length ? `<ul class="plan-list">${v.review.questions.map(q => `<li class="${q.blocking ? 'blocked' : 'done'}"><span class="pi">${q.blocking ? '!' : '?'}</span><span>${esc(q.question)}</span></li>`).join('')}</ul>` : ''}
           ${addForm}<div class="row" data-style="gap:6px"><button type="button" class="btn sm" data-map-act="redraw">Draw it again</button></div></div>`;
+        loadSolution(box);
         return;
       }
       const partCard = p => {
@@ -278,6 +292,7 @@ DC.view('home', {
           <dl class="kv small"><dt>One row is</dt><dd>${esc(p.unit || 'not said')}</dd><dt>Needed</dt><dd>${esc(p.moment || 'not said')}</dd>
           ${sp.map(x => `<dt>Labels</dt><dd>${esc(LABELS_TEXT[x.labels] || x.labels)}</dd>`).join('')}
           ${sp.some(x => (x.reads || []).length) ? `<dt>Uses</dt><dd>${esc(sp.flatMap(x => (x.reads || []).map(r => `${r.what === 'score' ? 'the score of' : 'the outcome of'} ${titleOf(r.sub_problem)}${r.via ? ` (by ${r.via})` : ''}`)).join('; '))}</dd>` : ''}</dl>
+          ${sp.map(routeBox).join('')}
           <div class="xs muted">${reasons}</div>
           <div class="row" data-style="gap:6px;flex-wrap:wrap"><button type="button" class="btn sm" data-map-act="remove" data-part="${esc(p.id)}">Remove</button>
           ${others.length ? `<label class="xs muted">Merge into <select data-map-merge="${esc(p.id)}" aria-label="Merge ${esc(p.title)} into another part"><option value="">…</option>${others.map(o => `<option value="${esc(o.id)}">${esc(o.title)}</option>`).join('')}</select></label>` : ''}</div>
@@ -297,6 +312,32 @@ DC.view('home', {
         <div class="row" data-style="gap:6px;flex-wrap:wrap"><button type="button" class="btn primary sm" data-map-act="confirm"${v.confirmed ? ' disabled' : ''}>${v.confirmed ? 'Confirmed' : 'Confirm the map'}</button><button type="button" class="btn sm" data-map-act="redraw">Draw it again</button></div>
         <div class="xs muted">${v.source === 'advisor' ? 'Drawn by the model from your words' : v.source === 'person' ? 'Changed by you' : 'Drawn by rules from your words'}; every change is checked, and refused with its reason when it would not hold together.</div>
       </div>`;
+      loadSolution(box);
+    }
+    /* the solution map (24.4): the problem map answered, beside it; one holdout for the whole */
+    const SPLIT = { stratified: 'a random split that keeps the classes in proportion', time: 'by time: the latest period is the holdout', group: 'by entity: no entity on both sides', time_group: 'by time and by entity: the latest period, no entity on both sides' };
+    async function loadSolution(box) {
+      const id = box.dataset.draft;
+      if (!id) return;
+      let slot = $('[data-solution-box]', box);
+      if (!slot) { box.insertAdjacentHTML('beforeend', '<div class="inset stack tight small" data-solution-box="1"><div class="muted">Drawing the solution…</div></div>'); slot = $('[data-solution-box]', box); }
+      let v;
+      try { v = await DC.client.draftSolutionMap(id, { quiet: true }); } catch (e) { DC.states.failed(slot, e, { lead: 'Could not draw the solution map: ', retry: () => loadSolution(box) }); return; }
+      const h = v.holdout, split = h.split;
+      const keys = split.keys.length ? ` on ${split.keys.map(esc).join(', ')}` : '';
+      const blocks = v.blocks.map(b => `<div class="inset stack tight" data-block="${esc(b.id)}">
+          <div class="spread"><b>${esc(b.title)}</b><span class="pill ${b.approach ? 'accent' : 'warn'}">${esc(b.approach_title || 'no approach yet')}</span></div>
+          <div class="xs muted">Answers: ${esc(b.part_title)}${b.track ? ` · measured in ${esc(b.track)}` : ''}</div>
+          <div class="xs">${b.final === 'deferred' ? 'Hands its predictions to the composition: it never scores the holdout itself.' : 'Scores its own holdout, once, after your approval.'}</div>
+          <details class="xs"><summary>${b.workflow.length} steps of its workflow</summary><ol class="plan-list">${b.workflow.map(w => `<li class="${w.gate ? 'blocked' : 'done'}"><span class="pi">${w.gate ? '✋' : '·'}</span><span><b>${esc(w.name)}</b>${w.deferred ? ' <span class="pill outline">run by the composition</span>' : ''} <span class="muted">${esc(w.purpose)}</span></span></li>`).join('')}</ol></details></div>`).join('');
+      const steps = v.steps.map(c => `<li class="${c.reads_holdout ? 'blocked' : 'done'}"><span class="pi">${c.reads_holdout ? '◆' : '→'}</span><span>${esc(c.kind)} of ${esc((c.inputs || []).join(', '))} <span class="muted">→ ${esc(c.output)}${c.joins ? ` · joined by ${esc(c.joins)}` : ''}${c.reads_holdout ? ' · the only reading of the holdout' : ''}</span></span></li>`).join('');
+      slot.innerHTML = `<div class="eyebrow">The solution, beside the problem</div>
+        <div class="small">One holdout for the whole. Split: ${esc(SPLIT[split.strategy] || split.strategy)}${keys}${split.moment ? `, following ${esc(split.moment)}` : ''}. ${h.read_by === 'composition' ? 'It is read once, by the last step, and nothing is chosen on it: weights, thresholds and the budget are chosen on validation first.' : 'It is read once, after your approval.'}${(v.issues || []).length ? ' <b>Not while the problems below stand.</b>' : ''}</div>
+        ${(v.issues || []).length ? `<div class="callout warn small">${v.issues.map(esc).join('<br>')}</div>` : ''}
+        ${(v.blockers || []).length ? `<div class="callout warn small">${v.blockers.map(esc).join('<br>')}</div>` : ''}
+        ${(v.notes || []).length ? `<div class="callout info small">${v.notes.map(esc).join('<br>')}</div>` : ''}
+        <div class="stack tight">${blocks}</div>
+        ${steps ? `<div class="eyebrow">How the results combine, and the one reading of the holdout</div><ul class="plan-list">${steps}</ul>` : ''}`;
     }
     async function mapAct(btn) {
       const box = btn.closest('[data-map-box]'), id = box && box.dataset.draft;

@@ -72,6 +72,8 @@ PURPOSES: dict[str, Purpose] = {
                                             "never rows or cell values", keeps_text=True),
     "data_need": Purpose("standard", 60, "the problem map as short lines and the draft's table names with their column names, purposes and what one row of each is "
                                          "(dclab_core's data-need agent, package 24.2); never rows or cell values"),
+    "solution_router": Purpose("standard", 60, "one sub-problem of the problem map as a short line, the question, the catalogue's candidates as lines (approach, what blocks it, "
+                                               "what is not known yet) and a line about each approach (dclab_core's solution router, package 24.3); never rows or cell values"),
     "brief_checker": Purpose("standard", 60, "the problem's description, the names of their files and columns, and what dclab_core's rules "
                                              "read from the description with the words it rests on (package 18.2's follow-up); never rows "
                                              "or cell values"),
