@@ -89,6 +89,65 @@ def _stage_step(store: Any, project: dict[str, Any], stage: str, earlier: dict[s
             "numbers": list(contract.numbers(record.get("evidence") or {}, f"{stage}.evidence", limit=core.MAX_NUMBERS))}
 
 
+def _programme_steps(project: dict[str, Any]) -> list[dict[str, Any]]:
+    """The steps of a problem with several parts (24.5): a step per leaf, the composition chosen on validation and the one read of the holdout, each with the programme's
+    fingerprint and the record paths of its numbers. Stale when the data, the tables, the labels or the solution map changed since the programme ran."""
+    from . import programme
+
+    plan = programme.plan_of(project)
+    p = programme.stored(project)
+    run = project.get("programme") or {}
+    stale = programme.stale_reasons(project)
+    why_stale = (" ".join(stale) + ".") if stale else None
+    sm = programme.maps(project)[1]
+    block_of = {b.id: b for b in sm.blocks}
+    leaf_by = {l.block: l for l in (p.leaves if p else [])}
+    steps: list[dict[str, Any]] = []
+    numbers = list(contract.numbers(run.get("document") or {}, "programme.document", limit=core.MAX_NUMBERS)) if p else []
+    ids = {}
+    for b in sm.blocks:
+        if b.approach == "review_budgeted":  # the budget step is the composition's, not a model
+            continue
+        leaf = leaf_by.get(b.id)
+        step = {"id": f"programme:{b.id}", "kind": "stage", "name": f"{b.title} ({b.approach or 'no approach'})", "depends_on": ["data"], "nodes": ["WF-04", "WF-05", "WF-06", "WF-07"],
+                "roots": ["programme"], "record": "project.programme.document.leaves", "rerun": "replay" if p else "rerun"}
+        if leaf is None:
+            step.update(status="not_run", why="The programme has not run.")
+        elif leaf.status == "built":
+            step.update(status="stale" if why_stale else "done", why=why_stale, fingerprint=p.fingerprint,
+                        inputs={"reads": ",".join(leaf.reads) or None, "columns": len(leaf.columns)},
+                        outputs={"chosen": leaf.chosen, **{f"validation.{k}": v for k, v in leaf.validation.items()}},
+                        numbers=[n for n in numbers if n.startswith(f"programme.document.leaves[{[l.block for l in p.leaves].index(b.id)}]")])
+        elif leaf.status == "dropped":
+            step.update(status="not_recorded", why=leaf.why)
+        else:
+            step.update(status="failed", why=leaf.why or "The leaf did not run.")
+        ids[b.id] = step["id"]
+        steps.append(step)
+    leaf_steps = [x["id"] for x in steps]
+    chosen = p.composition if p else None
+    comp = {"id": "programme:composition", "kind": "stage", "name": "the composition, chosen on validation", "depends_on": leaf_steps or ["data"], "nodes": ["WF-08"],
+            "roots": ["programme"], "record": "project.programme.document.composition", "rerun": "replay" if p else "rerun"}
+    if chosen is None:
+        comp.update(status="not_run", why="Not chosen yet" + (": " + "; ".join(p.blockers[:2]) if p and p.blockers else "."))
+    else:
+        comp.update(status="stale" if why_stale else "done", why=why_stale, fingerprint=p.fingerprint,
+                    outputs={"chosen": chosen.chosen, "best_leaf": chosen.best_leaf, "best_leaf_validation": chosen.best_leaf_score,
+                             "chosen_validation": chosen.candidates.get(chosen.chosen)},
+                    numbers=[n for n in numbers if n.startswith("programme.document.composition")])
+    hold = {"id": "programme:holdout", "kind": "stage", "name": "the holdout, read once", "depends_on": ["programme:composition"], "nodes": ["WF-09"], "roots": ["programme"],
+            "record": "project.programme.document.holdout", "rerun": "replay" if p and p.holdout else "rerun"}
+    if p is None or p.holdout is None:
+        hold.update(status="not_run", why="The holdout stays closed until every leaf has run and the composition is chosen.")
+    else:
+        h = p.holdout
+        hold.update(status="stale" if why_stale else "done", why=why_stale, fingerprint=p.fingerprint,
+                    outputs={"metric": h.metric, "value": h.composed.value, "low": h.composed.low, "high": h.composed.high, "best_leaf_value": h.best_leaf_estimate.value,
+                             "difference": h.difference.value, "difference_low": h.difference.low, "beats_best_leaf": h.beats_best_leaf, "reads": h.reads},
+                    numbers=[n for n in numbers if n.startswith("programme.document.holdout")])
+    return steps + [comp, hold]
+
+
 def _report(store: Any, project_id: str) -> Any:
     """The report as the product builds it: the findings of the training rows with it."""
     from . import solution_report
@@ -101,6 +160,10 @@ def _family(card: dict[str, Any]) -> Optional[str]:
     family = (card or {}).get("family")
     family = family.get("value") if isinstance(family, dict) else family
     return str(family) if family is not None else None
+
+
+def _stage_status_of(project: dict[str, Any], stage: str) -> str:
+    return ((project.get("stages") or {}).get(stage) or {}).get("status", "pending")
 
 
 def of(store: Any, project_id: str) -> core.Pipeline:
@@ -129,6 +192,20 @@ def of(store: Any, project_id: str) -> core.Pipeline:
             if draft.get("workflow") or project.get("plan") else
             {"status": "not_recorded", "why": "No workflow was drawn and no plan adopted: the engine's five stages are its workflow."})},
     ]
+    from . import programme as studio_programme
+
+    programme_steps = _programme_steps(project) if project.get("programme_plan") else []
+    if programme_steps and studio_programme.stored(project) is None and any(_stage_status_of(project, st) in DONE for st in STAGE_KEYS):
+        programme_steps = []  # a problem of several parts that was solved by the engine's stages and never run as a programme: its stages are its pipeline
+    if programme_steps and not project.get("solution"):  # the plan the person confirmed stands in for the saved solution and the workflow: it is what the programme runs
+        fingerprint = project["programme_plan"]["solution_map"].get("fingerprint")
+        for step in steps:
+            if step["id"] == "solution":
+                step.update(name="the plan of the programme", status="done", why=None, outputs={"solution_hash": fingerprint, "kind": "programme"}, record="project.programme_plan")
+            elif step["id"] == "workflow":
+                step.update(name="the solution map's workflows", status="done", why=None, outputs={"solution_map": fingerprint}, record="project.programme_plan.solution_map")
+    if programme_steps and not any(_stage_status_of(project, st) in DONE for st in STAGE_KEYS):
+        return core.from_steps(project_id, steps + programme_steps)  # a problem of several parts runs as a programme, not as the five stages
     analysis = {"id": "analysis", "kind": "analysis", "name": "the analysis of the training rows", "depends_on": ["data", "solution"],
                 "roots": list(FINDINGS), "record": "the findings, built from the training rows", "rerun": "rerun"}
     earlier: dict[str, Optional[dict[str, Any]]] = {}
@@ -147,7 +224,7 @@ def of(store: Any, project_id: str) -> core.Pipeline:
     else:
         analysis.update({"status": "not_run", "why": "The report, which reads the analysis, is built after the final stage."})
         report.update({"status": "not_run", "why": "The final stage has not run."})
-    return core.from_steps(project_id, steps + stages + [analysis] + [report])  # the analysis is built with the report, after the stages
+    return core.from_steps(project_id, steps + stages + [analysis] + [report] + programme_steps)  # the analysis is built with the report, after the stages
 
 
 def _same(a: Any, b: Any) -> bool:
@@ -179,6 +256,19 @@ def rerun(store: Any, project_id: str, step_id: str) -> dict[str, Any]:
     rebuilt and each number compared with what its stage's run recorded when it ran. The project is never changed."""
     pipe = of(store, project_id)
     step = pipe.step(step_id)
+    if step_id.startswith("programme:"):  # 24.5: the programme again in a scratch copy, compared with its record; the holdout is not consumed
+        from . import programme
+
+        if step.status == "not_run":
+            return {"step": step_id, "replayed": False, "why": [step.why or "The programme has not run."]}
+        try:
+            got = programme.replay(store, project_id)
+        except programme.ProgrammeError as exc:  # the inputs changed, or the holdout was never read: a replay would be a second look at it, so it is refused with the reason
+            return {"step": step_id, "replayed": False, "why": [str(exc)]}
+        from .. import audit
+
+        audit.record_for(store, "replay", "human", project={"id": project_id}, move="replay_programme", status="allowed", run=got.get("fingerprint"))
+        return {"step": step_id, **got, "why": [] if got.get("same") else ["The rerun did not make the same document: " + ", ".join(got.get("differ") or ["see the fingerprints"])]}
     if step.kind == "stage":
         from .lineage import replay
 

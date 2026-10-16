@@ -4,6 +4,35 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.54.0 (2026-10-16)
+
+Package 24.5: programmes, the composition of leaves and the one read of the holdout; 24.6: the fraud programme's replica.
+
+- `compose` (new): the leaves' scores put together. Candidates are every leaf alone, `rank_mean`, `rank_max`, `rank_weighted` (each leaf's score turned into its rank among
+  the rows of its period; over the `fused` leaves only) and, when the map has a gate, `gate:<a>><b>@<percent>`. `choose` picks one on the validation rows (recall at the review
+  budget, or average precision without one; a tie goes to the simpler candidate, so a combination that does not help is not chosen and the result says so); the best leaf alone,
+  the bar to beat, is taken among every leaf. `read_holdout` scores the composition and every leaf on the holdout once, with a bootstrap over clusters of rows and the paired
+  difference against that bar; with fewer than fifty resamples no gain is claimed, and resamples with no confirmed case are counted. `recall_at` is the expected share over the
+  rows that tie at the cut, never the order the rows are in.
+- `leaves` (new): the runners of a programme's blocks by approach (`anomaly`: a screen with a detector chosen on planted anomalies; `rare_event` and `binary`: a classifier on the
+  confirmed cases reading the scores of the leaves it depends on, learning a case only from the day it was confirmed (`confirmation_column`, `case_dates`); `entity_tables`:
+  accounts that share a contact and the people who serve them, history counted to the ride's own moment and groups counted as of the ride when the table says when accounts
+  opened), the one split (`partition`: a design that names a moment is never answered by another split; rows with no usable time are counted, and more than 5% are refused) and
+  the two protocols (fit on `fit`, judge on `validation`; refit on `train`, predict the `holdout`). No leaf scores the holdout; a leaf that cannot run is blocked with the
+  reason, never skipped. `mark_cases` joins confirmed cases on a key of one or more columns as the analysis joins them.
+- `programme` (new): `Programme` v1 (`dclab_core.programme.v1`): a leaf per block of a solution map (names, counts and scores, never a row), the composition chosen on
+  validation, the holdout result, and `reads_before` (how many times an earlier programme on the same split read the holdout). `plan` (refuses a foreign or unsound solution
+  map), `replan` (keeps a person's drops for the same solution map and the read count for the same split), `build_leaves` (a topological order; a reader whose source has not
+  run is blocked), `compose_leaves`, `read_holdout`, `execute`, `resume`, `drop_leaf` (a person's, with a reason, refused once any programme read the holdout), `open_issues` (the
+  holdout opens only when every leaf that was to run has run, the composition rests on at least five confirmed cases and nothing has read it before; a holdout with fewer than
+  five cases is not read), `validate` (the invariants of a read), `sections`, `markdown` and `report` (a `SolutionReport`: a section per leaf, the composition and the holdout,
+  every number traced to its record path). A programme is never edited in place: every step returns a new one.
+- `replicas.fraud_programme` (new): invented rides, accounts and partial confirmed cases (with the date each was confirmed) with fake delivery marks, rings of linked accounts and
+  both planted, the honest look-alikes (a family's shared phone, a short delivery next door, a cancelled ride) and a review budget.
+- `problem_map`: the budget phrase keeps its percent sign ("about 2%", not "about 2").
+- `adapters.main_product_problem_map.programme_experiments`: each leaf that runs as an `ExperimentPlan` proposal with the programme's one split; the composition and the single read of the
+  holdout have no counterpart there and are said. `adapters.conformance`: `programme` is mapped by it.
+
 ## 0.53.0 (2026-10-16)
 
 Package 24.4: the solution map.

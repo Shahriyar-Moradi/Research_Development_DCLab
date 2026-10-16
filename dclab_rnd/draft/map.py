@@ -382,6 +382,20 @@ def edit(drafts: Any, draft_id: str, action: str, *, who: str = "person", adviso
     return view(drafts.get(draft_id), advisor)
 
 
+def project_plan(draft: dict[str, Any]) -> Optional[dict[str, Any]]:
+    """The confirmed plan of a problem with several parts, kept with the project built from the draft (24.5): the map, the routes and the solution map as they were when
+    the person confirmed. None for a single problem, a map nobody confirmed, or a draft with no map."""
+    held, m = stored(draft), current(draft)
+    if not held or m is None or m.size != "complex" or not held.get("confirmed") or stale(draft):
+        return None
+    from dclab_core import solution_map
+
+    routes = stored_routes(draft, m)
+    sm = solution_map.solution_map(m, routes, data_card_of(draft))
+    return {"problem_map": json.loads(m.model_dump_json()), "routes": {k: json.loads(v.model_dump_json()) for k, v in routes.items()},
+            "solution_map": json.loads(sm.model_dump_json()), "confirmed": True}
+
+
 def blocker(draft: dict[str, Any]) -> Optional[str]:
     """Why a build waits on the map, or None: the problem is several parts and the person has not confirmed the map. A draft whose words
     make one problem, or whose stored map is confirmed (or single), is not held."""

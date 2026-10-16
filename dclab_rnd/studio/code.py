@@ -359,11 +359,139 @@ def _notebook(blocks: list[tuple[str, str]], project: dict[str, Any]) -> dict[st
             "cells": out}
 
 
+PROGRAMME = '''\
+from dclab_core import leaves, programme
+from dclab_core.problem_map import ProblemMap
+from dclab_core.solution_map import SolutionMap
+
+MAIN = {main}
+TABLES = {tables}
+CASES = {cases}
+KEY = {key}
+EXCLUDE = {exclude}
+BUDGET = {budget}
+SEED = {seed}
+BOOTSTRAPS = {bootstraps}
+
+m = ProblemMap.read((HERE / "problem_map.json").read_text())
+sm = SolutionMap.read((HERE / "solution_map.json").read_text())
+prior = programme.Programme.read((HERE / "programme.json").read_text())  # the recorded one: the drops a person made are replayed with it
+
+# 1. the tables as attached, and the confirmed cases joined on their key
+frame = read_table(MAIN)
+tables = {{name: read_table(file) for name, file in TABLES.items()}}
+cases = read_table(CASES) if CASES else None
+labels = leaves.mark_cases(frame, cases, KEY) if cases is not None else None
+column = leaves.confirmation_column(cases, KEY) if cases is not None else None   # when each case was confirmed: a model never learns a case before then
+known_at = leaves.case_dates(frame, cases, KEY, column) if column else None
+
+# 2. the one split of the solution map: the holdout is the latest period, a validation period before it
+split = sm.holdout.split
+parts = leaves.partition(frame, moment=split.moment, keys=split.keys, share=split.share, seed=split.seed)
+ctx = leaves.Context(frame=frame, parts=parts, time=split.moment, entities=list(split.keys), labels=labels, known_at=known_at, tables=tables, exclude=EXCLUDE,
+                     budget=BUDGET, seed=SEED)
+
+# 3. the leaves, the composition chosen on validation, the holdout read once
+start = programme.replan(sm, m, prior, budget=BUDGET, replaying=True)
+run = programme.resume(programme.Execution(start), sm, m, ctx, labels, bootstraps=BOOTSTRAPS)
+p = run.programme
+print(programme.markdown(p))
+
+value = p.holdout.composed.value if p.holdout is not None else None
+same = (value is not None and abs(value - EXPECTED["value"]) <= 1e-6 * max(1.0, abs(EXPECTED["value"]))
+        and p.holdout.chosen == EXPECTED["chosen"] and p.holdout.best_leaf == EXPECTED["best_leaf"])
+print(json.dumps({{"metric": EXPECTED["metric"], "value": value, "expected": EXPECTED["value"], "chosen": EXPECTED["chosen"], "same": same,
+                  "fingerprint": p.fingerprint, "recorded_fingerprint": EXPECTED["fingerprint"]}}))
+if not same:
+    sys.exit(1)'''
+
+
+def export_programme(store: Any, project: dict[str, Any], out: Path, actor: str = "human") -> dict[str, Any]:
+    """The code of a programme (24.5): the maps and the recorded programme as JSON, the tables as attached, and a script that runs ``dclab_core.programme`` on them with the
+    recorded split, budget and seed, and exits 1 unless it chooses the same composition and scores the same holdout number. It needs nothing of the studio."""
+    from importlib import metadata
+
+    from . import data as sd
+    from . import programme as studio_programme
+    from ..storage.files import FileError, files_for
+
+    p = studio_programme.stored(project)
+    if p is None or p.holdout is None:
+        raise CodeRefused("the programme has not read its holdout yet: there is no number for the code to reproduce")
+    changed = studio_programme.stale_reasons(project)
+    if changed:
+        raise CodeRefused("the programme is stale (" + "; ".join(changed) + "): the code would reproduce a number the project's data no longer gives. Run the programme again first.")
+    plan = studio_programme.plan_of(project)
+    out = Path(out)
+    if out.exists():
+        shutil.rmtree(out)
+    (out / "data").mkdir(parents=True)
+    files = files_for(store)
+    copies: dict[str, str] = {}
+
+    def copy(filename: str, sha: Optional[str]) -> str:
+        try:
+            source = files.path(files.key_of(store.data_dir(project["id"]) / filename), expected=sha)
+        except FileError as exc:
+            raise sd.DataError(str(exc)) from None
+        shutil.copyfile(source, out / "data" / filename)
+        copies[filename] = filename
+        return filename
+
+    main = copy(project["data"]["filename"], project["data"].get("sha256"))
+    tables = {name: copy(t["filename"], t.get("sha256")) for name, t in (project.get("tables") or {}).items()}
+    cases = copy(project["labels"]["filename"], project["labels"].get("sha256")) if project.get("labels") else None
+    shutil.copytree(ROOT / "dclab_core", out / "vendor" / "dclab_core", ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "replicas", "schemas"))
+    (out / "problem_map.json").write_text(json.dumps(plan["problem_map"], indent=1) + "\n", encoding="utf-8")
+    (out / "solution_map.json").write_text(json.dumps(plan["solution_map"], indent=1) + "\n", encoding="utf-8")
+    (out / "programme.json").write_text(p.model_dump_json(indent=1) + "\n", encoding="utf-8")
+    h = p.holdout
+    (out / "expected.json").write_text(json.dumps({"kind": "programme", "metric": h.metric, "value": h.composed.value, "chosen": h.chosen, "best_leaf": h.best_leaf,
+                                                   "fingerprint": p.fingerprint, "difference": h.difference.value, "difference_low": h.difference.low,
+                                                   "difference_high": h.difference.high}, indent=1) + "\n", encoding="utf-8")
+    script = HEADER + "\n\n" + PROGRAMME.format(main=_c(main), tables=_c(tables), cases=_c(cases), key=_c(list((project.get("labels") or {}).get("key") or [])),
+                                              exclude=_c(studio_programme.excluded(project)), budget=_c(studio_programme.budget_of(project)), seed=studio_programme.SEED,
+                                              bootstraps=studio_programme.BOOTSTRAPS)
+    (out / "programme.py").write_text(script + "\n", encoding="utf-8")
+    suffixes = {Path(name).suffix.lower() for name in copies}
+    needs = [*BASE, *(["pyarrow"] if ".parquet" in suffixes else []), *(["openpyxl"] if suffixes & {".xlsx", ".xls"} else [])]  # what reading the tables as attached needs
+    pins = []
+    for package in needs:
+        try:
+            pins.append(f"{package}=={metadata.version(package)}")
+        except metadata.PackageNotFoundError:
+            pins.append(package)
+    (out / "requirements.txt").write_text("\n".join(pins) + "\n", encoding="utf-8")
+    (out / "README.md").write_text(textwrap.dedent(f"""\
+        # {project.get('name') or 'Project'}: its programme as code
+
+        Exported by DCLab from the project's programme: a problem of several parts, solved leaf by leaf and composed.
+        `python programme.py` runs `dclab_core.programme` on `data/` with the recorded split, budget and seed, prints the report
+        (a section per leaf, the composition, the holdout read once) and exits 1 unless it chooses the same composition
+        ({h.chosen}) and scores the same holdout {h.metric} ({h.composed.value}).
+
+        `problem_map.json` and `solution_map.json` are the plan the person confirmed; `programme.json` is the recorded run.
+        `data/` holds the person's own tables: keep this folder where that data may be kept. The cases are those someone confirmed,
+        partial and biased towards what is easy to see: a score here is evidence about the method, not production approval.
+        """), encoding="utf-8")
+    store.log(project["id"], "code_exported", {"kind": "programme", "metric": h.metric, "folder": out.name})
+    import hashlib
+
+    from .. import audit
+
+    digests = {f"data/{name}": hashlib.sha256((out / "data" / name).read_bytes()).hexdigest() for name in sorted(copies)}
+    audit.record_for(store, "data_export", actor, project={"id": project["id"], "name": project.get("name")}, move="export_code", status="allowed", files=digests)
+    return {"folder": str(out), "kind": "programme", "metric": h.metric, "value": h.composed.value,
+            "steps": [l.block for l in p.leaves if l.status == "built"] + ["composition", "holdout"]}
+
+
 def export(store: Any, project_id: str, out: Path, actor: str = "human") -> dict[str, Any]:
     """Write the project's code folder to ``out`` and return what it holds."""
     from . import data as sd
 
     project = store.get(project_id)
+    if project.get("programme_plan") and not any(((project.get("stages") or {}).get(st) or {}).get("status") in ("completed", "approved") for st in ("data", "final")):
+        return export_programme(store, project, out, actor)  # a problem of several parts runs as a programme (24.5), not as the five stages
     made = cells(store, project_id)
     out = Path(out)
     if out.exists():

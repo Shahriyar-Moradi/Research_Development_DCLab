@@ -26,7 +26,7 @@ from .store import Store
 
 BUSY = {"stage": "This project is already running a stage", "intern": "This session is still working",
         "pipeline": "This file is already being processed", "synthetic": "Synthetic data is already being generated for this draft",
-        "rerun": "This step is already being rerun"}
+        "rerun": "This step is already being rerun", "programme": "This project's programme is already running"}
 
 
 class Services:

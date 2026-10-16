@@ -30,6 +30,7 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "problem_map": "dclab_core.adapters.main_product_problem_map:problem_specs",
     "route": LIBRARY + " (the approach chosen for a sub-problem, with the candidates and what blocks them; the main product reads it as a proposal at its own points)",
     "solution_map": "dclab_core.adapters.main_product_problem_map:holdout_plan",
+    "programme": "dclab_core.adapters.main_product_problem_map:programme_experiments",
     "map_review": LIBRARY + " (the reviewer's questions about a map; the main product asks them through its own assistant)",
     "problem_brief": "dclab_core.adapters.main_product:problem_spec",
     "solution_plan": "dclab_core.adapters.main_product:problem_spec",

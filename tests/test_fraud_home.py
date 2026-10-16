@@ -97,6 +97,17 @@ class FraudHomeTest(unittest.TestCase):
         self.assertIn("recall_at_budget", final["holdout_metrics"])
         self.assertIn("lower bound", final["precision_note"])
 
+    def test_the_confirmed_plan_of_a_problem_of_several_parts_goes_with_the_project(self):
+        """24.5: the project built from a draft whose map the person confirmed holds that map, its routes and its solution map, which its programme runs."""
+        store, agent, draft_id = self.draft_with_both_files()
+        self.answer_all(store, agent, draft_id)
+        project = build_project(store, ProjectStore(Path(tempfile.mkdtemp())), draft_id)
+        plan = project["programme_plan"]
+        self.assertEqual(plan["problem_map"]["size"], "complex")
+        self.assertEqual(plan["solution_map"]["map"], plan["problem_map"]["fingerprint"])
+        self.assertEqual(sorted(plan["routes"]), [s["id"] for s in plan["problem_map"]["sub_problems"]])
+        self.assertTrue(plan["confirmed"])
+
     def test_a_budget_never_said_is_assumed_and_said(self):
         """20.10 v2: when the questions ran out before the budget, recall is still read at a budget: the kind's, logged."""
         store, agent, draft_id = self.draft_with_both_files()

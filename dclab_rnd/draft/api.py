@@ -911,6 +911,11 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
                         "card": card.model_dump(mode="json"),  # 20.1: the problem as understood, its open questions with it
                         "workflow": draft.get("workflow"), "cleaning_log": draft.get("cleaning_log"),
                         "synthetic": bool(asset and asset.get("synthetic"))}
+    from . import map as draft_map
+
+    plan = draft_map.project_plan(draft)  # 24.5: the confirmed map of a problem with several parts goes with the project, whose programme runs it
+    if plan:
+        project["programme_plan"] = plan
     built_solution = draft.get("solution")
     if not built_solution and card.family.value == "anomaly" and labels is None and project.get("data"):  # 20.7: no outcome
         built_solution = _anomaly_solution(projects, project, u)  # saved below like the wizard's, through the same check

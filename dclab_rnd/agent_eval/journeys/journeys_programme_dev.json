@@ -1,0 +1,23 @@
+[
+  {
+    "id": "JP-01",
+    "programme": "fraud_programme",
+    "labels": "file",
+    "words": "Find the fake rides and fake orders our bikers and customers make. We have a few confirmed cases, nothing else is labelled, and the team can review about 2% of the rides each day.",
+    "answers": {
+      "prediction_moment": "After delivery, in a daily audit of the day's rides; no label is known when a ride is scored.",
+      "entity": "The biker and the account",
+      "labels": "A sample of the cases we found",
+      "budget": "About 2% of the rides each day",
+      "target": "The confirmed frauds",
+      "family": "Find the fraudulent rides",
+      "action": "The audit team reviews the flagged rides; a missed fraud costs money",
+      "data_plan": "The rides, the accounts table and the file of confirmed cases"
+    },
+    "expect": {
+      "families": ["anomaly", "rare_event", "entity_tables", "ranking"],
+      "approaches": ["anomaly", "rare_event", "entity_tables", "review_budgeted"]
+    },
+    "note": "A problem of several parts: fake delivery marks, fake orders in rings of linked accounts, partial confirmed cases and a review budget. The accounts table comes after the project is built."
+  }
+]

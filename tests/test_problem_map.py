@@ -88,6 +88,12 @@ class FraudTest(unittest.TestCase):
                       "only 40 cases a day can be handled, so top 40 matter"]:
             self.assertTrue(pm.decompose(f"Find the fake rides our bikers make. {words}").composition.budget, words)
 
+    def test_a_share_keeps_its_percent_sign(self):
+        for words, shown in [("the team can review about 2% of the rides each day", "2%"), ("our reviewers can check around 1.5 % of rides", "1.5 %"),
+                             ("we can review 50 a day", "50")]:
+            budget = pm.decompose(f"Find the fake rides our bikers make. {words}").composition.budget
+            self.assertTrue((budget or "").endswith(shown), (words, budget))
+
     def test_no_budget_in_the_words_is_none_and_still_a_budget_step(self):
         m = pm.decompose("Find the fake rides our bikers make.")
         self.assertIsNone(m.composition.budget)

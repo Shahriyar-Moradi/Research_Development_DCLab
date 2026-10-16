@@ -301,3 +301,4 @@ def _steps_issues(sm: SolutionMap, m: Optional["ProblemMap"]) -> list[str]:
 
 
 __all__ = ["SolutionMap", "Block", "SolutionStep", "HoldoutDesign", "SplitDesign", "solution_map", "validate", "split_for", "fingerprint", "HOLDOUT_STEP"]
+import dclab_core.programme  # noqa: E402,F401  (the programme contract, 24.5: registered once the solution map is defined; either module may be imported first)

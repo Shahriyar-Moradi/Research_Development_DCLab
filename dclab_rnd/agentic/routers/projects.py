@@ -480,6 +480,51 @@ async def rerun_pipeline_step(project_id: str, step: str, wait: bool = True, s: 
     return {**result, "job": {"id": job["id"], "status": done.get("status")}}
 
 
+@router.get("/api/projects/{project_id}/programme", response_model=Page)
+async def get_programme(project_id: str, s: Services = Depends(services)):
+    """The programme of a problem with several parts (24.5): its state, what blocks it, a section per leaf, the composition and the holdout read once. ``available``
+    is false for a project built from one problem."""
+    from ...studio import programme as studio_programme
+
+    return await asyncio.to_thread(lambda: studio_programme.view(s.project(project_id)))
+
+
+@router.post("/api/projects/{project_id}/programme/run", response_model=Page)
+async def run_programme(project_id: str, body: Any = Body(None), wait: bool = True, s: Services = Depends(services)):
+    """Run the programme as a job (the limits on jobs at once apply, and Stop): the leaves, the composition chosen on validation and, when no leaf is blocked, the one
+    read of the holdout. The graph's move ``run_programme`` is checked first: a second read of the holdout needs ``{"reuse_reason": "..."}``. ``wait``: answer with the
+    programme; else the job."""
+    from ...studio import programme as studio_programme
+
+    project = s.project(project_id)
+    reason = str(body.get("reuse_reason") or "").strip() if isinstance(body, dict) else ""
+    verdict = studio_graph.check(project, "run_programme", "human", reuse_reason=reason)
+    if not verdict.allowed:
+        studio_graph.log(s.projects, project_id, verdict, project)
+        raise HTTPException(409, verdict.message)
+    job = s.submit("programme", project_id, {"project_id": project_id, "actor": "human", "reuse_reason": reason or None}, here=wait)
+    if not wait:
+        return {"job": job}
+    done = await s.run_here(job)
+    if done.get("status") == "failed":
+        raise HTTPException(409, done.get("error") or "The programme ended without a result")
+    return {**(await asyncio.to_thread(lambda: studio_programme.view(s.project(project_id)))), "job": {"id": job["id"], "status": done.get("status")}}
+
+
+@router.post("/api/projects/{project_id}/programme/drop", response_model=Page)
+async def drop_programme_leaf(project_id: str, body: Any = Body(None), s: Services = Depends(services)):
+    """A person drops a leaf that cannot run, with the reason: ``{"block": "blk3", "reason": "..."}``. The composition goes on without it, and the programme says so."""
+    from ...studio import programme as studio_programme
+
+    s.project(project_id)
+    if not isinstance(body, dict):
+        raise HTTPException(422, 'Send {"block": ..., "reason": ...}')
+    try:
+        return await asyncio.to_thread(studio_programme.drop, s.projects, project_id, str(body.get("block") or ""), str(body.get("reason") or ""), "human")
+    except studio_programme.ProgrammeError as exc:
+        raise HTTPException(409, str(exc)) from None
+
+
 @router.post("/api/projects/{project_id}/graph/check", response_model=Verdict)
 async def check_move(project_id: str, payload: MoveCheck, s: Services = Depends(services)):
     p = s.project(project_id)
@@ -712,6 +757,21 @@ async def export_solution_report(project_id: str, s: Services = Depends(services
     import hashlib
 
     p = s.project(project_id)
+    from ...studio import programme as studio_programme
+
+    programme = studio_programme.stored(p)
+    if programme is not None and programme.holdout is not None and not s.projects.has_stage(project_id, "final"):  # 24.5: a problem of several parts reports its programme
+        from dclab_core import programme as core_programme
+
+        changed = studio_programme.stale_reasons(p)
+        if changed:
+            raise HTTPException(409, "The programme is stale (" + "; ".join(changed) + "): run it again before reporting it")
+        report = core_programme.report(programme, f"{p['name']}: the programme")
+        problems = core_report.check(report, core_programme.programme_context(programme))
+        if problems:
+            raise HTTPException(500, "The programme report has a number it cannot trace: " + "; ".join(problems[:2]))
+        return Response(core_report.to_markdown(report), media_type="text/markdown; charset=utf-8",
+                        headers={"Content-Disposition": f'attachment; filename="dclab-{p["name"][:40].replace(" ", "_")}-programme.md"'})
     if not s.projects.has_stage(project_id, "final"):
         raise HTTPException(409, "Run the final stage first: the report reads the finished records")
     digest = hashlib.sha256(json.dumps(s.projects.records(project_id), sort_keys=True, default=str).encode()).hexdigest()[:16]

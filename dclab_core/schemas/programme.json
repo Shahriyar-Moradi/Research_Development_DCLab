@@ -1,0 +1,611 @@
+{
+  "$defs": {
+    "Choice": {
+      "additionalProperties": false,
+      "description": "The composition chosen on validation, and what each candidate did there.",
+      "properties": {
+        "best_leaf": {
+          "description": "The leaf that did best alone on validation: what the composition must beat.",
+          "maxLength": 60,
+          "title": "Best Leaf",
+          "type": "string"
+        },
+        "best_leaf_score": {
+          "title": "Best Leaf Score",
+          "type": "number"
+        },
+        "budget_rows": {
+          "minimum": 0,
+          "title": "Budget Rows",
+          "type": "integer"
+        },
+        "budget_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Budget Share"
+        },
+        "candidates": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "description": "Each candidate's score on the validation rows.",
+          "title": "Candidates",
+          "type": "object"
+        },
+        "chosen": {
+          "maxLength": 80,
+          "title": "Chosen",
+          "type": "string"
+        },
+        "fused": {
+          "description": "The leaves the fusions combine; the best leaf alone is taken among all of the leaves above.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Fused",
+          "type": "array"
+        },
+        "metric": {
+          "enum": [
+            "recall_at_budget",
+            "average_precision"
+          ],
+          "title": "Metric",
+          "type": "string"
+        },
+        "positives": {
+          "description": "Confirmed cases among the validation rows.",
+          "minimum": 0,
+          "title": "Positives",
+          "type": "integer"
+        },
+        "rule": {
+          "maxLength": 300,
+          "title": "Rule",
+          "type": "string"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 6,
+          "title": "Warnings",
+          "type": "array"
+        },
+        "weights": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Weights",
+          "type": "object"
+        }
+      },
+      "required": [
+        "chosen",
+        "candidates",
+        "best_leaf",
+        "best_leaf_score",
+        "metric",
+        "budget_rows",
+        "positives",
+        "rule"
+      ],
+      "title": "Choice",
+      "type": "object"
+    },
+    "Estimate": {
+      "additionalProperties": false,
+      "properties": {
+        "high": {
+          "title": "High",
+          "type": "number"
+        },
+        "low": {
+          "title": "Low",
+          "type": "number"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "value",
+        "low",
+        "high"
+      ],
+      "title": "Estimate",
+      "type": "object"
+    },
+    "HoldoutResult": {
+      "additionalProperties": false,
+      "description": "The one read of the holdout: the composed system and every leaf, with intervals, and the composed system against the best leaf.",
+      "properties": {
+        "beats_best_leaf": {
+          "description": "The difference's interval is above zero.",
+          "title": "Beats Best Leaf",
+          "type": "boolean"
+        },
+        "best_leaf": {
+          "maxLength": 60,
+          "title": "Best Leaf",
+          "type": "string"
+        },
+        "best_leaf_estimate": {
+          "$ref": "#/$defs/Estimate"
+        },
+        "bootstraps": {
+          "minimum": 0,
+          "title": "Bootstraps",
+          "type": "integer"
+        },
+        "budget_rows": {
+          "minimum": 0,
+          "title": "Budget Rows",
+          "type": "integer"
+        },
+        "budget_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Budget Share"
+        },
+        "chosen": {
+          "maxLength": 80,
+          "title": "Chosen",
+          "type": "string"
+        },
+        "cluster_key": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cluster Key"
+        },
+        "composed": {
+          "$ref": "#/$defs/Estimate"
+        },
+        "difference": {
+          "$ref": "#/$defs/Estimate",
+          "description": "Composed minus the best leaf, paired on the same resamples."
+        },
+        "leaves": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Estimate"
+          },
+          "title": "Leaves",
+          "type": "object"
+        },
+        "limits": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Limits",
+          "type": "array"
+        },
+        "metric": {
+          "enum": [
+            "recall_at_budget",
+            "average_precision"
+          ],
+          "title": "Metric",
+          "type": "string"
+        },
+        "positives": {
+          "minimum": 0,
+          "title": "Positives",
+          "type": "integer"
+        },
+        "reads": {
+          "description": "How many times the holdout was read for this programme: one.",
+          "maximum": 1,
+          "minimum": 1,
+          "title": "Reads",
+          "type": "integer"
+        },
+        "rows": {
+          "minimum": 0,
+          "title": "Rows",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "reads",
+        "metric",
+        "chosen",
+        "best_leaf",
+        "budget_rows",
+        "rows",
+        "positives",
+        "composed",
+        "leaves",
+        "best_leaf_estimate",
+        "difference",
+        "beats_best_leaf",
+        "bootstraps"
+      ],
+      "title": "HoldoutResult",
+      "type": "object"
+    },
+    "LeafRun": {
+      "additionalProperties": false,
+      "description": "One block of the solution map, run: what it chose, how it did alone on validation, what it read. No value of a row.",
+      "properties": {
+        "approach": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approach"
+        },
+        "block": {
+          "pattern": "^blk\\d+$",
+          "title": "Block",
+          "type": "string"
+        },
+        "chosen": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The detector, model or rule the leaf chose on validation.",
+          "title": "Chosen"
+        },
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 60,
+          "title": "Columns",
+          "type": "array"
+        },
+        "holdout": {
+          "default": "none",
+          "description": "predicted: it scored the holdout rows for the composition and never judged them.",
+          "enum": [
+            "none",
+            "predicted"
+          ],
+          "title": "Holdout",
+          "type": "string"
+        },
+        "left_out": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Left Out"
+        },
+        "limits": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 6,
+          "title": "Limits",
+          "type": "array"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 6,
+          "title": "Notes",
+          "type": "array"
+        },
+        "reads": {
+          "description": "The blocks whose scores this leaf reads.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 40,
+          "title": "Reads",
+          "type": "array"
+        },
+        "rows": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Rows",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "built",
+            "blocked",
+            "composition",
+            "dropped"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "sub_problem": {
+          "pattern": "^sp\\d+$",
+          "title": "Sub Problem",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "title": "Title",
+          "type": "string"
+        },
+        "validation": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "description": "What each alternative scored on the validation rows, where the leaf chose among several.",
+          "title": "Validation",
+          "type": "object"
+        },
+        "why": {
+          "default": "",
+          "description": "Why it is blocked, dropped, or only part of the composition.",
+          "maxLength": 400,
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "block",
+        "sub_problem",
+        "title",
+        "status"
+      ],
+      "title": "LeafRun",
+      "type": "object"
+    },
+    "SplitDesign": {
+      "additionalProperties": false,
+      "description": "How rows are split, pinned: by which keys (an entity never on both sides inside the training folds) and which moment (the latest period is the\nholdout), the share the holdout takes and the seed that draws what is random. One design is shared by every leaf.",
+      "properties": {
+        "keys": {
+          "description": "The entity columns whose rows stay on one side.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "title": "Keys",
+          "type": "array"
+        },
+        "moment": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The time column the holdout follows, or None.",
+          "title": "Moment"
+        },
+        "seed": {
+          "default": 0,
+          "description": "Draws what the split leaves to chance, the same for every leaf.",
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "share": {
+          "default": 0.2,
+          "description": "The share of rows (the latest, or a stratified draw) that is the holdout.",
+          "exclusiveMaximum": 0.5,
+          "exclusiveMinimum": 0,
+          "title": "Share",
+          "type": "number"
+        },
+        "strategy": {
+          "enum": [
+            "stratified",
+            "time",
+            "group",
+            "time_group"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "strategy"
+      ],
+      "title": "SplitDesign",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.programme.v1.json",
+  "additionalProperties": false,
+  "description": "A solution map run: the leaves, the composition chosen on validation, and the one read of the holdout.",
+  "properties": {
+    "blockers": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 40,
+      "title": "Blockers",
+      "type": "array"
+    },
+    "budget": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Budget"
+    },
+    "composition": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Choice"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "fingerprint": {
+      "default": "",
+      "maxLength": 64,
+      "title": "Fingerprint",
+      "type": "string"
+    },
+    "fused": {
+      "description": "The blocks the composition combines.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 40,
+      "title": "Fused",
+      "type": "array"
+    },
+    "gates": {
+      "description": "Pairs [by, leaf]: the leaf counts only for rows the first puts in its top share.",
+      "items": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "maxItems": 40,
+      "title": "Gates",
+      "type": "array"
+    },
+    "holdout": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/HoldoutResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "leaves": {
+      "items": {
+        "$ref": "#/$defs/LeafRun"
+      },
+      "maxItems": 40,
+      "minItems": 1,
+      "title": "Leaves",
+      "type": "array"
+    },
+    "map": {
+      "description": "The fingerprint of the problem map.",
+      "maxLength": 64,
+      "title": "Map",
+      "type": "string"
+    },
+    "metric": {
+      "default": "recall_at_budget",
+      "enum": [
+        "recall_at_budget",
+        "average_precision"
+      ],
+      "title": "Metric",
+      "type": "string"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 10,
+      "title": "Notes",
+      "type": "array"
+    },
+    "periods": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "Rows in fit, validation and holdout, and the rows that belong to no period.",
+      "title": "Periods",
+      "type": "object"
+    },
+    "reads_before": {
+      "default": 0,
+      "description": "How many times an earlier programme on the same split read the holdout: once any did, a leaf can no longer be dropped and a run needs a person's reason.",
+      "minimum": 0,
+      "title": "Reads Before",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.programme.v1",
+      "default": "dclab_core.programme.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "solution": {
+      "description": "The fingerprint of the solution map it runs.",
+      "maxLength": 64,
+      "title": "Solution",
+      "type": "string"
+    },
+    "split": {
+      "$ref": "#/$defs/SplitDesign"
+    },
+    "state": {
+      "default": "planned",
+      "enum": [
+        "planned",
+        "leaves_built",
+        "composed"
+      ],
+      "title": "State",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "map",
+    "solution",
+    "split",
+    "leaves"
+  ],
+  "title": "Programme",
+  "type": "object"
+}

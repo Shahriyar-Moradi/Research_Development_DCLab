@@ -543,6 +543,21 @@ class BuildGateTest(unittest.TestCase):
         other = self.store.create(CHURN)["id"]
         self.assertNotIn("problem map not confirmed", [e.rule for e in build_blockers(self.store, other)])
 
+    def test_a_confirmed_map_is_a_plan_with_its_routes_and_its_solution_map(self):
+        from dclab_core.problem_map import ProblemMap
+        from dclab_core.solution_map import SolutionMap
+        self.assertIsNone(home_map.project_plan(self.store.get(self.draft)), "an unconfirmed map is no plan")
+        home_map.draw(self.store, self.draft)
+        home_map.edit(self.store, self.draft, "confirm")
+        plan = home_map.project_plan(self.store.get(self.draft))
+        self.assertEqual(set(plan), {"problem_map", "routes", "solution_map", "confirmed"})
+        self.assertEqual(ProblemMap.read(plan["problem_map"]).size, "complex")
+        self.assertEqual(SolutionMap.read(plan["solution_map"]).map, plan["problem_map"]["fingerprint"])
+
+    def test_one_problem_builds_a_project_with_no_plan(self):
+        other = self.store.create(CHURN)["id"]
+        self.assertIsNone(home_map.project_plan(self.store.get(other)))
+
     def test_the_message_says_what_to_do(self):
         text = next(str(e) for e in build_blockers(self.store, self.draft) if e.rule == "problem map not confirmed")
         self.assertIn("4 parts", text)

@@ -13,7 +13,7 @@ from __future__ import annotations
 from typing import Any, Callable, Optional
 
 from fastapi import APIRouter
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
 
 
 class Router(APIRouter):
@@ -196,6 +196,13 @@ class Project(Doc):
     transitions: Any = None
     graph: Any = None
     memory: Any = None
+    programme_plan: Any = None  # 24.5: the plan of a problem of several parts is large; every payload that carries a project carries its fingerprints, ``/programme`` the rest
+
+    @field_serializer("programme_plan")
+    def _slim_plan(self, plan: Any) -> Any:
+        if not isinstance(plan, dict):
+            return plan
+        return {"map": (plan.get("problem_map") or {}).get("fingerprint"), "solution_map": (plan.get("solution_map") or {}).get("fingerprint")}
 
 
 class Proposal(Doc):

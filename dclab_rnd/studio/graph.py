@@ -58,7 +58,8 @@ GATES = {"solution": "The owner signs the solution before WF-04.",
          "holdout": "The owner approves opening the holdout (WF-09)."}
 DEFAULT_POLICY = {"require_solution_signoff": False, "require_holdout_approval": False}
 MOVES = ("run_stage", "set_solution", "approve_stage", "approve_gate", "capture",
-         "create_project", "attach_data", "set_settings", "propose_solution", "attach_labels", "attach_table")  # the last four: every other project write
+         "create_project", "attach_data", "set_settings", "propose_solution", "attach_labels", "attach_table",
+         "run_programme", "drop_leaf")  # the last five: every other project write; run_programme (24.5) runs a problem of several parts and reads its holdout once; drop_leaf drops a blocked leaf of it
 DONE = ("completed", "approved")
 
 
@@ -135,6 +136,12 @@ def node_states(project: dict[str, Any]) -> dict[str, str]:
         value = "done" if status in DONE else "running" if status in ("running", "queued") else "failed" if status == "failed" else "todo"
         for node in (["WF-08", "WF-09"] if stage == "final" else [STAGE_NODE[stage]]):
             raw[node] = value
+    programme = ((project.get("programme") or {}).get("document") or {}).get("state")  # 24.5: a programme stands in for the stages' work on the nodes it covers
+    if programme in ("leaves_built", "composed"):
+        for node in ("WF-04", "WF-05", "WF-06", "WF-07"):
+            raw[node] = "done"
+    if programme == "composed":
+        raw["WF-08"] = raw["WF-09"] = "done"
     raw["WF-10"] = "done" if project.get("captured") and raw["WF-09"] == "done" else "todo"
     current = next((n for n in NODE_IDS if raw[n] != "done"), None)
     out = {}
@@ -177,7 +184,8 @@ def check(project: dict[str, Any], move: str, actor: str = "human", **args: Any)
     return {"run_stage": _run_stage, "set_solution": _set_solution, "approve_stage": _approve_stage,
             "approve_gate": _approve_gate, "capture": _capture, "create_project": _create_project,
             "attach_data": _attach_data, "set_settings": _set_settings, "propose_solution": _propose_solution,
-            "attach_labels": _attach_labels, "attach_table": _attach_table}[move](project, actor, frm, clean)
+            "attach_labels": _attach_labels, "attach_table": _attach_table, "run_programme": _run_programme,
+            "drop_leaf": _drop_leaf}[move](project, actor, frm, clean)
 
 
 def _verdict(move: str, actor: str, frm: str | None, to: str | None, checks: list[dict[str, Any]], rules: list[str],
@@ -283,7 +291,7 @@ def _approve_gate(project: dict[str, Any], actor: str, frm: str | None, args: di
     checks = [_check("Gate exists", gate in GATES, f"Gates: {', '.join(GATES)}."),
               _check("A person approves", actor == "human", "Only a person can approve a gate; ask the owner.")]
     if gate == "solution":
-        checks.append(_check("Solution", bool(project.get("solution")), "There is no solution to sign."))
+        checks.append(_check("Solution", bool(project.get("solution")) or bool(project.get("programme_plan")), "There is no solution or plan to sign."))
     to = "WF-01" if gate == "solution" else "WF-09" if gate == "holdout" else None
     return _verdict("approve_gate", actor, frm, to, checks, ["DCLAB-R01"] if gate == "solution" else ["DCLAB-R17"], [], [], args)
 
@@ -338,6 +346,63 @@ def _attach_table(project: dict[str, Any], actor: str, frm: str | None, args: di
     return _verdict("attach_table", actor, frm, "WF-02", checks, ["DCLAB-R09"], [], side, args)
 
 
+def _programme_read_before(project: dict[str, Any]) -> bool:
+    """Whether a programme of this project has already read the holdout (or the stages' final did): the project's count, and the stored programme itself."""
+    document = (project.get("programme") or {}).get("document") or {}
+    return int(project.get("holdout_uses", 0) or 0) > 0 or bool(document.get("holdout")) or bool(document.get("reads_before"))
+
+
+def _run_programme(project: dict[str, Any], actor: str, frm: str | None, args: dict[str, Any]) -> Verdict:
+    """Run a problem of several parts (24.5): the leaves, the composition chosen on validation and, when nothing blocks, the one read of the holdout. The rules of the final
+    stage hold: the solution is signed when the policy asks, a second read of the holdout needs a person's written reason, an agent may not make it, and an agent needs the
+    owner's approval when the policy asks."""
+    pol = policy(project)
+    checks = [_check("A programme is planned", bool(project.get("programme_plan")), "This project was not built from a problem with several parts: there is no programme."),
+              _check("Data", bool(project.get("data")), "Attach a table first (WF-02)."), _not_running(project)]
+    if pol["require_solution_signoff"]:
+        checks.append(_check("Solution signed", plan_signed(project), "The owner must sign the plan of the programme before WF-04 (gate: solution)."))
+    side = ["Runs the leaves, chooses the composition on validation and reads the holdout once when every leaf has run; a blocked leaf keeps the holdout closed."]
+    evidence = ["PIT-006"]
+    if _programme_read_before(project):
+        reason = str(args.get("reuse_reason") or "").strip()
+        if actor == "agent":
+            checks.append(_check("Holdout unused", False, "The holdout was already read on this project. The intern may not run the programme again; choosing by the holdout score makes it optimistic (PIT-006)."))
+        else:
+            checks.append(_check("Holdout reuse confirmed", bool(reason), "The holdout was already read on this project. Running the programme again reads it a second time and makes the score "
+                                 "optimistic (PIT-006); confirm with a written reason."))
+            if reason:
+                side.append(f"A second programme on the same holdout, recorded with the reason: {reason[:200]}")
+    if pol["require_holdout_approval"] and actor == "agent":
+        approved = any(a.get("gate") == "holdout" and not a.get("used") for a in project.get("approvals", []))
+        checks.append(_check("Owner approval", approved, "The owner must approve opening the holdout (gate: holdout)."))
+    approval = ("Solution signed", "Owner approval") + (("Holdout reuse confirmed",) if actor == "human" else ())
+    return _verdict("run_programme", actor, frm, "WF-09", checks, list(NODE_BY_ID["WF-09"]["rules"]), evidence, side, args, approval)
+
+
+def _drop_leaf(project: dict[str, Any], actor: str, frm: str | None, args: dict[str, Any]) -> Verdict:
+    """A person drops a leaf of the programme that cannot run (24.5). Only a person; never with an empty reason; never after the holdout was read, since dropping a part of
+    the problem once its answer is known would choose the problem by its answer."""
+    document = (project.get("programme") or {}).get("document")
+    checks = [_check("A programme has run", bool(document), "The programme has not run yet: there is no blocked leaf to drop."), _not_running(project),
+              _check("A person decides", actor == "human", "Only a person drops a leaf of a programme."),
+              _check("A reason", bool(str(args.get("reason") or "").strip()), "A dropped leaf needs the reason."),
+              _check("Holdout unread", not _programme_read_before(project), "The holdout was already read on this project: a leaf cannot be dropped after it.")]
+    return _verdict("drop_leaf", actor, frm, "WF-07", checks, ["DCLAB-R01"], ["PIT-006"], ["The composition goes on without the leaf, and the programme says so."], args)
+
+
+def plan_fingerprint(project: dict[str, Any]) -> str | None:
+    return ((project.get("programme_plan") or {}).get("solution_map") or {}).get("fingerprint")
+
+
+def plan_signed(project: dict[str, Any]) -> bool:
+    """The plan of a programme is signed when the owner signed the gate 'solution' for the fingerprint of its solution map (a project with a saved solution signs that
+    solution instead, as for the stages)."""
+    if project.get("solution"):
+        return solution_signed(project)
+    fingerprint = plan_fingerprint(project)
+    return bool(fingerprint) and (project.get("signoff") or {}).get("solution_hash") == fingerprint
+
+
 def _set_settings(project: dict[str, Any], actor: str, frm: str | None, args: dict[str, Any]) -> Verdict:
     ran = [s for s in STAGE_KEYS if _stage_status(project, s) in DONE]
     side = [f"Finished stages ({', '.join(ran)}) used the old rows; they apply the new setting only when rerun."] if ran else []
@@ -367,7 +432,7 @@ def approve_gate(store: ProjectStore, project_id: str, gate: str, by: str = "own
     if person is not None and person.user_id:  # the approving user (package 10.2), beside the name shown
         entry.update(user_id=person.user_id, role=person.role)
     if gate == "solution":
-        entry["solution_hash"] = solution_hash(project["solution"])
+        entry["solution_hash"] = solution_hash(project["solution"]) if project.get("solution") else plan_fingerprint(project)  # a programme's plan is what is signed when no solution is
         project["signoff"] = entry
     project.setdefault("approvals", []).append(entry)
     from . import memory
@@ -441,6 +506,9 @@ def describe(project: dict[str, Any], actor: str = "human") -> dict[str, Any]:
         moves.append({"move": "run_stage", "stage": stage, "to": v.node_to, "status": v.status, "message": v.message})
     v = check(project, "capture", actor)
     moves.append({"move": "capture", "to": "WF-10", "status": v.status, "message": v.message})
+    if project.get("programme_plan"):
+        v = check(project, "run_programme", actor)
+        moves.append({"move": "run_programme", "to": v.node_to, "status": v.status, "message": v.message})
     return {
         "nodes": [{**n, "state": states[n["id"]]} for n in NODES],
         "current": current_node(project), "state": state_string(project), "policy": policy(project),

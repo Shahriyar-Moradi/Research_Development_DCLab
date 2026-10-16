@@ -539,6 +539,16 @@ measured against the rules before it serves):
   pipeline and the code export cover the programme; one report per programme with a section per leaf.
 - **Done when:** the fraud programme's composed holdout number beats its best single leaf with the interval above
   zero, and the record shows one holdout read for the programme.
+- **Status: done (2026-10-16).** dclab-core 0.54.0 (`compose`, `leaves`, `programme`: `Programme` v1; the adapter `programme_experiments`). A problem of several parts runs as a programme: a leaf per block of the
+  solution map on one shared split (a screen with a detector chosen on planted anomalies, a classifier that reads the screen and learns a case only from the day it was confirmed, the links of
+  accounts counted as of each ride), the composition chosen on validation among every leaf alone, the rank fusions and the gates (a tie to the simpler; the bar is the best leaf on validation), and the
+  holdout read once with a cluster bootstrap and the paired difference. The graph's moves `run_programme` and `drop_leaf`, a job, `/api/projects/{id}/programme`, the pipeline steps and their replay, the
+  code export (which reproduces the holdout number from `dclab_core` alone), the report (`programme.report`, every number traced) and the owner's sign-off on the plan cover it. On the fraud replica, seeds 0 to
+  2 (calibrated on 10 to 15): composed 0.962, 0.967 and 1.000 against 0.679, 0.600 and 0.564 for the best leaf, differences +0.283 (0.109 to 0.495), +0.367 (0.205 to 0.557), +0.436 (0.236 to 0.685), one read each.
+  The review (17 findings) made a second read a person's written decision counted by the split design and a drop refused after any read, a replay and an export refused on changed inputs, the project marked
+  running while it reads its files, a design that names a moment never answered by another split, the forbidden columns and the data card's leak suspects kept out of every leaf, history counted to the ride's own
+  moment, labels cut at their confirmation date, ties at the cut shared, and a holdout with too few cases not read. Left open: a project per leaf (the leaves are the core's runners on one split, not one engine
+  run each); a page for the programme and an agent tool for it; the bootstrap clusters by one entity key.
 
 ### 24.6 The complex replica and its journey
 - **Delivers:** the `delivery_fraud` replica extended (or a sibling) with planted sub-problems: fake delivery marks
@@ -547,6 +557,11 @@ measured against the rules before it serves):
   approaches; the composition beats the best leaf; the holdout is read once; no leak reaches a leaf); a journey written
   from the first sentence.
 - **Done when:** the acceptance passes on three seeds with intervals, from the committed code only.
+- **Status: done (2026-10-16).** `replicas.fraud_programme` (14 rings, 28 marker bikers, 80,000 rides, partial and biased confirmed cases with their dates, a family's shared phone, a short delivery next door, cancelled
+  rides, a 2% review budget) and `tests/test_fraud_programme_acceptance.py`: the replica pinned (each kind of fraud visible to one leaf only), and on seeds 0, 1 and 2 the first sentence becomes the four parts, the
+  router gives each its approach, one split by time and entity, every leaf ran, no identifier, label key or coordinate reached a leaf, the composition beats the best leaf with the interval above zero, the holdout is read
+  once, and without the table of accounts the holdout stays closed. The journey (`agent_eval/journeys/programme.py`, `journeys_programme_dev.json`, JP-01) carries a written person from the first sentence (the map drawn
+  and confirmed, the build, the accounts attached, the programme run, the pipeline whole and its replay the same document). Left open: the sealed programme journeys are 24.8's.
 
 ### 24.7 Capture of phase 2
 - **Delivers:** experience kinds `problem.mapped`, `problem.part_changed` (added, removed, merged, by whom),

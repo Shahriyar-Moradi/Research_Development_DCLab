@@ -1,0 +1,511 @@
+{
+  "$defs": {
+    "Choice": {
+      "additionalProperties": false,
+      "properties": {
+        "best_leaf": {
+          "maxLength": 60,
+          "type": "string"
+        },
+        "best_leaf_score": {
+          "type": "number"
+        },
+        "budget_rows": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "budget_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "candidates": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        "chosen": {
+          "maxLength": 80,
+          "type": "string"
+        },
+        "fused": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "metric": {
+          "enum": [
+            "recall_at_budget",
+            "average_precision"
+          ],
+          "type": "string"
+        },
+        "positives": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rule": {
+          "maxLength": 300,
+          "type": "string"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 6,
+          "type": "array"
+        },
+        "weights": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "chosen",
+        "candidates",
+        "best_leaf",
+        "best_leaf_score",
+        "metric",
+        "budget_rows",
+        "positives",
+        "rule"
+      ],
+      "type": "object"
+    },
+    "Estimate": {
+      "additionalProperties": false,
+      "properties": {
+        "high": {
+          "type": "number"
+        },
+        "low": {
+          "type": "number"
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "value",
+        "low",
+        "high"
+      ],
+      "type": "object"
+    },
+    "HoldoutResult": {
+      "additionalProperties": false,
+      "properties": {
+        "beats_best_leaf": {
+          "type": "boolean"
+        },
+        "best_leaf": {
+          "maxLength": 60,
+          "type": "string"
+        },
+        "best_leaf_estimate": {
+          "$ref": "#/$defs/Estimate"
+        },
+        "bootstraps": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "budget_rows": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "budget_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "chosen": {
+          "maxLength": 80,
+          "type": "string"
+        },
+        "cluster_key": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "composed": {
+          "$ref": "#/$defs/Estimate"
+        },
+        "difference": {
+          "$ref": "#/$defs/Estimate"
+        },
+        "leaves": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Estimate"
+          },
+          "type": "object"
+        },
+        "limits": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "type": "array"
+        },
+        "metric": {
+          "enum": [
+            "recall_at_budget",
+            "average_precision"
+          ],
+          "type": "string"
+        },
+        "positives": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "reads": {
+          "maximum": 1,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "rows": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "reads",
+        "metric",
+        "chosen",
+        "best_leaf",
+        "budget_rows",
+        "rows",
+        "positives",
+        "composed",
+        "leaves",
+        "best_leaf_estimate",
+        "difference",
+        "beats_best_leaf",
+        "bootstraps"
+      ],
+      "type": "object"
+    },
+    "LeafRun": {
+      "additionalProperties": false,
+      "properties": {
+        "approach": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "block": {
+          "pattern": "^blk\\d+$",
+          "type": "string"
+        },
+        "chosen": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 60,
+          "type": "array"
+        },
+        "holdout": {
+          "default": "none",
+          "enum": [
+            "none",
+            "predicted"
+          ],
+          "type": "string"
+        },
+        "left_out": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "limits": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 6,
+          "type": "array"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 6,
+          "type": "array"
+        },
+        "reads": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 40,
+          "type": "array"
+        },
+        "rows": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "built",
+            "blocked",
+            "composition",
+            "dropped"
+          ],
+          "type": "string"
+        },
+        "sub_problem": {
+          "pattern": "^sp\\d+$",
+          "type": "string"
+        },
+        "validation": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        "why": {
+          "default": "",
+          "maxLength": 400,
+          "type": "string"
+        }
+      },
+      "required": [
+        "block",
+        "sub_problem",
+        "title",
+        "status"
+      ],
+      "type": "object"
+    },
+    "SplitDesign": {
+      "additionalProperties": false,
+      "properties": {
+        "keys": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "type": "array"
+        },
+        "moment": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "seed": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "share": {
+          "default": 0.2,
+          "exclusiveMaximum": 0.5,
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        "strategy": {
+          "enum": [
+            "stratified",
+            "time",
+            "group",
+            "time_group"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "strategy"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "blockers": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 40,
+      "type": "array"
+    },
+    "budget": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "composition": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Choice"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "fingerprint": {
+      "default": "",
+      "maxLength": 64,
+      "type": "string"
+    },
+    "fused": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 40,
+      "type": "array"
+    },
+    "gates": {
+      "items": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "maxItems": 40,
+      "type": "array"
+    },
+    "holdout": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/HoldoutResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "leaves": {
+      "items": {
+        "$ref": "#/$defs/LeafRun"
+      },
+      "maxItems": 40,
+      "minItems": 1,
+      "type": "array"
+    },
+    "map": {
+      "maxLength": 64,
+      "type": "string"
+    },
+    "metric": {
+      "default": "recall_at_budget",
+      "enum": [
+        "recall_at_budget",
+        "average_precision"
+      ],
+      "type": "string"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 10,
+      "type": "array"
+    },
+    "periods": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "reads_before": {
+      "default": 0,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.programme.v1",
+      "default": "dclab_core.programme.v1",
+      "type": "string"
+    },
+    "solution": {
+      "maxLength": 64,
+      "type": "string"
+    },
+    "split": {
+      "$ref": "#/$defs/SplitDesign"
+    },
+    "state": {
+      "default": "planned",
+      "enum": [
+        "planned",
+        "leaves_built",
+        "composed"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "map",
+    "solution",
+    "split",
+    "leaves"
+  ],
+  "type": "object"
+}

@@ -510,3 +510,35 @@ Where it goes there: the one holdout is a `HoldoutPlan` proposal for every proje
 (`adapters.main_product_problem_map.holdout_plan`; its planner has no verified holdout for time and entity together and answers 'unsupported', so a person
 decides). Each block's workflow maps as the plan's decisions do (`DECISIONS`), and the approach is a proposal in the sub-problem's place in the map. What its side
 adds: the page that draws the solution beside the problem with each block linked to its part, and the run of the composition (24.5).
+
+## The programme (24.5)
+
+`dclab_core.programme.Programme` (v1) is a solution map run. It has a leaf for every block (what each chose on the validation rows, what it read, how many rows it used; names,
+counts and scores, never a value of a row), the composition chosen on validation and, once, the holdout result: the composed score, every leaf's, and the composed score minus the
+best leaf's, each with an interval from a bootstrap over clusters of rows (rows of one biker or one account move together). The best leaf it must beat is the one that did best
+alone on *validation*, taken among every leaf that ran, never the one that did best on the holdout.
+
+The rules it holds. No leaf scores the holdout: each predicts it for the composition. A leaf that reads another leaf's score reads it from the same protocol (fit on `fit`, judge
+on `validation`; refit on `train`, predict the `holdout`), and a model learns a confirmed case only from the day it was confirmed. The split follows the design: a design that names
+a moment is refused when the table cannot give days, never answered by a random split. The composition is chosen among every leaf alone and the ways to combine them, a tie to the
+simpler one, so a combination that does not help is not chosen. `open_issues` keeps the holdout closed until every leaf that was to run has run, the composition rests on at least
+five confirmed cases and nothing has read it before. A leaf that cannot run (no confirmed case, no table of accounts, an approach with no runner) is blocked with the reason and stays
+a blocker until a person drops it with a reason; a drop is refused once any programme read the holdout, and `replan` carries that count by the split design, because the holdout is
+the same rows whatever the routes. The host owns the rest of the rules: a second read of the holdout is a person's written decision and an agent's never; a replay or an export is
+refused when anything the run read (the tables, the labels, the budget, the columns kept out) has changed; a table cannot be attached while the programme runs.
+
+Where it goes there: each leaf that runs is an `ExperimentPlan` proposal with the programme's one split (`adapters.main_product_problem_map.programme_experiments`; a split by time
+and entity together has no `PlanSplit` there and is left to a person). The main product has nothing that relates experiments, so the composition, the budget cut and the one read of
+the holdout stay in the programme document its side keeps; its runs must not let a leaf score the holdout the programme shares. What its side adds: the store of programmes, the run
+of the leaves as its own experiments, and the pipeline and code export of the composition. The report is `programme.report` (a `SolutionReport` whose numbers trace to the
+programme document), and `programme.markdown` is the plain version.
+
+
+## The fraud programme's replica and its acceptance (24.6)
+
+`dclab_core.replicas.fraud_programme` is invented data shaped like the owner's complex example: rides, a table of accounts (phones and devices) and a partial, biased list of confirmed cases
+with the date each was confirmed. Fake delivery marks are visible in the ride itself; fake orders come in rings of linked accounts and are visible only in the accounts table; some are both;
+a family's shared phone, a short delivery next door and a cancelled ride are the honest look-alikes; a team can review 2% of the rides. Its `truth` (which rides were planted) is for tests only.
+The acceptance (`tests/test_fraud_programme_acceptance.py`) is a case the main product's side can run against the library it adopts: on three seeds the first sentence becomes four parts, each is
+routed to the right approach, the solution has one split and no leaf scores the holdout, no identifier or coordinate reaches a leaf, the composition beats the best leaf with its interval above
+zero, and the holdout is read once. The written person that walks the same path through Home (`dclab_rnd/agent_eval/journeys/programme.py`) is this studio's.

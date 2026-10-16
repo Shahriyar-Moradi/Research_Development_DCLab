@@ -495,7 +495,8 @@ def attach_labels(store, project_id: str, filename: str, target: str = "is_case"
     profile = {c["name"]: c for c in (project["data"].get("profile") or {}).get("columns", [])}
     identifiers = [c for c in table.columns if ROW_NUMBER_NAME.match(str(c)) or (profile.get(c, {}).get("id_like") and c not in review["key"])]
     identifiers += [c for c in review["key"] if c not in identifiers]  # the join key names a case: it identifies, never describes
-    project["suggestion"] = {"target": target, "task": "binary", "positive_label": "1", "labels": labels, "label_provenance": provenance,
+    kept = {k: v for k, v in (project.get("suggestion") or {}).items() if k == "alert_budget"}  # what a person said about the review budget is not the label file's to forget
+    project["suggestion"] = {**kept, "target": target, "task": "binary", "positive_label": "1", "labels": labels, "label_provenance": provenance,
                              "identifiers": [str(c) for c in identifiers][:50]}
     store.save(project)
     store.clear_stages(project_id)

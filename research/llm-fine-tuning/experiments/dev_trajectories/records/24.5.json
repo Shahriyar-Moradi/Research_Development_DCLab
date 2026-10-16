@@ -1,0 +1,287 @@
+{
+  "package": "24.5",
+  "title": "Programmes: a solution map run leaf by leaf, composed, and the holdout read once",
+  "date": "2026-10-16",
+  "request": "Phase 2 of the owner's plan: a problem of several parts is solved leaf by leaf, the leaves are composed, and the composed system is scored once on the holdout against the best single leaf.",
+  "spec": "dclab_core compose (candidates, choice on validation, one read with a cluster bootstrap and a paired difference), leaves (the shared split, a screen, a classifier that reads the screen, links), programme (Programme v1, plan, replan, drop, validate, report); dclab_rnd studio programme, the graph moves run_programme and drop_leaf, a job, three routes, the pipeline steps and replay, the code export; the main-product adapter programme_experiments.",
+  "plan": [
+    "Each leaf fits on the earlier rows, chooses on the validation rows and hands its scores for validation and holdout to the composition; none scores the holdout.",
+    "The composition is chosen on validation among every leaf alone and the ways to combine them, a tie to the simpler; the bar is the best leaf on validation, never on the holdout.",
+    "The holdout opens only when every leaf that was to run has run and the composition is chosen on enough confirmed cases; it is read once, and every later read is a person's written decision.",
+    "A leaf that cannot run is a blocker with its reason until a person drops it, and a drop is refused once the holdout was read.",
+    "The record holds names, counts and scores, never a row; the code export reproduces the number from dclab_core alone."
+  ],
+  "decisions": [
+    {
+      "decision": "The leaves are the core's own runners on one shared split, not one engine project each.",
+      "why": "The engine's five stages run their own splits and would read the holdout once per project; one split and one read for the whole is the point of the package. A project per leaf stays open."
+    },
+    {
+      "decision": "The best leaf the composition must beat is chosen on validation, and taken among every built leaf.",
+      "why": "A bar chosen on the holdout would move to whichever leaf happens to win there, and a stronger leaf outside the fusion would otherwise never be the bar."
+    },
+    {
+      "decision": "Rank maximum is a candidate, not a rule: the composition is whatever wins on validation, the best leaf alone included.",
+      "why": "Rare frauds are visible to one leaf each, so the top of any leaf is what counts; a combination that does not help is not chosen and the result says so."
+    },
+    {
+      "decision": "The holdout count is carried by the split design, not by the solution map.",
+      "why": "New routes or a new table change the map but not the rows of the holdout; seeing them again under new routes is a second look."
+    },
+    {
+      "decision": "The replica's scale was calibrated for statistical power on other seeds (10 to 15) before the acceptance seeds (0 to 2) were run.",
+      "why": "With few fraudulent bikers a bootstrap over bikers is too wide to tell a gain from chance; scale is chosen for power, never for a result."
+    }
+  ],
+  "change": "dclab_core compose.py, leaves.py, programme.py, replicas/fraud_programme.py, schemas programme.json and baseline, adapter programme_experiments, conformance, CHANGELOG 0.54.0; dclab_rnd studio/programme.py, graph.py (run_programme, drop_leaf, node states, plan sign-off), pipeline.py (programme steps and replay), code.py (export_programme), draft/map.py (project_plan), draft/api.py, jobs/handlers.py, routers/projects.py, api_models.py (slim plan), services.py, data.py (labels keep the budget); the problem map's budget phrase keeps its percent sign; tests test_compose, test_leaves, test_programme, test_studio_programme and additions.",
+  "findings": [
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "The holdout could be read twice with no reason, by an agent too, after a leaf was dropped once the first number was known.",
+      "scenario": "Run 1 reads the holdout; the accounts table is replaced by one with no contact column; run 2 is blocked (no read); the person drops the rings leaf (accepted, because the stored document had no holdout); run 3 as an agent with no reason reads the holdout again.",
+      "cause": "'Read' was taken only from the current document; the project's count and the earlier programmes were ignored.",
+      "fix": "The graph rule uses the project's holdout count and the stored document; Programme carries reads_before by split design and drop_leaf refuses after any read; drop is a graph move.",
+      "test": "test_studio_programme ReviewTest test_a_second_read_cannot_be_reached_by_dropping_a_leaf_after_seeing_the_first; test_programme ReadsTest"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "A replay or a pipeline rerun read the holdout on changed inputs with no gate, no reason and no count.",
+      "scenario": "Run, change the budget from 0.02 to 0.05, replay: a different holdout number, holdout_uses unchanged.",
+      "cause": "Replay re-executed the programme without checking that the inputs were those of the run.",
+      "fix": "A replay is refused when anything the run read has changed, or when the stored programme never read the holdout; the pipeline returns the reason.",
+      "test": "test_studio_programme ReviewTest test_a_replay_is_refused_when_what_the_run_read_has_changed and test_a_replay_of_a_programme_that_never_read_the_holdout_is_refused"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The recorded inputs could describe other data than the run read, and the stale check missed the budget, the exclusions and the label file's budget.",
+      "scenario": "A table replaced during a run left stale: []; re-attaching the same label file dropped alert_budget so the next run silently used 1% instead of 2%.",
+      "cause": "inputs_of ran after the run on a re-fetched project; the project was not marked running; attach_labels replaced the whole suggestion.",
+      "fix": "The project is marked running (no table can be attached under it) and the inputs are recorded from the snapshot the run used; inputs include the budget, the excluded columns, the core version, the seed; attach_labels keeps the budget.",
+      "test": "test_studio_programme ReviewTest test_every_input_of_the_run_makes_it_stale_when_it_changes, test_attaching_the_labels_again_does_not_forget_the_review_budget, test_no_table_can_be_attached_while_the_programme_runs_and_the_flag_is_released_after_a_failure"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "The split silently became a random or group split while the record still said time.",
+      "scenario": "A numeric (unix seconds) or unparseable created_at: partition fell through to a group split and the holdout held days earlier than the fit rows; rows with no timestamp belonged to no period without a word.",
+      "cause": "partition tried the day split and fell through; the info was never compared with the design.",
+      "fix": "A design that names a moment is never answered by another split: partition refuses with the reason, counts the rows with no period and refuses more than 5%; the links leaf refuses a moment that is not dates.",
+      "test": "test_leaves PartitionTest test_a_design_that_names_a_moment_is_never_answered_by_another_split and test_rows_with_no_usable_time_are_counted_and_too_many_are_refused"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "Columns declared unavailable at the prediction moment still reached every leaf.",
+      "scenario": "A numeric forbidden column in the rides table became a measure for the screen and the classifier.",
+      "cause": "excluded() read only the suggestion's identifiers and the label key.",
+      "fix": "excluded() is the union of the suggestion's and the solution's identifiers and forbidden columns, the label key, and every leak suspect, outcome or identifier of the data card.",
+      "test": "test_studio_programme ReviewTest test_a_column_the_project_forbids_never_reaches_a_leaf and test_a_column_the_data_card_marks_as_a_leak_suspect_is_kept_out_without_anyone_saying_so"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The one read could be spent on a meaningless choice: no confirmed case among the validation rows, or among the holdout rows.",
+      "scenario": "Labels zeroed on validation: every candidate ties at 0, the first leaf is chosen and the holdout is consumed.",
+      "cause": "Zero positives only produced a warning.",
+      "fix": "open_issues refuses a composition chosen on fewer than five confirmed cases and read_holdout counts the holdout's cases before reading; the programme stays at leaves_built with the reason.",
+      "test": "test_programme ClosedHoldoutTest"
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The exported code could not read its own data in a clean environment.",
+      "scenario": "A project built from a draft has parquet tables; requirements.txt listed no pyarrow.",
+      "cause": "export_programme pinned BASE only.",
+      "fix": "The requirements add pyarrow for parquet and openpyxl for spreadsheets, and a stale programme is refused for export.",
+      "test": "test_studio_programme ReviewTest test_a_parquet_table_asks_for_the_reader_that_opens_it_in_the_exported_requirements and test_a_stale_programme_is_not_exported_as_code"
+    },
+    {
+      "id": "R8",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The new write routes were not in the experience log's registry; the harness gate and the journey test were not run.",
+      "scenario": "test_every_write_route_says_what_it_records failed; test_harness_gate asked for make harness-eval; the journey test called refresh_plan, which did not exist.",
+      "cause": "The routes were added without their line, and the gate command was not run.",
+      "fix": "The two routes are listed with the events they leave; refresh_plan is written; harness-eval is run.",
+      "test": "test_experience_log; test_programme_journey"
+    },
+    {
+      "id": "R9",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "run_programme skipped the solution sign-off.",
+      "scenario": "With require_solution_signoff and no signed solution a human run was allowed while run_stage was blocked.",
+      "cause": "The move had no Solution check.",
+      "fix": "The sign-off is required, and the owner signs a programme's plan (its solution map's fingerprint) when the project has no saved solution.",
+      "test": "test_studio_programme ReviewTest test_the_owners_signature_on_the_plan_is_needed_when_the_policy_asks"
+    },
+    {
+      "id": "R10",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "validate was incomplete: tampered documents with a new fingerprint passed.",
+      "scenario": "holdout.rows, metric, budget_rows, fused or gates naming a missing block, a blocked leaf at the read, weights or leaves missing a built leaf.",
+      "cause": "Only the first few invariants were checked.",
+      "fix": "validate asserts the invariants of a read (rows, metric, budget, the leaves scored, nothing planned or blocked, enough cases) and the maps' correspondence; plan refuses an unsound or foreign solution map.",
+      "test": "test_programme ValidateTest test_every_invariant_of_a_read_is_checked, PlanRulesTest"
+    },
+    {
+      "id": "R11",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A reader could run without the score it reads, and ties were broken by row order.",
+      "scenario": "Two sub-problems with the same predict_rank, the reader listed first: it ran with reads [] and no note. recall_at(zeros, y, 3) was 0 or 1 by where the positives sat.",
+      "cause": "The order fell back to list position; the stable argsort ranked tied rows by position.",
+      "fix": "A topological order and a block when a source has not run; recall at a budget is the expected share over the tied rows.",
+      "test": "test_programme OrderTest; test_compose test_rows_that_tie_at_the_cut_share_the_places_left_whatever_order_they_are_in"
+    },
+    {
+      "id": "R12",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "The links leaf read rides of the same day and counted accounts opened later.",
+      "scenario": "History ran to the end of the ride's own day; the group of accounts sharing a phone was counted as of the export; one placeholder shared by 41 accounts dropped the whole column.",
+      "cause": "Daily cumulative counts; a static group size; a column-level cap.",
+      "fix": "History is counted to the ride's own moment (cumulative count in time order); groups are counted as of the ride when the table says when accounts opened; a value shared by more accounts than the cap links nobody, value by value.",
+      "test": "test_leaves LinksTest"
+    },
+    {
+      "id": "R13",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "Labels were not cut at the prediction time.",
+      "scenario": "The replica writes confirmed_at three to thirteen days after the ride; cases near the fit and validation edge were learned from before they were confirmed.",
+      "cause": "The cases' confirmation date was read by nothing.",
+      "fix": "A model learns a case only from the day it was confirmed (the period's first moment); the held-back cases are counted in the leaf's limits, and a file with no date says so.",
+      "test": "test_leaves ClassifierTest test_a_model_never_learns_a_case_before_it_was_confirmed; CaseDatesTest"
+    },
+    {
+      "id": "R14",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "With no resamples the interval had zero width yet a gain was claimed; skipped resamples were not counted; the bar was taken only among the fused leaves.",
+      "scenario": "bootstraps=0 and a positive point difference gave beats_best_leaf True.",
+      "cause": "The claim read only the interval's low end.",
+      "fix": "No gain is claimed from fewer than fifty resamples; the skipped count is in the limits; the bar is the best leaf among every built leaf.",
+      "test": "test_compose test_with_no_resamples_the_interval_is_the_point_and_no_gain_is_claimed, test_resamples_with_no_confirmed_case_are_counted_not_hidden, test_the_best_leaf_is_taken_among_every_leaf_and_the_fusions_combine_only_the_fused_ones"
+    },
+    {
+      "id": "R15",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The project payload had two shapes for the same key, and the read count undercounted after eleven reads.",
+      "scenario": "PUT data returned the whole plan while GET returned its fingerprints; earlier[-10:] was used as the count.",
+      "cause": "slim() was applied on three routes; the count was derived from a capped list.",
+      "fix": "The Project response model serialises the plan as its fingerprints on every route; the count is kept in its own field; /programme shows the plan's blocks and split.",
+      "test": "test_studio_programme RouteTest test_every_payload_that_carries_a_project_carries_the_plans_fingerprints_not_the_plan"
+    },
+    {
+      "id": "R16",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Once a stage was done the pipeline and the export switched away from the programme.",
+      "scenario": "A project with both a programme and a finished stage showed only the stages.",
+      "cause": "The programme steps were added only when no stage was done.",
+      "fix": "The programme steps are appended to the stages' steps when both exist.",
+      "test": "test_pipeline"
+    },
+    {
+      "id": "R17",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "Several tests would have passed with the code wrong.",
+      "scenario": "Computing the bar from the holdout-best leaf under the validation-best label survived; compose_leaves reading the holdout scores survived; the privacy tests looked at the first twenty ids; the agent's approval was never asserted spent.",
+      "cause": "Assertions that are always true, and samples instead of all values.",
+      "fix": "The bar is asserted against the leaf's own holdout score; the composition is asserted to follow the validation scores only; every id, phone and device is searched for in the record; the approval is asserted spent by a read and kept by a blocked run; holdout values are asserted not to reach earlier scores.",
+      "test": "test_compose; test_programme ComposeLeavesTest; test_leaves test_the_values_of_holdout_rows_never_reach_a_score_made_before_it; test_studio_programme"
+    },
+    {
+      "id": "S1",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "With the first replica the fusion did not reliably beat the best single leaf.",
+      "scenario": "Rank-max fusion gave 0.42 to 0.54 of the planted fraud against 0.49 to 0.60 for the rings leaf alone.",
+      "cause": "The marks and rings were so many that the review budget could not hold both, and the bootstrap over fraudulent bikers was too wide.",
+      "fix": "The replica's fraud rate was lowered and, in a second step, the number of independent fraudulent bikers raised (14 rings, 28 markers, few rides each), calibrated on the seeds 10 to 15 before the acceptance seeds were run.",
+      "test": "test_fraud_programme_acceptance AcceptanceTest test_the_composition_chosen_on_validation_beats_the_best_leaf_with_its_interval_above_zero"
+    },
+    {
+      "id": "S2",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The problem map's budget phrase lost its percent sign.",
+      "scenario": "'the team can review about 2% of the rides each day' gave the budget 'team can review about 2'.",
+      "cause": "The pattern ended in a word boundary, which a percent sign followed by a space does not have.",
+      "fix": "The number alternative takes an optional percent and the pattern ends in a negative look-ahead.",
+      "test": "test_problem_map test_a_share_keeps_its_percent_sign"
+    },
+    {
+      "id": "S3",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "Importing compose or leaves first broke on a circular import through the contracts.",
+      "scenario": "python -c 'import dclab_core.compose' failed: Choice not defined in a partially initialised module.",
+      "cause": "compose imported the contracts at its top and the contracts import chain ends in programme, which needs compose.",
+      "fix": "The nested contracts (Estimate, Choice, HoldoutResult) live in programme.py and compose imports them where it builds them.",
+      "test": "fresh-interpreter imports of compose, leaves, programme, solution_map, contracts, problem_map"
+    },
+    {
+      "id": "H1",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "A project solved by the engine's stages, never run as a programme, listed the programme's steps as missing steps of its pipeline.",
+      "scenario": "The owner's morning (RG-01) and the first dev journey (JD-01) build a fraud project whose confirmed map is complex and run its five stages: the harness found programme:blk1 to programme:holdout not run and marked the pipeline wrong (15 of 17).",
+      "cause": "The programme steps were appended whenever the project held a plan.",
+      "fix": "The programme steps join the pipeline when a programme has run, or when no stage has (the programme is then the project's route); a project solved by its stages keeps its stage pipeline. The failed first run was removed before the rerun, which passed 17 of 17 (HRN-009).",
+      "test": "test_studio_programme ReviewTest test_a_project_solved_by_the_stages_and_never_run_as_a_programme_keeps_its_stage_pipeline; make harness-eval"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "replica calibration",
+      "gate": "Chosen before the acceptance seeds: the fusion beats the best leaf with the interval above zero on every one of the dev seeds 10 to 15 at the final scale.",
+      "fixed_before_run": true,
+      "result": "6 of 6 dev seeds; the composition recalled about 0.98 to 1.0 of the confirmed cases against 0.49 to 0.80 for the best leaf.",
+      "verdict": "pass",
+      "limits": [
+        "The replica is invented data: this says the decisions are sound, never how a model does on real rides."
+      ]
+    },
+    {
+      "name": "programme on the fraud replica, seeds 0 to 2",
+      "gate": "The composed holdout number beats the best leaf chosen on validation with the paired interval above zero, the holdout read once, on each of three seeds the calibration never saw.",
+      "fixed_before_run": true,
+      "result": "seed 0: 0.962 against 0.679, difference +0.283 (0.109 to 0.495); seed 1: 0.967 against 0.600, +0.367 (0.205 to 0.557); seed 2: 1.000 against 0.564, +0.436 (0.236 to 0.685); 39 to 60 confirmed cases in each holdout; one read each.",
+      "verdict": "pass",
+      "limits": [
+        "Recall of the confirmed cases, partial and biased towards the visible kind.",
+        "The bootstrap clusters by biker only; rings also move through accounts."
+      ]
+    }
+  ],
+  "outcome": "A problem of several parts runs as a programme: the leaves on one shared split, the composition chosen on validation, the holdout opened only when every leaf ran and read once; a second read is a person's written decision, a leaf cannot be dropped after it, a replay or an export is refused when the inputs changed, and the exported code reproduces the number from dclab_core alone.",
+  "lessons": [
+    "The holdout's identity is its split, not its routes: count reads by the split design.",
+    "A fallback that quietly changes the split is a leak with a friendly face: refuse and say why.",
+    "A bar chosen after the holdout is read is not a bar.",
+    "Calibrate a replica's power on seeds the acceptance never sees, and say so.",
+    "Regenerate a new contract's baseline after the reviewer's fixes and before the gate."
+  ],
+  "risks": [
+    "The leaves are the core's runners, not one engine project each; a leaf with its own engine run is open.",
+    "No page for the programme and no agent tool for it yet.",
+    "The bootstrap clusters by one entity key; rings also move through accounts.",
+    "The classifier trains on the screen's in-sample scores and is judged on out-of-sample ones: a cross-fitted screen would remove the skew."
+  ],
+  "commits": []
+}

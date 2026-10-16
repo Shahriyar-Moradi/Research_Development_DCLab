@@ -97,4 +97,43 @@ def holdout_plan(solution_map: Any) -> dict[str, Any]:
     return mp._out("HoldoutPlan", fields, notes, decision_point="split.strategy", about=f"the one holdout of the solution map {sm.fingerprint}")
 
 
-__all__ = ["problem_specs", "holdout_plan", "FIELDS", "KEY"]
+def programme_experiments(programme: Any) -> dict[str, Any]:
+    """A programme (24.5) as the main product's experiments: one ``ExperimentPlan`` proposal per leaf that runs a model or a rule, each with the programme's one split.
+    The main product runs each as an experiment of its own; it has nothing that relates experiments, so the composition (which leaves are combined, how, the
+    budget) and the one read of the holdout stay in the programme document the host keeps. A split by time and entity together has no ``PlanSplit`` there: the
+    field is empty and says so."""
+    from dclab_core.programme import Programme
+
+    p = mp._as(Programme, programme)
+    strategy = mp.SPLIT_TO_HOLDOUT.get("time_and_group" if p.split.strategy == "time_group" else p.split.strategy)
+    split = None
+    split_note = ("test_size is left to the host (its floor is 0.2); every leaf of the programme takes the same split, so the holdout is one, and no leaf reads it on its own: "
+                  "the composition does, once")
+    if strategy in mp.recorded()["vocabularies"]["plan_split_strategies"]:
+        split = {"strategy": strategy, "group_column": p.split.keys[0] if strategy == "group_disjoint" and p.split.keys else None,
+                 "time_column": p.split.moment if strategy == "temporal_future" else None, "test_size": None}
+    else:
+        split_note = (f"the programme splits by {p.split.strategy.replace('_', ' and ')}: the main product has no PlanSplit for that (its planner answers 'unsupported'), "
+                      "so a person decides; every leaf must still take the same one")
+    plans: dict[str, Any] = {}
+    for leaf in p.leaves:
+        if leaf.status in ("composition", "dropped"):
+            continue
+        notes = {"split": split_note,
+                 "families": f"the approach is {leaf.approach or 'not chosen yet'}: the host maps it onto its own registry families, and a person decides",
+                 "primary_metric": "the programme judges a leaf at the review budget (recall of the confirmed cases among the budget's rows), a measure the main product's plan has no name for",
+                 "target_column": "the leaf's outcome is in the problem map; a column is chosen when the host builds it",
+                 "max_training_seconds": "dclab_core sets no time budget: the host's rule holds",
+                 "missing_values": "dclab_core proposes no per-column imputation"}
+        if leaf.status == "blocked":
+            notes["status"] = f"blocked: {leaf.why}"
+        fields = {"target_column": None, "primary_metric": None, "split": split, "families": None, "max_training_seconds": None, "missing_values": None}
+        plans[leaf.block] = mp._out("ExperimentPlan", fields, notes, decision_point="split.strategy", about=f"{leaf.block} ({leaf.title}) of the programme {p.fingerprint}")
+    return {"contract": "Programme", "fingerprint": p.fingerprint, "state": p.state, "experiment_plans": plans,
+            "not_mapped": {"composition": "the main product has no object that relates experiments or combines their outputs: the host keeps the programme document",
+                           "holdout_read": "the one read of the holdout (by the composition, after every leaf is chosen) is the programme's rule; the main product's runs each read a holdout "
+                                           "of their own, so the host must not let a leaf score the holdout it shares",
+                           "result": "the composed score and its difference from the best leaf have no row there: they belong to the programme's report"}}
+
+
+__all__ = ["problem_specs", "holdout_plan", "programme_experiments", "FIELDS", "KEY"]

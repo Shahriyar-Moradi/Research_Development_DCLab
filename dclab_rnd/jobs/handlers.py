@@ -1,5 +1,5 @@
 """The kinds of job (package 10.3): stage runs, draft data pipelines, synthetic data, intern turns, and (20.8) a
-pipeline step rerun from its record.
+pipeline step rerun from its record, and (24.5) a programme.
 
 ``env`` is the app's ``Services`` (``agentic/services.py``): the stores, the model gateway and the draft work, the same
 in the server and in ``python -m dclab_rnd.worker``. A payload holds ids and plain values only, so any worker can run it.
@@ -128,12 +128,30 @@ def _rerun_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, A
                                                              "why": [TEXT.get(reason, "The rerun ended before it finished")]})
 
 
+# ---------------------------------------------------------------------- a programme: the leaves, the composition, the holdout once (24.5)
+
+def _programme_run(s: Any, payload: dict[str, Any]) -> None:
+    from ..studio import programme
+
+    checkpoint()
+    programme.run(s.projects, payload["project_id"], payload.get("actor") or "human", payload.get("reuse_reason"))
+
+
+def _programme_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
+    p = s.projects.get(payload["project_id"])
+    if p.get("running") == "programme":  # the worker died or was stopped mid-run: the project is free again
+        p["running"] = None
+        s.projects.save(p)
+    s.projects.log(payload["project_id"], "programme_run", {"job": job["id"], "state": "not_finished", "why": TEXT.get(reason, "The programme ended before it finished")})
+
+
 def register() -> None:
     handler("stage", _stage_run, _stage_settle)
     handler("pipeline", _pipeline_run, _pipeline_settle)
     handler("synthetic", _synthetic_run, _synthetic_settle)
     handler("intern", _intern_run, _intern_settle)
     handler("rerun", _rerun_run, _rerun_settle)
+    handler("programme", _programme_run, _programme_settle)
 
 
 register()

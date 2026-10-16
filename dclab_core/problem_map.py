@@ -279,8 +279,8 @@ def _composition_issues(m: ProblemMap, parts: dict[str, Part], subs: dict[str, S
 #: a fraud problem: the words name fraud (not abuse of a rule, not an abusive comment) among things people do
 FRAUD = re.compile(r"\b(fraud\w*|fake\w*|scam\w*|cheat\w*|suspicious|misuse\w*)\b", re.I)
 FRAUD_SETTING = re.compile(r"\b(ride\w*|trip\w*|order\w*|deliver\w*|biker\w*|courier\w*|driver\w*|payment\w*|transaction\w*|account\w*|claim\w*)\b", re.I)
-BUDGET = re.compile(r"\b(review budget|budget(ed)? (of|for)|(reviewers?|analysts?|investigators?|team|we|they) (can|could|only can) (check|review|look at|investigate|handle) (about |around |only |just )?(\d+|a few|\w+ hundred)|"
-                    r"(only|just) (\d+|a few) (can|could) be (checked|reviewed)|top[- ]?\d+|(\d+|a few) (cases|rides|orders|alerts) (a|per|each) (day|week|shift)|per (day|week) (we )?can (check|review))\b", re.I)
+BUDGET = re.compile(r"\b(review budget|budget(ed)? (of|for)|(reviewers?|analysts?|investigators?|team|we|they) (can|could|only can) (check|review|look at|investigate|handle) (about |around |only |just )?(\d+(?:[.,]\d+)?\s?%?|a few|\w+ hundred)|"
+                    r"(only|just) (\d+|a few) (can|could) be (checked|reviewed)|top[- ]?\d+|(\d+|a few) (cases|rides|orders|alerts) (a|per|each) (day|week|shift)|per (day|week) (we )?can (check|review))(?!\w)", re.I)
 CONFIRMED = re.compile(r"\b(confirmed|known|labell?ed|verified|a few (cases|frauds)|sample of)\b", re.I)
 NEGATION = re.compile(r"\b(no|not|none|never|nothing|nobody|without|n't|neither|haven't|hasn't|unlabell?ed|unconfirmed)\b|n't\b", re.I)
 #: a column the person says holds the label: the outcome is a column, not a hunt (one problem, however it is worded)

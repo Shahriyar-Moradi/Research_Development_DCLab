@@ -109,6 +109,7 @@
    *  @property {*=} transitions
    *  @property {*=} graph
    *  @property {*=} memory
+   *  @property {*=} programme_plan
    */
   /** @typedef {Object} ProjectCreate
    *  @property {*=} name
@@ -323,6 +324,9 @@
     recordOutcome: ["POST", "/projects/{project_id}/outcome", ["project_id"], []],
     projectPipeline: ["GET", "/projects/{project_id}/pipeline", ["project_id"], ["path"]],
     rerunPipelineStep: ["POST", "/projects/{project_id}/pipeline/rerun", ["project_id"], ["step", "wait"]],
+    getProgramme: ["GET", "/projects/{project_id}/programme", ["project_id"], []],
+    dropProgrammeLeaf: ["POST", "/projects/{project_id}/programme/drop", ["project_id"], []],
+    runProgramme: ["POST", "/projects/{project_id}/programme/run", ["project_id"], ["wait"]],
     reviewProjectNotebook: ["GET", "/projects/{project_id}/review", ["project_id"], []],
     confirmReview: ["POST", "/projects/{project_id}/review", ["project_id"], []],
     reviewProjectFixes: ["POST", "/projects/{project_id}/review/fixes", ["project_id"], []],
@@ -1042,6 +1046,25 @@
    *  @returns {Promise<Page>} */
   client.rerunPipelineStep = (...args) => call('rerunPipelineStep', args);
   client.path.rerunPipelineStep = (...args) => build('rerunPipelineStep', args).path;
+  /** GET /api/projects/{project_id}/programme: Get Programme
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.getProgramme = (...args) => call('getProgramme', args);
+  client.path.getProgramme = (...args) => build('getProgramme', args).path;
+  client.href.getProgramme = (...args) => '/api' + build('getProgramme', args).path;
+  /** POST /api/projects/{project_id}/programme/drop: Drop Programme Leaf
+   *  @param {string} project_id
+   *  @param {{body?: *, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.dropProgrammeLeaf = (...args) => call('dropProgrammeLeaf', args);
+  client.path.dropProgrammeLeaf = (...args) => build('dropProgrammeLeaf', args).path;
+  /** POST /api/projects/{project_id}/programme/run: Run Programme
+   *  @param {string} project_id
+   *  @param {{query?: {wait?: *}, body?: *, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.runProgramme = (...args) => call('runProgramme', args);
+  client.path.runProgramme = (...args) => build('runProgramme', args).path;
   /** GET /api/projects/{project_id}/review: Review Project Notebook
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]

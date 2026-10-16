@@ -1,0 +1,65 @@
+{
+  "package": "24.6",
+  "title": "The fraud programme's replica, its acceptance and a journey from the first sentence",
+  "date": "2026-10-16",
+  "request": "The owner's complex example as test material: fake delivery marks, fake orders in rings of linked accounts, partial biased labels, a review budget, and the decisions DCLab must reach on it, from the first sentence to the one read of the holdout.",
+  "spec": "dclab_core replicas fraud_programme; tests test_fraud_programme_acceptance (the replica and the decisions on seeds 0 to 2) and test_programme_journey; dclab_rnd agent_eval journeys programme.py and journeys_programme_dev.json.",
+  "plan": [
+    "The replica plants each kind of fraud so that one leaf only can see it, and the honest look-alikes that trip a careless method.",
+    "The acceptance checks the parts the first sentence becomes, the approach the router gives each, the one split, the leaves that ran, the columns that reached them, and the composition against the best leaf with its interval.",
+    "A written person is carried from the first sentence: draw and confirm the map, build, attach the accounts, run the programme, read the pipeline and replay it."
+  ],
+  "decisions": [
+    {
+      "decision": "The journey attaches the table of accounts after the build and the plan is drawn again from the tables the project holds.",
+      "why": "A draft has no related-table asset yet; the person confirmed the problem, and which approach reads which table follows from the data."
+    },
+    {
+      "decision": "The dev set holds one programme journey until journeys v5 (24.8) writes the sealed set.",
+      "why": "The sealed set is written by an independent agent with a gate fixed before the run."
+    }
+  ],
+  "change": "dclab_core/replicas/fraud_programme.py; dclab_rnd/agent_eval/journeys/programme.py and journeys_programme_dev.json; dclab_rnd/studio/programme.py refresh_plan; tests/test_fraud_programme_acceptance.py and tests/test_programme_journey.py.",
+  "findings": [
+    {
+      "id": "J1",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The pipeline of a programme project showed the solution and the workflow as not run, and the workflow as stale.",
+      "scenario": "After a complete programme the journey's pipeline part failed: solution not_run, workflow stale.",
+      "cause": "The pipeline steps for the saved solution and the drawn workflow know only the engine's flow.",
+      "fix": "For a programme project with no saved solution the plan stands in for both steps, with the solution map's fingerprint.",
+      "test": "test_programme_journey test_the_person_is_carried_from_the_first_sentence_to_the_holdout_number"
+    },
+    {
+      "id": "J2",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The acceptance asserted that most of the review list is planted fraud, and it is 45%.",
+      "scenario": "precision 0.446 against an assertion of 0.5.",
+      "cause": "A threshold chosen without the base rate.",
+      "fix": "The assertion is a lift over the base rate (twenty times), which is what the list is for.",
+      "test": "test_fraud_programme_acceptance test_cancelled_rides_and_honest_pairs_do_not_fill_the_review_list"
+    },
+    {
+      "id": "J3",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "Without the table of accounts the rings part is blocked at the router, not at the run.",
+      "scenario": "The blocker read 'no approach was routed to it', not 'no table of accounts'.",
+      "cause": "The router refuses entity_tables with no related table in the data card.",
+      "fix": "The test names the part, as the router does; the run-time message is kept for a plan routed with the table and then run without it.",
+      "test": "test_fraud_programme_acceptance test_without_the_table_of_accounts_the_holdout_stays_closed_and_the_rings_are_what_is_missed"
+    }
+  ],
+  "measurements": [],
+  "outcome": "The acceptance passes on seeds 0, 1 and 2 from the committed code, with the composition beating the best leaf with its interval above zero and the holdout read once; the written person is carried from the first sentence to the holdout number, her pipeline whole and its replay the same document.",
+  "lessons": [
+    "A replica is test material: its scale is for power, and its truth is used only to say the decisions were sound."
+  ],
+  "risks": [
+    "Journeys v5 (24.8) must write the sealed set with an independent author.",
+    "The draft cannot take a related table as an asset yet."
+  ],
+  "commits": []
+}
