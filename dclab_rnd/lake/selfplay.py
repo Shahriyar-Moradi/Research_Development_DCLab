@@ -121,6 +121,22 @@ def examples_of(kind: Any, seed: int, case: Any, run: Any, checks: list[dict[str
     return out
 
 
+def screen_record(kind: Any, seed: int, case: Any, run: Any) -> dict[str, Any]:
+    """26.6a: what a learned AutoML reads (the table's meta-features, from the data card's bands) and what it learns from
+    (every family's cross-validated score in the screen, on training folds only). No value of the table."""
+    from collections import Counter as _C
+
+    columns, _ = _columns(case.table, case.target, False)
+    data, models = run.evidence("data"), run.evidence("models")
+    return {"group": f"selfplay:{kind.key}:{seed}", "kind": kind.key, "task": case.task, "rows": int(len(case.table)),
+            "columns": len(columns), "dtypes": dict(_C(c.get("dtype") for c in columns)),
+            "cardinality": dict(_C(c.get("cardinality") for c in columns)), "nulls": dict(_C(c.get("nulls") for c in columns)),
+            "usable_features": data.get("usable_feature_count"), "target_summary": data.get("target_summary"),
+            "split": str(data.get("holdout_split") or "")[:120],
+            "screen": [{k: r.get(k) for k in ("model", "mean", "std", "elapsed_seconds")} for r in models.get("ranking") or [] if isinstance(r, dict)],
+            "selected": models.get("selected_model"), "recipe": run.evidence("features").get("selected_recipe")}
+
+
 def solve(kinds_keys: Iterable[str] | None = None, seeds: int = 20, log=print) -> dict[str, Any]:
     """Every kind's replica for each seed, solved and verified; examples and rejections written to bronze."""
     from .. import kinds
@@ -129,6 +145,18 @@ def solve(kinds_keys: Iterable[str] | None = None, seeds: int = 20, log=print) -
     OUT.mkdir(parents=True, exist_ok=True)
     kept, rejected = [], []
     wanted = set(kinds_keys or [])
+    done_path = OUT / "done.jsonl"  # one line per problem tried: a run that stops resumes where it was, nothing solved twice
+    done = {json.loads(x)["group"] for x in done_path.read_text(encoding="utf-8").splitlines() if x.strip()} if done_path.is_file() else set()
+    examples_path = OUT / "examples.jsonl"
+    if not done:
+        examples_path.write_text("", encoding="utf-8")
+
+    def record(group: str, examples: list[L.TrainingExample], outcome: dict[str, Any]) -> None:
+        with examples_path.open("a", encoding="utf-8") as f:
+            f.write("".join(e.model_dump_json() + "\n" for e in examples))
+        with done_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps({"group": group, **outcome}) + "\n")
+
     for kind in kinds.all_kinds():
         if wanted and kind.key not in wanted:
             continue
@@ -136,6 +164,8 @@ def solve(kinds_keys: Iterable[str] | None = None, seeds: int = 20, log=print) -
             continue
         for seed in range(seeds):
             group = f"selfplay:{kind.key}:{seed}"
+            if group in done:
+                continue
             started = time.perf_counter()
             try:
                 case = kind.case(seed)
@@ -145,17 +175,27 @@ def solve(kinds_keys: Iterable[str] | None = None, seeds: int = 20, log=print) -
                 checks = kind.accept(run)
             except Exception as exc:  # noqa: BLE001 — a solve that breaks is a rejection with its reason, never a stop
                 rejected.append({"group": group, "reason": f"{type(exc).__name__}: {str(exc)[:200]}"})
+                record(group, [], {"verified": False, "reason": rejected[-1]["reason"]})
                 continue
             missed = [c["decision"] for c in checks if not c["ok"]]
             if missed or not checks:
                 rejected.append({"group": group, "missed": missed or ["no acceptance decisions"]})
+                record(group, [], {"verified": False, "missed": rejected[-1]["missed"]})
                 continue
+            got: list[L.TrainingExample] = []
             for masked in (False, True):
-                kept += examples_of(kind, seed, case, run, checks, masked)
+                got += examples_of(kind, seed, case, run, checks, masked)
+            kept += got
+            try:
+                with (OUT / "screens.jsonl").open("a", encoding="utf-8") as f:
+                    f.write(json.dumps(screen_record(kind, seed, case, run), default=str) + "\n")
+            except Exception as exc:  # noqa: BLE001 — a screen that cannot be read costs itself, never the examples
+                log(f"{group}: no screen record ({type(exc).__name__})")
+            record(group, got, {"verified": True, "examples": len(got), "seconds": round(time.perf_counter() - started, 1)})
             log(f"{group}: verified ({len(checks)} decisions, {time.perf_counter() - started:.0f}s)")
-    (OUT / "examples.jsonl").write_text("".join(e.model_dump_json() + "\n" for e in kept), encoding="utf-8")
-    (OUT / "rejected.json").write_text(json.dumps(rejected, indent=1) + "\n", encoding="utf-8")
-    return {"examples": len(kept), "problems": len({e.provenance.group for e in kept}), "rejected": len(rejected)}
+    tried = [json.loads(x) for x in done_path.read_text(encoding="utf-8").splitlines() if x.strip()]
+    (OUT / "rejected.json").write_text(json.dumps([t for t in tried if not t.get("verified")], indent=1) + "\n", encoding="utf-8")
+    return {"examples": len(examples()), "problems": sum(1 for t in tried if t.get("verified")), "rejected": sum(1 for t in tried if not t.get("verified"))}
 
 
 def examples() -> list[L.TrainingExample]:
