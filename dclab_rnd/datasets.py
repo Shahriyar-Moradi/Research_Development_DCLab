@@ -139,6 +139,56 @@ def _workflow_items(services: Any, allowed_projects: dict[str, dict[str, Any]]) 
     return items
 
 
+def _map_items(services: Any, allowed_projects: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    """The drafts that drew a problem map and built a project from it, for the problem_maps and routes sets (24.7): the map first drawn and the one built from, the person's
+    edits, the routes (codes and counts), and what the project's programme did, when it ran. The words are the problem card's and the maps' quotes, redacted as every text."""
+    from dclab_core import programme as core_programme
+
+    from . import consent
+    from .draft.card import card_of
+    from .studio import programme as studio_programme
+
+    items = []
+    for draft in services.drafts.list(limit=100_000):
+        project_id = draft.get("project_id")
+        held = draft.get("problem_map") or {}
+        if not project_id or project_id not in allowed_projects or not held.get("map"):
+            continue
+        try:
+            card = consent._scrub(card_of(draft).model_dump(mode="json"), {})
+        except Exception:  # noqa: BLE001 - a draft the card cannot read yet: left out
+            continue
+        project = allowed_projects[project_id]
+        programme = None
+        try:
+            programme = studio_programme.stored(project)
+        except Exception:  # noqa: BLE001 - a programme that does not read is no outcome
+            programme = None
+        outcome = None
+        if programme is not None and programme.holdout is not None:
+            h = programme.holdout
+            outcome = {"state": programme.state, "chosen": h.chosen, "best_leaf": h.best_leaf, "difference": h.difference.value, "low": h.difference.low, "high": h.difference.high,
+                       "beats_best_leaf": h.beats_best_leaf, "reads_before": programme.reads_before}
+        final = held["map"]
+        subs = {x.get("id"): x for x in final.get("sub_problems") or []}
+        built = {l.sub_problem: l for l in programme.leaves} if programme is not None else {}
+        routes = []
+        for sid, route in ((held.get("routes") or {}).get("routes") or {}).items():
+            sub = subs.get(sid) or {}
+            leaf = built.get(sid)
+            routes.append({"sub_problem": sid, "chosen": route.get("chosen"), "source": route.get("source"),
+                           "state": {"family": sub.get("family"), "labels": sub.get("labels"), "kind": sub.get("kind"), "predict_rank": sub.get("predict_rank"),
+                                     "reads": len(sub.get("reads") or []), "parts": len(final.get("parts") or [])},
+                           "candidates": [{"approach": c.get("approach"), "rank": c.get("rank"), "blocked_by": list(c.get("blocking") or []), "unknown": list(c.get("unknown") or [])}
+                                          for c in route.get("candidates") or []],
+                           "outcome": {"leaf": leaf.status, "chosen": leaf.chosen, "beats_best_leaf": bool(outcome and outcome["beats_best_leaf"])} if leaf is not None else None})
+        items.append({"draft": draft.get("id"), "project": project_id, "problem_card": card, "proposed": consent._scrub(held.get("first"), {}) if held.get("first") else None,
+                      "final": consent._scrub(final, {}), "edits": [{k: v for k, v in e.items() if k in ("action", "by", "part", "keep", "other", "from", "to")}
+                                                                      for e in held.get("history") or []],
+                      "confirmed": bool(held.get("confirmed")), "outcome": outcome, "map": final.get("fingerprint"), "routes": routes})
+    return items
+
+
 def _sessions(services: Any, exported: list[dict[str, Any]], drafts: dict[str, dict[str, Any]], switches: dict[str, bool],
               projects: dict[str, dict[str, Any]], draft_map: dict[str, str]) -> list[dict[str, Any]]:
     """Each visit with an exported event, its flags (``signals``, on the visit's events the consent lets out: a visit
@@ -232,6 +282,9 @@ def build(services: Any, root: Path | None = None) -> dict[str, Any]:
         keep("preferences", "corrections", lambda: builders.preferences(records, workspace=workspace, consent=basis, drafts=draft_map))
         keep("trajectories", "agent_runs", lambda: builders.trajectories(events, workspace=workspace, consent=basis, drafts=draft_map))
         keep("workflows", "problem_to_pipeline", lambda: builders.workflows(_workflow_items(services, allowed), workspace=workspace, consent=basis))
+        maps = _map_items(services, allowed)  # 24.7
+        keep("problem_maps", "brief_to_map", lambda: builders.problem_maps(maps, workspace=workspace, consent=basis))
+        keep("routes", "sub_problem_to_approach", lambda: builders.routes(maps, workspace=workspace, consent=basis))
     else:
         out["not_built"].append({"use": "train", "why": "the workspace's switch is off"})
     if switches.get("improve"):

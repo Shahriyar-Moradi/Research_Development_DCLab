@@ -189,12 +189,12 @@ class ExportTextTest(unittest.TestCase):
 class ManifestAndColumnsTest(unittest.TestCase):
     def test_the_manifest_names_the_scrubber_and_reads_the_older_versions(self):
         _, manifest = builders.episodes(flow(), records(), text=True)
-        self.assertEqual((manifest.scrubber, manifest.schema_version), (redact.VERSION, "dclab_core.dataset_manifest.v4"))
+        self.assertEqual((manifest.scrubber, manifest.schema_version), (redact.VERSION, "dclab_core.dataset_manifest.v5"))
         old = json.loads(manifest.model_dump_json())
         old["schema_version"] = "dclab_core.dataset_manifest.v3"
         for k in ("scrubber", "commit", "files"):
             old.pop(k)
-        self.assertEqual(builders.DatasetManifest.read(old).schema_version, "dclab_core.dataset_manifest.v4")
+        self.assertEqual(builders.DatasetManifest.read(old).schema_version, "dclab_core.dataset_manifest.v5")
 
     def test_a_column_that_mixes_kinds_is_written_as_text_and_a_file_that_cannot_be_written_leaves_no_old_one(self):
         import pandas as pd
@@ -279,7 +279,7 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual([r["message"] for r in sorted(rows, key=lambda r: r["turn"])], ["Which customers will leave us?", "The churned column"])
         self.assertEqual(rows[0]["model_calls"]["n"] + rows[1]["model_calls"]["n"], 1)
         manifest = json.loads((Path(episodes["folder"]) / "manifest.json").read_text(encoding="utf-8"))
-        self.assertEqual((manifest["scrubber"], manifest["schema_version"]), (redact.VERSION, "dclab_core.dataset_manifest.v4"))
+        self.assertEqual((manifest["scrubber"], manifest["schema_version"]), (redact.VERSION, "dclab_core.dataset_manifest.v5"))
         self.assertRegex(manifest["commit"] or "", r"^[0-9a-f]{40}(\+dirty)?$")  # a build from uncommitted code says so
         self.assertTrue(set(manifest["files"]) <= {"rows.jsonl", "rows.parquet", "sealed.jsonl", "sealed.parquet"} and manifest["files"])
         if columnar.available():

@@ -70,7 +70,7 @@ class ContractTest(unittest.TestCase):
         self.assertEqual(e.consent, "train")
         doc = json.loads(e.model_dump_json())
         old = {k: v for k, v in doc.items() if k != "consent"} | {"schema_version": "dclab_core.experience_event.v2"}
-        self.assertEqual((x.ExperienceEvent.read(old).schema_version, x.ExperienceEvent.read(old).consent), ("dclab_core.experience_event.v8", "operate"))
+        self.assertEqual((x.ExperienceEvent.read(old).schema_version, x.ExperienceEvent.read(old).consent), ("dclab_core.experience_event.v9", "operate"))
         self.assertEqual(x.ExperienceEvent.read(doc).consent, "train")
         with self.assertRaises(Exception):
             x.make("chat.person", "person", IDS, {"text": "hi"}, id="ev000002", at=at(0), consent="whatever")

@@ -35,8 +35,9 @@ def load(split: str = "dev") -> list[dict[str, Any]]:
     return json.loads(DEV.read_text(encoding="utf-8"))
 
 
-def play(journey: dict[str, Any], seed: int = 0) -> dict[str, Any]:
-    """One programme journey from its first sentence; its scores and what happened at each part."""
+def play(journey: dict[str, Any], seed: int = 0, stores: Any = None) -> dict[str, Any]:
+    """One programme journey from its first sentence; its scores and what happened at each part. ``stores``: the (drafts, projects) it plays in, a workspace's own when a
+    test wants to read what the journey left in its record; else temporary ones."""
     import importlib
 
     from dclab_core import compose, programme as core
@@ -55,7 +56,7 @@ def play(journey: dict[str, Any], seed: int = 0) -> dict[str, Any]:
     with tempfile.TemporaryDirectory() as tmp:
         home, mine = Path(tmp), Path(tmp) / "person"
         mine.mkdir()
-        drafts, projects = DraftStore(home / "drafts"), ProjectStore(home / "projects")
+        drafts, projects = stores if stores is not None else (DraftStore(home / "drafts"), ProjectStore(home / "projects"))
         paths = replica_module.save(replica, mine)
         agent = HomeAgent(drafts, None)
         draft_id = drafts.create(journey["words"])["id"]

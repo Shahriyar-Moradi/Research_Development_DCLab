@@ -60,7 +60,7 @@ class ModelLabelsTest(unittest.TestCase):
         old = contract.DecisionLabel.model_validate({"schema_version": "dclab_core.decision_label.v1", "id": "dl0000002", "record": "r1",
                                                      "point": "column.is_identifier", "value": True, "source": "benchmark", "by": "replica",
                                                      "at": "2026-10-15T00:00:00+00:00"})
-        self.assertEqual(old.schema_version, "dclab_core.decision_label.v2")
+        self.assertEqual(old.schema_version, "dclab_core.decision_label.v3")
 
 
 @unittest.skipIf(MISSING, MISSING)
@@ -73,12 +73,12 @@ class StoredAndExportedTest(unittest.TestCase):
         ledger.label(r, True, "benchmark", "replica:x", ledger=book)
         self.assertEqual(len(book.labels()), 1)
         for path in Path(book.root).rglob("*.jsonl"):  # the label as a v1 writer stored it
-            text = path.read_text(encoding="utf-8").replace("dclab_core.decision_label.v2", "dclab_core.decision_label.v1")
+            text = path.read_text(encoding="utf-8").replace("dclab_core.decision_label.v3", "dclab_core.decision_label.v1")
             path.write_text(text, encoding="utf-8")
         self.assertEqual(len(book.labels()), 1)
         self.assertEqual(contract.DecisionLabel.read(json.loads(json.dumps({"schema_version": "dclab_core.decision_label.v1", "id": "dl0000009",
                          "record": "r1", "point": "column.is_identifier", "value": True, "source": "blind", "by": "reviewer", "weight": 10.0,
-                         "at": "2026-10-15T00:00:00+00:00"}))).schema_version, "dclab_core.decision_label.v2")
+                         "at": "2026-10-15T00:00:00+00:00"}))).schema_version, "dclab_core.decision_label.v3")
 
     def test_a_model_label_goes_through_the_export_into_the_decision_set(self):
         from dclab_rnd import consent

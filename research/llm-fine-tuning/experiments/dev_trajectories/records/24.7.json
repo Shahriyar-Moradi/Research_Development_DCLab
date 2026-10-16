@@ -1,0 +1,70 @@
+{
+  "package": "24.7",
+  "title": "The capture of phase 2: the map, its edits, the routes, the composition and the programme in the record, the ledger and two datasets",
+  "date": "2026-10-16",
+  "request": "Phase 2 of the owner's plan: everything decided about a problem of several parts is kept, so a future small model can learn to draw the map, route a part and compose the leaves.",
+  "spec": "dclab_core experience v9 (five kinds), ledger (solution.compose, decision_label v3), datasets (problem_maps, routes, manifest v5, episodes' problem_parts); dclab_rnd experience hooks, the draft map, the programme run, ledger capture, the dataset assembly; the main-product adapter's list of missing kinds.",
+  "plan": [
+    "Each decision is recorded where it is made, by the writer that makes it, with names and counts and never the person's words or a row.",
+    "A route that changes when a table arrives is a decision again; a composition chosen on validation is a decision whose label is measured on the holdout.",
+    "The two sets are built only under the train consent, from the drafts that became projects, with the person's edits as the correction labels."
+  ],
+  "decisions": [
+    {
+      "decision": "The shipped ledger points map.size and map.edit stay; solution.compose is added; the plan's problem.decompose and problem.subproblem_family are not separate points.",
+      "why": "Renaming points shipped in 24.2 would break stored records; the sub-problem's family is in the map record and in each route's state."
+    },
+    {
+      "decision": "The measured label of solution.compose is the chosen composition when it beat the best leaf with its interval above zero, the best leaf when it was clearly below it, and none when the interval crosses zero.",
+      "why": "A label is what the measurement supports; an interval that crosses zero supports neither."
+    },
+    {
+      "decision": "The first map drawn is kept in the draft (first) beside the one built from.",
+      "why": "The person's edits are the correction of that proposal; without it the set could not say what was corrected."
+    }
+  ],
+  "change": "dclab_core experience.py (five kinds, v9), ledger.py (solution.compose, positives, label v3), datasets.py (problem_maps, routes, manifest v5, problem_parts), adapters, schemas; dclab_rnd experience/hooks.py, draft/map.py, studio/programme.py, ledger/capture.py, datasets.py, data_catalog.py; docs; tests test_phase2_capture and the pinned sequence of test_experience_log.",
+  "findings": [
+    {
+      "id": "T1",
+      "source": "test",
+      "severity": "gap",
+      "defect": "The flow's pinned event sequence did not know the new events.",
+      "scenario": "test_the_sequence_is_exactly_the_flow_on_either_store failed once the draft's map emitted problem.mapped, solution.routed and problem.part_changed.",
+      "cause": "The sequence is pinned exactly, on purpose.",
+      "fix": "The sequence lists the new events in the order the flow makes them.",
+      "test": "test_experience_log test_the_sequence_is_exactly_the_flow_on_either_store"
+    },
+    {
+      "id": "T2",
+      "source": "test",
+      "severity": "gap",
+      "defect": "The data catalog refused the new builders until they were described.",
+      "scenario": "make catalog: dataset builder problem_maps has no description.",
+      "cause": "Every builder must say what it is.",
+      "fix": "Both builders are described in the catalog's notes.",
+      "test": "make catalog; test_data_catalog"
+    },
+    {
+      "id": "T3",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "An event drops a payload field whose value is None.",
+      "scenario": "A route with no approach (the rings before the table of accounts) has no chosen key in its solution.routed payload.",
+      "cause": "The contract keeps only the fields that hold a value.",
+      "fix": "Readers use get; the test says so.",
+      "test": "test_phase2_capture JourneyCaptureTest"
+    }
+  ],
+  "measurements": [],
+  "outcome": "The journey through the fraud programme leaves the map, its confirmation, every route (the rings twice: before the table of accounts and after), the composition and the programme in the log; the ledger holds the decisions with their reasons and the composition's measured label; make datasets builds problem_maps and routes from it under train only; the new roles leave a step each when a model serves them.",
+  "lessons": [
+    "Record a decision where it is made, not where it is shown.",
+    "A label is what the measurement supports: an interval across zero supports no label."
+  ],
+  "risks": [
+    "The main product's side of the five kinds is listed as missing with reasons.",
+    "The sets are small until real sessions exist: they are built and tested on one journey."
+  ],
+  "commits": []
+}

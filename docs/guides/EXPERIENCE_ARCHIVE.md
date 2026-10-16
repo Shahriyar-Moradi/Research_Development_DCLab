@@ -36,7 +36,7 @@ One folder per set: `<builder>/<name>/` with
   projects, packages) and how it was split.
 
 The builders are `decisions` (one set per decision point), `conversations`, `preferences`, `trajectories`,
-`workflows`, `failures`, `outcomes` (23.5: each decision with the number that followed it) and `development` (the development records, the owner's own: `development/manifest.json`,
+`workflows`, `problem_maps` and `routes` (24.7: the words a person said and the map of parts first drawn, built from and corrected, with what the programme did against its best leaf; a sub-problem's state, candidate approaches, the one chosen and what became of it), `failures`, `outcomes` (23.5: each decision with the number that followed it) and `development` (the development records, the owner's own: `development/manifest.json`,
 pointing at `research/llm-fine-tuning/experiments/sft/out_dev`). A rebuild replaces a set's files in place; the
 manifest says when it was built.
 

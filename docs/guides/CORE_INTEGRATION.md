@@ -542,3 +542,17 @@ a family's shared phone, a short delivery next door and a cancelled ride are the
 The acceptance (`tests/test_fraud_programme_acceptance.py`) is a case the main product's side can run against the library it adopts: on three seeds the first sentence becomes four parts, each is
 routed to the right approach, the solution has one split and no leaf scores the holdout, no identifier or coordinate reaches a leaf, the composition beats the best leaf with its interval above
 zero, and the holdout is read once. The written person that walks the same path through Home (`dclab_rnd/agent_eval/journeys/programme.py`) is this studio's.
+
+## The capture of phase 2 (24.7)
+
+A problem of several parts leaves, in the record a host keeps for the library, what was decided about it. Events (`experience_event` v9): `problem.mapped` when a map is drawn (its fingerprint,
+size, the families of its sub-problems), `problem.part_changed` when a person adds, removes, merges, confirms or drops (and why, as person text), `solution.routed` for each sub-problem's
+approach (with the candidates and the ones the data or the map refuted), `solution.composed` when the composition is chosen on validation and `programme.built` with the programme's numbers.
+Decisions (`ledger`): `map.size`, `map.edit` and `solution.route` from phase 2's first packages, and `solution.compose`, whose measured label (`holdout_vs_best_leaf`) says whether the choice held
+up on the holdout. Sets (`datasets`): `problem_maps` and `routes`, built only under the train consent, text redacted as every export, codes and counts for the routes.
+
+Where it goes there: the main product has no map of parts, no routed approach as a row and no composition, so the five kinds are listed in `main_product_experience.KINDS_MISSING` with their
+reasons and `solution.compose` in `conformance.POINTS_NOT_MAPPED`; the host that adopts the packages records the events where it draws the map, edits it, routes and runs the programme (the
+payloads are in `experience.KINDS`), and builds the two sets with `datasets.problem_maps` and `datasets.routes` over items it assembles (the maps, the edits, the routes, the programme's
+outcome). A route is recorded again when the tables change it; a programme's drop of a leaf is a `problem.part_changed`.
+

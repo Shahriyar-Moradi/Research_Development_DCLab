@@ -34,7 +34,7 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.dataset_manifest.v4.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.dataset_manifest.v5.json",
   "additionalProperties": false,
   "description": "What a dataset holds and where every row came from.",
   "properties": {
@@ -49,7 +49,9 @@
         "development",
         "outcomes",
         "episodes",
-        "model_calls"
+        "model_calls",
+        "problem_maps",
+        "routes"
       ],
       "title": "Builder",
       "type": "string"
@@ -131,8 +133,8 @@
       "type": "integer"
     },
     "schema_version": {
-      "const": "dclab_core.dataset_manifest.v4",
-      "default": "dclab_core.dataset_manifest.v4",
+      "const": "dclab_core.dataset_manifest.v5",
+      "default": "dclab_core.dataset_manifest.v5",
       "title": "Schema Version",
       "type": "string"
     },

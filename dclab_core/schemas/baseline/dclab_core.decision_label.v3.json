@@ -1,0 +1,165 @@
+{
+  "$defs": {
+    "Evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "planted_truth",
+            "apparent_lift",
+            "optimism_gap",
+            "tuning_gain",
+            "ladder",
+            "holdout_vs_cv",
+            "review",
+            "override",
+            "holdout_vs_best_leaf"
+          ],
+          "type": "string"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "at": {
+      "type": "string"
+    },
+    "by": {
+      "maxLength": 120,
+      "minLength": 1,
+      "type": "string"
+    },
+    "evidence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Evidence"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "id": {
+      "pattern": "^[A-Za-z0-9_.:-]{6,80}$",
+      "type": "string"
+    },
+    "point": {
+      "type": "string"
+    },
+    "record": {
+      "maxLength": 80,
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.decision_label.v3",
+      "default": "dclab_core.decision_label.v3",
+      "type": "string"
+    },
+    "source": {
+      "enum": [
+        "benchmark",
+        "blind",
+        "measured",
+        "user_decision_exposed",
+        "model"
+      ],
+      "type": "string"
+    },
+    "supersedes": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "value": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "weight": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "weight_note": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "record",
+    "point",
+    "value",
+    "source",
+    "by",
+    "at"
+  ],
+  "type": "object"
+}

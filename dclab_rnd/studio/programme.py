@@ -141,6 +141,16 @@ def refresh_plan(store: Any, project_id: str) -> bool:
     project["programme_plan"] = {**plan, "routes": {k: json.loads(v.model_dump_json()) for k, v in routes.items()}, "solution_map": json.loads(sm.model_dump_json())}
     store.save(project)
     store.log(project_id, "programme_plan_refreshed", {"was": plan["solution_map"].get("fingerprint"), "now": sm.fingerprint, "blockers": len(sm.blockers)})
+    from ..experience import hooks
+    from ..ledger import capture
+
+    draft_id = (project.get("draft") or {}).get("id") or project_id
+    for sid, route in routes.items():  # an approach that changed with the tables is a decision again: recorded under the draft the project was built from
+        was = (plan.get("routes") or {}).get(sid) or {}
+        if was.get("chosen") != route.chosen or was.get("source") != route.source:
+            sub = next(x for x in m.sub_problems if x.id == sid)
+            capture.route_chosen(draft_id, sub, route, card, len(m.parts))
+            hooks.route_made(draft_id, m.fingerprint, sub, route)
     return True
 
 
@@ -252,9 +262,14 @@ def run(store: Any, project_id: str, actor: str = "human", reuse_reason: Optiona
     store.log(project_id, "programme_run", {"state": p.state, "fingerprint": p.fingerprint, "holdout_read": read, "blockers": len(p.blockers),
                                             "composed": p.holdout.chosen if p.holdout else None})
     from .. import audit
+    from ..experience import hooks
 
     audit.record_for(store, "move", actor, project=project, move="run_programme", status="allowed", state=p.state, holdout_read=read, fingerprint=p.fingerprint,
                      reason=(reuse_reason or "")[:300] or None)
+    hooks.programme_built(project_id, p, actor)
+    from ..ledger import capture
+
+    capture.composition_chosen(project_id, p)
     return view(store.get(project_id))
 
 
@@ -278,6 +293,11 @@ def drop(store: Any, project_id: str, block: str, reason: str, actor: str = "hum
     from .. import audit
 
     audit.record_for(store, "move", "human", project=project, move="drop_leaf", status="allowed", block=block, reason=reason[:300])
+    from ..experience import record
+
+    record("problem.part_changed", "person", {"map": (plan_of(project) or {}).get("problem_map", {}).get("fingerprint"), "action": "drop_leaf", "part": block, "by": "person",
+                                              "parts_before": sum(1 for l in p.leaves if l.status != "dropped"), "parts_after": sum(1 for l in p2.leaves if l.status != "dropped"),
+                                              "reason": reason[:2000]}, project=project_id)
     return view(store.get(project_id))
 
 

@@ -393,6 +393,24 @@ def route_chosen(draft_id: str, sub: Any, route: Any, data: Any, parts: int) -> 
 
 
 @_quiet
+def composition_chosen(project_id: str, p: Any) -> int:
+    """The composition of a programme chosen on validation (24.5): the rule's choice among every leaf alone and the fusions, with the candidates as the options. When the
+    holdout was read, a measured label follows: the choice held up when the composition beat the best leaf with its interval above zero, and the best leaf was the right
+    answer when the composition was clearly below it (an interval that crosses zero labels nothing)."""
+    c, h = p.composition, p.holdout
+    if c is None:
+        return 0
+    state = {"parts": len(c.weights), "positives": int(c.positives), "holdout_used": int(p.reads_before)}
+    rec = _put("solution.compose", ("project", project_id), [answer("rule", "rule:compose_on_validation", c.chosen, reason=c.rule[:600] or None)], c.chosen, "rule", state=state,
+               options=list(c.candidates), project=project_id)
+    if rec is not None and h is not None:
+        value = c.chosen if h.beats_best_leaf else (c.best_leaf if h.difference.high < 0 else None)
+        if value is not None:
+            label(rec, value, "measured", "holdout_gain", evidence={"kind": "holdout_vs_best_leaf", "value": float(h.difference.value), "ref": "programme.holdout.difference.value"})
+    return 1 if rec is not None else 0
+
+
+@_quiet
 def workflow_drawn(draft_id: str, key: str, workflow: dict[str, Any], previous: dict[str, Any] | None, proposed: bool, problems: list[str]) -> int:
     """The solution workflow drawn: the pack's template, or a model's proposal the validator accepted or refused.
     Written when something was decided: a model proposed one, or the pack or the source changed."""

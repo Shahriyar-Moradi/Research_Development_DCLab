@@ -4,6 +4,24 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.55.0 (2026-10-16)
+
+Package 24.7: the capture of phase 2.
+
+- `experience` v9 (`dclab_core.experience_event.v9`, v8 read as v9): five kinds for a problem of several parts. `problem.mapped` (the map's fingerprint, size, template, source, who drew
+  it, its parts and the families of its sub-problems: names and counts, never the person's words), `problem.part_changed` (an add, remove, merge, confirm or a dropped leaf, by whom,
+  parts before and after, the person's reason as person text), `solution.routed` (the approach routed to a sub-problem, the candidates and the ones that were refuted),
+  `solution.composed` (the composition chosen on validation, the best leaf, the confirmed cases it rested on) and `programme.built` (the programme's state and, when it read the holdout,
+  the composed score, the best leaf's, their difference with its interval).
+- `ledger`: a decision point `solution.compose` (how the leaves of a programme are combined, with the candidates as options and a measured label after the holdout: the composition when it
+  beat the best leaf with its interval above zero, the best leaf when the composition was clearly below it) and the state field `positives`. `DecisionLabel` v3
+  (`dclab_core.decision_label.v3`; v1 and v2 read as v3): the evidence kind `holdout_vs_best_leaf`.
+- `datasets`: two builders. `problem_maps` (brief to map: the problem card, the map first drawn, the map built from, the person's edits as the correction, and what the programme did
+  against its best leaf) and `routes` (sub-problem to approach: the state, the candidates with the codes that refuted them, the one chosen, what became of it; codes and counts only);
+  `episodes` rows carry the map and programme events of their turn (`problem_parts`: codes and counts, no reason text). `DatasetManifest` v5 (`dclab_core.dataset_manifest.v5`; v1 to
+  v4 read as v5) names the two builders.
+- `adapters.main_product_experience`: the five kinds are listed as missing there, each with its reason; `adapters.conformance`: `solution.compose` has no governed point there.
+
 ## 0.54.0 (2026-10-16)
 
 Package 24.5: programmes, the composition of leaves and the one read of the holdout; 24.6: the fraud programme's replica.

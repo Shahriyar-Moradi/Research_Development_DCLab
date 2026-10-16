@@ -19,6 +19,8 @@ from typing import Any, Optional
 
 from dclab_core import mapping, problem_map as pm
 
+from ..experience import hooks
+
 ACTIONS = ("add", "remove", "merge", "confirm", "redraw")
 
 
@@ -178,6 +180,7 @@ def store_routes(drafts: Any, draft_id: str, advisor: Any = None) -> dict[str, A
         if (old.get(sid) or {}).get("chosen") != r.chosen or (old.get(sid) or {}).get("source") != r.source:
             sub = next(x for x in m.sub_problems if x.id == sid)
             capture.route_chosen(draft_id, sub, r, data, len(m.parts))
+            hooks.route_made(draft_id, m.fingerprint, sub, r)
     return {k: route_view(v) for k, v in routes.items()}
 
 
@@ -258,7 +261,8 @@ def _remember(drafts: Any, draft_id: str, m: pm.ProblemMap, review: mapping.MapR
         history = list(old.get("history") or [])
         if action:
             history.append(action)
-        d["problem_map"] = {"map": json.loads(m.model_dump_json()), "source": source, "reason": reason, "words": words or old.get("words") or _digest(words_of(d)),
+        d["problem_map"] = {"map": json.loads(m.model_dump_json()), "first": old.get("first") or json.loads(m.model_dump_json()),  # 24.7: the first map drawn, what the person's edits correct
+                            "source": source, "reason": reason, "words": words or old.get("words") or _digest(words_of(d)),
                             "rules": rules or old.get("rules"), "routes": old.get("routes"), "review": json.loads(review.model_dump_json()), "confirmed": confirmed, "history": history[-50:]}
     return drafts.update(draft_id, keep)
 
@@ -288,6 +292,7 @@ def draw(drafts: Any, draft_id: str, *, advisor: Any = None, redraw: bool = Fals
                                                    "rules": ["problem_map.validate"]}, conversation=draft_id)
         capture.map_edited(draft_id, "redraw", len(held.parts), len(made.parts))
     capture.map_drawn(draft_id, made, rules_size, source == "advisor")
+    hooks.map_drawn(draft_id, made, source == "advisor")
     refresh_review(drafts, draft_id, advisor)
     if made.size == "single":  # nothing to confirm: its approach is the detected kind, routed now
         store_routes(drafts, draft_id, advisor)
@@ -361,7 +366,7 @@ def edit(drafts: Any, draft_id: str, action: str, *, who: str = "person", adviso
         if action == "merge":
             step.update(keep=kw.get("keep"), other=kw.get("other"))
         history = [*(prior.get("history") or []), step][-50:]
-        d["problem_map"] = {"map": json.loads(made.model_dump_json()), "source": "person" if action != "confirm" else prior.get("source", "rules"),
+        d["problem_map"] = {"map": json.loads(made.model_dump_json()), "first": prior.get("first"), "source": "person" if action != "confirm" else prior.get("source", "rules"),
                             "reason": prior.get("reason", "") if action == "confirm" else "edited by the person", "words": prior.get("words") or _digest(words_of(d)), "rules": prior.get("rules"), "routes": prior.get("routes"),
                             "review": json.loads(mapping.review(made, data_card_of(d)).model_dump_json()), "confirmed": action == "confirm", "history": history}
     try:
@@ -376,6 +381,7 @@ def edit(drafts: Any, draft_id: str, action: str, *, who: str = "person", adviso
     experience.record("graph.move", "person", {"move": f"map:{action}", "allowed": True, "from": held.fingerprint, "to": made.fingerprint, "failed_checks": None,
                                                "rules": ["problem_map.validate"]}, conversation=draft_id)
     capture.map_edited(draft_id, action, len(held.parts), len(made.parts))
+    hooks.map_changed(draft_id, held, made, action, who, part=kw.get("part") or kw.get("keep") or kw.get("title"))
     refresh_review(drafts, draft_id, advisor)
     if action == "confirm" or made.size == "single":  # a confirmed map is routed (again, when the data arrived since)
         store_routes(drafts, draft_id, advisor)

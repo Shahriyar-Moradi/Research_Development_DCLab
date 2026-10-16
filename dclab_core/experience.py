@@ -56,7 +56,7 @@ SECRET = re.compile(
 SHAREABLE = frozenset({"meta", "count"})  # what any export may keep
 READ_AS_CURRENT = frozenset({"dclab_core.experience_event.v1", "dclab_core.experience_event.v2", "dclab_core.experience_event.v3",
                              "dclab_core.experience_event.v4", "dclab_core.experience_event.v5",
-                             "dclab_core.experience_event.v6", "dclab_core.experience_event.v7"})  # read as v8: v8 added trace, span and parent_span to the ids; read as v7: each a subset (v3 added consent; v4 the ui.* and auth.* kinds; v5 the error fingerprint; v6 outcome.observed; v7 feedback kinds, column sensitivity and the pipeline steps)
+                             "dclab_core.experience_event.v6", "dclab_core.experience_event.v7", "dclab_core.experience_event.v8"})  # read as v9: v9 added the problem.*, solution.* and programme.* kinds of a problem of several parts; read as v8: each a subset (v3 added consent; v4 the ui.* and auth.* kinds; v5 the error fingerprint; v6 outcome.observed; v7 feedback kinds, column sensitivity and the pipeline steps; v8 trace, span and parent_span in the ids)
 FINAL_STAGES = frozenset({"final", "terminal"})  # the last stage: this studio's, and the main product's
 
 M, C, P, A, X, V = "meta", "count", "person_text", "agent_text", "model_text", "cell_values"
@@ -131,6 +131,14 @@ KINDS: dict[str, dict[str, str]] = {
     "pipeline.step_finished": {"run": M, "step": M, "kind": M, "index": C, "fold": C, "metric": M, "value": C, "seconds": C, "digest": M},
     "run.recorded": {"run": M, "run_kind": M, "name": M, "status": M, "fingerprint": M, "inputs": M, "params": M, "outputs": M, "code": M,
                      "upstream": M, "parent": M, "seconds": C, "numbers": C, "steps": C},
+    # v9 (24.7): a problem of several parts. The map as drawn (the fingerprint, its size, the families of its sub-problems: names, never the person's words), a person's change to it, the
+    # approach routed to a sub-problem (with the candidates and what blocked them), the composition chosen on validation, and the programme built (its numbers: aggregates only)
+    "problem.mapped": {"map": M, "size": M, "template": M, "source": M, "by": M, "parts": C, "sub_problems": C, "families": M},
+    "problem.part_changed": {"map": M, "action": M, "part": M, "by": M, "parts_before": C, "parts_after": C, "reason": P},
+    "solution.routed": {"map": M, "sub_problem": M, "family": M, "chosen": M, "source": M, "candidates": M, "blocked": M},
+    "solution.composed": {"programme": M, "solution": M, "chosen": M, "best_leaf": M, "leaves": C, "positives": C, "best_leaf_score": C, "chosen_score": C},
+    "programme.built": {"programme": M, "state": M, "metric": M, "holdout_read": M, "leaves_built": C, "leaves_blocked": C, "composed": C, "best_leaf": C,
+                        "difference": C, "low": C, "high": C, "beats_best_leaf": M},
 }
 
 
@@ -183,7 +191,7 @@ class ExperienceEvent(Versioned):
 
     model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False, json_schema_extra=_vocabulary)
 
-    schema_version: Literal["dclab_core.experience_event.v8"] = _version("experience_event", 8)
+    schema_version: Literal["dclab_core.experience_event.v9"] = _version("experience_event", 9)
     id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{6,80}$")
     at: str = Field(description="ISO 8601 with microseconds, UTC.")
     seq: int = Field(default=0, ge=0)

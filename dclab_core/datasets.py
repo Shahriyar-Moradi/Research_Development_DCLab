@@ -14,6 +14,9 @@ consent, every source by id, the counts, and how it was split. The builders:
 * :func:`trajectories`: the steps of an agent run (tool, verdict, state), never a tool's arguments.
 * :func:`workflows`: a problem card and a data card, the solution workflow drawn for them, the solution and the
   pipeline the project ran.
+* :func:`problem_maps` (24.7): the words a person said understood as a card, the problem map first drawn, the one they built from, the edits between, and what the
+  programme that followed did against its best leaf. :func:`routes` (24.7): a sub-problem's state, the candidate approaches with what blocked them, the one chosen and
+  what became of it.
 * :func:`failures`: the sessions a failure detector flagged (``signals``), as candidate benchmark cases; only those a
   reviewer accepted are cases, and they go to a new benchmark version, never into a sealed set.
 """
@@ -32,7 +35,7 @@ from dclab_core.contracts import CONTRACTS, Contract, Versioned, _version
 
 VERSION = "1"
 Builder = Literal["decisions", "conversations", "preferences", "trajectories", "workflows", "failures", "development", "outcomes", "episodes",
-                  "model_calls"]  # outcomes: 23.5; episodes and model_calls: 23.10
+                  "model_calls", "problem_maps", "routes"]  # outcomes: 23.5; episodes and model_calls: 23.10; problem_maps and routes: 24.7
 SourceKind = Literal["decision", "label", "event", "visit", "conversation", "run", "project", "draft", "package", "flag"]
 SPLITS = (("sealed", 0.2), ("dev", 0.4))  # a group's hash below 0.2: sealed; below 0.4: dev; the rest train
 SALT = "dclab-datasets-v1"  # one salt for every set: a project is sealed (or not) everywhere at once
@@ -47,8 +50,9 @@ class Source(Contract):
 class DatasetManifest(Versioned):
     """What a dataset holds and where every row came from."""
 
-    schema_version: Literal["dclab_core.dataset_manifest.v4"] = _version("dataset_manifest", 4)
-    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.dataset_manifest.v1", "dclab_core.dataset_manifest.v2", "dclab_core.dataset_manifest.v3"})  # v2 added levels; v3 the outcomes builder; v4 the scrubber and the commit
+    schema_version: Literal["dclab_core.dataset_manifest.v5"] = _version("dataset_manifest", 5)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.dataset_manifest.v1", "dclab_core.dataset_manifest.v2", "dclab_core.dataset_manifest.v3",
+                                                 "dclab_core.dataset_manifest.v4"})  # v2 added levels; v3 the outcomes builder; v4 the scrubber and the commit; v5 the problem_maps and routes builders
     builder: Builder
     name: str = Field(min_length=1, max_length=120)
     version: str = Field(min_length=1, max_length=20)
@@ -70,8 +74,9 @@ class DatasetManifest(Versioned):
     @model_validator(mode="before")
     @classmethod
     def _read_v1(cls, data: Any) -> Any:
-        if isinstance(data, dict) and data.get("schema_version") in ("dclab_core.dataset_manifest.v1", "dclab_core.dataset_manifest.v2", "dclab_core.dataset_manifest.v3"):
-            data = {**data, "schema_version": "dclab_core.dataset_manifest.v4"}
+        if isinstance(data, dict) and data.get("schema_version") in ("dclab_core.dataset_manifest.v1", "dclab_core.dataset_manifest.v2", "dclab_core.dataset_manifest.v3",
+                                                                    "dclab_core.dataset_manifest.v4"):
+            data = {**data, "schema_version": "dclab_core.dataset_manifest.v5"}
         return data
 
 
@@ -367,6 +372,12 @@ def _when(at: Any) -> datetime:
     return moment.astimezone(timezone.utc) if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
 
 
+PHASE2_FIELDS = {"problem.mapped": ("map", "size", "parts", "families"), "problem.part_changed": ("action", "part", "by", "parts_before", "parts_after"),
+                 "solution.routed": ("sub_problem", "family", "chosen", "blocked"), "solution.composed": ("chosen", "best_leaf", "positives"),
+                 "programme.built": ("state", "holdout_read", "composed", "best_leaf", "difference", "beats_best_leaf")}  # codes and counts: never the person's reason
+PHASE2_KINDS = tuple(PHASE2_FIELDS)
+
+
 def episodes(events: Iterable[dict[str, Any]], records: Iterable[dict[str, Any]] = (), *, text: bool = False, workspace: Optional[str] = None,
              consent: str = "train", drafts: Optional[dict[str, str]] = None) -> tuple[list[dict[str, Any]], DatasetManifest]:
     """One row per turn of a conversation (a draft's or an intern session's): what the person said, what the agent answered, the
@@ -434,6 +445,7 @@ def episodes(events: Iterable[dict[str, Any]], records: Iterable[dict[str, Any]]
         moves = [e for e in window if e["kind"] == "graph.move"]
         feedback_given = [e for e in window if e["kind"] == "feedback.given"]
         observed = [e for e in window if e["kind"] == "outcome.observed"]
+        parts_events = [e for e in window if e["kind"] in PHASE2_KINDS]  # 24.7: the map of the problem, its edits, the routes, the composition and the programme, as part of the turn
         project = turn["project"]
         group = group_of(project, turn["conversation"], None, drafts, f"conversation:{turn['conversation']}")
         rows.append({
@@ -458,6 +470,7 @@ def episodes(events: Iterable[dict[str, Any]], records: Iterable[dict[str, Any]]
             "outcomes": [{"verdict": (e.get("payload") or {}).get("verdict"), "observed": (e.get("payload") or {}).get("observed"),
                           "metric": (e.get("payload") or {}).get("metric"), "value": (e.get("payload") or {}).get("value")} for e in observed[:20]],
             "outcomes_total": len(observed),
+            "problem_parts": [{"kind": e["kind"], **{k: (e.get("payload") or {}).get(k) for k in PHASE2_FIELDS[e["kind"]]}} for e in parts_events[:60]], "problem_parts_total": len(parts_events),
             "errors": kinds.get("error.raised", 0) + kinds.get("stage.failed", 0),
             "event_ids": [e.get("id") for e in window], "consent": lowest(e.get("consent") for e in window),
             "group": group, "split": split_of(group),
@@ -534,6 +547,48 @@ def workflows(items: Iterable[dict[str, Any]], *, workspace: Optional[str] = Non
                           limits=["The code of a pipeline is not in it yet: the stages and their choices are."])
 
 
+# ------------------------------------------------------------------------------------------------ (g) problem maps and routes (24.7)
+
+def problem_maps(items: Iterable[dict[str, Any]], *, workspace: Optional[str] = None, consent: str = "train") -> tuple[list[dict[str, Any]], DatasetManifest]:
+    """Brief to map, one example per draft whose person built a project from a problem map: ``items`` as the host assembles them (``draft``, ``project``, ``problem_card``,
+    ``proposed`` (the first map drawn), ``final`` (the map built from), ``edits`` (the person's changes), ``confirmed``, ``outcome`` (what the programme did against its best
+    leaf, or None)). The person's edits are the correction labels: ``corrected`` says the map built from is not the one first drawn."""
+    rows = []
+    for item in items:
+        final = item.get("final")
+        if not final or not item.get("problem_card"):
+            continue
+        group = group_of(item.get("project"), item.get("draft"), None, None, "problem_map")
+        edits = [{k: e.get(k) for k in ("action", "by", "part", "keep", "other", "from", "to")} for e in item.get("edits") or []]
+        proposed = item.get("proposed")
+        rows.append({"draft": item.get("draft"), "project": item.get("project"), "problem_card": item.get("problem_card"), "proposed": proposed, "final": final, "edits": edits,
+                     "corrected": bool(proposed) and proposed.get("fingerprint") != final.get("fingerprint"), "confirmed": bool(item.get("confirmed")),
+                     "outcome": item.get("outcome"), "group": group, "split": split_of(group), "sources": [("draft", item.get("draft")), ("project", item.get("project"))]})
+    return rows, manifest("problem_maps", "maps.brief_to_map", rows, sources_of(rows), use="train", consent=consent, workspace=workspace,
+                          counts={"corrected": dict(Counter("yes" if r["corrected"] else "no" for r in rows)),
+                                  "outcome": dict(Counter(("beat_best_leaf" if (r["outcome"] or {}).get("beats_best_leaf") else "did_not_beat") if r["outcome"] else "no_programme" for r in rows))},
+                          policy="One example per draft built into a project; grouped by the project, split as every set.",
+                          limits=["The words are the problem card's, redacted as every exported text.",
+                                  "An outcome is a recall of the confirmed cases on one holdout, partial and biased towards the visible kind: a signal, not a verdict on the map."])
+
+
+def routes(items: Iterable[dict[str, Any]], *, workspace: Optional[str] = None, consent: str = "train") -> tuple[list[dict[str, Any]], DatasetManifest]:
+    """Sub-problem to approach, one example per sub-problem routed: ``items`` as the host assembles them (``draft``, ``project``, ``map`` (a fingerprint) and ``routes``, each with
+    its ``sub_problem``, ``state`` (family, labels and codes), ``candidates`` (approach, rank, blocked_by, unknown), ``chosen``, ``source`` and ``outcome``). Codes and counts only."""
+    rows = []
+    for item in items:
+        for r in item.get("routes") or []:
+            group = group_of(item.get("project"), item.get("draft"), None, None, "route")
+            rows.append({"draft": item.get("draft"), "project": item.get("project"), "map": item.get("map"), "sub_problem": r.get("sub_problem"), "state": r.get("state"),
+                         "candidates": r.get("candidates"), "chosen": r.get("chosen"), "source": r.get("source"), "outcome": r.get("outcome"), "group": group,
+                         "split": split_of(group), "sources": [("draft", item.get("draft")), ("project", item.get("project"))]})
+    return rows, manifest("routes", "routes.sub_problem_to_approach", rows, sources_of(rows), use="train", consent=consent, workspace=workspace,
+                          counts={"chosen": dict(Counter(str(r["chosen"]) for r in rows)), "source": dict(Counter(str(r["source"]) for r in rows)),
+                                  "outcome": dict(Counter(str((r["outcome"] or {}).get("leaf", "no_programme")) for r in rows))},
+                          policy="One example per sub-problem of a map built into a project; grouped by the project, split as every set.",
+                          limits=["Codes and counts only: no reason text, no column name, no value."])
+
+
 # ------------------------------------------------------------------------------------------------ (f) failures
 
 def failures(sessions: Iterable[dict[str, Any]], reviews: Optional[dict[str, dict[str, Any]]] = None, *, workspace: Optional[str] = None,
@@ -564,5 +619,5 @@ def failures(sessions: Iterable[dict[str, Any]], reviews: Optional[dict[str, dic
                           limits=["A candidate is not a case until a reviewer accepts it."])
 
 
-__all__ = ["group_of", "sources_of", "refit", "SALT", "DatasetManifest", "Source", "decisions", "conversations", "preferences", "trajectories", "workflows", "failures", "manifest",
+__all__ = ["group_of", "sources_of", "refit", "SALT", "DatasetManifest", "Source", "decisions", "conversations", "preferences", "trajectories", "workflows", "problem_maps", "routes", "failures", "manifest",
            "split_of", "LABEL_SOURCES", "VERSION"]

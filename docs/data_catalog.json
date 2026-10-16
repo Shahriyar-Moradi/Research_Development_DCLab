@@ -79,9 +79,10 @@
    "reads": [
     "dclab_core.dataset_manifest.v1",
     "dclab_core.dataset_manifest.v2",
-    "dclab_core.dataset_manifest.v3"
+    "dclab_core.dataset_manifest.v3",
+    "dclab_core.dataset_manifest.v4"
    ],
-   "version": "dclab_core.dataset_manifest.v4"
+   "version": "dclab_core.dataset_manifest.v5"
   },
   {
    "contract": "decision",
@@ -91,9 +92,10 @@
   {
    "contract": "decision_label",
    "reads": [
-    "dclab_core.decision_label.v1"
+    "dclab_core.decision_label.v1",
+    "dclab_core.decision_label.v2"
    ],
-   "version": "dclab_core.decision_label.v2"
+   "version": "dclab_core.decision_label.v3"
   },
   {
    "contract": "decision_model_card",
@@ -110,7 +112,7 @@
   {
    "contract": "experience_event",
    "reads": [],
-   "version": "dclab_core.experience_event.v8"
+   "version": "dclab_core.experience_event.v9"
   },
   {
    "contract": "experience_session",
@@ -245,9 +247,19 @@
    "builder": "model_calls",
    "needs": "train",
    "what": "Each model call whose prompt and reply were kept (train only; never a call that was shown cell values), with the check's verdict and the feedback (23.10)."
+  },
+  {
+   "builder": "problem_maps",
+   "needs": "train",
+   "what": "A person's words as a problem map of parts: the map first drawn, the one built from, the person's edits as the correction, and what the programme did against its best leaf (24.7)."
+  },
+  {
+   "builder": "routes",
+   "needs": "train",
+   "what": "A sub-problem routed to an approach: its state, the candidates with the codes that refuted them, the one chosen and what became of it; codes and counts only (24.7)."
   }
  ],
- "dclab_core": "0.54.0",
+ "dclab_core": "0.55.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -638,6 +650,17 @@
    "kind": "technical",
    "main_product": null,
    "point": "report.claim",
+   "subjects": [
+    "project"
+   ]
+  },
+  {
+   "about": "How are the leaves of the programme combined: one alone, a fusion, a gate?",
+   "answer": "value",
+   "decided_in": null,
+   "kind": "workflow",
+   "main_product": null,
+   "point": "solution.compose",
    "subjects": [
     "project"
    ]
@@ -1430,6 +1453,73 @@
   },
   {
    "emitted_by": [
+    "dclab_rnd/experience/hooks.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind problem.mapped",
+   "family": "problem",
+   "fields": {
+    "by": "meta",
+    "families": "meta",
+    "map": "meta",
+    "parts": "count",
+    "size": "meta",
+    "source": "meta",
+    "sub_problems": "count",
+    "template": "meta"
+   },
+   "kind": "problem.mapped",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/experience/hooks.py",
+    "dclab_rnd/studio/programme.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind problem.part_changed",
+   "family": "problem",
+   "fields": {
+    "action": "meta",
+    "by": "meta",
+    "map": "meta",
+    "part": "meta",
+    "parts_after": "count",
+    "parts_before": "count",
+    "reason": "person_text"
+   },
+   "kind": "problem.part_changed",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/experience/hooks.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind programme.built",
+   "family": "programme",
+   "fields": {
+    "beats_best_leaf": "meta",
+    "best_leaf": "count",
+    "composed": "count",
+    "difference": "count",
+    "high": "count",
+    "holdout_read": "meta",
+    "leaves_blocked": "count",
+    "leaves_built": "count",
+    "low": "count",
+    "metric": "meta",
+    "programme": "meta",
+    "state": "meta"
+   },
+   "kind": "programme.built",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
     "dclab_rnd/experience/hooks.py",
     "dclab_rnd/studio/engine.py",
     "dclab_rnd/studio/lineage.py"
@@ -1453,6 +1543,27 @@
     "upstream": "meta"
    },
    "kind": "run.recorded",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/experience/hooks.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind solution.composed",
+   "family": "solution",
+   "fields": {
+    "best_leaf": "meta",
+    "best_leaf_score": "count",
+    "chosen": "meta",
+    "chosen_score": "count",
+    "leaves": "count",
+    "positives": "count",
+    "programme": "meta",
+    "solution": "meta"
+   },
+   "kind": "solution.composed",
    "leaves_at": "improve",
    "never_leaves": [],
    "train_only": []
@@ -1488,6 +1599,26 @@
     "target": "meta"
    },
    "kind": "solution.refused",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/experience/hooks.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind solution.routed",
+   "family": "solution",
+   "fields": {
+    "blocked": "meta",
+    "candidates": "meta",
+    "chosen": "meta",
+    "family": "meta",
+    "map": "meta",
+    "source": "meta",
+    "sub_problem": "meta"
+   },
+   "kind": "solution.routed",
    "leaves_at": "improve",
    "never_leaves": [],
    "train_only": []

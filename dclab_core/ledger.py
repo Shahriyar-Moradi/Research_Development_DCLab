@@ -59,6 +59,7 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "has_time": (FLAG, ()), "has_groups": (FLAG, ()), "has_text": (FLAG, ()), "tables": (COUNT, ()),
     "moment_known": (FLAG, ()), "outcome_known": (FLAG, ()), "open_questions": (COUNT, ()), "blocking": (COUNT, ()),
     "parts": (COUNT, ()), "parts_before": (COUNT, ()), "parts_after": (COUNT, ()), "template": (CODE, ()), "sub_problem": (CODE, ()),  # 24.2: the problem map's size and the rule that drew it
+    "positives": (COUNT, ()),  # 24.7: the confirmed cases a choice was made on
     # measurements a decision can be made on (aggregates, never a row)
     "apparent_lift": (MEASURE, ()), "optimism_gap": (MEASURE, ()), "tuning_gain": (MEASURE, ()), "cv_mean": (MEASURE, ()),
     "cv_std": (MEASURE, ()), "holdout_value": (MEASURE, ()), "baseline_value": (MEASURE, ()), "share": (RATIO, ()),
@@ -166,6 +167,7 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     _p("map.size", W, DP, "choice", "Is the problem one problem, or several that depend on each other?", choices=("single", "complex")),
     _p("map.edit", W, DP, "choice", "What did the person change in the problem map?", choices=("add", "remove", "merge", "confirm", "redraw")),
     _p("solution.route", W, DP, "value", "Which approach solves this sub-problem?"),
+    _p("solution.compose", W, "project", "value", "How are the leaves of the programme combined: one alone, a fusion, a gate?"),
     _p("workflow.next_question", W, "conversation", "value", "Which question is asked next, if any?"),
     _p("workflow.template", W, DP, "value", "Which solution workflow does it follow?"),
     _p("workflow.move", W, "workflow", "noul", "Is this move allowed now?"),
@@ -316,7 +318,7 @@ class DecisionRecord(Versioned):
 
 
 class Evidence(Contract):
-    kind: Literal["planted_truth", "apparent_lift", "optimism_gap", "tuning_gain", "ladder", "holdout_vs_cv", "review", "override"]
+    kind: Literal["planted_truth", "apparent_lift", "optimism_gap", "tuning_gain", "ladder", "holdout_vs_cv", "review", "override", "holdout_vs_best_leaf"]  # v3: the last
     value: Optional[float] = None
     ref: Optional[str] = Field(default=None, max_length=200, description="What it cites: a planted case's id, a record path.")
 
@@ -324,8 +326,8 @@ class Evidence(Contract):
 class DecisionLabel(Versioned):
     """What the right value of a decision was, from one source; a new label supersedes an older one, never edits it."""
 
-    schema_version: Literal["dclab_core.decision_label.v2"] = _version("decision_label", 2)
-    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.decision_label.v1"})  # stored labels stay readable
+    schema_version: Literal["dclab_core.decision_label.v3"] = _version("decision_label", 3)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.decision_label.v1", "dclab_core.decision_label.v2"})  # stored labels stay readable
     id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{6,80}$")
     record: str = Field(min_length=1, max_length=80, description="The decision record it labels.")
     point: str
@@ -344,9 +346,9 @@ class DecisionLabel(Versioned):
     @model_validator(mode="before")
     @classmethod
     def _read_v1(cls, data: Any) -> Any:
-        """A label as stored; a v1 label is read as v2: v2 only added a source."""
-        if isinstance(data, dict) and data.get("schema_version") == "dclab_core.decision_label.v1":
-            data = {**data, "schema_version": "dclab_core.decision_label.v2"}
+        """A label as stored; a v1 or v2 label is read as v3: v2 only added a source, v3 an evidence kind (24.7: a composition's holdout against its best leaf)."""
+        if isinstance(data, dict) and data.get("schema_version") in ("dclab_core.decision_label.v1", "dclab_core.decision_label.v2"):
+            data = {**data, "schema_version": "dclab_core.decision_label.v3"}
         return data
 
     @model_validator(mode="after")

@@ -310,3 +310,43 @@ def from_draft_pipeline(draft_id: str, asset: dict[str, Any], final: dict[str, A
                                outputs=lineage.RunOutputs(chosen=final.get("status"), numbers=numbers), code=code("dclab_rnd.draft.pipeline"),
                                error=None if ready else str(final.get("error") or "")[:600] or None)
     _run_event(done, conversation=draft_id, run=run)
+
+
+# ------------------------------------------------------------------------------------------------------------ a problem of several parts (24.7)
+
+@_quiet
+def map_drawn(draft_id: str, m: Any, by_model: bool) -> None:
+    """The problem map drawn (or drawn again): its fingerprint, size and the families of its sub-problems. Names and counts; the person's words are not in it."""
+    record("problem.mapped", "model" if by_model else "system",
+           {"map": m.fingerprint, "size": m.size, "template": m.template or "none", "source": m.source, "by": "decomposer" if by_model else "rules",
+            "parts": len(m.parts), "sub_problems": len(m.sub_problems), "families": [str(x.family) for x in m.sub_problems][:40]}, conversation=draft_id)
+
+
+@_quiet
+def map_changed(draft_id: str, held: Any, made: Any, action: str, who: str, part: str | None = None, reason: str | None = None) -> None:
+    """A person's change to the map (add, remove, merge, confirm): what they did, and how many parts there were before and after."""
+    record("problem.part_changed", "person", {"map": made.fingerprint, "action": action, "part": (part or "")[:60] or None, "by": who, "parts_before": len(held.parts),
+                                              "parts_after": len(made.parts), "reason": (reason or "")[:2000] or None}, conversation=draft_id)
+
+
+@_quiet
+def route_made(draft_id: str, map_fingerprint: str, sub: Any, route: Any) -> None:
+    """The approach routed to one sub-problem, with the candidates and the ones the data card or the map refuted."""
+    record("solution.routed", "model" if route.source == "advisor" else "system",
+           {"map": map_fingerprint, "sub_problem": sub.id, "family": str(sub.family), "chosen": route.chosen, "source": route.source,
+            "candidates": [c.approach for c in route.candidates][:16], "blocked": [c.approach for c in route.candidates if c.blocking][:16]}, conversation=draft_id)
+
+
+@_quiet
+def programme_built(project_id: str, p: Any, actor: str) -> None:
+    """A programme run: the composition chosen on validation (when it was) and the programme's state with the numbers of its one read of the holdout (when it was read)."""
+    c, h = p.composition, p.holdout
+    built = [l for l in p.leaves if l.status == "built"]
+    if c is not None:
+        record("solution.composed", "system", {"programme": p.fingerprint, "solution": p.solution, "chosen": c.chosen, "best_leaf": c.best_leaf, "leaves": len(c.weights),
+                                               "positives": c.positives, "best_leaf_score": c.best_leaf_score, "chosen_score": c.candidates.get(c.chosen)}, project=project_id)
+    record("programme.built", _actor(actor), {"programme": p.fingerprint, "state": p.state, "metric": p.metric, "holdout_read": "yes" if h is not None else "no",
+                                              "leaves_built": len(built), "leaves_blocked": sum(1 for l in p.leaves if l.status == "blocked"),
+                                              "composed": h.composed.value if h else None, "best_leaf": h.best_leaf_estimate.value if h else None,
+                                              "difference": h.difference.value if h else None, "low": h.difference.low if h else None, "high": h.difference.high if h else None,
+                                              "beats_best_leaf": ("yes" if h.beats_best_leaf else "no") if h else None}, project=project_id)

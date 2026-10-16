@@ -573,6 +573,12 @@ measured against the rules before it serves):
   the timeline shows a programme's map as a turn; the main product's adapters (23.12) read the two contracts.
 - **Done when:** a journey through the fraud programme leaves every map, route and composition decision in the ledger
   with its reasons and every agent step in the record, and `make datasets` builds both sets from it.
+- **Status: done (2026-10-16).** dclab-core 0.55.0 (`experience_event` v9: `problem.mapped`, `problem.part_changed`, `solution.routed`, `solution.composed`, `programme.built`; `decision_label` v3; `dataset_manifest` v5; the
+  builders `problem_maps` and `routes`; `episodes` rows carry `problem_parts`). The studio records them where the decisions are made: the draft's map (drawn, edited, confirmed, routed), a route that changes when a
+  table arrives, a programme's composition and its run, a dropped leaf; the ledger holds `solution.compose` with the candidates as options and a measured label after the holdout (`holdout_vs_best_leaf`). The journey
+  JP-01, played in a workspace, leaves every map, route and composition decision in the ledger and the log, the new roles leave a step each when a model serves them, and `make datasets` builds both sets from it
+  under the train consent only. Differences from the plan, said: the point `problem.decompose` is the shipped `map.size` (24.2), and `problem.subproblem_family` is not a decision of its own (the family of a
+  sub-problem is in the map record and in each route's state). Left open: the main product's side of the five kinds (listed as missing there with their reasons).
 
 ### 24.8 Measurement and switch-on
 - **Delivers:** journeys v5: the dev set (fifteen single problems and six complex ones, written beside the rules) and a

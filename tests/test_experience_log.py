@@ -235,8 +235,8 @@ class OneSessionTest(unittest.TestCase):
                 and not (e.kind in ("agent.step", "tool.call") and e.ids.run == self.draft)  # the Home agent's moves: a background turn too
                 and not e.kind.startswith("pipeline.step_")]  # 23.8: each step of a run is two events: counted in test_steps, not in the flow
         self.assertEqual(mine, [
-            ("draft.created", ""), ("data.uploaded", ""), ("data.cleaned", ""), ("data.analysed", ""), ("solution.proposed", ""), ("solution.saved", ""), ("decision.accepted", "settings"), ("graph.move", "map:confirm"), ("graph.move", "map:redraw"),
-            ("graph.move", "set_solution"), ("draft.built", ""), ("job.started", ""), ("stage.started", "data"), ("stage.finished", "data"), ("run.recorded", ""), ("graph.move", "run_stage"),
+            ("draft.created", ""), ("data.uploaded", ""), ("data.cleaned", ""), ("data.analysed", ""), ("solution.proposed", ""), ("solution.saved", ""), ("decision.accepted", "settings"), ("problem.mapped", ""), ("solution.routed", ""), ("graph.move", "map:confirm"), ("problem.part_changed", ""),
+            ("graph.move", "map:redraw"), ("problem.mapped", ""), ("graph.move", "set_solution"), ("draft.built", ""), ("job.started", ""), ("stage.started", "data"), ("stage.finished", "data"), ("run.recorded", ""), ("graph.move", "run_stage"),
             ("job.stopped", ""), ("graph.move", "approve_stage"), ("stage.approved", "data"), ("chat.person", "project"), ("chat.agent", "project"),
             ("solution.refused", "")])  # the raising /ask failed before its question was logged; its error is the visit's, not the project's
 
