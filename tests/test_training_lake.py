@@ -250,5 +250,25 @@ class SolverBenchmarkTests(unittest.TestCase):
         self.assertEqual(B.wilson(0, 0), [None, None])
 
 
+class LearnedAutomlTests(unittest.TestCase):
+    def test_a_meta_model_that_reads_the_table_beats_a_fixed_family_where_the_winner_depends_on_it(self):
+        from dclab_rnd.lake import automl as A
+
+        rows = []
+        for kind in ("k1", "k2", "k3"):
+            for i in range(12):
+                small = i % 2 == 0  # small tables: the linear model wins; large ones: boosting
+                screen = [{"model": "logistic_regression", "mean": 0.8 if small else 0.6}, {"model": "xgboost", "mean": 0.65 if small else 0.82},
+                          {"model": "random_forest", "mean": 0.7}]
+                rows.append({"kind": kind, "task": "binary", "rows": 500 if small else 200000, "columns": 10, "usable_features": 9,
+                             "dtypes": {"float": 10}, "cardinality": {"high": 10}, "nulls": {"none": 10}, "target_summary": {"positive_rate_train": 0.2},
+                             "screen": screen})
+        out = A.evaluate(rows)
+        self.assertEqual(out["problems"], 36)
+        self.assertEqual(out["pickers"]["meta_model"]["mean_regret"], 0.0)  # learned which family wins, on kinds it never saw
+        self.assertGreater(out["pickers"]["always_xgboost"]["mean_regret"], 0.3)
+        self.assertEqual(A.regret(rows[0], "not_in_screen"), 1.0)  # a family the screen did not try counts as the worst
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -16,6 +16,8 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--home", type=Path, action="append", default=[], help="another workspace to read (repeatable)")
     b.add_argument("--lake", type=Path, default=LAKE)
     sub.add_parser("summary", help="the committed manifest's counts")
+    am = sub.add_parser("automl", help="26.6a: a family picked from meta-features, judged by regret on held-out problem kinds")
+    am.add_argument("--store", action="store_true", help="store the result in evidence/campaigns/automl_v1")
     bm = sub.add_parser("benchmark", help="27.6: an answerer on the verified invented problems, scored against their planted truth")
     bm.add_argument("--answerer", choices=("rules", "configured", "tuned"), required=True)
     bm.add_argument("--split", choices=("dev", "sealed"), default="dev")
@@ -58,6 +60,12 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         doc = benchmark.run(args.answerer, args.split, args.limit, args.cap_eur)
         print(json.dumps({k: doc.get(k) for k in ("id", "answerer", "split", "cases", "problems", "families", "spent_eur")}, indent=1, default=str))
+        return 0
+    if args.command == "automl":
+        from . import automl
+
+        doc = automl.run(args.store)
+        print(json.dumps({k: doc.get(k) for k in ("id", "result")}, indent=1, default=str))
         return 0
     if args.command == "summary":
         print(MANIFEST.read_text(encoding="utf-8") if MANIFEST.exists() else "no lake built yet: make lake")

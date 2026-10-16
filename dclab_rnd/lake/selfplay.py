@@ -172,7 +172,8 @@ def solve(kinds_keys: Iterable[str] | None = None, seeds: int = 20, log=print) -
                 if case is None or case.target is None:
                     break  # a kind without a replica case, or one with no outcome (anomaly: its own path)
                 run = A.engine_run(case, kind.key)
-                checks = kind.accept(run)
+                # a kind with its own machine checks the engine's run with accept_engine (its accept reads its own machine's result)
+                checks = kind.accept_engine(run) if kind.own_machine() is not None else kind.accept(run)
             except Exception as exc:  # noqa: BLE001 — a solve that breaks is a rejection with its reason, never a stop
                 rejected.append({"group": group, "reason": f"{type(exc).__name__}: {str(exc)[:200]}"})
                 record(group, [], {"verified": False, "reason": rejected[-1]["reason"]})
