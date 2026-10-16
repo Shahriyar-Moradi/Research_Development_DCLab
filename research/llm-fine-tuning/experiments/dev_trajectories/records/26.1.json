@@ -1,0 +1,192 @@
+{
+  "package": "26.1",
+  "title": "The training lake: one store, one record shape per task, every row's origin, consent and split (with 26.2, 27.1, 27.3)",
+  "date": "2026-10-16",
+  "request": "Phases 4 and 5: DCLab's own decision models and an ML-solver model, with every piece of data they need collected under the hood, organised, structured and clean. The owner's answers: OpenML yes; Claude's outputs evaluation only; the owner trains on a GPU.",
+  "spec": "dclab_core.lake (DecisionSample, TrainingExample, GoldManifest, Provenance, origins, gold_problems); dclab_rnd/lake (bronze, silver, gold; make lake); OpenML real tables; verified self-play; the committed manifest.",
+  "plan": [
+    "Write the record shapes and the rules first.",
+    "Read every source through its existing consent gate.",
+    "Fetch real tables once and keep only bands.",
+    "Solve invented problems and keep only verified solves."
+  ],
+  "decisions": [
+    {
+      "decision": "The lake reads a workspace only through the sets make datasets wrote under its train consent.",
+      "why": "Those sets already apply the workspace, project and draft consent, storage and grouping; a second reader would bypass them (review)."
+    },
+    {
+      "decision": "DCLab's build history is evaluation only until the owner decides.",
+      "why": "It was written in Claude Code sessions, so it is a Claude output under the owner's decision about Claude's outputs."
+    },
+    {
+      "decision": "A training row identical to an evaluation row is dropped, whatever its group.",
+      "why": "Banded features repeat across tables; an identical input in train and sealed measures recall, not judgement."
+    }
+  ],
+  "change": "dclab_core/lake.py (new), contracts, conformance, CHANGELOG 0.59.0, schemas; dclab_rnd/lake/__init__.py, __main__.py, openml.py, selfplay.py (new); Makefile lake; .gitignore lake/; tests/test_training_lake.py (new); plan, integration guide, CLAUDE.md, catalog.",
+  "findings": [
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The new tests overwrote an existing test file and deleted 21 passing tests.",
+      "scenario": "tests/test_lake.py held the 23.10 suite; the lake tests were written over it.",
+      "cause": "The file name was taken without checking.",
+      "fix": "The suite is restored; the lake tests are in tests/test_training_lake.py.",
+      "test": "tests/test_lake.py (21 tests) and tests/test_training_lake.py"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Drafts were read as files, so on PostgreSQL every Claude session was dropped.",
+      "scenario": "The owner's dev workspace keeps drafts in the database.",
+      "cause": "The builder read the workspace folder directly.",
+      "fix": "The lake reads only what make datasets wrote, through storage.",
+      "test": "test_a_workspace_is_read_only_under_train_consent_and_claude_only_as_evaluation"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "Twin folders were read with no consent check and labelled as the owner's.",
+      "scenario": "A collected tester's workspace with consent off still entered the lake.",
+      "cause": "The twin folder was read directly.",
+      "fix": "Claude's answers arrive only through the twin sets, built under the workspace's and each project's consent.",
+      "test": "test_a_workspace_is_read_only_under_train_consent_and_claude_only_as_evaluation"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "A withdrawn consent was not honoured until the next sweep.",
+      "scenario": "Train switched off at 10:00, make lake at 10:05: the withdrawn rows went into gold.",
+      "cause": "The set manifests' use field was trusted.",
+      "fix": "The workspace's current switch and the stale marker are checked; an improve-only set is counted and not read.",
+      "test": "test_a_workspace_is_read_only_under_train_consent_and_claude_only_as_evaluation"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "Stale gold sets were never removed.",
+      "scenario": "A refused set or a withdrawn point kept its old rows for training to read.",
+      "cause": "Only written folders were cleared.",
+      "fix": "Silver and gold are rebuilt whole each time.",
+      "test": "test_the_build_history_is_evaluation_only_and_a_rebuild_leaves_nothing_withdrawn"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "Decontamination never fired for decisions.",
+      "scenario": "About 45% of train rows were identical to dev or sealed rows.",
+      "cause": "The dedupe key held the group, which is in one split.",
+      "fix": "The key is the point, features and label; a train row identical to dev or sealed, and a dev row identical to sealed, are dropped and counted.",
+      "test": "test_generated_sets_keep_their_sealed_partition_and_learn_nothing_of_it"
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A teacher row's input was not what Claude saw.",
+      "scenario": "12 of 58 replies included a message posted after Claude's request.",
+      "cause": "The input was rebuilt from the draft by time.",
+      "fix": "Teacher rows come from the twin sets, which keep the step's own input.",
+      "test": "test_a_workspace_is_read_only_under_train_consent_and_claude_only_as_evaluation"
+    },
+    {
+      "id": "R8",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "The expert design target was not redacted.",
+      "scenario": "Claude's restatement of the person's words went in raw.",
+      "cause": "Only the request was redacted.",
+      "fix": "Designs come from the twin sets, redacted by their builder.",
+      "test": "tests of 25.7"
+    },
+    {
+      "id": "R9",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Each set's dropped counts were wrong.",
+      "scenario": "Every decision set showed every source's drops.",
+      "cause": "One global counter.",
+      "fix": "Drops are counted per source and merged into the sets each source feeds; the summary lists them by source.",
+      "test": "test_a_workspace_is_read_only_under_train_consent_and_claude_only_as_evaluation"
+    },
+    {
+      "id": "R10",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Workflow decisions were labelled as column decisions.",
+      "scenario": "A draft's next-question decision became a column sample.",
+      "cause": "Every subject kind but column was turned into column.",
+      "fix": "The ledger's kinds map to column, dataset, problem or step.",
+      "test": "test_a_workspace_is_read_only_under_train_consent_and_claude_only_as_evaluation"
+    },
+    {
+      "id": "R11",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "Teacher rows were grouped under another name than the decisions of the same session.",
+      "scenario": "A model trained on a project's decisions could be compared with Claude on the same session.",
+      "cause": "The group was the draft id, not the project.",
+      "fix": "The twin sets' groups come from group_of, the same in every set.",
+      "test": "tests of 25.7"
+    },
+    {
+      "id": "R12",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The failure paths were not tested.",
+      "scenario": "Removing the consent or sealed branches left the suite green.",
+      "cause": "Only the happy path was tested.",
+      "fix": "Tests for consent off, improve only, stale, withdrawal, a sealed row outside sealed, decontamination, OpenML labels and masking.",
+      "test": "tests/test_training_lake.py"
+    },
+    {
+      "id": "S1",
+      "source": "self",
+      "severity": "leakage",
+      "defect": "The outcome was always the last option of the target question.",
+      "scenario": "A model could learn its position, not the table.",
+      "cause": "It was appended to keep it among the first 60.",
+      "fix": "The options are sorted.",
+      "test": "test_an_openml_table_becomes_samples_with_its_licence_and_the_outcome_never_in_a_learnable_place"
+    },
+    {
+      "id": "S2",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "A self-play leakage answer was not learnable from its input.",
+      "scenario": "The engine found the leak from a train-only signal the input did not show.",
+      "cause": "The input held only the column bands.",
+      "fix": "The auditor's train-only signals are part of the input.",
+      "test": "test_a_verified_solve_teaches_and_its_masked_twin_names_nothing"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "the first lake build",
+      "gate": "gold_problems: none in any set",
+      "fixed_before_run": true,
+      "result": "every set written; generated decisions decontaminated; OpenML tables arriving; Claude answers only in eval_only",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "The workspaces' own sets are empty until their train consent and each project's consent are on."
+      ]
+    }
+  ],
+  "outcome": "One lake every DCLab model reads, organised by task, with every row's origin and consent, rebuilt whole and checked.",
+  "lessons": [
+    "Read data through the gate that already applies consent; never beside it.",
+    "Check a file name exists before writing a new test file."
+  ],
+  "risks": [
+    "Most workspace sets hold rows only once a project's consent is on; the lake's real-session content is near empty today."
+  ],
+  "commits": []
+}

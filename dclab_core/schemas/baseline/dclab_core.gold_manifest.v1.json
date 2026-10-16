@@ -1,0 +1,98 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "builder_commit": {
+      "anyOf": [
+        {
+          "maxLength": 60,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "built_at": {
+      "maxLength": 40,
+      "type": "string"
+    },
+    "by_family": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "by_origin": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "by_split": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "dropped": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "groups": {
+      "default": 0,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "inputs": {
+      "items": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "maxItems": 500,
+      "type": "array"
+    },
+    "kind": {
+      "enum": [
+        "decision_sample",
+        "training_example"
+      ],
+      "type": "string"
+    },
+    "name": {
+      "maxLength": 120,
+      "type": "string"
+    },
+    "rows": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "rule": {
+      "default": "A set for training and measuring DCLab's own models; scores on it are evidence about those models on these sources, never a claim of production readiness.",
+      "maxLength": 600,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.gold_manifest.v1",
+      "default": "dclab_core.gold_manifest.v1",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 40,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "version",
+    "kind",
+    "rows",
+    "built_at"
+  ],
+  "type": "object"
+}

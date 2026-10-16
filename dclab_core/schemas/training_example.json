@@ -1,0 +1,232 @@
+{
+  "$defs": {
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "Where a row came from and what it may be used for.",
+      "properties": {
+        "consent": {
+          "enum": [
+            "owner",
+            "train",
+            "improve",
+            "public",
+            "ours"
+          ],
+          "title": "Consent",
+          "type": "string"
+        },
+        "from_sealed": {
+          "default": false,
+          "description": "Read from a source's sealed partition: it may only ever be in the sealed split.",
+          "title": "From Sealed",
+          "type": "boolean"
+        },
+        "group": {
+          "description": "What must never be in two splits: a dataset, a project, a draft, a seed.",
+          "maxLength": 200,
+          "title": "Group",
+          "type": "string"
+        },
+        "licence": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A public dataset's licence; None for our own records.",
+          "title": "Licence"
+        },
+        "origin": {
+          "enum": [
+            "construction",
+            "replica",
+            "factory_rule",
+            "rule_prod",
+            "human_exposed",
+            "human_blind",
+            "measured_outcome",
+            "public_catalog",
+            "verified_synthetic",
+            "research_record",
+            "dev_record",
+            "teacher_claude"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "record_ids": {
+          "description": "Back-links: decision record, episode, run, package.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Record Ids",
+          "type": "array"
+        },
+        "source": {
+          "description": "The set or record store it was read from.",
+          "maxLength": 200,
+          "title": "Source",
+          "type": "string"
+        },
+        "split": {
+          "enum": [
+            "train",
+            "dev",
+            "sealed",
+            "eval_only"
+          ],
+          "title": "Split",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "origin",
+        "consent",
+        "group",
+        "split"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    },
+    "Verification": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        },
+        "kind": {
+          "enum": [
+            "construction",
+            "reproduced",
+            "executed",
+            "cited",
+            "label_match",
+            "person",
+            "none"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "passed"
+      ],
+      "title": "Verification",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.training_example.v1.json",
+  "additionalProperties": false,
+  "description": "One example of one task family for the ML-solver model: what it sees, what it should produce, why it is right.",
+  "properties": {
+    "example_id": {
+      "maxLength": 80,
+      "title": "Example Id",
+      "type": "string"
+    },
+    "family": {
+      "enum": [
+        "understand_problem",
+        "ask_question",
+        "read_data",
+        "eda_plan",
+        "leakage_judgment",
+        "split_design",
+        "problem_type",
+        "algorithm_choice",
+        "feature_plan",
+        "evaluation_design",
+        "pipeline_code",
+        "read_results",
+        "next_experiment",
+        "report",
+        "agent_step",
+        "typed_decision",
+        "evidence_answer",
+        "engineering",
+        "solution_design"
+      ],
+      "title": "Family",
+      "type": "string"
+    },
+    "messages": {
+      "description": "The conversation as a served model gets it (system, user, assistant, tool), the last turn the target.",
+      "items": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "maxItems": 60,
+      "minItems": 2,
+      "title": "Messages",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance"
+    },
+    "quality": {
+      "default": 0.5,
+      "description": "0..1 from the cleaning pipeline (27.5): verified, cited, agreement, length.",
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Quality",
+      "type": "number"
+    },
+    "rationale": {
+      "anyOf": [
+        {
+          "maxLength": 4000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Why the target is right, when the source says so.",
+      "title": "Rationale"
+    },
+    "schema_version": {
+      "const": "dclab_core.training_example.v1",
+      "default": "dclab_core.training_example.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "verification": {
+      "$ref": "#/$defs/Verification"
+    }
+  },
+  "required": [
+    "schema_version",
+    "example_id",
+    "family",
+    "messages",
+    "verification",
+    "provenance"
+  ],
+  "title": "TrainingExample",
+  "type": "object"
+}

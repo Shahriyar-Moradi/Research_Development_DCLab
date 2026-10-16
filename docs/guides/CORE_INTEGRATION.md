@@ -663,3 +663,12 @@ CSV download and a page of rows for the person; the analysis shows every column;
 category or band of each input, on the training rows only. Where it goes there: the main product's chat should treat
 "build" as an action through its own governed run path (never around its validator), and its EDA of outcome against
 inputs should read only the rows its locked split leaves for training (`engine.outcome_by_feature` is the rule).
+
+## The training lake (26.1, 26.2, 27.1, 27.3)
+
+The library's: `dclab_core.lake`, the record shapes every DCLab model trains from (`DecisionSample`, `TrainingExample`, `GoldManifest`)
+and the rules a gold set passes (`gold_problems`: one split per group, sealed rows only sealed, a teacher model's answer only in
+`eval_only`, no holdout key). Where it goes there: the main product's `semantic_decision_answers` and agent records become
+`DecisionSample` rows through `adapters/main_product_ledger` (its decision records) and the same builders, under its own consent
+levels; its own public-table and synthetic sources may feed the same shapes. Training stays outside both products: the gold sets
+and their manifests are what a training run reads.

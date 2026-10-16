@@ -1,0 +1,226 @@
+{
+  "$defs": {
+    "JsonValue": {},
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "Where a row came from and what it may be used for.",
+      "properties": {
+        "consent": {
+          "enum": [
+            "owner",
+            "train",
+            "improve",
+            "public",
+            "ours"
+          ],
+          "title": "Consent",
+          "type": "string"
+        },
+        "from_sealed": {
+          "default": false,
+          "description": "Read from a source's sealed partition: it may only ever be in the sealed split.",
+          "title": "From Sealed",
+          "type": "boolean"
+        },
+        "group": {
+          "description": "What must never be in two splits: a dataset, a project, a draft, a seed.",
+          "maxLength": 200,
+          "title": "Group",
+          "type": "string"
+        },
+        "licence": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A public dataset's licence; None for our own records.",
+          "title": "Licence"
+        },
+        "origin": {
+          "enum": [
+            "construction",
+            "replica",
+            "factory_rule",
+            "rule_prod",
+            "human_exposed",
+            "human_blind",
+            "measured_outcome",
+            "public_catalog",
+            "verified_synthetic",
+            "research_record",
+            "dev_record",
+            "teacher_claude"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "record_ids": {
+          "description": "Back-links: decision record, episode, run, package.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Record Ids",
+          "type": "array"
+        },
+        "source": {
+          "description": "The set or record store it was read from.",
+          "maxLength": 200,
+          "title": "Source",
+          "type": "string"
+        },
+        "split": {
+          "enum": [
+            "train",
+            "dev",
+            "sealed",
+            "eval_only"
+          ],
+          "title": "Split",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "origin",
+        "consent",
+        "group",
+        "split"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.decision_sample.v1.json",
+  "additionalProperties": false,
+  "description": "One answer about one subject at one decision point (the decision plan's sample record).",
+  "properties": {
+    "decision_point": {
+      "description": "The registry key, e.g. feature.leakage_suspect.",
+      "maxLength": 80,
+      "title": "Decision Point",
+      "type": "string"
+    },
+    "evidence_partition": {
+      "default": "metadata",
+      "enum": [
+        "metadata",
+        "train"
+      ],
+      "title": "Evidence Partition",
+      "type": "string"
+    },
+    "feature_schema_version": {
+      "default": "v1",
+      "maxLength": 40,
+      "title": "Feature Schema Version",
+      "type": "string"
+    },
+    "features": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "description": "The typed inputs as bands and tokens, never raw values.",
+      "title": "Features",
+      "type": "object"
+    },
+    "label": {
+      "$ref": "#/$defs/JsonValue",
+      "description": "The answer, from the point's allowlist."
+    },
+    "label_confidence": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Label Confidence",
+      "type": "number"
+    },
+    "options": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 64,
+      "title": "Options",
+      "type": "array"
+    },
+    "other_answers": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "description": "Other answerers' answers (a model, Jev), never the label.",
+      "title": "Other Answers",
+      "type": "object"
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance"
+    },
+    "question": {
+      "anyOf": [
+        {
+          "maxLength": 400,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Question"
+    },
+    "rule_answer": {
+      "$ref": "#/$defs/JsonValue",
+      "default": null
+    },
+    "sample_id": {
+      "maxLength": 80,
+      "title": "Sample Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.decision_sample.v1",
+      "default": "dclab_core.decision_sample.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "state_text": {
+      "description": "The same inputs as the text a language model reads (a whole table's column list for a table-level point).",
+      "maxLength": 16000,
+      "title": "State Text",
+      "type": "string"
+    },
+    "subject_kind": {
+      "enum": [
+        "column",
+        "dataset",
+        "problem",
+        "step"
+      ],
+      "title": "Subject Kind",
+      "type": "string"
+    },
+    "subject_ref": {
+      "description": "The masked column name, or the dataset or problem reference.",
+      "maxLength": 200,
+      "title": "Subject Ref",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "sample_id",
+    "decision_point",
+    "subject_kind",
+    "subject_ref",
+    "state_text",
+    "label",
+    "provenance"
+  ],
+  "title": "DecisionSample",
+  "type": "object"
+}

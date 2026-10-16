@@ -1,0 +1,119 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.gold_manifest.v1.json",
+  "additionalProperties": false,
+  "description": "A gold set: what it holds, by split, origin and family; every input's hash; what was dropped and why.",
+  "properties": {
+    "builder_commit": {
+      "anyOf": [
+        {
+          "maxLength": 60,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Builder Commit"
+    },
+    "built_at": {
+      "maxLength": 40,
+      "title": "Built At",
+      "type": "string"
+    },
+    "by_family": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "Families for training examples; decision points for samples.",
+      "title": "By Family",
+      "type": "object"
+    },
+    "by_origin": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "By Origin",
+      "type": "object"
+    },
+    "by_split": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "By Split",
+      "type": "object"
+    },
+    "dropped": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "Rows not kept, by reason.",
+      "title": "Dropped",
+      "type": "object"
+    },
+    "groups": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Groups",
+      "type": "integer"
+    },
+    "inputs": {
+      "description": "[{path, sha256}] of every file read.",
+      "items": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "maxItems": 500,
+      "title": "Inputs",
+      "type": "array"
+    },
+    "kind": {
+      "enum": [
+        "decision_sample",
+        "training_example",
+        "eval_record"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "name": {
+      "maxLength": 120,
+      "title": "Name",
+      "type": "string"
+    },
+    "rows": {
+      "minimum": 0,
+      "title": "Rows",
+      "type": "integer"
+    },
+    "rule": {
+      "default": "A set for training and measuring DCLab's own models; scores on it are evidence about those models on these sources, never a claim of production readiness.",
+      "maxLength": 600,
+      "title": "Rule",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.gold_manifest.v1",
+      "default": "dclab_core.gold_manifest.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 40,
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "version",
+    "kind",
+    "rows",
+    "built_at"
+  ],
+  "title": "GoldManifest",
+  "type": "object"
+}

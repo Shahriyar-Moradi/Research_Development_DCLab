@@ -48,6 +48,9 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "twin_matrix": LIBRARY + " (``twin.effectiveness`` over adapted twin steps)",
     "evaluation_board": LIBRARY + " (scores over adapted twin steps and decision records)",
     "expert_trace": LIBRARY + " (an AI-first agent's record of a problem and its solution; the main product's Jev answers single questions and writes none)",
+    "decision_sample": LIBRARY + " (built from decision records: the main product's semantic_decision_answers reach it through adapters/main_product_ledger)",
+    "training_example": LIBRARY + " (built by the host's lake builders from its own consented records)",
+    "gold_manifest": LIBRARY + " (written beside each gold set by the host's lake builder)",
 }
 
 #: the contracts whose adapter READS the main product's rows into the library's record; every other adapter above maps a library

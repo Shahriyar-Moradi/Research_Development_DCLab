@@ -61,6 +61,14 @@ trained language model of DCLab's, a single clean store that every model reads, 
 - **Done when:** every existing set (the 13 builders, the decision export, SFT v3, the dev records, the twin sets) is in
   gold through one command; no group in two splits; a test fails on a sealed row or a holdout value in any gold set.
 
+- **Status: built (2026-10-16), the review's 12 findings fixed.** dclab-core 0.59.0 (`lake`: `DecisionSample`, `TrainingExample`,
+  `GoldManifest`, `Provenance` with `from_sealed`, the origins, `gold_problems`); `dclab_rnd/lake/`, `make lake`. The lake reads a
+  workspace only through the sets `make datasets` wrote under its train consent, while its switch is on and its sets are not stale;
+  it is rebuilt whole each time; a training row identical to an evaluation row is dropped (the generated sets lost about a third of
+  their train rows that way: their bands repeat across tables); Claude's answers and DCLab's build history (written in Claude Code
+  sessions) are evaluation only. Left for 27.2: gold mappings of the conversation, episode, trajectory, workflow, map and route sets
+  (they reach silver today); they hold rows only where a project's own consent is on.
+
 ### 26.2 Real tables: the public catalog (decision plan, source 1)
 - **Delivers:** a builder that turns public dataset metadata (OpenML first: its task and feature metadata, openly
   licensed) into labelled rows for `column.semantic_role`, `column.is_identifier`, `task.kind`, `target.column`;
@@ -68,6 +76,11 @@ trained language model of DCLab's, a single clean store that every model reads, 
 - **Done when:** at least 20,000 column rows from at least 1,000 real tables in gold, by dataset group; the generation 1
   classifiers retrained on generated + real tables and judged again on a sealed set **of real tables** (the generated
   sealed set measures only planted kinds).
+
+- **Status: in progress (2026-10-16).** `dclab_rnd/lake/openml.py` (`python -m dclab_rnd.lake openml`): each dataset's own marks are
+  the labels (row identifier, default target, column types), its data file read once to compute DCLab's bands and deleted, its
+  licence kept; options sorted so the outcome is never in a learnable place. The fetch runs (resumable); the retraining on real tables
+  and the sealed set of real tables follow when it is done.
 
 ### 26.3 Decision models for the workflow
 - **Delivers:** generation 1 classifiers for the workflow points the ledger records (the next question, the next move,
@@ -152,6 +165,8 @@ write a report with its uncertainty; and drive DCLab's tools step by step as an 
 - **Done when:** every source above that exists today is in gold through `make lake`, each family with its counts, and
   the mix is a manifest the training run reads.
 
+- **Status: built with 26.1.** `TrainingExample` v1 and the families (with `solution_design`); gold per family.
+
 ### 27.2 Capture what is still missing, under the hood
 - **Delivers:** the records the families need and the product does not keep yet: each stage's code as it ran (not
   only the export), the person's conclusion after the EDA (kept, not inferred), each agent step's input state, action,
@@ -167,6 +182,11 @@ write a report with its uncertainty; and drive DCLab's tools step by step as an 
   Variations of wording, column names, sizes and traps make the variety real data lacks.
 - **Done when:** at least 2,000 verified trajectories over at least 200 distinct invented problems across every engine
   kind, with a rejection log (what failed verification and why).
+
+- **Status: built (2026-10-16); the volume run follows.** `dclab_rnd/lake/selfplay.py` (`python -m dclab_rnd.lake selfplay`): every
+  engine kind's replica by seed, solved by the engine with no model, kept only when every acceptance decision passes; five families
+  (problem type, leakage judgment with the train-only signals the auditor measured, split design, algorithm choice, reading results),
+  the naming families twice (names, and names masked inside free text too); a rejection log.
 
 ### 27.4 Public corpora (after the owner's yes)
 - **Delivers:** OpenML tasks and runs (dataset metadata, flows, scores) as dataset-to-pipeline-to-score examples and as

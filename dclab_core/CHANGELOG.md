@@ -4,6 +4,17 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.59.0 (2026-10-16)
+
+Package 26.1 (with 27.1): the training lake's records, for DCLab's own decision models and its ML-solver model.
+
+- `lake` (new): `DecisionSample` v1 (`dclab_core.decision_sample.v1`, the decision plan's sample record: one answer about one subject at one
+  point, its features as bands and tokens, the same input as text, the label, the rule's and other answerers' answers), `TrainingExample` v1
+  (`dclab_core.training_example.v1`: one example of one task family, the conversation a served model gets, its verification and quality),
+  `GoldManifest` v1 (`dclab_core.gold_manifest.v1`: counts by split, origin and family, inputs' hashes, what was dropped), `Provenance` (source,
+  origin, consent, licence, group, split), the origins (`TRAINABLE`, and `EVAL_ONLY`: Claude's answers are evaluation only), the solver's
+  `FAMILIES`, `split_of` by group, and `gold_problems`: a group in two splits, a teacher's answer outside `eval_only`, a holdout key, a repeated id.
+
 ## 0.58.0 (2026-10-16)
 
 Package 25.7: the twin's training sets; package 25.8 (its dashboard): every answerer's evaluation.
