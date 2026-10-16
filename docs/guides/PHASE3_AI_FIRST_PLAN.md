@@ -260,12 +260,15 @@ Messages transport (which returns Claude's thinking, which the OpenAI-compatible
   `GET /api/evaluation` (reviewers and the owner), Admin → **Evaluation** (Claude and DCLab step by step with the mode, cost and time; every
   model by point with precision, recall, F1, accuracy, its interval and n, filtered by model, point or truth). The review (18 findings, with
   25.10's) is fixed and tested. **The measurement (2026-10-16):** `make twin-eval` (`dclab_rnd/twin/evaluate.py`) reads the blind
-  runs on studied samples and stores the matrix in `evidence/campaigns/twin_v1/` (TWN-001: six samples, bank marketing, HyperAck, bike
-  sharing, clothing reviews, online shoppers and Telco, €7.84 for Claude's lane). On the solution's columns against the planted truth
-  (12 judged), Claude was right 7 times (58%, 95% 32% to 81%), the rules twice (17%, 5% to 45%); Claude named the outcome 12 times of 12,
-  the rules 4 (they ask the person rather than guess, and ranked a weekday column first on HyperAck); on online shoppers neither matched
-  the R&D's nine forbidden browsing columns. twin_rule_v1 says `ai` for that step; every other step is undecided (no planted truth for
-  it yet). Six samples, one model: no claim beyond them.
+  runs on studied samples and stores the matrix in `evidence/campaigns/twin_v1/` (TWN-002, which corrects TWN-001: that one pooled each
+  run's answers with every version of Claude's expert record and counted the system's answer once per version). Six samples (bank
+  marketing, HyperAck, bike sharing, clothing reviews, online shoppers, Telco), €7.84 for Claude's lane. On the solution's columns against
+  the planted truth, each run counted once: Claude as the agent right on 5 of 6 (95% 44% to 97%), the rules on 1 of 6 (3% to 56%); the
+  outcome 6 of 6 against 2 (the rules ask the person rather than guess, and ranked a weekday column first on HyperAck), the leak columns
+  5 of 6 against 1. Claude's written expert design named the leak columns on 2 of 6: what it then did was better than what it first
+  wrote. Six runs are below twin_rule_v1's ten, so every step stays undecided. One model, six samples: no claim beyond them. The runs'
+  full records (transcripts, thinking, designs, both lanes) are kept in `agent_runs/twin/runs/` and the whole test workspace in
+  `agent_runs/live_tests/2026-10-16_phase3/`.
 
 ### 25.9 DCLab learns from the expert: adopt what won
 - **Delivers:** from 25.8's matrix, per section of the expert trace and per Home step: where the mode is `ai_checked`,

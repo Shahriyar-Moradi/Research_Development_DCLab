@@ -57,6 +57,7 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--cap-eur", type=float, default=1.5)
     e.add_argument("--yes", action="store_true", help="send the --run requests to Claude (without it, only their plans are printed)")
     e.add_argument("--no-store", action="store_true", help="print the matrix without storing a result")
+    e.add_argument("--supersedes", default="", help="ID=why: the stored result this one corrects (a result is never edited)")
     args = parser.parse_args(argv)
 
     if args.command == "eval":
@@ -68,7 +69,8 @@ def main(argv: list[str] | None = None) -> int:
         measured = evaluate.measure(Path(args.home) if args.home else runs_home(None).parent.parent)
         print(evaluate.report(measured))
         if not args.no_store and measured["runs"]:
-            print(evaluate.store(measured))
+            ident, _, why = args.supersedes.partition("=")
+            print(evaluate.store(measured, {"id": ident, "why": why} if ident else None))
         return 0
 
     if args.command == "list":

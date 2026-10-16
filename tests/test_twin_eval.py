@@ -29,6 +29,9 @@ def write_run(root: Path, name: str, sample: str, *, blind: bool, ai_leak: list[
     record = T.step(f"{name}:solution.columns", name, "solution.columns", "2026-10-16T00:00:00+00:00", {"run": name},
                     answer("system", "y", ["leak"]), answer("ai_first", "y", ai_leak, 1.0), truth=truth)
     (folder / "steps.jsonl").write_text(record.model_dump_json() + "\n" + "not a step\n")
+    design = T.step(f"{name}:expert:v1", name, "solution.columns", "2026-10-16T00:00:00+00:00", {"run": name},
+                    answer("system", "y", ["leak"]), answer("ai_first", "y", ["leak"]), truth=truth)
+    (folder / "expert_steps.jsonl").write_text(design.model_dump_json() + "\n")  # the same system answer beside a version of the record
 
 
 class TwinEvalTests(unittest.TestCase):
@@ -44,10 +47,15 @@ class TwinEvalTests(unittest.TestCase):
             self.assertEqual([r["sample"] for r in measured["runs"]], ["bank_marketing", "hyperack"])
             self.assertEqual(measured["steps"], 2)  # the malformed line is skipped, never guessed
             row = next(s for s in measured["matrix"]["steps"] if s["step"] == "solution.columns")
-            self.assertEqual((row["judged"], row["system_right"], row["ai_right"]), (2, 2, 1))
+            self.assertEqual((row["judged"], row["system_right"], row["ai_right"]), (2, 2, 1))  # each run's answers once (TWN-001 pooled the record's)
+            expert = next(s for s in measured["matrix"]["steps"] if s["step"] == "solution.columns")
+            self.assertEqual(measured["expert_steps"], 2)
+            self.assertEqual(next(s for s in measured["expert_matrix"]["steps"] if s["step"] == "solution.columns")["ai_right"], 2)
+            self.assertIsNot(expert, None)
             self.assertEqual(row["mode"], "undecided")  # below the rule's minimum of judged cases
             with mock.patch.object(evaluate, "CAMPAIGN", home / "c"), mock.patch.object(evaluate, "RESULTS", home / "c" / "results"):
-                first, second = evaluate.store(measured), evaluate.store(measured)
+                first, second = evaluate.store(measured), evaluate.store(measured, {"id": "TWN-001", "why": "pooled"})
+                self.assertEqual(json.loads(second.read_text())["supersedes"], {"id": "TWN-001", "why": "pooled"})
                 self.assertEqual((first.name, second.name), ("TWN-001.json", "TWN-002.json"))  # a new file each time, none rewritten
                 doc = json.loads(first.read_text())
                 self.assertEqual((doc["campaign_id"], doc["spent_eur"], doc["summary"]["samples"]), ("twin_v1", 2.0, ["bank_marketing", "hyperack"]))

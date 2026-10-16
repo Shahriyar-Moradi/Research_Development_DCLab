@@ -175,6 +175,26 @@
       "cause": "Only HTTP refusals were caught, and the agent's start after the build was not.",
       "fix": "Any error is said in the chat; a job limit keeps the project link and says how to go on.",
       "test": "test_the_build_route_says_what_is_missing_and_a_full_job_queue_keeps_the_project"
+    },
+    {
+      "id": "M6",
+      "source": "measurement",
+      "severity": "latent",
+      "defect": "The first twin measurement counted the rules' answers twice and mixed two kinds of Claude answer.",
+      "scenario": "TWN-001 reported 12 judged cases (Claude 7, rules 2) for six runs; the evaluation page, reading the same runs, judged 6.",
+      "cause": "The measurement pooled each run's own answers with every version of Claude's expert record, each beside the same system answer.",
+      "fix": "Each run's answers are measured once and the expert record apart; TWN-002 stores the corrected matrix and names the result it supersedes (Claude 5 of 6, rules 1 of 6).",
+      "test": "test_only_blind_sample_runs_are_judged_and_the_result_is_stored_once_per_measurement"
+    },
+    {
+      "id": "O5",
+      "source": "owner",
+      "severity": "gap",
+      "defect": "The live test's records were kept only in a temporary folder.",
+      "scenario": "72 MB of transcripts, thinking, designs, conversations and the build sat in the session scratchpad, which a reboot clears; the evaluation page did not see them.",
+      "cause": "The live test server was pointed at the scratchpad.",
+      "fix": "The whole workspace copied (checksums verified) to agent_runs/live_tests/2026-10-16_phase3/, the twin runs into agent_runs/twin/, and the live server now writes there.",
+      "test": "checked by checksum"
     }
   ],
   "measurements": [

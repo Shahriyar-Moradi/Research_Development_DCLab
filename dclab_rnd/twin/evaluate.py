@@ -49,13 +49,16 @@ def blind_runs(home: Path) -> list[Path]:
     return out
 
 
-def records(run_dirs: list[Path]) -> list[Any]:
-    """Every twin step of the runs, read back through the contract (a line that fails it is skipped, never guessed)."""
+def records(run_dirs: list[Path], name: str = "steps.jsonl") -> list[Any]:
+    """The runs' twin steps of one file, read back through the contract (a line that fails it is skipped, never guessed).
+    ``steps.jsonl`` holds each lane's own answers, one per step and run; ``expert_steps.jsonl`` holds each version of Claude's
+    expert record beside the same system answer, so the two are measured apart (TWN-001 pooled them and counted each
+    system answer once per version)."""
     from dclab_core.twin import TwinStep
 
     out = []
     for folder in run_dirs:
-        for name in ("steps.jsonl", "expert_steps.jsonl"):
+        for name in (name,):
             path = folder / name
             if not path.exists():
                 continue
@@ -87,11 +90,13 @@ def measure(home: Path) -> dict[str, Any]:
 
     runs = blind_runs(home)
     steps = records(runs)
-    matrix = effectiveness(steps, SOURCE)
-    return {"runs": [run_summary(r) for r in runs], "matrix": matrix.model_dump(mode="json"), "steps": len(steps)}
+    expert = records(runs, "expert_steps.jsonl")
+    return {"runs": [run_summary(r) for r in runs], "matrix": effectiveness(steps, SOURCE).model_dump(mode="json"), "steps": len(steps),
+            "expert_matrix": effectiveness(expert, "each version of Claude's expert record beside the system's answer, on the same blind runs").model_dump(mode="json"),
+            "expert_steps": len(expert)}
 
 
-def store(measured: dict[str, Any]) -> Path:
+def store(measured: dict[str, Any], supersedes: dict[str, str] | None = None) -> Path:
     RESULTS.mkdir(parents=True, exist_ok=True)
     manifest = CAMPAIGN / "manifest.json"
     if not manifest.exists():
@@ -101,6 +106,8 @@ def store(measured: dict[str, Any]) -> Path:
     spent = round(sum(sum(r["eur"].values()) for r in measured["runs"]), 4)
     doc = {"id": ident, "campaign_id": "twin_v1", "kind": "twin_effectiveness", "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
            "source": SOURCE, "runs": measured["runs"], "matrix": measured["matrix"], "steps": measured["steps"], "spent_eur": spent,
+           "expert_matrix": measured.get("expert_matrix"), "expert_steps": measured.get("expert_steps"),
+           **({"supersedes": supersedes} if supersedes else {}),
            "summary": {"runs": len(measured["runs"]), "samples": sorted({r["sample"] for r in measured["runs"]}), "steps": measured["steps"],
                        "modes": {s["step"]: s.get("mode") for s in measured["matrix"]["steps"]}},
            "status": "completed", "experiment_id": ident, "rule": RULE}
@@ -118,6 +125,9 @@ def report(measured: dict[str, Any]) -> str:
     lines.append("")
     for s in measured["matrix"]["steps"]:
         lines.append(f"  {s['step']:<28} mode {s.get('mode') or '—':<18} judged {s.get('judged', 0)}")
+    for s in (measured.get("expert_matrix") or {}).get("steps") or []:
+        if s.get("judged"):
+            lines.append(f"  expert record · {s['step']:<16} judged {s['judged']}: claude's design right {s.get('ai_right')}, the system {s.get('system_right')}")
     lines.append("")
     lines.append(RULE)
     return "\n".join(lines)
