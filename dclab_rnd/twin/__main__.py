@@ -5,6 +5,7 @@
         [--no-design] [--design-checkpoints data,leakage,models] [--no-steer]   (25.3: Claude's expert record, watched)
     python -m dclab_rnd.twin list
     python -m dclab_rnd.twin compare RUN_DIR
+    python -m dclab_rnd.twin eval [--run SAMPLE,SAMPLE --yes --cap-eur 1.5] [--no-store]   (25.8: the measurement, stored as evidence)
 
 Without ``--yes`` the plan is printed and nothing is sent to Claude. ``ANTHROPIC_API_KEY`` is the key; ``DCLAB_TWIN_MODEL``
 (default claude-sonnet-5-5) the model; ``DCLAB_AGENT_HOME`` the workspace whose ``twin/`` folder holds the runs.
@@ -50,7 +51,25 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("samples", help="the studied samples a run can start from")
     c = sub.add_parser("compare", help="rebuild compare.json and COMPARE.md of a run")
     c.add_argument("run_dir", type=Path)
+    e = sub.add_parser("eval", help="25.8: the blind runs on studied samples, judged against the planted truth, stored as evidence")
+    e.add_argument("--home", type=Path, default=None, help="the workspace whose twin/runs are read (default DCLAB_AGENT_HOME or agent_runs/)")
+    e.add_argument("--run", default="", help="samples to run blind first (comma-separated), each under --cap-eur")
+    e.add_argument("--cap-eur", type=float, default=1.5)
+    e.add_argument("--yes", action="store_true", help="send the --run requests to Claude (without it, only their plans are printed)")
+    e.add_argument("--no-store", action="store_true", help="print the matrix without storing a result")
     args = parser.parse_args(argv)
+
+    if args.command == "eval":
+        from . import evaluate
+
+        for key in [k.strip() for k in args.run.split(",") if k.strip()]:
+            main(["run", "--sample", key, "--blind", "--cap-eur", str(args.cap_eur)] + (["--home", str(args.home)] if args.home else [])
+                 + (["--yes"] if args.yes else []))
+        measured = evaluate.measure(Path(args.home) if args.home else runs_home(None).parent.parent)
+        print(evaluate.report(measured))
+        if not args.no_store and measured["runs"]:
+            print(evaluate.store(measured))
+        return 0
 
     if args.command == "list":
         for r in list_runs(args.home):

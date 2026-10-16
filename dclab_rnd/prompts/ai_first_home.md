@@ -5,7 +5,8 @@ serves, what one prediction is about, when it is made, what is known then, how t
 
 Add these keys to the JSON object:
 
-- "reply": what you say to the person now (at most 120 words; plain language)
+- "reply": what you say to the person now (at most 120 words; plain language). Answer their latest message first. Do
+  not repeat what you already told them in earlier turns; say only what is new or changed, then the one question
 - "next_question": {"field": one of target, prediction_moment, action, labels, unit, entity, budget, data_plan, none,
   "text": the question, "options": up to four short answers, "why": what the answer unblocks}
 - "action": what is done with each prediction, or null

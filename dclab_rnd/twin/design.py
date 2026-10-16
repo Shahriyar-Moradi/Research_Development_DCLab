@@ -258,7 +258,7 @@ class Designer:
     RESERVE = 3  # a checkpoint revision never takes one of the run's last requests: they are the agent's
 
     def __init__(self, lane: Any, gateway: Any, *, run_id: str = "", model: str = "", checkpoints: tuple[str, ...] = CHECKPOINTS,
-                 steer: bool = True, max_tokens: int = 3200):
+                 steer: bool = True, max_tokens: int = 8000):  # a whole design is ~6,000 tokens of JSON; 3,200 cut it
         self.lane, self.gateway, self.run_id, self.model = lane, gateway, run_id, model
         self.checkpoints, self.steer, self.max_tokens = tuple(checkpoints), steer, max_tokens
         self.home = Path(lane.home) / "design"

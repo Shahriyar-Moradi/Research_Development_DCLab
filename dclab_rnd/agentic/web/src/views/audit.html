@@ -336,11 +336,17 @@ DC.view('audit', {
         n3 = 'No drift score was recorded for these inputs.';
       }
       const dup = dev.duplicate_feature_rows_train || 0, risks = Object.keys(dev.risk_features || {});
+      // 25.13: the outcome per category or band of each input, training rows only, strongest spread first
+      const obf = dev.outcome_by_feature || [], rateTask = ts.positives_train != null;
+      const obfBox = obf.length ? `<div class="panel-body stack tight"><b class="small">The outcome by column, on the training rows</b>
+          <span class="xs muted">${rateTask ? 'The share of positives' : 'The mean outcome'} in each category or quantile band of every input, strongest difference first. A pattern here is a question to check against the prediction moment, never a promoted feature; a column far stronger than the rest is a leak suspect.</span>
+          <div class="grid g3">${obf.slice(0, 12).map(f => `<div class="inset stack tight"><div class="spread small"><b>${esc(f.feature)}</b><span class="pill outline">spread ${rateTask ? pct(f.spread) : fmt(f.spread, 3)}</span></div>${charts.barsH(f.groups.slice(0, 8).map(g => ({ label: short(g.value, 16), value: g.outcome, valueText: (rateTask ? pct(g.outcome) : fmt(g.outcome, 3)) + ' · ' + int(g.rows) })), { width: 300, labelW: 110, valW: 80, rowH: 20, noAxis: true, min: 0, max: Math.max(...f.groups.map(g => g.outcome)) || 1, aria: 'Outcome by ' + f.feature })}</div>`).join('')}</div>
+          ${obf.length > 12 ? `<details><summary class="xs muted">${obf.length - 12} more columns</summary><div class="grid g3">${obf.slice(12).map(f => `<div class="inset small"><b>${esc(f.feature)}</b> · spread ${rateTask ? pct(f.spread) : fmt(f.spread, 3)}</div>`).join('')}</div></details>` : ''}</div>` : '';
       return head + `<div class="panel-body grid g3">
           <div class="stack tight"><b class="small">Outcome in the training rows</b><div>${c1}</div><span class="xs muted">${n1}</span></div>
           <div class="stack tight"><b class="small">Most common value per column</b><div>${c2}</div><span class="xs muted">${n2}</span></div>
           <div class="stack tight"><b class="small">${t3}</b><div>${c3}</div><span class="xs muted">${n3}</span></div>
-        </div>
+        </div>${obfBox}
         <div class="panel-foot"><span class="pill ${dup ? 'warn' : 'ok'}">${dup ? int(dup) + ' repeated input rows' : 'no repeated input rows'}</span> Missing cells: ${pct(dev.missing_cell_rate_train, 2)} of training cells. ${risks.length ? `Review rules fired on ${risks.map(code).join(', ')}.` : 'No column triggered a review rule.'} Missing values are a state to model, not only to fill ${rc('DCLAB-R12')}; every imputer and encoder is fitted inside the training folds ${rc('DCLAB-R03')}.</div>`;
     }
     function ladderReal(p, F) {

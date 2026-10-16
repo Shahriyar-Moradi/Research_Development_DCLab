@@ -465,7 +465,7 @@ class AgentTests(unittest.TestCase):
         client = ScriptedClient([("simulate_data", {"description": "5,000 subscribers with tenure and plan; 20% cancel", "rows": 999999}),
                                  ("ask_user", {"field": "action", "question": "never reached"})])
         HomeAgent(self.store, client, on_request=lambda did, what, args: asked.append((what, args))).reply(d["id"], "Please simulate the data")
-        self.assertEqual([(w, a["rows"]) for w, a in asked], [("simulate", 200000)])  # capped
+        self.assertEqual([(w, a["rows"]) for w, a in asked], [("simulate", 10000)])  # capped at 10,000 (the owner, 2026-10-16)
         self.assertIn("20% cancel", asked[0][1]["prompt"])
         self.assertEqual(client.i, 1)  # the second scripted call was never requested
         self.assertIn("labelled synthetic", self.store.get(d["id"])["messages"][-1]["text"])
@@ -538,6 +538,55 @@ class AgentTests(unittest.TestCase):
                          {"target": "Lost means paused or cancelled within 30 days.", "prediction_moment": "Every Monday morning.", "action": "The team calls the riskiest 200."})
         self.assertEqual(draft["messages"][-1]["kind"], "summary")  # the user always has a next step
         self.assertEqual(draft["agent"]["mode"], "model")
+
+    def test_a_turn_that_asks_nothing_new_still_answers_the_person(self):
+        """Live (2026-10-16): the person wrote past the open question; the model re-asked it (a no-op, it is open) and the
+        turn ended there, so three messages in a row got no reply. A turn that says nothing asks the open question again."""
+        d = self.store.create("Predict which customers pause or cancel")
+        HomeAgent(self.store, None).start(d["id"])
+        open_q = HomeAgent(self.store, None).pending(self.store.get(d["id"]))
+        self.assertIsNotNone(open_q)
+        agent = HomeAgent(self.store, ScriptedClient([("ask_user", {"field": open_q["field"], "question": open_q["text"]})]))
+        agent.reply(d["id"], "The table also has a refund column, can we use it?")
+        draft = self.store.get(d["id"])
+        self.assertEqual(draft["messages"][-1]["role"], "agent")  # never silence after the person's message
+        self.assertEqual(draft["messages"][-1]["text"], open_q["text"])
+        self.assertEqual(len([q for q in draft["questions"] if q["field"] == open_q["field"]]), 1)  # asked again, not a new question
+        self.assertIn("summary", [m.get("kind") for m in draft["messages"][-3:]])  # a question from the person gets the plan so far first
+
+    def test_build_now_is_an_order_never_a_sentence_about_the_problem(self):
+        from dclab_rnd.draft.chat import ASSENT, BUILD_NOW
+
+        for order in ("ok build model", "build the model", "Let's build the solution", "yes build it", "train the model now", "go ahead and build"):
+            self.assertTrue(BUILD_NOW.search(order), order)
+        for sentence in ("I want to build a model to predict churn", "Should we build a model or use rules?",
+                         "Can you train a model on last year only?", "We need to build models per region", "go ahead"):
+            self.assertFalse(BUILD_NOW.search(sentence), sentence)
+        self.assertTrue(ASSENT.search("yes"))
+        for reply in ("Yes, the refund is known only after delivery", "ok, but first explain the columns", "Start date is the signup day"):
+            self.assertFalse(ASSENT.search(reply), reply)
+
+    def test_the_model_builds_only_on_the_persons_word(self):
+        """25.13 review: build_solution passes the guard on an order, or on a bare yes to an offer to build; never otherwise."""
+        asked = []
+        d = self.store.create("Predict which customers pause or cancel")
+        HomeAgent(self.store, None).start(d["id"])
+        agent = HomeAgent(self.store, ScriptedClient([("build_solution", {})]), on_request=lambda did, what, args: asked.append(what) or {"refused": "There is no table to train on yet."})
+        agent.reply(d["id"], "Yes, the refund is known only after delivery")
+        self.assertEqual(asked, [])  # an agreeing word that answers something else
+        agent.say(d["id"], "Here is the solution I would build. We can build the solution now.", kind="summary")
+        agent = HomeAgent(self.store, ScriptedClient([("build_solution", {})]), on_request=lambda did, what, args: asked.append(what) or {"refused": "There is no table to train on yet."})
+        agent.reply(d["id"], "yes")
+        self.assertEqual(asked, ["build"])  # a bare yes to the offer
+        self.assertEqual(self.store.get(d["id"])["messages"][-1]["actions"], ["upload", "connect", "simulate"])
+
+    def test_a_map_to_confirm_comes_back_with_the_step_that_clears_it(self):
+        d = self.store.create("Predict which customers pause or cancel")
+        HomeAgent(self.store, None).start(d["id"])
+        agent = HomeAgent(self.store, None, on_request=lambda did, what, args: {"refused": "Confirm the map of the problem on Home.", "rule": "problem map not confirmed"})
+        agent.reply(d["id"], "ok build model")
+        last = self.store.get(d["id"])["messages"][-1]
+        self.assertEqual((last["actions"], last["rule"]), (["confirm_map", "show_map"], "problem map not confirmed"))
 
     def test_the_summary_is_said_once_and_quotes_the_answers(self):
         d = self.store.create("Predict which customers cancel")
@@ -626,6 +675,73 @@ class ApiTests(unittest.TestCase):
 
     def draft(self, did):
         return self.client.get(f"/api/drafts/{did}").json()
+
+    def test_build_it_in_the_chat_builds_the_project_and_the_agent_carries_out_the_plan(self):
+        """25.13 (the owner, 2026-10-16: "ok build model" built nothing; "do all things automatically, the agentic way"): the
+        words build the project from what the chat settled, with the audit's solution, and hand it to the intern."""
+        c = self.client
+        d = c.post("/api/drafts", json={"problem": "Rank clients for the term-deposit call campaign"}, headers=self.h).json()
+        wait(lambda: self.draft(d["id"])["questions"])
+        wait(lambda: c.post(f"/api/drafts/{d['id']}/messages", json={"text": "ok build model"}, headers=self.h).status_code == 202)
+        said = wait(lambda: next((m for m in self.draft(d["id"])["messages"][1:] if m["role"] == "agent" and "table" in m["text"]), None))
+        self.assertIn("simulate data", said["text"])  # no table yet: what is missing, never silence
+        self.assertIsNone(self.draft(d["id"]).get("project_id"))
+        self.assertEqual(c.post(f"/api/drafts/{d['id']}/data/sample", json={"key": "bank_marketing"}, headers=self.h).status_code, 200)
+        ready = wait(lambda: next((a for a in self.draft(d["id"])["assets"] if a["status"] == "ready"), None))
+        wait(lambda: not self.draft(d["id"]).get("agent", {}).get("busy") and c.post(f"/api/drafts/{d['id']}/messages", json={"text": "Let's build the solution"},
+                                                                                 headers=self.h).status_code == 202)
+        built = wait(lambda: next((m for m in self.draft(d["id"])["messages"] if m.get("kind") == "build"), None))
+        self.assertIn("The plan:", built["text"])
+        project = c.get(f"/api/projects/{built['project_id']}").json()
+        self.assertEqual(project["solution"]["target"], ready["suggestion"]["target"])  # the sample knows its outcome column
+        self.assertIn("duration", {f["column"] for f in project["solution"]["forbidden"]})  # the audit's leak, accepted as proposed
+        self.assertTrue(built.get("session_id"))
+        records = self.client.app.state.services.ledger.records(point="target.column", draft=d["id"])
+        self.assertTrue(records)
+        self.assertEqual({r.used for r in records}, {"model_role"})  # DCLab accepted the proposal: never recorded as the person's choice
+        csv = c.get(f"/api/drafts/{d['id']}/assets/{ready['id']}/download")
+        self.assertEqual(csv.status_code, 200)
+        self.assertEqual(len(csv.text.strip().splitlines()) - 1, ready["rows"])  # the whole cleaned table, a header and every row
+        rows = c.get(f"/api/drafts/{d['id']}/assets/{ready['id']}/rows", params={"offset": 10, "limit": 5}).json()
+        self.assertEqual((len(rows["rows"]), rows["offset"], rows["total"]), (5, 10, ready["rows"]))
+        self.assertEqual(c.get(f"/api/drafts/{d['id']}/assets/nope/rows").status_code, 404)
+        again = c.post(f"/api/drafts/{d['id']}/build/run", headers=self.h)
+        self.assertEqual((again.status_code, again.json()["project_id"], again.json()["started"]), (201, built["project_id"], False))  # built once
+        session = c.get(f"/api/intern/sessions/{built['session_id']}").json()  # the agent took the project (its run is the flows' to check)
+        self.assertEqual(session["project_id"], built["project_id"])
+        self.assertIn("Build and evaluate", session["task"])
+        self.assertEqual(self.draft(d["id"])["project_id"], built["project_id"])
+
+    def test_the_build_route_says_what_is_missing_and_a_full_job_queue_keeps_the_project(self):
+        """25.13 review: a refusal is a 409 with its rule; when the agent cannot start (the job limit), the project stands and the chat says so."""
+        c = self.client
+        d = c.post("/api/drafts", json={"problem": "Rank clients for the term-deposit call campaign"}, headers=self.h).json()
+        wait(lambda: self.draft(d["id"])["questions"])
+        refused = c.post(f"/api/drafts/{d['id']}/build/run", headers=self.h)
+        self.assertEqual(refused.status_code, 409)
+        self.assertIn("simulate data", refused.json()["detail"])
+        c.post(f"/api/drafts/{d['id']}/data/sample", json={"key": "bank_marketing"}, headers=self.h)
+        wait(lambda: next((a for a in self.draft(d["id"])["assets"] if a["status"] == "ready"), None))
+        from fastapi import HTTPException
+
+        services = self.client.app.state.services
+        with mock.patch.object(type(services), "start_intern_job", side_effect=HTTPException(429, {"message": "Two jobs already run."})):
+            out = c.post(f"/api/drafts/{d['id']}/build/run", headers=self.h).json()
+        self.assertFalse(out["started"])
+        self.assertTrue(out["project_id"])
+        self.assertIn("Two jobs already run.", out["note"])
+        self.assertIn("Open the project", out["note"])
+
+    def test_a_failing_build_is_said_in_the_chat(self):
+        c = self.client
+        d = c.post("/api/drafts", json={"problem": "Rank clients for the term-deposit call campaign"}, headers=self.h).json()
+        wait(lambda: self.draft(d["id"])["questions"])
+        c.post(f"/api/drafts/{d['id']}/data/sample", json={"key": "bank_marketing"}, headers=self.h)
+        wait(lambda: next((a for a in self.draft(d["id"])["assets"] if a["status"] == "ready"), None))
+        with mock.patch("dclab_rnd.draft.api.build_blockers", side_effect=RuntimeError("disk full")):
+            wait(lambda: c.post(f"/api/drafts/{d['id']}/messages", json={"text": "ok build model"}, headers=self.h).status_code == 202)
+            said = wait(lambda: next((m for m in self.draft(d["id"])["messages"] if m["role"] == "agent" and "build failed" in m["text"]), None))
+        self.assertIn("disk full", said["text"])
 
     def test_full_flow_sample_then_build(self):
         c = self.client

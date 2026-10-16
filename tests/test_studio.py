@@ -103,6 +103,17 @@ class EngineTests(unittest.TestCase):
         self.assertIn("TimeSeriesSplit", self.records["data"]["evidence"]["cv_protocol"])
         self.assertEqual(self.records["data"]["evidence"]["column_roles"]["customer_id"], "identifier")
 
+    def test_the_outcome_by_column_reads_the_training_rows_only(self):
+        """25.13: the outcome per category or band of each input, from the training rows (the holdout stays sealed)."""
+        ev = self.records["data"]["evidence"]
+        obf = ev["outcome_by_feature"]
+        self.assertTrue(obf)
+        for f in obf:
+            self.assertLessEqual(sum(g["rows"] for g in f["groups"]), ev["train_rows"], f["feature"])  # never more rows than the train side
+            self.assertEqual(f["spread"], round(max(g["outcome"] for g in f["groups"]) - min(g["outcome"] for g in f["groups"]), 4))
+        self.assertNotIn("final_refund_amount", {f["feature"] for f in obf})  # a forbidden column is no input, so it is not shown
+        self.assertEqual([f["spread"] for f in obf], sorted((f["spread"] for f in obf), reverse=True))
+
     def test_holdout_is_consumed_once_and_choices_flow_downstream(self):
         final = self.records["final"]["evidence"]
         self.assertTrue(final["holdout_consumed"])

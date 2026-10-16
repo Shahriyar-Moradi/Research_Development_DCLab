@@ -56,6 +56,13 @@ PROFILE_PAGE = 40  # columns the model sees at a time, in its state and from get
 PROFILE_FIELDS = ("name", "kind", "missing_rate", "unique")  # what the model may know about a column: no values
 FIELDS = ("target", "prediction_moment", "action", "costs", "data_plan", "entity", "labels", "budget")  # the last three: a pack's (15.6)
 BUILD_WORDS = re.compile(r"\b(let'?s build|build (it|the solution)|go ahead|start the project|ready to build)\b", re.I)
+# 25.13: a message that is an order to build now, as a whole ("ok build model", "train it now"); a sentence that describes
+# the problem or asks ("we want to build a model that…", "should we build a model?") is never taken for the order
+BUILD_NOW = re.compile(r"^\W*((ok(ay)?|yes|yeah|please|now|so|great|good|sure|alright|fine)\b[\s,!.]*)*"
+                       r"(let'?s build( it| the (solution|models?))?|(please )?(build|train) (it|the solution|(the |a |my )?models?)|"
+                       r"run (it|the stages)|go ahead and (build|train)( it)?|start (building|training)( it)?)(\s+(now|please))?\W*$", re.I)
+ASSENT = re.compile(r"^\W*(yes|yeah|yep|ok(ay)?|sure|go( ahead| for it)?|do it|please do|proceed|start)(\s+(please|now|do it|go ahead))?\W*$", re.I)  # a bare yes
+SIM_ROWS = 10_000  # the owner (2026-10-16): a simulated table is at most 10,000 rows
 SIMULATE_WORDS = re.compile(r"\b(simulat\w*|synthetic|fake data|generate (some )?data)\b", re.I)
 
 POLICY = prompts.text("home_agent")  # dclab_rnd/prompts/home_agent.md (A4.3: prompts are versioned files)
@@ -310,8 +317,11 @@ class HomeAgent:
         u = self.store.get(draft_id).get("understanding") or {}
         labels = {"target": "the outcome", "prediction_moment": "the prediction moment", "action": "what happens with each prediction"}
         known = [f"{labels[f]} (“{u[f]}”)" for f in plans.FIELDS if f in filled and f in labels]
-        self.say(draft_id, f"I read the problem as: “{draft['problem']}”. I'll start from the {name} pack ({why[:1].lower() + why[1:]})."
-                 + (f" Your sentence already gives {' and '.join(known)}; check them on the sheet." if known else "")
+        # Live (2026-10-16): the opening quoted the person's whole sentence back and explained a default pack; it now
+        # says what was understood from it, and why a pack only when something in the words chose it
+        self.say(draft_id, (f"From your message I have {' and '.join(known)}; correct them on the sheet if I misread."
+                            if known else "Thanks. First let's pin down what the model should predict, and when.")
+                 + (f" I'll start from the {name} pack ({why[:1].lower() + why[1:]})." if det["source"] != "default" else "")
                  + (" Your data is being prepared now; I'll describe it as soon as it is ready." if has_data else
                     " You can upload or connect data at any time, or we can plan the solution first."), kind="text")
         self.update_plan(draft_id)
@@ -384,6 +394,11 @@ class HomeAgent:
             d["messages"].append(msg)
         self.store.update(draft_id, add)
         self.store.emit(draft_id, "chat", msg)
+        if BUILD_NOW.search(text):  # 25.13: "build it" builds and trains, as the button does
+            done = self.on_request(draft_id, "build", {})
+            if done is not None:
+                self.built(draft_id, done)
+                return
         if self.client is not None:
             try:
                 self.model_turn(draft_id, text=text)
@@ -417,6 +432,23 @@ class HomeAgent:
             self.update_plan(draft_id)
             self.refresh_workflow(draft_id)
         return result
+
+    def built(self, draft_id: str, done: dict[str, Any]) -> None:
+        """25.13: what "build it" did, in the chat: the project and its running stages, or what is missing first."""
+        self.moved(draft_id, "build", {}, {k: done.get(k) for k in ("project_id", "started", "refused")})
+        if done.get("refused"):  # what is missing, with the step that clears it when there is one
+            actions = ["confirm_map", "show_map"] if done.get("rule") == "problem map not confirmed" else \
+                ["upload", "connect", "simulate"] if "no table" in done["refused"] else []
+            self.say(draft_id, done["refused"], actions=actions, rule=done.get("rule"))
+            return
+        steps = [f"{i}. {line}" for i, line in enumerate(done.get("plan") or [], 1)]
+        if done.get("started"):
+            text = (f"Building now. The project “{done.get('name') or 'New project'}” is created, and DCLab's agent is carrying out the plan: "
+                    "it runs each stage, checks it, and reports the holdout number with its interval.")
+        else:
+            text = done.get("note") or "The project is built."
+        text += ("\n\nThe plan:\n" + "\n".join(steps)) if steps else ""
+        self.say(draft_id, text, kind="build", project_id=done.get("project_id"), session_id=done.get("session_id"))
 
     def take_answer(self, draft_id: str, q: dict[str, Any], value: str) -> None:
         """The user's message answers the open question: record it, redraw the workflow, ask the next thing."""
@@ -698,7 +730,7 @@ class HomeAgent:
         """The Home agent as a policy on the runtime: a few model replies per user message; a question waits for the
         user and a simulation ends the turn too (the data pipeline speaks next)."""
         return Policy("home", POLICY, tuple(self.registry.names("draft")), max_steps=MODEL_STEPS, max_seconds=MODEL_SECONDS,
-                      stop_after=("ask_user",), stop_when=lambda step: isinstance(step.result, dict) and bool(step.result.get("simulating")),
+                      stop_after=("ask_user", "build_solution"), stop_when=lambda step: isinstance(step.result, dict) and bool(step.result.get("simulating")),
                       max_replies=max_replies)
 
     def tracer(self, draft_id: str) -> Tracer | None:
@@ -729,6 +761,18 @@ class HomeAgent:
         elif out.stopped == "tools_as_text" and model.live:
             self.store.emit(draft_id, "token", {"id": model.live, "drop": True})  # tool calls written as text are not a reply
         self.store.update(draft_id, lambda d: d["agent"].update(mode="model", turns=d["agent"].get("turns", 0) + 1))
+        after = self.store.get(draft_id)
+        if out.steps and text and after["messages"] and after["messages"][-1].get("role") == "user":
+            # Live (2026-10-16): the model re-asked the open question (a no-op) and the turn ended in silence, three
+            # messages in a row. The person always gets a reply: the open question again, or the plan's next step.
+            still_open = self.pending(after)
+            if still_open:
+                if "?" in text:  # the person asked something ("what is the plan?"): the plan so far first, then the question
+                    self.summarize(draft_id)
+                self.say(draft_id, still_open["text"], kind="question", question=still_open)
+            else:
+                self.next_turn(draft_id)
+            return
         if not out.steps and text:
             # A model that only talks (small models often never call a tool) must not stall the conversation:
             # code records the answer to the open question and asks the next thing, as the script would.
@@ -893,14 +937,23 @@ def get_analysis(turn: Turn, /, **args: Any) -> dict[str, Any]:
             "highlights": [{k: h.get(k) for k in ("severity", "title", "text", "columns")} for h in (analysis.get("highlights") or [])[:12]]}
 
 
+def build_solution(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    """25.13: build the project and hand it to DCLab's agent, as the button and "build it" do; what refused it comes back."""
+    done = turn.agent.on_request(turn.draft_id, "build", {})
+    if done is None:
+        return {"error": "Building is not available here; tell the user to press Let's build the solution."}
+    turn.agent.built(turn.draft_id, done)
+    return {k: done.get(k) for k in ("project_id", "started", "refused")}
+
+
 def simulate_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
     agent, draft_id = turn.agent, turn.draft_id
     draft = agent.store.get(draft_id)
     agent.say(draft_id, "I'll simulate a dataset from this conversation. It will be labelled synthetic everywhere.")
     try:
-        rows = max(100, min(int(args.get("rows") or 5000), 200_000))
+        rows = max(100, min(int(args.get("rows") or SIM_ROWS), SIM_ROWS))
     except (TypeError, ValueError):
-        rows = 5000
+        rows = SIM_ROWS
     agent.on_request(draft_id, "simulate", {"prompt": (draft["problem"] + " " + str(args.get("description", ""))[:2000]).strip(), "rows": rows})
     return {"simulating": True, "rows": rows}
 
@@ -908,13 +961,13 @@ def simulate_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
 # What each Home write does to a draft. The draft guard checks set_pack, propose_workflow and simulate; the others
 # only add to the conversation or the understanding, which the user can always correct.
 DRAFT_MOVES = {"ask_user": "ask", "record": "record", "set_pack": "set_pack", "propose_workflow": "propose_workflow",
-               "request_data": "request_data", "simulate_data": "simulate"}
+               "request_data": "request_data", "simulate_data": "simulate", "build_solution": "build"}
 PREPARING = ("queued", "structuring", "cleaning", "analysing")
 
 
 REFUSED = {"record": "The answer was not backed by the user's own words", "ask": "Not the question the plan asks now",
            "set_pack": "Not a known pack, or the user chose the pack", "simulate": "Data was already being prepared",
-           "propose_workflow": "The workflow did not pass the workflow checks"}
+           "propose_workflow": "The workflow did not pass the workflow checks", "build": "The user had not asked to build"}
 
 
 class DraftGuard:
@@ -963,6 +1016,14 @@ class DraftGuard:
                 return {"error": f"Unknown pack {str(arguments.get('key'))[:40]!r}. Packs: {', '.join(packs.KEYS)}."}
             if (agent.store.get(draft_id).get("pack") or {}).get("source") == "user":
                 return {"error": "The user chose the pack; ask before changing it."}
+        elif tool.move == "build":  # 25.13: only on the person's word, never on the model's own initiative
+            messages = agent.store.get(draft_id)["messages"]
+            at = next((i for i in range(len(messages) - 1, -1, -1) if messages[i].get("role") == "user"), None)
+            said = (messages[at].get("text") or "") if at is not None else ""
+            before = next((m for m in reversed(messages[:at or 0]) if m.get("role") == "agent"), None) or {}
+            offered = before.get("kind") == "summary" or bool(BUILD_WORDS.search(before.get("text") or ""))
+            if not (BUILD_NOW.search(said) or (ASSENT.search(said) and offered)):  # a bare "yes" only to an offer to build
+                return {"error": "The user has not asked to build yet: ask them whether to build now."}
         elif tool.move == "simulate":
             if any(a.get("status") in PREPARING for a in agent.store.get(draft_id)["assets"]):
                 return {"error": "Data is already being prepared; wait for it."}
@@ -1001,6 +1062,8 @@ def register(registry: Registry) -> None:
         {"columns": {"type": "array", "items": S}, "offset": {"type": "integer"}}, [], "read")
     add("get_analysis", "The descriptive analysis of the prepared table: size, column kinds, missing share, duplicate rows, findings worth a question, and the strongest feature-to-feature correlations. Says nothing about the outcome.",
         {}, [], "read")
+    add("build_solution", "Build the project from what was settled and start DCLab's agent, which plans, trains and checks the model. "
+        "Only after the user asked to build, train or go ahead.", {}, [], "write")
     add("simulate_data", "Generate a synthetic table. Only after the user asked for simulated data.",
-        {"description": {**S, "description": "The table to simulate: rows, columns, the outcome and its rate."}, "rows": {"type": "integer"}},
+        {"description": {**S, "description": "The table to simulate: rows, columns, the outcome and its rate."}, "rows": {"type": "integer", "description": "at most 10,000"}},
         ["description"], "write")

@@ -57,13 +57,18 @@ class Intern:
         self._run: harness.Session | None = None  # the harness run a standard-plan step belongs to
 
     # ------------------------------------------------------------------ public
-    def start(self, task: str, budget: dict[str, Any] | None = None, project_id: str | None = None, model: str | None = None) -> dict[str, Any]:
+    def start(self, task: str, budget: dict[str, Any] | None = None, project_id: str | None = None, model: str | None = None,
+              by: str = "person") -> dict[str, Any]:
+        """``by``: "system" when DCLab wrote the task (25.13: "build it" on Home), so its words are never the person's."""
         mode = "llm" if self.client is not None else "standard"
         session = self.sessions.create(task, mode=mode, model=(model or getattr(self.client, "model", None)) if self.client else None, budget=budget, project_id=project_id)
         session["messages"] = [{"role": "system", "content": POLICY}, {"role": "user", "content": self._task_message(session)}]
         from .. import experience  # 19.3: the person's request in the session's record
 
-        experience.record("chat.person", "person", {"text": task[:4000], "surface": "intern"}, conversation=session["id"], project=project_id)
+        if by == "person":
+            experience.record("chat.person", "person", {"text": task[:4000], "surface": "intern"}, conversation=session["id"], project=project_id)
+        else:
+            experience.record("chat.agent", "system", {"text": task[:4000], "kind": "task", "surface": "intern"}, conversation=session["id"], project=project_id)
         return self.sessions.save(session)
 
     def _trace(self, session: dict[str, Any]) -> Tracer:

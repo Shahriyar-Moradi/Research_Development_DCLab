@@ -389,6 +389,44 @@ def _label(metric: str) -> str:
     return rn.METRIC_LABEL.get(metric, metric)
 
 
+def outcome_by_feature(X: pd.DataFrame, y: Any, columns: list[str], task: str, bins: int = 5, top: int = 8,
+                       limit: int = 40) -> list[dict[str, Any]]:
+    """25.13 (the owner: "not enough EDA"): the outcome's rate (binary) or mean (regression) per category or per quantile
+    band of each input, on the training rows it is given (the data stage gives only those: the holdout stays sealed).
+    Each column carries its spread (the largest band's value minus the smallest), so the strongest come first. A
+    pattern here is a question for the person, never a promoted feature; other tasks get none."""
+    if task not in ("binary", "regression") or not len(X):
+        return []
+    target = pd.to_numeric(pd.Series(np.asarray(y)), errors="coerce").reset_index(drop=True)
+    out: list[dict[str, Any]] = []
+    for column in columns[:200]:
+        series = X[column].reset_index(drop=True)
+        try:
+            if pd.api.types.is_numeric_dtype(series) and series.nunique(dropna=True) > top:
+                band = pd.qcut(series, q=bins, duplicates="drop")
+                labels = [f"{iv.left:.4g} to {iv.right:.4g}" for iv in band.cat.categories]
+                groups = band.cat.codes
+                names = dict(enumerate(labels))
+            else:
+                counts = series.astype("object").where(series.notna(), "(missing)").astype(str).value_counts()
+                kept = list(counts.index[:top])
+                groups = series.astype("object").where(series.notna(), "(missing)").astype(str).where(lambda v: v.isin(kept), "(other)")
+                names = None
+            frame = pd.DataFrame({"g": groups, "y": target}).dropna(subset=["y"])
+            stats = frame.groupby("g", observed=True)["y"].agg(["mean", "size"]).sort_values("size", ascending=False)
+        except (TypeError, ValueError):
+            continue
+        stats = stats[stats["size"] >= 20]  # a band of a handful of rows says nothing
+        if len(stats) < 2:
+            continue
+        rows = [{"value": str(names.get(int(g), g)) if names is not None else str(g), "rows": int(r["size"]), "outcome": round(float(r["mean"]), 4)}
+                for g, r in (stats.sort_index() if names is not None else stats).iterrows() if not (names is not None and int(g) < 0)]
+        values = [r["outcome"] for r in rows]
+        out.append({"feature": str(column), "kind": "bands" if names is not None else "categories", "groups": rows,
+                    "spread": round(max(values) - min(values), 4)})
+    return sorted(out, key=lambda r: -r["spread"])[:limit]
+
+
 def stage_data(p: Prepared, eid: str) -> tuple[dict, list, str]:
     bundle, spec = p.bundle, p.bundle.spec
     X_tr, y_tr, X_te = bundle.X_train, bundle.y_train, bundle.X_test
@@ -430,6 +468,7 @@ def stage_data(p: Prepared, eid: str) -> tuple[dict, list, str]:
            if getattr(p, "decided", None) else {}),
         "note": "Holdout feature distributions (never labels) are compared via PSI; the holdout labels stay sealed until the final stage.",
     }
+    evidence["outcome_by_feature"] = outcome_by_feature(X_tr, y_tr, feature_cols, p.kind.base_task)  # 25.13: training rows only
     evidence["problem_kind"] = p.kind.key  # 16.1: the kind whose summary, claim and checks these are
     evidence["target_summary"], target_text = p.kind.summarise_target(y_tr, p.class_labels, p.solution)
     if spec.time_column:

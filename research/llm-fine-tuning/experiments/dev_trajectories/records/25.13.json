@@ -1,0 +1,202 @@
+{
+  "package": "25.13",
+  "title": "Home that builds, the agentic way: \"build it\" to a running agent, the data reachable, a fuller EDA",
+  "date": "2026-10-16",
+  "request": "The owner tested Home and found it not working: understanding weak, \"ok build model\" built nothing, synthetic data could not be found, 100,000 rows too many, plots and EDA not enough; \"when the user says build, do everything automatically, the agentic way: make a plan and build\"; \"the chat bot must be agentic\".",
+  "spec": "A one-step build from the chat, the button or the Home agent's tool, handing the project to the agent that plans and runs it; a refusal with the step that clears it; a turn never silent; simulated tables at most 10,000 rows; every table downloadable and browsable; every column in the EDA; the outcome by column on the training rows.",
+  "plan": [
+    "Reproduce each complaint live on the scratch server.",
+    "Build one quick_build path used by the route, the button (through the chat) and the agent's tool.",
+    "Hand the project to the intern so the plan and the run are the agent's.",
+    "Check it live on the owner's own draft, then review and fix."
+  ],
+  "decisions": [
+    {
+      "decision": "The button sends \"Let's build the solution\" through the chat instead of calling its own route.",
+      "why": "One path: the chat answers with the plan or with what is missing, whatever started it."
+    },
+    {
+      "decision": "The outcome by column is computed in the project's data stage, not on Home.",
+      "why": "Only the engine's locked split knows which rows are training rows; on Home the holdout is not yet fixed."
+    },
+    {
+      "decision": "The build hands the project to the intern rather than running the stages as a job.",
+      "why": "The owner asked for the agentic way: the agent writes its plan, checks each stage and reports."
+    }
+  ],
+  "change": "dclab_rnd/draft/api.py, chat.py, work.py, agentic/pool.py, accounts/guard.py, intern/loop.py, studio/engine.py, twin/claude.py, twin/design.py, twin/evaluate.py (new), twin/__main__.py, prompts home_agent and ai_first_home, Home and audit pages, Makefile, tests.",
+  "findings": [
+    {
+      "id": "O1",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "\"ok build model\" built nothing.",
+      "scenario": "The person typed it; the agent redrew the workflow and said it had not trained a model.",
+      "cause": "The build words were read only by the script, and the button opened a five-step wizard.",
+      "fix": "quick_build: the audit's proposal accepted, blockers checked, the project built and handed to the agent; the chat shows the plan.",
+      "test": "test_build_it_in_the_chat_builds_the_project_and_the_agent_carries_out_the_plan"
+    },
+    {
+      "id": "O2",
+      "source": "owner",
+      "severity": "gap",
+      "defect": "The synthetic table could not be found or opened.",
+      "scenario": "The table was ready but the page showed only counts and three charts.",
+      "cause": "No route served a draft's table.",
+      "fix": "CSV download and a page of rows for every table, behind write rights.",
+      "test": "test_build_it_in_the_chat_builds_the_project_and_the_agent_carries_out_the_plan"
+    },
+    {
+      "id": "O3",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "A simulated table had 100,000 rows.",
+      "scenario": "The agent took the number from the person's example (out of 100,000 bills).",
+      "cause": "The simulation tool allowed up to 200,000.",
+      "fix": "At most 10,000 rows from the chat.",
+      "test": "test_the_model_can_start_a_simulation_and_the_turn_ends_there"
+    },
+    {
+      "id": "O4",
+      "source": "owner",
+      "severity": "gap",
+      "defect": "The EDA was too thin.",
+      "scenario": "Home drew one histogram, one top-values chart and missing values.",
+      "cause": "The page used a fraction of the analysis it had.",
+      "fix": "Every column with its chart and numbers, time trends, correlations; the outcome by category or band on the training rows in the data stage.",
+      "test": "test_the_outcome_by_column_reads_the_training_rows_only"
+    },
+    {
+      "id": "M1",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "Three messages in a row got no reply.",
+      "scenario": "Live: the person wrote past the open question; the model re-asked it, a no-op, and the turn ended.",
+      "cause": "The turn stopped after ask_user even when nothing was asked.",
+      "fix": "A turn that said nothing asks the open question again; a question from the person gets the plan so far first.",
+      "test": "test_a_turn_that_asks_nothing_new_still_answers_the_person"
+    },
+    {
+      "id": "M2",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "The build was refused with no way forward.",
+      "scenario": "Live: the problem had three linked parts whose map needed confirming.",
+      "cause": "The refusal was said as text only.",
+      "fix": "The refusal comes with its rule and the step that clears it: Confirm the map and build.",
+      "test": "test_a_map_to_confirm_comes_back_with_the_step_that_clears_it"
+    },
+    {
+      "id": "M3",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "The agent trained on 3,000 of 100,000 rows.",
+      "scenario": "Live: the chat build chose quick mode for a table over 20,000 rows.",
+      "cause": "Quick mode was the default for large tables.",
+      "fix": "A chat build trains on the whole table up to 50,000 rows.",
+      "test": "checked live"
+    },
+    {
+      "id": "M4",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "Claude's lane refused every call of a measured role.",
+      "scenario": "Live: the problem analyst's call was refused before it was sent.",
+      "cause": "With thinking on, the estimate counted 8,000 tokens of room against the role's €0.05 cap.",
+      "fix": "Measured roles answer without thinking, as they were measured.",
+      "test": "test_a_measured_role_answers_without_thinking_inside_its_call_cap"
+    },
+    {
+      "id": "M5",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "A design version was cut and unreadable.",
+      "scenario": "Live: the leakage checkpoint's design stopped at its limit.",
+      "cause": "The limit was 3,200 tokens for a design of about 6,000.",
+      "fix": "The limit is 8,000.",
+      "test": "test_a_design_request_has_room_for_a_whole_design"
+    },
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "\"Build it\" worked only in the server's default workspace.",
+      "scenario": "A tester in their own workspace typed it and nothing was built.",
+      "cause": "The builder was set on the default services only.",
+      "fix": "Every workspace's services get it when opened.",
+      "test": "test_a_viewer_cannot_read_a_whole_table_and_build_it_works_in_every_workspace"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Sentences about the problem triggered a build.",
+      "scenario": "\"I want to build a model to predict churn\" built a project and started spending.",
+      "cause": "The build words matched anywhere in a short message.",
+      "fix": "Only a whole message that is an order builds.",
+      "test": "test_build_now_is_an_order_never_a_sentence_about_the_problem"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The build tool's guard accepted any reply starting with yes.",
+      "scenario": "\"Yes, the refund is known only after delivery\" let the model build.",
+      "cause": "The agreeing word was not tied to an offer to build.",
+      "fix": "A bare yes counts only right after DCLab offered to build.",
+      "test": "test_the_model_builds_only_on_the_persons_word"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "DCLab's accepted defaults were recorded as the person's choices.",
+      "scenario": "The ledger counted every column of the audit's proposal as a person agreeing with the rule.",
+      "cause": "The build saved the solution through the person's path.",
+      "fix": "The save carries its actor; DCLab's choices are recorded as the agent's; the agent's task is DCLab's words, not the person's.",
+      "test": "test_build_it_in_the_chat_builds_the_project_and_the_agent_carries_out_the_plan"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "Read-only members could download a whole table.",
+      "scenario": "A viewer downloaded an uploaded table as CSV.",
+      "cause": "The new reads were not listed among the routes that need write rights.",
+      "fix": "Both routes need write rights, as the code export does.",
+      "test": "test_a_viewer_cannot_read_a_whole_table_and_build_it_works_in_every_workspace"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Some failures of the build ended in silence or a misleading message.",
+      "scenario": "An error inside the build, or the job limit after the project was made.",
+      "cause": "Only HTTP refusals were caught, and the agent's start after the build was not.",
+      "fix": "Any error is said in the chat; a job limit keeps the project link and says how to go on.",
+      "test": "test_the_build_route_says_what_is_missing_and_a_full_job_queue_keeps_the_project"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "live build on the owner's fraud draft",
+      "gate": "none: a check that the path works",
+      "fixed_before_run": true,
+      "result": "The map confirmed from the chat, the project built, Claude as DCLab's agent planned, set the solution (is_fraud, time split, identifiers out), ran the five stages and reported holdout PR-AUC 0.478 (95% 0.368 to 0.615) against 0.12 at random, on 3,000 rows in quick mode.",
+      "verdict": "pass",
+      "cost_eur": 0.6,
+      "limits": [
+        "One draft, synthetic data; quick mode."
+      ]
+    }
+  ],
+  "outcome": "Home builds and trains from one word, the agentic way, and the data and its analysis are reachable.",
+  "lessons": [
+    "Test the product as the owner uses it, in the owner's words, before calling a path done.",
+    "A word that starts an expensive action must be read as a whole order, never as a keyword."
+  ],
+  "risks": [
+    "The rules' ranked guess for the outcome put a weekday column first on a blind sample; the target is still the person's to name."
+  ],
+  "commits": []
+}

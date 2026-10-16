@@ -65,6 +65,8 @@ SPECIAL = {
     # the catalog of the datasets built from them (19.13): the owner's
     ("GET", "/api/datasets"): "admin",
     ("GET", "/api/projects/{project_id}/export/code"): "write",  # 20.9: the folder holds the project's data
+    ("GET", "/api/drafts/{draft_id}/assets/{asset_id}/download"): "write",  # 25.13: the whole table, as export/code
+    ("GET", "/api/drafts/{draft_id}/assets/{asset_id}/rows"): "write",  # 25.13: the table's values
     ("GET", "/api/datasets/lineage"): "admin",
     # Claude beside the system (25.4): the owner's switch; the sessions are the record's, as the timelines
     ("GET", "/api/twin/settings"): "read",

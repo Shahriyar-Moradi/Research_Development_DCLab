@@ -169,7 +169,7 @@
           <textarea id="home-reply" placeholder="Answer, ask, or say “let's build the solution”."></textarea>
           <div class="composer-bar">
             <button type="button" class="btn sm ghost" data-open-bring="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Connect data</button>
-            <button type="button" class="btn sm" id="home-build">Let's build the solution</button>
+            <button type="button" class="btn sm" id="home-build">Let's build the solution</button><button type="button" class="link-btn small" data-wizard="1">or review step by step</button>
             <label class="sr-only" for="home-to">Send to</label>
             <select id="home-to" data-style="width:auto" hidden>
               <option value="both">To DCLab and Claude</option>
@@ -365,6 +365,14 @@ DC.view('home', {
     el.addEventListener('click', async e => {
       const ex = e.target.closest('[data-example]');
       if (ex) { $('#home-task', el).value = ex.dataset.example; $('#home-task', el).focus(); }
+      const mb = e.target.closest('[data-map-build]');
+      if (mb && S.draft) {  // 25.13: the person confirms the map as drawn, then the build goes on as asked
+        mb.disabled = true;
+        try { await DC.client.editMap(S.draft.id, { body: { action: 'confirm' } }); await DC.client.message(S.draft.id, { body: { text: "Let's build the solution" } }); }
+        catch (err) { mb.disabled = false; toast(err.message, { ok: false }); }
+        return;
+      }
+      const rw = e.target.closest('[data-rows]'); if (rw) { showRows(rw.dataset.rows, Number(rw.dataset.offset || 0)); return; }
       const op = e.target.closest('[data-open-project]');
       if (op) { DC.state.projectId = op.dataset.openProject; }
       const bringing = e.target.closest('[data-bring]');
@@ -589,6 +597,8 @@ DC.view('home', {
       if (m.kind === 'question') {
         const q = m.question || {};
         body = `<div class="ask-card"><div class="q">${esc(m.text)}</div>${q.why ? `<div class="small muted">${esc(q.why)}</div>` : ''}${(q.options || []).length ? `<div class="ask-options">${q.options.map(o => `<button type="button" class="ask-option" data-answer="${esc(o)}">${esc(o)}</button>`).join('')}</div>` : '<div class="small muted">Answer below in your own words.</div>'}</div>`;
+      } else if (m.kind === 'build') {  // 25.13: the project built from "build it", the agent carrying out its plan
+        body = `<p data-style="white-space:pre-line">${esc(m.text)}</p><div class="row">${m.session_id ? `<button type="button" class="btn primary sm" data-follow="${esc(m.session_id)}" data-project="${esc(m.project_id || '')}">Follow the agent</button>` : ''}${m.project_id ? `<button type="button" class="btn sm" data-open-project="${esc(m.project_id)}">Open the project</button>` : ''}</div>`;
       } else if (m.kind === 'analysis') {
         body = `<p>${esc(m.text)}</p>${analysisCard(S.analysis[m.asset], m.asset)}`;
       } else if (m.kind === 'summary') {
@@ -601,13 +611,13 @@ DC.view('home', {
           + (c.ready ? '' : `<div class="callout warn small">${esc((c.blocking || [])[0] || 'Something is still open.')}</div>`) + '</div>' : '';
         body = `<p>${esc(m.text)}</p>${card}<div class="stack tight" data-map-box="1"></div><div class="row"><button type="button" class="btn primary sm" data-build="1">Let's build the solution</button><button type="button" class="btn sm" data-open-bring="1">Add data first</button></div>`;
       } else {
-        body = `<p>${esc(m.text)}</p>${(m.actions || []).length ? `<div class="row">${m.actions.includes('upload') ? '<button type="button" class="btn sm" data-open-bring="upload">Upload a sample</button>' : ''}${m.actions.includes('connect') ? '<button type="button" class="btn sm" data-open-bring="kaggle">Connect a source</button>' : ''}${m.actions.includes('simulate') ? '<button type="button" class="btn sm" data-open-bring="synthetic">Simulate data</button>' : ''}</div>` : ''}`;
+        body = `<p>${esc(m.text)}</p>${(m.actions || []).length ? `<div class="row">${m.actions.includes('upload') ? '<button type="button" class="btn sm" data-open-bring="upload">Upload a sample</button>' : ''}${m.actions.includes('connect') ? '<button type="button" class="btn sm" data-open-bring="kaggle">Connect a source</button>' : ''}${m.actions.includes('simulate') ? '<button type="button" class="btn sm" data-open-bring="synthetic">Simulate data</button>' : ''}${m.actions.includes('confirm_map') ? '<button type="button" class="btn primary sm" data-map-build="1">Confirm the map and build</button>' : ''}</div>${m.actions.includes('show_map') ? '<div class="stack tight" data-map-box="1"></div>' : ''}` : ''}`;
       }
       // 19.9: was this answer helpful? It joins the session record, never changes the conversation
       const rate = m.id ? `<div class="row xs muted" data-style="gap:6px;margin-top:4px"><button type="button" class="link-btn" data-rate="helpful" data-ref="${esc(m.id)}" aria-label="Helpful">👍</button><button type="button" class="link-btn" data-rate="unhelpful" data-ref="${esc(m.id)}" aria-label="Not helpful">👎</button><button type="button" class="link-btn" data-edit="${esc(m.id)}" aria-label="Write my own version of this reply">✏</button></div>` : '';
       thread.insertAdjacentHTML('beforeend', `<div class="msg"><span class="avatar ai">AI</span><div class="msg-body"><div class="who">DCLab <span>${esc((m.at || '').slice(11, 16))}</span></div>${body}${rate}</div></div>`);
       DC.hydrate(thread);
-      const mapBox = m.kind === 'summary' && thread.querySelector('.msg:last-child [data-map-box]');
+      const mapBox = (m.kind === 'summary' || (m.actions || []).includes('show_map')) && thread.querySelector('.msg:last-child [data-map-box]');
       if (mapBox && S.draft) loadMap(mapBox);
       scrollThread();
     }
@@ -783,8 +793,47 @@ DC.view('home', {
         ${hl ? `<ul class="plan-list">${hl}</ul>` : ''}
         ${guard}
         <div class="grid g2">${charts}</div>
-        <div class="xs muted">Descriptive only: nothing here looks at the outcome yet. Relations with the target are checked on training rows after the split (WF-04).</div>
+        ${assetId ? `<div class="row small" data-style="gap:8px;flex-wrap:wrap"><a class="btn sm" href="${esc(DC.client.href.downloadAsset(S.draft.id, assetId))}" download>Download CSV</a><button type="button" class="btn sm" data-rows="${esc(assetId)}">View rows</button></div><div data-rows-box="${esc(assetId)}"></div>` : ''}
+        ${edaSection(a, ids)}
+        <div class="xs muted">Descriptive only: nothing here looks at the outcome yet. Its relations with each column are measured on training rows after the split, in the project's data stage (WF-04), so the holdout stays sealed.</div>
       </div>`;
+    }
+    /* 25.13 (the owner: "plots are not enough, the EDA is weak"): every column with its own chart and numbers, time trends and the
+       strongest feature-to-feature correlations, from the analysis already computed (descriptive only, no outcome) */
+    function edaSection(a, ids) {
+      const cols = a.columns || [];
+      if (!cols.length) return '';
+      const num = v => (v == null || isNaN(v) ? '—' : Math.abs(v) >= 1000 ? fmtN(Math.round(v)) : Number(v).toPrecision(3));
+      const card = c => {
+        const head = `<div class="spread small"><b>${esc(c.name)}</b><span class="pill outline">${esc(c.kind)}</span></div>`
+          + `<div class="xs muted">${pctTxt(c.missing_rate)} missing · ${fmtN(c.unique)} distinct</div>`;
+        let body = '';
+        if (ids.has(c.name)) body = '<div class="xs muted">Identifier-like: one value per row, never a feature.</div>';
+        else if (c.hist && (c.hist.counts || []).length) {
+          const q = c.quantiles || {};
+          body = DC.charts.vbars(c.hist.counts.map((v, i) => ({ value: v, label: i === 0 ? num(c.hist.edges[0]) : i === c.hist.counts.length - 1 ? num(c.hist.edges[i + 1]) : null })), { width: 300, height: 110, aria: 'Histogram of ' + c.name })
+            + `<div class="xs muted">mean ${num(c.mean)} · median ${num(q.p50)} · p01–p99 ${num(q.p01)} to ${num(q.p99)} · min ${num(c.min)} · max ${num(c.max)}</div>`;
+        } else if (c.time && (c.time.by || []).length) {
+          body = DC.charts.vbars(c.time.by.map(([t, n], i) => ({ value: n, label: i === 0 || i === c.time.by.length - 1 ? String(t).slice(0, 10) : null })), { width: 300, height: 110, aria: 'Rows per ' + (c.time.period || 'period') + ' of ' + c.name })
+            + `<div class="xs muted">rows per ${esc(c.time.period || 'period')} · ${esc(String(c.time.min).slice(0, 10))} to ${esc(String(c.time.max).slice(0, 10))}</div>`;
+        } else if ((c.top || []).length) {
+          body = DC.charts.barsH(c.top.slice(0, 5).map(([v, n]) => ({ label: String(v).slice(0, 16), value: n, valueText: fmtN(n) })), { width: 300, labelW: 110, valW: 60, rowH: 20, noAxis: true, aria: 'Top values of ' + c.name })
+            + (c.other_count ? `<div class="xs muted">and ${fmtN(c.other_count)} rows in other values</div>` : '');
+        }
+        return `<div class="inset stack tight">${head}${body}</div>`;
+      };
+      const corr = (a.correlations || []).slice(0, 8);
+      const corrBox = corr.length ? `<div class="inset stack tight"><div class="eyebrow">Strongest correlations between columns</div>${DC.charts.barsH(corr.map(r => ({ label: `${r.a} · ${r.b}`.slice(0, 30), value: Math.abs(r.rho ?? 0), valueText: Number(r.rho ?? 0).toFixed(2) })), { width: 420, labelW: 200, valW: 50, min: 0, max: 1, rowH: 22, aria: 'Correlations' })}<div class="xs muted">Two columns that move together carry the same information; a model needs only one of them.</div></div>` : '';
+      return `<details class="stack tight" open><summary class="eyebrow">Every column (${cols.length})</summary>${corrBox}<div class="grid g3">${cols.map(card).join('')}</div></details>`;
+    }
+    async function showRows(assetId, offset = 0) {
+      const box = $(`[data-rows-box="${assetId}"]`, el); if (!box || !S.draft) return;
+      try {
+        const page = await DC.client.assetRows(S.draft.id, assetId, { query: { offset, limit: 50 } });
+        box.innerHTML = `<div class="inset stack tight"><div class="spread small"><span>Rows ${fmtN(page.offset + 1)} to ${fmtN(page.offset + page.rows.length)} of ${fmtN(page.total)}${page.synthetic ? ' · <span class="pill warn">synthetic</span>' : ''}</span><span class="row" data-style="gap:6px">${page.offset > 0 ? `<button type="button" class="btn sm" data-rows="${esc(assetId)}" data-offset="${Math.max(0, page.offset - 50)}">Previous</button>` : ''}${page.offset + page.rows.length < page.total ? `<button type="button" class="btn sm" data-rows="${esc(assetId)}" data-offset="${page.offset + 50}">Next</button>` : ''}</span></div>`
+          + `<div class="table-wrap" data-style="max-height:420px"><table class="data compact"><thead><tr>${page.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${page.rows.map(r => `<tr>${r.map(v => `<td>${esc(v == null ? '' : String(v))}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`;
+        DC.hydrate(box);
+      } catch (e) { toast(e.message, { ok: false }); }
     }
 
     /* ---------- solution workflow ---------- */
@@ -835,6 +884,9 @@ DC.view('home', {
       const mp = e.target.closest('[data-map-act]'); if (mp) { mapAct(mp); return; }
       const ob = e.target.closest('[data-open-bring]'); if (ob) { openBring(ob.dataset.openBring); return; }
       const b = e.target.closest('[data-build]'); if (b) { build(); return; }
+      const fo = e.target.closest('[data-follow]'); if (fo) { DC.state.internSession = fo.dataset.follow; if (fo.dataset.project) DC.state.projectId = fo.dataset.project; location.hash = 'intern'; return; }
+      const op = e.target.closest('[data-open-project]'); if (op) { DC.state.projectId = op.dataset.openProject; location.hash = 'project'; return; }
+      const wz = e.target.closest('[data-wizard]'); if (wz) { wizard(); return; }
       const c = e.target.closest('[data-connect]');
       if (c) {
         const kind = c.dataset.connect, X = DC.connectors;
@@ -893,9 +945,16 @@ DC.view('home', {
     });
 
     /* ---------- build ---------- */
-    function build() {
-      // The wizard continues on the same draft: data, solution draft, split and budget; the project is created at "Review and start".
+    async function build() {
+      // 25.13: one step, the agentic way: the project is built from what the chat settled and DCLab's agent carries out the plan
+      // (the chat shows the plan and links to follow it); what is still missing comes back as a message, never a dead end
+      // The button says it in the chat, so it goes the same way as typing "build it" (to DCLab, whatever the send-to choice)
       if (!S.draft) { toast('Start with one sentence first.', { ok: false }); return; }
+      try { await DC.client.message(S.draft.id, { body: { text: "Let's build the solution" } }); }
+      catch (err) { toast(err.status === 409 ? 'DCLab is still answering; press it again in a moment.' : err.message, { ok: false }); }
+    }
+    function wizard() {  // the step-by-step path: data, solution draft, split and budget, then "Review and start"
+      if (!S.draft) return;
       DC.state.draftId = S.draft.id;
       location.hash = 'new';
     }

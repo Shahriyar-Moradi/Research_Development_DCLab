@@ -236,7 +236,10 @@
     deleteDraft: ["DELETE", "/drafts/{draft_id}", ["draft_id"], []],
     readDraft: ["GET", "/drafts/{draft_id}", ["draft_id"], []],
     editDraft: ["PATCH", "/drafts/{draft_id}", ["draft_id"], []],
+    downloadAsset: ["GET", "/drafts/{draft_id}/assets/{asset_id}/download", ["draft_id", "asset_id"], []],
+    assetRows: ["GET", "/drafts/{draft_id}/assets/{asset_id}/rows", ["draft_id", "asset_id"], ["offset", "limit"]],
     build: ["POST", "/drafts/{draft_id}/build", ["draft_id"], []],
+    buildAndRun: ["POST", "/drafts/{draft_id}/build/run", ["draft_id"], []],
     draftCard: ["GET", "/drafts/{draft_id}/card", ["draft_id"], []],
     upload: ["PUT", "/drafts/{draft_id}/data", ["draft_id"], ["filename"]],
     dataCloud: ["POST", "/drafts/{draft_id}/data/cloud", ["draft_id"], []],
@@ -518,12 +521,34 @@
    *  @returns {Promise<Draft>} */
   client.editDraft = (...args) => call('editDraft', args);
   client.path.editDraft = (...args) => build('editDraft', args).path;
+  /** GET /api/drafts/{draft_id}/assets/{asset_id}/download: Download Asset
+   *  @param {string} draft_id
+   *  @param {string} asset_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<*>} */
+  client.downloadAsset = (...args) => call('downloadAsset', args);
+  client.path.downloadAsset = (...args) => build('downloadAsset', args).path;
+  client.href.downloadAsset = (...args) => '/api' + build('downloadAsset', args).path;
+  /** GET /api/drafts/{draft_id}/assets/{asset_id}/rows: Asset Rows
+   *  @param {string} draft_id
+   *  @param {string} asset_id
+   *  @param {{query?: {offset?: *, limit?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.assetRows = (...args) => call('assetRows', args);
+  client.path.assetRows = (...args) => build('assetRows', args).path;
+  client.href.assetRows = (...args) => '/api' + build('assetRows', args).path;
   /** POST /api/drafts/{draft_id}/build: Build
    *  @param {string} draft_id
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Project>} */
   client.build = (...args) => call('build', args);
   client.path.build = (...args) => build('build', args).path;
+  /** POST /api/drafts/{draft_id}/build/run: Build And Run
+   *  @param {string} draft_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.buildAndRun = (...args) => call('buildAndRun', args);
+  client.path.buildAndRun = (...args) => build('buildAndRun', args).path;
   /** GET /api/drafts/{draft_id}/card: Draft Card
    *  @param {string} draft_id
    *  @param {{headers?: Object}} [opts]

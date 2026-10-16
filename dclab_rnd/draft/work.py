@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from . import pipeline
-from .chat import HomeAgent
+from .chat import SIM_ROWS, HomeAgent
 from .store import DraftStore
 
 
@@ -27,10 +27,14 @@ class DraftWork:
                          reader=reader(self.models, draft_id=draft_id))
 
     def requests(self, draft_id: str, what: str, args: dict[str, Any]) -> None:
-        """The agent asked for something that runs in the background (today: simulate data)."""
+        """The agent asked for something that runs in the background: simulate data, or build and train (25.13: the
+        result, or what refused it, comes back for the agent to say)."""
+        if what == "build":
+            builder = getattr(self, "builder", None) or getattr(self.jobs, "build_from_chat", None)
+            return builder(draft_id) if builder is not None else None
         if what != "simulate":
             return
-        payload = {"draft_id": draft_id, "prompt": args.get("prompt", ""), "rows": int(args.get("rows") or 5000), "template": None, "by": "agent"}
+        payload = {"draft_id": draft_id, "prompt": args.get("prompt", ""), "rows": min(int(args.get("rows") or SIM_ROWS), SIM_ROWS), "template": None, "by": "agent"}
         if self.jobs is None:
             self.simulate(draft_id, payload["prompt"], payload["rows"], actor="agent")
             return

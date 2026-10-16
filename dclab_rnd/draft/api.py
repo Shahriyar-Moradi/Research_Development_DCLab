@@ -37,7 +37,7 @@ from typing import Any, Callable
 from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 
-from ..agentic.api_models import OCTET, AnyObject, Doc, Draft, DraftCreate, Page, Project, Router  # module level: annotations resolve here
+from ..agentic.api_models import OCTET, AnyObject, Doc, Draft, DraftCreate, Page, Project, Router, download  # module level: annotations resolve here
 
 from .. import connectors
 from . import pack as packs
@@ -286,13 +286,18 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
     @router.put("/api/drafts/{draft_id}/solution", response_model=Draft)
     async def draft_solution(draft_id: str, payload: AnyObject):
+        return await save_solution(draft_id, dump(payload), "human")
+
+    async def save_solution(draft_id: str, body: dict[str, Any], actor: str) -> dict[str, Any]:
+        """The draft's solution, checked and saved. ``actor``: "human" for the sheet, "agent" when DCLab accepted the audit's
+        proposal on "build it" (25.13: never recorded as the person's choice in the audit or the decision ledger)."""
         from pydantic import ValidationError
         from ..studio import solution as studio_solution
 
         draft = get(draft_id)
         frame, _ = clean_frame(draft)
         try:
-            solution = studio_solution.Solution(**dump(payload))
+            solution = studio_solution.Solution(**body)
             solution.check_columns([str(c) for c in frame.columns])
             profile = (draft.get("analysis") or {}).get("profile") or studio_data.profile_table(frame)
             refused = studio_data.target_refusal(next((c for c in profile.get("columns") or [] if c.get("name") == solution.target), None))
@@ -310,6 +315,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
         def put(d):
             d["solution"] = value
+            d["solution_by"] = actor
             d.setdefault("understanding", {}).update(target=value["target"], prediction_moment=value["prediction_moment"])
             if d.get("settings"):
                 d["settings"]["split"] = split_of(d)
@@ -317,11 +323,11 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         from .. import audit
 
         if draft.get("solution") != value:
-            audit.solution(drafts, draft, value, "human", draft=True)
+            audit.solution(drafts, draft, value, actor, draft=True)
             from ..ledger import capture  # 19.7: the person's choices against the proposal, as decisions
 
             active = next((a for a in draft.get("assets") or [] if a.get("id") == draft.get("active_asset")), None) or {}
-            await asyncio.to_thread(capture.solution_saved, draft.get("proposal"), profile, value, "human", active.get("suggestion"),
+            await asyncio.to_thread(capture.solution_saved, draft.get("proposal"), profile, value, actor, active.get("suggestion"),
                                     draft=draft_id, conversation=draft_id)
         HomeAgent(drafts, None).refresh_workflow(draft_id)
         return drafts.get(draft_id)
@@ -709,6 +715,36 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         met = await asyncio.to_thread(meeting, draft, drafts)  # 20.4: what the problem and the data disagree on
         return {**card.model_dump(mode="json"), "meets_data": met.model_dump(mode="json") if met is not None else None}
 
+    def asset_frame(draft_id: str, asset_id: str):
+        """A ready table of the draft, as cleaned (what the project would get)."""
+        import pandas as pd
+
+        draft = get(draft_id)
+        asset = next((a for a in draft["assets"] if a["id"] == asset_id), None)
+        if asset is None or asset.get("status") != "ready":
+            raise HTTPException(404, "No ready table with that id in this draft")
+        return pd.read_parquet(drafts.data_dir(draft_id) / asset.get("clean_file", "clean.parquet")), asset
+
+    @router.get("/api/drafts/{draft_id}/assets/{asset_id}/download", response_class=Response, responses=download("text/csv"))
+    async def download_asset(draft_id: str, asset_id: str):
+        """25.13 (the owner: "synthetic data created, but where is it?"): the table as cleaned, a synthetic one too, as CSV."""
+        frame, asset = await asyncio.to_thread(asset_frame, draft_id, asset_id)
+        body = await asyncio.to_thread(lambda: frame.to_csv(index=False).encode("utf-8"))
+        name = studio_data.safe_name(Path(asset.get("name") or "data").stem + (" (synthetic)" if asset.get("synthetic") else "") + ".csv") or "data.csv"
+        return Response(body, media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+    @router.get("/api/drafts/{draft_id}/assets/{asset_id}/rows", response_model=Doc)
+    async def asset_rows(draft_id: str, asset_id: str, offset: int = 0, limit: int = 50):
+        """25.13: a page of the table's rows, for the person to look at (never sent to a model)."""
+        import json as _json
+
+        frame, asset = await asyncio.to_thread(asset_frame, draft_id, asset_id)
+        offset, limit = max(0, offset), max(1, min(limit, 200))
+        page = frame.iloc[offset:offset + limit]
+        rows = _json.loads(page.to_json(orient="values", date_format="iso", default_handler=str))
+        return {"columns": [str(c) for c in frame.columns], "rows": rows, "offset": offset, "total": int(len(frame)),
+                "synthetic": bool(asset.get("synthetic")), "name": asset.get("name")}
+
     @router.get("/api/drafts/{draft_id}/map", response_model=Doc)
     async def draft_map(draft_id: str):
         """The problem map (24.2): the problem as parts and sub-problems with what each reads of the others and how their results combine,
@@ -768,6 +804,104 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
             experience.record("draft.refused", "system", {"reason": str(exc)[:2000], "rule": exc.rule}, conversation=draft_id)
             raise HTTPException(409, str(exc)) from None
+
+    async def quick_build(draft_id: str) -> dict[str, Any]:
+        """25.13: "build it" in one step (the owner, 2026-10-16: the wizard and a page of stages to start by hand were not
+        practical). The solution the audit proposes is accepted as it stands (its forbidden columns, identifiers and
+        time column, as the wizard ticks them by default), the project is built and its five stages start as a job.
+        Every check of the step-by-step path still runs: the target rule, the leakage review, the build's blockers and
+        the graph's move; a refusal is a 409 that says what is missing, for the chat to ask."""
+        from .. import context
+        from .card import card_of
+
+        draft = get(draft_id)
+        svc = context.services() or services
+        if draft.get("project_id"):
+            try:
+                project = projects.get(draft["project_id"])
+                return {"project_id": project["id"], "name": project.get("name"), "started": False,
+                        "note": "This draft is a project already: open it to run or follow its stages."}
+            except KeyError:
+                pass
+        asset = next((a for a in draft.get("assets") or [] if a.get("id") == draft.get("active_asset") and a.get("status") == "ready"), None)
+        if asset is None:
+            raise HTTPException(409, "There is no table to train on yet: upload or connect one, or say “simulate data” and I'll make a synthetic one.")
+        u = draft.get("understanding") or {}
+        if not draft.get("solution") and not (card_of(draft).family.value == "anomaly" and plans.label_asset(draft) is None):
+            columns = [str(c.get("name")) for c in (draft.get("analysis") or {}).get("columns") or []]
+            said = [u.get("target")] + [q.get("answered") for q in draft.get("questions") or [] if q.get("field") == "target"]
+            said.append((asset.get("suggestion") or {}).get("target"))
+            target = next((str(v) for v in said if isinstance(v, str) and v in columns), None)
+            if target is None:
+                raise HTTPException(409, "Which column is the outcome the model should learn? Name it (for example “the outcome is is_fraud”), then say build again.")
+            asked = {"target": target, **({"prediction_moment": u["prediction_moment"]} if u.get("prediction_moment") else {})}
+            proposal = await draft_proposal(draft_id, AnyObject.model_validate(asked))
+            moment = str(proposal.get("prediction_moment") or u.get("prediction_moment") or "").strip()
+            if len(moment) < 8:
+                raise HTTPException(409, "When is the prediction made, and what is known at that moment? Tell me in a sentence, then say build again.")
+            task = proposal.get("task")
+            body = {"target": target, "task": task, "prediction_moment": moment,
+                    "positive_label": str(proposal["positive_label"]) if task == "binary" and proposal.get("positive_label") is not None else None,
+                    "forbidden": [{"column": f["column"], "reason": f.get("reason") or "declared unavailable at the prediction moment"}
+                                  for f in proposal.get("forbidden") or []],
+                    "identifiers": list(proposal.get("identifiers") or []), "time_column": (proposal.get("time_candidates") or [None])[0],
+                    "group_column": None, "text_columns": list(proposal.get("text_columns") or []), "metric": proposal.get("metric"),
+                    "notes": "Accepted as the audit proposed it, from “build it” on Home."}
+            await save_solution(draft_id, body, "agent")
+        if not get(draft_id).get("settings"):
+            rows = int(asset.get("rows") or ((get(draft_id).get("analysis") or {}).get("summary") or {}).get("rows") or 20000)
+            # the whole table up to 50,000 rows (live, 2026-10-16: quick mode trained on 3,000 of 100,000 rows and its interval was too wide to use)
+            await draft_settings(draft_id, AnyObject.model_validate({"quick": False, "max_rows": min(rows, 50000), "folds": 3}))
+        if not get(draft_id).get("project_id"):
+            blockers = await asyncio.to_thread(build_blockers, drafts, draft_id)
+            if blockers:  # said with its rule, so the chat can offer the step that clears it (a map to confirm, a question)
+                from .. import experience
+
+                experience.record("draft.refused", "system", {"reason": str(blockers[0])[:2000], "rule": blockers[0].rule}, conversation=draft_id)
+                raise HTTPException(409, str(blockers[0]), headers={"X-DCLab-Rule": blockers[0].rule})
+        project = await build(draft_id)
+        draft = get(draft_id)
+        plan = [f"{n.get('label')}: {str(n.get('detail') or '').strip()}"[:220].rstrip(": ")
+                for n in (draft.get("workflow") or {}).get("nodes") or [] if n.get("label")]
+        session_id = None
+        if svc is not None and project.get("solution"):
+            # the agentic way (the owner, 2026-10-16): the intern takes the project, writes its plan and carries it out (each
+            # stage run, checked and approved through the graph's validator, the notebook exported, a report), within the
+            # draft's budget; with no model configured it follows the standard plan
+            st = draft.get("settings") or {}
+            budget = {k: v for k, v in (st.get("budget") or {}).items() if k in ("max_steps", "max_minutes")} or None
+            task = (f"{draft['problem']} Build and evaluate a leakage-safe model on the project's table: the solution is set "
+                    "(its target, prediction moment and forbidden columns); plan, run and check each stage, then report.")
+            try:
+                session = await asyncio.to_thread(svc.intern().start, task[:4000], budget, project["id"], by="system")
+                await asyncio.to_thread(svc.start_intern_job, session["id"], {"action": "run"}, False)
+                session_id = session["id"]
+            except HTTPException as exc:  # a job limit reached: the project stands, and the person is told how to go on
+                reason = exc.detail.get("message") if isinstance(exc.detail, dict) else str(exc.detail)
+                return {"project_id": project["id"], "name": project.get("name"), "started": False, "session_id": None, "plan": plan[:10],
+                        "note": f"The project is built, but the agent could not start: {reason} Open the project to start its stages."}
+        return {"project_id": project["id"], "name": project.get("name"), "started": session_id is not None, "session_id": session_id,
+                "plan": plan[:10], "note": None if session_id else "The project is built; start its stages from the project page."}
+
+    @router.post("/api/drafts/{draft_id}/build/run", status_code=201, response_model=Doc)
+    async def build_and_run(draft_id: str):
+        """25.13: build the project and start its five stages in one step (what "Let's build the solution" and "build it" do)."""
+        return await quick_build(draft_id)
+
+    def build_from_chat(draft_id: str) -> dict[str, Any]:
+        """The Home agent's "build it", from its own thread: the same step as the button, a refusal said as its reason."""
+        try:
+            return asyncio.run(quick_build(draft_id))
+        except HTTPException as exc:
+            detail = exc.detail.get("message") if isinstance(exc.detail, dict) else exc.detail
+            return {"refused": str(detail), "rule": (exc.headers or {}).get("X-DCLab-Rule")}
+        except Exception as exc:  # noqa: BLE001 — the chat always says what happened, never silence
+            return {"refused": f"The build failed: {type(exc).__name__}: {str(exc)[:200]}"}
+
+    if fallback is not None:
+        fallback.builder = build_from_chat
+    else:
+        services.build_from_chat = build_from_chat
 
     app.include_router(router)
 
@@ -1051,11 +1185,12 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
 
             project = projects.get(pid)
             project["solution"] = built_solution
-            studio_memory.solution_saved(project, None, built_solution, "human")  # A5.2: the person saved it in the wizard
+            saved_by = draft.get("solution_by") or "human"  # 25.13: "agent" when DCLab accepted the audit's proposal on "build it"
+            studio_memory.solution_saved(project, None, built_solution, saved_by)  # A5.2: the person saved it in the wizard
             projects.save(project)
             from .. import audit
 
-            audit.solution(projects, project, built_solution, "human", built=True)
+            audit.solution(projects, project, built_solution, saved_by, built=True)
 
     def done(d):
         d["status"], d["project_id"] = "built", pid

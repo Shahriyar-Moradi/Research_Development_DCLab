@@ -145,7 +145,10 @@ class ClaudeClient:
             except Exception as exc:  # noqa: BLE001 — monitoring never stops the agent
                 self.transcript.write({"at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "lane": self.lane, "purpose": "monitor",
                                        "outcome": f"monitor failed: {type(exc).__name__}: {str(exc)[:300]}"})
-        thinking_on = bool(getattr(self.inner, "thinking", None)) and not self.shared.get("thinking_refused")
+        from .. import roles  # the measured roles answer as they were measured, without thinking (and inside their call cap)
+
+        thinking_on = (bool(getattr(self.inner, "thinking", None)) and not self.shared.get("thinking_refused")
+                       and self.purpose not in roles.WIRED)
         if getattr(self.inner, "thinking", None) and not thinking_on:
             options = {**options, "thinking": "off"}
         estimate = self._estimate(messages, max_tokens, options)

@@ -126,6 +126,18 @@ class AccountsTests(unittest.TestCase):
         self.assertEqual(self.snapshot(), before)  # nothing in the first workspace changed
         self.assertGreater(len(checked), 45)
 
+    def test_a_viewer_cannot_read_a_whole_table_and_build_it_works_in_every_workspace(self):
+        """25.13 review: the table's values are the project's data (as export/code); "build it" is wired in each workspace."""
+        from dclab_rnd.accounts.guard import permission
+
+        for path in ("/api/drafts/{draft_id}/assets/{asset_id}/download", "/api/drafts/{draft_id}/assets/{asset_id}/rows"):
+            self.assertEqual(permission("GET", path), "write")
+            r = self.clients["view1"].get(path.replace("{draft_id}", self.draft["id"]).replace("{asset_id}", "x"))
+            self.assertEqual(r.status_code, 403, r.text[:200])
+        other = self.app.state.pool.get(self.w2)
+        self.assertIsNotNone(getattr(other, "build_from_chat", None))
+        self.assertIs(other.build_from_chat, self.app.state.pool.default.build_from_chat)
+
     def test_a_viewer_cannot_run_a_stage_or_approve_a_gate(self):
         pid = self.project["id"]
         viewer, reviewer, scientist = self.clients["view1"], self.clients["rev1"], self.clients["ds1"]

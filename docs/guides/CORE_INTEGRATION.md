@@ -645,3 +645,21 @@ The studio's: a tester's local workspace records everything, `make share` sends 
 records repository, `make collect` rebuilds each tester's workspace on the owner's side, where the evaluation and the datasets read it. Where it goes
 there: the main product serves its users from its own servers and keeps their records there; the rule worth keeping is the bundle with its manifest
 (each file's SHA-256, checked before it is applied, never a path outside the person's folder) and the agreement per table.
+
+## Live fixes: Claude's refusal, its thinking, the lane's state (25.12)
+
+The studio's: the expert prompt asks for a solution design (not for a written record of how the model thinks, which
+Claude refused), every thinking request asks for a summarized display, a refusal is said as declined, and the lane's
+state is kept on the session. Where it goes there: any Claude call the main product makes should map
+`stop_reason: "refusal"` to a visible state rather than an empty answer, and ask for `display: "summarized"` when it
+keeps the reasoning; measured roles answer without thinking inside their call caps.
+
+## Home that builds: "build it" to a running agent, the data reachable, a fuller EDA (25.13)
+
+The studio's: "build it" (typed, the button, or the Home agent's `build_solution` tool on the person's word) accepts
+the audit's proposal, checks the build's blockers, builds the project and hands it to the agent that plans, runs and
+checks each stage; a blocker comes back with the step that clears it (confirm the map, bring data). Every table is a
+CSV download and a page of rows for the person; the analysis shows every column; the data stage adds the outcome by
+category or band of each input, on the training rows only. Where it goes there: the main product's chat should treat
+"build" as an action through its own governed run path (never around its validator), and its EDA of outcome against
+inputs should read only the rows its locked split leaves for training (`engine.outcome_by_feature` is the rule).

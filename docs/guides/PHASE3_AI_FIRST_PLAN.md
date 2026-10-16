@@ -323,6 +323,25 @@ Messages transport (which returns Claude's thinking, which the OpenAI-compatible
   refusal is said on the lane, the lane's state (thinking, answered, declined, capped, not reachable, failed) is kept
   on the session, Home keeps its remembered draft across a failed read. Checked live on the owner's fraud example.
 
+### 25.13 Home that builds, the agentic way
+- **Why:** the owner's test (2026-10-16): "ok build model" built nothing (the button opened a five-step wizard and
+  a page of stages to start by hand); the synthetic table could not be found; 100,000 simulated rows is too many;
+  the EDA is not enough; "when the user says build, do everything automatically, the agentic way: make a plan and
+  build"; "the chat bot must be agentic".
+- **Delivers:** `POST /api/drafts/{id}/build/run` and the Home agent's `build_solution` tool (on the person's word
+  only): the audit's proposal accepted as it stands, the build's blockers checked first (a blocker comes back with
+  the step that clears it: confirm the map, bring data), the project built and handed to the intern, which writes
+  its plan, runs and checks the stages and reports; the chat shows the plan with "Follow the agent". A turn never
+  ends in silence; the agent answers questions before asking. Simulated tables at most 10,000 rows. Every table is a
+  CSV download and a page of rows; Home's analysis shows every column, time trends and correlations; the data
+  stage's outcome by category or band of each input, on the training rows only. Live fixes: measured roles answer
+  without thinking in Claude's lane (their €0.05 call cap refused every call), the design request's limit 8,000.
+- **Status: done (2026-10-16).** Checked live on the owner's fraud draft: the map confirmed from the chat, the
+  project built, the agent (Claude) planned, set the solution (target, time split, identifiers), ran the five
+  stages and reported holdout PR-AUC 0.478 (95% 0.368 to 0.615) against 0.12 at random, on 3,000 rows of quick
+  mode; a chat build now trains on the whole table up to 50,000 rows. A question from the person ("what is the
+  plan?") gets the plan so far before the open question.
+
 ## The next phase: fine-tuning the decision models
 
 Phase 3 collects the data; the next phase (its own plan, written when the sets of 25.7 hold enough) fine-tunes on it:

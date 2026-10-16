@@ -72,6 +72,7 @@ WRITE_ROUTES = {
     "PUT /api/drafts/{draft_id}/solution": (EVENTS, ["solution.saved"]),
     "PUT /api/drafts/{draft_id}/settings": (EVENTS, ["decision.accepted"]),
     "POST /api/drafts/{draft_id}/build": (EVENTS, ["draft.built"]),  # or draft.refused, for a list of cases alone
+    "POST /api/drafts/{draft_id}/build/run": (EVENTS, ["draft.built", "chat.agent"]),  # 25.13: the build, and the task DCLab wrote for its agent (never the person's words)
     "POST /api/projects": (NONE, "an empty project; its data, solution and stages are events"),
     "PATCH /api/projects/{project_id}": (EVENTS, ["decision.accepted"]),  # settings, gates, the opt-in; a name or a goal leaves none
     "DELETE /api/projects/{project_id}": (NONE, "the deletion is audited (its tombstone) and the project's events are removed (19.10)"),

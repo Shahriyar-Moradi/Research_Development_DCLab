@@ -351,6 +351,44 @@ class ThinkingAndCapsTests(unittest.TestCase):
                 with self.assertRaises(RuntimeError):
                     gw.client("intern").complete([{"role": "user", "content": "go"}], None, 1800)
 
+    def test_a_measured_role_answers_without_thinking_inside_its_call_cap(self):
+        """Live (2026-10-16): the problem analyst's €0.05 call was refused before it was sent, its estimate counting
+        8,000 tokens of thinking room; a measured role answers as it was measured, without thinking."""
+        from dclab_rnd import roles
+
+        class Thinks:
+            model, base_url, thinking = "claude-scripted", "https://api.anthropic.com", "adaptive"
+
+            def __init__(self):
+                self.sent = []
+
+            def effective_max_tokens(self, max_tokens, options=None):
+                return (max_tokens or 0) + (0 if (options or {}).get("thinking") == "off" else 8000)
+
+            def complete(self, messages, tools=None, max_tokens=None, **options):
+                self.sent.append(options.get("thinking"))
+                return reply("ok")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            prices = Path(tmp) / "p.json"
+            prices.write_text(json.dumps({"claude-scripted": {"input": 1.0, "output": 10.0, "as_of": "2026-10-16", "source": "test"}}))
+            with mock.patch.dict(os.environ, {"DCLAB_PRICES_FILE": str(prices)}):
+                t = Thinks()
+                gw, _ = self.gateway(t)
+                role = gw.client("problem_analyst")
+                role.run_limit_eur = roles.CALL_CAP_EUR
+                self.assertEqual(role.complete([{"role": "user", "content": "go"}], None, 1800)["content"], "ok")
+                gw.client("intern").complete([{"role": "user", "content": "go"}], None, 1800)
+                self.assertEqual(t.sent, ["off", None])  # the role without thinking; the agent still thinks
+
+    def test_a_design_request_has_room_for_a_whole_design(self):
+        """Live (2026-10-16): a design of ~6,000 tokens was cut at 3,200."""
+        import inspect
+
+        from dclab_rnd.twin import design
+
+        self.assertGreaterEqual(inspect.signature(design.Designer.__init__).parameters["max_tokens"].default, 8000)
+
     def test_the_months_earlier_twin_runs_count_against_the_monthly_cap(self):
         from dclab_rnd.models.usage import FileUsage
 
