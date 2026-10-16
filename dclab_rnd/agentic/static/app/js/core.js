@@ -1093,7 +1093,17 @@
   /* ---------------- boot ---------------- */
   function boot() {
     renderNav();
-    $('#menu-btn').addEventListener('click', () => document.body.classList.toggle('nav-open'));
+    // A wide screen hides the menu for room (remembered); a narrow one slides it over the page
+    const wide = () => window.matchMedia('(min-width: 961px)').matches;
+    const hideSide = on => {
+      document.body.classList.toggle('side-hidden', on);
+      $('#side-toggle').setAttribute('aria-expanded', String(!on));
+      $('#menu-btn').setAttribute('aria-label', on ? 'Show the menu' : 'Open navigation');
+      try { localStorage.setItem('dclab-side-hidden', on ? '1' : '0'); } catch (e) { /* storage blocked */ }
+    };
+    try { if (localStorage.getItem('dclab-side-hidden') === '1') hideSide(true); } catch (e) { /* storage blocked */ }
+    $('#side-toggle').addEventListener('click', () => hideSide(true));
+    $('#menu-btn').addEventListener('click', () => { if (wide()) hideSide(!document.body.classList.contains('side-hidden')); else document.body.classList.toggle('nav-open'); });
     $('#side-scrim').addEventListener('click', () => document.body.classList.remove('nav-open'));
     $('#search-btn').addEventListener('click', openPalette);
     $('#palette').addEventListener('click', e => { if (e.target.id === 'palette') closePalette(); });

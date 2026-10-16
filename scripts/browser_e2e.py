@@ -120,6 +120,10 @@ def check_flow(b: Browser) -> str:
 
     check(page.locator("#home-create").is_visible(), "no Build this chat as a project button in the conversation, or no New project from chat button on Home")  # 25.13: the one-step build
     check(page.locator("[data-new-chat]").is_visible(), "no New project from chat button on Home")
+    page.click("#side-toggle")  # 25.13: hide the menu for room, remembered, and bring it back from the top bar
+    check(not page.locator("#side").is_visible() and page.locator("#menu-btn").is_visible(), "the menu did not hide")
+    page.click("#menu-btn")
+    check(page.locator("#side").is_visible(), "the menu did not come back")
     page.click("#home-chat [data-wizard]")  # the step-by-step path, which this test walks
     page.wait_for_selector("#view-new:not([hidden]) .panel[data-new-step='2']:not([hidden])", timeout=30_000)
     page.wait_for_selector("#wz-data-next:not([disabled])", timeout=60_000)

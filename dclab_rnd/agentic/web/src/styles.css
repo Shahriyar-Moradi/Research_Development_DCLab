@@ -317,6 +317,17 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 0; }
 }
 .side-scrim { display: none; position: fixed; inset: 0; background: var(--scrim); z-index: 55; }
 
+/* Hide the menu on a wide screen (owner, 2026-10-16): the page gets the whole width, and the top bar's menu button brings it back */
+.side-toggle { margin-left: 4px; }
+.side-toggle { display: none; }
+@media (min-width: 961px) {
+  .side-toggle { display: inline-flex; }
+  body.side-hidden .app { grid-template-columns: minmax(0, 1fr); }
+  body.side-hidden .side { display: none; }
+  body.side-hidden .icon-btn.menu-btn { display: inline-flex; }
+  body.side-hidden .content { max-width: 2200px; padding-left: 28px; padding-right: 28px; }
+}
+
 /* ---------- page header and page tabs ---------- */
 .vh { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 22px; }
 .vh-text { display: flex; flex-direction: column; gap: 8px; min-width: 0; max-width: 780px; }
