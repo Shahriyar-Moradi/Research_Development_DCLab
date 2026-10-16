@@ -194,7 +194,7 @@ def _datasets_of(result: dict[str, Any]) -> set[str]:
             names.add(item)
         elif isinstance(item, dict) and isinstance(item.get("dataset"), str):
             names.add(item["dataset"])
-    for case in result.get("cases") or []:
+    for case in result.get("cases") if isinstance(result.get("cases"), list) else []:  # a count in some campaigns (solver_v1)
         if isinstance(case, dict) and isinstance(case.get("dataset"), str):
             names.add(case["dataset"])
     return names
