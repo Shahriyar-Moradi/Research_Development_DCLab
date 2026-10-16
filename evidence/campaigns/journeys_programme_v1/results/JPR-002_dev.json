@@ -1,0 +1,468 @@
+{
+  "id": "JPR-002",
+  "campaign_id": "journeys_programme_v1",
+  "kind": "programme_journeys",
+  "split": "dev",
+  "arm": "roles",
+  "journeys": "9b1bd0e8198c5c4ca5964fece2e1077206d41d166332943231bd0da1364ab01f",
+  "at": "2026-10-16T03:43:17+00:00",
+  "gate": {
+    "version": "journeys_programme_gate_v1",
+    "split": "sealed",
+    "journey": "right on the card (the size, and for one problem its family), the workflow (every part the expert expects is drawn with the expert's approach, at most one part beyond them, no graph move refused), the pipeline, and the holdout (a person who goes on and has the confirmed cases gets a composed result never worse than its best leaf, above it with the interval when all three leaves ran, read once; a person who stops at a blocked part, or who has no confirmed case, leaves it closed with the reason said); a part that does not apply is not scored",
+    "suite": "at least 85% of the sealed journeys right, the lower end of their 95% Wilson interval at least 0.55, no graph move refused, no holdout read twice",
+    "roles": "the roles arm (the decomposer, the map reviewer, the data-need agent and the solution router served by the model) is right on at least as many journeys as the rules arm and on at least as many of each part, every request answered, no graph move refused, within the cap; a role serves the product only then",
+    "seed": 5,
+    "author": "an agent given only the three files' columns, the journeys' format and the vocabulary of families and approaches; it never read the rules, the dev people or any code"
+  },
+  "seed": 0,
+  "spent_eur": 0.4217,
+  "rows": [
+    {
+      "id": "JP-01",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "accounts",
+        "cases"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": false,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [
+        "workflow: parts expected but not drawn with that approach: [('entity_tables', 'entity_tables'), ('ranking', 'review_budgeted')]; drawn [('anomaly', 'anomaly'), ('rare_event', 'rare_event')]; refused moves []"
+      ],
+      "asked": [
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "complex",
+        "family": "rare_event",
+        "families": [
+          "anomaly",
+          "rare_event"
+        ],
+        "approaches": [
+          "anomaly",
+          "rare_event"
+        ]
+      },
+      "refused_moves": 0,
+      "holdout_uses": 1,
+      "holdout": {
+        "composed": 0.4151,
+        "best_leaf": 0.4151,
+        "difference": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "leaves": 2,
+        "chosen": "blk1"
+      },
+      "seconds": 86.8,
+      "right": false
+    },
+    {
+      "id": "JP-02",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "accounts",
+        "cases"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": false,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [
+        "workflow: parts expected but not drawn with that approach: [('ranking', 'review_budgeted')]; drawn [('anomaly', 'anomaly'), ('entity_tables', 'entity_tables'), ('rare_event', 'rare_event')]; refused moves []"
+      ],
+      "asked": [
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "complex",
+        "family": "rare_event",
+        "families": [
+          "anomaly",
+          "rare_event",
+          "entity_tables"
+        ],
+        "approaches": [
+          "anomaly",
+          "rare_event",
+          "entity_tables"
+        ]
+      },
+      "refused_moves": 0,
+      "holdout_uses": 1,
+      "holdout": {
+        "composed": 0.9623,
+        "best_leaf": 0.7239,
+        "difference": 0.2384,
+        "low": 0.1036,
+        "high": 0.4253,
+        "leaves": 3,
+        "chosen": "rank_max"
+      },
+      "seconds": 168.5,
+      "right": false
+    },
+    {
+      "id": "JP-03",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "cases"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": false,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [
+        "workflow: parts expected but not drawn with that approach: [('ranking', 'review_budgeted')]; drawn [('anomaly', 'anomaly'), ('entity_tables', None), ('rare_event', 'rare_event')]; refused moves []"
+      ],
+      "asked": [
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "complex",
+        "family": "rare_event",
+        "families": [
+          "anomaly",
+          "rare_event",
+          "entity_tables"
+        ],
+        "approaches": [
+          "anomaly",
+          "rare_event",
+          null
+        ]
+      },
+      "refused_moves": 0,
+      "holdout_uses": 1,
+      "holdout": {
+        "composed": 0.4151,
+        "best_leaf": 0.4151,
+        "difference": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "leaves": 2,
+        "chosen": "blk1"
+      },
+      "seconds": 106.6,
+      "right": false
+    },
+    {
+      "id": "JP-04",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "cases"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": false,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [
+        "workflow: parts expected but not drawn with that approach: [('anomaly', 'anomaly'), ('ranking', 'review_budgeted')]; drawn [('entity_tables', None), ('rare_event', 'rare_event')]; refused moves []"
+      ],
+      "asked": [
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "complex",
+        "family": "rare_event",
+        "families": [
+          "rare_event",
+          "entity_tables"
+        ],
+        "approaches": [
+          "rare_event",
+          null
+        ]
+      },
+      "refused_moves": 0,
+      "holdout_uses": 0,
+      "seconds": 169.0,
+      "right": false
+    },
+    {
+      "id": "JP-05",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "accounts"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": false,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [
+        "workflow: parts expected but not drawn with that approach: [('ranking', 'review_budgeted')]; drawn [('anomaly', 'anomaly'), ('entity_tables', 'entity_tables')]; refused moves []"
+      ],
+      "asked": [
+        "target",
+        "labels",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "complex",
+        "family": "anomaly",
+        "families": [
+          "anomaly",
+          "entity_tables"
+        ],
+        "approaches": [
+          "anomaly",
+          "entity_tables"
+        ]
+      },
+      "refused_moves": 0,
+      "holdout_uses": 0,
+      "seconds": 89.5,
+      "right": false
+    },
+    {
+      "id": "JP-06",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": null,
+        "holdout": null
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "labels",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "single",
+        "family": "anomaly",
+        "families": [
+          "anomaly"
+        ],
+        "approaches": [
+          "anomaly"
+        ]
+      },
+      "refused_moves": 0,
+      "seconds": 26.0,
+      "right": true
+    }
+  ],
+  "summary": {
+    "journeys": 6,
+    "right": 1,
+    "by_part": {
+      "card": {
+        "right": 6,
+        "applies": 6
+      },
+      "workflow": {
+        "right": 1,
+        "applies": 6
+      },
+      "pipeline": {
+        "right": 5,
+        "applies": 5
+      },
+      "holdout": {
+        "right": 5,
+        "applies": 5
+      }
+    }
+  },
+  "verdict": "fail: 1 of 6 journeys right (95% interval 0.03 to 0.564), 0 moves refused by the validator, 0 holdouts read twice",
+  "status": "completed",
+  "experiment_id": "JPR-002",
+  "completed_at": "2026-10-16T03:43:17+00:00",
+  "roles_against_rules": {
+    "rules_right": 6,
+    "roles_right": 1,
+    "parts": {
+      "rules": {
+        "card": {
+          "right": 6,
+          "applies": 6
+        },
+        "workflow": {
+          "right": 6,
+          "applies": 6
+        },
+        "pipeline": {
+          "right": 5,
+          "applies": 5
+        },
+        "holdout": {
+          "right": 5,
+          "applies": 5
+        }
+      },
+      "roles": {
+        "card": {
+          "right": 6,
+          "applies": 6
+        },
+        "workflow": {
+          "right": 1,
+          "applies": 6
+        },
+        "pipeline": {
+          "right": 5,
+          "applies": 5
+        },
+        "holdout": {
+          "right": 5,
+          "applies": 5
+        }
+      }
+    },
+    "changed": [
+      {
+        "id": "JP-01",
+        "rules": true,
+        "roles": false
+      },
+      {
+        "id": "JP-02",
+        "rules": true,
+        "roles": false
+      },
+      {
+        "id": "JP-03",
+        "rules": true,
+        "roles": false
+      },
+      {
+        "id": "JP-04",
+        "rules": true,
+        "roles": false
+      },
+      {
+        "id": "JP-05",
+        "rules": true,
+        "roles": false
+      }
+    ],
+    "request_failures": 0,
+    "roles_refused_moves": 0,
+    "roles_verdict": "fail: 1 of 6 journeys right (95% interval 0.03 to 0.564), 0 moves refused by the validator, 0 holdouts read twice",
+    "passed": false,
+    "rule": "the roles arm (the decomposer, the map reviewer, the data-need agent and the solution router served by the model) is right on at least as many journeys as the rules arm and on at least as many of each part, every request answered, no graph move refused, within the cap; a role serves the product only then"
+  },
+  "asks": 74,
+  "sent": {
+    "decomposer": 6,
+    "data_need": 6,
+    "map_reviewer": 11,
+    "solution_router": 51
+  },
+  "rule": "Scores on 6 written journeys over a seeded replica say how DCLab carries these people from their first sentence to a holdout number, or stops them with the reason; they are not a claim about any other problem or about production readiness."
+}

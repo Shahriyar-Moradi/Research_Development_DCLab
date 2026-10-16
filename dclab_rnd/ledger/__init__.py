@@ -68,6 +68,7 @@ CAPTURED = {
     "map.size": "draft/map.py draw: the rules' reading of the words and the decomposer's, when it serves",
     "map.edit": "draft/map.py edit: a person's add, remove, merge or confirm of the map",
     "solution.route": "draft/map.py store_routes: the approach the router chose for each sub-problem, the rules' and the advisor's",
+    "solution.compose": "studio/programme.py run: the composition chosen on validation among every leaf alone and the fusions (ledger/capture.composition_chosen), with a measured label once the holdout is read",
     "workflow.next_question": "draft/chat.py next_question: the question asked next, or none",
     "workflow.template": "draft/workflow.py: the solution workflow drawn",
     "agent.tool_choice": "agents/runtime.py: each tool a model chose among those it was offered",

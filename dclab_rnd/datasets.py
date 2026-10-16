@@ -139,11 +139,30 @@ def _workflow_items(services: Any, allowed_projects: dict[str, dict[str, Any]]) 
     return items
 
 
-def _map_items(services: Any, allowed_projects: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
-    """The drafts that drew a problem map and built a project from it, for the problem_maps and routes sets (24.7): the map first drawn and the one built from, the person's
-    edits, the routes (codes and counts), and what the project's programme did, when it ran. The words are the problem card's and the maps' quotes, redacted as every text."""
-    from dclab_core import programme as core_programme
+def _clean_map(m: dict[str, Any] | None, aliases: dict[str, str]) -> dict[str, Any] | None:
+    """A problem map as it may leave: the tables its needs name replaced by ``table_1``… (a file's name can be a person's), every string through the export's redaction, and
+    the fingerprints put back (the redaction reads a 16-digit hex as an identifier, and a fingerprint is what ties a map to its edits)."""
+    import copy
 
+    from . import consent
+
+    if not m:
+        return m
+    work = copy.deepcopy(m)
+    for sub in work.get("sub_problems") or []:
+        for need in sub.get("needs") or []:
+            if need.get("table"):
+                need["table"] = aliases.setdefault(str(need["table"]), f"table_{len(aliases) + 1}")
+    out = consent._scrub(work, {})
+    out["fingerprint"] = m.get("fingerprint")
+    return out
+
+
+def _map_items(services: Any, allowed_projects: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    """The drafts that drew a problem map and built a project from it, for the problem_maps and routes sets (24.7). The map and the routes are the plan the project ran (as
+    the tables changed it), else the draft's; the first map drawn is the draft's. The person's edits are the correction labels: ``corrected`` is decided here, from the
+    draft's history, before any redaction (a person's add, remove or merge; a redraw is a new proposal, not a correction). The words are the problem card's and the maps'
+    quotes, redacted as every text; the tables' names are aliased; what the programme did is per leaf and for the composition."""
     from . import consent
     from .draft.card import card_of
     from .studio import programme as studio_programme
@@ -159,32 +178,39 @@ def _map_items(services: Any, allowed_projects: dict[str, dict[str, Any]]) -> li
         except Exception:  # noqa: BLE001 - a draft the card cannot read yet: left out
             continue
         project = allowed_projects[project_id]
-        programme = None
+        plan = studio_programme.plan_of(project)
         try:
             programme = studio_programme.stored(project)
         except Exception:  # noqa: BLE001 - a programme that does not read is no outcome
             programme = None
+        h = programme.holdout if programme is not None else None
         outcome = None
-        if programme is not None and programme.holdout is not None:
-            h = programme.holdout
+        if programme is not None and h is not None:
             outcome = {"state": programme.state, "chosen": h.chosen, "best_leaf": h.best_leaf, "difference": h.difference.value, "low": h.difference.low, "high": h.difference.high,
                        "beats_best_leaf": h.beats_best_leaf, "reads_before": programme.reads_before}
-        final = held["map"]
+        final = (plan or {}).get("problem_map") or held["map"]
+        routes_doc = (plan or {}).get("routes") or ((held.get("routes") or {}).get("routes")) or {}
         subs = {x.get("id"): x for x in final.get("sub_problems") or []}
-        built = {l.sub_problem: l for l in programme.leaves} if programme is not None else {}
+        by_sub = {l.sub_problem: l for l in programme.leaves} if programme is not None else {}
         routes = []
-        for sid, route in ((held.get("routes") or {}).get("routes") or {}).items():
+        for sid, route in routes_doc.items():
             sub = subs.get(sid) or {}
-            leaf = built.get(sid)
+            leaf = by_sub.get(sid)
+            result = None
+            if leaf is not None:
+                result = {"leaf": leaf.status, "chosen": leaf.chosen, "validation": dict(leaf.validation) or None,
+                          "holdout": h.leaves[leaf.block].value if h is not None and leaf.block in h.leaves else None,
+                          "was_best_leaf": bool(h is not None and h.best_leaf == leaf.block), "composition_beat_best_leaf": bool(h is not None and h.beats_best_leaf)}
             routes.append({"sub_problem": sid, "chosen": route.get("chosen"), "source": route.get("source"),
                            "state": {"family": sub.get("family"), "labels": sub.get("labels"), "kind": sub.get("kind"), "predict_rank": sub.get("predict_rank"),
                                      "reads": len(sub.get("reads") or []), "parts": len(final.get("parts") or [])},
                            "candidates": [{"approach": c.get("approach"), "rank": c.get("rank"), "blocked_by": list(c.get("blocking") or []), "unknown": list(c.get("unknown") or [])}
                                           for c in route.get("candidates") or []],
-                           "outcome": {"leaf": leaf.status, "chosen": leaf.chosen, "beats_best_leaf": bool(outcome and outcome["beats_best_leaf"])} if leaf is not None else None})
-        items.append({"draft": draft.get("id"), "project": project_id, "problem_card": card, "proposed": consent._scrub(held.get("first"), {}) if held.get("first") else None,
-                      "final": consent._scrub(final, {}), "edits": [{k: v for k, v in e.items() if k in ("action", "by", "part", "keep", "other", "from", "to")}
-                                                                      for e in held.get("history") or []],
+                           "outcome": result})
+        aliases: dict[str, str] = {}
+        edits = [{k: v for k, v in e.items() if k in ("action", "by", "part", "keep", "other", "from", "to")} for e in held.get("history") or []]
+        items.append({"draft": draft.get("id"), "project": project_id, "problem_card": card, "proposed": _clean_map(held.get("first"), aliases), "final": _clean_map(final, aliases),
+                      "edits": edits, "corrected": any(e.get("by") == "person" and e.get("action") in ("add", "remove", "merge") for e in edits),
                       "confirmed": bool(held.get("confirmed")), "outcome": outcome, "map": final.get("fingerprint"), "routes": routes})
     return items
 
@@ -282,9 +308,8 @@ def build(services: Any, root: Path | None = None) -> dict[str, Any]:
         keep("preferences", "corrections", lambda: builders.preferences(records, workspace=workspace, consent=basis, drafts=draft_map))
         keep("trajectories", "agent_runs", lambda: builders.trajectories(events, workspace=workspace, consent=basis, drafts=draft_map))
         keep("workflows", "problem_to_pipeline", lambda: builders.workflows(_workflow_items(services, allowed), workspace=workspace, consent=basis))
-        maps = _map_items(services, allowed)  # 24.7
-        keep("problem_maps", "brief_to_map", lambda: builders.problem_maps(maps, workspace=workspace, consent=basis))
-        keep("routes", "sub_problem_to_approach", lambda: builders.routes(maps, workspace=workspace, consent=basis))
+        keep("problem_maps", "brief_to_map", lambda: builders.problem_maps(_map_items(services, allowed), workspace=workspace, consent=basis))  # 24.7: assembled inside keep, so
+        keep("routes", "sub_problem_to_approach", lambda: builders.routes(_map_items(services, allowed), workspace=workspace, consent=basis))  # a draft it cannot read costs these two sets only
     else:
         out["not_built"].append({"use": "train", "why": "the workspace's switch is off"})
     if switches.get("improve"):

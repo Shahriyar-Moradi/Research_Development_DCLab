@@ -128,7 +128,7 @@ Every record of a point leaves under the consent of the event kinds' rule: writt
 | `problem.ready` | workflow | noul | draft, project | Is the problem understood enough to build? | draft/api.py build: whether the card is ready |
 | `proposal.completeness` | workflow | score | proposal | How complete is the proposal for a reviewer? | — |
 | `report.claim` | technical | noul | project | Is the report's line kept? | studio/solution_report.py: the report's lines kept and dropped |
-| `solution.compose` | workflow | value | project | How are the leaves of the programme combined: one alone, a fusion, a gate? | — |
+| `solution.compose` | workflow | value | project | How are the leaves of the programme combined: one alone, a fusion, a gate? | studio/programme.py run: the composition chosen on validation among every leaf alone and the fusions (ledger/capture.composition_chosen), with a measured label once the holdout is read |
 | `solution.route` | workflow | value | draft, project | Which approach solves this sub-problem? | draft/map.py store_routes: the approach the router chose for each sub-problem, the rules' and the advisor's |
 | `split.folds` | technical | value | project | How many folds? | studio/engine.py prepare: the folds from the settings |
 | `split.strategy` | technical | value | draft, project | How are rows split for validation and the holdout? | studio/engine.py prepare: the kind's split for the solution |

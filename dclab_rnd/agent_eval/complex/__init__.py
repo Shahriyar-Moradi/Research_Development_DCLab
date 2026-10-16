@@ -200,9 +200,18 @@ def sealed_runs() -> list[Path]:
     return sorted(RESULTS.glob("MAP-*_sealed.json"))
 
 
+def sealed_passed() -> bool:
+    """Whether the decomposer passed ``map_gate_v1`` on the sealed set, from the stored scored run (24.8): the roles' switch reads this and the programme journeys' roles arm."""
+    for path in sealed_runs():
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        if (doc.get("verdict") or {}).get("status") == "pass" and (doc.get("gate") or {}).get("version") == GATE["version"]:
+            return True
+    return False
+
+
 def next_id() -> str:
     numbers = [int(m.group(1)) for p in RESULTS.glob("MAP-*.json") if (m := re.match(r"MAP-(\d+)_", p.name))]
     return f"MAP-{max(numbers, default=0) + 1:03d}"
 
 
-__all__ = ["GATE", "ARMS", "load", "measure", "verdict", "plan", "families_f1", "score", "sealed_runs", "next_id", "RESULTS"]
+__all__ = ["GATE", "ARMS", "load", "measure", "verdict", "plan", "families_f1", "score", "sealed_runs", "sealed_passed", "next_id", "RESULTS"]

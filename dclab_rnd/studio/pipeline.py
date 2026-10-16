@@ -124,7 +124,7 @@ def _programme_steps(project: dict[str, Any]) -> list[dict[str, Any]]:
             step.update(status="failed", why=leaf.why or "The leaf did not run.")
         ids[b.id] = step["id"]
         steps.append(step)
-    leaf_steps = [x["id"] for x in steps]
+    leaf_steps = [x["id"] for x in steps if x["status"] != "not_recorded"]  # a leaf the person dropped is listed but is no input of the composition: it does not make it stale
     chosen = p.composition if p else None
     comp = {"id": "programme:composition", "kind": "stage", "name": "the composition, chosen on validation", "depends_on": leaf_steps or ["data"], "nodes": ["WF-08"],
             "roots": ["programme"], "record": "project.programme.document.composition", "rerun": "replay" if p else "rerun"}

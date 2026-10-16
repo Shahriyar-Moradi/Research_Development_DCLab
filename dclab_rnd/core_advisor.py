@@ -26,6 +26,8 @@ class GatewayAdvisor:
         self.models = dict(models or {})  # a model named per purpose (21.4: a measurement comparing models), else the routed one
         self._clients: dict[str, Any] = {}
         self.calls: dict[str, int] = {}  # requests sent, per purpose
+        self._answers: dict[tuple[str, str], Optional[Mapping[str, Any]]] = {}  # an identical question (same purpose, same evidence) is answered once by this advisor
+        self.hits: dict[str, int] = {}  # questions answered from it, per purpose
 
     def _client(self, purpose: str) -> Any:
         if purpose not in self._clients:
@@ -53,6 +55,10 @@ class GatewayAdvisor:
         client = self._client(purpose)
         if client is None:
             return None  # no model serves this purpose here: the role keeps to its rules
+        question = (purpose, json.dumps(evidence, sort_keys=True, default=str, ensure_ascii=False))
+        if question in self._answers:  # the same evidence asked again (a route recomputed with nothing changed): the answer already paid for
+            self.hits[purpose] = self.hits.get(purpose, 0) + 1
+            return self._answers[question]
         if self.cap_eur is not None:  # one cap for every purpose together, re-read before each request
             client.run_limit_eur = float(getattr(client, "spent_eur", 0.0) or 0.0) + max(0.0, self.cap_eur - self.spent_eur())
         self.calls[purpose] = self.calls.get(purpose, 0) + 1
@@ -70,6 +76,7 @@ class GatewayAdvisor:
             if answer is None and content:
                 raise ValueError("the reply holds no JSON object")
             verdict = "ok" if answer is not None else "no_answer"
+            self._answers[question] = answer  # an error is never kept: it is asked again
             return answer
         finally:  # 21.1: a role's answer is a step of whatever asked it, recorded whether it answered or not
             from dclab_rnd.agents import harness

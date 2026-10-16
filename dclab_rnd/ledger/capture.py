@@ -385,7 +385,7 @@ def route_chosen(draft_id: str, sub: Any, route: Any, data: Any, parts: int) -> 
     tables = getattr(data, "tables", None) or []
     columns = [c for t in tables for c in (getattr(t, "columns", None) or [])]
     state = {"family": sub.family, "labels": sub.labels if sub.labels in ("column", "file", "none") else "unknown", "parts": int(parts), "sub_problem": _code(sub.id) or "sp",
-             "tables": len(tables), "has_time": any(getattr(c, "purpose", None) == "time" for c in columns),
+             "tables": len(tables), "related_tables": sum(1 for t in tables if getattr(t, "role", None) == "related"), "has_time": any(getattr(c, "purpose", None) == "time" for c in columns),
              "has_text": any(getattr(c, "purpose", None) == "text" for c in columns)}
     by = "model_role" if route.source == "advisor" else "rule"
     return int(bool(_put("solution.route", ("draft", draft_id), answers, route.chosen, by, state=state, options=[c.approach for c in route.candidates],
@@ -395,15 +395,17 @@ def route_chosen(draft_id: str, sub: Any, route: Any, data: Any, parts: int) -> 
 @_quiet
 def composition_chosen(project_id: str, p: Any) -> int:
     """The composition of a programme chosen on validation (24.5): the rule's choice among every leaf alone and the fusions, with the candidates as the options. When the
-    holdout was read, a measured label follows: the choice held up when the composition beat the best leaf with its interval above zero, and the best leaf was the right
-    answer when the composition was clearly below it (an interval that crosses zero labels nothing)."""
+    holdout was read for the first time, a measured label follows: the composition when it beat the best leaf with its interval above zero, the best leaf when the
+    composition was clearly below it, nothing when the interval crosses zero or the holdout had been read before. What it says is what the holdout compared: the chosen
+    composition against the best single leaf (the holdout scores only those); it does not say the chosen was the best of all the candidates, and its evidence names the
+    comparison (``holdout_vs_best_leaf``)."""
     c, h = p.composition, p.holdout
     if c is None:
         return 0
     state = {"parts": len(c.weights), "positives": int(c.positives), "holdout_used": int(p.reads_before)}
     rec = _put("solution.compose", ("project", project_id), [answer("rule", "rule:compose_on_validation", c.chosen, reason=c.rule[:600] or None)], c.chosen, "rule", state=state,
                options=list(c.candidates), project=project_id)
-    if rec is not None and h is not None:
+    if rec is not None and h is not None and p.reads_before == 0:  # a second look at a holdout already seen is optimistic (PIT-006): it labels nothing
         value = c.chosen if h.beats_best_leaf else (c.best_leaf if h.difference.high < 0 else None)
         if value is not None:
             label(rec, value, "measured", "holdout_gain", evidence={"kind": "holdout_vs_best_leaf", "value": float(h.difference.value), "ref": "programme.holdout.difference.value"})

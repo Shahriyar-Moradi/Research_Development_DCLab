@@ -2,7 +2,12 @@
   {
     "id": "JP-01",
     "programme": "fraud_programme",
-    "labels": "file",
+    "brings": [
+      "rides",
+      "accounts",
+      "cases"
+    ],
+    "when_blocked": "stop",
     "words": "Find the fake rides and fake orders our bikers and customers make. We have a few confirmed cases, nothing else is labelled, and the team can review about 2% of the rides each day.",
     "answers": {
       "prediction_moment": "After delivery, in a daily audit of the day's rides; no label is known when a ride is scored.",
@@ -15,9 +20,204 @@
       "data_plan": "The rides, the accounts table and the file of confirmed cases"
     },
     "expect": {
-      "families": ["anomaly", "rare_event", "entity_tables", "ranking"],
-      "approaches": ["anomaly", "rare_event", "entity_tables", "review_budgeted"]
+      "size": "complex",
+      "families": [
+        "anomaly",
+        "rare_event",
+        "entity_tables",
+        "ranking"
+      ],
+      "approaches": [
+        "anomaly",
+        "rare_event",
+        "entity_tables",
+        "review_budgeted"
+      ],
+      "composes": true,
+      "why": "a screen, a classifier on the confirmed cases, the linked accounts and the review list"
     },
-    "note": "A problem of several parts: fake delivery marks, fake orders in rings of linked accounts, partial confirmed cases and a review budget. The accounts table comes after the project is built."
+    "note": "A problem of several parts: fake delivery marks, fake orders in rings of linked accounts, partial confirmed cases and a review budget; all three files."
+  },
+  {
+    "id": "JP-02",
+    "programme": "fraud_programme",
+    "brings": [
+      "rides",
+      "accounts",
+      "cases"
+    ],
+    "when_blocked": "stop",
+    "words": "Our bikers are cheating. Some close rides they never drove, and some customer accounts work with one rider to fake orders. We have a list of confirmed frauds. Our reviewers can only check 200 rides a day, so I need one ranked list for them.",
+    "answers": {
+      "prediction_moment": "After delivery, in a daily audit of the day's rides; no label is known when a ride is scored.",
+      "entity": "The biker and the account",
+      "labels": "The list of frauds the investigators confirmed",
+      "budget": "About 200 rides a day",
+      "target": "The confirmed frauds",
+      "family": "Find the fraudulent rides",
+      "action": "The audit team reviews the flagged rides; a missed fraud costs money",
+      "data_plan": "The rides, the accounts table and the file of confirmed cases"
+    },
+    "expect": {
+      "size": "complex",
+      "families": [
+        "anomaly",
+        "rare_event",
+        "entity_tables",
+        "ranking"
+      ],
+      "approaches": [
+        "anomaly",
+        "rare_event",
+        "entity_tables",
+        "review_budgeted"
+      ],
+      "composes": true,
+      "why": "the same four parts, the budget a count"
+    },
+    "note": "The budget as a count of rides a day."
+  },
+  {
+    "id": "JP-03",
+    "programme": "fraud_programme",
+    "brings": [
+      "rides",
+      "cases"
+    ],
+    "when_blocked": "drop",
+    "words": "We think riders are closing deliveries they never made, and that some accounts team up with riders to place fake orders. I have the rides and the cases our team confirmed, but no accounts file. Reviewers can check about 1% of the rides each day.",
+    "answers": {
+      "prediction_moment": "After delivery, in a daily audit of the day's rides; no label is known when a ride is scored.",
+      "entity": "The biker and the account",
+      "labels": "A sample of the cases we found",
+      "budget": "About 1% of the rides each day",
+      "target": "The confirmed frauds",
+      "family": "Find the fraudulent rides",
+      "action": "The audit team reviews the flagged rides; a missed fraud costs money",
+      "data_plan": "The rides and the file of confirmed cases; there is no accounts file"
+    },
+    "expect": {
+      "size": "complex",
+      "families": [
+        "anomaly",
+        "rare_event",
+        "entity_tables",
+        "ranking"
+      ],
+      "approaches": [
+        "anomaly",
+        "rare_event",
+        null,
+        "review_budgeted"
+      ],
+      "composes": true,
+      "why": "without the accounts the linked-accounts part has no approach; the person drops it and the rest is composed"
+    },
+    "note": "No accounts file: the linked accounts cannot be found; the person drops that part with the reason and goes on."
+  },
+  {
+    "id": "JP-04",
+    "programme": "fraud_programme",
+    "brings": [
+      "rides",
+      "cases"
+    ],
+    "when_blocked": "stop",
+    "words": "Some riders close deliveries they never made, and some groups of accounts work with a rider to fake orders. I have the rides and the confirmed cases; the accounts file is with another team. Reviewers can check about 2% of the rides.",
+    "answers": {
+      "prediction_moment": "After delivery, in a daily audit of the day's rides; no label is known when a ride is scored.",
+      "entity": "The biker and the account",
+      "labels": "A sample of the cases we found",
+      "budget": "About 2% of the rides each day",
+      "target": "The confirmed frauds",
+      "family": "Find the fraudulent rides",
+      "action": "The audit team reviews the flagged rides; a missed fraud costs money",
+      "data_plan": "The rides and the confirmed cases; the accounts file is not here yet"
+    },
+    "expect": {
+      "size": "complex",
+      "families": [
+        "anomaly",
+        "rare_event",
+        "entity_tables",
+        "ranking"
+      ],
+      "approaches": [
+        "anomaly",
+        "rare_event",
+        null,
+        "review_budgeted"
+      ],
+      "composes": false,
+      "why": "the person waits for the accounts file: nothing is composed, and the holdout stays closed"
+    },
+    "note": "The same, but the person stops to fetch the accounts file."
+  },
+  {
+    "id": "JP-05",
+    "programme": "fraud_programme",
+    "brings": [
+      "rides",
+      "accounts"
+    ],
+    "when_blocked": "drop",
+    "words": "We want to catch fake rides and fake orders by riders and customer accounts. Nobody has ever confirmed a case, so we have nothing labelled. The team can look at about 2% of the rides each day.",
+    "answers": {
+      "prediction_moment": "After delivery, in a daily audit of the day's rides; no label is known when a ride is scored.",
+      "entity": "The biker and the account",
+      "labels": "Nothing was ever confirmed",
+      "budget": "About 2% of the rides each day",
+      "target": "Fake rides and fake orders",
+      "family": "Find the fraudulent rides",
+      "action": "The audit team reviews the flagged rides; a missed fraud costs money",
+      "data_plan": "The rides and the accounts table; no confirmed cases"
+    },
+    "expect": {
+      "size": "complex",
+      "families": [
+        "anomaly",
+        "entity_tables",
+        "ranking"
+      ],
+      "approaches": [
+        "anomaly",
+        "entity_tables",
+        "review_budgeted"
+      ],
+      "composes": false,
+      "why": "no classifier without cases, and with no case there is nothing to judge a list on: the holdout stays closed"
+    },
+    "note": "No confirmed case at all."
+  },
+  {
+    "id": "JP-06",
+    "programme": "fraud_programme",
+    "brings": [
+      "rides"
+    ],
+    "when_blocked": "drop",
+    "words": "I want to find the unusual deliveries: rides that end where they started, in a minute or two, for a normal fare.",
+    "answers": {
+      "prediction_moment": "After delivery, in the daily batch; nothing about the rides is labelled.",
+      "entity": "The biker",
+      "labels": "No labels",
+      "budget": "A few dozen a day",
+      "target": "Unusual rides",
+      "family": "Find the unusual rides",
+      "action": "We look at them one by one the next morning",
+      "data_plan": "Just the rides file"
+    },
+    "expect": {
+      "size": "single",
+      "families": [
+        "anomaly"
+      ],
+      "approaches": [
+        "anomaly"
+      ],
+      "composes": false,
+      "why": "one problem: a screen of the unusual rides"
+    },
+    "note": "One problem, not several."
   }
 ]

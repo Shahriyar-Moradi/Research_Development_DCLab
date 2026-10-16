@@ -249,6 +249,16 @@ class HomeMapTest(unittest.TestCase):
         self.assertIsNone(home_map.advisor_for(None, force=True))
         self.assertIsNotNone(home_map.advisor_for(Gate(), force=True))  # a measurement asks for them
 
+    def test_the_roles_pass_only_when_both_sealed_measurements_did(self):
+        from unittest import mock
+
+        from dclab_rnd.agent_eval import complex as map_suite
+        from dclab_rnd.agent_eval.journeys import programme as programme_journeys
+
+        for briefs, journeys, expected in ((False, False, False), (True, False, False), (False, True, False), (True, True, True)):
+            with mock.patch.object(map_suite, "sealed_passed", return_value=briefs), mock.patch.object(programme_journeys, "roles_passed", return_value=journeys):
+                self.assertEqual(home_map.roles_passed(), expected, (briefs, journeys))
+
     def test_a_decomposer_that_serves_is_drawn_into_the_map_and_the_decision_names_it(self):
         reply = {"parts": [{"title": "Unusual rides", "quote": "Find the fake rides and fake orders"}, {"title": "The review list", "quote": "the team can review 200 a day"}],
                  "sub_problems": [{"part": 1, "family": "anomaly", "labels": "none", "predict_rank": 1, "quote": "Find the fake rides and fake orders"},
@@ -404,6 +414,20 @@ class RoutesOnHomeTest(unittest.TestCase):
         route = shown["routes"]["sp3"]
         self.assertEqual(route["source"], "rules")  # the person's own single map: the detected kind of the words is not used
         self.assertIn("the person's own reading", route["reason"])
+
+    def test_a_single_problem_the_rules_drew_is_routed_by_its_family_when_the_detection_read_another_from_the_table(self):
+        from unittest import mock
+
+        draft = self.store.create("I want to build anomaly detection to spot unusual rides; nothing is labelled.")["id"]
+        with mock.patch("dclab_rnd.kinds.detect", return_value={"key": "binary"}):  # the older detection read a status column as a yes or no
+            shown = home_map.draw(self.store, draft)
+        self.assertEqual(shown["map"]["size"], "single")
+        self.assertEqual(shown["map"]["sub_problems"][0]["family"], "anomaly")
+        route = shown["routes"]["sp1"]
+        self.assertEqual((route["chosen"], route["source"]), ("anomaly", "rules"), "the build uses the card's family, and the route says what the build does")
+        with mock.patch("dclab_rnd.kinds.detect", return_value={"key": "anomaly"}):  # when the detection agrees it is still the detected kind
+            again = home_map.compute_routes(self.store.get(draft), home_map.current(self.store.get(draft)))
+        self.assertEqual((again["sp1"].chosen, again["sp1"].source), ("anomaly", "detected"))
 
     def test_a_part_with_no_approach_shows_none_and_is_recorded_without_a_value(self):
         draft = self.store.create(FRAUD)["id"]

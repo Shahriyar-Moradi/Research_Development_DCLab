@@ -551,8 +551,9 @@ def workflows(items: Iterable[dict[str, Any]], *, workspace: Optional[str] = Non
 
 def problem_maps(items: Iterable[dict[str, Any]], *, workspace: Optional[str] = None, consent: str = "train") -> tuple[list[dict[str, Any]], DatasetManifest]:
     """Brief to map, one example per draft whose person built a project from a problem map: ``items`` as the host assembles them (``draft``, ``project``, ``problem_card``,
-    ``proposed`` (the first map drawn), ``final`` (the map built from), ``edits`` (the person's changes), ``confirmed``, ``outcome`` (what the programme did against its best
-    leaf, or None)). The person's edits are the correction labels: ``corrected`` says the map built from is not the one first drawn."""
+    ``proposed`` (the first map drawn), ``final`` (the map built from), ``edits`` (the person's changes), ``corrected`` (the host's decision: the person added, removed or merged
+    a part; without it, whether the map built from is not the one first drawn), ``confirmed``, ``outcome`` (what the programme did against its best leaf, or None)). The person's
+    edits are the correction labels."""
     rows = []
     for item in items:
         final = item.get("final")
@@ -562,7 +563,8 @@ def problem_maps(items: Iterable[dict[str, Any]], *, workspace: Optional[str] = 
         edits = [{k: e.get(k) for k in ("action", "by", "part", "keep", "other", "from", "to")} for e in item.get("edits") or []]
         proposed = item.get("proposed")
         rows.append({"draft": item.get("draft"), "project": item.get("project"), "problem_card": item.get("problem_card"), "proposed": proposed, "final": final, "edits": edits,
-                     "corrected": bool(proposed) and proposed.get("fingerprint") != final.get("fingerprint"), "confirmed": bool(item.get("confirmed")),
+                     "corrected": bool(item["corrected"]) if "corrected" in item else bool(proposed) and proposed.get("fingerprint") != final.get("fingerprint"),
+                     "confirmed": bool(item.get("confirmed")),
                      "outcome": item.get("outcome"), "group": group, "split": split_of(group), "sources": [("draft", item.get("draft")), ("project", item.get("project"))]})
     return rows, manifest("problem_maps", "maps.brief_to_map", rows, sources_of(rows), use="train", consent=consent, workspace=workspace,
                           counts={"corrected": dict(Counter("yes" if r["corrected"] else "no" for r in rows)),

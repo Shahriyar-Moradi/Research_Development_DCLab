@@ -133,8 +133,11 @@ def _rerun_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, A
 def _programme_run(s: Any, payload: dict[str, Any]) -> None:
     from ..studio import programme
 
+    from ..draft import map as draft_map
+
     checkpoint()
-    programme.run(s.projects, payload["project_id"], payload.get("actor") or "human", payload.get("reuse_reason"))
+    advisor = draft_map.advisor_for(s.gateway, draft_id=((s.projects.get(payload["project_id"]).get("draft") or {}).get("id")))  # None unless the roles passed their measurement and are on
+    programme.run(s.projects, payload["project_id"], payload.get("actor") or "human", payload.get("reuse_reason"), advisor=advisor)
 
 
 def _programme_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:

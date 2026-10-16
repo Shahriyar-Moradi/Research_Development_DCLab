@@ -118,10 +118,10 @@ def load(store: Any, project: dict[str, Any]) -> dict[str, Any]:
 
 # ---------------------------------------------------------------------------------------------------------------- the plan follows the tables
 
-def refresh_plan(store: Any, project_id: str) -> bool:
+def refresh_plan(store: Any, project_id: str, advisor: Any = None) -> bool:
     """Draw the solution map and the routes again from the confirmed problem map and the tables the project holds now. The person confirmed the problem (its parts and how they
     combine); which approach reads which table follows from the data, so attaching the table of accounts is what lets the rings be routed. Returns whether the plan changed;
-    a changed plan makes a stored programme stale (it ran another solution map)."""
+    a changed plan makes a stored programme stale (it ran another solution map). ``advisor``: the solution router when it serves (24.8), as it does on Home."""
     from dclab_core import datacard, solution_map as sm_mod, solutions
 
     project = store.get(project_id)
@@ -134,7 +134,7 @@ def refresh_plan(store: Any, project_id: str) -> bool:
     if project.get("tables"):
         tables.update(sd.load_tables(store, project, list(project["tables"].keys())))
     card = datacard.card_of(tables, roles={name: "main", **{k: "related" for k in tables if k != name}})
-    routes = solutions.routes(m, card)
+    routes = {s.id: solutions.route_with(s, card, m, None, advisor)[0] for s in m.sub_problems}
     sm = sm_mod.solution_map(m, routes, card)
     if sm.fingerprint == plan["solution_map"].get("fingerprint"):
         return False
@@ -223,7 +223,7 @@ def _release(store: Any, project_id: str) -> None:
         store.save(project)
 
 
-def run(store: Any, project_id: str, actor: str = "human", reuse_reason: Optional[str] = None) -> dict[str, Any]:
+def run(store: Any, project_id: str, actor: str = "human", reuse_reason: Optional[str] = None, advisor: Any = None) -> dict[str, Any]:
     """The graph's move ``run_programme``, then the run. The project is marked running while it reads its files (no table can be attached under it), what it read is recorded
     from the project as it was when the run started, and the holdout is consumed only when the composition reads it."""
     project = store.get(project_id)
@@ -236,7 +236,7 @@ def run(store: Any, project_id: str, actor: str = "human", reuse_reason: Optiona
     store.save(project)
     studio_graph.log(store, project_id, verdict, store.get(project_id), outcome="started")
     try:
-        refresh_plan(store, project_id)
+        refresh_plan(store, project_id, advisor)
         snapshot = store.get(project_id)
         inputs = inputs_of(snapshot)
         execution = execute(store, snapshot, prior=prior)

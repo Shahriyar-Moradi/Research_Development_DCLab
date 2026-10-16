@@ -29,8 +29,12 @@ def switched_on() -> bool:
 
 
 def roles_passed() -> bool:
-    """Whether the three roles passed their sealed measurement (24.8). Not yet: the rules serve."""
-    return False
+    """Whether the roles passed both of their sealed measurements (24.8): the decomposer against the rules on the sealed briefs (``map_gate_v1``), and the map roles against the
+    rules on the sealed programme journeys (``journeys_programme_gate_v1``). Neither stored run, no role: the rules serve."""
+    from ..agent_eval import complex as map_suite
+    from ..agent_eval.journeys import programme as programme_journeys
+
+    return map_suite.sealed_passed() and programme_journeys.roles_passed()
 
 
 def advisor_for(gateway: Any, *, draft_id: Optional[str] = None, cap_eur: Optional[float] = None, force: bool = False) -> Any:
@@ -145,6 +149,10 @@ def compute_routes(draft: dict[str, Any], m: pm.ProblemMap, advisor: Any = None)
         from .. import kinds
 
         detected = kinds.detect(words_of(draft), (draft.get("analysis") or {}).get("profile"))["key"]
+        sub = m.sub_problems[0]
+        if m.source == "rules" and (detected not in solutions.BY_ID or sub.family not in solutions.BY_ID[detected].families):
+            detected = None  # a kind the older detection read from the table (a status column read as a yes or no) that is not the family the words say is not the route: the build
+            # uses the card's family, and the route must say what the build does (a person's own single map keeps the detection to say why it was set aside)
     return {s.id: solutions.route_with(s, data, m, detected, advisor)[0] for s in m.sub_problems}
 
 
@@ -381,7 +389,8 @@ def edit(drafts: Any, draft_id: str, action: str, *, who: str = "person", adviso
     experience.record("graph.move", "person", {"move": f"map:{action}", "allowed": True, "from": held.fingerprint, "to": made.fingerprint, "failed_checks": None,
                                                "rules": ["problem_map.validate"]}, conversation=draft_id)
     capture.map_edited(draft_id, action, len(held.parts), len(made.parts))
-    hooks.map_changed(draft_id, held, made, action, who, part=kw.get("part") or kw.get("keep") or kw.get("title"))
+    added = [p.id for p in made.parts if p.id not in {q.id for q in held.parts}]
+    hooks.map_changed(draft_id, held, made, action, who, part=kw.get("part") or kw.get("keep") or (added[0] if added else None))  # an id, never the title a person typed
     refresh_review(drafts, draft_id, advisor)
     if action == "confirm" or made.size == "single":  # a confirmed map is routed (again, when the data arrived since)
         store_routes(drafts, draft_id, advisor)

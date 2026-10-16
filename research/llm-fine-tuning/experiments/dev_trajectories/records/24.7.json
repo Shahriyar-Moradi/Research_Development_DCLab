@@ -54,6 +54,116 @@
       "cause": "The contract keeps only the fields that hold a value.",
       "fix": "Readers use get; the test says so.",
       "test": "test_phase2_capture JourneyCaptureTest"
+    },
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The correction label was always false in real data.",
+      "scenario": "A draft whose person added a part: problem_maps said corrected False.",
+      "cause": "The redaction turned every 16-digit hex, fingerprints included, into an identifier, so first and final compared equal; the test asserted the buggy value.",
+      "fix": "The host decides corrected from the person's add, remove or merge edits before any redaction, and the fingerprints are put back after it; a redraw is not a correction and an old draft with no first map still has its edits.",
+      "test": "test_phase2_capture WhatAPersonTypesTest; BuildersTest"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "A title a person typed was recorded as meta.",
+      "scenario": "edit add title='Mr Karimi's cousin Ali at the 5 Vali St shop': problem.part_changed.part held it, so it passed every no-free-text filter and an improve episode row.",
+      "cause": "The part field took the title when the edit named none.",
+      "fix": "An added part is recorded by its id, a part that is not an id is not recorded, and the improve rows carry codes and counts only.",
+      "test": "test_phase2_capture WhatAPersonTypesTest"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A routes row could contradict itself.",
+      "scenario": "The sp3 row had chosen None and a leaf that was built.",
+      "cause": "The set read the draft's earlier routes, not the plan the project ran after the table of accounts arrived.",
+      "fix": "The map and routes are the project's plan when it has one; the outcome is per leaf (its own holdout number) and for the composition.",
+      "test": "test_phase2_capture JourneyCaptureTest"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "solution.compose was in neither CAPTURED nor NOT_DECIDED and the catalog was stale.",
+      "scenario": "test_every_point_is_captured_or_said_not_decided_here failed at the commit.",
+      "cause": "The point was added without its line and the catalog was not rebuilt with it.",
+      "fix": "The point is listed as captured and the catalog rebuilt in the same commit.",
+      "test": "test_decision_capture; test_data_catalog"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "Table file names went into problem_maps rows.",
+      "scenario": "needs[].table held 'rides.csv'.",
+      "cause": "Only the data card was aliased; the map was dumped whole.",
+      "fix": "The tables a map's needs name are aliased table_1, table_2 and every string goes through the redaction.",
+      "test": "test_phase2_capture JourneyCaptureTest"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "A second programme run wrote a second measured label from a holdout already seen.",
+      "scenario": "Two solution.compose records with identical labels.",
+      "cause": "composition_chosen labelled on every run.",
+      "fix": "A second look at the holdout labels nothing (PIT-006); the record states holdout_used.",
+      "test": "test_phase2_capture CompositionLabelTest"
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "solution.compose was drawn for a blind review it cannot be answered in.",
+      "scenario": "blind_eligible was true; a blind guess would outrank the measured label.",
+      "cause": "It was missing from NOT_BLIND.",
+      "fix": "solution.compose is listed in NOT_BLIND, so it is never drawn for a blind review.",
+      "test": "test_phase2_capture CompositionLabelTest"
+    },
+    {
+      "id": "R8",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "The measured label claimed more than the holdout shows.",
+      "scenario": "value = the chosen composition says it was the best of all the candidates, but the holdout scores only the chosen and the leaves.",
+      "cause": "The label is a comparison with the best leaf.",
+      "fix": "Said in the capture and in the label's evidence kind holdout_vs_best_leaf; a leaf chosen alone labels nothing.",
+      "test": "test_phase2_capture CompositionLabelTest"
+    },
+    {
+      "id": "R9",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Two solution.route records had the same state and different answers.",
+      "scenario": "The rings before and after the table of accounts arrived.",
+      "cause": "The fact that changed was not in the state.",
+      "fix": "related_tables is a state field.",
+      "test": "test_phase2_capture JourneyCaptureTest"
+    },
+    {
+      "id": "R10",
+      "source": "self",
+      "severity": "gap",
+      "defect": "The owner's uncommitted recap files were committed with the package.",
+      "scenario": "docs/recap/recap.html and the PDF were in the commit.",
+      "cause": "I staged a whole directory.",
+      "fix": "The two local commits were rewritten without them before anything was pushed; the owner's edits are untouched in the working tree. From now on only explicit paths are staged.",
+      "test": "git show --stat on both commits"
+    },
+    {
+      "id": "R11",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "Several tests would have passed with the code wrong.",
+      "scenario": "The drop event, both label branches, the consent of the new sets, the exact number of route events, the first map and the data-need role were untested.",
+      "cause": "Assertions of 'at least' and a single positive path.",
+      "fix": "Tests for each: the drop event, every label branch, a project that withheld train in neither set, exact counts, first and corrected, and the data-need step.",
+      "test": "test_phase2_capture"
     }
   ],
   "measurements": [],

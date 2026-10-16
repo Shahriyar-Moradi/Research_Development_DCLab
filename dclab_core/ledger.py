@@ -59,7 +59,7 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "has_time": (FLAG, ()), "has_groups": (FLAG, ()), "has_text": (FLAG, ()), "tables": (COUNT, ()),
     "moment_known": (FLAG, ()), "outcome_known": (FLAG, ()), "open_questions": (COUNT, ()), "blocking": (COUNT, ()),
     "parts": (COUNT, ()), "parts_before": (COUNT, ()), "parts_after": (COUNT, ()), "template": (CODE, ()), "sub_problem": (CODE, ()),  # 24.2: the problem map's size and the rule that drew it
-    "positives": (COUNT, ()),  # 24.7: the confirmed cases a choice was made on
+    "positives": (COUNT, ()), "related_tables": (COUNT, ()),  # 24.7: the confirmed cases a choice was made on; the tables beside the main one (a route changes when one arrives)
     # measurements a decision can be made on (aggregates, never a row)
     "apparent_lift": (MEASURE, ()), "optimism_gap": (MEASURE, ()), "tuning_gain": (MEASURE, ()), "cv_mean": (MEASURE, ()),
     "cv_std": (MEASURE, ()), "holdout_value": (MEASURE, ()), "baseline_value": (MEASURE, ()), "share": (RATIO, ()),
@@ -403,7 +403,8 @@ def effective_label(record: DecisionRecord, labels: list[DecisionLabel]) -> Opti
 BLIND_RATES = {"agree": 0.10, "disagree": 0.60, "single": 0.10, "abstain": 0.30}  # disagreements over-sampled
 # points a blind reviewer cannot answer from the state alone, or whose state names the answer
 NOT_BLIND = frozenset({"workflow.revisit", "workflow.template", "problem.pack", "workflow.next_question", "agent.tool_choice",
-                       "workflow.stop", "report.claim", "lesson.accept", "workflow.stage_approval"})
+                       "workflow.stop", "report.claim", "lesson.accept", "workflow.stage_approval",
+                       "solution.compose"})  # 24.7: a reviewer cannot answer it from a band of counts and the candidates' names, and a guess would outrank the measured label
 
 
 def stratum(record: DecisionRecord) -> str:

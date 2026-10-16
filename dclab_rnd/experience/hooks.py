@@ -325,7 +325,10 @@ def map_drawn(draft_id: str, m: Any, by_model: bool) -> None:
 @_quiet
 def map_changed(draft_id: str, held: Any, made: Any, action: str, who: str, part: str | None = None, reason: str | None = None) -> None:
     """A person's change to the map (add, remove, merge, confirm): what they did, and how many parts there were before and after."""
-    record("problem.part_changed", "person", {"map": made.fingerprint, "action": action, "part": (part or "")[:60] or None, "by": who, "parts_before": len(held.parts),
+    import re
+
+    part = part if isinstance(part, str) and re.fullmatch(r"(part|blk)\d{1,3}", part) else None  # an id: a title a person typed is their words, and is not meta
+    record("problem.part_changed", "person", {"map": made.fingerprint, "action": action, "part": part, "by": who, "parts_before": len(held.parts),
                                               "parts_after": len(made.parts), "reason": (reason or "")[:2000] or None}, conversation=draft_id)
 
 

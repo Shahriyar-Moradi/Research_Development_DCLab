@@ -190,6 +190,10 @@ class BlockedTest(unittest.TestCase):
         p = sp.stored(self.store.get(self.pid))
         self.assertEqual(next(l for l in p.leaves if l.block == "blk3").status, "dropped")
         self.assertNotIn("blk3", p.composition.candidates)
+        pipe = studio_pipeline.of(self.store, self.pid)
+        self.assertEqual(pipe.step("programme:blk3").status, "not_recorded", "the dropped leaf is listed, with the reason")
+        self.assertNotIn("programme:blk3", pipe.step("programme:composition").depends_on, "and it is no input of the composition")
+        self.assertEqual((pipe.step("programme:composition").status, pipe.step("programme:holdout").status), ("done", "done"), "so it makes nothing stale")
 
     def test_a_dropped_leaf_cannot_be_dropped_after_the_holdout_was_read(self):
         sp.run(self.store, self.pid)
