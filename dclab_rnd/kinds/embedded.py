@@ -287,6 +287,8 @@ class EmbeddedMachine(Machine):
             self.encoder = self.copies = embeddings.HashingText()
         self._C = None
         self._X = None
+        self.image_decisions: list[dict[str, Any]] = []  # 26.8: written to the ledger after the leakage stage
+        self.image_totals: dict[str, int] = {}
 
     def items(self, rows: Any) -> list[Any]:
         """The items a model reads: each row's image (its pixel columns as a square), or its text."""
@@ -314,6 +316,47 @@ class EmbeddedMachine(Machine):
         over = S[i, j] >= threshold
         return {"same_source_pairs": int(same.sum()), "same_source_pairs_flagged": int((same & over).sum()),
                 "different_source_pairs": int((~same).sum()), "different_source_pairs_flagged": int((~same & over).sum())}
+
+    MAX_IMAGE_DECISIONS = 1500  # training images compared for the image points (seeded sample above it)
+    MAX_LABEL_RECORDS = 200  # suspect labels kept, and as many of the others
+
+    def _image_decisions(self, threshold: float) -> list[dict[str, Any]]:
+        """26.8: the image points on the training images only (a held-out image is never compared): near copies across
+        sources, suspect labels, whether a mirror flip keeps the label. Keys name rows of the table as attached."""
+        from dclab_core import image_decisions as idc
+
+        train = np.flatnonzero(~self.test)
+        if len(train) > self.MAX_IMAGE_DECISIONS:
+            train = np.sort(np.random.default_rng(0).choice(train, self.MAX_IMAGE_DECISIONS, replace=False))
+        rows = self.rows.iloc[train]
+        self.image_totals = {"images_compared": int(len(train)), "training_images": int((~self.test).sum())}
+        out = idc.rule_decisions(self.items(rows), rows[self.source].tolist(), rows[self.target].tolist(), threshold=threshold,
+                                 task="regression" if self.task == "regression" else "classification", totals=self.image_totals)
+
+        def at(k: str) -> str:
+            return str(int(self.index[train[int(k)]]))
+
+        kept, counted = [], {True: 0, False: 0}
+        for d in out:
+            if d["point"] == "image.label_suspect":
+                if counted[d["value"]] >= self.MAX_LABEL_RECORDS:
+                    continue
+                counted[d["value"]] += 1
+                d = {**d, "key": f"row:{at(d['key'])}"}
+            elif d["point"] == "image.near_copy":
+                a, b = d["key"].split("-")
+                d = {**d, "key": f"rows:{at(a)}-{at(b)}"}
+            kept.append(d)
+        return kept
+
+    def _image_summary(self, threshold: float) -> dict[str, Any]:
+        self.image_decisions = self._image_decisions(threshold)
+        flip = next((d for d in self.image_decisions if d["point"] == "image.flip_safe"), None)
+        return {"image_decisions": {**self.image_totals,  # counted before the records' caps: the figures a person reads
+                                    "near_copy_pairs_recorded": sum(d["point"] == "image.near_copy" for d in self.image_decisions),
+                                    "label_records_recorded": sum(d["point"] == "image.label_suspect" for d in self.image_decisions),
+                                    "flip_safe": None if flip is None else flip["value"],
+                                    "flip_drop": None if flip is None else flip["state"]["flip_drop"]}}
 
     def item_name(self) -> str:
         return f"the images ({len(self.pixels)} pixel columns)" if self.image else str(self.text)
@@ -427,6 +470,7 @@ class EmbeddedMachine(Machine):
                     "near_duplicates_recall": across.get("recall_at_threshold"),  # hashed past EXACT_UP_TO texts: a pair can be missed
                     "near_duplicates_across_holdout_pairs": [[int(self.index[a]), int(self.index[b]), sim] for a, b, sim in across["pairs"]],
                     **(self._copies_within(X, threshold) if self.image else {}),
+                    **(self._image_summary(threshold) if self.image else {}),
                     "notes_for_person": [{"level": "warning" if across["pairs_across_sides"] else "info", "proof": ["DCLAB-R01"],
                                           "title": f"{across['pairs_across_sides']} near copies straddle the holdout line",
                                           "text": "A text pasted again by another source lets a model recognise rather than predict: the holdout "

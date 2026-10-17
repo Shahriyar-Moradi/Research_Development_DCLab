@@ -30,20 +30,47 @@ class Replica:
     facts: dict[str, Any] = field(default_factory=dict)
 
 
-def shapes(seed: int = 0, scenes: int = 80, shots: int = 4, size: int = 32) -> Replica:
+def shapes(seed: int = 0, scenes: int = 80, shots: int = 4, size: int = 32, *, reshot: int = 0, mislabel: float = 0.0,
+           arrows: bool = False) -> Replica:
+    """The shapes; 26.8's traps on request, each drawn from a stream of its own so the defaults draw the same images:
+    ``reshot`` scenes photographed again under a new scene name (the same subject on two sources: a near copy the scene
+    column cannot see), ``mislabel`` the share of shots given the other label, and ``arrows`` a triangle pointing left or
+    right as the label (a mirror flip changes it; for a circle or a square it does not)."""
     rng = np.random.default_rng(seed)
     yy, xx = np.mgrid[:size, :size]
-    images, rows = [], []
+    names = ("left", "right") if arrows else ("circle", "square")
+    images, rows, drawn = [], [], []
     for s in range(scenes):
         label = int(rng.integers(0, 2))
         cx, cy, r = rng.uniform(9, size - 9, 2).tolist() + [rng.uniform(4, 8)]
-        base = ((xx - cx) ** 2 + (yy - cy) ** 2 <= r * r) if label == 0 else ((abs(xx - cx) <= r) & (abs(yy - cy) <= r))
+        if arrows:  # the wide end on one side, the point on the other
+            inside = (xx >= cx - r) & (xx <= cx + r)
+            base = inside & (abs(yy - cy) <= ((xx - (cx - r)) if label == 0 else (cx + r - xx)) * 0.5)
+        else:
+            base = ((xx - cx) ** 2 + (yy - cy) ** 2 <= r * r) if label == 0 else ((abs(xx - cx) <= r) & (abs(yy - cy) <= r))
         background = rng.uniform(0.1, 0.4)
+        drawn.append((base, background, label))
         for k in range(shots):
             img = np.where(base, 0.9, background) + rng.normal(0, 0.03, (size, size))
             images.append(np.clip(img, 0, 1).astype(np.float32))
-            rows.append({"item": len(rows), "scene": f"S{s:03d}", "shot": k, "label": "square" if label else "circle"})
-    return Replica(images, pd.DataFrame(rows), {"source": "scene", "label": "label", "kind": "image", "synthetic": True})
+            rows.append({"item": len(rows), "scene": f"S{s:03d}", "shot": k, "label": names[label]})
+    facts: dict[str, Any] = {"source": "scene", "label": "label", "kind": "image", "synthetic": True}
+    if reshot or mislabel or arrows:
+        traps = np.random.default_rng([seed, 26, 8])
+        pairs = []
+        for n, s in enumerate(sorted(traps.choice(scenes, size=min(reshot, scenes), replace=False).tolist())):
+            base, background, label = drawn[s]
+            new = f"S{scenes + n:03d}"
+            for k in range(shots):  # the same subject again, a little more noise: another day's photograph
+                img = np.where(base, 0.9, background) + traps.normal(0, 0.04, (size, size))
+                images.append(np.clip(img, 0, 1).astype(np.float32))
+                rows.append({"item": len(rows), "scene": new, "shot": k, "label": names[label]})
+            pairs.append([f"S{s:03d}", new])
+        wrong = sorted(traps.choice(len(rows), size=int(round(mislabel * len(rows))), replace=False).tolist()) if mislabel else []
+        for i in wrong:
+            rows[i]["label"] = names[1 - names.index(rows[i]["label"])]
+        facts.update(reshot_scenes=pairs, mislabelled_items=[int(i) for i in wrong], flip_keeps_label=not arrows)
+    return Replica(images, pd.DataFrame(rows), facts)
 
 
 def shapes_table(seed: int = 0, scenes: int = 80, shots: int = 4, size: int = 32, prefix: str = "px_") -> Replica:

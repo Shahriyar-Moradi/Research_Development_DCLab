@@ -245,6 +245,9 @@ def stage_decisions(stage: str, record: dict[str, Any], prepared: Any, owner: di
                 if splits:
                     label(splits[-1], "time", "measured", "optimism_gap",
                           evidence={"kind": "optimism_gap", "value": float(gap), "ref": "leakage.evidence.random_vs_time_cv"})
+            for d in getattr(getattr(prepared, "machine", None), "image_decisions", None) or []:  # 26.8: an image table's points
+                written += bool(_put(d["point"], ("project", f"{subject[1]}:{d['key']}"[:200]), [answer("rule", f"rule:{d['point']}", d["value"])],
+                                     d["value"], "rule", state=d["state"], options=["yes", "no"], **ids))
         elif stage == "features" and decision.get("chosen") is not None:
             put("features.recipe", str(decision.get("selected", decision["chosen"]))[:200], "rule:select_within_tolerance",
                 options=[o.get("id") for o in decision.get("options") or []])

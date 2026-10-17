@@ -709,6 +709,14 @@ one) are split by their source (a scene, a camera, a patient) with `split`, enco
 near copies across the split reported with `near_duplicates` on `Pixels` vectors; a pretrained encoder is its own injected
 `Encoder` when weights are on its machines.
 
+**Its decision points (26.8, dclab-core 0.65.0).** `dclab_core.image_decisions.rule_decisions(images, sources, labels, threshold=,
+task=, totals=)` answers `image.near_copy`, `image.label_suspect` and `image.flip_safe` on the images it is given: the main product
+gives its training images only, after its split, and writes each answer as a `DecisionRecord` of the point (subject `project`, the key
+the rows' positions), with `totals` (counted before any cap) in what a person reads. A number label is asked about near copies only.
+The three points have no name in the main product's `semantic_decision_answers` (`adapters.conformance.POINTS_NOT_MAPPED`): they are
+read there as decision events until it governs them. `image_decisions.decide(replica, ...)` and the shapes replica's traps
+(`shapes(..., reshot=, mislabel=, arrows=)`) build the benchmark sets (`make decisions-gen ARGS=--images`).
+
 
 ## Invented tables for an in-context tabular model (26.6b)
 

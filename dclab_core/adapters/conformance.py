@@ -68,6 +68,7 @@ POINTS_NOT_MAPPED: dict[str, str] = {
         "problem.family", "problem.pack", "map.size", "map.edit", "solution.route", "solution.compose", "workflow.next_question", "workflow.template", "workflow.move", "workflow.revisit",
         "workflow.stage_approval", "workflow.stop", "agent.tool_choice")},
     **{p: _NO_NAME.format(what="reporting and learning point") for p in ("report.claim", "lesson.accept")},
+    **{p: _NO_NAME.format(what="image problem's check (26.8)") for p in ("image.near_copy", "image.label_suspect", "image.flip_safe")},
 }
 
 

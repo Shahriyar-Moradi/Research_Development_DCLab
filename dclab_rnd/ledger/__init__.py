@@ -79,6 +79,9 @@ CAPTURED = {
     "experiment.accept": "studio/engine.py stage_models: each review round's experiment kept or dropped",
     "experiment.next": "studio/engine.py stage_models: each review round's experiment, the rules' first and the critic's",
     "workflow.revisit": "studio/graph.py: a completed stage run again",
+    "image.near_copy": "kinds/embedded.py leakage (an image table): pairs of training images of different sources, by their pictures' cosine",
+    "image.label_suspect": "kinds/embedded.py leakage: training images whose near copies, else nearest images, mostly carry the other label",
+    "image.flip_safe": "kinds/embedded.py leakage: whether mirrored training images keep their label, measured on held-apart sources",
 }
 NOT_DECIDED = {
     "column.missing_value_action": "no choice is made: each model family imputes its own fixed way (expansion/runner.py)",

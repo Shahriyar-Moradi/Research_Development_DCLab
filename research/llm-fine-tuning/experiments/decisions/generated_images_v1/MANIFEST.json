@@ -1,0 +1,49 @@
+{
+ "version": "image_decisions_v1",
+ "at": "2026-10-14T00:00:00+00:00",
+ "seeds": 40,
+ "tables": 80,
+ "decisions": 37200,
+ "grouping": "one table per group: its images never sit in two splits",
+ "sets": {
+  "image.flip_safe": {
+   "decisions": 80,
+   "tables": 80,
+   "splits": {
+    "sealed": 18,
+    "dev": 20,
+    "train": 42
+   },
+   "rule_right": 80,
+   "label_yes": 40,
+   "sealed_fingerprint": "1677bbab61cdbdcb012c443c5ffefcd01da817e086ba51218c24208b2108e652"
+  },
+  "image.label_suspect": {
+   "decisions": 27520,
+   "tables": 80,
+   "splits": {
+    "sealed": 6200,
+    "dev": 6876,
+    "train": 14444
+   },
+   "rule_right": 27301,
+   "label_yes": 964,
+   "sealed_fingerprint": "b9f6ca166c9ada5e35849294497ef3bd34ca4b5cce6a0703eba1a6a6c9303ed0"
+  },
+  "image.near_copy": {
+   "decisions": 9600,
+   "tables": 80,
+   "splits": {
+    "sealed": 2160,
+    "dev": 2400,
+    "train": 5040
+   },
+   "rule_right": 8146,
+   "label_yes": 5236,
+   "sealed_fingerprint": "607b5f0c959d9f78e0e76d9492aa621adb0685d859b3b1d1842ed57a3d66b56b"
+  }
+ },
+ "threshold": 0.98,
+ "flip_drop": 0.15,
+ "rule": "Invented images with planted traps (scenes filed again, shots given the other label, arrows a flip changes): labels are true by construction; scores on them say how a model reads these traps, not real photographs. The sealed partition is never used for tuning."
+}

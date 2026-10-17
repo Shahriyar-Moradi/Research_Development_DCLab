@@ -117,6 +117,25 @@ class _Person:
         ("family", r"\b(kind of problem|type of problem|classif|regress)"),
     )
 
+    # the agent asking leave to build: the written person approves every gate (live, 2026-10-17: "Shall I build it now?" was
+    # answered with the label's words three times, and the walk stopped)
+    BUILD = r"\b(shall i|should i|do you want me to|want me to|may i|can i|ready to|okay to|ok to)\b.{0,40}\b(build|start|run|go ahead|proceed)"
+    GO = "Yes, go ahead and build it."
+
+    def reply(self, says: str, last: str) -> Optional[str]:
+        """A person's reply in the chat to a walk that stopped: leave to build when the agent last asked for it, else the
+        answer to what the stop and the agent's last words ask."""
+        import re
+
+        said = self._answer("chat", says)  # the blocker the walk stopped on comes first: leave to build never leaves it open
+        if said is not None:
+            return said
+        self.asked.pop()
+        if re.search(self.BUILD, str(last or ""), re.I):
+            self.asked.append("chat→build")
+            return self.GO
+        return self._answer("chat", f"{says} {last}")
+
     def _answer(self, field: str, question: str) -> Optional[str]:
         self.asked.append(field)
         said = self.answers.get(field) or self.answers.get(self.SAME.get(field, field))
@@ -128,6 +147,11 @@ class _Person:
             if self.answers.get(name) and re.search(pattern, str(question or ""), re.I):
                 self.asked[-1] = f"{field}→{name}"  # what the question meant, kept beside what it was tagged
                 return self.answers[name]
+        target = str(self.answers.get("target") or "")  # live pass 3: a yes-or-no confirmation of the outcome column, when nothing else matched
+        if target and re.search(rf"(^|[.?!]\s*)is\s+(the\s+)?`?{re.escape(target)}`?\s+(the\s+)?(outcome|target|label|column|time|number|count|flag)\b",
+                                str(question or ""), re.I):
+            self.asked[-1] = f"{field}→confirm_target"
+            return f"Yes, {target} is the outcome we predict, as the table records it."
         return None
 
 
@@ -277,7 +301,7 @@ def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]]
                 says = str(out.get("says") or "")
                 if out.get("project_id") or out.get("next") != "stop" or "?" not in says or says.startswith(("Waiting for the person", "Not built")):
                     break
-                said = person._answer("chat", says + " " + _last_agent_text(drafts.get(start_at)))
+                said = person.reply(says, _last_agent_text(drafts.get(start_at)))
                 if not said:
                     break
                 agent.reply(start_at, said)

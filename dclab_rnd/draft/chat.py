@@ -236,18 +236,35 @@ class HomeAgent:
                 if q.get("field") == field and not q.get("answered"):
                     q["answered"] = value.strip()[:400]
 
+    @staticmethod
+    def _as_column(d: dict[str, Any], field: str, value: str) -> str:
+        """The outcome as its column when the words name exactly one of the table's columns (live, 2026-10-17: a model
+        recorded "The churned column (true = subscriber left…)", and the card waited for a column it had been told)."""
+        value = value.strip()
+        columns = [c.get("name") for c in ((d.get("analysis") or {}).get("columns") or []) if c.get("name")]
+        if field != "target" or not columns or value in columns:
+            return value
+        def as_outcome(c: str) -> bool:  # 20.10's guard: named as the outcome, never one only mentioned or known later
+            e = re.escape(str(c))
+            said = (f"`{c}`" in value or re.match(rf"\s*(the\s+)?((column|outcome|target|label|flag|field)\s+){{0,2}}`?{e}`?(?![\w])", value, re.I)
+                    or re.search(rf"(?<![\w])`?{e}`?\s+(column|flag|field)\b", value, re.I))
+            return bool(said) and not LATER.search(clause_of(value, str(c)))
+
+        named = [c for c in columns if as_outcome(str(c))]
+        return named[0] if len(named) == 1 else value
+
     def record(self, draft_id: str, field: str, value: str) -> None:
         def put(d):
-            d.setdefault("understanding", {})[field] = value.strip()[:400]
-            self._close(d, field, value)
+            d.setdefault("understanding", {})[field] = self._as_column(d, field, value)[:400]
+            self._close(d, field, d["understanding"][field])
         self.store.update(draft_id, put)
 
     def note(self, draft_id: str, field: str, value: str, status: str, source: str, quote: str | None) -> None:
         """Record a field with its plan entry: how it is known and the user's words that say it (package A3.1)."""
         def put(d):
-            d.setdefault("understanding", {})[field] = value.strip()[:400]
+            d.setdefault("understanding", {})[field] = self._as_column(d, field, value)[:400]
             d["plan"] = {**plans.empty(), **(d.get("plan") or {}), field: plans.entry(status, source, quote)}
-            self._close(d, field, value)
+            self._close(d, field, d["understanding"][field])
         self.store.update(draft_id, put)
 
     def update_plan(self, draft_id: str) -> dict[str, Any]:

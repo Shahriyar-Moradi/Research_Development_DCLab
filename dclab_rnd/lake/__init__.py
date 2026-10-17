@@ -2,7 +2,7 @@
 
 ``make lake`` (``python -m dclab_rnd.lake build``) reads:
 
-- the generated decision benchmarks (``decisions/generated_v1``: invented tables, labels true by construction, their
+- the generated decision benchmarks (``decisions/generated_v1``, and 26.8's images ``decisions/generated_images_v1``: invented tables, labels true by construction, their
   sealed partitions kept sealed);
 - OpenML's public tables (26.2, ``data/downloads/openml``, fetched by ``python -m dclab_rnd.lake openml``);
 - verified synthetic solving (27.3, ``lake/bronze/selfplay``, by ``python -m dclab_rnd.lake selfplay``);
@@ -41,6 +41,7 @@ ROOT = Path(__file__).resolve().parents[2]
 LAKE = ROOT / "lake"
 MANIFEST = ROOT / "research" / "llm-fine-tuning" / "experiments" / "lake" / "MANIFEST.json"
 GENERATED = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "generated_v1" / "decisions"
+GENERATED_IMAGES = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "generated_images_v1" / "decisions"  # 26.8
 SFT_V3 = ROOT / "research" / "llm-fine-tuning" / "experiments" / "sft" / "out_v3"
 SFT_DEV = ROOT / "research" / "llm-fine-tuning" / "experiments" / "sft" / "out_dev"
 VERSION = "v1"
@@ -148,12 +149,13 @@ def decision_samples(rows: Iterable[dict[str, Any]], source: str, consent: str, 
 
 def generated_decisions(run: Run) -> list[L.DecisionSample]:
     out: list[L.DecisionSample] = []
-    for folder in sorted(GENERATED.glob("*")) if GENERATED.is_dir() else []:
-        for name, sealed in (("rows.jsonl", False), ("sealed.jsonl", True)):
-            path = folder / name
-            if path.is_file():
-                run.read(path)
-                out += decision_samples(read_jsonl(path), "decisions/generated_v1", "ours", sealed, run)
+    for root, source in ((GENERATED, "decisions/generated_v1"), (GENERATED_IMAGES, "decisions/generated_images_v1")):
+        for folder in sorted(root.glob("*")) if root.is_dir() else []:
+            for name, sealed in (("rows.jsonl", False), ("sealed.jsonl", True)):
+                path = folder / name
+                if path.is_file():
+                    run.read(path)
+                    out += decision_samples(read_jsonl(path), source, "ours", sealed, run)
     return out
 
 

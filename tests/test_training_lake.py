@@ -65,7 +65,8 @@ class LakeBuildTests(unittest.TestCase):
     def build(self, homes, sft=None, dev=None):
         from dclab_rnd import lake as B
 
-        with mock.patch.object(B, "GENERATED", self.tmp / "generated"), mock.patch.object(B, "SFT_V3", sft or self.tmp / "none"), \
+        with mock.patch.object(B, "GENERATED", self.tmp / "generated"), mock.patch.object(B, "GENERATED_IMAGES", self.tmp / "generated_images"), \
+                mock.patch.object(B, "SFT_V3", sft or self.tmp / "none"), \
                 mock.patch.object(B, "SFT_DEV", dev or self.tmp / "none"), mock.patch("dclab_rnd.lake.openml.CACHE", self.tmp / "openml"), \
                 mock.patch("dclab_rnd.lake.selfplay.OUT", self.tmp / "selfplay"):
             return B.build(self.tmp / "lake", homes, None)
@@ -199,8 +200,14 @@ class PublicAndSelfplayTests(unittest.TestCase):
             done = P.solve(["embedded_images"], seeds=1)
             got = P.examples()
             ledgers = list((Path(tmp) / "ledgers" / "embedded_images" / "0").rglob("*.jsonl"))
+            written = [json.loads(x) for p in ledgers for x in p.read_text().splitlines() if x.strip()]
         self.assertEqual((done["problems"], done["rejected"]), (1, 0))
         self.assertTrue(ledgers)  # the image solve's decisions are recorded in its own ledger
+        image = [r for r in written if "subject" in r and str(r.get("point", "")).startswith("image.")]  # 26.8: the image points, from the engine
+        self.assertEqual({r["point"] for r in image}, {"image.near_copy", "image.label_suspect", "image.flip_safe"})
+        self.assertTrue(all(r["subject"]["key"].split(":", 1)[1].startswith(("row:", "rows:", "table")) for r in image))
+        flip = next(r for r in image if r["point"] == "image.flip_safe")
+        self.assertEqual(flip["value_used"], True)  # circles and squares: a mirror keeps the label
         self.assertEqual({e.provenance.group for e in got}, {"selfplay:embedded_images:0"})
         kind = json.loads(next(e for e in got if e.family == "problem_type").messages[2]["content"])
         self.assertEqual(kind["kind"], "embedded")  # an engine kind, not the variant's name

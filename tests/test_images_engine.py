@@ -70,6 +70,44 @@ class ImagesInTheEngineTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             embeddings.pixel_columns(["pixel0", "pixel_mean"], "pixel")
 
+    def machine(self, table, task="binary", **fields):
+        from dclab_rnd import kinds
+        from dclab_rnd.kinds.embedded import EmbeddedMachine
+        from dclab_rnd.studio.solution import Solution
+
+        sol = Solution(target="label", task=task, prediction_moment="when a photo arrives", kind="embedded", identifiers=["item"],
+                       kind_fields={"source_column": "scene", "item_kind": "image", "pixel_prefix": "px_", **fields},
+                       **({"positive_label": "square"} if task == "binary" else {}))
+        return EmbeddedMachine(kinds.get("embedded"), sol, table, {"id": "p"})
+
+    def test_the_image_points_read_training_images_only(self):  # 26.8, the review's F6
+        import numpy as np
+
+        from dclab_core.replicas import shapes_and_notes
+
+        table = shapes_and_notes.shapes_table(0, scenes=40).table
+        m = self.machine(table)
+        got = m._image_decisions(0.98)
+        training = {int(i) for i in m.index[~m.test]}
+        keys = [int(k) for d in got if d["point"] != "image.flip_safe" for k in d["key"].split(":", 1)[1].split("-")]
+        self.assertTrue(keys and set(keys) <= training)
+        changed = table.copy()
+        held = m.index[m.test]
+        pixels = [c for c in table.columns if c.startswith("px_")]
+        changed.loc[held, pixels] = np.random.default_rng(1).uniform(0, 1, (len(held), len(pixels))).round(4)
+        changed.loc[held, "label"] = "circle"  # a held-out label read anywhere would move an answer
+        self.assertEqual(self.machine(changed)._image_decisions(0.98), got)
+        self.assertGreaterEqual(m.image_totals["near_copies_across_sources"],
+                                sum(d["point"] == "image.near_copy" and d["value"] for d in got))  # totals before the caps
+
+    def test_a_number_label_is_asked_only_about_near_copies(self):  # the review's F2
+        from dclab_core.replicas import shapes_and_notes
+
+        table = shapes_and_notes.shapes_table(0, scenes=30).table
+        table["label"] = (table["item"] % 7).astype(float)
+        got = self.machine(table, task="regression")._image_decisions(0.98)
+        self.assertEqual({d["point"] for d in got}, {"image.near_copy"})
+
     def test_a_forbidden_pixel_is_refused(self):
         from dclab_rnd.studio.solution import Solution
 

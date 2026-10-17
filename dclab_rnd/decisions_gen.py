@@ -11,6 +11,7 @@ not committed; ``MANIFEST.json`` is, with every set's counts and the fingerprint
 partition cannot move unseen).
 
     python -m dclab_rnd.decisions_gen [--seeds N] [--rows N] [--out DIR]
+    python -m dclab_rnd.decisions_gen --images [--seeds N]   # 26.8: the image points, to generated_images_v1/
 """
 
 from __future__ import annotations
@@ -88,15 +89,71 @@ def build(seeds: int = 24, rows: int = 1500, out: Path = OUT) -> dict[str, Any]:
     return summary
 
 
+IMAGES = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "generated_images_v1"
+
+
+def _write_sets(docs: list[dict[str, Any]], out: Path) -> dict[str, Any]:
+    """One set per point, through the builder of the sets from real use; the sealed partition in a file of its own."""
+    from dclab_core import datasets as builders
+
+    sets: dict[str, Any] = {}
+    for point in sorted({d["point"] for d in docs}):
+        rows_, manifest = builders.decisions(docs, point, consent="invented tables: no consent needed")
+        folder = out / "decisions" / point
+        folder.mkdir(parents=True, exist_ok=True)
+        sealed = [x for x in rows_ if x["split"] == "sealed"]
+        for file, items in (("rows.jsonl", [x for x in rows_ if x["split"] != "sealed"]), ("sealed.jsonl", sealed)):
+            (folder / file).write_text("".join(json.dumps(x, ensure_ascii=False, default=str) + "\n" for x in items), encoding="utf-8")
+        (folder / "manifest.json").write_text(manifest.model_dump_json(indent=1) + "\n", encoding="utf-8")
+        right = sum(1 for x in rows_ if x["label"] and x["value_used"] == x["label"]["value"])
+        positive = sum(1 for x in rows_ if x["label"] and x["label"]["value"] is True)
+        content = sorted(json.dumps({k: x[k] for k in ("record", "state", "label")}, sort_keys=True, default=str) for x in sealed)
+        sets[point] = {"decisions": len(rows_), "tables": len({x["group"] for x in rows_}), "splits": manifest.splits, "rule_right": right,
+                       "label_yes": positive, "sealed_fingerprint": hashlib.sha256("\n".join(content).encode()).hexdigest()}
+    return sets
+
+
+def build_images(seeds: int = 40, out: Path = IMAGES) -> dict[str, Any]:
+    """26.8: the image decision sets. Each seed draws two tables of shapes (circles and squares; left and right arrows),
+    each with scenes filed again under a new name and a few shots given the other label; DCLab's image rules decide on
+    every table (``dclab_core.image_decisions``) and each decision keeps its benchmark label."""
+    from dclab_core import image_decisions as idc
+    from dclab_core.replicas import shapes_and_notes as replica
+
+    docs, tables = [], []
+    for seed in range(seeds):
+        for arrows in (False, True):
+            table = f"{'arrows' if arrows else 'shapes'}-s{seed}"
+            r = replica.shapes(seed * 7919 + (1 if arrows else 0), reshot=4 + seed % 5, mislabel=0.02 + 0.01 * (seed % 4), arrows=arrows)
+            records, labels = idc.decide(r, table=table, at=AT)
+            by_record: dict[str, list[dict[str, Any]]] = {}
+            for label in labels:
+                by_record.setdefault(label.record, []).append(json.loads(label.model_dump_json()))
+            docs += [{**json.loads(x.model_dump_json()), "labels": by_record.get(x.id, [])} for x in records]
+            tables.append(table)
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "records.jsonl").write_text("".join(json.dumps(d, ensure_ascii=False) + "\n" for d in docs), encoding="utf-8")
+    summary = {"version": "image_decisions_v1", "at": AT, "seeds": seeds, "tables": len(tables), "decisions": len(docs),
+               "grouping": "one table per group: its images never sit in two splits",
+               "sets": _write_sets(docs, out), "threshold": idc.THRESHOLD, "flip_drop": idc.FLIP_DROP,
+               "rule": "Invented images with planted traps (scenes filed again, shots given the other label, arrows a flip changes): "
+                       "labels are true by construction; scores on them say how a model reads these traps, not real photographs. "
+                       "The sealed partition is never used for tuning."}
+    (out / "MANIFEST.json").write_text(json.dumps(summary, indent=1) + "\n", encoding="utf-8")
+    return summary
+
+
 def main(argv: list[str] | None = None) -> int:
     import argparse
 
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.decisions_gen", description=__doc__.split("\n")[0])
-    parser.add_argument("--seeds", type=int, default=24)
+    parser.add_argument("--seeds", type=int, default=None, help="24 for the tables, 40 for the images")
     parser.add_argument("--rows", type=int, default=1500)
-    parser.add_argument("--out", type=Path, default=OUT)
+    parser.add_argument("--out", type=Path, default=None)
+    parser.add_argument("--images", action="store_true", help="26.8: the image decision sets (generated_images_v1)")
     args = parser.parse_args(argv)
-    done = build(args.seeds, args.rows, args.out)
+    done = (build_images(args.seeds or 40, args.out or IMAGES) if args.images else build(args.seeds or 24, args.rows, args.out or OUT))
     print(f"{done['tables']} tables, {done['decisions']} decisions")
     for point, s in done["sets"].items():
         print(f"  {point:<26} {s['decisions']:>6} decisions on {s['tables']} tables; splits {s['splits']}; rules right {s['rule_right']}")

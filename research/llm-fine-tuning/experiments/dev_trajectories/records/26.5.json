@@ -80,6 +80,36 @@
    "cause": "play() used a temporary directory and kept nothing of it.",
    "fix": "--keep DIR copies each live journey's workspace, events and row into DIR/<arm>/<id>/.",
    "test": "test_a_kept_play_leaves_its_whole_record"
+  },
+  {
+   "id": "M3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The model recorded the outcome in words, not as its column, and the problem card never went ready.",
+   "scenario": "Live pass 3, JD-02 and JD-03: the Home agent recorded the target as a sentence naming the churned column; the coordinator found no outcome column among the table's columns and stopped at the problem card.",
+   "cause": "settled('target') asks for a column name once a table with columns is there; the recorder kept whatever words it was given.",
+   "fix": "An outcome recorded in words that name exactly one of the table's columns (in backticks, else as a whole word) is kept as that column; two named, the words stay and the card asks.",
+   "test": "test_an_outcome_recorded_in_words_naming_one_column_is_kept_as_that_column"
+  },
+  {
+   "id": "M4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The written person answered a request to build with the label's words, three times.",
+   "scenario": "Live pass 3, JD-02: the agent asked 'Shall I build it now?'; the person's words matched the label pattern and the walk stopped with no progress.",
+   "cause": "A stop's question was matched only against the fields the person holds; leave to build is not a field.",
+   "fix": "The person, who approves every gate, gives leave to build when the agent last asked for it.",
+   "test": "test_the_written_person_gives_leave_to_build_when_the_agent_asks_for_it"
+  },
+  {
+   "id": "M5",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A confirmation of the outcome column, asked under a field the person did not hold, went unanswered.",
+   "scenario": "Live pass 3, JD-04: 'Is actual_minutes the time from order_time to delivered?' stopped the walk waiting for the person.",
+   "cause": "No meaning pattern read a question naming the person's own outcome column.",
+   "fix": "A question asking whether the person's outcome column is something is confirmed with that column.",
+   "test": "test_the_written_person_gives_leave_to_build_when_the_agent_asks_for_it"
   }
  ],
  "measurements": [
@@ -108,6 +138,20 @@
    "next": "Run it again with the person answering a stop's question, EUR 1.19 left of the approved 1.50.",
    "limits": [
     "Five journeys of one arm say where the harness failed, not how the arms compare."
+   ]
+  },
+  {
+   "name": "the third live pass, the rerun (2026-10-17)",
+   "gate": "the same as DWF-005",
+   "fixed_before_run": true,
+   "result": "cut short by its EUR 1.19 cap: EUR 0.9029 spent, 9 live journeys kept; rules 15/15; the model alone 0/4 (card 4, workflow 1, pipeline 1, holdout 0); with the decision models 1/5 (holdout 1, 3 answers changed by a decision model, 1 refused by the validator); nothing stored",
+   "verdict": "not scored",
+   "cost_eur": 0.9029,
+   "against_gate": "Not scored: the live arms played 4 and 5 of 15 journeys.",
+   "next": "Fixes M3 to M5 need a live run to be measured: EUR 0.29 is left of the approval for pass 2; a full pass costs about EUR 1.8 at the rate seen.",
+   "limits": [
+    "Four and five journeys say where the walk stopped, not how the arms compare.",
+    "The combined arm built one journey the model alone did not: one journey, not evidence."
    ]
   }
  ],

@@ -188,8 +188,15 @@ Two tracks, because "as good as XGBoost" is a claim to be measured, not assumed:
   across the line, never hidden. **Images in self-play (2026-10-17):** `selfplay:embedded_images:<seed>`, solved by the engine and
   verified by the image checks, its decisions in its own ledger, its examples with the pixels as one column state (how many, the
   side); the embedded kind's split examples now name their group (the scene, the author), and `selfplay --again --kinds embedded`
-  solves its earlier problems again whole. Left: decision points and sets for images (labels' quality, augmentation, a pretrained
-  backbone, the owner's download).
+  solves its earlier problems again whole. **Its decision points (2026-10-17), the review's 6 findings fixed:** `image.near_copy`
+  (two images of different sources the same subject photographed again), `image.label_suspect` (a label most near copies, else most
+  nearest images, contradict) and `image.flip_safe` (whether a mirror keeps the label, measured on held-apart sources), in
+  `dclab_core.image_decisions`; the image machine answers them in its leakage stage on its training images only (a capped sample
+  above 1,500; a number label only near copies) and the ledger keeps them; the shapes replica plants their traps (scenes filed
+  again, shots given the other label, arrows a flip changes). `make decisions-gen ARGS=--images`: 80 tables, 37,200 decisions with
+  a sealed partition by table (the rules right on 0.849 of near-copy pairs, 0.992 of labels with 3.5% wrong, all 80 flips);
+  `make decision-models ARGS=--images` fits them to `models_images_v1/`; the lake reads them as gold. Left: their gate (the 22.3
+  gate reads the tabular sets), a pretrained backbone (the owner's download).
 
 ### 26.9 Other decision models' answers, captured whole (the owner, 2026-10-17)
 - **Why:** the owner compared three hosted or open decision models (Fastino's GLiNER2.5-Decide and GLiDE, TypeSafe's Jev,

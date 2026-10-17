@@ -125,6 +125,27 @@ class AgentTests(unittest.TestCase):
     def setUp(self):
         self.store = DraftStore(Path(tempfile.mkdtemp()))
 
+    def test_an_outcome_recorded_in_words_naming_one_column_is_kept_as_that_column(self):  # live, 2026-10-17
+        agent = HomeAgent(self.store, None)
+        d = self.store.create("Which subscribers will cancel at renewal")
+        columns = [{"name": n} for n in ("subscriber_id", "plan", "churned", "churned_before")]
+        self.store.update(d["id"], lambda x: x.update(analysis={"columns": columns}))
+        agent.record(d["id"], "target", "The churned column (true = subscriber left at renewal).")
+        self.assertEqual(self.store.get(d["id"])["understanding"]["target"], "churned")
+        agent.record(d["id"], "target", "Whether `churned_before` is set")
+        self.assertEqual(self.store.get(d["id"])["understanding"]["target"], "churned_before")
+        agent.record(d["id"], "target", "Either churned or churned_before")  # two named: the words stay, the card asks
+        self.assertEqual(self.store.get(d["id"])["understanding"]["target"], "Either churned or churned_before")
+        self.assertFalse(agent.settled(self.store.get(d["id"]), "target"))
+        # a column only mentioned, or known later, is never the outcome (the 20.10 guard)
+        self.store.update(d["id"], lambda x: x.update(analysis={"columns": [{"name": n} for n in ("plan", "churned_flag", "final_refund_amount", "amount")]}))
+        for words in ("Whether a subscriber cancels their plan at renewal", "Whether they leave; we only know it once final_refund_amount is paid",
+                      "Fraud, a disputed amount", "Whether they leave, known only after `final_refund_amount` is paid"):
+            agent.record(d["id"], "target", words)
+            self.assertEqual(self.store.get(d["id"])["understanding"]["target"], words)
+        agent.record(d["id"], "target", "The churned_flag column")
+        self.assertEqual(self.store.get(d["id"])["understanding"]["target"], "churned_flag")
+
     def test_the_first_question_fits_the_pack_the_problem_was_read_as(self):
         asked = {}
         for sentence in ("Find card fraud at authorization time", "Forecast daily demand per store", "Classify support tickets by topic"):

@@ -4,6 +4,23 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.65.0 (2026-10-17)
+
+Package 26.8 (its decision points): what an image problem decides, as ledger records with their truths.
+
+- `image_decisions`: `rule_decisions(images, sources, labels, threshold=)`, the rules of three new points on the images
+  given (a host gives its training rows only): `image.near_copy` (two images of different sources whose pictures' cosine
+  reaches the near-copy threshold), `image.label_suspect` (most near copies, else most nearest images, carry the other
+  label), `image.flip_safe` (a classifier fitted on half the sources loses at most `FLIP_DROP` accuracy on the others
+  mirrored). `decide(replica, table=, at=)` adds the replica's truths as benchmark labels.
+- `ledger`: the three points (technical, subject `project`, yes or no) and their state fields (`similarity`,
+  `near_threshold`, `margin`, `same_label`, `images`, `copies`, `copies_agree`, `neighbours_agree`, `flip_drop`,
+  `flip_accuracy`, `plain_accuracy`, `image_side`): measures and counts, never a pixel. No contract's shape changed.
+- `replicas.shapes_and_notes.shapes(..., reshot=, mislabel=, arrows=)`: scenes filed again under a new name, shots given
+  the other label, and left or right arrows (a flip changes the label), in `facts`; drawn from a stream of their own, so
+  the defaults draw the same images as before.
+- `adapters.conformance.POINTS_NOT_MAPPED`: the three points, with why the main product has no name for them.
+
 ## 0.64.0 (2026-10-17)
 
 Package 26.6b (data only): invented tables for pretraining an in-context tabular model.

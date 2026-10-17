@@ -291,10 +291,10 @@ dev-archive:  ## copy this project's Claude Code session transcripts into dev_tr
 	rsync -a "$$HOME/.claude/projects/$$(pwd | sed 's#[/ &]#-#g')/" research/llm-fine-tuning/experiments/dev_trajectories/raw/
 	@du -sh research/llm-fine-tuning/experiments/dev_trajectories/raw
 
-decisions-gen:  ## 22.1: generated decision benchmarks: invented tables with planted columns, the rules' decisions and their labels, a sealed partition
+decisions-gen:  ## 22.1: generated decision benchmarks: invented tables with planted columns, the rules' decisions and their labels, a sealed partition; ARGS=--images: 26.8 image points
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.decisions_gen $(ARGS)
 
-decision-models:  ## 22.2: a classifier per decision point on the generated sets (make decisions-gen first), its card beside the rule's dev score
+decision-models:  ## 22.2: a classifier per decision point on the generated sets (make decisions-gen first), its card beside the rule's dev score; ARGS=--images: 26.8 image points
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.decision_models_build $(ARGS)
 
 decisions-export:  ## 22.5: the decision sets as chat JSONL (with a dataset card), a parquet table and typed questions; sealed rows never written

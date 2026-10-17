@@ -71,6 +71,24 @@ class JourneyTest(unittest.TestCase):
         self.assertIn("chat→target", row["asked"])
         self.assertFalse(row["right"])
 
+    def test_the_written_person_gives_leave_to_build_when_the_agent_asks_for_it(self):  # 26.5 live pass 3
+        person = journeys._Person({"labels": "Yes, churned says who left", "target": "churned"})
+        self.assertEqual(person.reply("No progress at problem: nothing is open",
+                                      "I have recorded `churned` as the label. Shall I build it now?"), person.GO)
+        self.assertEqual(person.reply("The problem card is not ready: Which column holds the outcome?", "Which file lists them?"), "churned")
+        self.assertEqual(person.asked, ["chat→build", "chat→target"])
+        minutes = journeys._Person({"target": "actual_minutes"})
+        self.assertIn("actual_minutes is the outcome", minutes._answer("outcome_window", "Is actual_minutes the time from order_time to delivered?"))
+        self.assertEqual(minutes.asked, ["outcome_window→confirm_target"])
+        # the review's cases: another question naming the outcome is answered by its meaning; a blocker comes before leave to build
+        price = journeys._Person({"target": "price", "prediction_moment": "When the listing is posted"})
+        self.assertEqual(price._answer("x", "Is the price known when the listing is posted, or only after the sale?"), "When the listing is posted")
+        units = journeys._Person({"target": "units", "budget": "Forty a day"})
+        self.assertEqual(units._answer("x", "How many can you review each day? Is units the count per store?"), "Forty a day")
+        moment = journeys._Person({"prediction_moment": "At renewal"})
+        self.assertEqual(moment.reply("The problem card is not ready: When is the prediction made?",
+                                      "Should I go ahead and build, or tell me when the prediction is made?"), "At renewal")
+
     def test_a_person_who_answers_nothing_is_never_built_and_the_row_says_why(self):
         row = journeys.play({**journey("JD-02"), "answers": {}})
         self.assertFalse(row["right"])

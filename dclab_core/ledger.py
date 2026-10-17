@@ -64,6 +64,10 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "apparent_lift": (MEASURE, ()), "optimism_gap": (MEASURE, ()), "tuning_gain": (MEASURE, ()), "cv_mean": (MEASURE, ()),
     "cv_std": (MEASURE, ()), "holdout_value": (MEASURE, ()), "baseline_value": (MEASURE, ()), "share": (RATIO, ()),
     "correlation": (MEASURE, ()),
+    # 26.8: images, as measures and counts (never a pixel)
+    "similarity": (MEASURE, ()), "near_threshold": (MEASURE, ()), "margin": (MEASURE, ()), "same_label": (FLAG, ()),
+    "images": (COUNT, ()), "copies": (COUNT, ()), "copies_agree": (RATIO, ()), "neighbours_agree": (RATIO, ()),
+    "flip_drop": (MEASURE, ()), "flip_accuracy": (RATIO, ()), "plain_accuracy": (RATIO, ()), "image_side": (COUNT, ()),
     # the workflow
     "stage": (CODE, ()), "move": (CODE, ()), "from_state": (CODE, ()), "to_state": (CODE, ()), "agent": (CODE, ()),
     "pack": (CODE, ()), "kind": (CODE, ()), "metric": (CODE, ()), "strategy": (CODE, ()), "step": (COUNT, ()),
@@ -160,6 +164,10 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     _p("improve.next_action", T, "project", "value", "What is improved next?", "improve.next_action"),
     _p("experiment.accept", T, "project", "noul", "Is the experiment's result kept?"),
     _p("model.promote", T, "project", "noul", "Is the model promoted to the project's champion?"),
+    # 26.8: images (dclab_core.image_decisions)
+    _p("image.near_copy", T, "project", "noul", "Are two images of different sources the same subject photographed again?"),
+    _p("image.label_suspect", T, "project", "noul", "Is the image's label likely wrong?"),
+    _p("image.flip_safe", T, "project", "noul", "Does a mirror flip keep the image's label (may training images be flipped)?"),
     # workflow: what steers solving (the second use)
     _p("problem.family", W, DP, "choice", "Which family of problem is it?", choices=FAMILIES),
     _p("problem.ready", W, DP, "noul", "Is the problem understood enough to build?"),
