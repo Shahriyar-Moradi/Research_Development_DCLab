@@ -1,0 +1,104 @@
+{
+ "schema_version": "dclab_core.decision_model_card.v1",
+ "point": "image.label_suspect",
+ "name": "image.label_suspect.boosting",
+ "version": "a2269aecb7f8",
+ "family": "boosting",
+ "strength": 0.1,
+ "features": 4,
+ "fields": [
+  "copies",
+  "copies_agree",
+  "images",
+  "neighbours_agree"
+ ],
+ "excluded": [],
+ "trained_on": 14444,
+ "trained_set": "ef8890b1ce028d7c47aade3b1d838c90f1eb5bafa4e99dd338857b9e43b72f59",
+ "groups": 42,
+ "label_sources": {
+  "benchmark": 14444
+ },
+ "chosen_by": "out-of-fold accuracy over 5 folds grouped by table; best boosting:0.1",
+ "oof_accuracy": {
+  "logistic:0.1": 0.9848,
+  "logistic:1.0": 0.9904,
+  "logistic:10.0": 0.9931,
+  "boosting:0.1": 0.997,
+  "boosting:1.0": 0.9969,
+  "boosting:10.0": 0.9966
+ },
+ "calibration": "Platt scaling on the same 5 table-grouped folds of the training rows",
+ "dev": {
+  "n": 6876,
+  "accuracy": 0.9962,
+  "accuracy_ci": [
+   0.9945,
+   0.9974
+  ],
+  "precision": 0.9772,
+  "precision_ci": [
+   0.9477,
+   0.9902
+  ],
+  "recall": 0.9106,
+  "recall_ci": [
+   0.8673,
+   0.9408
+  ],
+  "intervals": "Wilson, 95%",
+  "answered": 6876,
+  "per_class": {}
+ },
+ "rule_dev": {
+  "n": 6876,
+  "accuracy": 0.9929,
+  "accuracy_ci": [
+   0.9906,
+   0.9946
+  ],
+  "precision": 0.8345,
+  "precision_ci": [
+   0.7863,
+   0.8736
+  ],
+  "recall": 0.9872,
+  "recall_ci": [
+   0.9631,
+   0.9956
+  ],
+  "intervals": "Wilson, 95%",
+  "answered": 6876,
+  "per_class": {}
+ },
+ "dev_by_source": {
+  "benchmark": {
+   "n": 6876,
+   "accuracy": 0.9962,
+   "accuracy_ci": [
+    0.9945,
+    0.9974
+   ],
+   "precision": 0.9772,
+   "precision_ci": [
+    0.9477,
+    0.9902
+   ],
+   "recall": 0.9106,
+   "recall_ci": [
+    0.8673,
+    0.9408
+   ],
+   "intervals": "Wilson, 95%",
+   "answered": 6876,
+   "per_class": {}
+  }
+ },
+ "dev_calibration_error": 0.0031,
+ "limits": [
+  "Measured on dev rows; the sealed partition is read once, under 22.3's gate.",
+  "Trained on generated tables (22.1): it learns these planted kinds, not real tables.",
+  "A group is a base and a seed: dev holds new seeds of the same bases as training, not new kinds of table, so dev measures reading planted kinds in tables like those trained on.",
+  "Every generated table plants the same kinds, so intervals drawn by table group are narrow: they say how stable the model is across these tables, not across other kinds of table."
+ ]
+}

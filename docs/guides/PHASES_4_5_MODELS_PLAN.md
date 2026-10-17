@@ -195,7 +195,7 @@ Two tracks, because "as good as XGBoost" is a claim to be measured, not assumed:
   above 1,500; a number label only near copies) and the ledger keeps them; the shapes replica plants their traps (scenes filed
   again, shots given the other label, arrows a flip changes). `make decisions-gen ARGS=--images`: 80 tables, 37,200 decisions with
   a sealed partition by table (the rules right on 0.849 of near-copy pairs, 0.992 of labels with 3.5% wrong, all 80 flips);
-  `make decision-models ARGS=--images` fits them to `models_images_v1/`; the lake reads them as gold. Left: their gate (the 22.3
+  `make decision-models ARGS=--images` fits them to `models_images_v1/` (on dev: suspect labels 0.996 against the rule's 0.993, precision 0.977 against 0.835 and recall 0.911 against 0.987; near copies 0.809 against 0.810, more recall, less precision; flips 1.0 like the rule; nothing serves); the lake reads them as gold. Left: their gate (the 22.3
   gate reads the tabular sets), a pretrained backbone (the owner's download).
 
 ### 26.9 Other decision models' answers, captured whole (the owner, 2026-10-17)

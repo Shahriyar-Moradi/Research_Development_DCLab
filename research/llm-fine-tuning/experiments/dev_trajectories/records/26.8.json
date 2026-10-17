@@ -206,6 +206,19 @@
     "Invented images with planted traps: a score on them says how a model reads these traps, not real photographs.",
     "The flip set has 80 tables: one decision per table."
    ]
+  },
+  {
+   "name": "the image decision models on dev (models_images_v1)",
+   "gate": "none fixed: a dev reading beside the rule, never a promotion (the sealed gate is not wired for images)",
+   "fixed_before_run": true,
+   "result": "image.label_suspect boosting: accuracy 0.9962 [0.9945, 0.9974], precision 0.9772, recall 0.9106 against the rule's 0.9929, 0.8345, 0.9872; image.near_copy logistic: accuracy 0.8092 [0.793, 0.8244], precision 0.8075, recall 0.8652 against the rule's 0.8096, 0.8839, 0.7595; image.flip_safe logistic: 1.0 [0.8389, 1.0] like the rule",
+   "verdict": "not scored",
+   "cost_eur": 0,
+   "against_gate": "Not scored: dev rows only, no gate fixed; nothing serves.",
+   "limits": [
+    "The models trade precision for recall against the rules rather than beat them.",
+    "Invented images; the flip set has one decision per table, few on dev."
+   ]
   }
  ],
  "outcome": "Images run in the engine to their holdout, their near copies and scenes caught on four seeds, and their code reproduces the number. Its decision points are recorded by the engine and generated with their truths, ready for decision models.",
