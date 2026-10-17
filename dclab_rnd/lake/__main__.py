@@ -32,13 +32,17 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--no-think", action="store_true", help="27.9: write the solver's answers without their verified <think> block")
     o = sub.add_parser("openml", help="26.2: fetch and profile OpenML's public tables (resumable; the owner's yes, 2026-10-16)")
     o.add_argument("--limit", type=int, default=1200)
-    a = sub.add_parser("answers", help="26.9: another answerer (GLiNER2.5-Decide) on every gold decision, every detail kept (run in the ai12 env)")
+    a = sub.add_parser("answers", help="26.9: another answerer (GLiNER2.5-Decide) on every DCLab test, every detail kept (run in the ai12 env)")
     a.add_argument("--answerer", default="gliner2.5-decide")
+    a.add_argument("--sources", default="lake,workflow,journeys,selfplay")
     a.add_argument("--points", default="")
     a.add_argument("--splits", default="train,dev,sealed")
     a.add_argument("--limit", type=int, default=None, help="at most this many new decisions per point and split")
     a.add_argument("--batch", type=int, default=32)
-    sub.add_parser("answers-summary", help="26.9: what was captured, per answerer and point (dev agreement only); the committed manifest")
+    sub.add_parser("answers-summary", help="26.9: what was captured, per answerer, source and point (dev agreement only); the committed manifest")
+    sub.add_parser("harvest", help="26.9: every decision DCLab's rules, Claude, classifiers and people made, gathered whole from every workspace")
+    sub.add_parser("rules", help="26.9: DCLab's rules as an answerer of every test, in the answers' layout")
+    sub.add_parser("answers-export", help="26.9: every test's labelled decisions in GLiNER2's training format (training_records/datasets/gliner2/)")
     p = sub.add_parser("selfplay", help="27.3: solve the engine kinds' replicas by seed, keep only verified solves")
     p.add_argument("--seeds", type=int, default=20)
     p.add_argument("--kinds", default="", help="comma-separated kind keys (default: every engine kind)")
@@ -46,10 +50,27 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "answers":
         from .answers import capture, summary
 
-        got = capture(args.answerer, [x for x in args.points.split(",") if x] or None, tuple(x for x in args.splits.split(",") if x),
-                      args.limit, args.batch)
+        got = capture(args.answerer, tuple(x for x in args.sources.split(",") if x), [x for x in args.points.split(",") if x] or None,
+                      tuple(x for x in args.splits.split(",") if x), args.limit, args.batch)
         print(json.dumps({k: v for k, v in got["asked"].items() if v}, indent=1))
         summary()
+        return 0
+    if args.command == "harvest":
+        from .harvest import harvest
+
+        m = harvest()
+        print(json.dumps({k: m[k] for k in ("ledgers", "decisions", "labels", "outcomes", "twin_runs", "model_requests", "answers_by_answerer", "database")}, indent=1))
+        return 0
+    if args.command == "rules":
+        from .answers import record_rules, write_tests
+
+        write_tests()
+        print(json.dumps(record_rules(), indent=1)[:3000])
+        return 0
+    if args.command == "answers-export":
+        from .answers import export_gliner2
+
+        print(json.dumps(export_gliner2()["counts"], indent=1, default=str)[:4000])
         return 0
     if args.command == "answers-summary":
         from .answers import summary

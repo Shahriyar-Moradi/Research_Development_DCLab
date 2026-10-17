@@ -194,6 +194,22 @@ Two tracks, because "as good as XGBoost" is a claim to be measured, not assumed:
   on dev only; the sealed split answered, never scored).
 - **Done when:** every gold decision has GLiNER2.5-Decide's answer stored whole, the lake carries them, and adding a hosted
   answerer is one entry with its use.
+- **Status: built (2026-10-17), widened to every test and every recorded decision (the owner: "capture, store and record all
+  decisions, also DCLab's rules' and Claude's, for the future").**
+  - Four test sources (`answers.SOURCES`), each decision with its own truth: `lake` (63,705 gold decisions), `workflow`
+    (2,056 decisions of the written people), `journeys` (181 first sentences: the family from the person's words), `selfplay`
+    (8,044: the problem type, the time column, each column's planted leak and identifier). Their labelled decisions are kept in
+    `lake/bronze/decisions/<source>/`.
+  - Answerers side by side in one layout, `lake/bronze/answers/<answerer>/<source>/<point>/<split>.jsonl`: `gliner2.5-decide`
+    (use train), `dclab-rules` (the rules' answer on every test, use train), and from every workspace (`python -m dclab_rnd.lake
+    harvest`: 17 ledgers, 6 twin runs, the database) `claude` (750 recorded answers and 24 twin steps, use eval_only),
+    `dclab-classifiers` (shadows) and `people`; every decision record whole in `lake/bronze/sessions/ledgers/`, every model
+    request in `lake/bronze/sessions/model_requests.jsonl`.
+  - Every test's labelled decisions in GLiNER2's training format (`python -m dclab_rnd.lake answers-export` →
+    `training_records/datasets/gliner2/v1/<source>/<point>/<split>.jsonl`, sealed in files of their own).
+  - Kept permanently on this machine (the owner's choice): `make archive` → `training_records/snapshots/<time>/`, checksummed,
+    read-only, unchanged files linked to the last snapshot; `make capture` runs the whole chain (harvest, rules, GLiNER on
+    anything new, summary, export, snapshot) after any work.
 
 ## Part D. Phase 5 — a model that solves machine-learning problems (packages 27.x)
 

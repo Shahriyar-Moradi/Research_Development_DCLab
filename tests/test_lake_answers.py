@@ -47,14 +47,14 @@ class CaptureTests(unittest.TestCase):
         from dclab_rnd.lake import answers
 
         with mock.patch.object(answers, "MANIFEST", self.lake / "MANIFEST.json"):
-            return answers.capture("gliner2.5-decide", lake=self.lake, model=model, log=lambda *_: None,
+            return answers.capture("gliner2.5-decide", ("lake",), lake=self.lake, model=model, log=lambda *_: None,
                                    identity={"revision": "abc123", "library": "gliner2 2.1.0", "machine": "test"}, **kw)
 
     def test_every_detail_of_every_answer_is_kept(self):
         from dclab_rnd.lake import answers
 
         self.capture(Scripted())
-        rec = answers.stored("gliner2.5-decide", "column.is_identifier", "dev", self.lake)[0]
+        rec = answers.stored("gliner2.5-decide", "lake", "column.is_identifier", "dev", self.lake)[0]
         for key in ("sample_id", "input_text", "schema", "input_fingerprint", "output", "value", "confidence", "model", "revision",
                     "library", "machine", "render", "seconds", "at", "licence", "use", "group"):
             self.assertIn(key, rec)
@@ -81,7 +81,7 @@ class CaptureTests(unittest.TestCase):
         self.capture(Scripted())
         with mock.patch.object(answers, "MANIFEST", self.lake / "MANIFEST.json"):
             doc = answers.summary(self.lake)
-        point = doc["answerers"]["gliner2.5-decide"]["column.is_identifier"]
+        point = doc["answerers"]["gliner2.5-decide"]["lake"]["column.is_identifier"]
         self.assertEqual(point["dev"]["agrees_with_label"], 0.5)  # yes on two decisions, one of which is no
         self.assertEqual(point["dev"]["rule_agrees_with_label"], 0.5)
         self.assertNotIn("agrees_with_label", point["sealed"])
@@ -94,7 +94,7 @@ class CaptureTests(unittest.TestCase):
                        options=("churn", "plan"), label="churn", rule=None)
         write_gold(self.lake, [table])
         self.capture(Scripted(), points=["target.column"])
-        rec = answers.stored("gliner2.5-decide", "target.column", "dev", self.lake)[0]
+        rec = answers.stored("gliner2.5-decide", "lake", "target.column", "dev", self.lake)[0]
         self.assertEqual((rec["schema"]["answer"]["labels"], rec["value"]), (["churn", "plan"], "churn"))
 
     def test_answers_reach_their_decisions_in_the_lake_and_never_the_label(self):
@@ -108,6 +108,46 @@ class CaptureTests(unittest.TestCase):
         moved = self.rows[0].model_copy(update={"features": {"column": "col_1", "dtype": "float"}})
         _, why = answers.attach([moved], self.lake)
         self.assertEqual(why["gliner2.5-decide: answered on another state (ask again)"], 1)
+
+    def test_the_first_layout_moves_under_its_source(self):
+        from dclab_rnd.lake import answers
+
+        old = self.lake / "bronze" / "answers" / "gliner2.5-decide" / "column.time"
+        old.mkdir(parents=True)
+        (old / "dev.jsonl").write_text('{"sample_id": "s1"}\n')
+        self.assertEqual(answers.migrate(self.lake), ["column.time"])
+        self.assertTrue((self.lake / "bronze" / "answers" / "gliner2.5-decide" / "lake" / "column.time" / "dev.jsonl").is_file())
+
+    def test_a_labelled_decision_in_gliner2s_training_format(self):
+        from dclab_rnd.lake import answers
+
+        d = {"decision_point": "column.semantic_role", "text": "Column 'zone'.", "label": "categorical_code",
+             "schema": {"answer": {"labels": {"numeric": "a quantity", "categorical_code": "a code"}}}}
+        row = answers.gliner2_row(d)
+        task = row["output"]["classifications"][0]
+        self.assertEqual((row["input"], task["task"], task["labels"], task["true_label"]), ("Column 'zone'.", "column.semantic_role",
+                                                                                           ["numeric", "categorical_code"], ["categorical_code"]))
+        self.assertEqual(task["label_descriptions"]["categorical_code"], "a code")
+        yes = answers.gliner2_row({"decision_point": "column.time", "text": "t", "label": True, "schema": {"answer": {"labels": ["yes", "no"], "prompt": "q?"}}})
+        self.assertEqual((yes["output"]["classifications"][0]["true_label"], yes["output"]["classifications"][0]["prompt"]), (["yes"], "q?"))
+
+    def test_the_export_keeps_the_sealed_decisions_apart(self):
+        from dclab_rnd.lake import answers
+
+        got = answers.export_gliner2(("lake",), self.lake, self.lake / "export")
+        self.assertEqual(sorted(got["counts"]["files"]), ["lake/column.is_identifier/dev.jsonl", "lake/column.is_identifier/sealed.jsonl",
+                                                          "lake/column.is_identifier/train.jsonl"])
+
+    def test_journeys_are_asked_from_the_persons_own_words(self):
+        from dclab_rnd.lake import answers
+
+        rows = list(answers.tests("journeys", self.lake))
+        self.assertTrue(rows)
+        one = next(r for r in rows if r["sample_id"].startswith("journey:dev:"))
+        self.assertEqual(one["decision_point"], "problem.family_from_words")
+        self.assertIn(one["label"], one["schema"]["answer"]["labels"])
+        multi = [r for r in rows if r["schema"]["answer"].get("multi_label")]
+        self.assertTrue(multi and all(isinstance(r["label"], list) for r in multi))  # a programme journey: several families
 
     def test_every_answerer_says_what_its_answers_may_be_used_for(self):
         from dclab_rnd.lake import answers
