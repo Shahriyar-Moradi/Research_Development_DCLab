@@ -122,12 +122,21 @@ class LimitsTests(unittest.TestCase):
             release()
 
     def test_the_admin_page_shows_usage_against_the_limits(self):
-        quotas = self.sign_in("eve").get("/api/platform/quotas").json()  # eve has used nothing else
+        from types import SimpleNamespace
+
+        from dclab_rnd import limits
+
+        # The middleware counts the page's own request before the route reads the minute's window, each at its own
+        # time.time(): under load a minute could end between the two and the read saw the next, empty window. The
+        # limiter's clock is frozen (30 s into a minute no other test counts in), so the two read one window.
+        with mock.patch.object(limits, "time", SimpleNamespace(time=lambda: 1_700_000_010.0)):
+            quotas = self.sign_in("eve").get("/api/platform/quotas").json()  # eve has used nothing else
         self.assertTrue(quotas["on"])
         kinds = {q["kind"]: q for q in quotas["limits"]}
         self.assertEqual(set(kinds), {"requests", "upload_bytes", "jobs", "model_eur"})
         self.assertEqual(kinds["requests"]["user"]["limit"], 40)
-        self.assertGreaterEqual(kinds["requests"]["user"]["used"], 1)
+        # the sign-in came before she was known; the page's own request is counted, once, before it reads
+        self.assertEqual((kinds["requests"]["user"]["used"], kinds["requests"]["workspace"]["used"]), (1, 1))
         self.assertEqual(kinds["upload_bytes"]["user"]["limit"], 1024 * 1024)
 
 

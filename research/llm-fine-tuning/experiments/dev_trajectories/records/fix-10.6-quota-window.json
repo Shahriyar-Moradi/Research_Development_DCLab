@@ -1,0 +1,88 @@
+{
+ "package": "fix-10.6-quota-window",
+ "title": "A flaky Admin quotas test: the request was counted in one minute and read in the next",
+ "date": "2026-10-17",
+ "request": "tests/test_limits.py::LimitsTests::test_the_admin_page_shows_usage_against_the_limits failed once during make check-commit GATE=check-quick (the suite in parallel under heavy load on the 8 GB Mac) with 0.0 not greater than or equal to 1 at the assertion that the person's requests used is at least 1, while the file passed twice alone. Find the actual cause in dclab_rnd/limits.py and the /api/platform/quotas route and make the test deterministic without weakening what it checks.",
+ "spec": "The test must pass or fail on the code alone, not on when the minute ends, and still prove that the Admin page counts the person's own request against the requests-a-minute limit. No product behaviour changes unless the cause is a product defect.",
+ "plan": [
+  "Read how a request is counted (the protect middleware in agentic/server.py calls limits.charge) and how the page reads it (pages/platform.py quotas, limits.summary, limits.used).",
+  "Test the two candidate causes: the window rolling over between the count and the read, or the request counted after the page is built.",
+  "Reproduce the failure on purpose: a clock just before a minute boundary at the charge and just after it at the read.",
+  "Measure how far apart the two clock reads are on an idle machine.",
+  "Fix where the defect is, and tighten the assertion if the fix makes the count known.",
+  "Run the reproduction against the fixed test, the whole file, and make check-quick; have the dclab-reviewer check the diff."
+ ],
+ "decisions": [
+  {
+   "decision": "Fix the test, not the limiter.",
+   "why": "The counter is a fixed one-minute window and the page shows the current one: zero right after a minute ends is the true value. The defect was the test assuming that two clock reads a few hundred milliseconds apart fall in one window."
+  },
+  {
+   "decision": "Freeze the limiter's own reference to the clock (patch.object(limits, \"time\", ...)), not time.time.",
+   "why": "limits reads time.time() through its module reference to time; replacing that reference freezes the charge and the read only. Patching time.time itself would freeze sessions, visits and every other clock the app runs on."
+  },
+  {
+   "decision": "Freeze it 30 s into a minute no other test counts in (1_700_000_010).",
+   "why": "The other tests count on the real clock or at 1_000_000; a window of its own keeps the count to this test's requests, and 30 s from either edge leaves no boundary to cross."
+  },
+  {
+   "decision": "Tighten at least one request to exactly one, for the person and for the workspace.",
+   "why": "With the clock frozen the count is known: the sign-in is not counted (the person is not known yet) and the page's own request is counted once before the page reads. Exactly one also catches a request counted twice, or a workspace key that differs between the charge (the pool's workspace) and the read (the principal's)."
+  }
+ ],
+ "change": "tests/test_limits.py only: test_the_admin_page_shows_usage_against_the_limits signs in and reads /api/platform/quotas with dclab_rnd.limits' clock frozen at 1_700_000_010, and asserts that the person and the workspace have each used exactly one request (before: the person at least one). No product code changed.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "The Admin quotas test read zero requests for a person whose own request had just been counted.",
+   "scenario": "Under make check-commit GATE=check-quick on the 8 GB Mac the test failed once with 0.0 not greater than or equal to 1; alone it passed twice. With the limiter's clock at a minute boundary minus a millisecond for the charge and plus half a second for the read, the old test fails every time with the same message at the same line.",
+   "cause": "The requests counter is keyed by floor(time / 60). The protect middleware charges the request with its own time.time() before call_next; the route reads the window with a second time.time() after the visit is marked, the active jobs are listed, the month's model spend is read and the budgets file is opened. When a minute ends between the two, the read lands in the next, empty window. The other suspect is ruled out: the trace shows one charge (the quota request; the sign-in requests come before the person is known) and it comes before the read. On an idle machine the two reads were 14 to 723 ms apart (median 247 ms over 20 requests); the parallel suite under memory pressure stretches that.",
+   "fix": "In the test, replace dclab_rnd.limits' reference to the time module with a frozen clock (types.SimpleNamespace with time() returning 1_700_000_010) around the sign-in and the quota request, so the charge and the read use one window; assert exactly one request for the person and the workspace.",
+   "test": "The reproduction (the clock crossing a minute between the charge and the read) fails the old test and passes the new one, whose frozen clock replaces the crossing one; tests.test_limits: 12 tests OK.",
+   "impact": "A red gate on a correct change now and then (a minute boundary inside a gap of a quarter of a second to several seconds), sending someone to look for a limiter bug that is not there; the product's answer was right.",
+   "alternatives": [
+    "Make the page read the window its own request was counted in (the charge's time carried in a context variable): set aside, because the current minute is the right answer for a fixed window, and it adds product code to fix a test's timing.",
+    "Patch time.time globally: set aside, because it freezes the session cookies, the visit and every other clock in the app, not only the limiter's.",
+    "Retry the read, or accept zero when a minute has just ended: set aside, because the test would no longer prove that the page counts its own request."
+   ],
+   "open": "Two things stay open. First, test_requests_a_minute_and_the_others_are_unaffected still runs on the real clock; it allows one crossing of the minute (429 by the 83rd request against a limit of 40) and would fail only if two crossings fit in a hundred requests, about 1.5 s a request. Second, a cause not ruled out for the one failure seen: make check-commit always uses the same test databases (dclab_check and dclab_check_p<N>) and drops them when it starts, so two gates at once from different worktrees share them, and one run's emptying of the tables between the other's charge and read would also read 0.0; that would usually break more than one test, and the window crossing is the cause that was reproduced."
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Concurrent gates share their test databases, a second way to read zero that the reproduction does not rule out.",
+   "scenario": "Two make check-commit runs at once from different worktrees: both use dclab_check and dclab_check_p<N>, and the second drops them when it starts; one run's setUpClass empties usage_counter between the other's charge and read, and the Admin page reads 0.0.",
+   "cause": "check-commit names its databases by a fixed prefix and slot number, with no lock or run id across worktrees.",
+   "fix": "Recorded, not fixed: outside this test-only change; the record's open note names it, and a follow-up would give each check-commit run databases of its own.",
+   "impact": "Failures that look random in whichever tests were running when the other gate emptied or dropped the database; usually several at once."
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The record's open note gave the wrong request number for the minute test's bound.",
+   "scenario": "It said 429 by the 82nd request; the loop counts from zero and asserts n <= 82, which is the 83rd request.",
+   "cause": "The loop index read as a count.",
+   "fix": "The note says the 83rd request.",
+   "test": "Read against test_requests_a_minute_and_the_others_are_unaffected."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: the test reads one frozen minute and asserts exactly one request for the person and for the workspace, more than it checked before; no product code changed.",
+ "lessons": [
+  "A test that reads a time-windowed counter controls the clock on both sides: the count and the read each call time.time(), and a slow run puts a window's edge between them.",
+  "Freeze the module's own reference to the clock (patch.object(module, \"time\", ...)), never time.time itself, so only the code under test stops.",
+  "Before blaming the order of counting, trace it: here the request was counted before the read, and only the windows differed.",
+  "Reproduce a timing flake on purpose (a clock placed at the boundary) before fixing it, and run the reproduction against the fix.",
+  "List the causes the reproduction does not rule out, such as resources shared between gate runs, beside the one it confirms."
+ ],
+ "risks": [
+  "Freezing time.time for the whole app instead of the limiter's reference.",
+  "A frozen time inside another test's window, mixing their counts.",
+  "Relaxing the assertion (at least zero, or a retry) instead of removing the race."
+ ],
+ "commits": []
+}
