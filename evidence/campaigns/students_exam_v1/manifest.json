@@ -1,0 +1,6 @@
+{
+  "campaign_id": "students_exam_v1",
+  "objective": "The students beside Claude and GLiNER (29.17, 29.18): the generated sets' dev decisions answered by the recorded rule, the student, Claude Sonnet 5.5 through decision_answer and GLiNER2.5-Decide (its captured answers), against the planted truth; and Claude as the blind judge (decision_labeler) measured on homework with known truth, the basis of the silver weights of its verdicts on real decisions.",
+  "rule": "Dev only and homework only: nothing here is a sealed verdict, nothing answered is used or trained on; Claude's answers on homework are evaluation only (the truth is planted). Every request is planned, printed and capped; every answer and judgment is kept whole in the run's folder before any field is cut. Results are never edited: a rescore reads the kept answers and writes a new file.",
+  "command": "python -m dclab_rnd.students_exam --per-point 300 [--yes --cap-eur N] | --judge --per-point 100 [--yes --cap-eur N] | --rescore SEX-NNN"
+}
