@@ -1,0 +1,934 @@
+{
+ "what": "Other answerers' answers on every DCLab test, each kept whole in lake/bronze/answers/<answerer>/<source>/ (not committed; kept permanently by make archive): the text and schema asked, the raw output, the value, the confidence, the model's revision, the time; the true answers stay in the tests (lake/gold, lake/bronze/decisions).",
+ "at": "2026-10-17T20:43:10+00:00",
+ "answerers": {
+  "claude": {
+   "lake": {
+    "column.category_code": {
+     "dev": {
+      "answered": 495,
+      "confidence_mean": null,
+      "seconds_mean": 1.7342,
+      "agrees_with_label": 0.8554,
+      "agrees_with_rule": 0.6084,
+      "rule_agrees_with_label": 0.5904
+     },
+     "model": "claude-sonnet-5-5",
+     "revision": null,
+     "render": null,
+     "use": "eval_only",
+     "licence": null
+    },
+    "column.group": {
+     "dev": {
+      "answered": 452,
+      "confidence_mean": null,
+      "seconds_mean": 1.6375,
+      "agrees_with_label": 0.8872,
+      "agrees_with_rule": 0.8872,
+      "rule_agrees_with_label": 1.0
+     },
+     "model": "claude-sonnet-5-5",
+     "revision": null,
+     "render": null,
+     "use": "eval_only",
+     "licence": null
+    },
+    "column.is_identifier": {
+     "dev": {
+      "answered": 500,
+      "confidence_mean": null,
+      "seconds_mean": 3.5789,
+      "agrees_with_label": 0.7646,
+      "agrees_with_rule": 0.7646,
+      "rule_agrees_with_label": 1.0
+     },
+     "model": "claude-sonnet-5-5",
+     "revision": null,
+     "render": null,
+     "use": "eval_only",
+     "licence": null
+    },
+    "column.semantic_role": {
+     "dev": {
+      "answered": 498,
+      "confidence_mean": null,
+      "seconds_mean": 1.7071,
+      "agrees_with_label": 0.6469,
+      "agrees_with_rule": 0.6409,
+      "rule_agrees_with_label": 0.5074
+     },
+     "model": "claude-sonnet-5-5",
+     "revision": null,
+     "render": null,
+     "use": "eval_only",
+     "licence": null
+    },
+    "column.time": {
+     "dev": {
+      "answered": 491,
+      "confidence_mean": null,
+      "seconds_mean": 1.9021,
+      "agrees_with_label": 0.7238,
+      "agrees_with_rule": 0.9685,
+      "rule_agrees_with_label": 0.6923
+     },
+     "model": "claude-sonnet-5-5",
+     "revision": null,
+     "render": null,
+     "use": "eval_only",
+     "licence": null
+    },
+    "feature.leakage_suspect": {
+     "dev": {
+      "answered": 373,
+      "confidence_mean": null,
+      "seconds_mean": 4.0784,
+      "agrees_with_label": 0.7081,
+      "agrees_with_rule": 0.9027,
+      "rule_agrees_with_label": 0.773
+     },
+     "model": "claude-sonnet-5-5",
+     "revision": null,
+     "render": null,
+     "use": "eval_only",
+     "licence": null
+    },
+    "image.flip_safe": {
+     "dev": {
+      "answered": 40,
+      "confidence_mean": null,
+      "seconds_mean": 2.733
+     },
+     "model": "claude-sonnet-5-5",
+     "revision": null,
+     "render": null,
+     "use": "eval_only",
+     "licence": null
+    },
+    "image.label_suspect": {
+     "dev": {
+      "answered": 199,
+      "confidence_mean": null,
+      "seconds_mean": 2.249
+     },
+     "model": "claude-sonnet-5-5",
+     "revision": null,
+     "render": null,
+     "use": "eval_only",
+     "licence": null
+    },
+    "image.near_copy": {
+     "dev": {
+      "answered": 199,
+      "confidence_mean": null,
+      "seconds_mean": 2.3946
+     },
+     "model": "claude-sonnet-5-5",
+     "revision": null,
+     "render": null,
+     "use": "eval_only",
+     "licence": null
+    },
+    "sessions": {
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "twin": {
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    }
+   }
+  },
+  "dclab-classifiers": {
+   "lake": {
+    "sessions": {
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    }
+   }
+  },
+  "dclab-rules": {
+   "lake": {
+    "column.category_code": {
+     "train": {
+      "answered": 1343,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "dev": {
+      "answered": 425,
+      "confidence_mean": null,
+      "seconds_mean": null,
+      "agrees_with_label": 0.8,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.8
+     },
+     "sealed": {
+      "answered": 954,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": "DCLab's rules",
+     "revision": "1645300",
+     "render": null,
+     "use": "train",
+     "licence": "DCLab's own"
+    },
+    "column.group": {
+     "train": {
+      "answered": 2229,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "dev": {
+      "answered": 710,
+      "confidence_mean": null,
+      "seconds_mean": null,
+      "agrees_with_label": 1.0,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 1.0
+     },
+     "sealed": {
+      "answered": 1598,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": "DCLab's rules",
+     "revision": "1645300",
+     "render": null,
+     "use": "train",
+     "licence": "DCLab's own"
+    },
+    "column.is_identifier": {
+     "train": {
+      "answered": 2229,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "dev": {
+      "answered": 710,
+      "confidence_mean": null,
+      "seconds_mean": null,
+      "agrees_with_label": 1.0,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 1.0
+     },
+     "sealed": {
+      "answered": 1598,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": "DCLab's rules",
+     "revision": "1645300",
+     "render": null,
+     "use": "train",
+     "licence": "DCLab's own"
+    },
+    "column.semantic_role": {
+     "train": {
+      "answered": 2003,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "dev": {
+      "answered": 637,
+      "confidence_mean": null,
+      "seconds_mean": null,
+      "agrees_with_label": 0.8085,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.8085
+     },
+     "sealed": {
+      "answered": 1421,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": "DCLab's rules",
+     "revision": "1645300",
+     "render": null,
+     "use": "train",
+     "licence": "DCLab's own"
+    },
+    "column.time": {
+     "train": {
+      "answered": 2248,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "dev": {
+      "answered": 715,
+      "confidence_mean": null,
+      "seconds_mean": null,
+      "agrees_with_label": 0.9497,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.9497
+     },
+     "sealed": {
+      "answered": 1601,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": "DCLab's rules",
+     "revision": "1645300",
+     "render": null,
+     "use": "train",
+     "licence": "DCLab's own"
+    },
+    "feature.leakage_suspect": {
+     "train": {
+      "answered": 2247,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "dev": {
+      "answered": 713,
+      "confidence_mean": null,
+      "seconds_mean": null,
+      "agrees_with_label": 0.9187,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.9187
+     },
+     "sealed": {
+      "answered": 1599,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": "DCLab's rules",
+     "revision": "1645300",
+     "render": null,
+     "use": "train",
+     "licence": "DCLab's own"
+    },
+    "sessions": {
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "twin": {
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    }
+   },
+   "selfplay": {
+    "column.is_identifier": {
+     "train": {
+      "answered": 2712,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "dev": {
+      "answered": 514,
+      "confidence_mean": null,
+      "seconds_mean": null,
+      "agrees_with_label": 0.9455,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.9455
+     },
+     "sealed": {
+      "answered": 410,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": "DCLab's rules",
+     "revision": "1645300",
+     "render": null,
+     "use": "train",
+     "licence": "DCLab's own"
+    },
+    "feature.leakage_suspect": {
+     "train": {
+      "answered": 2712,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "dev": {
+      "answered": 514,
+      "confidence_mean": null,
+      "seconds_mean": null,
+      "agrees_with_label": 0.9183,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.9183
+     },
+     "sealed": {
+      "answered": 410,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": "DCLab's rules",
+     "revision": "1645300",
+     "render": null,
+     "use": "train",
+     "licence": "DCLab's own"
+    },
+    "split.time_column": {
+     "train": {
+      "answered": 286,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "dev": {
+      "answered": 56,
+      "confidence_mean": null,
+      "seconds_mean": null,
+      "agrees_with_label": 0.75,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.75
+     },
+     "sealed": {
+      "answered": 44,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": "DCLab's rules",
+     "revision": "1645300",
+     "render": null,
+     "use": "train",
+     "licence": "DCLab's own"
+    },
+    "task.framing": {
+     "train": {
+      "answered": 286,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "dev": {
+      "answered": 56,
+      "confidence_mean": null,
+      "seconds_mean": null,
+      "agrees_with_label": 1.0,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 1.0
+     },
+     "sealed": {
+      "answered": 44,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": "DCLab's rules",
+     "revision": "1645300",
+     "render": null,
+     "use": "train",
+     "licence": "DCLab's own"
+    }
+   },
+   "workflow": {
+    "problem.family": {
+     "train": {
+      "answered": 160,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "dev": {
+      "answered": 76,
+      "confidence_mean": null,
+      "seconds_mean": null,
+      "agrees_with_label": 0.8947,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.8947
+     },
+     "model": "DCLab's rules",
+     "revision": "1645300",
+     "render": null,
+     "use": "train",
+     "licence": "DCLab's own"
+    },
+    "problem.ready": {
+     "train": {
+      "answered": 196,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "dev": {
+      "answered": 84,
+      "confidence_mean": null,
+      "seconds_mean": null,
+      "agrees_with_label": 0.9048,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.9048
+     },
+     "model": "DCLab's rules",
+     "revision": "1645300",
+     "render": null,
+     "use": "train",
+     "licence": "DCLab's own"
+    },
+    "solution.route": {
+     "train": {
+      "answered": 154,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "dev": {
+      "answered": 66,
+      "confidence_mean": null,
+      "seconds_mean": null,
+      "agrees_with_label": 0.8788,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.8788
+     },
+     "model": "DCLab's rules",
+     "revision": "1645300",
+     "render": null,
+     "use": "train",
+     "licence": "DCLab's own"
+    },
+    "workflow.next_question": {
+     "train": {
+      "answered": 936,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "dev": {
+      "answered": 384,
+      "confidence_mean": null,
+      "seconds_mean": null,
+      "agrees_with_label": 0.9792,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.9792
+     },
+     "model": "DCLab's rules",
+     "revision": "1645300",
+     "render": null,
+     "use": "train",
+     "licence": "DCLab's own"
+    }
+   }
+  },
+  "gliner2.5-decide": {
+   "journeys": {
+    "problem.family_from_words": {
+     "train": {
+      "answered": 127,
+      "confidence_mean": 0.645,
+      "seconds_mean": 1.3975
+     },
+     "dev": {
+      "answered": 23,
+      "confidence_mean": 0.6325,
+      "seconds_mean": 1.6426,
+      "agrees_with_label": 0.4348
+     },
+     "sealed": {
+      "answered": 31,
+      "confidence_mean": 0.6763,
+      "seconds_mean": 1.6484
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    }
+   },
+   "lake": {
+    "column.category_code": {
+     "train": {
+      "answered": 1343,
+      "confidence_mean": 0.5493,
+      "seconds_mean": 1.076
+     },
+     "dev": {
+      "answered": 425,
+      "confidence_mean": 0.5514,
+      "seconds_mean": 0.4493,
+      "agrees_with_label": 0.52,
+      "agrees_with_rule": 0.5365,
+      "rule_agrees_with_label": 0.8
+     },
+     "sealed": {
+      "answered": 954,
+      "confidence_mean": 0.561,
+      "seconds_mean": 0.4115
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "column.group": {
+     "train": {
+      "answered": 2229,
+      "confidence_mean": 0.7251,
+      "seconds_mean": 0.2368
+     },
+     "dev": {
+      "answered": 710,
+      "confidence_mean": 0.7313,
+      "seconds_mean": 0.3124,
+      "agrees_with_label": 0.9225,
+      "agrees_with_rule": 0.9225,
+      "rule_agrees_with_label": 1.0
+     },
+     "sealed": {
+      "answered": 1598,
+      "confidence_mean": 0.742,
+      "seconds_mean": 0.2672
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "column.is_identifier": {
+     "train": {
+      "answered": 14257,
+      "confidence_mean": 0.5673,
+      "seconds_mean": 0.3376
+     },
+     "dev": {
+      "answered": 3636,
+      "confidence_mean": 0.5707,
+      "seconds_mean": 0.234,
+      "agrees_with_label": 0.8474,
+      "agrees_with_rule": 0.7958,
+      "rule_agrees_with_label": 1.0
+     },
+     "sealed": {
+      "answered": 5481,
+      "confidence_mean": 0.5666,
+      "seconds_mean": 0.5189
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "column.semantic_role": {
+     "train": {
+      "answered": 14031,
+      "confidence_mean": 0.3833,
+      "seconds_mean": 0.8355
+     },
+     "dev": {
+      "answered": 3563,
+      "confidence_mean": 0.3857,
+      "seconds_mean": 0.3251,
+      "agrees_with_label": 0.391,
+      "agrees_with_rule": 0.3014,
+      "rule_agrees_with_label": 0.8085
+     },
+     "sealed": {
+      "answered": 5304,
+      "confidence_mean": 0.3933,
+      "seconds_mean": 0.3188
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "column.time": {
+     "train": {
+      "answered": 2248,
+      "confidence_mean": 0.8649,
+      "seconds_mean": 0.1615
+     },
+     "dev": {
+      "answered": 715,
+      "confidence_mean": 0.8634,
+      "seconds_mean": 0.1513,
+      "agrees_with_label": 0.9497,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.9497
+     },
+     "sealed": {
+      "answered": 1601,
+      "confidence_mean": 0.8668,
+      "seconds_mean": 0.175
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "feature.leakage_suspect": {
+     "train": {
+      "answered": 2247,
+      "confidence_mean": 0.597,
+      "seconds_mean": 1.1182
+     },
+     "dev": {
+      "answered": 713,
+      "confidence_mean": 0.5949,
+      "seconds_mean": 0.1757,
+      "agrees_with_label": 0.3562,
+      "agrees_with_rule": 0.2917,
+      "rule_agrees_with_label": 0.9187
+     },
+     "sealed": {
+      "answered": 1599,
+      "confidence_mean": 0.59,
+      "seconds_mean": 1.0537
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "target.column": {
+     "train": {
+      "answered": 391,
+      "confidence_mean": 0.3119,
+      "seconds_mean": 5.513
+     },
+     "dev": {
+      "answered": 77,
+      "confidence_mean": 0.2636,
+      "seconds_mean": 5.0067,
+      "agrees_with_label": 0.2727
+     },
+     "sealed": {
+      "answered": 104,
+      "confidence_mean": 0.3291,
+      "seconds_mean": 9.1951
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "task.framing": {
+     "train": {
+      "answered": 311,
+      "confidence_mean": 0.4457,
+      "seconds_mean": 0.3706
+     },
+     "dev": {
+      "answered": 69,
+      "confidence_mean": 0.4486,
+      "seconds_mean": 0.5219,
+      "agrees_with_label": 0.4928
+     },
+     "sealed": {
+      "answered": 99,
+      "confidence_mean": 0.447,
+      "seconds_mean": 2.1505
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    }
+   },
+   "selfplay": {
+    "column.is_identifier": {
+     "train": {
+      "answered": 2712,
+      "confidence_mean": 0.6465,
+      "seconds_mean": 0.2748
+     },
+     "dev": {
+      "answered": 514,
+      "confidence_mean": 0.6494,
+      "seconds_mean": 6.535,
+      "agrees_with_label": 0.8949,
+      "agrees_with_rule": 0.8716,
+      "rule_agrees_with_label": 0.9455
+     },
+     "sealed": {
+      "answered": 410,
+      "confidence_mean": 0.6598,
+      "seconds_mean": 4.2912
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "feature.leakage_suspect": {
+     "train": {
+      "answered": 2712,
+      "confidence_mean": 0.5882,
+      "seconds_mean": 0.3019
+     },
+     "dev": {
+      "answered": 514,
+      "confidence_mean": 0.5908,
+      "seconds_mean": 0.2098,
+      "agrees_with_label": 0.6907,
+      "agrees_with_rule": 0.6712,
+      "rule_agrees_with_label": 0.9183
+     },
+     "sealed": {
+      "answered": 410,
+      "confidence_mean": 0.606,
+      "seconds_mean": 0.2047
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "split.time_column": {
+     "train": {
+      "answered": 286,
+      "confidence_mean": 0.7855,
+      "seconds_mean": 4.7913
+     },
+     "dev": {
+      "answered": 56,
+      "confidence_mean": 0.8072,
+      "seconds_mean": 2.2112,
+      "agrees_with_label": 0.0536,
+      "agrees_with_rule": 0.0536,
+      "rule_agrees_with_label": 0.75
+     },
+     "sealed": {
+      "answered": 44,
+      "confidence_mean": 0.8266,
+      "seconds_mean": 2.6739
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "task.framing": {
+     "train": {
+      "answered": 286,
+      "confidence_mean": 0.4416,
+      "seconds_mean": 5.9875
+     },
+     "dev": {
+      "answered": 56,
+      "confidence_mean": 0.4421,
+      "seconds_mean": 5.8813,
+      "agrees_with_label": 0.4643,
+      "agrees_with_rule": 0.4643,
+      "rule_agrees_with_label": 1.0
+     },
+     "sealed": {
+      "answered": 44,
+      "confidence_mean": 0.443,
+      "seconds_mean": 7.3344
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    }
+   },
+   "workflow": {
+    "problem.family": {
+     "train": {
+      "answered": 160,
+      "confidence_mean": 0.3206,
+      "seconds_mean": 2.4401
+     },
+     "dev": {
+      "answered": 76,
+      "confidence_mean": 0.3187,
+      "seconds_mean": 1.1322,
+      "agrees_with_label": 0.1053,
+      "agrees_with_rule": 0.1053,
+      "rule_agrees_with_label": 0.8947
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "problem.ready": {
+     "train": {
+      "answered": 196,
+      "confidence_mean": 0.636,
+      "seconds_mean": 0.6475
+     },
+     "dev": {
+      "answered": 84,
+      "confidence_mean": 0.6641,
+      "seconds_mean": 0.631,
+      "agrees_with_label": 0.2381,
+      "agrees_with_rule": 0.1905,
+      "rule_agrees_with_label": 0.9048
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "solution.route": {
+     "train": {
+      "answered": 154,
+      "confidence_mean": 0.8614,
+      "seconds_mean": 0.7604
+     },
+     "dev": {
+      "answered": 66,
+      "confidence_mean": 0.8788,
+      "seconds_mean": 0.8972,
+      "agrees_with_label": 0.7273,
+      "agrees_with_rule": 0.6667,
+      "rule_agrees_with_label": 0.8788
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "workflow.next_question": {
+     "train": {
+      "answered": 936,
+      "confidence_mean": 0.3981,
+      "seconds_mean": 1.7575
+     },
+     "dev": {
+      "answered": 384,
+      "confidence_mean": 0.3913,
+      "seconds_mean": 3.3189,
+      "agrees_with_label": 0.276,
+      "agrees_with_rule": 0.0104,
+      "rule_agrees_with_label": 0.9792
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    }
+   }
+  },
+  "people": {
+   "lake": {
+    "sessions": {
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    }
+   }
+  }
+ },
+ "rule": "Agreement is computed on dev only and says how the answerer reads these tests, not that it is ready to serve; the sealed split is answered but never scored here."
+}

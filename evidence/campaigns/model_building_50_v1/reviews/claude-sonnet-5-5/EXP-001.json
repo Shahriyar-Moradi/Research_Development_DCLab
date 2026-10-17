@@ -1,0 +1,193 @@
+{
+ "experiment_id": "EXP-001",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T20:50:51Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-001-C1",
+    "evidence": [
+     "evidence.source_rows",
+     "evidence.feature_count",
+     "evidence.positive_rate_train"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "adult has 48842 source rows, 14 cached features, and a training positive rate of 0.239."
+   },
+   {
+    "claim_id": "EXP-001-C2",
+    "evidence": [
+     "evidence.feature_profiles"
+    ],
+    "kind": "risk",
+    "limitations": [
+     "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+     "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+    ],
+    "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-001",
+   "dataset": "adult",
+   "kind": "data_understanding",
+   "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-001-C1",
+     "evidence": [
+      "evidence.source_rows",
+      "evidence.feature_count",
+      "evidence.positive_rate_train"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "adult has 48842 source rows, 14 cached features, and a training positive rate of 0.239."
+    },
+    {
+     "claim_id": "EXP-001-C2",
+     "evidence": [
+      "evidence.feature_profiles"
+     ],
+     "kind": "risk",
+     "limitations": [
+      "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+      "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+     ],
+     "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+    }
+   ],
+   "evidence": {
+    "source_rows": 48842,
+    "feature_count": 14,
+    "positive_rate_train": 0.239375,
+    "feature_profiles": [
+     {
+      "dtype": "int64",
+      "feature": "age",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.015573641549590421,
+      "top_value_frequency": 0.03,
+      "unique_count": 67,
+      "unique_ratio": 0.0209375
+     },
+     {
+      "dtype": "float64",
+      "feature": "workclass",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.0043538946047394075,
+      "top_value_frequency": 0.6996875,
+      "unique_count": 10,
+      "unique_ratio": 0.003125
+     },
+     {
+      "dtype": "int64",
+      "feature": "fnlwgt",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.005271976932697872,
+      "top_value_frequency": 0.00125,
+      "unique_count": 3029,
+      "unique_ratio": 0.9465625
+     },
+     {
+      "dtype": "float64",
+      "feature": "education",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.0060897265107363666,
+      "top_value_frequency": 0.335,
+      "unique_count": 16,
+      "unique_ratio": 0.005
+     },
+     {
+      "dtype": "int64",
+      "feature": "education-num",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.010124036102657347,
+      "top_value_frequency": 0.335,
+      "unique_count": 16,
+      "unique_ratio": 0.005
+     },
+     {
+      "dtype": "float64",
+      "feature": "marital-status",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.004152903412445636,
+      "top_value_frequency": 0.47125,
+      "unique_count": 7,
+      "unique_ratio": 0.0021875
+     },
+     {
+      "dtype": "float64",
+      "feature": "occupation",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.007089369955243666,
+      "top_value_frequency": 0.1284375,
+      "unique_count": 16,
+      "unique_ratio": 0.005
+     },
+     {
+      "dtype": "float64",
+      "feature": "relationship",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.003816355588112789,
+      "top_value_frequency": 0.4096875,
+      "unique_count": 6,
+      "unique_ratio": 0.001875
+     },
+     {
+      "dtype": "float64",
+      "feature": "race",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.0006656324460126927,
+      "top_value_frequency": 0.8603125,
+      "unique_count": 5,
+      "unique_ratio": 0.0015625
+     },
+     {
+      "dtype": "float64",
+      "feature": "sex",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": null,
+      "top_value_frequency": 0.6640625,
+      "unique_count": 2,
+      "unique_ratio": 0.000625
+     }
+    ]
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-001\",\n  \"observed_evidence\": [\n    {\"statement\": \"The source has 48842 rows.\", \"citation\": \"EXP-001 / evidence.source_rows\"},\n    {\"statement\": \"The cached feature count is 14.\", \"citation\": \"EXP-001 / evidence.feature_count\"},\n    {\"statement\": \"The training positive rate is 0.239375.\", \"citation\": \"EXP-001 / evidence.positive_rate_train\"},\n    {\"statement\": \"Only 10 feature profiles are present (age, workclass, fnlwgt, education, education-num, marital-status, occupation, relationship, race, sex), although feature_count is 14.\", \"citation\": \"EXP-001 / evidence.feature_profiles\"},\n    {\"statement\": \"Every listed profile has missing_rate 0.0 and an empty production_risks list.\", \"citation\": \"EXP-001 / evidence.feature_profiles[*].missing_rate, evidence.feature_profiles[*].production_risks\"},\n    {\"statement\": \"The sex profile has random_split_psi = null, with no explanation.\", \"citation\": \"EXP-001 / evidence.feature_profiles[feature=sex].random_split_psi\"},\n    {\"statement\": \"fnlwgt has unique_ratio 0.9465625 (unique_count 3029), so it is nearly unique per row, yet it carries no production_risks flag.\", \"citation\": \"EXP-001 / evidence.feature_profiles[feature=fnlwgt]\"},\n    {\"statement\": \"education and education-num have identical unique_count (16) and top_value_frequency (0.335).\", \"citation\": \"EXP-001 / evidence.feature_profiles[feature=education], evidence.feature_profiles[feature=education-num]\"},\n    {\"statement\": \"workclass, education, marital-status, occupation, relationship, race and sex are stored as float64 (categoricals factorized before this campaign), and the claim's own limitation says raw category semantics were lost.\", \"citation\": \"EXP-001 / evidence.feature_profiles[*].dtype; claims[EXP-001-C2].limitations\"}\n  ],\n  \"interpretation\": \"Inference: unique_count / unique_ratio gives about 3200 training rows (e.g. 3029/0.9465625, 67/0.0209375), far fewer than the 48842 source rows. This implies the profiles come from a subsample. The package never states the training size or split method, and C1 has no limitations listed. Inference: C2 ('0 features triggered review rules') is not verified, because only 10 of 14 features are profiled, so 4 features are unaccounted for. Inference: missing_rate 0.0 is weak evidence of completeness, because the factorization step may have converted raw missing markers into ordinary codes or sentinels. This is a hypothesis to verify against the raw data, not an observed fact. The package shows no rule thresholds, so the fnlwgt non-flag and the null PSI for sex cannot be audited. Nothing here addresses target definition, decision-time availability, leakage, duplicates, or sensitive-attribute handling. No predictive or causal conclusions are supported.\",\n  \"decision\": \"Treat C1 as a descriptive fact with an undisclosed-split caveat. Treat C2 as unsupported or incomplete. Do not approve any feature and do not proceed to modeling until the profiling is completed on raw categories for all 14 features and a decision-time/production-availability review is done.\",\n  \"risks_and_missing_evidence\": [\n    \"Profile coverage gap: 10 of 14 features are profiled, so the 'zero flagged' statement cannot be verified for the remaining 4.\",\n    \"Training size and split method (random, stratified, seed) are not reported; the profiles appear to cover about 3200 rows rather than 48842 (inference from unique_count/unique_ratio).\",\n    \"Missingness may be masked by factorization: all missing rates are 0.0 and the categoricals are float64. Raw missing tokens and sentinel codes need to be restored and counted.\",\n    \"random_split_psi is null for sex with no reason given, which suggests the metric silently fails for some features.\",\n    \"fnlwgt is nearly unique per row and is not flagged. Review rule thresholds are not disclosed, and whether it is available at decision time is unreviewed.\",\n    \"education and education-num look redundant (same cardinality and top-value frequency). This duplication was not checked.\",\n    \"Sensitive or protected attributes (sex, race, marital-status, relationship) have had no production-availability, legal or fairness review.\",\n    \"Target definition and label timing are not documented. There is no leakage review for any feature (decision-time availability, proxies for the label).\",\n    \"Duplicate-row and train/test contamination checks are absent. The 48842 source rows may merge the original UCI train and test partitions, and the provenance is unstated.\",\n    \"Random-split PSI cannot speak to temporal or population stability, as the claim's own limitation states.\",\n    \"Only the training positive rate is given; the holdout rate and the source-wide positive rate are missing.\"\n  ],\n  \"challenges_to_claims\": [\n    {\"claim_id\": \"EXP-001-C1\", \"issue\": \"The claim reports 48842 source rows next to a training positive rate without stating the training row count or split method. The profiles imply about 3200 training rows, so the claim may mislead about the data actually analyzed. The empty limitations list is not justified.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-001-C2\", \"issue\": \"'0 features triggered' covers only 10 of 14 features, because feature_profiles lacks 4. Zero missingness is potentially an artifact of factorization. PSI is null for sex. The near-unique fnlwgt is not flagged and thresholds are not shown. The conclusion of no risk is not supported, and the claim's kind ('risk') conflicts with its content, which asserts absence of risk.\", \"severity\": \"high\"}\n  ],\n  \"next_experiment\": {\n    \"title\": \"Raw-category, full-coverage data audit with decision-time availability table\",\n    \"hypothesis\": \"After restoring raw categorical values and profiling all 14 features on the documented split, at least one feature will be flagged for hidden missingness (raw missing tokens or sentinel codes), identifier-like behavior (fnlwgt), or redundancy (education vs education-num) that the cached-matrix profile missed. If none is flagged, the current C2 conclusion is corroborated.\",\n    \"success_gate\": \"Pass only if all of the following hold: (1) the profile covers 14/14 features with non-null PSI or an explicit documented reason for null; (2) raw missing-token counts are reported per categorical feature and reconciled with the cached missing_rate values; (3) train/holdout row counts and split method are reported and reconcile with the 48842 source rows; (4) review-rule thresholds are published and re-applied; (5) every feature has a documented decision-time and production-availability verdict, with unreviewed features marked 'not approved'. Failing any item keeps the modeling block in place.\",\n    \"why_smallest\": \"It is a descriptive audit only. It trains no model and spends no modeling budget; it just closes the profile-coverage, missingness-masking and availability gaps that block every later experiment.\"\n  },\n  \"overall_confidence\": \"medium\"\n}",
+ "usage": {
+  "input_tokens": 2716,
+  "output_tokens": 3613
+ },
+ "finish_reason": "stop"
+}

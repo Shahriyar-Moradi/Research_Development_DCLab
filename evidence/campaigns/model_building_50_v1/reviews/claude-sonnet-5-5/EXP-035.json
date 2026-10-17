@@ -1,0 +1,292 @@
+{
+ "experiment_id": "EXP-035",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T21:10:51Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "Does optimization produce a meaningful CV gain, and how does the preselected recipe perform on the once-consumed holdout?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-035-C1",
+    "evidence": [
+     "evidence.holdout_metrics",
+     "evidence.holdout_roc_auc_bootstrap_ci",
+     "evidence.holdout_consumed"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "The preselected extra_trees/baseline recipe scored 1.0000 ROC-AUC on the once-consumed holdout (bootstrap 95% interval 1.0000–1.0000)."
+   },
+   {
+    "claim_id": "EXP-035-C2",
+    "evidence": [
+     "evidence.top_final_features",
+     "evidence.cv_feature_stability",
+     "evidence.production_feature_rule"
+    ],
+    "kind": "recommendation",
+    "limitations": [],
+    "statement": "Do not promote features from importance alone; require decision-time availability, cross-fold stability, production availability, and monitoring."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-035",
+   "dataset": "mushroom",
+   "kind": "optimization_reliability",
+   "question": "Does optimization produce a meaningful CV gain, and how does the preselected recipe perform on the once-consumed holdout?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-035-C1",
+     "evidence": [
+      "evidence.holdout_metrics",
+      "evidence.holdout_roc_auc_bootstrap_ci",
+      "evidence.holdout_consumed"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "The preselected extra_trees/baseline recipe scored 1.0000 ROC-AUC on the once-consumed holdout (bootstrap 95% interval 1.0000–1.0000)."
+    },
+    {
+     "claim_id": "EXP-035-C2",
+     "evidence": [
+      "evidence.top_final_features",
+      "evidence.cv_feature_stability",
+      "evidence.production_feature_rule"
+     ],
+     "kind": "recommendation",
+     "limitations": [],
+     "statement": "Do not promote features from importance alone; require decision-time availability, cross-fold stability, production availability, and monitoring."
+    }
+   ],
+   "evidence": {
+    "selection_rule": "Evaluate explicit dataset-specific parameter candidates on training CV; use the best tuned candidate only when mean ROC-AUC improves by at least 0.001, otherwise prefer baseline.",
+    "holdout_metrics": {
+     "accuracy": 1.0,
+     "avg_precision": 1.0,
+     "brier": 2.277777787490279e-06,
+     "ece_10": 0.00018343045833321136,
+     "f1": 1.0,
+     "fit_seconds": 0.24700241699974868,
+     "log_loss": 0.0001845851429923805,
+     "precision": 1.0,
+     "recall": 1.0,
+     "roc_auc": 1.0,
+     "threshold": 0.5
+    },
+    "holdout_roc_auc_bootstrap_ci": {
+     "draws": 400,
+     "high": 1.0,
+     "low": 1.0,
+     "median": 1.0
+    },
+    "holdout_consumed": true,
+    "top_final_features": [
+     {
+      "feature": "gill-size",
+      "normalized_importance": 0.14312866867792856
+     },
+     {
+      "feature": "odor",
+      "normalized_importance": 0.12539255346500033
+     },
+     {
+      "feature": "spore-print-color",
+      "normalized_importance": 0.10198155817462923
+     },
+     {
+      "feature": "stalk-surface-below-ring",
+      "normalized_importance": 0.07457873052680415
+     },
+     {
+      "feature": "stalk-surface-above-ring",
+      "normalized_importance": 0.07286423925600884
+     },
+     {
+      "feature": "bruises",
+      "normalized_importance": 0.07262981568872165
+     },
+     {
+      "feature": "ring-type",
+      "normalized_importance": 0.06998188971033767
+     },
+     {
+      "feature": "stalk-root",
+      "normalized_importance": 0.05917286472731439
+     },
+     {
+      "feature": "gill-spacing",
+      "normalized_importance": 0.054022111337667426
+     },
+     {
+      "feature": "stalk-shape",
+      "normalized_importance": 0.04005219038254357
+     },
+     {
+      "feature": "gill-color",
+      "normalized_importance": 0.03411936531518904
+     },
+     {
+      "feature": "habitat",
+      "normalized_importance": 0.032256395830788924
+     },
+     {
+      "feature": "population",
+      "normalized_importance": 0.025877951358790445
+     },
+     {
+      "feature": "cap-surface",
+      "normalized_importance": 0.021136808242952325
+     },
+     {
+      "feature": "stalk-color-above-ring",
+      "normalized_importance": 0.017957189446214217
+     }
+    ],
+    "cv_feature_stability": [
+     {
+      "feature": "gill-size",
+      "mean_normalized_importance": 0.14158063575683924,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "odor",
+      "mean_normalized_importance": 0.12137616781856635,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "spore-print-color",
+      "mean_normalized_importance": 0.10285195765391998,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "bruises",
+      "mean_normalized_importance": 0.07617859548155238,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "stalk-surface-below-ring",
+      "mean_normalized_importance": 0.07599440516249978,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "stalk-surface-above-ring",
+      "mean_normalized_importance": 0.07257440249446306,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "ring-type",
+      "mean_normalized_importance": 0.07137893597013968,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "gill-spacing",
+      "mean_normalized_importance": 0.053795370708315415,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "stalk-root",
+      "mean_normalized_importance": 0.053597307932205705,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "stalk-shape",
+      "mean_normalized_importance": 0.04124953264417638,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "habitat",
+      "mean_normalized_importance": 0.033953726301137764,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "gill-color",
+      "mean_normalized_importance": 0.03139109553098749,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "population",
+      "mean_normalized_importance": 0.028590279297513243,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "cap-surface",
+      "mean_normalized_importance": 0.022513091415159878,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "stalk-color-above-ring",
+      "mean_normalized_importance": 0.018784333766801928,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "ring-number",
+      "mean_normalized_importance": 0.016539171272457607,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "stalk-color-below-ring",
+      "mean_normalized_importance": 0.01415966065311558,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "cap-color",
+      "mean_normalized_importance": 0.010983376666300192,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "gill-attachment",
+      "mean_normalized_importance": 0.0056229371656133335,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "cap-shape",
+      "mean_normalized_importance": 0.004544139450864539,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     }
+    ],
+    "production_feature_rule": "A feature is a stronger candidate when it is decision-time available, stable across CV folds, contractually obtainable, monitored for missingness/drift, and not merely important in one fit."
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-035\",\n  \"observed_evidence\": [\n    {\"statement\": \"The selection rule uses a tuned candidate only if mean training-CV ROC-AUC improves by at least 0.001; otherwise the baseline is preferred.\", \"citation\": \"EXP-035 / evidence.selection_rule\"},\n    {\"statement\": \"Holdout ROC-AUC is 1.0, with accuracy, F1, precision, recall, and average precision all 1.0 at threshold 0.5.\", \"citation\": \"EXP-035 / evidence.holdout_metrics\"},\n    {\"statement\": \"Holdout log loss is about 1.85e-4, Brier is about 2.28e-6, and ECE (10 bins) is about 1.83e-4.\", \"citation\": \"EXP-035 / evidence.holdout_metrics\"},\n    {\"statement\": \"The bootstrap ROC-AUC interval is degenerate: low, median, and high are all 1.0 across 400 draws.\", \"citation\": \"EXP-035 / evidence.holdout_roc_auc_bootstrap_ci\"},\n    {\"statement\": \"The holdout is flagged as consumed.\", \"citation\": \"EXP-035 / evidence.holdout_consumed\"},\n    {\"statement\": \"gill-size, odor, and spore-print-color lead the final feature importances (about 0.143, 0.125, and 0.102).\", \"citation\": \"EXP-035 / evidence.top_final_features\"},\n    {\"statement\": \"Ten features have top10_frequency 1.0 across 3 observed folds. The remaining listed features have 0.0.\", \"citation\": \"EXP-035 / evidence.cv_feature_stability\"},\n    {\"statement\": \"A production feature rule is stated: decision-time available, stable across folds, contractually obtainable, and monitored.\", \"citation\": \"EXP-035 / evidence.production_feature_rule\"}\n  ],\n  \"interpretation\": \"Inference: the recipe separates classes perfectly on this holdout, which suggests a ceiling effect on a highly separable dataset. The bundle does not answer the first half of the question, whether optimization gives a meaningful CV gain. It contains no per-candidate CV scores, no baseline-versus-tuned delta, and no record of whether the baseline or a tuned candidate was selected. The only evidence for the selection is the rule itself (evidence.selection_rule). The 1.0–1.0 bootstrap interval only shows that no resample of this holdout produced an error. It does not bound generalization error, and holdout size and class counts are not reported. The importance and stability tables describe the fitted model's behavior. They are predictive, not causal, and do not show that a feature is decision-time or production available.\",\n  \"decision\": \"Accept EXP-035-C1 only as a narrow descriptive fact about this single holdout, and not as evidence of production readiness or of optimization benefit. Treat the optimization question as unanswered until the CV candidate scores are supplied. Keep EXP-035-C2 as a recommendation, with no features promoted. Do not reuse the consumed holdout for any further selection.\",\n  \"risks_and_missing_evidence\": [\n    \"No CV metrics, per-fold scores, candidate list, or tuned-versus-baseline delta are in the bundle, so the CV-gain question cannot be assessed (evidence.selection_rule is a rule only).\",\n    \"The holdout sample size, class balance, and split method are not reported. A perfect score on a small holdout is weakly informative.\",\n    \"Exact or near-duplicate rows between the training data and the holdout were not audited. Duplicates are common in categorical datasets like mushroom and could inflate the holdout score.\",\n    \"The bootstrap interval is degenerate under perfect separation and understates uncertainty. A bound such as a rule-of-three or exact binomial upper limit on error would be more honest.\",\n    \"A ceiling effect (ROC-AUC 1.0) leaves no room to detect differences between recipes. The 0.001 improvement threshold may be unreachable, which would make the 'baseline preferred' outcome uninformative.\",\n    \"The importance method (impurity-based versus permutation) is not stated. Impurity importance is biased toward high-cardinality categorical features and is unreliable under correlated features.\",\n    \"Stability rests on only 3 folds. The top-10 frequency is a coarse measure, and the ranking within the top 10 is not tested.\",\n    \"Features such as odor and spore-print-color may not be available at the real decision time, and the label definition may be entangled with them. No decision-time or production-availability review is documented, so no feature can be approved.\",\n    \"Calibration metrics are near zero, but with a perfect holdout they say little about calibration under distribution shift.\",\n    \"The dataset is a well-known benchmark, so this result may not transfer to any real deployment population.\"\n  ],\n  \"challenges_to_claims\": [\n    {\"claim_id\": \"EXP-035-C1\", \"issue\": \"The 'limitations' field is empty, though the evidence has several: unreported holdout size, no duplicate or leakage audit, and a degenerate bootstrap interval that conveys no real uncertainty. The claim also does not say which recipe was chosen. It names 'extra_trees/baseline', but no evidence path shows the selection outcome.\", \"severity\": \"high\"},\n    {\"claim_id\": \"EXP-035-C1\", \"issue\": \"The claim does not answer the stated question about CV gain from optimization. No CV evidence is cited in the claim's evidence list.\", \"severity\": \"high\"},\n    {\"claim_id\": \"EXP-035-C1\", \"issue\": \"Calling the 1.0000–1.0000 interval a '95% interval' can mislead. With a perfect score it only reflects resampling of an error-free sample.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-035-C2\", \"issue\": \"The recommendation is reasonable, but its limitations list is empty. The cited importance and stability evidence is model-internal and says nothing about decision-time or production availability, and the evidence lists no per-feature availability review, so the stated criteria cannot yet be checked.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-035-C2\", \"issue\": \"The importance method is unspecified, and 3-fold stability is thin. High importance for odor, gill-size, and spore-print-color must not be read as causal or as grounds for promotion.\", \"severity\": \"medium\"}\n  ],\n  \"next_experiment\": {\n    \"title\": \"Report CV candidate scores and audit train/holdout duplicate overlap (no holdout reuse)\",\n    \"hypothesis\": \"Optimization yields less than 0.001 mean CV ROC-AUC gain over baseline because of a ceiling effect, so baseline is correctly retained. Separately, the perfect holdout score is not driven by exact-duplicate overlap between training and holdout rows.\",\n    \"success_gate\": \"Per-fold and mean CV ROC-AUC are reported for the baseline and every tuned candidate, and the gain is computed against the 0.001 threshold. The hypothesis is falsified if any tuned candidate improves mean CV ROC-AUC by 0.001 or more, or if the exact-duplicate overlap would alone account for the holdout's perfect score, meaning ROC-AUC stays at 1.0 only because duplicated rows are present. Also report holdout n and class counts, and the duplicate count with its share of the holdout. If there are duplicates, re-score a de-duplicated copy of the holdout using the existing frozen model, which is a descriptive check and not a new selection. For deployment-relevance, list for each top-10 stable feature whether it is available at the intended decision time and in production, using a documented review.\",\n    \"why_smallest\": \"It uses only existing training CV outputs, an overlap check on data already split, and a documentation review. It requires no new holdout consumption, no new model families, and no new tuning.\"\n  },\n  \"overall_confidence\": \"low\"\n}",
+ "usage": {
+  "input_tokens": 3948,
+  "output_tokens": 3456
+ },
+ "finish_reason": "stop"
+}

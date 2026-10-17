@@ -1,0 +1,193 @@
+{
+ "experiment_id": "EXP-046",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T21:17:12Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-046-C1",
+    "evidence": [
+     "evidence.source_rows",
+     "evidence.feature_count",
+     "evidence.positive_rate_train"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "wine_quality has 6497 source rows, 11 cached features, and a training positive rate of 0.633."
+   },
+   {
+    "claim_id": "EXP-046-C2",
+    "evidence": [
+     "evidence.feature_profiles"
+    ],
+    "kind": "risk",
+    "limitations": [
+     "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+     "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+    ],
+    "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-046",
+   "dataset": "wine_quality",
+   "kind": "data_understanding",
+   "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-046-C1",
+     "evidence": [
+      "evidence.source_rows",
+      "evidence.feature_count",
+      "evidence.positive_rate_train"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "wine_quality has 6497 source rows, 11 cached features, and a training positive rate of 0.633."
+    },
+    {
+     "claim_id": "EXP-046-C2",
+     "evidence": [
+      "evidence.feature_profiles"
+     ],
+     "kind": "risk",
+     "limitations": [
+      "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+      "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+     ],
+     "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+    }
+   ],
+   "evidence": {
+    "source_rows": 6497,
+    "feature_count": 11,
+    "positive_rate_train": 0.633125,
+    "feature_profiles": [
+     {
+      "dtype": "float64",
+      "feature": "fixed_acidity",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.017236855608325927,
+      "top_value_frequency": 0.05125,
+      "unique_count": 98,
+      "unique_ratio": 0.030625
+     },
+     {
+      "dtype": "float64",
+      "feature": "volatile_acidity",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.009781370432321652,
+      "top_value_frequency": 0.0478125,
+      "unique_count": 161,
+      "unique_ratio": 0.0503125
+     },
+     {
+      "dtype": "float64",
+      "feature": "citric_acid",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.01533806971206009,
+      "top_value_frequency": 0.058125,
+      "unique_count": 84,
+      "unique_ratio": 0.02625
+     },
+     {
+      "dtype": "float64",
+      "feature": "residual_sugar",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.007083086158432859,
+      "top_value_frequency": 0.038125,
+      "unique_count": 277,
+      "unique_ratio": 0.0865625
+     },
+     {
+      "dtype": "float64",
+      "feature": "chlorides",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.01506303227076115,
+      "top_value_frequency": 0.0340625,
+      "unique_count": 171,
+      "unique_ratio": 0.0534375
+     },
+     {
+      "dtype": "float64",
+      "feature": "free_sulfur_dioxide",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.014594821561927098,
+      "top_value_frequency": 0.0284375,
+      "unique_count": 114,
+      "unique_ratio": 0.035625
+     },
+     {
+      "dtype": "float64",
+      "feature": "total_sulfur_dioxide",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.025381340748537835,
+      "top_value_frequency": 0.0128125,
+      "unique_count": 255,
+      "unique_ratio": 0.0796875
+     },
+     {
+      "dtype": "float64",
+      "feature": "density",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.010324748070210818,
+      "top_value_frequency": 0.013125,
+      "unique_count": 819,
+      "unique_ratio": 0.2559375
+     },
+     {
+      "dtype": "float64",
+      "feature": "pH",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.03617153834992059,
+      "top_value_frequency": 0.034375,
+      "unique_count": 98,
+      "unique_ratio": 0.030625
+     },
+     {
+      "dtype": "float64",
+      "feature": "sulphates",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.008070197185261276,
+      "top_value_frequency": 0.0428125,
+      "unique_count": 99,
+      "unique_ratio": 0.0309375
+     }
+    ]
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-046\",\n  \"observed_evidence\": [\n    {\"statement\": \"The package reports 6497 source rows.\", \"citation\": \"EXP-046 / evidence.source_rows\"},\n    {\"statement\": \"The package reports feature_count = 11.\", \"citation\": \"EXP-046 / evidence.feature_count\"},\n    {\"statement\": \"The training positive rate is 0.633125.\", \"citation\": \"EXP-046 / evidence.positive_rate_train\"},\n    {\"statement\": \"All profiled features have missing_rate 0.0, an empty production_risks list, and random_split_psi between about 0.007 and 0.036. For example, pH has the highest PSI at 0.0362 and residual_sugar the lowest at 0.0071.\", \"citation\": \"EXP-046 / evidence.feature_profiles[*].missing_rate, evidence.feature_profiles[*].production_risks, evidence.feature_profiles[*].random_split_psi\"},\n    {\"statement\": \"All profiled features are float64. Their unique_count / unique_ratio pairs imply a training set of about 3200 rows (for example 98 / 0.030625 for fixed_acidity). That is well under 6497 source rows, and the split sizes are not reported.\", \"citation\": \"EXP-046 / evidence.feature_profiles[0].unique_count, evidence.feature_profiles[0].unique_ratio, evidence.source_rows\"},\n    {\"statement\": \"The claim limitations state that the cached UCI matrices factorized categoricals before this campaign, and that random-split PSI is only a smoke check and not evidence of temporal stability.\", \"citation\": \"EXP-046 / claims[EXP-046-C2].limitations\"},\n    {\"statement\": \"The evidence_bundle top-level limitations list is empty, and claim C1 also lists no limitations.\", \"citation\": \"EXP-046 / limitations; EXP-046 / claims[EXP-046-C1].limitations\"}\n  ],\n  \"interpretation\": \"Inference: the package shows basic cleanliness on the profiled columns (no missingness, no identifier-like or near-constant columns, small random-split PSI). It does not answer the question of production-availability risk. The feature inventory is internally inconsistent: feature_count is 11, but evidence.feature_profiles lists only 10 features, so one feature is unprofiled and C2's '0 features triggered' cannot be verified for all 11. Also, no rule outcome here tests decision-time or production availability. All-empty production_risks means the automated rules did not fire. It does not mean the features are available at decision time. The target definition is missing (what 'positive' means, and how it was derived), the train/holdout split sizes are missing, and the evidence is silent on duplicate rows and on the wine-type (red/white) composition. These matter for random-split leakage and for how the 11 features are interpreted. Nothing here supports causal readings of any feature.\",\n  \"decision\": \"Hold. Do not proceed to modeling or approve any feature yet. C1 is acceptable as a descriptive fact only after the feature-count discrepancy is reconciled. C2 should be downgraded to 'no automated rule fired on 10 of 11 features' until the full inventory is profiled.\",\n  \"risks_and_missing_evidence\": [\n    \"Feature inventory mismatch: feature_count = 11 but only 10 profiles are present (EXP-046 / evidence.feature_count vs evidence.feature_profiles). The missing feature is unidentified.\",\n    \"Target definition and label provenance are absent. It is unknown what the 'positive' class is (for example a quality-score threshold), and whether the label is a sensory rating produced after the physicochemical measurements.\",\n    \"No decision-time or production-availability review exists for any feature. It is unknown when each lab measurement is available relative to the prediction point, and what the prediction use case is.\",\n    \"Duplicate and near-duplicate rows are not assessed. If identical feature vectors fall on both sides of a random split, holdout metrics and the PSI smoke check would be optimistic (EXP-046 / evidence.feature_profiles[*].random_split_psi).\",\n    \"Split design is unreported: the sizes appear to be around 3200 train rows against 6497 source rows, and the split method, stratification, and holdout size are not stated. The rest of the rows' role is unexplained.\",\n    \"Wine-type (red/white) or batch/producer grouping is not documented. Row-level random splitting may leak group structure, and a type column may have been dropped or factorized upstream (EXP-046 / claims[EXP-046-C2].limitations).\",\n    \"Factorized categoricals: raw category semantics are lost and must be restored before production encoders are built (EXP-046 / claims[EXP-046-C2].limitations).\",\n    \"Random-split PSI says nothing about temporal or cross-source stability, and the PSI thresholds used by the review rules are not stated.\",\n    \"The empty top-level limitations list contradicts the limitations recorded in C2.\",\n    \"Positive-rate evidence covers the training split only. Holdout prevalence is not reported.\"\n  ],\n  \"challenges_to_claims\": [\n    {\"claim_id\": \"EXP-046-C1\", \"issue\": \"The claim says 11 cached features, but only 10 are profiled in evidence.feature_profiles. The claim also lists no limitations, although the target definition, split sizes, and duplicate status are missing, and 'positive' is undefined.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-046-C2\", \"issue\": \"'0 features triggered review rules' covers at most 10 of 11 features. Absence of a triggered rule is not evidence of production safety, because the rules do not test decision-time availability, duplicates, or group leakage. The claim is typed 'risk' but reports no risks, and the rule thresholds are not provided. The empty production_risks lists should not be read as production-availability clearance.\", \"severity\": \"high\"},\n    {\"claim_id\": \"EXP-046-C2\", \"issue\": \"Random-split PSI values (about 0.007 to 0.036) are low by construction for a random split and are not informative about shift in deployment.\", \"severity\": \"medium\"}\n  ],\n  \"next_experiment\": {\n    \"title\": \"Feature inventory reconciliation and cross-split duplicate audit\",\n    \"hypothesis\": \"After profiling all 11 features and documenting the target definition, exact-duplicate feature vectors will not cross the random train/holdout split at a material rate. This hypothesis is expected to be at risk, because the data may contain repeated measurement rows.\",\n    \"success_gate\": \"Pre-registered gate, all required: (1) len(feature_profiles) == feature_count == 11, with the missing feature named and profiled; (2) the target definition and split sizes are recorded in the evidence; (3) the exact-duplicate feature-vector count in the source data is reported, and the share of holdout rows that match a training row is below 1%. If the share is 1% or higher, the hypothesis is falsified and deduplication or group-aware splitting is required before any modeling. (4) Each of the 11 features has a documented decision-time availability note from a domain owner. Features without one stay unapproved.\",\n    \"why_smallest\": \"It uses only the existing cached matrices and split. It needs no model training and resolves the two blocking ambiguities (what the 11 features are, and whether the random split leaks duplicates) before any predictive metric is computed.\"\n  },\n  \"overall_confidence\": \"low\"\n}",
+ "usage": {
+  "input_tokens": 2768,
+  "output_tokens": 3409
+ },
+ "finish_reason": "stop"
+}

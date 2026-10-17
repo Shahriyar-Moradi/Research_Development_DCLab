@@ -104,6 +104,17 @@ def thinking_param(setting: Any) -> dict[str, Any] | None:
     return {"type": "adaptive", "display": "summarized"}  # newer models omit the thinking's text unless a summary is asked for
 
 
+SAMPLING = ("temperature", "top_p")
+NO_SAMPLING: set[str] = set()  # models that refused a sampling option in this process (the API says it is deprecated for them)
+
+
+def _refuses_sampling(exc: BaseException) -> bool:
+    """A 400 that refuses ``temperature`` or ``top_p`` for this model (not any other bad request)."""
+    text = str(getattr(exc, "message", "") or exc).lower()
+    return getattr(exc, "status_code", 400) == 400 and any(k in text for k in SAMPLING) and any(
+        w in text for w in ("deprecated", "not supported", "unsupported", "not allowed"))
+
+
 def _options(options: dict[str, Any], system: str) -> tuple[dict[str, Any], str]:
     """The caller's options as the Messages API takes them, and the system prompt (a JSON request may add a line)."""
     out: dict[str, Any] = {}
@@ -209,11 +220,16 @@ class AnthropicClient(ChatClient):
         return kwargs
 
     def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int | None = 1800, **options: Any) -> dict[str, Any]:
+        if self.model in NO_SAMPLING:  # 29.18: a model that refuses a sampling option is never sent one again
+            options = {k: v for k, v in options.items() if k not in SAMPLING}
         kwargs = self._request(messages, tools, max_tokens, options)
         self._ready()
         try:
             message = self.client.messages.create(**kwargs)
         except Exception as exc:  # noqa: BLE001 — provider errors can carry headers; keep only the type
+            if any(k in kwargs for k in SAMPLING) and _refuses_sampling(exc):  # live, 2026-10-18: Sonnet 5.5 refuses `temperature`
+                NO_SAMPLING.add(self.model)
+                return self.complete(messages, tools, max_tokens, **options)
             raise self._failed(exc) from None
         return from_message(message)
 

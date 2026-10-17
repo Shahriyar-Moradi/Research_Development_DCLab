@@ -190,6 +190,24 @@ bands, its options), then a student.
   the image and workflow points (their states through a purpose that may see them); the silver path for real projects; GLiNER
   and Claude as committee members (29.16).
 
+### 29.18 Claude, the judge of every past decision and experiment (the owner, 2026-10-18)
+- **The owner's words:** "go ahead with Claude as the judge of all process and procedure that help us collect data, also from
+  past decisions and past experiments"; "record and store all these judgements with all details, save all permanently";
+  "do not truncate: run first, record and store, then save all data permanently, then truncate".
+- **Delivers, on what exists (enhance, never replace):** the blind labeler (`ledger/model_labels.py`, `decision_labeler`: Claude
+  never sees DCLab's answer, may say it cannot tell) now judges **every** decision (`--every`), any ledger folder (`--ledger`), six
+  at a time, and keeps **every judgment whole before anything is cut** (`judgments/judgments.jsonl`: the decision's id, exactly
+  what was sent, the whole reply, what was read, tokens, seconds, cost); the ledger's label keeps its contract's short reason
+  after that. Measured first on homework with known truth (`python -m dclab_rnd.students_exam --judge`); its verdicts on real
+  past decisions are harvested as **silver** (`lake/bronze/answers/claude/sessions/<point>/judge.jsonl`), weighted by the judge's
+  measured accuracy on the point **at the verdict's own confidence**, usable only at or above 0.8, never when Claude judges a
+  decision Claude made, removable in one step. The campaign's experiment reviewer (`llm_review.py`) gains `--beside` and
+  `--cap-eur`: Claude reviews the 50 past experiments as a second reviewer, its critiques and raw replies kept in their own files
+  (`reviews/<model>/`, its own memory), no result, shared memory or report changed. `make archive` now keeps the live runs.
+- **Measured (SEX-003, 820 homework decisions, EUR 1.88):** the judge is right on 0.95 to 1.00 of category codes, groups, flips
+  and wrong image labels, 0.80 to 0.82 of identifiers, roles and near copies, about half of time columns and leaks (on leaks it
+  said it could not tell 63 times in 100); every verdict it gave with high confidence was right (166 of 166).
+
 ---
 
 ## Part C2. What the owner can do (the levers only a person has)

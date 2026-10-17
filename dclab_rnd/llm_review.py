@@ -199,7 +199,12 @@ def review_one(
     task: dict[str, Any],
     *,
     model: str,
+    persist: bool = True,
+    keep: Path | None = None,
 ) -> dict[str, Any]:
+    """One critique. ``persist`` writes it onto the experiment's result (the campaign's own reviewer); ``keep`` (29.18,
+    a second reviewer beside the first) writes exactly what was sent and the whole raw reply to ``keep/<id>.json`` before
+    anything is parsed or cut, and never touches the result."""
     evidence_rel = task["evidence_path"]
     evidence_path = root / evidence_rel
     result = json.loads(evidence_path.read_text())
@@ -227,6 +232,12 @@ def review_one(
         response_format={"type": "json_object"},
     )
     content = response.get("content") or "{}"
+    if keep is not None:  # whole, first: the owner's rule (2026-10-18)
+        keep.mkdir(parents=True, exist_ok=True)
+        (keep / f"{task.get('experiment_id')}.json").write_text(json.dumps(
+            {"experiment_id": task.get("experiment_id"), "model": model, "at": _utc_now(), "system": SYSTEM_PROMPT, "sent": payload,
+             "raw_reply": content, "usage": response.get("usage"), "finish_reason": response.get("finish_reason")},
+            indent=1, ensure_ascii=False, default=str) + "\n", encoding="utf-8")
     report = getattr(client, "output", None) or (lambda passed, reason="": None)
     try:
         review = _parse_json_response(content)
@@ -251,6 +262,8 @@ def review_one(
             "total_tokens": (usage.get("input_tokens") or 0) + (usage.get("output_tokens") or 0),
         }
 
+    if not persist:  # a second reviewer: its review lives in its own files, the result keeps the campaign's
+        return review
     # Persist onto the experiment result
     result.setdefault("llm_review", {})
     result["llm_review"].update(
@@ -304,8 +317,17 @@ def run_llm_reviews(
     experiment_ids: list[str] | None = None,
     sleep_s: float = 0.4,
     force: bool = False,
+    beside: bool = False,
+    cap_eur: float | None = None,
 ) -> int:
+    """``beside`` (29.18): review every completed experiment as a second reviewer: the reviews go to this model's own
+    memory and to ``reviews/<model>/<id>.json`` (what was sent and the whole raw reply); no result, no shared memory and
+    no campaign report is changed, and nothing earlier is deleted."""
     client = _client(root, model)
+    if cap_eur is not None:  # the most this run may spend; the gateway stops the request that would pass it
+        client.run_limit_eur = cap_eur
+    if beside:
+        return _beside(client, root, model, experiment_ids, limit, sleep_s)
     tasks = load_all_review_tasks(root) if force else load_queue(root)
     if experiment_ids:
         wanted = {eid.strip() for eid in experiment_ids}
@@ -355,3 +377,30 @@ def run_llm_reviews(
         print(f"Completed with {failures} failure(s).")
         return 1
     return 0
+
+
+def _beside(client: Any, root: Path, model: str, experiment_ids: list[str] | None, limit: int | None, sleep_s: float) -> int:
+    model_memory = memory_name_for_model(model)
+    keep = root / CAMPAIGN_DIR / "reviews" / "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in model)
+    done = {p.stem for p in keep.glob("*.json")} if keep.is_dir() else set()
+    tasks = [t for t in load_all_review_tasks(root) if t.get("experiment_id") not in done]  # a review kept once is not asked again
+    if experiment_ids:
+        wanted = {eid.strip() for eid in experiment_ids}
+        tasks = [t for t in tasks if t.get("experiment_id") in wanted]
+    if limit is not None:
+        tasks = tasks[: max(0, limit)]
+    print(f"Reviewing {len(tasks)} experiment(s) beside the campaign's reviewer with model={model}; kept in {keep.relative_to(root)}")
+    failures = 0
+    for idx, task in enumerate(tasks, start=1):
+        try:
+            review = review_one(client, root, task, model=model, persist=False, keep=keep)
+            append_memory(root, review, memory_filename=model_memory)
+            print(f"[{idx}/{len(tasks)}] {task.get('experiment_id')} | confidence={review.get('overall_confidence')}", flush=True)
+        except Exception as exc:  # noqa: BLE001 - keep the batch going; the raw reply is already kept
+            failures += 1
+            print(f"[{idx}/{len(tasks)}] {task.get('experiment_id')} FAILED: {exc}", flush=True)
+            if "cap" in str(exc).lower():
+                break
+        if sleep_s > 0 and idx < len(tasks):
+            time.sleep(sleep_s)
+    return 1 if failures else 0

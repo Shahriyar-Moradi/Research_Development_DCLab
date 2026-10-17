@@ -1,0 +1,87 @@
+{
+ "experiment_id": "EXP-037",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T21:11:34Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "Which columns violate the prediction-time contract or behave like suspicious target proxies?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-037-C1",
+    "evidence": [
+     "evidence.detector_canary_passed"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "The leakage detector caught its synthetic exact-target canary: True."
+   },
+   {
+    "claim_id": "EXP-037-C2",
+    "evidence": [
+     "evidence.declared_leakage_features",
+     "evidence.safe_vs_unsafe_training_cv"
+    ],
+    "kind": "decision",
+    "limitations": [
+     "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+    ],
+    "statement": "Declared decision-time exclusions for spambase: none."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-037",
+   "dataset": "spambase",
+   "kind": "leakage_audit",
+   "question": "Which columns violate the prediction-time contract or behave like suspicious target proxies?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-037-C1",
+     "evidence": [
+      "evidence.detector_canary_passed"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "The leakage detector caught its synthetic exact-target canary: True."
+    },
+    {
+     "claim_id": "EXP-037-C2",
+     "evidence": [
+      "evidence.declared_leakage_features",
+      "evidence.safe_vs_unsafe_training_cv"
+     ],
+     "kind": "decision",
+     "limitations": [
+      "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+     ],
+     "statement": "Declared decision-time exclusions for spambase: none."
+    }
+   ],
+   "evidence": {
+    "detector_canary_passed": true,
+    "declared_leakage_features": [],
+    "safe_vs_unsafe_training_cv": null
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-037\",\n  \"observed_evidence\": [\n    {\n      \"statement\": \"The leakage detector caught its synthetic exact-target canary (detector_canary_passed = true).\",\n      \"citation\": \"EXP-037 / evidence.detector_canary_passed\"\n    },\n    {\n      \"statement\": \"The declared decision-time leakage feature list for spambase is empty.\",\n      \"citation\": \"EXP-037 / evidence.declared_leakage_features\"\n    },\n    {\n      \"statement\": \"The safe_vs_unsafe_training_cv evidence is null, so no safe-vs-unsafe comparison was recorded.\",\n      \"citation\": \"EXP-037 / evidence.safe_vs_unsafe_training_cv\"\n    },\n    {\n      \"statement\": \"The bundle's top-level limitations list is empty, while claim EXP-037-C2 carries a limitation that name, univariate AUC, and uniqueness rules only propose review and that only decision-time semantics can confirm leakage.\",\n      \"citation\": \"EXP-037 / limitations; EXP-037 / claims[EXP-037-C2].limitations\"\n    },\n    {\n      \"statement\": \"The bundle contains no per-column detector output (flagged columns, univariate AUCs, uniqueness scores) and no decision-time or production-availability annotations.\",\n      \"citation\": \"EXP-037 / evidence (keys present: detector_canary_passed, declared_leakage_features, safe_vs_unsafe_training_cv)\"\n    }\n  ],\n  \"interpretation\": \"Inference: the canary only shows the detector can flag a trivial exact-target copy; it does not show that real spambase columns were screened or found clean. The empty declared list means no one has declared any exclusions. It does not show that no column violates the prediction-time contract. The question (which columns violate the contract or act as target proxies) is therefore unanswered by this package. No evidence here supports or refutes leakage in any specific column.\",\n  \"decision\": \"Do not treat spambase features as cleared. Mark the leakage audit as incomplete: the canary check passes, but the column-level audit and the safe-vs-unsafe comparison have no recorded evidence. No feature is approved, because there is no decision-time or production-availability review on record.\",\n  \"risks_and_missing_evidence\": [\n    \"No per-column detector results are recorded (name-based flags, univariate AUC, uniqueness/near-uniqueness), so it is unknown which columns, if any, were flagged for review.\",\n    \"safe_vs_unsafe_training_cv is null: the performance impact of dropping suspect features was never measured, and it is unclear whether the comparison was skipped or failed.\",\n    \"Empty declared_leakage_features is ambiguous: it could mean a review was done and found nothing, or that no review was done. No reviewer, date, or semantics source is recorded.\",\n    \"No decision-time/production-availability review of the spambase columns is documented. Spambase features are aggregate word and character frequencies and capital-run-length statistics computed over the whole message; whether the same features can be computed at the intended prediction time (for example, before or after any downstream labeling or filtering step) needs to be stated by the data owner.\",\n    \"Known dataset-level concerns are unaddressed: possible duplicate or near-duplicate rows, and corpus-specific artifacts (for example, words or tokens tied to the original data source) that may act as proxies without being leakage in a production sense. Duplicates across CV folds would also inflate any validation score.\",\n    \"The canary tests only an exact-target copy. Detector sensitivity to partial proxies (noisy or transformed target encodings, features derived from labels or from post-outcome processes) is untested.\",\n    \"Because the detector's rules only propose review and cannot confirm leakage, a clean detector result would not be proof of no leakage even if per-column output existed.\",\n    \"The bundle's empty top-level limitations conflicts with the limitation stated in C2, so the record understates known caveats.\"\n  ],\n  \"challenges_to_claims\": [\n    {\n      \"claim_id\": \"EXP-037-C1\",\n      \"issue\": \"The claim is factually supported (detector_canary_passed = true) but has no listed limitations. It is easy to over-read as a clean audit; it only establishes detector sanity on an exact-target canary, not coverage of real columns or partial proxies.\",\n      \"severity\": \"medium\"\n    },\n    {\n      \"claim_id\": \"EXP-037-C2\",\n      \"issue\": \"The statement 'Declared decision-time exclusions: none' is cited to safe_vs_unsafe_training_cv, which is null, so the cited evidence does not support any conclusion. The empty list is a declaration, not evidence of absence of leakage. The claim is typed as a decision, but no decision-time semantics review is recorded to justify declaring no exclusions. It must not be read as approval of all features.\",\n      \"severity\": \"high\"\n    }\n  ],\n  \"next_experiment\": {\n    \"title\": \"Per-column leakage screen plus decision-time review and duplicate-aware safe-vs-unsafe CV on spambase\",\n    \"hypothesis\": \"If no spambase column is a target proxy or violates the prediction-time contract, then the detector will flag no column beyond review thresholds, and removing any flagged-for-review columns will change grouped-CV performance by no more than fold-to-fold variation. This is a predictive hypothesis only and says nothing about causal effects.\",\n    \"success_gate\": \"Pre-registered before running: (1) the detector emits per-column records (name flag, univariate AUC, uniqueness) for all columns, with the AUC review threshold stated in advance; (2) the data owner records for every flagged column a decision-time and production-availability verdict; (3) safe_vs_unsafe_training_cv is populated, with duplicates grouped so they do not span folds and the metric reported as mean and std across folds; (4) the gate passes only if the safe-set metric differs from the full-set metric by less than the fold std, with no unreviewed flagged column. Any flagged column lacking a semantic verdict, or a non-null gap above the fold std, keeps the audit open.\",\n    \"why_smallest\": \"It reuses the existing detector and CV harness, adds only per-column output, a review record, and duplicate grouping, and fills the one null field that blocks any conclusion, without new models or features.\"\n  },\n  \"overall_confidence\": \"high\"\n}",
+ "usage": {
+  "input_tokens": 1457,
+  "output_tokens": 2124
+ },
+ "finish_reason": "stop"
+}

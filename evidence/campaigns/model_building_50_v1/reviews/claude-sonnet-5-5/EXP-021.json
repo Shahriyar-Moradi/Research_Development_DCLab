@@ -1,0 +1,193 @@
+{
+ "experiment_id": "EXP-021",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T21:02:19Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-021-C1",
+    "evidence": [
+     "evidence.source_rows",
+     "evidence.feature_count",
+     "evidence.positive_rate_train"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "credit_default has 30000 source rows, 23 cached features, and a training positive rate of 0.221."
+   },
+   {
+    "claim_id": "EXP-021-C2",
+    "evidence": [
+     "evidence.feature_profiles"
+    ],
+    "kind": "risk",
+    "limitations": [
+     "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+     "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+    ],
+    "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-021",
+   "dataset": "credit_default",
+   "kind": "data_understanding",
+   "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-021-C1",
+     "evidence": [
+      "evidence.source_rows",
+      "evidence.feature_count",
+      "evidence.positive_rate_train"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "credit_default has 30000 source rows, 23 cached features, and a training positive rate of 0.221."
+    },
+    {
+     "claim_id": "EXP-021-C2",
+     "evidence": [
+      "evidence.feature_profiles"
+     ],
+     "kind": "risk",
+     "limitations": [
+      "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+      "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+     ],
+     "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+    }
+   ],
+   "evidence": {
+    "source_rows": 30000,
+    "feature_count": 23,
+    "positive_rate_train": 0.22125,
+    "feature_profiles": [
+     {
+      "dtype": "int64",
+      "feature": "X1",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.012332296394905125,
+      "top_value_frequency": 0.1071875,
+      "unique_count": 63,
+      "unique_ratio": 0.0196875
+     },
+     {
+      "dtype": "int64",
+      "feature": "X2",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": null,
+      "top_value_frequency": 0.6065625,
+      "unique_count": 2,
+      "unique_ratio": 0.000625
+     },
+     {
+      "dtype": "int64",
+      "feature": "X3",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.0010558158729741544,
+      "top_value_frequency": 0.4825,
+      "unique_count": 6,
+      "unique_ratio": 0.001875
+     },
+     {
+      "dtype": "int64",
+      "feature": "X4",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.0032369747014094345,
+      "top_value_frequency": 0.538125,
+      "unique_count": 4,
+      "unique_ratio": 0.00125
+     },
+     {
+      "dtype": "int64",
+      "feature": "X5",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.016652117248223883,
+      "top_value_frequency": 0.0521875,
+      "unique_count": 50,
+      "unique_ratio": 0.015625
+     },
+     {
+      "dtype": "int64",
+      "feature": "X6",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.005553131065140319,
+      "top_value_frequency": 0.48625,
+      "unique_count": 10,
+      "unique_ratio": 0.003125
+     },
+     {
+      "dtype": "int64",
+      "feature": "X7",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.002317735507032923,
+      "top_value_frequency": 0.52375,
+      "unique_count": 10,
+      "unique_ratio": 0.003125
+     },
+     {
+      "dtype": "int64",
+      "feature": "X8",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.004346065055257865,
+      "top_value_frequency": 0.529375,
+      "unique_count": 9,
+      "unique_ratio": 0.0028125
+     },
+     {
+      "dtype": "int64",
+      "feature": "X9",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.00475377576439145,
+      "top_value_frequency": 0.5615625,
+      "unique_count": 8,
+      "unique_ratio": 0.0025
+     },
+     {
+      "dtype": "int64",
+      "feature": "X10",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.0016097214563034101,
+      "top_value_frequency": 0.568125,
+      "unique_count": 8,
+      "unique_ratio": 0.0025
+     }
+    ]
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-021\",\n  \"observed_evidence\": [\n    {\"statement\": \"The dataset has 30000 source rows.\", \"citation\": \"EXP-021 / evidence.source_rows\"},\n    {\"statement\": \"The dataset has 23 cached features.\", \"citation\": \"EXP-021 / evidence.feature_count\"},\n    {\"statement\": \"The training positive rate is 0.22125.\", \"citation\": \"EXP-021 / evidence.positive_rate_train\"},\n    {\"statement\": \"The bundle contains profiles for only 10 features, X1 to X10, although feature_count is 23.\", \"citation\": \"EXP-021 / evidence.feature_profiles\"},\n    {\"statement\": \"All 10 profiled features have missing_rate 0.0 and an empty production_risks list.\", \"citation\": \"EXP-021 / evidence.feature_profiles[*].missing_rate, evidence.feature_profiles[*].production_risks\"},\n    {\"statement\": \"X2 has random_split_psi null, with 2 unique values and a top value frequency of 0.6065625. No reason for the null is given.\", \"citation\": \"EXP-021 / evidence.feature_profiles[1].random_split_psi\"},\n    {\"statement\": \"The profiled features have small random-split PSI values, with a maximum of about 0.0167 (X5) among the non-null values.\", \"citation\": \"EXP-021 / evidence.feature_profiles[*].random_split_psi\"},\n    {\"statement\": \"The claim C2 limitations state that categoricals were factorized in the cached matrices and that random-split PSI is only a smoke check, not temporal stability evidence.\", \"citation\": \"EXP-021 / claims[EXP-021-C2].limitations\"},\n    {\"statement\": \"The claim C1 limitations list is empty.\", \"citation\": \"EXP-021 / claims[EXP-021-C1].limitations\"}\n  ],\n  \"interpretation\": \"FACT: C1 is supported as a descriptive statement of row count, feature count and training positive rate. INFERENCE: C2 is not verifiable as written, because the bundle shows profiles for 10 of 23 features, so '0 features triggered' cannot be confirmed for X11 to X23. INFERENCE (from arithmetic, needs confirmation): unique_count divided by unique_ratio gives 3200 for several profiled features (X1: 63 / 0.0196875, X2: 2 / 0.000625). That does not match 30000 source rows, so the profiles may have been computed on a subset of unstated size and basis. The question asks which production-availability risks must be resolved, and this bundle does not answer it. The features are anonymized X1 to X23, and there is no decision-time, timestamp or source-system information. The absence of triggered rules is not evidence that the features are safe or available at decision time. Missing_rate 0.0 may also reflect upstream imputation or encoding in the cached matrices, since original missingness is not documented. HYPOTHESIS: low-cardinality columns such as X2, X3 and X4 are categorical codes whose factorized integer values would be misused by ordinal or numeric treatment, and X2's null PSI may come from a rule that skips low-cardinality columns. Neither is established here. No predictive or causal claims are supported or made.\",\n  \"decision\": \"Do not proceed to modeling and do not approve any feature. Treat EXP-021 as an incomplete data-understanding result. C1 stands as a fact, and C2 should be downgraded to 'unverified' until the profile is complete and its row basis is confirmed.\",\n  \"risks_and_missing_evidence\": [\n    \"Profiles are missing for 13 of 23 features (X11 to X23), so the claim of 0 triggered review rules cannot be verified (EXP-021 / evidence.feature_count vs evidence.feature_profiles).\",\n    \"The row basis of the profiles is undocumented, and implied denominators of about 3200 conflict with 30000 source rows (EXP-021 / evidence.feature_profiles[*].unique_ratio, evidence.source_rows).\",\n    \"X2 random_split_psi is null with no explanation (EXP-021 / evidence.feature_profiles[1].random_split_psi).\",\n    \"There is no decision-time or production-availability review for any feature. Features are anonymized, with no definitions, timestamps or source systems, and an empty production_risks list is not an availability check.\",\n    \"Categorical semantics were lost through factorization, so there are no raw category mappings, no unseen-category handling and no ordinal-versus-nominal designation (EXP-021 / claims[EXP-021-C2].limitations).\",\n    \"Random-split PSI says nothing about temporal drift, and no time column or temporal split is documented (EXP-021 / claims[EXP-021-C2].limitations).\",\n    \"Missing_rate 0.0 may reflect upstream cleaning in the cached matrices rather than raw data quality, and the original encoding of missing values is not documented.\",\n    \"Not reported: holdout positive rate, train/holdout sizes, split seed or stratification, duplicate rows, repeated entities across train and holdout, and target-leakage screening (for example, features that proxy the label or are post-outcome).\",\n    \"There is no per-feature check for suspicious relationships with the target, and no check of whether any feature is derived from information recorded after the decision point.\"\n  ],\n  \"challenges_to_claims\": [\n    {\"claim_id\": \"EXP-021-C2\", \"issue\": \"The claim covers all features, but the evidence includes only 10 of 23 profiles, so the zero-triggered result is unsupported for 13 features.\", \"severity\": \"high\"},\n    {\"claim_id\": \"EXP-021-C2\", \"issue\": \"The profile row basis appears inconsistent with 30000 source rows (implied n of about 3200 from unique_ratio), and this is not documented.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-021-C2\", \"issue\": \"The review rules do not cover decision-time availability or leakage, so 'no review rules triggered' could be misread as production readiness. The claim is typed as a risk, but its statement reports only the absence of triggered rules, with no assessment of the risks that remain.\", \"severity\": \"high\"},\n    {\"claim_id\": \"EXP-021-C2\", \"issue\": \"Null PSI for X2 is unexplained, so the shift check was apparently not applied to every feature, yet the claim treats the shift rule as passed.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-021-C1\", \"issue\": \"The training positive rate is reported without train size, holdout positive rate or split description, and the limitations list is empty. This is a minor completeness gap, but the fact itself is supported.\", \"severity\": \"low\"}\n  ],\n  \"next_experiment\": {\n    \"title\": \"Complete the 23-feature profile with a stated row basis, and add a decision-time availability register\",\n    \"hypothesis\": \"When profiled on the full documented training split with the PSI rule applied consistently, all 23 features will show 0 triggered rules, and every feature can be assigned a documented decision-time availability status. Falsified if any feature triggers a rule, any PSI is left null without a documented reason, or any feature has no confirmed availability status.\",\n    \"success_gate\": \"(1) 23 of 23 feature profiles are present, each with an explicit n_rows that equals the documented train size, or a documented reason it differs. (2) Every PSI is non-null, or has a recorded reason (for example, a categorical or binary variant). (3) Raw category mappings are restored for every factorized categorical. (4) Each feature has an owner-confirmed record of its source and of whether it is available at decision time. (5) Duplicate-row and repeated-entity counts across train and holdout are reported. Any feature that fails (4) is excluded from modeling until resolved.\",\n    \"why_smallest\": \"It requires no model training. It only completes and re-bases the existing profile, and records the availability metadata that must exist before any modeling or feature approval.\"\n  },\n  \"overall_confidence\": \"medium\"\n}",
+ "usage": {
+  "input_tokens": 2717,
+  "output_tokens": 3760
+ },
+ "finish_reason": "stop"
+}

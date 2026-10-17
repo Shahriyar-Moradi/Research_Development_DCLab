@@ -1,0 +1,193 @@
+{
+ "experiment_id": "EXP-006",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T20:53:35Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-006-C1",
+    "evidence": [
+     "evidence.source_rows",
+     "evidence.feature_count",
+     "evidence.positive_rate_train"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "bank_marketing has 45211 source rows, 16 cached features, and a training positive rate of 0.117."
+   },
+   {
+    "claim_id": "EXP-006-C2",
+    "evidence": [
+     "evidence.feature_profiles"
+    ],
+    "kind": "risk",
+    "limitations": [
+     "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+     "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+    ],
+    "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-006",
+   "dataset": "bank_marketing",
+   "kind": "data_understanding",
+   "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-006-C1",
+     "evidence": [
+      "evidence.source_rows",
+      "evidence.feature_count",
+      "evidence.positive_rate_train"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "bank_marketing has 45211 source rows, 16 cached features, and a training positive rate of 0.117."
+    },
+    {
+     "claim_id": "EXP-006-C2",
+     "evidence": [
+      "evidence.feature_profiles"
+     ],
+     "kind": "risk",
+     "limitations": [
+      "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+      "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+     ],
+     "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+    }
+   ],
+   "evidence": {
+    "source_rows": 45211,
+    "feature_count": 16,
+    "positive_rate_train": 0.116875,
+    "feature_profiles": [
+     {
+      "dtype": "int64",
+      "feature": "age",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.007295299276592979,
+      "top_value_frequency": 0.0515625,
+      "unique_count": 69,
+      "unique_ratio": 0.0215625
+     },
+     {
+      "dtype": "float64",
+      "feature": "job",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.013089315065972097,
+      "top_value_frequency": 0.2115625,
+      "unique_count": 12,
+      "unique_ratio": 0.00375
+     },
+     {
+      "dtype": "float64",
+      "feature": "marital",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.0016686871940191645,
+      "top_value_frequency": 0.59125,
+      "unique_count": 3,
+      "unique_ratio": 0.0009375
+     },
+     {
+      "dtype": "float64",
+      "feature": "education",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.0022689621146909644,
+      "top_value_frequency": 0.5259375,
+      "unique_count": 4,
+      "unique_ratio": 0.00125
+     },
+     {
+      "dtype": "float64",
+      "feature": "default",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": null,
+      "top_value_frequency": 0.9815625,
+      "unique_count": 2,
+      "unique_ratio": 0.000625
+     },
+     {
+      "dtype": "int64",
+      "feature": "balance",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.005825847253671718,
+      "top_value_frequency": 0.0775,
+      "unique_count": 1843,
+      "unique_ratio": 0.5759375
+     },
+     {
+      "dtype": "float64",
+      "feature": "housing",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": null,
+      "top_value_frequency": 0.5546875,
+      "unique_count": 2,
+      "unique_ratio": 0.000625
+     },
+     {
+      "dtype": "float64",
+      "feature": "loan",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": null,
+      "top_value_frequency": 0.8340625,
+      "unique_count": 2,
+      "unique_ratio": 0.000625
+     },
+     {
+      "dtype": "float64",
+      "feature": "contact",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.0025946261648590848,
+      "top_value_frequency": 0.6415625,
+      "unique_count": 3,
+      "unique_ratio": 0.0009375
+     },
+     {
+      "dtype": "int64",
+      "feature": "day_of_week",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.008261189250617923,
+      "top_value_frequency": 0.058125,
+      "unique_count": 31,
+      "unique_ratio": 0.0096875
+     }
+    ]
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-006\",\n  \"observed_evidence\": [\n    {\"statement\": \"The package reports 45211 source rows, 16 cached features, and a training positive rate of 0.116875.\", \"citation\": \"EXP-006 / evidence.source_rows; evidence.feature_count; evidence.positive_rate_train\"},\n    {\"statement\": \"evidence.feature_profiles contains profiles for only 9 features (age, job, marital, education, default, balance, housing, loan, contact, day_of_week). That is 10 names for 9 listed items by the claim's own count of 16 features, so the profile list is incomplete or truncated relative to feature_count.\", \"citation\": \"EXP-006 / evidence.feature_profiles; evidence.feature_count\"},\n    {\"statement\": \"Every listed profile has missing_rate 0.0 and an empty production_risks list.\", \"citation\": \"EXP-006 / evidence.feature_profiles[*].missing_rate; evidence.feature_profiles[*].production_risks\"},\n    {\"statement\": \"random_split_psi is null for default, housing, and loan.\", \"citation\": \"EXP-006 / evidence.feature_profiles[default,housing,loan].random_split_psi\"},\n    {\"statement\": \"Categorical features (job, marital, education, default, housing, loan, contact) have dtype float64, consistent with factorized codes. The claim limitation says the cached matrices factorized categoricals before this campaign.\", \"citation\": \"EXP-006 / evidence.feature_profiles[*].dtype; claims[EXP-006-C2].limitations\"},\n    {\"statement\": \"day_of_week is int64 with 31 unique values, which does not match a weekday encoding.\", \"citation\": \"EXP-006 / evidence.feature_profiles[day_of_week].unique_count; evidence.feature_profiles[day_of_week].dtype\"},\n    {\"statement\": \"The bundle's top-level limitations list is empty, and claim C1 lists no limitations.\", \"citation\": \"EXP-006 / limitations; claims[EXP-006-C1].limitations\"}\n  ],\n  \"interpretation\": \"Inference, not observed fact: unique_ratio is unique_count divided by n. Dividing unique_count by unique_ratio for age (69/0.0215625), job (12/0.00375), and others gives n = 3200 for the profiled rows. If that holds, profiles and the positive rate come from a 3200-row sample, not the 45211-row source, and the package does not explain the gap. Separately, only 9 of 16 features are profiled, so the C2 statement that 0 features triggered review rules cannot be verified for the other 7 features. The package supports only a narrow description of the profiled features: no missingness, no identifiers, and no near-constant flags beyond default's 0.98 top-value frequency. Observed missing_rate 0.0 on factorized categoricals may hide 'unknown' levels or sentinel codes, so it is not evidence of data completeness. No feature has had a decision-time or production-availability review. This evidence is descriptive and does not establish predictive or causal value.\",\n  \"decision\": \"Hold modeling. Do not accept C2 as written. Complete the full 16-feature profile on the stated data population, restore raw category semantics, and run an explicit decision-time and production-availability review for every feature before any model is fit.\",\n  \"risks_and_missing_evidence\": [\n    \"Profile coverage gap: 9 of 16 features are shown (EXP-006 / evidence.feature_profiles vs evidence.feature_count). Features not shown may include call-outcome or campaign-history fields whose availability at decision time is unreviewed.\",\n    \"Population mismatch (inferred): the implied profile n is about 3200, versus source_rows 45211. Whether the profiles and the positive rate describe a subsample or the full train split is not documented, and the split protocol and train/holdout sizes are absent.\",\n    \"Possible post-decision (leakage) features: a call-outcome or call-duration style field, if present among the unshown 7 features, would not be known before the contact decision. This cannot be verified from the evidence, so no feature can be approved.\",\n    \"day_of_week has 31 unique integer values, so it is likely day-of-month or mislabeled. Its semantics need confirmation, and any month or date field needed for a temporal split must be identified.\",\n    \"Factorized categoricals: the codes are ordinal artifacts, 'unknown' levels may be coded as ordinary categories or sentinels, and the missing_rate of 0.0 is not meaningful until raw categories are restored. The encoders must also handle unseen categories in production.\",\n    \"PSI is null for three binary features, so the shift check is incomplete for them. Random-split PSI is only a smoke test and says nothing about temporal drift.\",\n    \"A single positive-rate figure from training says nothing about stability across time or segments, or about the holdout rate.\",\n    \"Empty limitations on C1 and on the bundle overstate certainty.\"\n  ],\n  \"challenges_to_claims\": [\n    {\"claim_id\": \"EXP-006-C2\", \"issue\": \"States that 0 features triggered review rules, but profiles for only 9 of 16 features are present in evidence.feature_profiles. The claim is unsupported for the remaining 7.\", \"severity\": \"high\"},\n    {\"claim_id\": \"EXP-006-C2\", \"issue\": \"Empty production_risks lists are not evidence of production readiness. The rules checked cover only missingness, identifiers, near-constant values, and random-split shift. No decision-time availability or leakage rule was evaluated, and PSI is null for default, housing, and loan.\", \"severity\": \"high\"},\n    {\"claim_id\": \"EXP-006-C1\", \"issue\": \"Mixes the 45211 source-row count with a training positive rate that appears to come from a smaller sample (about 3200 rows implied by unique_ratio). Population and split are unstated, and limitations are empty.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-006-C2\", \"issue\": \"missing_rate 0.0 on float64 factorized categoricals may reflect the encoding rather than true completeness. 'Unknown' levels and sentinel codes are not examined.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-006-C2\", \"issue\": \"day_of_week with 31 unique values contradicts its name, suggesting a mislabeled field and unreliable metadata.\", \"severity\": \"medium\"}\n  ],\n  \"next_experiment\": {\n    \"title\": \"Full 16-feature data audit with raw categories and decision-time availability table\",\n    \"hypothesis\": \"After restoring raw categories and profiling all 16 features on the full 45211-row source (with the train split size stated), at least one feature will be flagged for unavailability at decision time or for sentinel/unknown handling, and the sample-size discrepancy will be explained. If no flag appears and the discrepancy is trivially explained, the current 'no risks' reading is supported.\",\n    \"success_gate\": \"Pass only if all of the following hold. (1) 16 profiles are emitted, one per feature, with raw dtype and category labels. (2) Profile n and train/holdout n reconcile with source_rows 45211 and are reported. (3) Every feature has a recorded decision-time availability status (available, unavailable, or unknown) with a named reviewer. (4) PSI is non-null for all features, including default, housing, and loan, using a categorical PSI. (5) A time-ordered split PSI is reported alongside the random-split PSI. (6) The meaning of day_of_week is documented. Fail if any feature has an unknown availability status or if the n discrepancy is unexplained; modeling stays blocked in that case.\",\n    \"why_smallest\": \"It is a metadata and profiling pass using existing data, with no model fitting. It directly closes the verifiable gaps in C1 and C2: coverage, population, category semantics, availability, and temporal shift.\"\n  },\n  \"overall_confidence\": \"medium\"\n}",
+ "usage": {
+  "input_tokens": 2713,
+  "output_tokens": 3410
+ },
+ "finish_reason": "stop"
+}

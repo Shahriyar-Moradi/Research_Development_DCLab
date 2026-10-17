@@ -1,0 +1,87 @@
+{
+ "experiment_id": "EXP-002",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T20:51:09Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "Which columns violate the prediction-time contract or behave like suspicious target proxies?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-002-C1",
+    "evidence": [
+     "evidence.detector_canary_passed"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "The leakage detector caught its synthetic exact-target canary: True."
+   },
+   {
+    "claim_id": "EXP-002-C2",
+    "evidence": [
+     "evidence.declared_leakage_features",
+     "evidence.safe_vs_unsafe_training_cv"
+    ],
+    "kind": "decision",
+    "limitations": [
+     "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+    ],
+    "statement": "Declared decision-time exclusions for adult: none."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-002",
+   "dataset": "adult",
+   "kind": "leakage_audit",
+   "question": "Which columns violate the prediction-time contract or behave like suspicious target proxies?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-002-C1",
+     "evidence": [
+      "evidence.detector_canary_passed"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "The leakage detector caught its synthetic exact-target canary: True."
+    },
+    {
+     "claim_id": "EXP-002-C2",
+     "evidence": [
+      "evidence.declared_leakage_features",
+      "evidence.safe_vs_unsafe_training_cv"
+     ],
+     "kind": "decision",
+     "limitations": [
+      "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+     ],
+     "statement": "Declared decision-time exclusions for adult: none."
+    }
+   ],
+   "evidence": {
+    "detector_canary_passed": true,
+    "declared_leakage_features": [],
+    "safe_vs_unsafe_training_cv": null
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-002\",\n  \"observed_evidence\": [\n    {\n      \"statement\": \"The leakage detector's synthetic exact-target canary check passed (detector_canary_passed = true).\",\n      \"citation\": \"EXP-002 / evidence.detector_canary_passed\"\n    },\n    {\n      \"statement\": \"No features were declared as decision-time leakage exclusions (declared_leakage_features is an empty list).\",\n      \"citation\": \"EXP-002 / evidence.declared_leakage_features\"\n    },\n    {\n      \"statement\": \"The safe-vs-unsafe training CV comparison is null, so no result was recorded.\",\n      \"citation\": \"EXP-002 / evidence.safe_vs_unsafe_training_cv\"\n    },\n    {\n      \"statement\": \"The bundle's top-level limitations list is empty, even though claim EXP-002-C2 lists a limitation.\",\n      \"citation\": \"EXP-002 / limitations; claims[EXP-002-C2].limitations\"\n    },\n    {\n      \"statement\": \"The bundle contains no per-column outputs (no name-rule flags, univariate AUCs, uniqueness/cardinality stats, or decision-time/availability annotations).\",\n      \"citation\": \"EXP-002 / evidence (keys: detector_canary_passed, declared_leakage_features, safe_vs_unsafe_training_cv only)\"\n    }\n  ],\n  \"interpretation\": \"Inference: the canary result shows only that the detector can flag a synthetic exact-target copy. It says nothing about whether real adult columns are leaky or are proxies. The empty exclusion list is an absence of declarations, not evidence that the columns were reviewed and found safe. The audit question (which columns violate the prediction-time contract or look like target proxies) is therefore unanswered by this bundle. The null safe_vs_unsafe CV means there is no empirical comparison to support or refute C2. No causal conclusion is warranted from any of this.\",\n  \"decision\": \"Do not accept 'no exclusions' as a cleared leakage audit. Treat the audit as incomplete and all adult columns as unreviewed for decision-time and production availability. No feature is approved. C1 can be kept as a narrow detector-sanity fact; C2 should be held pending evidence.\",\n  \"risks_and_missing_evidence\": [\n    \"No per-column leakage diagnostics (univariate AUC, cardinality/uniqueness, name-pattern flags) are reported, so suspicious proxies cannot be identified or ruled out.\",\n    \"No decision-time or production-availability review is documented for any column; only such semantics can confirm or refute leakage.\",\n    \"safe_vs_unsafe_training_cv is null, so the effect of removing or retaining candidate columns on validation performance is unknown (and it is unclear whether the step was skipped or failed).\",\n    \"A canary pass shows detector sensitivity only for an exact-target copy. It does not show sensitivity to partial proxies, noisy transforms, or combinations of columns, and says nothing about specificity or false-negative rate on real data.\",\n    \"Adult has known semantic risks that were not examined in this bundle, for example redundant encodings (education vs education-num) and sensitive or protected attributes. Whether any column is proxy-like or unavailable at prediction time depends on the intended use, which is unspecified, so this is a hypothesis to review and not a finding.\",\n    \"The prediction-time contract (the decision moment and the intended deployment use) is not stated in the bundle, so 'violation' cannot be assessed.\",\n    \"Validation design is not described (split strategy, duplicates across folds, preprocessing fit inside folds), so train/test or preprocessing leakage cannot be excluded.\",\n    \"The bundle is internally inconsistent: C2 cites safe_vs_unsafe_training_cv as evidence but its value is null, and the top-level limitations are empty despite the C2 limitation.\"\n  ],\n  \"challenges_to_claims\": [\n    {\n      \"claim_id\": \"EXP-002-C1\",\n      \"issue\": \"The fact itself is supported, but it should not be read as evidence that real columns are leak-free. Only exact-target detection was tested, with no partial-proxy canary and no reported detector settings.\",\n      \"severity\": \"low\"\n    },\n    {\n      \"claim_id\": \"EXP-002-C2\",\n      \"issue\": \"'Declared exclusions: none' is a decision claim backed by an empty list and a null CV result. It lacks any per-column review or decision-time/availability documentation, and its cited evidence (safe_vs_unsafe_training_cv) is empty. It may be misread as 'no leakage found', which the bundle does not support.\",\n      \"severity\": \"high\"\n    }\n  ],\n  \"next_experiment\": {\n    \"title\": \"Per-column decision-time review plus partial-proxy canary and populated safe-vs-unsafe CV on adult\",\n    \"hypothesis\": \"If adult columns are all available at the prediction time and none are target proxies, then (a) no column will exceed the pre-registered univariate AUC and uniqueness review thresholds without a documented availability justification, (b) a noisy partial-proxy canary (e.g., target copy with ~20% label flips) will be flagged by the detector, and (c) the grouped-CV score of the full feature set will not differ from the score of a set excluding any flagged columns beyond fold-to-fold variability.\",\n    \"success_gate\": \"Pre-register the thresholds and the prediction-time contract before running. The gate passes only if all hold: (1) every column has a recorded decision-time and production-availability annotation with its source; (2) the detector flags the noisy partial-proxy canary; (3) safe_vs_unsafe_training_cv is non-null with fold-level scores and variability; (4) every column flagged by the name, AUC, or uniqueness rules has a documented human disposition (keep with justification, or exclude). Failure of (2) means the detector is insufficient for proxy detection. Any flagged column whose removal changes CV beyond the fold standard deviation must be escalated for review. This is a predictive comparison only and implies no causal effect.\",\n    \"why_smallest\": \"It reuses the existing detector and dataset, adds one more canary, fills the missing CV field, and produces the per-column table that the current bundle lacks, without adding new models or features.\"\n  },\n  \"overall_confidence\": \"high\"\n}",
+ "usage": {
+  "input_tokens": 1454,
+  "output_tokens": 2118
+ },
+ "finish_reason": "stop"
+}

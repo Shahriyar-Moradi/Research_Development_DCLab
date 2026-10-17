@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 def record(i, by_model=True, shadow=False):
@@ -54,6 +55,39 @@ class HarvestTests(unittest.TestCase):
         self.assertEqual((claude[0]["use"], claude[0]["value"], claude[0]["reason"]), ("eval_only", "b", "the person said so"))
         rules = [json.loads(x) for x in (base / "dclab-rules" / "sessions" / "problem.pack" / "all.jsonl").read_text().splitlines()]
         self.assertTrue(all(r["use"] == "train" for r in rules))
+
+    def test_claudes_verdicts_on_real_decisions_are_silver_weighted_by_its_measured_accuracy(self):  # 29.18
+        from dclab_rnd import ledger as L
+        from dclab_rnd.lake import harvest as H
+
+        book = L.FileLedger(self.root / "w1" / "ledger", "w1")
+        rec = L.decide("column.is_identifier", ("column", "order_id"), answers=[L.answer("rule", "id_like", True)], value_used=True,
+                       state={"column": "order_id"}, ledger=book, project="p1")
+        L.label(rec, True, "model", "model:claude-sonnet-5-5", weight=1.0, ledger=book, evidence={"kind": "review", "ref": "high: the bands say so"})
+        L.label(rec, False, "model", "model:qwen-local", weight=1.0, ledger=book, evidence={"kind": "review", "ref": "low: x"})  # not Claude: not here
+        with mock.patch.object(H, "judge_accuracy", return_value={rec.point: 0.86}):
+            H.harvest(self.root, self.lake, database=False)
+        kept = [json.loads(x) for x in (self.lake / "bronze" / "answers" / "claude" / "sessions" / rec.point / "judge.jsonl").read_text().splitlines()]
+        self.assertEqual(len(kept), 1)
+        k = kept[0]
+        self.assertEqual((k["use"], k["role"], k["silver_weight"], k["usable"], k["confidence"], k["reason"]),
+                         ("silver", "judge", 0.86, True, "high", "the bands say so"))
+        claude_led = L.decide("column.is_identifier", ("column", "rider_id"), answers=[L.answer("rule", "id_like", False), L.answer("model_role", "home", True)],
+                              value_used=True, used="model_role", level=2, state={"column": "rider_id"}, ledger=book, project="p1")  # Claude decided it
+        (self.root / "w1" / "model_requests.jsonl").write_text(json.dumps({"at": "t", "purpose": "home_agent", "model": "claude-sonnet-5-5"}) + "\n")
+        L.label(claude_led, True, "model", "model:claude-sonnet-5-5", weight=1.0, ledger=book, evidence={"kind": "review", "ref": "high: same"})
+        with mock.patch.object(H, "judge_accuracy", return_value={rec.point: 0.86}):
+            H.harvest(self.root, self.lake, database=False)
+        rows = {json.loads(x)["sample_id"]: json.loads(x) for x in (self.lake / "bronze" / "answers" / "claude" / "sessions" / rec.point / "judge.jsonl").read_text().splitlines()}
+        self.assertEqual((rows[claude_led.id]["self_judged"], rows[claude_led.id]["usable"]), (True, False))  # never grading its own answer
+        with mock.patch.object(H, "judge_accuracy", return_value={rec.point: 0.70, f"{rec.point}|high": 1.0}):  # its high verdicts measured apart
+            H.harvest(self.root, self.lake, database=False)
+        k = {json.loads(x)["sample_id"]: json.loads(x) for x in (self.lake / "bronze" / "answers" / "claude" / "sessions" / rec.point / "judge.jsonl").read_text().splitlines()}[rec.id]
+        self.assertEqual((k["silver_weight"], k["usable"]), (1.0, True))  # a weak point overall, but its high-confidence verdicts proved right
+        with mock.patch.object(H, "judge_accuracy", return_value={}):  # never measured on this point: kept, not usable
+            H.harvest(self.root, self.lake, database=False)
+        k = {json.loads(x)["sample_id"]: json.loads(x) for x in (self.lake / "bronze" / "answers" / "claude" / "sessions" / rec.point / "judge.jsonl").read_text().splitlines()}[rec.id]
+        self.assertEqual((k["silver_weight"], k["usable"]), (None, False))
 
     def test_a_twin_runs_steps_are_kept_and_claudes_side_is_evaluation_only(self):
         run = self.root / "twin" / "runs" / "20261017-000000-abc"

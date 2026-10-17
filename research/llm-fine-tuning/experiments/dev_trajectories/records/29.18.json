@@ -1,0 +1,132 @@
+{
+ "package": "29.18",
+ "title": "Claude, the blind judge of every past decision and experiment, every judgment kept whole",
+ "date": "2026-10-18",
+ "request": "The owner: 'go ahead with Claude as the judge of all process and procedure that help us collect data, also from past decisions and past experiments'; 'record and store all these judgements with all details; save all permanently'; 'do not truncate: run first, record and store, then save all data permanently, then truncate'.",
+ "spec": "docs/guides/PHASE7_STUDENTS_PLAN.md, package 29.18",
+ "plan": [
+  "Reuse the blind labeler (decision_labeler) rather than build a judge: it never shows DCLab's answer and may say it cannot tell.",
+  "Measure the judge on homework with known truth before trusting it.",
+  "Judge every real past decision (the live sessions, the twin lanes, the development workspace) and harvest the verdicts as silver, weighted by the measured accuracy.",
+  "Review the past experiments with the campaign's own reviewer, beside the earlier one.",
+  "Keep every judgment whole before anything is cut; archive the live runs permanently."
+ ],
+ "decisions": [
+  {
+   "decision": "The judge is the existing blind labeler, extended (every decision, any ledger, in parallel).",
+   "why": "The owner's rule: enhance, never replace; it already keeps model labels apart from people's and the truth."
+  },
+  {
+   "decision": "Silver weights by point and confidence, from the latest judge run on homework; usable at 0.8 and above.",
+   "why": "Claude's high-confidence verdicts were right 166 of 166 while its low ones were near chance on some points: one weight per point would throw away the good half or keep the bad."
+  },
+  {
+   "decision": "A verdict on a decision Claude itself made is kept but never usable.",
+   "why": "Self-grading is agreement, not correctness."
+  },
+  {
+   "decision": "Every judgment is written whole (sent, raw reply, tokens, seconds, cost) before the ledger's short copy.",
+   "why": "The owner's rule after 425 of 725 reasons had been cut before anything kept them."
+  },
+  {
+   "decision": "Experiment reviews run beside the campaign's reviewer and never write the result files.",
+   "why": "Rule 3: results are never edited; the earlier reviews stay as they were."
+  },
+  {
+   "decision": "A model that refuses a sampling option is retried once without it and never sent it again.",
+   "why": "Sonnet 5.5 refuses temperature; the product's model must not fail a caller for it."
+  }
+ ],
+ "change": "ledger/model_labels.py (every, ledger, workers, judgments kept whole); students_exam.py (judge mode, homework as a ledger, judged, keep_verdicts with the full reply, Whole for the exam's replies); lake/harvest.py (the judge's silver view, weights by point and confidence, self-judged kept apart); llm_review.py and cli.py (beside, cap); models/anthropic_client.py (sampling refused: retry once, remember); archive.py (live tests and the image sets archived); tests in five files.",
+ "findings": [
+  {
+   "id": "O1",
+   "source": "owner",
+   "severity": "gap",
+   "defect": "425 of 725 judge reasons were cut to 180 characters before anything kept them whole.",
+   "scenario": "SEX-003's verdicts: the ledger's evidence field is short, and only the cut copy was written.",
+   "cause": "The labeler wrote the contract's short reason and nothing else.",
+   "fix": "Every judgment is written whole to judgments.jsonl before the short copy; the homework was judged again (SEX-004) with every reply kept.",
+   "test": "test_every_reply_is_kept_whole_before_anything_is_cut"
+  },
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Claude refused every experiment review: temperature is deprecated for Sonnet 5.5.",
+   "scenario": "The campaign reviewer sends temperature=0.2; every request was a 400 with no tokens spent.",
+   "cause": "The adapter passed sampling options through to a model that refuses them.",
+   "fix": "A 400 refusing temperature or top_p is retried once without them and the model is remembered.",
+   "test": "test_a_model_that_refuses_temperature_is_asked_again_without_it_and_never_sent_it_again"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "One review was cut by the reply's length limit.",
+   "scenario": "EXP-023: the reply stopped at its limit (8,607 characters) and could not be parsed.",
+   "cause": "The reviewer leaves the limit to the adapter's default.",
+   "fix": "Its raw reply is kept whole; a re-ask with a larger limit is left open.",
+   "test": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-023.json"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Test fixtures used ledger ids shorter than the contract allows and decisions the ledger refuses.",
+   "scenario": "'r0' ids; a model's answer used at level 0.",
+   "cause": "Fixtures written without the contract's rules.",
+   "fix": "Fixtures use valid ids and a Claude-led decision at level 2 with the rule's answer beside it.",
+   "test": "test_claudes_verdicts_on_real_decisions_are_silver_weighted_by_its_measured_accuracy"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the blind judge on homework (SEX-003, SEX-004)",
+   "gate": "none fixed: the judge's accuracy per point and per confidence, the basis of the silver weights",
+   "fixed_before_run": true,
+   "result": "820 decisions each run, EUR 1.88 and 1.85; judged 722 to 725, unsure 95 to 98; accuracy 0.95 to 0.96 category code, 0.96 to 0.97 group, 1.0 flip, 0.93 wrong image label, 0.80 to 0.82 identifier, near copy and role, about 0.49 time and 0.52 leakage; high-confidence verdicts right 166 of 166 in both runs",
+   "verdict": "not scored",
+   "cost_eur": 3.7248,
+   "against_gate": "Not scored: a measurement of the judge, reproduced by a second run.",
+   "limits": [
+    "Homework weighted to the hard cases (disagreements first).",
+    "Invented tables and images."
+   ]
+  },
+  {
+   "name": "the judge on every real past decision",
+   "gate": "none fixed: silver labels, weighted by the homework measurement",
+   "fixed_before_run": true,
+   "result": "1,252 decisions (the live sessions, nine twin lanes, the development workspace), EUR 2.91; 790 verdicts and 462 unsure; harvested as silver: 239 usable (role 161, category code 32 plus 14, identifier 32), 418 self-judged and kept apart, 133 not usable (never measured or below 0.8)",
+   "verdict": "not scored",
+   "cost_eur": 2.91,
+   "against_gate": "Not scored: real decisions have no truth; their silver weight comes from the homework measurement.",
+   "limits": [
+    "Conversation points were never measured, so their verdicts are kept but not usable."
+   ]
+  },
+  {
+   "name": "Claude's review of the 50 past experiments",
+   "gate": "none fixed: a second reviewer beside the campaign's",
+   "fixed_before_run": true,
+   "result": "50 reviewed, 49 parsed (one cut by its length, kept raw), EUR 3.03; 184 challenges to claims (64 high, 98 medium, 22 low) against 76 by the earlier reviewer on the same experiments",
+   "verdict": "not scored",
+   "cost_eur": 3.025,
+   "against_gate": "Not scored: challenges are advisory until critic_gate checks them against the recomputed numbers.",
+   "limits": [
+    "Not yet checked by critic_gate."
+   ]
+  }
+ ],
+ "outcome": "Claude has judged every past decision and reviewed every past experiment; its reliability is measured where the truth is known, its verdicts on real work are silver with honest weights, and every judgment is kept whole and archived.",
+ "lessons": [
+  "Measure a judge where the truth is known before using its verdicts where it is not.",
+  "A model's stated confidence can be the best weight: here its high-confidence verdicts never failed.",
+  "Keep the whole reply before any field that must be short."
+ ],
+ "risks": [
+  "The silver weights follow the latest judge run; a new run changes them."
+ ],
+ "commits": []
+}

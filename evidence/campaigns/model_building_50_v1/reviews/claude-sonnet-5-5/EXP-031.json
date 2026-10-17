@@ -1,0 +1,193 @@
+{
+ "experiment_id": "EXP-031",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T21:07:38Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-031-C1",
+    "evidence": [
+     "evidence.source_rows",
+     "evidence.feature_count",
+     "evidence.positive_rate_train"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "mushroom has 8124 source rows, 22 cached features, and a training positive rate of 0.482."
+   },
+   {
+    "claim_id": "EXP-031-C2",
+    "evidence": [
+     "evidence.feature_profiles"
+    ],
+    "kind": "risk",
+    "limitations": [
+     "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+     "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+    ],
+    "statement": "1 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-031",
+   "dataset": "mushroom",
+   "kind": "data_understanding",
+   "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-031-C1",
+     "evidence": [
+      "evidence.source_rows",
+      "evidence.feature_count",
+      "evidence.positive_rate_train"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "mushroom has 8124 source rows, 22 cached features, and a training positive rate of 0.482."
+    },
+    {
+     "claim_id": "EXP-031-C2",
+     "evidence": [
+      "evidence.feature_profiles"
+     ],
+     "kind": "risk",
+     "limitations": [
+      "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+      "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+     ],
+     "statement": "1 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+    }
+   ],
+   "evidence": {
+    "source_rows": 8124,
+    "feature_count": 22,
+    "positive_rate_train": 0.481875,
+    "feature_profiles": [
+     {
+      "dtype": "float64",
+      "feature": "cap-shape",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.001022203481514732,
+      "top_value_frequency": 0.455625,
+      "unique_count": 6,
+      "unique_ratio": 0.001875
+     },
+     {
+      "dtype": "float64",
+      "feature": "cap-surface",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.002694769561534118,
+      "top_value_frequency": 0.3928125,
+      "unique_count": 4,
+      "unique_ratio": 0.00125
+     },
+     {
+      "dtype": "float64",
+      "feature": "cap-color",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.007211923934943759,
+      "top_value_frequency": 0.2796875,
+      "unique_count": 10,
+      "unique_ratio": 0.003125
+     },
+     {
+      "dtype": "float64",
+      "feature": "bruises",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": null,
+      "top_value_frequency": 0.585,
+      "unique_count": 2,
+      "unique_ratio": 0.000625
+     },
+     {
+      "dtype": "float64",
+      "feature": "odor",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.005816247607327597,
+      "top_value_frequency": 0.4396875,
+      "unique_count": 9,
+      "unique_ratio": 0.0028125
+     },
+     {
+      "dtype": "float64",
+      "feature": "gill-attachment",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": null,
+      "top_value_frequency": 0.9746875,
+      "unique_count": 2,
+      "unique_ratio": 0.000625
+     },
+     {
+      "dtype": "float64",
+      "feature": "gill-spacing",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": null,
+      "top_value_frequency": 0.8359375,
+      "unique_count": 2,
+      "unique_ratio": 0.000625
+     },
+     {
+      "dtype": "float64",
+      "feature": "gill-size",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": null,
+      "top_value_frequency": 0.68875,
+      "unique_count": 2,
+      "unique_ratio": 0.000625
+     },
+     {
+      "dtype": "float64",
+      "feature": "gill-color",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.01214189033620932,
+      "top_value_frequency": 0.2125,
+      "unique_count": 12,
+      "unique_ratio": 0.00375
+     },
+     {
+      "dtype": "float64",
+      "feature": "stalk-shape",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": null,
+      "top_value_frequency": 0.5721875,
+      "unique_count": 2,
+      "unique_ratio": 0.000625
+     }
+    ]
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-031\",\n  \"observed_evidence\": [\n    {\"statement\": \"The dataset reports 8124 source rows.\", \"citation\": \"EXP-031 / evidence.source_rows\"},\n    {\"statement\": \"The dataset reports 22 cached features.\", \"citation\": \"EXP-031 / evidence.feature_count\"},\n    {\"statement\": \"The training positive rate is 0.481875, which matches the claimed 0.482.\", \"citation\": \"EXP-031 / evidence.positive_rate_train\"},\n    {\"statement\": \"Every feature profile provided is dtype float64, even though these are categorical attributes (e.g. cap-shape, odor). The claim's limitations say categoricals were factorized before this campaign.\", \"citation\": \"EXP-031 / evidence.feature_profiles[*].dtype; EXP-031-C2 / limitations\"},\n    {\"statement\": \"Only 10 feature profiles are present in the bundle (cap-shape through stalk-shape), versus a feature_count of 22.\", \"citation\": \"EXP-031 / evidence.feature_profiles; EXP-031 / evidence.feature_count\"},\n    {\"statement\": \"All 10 visible profiles have missing_rate 0.0 and an empty production_risks list.\", \"citation\": \"EXP-031 / evidence.feature_profiles[*].missing_rate, evidence.feature_profiles[*].production_risks\"},\n    {\"statement\": \"random_split_psi is null for bruises, gill-attachment, gill-spacing, gill-size and stalk-shape. All five have unique_count 2.\", \"citation\": \"EXP-031 / evidence.feature_profiles[*].random_split_psi, evidence.feature_profiles[*].unique_count\"},\n    {\"statement\": \"Claim C2 states that 1 feature triggered a review rule. The evidence for it is only the feature_profiles path.\", \"citation\": \"EXP-031-C2 / statement; EXP-031-C2 / evidence\"}\n  ],\n  \"interpretation\": \"Inference: C1 is a descriptive count and is consistent with the evidence fields. C2 cannot be verified from the bundle. None of the 10 visible profiles has a non-empty production_risks list, and the other 12 profiles are absent, so the flagged feature and the rule that triggered are not shown. The null PSI values on all five two-category features show that the shift check was not computed for binary features, or failed on them. That leaves the random-split shift screen incomplete. The float64 dtype on categorical attributes implies the cached encoding is arbitrary integer codes. Any production encoder must therefore be rebuilt from the raw category semantics, and the code-to-category mapping is not in the evidence. No evidence addresses decision-time availability, label definition, duplicate rows, or the relationship between features and the target. Hypothesis only: the sensory or physical attributes (e.g. odor) may be extremely predictive, and the data may contain a placeholder-coded missing value or a constant feature. The package does not demonstrate either, and neither has been reviewed for production availability.\",\n  \"decision\": \"Do not proceed to modeling or approve any feature. Accept C1 as a descriptive fact only. Treat C2 as unverified until the full 22-feature profile, the triggered rule, and the PSI gaps are shown. Every feature still needs a decision-time and production-availability review.\",\n  \"risks_and_missing_evidence\": [\n    \"Only 10 of 22 feature profiles are in the bundle, so the flagged feature and its triggered rule (missingness, identifier, near-constant, or shift) cannot be identified. This is a recommendation to re-emit the full profile table.\",\n    \"C2 says 1 feature was flagged, but no visible profile has a non-empty production_risks list. The count cannot be reconciled with the evidence.\",\n    \"random_split_psi is null for 5 binary features, so the shift screen does not cover them. No reason for the null is recorded.\",\n    \"The features are factorized to float64, so category semantics and ordering are lost. Placeholder or unknown codes (e.g. a '?' category) may be encoded as ordinary values, so a missing_rate of 0.0 may not reflect true missingness.\",\n    \"The positive-class definition is not stated. The train/holdout split sizes, seed and method are not stated. Train row count is not reported directly. Unique_count and unique_ratio imply about 3200 training rows (inference from 6/0.001875), which is about 39% of source_rows, and the holdout size is unknown.\",\n    \"There is no duplicate or near-duplicate row check. Duplicates across a random train/holdout split could inflate later holdout scores.\",\n    \"There is no feature-to-target association screen, so potential leakage or near-deterministic proxy features are unassessed. Predictive strength alone would also not establish causal or production validity.\",\n    \"There is no decision-time or production-availability review. It is unknown when each attribute is observed relative to the prediction point, and the labeling process is not documented.\",\n    \"Random-split PSI is only a smoke check. It says nothing about temporal, geographic or collection-source shift, and no time or group variable is provided.\"\n  ],\n  \"challenges_to_claims\": [\n    {\"claim_id\": \"EXP-031-C1\", \"issue\": \"The counts are consistent with the evidence fields, but the claim has no limitations listed. The positive class, the training split size and the split method are not specified, so 'training positive rate' is not interpretable beyond the number itself.\", \"severity\": \"low\"},\n    {\"claim_id\": \"EXP-031-C2\", \"issue\": \"The claim cites evidence.feature_profiles, but the visible profiles show no triggered risk and cover only 10 of 22 features. The flagged feature and rule are not identifiable, so the claim is unsupported as presented.\", \"severity\": \"high\"},\n    {\"claim_id\": \"EXP-031-C2\", \"issue\": \"Null PSI values for all five two-category features mean the random-split shift rule was not evaluated for them. The 'only 1 flagged' count may therefore understate shift or other risks.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-031-C2\", \"issue\": \"Factorized float64 encodings can mask categorical missingness or placeholder categories, so a missing_rate of 0.0 is weak evidence of data completeness. The claim's own limitation concedes this.\", \"severity\": \"medium\"}\n  ],\n  \"next_experiment\": {\n    \"title\": \"Full 22-feature profile audit on restored raw categories with duplicate check\",\n    \"hypothesis\": \"Re-profiling all 22 features from raw categorical values (keeping any placeholder symbols as explicit categories) will identify exactly one feature with a non-empty production_risks entry, as C2 claims, and will reveal whether any of the 12 missing profiles or the 5 null-PSI features hide additional risks.\",\n    \"success_gate\": \"The output contains 22 profile rows, each with a raw category label map, a recorded production_risks list, and the rule name for any flag. The flagged count is stated and reconciles with C2 (exactly 1), or C2 is retracted if it does not. PSI is computed for all features including the 5 binary ones (e.g. via category-level proportion comparison), or a documented reason is given for any null. Any placeholder or unknown category is reported as missingness. The positive class definition, train/holdout sizes, split seed and duplicate-row count across train/holdout are reported. The gate fails if any of these is missing or if the flagged count differs from 1 without C2 being revised.\",\n    \"why_smallest\": \"It only re-runs and completes the existing descriptive profiling and adds a few metadata fields. It fits no model and makes no feature-selection decision, and it resolves whether C2 is supported before any modeling step.\"\n  },\n  \"overall_confidence\": \"medium\"\n}",
+ "usage": {
+  "input_tokens": 2707,
+  "output_tokens": 3568
+ },
+ "finish_reason": "stop"
+}

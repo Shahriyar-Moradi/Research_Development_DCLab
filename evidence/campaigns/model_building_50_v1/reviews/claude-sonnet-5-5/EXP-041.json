@@ -1,0 +1,193 @@
+{
+ "experiment_id": "EXP-041",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T21:13:31Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-041-C1",
+    "evidence": [
+     "evidence.source_rows",
+     "evidence.feature_count",
+     "evidence.positive_rate_train"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "online_shoppers has 12330 source rows, 17 cached features, and a training positive rate of 0.155."
+   },
+   {
+    "claim_id": "EXP-041-C2",
+    "evidence": [
+     "evidence.feature_profiles"
+    ],
+    "kind": "risk",
+    "limitations": [
+     "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+     "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+    ],
+    "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-041",
+   "dataset": "online_shoppers",
+   "kind": "data_understanding",
+   "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-041-C1",
+     "evidence": [
+      "evidence.source_rows",
+      "evidence.feature_count",
+      "evidence.positive_rate_train"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "online_shoppers has 12330 source rows, 17 cached features, and a training positive rate of 0.155."
+    },
+    {
+     "claim_id": "EXP-041-C2",
+     "evidence": [
+      "evidence.feature_profiles"
+     ],
+     "kind": "risk",
+     "limitations": [
+      "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+      "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+     ],
+     "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+    }
+   ],
+   "evidence": {
+    "source_rows": 12330,
+    "feature_count": 17,
+    "positive_rate_train": 0.1546875,
+    "feature_profiles": [
+     {
+      "dtype": "int64",
+      "feature": "Administrative",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.004724364936279155,
+      "top_value_frequency": 0.475,
+      "unique_count": 22,
+      "unique_ratio": 0.006875
+     },
+     {
+      "dtype": "float64",
+      "feature": "Administrative_Duration",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.004532165644196615,
+      "top_value_frequency": 0.484375,
+      "unique_count": 1152,
+      "unique_ratio": 0.36
+     },
+     {
+      "dtype": "int64",
+      "feature": "Informational",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.0010151901817218284,
+      "top_value_frequency": 0.7865625,
+      "unique_count": 13,
+      "unique_ratio": 0.0040625
+     },
+     {
+      "dtype": "float64",
+      "feature": "Informational_Duration",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.0008858715166779532,
+      "top_value_frequency": 0.8053125,
+      "unique_count": 452,
+      "unique_ratio": 0.14125
+     },
+     {
+      "dtype": "int64",
+      "feature": "ProductRelated",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.019345323549623802,
+      "top_value_frequency": 0.0490625,
+      "unique_count": 201,
+      "unique_ratio": 0.0628125
+     },
+     {
+      "dtype": "float64",
+      "feature": "ProductRelated_Duration",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.020943842526609427,
+      "top_value_frequency": 0.06,
+      "unique_count": 2753,
+      "unique_ratio": 0.8603125
+     },
+     {
+      "dtype": "float64",
+      "feature": "BounceRates",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.00421617368869079,
+      "top_value_frequency": 0.4515625,
+      "unique_count": 670,
+      "unique_ratio": 0.209375
+     },
+     {
+      "dtype": "float64",
+      "feature": "ExitRates",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.00790201686722771,
+      "top_value_frequency": 0.0584375,
+      "unique_count": 1501,
+      "unique_ratio": 0.4690625
+     },
+     {
+      "dtype": "float64",
+      "feature": "PageValues",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.0029759625294682552,
+      "top_value_frequency": 0.7803125,
+      "unique_count": 698,
+      "unique_ratio": 0.218125
+     },
+     {
+      "dtype": "float64",
+      "feature": "SpecialDay",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.0001537100419994877,
+      "top_value_frequency": 0.9,
+      "unique_count": 6,
+      "unique_ratio": 0.001875
+     }
+    ]
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-041\",\n  \"observed_evidence\": [\n    {\"statement\": \"The package reports 12330 source rows, 17 cached features, and a training positive rate of 0.1546875.\", \"citation\": \"EXP-041 / evidence.source_rows, evidence.feature_count, evidence.positive_rate_train\"},\n    {\"statement\": \"evidence.feature_profiles contains only 10 feature entries (Administrative through SpecialDay), although feature_count is 17.\", \"citation\": \"EXP-041 / evidence.feature_profiles, evidence.feature_count\"},\n    {\"statement\": \"Every listed profile has missing_rate 0.0 and an empty production_risks list.\", \"citation\": \"EXP-041 / evidence.feature_profiles[*].missing_rate, evidence.feature_profiles[*].production_risks\"},\n    {\"statement\": \"The largest random-split PSI among the profiled features is 0.0209 (ProductRelated_Duration). ProductRelated is next at 0.0193.\", \"citation\": \"EXP-041 / evidence.feature_profiles[feature=ProductRelated_Duration].random_split_psi, evidence.feature_profiles[feature=ProductRelated].random_split_psi\"},\n    {\"statement\": \"PageValues has a top-value frequency of 0.78, Informational_Duration 0.805, and SpecialDay 0.9.\", \"citation\": \"EXP-041 / evidence.feature_profiles[feature=PageValues|Informational_Duration|SpecialDay].top_value_frequency\"},\n    {\"statement\": \"The package's own claim limitations state that the cached UCI matrices factorized categoricals and that random-split PSI is only a smoke check, not temporal stability evidence.\", \"citation\": \"EXP-041 / claims[EXP-041-C2].limitations\"},\n    {\"statement\": \"The bundle-level limitations list is empty, and claim EXP-041-C1 lists no limitations.\", \"citation\": \"EXP-041 / limitations, claims[EXP-041-C1].limitations\"}\n  ],\n  \"interpretation\": \"Inference: the evidence supports only a partial data-quality screen. Claim C2 says 0 features triggered review rules, but 7 of 17 features have no profile in the package. The unprofiled features are probably the factorized categoricals, which the package's own limitation says lost their raw semantics. The absence of flags is therefore not evidence for the full feature set. Inference from arithmetic: unique_ratio implies a denominator of 3200 (for example Administrative, 22 / 0.006875), and the positive rate times 3200 gives 495. The profiles therefore appear to be computed on about 3200 rows, not the 12330 source rows. The package does not state the split sizes or whether a subsample was used. Separately, no feature has a decision-time or production-availability review. Several session-level fields (PageValues, BounceRates, ExitRates, and the page-count and duration fields) may be computed over the whole session or with knowledge of the outcome. A clean profile says nothing about whether they are available at prediction time. No causal reading of any feature is supported.\",\n  \"decision\": \"Hold modeling. Do not treat the dataset as cleared. Claim C2 is unsupported as written until all 17 features are profiled, the row denominators are explained, and each feature has a documented decision-time and production-availability review. No feature is approved.\",\n  \"risks_and_missing_evidence\": [\n    \"Profile coverage gap: 10 of 17 features are profiled, so the 'no review rules triggered' conclusion cannot be verified for the other 7 (EXP-041 / evidence.feature_profiles vs evidence.feature_count).\",\n    \"Row-denominator ambiguity: unique_ratio and the positive rate imply about 3200 rows, while source_rows is 12330. The train/holdout sizes, the sampling method, and the holdout positive rate are not reported.\",\n    \"Categorical semantics lost: factorized categoricals produce arbitrary integer codes. Numeric-looking profiles (PSI, unique_ratio, dtype int64) are not meaningful for them, and production encoders would need the raw categories (EXP-041 / claims[EXP-041-C2].limitations).\",\n    \"Decision-time and availability review missing: PageValues, BounceRates, and ExitRates are session-aggregated analytics metrics that may encode post-outcome or end-of-session information. Their computation window and timing relative to the prediction point are undocumented. The same question applies to the page-count and duration features, which may be final session totals.\",\n    \"Non-independence risk: no session, user, or time identifier is reported, so repeat visitors could appear on both sides of a random split and inflate holdout performance. The identifier rule's 0 triggers does not address grouping.\",\n    \"Validation design: only a random-split PSI is reported, and the package itself calls it a smoke check. There is no temporal or grouped split evidence, and no evidence on duplicates or exact-row overlap between train and holdout.\",\n    \"A missing_rate of 0.0 everywhere may reflect upstream imputation or cleaning in the cached matrices rather than true completeness. Provenance is not documented.\",\n    \"Zero-inflated, heavy-mode features (PageValues 0.78, Informational_Duration 0.805) are not flagged under the near-constant rule. Their distributions and outlier behavior, and whether zero means 'not measured' or 'measured as zero', are unreviewed.\",\n    \"The class imbalance (about 15.5% positive in train) is noted, but no target-rate comparison with holdout is provided, and no stratification check is reported.\"\n  ],\n  \"challenges_to_claims\": [\n    {\"claim_id\": \"EXP-041-C2\", \"issue\": \"Asserts 0 features triggered review rules, yet only 10 of 17 features appear in evidence.feature_profiles. The conclusion is not supported for the remaining 7, which are likely the factorized categoricals.\", \"severity\": \"high\"},\n    {\"claim_id\": \"EXP-041-C2\", \"issue\": \"Framed as a 'risk' claim but reads as reassurance. A zero-trigger result from rules that cannot assess decision-time availability or leakage should not be read as production readiness.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-041-C1\", \"issue\": \"States 12330 rows and a 'training' positive rate with no limitations. The implied profile denominator (~3200 rows) and the unreported split sizes leave the relationship between source rows and training data unexplained.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-041-C2\", \"issue\": \"Random-split PSI values (all below about 0.021) are being used as shift evidence. Random splits are expected to show near-zero PSI by construction, so they cannot show temporal or production drift, as the limitation already concedes.\", \"severity\": \"medium\"}\n  ],\n  \"next_experiment\": {\n    \"title\": \"Complete 17-feature profile with row accounting and a decision-time availability table\",\n    \"hypothesis\": \"If the profiling is re-run on all 17 features with raw categorical labels restored and explicit train/holdout row counts, then every feature will have a documented profile and an availability status, and at least one session-aggregated feature (e.g., PageValues, BounceRates, ExitRates) will be classified as requiring a prediction-time computation-window clarification. This is falsified if all 17 features are shown to be available at the intended decision point with documented timing.\",\n    \"success_gate\": \"All of the following hold: (1) 17 of 17 features carry a profile (dtype, missing_rate, unique_ratio, top_value_frequency, PSI), with categoricals profiled on raw labels; (2) the train and holdout row counts and the sampling rule are reported and reconcile with the 12330 source rows; (3) the holdout positive rate is reported alongside the train rate; (4) every feature has a recorded status of available, unavailable, or unknown at the intended decision point, with its computation window cited, and no feature is approved while its status is unknown; (5) an exact-duplicate-row count across train and holdout is reported.\",\n    \"why_smallest\": \"It requires no model fitting. It only closes the coverage and denominator gaps in the existing profiling step and adds a documentation table, which is the minimum needed before the C2 claim can be accepted or rejected.\"\n  },\n  \"overall_confidence\": \"medium\"\n}",
+ "usage": {
+  "input_tokens": 2774,
+  "output_tokens": 3595
+ },
+ "finish_reason": "stop"
+}

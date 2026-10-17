@@ -1,0 +1,292 @@
+{
+ "experiment_id": "EXP-030",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T21:07:10Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "Does optimization produce a meaningful CV gain, and how does the preselected recipe perform on the once-consumed holdout?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-030-C1",
+    "evidence": [
+     "evidence.holdout_metrics",
+     "evidence.holdout_roc_auc_bootstrap_ci",
+     "evidence.holdout_consumed"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "The preselected extra_trees/extra_trees_C01 recipe scored 0.7943 ROC-AUC on the once-consumed holdout (bootstrap 95% interval 0.7180–0.8621)."
+   },
+   {
+    "claim_id": "EXP-030-C2",
+    "evidence": [
+     "evidence.top_final_features",
+     "evidence.cv_feature_stability",
+     "evidence.production_feature_rule"
+    ],
+    "kind": "recommendation",
+    "limitations": [],
+    "statement": "Do not promote features from importance alone; require decision-time availability, cross-fold stability, production availability, and monitoring."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-030",
+   "dataset": "german_credit",
+   "kind": "optimization_reliability",
+   "question": "Does optimization produce a meaningful CV gain, and how does the preselected recipe perform on the once-consumed holdout?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-030-C1",
+     "evidence": [
+      "evidence.holdout_metrics",
+      "evidence.holdout_roc_auc_bootstrap_ci",
+      "evidence.holdout_consumed"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "The preselected extra_trees/extra_trees_C01 recipe scored 0.7943 ROC-AUC on the once-consumed holdout (bootstrap 95% interval 0.7180–0.8621)."
+    },
+    {
+     "claim_id": "EXP-030-C2",
+     "evidence": [
+      "evidence.top_final_features",
+      "evidence.cv_feature_stability",
+      "evidence.production_feature_rule"
+     ],
+     "kind": "recommendation",
+     "limitations": [],
+     "statement": "Do not promote features from importance alone; require decision-time availability, cross-fold stability, production availability, and monitoring."
+    }
+   ],
+   "evidence": {
+    "selection_rule": "Evaluate explicit dataset-specific parameter candidates on training CV; use the best tuned candidate only when mean ROC-AUC improves by at least 0.001, otherwise prefer baseline.",
+    "holdout_metrics": {
+     "accuracy": 0.745,
+     "avg_precision": 0.6502437820222193,
+     "brier": 0.1604743215609027,
+     "ece_10": 0.08242811950202572,
+     "f1": 0.48484848484848486,
+     "fit_seconds": 0.32817849999992177,
+     "log_loss": 0.4926680677809403,
+     "precision": 0.6153846153846154,
+     "recall": 0.4,
+     "roc_auc": 0.7942857142857144,
+     "threshold": 0.5
+    },
+    "holdout_roc_auc_bootstrap_ci": {
+     "draws": 400,
+     "high": 0.8620644773123065,
+     "low": 0.7179534546874278,
+     "median": 0.7931015658237046
+    },
+    "holdout_consumed": true,
+    "top_final_features": [
+     {
+      "feature": "Attribute1",
+      "normalized_importance": 0.05606462646572138
+     },
+     {
+      "feature": "inter_Attribute1_x_log1p_Attribute2",
+      "normalized_importance": 0.03522635315350235
+     },
+     {
+      "feature": "inter_Attribute1_x_Attribute8",
+      "normalized_importance": 0.03405538803216886
+     },
+     {
+      "feature": "log1p_Attribute3",
+      "normalized_importance": 0.03220417247433946
+     },
+     {
+      "feature": "Attribute3",
+      "normalized_importance": 0.029634574336790235
+     },
+     {
+      "feature": "log1p_Attribute2",
+      "normalized_importance": 0.027977330533511226
+     },
+     {
+      "feature": "ratio_Attribute2_div_Attribute13",
+      "normalized_importance": 0.02641421604019681
+     },
+     {
+      "feature": "Attribute2",
+      "normalized_importance": 0.02634826220465025
+     },
+     {
+      "feature": "Attribute12",
+      "normalized_importance": 0.023415797844116838
+     },
+     {
+      "feature": "Attribute7",
+      "normalized_importance": 0.022508081023236755
+     },
+     {
+      "feature": "Attribute8",
+      "normalized_importance": 0.021018122899027474
+     },
+     {
+      "feature": "Attribute5",
+      "normalized_importance": 0.02042965326684486
+     },
+     {
+      "feature": "ratio_Attribute5_div_Attribute2",
+      "normalized_importance": 0.019787724693637765
+     },
+     {
+      "feature": "log1p_Attribute5",
+      "normalized_importance": 0.01936939374587293
+     },
+     {
+      "feature": "log1p_Attribute6",
+      "normalized_importance": 0.018932519035875554
+     }
+    ],
+    "cv_feature_stability": [
+     {
+      "feature": "Attribute1",
+      "mean_normalized_importance": 0.06624682799007175,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "log1p_Attribute3",
+      "mean_normalized_importance": 0.03050794254788194,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "Attribute3",
+      "mean_normalized_importance": 0.02828346447179352,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "Attribute2",
+      "mean_normalized_importance": 0.026727543060338903,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "log1p_Attribute2",
+      "mean_normalized_importance": 0.025537536940208105,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "ratio_Attribute2_div_Attribute13",
+      "mean_normalized_importance": 0.025203474559284678,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "Attribute7",
+      "mean_normalized_importance": 0.023220368376277487,
+      "observed_folds": 3,
+      "top10_frequency": 0.6666666666666666
+     },
+     {
+      "feature": "inter_Attribute1_x_Attribute11",
+      "mean_normalized_importance": 0.03961801427157225,
+      "observed_folds": 1,
+      "top10_frequency": 0.3333333333333333
+     },
+     {
+      "feature": "inter_Attribute1_x_log1p_Attribute16",
+      "mean_normalized_importance": 0.034398053002553296,
+      "observed_folds": 1,
+      "top10_frequency": 0.3333333333333333
+     },
+     {
+      "feature": "inter_log1p_Attribute3_x_Attribute12",
+      "mean_normalized_importance": 0.0305645681498021,
+      "observed_folds": 1,
+      "top10_frequency": 0.3333333333333333
+     },
+     {
+      "feature": "inter_log1p_Attribute3_x_Attribute1",
+      "mean_normalized_importance": 0.02695877255429935,
+      "observed_folds": 1,
+      "top10_frequency": 0.3333333333333333
+     },
+     {
+      "feature": "inter_log1p_Attribute3_x_ratio_Attribute2_div_Attribute4",
+      "mean_normalized_importance": 0.024705204753486316,
+      "observed_folds": 1,
+      "top10_frequency": 0.3333333333333333
+     },
+     {
+      "feature": "inter_Attribute1_x_ratio_Attribute5_div_Attribute2",
+      "mean_normalized_importance": 0.02228416149369188,
+      "observed_folds": 1,
+      "top10_frequency": 0.3333333333333333
+     },
+     {
+      "feature": "Attribute8",
+      "mean_normalized_importance": 0.021105109947107865,
+      "observed_folds": 3,
+      "top10_frequency": 0.3333333333333333
+     },
+     {
+      "feature": "ratio_Attribute5_div_Attribute2",
+      "mean_normalized_importance": 0.020947528053706328,
+      "observed_folds": 3,
+      "top10_frequency": 0.3333333333333333
+     },
+     {
+      "feature": "Attribute12",
+      "mean_normalized_importance": 0.020162623752086342,
+      "observed_folds": 3,
+      "top10_frequency": 0.3333333333333333
+     },
+     {
+      "feature": "Attribute5",
+      "mean_normalized_importance": 0.01978453748950137,
+      "observed_folds": 3,
+      "top10_frequency": 0.3333333333333333
+     },
+     {
+      "feature": "inter_Attribute1_x_Attribute2",
+      "mean_normalized_importance": 0.02079202032895756,
+      "observed_folds": 1,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "inter_log1p_Attribute3_x_ratio_Attribute7_div_Attribute12",
+      "mean_normalized_importance": 0.0205411833608109,
+      "observed_folds": 1,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "log1p_Attribute6",
+      "mean_normalized_importance": 0.01958896531457194,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     }
+    ],
+    "production_feature_rule": "A feature is a stronger candidate when it is decision-time available, stable across CV folds, contractually obtainable, monitored for missingness/drift, and not merely important in one fit."
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-030\",\n  \"observed_evidence\": [\n    {\"statement\": \"The selection rule says to use the best tuned candidate only if mean training-CV ROC-AUC improves by at least 0.001, otherwise to prefer baseline.\", \"citation\": \"EXP-030 / evidence.selection_rule\"},\n    {\"statement\": \"Holdout ROC-AUC for the preselected recipe is 0.7943, with accuracy 0.745, F1 0.485, precision 0.615, recall 0.400 at threshold 0.5.\", \"citation\": \"EXP-030 / evidence.holdout_metrics\"},\n    {\"statement\": \"Holdout calibration metrics are Brier 0.1605, ECE(10) 0.0824 and log-loss 0.4927.\", \"citation\": \"EXP-030 / evidence.holdout_metrics\"},\n    {\"statement\": \"The holdout ROC-AUC bootstrap interval is 0.7180–0.8621 (400 draws, median 0.7931), so it is wide.\", \"citation\": \"EXP-030 / evidence.holdout_roc_auc_bootstrap_ci\"},\n    {\"statement\": \"The holdout is flagged as consumed.\", \"citation\": \"EXP-030 / evidence.holdout_consumed\"},\n    {\"statement\": \"CV feature stability was computed over 3 folds. Attribute1, Attribute3, log1p_Attribute3, Attribute2, log1p_Attribute2 and ratio_Attribute2_div_Attribute13 have top-10 frequency 1.0.\", \"citation\": \"EXP-030 / evidence.cv_feature_stability\"},\n    {\"statement\": \"Several interaction features appear in only 1 of 3 folds with top-10 frequency of 0.33 or 0.0. Examples are inter_Attribute1_x_Attribute11 and inter_Attribute1_x_log1p_Attribute16.\", \"citation\": \"EXP-030 / evidence.cv_feature_stability\"},\n    {\"statement\": \"Interaction features such as inter_Attribute1_x_log1p_Attribute2 and inter_Attribute1_x_Attribute8 rank high in the final-fit importances but do not appear in the CV stability list.\", \"citation\": \"EXP-030 / evidence.top_final_features; evidence.cv_feature_stability\"},\n    {\"statement\": \"The production feature rule is stated as a rule only. The bundle contains no per-feature decision-time or production-availability review.\", \"citation\": \"EXP-030 / evidence.production_feature_rule\"}\n  ],\n  \"interpretation\": \"Inference: the holdout result is a single, noisy discrimination estimate of roughly 0.79 AUC, and the interval is consistent with anything from about 0.72 to 0.86. The bundle cannot answer the first half of the question, whether optimization gave a meaningful CV gain. It contains no baseline or candidate CV scores, no CV deltas, and no record of whether the tuned candidate or the baseline was selected. The recipe name suggests a tuned candidate but does not prove it. The feature evidence shows only that a few raw and log features are stable importances across 3 folds, while many interactions are fold-specific and likely unstable. Importance is predictive and does not support any causal or business-meaning claim.\",\n  \"decision\": \"Do not claim that optimization produced a meaningful CV gain, because the evidence is absent. Treat EXP-030-C1 as a descriptive single-holdout estimate, not as validation of the tuning procedure. Do not approve any feature or the model for deployment. Retain EXP-030-C2 as a cautionary recommendation only. Hold pending a paired CV comparison.\",\n  \"risks_and_missing_evidence\": [\n    \"No baseline-vs-tuned CV scores or deltas are provided, so the selection rule's 0.001 gate cannot be checked (evidence.selection_rule has no accompanying results).\",\n    \"A 0.001 AUC threshold is tiny compared with likely fold-to-fold variance, so passing it would not indicate a meaningful gain. No CV variance or paired-difference uncertainty is reported.\",\n    \"No holdout baseline comparison is given, so it is unknown whether the preselected recipe beats the baseline on the holdout.\",\n    \"The holdout size and class counts are not reported. The bootstrap CI resamples only the holdout predictions and ignores training and tuning variance. The 400 draws are modest.\",\n    \"holdout_consumed=true does not show that the holdout was used exactly once or that the recipe was frozen before it was seen. A preselection audit trail is missing.\",\n    \"The 0.5 threshold gives recall 0.40, and no cost-aware threshold analysis is shown. ECE of 0.082 suggests miscalibration, and no calibration step or calibration-fit data is described.\",\n    \"The stability analysis uses only 3 folds, which is coarse. Interactions seen in 1 fold cannot be assessed for stability, and the final-fit top features differ from the CV-stable set.\",\n    \"Whether engineered features (ratios, log, interactions) and any fitted preprocessing were built strictly inside each training fold is not documented, so leakage cannot be ruled out.\",\n    \"The attributes are anonymized. No decision-time availability, contractual obtainability, missingness/drift monitoring, or fairness/legal review is documented for any feature, including top-ranked Attribute1.\",\n    \"Impurity-style importances from tree ensembles are biased toward high-cardinality or continuous and correlated features, which include many engineered derivatives here.\"\n  ],\n  \"challenges_to_claims\": [\n    {\"claim_id\": \"EXP-030-C1\", \"issue\": \"The statement is factually supported, but the empty limitations list is not. The claim omits the CI width, the missing holdout size, the missing baseline comparison, and the lack of any CV-gain evidence that the study question asks for. Citing it as the answer to the question would overreach.\", \"severity\": \"high\"},\n    {\"claim_id\": \"EXP-030-C1\", \"issue\": \"holdout_consumed=true does not establish a clean single-use, preselected protocol, and the bootstrap interval reflects only test-set sampling noise.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-030-C2\", \"issue\": \"The recommendation is reasonable, but the cited evidence (importances, 3-fold stability) cannot show decision-time or production availability. Those fields are absent, and production_feature_rule is a policy statement rather than a review result. No feature is cleared by this bundle.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-030-C2\", \"issue\": \"Many top final-fit features are interactions that are unstable or unobserved in CV. Their importance should not be read as signal, and importance must not be read as a causal effect.\", \"severity\": \"medium\"}\n  ],\n  \"next_experiment\": {\n    \"title\": \"Paired repeated-CV comparison of baseline vs extra_trees_C01 on training data only (no holdout access)\",\n    \"hypothesis\": \"extra_trees_C01 improves mean ROC-AUC over the baseline by more than fold-to-fold noise under repeated stratified CV, with engineered features fit inside folds.\",\n    \"success_gate\": \"Using 5x3 (or more) repeated stratified CV with identical splits, the mean paired ROC-AUC difference (tuned minus baseline) is at least 0.001, and the 95% interval of the paired difference (e.g. bootstrap or corrected resampled t) excludes 0. If the interval includes 0, the claim of a meaningful optimization gain is rejected and the baseline is preferred. Report per-fold scores, and report the number of top-10 appearances of each feature across all repeats.\",\n    \"why_smallest\": \"It uses only training data, so no new holdout is burned. It reuses the existing candidate and baseline, and it directly produces the missing CV-gain evidence and a stability check with more than 3 folds.\"\n  },\n  \"overall_confidence\": \"medium\"\n}",
+ "usage": {
+  "input_tokens": 4275,
+  "output_tokens": 3568
+ },
+ "finish_reason": "stop"
+}

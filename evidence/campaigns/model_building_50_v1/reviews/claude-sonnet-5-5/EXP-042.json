@@ -1,0 +1,545 @@
+{
+ "experiment_id": "EXP-042",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T21:14:04Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "Which columns violate the prediction-time contract or behave like suspicious target proxies?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-042-C1",
+    "evidence": [
+     "evidence.detector_canary_passed"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "The leakage detector caught its synthetic exact-target canary: True."
+   },
+   {
+    "claim_id": "EXP-042-C2",
+    "evidence": [
+     "evidence.declared_leakage_features",
+     "evidence.safe_vs_unsafe_training_cv"
+    ],
+    "kind": "decision",
+    "limitations": [
+     "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+    ],
+    "statement": "Declared decision-time exclusions for online_shoppers: ['PageValues']; their apparent training-CV AUC lift was +0.1968."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-042",
+   "dataset": "online_shoppers",
+   "kind": "leakage_audit",
+   "question": "Which columns violate the prediction-time contract or behave like suspicious target proxies?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-042-C1",
+     "evidence": [
+      "evidence.detector_canary_passed"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "The leakage detector caught its synthetic exact-target canary: True."
+    },
+    {
+     "claim_id": "EXP-042-C2",
+     "evidence": [
+      "evidence.declared_leakage_features",
+      "evidence.safe_vs_unsafe_training_cv"
+     ],
+     "kind": "decision",
+     "limitations": [
+      "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+     ],
+     "statement": "Declared decision-time exclusions for online_shoppers: ['PageValues']; their apparent training-CV AUC lift was +0.1968."
+    }
+   ],
+   "evidence": {
+    "detector_canary_passed": true,
+    "declared_leakage_features": [
+     "PageValues"
+    ],
+    "safe_vs_unsafe_training_cv": {
+     "apparent_auc_lift": 0.19680638838657394,
+     "safe": {
+      "elapsed_seconds": 0.3943687499995576,
+      "evaluations": 3,
+      "feature_count_mean": 16.0,
+      "feature_stability": [
+       {
+        "feature": "ProductRelated_Duration",
+        "mean_normalized_importance": 0.17366666666666666,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "ExitRates",
+        "mean_normalized_importance": 0.14688888888888887,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "ProductRelated",
+        "mean_normalized_importance": 0.13055555555555556,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "Administrative_Duration",
+        "mean_normalized_importance": 0.11111111111111112,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "BounceRates",
+        "mean_normalized_importance": 0.07455555555555556,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "Month",
+        "mean_normalized_importance": 0.06588888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "Informational_Duration",
+        "mean_normalized_importance": 0.05511111111111111,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "TrafficType",
+        "mean_normalized_importance": 0.05477777777777778,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "Region",
+        "mean_normalized_importance": 0.049777777777777775,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "Administrative",
+        "mean_normalized_importance": 0.041444444444444443,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "Browser",
+        "mean_normalized_importance": 0.023222222222222224,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "OperatingSystems",
+        "mean_normalized_importance": 0.020888888888888887,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "Informational",
+        "mean_normalized_importance": 0.019,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "Weekend",
+        "mean_normalized_importance": 0.013666666666666667,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "VisitorType",
+        "mean_normalized_importance": 0.01311111111111111,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "SpecialDay",
+        "mean_normalized_importance": 0.006333333333333333,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       }
+      ],
+      "fold_metrics": [
+       {
+        "accuracy": 0.8275538894095595,
+        "avg_precision": 0.2927514741862923,
+        "brier": 0.13318833821382103,
+        "ece_10": 0.07780474274267109,
+        "f1": 0.226890756302521,
+        "fit_seconds": 0.06120399999963411,
+        "log_loss": 0.4461281453633213,
+        "precision": 0.3698630136986301,
+        "recall": 0.16363636363636364,
+        "roc_auc": 0.7030034267284822,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.8322399250234301,
+        "avg_precision": 0.2784646783575879,
+        "brier": 0.13294673996783649,
+        "ece_10": 0.08436952056539769,
+        "f1": 0.16744186046511628,
+        "fit_seconds": 0.061629542000446236,
+        "log_loss": 0.4468775503950735,
+        "precision": 0.36,
+        "recall": 0.10909090909090909,
+        "roc_auc": 0.7141906873614191,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.8348968105065666,
+        "avg_precision": 0.3226107612603708,
+        "brier": 0.12804497785183885,
+        "ece_10": 0.08204415277006183,
+        "f1": 0.17757009345794392,
+        "fit_seconds": 0.06112504199882096,
+        "log_loss": 0.4475909709331936,
+        "precision": 0.3877551020408163,
+        "recall": 0.11515151515151516,
+        "roc_auc": 0.729479030033969,
+        "threshold": 0.5
+       }
+      ],
+      "folds": 3,
+      "metrics": {
+       "accuracy": {
+        "ci95_high": 0.8357707359252845,
+        "ci95_low": 0.8273563473677531,
+        "max": 0.8348968105065666,
+        "mean": 0.8315635416465188,
+        "min": 0.8275538894095595,
+        "std": 0.0037178950245588442
+       },
+       "avg_precision": {
+        "ci95_high": 0.3234330496493729,
+        "ci95_low": 0.2724515595534611,
+        "max": 0.3226107612603708,
+        "mean": 0.297942304601417,
+        "min": 0.2784646783575879,
+        "std": 0.022526155890736938
+       },
+       "brier": {
+        "ci95_high": 0.13467760472142284,
+        "ci95_low": 0.12810909930090805,
+        "max": 0.13318833821382103,
+        "mean": 0.13139335201116545,
+        "min": 0.12804497785183885,
+        "std": 0.002902292121970204
+       },
+       "ece_10": {
+        "ci95_high": 0.08517276941516147,
+        "ci95_low": 0.07763950797025893,
+        "max": 0.08436952056539769,
+        "mean": 0.0814061386927102,
+        "min": 0.07780474274267109,
+        "std": 0.0033285692778752397
+       },
+       "f1": {
+        "ci95_high": 0.22662478059617636,
+        "ci95_low": 0.15464369288754448,
+        "max": 0.226890756302521,
+        "mean": 0.19063423674186042,
+        "min": 0.16744186046511628,
+        "std": 0.031804821708015824
+       },
+       "log_loss": {
+        "ci95_high": 0.44769331051570094,
+        "ci95_low": 0.4460378006120246,
+        "max": 0.4475909709331936,
+        "mean": 0.44686555556386276,
+        "min": 0.4461281453633213,
+        "std": 0.0007314865473471791
+       },
+       "precision": {
+        "ci95_high": 0.38846082209996835,
+        "ci95_low": 0.35661792172632933,
+        "max": 0.3877551020408163,
+        "mean": 0.37253937191314884,
+        "min": 0.36,
+        "std": 0.01406977584374918
+       },
+       "recall": {
+        "ci95_high": 0.16312373200166133,
+        "ci95_low": 0.09546212658419725,
+        "max": 0.16363636363636364,
+        "mean": 0.1292929292929293,
+        "min": 0.10909090909090909,
+        "std": 0.02989625977161362
+       },
+       "roc_auc": {
+        "ci95_high": 0.7305974834646587,
+        "ci95_low": 0.7005179459512549,
+        "max": 0.729479030033969,
+        "mean": 0.7155577147079568,
+        "min": 0.7030034267284822,
+        "std": 0.013290634500354465
+       }
+      },
+      "model": "lightgbm",
+      "model_params": {},
+      "optimization": "baseline",
+      "repeats": 1,
+      "stage": "raw"
+     },
+     "unsafe": {
+      "elapsed_seconds": 0.4032068749984319,
+      "evaluations": 3,
+      "feature_count_mean": 17.0,
+      "feature_stability": [
+       {
+        "feature": "ExitRates",
+        "mean_normalized_importance": 0.14044444444444446,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "ProductRelated_Duration",
+        "mean_normalized_importance": 0.13766666666666666,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "ProductRelated",
+        "mean_normalized_importance": 0.11344444444444446,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "PageValues",
+        "mean_normalized_importance": 0.10222222222222221,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "Administrative_Duration",
+        "mean_normalized_importance": 0.09700000000000002,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "BounceRates",
+        "mean_normalized_importance": 0.07555555555555556,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "Month",
+        "mean_normalized_importance": 0.06733333333333333,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "TrafficType",
+        "mean_normalized_importance": 0.04377777777777778,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "Informational_Duration",
+        "mean_normalized_importance": 0.04455555555555555,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+       },
+       {
+        "feature": "Region",
+        "mean_normalized_importance": 0.04422222222222222,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+       },
+       {
+        "feature": "Administrative",
+        "mean_normalized_importance": 0.04311111111111111,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+       },
+       {
+        "feature": "Browser",
+        "mean_normalized_importance": 0.024333333333333332,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "Informational",
+        "mean_normalized_importance": 0.02011111111111111,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "OperatingSystems",
+        "mean_normalized_importance": 0.019666666666666666,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "VisitorType",
+        "mean_normalized_importance": 0.012999999999999998,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "Weekend",
+        "mean_normalized_importance": 0.009444444444444445,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "SpecialDay",
+        "mean_normalized_importance": 0.004111111111111111,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       }
+      ],
+      "fold_metrics": [
+       {
+        "accuracy": 0.8978444236176195,
+        "avg_precision": 0.7155648909224841,
+        "brier": 0.07534422011272417,
+        "ece_10": 0.03851948001146433,
+        "f1": 0.660436137071651,
+        "fit_seconds": 0.061847375000070315,
+        "log_loss": 0.25317466773499353,
+        "precision": 0.6794871794871795,
+        "recall": 0.6424242424242425,
+        "roc_auc": 0.925935631257139,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.8912839737582006,
+        "avg_precision": 0.6558048182478713,
+        "brier": 0.0867595819321741,
+        "ece_10": 0.0661333750378969,
+        "f1": 0.6081081081081081,
+        "fit_seconds": 0.060512334001032286,
+        "log_loss": 0.3310685826435478,
+        "precision": 0.6870229007633588,
+        "recall": 0.5454545454545454,
+        "roc_auc": 0.8993482496808439,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.9015009380863039,
+        "avg_precision": 0.7018591119853841,
+        "brier": 0.07999889407293394,
+        "ece_10": 0.05346070139498536,
+        "f1": 0.6464646464646465,
+        "fit_seconds": 0.061897749999843654,
+        "log_loss": 0.3035648637871952,
+        "precision": 0.7272727272727273,
+        "recall": 0.5818181818181818,
+        "roc_auc": 0.9118084283456093,
+        "threshold": 0.5
+       }
+      ],
+      "folds": 3,
+      "metrics": {
+       "accuracy": {
+        "ci95_high": 0.902734553314031,
+        "ci95_low": 0.8910183369940519,
+        "max": 0.9015009380863039,
+        "mean": 0.8968764451540414,
+        "min": 0.8912839737582006,
+        "std": 0.005176806617007978
+       },
+       "avg_precision": {
+        "ci95_high": 0.7265015006799855,
+        "ci95_low": 0.6556510467571739,
+        "max": 0.7155648909224841,
+        "mean": 0.6910762737185797,
+        "min": 0.6558048182478713,
+        "std": 0.03130525151368049
+       },
+       "brier": {
+        "ci95_high": 0.0871962836283517,
+        "ci95_low": 0.07420551378353642,
+        "max": 0.0867595819321741,
+        "mean": 0.08070089870594406,
+        "min": 0.07534422011272417,
+        "std": 0.005739967704248397
+       },
+       "ece_10": {
+        "ci95_high": 0.06834611534962039,
+        "ci95_low": 0.03706292227994401,
+        "max": 0.0661333750378969,
+        "mean": 0.0527045188147822,
+        "min": 0.03851948001146433,
+        "std": 0.013822469341751544
+       },
+       "f1": {
+        "ci95_high": 0.6689965323787184,
+        "ci95_low": 0.6076760620508854,
+        "max": 0.660436137071651,
+        "mean": 0.6383362972148019,
+        "min": 0.6081081081081081,
+        "std": 0.027094431161180235
+       },
+       "log_loss": {
+        "ci95_high": 0.34063828778408944,
+        "ci95_low": 0.25123378832640164,
+        "max": 0.3310685826435478,
+        "mean": 0.29593603805524554,
+        "min": 0.25317466773499353,
+        "std": 0.03950335088928049
+       },
+       "precision": {
+        "ci95_high": 0.7270001804838018,
+        "ci95_low": 0.6688550245317086,
+        "max": 0.7272727272727273,
+        "mean": 0.6979276025077552,
+        "min": 0.6794871794871795,
+        "std": 0.02569141947016355
+       },
+       "recall": {
+        "ci95_high": 0.6453333333333334,
+        "ci95_low": 0.5344646464646464,
+        "max": 0.6424242424242425,
+        "mean": 0.5898989898989899,
+        "min": 0.5454545454545454,
+        "std": 0.048987295567604644
+       },
+       "roc_auc": {
+        "ci95_high": 0.92741718363354,
+        "ci95_low": 0.8973110225555215,
+        "max": 0.925935631257139,
+        "mean": 0.9123641030945308,
+        "min": 0.8993482496808439,
+        "std": 0.013302398114280741
+       }
+      },
+      "model": "lightgbm",
+      "model_params": {},
+      "optimization": "baseline",
+      "repeats": 1,
+      "stage": "raw"
+     }
+    }
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-042\",\n  \"observed_evidence\": [\n    {\n      \"statement\": \"The leakage detector caught its synthetic exact-target canary (detector_canary_passed = true).\",\n      \"citation\": \"EXP-042 / evidence.detector_canary_passed\"\n    },\n    {\n      \"statement\": \"The only declared decision-time exclusion is PageValues.\",\n      \"citation\": \"EXP-042 / evidence.declared_leakage_features\"\n    },\n    {\n      \"statement\": \"The apparent AUC lift from adding PageValues is 0.1968 in training CV.\",\n      \"citation\": \"EXP-042 / evidence.safe_vs_unsafe_training_cv.apparent_auc_lift\"\n    },\n    {\n      \"statement\": \"Mean ROC AUC is 0.7156 for the safe model (16 features) and 0.9124 for the unsafe model (17 features). Both are LightGBM with default params, 3 folds, 1 repeat.\",\n      \"citation\": \"EXP-042 / evidence.safe_vs_unsafe_training_cv.safe.metrics.roc_auc.mean; evidence.safe_vs_unsafe_training_cv.unsafe.metrics.roc_auc.mean; evidence.safe_vs_unsafe_training_cv.safe.feature_count_mean; evidence.safe_vs_unsafe_training_cv.unsafe.feature_count_mean; evidence.safe_vs_unsafe_training_cv.safe.folds; evidence.safe_vs_unsafe_training_cv.safe.repeats\"\n    },\n    {\n      \"statement\": \"Mean average precision rises from 0.2979 to 0.6911, and mean log loss falls from 0.4469 to 0.2959, when PageValues is included.\",\n      \"citation\": \"EXP-042 / evidence.safe_vs_unsafe_training_cv.safe.metrics.avg_precision.mean; evidence.safe_vs_unsafe_training_cv.unsafe.metrics.avg_precision.mean; evidence.safe_vs_unsafe_training_cv.safe.metrics.log_loss.mean; evidence.safe_vs_unsafe_training_cv.unsafe.metrics.log_loss.mean\"\n    },\n    {\n      \"statement\": \"In the unsafe model, PageValues has mean normalized importance 0.1022 and top-10 frequency 1.0 across 3 folds.\",\n      \"citation\": \"EXP-042 / evidence.safe_vs_unsafe_training_cv.unsafe.feature_stability (feature = PageValues)\"\n    },\n    {\n      \"statement\": \"In the safe model, mean recall is 0.1293 and mean F1 is 0.1906 at threshold 0.5.\",\n      \"citation\": \"EXP-042 / evidence.safe_vs_unsafe_training_cv.safe.metrics.recall.mean; evidence.safe_vs_unsafe_training_cv.safe.metrics.f1.mean; evidence.safe_vs_unsafe_training_cv.safe.fold_metrics[*].threshold\"\n    },\n    {\n      \"statement\": \"The bundle-level limitations list is empty, and C1 has no limitations.\",\n      \"citation\": \"EXP-042 / limitations; claims[EXP-042-C1].limitations\"\n    }\n  ],\n  \"interpretation\": \"Inference, not fact: adding PageValues sharply raises predictive performance, which is consistent with it being a target proxy or a post-decision feature. A predictive lift alone cannot confirm leakage and says nothing about causality. The bundle contains no decision-time or production-availability documentation for PageValues, only a declaration. The canary shows the detector can flag an exact copy of the target. It does not show the detector can find partial proxies, and it does not show that the other 16 columns were cleared. The bundle has no per-column detector output (name, univariate AUC, uniqueness) for any column. The question asks which columns violate the contract, but the evidence names only one, and that one comes from a declaration rather than from detector findings. Non-leaky explanations for the lift, such as PageValues being a legitimate but strong in-session signal, are not excluded by this evidence.\",\n  \"decision\": \"Keep PageValues excluded from the safe feature set pending documented decision-time and production-availability review. Do not treat the remaining 16 columns as cleared, and do not approve any feature or the safe model for deployment. The safe-model AUC of about 0.716 is a training-CV figure and is not a validated estimate of production performance.\",\n  \"risks_and_missing_evidence\": [\n    \"No decision-time or production-availability review is recorded for any of the 17 columns, including PageValues. The exclusion is declared, not evidenced (evidence.declared_leakage_features).\",\n    \"There is no per-column detector report (name rule, univariate AUC, uniqueness), so the 'suspicious proxy' part of the question is unanswered. Only a canary result and one declared feature are present.\",\n    \"The canary tests only an exact-target copy (evidence.detector_canary_passed). Detection sensitivity for noisy or partial proxies is untested.\",\n    \"The remaining high-importance session aggregates (ExitRates, BounceRates, ProductRelated_Duration, ProductRelated, Administrative_Duration) have no timestamp or provenance review. If they are computed over the full session, they may also be post-decision, depending on the prediction moment, which the bundle does not state (evidence.safe_vs_unsafe_training_cv.safe.feature_stability).\",\n    \"Validation is thin: 3 folds, 1 repeat, and no stated stratification, grouping, or temporal split (evidence.safe_vs_unsafe_training_cv.safe.folds, .repeats). Month is a feature, and repeat visitors could appear across folds, so leakage through time or visitor identity is possible but untested. The 3-fold CIs are unreliable.\",\n    \"There is no held-out or time-forward evaluation. Both models are default-parameter LightGBM and training-CV only.\",\n    \"Importance shifts between the safe and unsafe models are descriptive and cannot show substitution or causal roles.\",\n    \"The safe model's recall (about 0.13) at a fixed 0.5 threshold suggests class imbalance. No base rate or majority-class baseline is in the bundle, so the practical meaning of 0.716 AUC is unclear.\",\n    \"The lift of 0.1968 is a point difference from a single paired 3-fold run. There is no uncertainty estimate on the difference itself.\"\n  ],\n  \"challenges_to_claims\": [\n    {\n      \"claim_id\": \"EXP-042-C1\",\n      \"issue\": \"The claim is true as stated, but a passed exact-target canary only demonstrates detection of the most trivial leak. It must not be read as evidence that the detector would surface partial proxies, or that undeclared columns are clean. The claim lists no limitations.\",\n      \"severity\": \"medium\"\n    },\n    {\n      \"claim_id\": \"EXP-042-C2\",\n      \"issue\": \"The claim is a decision resting on a declaration. The evidence shows a declared exclusion and a predictive lift, but no decision-time semantics or production-availability record. Its own limitation says only decision-time semantics can confirm leakage. The lift is correlational and cannot establish leakage or any causal role for PageValues.\",\n      \"severity\": \"high\"\n    },\n    {\n      \"claim_id\": \"EXP-042-C2\",\n      \"issue\": \"The 'apparent lift' comes from a single 3-fold, 1-repeat run with no paired uncertainty, no grouped or temporal split, and no holdout. Its size is not robustly estimated.\",\n      \"severity\": \"medium\"\n    },\n    {\n      \"claim_id\": \"EXP-042-C2\",\n      \"issue\": \"The claim implies the exclusion list is complete, but nothing in the bundle shows that other columns were audited. The question asks about all violating or proxy-like columns.\",\n      \"severity\": \"high\"\n    }\n  ],\n  \"next_experiment\": {\n    \"title\": \"Per-column prediction-time provenance audit with detector report for all 17 features\",\n    \"hypothesis\": \"Recorded provenance (computation timestamp and production availability relative to the prediction moment) will show PageValues as unavailable or ambiguous at prediction time, and all 16 retained columns as available at prediction time. This is a hypothesis to be tested, not an established fact.\",\n    \"success_gate\": \"Pre-registered: (1) the prediction moment is documented; (2) every one of the 17 columns has a provenance record (source, computation time relative to prediction, production availability) signed off by a data owner; (3) the detector emits a per-column report (name rule, univariate AUC, uniqueness) that includes a partial-proxy canary (e.g. the target with label noise) to test sensitivity. The hypothesis is falsified if any retained column is found unavailable or ambiguous at prediction time, or if the partial-proxy canary is missed. In either case, re-run the safe-vs-unsafe comparison with the offending columns removed.\",\n    \"why_smallest\": \"It requires no new modeling. It closes the main gap, the missing decision-time and availability evidence plus the absent per-column detector output, before any further CV or tuning is trusted.\"\n  },\n  \"overall_confidence\": \"low\"\n}",
+ "usage": {
+  "input_tokens": 7244,
+  "output_tokens": 4465
+ },
+ "finish_reason": "stop"
+}

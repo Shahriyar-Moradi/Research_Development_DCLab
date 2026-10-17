@@ -1,0 +1,87 @@
+{
+ "experiment_id": "EXP-032",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T21:07:54Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "Which columns violate the prediction-time contract or behave like suspicious target proxies?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-032-C1",
+    "evidence": [
+     "evidence.detector_canary_passed"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "The leakage detector caught its synthetic exact-target canary: True."
+   },
+   {
+    "claim_id": "EXP-032-C2",
+    "evidence": [
+     "evidence.declared_leakage_features",
+     "evidence.safe_vs_unsafe_training_cv"
+    ],
+    "kind": "decision",
+    "limitations": [
+     "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+    ],
+    "statement": "Declared decision-time exclusions for mushroom: none."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-032",
+   "dataset": "mushroom",
+   "kind": "leakage_audit",
+   "question": "Which columns violate the prediction-time contract or behave like suspicious target proxies?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-032-C1",
+     "evidence": [
+      "evidence.detector_canary_passed"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "The leakage detector caught its synthetic exact-target canary: True."
+    },
+    {
+     "claim_id": "EXP-032-C2",
+     "evidence": [
+      "evidence.declared_leakage_features",
+      "evidence.safe_vs_unsafe_training_cv"
+     ],
+     "kind": "decision",
+     "limitations": [
+      "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+     ],
+     "statement": "Declared decision-time exclusions for mushroom: none."
+    }
+   ],
+   "evidence": {
+    "detector_canary_passed": true,
+    "declared_leakage_features": [],
+    "safe_vs_unsafe_training_cv": null
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-032\",\n  \"observed_evidence\": [\n    {\n      \"statement\": \"The leakage detector caught its synthetic exact-target canary (value: true).\",\n      \"citation\": \"EXP-032 / evidence.detector_canary_passed\"\n    },\n    {\n      \"statement\": \"The declared decision-time leakage exclusion list for mushroom is empty.\",\n      \"citation\": \"EXP-032 / evidence.declared_leakage_features\"\n    },\n    {\n      \"statement\": \"The safe-vs-unsafe training CV evidence is null, so no comparison is available.\",\n      \"citation\": \"EXP-032 / evidence.safe_vs_unsafe_training_cv\"\n    },\n    {\n      \"statement\": \"The bundle-level limitations list is empty, even though claim EXP-032-C2 lists a limitation about name, univariate AUC, and uniqueness rules only proposing review.\",\n      \"citation\": \"EXP-032 / limitations\"\n    },\n    {\n      \"statement\": \"The evidence bundle contains no per-column detector outputs (flagged columns, univariate AUCs, uniqueness stats, name-rule hits).\",\n      \"citation\": \"EXP-032 / evidence\"\n    }\n  ],\n  \"interpretation\": \"Inference: the detector can flag an exact-target copy, which is a minimal sanity check. It says nothing about whether it can find subtler proxies, and nothing about which real mushroom columns are suspicious. The empty exclusion list is a declaration, not a finding. The package contains no evidence of a decision-time or production-availability review of any column, and the safe-vs-unsafe CV that would show whether excluding anything changes performance is null. The question (which columns violate the prediction-time contract or look like target proxies) is therefore unanswered. Hypothesis, not established: some mushroom columns (e.g., odor-type attributes) may be strong predictive proxies. This cannot be assessed from the supplied evidence, and whether they are available at prediction time depends on the deployment context, which is not documented. No causal conclusions can be drawn from predictive evidence.\",\n  \"decision\": \"Do not accept 'no decision-time exclusions' as a validated conclusion, and do not approve any feature for use. Treat EXP-032-C1 as supported but narrow, and EXP-032-C2 as an unsupported declaration pending per-column evidence and a semantic availability review. Recommendation: complete the audit before relying on it.\",\n  \"risks_and_missing_evidence\": [\n    \"No decision-time/production-availability review is documented for any column; the empty exclusion list has no stated basis.\",\n    \"safe_vs_unsafe_training_cv is null, so there is no evidence on whether excluding suspicious columns changes performance. The claim cites it as support, but it contains nothing.\",\n    \"No per-column detector outputs (univariate AUC, uniqueness, name-rule hits) are shown, so we cannot tell whether any column was flagged and dismissed or none was flagged.\",\n    \"The canary tests only an exact-target copy; sensitivity to near-proxies (noisy, partial, or transformed target encodings) is untested, so detector recall is unknown.\",\n    \"Mushroom is a dataset known for near-separable features; high predictive scores alone would not distinguish legitimate signal from leakage, so decision-time semantics are required, and these are missing.\",\n    \"The prediction-time contract (when, and by whom, the prediction is made, and which attributes are observable then) is not provided.\",\n    \"No validation design is described (split type, duplicate rows across folds, preprocessing fit inside folds), so duplicate or group leakage cannot be ruled out.\",\n    \"Bundle-level limitations are empty and contradict the claim-level limitation, so caveats are under-reported.\"\n  ],\n  \"challenges_to_claims\": [\n    {\n      \"claim_id\": \"EXP-032-C1\",\n      \"issue\": \"Factually supported (canary true), but a single exact-target canary only shows minimal detector function. It does not show sensitivity to partial proxies or that real columns were screened, so it should not be read as evidence that the dataset is clean.\",\n      \"severity\": \"medium\"\n    },\n    {\n      \"claim_id\": \"EXP-032-C2\",\n      \"issue\": \"The 'none' exclusion declaration cites safe_vs_unsafe_training_cv, which is null, and declared_leakage_features, which is just an empty list. Neither supports the absence of leakage. No semantic availability review is shown. The claim is labeled a decision, but there is no evidential basis for it.\",\n      \"severity\": \"high\"\n    }\n  ],\n  \"next_experiment\": {\n    \"title\": \"Per-column proxy screen plus availability review with leave-one-flagged-column-out CV\",\n    \"hypothesis\": \"If any mushroom column is a target proxy or unavailable at prediction time, then the detector will flag it (univariate AUC/uniqueness/name rules) and removing it will measurably reduce grouped-CV performance; if no column is flagged and no availability concern is documented, the empty exclusion list gains support.\",\n    \"success_gate\": \"Pre-registered before running: (1) emit per-column univariate AUC, uniqueness, and name-rule results for all columns; (2) for every flagged column, record a documented decision-time/production-availability determination from the data owner; (3) populate safe_vs_unsafe_training_cv with non-null CV metrics (with fold variance) for the full vs. flagged-removed feature sets using deduplicated, leakage-safe splits; (4) also run a noisy-proxy canary (e.g., target copy with a fixed fraction of labels flipped) and require it to be flagged. The gate fails if any step is missing, a flagged column lacks an availability determination, or the noisy canary is not detected.\",\n    \"why_smallest\": \"It reuses the existing detector and CV pipeline, adds only per-column outputs, one weaker canary, and one ablation over flagged columns, rather than building new models or a broader audit.\"\n  },\n  \"overall_confidence\": \"high\"\n}",
+ "usage": {
+  "input_tokens": 1460,
+  "output_tokens": 2007
+ },
+ "finish_reason": "stop"
+}

@@ -37,7 +37,10 @@ DECISIONS = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions"
 SOURCES = {  # name: folders copied as they are (the workspace goes through storage.backup)
     "lake_bronze": [ROOT / "lake" / "bronze"],
     "openml_profiles": [ROOT / "data" / "downloads" / "openml"],
-    "decision_sets": [DECISIONS / "generated_v1", DECISIONS / "workflow_v1"],
+    "decision_sets": [DECISIONS / "generated_v1", DECISIONS / "generated_images_v1", DECISIONS / "workflow_v1"],
+    # 29.18 (the owner: every judgment with all its details, permanently): the live runs whole, their requests, the full
+    # replies (judgments/, answers/), the judge's ledgers; results are never edited, a re-run is a new folder
+    "live_tests": [ROOT / "agent_runs" / "live_tests"],
 }
 README = """# DCLab's training records
 

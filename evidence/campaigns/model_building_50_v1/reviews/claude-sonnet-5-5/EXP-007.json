@@ -1,0 +1,533 @@
+{
+ "experiment_id": "EXP-007",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T20:54:06Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "Which columns violate the prediction-time contract or behave like suspicious target proxies?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-007-C1",
+    "evidence": [
+     "evidence.detector_canary_passed"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "The leakage detector caught its synthetic exact-target canary: True."
+   },
+   {
+    "claim_id": "EXP-007-C2",
+    "evidence": [
+     "evidence.declared_leakage_features",
+     "evidence.safe_vs_unsafe_training_cv"
+    ],
+    "kind": "decision",
+    "limitations": [
+     "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+    ],
+    "statement": "Declared decision-time exclusions for bank_marketing: ['duration']; their apparent training-CV AUC lift was +0.1842."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-007",
+   "dataset": "bank_marketing",
+   "kind": "leakage_audit",
+   "question": "Which columns violate the prediction-time contract or behave like suspicious target proxies?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-007-C1",
+     "evidence": [
+      "evidence.detector_canary_passed"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "The leakage detector caught its synthetic exact-target canary: True."
+    },
+    {
+     "claim_id": "EXP-007-C2",
+     "evidence": [
+      "evidence.declared_leakage_features",
+      "evidence.safe_vs_unsafe_training_cv"
+     ],
+     "kind": "decision",
+     "limitations": [
+      "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+     ],
+     "statement": "Declared decision-time exclusions for bank_marketing: ['duration']; their apparent training-CV AUC lift was +0.1842."
+    }
+   ],
+   "evidence": {
+    "detector_canary_passed": true,
+    "declared_leakage_features": [
+     "duration"
+    ],
+    "safe_vs_unsafe_training_cv": {
+     "apparent_auc_lift": 0.18424053147044717,
+     "safe": {
+      "elapsed_seconds": 0.3620682090004266,
+      "evaluations": 3,
+      "feature_count_mean": 15.0,
+      "feature_stability": [
+       {
+        "feature": "balance",
+        "mean_normalized_importance": 0.2554444444444444,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "age",
+        "mean_normalized_importance": 0.16966666666666666,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "day_of_week",
+        "mean_normalized_importance": 0.15133333333333335,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "month",
+        "mean_normalized_importance": 0.07877777777777778,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "job",
+        "mean_normalized_importance": 0.07422222222222223,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "campaign",
+        "mean_normalized_importance": 0.0641111111111111,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "pdays",
+        "mean_normalized_importance": 0.058666666666666666,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "education",
+        "mean_normalized_importance": 0.03311111111111111,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "marital",
+        "mean_normalized_importance": 0.025111111111111112,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+       },
+       {
+        "feature": "housing",
+        "mean_normalized_importance": 0.021333333333333333,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+       },
+       {
+        "feature": "contact",
+        "mean_normalized_importance": 0.02111111111111111,
+        "observed_folds": 3,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "poutcome",
+        "mean_normalized_importance": 0.019666666666666666,
+        "observed_folds": 3,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "previous",
+        "mean_normalized_importance": 0.01677777777777778,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "loan",
+        "mean_normalized_importance": 0.009555555555555555,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "default",
+        "mean_normalized_importance": 0.0011111111111111111,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       }
+      ],
+      "fold_metrics": [
+       {
+        "accuracy": 0.8819119025304593,
+        "avg_precision": 0.3257372057171791,
+        "brier": 0.09660339502529411,
+        "ece_10": 0.06296426518356268,
+        "f1": 0.2840909090909091,
+        "fit_seconds": 0.0671198749987525,
+        "log_loss": 0.37333335475133916,
+        "precision": 0.49019607843137253,
+        "recall": 0.2,
+        "roc_auc": 0.7212738853503184,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.8791002811621368,
+        "avg_precision": 0.2952599381248807,
+        "brier": 0.09980698721122898,
+        "ece_10": 0.06115803286793543,
+        "f1": 0.26285714285714284,
+        "fit_seconds": 0.04970741599936446,
+        "log_loss": 0.37971812987122566,
+        "precision": 0.46,
+        "recall": 0.184,
+        "roc_auc": 0.719524416135881,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.8799249530956847,
+        "avg_precision": 0.2988078573900619,
+        "brier": 0.10049106140772662,
+        "ece_10": 0.06671687361457446,
+        "f1": 0.3118279569892473,
+        "fit_seconds": 0.05008549999911338,
+        "log_loss": 0.3803877816058499,
+        "precision": 0.46774193548387094,
+        "recall": 0.23387096774193547,
+        "roc_auc": 0.6981285528388467,
+        "threshold": 0.5
+       }
+      ],
+      "folds": 3,
+      "metrics": {
+       "accuracy": {
+        "ci95_high": 0.881947884234751,
+        "ci95_low": 0.8786768736241028,
+        "max": 0.8819119025304593,
+        "mean": 0.8803123789294269,
+        "min": 0.8791002811621368,
+        "std": 0.0014452950433008476
+       },
+       "avg_precision": {
+        "ci95_high": 0.32546163275416506,
+        "ci95_low": 0.28774170140058275,
+        "max": 0.3257372057171791,
+        "mean": 0.3066016670773739,
+        "min": 0.2952599381248807,
+        "std": 0.01666654019449357
+       },
+       "brier": {
+        "ci95_high": 0.10131573856299873,
+        "ci95_low": 0.0966185571998344,
+        "max": 0.10049106140772662,
+        "mean": 0.09896714788141657,
+        "min": 0.09660339502529411,
+        "std": 0.0020754481564709813
+       },
+       "ece_10": {
+        "ci95_high": 0.06682189029260487,
+        "ci95_low": 0.06040422415144351,
+        "max": 0.06671687361457446,
+        "mean": 0.06361305722202419,
+        "min": 0.06115803286793543,
+        "std": 0.0028356438322719325
+       },
+       "f1": {
+        "ci95_high": 0.3140478375698526,
+        "ci95_low": 0.2584695017216803,
+        "max": 0.3118279569892473,
+        "mean": 0.28625866964576646,
+        "min": 0.26285714285714284,
+        "std": 0.024557270788051287
+       },
+       "log_loss": {
+        "ci95_high": 0.38221954782797984,
+        "ci95_low": 0.37340662965762994,
+        "max": 0.3803877816058499,
+        "mean": 0.3778130887428049,
+        "min": 0.37333335475133916,
+        "std": 0.0038939852127533228
+       },
+       "precision": {
+        "ci95_high": 0.49039413414706384,
+        "ci95_low": 0.45489787512976515,
+        "max": 0.49019607843137253,
+        "mean": 0.4726460046384145,
+        "min": 0.46,
+        "std": 0.01568401124912913
+       },
+       "recall": {
+        "ci95_high": 0.23477171459727608,
+        "ci95_low": 0.1771422638973476,
+        "max": 0.23387096774193547,
+        "mean": 0.20595698924731184,
+        "min": 0.184,
+        "std": 0.025463555261367836
+       },
+       "roc_auc": {
+        "ci95_high": 0.7275593734912061,
+        "ci95_low": 0.6983918627254914,
+        "max": 0.7212738853503184,
+        "mean": 0.7129756181083488,
+        "min": 0.6981285528388467,
+        "std": 0.01288765575931893
+       }
+      },
+      "model": "lightgbm",
+      "model_params": {},
+      "optimization": "baseline",
+      "repeats": 1,
+      "stage": "raw"
+     },
+     "unsafe": {
+      "elapsed_seconds": 0.3604031250015396,
+      "evaluations": 3,
+      "feature_count_mean": 16.0,
+      "feature_stability": [
+       {
+        "feature": "duration",
+        "mean_normalized_importance": 0.2007777777777778,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "balance",
+        "mean_normalized_importance": 0.16277777777777777,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "age",
+        "mean_normalized_importance": 0.13255555555555557,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "day_of_week",
+        "mean_normalized_importance": 0.13255555555555557,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "month",
+        "mean_normalized_importance": 0.0908888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "job",
+        "mean_normalized_importance": 0.05088888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "pdays",
+        "mean_normalized_importance": 0.05088888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "campaign",
+        "mean_normalized_importance": 0.04466666666666667,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "education",
+        "mean_normalized_importance": 0.029,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "contact",
+        "mean_normalized_importance": 0.021666666666666667,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+       },
+       {
+        "feature": "marital",
+        "mean_normalized_importance": 0.021444444444444443,
+        "observed_folds": 3,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "poutcome",
+        "mean_normalized_importance": 0.020666666666666667,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "housing",
+        "mean_normalized_importance": 0.01711111111111111,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "previous",
+        "mean_normalized_importance": 0.015111111111111112,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "loan",
+        "mean_normalized_importance": 0.00811111111111111,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "default",
+        "mean_normalized_importance": 0.000888888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       }
+      ],
+      "fold_metrics": [
+       {
+        "accuracy": 0.8884723523898782,
+        "avg_precision": 0.5423807093339138,
+        "brier": 0.07565017909693812,
+        "ece_10": 0.0499173912638387,
+        "f1": 0.41379310344827586,
+        "fit_seconds": 0.054188292000617366,
+        "log_loss": 0.2475061414534819,
+        "precision": 0.5384615384615384,
+        "recall": 0.336,
+        "roc_auc": 0.9146751592356688,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.8865979381443299,
+        "avg_precision": 0.472177156608149,
+        "brier": 0.08519995096064309,
+        "ece_10": 0.06176586460525201,
+        "f1": 0.4097560975609756,
+        "fit_seconds": 0.05329604100006691,
+        "log_loss": 0.3008788249376267,
+        "precision": 0.525,
+        "recall": 0.336,
+        "roc_auc": 0.893104033970276,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.8855534709193246,
+        "avg_precision": 0.4908209635596231,
+        "brier": 0.08399925871683611,
+        "ece_10": 0.05933867930418813,
+        "f1": 0.42452830188679247,
+        "fit_seconds": 0.05256358299993735,
+        "log_loss": 0.2957962782450255,
+        "precision": 0.5113636363636364,
+        "recall": 0.3629032258064516,
+        "roc_auc": 0.883869255530443,
+        "threshold": 0.5
+       }
+      ],
+      "folds": 3,
+      "metrics": {
+       "accuracy": {
+        "ci95_high": 0.888548205379748,
+        "ci95_low": 0.8852009689226072,
+        "max": 0.8884723523898782,
+        "mean": 0.8868745871511776,
+        "min": 0.8855534709193246,
+        "std": 0.0014789754103864264
+       },
+       "avg_precision": {
+        "ci95_high": 0.5429439659515386,
+        "ci95_low": 0.4606419203829188,
+        "max": 0.5423807093339138,
+        "mean": 0.5017929431672287,
+        "min": 0.472177156608149,
+        "std": 0.03636513379890266
+       },
+       "brier": {
+        "ci95_high": 0.08750275578545619,
+        "ci95_low": 0.07573017006415536,
+        "max": 0.08519995096064309,
+        "mean": 0.08161646292480577,
+        "min": 0.07565017909693812,
+        "std": 0.005201713419834937
+       },
+       "ece_10": {
+        "ci95_high": 0.06408985213400889,
+        "ci95_low": 0.049924771314843665,
+        "max": 0.06176586460525201,
+        "mean": 0.05700731172442628,
+        "min": 0.0499173912638387,
+        "std": 0.006258836651049375
+       },
+       "f1": {
+        "ci95_high": 0.42466565721036315,
+        "ci95_low": 0.4073860113869994,
+        "max": 0.42452830188679247,
+        "mean": 0.4160258342986813,
+        "min": 0.4097560975609756,
+        "std": 0.007635006250729919
+       },
+       "log_loss": {
+        "ci95_high": 0.3147278781435925,
+        "ci95_low": 0.24805961828049694,
+        "max": 0.3008788249376267,
+        "mean": 0.2813937482120447,
+        "min": 0.2475061414534819,
+        "std": 0.02945735034058327
+       },
+       "precision": {
+        "ci95_high": 0.540273912752634,
+        "ci95_low": 0.5096095371308159,
+        "max": 0.5384615384615384,
+        "mean": 0.524941724941725,
+        "min": 0.5113636363636364,
+        "std": 0.013549045040654498
+       },
+       "recall": {
+        "ci95_high": 0.36254451612903227,
+        "ci95_low": 0.32739096774193555,
+        "max": 0.3629032258064516,
+        "mean": 0.3449677419354839,
+        "min": 0.336,
+        "std": 0.01553258466142412
+       },
+       "roc_auc": {
+        "ci95_high": 0.9151060237427557,
+        "ci95_low": 0.8793262754148361,
+        "max": 0.9146751592356688,
+        "mean": 0.8972161495787959,
+        "min": 0.883869255530443,
+        "std": 0.015809270914791895
+       }
+      },
+      "model": "lightgbm",
+      "model_params": {},
+      "optimization": "baseline",
+      "repeats": 1,
+      "stage": "raw"
+     }
+    }
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-007\",\n  \"observed_evidence\": [\n    {\n      \"statement\": \"The leakage detector's synthetic exact-target canary was caught (true).\",\n      \"citation\": \"EXP-007 / evidence.detector_canary_passed\"\n    },\n    {\n      \"statement\": \"The only declared decision-time leakage feature is 'duration'.\",\n      \"citation\": \"EXP-007 / evidence.declared_leakage_features\"\n    },\n    {\n      \"statement\": \"The apparent training-CV AUC lift from including the declared feature was about 0.1842.\",\n      \"citation\": \"EXP-007 / evidence.safe_vs_unsafe_training_cv.apparent_auc_lift\"\n    },\n    {\n      \"statement\": \"Mean ROC AUC was about 0.7130 for the safe feature set (15 features) and about 0.8972 for the unsafe set (16 features).\",\n      \"citation\": \"EXP-007 / evidence.safe_vs_unsafe_training_cv.safe.metrics.roc_auc.mean; EXP-007 / evidence.safe_vs_unsafe_training_cv.unsafe.metrics.roc_auc.mean; EXP-007 / evidence.safe_vs_unsafe_training_cv.safe.feature_count_mean; EXP-007 / evidence.safe_vs_unsafe_training_cv.unsafe.feature_count_mean\"\n    },\n    {\n      \"statement\": \"In the unsafe model, 'duration' had the highest mean normalized importance (about 0.2008) and appeared in the top 10 in all 3 folds.\",\n      \"citation\": \"EXP-007 / evidence.safe_vs_unsafe_training_cv.unsafe.feature_stability[0]\"\n    },\n    {\n      \"statement\": \"The validation design is 3 folds, 1 repeat, LightGBM with default params (model_params is empty), on the baseline/raw stage.\",\n      \"citation\": \"EXP-007 / evidence.safe_vs_unsafe_training_cv.safe.folds; EXP-007 / evidence.safe_vs_unsafe_training_cv.safe.repeats; EXP-007 / evidence.safe_vs_unsafe_training_cv.safe.model_params; EXP-007 / evidence.safe_vs_unsafe_training_cv.safe.stage\"\n    },\n    {\n      \"statement\": \"The safe-model AUC 95% CI spans roughly 0.698 to 0.728, and the unsafe-model AUC CI spans roughly 0.879 to 0.915.\",\n      \"citation\": \"EXP-007 / evidence.safe_vs_unsafe_training_cv.safe.metrics.roc_auc; EXP-007 / evidence.safe_vs_unsafe_training_cv.unsafe.metrics.roc_auc\"\n    },\n    {\n      \"statement\": \"Safe-model importances put month, day_of_week, pdays, contact, poutcome and previous among the retained features. Several of these were in the top 10 in all folds, e.g. day_of_week (mean normalized importance about 0.151) and month (about 0.079).\",\n      \"citation\": \"EXP-007 / evidence.safe_vs_unsafe_training_cv.safe.feature_stability\"\n    },\n    {\n      \"statement\": \"The bundle-level limitations list is empty.\",\n      \"citation\": \"EXP-007 / limitations\"\n    }\n  ],\n  \"interpretation\": \"Inference, not fact: the large AUC gap when 'duration' is added is consistent with the declared exclusion being warranted and with 'duration' acting as a strong predictive signal. The package does not, however, show that 'duration' was confirmed unavailable at prediction time. That is a declaration. It also does not show that the 15 'safe' columns were reviewed for decision-time availability. The canary result shows only that the detector can catch an exact-target copy. It says nothing about the detector's sensitivity to partial or near proxies, or to timing-based leakage. The question asks which columns violate the contract or look like proxies, and the evidence addresses only one pre-declared column. No detector output (name, univariate AUC, uniqueness rules) for the other columns is included. Predictive lift is not evidence of a causal effect.\",\n  \"decision\": \"Keep 'duration' excluded from any prediction-time model pending confirmation of its decision-time semantics. Do not treat the 15-feature set as cleared or approve any feature: no decision-time or production-availability review for the remaining columns is documented in the evidence. Treat EXP-007 as a partial audit: it supports the 'duration' exclusion but does not answer the full question.\",\n  \"risks_and_missing_evidence\": [\n    \"Missing: per-column detector output (name-pattern, univariate AUC, uniqueness/cardinality flags) for all 16 columns. Only the declared feature and a canary are reported, so the claim of a complete audit is unsupported.\",\n    \"Missing: a decision-time and production-availability table for the 15 retained columns. Candidates needing timing review are month, day_of_week, contact, pdays, previous and poutcome. month and day_of_week carry high importance, and their meaning relative to prediction time is not documented.\",\n    \"The canary tests only an exact-target copy. It gives no evidence of recall for noisy, partial, or temporally leaked proxies, so a passing canary should not be read as a clean bill for the other columns.\",\n    \"Validation is thin: 3 folds, 1 repeat, a single default-parameter model, and default thresholds. The CI half-widths are not negligible relative to the safe-model AUC. No split strategy (stratification, grouping by customer/entity, or time-ordering) is stated, so duplicate-entity or temporal leakage across folds cannot be ruled out.\",\n    \"Feature importance is a model-specific, within-fit diagnostic. It does not establish proxy behavior or the absence of leakage, and it is unstable with correlated features. Equal importance ranks between safe and unsafe models do not clear any column.\",\n    \"The 'apparent' lift comes from training-CV only. There is no holdout or time-based evaluation to check whether the safe-set AUC is itself inflated by an unreviewed column.\",\n    \"Claim C2 is typed 'decision' but mixes a declaration with a metric. Its stated limitation (only decision-time semantics can confirm leakage) means the exclusion rests on out-of-band semantic knowledge that is not recorded in the bundle. The bundle-level limitations list is empty despite these gaps.\",\n    \"Dataset size, class balance, and the positive rate are not in the evidence, so the precision/recall figures and the AUC CIs cannot be put in context.\"\n  ],\n  \"challenges_to_claims\": [\n    {\n      \"claim_id\": \"EXP-007-C1\",\n      \"issue\": \"The canary pass is true as stated, but it is easily over-read. It validates the detector only against an exact-target copy and carries no limitations. It does not show the detector would flag partial proxies, post-outcome fields, or time-shifted features among the real columns.\",\n      \"severity\": \"medium\"\n    },\n    {\n      \"claim_id\": \"EXP-007-C2\",\n      \"issue\": \"The +0.1842 AUC lift is reported as an apparent training-CV effect, which is fine. But the exclusion of 'duration' is a declaration without recorded decision-time evidence (such as a data dictionary or event timestamp). The claim also does not show that other columns were examined, so it should not be read as an answer to 'which columns violate the contract'. The lift reflects predictive association only, not causation.\",\n      \"severity\": \"high\"\n    },\n    {\n      \"claim_id\": \"EXP-007-C2\",\n      \"issue\": \"The effective sample for the AUC comparison is 3 folds with 1 repeat. The statement gives a point estimate without the CI, and the safe and unsafe CIs, while non-overlapping, are not paired or repeated.\",\n      \"severity\": \"low\"\n    }\n  ],\n  \"next_experiment\": {\n    \"title\": \"Full-column availability audit plus drop-one-group ablation on the safe set with fixed repeated folds\",\n    \"hypothesis\": \"No retained column in the 15-feature safe set is a hidden decision-time violation or near-target proxy. Specifically, each has a documented availability at prediction time, and none shows a single-column AUC or drop-column effect that is an outlier. This is falsified if any retained column lacks a confirmed pre-decision timestamp or fails the quantitative gate.\",\n    \"success_gate\": \"Pre-registered before running: (1) 16 of 16 columns have a documented availability status (available at decision time / not available / unknown) confirmed by the data owner, with zero 'unknown' for the columns kept; (2) the detector outputs name, univariate AUC, and uniqueness flags for every column; (3) using identical stratified folds with at least 5 repeats, no retained column has a univariate AUC above 0.80 or a leave-one-feature-out safe-model AUC drop above 0.05 without a documented availability justification; (4) the split strategy (stratified, entity-grouped, or time-ordered) is recorded. Fail if any column is unknown or breaches (3). Thresholds are proposed here and are not observed values.\",\n    \"why_smallest\": \"It reuses the existing LightGBM baseline and fold framework, changes only the features (drop one at a time), and adds a documentation step. It needs no new modeling, tuning, or models, and it directly targets the unanswered part of the question.\"\n  },\n  \"overall_confidence\": \"medium\"\n}",
+ "usage": {
+  "input_tokens": 6994,
+  "output_tokens": 4260
+ },
+ "finish_reason": "stop"
+}

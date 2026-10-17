@@ -136,7 +136,7 @@ def harvest(root: Path = WORKSPACES, lake: Path = LAKE, database: bool = True) -
                 seen.add(key)
                 requests.append({**r, "found_in": _key(path.parent, root)})
     (out / "model_requests.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False, default=str) + "\n" for r in requests), encoding="utf-8")
-    views = _views(records, runs, Path(lake))
+    views = _views(records, runs, Path(lake), labels)
     manifest = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "ledgers": len(ledgers), "decisions": len(records),
                 "labels": len(labels), "outcomes": len(outcomes), "twin_runs": len(runs), "model_requests": len(requests),
                 "decisions_by_point": dict(Counter(r.get("point") for r in records.values()).most_common()),
@@ -146,9 +146,42 @@ def harvest(root: Path = WORKSPACES, lake: Path = LAKE, database: bool = True) -
     return manifest
 
 
-def _views(records: dict[str, dict[str, Any]], runs: dict[str, Path], lake: Path) -> dict[str, int]:
+SILVER_BAR = 0.8  # the judge's measured accuracy on a point below which its verdicts there are kept but not usable
+
+
+def judge_accuracy(results: Optional[Path] = None) -> dict[str, float]:
+    """29.18: the judge's accuracy per point, measured blind on homework with known truth (the latest judge run of
+    ``evidence/campaigns/students_exam_v1``); a point it was never measured on is absent."""
+    folder = results or ROOT / "evidence" / "campaigns" / "students_exam_v1" / "results"
+    runs = []
+    for path in sorted(folder.glob("SEX-*.json")) if folder.is_dir() else []:
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+        except ValueError:
+            continue
+        if doc.get("kind_of_run") == "judge":
+            runs.append(doc)
+    latest = runs[-1] if runs else {}
+    out: dict[str, float] = {}
+    for p, j in (latest.get("judge") or {}).items():
+        if j.get("accuracy") is not None:
+            out[p] = float(j["accuracy"])
+        for confidence, c in (j.get("by_confidence") or {}).items():  # "point|high": its verdicts at that confidence, when 10 or more were measured
+            if int(c.get("judged") or 0) >= MIN_MEASURED:
+                out[f"{p}|{confidence}"] = round(int(c.get("right") or 0) / int(c["judged"]), 4)
+    return out
+
+
+MIN_MEASURED = 10  # verdicts at one confidence on one point before that confidence gets its own weight
+
+
+def _views(records: dict[str, dict[str, Any]], runs: dict[str, Path], lake: Path,
+           labels: Optional[dict[str, dict[str, Any]]] = None) -> dict[str, int]:
     """Each answer of each recorded decision under its answerer, in the answers' layout (source ``sessions``; twin steps
-    under ``twin``), rebuilt whole."""
+    under ``twin``), rebuilt whole. 29.18: Claude's verdicts as the blind judge of real past decisions
+    (``decision_labeler``, source ``model``) under ``claude/sessions/<point>/judge.jsonl``: silver (the owner's rule of
+    2026-10-17), weighted by the judge's measured accuracy on the point, usable for training only at or above
+    ``SILVER_BAR``, removable in one step (those files)."""
     base = lake / "bronze" / "answers"
     for answerer in ("dclab-rules", "dclab-classifiers", "people", "claude"):
         for source in ("sessions", "twin"):
@@ -175,6 +208,32 @@ def _views(records: dict[str, dict[str, Any]], runs: dict[str, Path], lake: Path
                    "at": r.get("at"), "workspace": (r.get("found_in") or [None])[0], "consent": r.get("consent"), "use": use}
             files[base / answerer / "sessions" / str(r.get("point")) / "all.jsonl"].append(json.dumps(row, ensure_ascii=False, default=str))
             counts[answerer] += 1
+    measured = judge_accuracy()
+    for x in (labels or {}).values():
+        if x.get("source") != "model" or "claude" not in str(x.get("by")):
+            continue
+        r = records.get(str(x.get("record")))
+        if r is None:
+            continue
+        ref = str((x.get("evidence") or {}).get("ref") or "")
+        confidence = ref.split(":")[0] if ":" in ref else None
+        accuracy = measured.get(f"{x.get('point')}|{confidence}", measured.get(str(x.get("point"))))  # by its own confidence when measured
+        claude_served = any("claude" in str(m) for m in (r.get("served_models") or {}).values())
+        self_judged = claude_served and (r.get("used") == "model_role" or any(a.get("by") == "model_role" for a in r.get("answers") or []))
+        row = {"sample_id": r.get("id"), "source": "sessions", "decision_point": x.get("point"), "answerer": "claude", "role": "judge",
+               "answered_by": x.get("by"), "value": x.get("value"), "confidence": ref.split(":")[0] if ":" in ref else None,
+               "reason": ref.split(":", 1)[1].strip() if ":" in ref else ref, "draw_weight": x.get("weight"), "state": r.get("state"),
+               "options": r.get("options"), "value_used": r.get("value_used"), "used": r.get("used"), "at": x.get("at"),
+               "workspace": (r.get("found_in") or [None])[0], "consent": r.get("consent"), "use": "silver",
+               "silver_weight": accuracy, "usable": accuracy is not None and accuracy >= SILVER_BAR and not self_judged,
+               "self_judged": self_judged,
+               "why": ("the judge is the model that answered this decision: kept, not usable" if self_judged
+                       else f"weighted by the judge's measured accuracy on this point at {confidence} confidence"
+                       if f"{x.get('point')}|{confidence}" in measured
+                       else "weighted by the judge's measured accuracy on this point" if accuracy is not None
+                       else "the judge was never measured on this point: kept, not usable")}
+        files[base / "claude" / "sessions" / str(x.get("point")) / "judge.jsonl"].append(json.dumps(row, ensure_ascii=False, default=str))
+        counts["claude (judge, silver)"] += 1
     for name, folder in runs.items():
         for step in _lines(folder / "steps.jsonl"):
             for arm, answerer, use in (("ai_first", "claude", "eval_only"), ("system", "dclab-rules", "train")):

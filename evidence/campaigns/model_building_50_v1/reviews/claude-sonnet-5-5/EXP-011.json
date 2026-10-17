@@ -1,0 +1,195 @@
+{
+ "experiment_id": "EXP-011",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T20:56:40Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-011-C1",
+    "evidence": [
+     "evidence.source_rows",
+     "evidence.feature_count",
+     "evidence.positive_rate_train"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "breast_cancer has 569 source rows, 30 cached features, and a training positive rate of 0.374."
+   },
+   {
+    "claim_id": "EXP-011-C2",
+    "evidence": [
+     "evidence.feature_profiles"
+    ],
+    "kind": "risk",
+    "limitations": [
+     "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+     "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+    ],
+    "statement": "1 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-011",
+   "dataset": "breast_cancer",
+   "kind": "data_understanding",
+   "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-011-C1",
+     "evidence": [
+      "evidence.source_rows",
+      "evidence.feature_count",
+      "evidence.positive_rate_train"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "breast_cancer has 569 source rows, 30 cached features, and a training positive rate of 0.374."
+    },
+    {
+     "claim_id": "EXP-011-C2",
+     "evidence": [
+      "evidence.feature_profiles"
+     ],
+     "kind": "risk",
+     "limitations": [
+      "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+      "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+     ],
+     "statement": "1 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+    }
+   ],
+   "evidence": {
+    "source_rows": 569,
+    "feature_count": 30,
+    "positive_rate_train": 0.37362637362637363,
+    "feature_profiles": [
+     {
+      "dtype": "float64",
+      "feature": "radius1",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.04221900084135344,
+      "top_value_frequency": 0.008791208791208791,
+      "unique_count": 375,
+      "unique_ratio": 0.8241758241758241
+     },
+     {
+      "dtype": "float64",
+      "feature": "texture1",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.12120255025622828,
+      "top_value_frequency": 0.006593406593406593,
+      "unique_count": 396,
+      "unique_ratio": 0.8703296703296703
+     },
+     {
+      "dtype": "float64",
+      "feature": "perimeter1",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.0321891070298904,
+      "top_value_frequency": 0.006593406593406593,
+      "unique_count": 426,
+      "unique_ratio": 0.9362637362637363
+     },
+     {
+      "dtype": "float64",
+      "feature": "area1",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.04336709281032213,
+      "top_value_frequency": 0.006593406593406593,
+      "unique_count": 436,
+      "unique_ratio": 0.9582417582417583
+     },
+     {
+      "dtype": "float64",
+      "feature": "smoothness1",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.12602886838734778,
+      "top_value_frequency": 0.008791208791208791,
+      "unique_count": 399,
+      "unique_ratio": 0.8769230769230769
+     },
+     {
+      "dtype": "float64",
+      "feature": "compactness1",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.07536801485999149,
+      "top_value_frequency": 0.006593406593406593,
+      "unique_count": 438,
+      "unique_ratio": 0.9626373626373627
+     },
+     {
+      "dtype": "float64",
+      "feature": "concavity1",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.08371121413999905,
+      "top_value_frequency": 0.024175824175824177,
+      "unique_count": 431,
+      "unique_ratio": 0.9472527472527472
+     },
+     {
+      "dtype": "float64",
+      "feature": "concave_points1",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.059416440118241445,
+      "top_value_frequency": 0.024175824175824177,
+      "unique_count": 434,
+      "unique_ratio": 0.9538461538461539
+     },
+     {
+      "dtype": "float64",
+      "feature": "symmetry1",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.06474562451681373,
+      "top_value_frequency": 0.008791208791208791,
+      "unique_count": 360,
+      "unique_ratio": 0.7912087912087912
+     },
+     {
+      "dtype": "float64",
+      "feature": "fractal_dimension1",
+      "missing_rate": 0.0,
+      "production_risks": [
+       "split_distribution_shift"
+      ],
+      "random_split_psi": 0.21803412051623805,
+      "top_value_frequency": 0.006593406593406593,
+      "unique_count": 413,
+      "unique_ratio": 0.9076923076923077
+     }
+    ]
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-011\",\n  \"observed_evidence\": [\n    {\"statement\": \"The dataset has 569 source rows.\", \"citation\": \"EXP-011 / evidence.source_rows\"},\n    {\"statement\": \"The dataset has 30 cached features.\", \"citation\": \"EXP-011 / evidence.feature_count\"},\n    {\"statement\": \"The training positive rate is about 0.3736.\", \"citation\": \"EXP-011 / evidence.positive_rate_train\"},\n    {\"statement\": \"evidence.feature_profiles contains only 10 profile entries (radius1 through fractal_dimension1), although feature_count is 30.\", \"citation\": \"EXP-011 / evidence.feature_profiles\"},\n    {\"statement\": \"Among the 10 profiled features, only fractal_dimension1 has a production_risks entry (split_distribution_shift), with random_split_psi of about 0.218.\", \"citation\": \"EXP-011 / evidence.feature_profiles[feature=fractal_dimension1]\"},\n    {\"statement\": \"All 10 profiled features have missing_rate 0.0, float64 dtype, and a top_value_frequency of at most about 0.024. None shows a missingness, near-constant, or identifier-like flag.\", \"citation\": \"EXP-011 / evidence.feature_profiles[*].missing_rate, dtype, top_value_frequency, production_risks\"},\n    {\"statement\": \"texture1 and smoothness1 have random_split_psi of about 0.121 and 0.126 but carry no flag. The flagging threshold is not recorded in the bundle.\", \"citation\": \"EXP-011 / evidence.feature_profiles[feature=texture1, smoothness1].random_split_psi\"},\n    {\"statement\": \"Claim C2 lists limitations: categoricals were factorized in the cached matrices, and random-split PSI is only a smoke check, not temporal stability evidence.\", \"citation\": \"EXP-011 / claims[EXP-011-C2].limitations\"},\n    {\"statement\": \"The bundle-level limitations list and the C1 limitations list are both empty.\", \"citation\": \"EXP-011 / limitations; EXP-011 / claims[EXP-011-C1].limitations\"}\n  ],\n  \"interpretation\": \"Inference, not fact: the package supports only a basic shape and class-balance description. Its quality and production-availability conclusions are not yet supported. (1) The claim that '1 features triggered' rules cannot be verified for 20 of the 30 features, because only 10 profiles are present. This may be truncation or incomplete output, and the count could be wrong either way. (2) The one flag is a random-split PSI. A random split should have PSI near zero, so a high value more plausibly reflects small-sample binning noise or an unrepresentative split than real shift. The bundle gives no null distribution, holdout size, stratification status, or threshold to decide which. It also gives no basis to call this a production risk. (3) The factorized-categorical limitation appears irrelevant to the 10 float64 features shown, so it may be boilerplate or may apply to unshown features. (4) Nothing in the bundle addresses decision-time availability, how the label is defined, duplicates or repeated subjects, feature redundancy, or provenance of the features. Hypothesis, not evidence: the feature names (radius, perimeter, area, etc.) suggest measurements derived from a lab or imaging pipeline. Whether they exist at the intended decision time cannot be determined from this package.\",\n  \"decision\": \"Do not proceed to modeling or approve any feature yet. Treat EXP-011 as an incomplete data-understanding pass. First regenerate the full 30-feature profile, calibrate the PSI flag against a null distribution, and document the label definition, split design, and decision-time/production availability of each feature.\",\n  \"risks_and_missing_evidence\": [\n    \"Only 10 of 30 feature profiles are present, so the claimed count of flagged features is unverifiable (EXP-011 / evidence.feature_count vs evidence.feature_profiles).\",\n    \"The PSI flag threshold, bin count, and train/holdout sizes are not recorded. Holdout positive rate and stratification are also unknown, so the 0.218 PSI cannot be interpreted (EXP-011 / evidence.feature_profiles; evidence.positive_rate_train).\",\n    \"The label definition and the meaning of the positive class are not documented.\",\n    \"No duplicate-row or repeated-subject/group check is reported. If one subject contributes multiple rows, random splitting could leak (EXP-011 / evidence.source_rows).\",\n    \"No decision-time or production-availability review exists for any feature, so no feature can be approved.\",\n    \"No correlation or redundancy analysis is given. Size-related features such as radius, perimeter, and area may be highly collinear (unverified).\",\n    \"Feature provenance (computation pipeline, whether derived from post-outcome or post-diagnostic steps) is undocumented.\",\n    \"Random-split PSI says nothing about temporal, site, or instrument drift (EXP-011 / claims[EXP-011-C2].limitations).\",\n    \"The factorized-categorical caveat is unexplained: no categorical features are evident in the shown profiles, so applicability is unclear.\",\n    \"Empty limitations on C1 and at bundle level understate uncertainty, for example small sample size (569 rows).\"\n  ],\n  \"challenges_to_claims\": [\n    {\"claim_id\": \"EXP-011-C1\", \"issue\": \"The numeric facts are traceable to evidence.source_rows, feature_count, and positive_rate_train. However, the claim omits the holdout size, the positive-class definition, and the split method, and its limitations list is empty despite the small sample.\", \"severity\": \"low\"},\n    {\"claim_id\": \"EXP-011-C2\", \"issue\": \"'1 features triggered' is not verifiable because only 10 of 30 profiles are present. The wording also lumps four rule types together while the only visible trigger is random-split shift. The claim is framed as a production risk, but a random-split PSI cannot establish production instability. No threshold or null calibration is provided.\", \"severity\": \"high\"},\n    {\"claim_id\": \"EXP-011-C2\", \"issue\": \"The categorical-factorization limitation does not obviously apply to the profiled float64 features, which suggests boilerplate caveats or an unexplained scope gap.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-011-C2\", \"issue\": \"The package never addresses identifier or leakage review beyond unique_ratio and top_value_frequency. High unique_ratio on continuous floats is expected and is not a leakage test, and no decision-time availability check is present.\", \"severity\": \"medium\"}\n  ],\n  \"next_experiment\": {\n    \"title\": \"Full-feature profile with null-calibrated random-split PSI and a duplicate/group check\",\n    \"hypothesis\": \"The fractal_dimension1 random-split PSI of about 0.218 is within sampling noise for this sample size. Under repeated stratified random splits of the same size, it will not exceed the 95th percentile of the null PSI distribution for that feature.\",\n    \"success_gate\": \"Profile all 30 features, and for each compute the PSI null distribution over at least 200 seeded stratified random splits with the same train/holdout sizes. The hypothesis is falsified if the observed fractal_dimension1 PSI (about 0.218) exceeds the 95th percentile of its null, or if any other feature exceeds its own 95th percentile. In addition, the run must output the exact duplicate-row count, the label definition, the holdout size and positive rate, and a per-feature decision-time/availability annotation. Features without that annotation stay unapproved.\",\n    \"why_smallest\": \"It reuses the existing profiling code and the cached matrix, with no model training. It adds only a full-feature pass, a repeated-split null, and metadata checks, and these resolve the unverifiable claim count, the uninterpretable PSI flag, and the missing availability review.\"\n  },\n  \"overall_confidence\": \"medium\"\n}",
+ "usage": {
+  "input_tokens": 2842,
+  "output_tokens": 3497
+ },
+ "finish_reason": "stop"
+}

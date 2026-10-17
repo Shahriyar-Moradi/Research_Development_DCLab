@@ -1,0 +1,292 @@
+{
+ "experiment_id": "EXP-050",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T21:19:59Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "Does optimization produce a meaningful CV gain, and how does the preselected recipe perform on the once-consumed holdout?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-050-C1",
+    "evidence": [
+     "evidence.holdout_metrics",
+     "evidence.holdout_roc_auc_bootstrap_ci",
+     "evidence.holdout_consumed"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "The preselected extra_trees/baseline recipe scored 0.8878 ROC-AUC on the once-consumed holdout (bootstrap 95% interval 0.8610–0.9077)."
+   },
+   {
+    "claim_id": "EXP-050-C2",
+    "evidence": [
+     "evidence.top_final_features",
+     "evidence.cv_feature_stability",
+     "evidence.production_feature_rule"
+    ],
+    "kind": "recommendation",
+    "limitations": [],
+    "statement": "Do not promote features from importance alone; require decision-time availability, cross-fold stability, production availability, and monitoring."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-050",
+   "dataset": "wine_quality",
+   "kind": "optimization_reliability",
+   "question": "Does optimization produce a meaningful CV gain, and how does the preselected recipe perform on the once-consumed holdout?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-050-C1",
+     "evidence": [
+      "evidence.holdout_metrics",
+      "evidence.holdout_roc_auc_bootstrap_ci",
+      "evidence.holdout_consumed"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "The preselected extra_trees/baseline recipe scored 0.8878 ROC-AUC on the once-consumed holdout (bootstrap 95% interval 0.8610–0.9077)."
+    },
+    {
+     "claim_id": "EXP-050-C2",
+     "evidence": [
+      "evidence.top_final_features",
+      "evidence.cv_feature_stability",
+      "evidence.production_feature_rule"
+     ],
+     "kind": "recommendation",
+     "limitations": [],
+     "statement": "Do not promote features from importance alone; require decision-time availability, cross-fold stability, production availability, and monitoring."
+    }
+   ],
+   "evidence": {
+    "selection_rule": "Evaluate explicit dataset-specific parameter candidates on training CV; use the best tuned candidate only when mean ROC-AUC improves by at least 0.001, otherwise prefer baseline.",
+    "holdout_metrics": {
+     "accuracy": 0.8125,
+     "avg_precision": 0.9332202964322408,
+     "brier": 0.1319280694444463,
+     "ece_10": 0.033120840083333256,
+     "f1": 0.857685009487666,
+     "fit_seconds": 0.7810957919991779,
+     "log_loss": 0.3986921902873901,
+     "precision": 0.8248175182481752,
+     "recall": 0.8932806324110671,
+     "roc_auc": 0.8878391277459601,
+     "threshold": 0.5
+    },
+    "holdout_roc_auc_bootstrap_ci": {
+     "draws": 400,
+     "high": 0.9076586798160596,
+     "low": 0.8609965140062155,
+     "median": 0.8880049305118762
+    },
+    "holdout_consumed": true,
+    "top_final_features": [
+     {
+      "feature": "alcohol",
+      "normalized_importance": 0.08481948410949623
+     },
+     {
+      "feature": "log1p_volatile_acidity",
+      "normalized_importance": 0.04893824707029331
+     },
+     {
+      "feature": "volatile_acidity",
+      "normalized_importance": 0.04674906022493075
+     },
+     {
+      "feature": "density",
+      "normalized_importance": 0.03908002084081859
+     },
+     {
+      "feature": "ratio_fixed_acidity_div_alcohol",
+      "normalized_importance": 0.03798478368184796
+     },
+     {
+      "feature": "log1p_density",
+      "normalized_importance": 0.03606375830618004
+     },
+     {
+      "feature": "ratio_total_sulfur_dioxide_div_alcohol",
+      "normalized_importance": 0.03370778005473211
+     },
+     {
+      "feature": "citric_acid",
+      "normalized_importance": 0.032942035004691075
+     },
+     {
+      "feature": "log1p_sulphates",
+      "normalized_importance": 0.030477542165205155
+     },
+     {
+      "feature": "sulphates",
+      "normalized_importance": 0.03025198651733685
+     },
+     {
+      "feature": "ratio_total_sulfur_dioxide_div_free_sulfur_dioxide",
+      "normalized_importance": 0.02795760961219019
+     },
+     {
+      "feature": "log1p_chlorides",
+      "normalized_importance": 0.02788800282056092
+     },
+     {
+      "feature": "chlorides",
+      "normalized_importance": 0.027510740737777407
+     },
+     {
+      "feature": "pH",
+      "normalized_importance": 0.02739881652293221
+     },
+     {
+      "feature": "log1p_free_sulfur_dioxide",
+      "normalized_importance": 0.02698239649461778
+     }
+    ],
+    "cv_feature_stability": [
+     {
+      "feature": "alcohol",
+      "mean_normalized_importance": 0.08670921830417043,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "log1p_volatile_acidity",
+      "mean_normalized_importance": 0.048414085794851396,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "volatile_acidity",
+      "mean_normalized_importance": 0.048251975455362466,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "density",
+      "mean_normalized_importance": 0.0394687602588124,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "ratio_fixed_acidity_div_alcohol",
+      "mean_normalized_importance": 0.03919146177555113,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "citric_acid",
+      "mean_normalized_importance": 0.034774720457244127,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "ratio_total_sulfur_dioxide_div_alcohol",
+      "mean_normalized_importance": 0.03338010732663476,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "sulphates",
+      "mean_normalized_importance": 0.030334547036852982,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "log1p_density",
+      "mean_normalized_importance": 0.0370957953194863,
+      "observed_folds": 2,
+      "top10_frequency": 0.6666666666666666
+     },
+     {
+      "feature": "log1p_sulphates",
+      "mean_normalized_importance": 0.03036279265867749,
+      "observed_folds": 3,
+      "top10_frequency": 0.6666666666666666
+     },
+     {
+      "feature": "ratio_total_sulfur_dioxide_div_free_sulfur_dioxide",
+      "mean_normalized_importance": 0.029335955514368156,
+      "observed_folds": 3,
+      "top10_frequency": 0.3333333333333333
+     },
+     {
+      "feature": "log1p_chlorides",
+      "mean_normalized_importance": 0.028821741955251032,
+      "observed_folds": 3,
+      "top10_frequency": 0.3333333333333333
+     },
+     {
+      "feature": "chlorides",
+      "mean_normalized_importance": 0.028519180738364337,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "pH",
+      "mean_normalized_importance": 0.02825389527640341,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "ratio_total_sulfur_dioxide_div_fixed_acidity",
+      "mean_normalized_importance": 0.027859784299486514,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "total_sulfur_dioxide",
+      "mean_normalized_importance": 0.02753552282327575,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "log1p_free_sulfur_dioxide",
+      "mean_normalized_importance": 0.02689722249699879,
+      "observed_folds": 2,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "ratio_free_sulfur_dioxide_div_fixed_acidity",
+      "mean_normalized_importance": 0.02677990938799371,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "ratio_total_sulfur_dioxide_div_log1p_residual_sugar",
+      "mean_normalized_importance": 0.026466136951807672,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "fixed_acidity",
+      "mean_normalized_importance": 0.026150668956097394,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     }
+    ],
+    "production_feature_rule": "A feature is a stronger candidate when it is decision-time available, stable across CV folds, contractually obtainable, monitored for missingness/drift, and not merely important in one fit."
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-050\",\n  \"observed_evidence\": [\n    {\"statement\": \"The selection rule evaluates dataset-specific parameter candidates on training CV. It uses the tuned candidate only if mean ROC-AUC improves by at least 0.001, otherwise it keeps the baseline.\", \"citation\": \"EXP-050 / evidence.selection_rule\"},\n    {\"statement\": \"Holdout ROC-AUC is 0.8878 at a 0.5 threshold, with accuracy 0.8125, precision 0.8248, recall 0.8933 and F1 0.8577.\", \"citation\": \"EXP-050 / evidence.holdout_metrics\"},\n    {\"statement\": \"Holdout calibration and probabilistic metrics: Brier 0.1319, ECE(10) 0.0331, log loss 0.3987, average precision 0.9332.\", \"citation\": \"EXP-050 / evidence.holdout_metrics\"},\n    {\"statement\": \"The bootstrap ROC-AUC interval is 0.8610 to 0.9077 (median 0.8880) from 400 draws.\", \"citation\": \"EXP-050 / evidence.holdout_roc_auc_bootstrap_ci\"},\n    {\"statement\": \"The holdout is flagged as consumed.\", \"citation\": \"EXP-050 / evidence.holdout_consumed\"},\n    {\"statement\": \"Alcohol has the highest final-fit normalized importance (0.0848) and top-10 frequency of 1.0 across 3 folds. The next features (log1p_volatile_acidity, volatile_acidity) are at about 0.047 to 0.049, and the tail of the listed top 15 is about 0.027.\", \"citation\": \"EXP-050 / evidence.top_final_features; evidence.cv_feature_stability\"},\n    {\"statement\": \"log1p_density and log1p_free_sulfur_dioxide were observed in only 2 of 3 folds. chlorides, pH and log1p_free_sulfur_dioxide have top-10 frequency 0.0 despite appearing in the final top-15.\", \"citation\": \"EXP-050 / evidence.cv_feature_stability\"},\n    {\"statement\": \"The package states a production-feature rule requiring decision-time availability, CV stability, contractual obtainability and monitoring.\", \"citation\": \"EXP-050 / evidence.production_feature_rule\"}\n  ],\n  \"interpretation\": \"Inference: the holdout result is a single, moderately precise estimate of generalization for the chosen recipe. The bootstrap interval reflects holdout resampling noise only. The package does not answer the first half of the question (whether optimization gives a meaningful CV gain). It contains the selection rule and the holdout result, but no per-candidate CV scores, no baseline-vs-tuned delta, and no record of which candidate the rule selected. The recipe name 'extra_trees/baseline' appears only in the claim text, not in any cited evidence path. The importance rankings are descriptive model-internal statistics. They are not causal and not evidence of production suitability. Beyond alcohol the importances are nearly flat, and several features are transforms or ratios of each other (alcohol-based ratios, log1p/raw pairs), so individual ranks are probably unstable.\",\n  \"decision\": \"Report EXP-050-C1 only as the observed holdout ROC-AUC of the chosen recipe with its bootstrap interval. Make no claim that optimization improved CV performance until the CV candidate comparison is supplied. Do not approve any feature or the model for deployment. EXP-050-C2 is acceptable as a cautionary recommendation, but it is a rule statement, not a feature-level review.\",\n  \"risks_and_missing_evidence\": [\n    \"No CV scores for baseline or tuned candidates are in the bundle (evidence.selection_rule gives only the rule). The 'meaningful CV gain' question is unanswered, and the 0.001 threshold is small relative to likely fold-to-fold variance.\",\n    \"The preselection claim cannot be verified from the evidence: there is no timestamp, config hash or log showing the recipe was fixed before the holdout was scored (evidence.holdout_consumed is only a boolean).\",\n    \"The limitations lists are empty in both claims and the bundle, although holdout size, class prevalence, target definition and split method are not reported.\",\n    \"Possible duplicate or near-duplicate rows across train and holdout are not audited. The wine-quality data is commonly reported to contain many duplicate rows, so this could inflate holdout ROC-AUC. This is a hypothesis to check, not an observed fact.\",\n    \"The bootstrap CI (400 draws) covers holdout sampling variance only, not training-set or seed variance. It also gives no repeated-split estimate.\",\n    \"Metrics at threshold 0.5 are reported with no justification of the threshold and no prevalence baseline, so accuracy, precision and recall are hard to interpret.\",\n    \"It is not shown that engineered features (log1p, ratios) were built inside the CV pipeline. observed_folds of 2 for some features suggests the feature set varies by fold, and the cause is unexplained.\",\n    \"Only 3 CV folds were used for stability, so top10_frequency has coarse resolution (0, 1/3, 2/3, 1). The importance type (impurity vs permutation) is not stated, and impurity importance is biased with correlated and derived features.\",\n    \"No decision-time availability or production-availability review is documented for any feature, and no monitoring plan is given. The package states the rule but does not apply it.\",\n    \"Because the holdout is consumed, any further tuning or model selection on it would be contaminated.\"\n  ],\n  \"challenges_to_claims\": [\n    {\"claim_id\": \"EXP-050-C1\", \"issue\": \"The numeric values are traceable to the cited paths. However, 'preselected' and 'extra_trees/baseline' are not supported by the cited evidence, and the claim carries no limitations (split design, holdout size, duplicate audit, CI scope). Presenting it as unqualified fact overstates certainty.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-050-C1\", \"issue\": \"The claim does not address the experiment's question about the CV gain from optimization, because no CV comparison is cited. Any inference that tuning helped or did not help is unsupported.\", \"severity\": \"high\"},\n    {\"claim_id\": \"EXP-050-C2\", \"issue\": \"The recommendation is reasonable, but the cited stability evidence uses only 3 folds, and importances are correlated and nearly flat after the top feature. No feature has been reviewed for decision-time or production availability, so the evidence cannot support promoting any feature. Importance also must not be read as causal.\", \"severity\": \"low\"}\n  ],\n  \"next_experiment\": {\n    \"title\": \"Paired repeated-CV comparison of baseline vs tuned candidates with duplicate-aware folds (no holdout use)\",\n    \"hypothesis\": \"The best tuned candidate does not improve training-CV ROC-AUC over the extra_trees baseline by more than fold noise (a null of ≤0.001 paired mean difference). This is falsified if the paired difference is reliably ≥0.001.\",\n    \"success_gate\": \"Using identical repeated stratified folds (e.g., 5x3) with duplicate rows grouped into the same fold, and feature engineering fit inside each fold, report per-fold ROC-AUC for the baseline and each tuned candidate. The hypothesis is falsified, and the gain is called meaningful, only if the mean paired difference is ≥0.001 AND the 95% interval of paired differences excludes 0. Otherwise report no demonstrated gain. Also report the count of train/holdout duplicate or near-duplicate rows, and add permutation importance with per-fold rank correlation as the stability check.\",\n    \"why_smallest\": \"It reuses the existing candidate set and selection rule, needs no new model families and no holdout access, and directly produces the missing CV evidence together with the missing leakage and variance checks.\"\n  },\n  \"overall_confidence\": \"medium\"\n}",
+ "usage": {
+  "input_tokens": 4195,
+  "output_tokens": 3899
+ },
+ "finish_reason": "stop"
+}

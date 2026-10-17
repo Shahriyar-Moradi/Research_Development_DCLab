@@ -63,6 +63,45 @@ def client_with(messages: FakeMessages) -> AnthropicClient:
     return c
 
 
+class Refuses(FakeMessages):
+    """Refuses `temperature` once, as Claude Sonnet 5.5 does (live, 2026-10-18), then answers."""
+
+    def create(self, **kwargs):
+        self.sent.append(kwargs)
+        if "temperature" in kwargs:
+            error = Exception("Error code: 400 - `temperature` is deprecated for this model.")
+            error.status_code = 400
+            raise error
+        return self.reply
+
+
+class SamplingTest(unittest.TestCase):
+    def test_a_model_that_refuses_temperature_is_asked_again_without_it_and_never_sent_it_again(self):
+        from dclab_rnd.models import anthropic_client as A
+
+        A.NO_SAMPLING.discard("claude-sonnet-5-5")
+        self.addCleanup(A.NO_SAMPLING.discard, "claude-sonnet-5-5")
+        fake = Refuses(reply=reply(NS(type="text", text="{}")))
+        c = client_with(fake)
+        out = c.complete([{"role": "user", "content": "x"}], temperature=0.2, response_format={"type": "json_object"})
+        self.assertEqual(out["content"], "{}")
+        self.assertEqual(["temperature" in k for k in fake.sent], [True, False])  # refused once, then answered without it
+        c.complete([{"role": "user", "content": "y"}], temperature=0.2)
+        self.assertNotIn("temperature", fake.sent[-1])  # remembered: not sent again
+
+    def test_another_bad_request_is_not_retried(self):
+        from dclab_rnd.models import anthropic_client as A
+
+        A.NO_SAMPLING.discard("claude-sonnet-5-5")
+        error = Exception("Error code: 400 - messages: field required")
+        error.status_code = 400
+        fake = FakeMessages(error=error)
+        with self.assertRaises(RuntimeError):
+            client_with(fake).complete([{"role": "user", "content": "x"}], temperature=0.2)
+        self.assertEqual(len(fake.sent), 1)
+        self.assertNotIn("claude-sonnet-5-5", A.NO_SAMPLING)
+
+
 class ProviderSwitchTest(unittest.TestCase):
     def test_the_switch_makes_every_tier_claude_with_the_anthropic_key_only(self):
         with clean_env(**ANTHROPIC_ENV):

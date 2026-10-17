@@ -1,0 +1,87 @@
+{
+ "experiment_id": "EXP-027",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T21:05:30Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "Which columns violate the prediction-time contract or behave like suspicious target proxies?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-027-C1",
+    "evidence": [
+     "evidence.detector_canary_passed"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "The leakage detector caught its synthetic exact-target canary: True."
+   },
+   {
+    "claim_id": "EXP-027-C2",
+    "evidence": [
+     "evidence.declared_leakage_features",
+     "evidence.safe_vs_unsafe_training_cv"
+    ],
+    "kind": "decision",
+    "limitations": [
+     "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+    ],
+    "statement": "Declared decision-time exclusions for german_credit: none."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-027",
+   "dataset": "german_credit",
+   "kind": "leakage_audit",
+   "question": "Which columns violate the prediction-time contract or behave like suspicious target proxies?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-027-C1",
+     "evidence": [
+      "evidence.detector_canary_passed"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "The leakage detector caught its synthetic exact-target canary: True."
+    },
+    {
+     "claim_id": "EXP-027-C2",
+     "evidence": [
+      "evidence.declared_leakage_features",
+      "evidence.safe_vs_unsafe_training_cv"
+     ],
+     "kind": "decision",
+     "limitations": [
+      "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+     ],
+     "statement": "Declared decision-time exclusions for german_credit: none."
+    }
+   ],
+   "evidence": {
+    "detector_canary_passed": true,
+    "declared_leakage_features": [],
+    "safe_vs_unsafe_training_cv": null
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-027\",\n  \"observed_evidence\": [\n    {\n      \"statement\": \"The leakage detector's synthetic exact-target canary check is recorded as passed (true).\",\n      \"citation\": \"EXP-027 / evidence.detector_canary_passed\"\n    },\n    {\n      \"statement\": \"The declared decision-time leakage exclusion list for german_credit is empty.\",\n      \"citation\": \"EXP-027 / evidence.declared_leakage_features\"\n    },\n    {\n      \"statement\": \"The safe-vs-unsafe training CV comparison is null, so no values were recorded. Claim EXP-027-C2 cites this path as support but it contains no data.\",\n      \"citation\": \"EXP-027 / evidence.safe_vs_unsafe_training_cv\"\n    },\n    {\n      \"statement\": \"The bundle-level limitations list is empty, although claim C2 carries a limitation saying name, univariate AUC, and uniqueness rules only propose review and that decision-time semantics are needed to confirm leakage.\",\n      \"citation\": \"EXP-027 / limitations\"\n    },\n    {\n      \"statement\": \"The experiment status is 'completed' and its kind is 'leakage_audit'.\",\n      \"citation\": \"EXP-027 / status\"\n    }\n  ],\n  \"interpretation\": \"Inference: the evidence shows only that the detector can flag an exact-target copy (a minimal sanity check) and that no columns are currently declared as decision-time exclusions. It does not show that german_credit is free of leakage or target proxies. Per-column detector outputs (name flags, univariate AUC, uniqueness, missingness patterns) are absent from the bundle. The safe-vs-unsafe CV comparison is null, so the effect of excluding or including suspect columns on performance was never measured. An empty exclusion list may reflect that no review was done, or that a review found nothing. The bundle cannot distinguish these. The canary tests only the most blatant leakage form and says nothing about sensitivity to partial proxies, encoded proxies, or contract violations that are not statistically obvious. Nothing here is causal.\",\n  \"decision\": \"Do not treat the feature set as cleared. The answer to the question 'which columns violate the prediction-time contract or behave like suspicious proxies' is 'not determined' from this bundle. Keep all features in 'unreviewed' status until a per-column decision-time and production-availability review is documented. Treat C1 as a supported narrow fact (detector sanity) and C2 as unsupported as a clearance.\",\n  \"risks_and_missing_evidence\": [\n    \"No per-column detector output (univariate AUC, name-pattern flags, uniqueness/cardinality) is provided, so suspicious proxies cannot be identified or ruled out.\",\n    \"evidence.safe_vs_unsafe_training_cv is null, so claim C2's cited evidence is empty; the safe/unsafe performance gap is unmeasured.\",\n    \"The empty declared_leakage_features list has no documented provenance (who reviewed, when, against what data dictionary or decision-time spec).\",\n    \"No prediction-time contract is provided (when the prediction is made, which fields exist at that moment, and their production availability and latency).\",\n    \"german_credit features commonly include fields whose timing is ambiguous (e.g., credit history, existing credits, savings/checking status, duration, credit amount). Without a timing review, any may be post-decision or reflect later bank assessment. This is a hypothesis to check, not an observed finding.\",\n    \"The canary covers only an exact-target copy; sensitivity to noisy, transformed, or multi-column proxies is untested (no weaker-canary or noise-sweep evidence).\",\n    \"No validation-design evidence: preprocessing, encoding, and feature selection fit inside CV folds is unconfirmed, and duplicate or near-duplicate rows across folds are unchecked. Small-sample variance is also unaddressed (german_credit is small).\",\n    \"Univariate screens miss interactions and leakage through combinations of columns.\",\n    \"Status 'completed' with a null core field suggests the audit may have silently skipped a step; this is a pipeline-integrity concern.\"\n  ],\n  \"challenges_to_claims\": [\n    {\n      \"claim_id\": \"EXP-027-C1\",\n      \"issue\": \"The fact is accurately stated but narrow. A passed exact-target canary shows only that the detector fires on a trivially leaky column. It does not show detector sensitivity to realistic proxies or that the real columns are clean. It should not be used as evidence of dataset cleanliness.\",\n      \"severity\": \"low\"\n    },\n    {\n      \"claim_id\": \"EXP-027-C2\",\n      \"issue\": \"Typed as 'decision' but its cited evidence includes a null path (safe_vs_unsafe_training_cv). An empty exclusion list is an absence of declarations, not evidence of no leakage. The statement 'none' has no recorded review basis, and its own limitation says only decision-time semantics can confirm leakage, yet no such semantics are supplied. No feature should be approved without decision-time and production-availability review.\",\n      \"severity\": \"high\"\n    }\n  ],\n  \"next_experiment\": {\n    \"title\": \"Per-column prediction-time contract review plus leave-flagged-out CV on german_credit\",\n    \"hypothesis\": \"If any german_credit column is a suspicious proxy or violates the prediction-time contract, it will either be flagged by the screens (name pattern, univariate AUC, uniqueness) or removal of the flagged set will produce a measurable CV performance change; if no columns are flagged and the review documents all as available at decision time, the safe and full feature sets will perform indistinguishably within fold-to-fold variation.\",\n    \"success_gate\": \"Pre-registered before running: (1) a table covering 100% of columns with decision-time availability, production source, and reviewer sign-off; (2) the detector's per-column univariate AUC and flags are recorded, with the screening threshold stated in advance; (3) safe_vs_unsafe_training_cv is populated using repeated stratified CV with preprocessing inside folds, reporting mean and spread of AUC for the full vs flagged-removed feature sets. Falsified if any column lacks a documented availability decision, or if the flagged-removed vs full difference exceeds the pre-stated tolerance (e.g., more than one fold-standard-deviation) without a documented semantic explanation. A difference alone would be predictive evidence and would not imply causality.\",\n    \"why_smallest\": \"It reuses the existing detector and dataset, fills the one null evidence field, and adds only the missing documentation. No new models, features, or datasets are needed.\"\n  },\n  \"overall_confidence\": \"high\"\n}",
+ "usage": {
+  "input_tokens": 1460,
+  "output_tokens": 2234
+ },
+ "finish_reason": "stop"
+}

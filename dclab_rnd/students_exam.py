@@ -28,6 +28,7 @@ from typing import Any, Optional
 
 ROOT = Path(__file__).resolve().parents[1]
 SETS = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "generated_v1" / "decisions"
+IMAGE_SETS = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "generated_images_v1" / "decisions"
 RESULTS = ROOT / "evidence" / "campaigns" / "students_exam_v1" / "results"
 GLINER = "gliner2.5-decide"
 CLAUDE = "claude"
@@ -163,8 +164,35 @@ def keep_claude(rows: list[dict[str, Any]], got: dict[str, Any], model: str, pro
     return sum(len(v) for v in by_point.values())
 
 
+class Whole:
+    """An advisor that writes every request and its whole reply to ``log`` (one line each) before handing the reply on:
+    nothing is cut before it is kept (the owner's rule, 2026-10-18)."""
+
+    def __init__(self, inner: Any, log: Optional[Path] = None):
+        import threading
+
+        self.inner, self.log, self.lock = inner, Path(log) if log is not None else None, threading.Lock()
+        if self.log is not None:
+            self.log.parent.mkdir(parents=True, exist_ok=True)
+
+    def ask(self, purpose: str, evidence: Any) -> Any:
+        import time
+
+        clock = time.monotonic()
+        reply = self.inner.ask(purpose, evidence)
+        if self.log is not None:
+            line = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "purpose": purpose, "sent": evidence, "reply": reply,
+                    "seconds": round(time.monotonic() - clock, 3)}
+            with self.lock, self.log.open("a", encoding="utf-8") as out:
+                out.write(json.dumps(line, ensure_ascii=False, default=str) + "\n")
+        return reply
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.inner, name)
+
+
 def run(rows: list[dict[str, Any]], advisor: Any, students: Optional[dict[str, Any]] = None, model: str = "claude-sonnet-5-5",
-        lake: Optional[Path] = None, workers: int = 1) -> dict[str, Any]:
+        lake: Optional[Path] = None, workers: int = 1, full: Optional[Path] = None) -> dict[str, Any]:
     """Ask Claude every sampled decision through ``advisor`` (the gateway's, capped), read GLiNER's captured answers,
     score all four, keep Claude's answers."""
     from dclab_core import prompts
@@ -172,6 +200,7 @@ def run(rows: list[dict[str, Any]], advisor: Any, students: Optional[dict[str, A
 
     students = students_by_point() if students is None else students
     prompt = prompts.fingerprints()["decision_answer"]
+    advisor = Whole(advisor, full)  # every reply kept whole before the answerer shortens its reason (the owner's rule)
     claude = ModelAnswerer(advisor, {r["point"] for r in rows}, name=f"{CLAUDE}:{model}", version=prompt)
     from concurrent.futures import ThreadPoolExecutor
 
@@ -213,6 +242,100 @@ def rescore(rows: list[dict[str, Any]], lake: Optional[Path] = None, package: st
     return {"scores": score(rows, answers), "requests": 0}
 
 
+# ------------------------------------------------------------------------------------------------ 29.18: Claude, the judge
+
+def as_ledger(rows: list[dict[str, Any]], root: Path) -> Any:
+    """The sampled homework as a ledger of its own (records with the rule's answer, the planted truth as benchmark
+    labels), so the blind labeler judges it exactly as it judges a workspace's past decisions."""
+    from dclab_core import ledger as contract
+
+    from .ledger import FileLedger
+
+    at = "2026-10-17T00:00:00+00:00"
+    store = FileLedger(Path(root), "judge")
+    records, labels = [], []
+    for r in rows:
+        point = contract.POINTS[r["point"]]
+        subject = r.get("subject") or {"kind": point.subjects[0], "key": str(r.get("group") or r["record"])[:200]}
+        rec = contract.DecisionRecord(id=r["record"], point=r["point"], subject=contract.Subject(**subject), state=r["state"],
+                                      options=[str(o) for o in r.get("options") or []],
+                                      answers=[contract.Answer(by="rule", answerer="rule", value=r.get("value_used"))],
+                                      value_used=r.get("value_used"), used="rule", level=0, at=at)
+        records.append(rec)
+        labels.append(contract.DecisionLabel(id="bl" + str(abs(hash(r["record"])))[:18], record=rec.id, point=rec.point, value=r["label"]["value"],
+                                             source="benchmark", by="homework", at=at))
+    store.add_many(records, labels)
+    return store
+
+
+def judged(rows: list[dict[str, Any]], store: Any, model: str) -> dict[str, Any]:
+    """The judge's verdicts read back from the ledger, scored against the truth: per point, how many it judged, left
+    unsure or refused, how often it was right, how sure it said it was, and on the student's disagreements with the rule
+    whose side it took and whether that side was right."""
+    by = f"model:{model}"[:120]
+    verdict = {x.record: x for x in store.labels() if x.source == "model" and x.by == by}
+    out: dict[str, Any] = {}
+    for point in sorted({r["point"] for r in rows}):
+        mine = [r for r in rows if r["point"] == point]
+        judged_rows = [r for r in mine if r["record"] in verdict]
+        right = [r for r in judged_rows if verdict[r["record"]].value == r["label"]["value"]
+                 or verdict[r["record"]].value in (r["label"].get("accepted") or [])]
+        sure = Counter(str(verdict[r["record"]].evidence.ref if verdict[r["record"]].evidence else "").split(":")[0] for r in judged_rows)
+        right_by_sure = {k: sum(1 for r in right if str(verdict[r["record"]].evidence.ref).startswith(k + ":")) for k in sure}
+        apart = [r for r in judged_rows if r.get("_student") is not None and r["_student"] != r.get("value_used")]
+        out[point] = {"decisions": len(mine), "judged": len(judged_rows), "not_judged": len(mine) - len(judged_rows),
+                      "accuracy": round(len(right) / len(judged_rows), 4) if judged_rows else None,
+                      "by_confidence": {k: {"judged": n, "right": right_by_sure.get(k, 0)} for k, n in sure.items()},
+                      "on_disagreements": {"judged": len(apart), "sided_with_student": sum(verdict[r["record"]].value == r["_student"] for r in apart),
+                                           "sided_with_rule": sum(verdict[r["record"]].value == r.get("value_used") for r in apart),
+                                           "right": sum(r in right for r in apart)}}
+    return out
+
+
+def keep_verdicts(rows: list[dict[str, Any]], store: Any, model: str, lake: Optional[Path] = None, full: Optional[Path] = None) -> int:
+    """The judge's verdicts, whole, beside its answers as an examinee: role ``judge``, the reason and the confidence;
+    with ``full`` (the run's ``judgments.jsonl``), the model's whole reply and reason, its tokens, seconds and cost too."""
+    from .lake import answers
+
+    whole: dict[str, dict[str, Any]] = {}
+    if full is not None and Path(full).is_file():
+        for line in Path(full).read_text(encoding="utf-8").splitlines():
+            try:
+                j = json.loads(line)
+            except ValueError:
+                continue
+            whole[str(j.get("record"))] = j
+    by = f"model:{model}"[:120]
+    verdict = {x.record: x for x in store.labels() if x.source == "model" and x.by == by}
+    at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    kw = {"lake": lake} if lake is not None else {}
+    n = 0
+    for point in sorted({r["point"] for r in rows}):
+        lines = []
+        for r in rows:
+            if r["point"] != point or r["record"] not in verdict:
+                continue
+            v = verdict[r["record"]]
+            ref = str(v.evidence.ref if v.evidence else "")
+            lines.append(json.dumps({"sample_id": r["record"], "source": "lake", "decision_point": point, "split": "dev", "group": r.get("group"),
+                                     "label_origin": "construction", "answerer": CLAUDE, "role": "judge", "model": model, "prompt": "decision_labeler",
+                                     "value": v.value, "confidence": ref.split(":")[0] if ":" in ref else None,
+                                     "reason": ref.split(":", 1)[1].strip() if ":" in ref else ref, "at": at,
+                                     "use": "eval_only", "silver": False, "package": "29.18",
+                                     **({"reason_full": (whole[r["record"]].get("parsed") or {}).get("reason"), "reply": whole[r["record"]].get("reply"),
+                                         "sent": whole[r["record"]].get("sent"), "input_tokens": whole[r["record"]].get("input_tokens"),
+                                         "output_tokens": whole[r["record"]].get("output_tokens"), "seconds": whole[r["record"]].get("seconds"),
+                                         "cost_eur": whole[r["record"]].get("cost_eur")} if r["record"] in whole else {})},
+                                    ensure_ascii=False, default=str))
+        if lines:
+            path = answers.path_of(CLAUDE, "lake", point, "dev", **kw)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("a", encoding="utf-8") as out:
+                out.write("".join(x + "\n" for x in lines))
+            n += len(lines)
+    return n
+
+
 def write(doc: dict[str, Any], results: Path = RESULTS) -> Path:
     results.mkdir(parents=True, exist_ok=True)
     n = 1 + max([int(p.stem.split("_")[0].split("-")[1]) for p in results.glob("SEX-*.json")] or [0])
@@ -239,8 +362,39 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--cap-eur", type=float, default=None, help="the most this run may spend (required with --yes)")
     parser.add_argument("--workers", type=int, default=6, help="Claude's requests at once")
     parser.add_argument("--rescore", metavar="SEX-NNN", help="score again from the answers kept by that run: nothing is sent")
+    parser.add_argument("--judge", action="store_true", help="29.18: Claude judges the homework blind (the labeler), scored against the truth")
     args = parser.parse_args(argv)
     points = [p for p in args.points.split(",") if p] or None
+    if args.judge:
+        sets = [SETS, IMAGE_SETS]
+        rows = [r for folder in sets if folder.exists() for r in sample(args.per_point, None, args.seed, sets=folder)]
+        estimate = round(len(rows) * 0.004, 2)
+        print(f"Judge plan: {len(rows)} homework decisions with known truth ({dict(Counter(r['point'] for r in rows))}); Claude judges each "
+              f"blind (decision_labeler: never DCLab's answer), about EUR {estimate}.")
+        if not args.yes:
+            print("Add --yes --cap-eur N to send the requests.")
+            return 0
+        if args.cap_eur is None:
+            print("--cap-eur is required with --yes")
+            return 2
+        from dotenv import load_dotenv
+
+        load_dotenv(ROOT / ".env", override=False)
+        os.environ.pop("DCLAB_NO_LIVE_MODELS", None)
+        from .ledger.model_labels import asker, to_label
+        from .models.gateway import for_workspace
+
+        home = Path(os.environ.get("DCLAB_AGENT_HOME") or ROOT / "agent_runs")
+        ask, client = asker(for_workspace(), args.cap_eur, keep=home / "judgments")  # every judgment whole: what was sent, the full reply, its cost
+        model = getattr(client, "model", "model")
+        store = as_ledger(rows, home / "judge_ledger")  # kept with the run: the homework's verdicts are a record too
+        counts = to_label(store, ask, model, every=True, workers=args.workers)
+        doc = {"kind_of_run": "judge", "model": model, "cap_eur": args.cap_eur, "estimate_eur": estimate, "per_point": args.per_point,
+               "seed": args.seed, "decisions": len(rows), "counts": counts, "spent_eur": round(float(getattr(client, "spent_eur", 0.0) or 0.0), 4),
+               "judge": judged(rows, store, model), "kept": keep_verdicts(rows, store, model, full=home / "judgments" / "judgments.jsonl")}
+        print(json.dumps(doc["judge"], indent=1, default=str))
+        print(write(doc))
+        return 0
     rows = sample(args.per_point, points, args.seed)
     by_point = Counter(r["point"] for r in rows)
     apart = Counter(r["point"] for r in rows if r["_student"] is not None and r["_student"] != r.get("value_used"))
@@ -270,7 +424,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     if gateway.client("decision_answer") is None:  # nothing would be asked: say so before anything is written
         print("no model serves decision_answer here (no key, or DCLAB_NO_LIVE_MODELS): nothing sent, nothing written")
         return 2
-    result = run(rows, GatewayAdvisor(gateway, max_tokens=300, cap_eur=args.cap_eur), workers=args.workers)
+    home = Path(os.environ.get("DCLAB_AGENT_HOME") or ROOT / "agent_runs")
+    result = run(rows, GatewayAdvisor(gateway, max_tokens=300, cap_eur=args.cap_eur), workers=args.workers, full=home / "answers" / "answers.jsonl")
     doc = {"model": "claude-sonnet-5-5", "cap_eur": args.cap_eur, "estimate_eur": estimate, "per_point": args.per_point, "seed": args.seed,
            "decisions": len(rows), **result}
     print(json.dumps(doc["scores"], indent=1, default=str))

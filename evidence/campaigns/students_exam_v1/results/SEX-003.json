@@ -1,0 +1,249 @@
+{
+ "id": "SEX-003",
+ "experiment_id": "SEX-003",
+ "campaign_id": "students_exam_v1",
+ "kind": "students_exam",
+ "status": "completed",
+ "at": "2026-10-17T19:53:24+00:00",
+ "kind_of_run": "judge",
+ "model": "claude-sonnet-5-5",
+ "cap_eur": 5.0,
+ "estimate_eur": 3.28,
+ "per_point": 100,
+ "seed": 0,
+ "decisions": 820,
+ "counts": {
+  "asked": 820,
+  "labelled": 725,
+  "unsure": 95,
+  "refused": 0,
+  "stopped": 0
+ },
+ "spent_eur": 1.8775,
+ "judge": {
+  "column.category_code": {
+   "decisions": 100,
+   "judged": 99,
+   "not_judged": 1,
+   "accuracy": 0.9495,
+   "by_confidence": {
+    "low": {
+     "judged": 2,
+     "right": 0
+    },
+    "medium": {
+     "judged": 41,
+     "right": 38
+    },
+    "high": {
+     "judged": 56,
+     "right": 56
+    }
+   },
+   "on_disagreements": {
+    "judged": 92,
+    "sided_with_student": 87,
+    "sided_with_rule": 5,
+    "right": 88
+   }
+  },
+  "column.group": {
+   "decisions": 100,
+   "judged": 78,
+   "not_judged": 22,
+   "accuracy": 0.9744,
+   "by_confidence": {
+    "low": {
+     "judged": 9,
+     "right": 8
+    },
+    "high": {
+     "judged": 42,
+     "right": 42
+    },
+    "medium": {
+     "judged": 27,
+     "right": 26
+    }
+   },
+   "on_disagreements": {
+    "judged": 1,
+    "sided_with_student": 0,
+    "sided_with_rule": 1,
+    "right": 1
+   }
+  },
+  "column.is_identifier": {
+   "decisions": 100,
+   "judged": 100,
+   "not_judged": 0,
+   "accuracy": 0.82,
+   "by_confidence": {
+    "medium": {
+     "judged": 70,
+     "right": 52
+    },
+    "high": {
+     "judged": 15,
+     "right": 15
+    },
+    "low": {
+     "judged": 15,
+     "right": 15
+    }
+   },
+   "on_disagreements": {
+    "judged": 12,
+    "sided_with_student": 11,
+    "sided_with_rule": 1,
+    "right": 1
+   }
+  },
+  "column.semantic_role": {
+   "decisions": 100,
+   "judged": 98,
+   "not_judged": 2,
+   "accuracy": 0.7959,
+   "by_confidence": {
+    "high": {
+     "judged": 35,
+     "right": 35
+    },
+    "low": {
+     "judged": 29,
+     "right": 10
+    },
+    "medium": {
+     "judged": 34,
+     "right": 33
+    }
+   },
+   "on_disagreements": {
+    "judged": 98,
+    "sided_with_student": 76,
+    "sided_with_rule": 22,
+    "right": 78
+   }
+  },
+  "column.time": {
+   "decisions": 100,
+   "judged": 94,
+   "not_judged": 6,
+   "accuracy": 0.4787,
+   "by_confidence": {
+    "medium": {
+     "judged": 82,
+     "right": 40
+    },
+    "low": {
+     "judged": 11,
+     "right": 4
+    },
+    "high": {
+     "judged": 1,
+     "right": 1
+    }
+   },
+   "on_disagreements": {
+    "judged": 93,
+    "sided_with_student": 17,
+    "sided_with_rule": 76,
+    "right": 44
+   }
+  },
+  "feature.leakage_suspect": {
+   "decisions": 100,
+   "judged": 37,
+   "not_judged": 63,
+   "accuracy": 0.5135,
+   "by_confidence": {
+    "low": {
+     "judged": 20,
+     "right": 12
+    },
+    "medium": {
+     "judged": 17,
+     "right": 7
+    }
+   },
+   "on_disagreements": {
+    "judged": 29,
+    "sided_with_student": 12,
+    "sided_with_rule": 17,
+    "right": 12
+   }
+  },
+  "image.flip_safe": {
+   "decisions": 20,
+   "judged": 20,
+   "not_judged": 0,
+   "accuracy": 1.0,
+   "by_confidence": {
+    "high": {
+     "judged": 11,
+     "right": 11
+    },
+    "medium": {
+     "judged": 9,
+     "right": 9
+    }
+   },
+   "on_disagreements": {
+    "judged": 0,
+    "sided_with_student": 0,
+    "sided_with_rule": 0,
+    "right": 0
+   }
+  },
+  "image.label_suspect": {
+   "decisions": 100,
+   "judged": 99,
+   "not_judged": 1,
+   "accuracy": 0.9293,
+   "by_confidence": {
+    "medium": {
+     "judged": 86,
+     "right": 81
+    },
+    "low": {
+     "judged": 8,
+     "right": 6
+    },
+    "high": {
+     "judged": 5,
+     "right": 5
+    }
+   },
+   "on_disagreements": {
+    "judged": 0,
+    "sided_with_student": 0,
+    "sided_with_rule": 0,
+    "right": 0
+   }
+  },
+  "image.near_copy": {
+   "decisions": 100,
+   "judged": 100,
+   "not_judged": 0,
+   "accuracy": 0.8,
+   "by_confidence": {
+    "medium": {
+     "judged": 65,
+     "right": 58
+    },
+    "low": {
+     "judged": 35,
+     "right": 22
+    }
+   },
+   "on_disagreements": {
+    "judged": 0,
+    "sided_with_student": 0,
+    "sided_with_rule": 0,
+    "right": 0
+   }
+  }
+ },
+ "kept": 725,
+ "rule": "The generated sets' dev decisions (never the sealed partition), answered by the recorded rule, the student, Claude through decision_answer (bands and name tokens, never values) and GLiNER2.5-Decide (captured by 26.9), against the planted truth. Dev only: nothing here is a sealed verdict, and nothing is used or trained on."
+}

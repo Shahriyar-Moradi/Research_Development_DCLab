@@ -117,6 +117,13 @@ def main(argv: list[str] | None = None) -> int:
         help="max number of pending reviews to process",
     )
     campaign_review.add_argument(
+        "--cap-eur", type=float, default=None, help="the most this review run may spend",
+    )
+    campaign_review.add_argument(
+        "--beside", action="store_true",
+        help="29.18: a second reviewer's critiques kept in its own files; no result, shared memory or report is changed",
+    )
+    campaign_review.add_argument(
         "--experiment",
         default=None,
         help="comma-separated experiment IDs (e.g. EXP-001,EXP-002)",
@@ -213,6 +220,8 @@ def main(argv: list[str] | None = None) -> int:
                     limit=args.limit,
                     experiment_ids=experiment_ids,
                     force=args.force,
+                    beside=getattr(args, "beside", False),
+                    cap_eur=getattr(args, "cap_eur", None),
                 )
             except RuntimeError as exc:
                 print(f"ERROR: {exc}")

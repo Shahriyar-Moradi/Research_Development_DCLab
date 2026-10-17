@@ -146,5 +146,108 @@ class ExamTests(unittest.TestCase):
         self.assertFalse((self.lake / "bronze" / "answers" / X.CLAUDE).exists())
 
 
+@unittest.skipIf(MISSING, MISSING)
+class JudgeTests(unittest.TestCase):
+    """29.18: Claude as the blind judge of past decisions, measured first where the truth is known."""
+
+    def test_the_judge_sees_no_answer_judges_every_decision_and_is_scored_against_the_truth(self):
+        from dclab_rnd.ledger import model_labels
+
+        tmp = Path(tempfile.mkdtemp())
+        rows = [{**row(0, rule=True, truth=True), "_student": False}, {**row(1, rule=True, truth=False), "_student": False},
+                {**row(2, rule=False, truth=True), "_student": None}, {**row(3, rule=False, truth=False), "_student": None}]
+        rows = [{**r, "record": f"judge-{r['record']}-0000"} for r in rows]  # ledger ids: six characters at least
+        store = X.as_ledger(rows, tmp / "ledger")
+        seen = []
+
+        def ask(view):
+            seen.append(view)
+            n = int(view["state"]["column"][1:])
+            if n == 3:
+                return {"answer": None, "reason": "cannot tell"}
+            return {"answer": "yes" if n in (0, 2) else "no", "confidence": "high" if n < 2 else "low", "reason": f"because {n}"}
+
+        counts = model_labels.to_label(store, ask, "claude-test", every=True, workers=3)
+        self.assertEqual((counts["asked"], counts["labelled"], counts["unsure"]), (4, 3, 1))
+        for view in seen:  # blind: never the rule's answer, the value used, or who decided
+            self.assertNotIn("value_used", view)
+            self.assertNotIn("answers", view)
+        j = X.judged(rows, store, "claude-test")["column.is_identifier"]
+        self.assertEqual((j["judged"], j["not_judged"], j["accuracy"]), (3, 1, 1.0))
+        self.assertEqual(j["on_disagreements"], {"judged": 2, "sided_with_student": 1, "sided_with_rule": 1, "right": 2})
+        self.assertEqual(j["by_confidence"]["high"], {"judged": 2, "right": 2})
+        mine = [x for x in store.labels() if x.source == "model"]
+        self.assertTrue(all(x.weight == 1.0 or x.weight > 1 for x in mine))  # a census weighs 1; a drawn one keeps its draw's weight
+        lake = tmp / "lake"
+        self.assertEqual(X.keep_verdicts(rows, store, "claude-test", lake=lake), 3)
+        kept = [json.loads(x) for x in (lake / "bronze" / "answers" / X.CLAUDE / "lake" / "column.is_identifier" / "dev.jsonl").read_text().splitlines()]
+        self.assertEqual({(k["role"], k["use"], k["package"]) for k in kept}, {("judge", "eval_only", "29.18")})
+        self.assertIn("because", kept[0]["reason"])
+        again = model_labels.to_label(store, ask, "claude-test", every=True, workers=3)  # a decision judged once is not asked again
+        self.assertEqual(again["asked"], 1)  # only the one it was unsure of
+
+    def test_every_reply_is_kept_whole_before_anything_is_cut(self):  # the owner's rule, 2026-10-18
+        from dclab_rnd.ledger import model_labels
+
+        tmp = Path(tempfile.mkdtemp())
+        long_reason = "because " + "the bands say so " * 40  # far past the ledger's 200 characters
+
+        class Client:
+            model = "claude-sonnet-5-5"
+            spent_eur = 0.0
+            run_limit_eur = None
+
+            def complete(self, messages, tools=None, max_tokens=1200):
+                return {"content": json.dumps({"answer": "yes", "confidence": "high", "reason": long_reason}), "usage": {"input_tokens": 500, "output_tokens": 90}}
+
+        class Gateway:
+            def client(self, purpose):
+                return Client()
+
+        ask, _ = model_labels.asker(Gateway(), 1.0, keep=tmp / "judgments")
+        rows = [{**row(0), "record": "judge-r0-0000"}]
+        store = X.as_ledger(rows, tmp / "ledger")
+        model_labels.to_label(store, ask, "claude-sonnet-5-5", every=True)
+        kept = [json.loads(x) for x in (tmp / "judgments" / "judgments.jsonl").read_text().splitlines()]
+        self.assertEqual((kept[0]["record"], kept[0]["parsed"]["reason"]), ("judge-r0-0000", long_reason))  # whole, keyed by the decision
+        self.assertNotIn("record", kept[0]["sent"])  # the id is kept, never sent
+        self.assertEqual((kept[0]["input_tokens"], kept[0]["output_tokens"]), (500, 90))
+        self.assertGreater(kept[0]["cost_eur"], 0)
+        label = next(x for x in store.labels() if x.source == "model")
+        self.assertLessEqual(len(label.evidence.ref), 200)  # the ledger's copy is cut, after the whole one was kept
+        X.keep_verdicts(rows, store, "claude-sonnet-5-5", lake=tmp / "lake", full=tmp / "judgments" / "judgments.jsonl")
+        lake_row = json.loads((tmp / "lake" / "bronze" / "answers" / X.CLAUDE / "lake" / "column.is_identifier" / "dev.jsonl").read_text().splitlines()[0])
+        self.assertEqual(lake_row["reason_full"], long_reason)
+
+    def test_the_exams_replies_are_kept_whole_too(self):
+        tmp = Path(tempfile.mkdtemp())
+
+        class Inner:
+            def ask(self, purpose, evidence):
+                return {"answer": "yes", "reason": "x" * 900}
+
+        w = X.Whole(Inner(), tmp / "answers.jsonl")
+        self.assertEqual(len(w.ask("decision_answer", {"q": 1})["reason"]), 900)
+        kept = json.loads((tmp / "answers.jsonl").read_text().splitlines()[0])
+        self.assertEqual((kept["purpose"], len(kept["reply"]["reason"])), ("decision_answer", 900))
+
+    def test_a_cap_stops_the_judge_and_keeps_what_was_written(self):
+        from dclab_rnd.ledger import model_labels
+
+        rows = [{**row(i), "record": f"judge-r{i}-0000"} for i in range(6)]
+        store = X.as_ledger(rows, Path(tempfile.mkdtemp()) / "ledger")
+        calls = {"n": 0}
+
+        def ask(view):
+            calls["n"] += 1
+            if calls["n"] > 2:
+                raise RuntimeError("the run's cap is reached")
+            return {"answer": "yes", "reason": "r"}
+
+        counts = model_labels.to_label(store, ask, "claude-test", every=True, workers=1)
+        self.assertEqual((counts["labelled"], counts["stopped"]), (2, 1))
+        self.assertIn("cap", counts["why_stopped"])
+
+
 if __name__ == "__main__":
     unittest.main()

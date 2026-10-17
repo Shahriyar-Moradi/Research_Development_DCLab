@@ -1,0 +1,252 @@
+{
+ "experiment_id": "EXP-005",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T20:53:10Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "Does optimization produce a meaningful CV gain, and how does the preselected recipe perform on the once-consumed holdout?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-005-C1",
+    "evidence": [
+     "evidence.holdout_metrics",
+     "evidence.holdout_roc_auc_bootstrap_ci",
+     "evidence.holdout_consumed"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "The preselected lightgbm/lightgbm_C02 recipe scored 0.9097 ROC-AUC on the once-consumed holdout (bootstrap 95% interval 0.8855–0.9297)."
+   },
+   {
+    "claim_id": "EXP-005-C2",
+    "evidence": [
+     "evidence.top_final_features",
+     "evidence.cv_feature_stability",
+     "evidence.production_feature_rule"
+    ],
+    "kind": "recommendation",
+    "limitations": [],
+    "statement": "Do not promote features from importance alone; require decision-time availability, cross-fold stability, production availability, and monitoring."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-005",
+   "dataset": "adult",
+   "kind": "optimization_reliability",
+   "question": "Does optimization produce a meaningful CV gain, and how does the preselected recipe perform on the once-consumed holdout?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-005-C1",
+     "evidence": [
+      "evidence.holdout_metrics",
+      "evidence.holdout_roc_auc_bootstrap_ci",
+      "evidence.holdout_consumed"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "The preselected lightgbm/lightgbm_C02 recipe scored 0.9097 ROC-AUC on the once-consumed holdout (bootstrap 95% interval 0.8855–0.9297)."
+    },
+    {
+     "claim_id": "EXP-005-C2",
+     "evidence": [
+      "evidence.top_final_features",
+      "evidence.cv_feature_stability",
+      "evidence.production_feature_rule"
+     ],
+     "kind": "recommendation",
+     "limitations": [],
+     "statement": "Do not promote features from importance alone; require decision-time availability, cross-fold stability, production availability, and monitoring."
+    }
+   ],
+   "evidence": {
+    "selection_rule": "Evaluate explicit dataset-specific parameter candidates on training CV; use the best tuned candidate only when mean ROC-AUC improves by at least 0.001, otherwise prefer baseline.",
+    "holdout_metrics": {
+     "accuracy": 0.8575,
+     "avg_precision": 0.7923877827121867,
+     "brier": 0.09713909221549083,
+     "ece_10": 0.026080434704014666,
+     "f1": 0.6833333333333333,
+     "fit_seconds": 0.13832908400036104,
+     "log_loss": 0.31010193410815673,
+     "precision": 0.727810650887574,
+     "recall": 0.643979057591623,
+     "roc_auc": 0.9096536249451939,
+     "threshold": 0.5
+    },
+    "holdout_roc_auc_bootstrap_ci": {
+     "draws": 400,
+     "high": 0.929674276420258,
+     "low": 0.8854969409371798,
+     "median": 0.9106368424935218
+    },
+    "holdout_consumed": true,
+    "top_final_features": [
+     {
+      "feature": "fnlwgt",
+      "normalized_importance": 0.19333333333333333
+     },
+     {
+      "feature": "age",
+      "normalized_importance": 0.1797037037037037
+     },
+     {
+      "feature": "hours-per-week",
+      "normalized_importance": 0.11748148148148148
+     },
+     {
+      "feature": "education-num",
+      "normalized_importance": 0.08637037037037038
+     },
+     {
+      "feature": "occupation",
+      "normalized_importance": 0.08592592592592592
+     },
+     {
+      "feature": "relationship",
+      "normalized_importance": 0.06992592592592592
+     },
+     {
+      "feature": "capital-gain",
+      "normalized_importance": 0.06918518518518518
+     },
+     {
+      "feature": "workclass",
+      "normalized_importance": 0.03837037037037037
+     },
+     {
+      "feature": "education",
+      "normalized_importance": 0.037925925925925925
+     },
+     {
+      "feature": "capital-loss",
+      "normalized_importance": 0.03392592592592593
+     },
+     {
+      "feature": "marital-status",
+      "normalized_importance": 0.03259259259259259
+     },
+     {
+      "feature": "native-country",
+      "normalized_importance": 0.022518518518518518
+     },
+     {
+      "feature": "sex",
+      "normalized_importance": 0.021333333333333333
+     },
+     {
+      "feature": "race",
+      "normalized_importance": 0.011407407407407408
+     }
+    ],
+    "cv_feature_stability": [
+     {
+      "feature": "fnlwgt",
+      "mean_normalized_importance": 0.21812345679012346,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "age",
+      "mean_normalized_importance": 0.17748148148148146,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "hours-per-week",
+      "mean_normalized_importance": 0.11792592592592592,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "occupation",
+      "mean_normalized_importance": 0.10049382716049383,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "education-num",
+      "mean_normalized_importance": 0.08483950617283949,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "relationship",
+      "mean_normalized_importance": 0.06108641975308643,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "capital-gain",
+      "mean_normalized_importance": 0.047407407407407405,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "education",
+      "mean_normalized_importance": 0.039901234567901234,
+      "observed_folds": 3,
+      "top10_frequency": 1.0
+     },
+     {
+      "feature": "marital-status",
+      "mean_normalized_importance": 0.03683950617283951,
+      "observed_folds": 3,
+      "top10_frequency": 0.6666666666666666
+     },
+     {
+      "feature": "workclass",
+      "mean_normalized_importance": 0.03669135802469136,
+      "observed_folds": 3,
+      "top10_frequency": 0.6666666666666666
+     },
+     {
+      "feature": "capital-loss",
+      "mean_normalized_importance": 0.03214814814814815,
+      "observed_folds": 3,
+      "top10_frequency": 0.6666666666666666
+     },
+     {
+      "feature": "sex",
+      "mean_normalized_importance": 0.020098765432098768,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "race",
+      "mean_normalized_importance": 0.015753086419753086,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     },
+     {
+      "feature": "native-country",
+      "mean_normalized_importance": 0.011209876543209875,
+      "observed_folds": 3,
+      "top10_frequency": 0.0
+     }
+    ],
+    "production_feature_rule": "A feature is a stronger candidate when it is decision-time available, stable across CV folds, contractually obtainable, monitored for missingness/drift, and not merely important in one fit."
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-005\",\n  \"observed_evidence\": [\n    {\"statement\": \"The holdout ROC-AUC was 0.9097 (0.90965 unrounded) at a 0.5 threshold. Accuracy was 0.8575, F1 0.6833, precision 0.7278 and recall 0.6440.\", \"citation\": \"EXP-005 / evidence.holdout_metrics\"},\n    {\"statement\": \"Calibration metrics on the holdout were ECE(10) 0.0261, Brier 0.0971 and log loss 0.3101.\", \"citation\": \"EXP-005 / evidence.holdout_metrics\"},\n    {\"statement\": \"The bootstrap CI for holdout ROC-AUC used 400 draws, with a 2.5th–97.5th percentile range of 0.8855–0.9297 and a median of 0.9106.\", \"citation\": \"EXP-005 / evidence.holdout_roc_auc_bootstrap_ci\"},\n    {\"statement\": \"The holdout is flagged as consumed.\", \"citation\": \"EXP-005 / evidence.holdout_consumed\"},\n    {\"statement\": \"The selection rule uses the tuned candidate only if mean training-CV ROC-AUC improves by at least 0.001, otherwise the baseline.\", \"citation\": \"EXP-005 / evidence.selection_rule\"},\n    {\"statement\": \"fnlwgt has the highest normalized importance in the final model (0.193) and the highest CV mean (0.218). It is in the top 10 in 3 of 3 folds.\", \"citation\": \"EXP-005 / evidence.top_final_features; evidence.cv_feature_stability\"},\n    {\"statement\": \"sex, race and native-country have top10_frequency 0.0 across the 3 folds.\", \"citation\": \"EXP-005 / evidence.cv_feature_stability\"},\n    {\"statement\": \"CV stability is based on 3 observed folds per feature.\", \"citation\": \"EXP-005 / evidence.cv_feature_stability\"},\n    {\"statement\": \"The evidence bundle and both claims list empty limitations.\", \"citation\": \"EXP-005 / limitations; claims[*].limitations\"}\n  ],\n  \"interpretation\": \"Inference: the chosen recipe ranks holdout examples well, and the single holdout use was handled consistently with the stated protocol. Calibration at the 0.5 threshold looks reasonable. However, the bundle does not answer the first half of the question, which is whether optimization produced a meaningful CV gain. No CV ROC-AUC values for the baseline or candidates are present, the selected recipe is not shown to be tuned rather than baseline, and no delta is compared against the 0.001 gate. The holdout score therefore says nothing about the benefit of optimization. The bootstrap CI covers only test-set resampling variance, not training or seed variance, and the holdout size is not reported. The feature evidence is descriptive importance only. It supports neither promoting nor rejecting any feature. Hypothesis, not established: the high rank of fnlwgt (a census sampling weight) may reflect a dataset artifact rather than a decision-time signal. The importance type (split count vs gain) is unspecified, and split-count importance can favor high-cardinality continuous features.\",\n  \"decision\": \"Accept EXP-005-C1 only as a narrow descriptive fact about holdout performance of the preselected recipe. Do not accept any claim that optimization helped, because the CV comparison is absent. Treat EXP-005-C2 as a sound process recommendation. It does not approve any feature, and fnlwgt, sex, race and native-country need explicit decision-time, production-availability and governance review. The holdout is consumed, so no further model or recipe choices may be informed by it. No deployment approval is implied.\",\n  \"risks_and_missing_evidence\": [\n    \"No CV scores (per-fold or mean) are given for the baseline or tuned candidates, and the selected recipe is not identified as tuned or baseline. The optimization-gain question cannot be evaluated (evidence.selection_rule is a rule only).\",\n    \"No holdout comparison against the baseline is given, so it is unknown whether any difference exists at all. Any future baseline-vs-tuned comparison on this holdout would be a second use of it.\",\n    \"The bootstrap CI reflects test-sample variance only. Seed, training-split and tuning variance are not captured, and the holdout sample size and positive count are not reported.\",\n    \"The 0.001 improvement gate is small and its noise floor is unknown. With only 3 CV folds, a gain of that size may be indistinguishable from fold variance.\",\n    \"Importance type and method are unspecified. Impurity or split-count importance is biased, is not a measure of predictive contribution, and implies no causal effect. Permutation or ablation on validation folds is absent.\",\n    \"fnlwgt is a survey sampling weight, so its decision-time meaning and production availability are doubtful. Its dominant importance warrants a leakage/artifact review (for example, ordering or sampling-design effects).\",\n    \"sex, race and native-country are protected or sensitive attributes. No fairness, legal or policy review is shown, and importance rankings say nothing about their permissibility.\",\n    \"education and education-num are likely redundant, so importance may be split or unstable between them.\",\n    \"A single 0.5 threshold is reported with no cost or prevalence rationale. Precision and recall may shift materially with a different operating point.\",\n    \"Preprocessing and fit-in-fold hygiene (encoders, imputers fit on training folds only) is not documented, and dataset duplicates or split-level leakage checks are not shown.\",\n    \"The empty limitations fields overstate certainty, since the gaps above exist.\"\n  ],\n  \"challenges_to_claims\": [\n    {\"claim_id\": \"EXP-005-C1\", \"issue\": \"The claim is factually supported as a holdout score, but it does not address the question's optimization-gain component. It omits CV baseline vs tuned results, and the empty limitations hide that the CI is bootstrap-over-test-set only and that the holdout size is unreported.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-005-C1\", \"issue\": \"The phrase 'preselected recipe' is not backed by evidence showing the selection-rule outcome (tuned vs baseline) or a CV delta against the 0.001 gate.\", \"severity\": \"high\"},\n    {\"claim_id\": \"EXP-005-C2\", \"issue\": \"As a recommendation it is appropriate, but the cited evidence contains no decision-time or production-availability assessment. It is also based on 3 folds and an unspecified importance type, and fnlwgt (top feature) and the sensitive attributes are not flagged. The empty limitations field is inadequate.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-005-C2\", \"issue\": \"Top importance and fold-stability are descriptive predictive-model statistics. They must not be read as evidence that any feature has a causal effect or is suitable for production.\", \"severity\": \"medium\"}\n  ],\n  \"next_experiment\": {\n    \"title\": \"Paired repeated-CV comparison of baseline vs lightgbm_C02 on training data only, with fnlwgt-ablation as a secondary reading\",\n    \"hypothesis\": \"Mean ROC-AUC of lightgbm_C02 exceeds the baseline by at least 0.001 in paired repeated stratified CV on the training split, and the paired-difference interval excludes zero. If not, the optimization gain is not distinguishable from noise.\",\n    \"success_gate\": \"Using identical folds (e.g. 5 folds x 5 repeats, fixed seeds) on the training split only, report the per-fold paired ROC-AUC difference (C02 minus baseline). Pass if mean difference >= 0.001 and the 95% paired-bootstrap or t-interval lower bound is > 0. Otherwise the baseline is preferred, per the stated selection rule. The holdout is not touched. Also record the ROC-AUC change when fnlwgt is dropped, as a descriptive diagnostic only.\",\n    \"why_smallest\": \"It reuses the existing candidates and selection rule, needs no new tuning and no holdout access, and directly supplies the missing CV-gain evidence with a variance estimate.\"\n  },\n  \"overall_confidence\": \"medium\"\n}",
+ "usage": {
+  "input_tokens": 3496,
+  "output_tokens": 3812
+ },
+ "finish_reason": "stop"
+}

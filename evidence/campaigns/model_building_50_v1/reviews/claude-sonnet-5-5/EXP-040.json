@@ -1,0 +1,110 @@
+{
+ "experiment_id": "EXP-040",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T21:13:04Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "Does optimization produce a meaningful CV gain, and how does the preselected recipe perform on the once-consumed holdout?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-040-C1",
+    "evidence": [
+     "evidence.holdout_metrics",
+     "evidence.holdout_roc_auc_bootstrap_ci",
+     "evidence.holdout_consumed"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "The preselected hist_gradient_boosting/baseline recipe scored 0.9849 ROC-AUC on the once-consumed holdout (bootstrap 95% interval 0.9752–0.9925)."
+   },
+   {
+    "claim_id": "EXP-040-C2",
+    "evidence": [
+     "evidence.top_final_features",
+     "evidence.cv_feature_stability",
+     "evidence.production_feature_rule"
+    ],
+    "kind": "recommendation",
+    "limitations": [],
+    "statement": "Do not promote features from importance alone; require decision-time availability, cross-fold stability, production availability, and monitoring."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-040",
+   "dataset": "spambase",
+   "kind": "optimization_reliability",
+   "question": "Does optimization produce a meaningful CV gain, and how does the preselected recipe perform on the once-consumed holdout?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-040-C1",
+     "evidence": [
+      "evidence.holdout_metrics",
+      "evidence.holdout_roc_auc_bootstrap_ci",
+      "evidence.holdout_consumed"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "The preselected hist_gradient_boosting/baseline recipe scored 0.9849 ROC-AUC on the once-consumed holdout (bootstrap 95% interval 0.9752–0.9925)."
+    },
+    {
+     "claim_id": "EXP-040-C2",
+     "evidence": [
+      "evidence.top_final_features",
+      "evidence.cv_feature_stability",
+      "evidence.production_feature_rule"
+     ],
+     "kind": "recommendation",
+     "limitations": [],
+     "statement": "Do not promote features from importance alone; require decision-time availability, cross-fold stability, production availability, and monitoring."
+    }
+   ],
+   "evidence": {
+    "selection_rule": "Evaluate explicit dataset-specific parameter candidates on training CV; use the best tuned candidate only when mean ROC-AUC improves by at least 0.001, otherwise prefer baseline.",
+    "holdout_metrics": {
+     "accuracy": 0.95125,
+     "avg_precision": 0.9759570014345881,
+     "brier": 0.03815602670527378,
+     "ece_10": 0.02611888250296916,
+     "f1": 0.9391575663026521,
+     "fit_seconds": 0.42475933300011093,
+     "log_loss": 0.15471254874904308,
+     "precision": 0.9233128834355828,
+     "recall": 0.9555555555555556,
+     "roc_auc": 0.9848731795123549,
+     "threshold": 0.5
+    },
+    "holdout_roc_auc_bootstrap_ci": {
+     "draws": 400,
+     "high": 0.9925227023308015,
+     "low": 0.9751896210885335,
+     "median": 0.9846331090745631
+    },
+    "holdout_consumed": true,
+    "top_final_features": [],
+    "cv_feature_stability": [],
+    "production_feature_rule": "A feature is a stronger candidate when it is decision-time available, stable across CV folds, contractually obtainable, monitored for missingness/drift, and not merely important in one fit."
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-040\",\n  \"observed_evidence\": [\n    {\"statement\": \"Holdout ROC-AUC for the evaluated recipe was 0.98487 at threshold 0.5.\", \"citation\": \"EXP-040 / evidence.holdout_metrics.roc_auc; evidence.holdout_metrics.threshold\"},\n    {\"statement\": \"Other holdout metrics: accuracy 0.95125, precision 0.9233, recall 0.9556, F1 0.9392, Brier 0.0382, ECE(10) 0.0261, log loss 0.1547.\", \"citation\": \"EXP-040 / evidence.holdout_metrics\"},\n    {\"statement\": \"The bootstrap ROC-AUC interval was 0.9752–0.9925 (median 0.9846) from 400 draws.\", \"citation\": \"EXP-040 / evidence.holdout_roc_auc_bootstrap_ci\"},\n    {\"statement\": \"The holdout is flagged as consumed.\", \"citation\": \"EXP-040 / evidence.holdout_consumed\"},\n    {\"statement\": \"The selection rule adopts a tuned candidate only if mean training-CV ROC-AUC improves by at least 0.001, otherwise it keeps the baseline.\", \"citation\": \"EXP-040 / evidence.selection_rule\"},\n    {\"statement\": \"top_final_features and cv_feature_stability are empty lists, and the top-level limitations list is empty.\", \"citation\": \"EXP-040 / evidence.top_final_features; evidence.cv_feature_stability; limitations\"},\n    {\"statement\": \"production_feature_rule contains only a generic rule text, with no per-feature review.\", \"citation\": \"EXP-040 / evidence.production_feature_rule\"}\n  ],\n  \"interpretation\": \"Inference: the package supports only a descriptive statement that one recipe scored high ROC-AUC on a single holdout, with a bootstrap interval reflecting test-set sampling. It does not answer the first half of the question, because no CV scores, candidate list, tuned-vs-baseline delta, fold variance or chosen parameters are present, only the selection rule. Even the claim that the baseline was selected is not shown in the evidence fields; the recipe name appears only in the claim text. C2 is a reasonable governance recommendation, but its cited evidence (feature importances and fold stability) is empty, so it is untested here. Nothing here supports a causal reading of the scores or any feature-level conclusion.\",\n  \"decision\": \"Do not conclude that optimization yields (or fails to yield) a meaningful CV gain. Treat C1 as a descriptive holdout result for one recipe only, pending the missing CV evidence. Do not promote any feature or approve deployment.\",\n  \"risks_and_missing_evidence\": [\n    \"No CV metrics, per-candidate scores, per-fold values or paired deltas, so the 0.001 gate cannot be verified (evidence.selection_rule is the only CV-related field).\",\n    \"No evidence that the recipe was preselected before the holdout was seen, such as a timestamped or logged choice. holdout_consumed=true shows consumption but not the order of choices.\",\n    \"Holdout size, class prevalence, split method and seed are not reported, so the precision of the interval and the metrics cannot be assessed.\",\n    \"No duplicate or near-duplicate audit between train and holdout. Spambase is known to contain repeated rows, so overlap could inflate the holdout score. This was not checked here.\",\n    \"The bootstrap resamples only the holdout predictions. It ignores training and seed variance, and 400 draws is modest for tail percentiles.\",\n    \"A fixed threshold of 0.5 was used with no threshold-selection or cost analysis. Precision, recall and ECE are tied to that threshold and to unknown prevalence.\",\n    \"Feature evidence is empty, so decision-time availability, production availability, stability and monitoring were never reviewed for any feature.\",\n    \"The limitations list is empty despite the gaps above.\",\n    \"Single dataset and single holdout, so no generalization claim is possible. The scores are predictive only and carry no causal meaning.\"\n  ],\n  \"challenges_to_claims\": [\n    {\"claim_id\": \"EXP-040-C1\", \"issue\": \"The claim is labeled fact and its numbers match holdout_metrics and the bootstrap interval. However, 'preselected' and 'baseline' are not backed by any evidence field: no CV results, selected-candidate record or preselection log. The empty limitations list also omits that the interval covers test sampling only and that no duplicate-overlap check was reported.\", \"severity\": \"medium\"},\n    {\"claim_id\": \"EXP-040-C1\", \"issue\": \"The package question asks about CV gain from optimization, but the cited evidence contains only holdout metrics, so the claim does not address that question.\", \"severity\": \"high\"},\n    {\"claim_id\": \"EXP-040-C2\", \"issue\": \"The recommendation cites top_final_features and cv_feature_stability, which are both empty, so no feature-level evidence supports or illustrates it. It is a sound policy statement but is not empirically grounded in this experiment, and no feature has been reviewed for decision-time or production availability.\", \"severity\": \"medium\"}\n  ],\n  \"next_experiment\": {\n    \"title\": \"Paired repeated-CV test of tuned vs baseline on training data only, plus train/holdout duplicate audit\",\n    \"hypothesis\": \"The best tuned candidate does not beat the baseline hist_gradient_boosting recipe by at least 0.001 mean ROC-AUC under paired repeated stratified CV (the null expectation implied by the baseline selection). Separately, exact-duplicate overlap between training and holdout rows is negligible.\",\n    \"success_gate\": \"Report per-fold paired ROC-AUC deltas (tuned minus baseline) over at least 5x5 repeated CV with identical splits. The hypothesis is falsified if the mean delta is at least 0.001 and its 95% interval excludes 0. Report the exact-duplicate count between train and holdout. If it is above 0, flag the holdout score as potentially inflated and re-score on the de-duplicated holdout subset without re-tuning. Do not use the holdout for any selection.\",\n    \"why_smallest\": \"It touches only training data and a row-hash comparison, needs no new models beyond the existing candidates, and directly supplies the missing CV-gain evidence and the main unchecked leakage risk.\"\n  },\n  \"overall_confidence\": \"low\"\n}",
+ "usage": {
+  "input_tokens": 2041,
+  "output_tokens": 2871
+ },
+ "finish_reason": "stop"
+}

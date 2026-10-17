@@ -1,0 +1,193 @@
+{
+ "experiment_id": "EXP-036",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T21:11:17Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-036-C1",
+    "evidence": [
+     "evidence.source_rows",
+     "evidence.feature_count",
+     "evidence.positive_rate_train"
+    ],
+    "kind": "fact",
+    "limitations": [],
+    "statement": "spambase has 4601 source rows, 57 cached features, and a training positive rate of 0.394."
+   },
+   {
+    "claim_id": "EXP-036-C2",
+    "evidence": [
+     "evidence.feature_profiles"
+    ],
+    "kind": "risk",
+    "limitations": [
+     "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+     "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+    ],
+    "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-036",
+   "dataset": "spambase",
+   "kind": "data_understanding",
+   "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-036-C1",
+     "evidence": [
+      "evidence.source_rows",
+      "evidence.feature_count",
+      "evidence.positive_rate_train"
+     ],
+     "kind": "fact",
+     "limitations": [],
+     "statement": "spambase has 4601 source rows, 57 cached features, and a training positive rate of 0.394."
+    },
+    {
+     "claim_id": "EXP-036-C2",
+     "evidence": [
+      "evidence.feature_profiles"
+     ],
+     "kind": "risk",
+     "limitations": [
+      "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+      "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+     ],
+     "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+    }
+   ],
+   "evidence": {
+    "source_rows": 4601,
+    "feature_count": 57,
+    "positive_rate_train": 0.3940625,
+    "feature_profiles": [
+     {
+      "dtype": "float64",
+      "feature": "word_freq_make",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.0009194080857757566,
+      "top_value_frequency": 0.7734375,
+      "unique_count": 128,
+      "unique_ratio": 0.04
+     },
+     {
+      "dtype": "float64",
+      "feature": "word_freq_address",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.002342106389114426,
+      "top_value_frequency": 0.80375,
+      "unique_count": 153,
+      "unique_ratio": 0.0478125
+     },
+     {
+      "dtype": "float64",
+      "feature": "word_freq_all",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.003403549009799785,
+      "top_value_frequency": 0.5928125,
+      "unique_count": 201,
+      "unique_ratio": 0.0628125
+     },
+     {
+      "dtype": "float64",
+      "feature": "word_freq_3d",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": null,
+      "top_value_frequency": 0.989375,
+      "unique_count": 31,
+      "unique_ratio": 0.0096875
+     },
+     {
+      "dtype": "float64",
+      "feature": "word_freq_our",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.004137518555133637,
+      "top_value_frequency": 0.6196875,
+      "unique_count": 237,
+      "unique_ratio": 0.0740625
+     },
+     {
+      "dtype": "float64",
+      "feature": "word_freq_over",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.00924832335199074,
+      "top_value_frequency": 0.790625,
+      "unique_count": 129,
+      "unique_ratio": 0.0403125
+     },
+     {
+      "dtype": "float64",
+      "feature": "word_freq_remove",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 1.745838435213531e-05,
+      "top_value_frequency": 0.825625,
+      "unique_count": 157,
+      "unique_ratio": 0.0490625
+     },
+     {
+      "dtype": "float64",
+      "feature": "word_freq_internet",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 6.944770442329856e-05,
+      "top_value_frequency": 0.8184375,
+      "unique_count": 154,
+      "unique_ratio": 0.048125
+     },
+     {
+      "dtype": "float64",
+      "feature": "word_freq_order",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 6.944770442329856e-05,
+      "top_value_frequency": 0.830625,
+      "unique_count": 136,
+      "unique_ratio": 0.0425
+     },
+     {
+      "dtype": "float64",
+      "feature": "word_freq_mail",
+      "missing_rate": 0.0,
+      "production_risks": [],
+      "random_split_psi": 0.002088643913679035,
+      "top_value_frequency": 0.7153125,
+      "unique_count": 216,
+      "unique_ratio": 0.0675
+     }
+    ]
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-036\",\n  \"observed_evidence\": [\n    {\"statement\": \"The package reports 4601 source rows.\", \"citation\": \"EXP-036 / evidence.source_rows\"},\n    {\"statement\": \"The package reports 57 cached features.\", \"citation\": \"EXP-036 / evidence.feature_count\"},\n    {\"statement\": \"The training positive rate is 0.3940625.\", \"citation\": \"EXP-036 / evidence.positive_rate_train\"},\n    {\"statement\": \"Only 10 feature profiles are present in the bundle, all word_freq_* features with dtype float64. This is fewer than the reported 57 features.\", \"citation\": \"EXP-036 / evidence.feature_profiles\"},\n    {\"statement\": \"All 10 shown profiles have missing_rate 0.0 and an empty production_risks list.\", \"citation\": \"EXP-036 / evidence.feature_profiles[*].missing_rate, evidence.feature_profiles[*].production_risks\"},\n    {\"statement\": \"word_freq_3d has random_split_psi null, top_value_frequency 0.989375 and unique_count 31. No reason for the null PSI is given.\", \"citation\": \"EXP-036 / evidence.feature_profiles[3].random_split_psi, evidence.feature_profiles[3].top_value_frequency, evidence.feature_profiles[3].unique_count\"},\n    {\"statement\": \"The other 9 shown profiles have small random_split_psi values, the largest being about 0.0092 for word_freq_over.\", \"citation\": \"EXP-036 / evidence.feature_profiles[5].random_split_psi\"},\n    {\"statement\": \"The bundle's top-level limitations list is empty. Claim C2 lists two limitations: categoricals were factorized in the cached matrices, and random-split PSI is only a smoke check.\", \"citation\": \"EXP-036 / limitations; EXP-036 / claims[EXP-036-C2].limitations\"}\n  ],\n  \"interpretation\": \"Inference: C1 is a descriptive fact, but it only partly characterizes the data. The training row count, holdout size and holdout positive rate are not reported, and the split method is not stated. Inference: unique_count / unique_ratio implies roughly 3200 training rows (128 / 0.04), which is well below 4601. That is arithmetic on the reported fields, not an observed split size. C2 ('0 features triggered review rules') is not verifiable from the bundle. It cites feature_profiles, but only 10 of 57 profiles are shown, no trigger count is reported, and no rule thresholds are given. word_freq_3d is a possible near-constant candidate (top value frequency 0.989) with an unexplained null PSI, yet its production_risks list is empty. Without the thresholds, I cannot tell whether this is a rule pass or a rule gap. The 'factorized categoricals' limitation does not obviously apply to the float64 word-frequency features shown, so it may be boilerplate. Passing smoke-check rules says nothing about decision-time availability, which this package has not reviewed.\",\n  \"decision\": \"Do not proceed to modeling or approve any feature. Treat C1 as supported but incomplete. Treat C2 as unsupported until the full 57-feature profile, the rule thresholds and the null-PSI handling are shown. Decision-time and production-availability review has not been performed for any feature.\",\n  \"risks_and_missing_evidence\": [\n    \"Only 10 of 57 feature profiles are in the evidence, so the claim of 0 triggered features cannot be audited.\",\n    \"No rule thresholds are given for missingness, identifier, near-constant or PSI review, so 'not triggered' cannot be interpreted.\",\n    \"word_freq_3d has a null PSI and a top-value frequency of 0.989375. It is unclear whether the null means constant, undefined, or skipped, or whether the near-constant rule failed to fire.\",\n    \"Split method, training size, holdout size and holdout positive rate are not reported. Inferred training size is about 3200 of 4601 rows.\",\n    \"No duplicate or near-duplicate row check is reported, including duplicates across train and holdout, which could inflate later holdout scores.\",\n    \"The label definition, feature derivation (how word frequencies are computed from raw emails) and data collection provenance are not in the evidence. Production availability of these derived features at decision time is unreviewed.\",\n    \"Only random-split PSI is reported. There is no temporal or source-based stability evidence, and the collection period is unknown.\",\n    \"The 'factorized categoricals' limitation appears unrelated to the observed float64 features, which suggests a generic limitation was copied into the package.\",\n    \"The empty limitations on C1 omit that the positive rate covers training data only.\",\n    \"The package gives no per-feature view of the positive rate or of feature-label association, so a leakage-like proxy cannot be ruled out. Predictive or association results would not establish causality in any case.\"\n  ],\n  \"challenges_to_claims\": [\n    {\n      \"claim_id\": \"EXP-036-C2\",\n      \"issue\": \"'0 features triggered' is not backed by a trigger count or by complete profiles (10 of 57 shown), and the rule thresholds are missing. word_freq_3d (top_value_frequency 0.989375, null PSI) appears to deserve review but has empty production_risks.\",\n      \"severity\": \"high\"\n    },\n    {\n      \"claim_id\": \"EXP-036-C2\",\n      \"issue\": \"Random-split PSI is acknowledged as a smoke check, yet the claim reads as a general absence of risk. Production-availability and temporal shift were not assessed.\",\n      \"severity\": \"medium\"\n    },\n    {\n      \"claim_id\": \"EXP-036-C2\",\n      \"issue\": \"The categorical-factorization limitation does not obviously match the float64 features shown, so the limitation text is not tied to this dataset's evidence.\",\n      \"severity\": \"low\"\n    },\n    {\n      \"claim_id\": \"EXP-036-C1\",\n      \"issue\": \"The claim mixes the full-source row count (4601) with a training-only positive rate without stating train/holdout sizes or the holdout rate. The empty limitations list hides this.\",\n      \"severity\": \"medium\"\n    }\n  ],\n  \"next_experiment\": {\n    \"title\": \"Complete 57-feature profile audit with explicit rule thresholds, split accounting, and duplicate check\",\n    \"hypothesis\": \"If the data-quality screen is sound, all 57 profiles will be reported, the null PSI on word_freq_3d will have a documented cause, any near-constant rule will be applied consistently, and no exact-duplicate rows will cross the train/holdout split. If any of these fail, claim C2 as written is falsified.\",\n    \"success_gate\": \"All of the following are met: (1) 57 of 57 feature profiles are present, each with a non-null PSI or a documented reason for null; (2) numeric thresholds for the missingness, identifier, near-constant and PSI rules are recorded, and the count of triggered features is computed from the profiles and matches the claim; (3) word_freq_3d is either flagged under the near-constant rule or the threshold that exempts it is justified; (4) train size, holdout size, holdout positive rate and the split seed/method are reported; (5) the count of exact-duplicate rows is reported overall and across the train/holdout boundary. Fail if any item is missing, or if the triggered count differs from the claimed 0 without the claim being revised.\",\n    \"why_smallest\": \"It requires no model training. It only completes the existing profiling output and adds split accounting and a duplicate count, which are the minimum needed to make C2 verifiable. A separate feature-by-feature decision-time availability review is still required before any feature is approved.\"\n  },\n  \"overall_confidence\": \"medium\"\n}",
+ "usage": {
+  "input_tokens": 2767,
+  "output_tokens": 3440
+ },
+ "finish_reason": "stop"
+}

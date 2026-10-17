@@ -1,0 +1,1515 @@
+{
+ "experiment_id": "EXP-003",
+ "model": "claude-sonnet-5-5",
+ "at": "2026-10-17T20:52:05Z",
+ "system": "You are the DCLab evidence critic for tabular ML research.\n\nRole: critic and hypothesis generator ONLY.\nYou may challenge unsupported claims, flag leakage/validation risks, and propose the smallest falsifiable next experiment.\nYou may NOT rewrite observed metrics, invent numbers, approve deployment, or claim causality from predictive scores.\n\nMandatory answer format (return valid JSON only):\n{\n  \"experiment_id\": \"...\",\n  \"observed_evidence\": [{\"statement\": \"...\", \"citation\": \"EXPERIMENT_ID / evidence.path\"}],\n  \"interpretation\": \"...\",\n  \"decision\": \"...\",\n  \"risks_and_missing_evidence\": [\"...\"],\n  \"challenges_to_claims\": [{\"claim_id\": \"...\", \"issue\": \"...\", \"severity\": \"low|medium|high\"}],\n  \"next_experiment\": {\n    \"title\": \"...\",\n    \"hypothesis\": \"...\",\n    \"success_gate\": \"...\",\n    \"why_smallest\": \"...\"\n  },\n  \"overall_confidence\": \"low|medium|high\"\n}\n\nRules:\n- Separate facts, inferences, hypotheses, and recommendations.\n- Cite experiment_id and exact evidence paths for every factual statement.\n- Never infer causal effects from predictive evidence.\n- Never approve a feature without decision-time and production-availability review.\n",
+ "sent": {
+  "task": "DCLab evidence critic",
+  "question": "Which train-fitted feature recipe improves validation evidence without feature dilution?",
+  "instructions": [
+   "challenge unsupported claims",
+   "identify missed leakage or validation risks",
+   "propose the smallest next experiment with a falsifiable success gate",
+   "cite experiment_id and evidence paths for every conclusion"
+  ],
+  "rules": [
+   "Separate observed facts, inferences, hypotheses, and recommendations.",
+   "Cite the experiment ID and exact evidence path for every factual statement.",
+   "Never infer causal effects from predictive evidence.",
+   "Never approve a feature without decision-time and production-availability review."
+  ],
+  "claims": [
+   {
+    "claim_id": "EXP-003-C1",
+    "evidence": [
+     "evidence.stage_results",
+     "evidence.selection_rule"
+    ],
+    "kind": "recommendation",
+    "limitations": [
+     "Generic mathematical feature generation may lack domain meaning; a domain expert must review production semantics."
+    ],
+    "statement": "Use the raw feature recipe for the next model screen on adult; it achieved 0.8955 mean training-CV ROC-AUC with about 14 features."
+   }
+  ],
+  "evidence_bundle": {
+   "experiment_id": "EXP-003",
+   "dataset": "adult",
+   "kind": "feature_engineering",
+   "question": "Which train-fitted feature recipe improves validation evidence without feature dilution?",
+   "status": "completed",
+   "claims": [
+    {
+     "claim_id": "EXP-003-C1",
+     "evidence": [
+      "evidence.stage_results",
+      "evidence.selection_rule"
+     ],
+     "kind": "recommendation",
+     "limitations": [
+      "Generic mathematical feature generation may lack domain meaning; a domain expert must review production semantics."
+     ],
+     "statement": "Use the raw feature recipe for the next model screen on adult; it achieved 0.8955 mean training-CV ROC-AUC with about 14 features."
+    }
+   ],
+   "evidence": {
+    "stage_results": [
+     {
+      "elapsed_seconds": 0.38483704200007196,
+      "evaluations": 3,
+      "feature_count_mean": 14.0,
+      "feature_stability": [
+       {
+        "feature": "fnlwgt",
+        "mean_normalized_importance": 0.2578888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "age",
+        "mean_normalized_importance": 0.1907777777777778,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "hours-per-week",
+        "mean_normalized_importance": 0.10677777777777776,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "occupation",
+        "mean_normalized_importance": 0.09899999999999999,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "education-num",
+        "mean_normalized_importance": 0.07155555555555555,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "capital-gain",
+        "mean_normalized_importance": 0.04588888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "education",
+        "mean_normalized_importance": 0.043333333333333335,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "relationship",
+        "mean_normalized_importance": 0.039,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "workclass",
+        "mean_normalized_importance": 0.03711111111111111,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "capital-loss",
+        "mean_normalized_importance": 0.02966666666666667,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+       },
+       {
+        "feature": "native-country",
+        "mean_normalized_importance": 0.021666666666666667,
+        "observed_folds": 3,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "marital-status",
+        "mean_normalized_importance": 0.02666666666666666,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "race",
+        "mean_normalized_importance": 0.015888888888888886,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "sex",
+        "mean_normalized_importance": 0.014777777777777779,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       }
+      ],
+      "fold_metrics": [
+       {
+        "accuracy": 0.8500468603561387,
+        "avg_precision": 0.771975203457202,
+        "brier": 0.11010066342786295,
+        "ece_10": 0.0650575432052303,
+        "f1": 0.6638655462184874,
+        "fit_seconds": 0.10130724999908125,
+        "log_loss": 0.37106801464088257,
+        "precision": 0.7181818181818181,
+        "recall": 0.6171875,
+        "roc_auc": 0.892050709001233,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.837863167760075,
+        "avg_precision": 0.7548156296201245,
+        "brier": 0.11285210207934332,
+        "ece_10": 0.06169695392245523,
+        "f1": 0.6197802197802198,
+        "fit_seconds": 0.048898667000685236,
+        "log_loss": 0.35733879912027794,
+        "precision": 0.705,
+        "recall": 0.5529411764705883,
+        "roc_auc": 0.8916014681734763,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.8527204502814258,
+        "avg_precision": 0.7700373546045449,
+        "brier": 0.10661251483015431,
+        "ece_10": 0.04668587642081893,
+        "f1": 0.6762886597938145,
+        "fit_seconds": 0.049417292000725865,
+        "log_loss": 0.33956356650203584,
+        "precision": 0.7130434782608696,
+        "recall": 0.6431372549019608,
+        "roc_auc": 0.9029955755421775,
+        "threshold": 0.5
+       }
+      ],
+      "folds": 3,
+      "metrics": {
+       "accuracy": {
+        "ci95_high": 0.8558388032495895,
+        "ci95_low": 0.8379148490155038,
+        "max": 0.8527204502814258,
+        "mean": 0.8468768261325467,
+        "min": 0.837863167760075,
+        "std": 0.007919693726014223
+       },
+       "avg_precision": {
+        "ci95_high": 0.7762439603059413,
+        "ci95_low": 0.754974831481973,
+        "max": 0.771975203457202,
+        "mean": 0.7656093958939572,
+        "min": 0.7548156296201245,
+        "std": 0.009397758100979812
+       },
+       "brier": {
+        "ci95_high": 0.11339366536668691,
+        "ci95_low": 0.10631652152488683,
+        "max": 0.11285210207934332,
+        "mean": 0.10985509344578687,
+        "min": 0.10661251483015431,
+        "std": 0.00312703385369157
+       },
+       "ece_10": {
+        "ci95_high": 0.06888301610871435,
+        "ci95_low": 0.046743899590288615,
+        "max": 0.0650575432052303,
+        "mean": 0.05781345784950148,
+        "min": 0.04668587642081893,
+        "std": 0.009782161899132847
+       },
+       "f1": {
+        "ci95_high": 0.6869154691743913,
+        "ci95_low": 0.6197074813539565,
+        "max": 0.6762886597938145,
+        "mean": 0.6533114752641739,
+        "min": 0.6197802197802198,
+        "std": 0.02969582897435294
+       },
+       "log_loss": {
+        "ci95_high": 0.37386437936000394,
+        "ci95_low": 0.3381158741487936,
+        "max": 0.37106801464088257,
+        "mean": 0.3559901267543988,
+        "min": 0.33956356650203584,
+        "std": 0.015795466153177794
+       },
+       "precision": {
+        "ci95_high": 0.7195935492752797,
+        "ci95_low": 0.7045566483531788,
+        "max": 0.7181818181818181,
+        "mean": 0.7120750988142293,
+        "min": 0.705,
+        "std": 0.00664405009833119
+       },
+       "recall": {
+        "ci95_high": 0.6569662113118373,
+        "ci95_low": 0.5518777429365289,
+        "max": 0.6431372549019608,
+        "mean": 0.6044219771241831,
+        "min": 0.5529411764705883,
+        "std": 0.04643330778459933
+       },
+       "roc_auc": {
+        "ci95_high": 0.902851074521767,
+        "ci95_low": 0.8882474272894909,
+        "max": 0.9029955755421775,
+        "mean": 0.895549250905629,
+        "min": 0.8916014681734763,
+        "std": 0.006452617087274231
+       }
+      },
+      "model": "lightgbm",
+      "optimization": "baseline",
+      "repeats": 1,
+      "stage": "raw"
+     },
+     {
+      "elapsed_seconds": 0.4665517079993151,
+      "evaluations": 3,
+      "feature_count_mean": 22.0,
+      "feature_stability": [
+       {
+        "feature": "fnlwgt",
+        "mean_normalized_importance": 0.2578888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "age",
+        "mean_normalized_importance": 0.1907777777777778,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "hours-per-week",
+        "mean_normalized_importance": 0.10677777777777776,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "occupation",
+        "mean_normalized_importance": 0.09899999999999999,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "education-num",
+        "mean_normalized_importance": 0.07155555555555555,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "capital-gain",
+        "mean_normalized_importance": 0.04588888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "education",
+        "mean_normalized_importance": 0.043333333333333335,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "relationship",
+        "mean_normalized_importance": 0.039,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "workclass",
+        "mean_normalized_importance": 0.03711111111111111,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "capital-loss",
+        "mean_normalized_importance": 0.02966666666666667,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+       },
+       {
+        "feature": "native-country",
+        "mean_normalized_importance": 0.021666666666666667,
+        "observed_folds": 3,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "marital-status",
+        "mean_normalized_importance": 0.02666666666666666,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "race",
+        "mean_normalized_importance": 0.015888888888888886,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "sex",
+        "mean_normalized_importance": 0.014777777777777779,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "log1p_capital-gain",
+        "mean_normalized_importance": 0.0,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "log1p_capital-loss",
+        "mean_normalized_importance": 0.0,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "log1p_education",
+        "mean_normalized_importance": 0.0,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "log1p_fnlwgt",
+        "mean_normalized_importance": 0.0,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "log1p_marital-status",
+        "mean_normalized_importance": 0.0,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "log1p_native-country",
+        "mean_normalized_importance": 0.0,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       }
+      ],
+      "fold_metrics": [
+       {
+        "accuracy": 0.8500468603561387,
+        "avg_precision": 0.771975203457202,
+        "brier": 0.11010066342786295,
+        "ece_10": 0.0650575432052303,
+        "f1": 0.6638655462184874,
+        "fit_seconds": 0.055921416998899076,
+        "log_loss": 0.37106801464088257,
+        "precision": 0.7181818181818181,
+        "recall": 0.6171875,
+        "roc_auc": 0.892050709001233,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.837863167760075,
+        "avg_precision": 0.7548156296201245,
+        "brier": 0.11285210207934332,
+        "ece_10": 0.06169695392245523,
+        "f1": 0.6197802197802198,
+        "fit_seconds": 0.05579679199945531,
+        "log_loss": 0.35733879912027794,
+        "precision": 0.705,
+        "recall": 0.5529411764705883,
+        "roc_auc": 0.8916014681734763,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.8527204502814258,
+        "avg_precision": 0.7700373546045449,
+        "brier": 0.10661251483015431,
+        "ece_10": 0.04668587642081893,
+        "f1": 0.6762886597938145,
+        "fit_seconds": 0.05535908300043957,
+        "log_loss": 0.33956356650203584,
+        "precision": 0.7130434782608696,
+        "recall": 0.6431372549019608,
+        "roc_auc": 0.9029955755421775,
+        "threshold": 0.5
+       }
+      ],
+      "folds": 3,
+      "metrics": {
+       "accuracy": {
+        "ci95_high": 0.8558388032495895,
+        "ci95_low": 0.8379148490155038,
+        "max": 0.8527204502814258,
+        "mean": 0.8468768261325467,
+        "min": 0.837863167760075,
+        "std": 0.007919693726014223
+       },
+       "avg_precision": {
+        "ci95_high": 0.7762439603059413,
+        "ci95_low": 0.754974831481973,
+        "max": 0.771975203457202,
+        "mean": 0.7656093958939572,
+        "min": 0.7548156296201245,
+        "std": 0.009397758100979812
+       },
+       "brier": {
+        "ci95_high": 0.11339366536668691,
+        "ci95_low": 0.10631652152488683,
+        "max": 0.11285210207934332,
+        "mean": 0.10985509344578687,
+        "min": 0.10661251483015431,
+        "std": 0.00312703385369157
+       },
+       "ece_10": {
+        "ci95_high": 0.06888301610871435,
+        "ci95_low": 0.046743899590288615,
+        "max": 0.0650575432052303,
+        "mean": 0.05781345784950148,
+        "min": 0.04668587642081893,
+        "std": 0.009782161899132847
+       },
+       "f1": {
+        "ci95_high": 0.6869154691743913,
+        "ci95_low": 0.6197074813539565,
+        "max": 0.6762886597938145,
+        "mean": 0.6533114752641739,
+        "min": 0.6197802197802198,
+        "std": 0.02969582897435294
+       },
+       "log_loss": {
+        "ci95_high": 0.37386437936000394,
+        "ci95_low": 0.3381158741487936,
+        "max": 0.37106801464088257,
+        "mean": 0.3559901267543988,
+        "min": 0.33956356650203584,
+        "std": 0.015795466153177794
+       },
+       "precision": {
+        "ci95_high": 0.7195935492752797,
+        "ci95_low": 0.7045566483531788,
+        "max": 0.7181818181818181,
+        "mean": 0.7120750988142293,
+        "min": 0.705,
+        "std": 0.00664405009833119
+       },
+       "recall": {
+        "ci95_high": 0.6569662113118373,
+        "ci95_low": 0.5518777429365289,
+        "max": 0.6431372549019608,
+        "mean": 0.6044219771241831,
+        "min": 0.5529411764705883,
+        "std": 0.04643330778459933
+       },
+       "roc_auc": {
+        "ci95_high": 0.902851074521767,
+        "ci95_low": 0.8882474272894909,
+        "max": 0.9029955755421775,
+        "mean": 0.895549250905629,
+        "min": 0.8916014681734763,
+        "std": 0.006452617087274231
+       }
+      },
+      "model": "lightgbm",
+      "optimization": "baseline",
+      "repeats": 1,
+      "stage": "logs"
+     },
+     {
+      "elapsed_seconds": 0.7358930419995886,
+      "evaluations": 3,
+      "feature_count_mean": 37.0,
+      "feature_stability": [
+       {
+        "feature": "ratio_fnlwgt_div_age",
+        "mean_normalized_importance": 0.12055555555555557,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "fnlwgt",
+        "mean_normalized_importance": 0.11688888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "age",
+        "mean_normalized_importance": 0.10588888888888888,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "ratio_age_div_hours-per-week",
+        "mean_normalized_importance": 0.105,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "ratio_fnlwgt_div_hours-per-week",
+        "mean_normalized_importance": 0.10166666666666667,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "occupation",
+        "mean_normalized_importance": 0.06988888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "hours-per-week",
+        "mean_normalized_importance": 0.060444444444444446,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "education-num",
+        "mean_normalized_importance": 0.05722222222222223,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "education",
+        "mean_normalized_importance": 0.034444444444444444,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "capital-gain",
+        "mean_normalized_importance": 0.03244444444444444,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+       },
+       {
+        "feature": "relationship",
+        "mean_normalized_importance": 0.032999999999999995,
+        "observed_folds": 3,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "workclass",
+        "mean_normalized_importance": 0.02622222222222222,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "marital-status",
+        "mean_normalized_importance": 0.021666666666666667,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "capital-loss",
+        "mean_normalized_importance": 0.01988888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "ratio_fnlwgt_div_native-country",
+        "mean_normalized_importance": 0.01322222222222222,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "sex",
+        "mean_normalized_importance": 0.011777777777777778,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "race",
+        "mean_normalized_importance": 0.010555555555555554,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "ratio_capital-gain_div_age",
+        "mean_normalized_importance": 0.009444444444444445,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "ratio_hours-per-week_div_native-country",
+        "mean_normalized_importance": 0.008444444444444444,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "ratio_capital-loss_div_age",
+        "mean_normalized_importance": 0.008,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       }
+      ],
+      "fold_metrics": [
+       {
+        "accuracy": 0.8416119962511716,
+        "avg_precision": 0.7669773860307642,
+        "brier": 0.11128295327398874,
+        "ece_10": 0.06520968403183308,
+        "f1": 0.6442105263157895,
+        "fit_seconds": 0.07464520800022001,
+        "log_loss": 0.376627748720275,
+        "precision": 0.6986301369863014,
+        "recall": 0.59765625,
+        "roc_auc": 0.8923011713933415,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.8444236176194939,
+        "avg_precision": 0.756133119805153,
+        "brier": 0.11382403782152062,
+        "ece_10": 0.06480844394954652,
+        "f1": 0.6452991452991453,
+        "fit_seconds": 0.07322279199979675,
+        "log_loss": 0.3691644858294529,
+        "precision": 0.7089201877934272,
+        "recall": 0.592156862745098,
+        "roc_auc": 0.8889210856756495,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.850844277673546,
+        "avg_precision": 0.7732761793842378,
+        "brier": 0.10691413224384035,
+        "ece_10": 0.05054644381121617,
+        "f1": 0.6638477801268499,
+        "fit_seconds": 0.07212233300015214,
+        "log_loss": 0.3422157736517718,
+        "precision": 0.7201834862385321,
+        "recall": 0.615686274509804,
+        "roc_auc": 0.9018544039070622,
+        "threshold": 0.5
+       }
+      ],
+      "folds": 3,
+      "metrics": {
+       "accuracy": {
+        "ci95_high": 0.8509816749099097,
+        "ci95_low": 0.8402715861195644,
+        "max": 0.850844277673546,
+        "mean": 0.8456266305147371,
+        "min": 0.8416119962511716,
+        "std": 0.004732249474094863
+       },
+       "avg_precision": {
+        "ci95_high": 0.7752748231071469,
+        "ci95_low": 0.7556496337062897,
+        "max": 0.7732761793842378,
+        "mean": 0.7654622284067183,
+        "min": 0.756133119805153,
+        "std": 0.008671383966950776
+       },
+       "brier": {
+        "ci95_high": 0.11462868211728305,
+        "ci95_low": 0.10671873344228341,
+        "max": 0.11382403782152062,
+        "mean": 0.11067370777978323,
+        "min": 0.10691413224384035,
+        "std": 0.0034950084159085393
+       },
+       "ece_10": {
+        "ci95_high": 0.06963982932206991,
+        "ci95_low": 0.05073655187299394,
+        "max": 0.06520968403183308,
+        "mean": 0.06018819059753192,
+        "min": 0.05054644381121617,
+        "std": 0.00835240739065576
+       },
+       "f1": {
+        "ci95_high": 0.6636084053281801,
+        "ci95_low": 0.6386298958330097,
+        "max": 0.6638477801268499,
+        "mean": 0.6511191505805949,
+        "min": 0.6442105263157895,
+        "std": 0.011036746822188007
+       },
+       "log_loss": {
+        "ci95_high": 0.3831537971683516,
+        "ci95_low": 0.34218487496598166,
+        "max": 0.376627748720275,
+        "mean": 0.3626693360671666,
+        "min": 0.3422157736517718,
+        "std": 0.018102105812714642
+       },
+       "precision": {
+        "ci95_high": 0.7214437025736045,
+        "ci95_low": 0.6970455047719026,
+        "max": 0.7201834862385321,
+        "mean": 0.7092446036727535,
+        "min": 0.6986301369863014,
+        "std": 0.01078033627695482
+       },
+       "recall": {
+        "ci95_high": 0.6157612263054264,
+        "ci95_low": 0.5879050318645083,
+        "max": 0.615686274509804,
+        "mean": 0.6018331290849673,
+        "min": 0.592156862745098,
+        "std": 0.01230825104009901
+       },
+       "roc_auc": {
+        "ci95_high": 0.9019493713466393,
+        "ci95_low": 0.8867684026373961,
+        "max": 0.9018544039070622,
+        "mean": 0.8943588869920177,
+        "min": 0.8889210856756495,
+        "std": 0.006707706406255733
+       }
+      },
+      "model": "lightgbm",
+      "optimization": "baseline",
+      "repeats": 1,
+      "stage": "ratios"
+     },
+     {
+      "elapsed_seconds": 0.7301267910006572,
+      "evaluations": 3,
+      "feature_count_mean": 45.0,
+      "feature_stability": [
+       {
+        "feature": "ratio_fnlwgt_div_age",
+        "mean_normalized_importance": 0.12155555555555557,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "fnlwgt",
+        "mean_normalized_importance": 0.11344444444444444,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "ratio_fnlwgt_div_hours-per-week",
+        "mean_normalized_importance": 0.10444444444444444,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "age",
+        "mean_normalized_importance": 0.10377777777777779,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "ratio_age_div_hours-per-week",
+        "mean_normalized_importance": 0.0948888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "occupation",
+        "mean_normalized_importance": 0.0628888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "hours-per-week",
+        "mean_normalized_importance": 0.05555555555555555,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "education-num",
+        "mean_normalized_importance": 0.053888888888888896,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "capital-gain",
+        "mean_normalized_importance": 0.027777777777777776,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+       },
+       {
+        "feature": "inter_relationship_x_occupation",
+        "mean_normalized_importance": 0.051,
+        "observed_folds": 1,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "workclass",
+        "mean_normalized_importance": 0.027777777777777776,
+        "observed_folds": 3,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "education",
+        "mean_normalized_importance": 0.026555555555555554,
+        "observed_folds": 3,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "relationship",
+        "mean_normalized_importance": 0.022333333333333334,
+        "observed_folds": 3,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "inter_relationship_x_education",
+        "mean_normalized_importance": 0.021333333333333333,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "capital-loss",
+        "mean_normalized_importance": 0.01955555555555555,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "sex",
+        "mean_normalized_importance": 0.011666666666666667,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "ratio_fnlwgt_div_native-country",
+        "mean_normalized_importance": 0.011000000000000001,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "inter_relationship_x_log1p_marital-status",
+        "mean_normalized_importance": 0.009555555555555555,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "race",
+        "mean_normalized_importance": 0.009555555555555555,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "ratio_hours-per-week_div_native-country",
+        "mean_normalized_importance": 0.008888888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       }
+      ],
+      "fold_metrics": [
+       {
+        "accuracy": 0.8528584817244611,
+        "avg_precision": 0.776347228461271,
+        "brier": 0.10821033007757425,
+        "ece_10": 0.06460377218314502,
+        "f1": 0.6694736842105263,
+        "fit_seconds": 0.07692504199985706,
+        "log_loss": 0.3658946516709408,
+        "precision": 0.726027397260274,
+        "recall": 0.62109375,
+        "roc_auc": 0.8960243911837238,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.8425492033739457,
+        "avg_precision": 0.7566230263961989,
+        "brier": 0.11292947862981136,
+        "ece_10": 0.059483928137906164,
+        "f1": 0.6410256410256411,
+        "fit_seconds": 0.07648770800005877,
+        "log_loss": 0.3687775395916026,
+        "precision": 0.704225352112676,
+        "recall": 0.5882352941176471,
+        "roc_auc": 0.890688689268811,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.8564727954971857,
+        "avg_precision": 0.7675816453761125,
+        "brier": 0.10751482295274879,
+        "ece_10": 0.05479890176374863,
+        "f1": 0.6765327695560254,
+        "fit_seconds": 0.07580845799930103,
+        "log_loss": 0.3467678168850504,
+        "precision": 0.7339449541284404,
+        "recall": 0.6274509803921569,
+        "roc_auc": 0.9002828751722638,
+        "threshold": 0.5
+       }
+      ],
+      "folds": 3,
+      "metrics": {
+       "accuracy": {
+        "ci95_high": 0.8588027773714125,
+        "ci95_low": 0.8424508763589823,
+        "max": 0.8564727954971857,
+        "mean": 0.8506268268651974,
+        "min": 0.8425492033739457,
+        "std": 0.007225082488231122
+       },
+       "avg_precision": {
+        "ci95_high": 0.7780336212378305,
+        "ci95_low": 0.7556676455845577,
+        "max": 0.776347228461271,
+        "mean": 0.7668506334111941,
+        "min": 0.7566230263961989,
+        "std": 0.00988239953885638
+       },
+       "brier": {
+        "ci95_high": 0.11288522769438135,
+        "ci95_low": 0.10621786007904156,
+        "max": 0.11292947862981136,
+        "mean": 0.10955154388671146,
+        "min": 0.10751482295274879,
+        "std": 0.002945974352680576
+       },
+       "ece_10": {
+        "ci95_high": 0.06517831313681648,
+        "ci95_low": 0.0540794215863834,
+        "max": 0.06460377218314502,
+        "mean": 0.05962886736159994,
+        "min": 0.05479890176374863,
+        "std": 0.0049040418553691284
+       },
+       "f1": {
+        "ci95_high": 0.6836144119090436,
+        "ci95_low": 0.6410736512857517,
+        "max": 0.6765327695560254,
+        "mean": 0.6623440315973976,
+        "min": 0.6410256410256411,
+        "std": 0.018796622140858917
+       },
+       "log_loss": {
+        "ci95_high": 0.3740165802038325,
+        "ci95_low": 0.3469434252278966,
+        "max": 0.3687775395916026,
+        "mean": 0.36048000271586456,
+        "min": 0.3467678168850504,
+        "std": 0.011962265290690602
+       },
+       "precision": {
+        "ci95_high": 0.7388156333313811,
+        "ci95_low": 0.7039828356695457,
+        "max": 0.7339449541284404,
+        "mean": 0.7213992345004634,
+        "min": 0.704225352112676,
+        "std": 0.015390861051037059
+       },
+       "recall": {
+        "ci95_high": 0.6360774025333651,
+        "ci95_low": 0.5884426138065042,
+        "max": 0.6274509803921569,
+        "mean": 0.6122600081699346,
+        "min": 0.5882352941176471,
+        "std": 0.0210474169088603
+       },
+       "roc_auc": {
+        "ci95_high": 0.9011051337533065,
+        "ci95_low": 0.8902255033298925,
+        "max": 0.9002828751722638,
+        "mean": 0.8956653185415995,
+        "min": 0.890688689268811,
+        "std": 0.004807161393093112
+       }
+      },
+      "model": "lightgbm",
+      "optimization": "baseline",
+      "repeats": 1,
+      "stage": "interactions"
+     },
+     {
+      "elapsed_seconds": 1.3668852909995621,
+      "evaluations": 3,
+      "feature_count_mean": 50.0,
+      "feature_stability": [
+       {
+        "feature": "ratio_fnlwgt_div_hours-per-week",
+        "mean_normalized_importance": 0.11355555555555556,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "ratio_fnlwgt_div_age",
+        "mean_normalized_importance": 0.11211111111111112,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "fnlwgt",
+        "mean_normalized_importance": 0.10677777777777779,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "age",
+        "mean_normalized_importance": 0.10466666666666667,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "ratio_age_div_hours-per-week",
+        "mean_normalized_importance": 0.0948888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "occupation",
+        "mean_normalized_importance": 0.059222222222222225,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "hours-per-week",
+        "mean_normalized_importance": 0.05766666666666667,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "education-num",
+        "mean_normalized_importance": 0.05644444444444444,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "workclass",
+        "mean_normalized_importance": 0.02722222222222222,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+       },
+       {
+        "feature": "inter_relationship_x_occupation",
+        "mean_normalized_importance": 0.050333333333333334,
+        "observed_folds": 1,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "capital-gain",
+        "mean_normalized_importance": 0.026555555555555554,
+        "observed_folds": 3,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "education",
+        "mean_normalized_importance": 0.025222222222222226,
+        "observed_folds": 3,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "relationship",
+        "mean_normalized_importance": 0.020777777777777777,
+        "observed_folds": 3,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "capital-loss",
+        "mean_normalized_importance": 0.01877777777777778,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "inter_relationship_x_education",
+        "mean_normalized_importance": 0.018666666666666668,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "ratio_fnlwgt_div_native-country",
+        "mean_normalized_importance": 0.013222222222222224,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "sex",
+        "mean_normalized_importance": 0.010888888888888887,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "inter_relationship_x_log1p_education",
+        "mean_normalized_importance": 0.01,
+        "observed_folds": 2,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "inter_relationship_x_log1p_marital-status",
+        "mean_normalized_importance": 0.009777777777777778,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "ratio_capital-loss_div_age",
+        "mean_normalized_importance": 0.009666666666666665,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       }
+      ],
+      "fold_metrics": [
+       {
+        "accuracy": 0.8434864104967198,
+        "avg_precision": 0.7663452595345118,
+        "brier": 0.11144790587855301,
+        "ece_10": 0.06579239533801964,
+        "f1": 0.6484210526315789,
+        "fit_seconds": 0.07960491599988018,
+        "log_loss": 0.37596988615881394,
+        "precision": 0.7031963470319634,
+        "recall": 0.6015625,
+        "roc_auc": 0.8932500385326758,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.8322399250234301,
+        "avg_precision": 0.7488811393759252,
+        "brier": 0.11512997209126459,
+        "ece_10": 0.06387458252333514,
+        "f1": 0.6247379454926625,
+        "fit_seconds": 0.08049716700043064,
+        "log_loss": 0.37409823614687504,
+        "precision": 0.6711711711711712,
+        "recall": 0.5843137254901961,
+        "roc_auc": 0.8867139959432047,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.8545966228893058,
+        "avg_precision": 0.769302843555552,
+        "brier": 0.10711407732757508,
+        "ece_10": 0.050421543925016174,
+        "f1": 0.6736842105263158,
+        "fit_seconds": 0.07949312500022643,
+        "log_loss": 0.34677277421526514,
+        "precision": 0.7272727272727273,
+        "recall": 0.6274509803921569,
+        "roc_auc": 0.9009888542346655,
+        "threshold": 0.5
+       }
+      ],
+      "folds": 3,
+      "metrics": {
+       "accuracy": {
+        "ci95_high": 0.8560905570864167,
+        "ci95_low": 0.8307914151865537,
+        "max": 0.8545966228893058,
+        "mean": 0.8434409861364852,
+        "min": 0.8322399250234301,
+        "std": 0.01117841815266765
+       },
+       "avg_precision": {
+        "ci95_high": 0.7739984051103623,
+        "ci95_low": 0.7490210898669634,
+        "max": 0.769302843555552,
+        "mean": 0.7615097474886628,
+        "min": 0.7488811393759252,
+        "std": 0.011036219142406021
+       },
+       "brier": {
+        "ci95_high": 0.11577106579616211,
+        "ci95_low": 0.10669023773543301,
+        "max": 0.11512997209126459,
+        "mean": 0.11123065176579756,
+        "min": 0.10711407732757508,
+        "std": 0.004012361116321423
+       },
+       "ece_10": {
+        "ci95_high": 0.06950763042073481,
+        "ci95_low": 0.05055138410351251,
+        "max": 0.06579239533801964,
+        "mean": 0.06002950726212366,
+        "min": 0.050421543925016174,
+        "std": 0.008375811668933532
+       },
+       "f1": {
+        "ci95_high": 0.676646502213788,
+        "ci95_low": 0.6212489702199169,
+        "max": 0.6736842105263158,
+        "mean": 0.6489477362168524,
+        "min": 0.6247379454926625,
+        "std": 0.0244773826600273
+       },
+       "log_loss": {
+        "ci95_high": 0.3841080165461362,
+        "ci95_low": 0.3471192478011666,
+        "max": 0.37596988615881394,
+        "mean": 0.3656136321736514,
+        "min": 0.34677277421526514,
+        "std": 0.016343476218291568
+       },
+       "precision": {
+        "ci95_high": 0.7323952192244709,
+        "ci95_low": 0.6686982777594368,
+        "max": 0.7272727272727273,
+        "mean": 0.7005467484919539,
+        "min": 0.6711711711711712,
+        "std": 0.028144474210249987
+       },
+       "recall": {
+        "ci95_high": 0.6290122369720264,
+        "ci95_low": 0.5798725669495424,
+        "max": 0.6274509803921569,
+        "mean": 0.6044424019607844,
+        "min": 0.5843137254901961,
+        "std": 0.02171234825155909
+       },
+       "roc_auc": {
+        "ci95_high": 0.9017372754088752,
+        "ci95_low": 0.8855646503981555,
+        "max": 0.9009888542346655,
+        "mean": 0.8936509629035153,
+        "min": 0.8867139959432047,
+        "std": 0.0071458694414096025
+       }
+      },
+      "model": "lightgbm",
+      "optimization": "baseline",
+      "repeats": 1,
+      "stage": "full_fe"
+     },
+     {
+      "elapsed_seconds": 1.2544633750003413,
+      "evaluations": 3,
+      "feature_count_mean": 25.0,
+      "feature_stability": [
+       {
+        "feature": "age",
+        "mean_normalized_importance": 0.2828888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "occupation",
+        "mean_normalized_importance": 0.13544444444444445,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "kmeans_cluster",
+        "mean_normalized_importance": 0.08288888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "education-num",
+        "mean_normalized_importance": 0.08155555555555556,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "education",
+        "mean_normalized_importance": 0.052,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+       },
+       {
+        "feature": "inter_relationship_x_log1p_education",
+        "mean_normalized_importance": 0.057166666666666664,
+        "observed_folds": 2,
+        "top10_frequency": 0.6666666666666666
+       },
+       {
+        "feature": "log1p_capital-gain",
+        "mean_normalized_importance": 0.02788888888888889,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+       },
+       {
+        "feature": "inter_relationship_x_marital-status",
+        "mean_normalized_importance": 0.023333333333333334,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+       },
+       {
+        "feature": "relationship",
+        "mean_normalized_importance": 0.02266666666666667,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+       },
+       {
+        "feature": "ratio_age_div_hours-per-week",
+        "mean_normalized_importance": 0.22666666666666666,
+        "observed_folds": 1,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "inter_relationship_x_occupation",
+        "mean_normalized_importance": 0.10066666666666667,
+        "observed_folds": 1,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "hours-per-week",
+        "mean_normalized_importance": 0.09866666666666667,
+        "observed_folds": 1,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "inter_relationship_x_education",
+        "mean_normalized_importance": 0.03966666666666667,
+        "observed_folds": 2,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "capital-gain",
+        "mean_normalized_importance": 0.016333333333333335,
+        "observed_folds": 3,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "marital-status",
+        "mean_normalized_importance": 0.013666666666666666,
+        "observed_folds": 3,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "inter_log1p_marital-status_x_marital-status",
+        "mean_normalized_importance": 0.013166666666666667,
+        "observed_folds": 2,
+        "top10_frequency": 0.3333333333333333
+       },
+       {
+        "feature": "ratio_capital-gain_div_age",
+        "mean_normalized_importance": 0.013333333333333332,
+        "observed_folds": 2,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "inter_relationship_x_log1p_marital-status",
+        "mean_normalized_importance": 0.009333333333333332,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "inter_relationship_x_capital-gain",
+        "mean_normalized_importance": 0.008444444444444444,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+       },
+       {
+        "feature": "ratio_capital-gain_div_hours-per-week",
+        "mean_normalized_importance": 0.007666666666666667,
+        "observed_folds": 2,
+        "top10_frequency": 0.0
+       }
+      ],
+      "fold_metrics": [
+       {
+        "accuracy": 0.8491096532333646,
+        "avg_precision": 0.7526102718450578,
+        "brier": 0.11297318075203952,
+        "ece_10": 0.06007618615135961,
+        "f1": 0.6552462526766595,
+        "fit_seconds": 0.052103250000072876,
+        "log_loss": 0.38628728424822545,
+        "precision": 0.7251184834123223,
+        "recall": 0.59765625,
+        "roc_auc": 0.8859649545314426,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.8388003748828491,
+        "avg_precision": 0.7456189567681554,
+        "brier": 0.1102923426031928,
+        "ece_10": 0.042785363634838175,
+        "f1": 0.6277056277056277,
+        "fit_seconds": 0.050203916000100435,
+        "log_loss": 0.35870016180621855,
+        "precision": 0.7004830917874396,
+        "recall": 0.5686274509803921,
+        "roc_auc": 0.8883850091760841,
+        "threshold": 0.5
+       },
+       {
+        "accuracy": 0.8320825515947468,
+        "avg_precision": 0.7329172926006425,
+        "brier": 0.11466783704379303,
+        "ece_10": 0.05680114980385758,
+        "f1": 0.6263048016701461,
+        "fit_seconds": 0.04983491699931619,
+        "log_loss": 0.3665232616422228,
+        "precision": 0.6696428571428571,
+        "recall": 0.5882352941176471,
+        "roc_auc": 0.8841130533594449,
+        "threshold": 0.5
+       }
+      ],
+      "folds": 3,
+      "metrics": {
+       "accuracy": {
+        "ci95_high": 0.8497026888927637,
+        "ci95_low": 0.8302923642478766,
+        "max": 0.8491096532333646,
+        "mean": 0.8399975265703201,
+        "min": 0.8320825515947468,
+        "std": 0.00857644603988546
+       },
+       "avg_precision": {
+        "ci95_high": 0.7550129249935859,
+        "ci95_low": 0.7324180891489845,
+        "max": 0.7526102718450578,
+        "mean": 0.7437155070712852,
+        "min": 0.7329172926006425,
+        "std": 0.009983521344777547
+       },
+       "brier": {
+        "ci95_high": 0.11514099498612547,
+        "ci95_low": 0.11014791194655808,
+        "max": 0.11466783704379303,
+        "mean": 0.11264445346634178,
+        "min": 0.1102923426031928,
+        "std": 0.0022061922221788682
+       },
+       "ece_10": {
+        "ci95_high": 0.06361424707144457,
+        "ci95_low": 0.042827552655259005,
+        "max": 0.06007618615135961,
+        "mean": 0.05322089986335179,
+        "min": 0.042785363634838175,
+        "std": 0.009184594604653488
+       },
+       "f1": {
+        "ci95_high": 0.6548867213525973,
+        "ci95_low": 0.6179510666823582,
+        "max": 0.6552462526766595,
+        "mean": 0.6364188940174778,
+        "min": 0.6263048016701461,
+        "std": 0.016320007780528768
+       },
+       "log_loss": {
+        "ci95_high": 0.38659247002857705,
+        "ci95_low": 0.3544146684358675,
+        "max": 0.38628728424822545,
+        "mean": 0.3705035692322223,
+        "min": 0.35870016180621855,
+        "std": 0.014217751845521343
+       },
+       "precision": {
+        "ci95_high": 0.7298684776661246,
+        "ci95_low": 0.6669611438956216,
+        "max": 0.7251184834123223,
+        "mean": 0.6984148107808731,
+        "min": 0.6696428571428571,
+        "std": 0.027795586290613447
+       },
+       "recall": {
+        "ci95_high": 0.6015979712862696,
+        "ci95_low": 0.5680813587790898,
+        "max": 0.59765625,
+        "mean": 0.5848396650326797,
+        "min": 0.5686274509803921,
+        "std": 0.014809305040824967
+       },
+       "roc_auc": {
+        "ci95_high": 0.888578540650327,
+        "ci95_low": 0.8837301373943207,
+        "max": 0.8883850091760841,
+        "mean": 0.8861543390223239,
+        "min": 0.8841130533594449,
+        "std": 0.002142265503822792
+       }
+      },
+      "model": "lightgbm",
+      "optimization": "baseline",
+      "repeats": 1,
+      "stage": "selected"
+     }
+    ],
+    "selection_rule": "Choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+   },
+   "limitations": []
+  }
+ },
+ "raw_reply": "{\n  \"experiment_id\": \"EXP-003\",\n  \"observed_evidence\": [\n    {\n      \"statement\": \"The raw stage used 14 mean features and had mean training-CV ROC-AUC 0.8955 (std 0.00645, 3 folds, 1 repeat, LightGBM baseline).\",\n      \"citation\": \"EXP-003 / evidence.stage_results[0].feature_count_mean; evidence.stage_results[0].metrics.roc_auc.mean; evidence.stage_results[0].metrics.roc_auc.std; evidence.stage_results[0].folds; evidence.stage_results[0].repeats\"\n    },\n    {\n      \"statement\": \"The logs stage (22 features) has fold-level metrics identical to raw, and every log1p_* feature visible in its stability table has mean normalized importance 0.0. The table is truncated to 20 rows, so it does not show all 8 added features.\",\n      \"citation\": \"EXP-003 / evidence.stage_results[1].metrics.roc_auc.mean; evidence.stage_results[1].fold_metrics; evidence.stage_results[1].feature_stability\"\n    },\n    {\n      \"statement\": \"Mean ROC-AUC by stage: ratios 0.8944 (37 features), interactions 0.8957 (45 features, highest), full_fe 0.8937 (50 features), selected 0.8862 (25 features).\",\n      \"citation\": \"EXP-003 / evidence.stage_results[2].metrics.roc_auc.mean; evidence.stage_results[3].metrics.roc_auc.mean; evidence.stage_results[4].metrics.roc_auc.mean; evidence.stage_results[5].metrics.roc_auc.mean; evidence.stage_results[2..5].feature_count_mean\"\n    },\n    {\n      \"statement\": \"The ROC-AUC 95% CIs of raw [0.8882, 0.9029] and interactions [0.8902, 0.9011] overlap almost entirely. Per-fold ROC-AUC differences (interactions minus raw) are mixed in sign: about +0.0040, -0.0009, -0.0027.\",\n      \"citation\": \"EXP-003 / evidence.stage_results[0].metrics.roc_auc.ci95_low; evidence.stage_results[0].metrics.roc_auc.ci95_high; evidence.stage_results[3].metrics.roc_auc.ci95_low; evidence.stage_results[3].metrics.roc_auc.ci95_high; evidence.stage_results[0].fold_metrics[*].roc_auc; evidence.stage_results[3].fold_metrics[*].roc_auc\"\n    },\n    {\n      \"statement\": \"Interactions is higher than raw on mean accuracy (0.8506 vs 0.8469), F1 (0.6623 vs 0.6533) and precision (0.7214 vs 0.7121). It is slightly worse on log_loss (0.3605 vs 0.3560) and slightly better on Brier (0.10955 vs 0.10986). All metrics use a fixed threshold of 0.5.\",\n      \"citation\": \"EXP-003 / evidence.stage_results[0].metrics.accuracy.mean; evidence.stage_results[3].metrics.accuracy.mean; evidence.stage_results[0].metrics.f1.mean; evidence.stage_results[3].metrics.f1.mean; evidence.stage_results[0].metrics.log_loss.mean; evidence.stage_results[3].metrics.log_loss.mean; evidence.stage_results[0].metrics.brier.mean; evidence.stage_results[3].metrics.brier.mean; evidence.stage_results[0].fold_metrics[*].threshold\"\n    },\n    {\n      \"statement\": \"In the raw stage, fnlwgt has the highest mean normalized importance (0.258) and appears in the top 10 in all folds. In the ratios stage the top feature is ratio_fnlwgt_div_age (0.121), and fnlwgt-based ratios are also among the top features in the interactions and full_fe stages.\",\n      \"citation\": \"EXP-003 / evidence.stage_results[0].feature_stability[0]; evidence.stage_results[2].feature_stability[0]; evidence.stage_results[3].feature_stability[0]; evidence.stage_results[4].feature_stability[0]\"\n    },\n    {\n      \"statement\": \"The selected stage has 25 features and includes kmeans_cluster. Several of its top-importance features were observed in only 1 of 3 folds, e.g. ratio_age_div_hours-per-week (0.227), inter_relationship_x_occupation (0.101) and hours-per-week (0.099).\",\n      \"citation\": \"EXP-003 / evidence.stage_results[5].feature_stability; evidence.stage_results[5].feature_count_mean\"\n    },\n    {\n      \"statement\": \"The declared selection rule is: choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage.\",\n      \"citation\": \"EXP-003 / evidence.selection_rule\"\n    },\n    {\n      \"statement\": \"The evidence-level limitations list is empty, while the claim itself carries a limitation about domain meaning and production semantics.\",\n      \"citation\": \"EXP-003 / limitations; claims[0].limitations\"\n    }\n  ],\n  \"interpretation\": \"Inference from the figures above: the raw-stage claim is numerically consistent with the evidence. The best stage mean (interactions, 0.89567) is about 0.00012 above raw (0.89555), which is inside the declared 0.002 tolerance, so raw is the smallest qualifying matrix by the stated rule. That arithmetic is mine and is derived from the cited means. The evidence does not show that any engineered recipe improves on raw. It also does not show that engineered recipes are harmful: the 0.001-0.002 gaps to ratios and full_fe are far smaller than the fold std (about 0.005-0.007) and the CIs overlap. 'Feature dilution' is therefore not demonstrated either way. The stages are cumulative, so no stage-level result can be attributed to a specific feature family. The selected stage scoring about 0.009 lower than raw shows that the selection step, whose procedure is not documented here, did not help in this run. The metrics are predictive associations only and say nothing about causal effects of any feature. A hypothesis, not a finding: the raw recipe is a reasonable low-complexity baseline for the next screen, subject to the availability reviews listed below.\",\n  \"decision\": \"Provisional only. Raw can be carried into the next model screen as a baseline under the declared selection rule, but EXP-003-C1 should not be read as evidence that feature engineering does not help, nor as production approval of any raw feature. The raw recipe should not be approved for use until decision-time and production-availability review has covered fnlwgt, the sensitive attributes (sex, race, marital-status, native-country) and the other raw columns. Re-run with repeated paired CV and confirm on an untouched hold-out before any stronger claim.\",\n  \"risks_and_missing_evidence\": [\n    \"No held-out validation set is reported. All numbers are 3-fold, 1-repeat training-CV, even though the question asks about validation evidence. Fold sizes and class prevalence are not reported. The recall values imply only a few hundred positives per fold, which is an inference to be confirmed.\",\n    \"No decision-time or production-availability review is documented for any feature. fnlwgt is a census sampling weight, not an individual attribute, and it is the top raw feature and the base of the top engineered ratios, so its availability at decision time is doubtful. Sex, race, marital-status and native-country are sensitive attributes needing legal and fairness review. education and education-num are likely redundant.\",\n    \"Generic transforms were applied to apparently categorical columns, e.g. log1p_education, log1p_marital-status, ratio_fnlwgt_div_native-country. These imply ordinal-coded categoricals with no domain meaning. This is inferred from feature names, since the encoding is not shown.\",\n    \"The evidence does not show that encoders, k-means (kmeans_cluster), interaction construction and feature selection were fitted inside each training fold. The 'train-fitted' premise is asserted but not demonstrated, so fold-level leakage cannot be excluded.\",\n    \"The stages are cumulative, with no per-family ablation. The interactions-stage gain (+0.00012) cannot be attributed to any family, and the selected stage's procedure is undocumented.\",\n    \"The 0.002 tolerance is arbitrary and about 3x smaller than the fold std (0.0065). The rule is not calibrated against noise, and the ROC-AUC choice may flip with a different seed or fold split.\",\n    \"Selection used a single metric (ROC-AUC). Other metrics disagree on ranking (accuracy, F1 and precision favor interactions; log_loss favors raw), and the fixed 0.5 threshold is not tuned or justified.\",\n    \"The same fold-level metrics for raw and logs suggest zero-importance additions. The feature_stability tables are truncated to 20 rows, so full feature sets cannot be audited.\",\n    \"Importance values are normalized model-internal scores and must not be read as causal or monotonic effects. The importance of fnlwgt-derived features may reflect sampling artifacts.\"\n  ],\n  \"challenges_to_claims\": [\n    {\n      \"claim_id\": \"EXP-003-C1\",\n      \"issue\": \"The recommendation is a screening choice, but it implicitly endorses 14 raw features with no decision-time or production-availability review. fnlwgt, the most important raw feature, is a sampling weight, and four sensitive demographic attributes are included.\",\n      \"severity\": \"high\"\n    },\n    {\n      \"claim_id\": \"EXP-003-C1\",\n      \"issue\": \"The choice of raw over interactions rests on a 0.00012 ROC-AUC gap judged by an arbitrary 0.002 tolerance, against a fold std of about 0.0065 with 3 folds, 1 repeat and overlapping CIs. The evidence cannot distinguish raw from interactions, ratios or full_fe.\",\n      \"severity\": \"high\"\n    },\n    {\n      \"claim_id\": \"EXP-003-C1\",\n      \"issue\": \"The research question concerns validation evidence and feature dilution, but only training-CV is reported, with no held-out validation and no controlled dilution test. Stages are cumulative, so no stage-level result isolates feature count or any single feature family.\",\n      \"severity\": \"medium\"\n    },\n    {\n      \"claim_id\": \"EXP-003-C1\",\n      \"issue\": \"The claim does not mention that the selected stage (25 features, ROC-AUC 0.8862) is the worst stage, nor that its selection procedure and fold-internal fitting are undocumented. The 'train-fitted' premise is therefore unverified.\",\n      \"severity\": \"medium\"\n    },\n    {\n      \"claim_id\": \"EXP-003-C1\",\n      \"issue\": \"The limitations field in the evidence bundle is empty and the claim limitation is generic. The missing items are the non-domain transforms on categorical codes, the truncated stability tables, the single metric and fixed threshold, and the undisclosed fold sizes.\",\n      \"severity\": \"low\"\n    }\n  ],\n  \"next_experiment\": {\n    \"title\": \"Paired repeated-CV re-test of raw vs interactions vs raw-without-fnlwgt on identical folds\",\n    \"hypothesis\": \"Under paired repeated stratified CV, interactions-stage ROC-AUC does not differ from raw by more than 0.002, and dropping fnlwgt from raw changes ROC-AUC by no more than 0.002. Falsified if either difference exceeds 0.002 beyond its CI.\",\n    \"success_gate\": \"Run at least 5 repeats x 3 folds (15 paired evaluations) with fixed seeds and all encoders, k-means and selection fitted inside each training fold. Raw is retained as the next-screen baseline only if the 95% CI of the paired difference (interactions minus raw) lies within [-0.002, +0.002]. If the lower CI bound is above 0.002, interactions is advanced instead. If raw-without-fnlwgt is more than 0.002 below raw in mean paired ROC-AUC, fnlwgt dependence is recorded as a blocking availability-review item. Report log_loss, Brier and ECE alongside ROC-AUC, and report fold sizes and class prevalence. No feature is approved from this run without a documented decision-time and production-availability review.\",\n    \"why_smallest\": \"It reuses the existing LightGBM baseline and the cheapest stages (each stage took about 0.4-0.7 s) and changes only the CV protocol and one feature-drop arm. It targets the two main weaknesses: noise in the ranking and dependence on fnlwgt. It requires no new feature families, tuning or model changes.\"\n  },\n  \"overall_confidence\": \"low\"\n}",
+ "usage": {
+  "input_tokens": 19540,
+  "output_tokens": 7916
+ },
+ "finish_reason": "stop"
+}
