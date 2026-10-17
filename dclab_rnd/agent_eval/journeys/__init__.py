@@ -91,7 +91,8 @@ def wilson(right: int, n: int, z: float = 1.96) -> tuple[float, float]:
 
 
 class _Person:
-    """The written person: answers a question by the field it asks, approves every gate, and keeps what was asked."""
+    """The written person: answers a question by the field it asks (or, 26.5, by what its words ask when its field is not one
+    they hold), approves every gate, and keeps what was asked."""
 
     def __init__(self, answers: dict[str, str]):
         from dclab_rnd.studio import team
@@ -101,10 +102,31 @@ class _Person:
         self.answers = answers
 
     SAME = {"outcome": "target", "target_check": "target", "labels_check": "labels"}  # one question asked under two names
+    # 26.5: what a question asks, read from its words, when its field is not one the person holds (a model asks in its own
+    # words, under no field or another one); the first field whose words match and that the person can answer
+    MEANING = (
+        ("prediction_moment", r"\b(when\b|moment|at what point|known (at|then|when)|before .{0,40}(made|scored|known)|time of (the )?prediction)"),
+        ("budget", r"\b(how many|review (each|per|a) |capacity|per day|a day\b|each (day|morning|week)|budget)"),
+        ("labels", r"\b(label|labelled|labeled|confirmed (cases|frauds?)|cases (you|we|they) (found|confirmed)|known cases|ground truth)"),
+        ("action", r"\b(action|do with|happens (when|after|with|if)|cost|wrong|mistake|misrout|miss(ed|es)?\b|hurts more|consequence)"),
+        ("entity", r"\b(who\b|which (customer|user|account|biker|rider|store|entity|person)|per (customer|user|account|store))"),
+        ("target", r"\b(predict|outcome|target|forecast|estimate|which column|what (exactly )?(do you|should we) (want|need) to know)"),
+        ("data_plan", r"\b(data|table|file|upload|export|columns?|source)\b"),
+        ("family", r"\b(kind of problem|type of problem|classif|regress)"),
+    )
 
     def _answer(self, field: str, question: str) -> Optional[str]:
         self.asked.append(field)
-        return self.answers.get(field) or self.answers.get(self.SAME.get(field, field))
+        said = self.answers.get(field) or self.answers.get(self.SAME.get(field, field))
+        if said:
+            return said
+        import re
+
+        for name, pattern in self.MEANING:
+            if self.answers.get(name) and re.search(pattern, str(question or ""), re.I):
+                self.asked[-1] = f"{field}→{name}"  # what the question meant, kept beside what it was tagged
+                return self.answers[name]
+        return None
 
 
 def _upload(drafts: Any, agent: Any, draft_id: str, name: str, source: Path) -> None:

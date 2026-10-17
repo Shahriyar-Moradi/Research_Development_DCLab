@@ -240,6 +240,17 @@ SYSTEM = ("You are DCLab's Home agent. Understand the person's problem before an
           "about what the data and the words leave open, and say why it matters.")
 
 
+def _models(items: Iterable[dict[str, Any]]) -> dict[str, str]:
+    """27.2: the model each purpose was served by in these events (their ``model.request``), the latest per purpose: who wrote
+    the replies and chose the steps, so a row an outside model wrote can be kept apart from DCLab's own."""
+    out: dict[str, str] = {}
+    for e in items:
+        p = e.get("payload") or {}
+        if e.get("kind") == "model.request" and p.get("purpose") and p.get("model"):
+            out[str(p["purpose"])] = str(p["model"])
+    return out
+
+
 def conversations(events: Iterable[dict[str, Any]], *, workspace: Optional[str] = None, consent: str = "train",
                   drafts: Optional[dict[str, str]] = None) -> tuple[list[dict[str, Any]], DatasetManifest]:
     """Chat examples from Home conversations that ended in a build (the person accepted the problem as understood). 23.6:
@@ -296,6 +307,7 @@ def conversations(events: Iterable[dict[str, Any]], *, workspace: Optional[str] 
         project = next(((e.get("ids") or {}).get("project") for e in items if (e.get("ids") or {}).get("project")), None)
         group = group_of(project, conversation, None, drafts, f"conversation:{conversation}")
         rows.append({"conversation": conversation, "messages": merged, "group": group, "split": split_of(group), "consent": lowest(e.get("consent") for e in items),
+                     "models": _models(items),
                      "label": "edit" if edits else "thumbs_up" if approved else None, "edits": edits,
                      "sources": [("conversation", conversation)] + [("event", e.get("id")) for e in items]})
     return rows, manifest("conversations", "conversations.problem_understanding", rows, sources_of(rows), use="train", consent=consent, workspace=workspace,
@@ -338,10 +350,13 @@ def trajectories(events: Iterable[dict[str, Any]], *, workspace: Optional[str] =
                  drafts: Optional[dict[str, str]] = None) -> tuple[list[dict[str, Any]], DatasetManifest]:
     """The steps of each agent run: its state, the tool it chose, the verdict; never a tool's arguments or result."""
     runs: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    requests: dict[str, list[dict[str, Any]]] = defaultdict(list)  # 27.2: the model requests of each run
     for e in events:
         run = (e.get("ids") or {}).get("run")
         if run and e.get("kind") in ("agent.step", "tool.call"):
             runs[run].append(e)
+        elif run and e.get("kind") == "model.request":
+            requests[run].append(e)
     rows = []
     for run, items in runs.items():
         items.sort(key=lambda e: (e.get("at") or "", e.get("seq") or 0))
@@ -357,6 +372,7 @@ def trajectories(events: Iterable[dict[str, Any]], *, workspace: Optional[str] =
         ids = next((e.get("ids") or {} for e in items if (e.get("ids") or {}).get("project") or (e.get("ids") or {}).get("conversation")), {})
         group = group_of(ids.get("project"), ids.get("conversation"), None, drafts, f"run:{run}")
         rows.append({"run": run, "agent": next((s.get("agent") for s in steps if s.get("agent")), None), "steps": steps, "consent": lowest(e.get("consent") for e in items),
+                     "models": _models(requests.get(run, [])),
                      "group": group, "split": split_of(group), "sources": [("run", run)] + [("event", e.get("id")) for e in items]})
     return rows, manifest("trajectories", "trajectories.agent_runs", rows, sources_of(rows), use="train", consent=consent, workspace=workspace,
                           policy="One example per run with two steps or more; grouped by its project, split as every set.",

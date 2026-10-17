@@ -4,6 +4,15 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.63.0 (2026-10-17)
+
+Packages 27.2 and 27.3: who answered, and the solution workflow.
+
+- `datasets`: conversation and trajectory rows carry `models` (the model each purpose was served by in that session), so a row
+  an outside model wrote can be kept apart from DCLab's own.
+- `reasoning`: a trace for `solution_design` (the split, the leakage audit, the features, the model family, the single holdout
+  read), written only for a workflow given as a list of steps.
+
 ## 0.62.1 (2026-10-17)
 
 - `clean.impure` reads a table-level sample's outcome column (`target_state`) as a column state and a count of columns as a

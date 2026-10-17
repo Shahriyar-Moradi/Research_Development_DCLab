@@ -48,6 +48,20 @@ class TraceTests(unittest.TestCase):
         self.assertEqual(R.grounded(steps, given, answer), [])
         self.assertIn("from 0.349 to 0.808", "\n".join(steps))
 
+    def test_a_solution_workflow_reasons_step_by_step_from_the_moment_to_the_single_holdout_read(self):
+        given = {**GIVEN, "rows": 3000}
+        answer = {"task": "regression", "kind": "time_to_event", "workflow": [
+            {"step": "split", "decision": {"holdout": "last 600 of 3000 rows by `signup_time`", "time_column": "signup_time", "group_column": None}},
+            {"step": "leakage", "decision": {"forbidden": ["months_billed"], "identifiers": ["subscriber_id"]}},
+            {"step": "features", "decision": {"recipe": "plain"}},
+            {"step": "models", "decision": {"model": "hist_gradient_boosting", "selection_rule": "best mean on the folds"}},
+            {"step": "final", "decision": {"metric": "integrated_brier", "holdout_read_once": True}}]}
+        steps = R.trace("solution_design", given, answer)
+        text = "\n".join(steps)
+        self.assertEqual(R.grounded(steps, given, answer), [])
+        for part in ("First the split", "`months_billed`", "plain recipe", "hist_gradient_boosting", "read once, scored by integrated_brier"):
+            self.assertIn(part, text)
+
     def test_a_family_without_rules_has_no_trace(self):
         self.assertEqual(R.of_messages("evidence_answer", [{"role": "user", "content": "q"}, {"role": "assistant", "content": "a"}]),
                          (None, ["the example is not a question and an answer in JSON"]))

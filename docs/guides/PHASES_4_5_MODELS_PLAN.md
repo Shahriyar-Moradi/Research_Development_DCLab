@@ -258,6 +258,12 @@ write a report with its uncertainty; and drive DCLab's tools step by step as an 
   the intern solved with Claude holds Claude's outputs, which may not be training targets. They stay in silver until each row
   carries the answering model (then DCLab's own and people's moves go to gold, Claude's to evaluation).
 
+- **Status: built (2026-10-17), with the owner's permission.** The development workspace's train switch is on and its new
+  projects inherit it (`consent.set_inherits`, audited); conversation and trajectory rows say which models served them; the lake
+  maps conversations (`understand_problem`), allowed agent steps (`agent_step`) and built projects' workflows (`solution_design`)
+  into examples, the rules' and people's moves trainable, Claude's evaluation only, another model's left out. Only sessions
+  recorded from now on count: each event keeps the consent it was written under.
+
 ### 27.3 Verified synthetic solving ("self-play" with known answers)
 - **Delivers:** a generator that takes invented problems (the benchmark generator and the replicas, extended to every
   engine kind) and solves them with DCLab's engine and agents, keeping a trajectory only when it is verified: the
@@ -272,6 +278,11 @@ write a report with its uncertainty; and drive DCLab's tools step by step as an 
   200 problems verified over 10 kinds (7 rejected with their reasons), 1,544 examples of which 1,060 are distinct: seeds of one
   replica often make the same problem in bands, so the replicas need more variety (wording, names, sizes, traps) to reach the
   2,000 distinct examples this package asks for.
+- **Widened (2026-10-17):** every solve records every decision the engine makes in its own ledger (the split, the metric, each
+  column's role and leak, the features, the model family, the threshold, the tuning; labelled by the replica's planted truth
+  where it has one), and its whole solution workflow becomes a `solution_design` example with a verified trace;
+  `python -m dclab_rnd.lake selfplay --backfill` does this for the problems solved before.
+
 ### 27.9 Verified reasoning traces (Model 1's `<think>`)
 - **Delivers:** a reasoning trace for every verified self-play problem and every built project, written from DCLab's own
   records, never from a model: the problem card's reading, each decision's reason and the evidence it cites, the engine's
@@ -293,6 +304,10 @@ write a report with its uncertainty; and drive DCLab's tools step by step as an 
   its own sealed sessions, and its model behind its workspace's tuned tier only.
 - **Done when:** a tester workspace exports, and its export passes the cleaning of 27.5; the training job runner and
   per-tenant serving are the owner's infrastructure decision.
+
+- **Status: built (2026-10-17).** `python -m dclab_rnd.own_llm export`: the workspace's conversations, agent runs, workflows and
+  labelled decisions as examples (the lake's mapping, cleaning and traces) in `<workspace>/own_models/llm/` (train, val, sealed,
+  eval_only); nothing leaves the folder; Claude's moves only in eval_only. The run and per-tenant serving remain the owner's.
 
 ### 27.4 Public corpora (after the owner's yes)
 - **Delivers:** OpenML tasks and runs (dataset metadata, flows, scores) as dataset-to-pipeline-to-score examples and as

@@ -456,5 +456,27 @@ class StampRoutesTest(unittest.TestCase):
         self.assertEqual(changed[-1].consent, "improve")  # the change is written under the level it brought in
 
 
+class InheritTests(unittest.TestCase):
+    """Decision 6 (2026-10-17): a workspace can let its new projects start with its own switches."""
+
+    def test_a_new_project_inherits_the_workspaces_switches_only_when_asked(self):
+        import tempfile
+        from pathlib import Path
+
+        from dclab_rnd import consent
+        from dclab_rnd.studio.store import ProjectStore
+
+        home = Path(tempfile.mkdtemp())
+        projects = ProjectStore(home / "projects")
+        consent.set_workspace_consent(home, "train", True)
+        plain = consent.inherit(projects.create("a"), projects, home)
+        self.assertFalse(consent.project_consent(plain)["train"])  # off by default, as before
+        consent.set_inherits(home, True)
+        made = consent.inherit(projects.create("b"), projects, home)
+        self.assertEqual(consent.project_consent(projects.get(made["id"])), {"improve": False, "train": True})
+        self.assertTrue(consent.allowed(consent.workspace_consent(home), projects.get(made["id"]), "train"))
+        self.assertEqual(consent.workspace_consent(home), {"improve": False, "train": True})  # the flag is not a use
+
+
 if __name__ == "__main__":
     unittest.main()

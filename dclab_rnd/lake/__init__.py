@@ -204,6 +204,74 @@ def workspace_sets(home: Path, run: Run) -> tuple[list[L.DecisionSample], list[d
     return decisions, evaluation, other
 
 
+def _origin_of(models: dict[str, Any]) -> str | None:
+    """27.2: who wrote a session row's moves: Claude (evaluation only), DCLab's own rules (no model asked), or another model
+    (None: left out until its terms are known)."""
+    names = [str(m).lower() for m in (models or {}).values() if m]
+    if any("claude" in m for m in names):
+        return "teacher_claude"
+    return None if names else "rule_prod"
+
+
+def session_examples(other: dict[str, list[dict[str, Any]]], run: Run) -> list[L.TrainingExample]:
+    """27.2: a workspace's session sets as training examples, each marked by who made its moves: conversations that ended in a
+    build (``understand_problem``), each allowed agent step with the state it was taken in (``agent_step``), and each built
+    project's problem to its workflow and pipeline (``solution_design``)."""
+    from . import selfplay
+
+    out: list[L.TrainingExample] = []
+
+    def add(family: str, messages: list[dict[str, str]], item: dict[str, Any], origin: str | None, verification: L.Verification,
+            group: str) -> None:
+        if origin is None:
+            run.drop(item["source"], "written by a model whose terms are not known")
+            return
+        split = "eval_only" if origin in L.EVAL_ONLY else ("sealed" if item.get("from_sealed") else item["row"].get("split") or L.split_of(group))
+        out.append(L.TrainingExample(example_id="ss_" + L.fingerprint([family, messages])[:24], family=family, messages=messages,  # type: ignore[arg-type]
+                                     verification=verification, quality=0.6,
+                                     provenance=L.Provenance(source=item["source"], origin=origin, record_ids=[str(x[1]) for x in item["row"].get("sources") or []][:20],  # type: ignore[arg-type]
+                                                             consent="train", group=group, split=split, from_sealed=bool(item.get("from_sealed")))))  # type: ignore[arg-type]
+
+    for key, items in sorted(other.items()):
+        builder = key.split("/", 1)[0]
+        for item in items:
+            r = item["row"]
+            group = str(r.get("group") or item["source"])
+            if builder == "conversations" and len(r.get("messages") or []) >= 2:
+                add("understand_problem", list(r["messages"])[-60:], item, _origin_of(r.get("models") or {}),
+                    L.Verification(kind="person", passed=True, detail="the person built the project the conversation understood"), group)
+            elif builder == "trajectories":
+                origin, seen = _origin_of(r.get("models") or {}), []
+                for step in r.get("steps") or []:
+                    if not step.get("state") or not step.get("tool"):
+                        continue
+                    if step.get("verdict") not in (None, "allowed", "ok"):
+                        seen.append(step["tool"])
+                        continue  # a refused move is not taught
+                    asked = {"agent": r.get("agent"), "state": step["state"], "steps_before": seen[-8:]}
+                    messages = [{"role": "system", "content": selfplay.system()},
+                                {"role": "user", "content": json.dumps(asked, ensure_ascii=False, sort_keys=True, default=str)},
+                                {"role": "assistant", "content": json.dumps({"tool": step["tool"]}, ensure_ascii=False)}]
+                    add("agent_step", messages, item, origin, L.Verification(kind="none", passed=True, detail="the validator allowed the move"), group)
+                    seen.append(step["tool"])
+            elif builder == "workflows" and r.get("problem_card") and r.get("solution"):
+                wf = r.get("workflow") or {}
+                origin = "teacher_claude" if str(wf.get("source") or "") == "model" else "rule_prod"
+                asked = {"question": "Lay out the solution workflow for this problem, step by step.", "problem_card": r["problem_card"],
+                         "data_card": r.get("data_card")}
+                answer = {"workflow": wf, "solution": {k: (r["solution"] or {}).get(k) for k in ("target", "task", "kind", "metric", "time_column",
+                                                                                                "group_column", "identifiers")},
+                          "forbidden": r.get("forbidden"), "pipeline": r.get("pipeline")}
+                messages = [{"role": "system", "content": selfplay.system()},
+                            {"role": "user", "content": json.dumps(asked, ensure_ascii=False, sort_keys=True, default=str)},
+                            {"role": "assistant", "content": json.dumps(answer, ensure_ascii=False, sort_keys=True, default=str)}]
+                add("solution_design", messages, item, origin,
+                    L.Verification(kind="executed", passed=bool(r.get("pipeline")), detail="the project ran its pipeline"), group)
+            else:
+                run.drop(item["source"], f"{builder}: no mapping yet")
+    return out
+
+
 def eval_records(items: list[dict[str, Any]]) -> dict[str, list[L.TrainingExample]]:
     """The twin sets' rows (Claude beside DCLab) as evaluation-only records, one set per twin set: the row is kept whole as
     the assistant turn of a two-turn record, so the gold rules and the manifest apply to it like any other."""
@@ -457,6 +525,7 @@ def build(lake: Path = LAKE, homes: Iterable[Path] | None = None, manifest_path:
     examples = chat_corpus(SFT_V3, "evidence_answer", "research_record", "sft/out_v3", run, verified)
     examples += chat_corpus(SFT_DEV, "engineering", "dev_record", "sft/out_dev", run, verified)
     examples += selfplay.examples()
+    examples += session_examples(others, run)  # 27.2: the sessions recorded under train consent, by who made their moves
     examples, reasoned = reason(examples)
     teacher = eval_records(evaluation)
     # silver: each source's rows as read, with provenance

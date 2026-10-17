@@ -46,6 +46,8 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("selfplay", help="27.3: solve the engine kinds' replicas by seed, keep only verified solves")
     p.add_argument("--seeds", type=int, default=20)
     p.add_argument("--kinds", default="", help="comma-separated kind keys (default: every engine kind)")
+    p.add_argument("--backfill", action="store_true", help="27.3: problems verified before, solved again for their decision ledger and solution workflow")
+    p.add_argument("--limit", type=int, default=None, help="with --backfill: at most this many problems")
     args = parser.parse_args(argv)
     if args.command == "answers":
         from .answers import capture, summary
@@ -83,6 +85,11 @@ def main(argv: list[str] | None = None) -> int:
         print(openml.fetch(args.limit))
         return 0
     if args.command == "selfplay":
+        from . import selfplay
+
+        if args.backfill:
+            print(selfplay.backfill([k for k in args.kinds.split(",") if k] or None, limit=args.limit))
+            return 0
         from . import selfplay
 
         print(selfplay.solve([k for k in args.kinds.split(",") if k] or None, args.seeds))

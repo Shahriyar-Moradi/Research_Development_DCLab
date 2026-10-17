@@ -17,6 +17,7 @@ the group is the kind and seed, so a problem never lands in two splits.
 from __future__ import annotations
 
 import json
+import shutil
 import time
 from pathlib import Path
 from typing import Any, Iterable
@@ -64,6 +65,8 @@ FORMATS: dict[str, dict[str, Any]] = {
     "algorithm_choice": {"feature_recipe": "a recipe name", "model": "a model family", "ranking": ["model families, best first"], "selection_rule": "one sentence"},
     "read_results": {"primary_metric": "a metric name", "value": "a number", "interval": "the interval given, or null", "beats_baseline": "true, false or null",
                      "holdout_read_once": "true or false", "claim": "what may be claimed, in one sentence"},
+    "solution_design": {"task": "binary | multiclass | regression", "kind": "the kind of problem",
+                        "workflow": [{"step": "split | leakage | features | models | final", "decision": "what is decided at that step"}]},
 }
 
 
@@ -141,6 +144,18 @@ def examples_of(kind: Any, seed: int, case: Any, run: Any, checks: list[dict[str
             {"feature_recipe": features.get("selected_recipe"), "model": models.get("selected_model"),
              "ranking": [r.get("model") if isinstance(r, dict) else r for r in (models.get("ranking") or [])][:4],
              "selection_rule": mask(models.get("selection_rule"))[:200]})
+    # 27.3: the whole solution workflow, step by step, as DCLab's verified run took it (the families above are its parts)
+    workflow = [
+        {"step": "split", "decision": {"holdout": mask(data.get("holdout_split"))[:300], "cross_validation": mask(data.get("cv_protocol"))[:200],
+                                       "time_column": rename(sol.get("time_column")), "group_column": rename(sol.get("group_column"))}},
+        {"step": "leakage", "decision": {"forbidden": [rename(f.get("column")) for f in sol.get("forbidden") or []],
+                                         "identifiers": [rename(c) for c in sol.get("identifiers") or []]}},
+        {"step": "features", "decision": {"recipe": features.get("selected_recipe")}},
+        {"step": "models", "decision": {"model": models.get("selected_model"), "selection_rule": mask(models.get("selection_rule"))[:200]}},
+        {"step": "final", "decision": {"metric": final.get("metric"), "holdout_read_once": final.get("holdout_uses_in_this_project") == 1}},
+    ]
+    add("solution_design", "Lay out the solution workflow for this problem, step by step, before anything is fitted.", base,
+        {"task": case.task, "kind": kind.key, "workflow": workflow})
     metrics = final.get("holdout_metrics") or {}
     ci = final.get("holdout_primary_metric_ci")
     if metrics and not masked:
@@ -170,6 +185,62 @@ def screen_record(kind: Any, seed: int, case: Any, run: Any) -> dict[str, Any]:
             "split": str(data.get("holdout_split") or "")[:120],
             "screen": [{k: r.get(k) for k in ("model", "mean", "std", "elapsed_seconds")} for r in models.get("ranking") or [] if isinstance(r, dict)],
             "selected": models.get("selected_model"), "recipe": run.evidence("features").get("selected_recipe")}
+
+
+def _run_recorded(A: Any, case: Any, key: str, group: str) -> Any:
+    """The engine's run with a decision ledger of its own (``bronze/selfplay/ledgers/<kind>/<seed>/``): every decision the
+    engine makes on the problem (the split, the metric, each column's role and leak, the features, the model family, the
+    threshold, the tuning), each with the replica's planted truth as its benchmark label where it has one (19.8)."""
+    from .. import ledger
+
+    _, kind, seed = group.split(":")
+    folder = OUT / "ledgers" / kind / seed
+    shutil.rmtree(folder, ignore_errors=True)  # a problem solved again is recorded again, whole
+    book = ledger.FileLedger(folder, "selfplay")
+    book.home = folder
+    before = ledger._INSTALLED.get("ledger")
+    ledger.install(book)
+    try:
+        return A.engine_run(case, key)
+    finally:
+        ledger.install(before)
+
+
+def backfill(kinds_keys: Iterable[str] | None = None, log=print, limit: int | None = None) -> dict[str, Any]:
+    """Problems verified before 27.3's widening, solved again to record their decision ledger and their solution workflow
+    example (the other examples are already kept); resumable."""
+    from .. import kinds
+    from ..kinds import acceptance as A
+
+    tried = [json.loads(x) for x in (OUT / "done.jsonl").read_text(encoding="utf-8").splitlines() if x.strip()] if (OUT / "done.jsonl").is_file() else []
+    marks = OUT / "backfill_done.jsonl"
+    done = {json.loads(x)["group"] for x in marks.read_text(encoding="utf-8").splitlines() if x.strip()} if marks.is_file() else set()
+    wanted, n = set(kinds_keys or []), 0
+    by_key = {k.key: k for k in kinds.all_kinds()}
+    for t in tried:
+        group = t["group"]
+        _, key, seed = group.split(":")
+        if not t.get("verified") or group in done or (wanted and key not in wanted) or key not in by_key:
+            continue
+        if limit is not None and n >= limit:
+            break
+        kind, started = by_key[key], time.perf_counter()
+        try:
+            case = kind.case(int(seed))
+            run = _run_recorded(A, case, key, group)
+            checks = kind.accept_engine(run) if kind.own_machine() is not None else kind.accept(run)
+            got = [e for masked in (False, True) for e in examples_of(kind, int(seed), case, run, checks, masked) if e.family == "solution_design"]
+            if not [c for c in checks if not c["ok"]]:
+                with (OUT / "examples.jsonl").open("a", encoding="utf-8") as f:
+                    f.write("".join(e.model_dump_json() + "\n" for e in got))
+            outcome = {"verified": not [c for c in checks if not c["ok"]], "examples": len(got)}
+        except Exception as exc:  # noqa: BLE001 - a problem that breaks now is said, never a stop
+            outcome = {"verified": False, "reason": f"{type(exc).__name__}: {str(exc)[:200]}"}
+        with marks.open("a", encoding="utf-8") as f:
+            f.write(json.dumps({"group": group, **outcome, "seconds": round(time.perf_counter() - started, 1)}) + "\n")
+        n += 1
+        log(f"{group}: recorded again ({outcome})")
+    return {"recorded_again": n}
 
 
 def solve(kinds_keys: Iterable[str] | None = None, seeds: int = 20, log=print) -> dict[str, Any]:
@@ -206,7 +277,7 @@ def solve(kinds_keys: Iterable[str] | None = None, seeds: int = 20, log=print) -
                 case = kind.case(seed)
                 if case is None or case.target is None:
                     break  # a kind without a replica case, or one with no outcome (anomaly: its own path)
-                run = A.engine_run(case, kind.key)
+                run = _run_recorded(A, case, kind.key, group)
                 # a kind with its own machine checks the engine's run with accept_engine (its accept reads its own machine's result)
                 checks = kind.accept_engine(run) if kind.own_machine() is not None else kind.accept(run)
             except Exception as exc:  # noqa: BLE001 — a solve that breaks is a rejection with its reason, never a stop

@@ -1113,6 +1113,9 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
     u = draft.get("understanding") or {}
     name = (u.get("target") or draft["problem"])[:60].strip().rstrip(".") or "New project"
     project = projects.create(name[:1].upper() + name[1:], "general", draft["problem"])
+    from ..consent import inherit
+
+    project = inherit(project, projects)  # decision 6: a workspace whose projects inherit its consent
     pid = project["id"]
     asset = next((a for a in draft["assets"] if a["id"] == draft.get("active_asset") and a.get("status") == "ready"), None)
     if asset is not None:

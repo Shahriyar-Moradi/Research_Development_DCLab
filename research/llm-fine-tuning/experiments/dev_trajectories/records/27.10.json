@@ -1,0 +1,40 @@
+{
+ "package": "27.10",
+ "title": "A company's own language model's data, from its own sessions, in its own folder",
+ "date": "2026-10-17",
+ "request": "Let companies and engineers fine-tune their own models: the 26.7 path extended to sessions.",
+ "spec": "dclab_rnd/own_llm.py: the workspace's conversations, agent runs, workflows and labelled decisions as examples (the lake's mapping and cleaning, reasoning where it can be written), chat files train/val/sealed/eval_only in <workspace>/own_models/llm/.",
+ "plan": [
+  "Reuse the lake's mapping and cleaning.",
+  "Keep everything in the workspace's folder.",
+  "Keep Claude's moves out of training, for the company too."
+ ],
+ "decisions": [
+  {
+   "decision": "DCLab's own train switch does not govern a company's own export.",
+   "why": "Nothing leaves the company's folder."
+  }
+ ],
+ "change": "own_llm.py, its test.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A session's workflow broke the reasoning trace.",
+   "scenario": "A built project's drawn workflow is a document, not a list of steps.",
+   "cause": "The trace assumed self-play's list shape.",
+   "fix": "The trace is written only for a list of steps; otherwise none.",
+   "test": "test_a_workspaces_own_sessions_become_its_training_files_in_its_folder"
+  }
+ ],
+ "measurements": [],
+ "outcome": "A workspace writes its own model's training files from its own sessions, with a sealed file for its own measurement.",
+ "lessons": [
+  "A trace builder must refuse shapes it was not written for."
+ ],
+ "risks": [
+  "The training run and per-tenant serving are the owner's infrastructure."
+ ],
+ "commits": []
+}

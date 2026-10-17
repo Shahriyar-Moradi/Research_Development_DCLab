@@ -274,5 +274,29 @@ class FoundOnDevTest(unittest.TestCase):
         self.assertLessEqual(MAX_QUESTIONS, 5)  # the conversation gate's limit
 
 
+
+class WrittenPersonMeaningTests(unittest.TestCase):
+    """26.5: a written person answers a model's own question by what it asks, the rules' by its field as before."""
+
+    def test_a_question_tagged_with_its_field_is_answered_as_before(self):
+        from dclab_rnd.agent_eval.journeys import _Person
+
+        p = _Person({"target": "The churners", "prediction_moment": "At signup"})
+        self.assertEqual(p._answer("target", "anything"), "The churners")
+        self.assertEqual(p.asked, ["target"])
+
+    def test_a_models_question_in_its_own_words_is_answered_by_its_meaning(self):
+        from dclab_rnd.agent_eval.journeys import _Person
+
+        p = _Person({"prediction_moment": "Each morning, before the rides are paid", "budget": "About 80 a day",
+                     "action": "The audit team reviews them", "target": "The confirmed frauds"})
+        self.assertEqual(p._answer("notes", "When is each prediction made, and what is known then?"), "Each morning, before the rides are paid")
+        self.assertEqual(p._answer("notes", "About how many rides can the team review each morning?"), "About 80 a day")
+        self.assertEqual(p._answer("costs", "What does a misrouted case cost you?"), "The audit team reviews them")
+        self.assertEqual(p._answer("notes", "What exactly do you want to predict?"), "The confirmed frauds")
+        self.assertIn("notes→prediction_moment", p.asked)
+        self.assertIsNone(p._answer("notes", "What is your favourite colour?"))  # nothing it holds: no answer, as a person who does not know
+
+
 if __name__ == "__main__":
     unittest.main()

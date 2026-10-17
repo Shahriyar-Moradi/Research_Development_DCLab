@@ -50,6 +50,16 @@
    "cause": "The loop did not watch the budget; spend was summed from rows.",
    "fix": "The arm stops before a journey could run out and is then not stored; spend is read from the clients.",
    "test": ""
+  },
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The written people could not answer a model's own questions.",
+   "scenario": "DWF-005: the model-led Home stopped waiting for the person in most journeys.",
+   "cause": "A written person answered only a question tagged with a field it holds.",
+   "fix": "A question is also answered by what its words ask when its field is not one the person holds; the rules' questions are answered as before.",
+   "test": "test_a_models_question_in_its_own_words_is_answered_by_its_meaning"
   }
  ],
  "measurements": [

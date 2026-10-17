@@ -20,7 +20,7 @@ import re
 from typing import Any, Mapping, Optional
 
 VERSION = "reasoning_v1"
-FAMILIES = ("problem_type", "leakage_judgment", "split_design", "algorithm_choice", "read_results")
+FAMILIES = ("problem_type", "leakage_judgment", "split_design", "algorithm_choice", "read_results", "solution_design")
 _NUMBER = re.compile(r"(?<![\w.])-?\d+(?:\.\d+)?(?!\w)(?!\.\d)")  # a sentence's full stop after a number is not part of it
 _NAME = re.compile(r"`([^`]{1,200})`")
 UNIQUE = {"all", "over_99pct", "from_90_to_99pct"}
@@ -154,6 +154,31 @@ def trace(family: str, given: Mapping[str, Any], answer: Mapping[str, Any]) -> O
         if answer.get("selection_rule"):
             steps.append(f"The rule: {str(answer['selection_rule']).rstrip('.')}.")
         steps.append(f"So the recipe is {answer.get('feature_recipe')} and the model {answer.get('model')}.")
+        return steps
+    if family == "solution_design":
+        if not isinstance(answer.get("workflow"), list) or not all(isinstance(i, dict) for i in answer["workflow"]):
+            return None  # a session's drawn workflow (its own shape): no trace from these rules
+        if moment:
+            steps.append(f"The prediction is made: {_end(moment)} Everything follows from that moment and from the outcome `{outcome}`."
+                         if outcome else f"The prediction is made: {_end(moment)}")
+        for item in answer.get("workflow") or []:
+            d, step = item.get("decision") or {}, item.get("step")
+            if step == "split":
+                parts = [f"the holdout is {str(d.get('holdout')).rstrip('.')}" if d.get("holdout") else None,
+                         f"ordered in time by `{d['time_column']}`" if d.get("time_column") else None,
+                         f"whole `{d['group_column']}` groups on one side" if d.get("group_column") else None]
+                steps.append("First the split, fixed before anything is learned: " + ", ".join(p for p in parts if p) + ".")
+            elif step == "leakage":
+                out = [f"`{c}`" for c in [*(d.get("forbidden") or []), *(d.get("identifiers") or [])]]
+                steps.append("Then the leakage audit: " + (", ".join(out) + " stay out." if out else "no column is kept out."))
+            elif step == "features" and d.get("recipe"):
+                steps.append(f"Then the features, chosen inside the training folds: the {d['recipe']} recipe.")
+            elif step == "models" and d.get("model"):
+                steps.append(f"Then the model family, by the selection rule on the same folds: {d['model']}.")
+            elif step == "final":
+                steps.append(f"Last, the holdout is read once, scored by {d.get('metric')}." if d.get("holdout_read_once") else
+                             f"Last, the holdout is scored by {d.get('metric')}.")
+        steps.append(f"So the problem is a {answer.get('task')} one of the kind {answer.get('kind')}, solved in that order.")
         return steps
     if family == "read_results":
         primary, value, interval = answer.get("primary_metric"), answer.get("value"), answer.get("interval") or {}

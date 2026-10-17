@@ -1,0 +1,33 @@
+{
+ "package": "27.2",
+ "title": "Capture what is still missing: sessions under train consent, mapped by who made their moves",
+ "date": "2026-10-17",
+ "request": "Sessions become training data: the owner's permission to switch train consent on (decision 6), and the session sets mapped into the lake by who answered.",
+ "spec": "consent: projects_inherit (new projects start with the workspace's switches, applied where a project is made); the development workspace's train switch on, audited; dclab_core.datasets rows of conversations and trajectories carry the models that served them; lake.session_examples maps conversations, agent steps and workflows to examples.",
+ "plan": [
+  "Turn the switch on and let new projects inherit it.",
+  "Record which model answered in each session row.",
+  "Map each set to a family; Claude's moves to evaluation, the rules' and people's to training, another model's left out."
+ ],
+ "decisions": [
+  {
+   "decision": "Only sessions recorded from now on reach the lake.",
+   "why": "Each event keeps the consent it was written under (23.1): the past stays out."
+  },
+  {
+   "decision": "A row written by a model other than Claude is left out, not guessed.",
+   "why": "Its terms are not known."
+  }
+ ],
+ "change": "consent.inherit, set_inherits and the two places a project is made; datasets._models; lake.session_examples and _origin_of; the development workspace's consent.json.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "Sessions recorded from now on in the development workspace and its new projects become training examples, each marked by who made its moves.",
+ "lessons": [
+  "Record who answered at the moment of answering; it cannot be recovered later."
+ ],
+ "risks": [
+  "Until sessions accumulate the mapped sets are empty."
+ ],
+ "commits": []
+}

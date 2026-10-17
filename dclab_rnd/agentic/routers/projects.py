@@ -32,6 +32,9 @@ async def create_project(body: ProjectCreate, s: Services = Depends(services)):
     if not str(body.name or "").strip():
         raise HTTPException(422, "A project needs a name")
     p = s.projects.create(str(body.name or ""), str(body.industry if body.industry is not None else "general"), str(body.goal or ""))
+    from ...consent import inherit
+
+    p = inherit(p, s.projects, s.store.home)  # decision 6: a workspace whose projects inherit its consent
     return s.with_records(p)
 
 

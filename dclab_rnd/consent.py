@@ -45,7 +45,7 @@ def workspace_consent(home: Path) -> dict[str, bool]:
         data = json.loads((Path(home) / FILE).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         data = {}
-    return {use: data.get(use) is True for use in USES}
+    return {use: data.get(use) is True for use in USES}  # the inherit flag (INHERIT) is read by inherits()
 
 
 def set_workspace_consent(home: Path, use: str, on: bool, who: str = "owner") -> dict[str, bool]:
@@ -65,6 +65,46 @@ def set_workspace_consent(home: Path, use: str, on: bool, who: str = "owner") ->
         except Exception:  # noqa: BLE001 - the switch is saved whether or not the marker is
             pass
     return current
+
+
+INHERIT = "projects_inherit"  # decision 6 of the phases 4-5 plan (the owner, 2026-10-17): new projects start with the workspace's switches
+
+
+def inherits(home: Path) -> bool:
+    try:
+        return json.loads((Path(home) / FILE).read_text(encoding="utf-8")).get(INHERIT) is True
+    except (OSError, ValueError):
+        return False
+
+
+def set_inherits(home: Path, on: bool) -> bool:
+    """Whether a project made from now on starts with this workspace's switches (each still changeable on the project)."""
+    path = Path(home) / FILE
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        data = {}
+    data[INHERIT] = bool(on)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
+    tmp.replace(path)
+    return bool(on)
+
+
+def inherit(project: dict[str, Any], projects: Any, home: Path | None = None) -> dict[str, Any]:
+    """A new project given its workspace's switches when the workspace says its projects inherit them (saved); unchanged
+    otherwise. Called where a project is made (the API's create, a draft's build)."""
+    if home is None:
+        from . import context
+
+        home = getattr(getattr(context.services(), "store", None), "home", None)
+    if home is None or not inherits(home):
+        return project
+    switches = workspace_consent(home)
+    project.setdefault("settings", {})["consent"] = {use: switches[use] for use in USES}
+    project["settings"]["share_for_training"] = switches["train"]
+    projects.save(project)
+    return project
 
 
 def project_consent(project: dict[str, Any] | None) -> dict[str, bool]:

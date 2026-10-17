@@ -1,0 +1,19 @@
+{
+ "package": "27.3",
+ "title": "Verified synthetic solving (self-play) with known answers",
+ "date": "2026-10-17",
+ "request": "Verified trajectories over invented problems across every engine kind.",
+ "spec": "dclab_rnd/lake/selfplay.py",
+ "plan": [
+  "Solve every kind's replica by seed, keep only verified solves.",
+  "Record every decision a solve makes in its own ledger, and its whole solution workflow as an example (2026-10-17)."
+ ],
+ "decisions": [],
+ "change": " 2026-10-17: per-solve decision ledgers (bronze/selfplay/ledgers/<kind>/<seed>), the solution_design family with its reasoning trace, a backfill of the problems solved before.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "Every verified solve keeps its decisions (16 kinds, labelled by the planted truth where it has them) and its solution workflow as an example.",
+ "lessons": [],
+ "risks": [],
+ "commits": []
+}

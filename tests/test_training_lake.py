@@ -179,7 +179,7 @@ class PublicAndSelfplayTests(unittest.TestCase):
             got = P.examples()
         self.assertEqual((done["problems"], done["rejected"]), (1, 0))
         self.assertTrue(all("answer_format" in json.loads(e.messages[1]["content"]) for e in got))  # a model asked cold sees the contract too
-        self.assertEqual({e.family for e in got}, {"problem_type", "leakage_judgment", "split_design", "algorithm_choice", "read_results"})
+        self.assertEqual({e.family for e in got}, {"problem_type", "leakage_judgment", "split_design", "algorithm_choice", "read_results", "solution_design"})
         self.assertEqual(L.gold_problems(got), [])
         case = next(k for k in kinds.all_kinds() if k.key == "binary").case(0)
         names = [c for c in case.table.columns if len(c) > 3]
@@ -269,6 +269,62 @@ class LearnedAutomlTests(unittest.TestCase):
         self.assertEqual(out["pickers"]["meta_model"]["mean_regret"], 0.0)  # learned which family wins, on kinds it never saw
         self.assertGreater(out["pickers"]["always_xgboost"]["mean_regret"], 0.3)
         self.assertEqual(A.regret(rows[0], "not_in_screen"), 1.0)  # a family the screen did not try counts as the worst
+
+
+class SelfplayLedgerTests(unittest.TestCase):
+    def test_every_decision_of_a_solve_is_recorded_in_its_own_ledger(self):
+        from dclab_rnd import ledger
+        from dclab_rnd.lake import selfplay
+
+        tmp = Path(tempfile.mkdtemp())
+
+        class Engine:
+            @staticmethod
+            def engine_run(case, key):
+                ledger.decide("split.strategy", ("project", "p1"), answers=[ledger.answer("rule", "rule:split", "time")], value_used="time",
+                              state={"has_time": True}, options=["time", "random"])
+                return "ran"
+
+        before = ledger._INSTALLED.get("ledger")
+        with mock.patch.object(selfplay, "OUT", tmp):
+            self.assertEqual(selfplay._run_recorded(Engine, None, "binary", "selfplay:binary:7"), "ran")
+        self.assertIs(ledger._INSTALLED.get("ledger"), before)  # the solve's ledger is put back afterwards
+        book = ledger.FileLedger(tmp / "ledgers" / "binary" / "7", "selfplay")
+        self.assertEqual([r.point for r in book.records()], ["split.strategy"])
+
+
+class SessionMappingTests(unittest.TestCase):
+    """27.2: a workspace's session sets become training examples, marked by who made their moves."""
+
+    def item(self, row, builder):
+        return {"row": {"group": "project:p1", "split": "train", **row}, "from_sealed": False, "source": f"workspace:w/{builder}/x"}
+
+    def test_each_set_is_mapped_and_claudes_moves_are_evaluation_only(self):
+        from dclab_rnd import lake as B
+
+        run = B.Run()
+        convo = [{"role": "user", "content": "Which customers leave?"}, {"role": "assistant", "content": "What do you predict?"}]
+        other = {
+            "conversations/home": [self.item({"messages": convo, "models": {}}, "conversations"),
+                                   self.item({"messages": convo + [{"role": "assistant", "content": "x"}], "models": {"home_agent": "claude-sonnet-5-5"}}, "conversations"),
+                                   self.item({"messages": convo, "models": {"home_agent": "qwen2.5"}}, "conversations")],
+            "trajectories/agents": [self.item({"agent": "intern", "models": {}, "steps": [
+                {"state": {"stage": "data"}, "tool": "run_stage", "verdict": "allowed"},
+                {"state": {"stage": "final"}, "tool": "read_holdout", "verdict": "refused"}]}, "trajectories")],
+            "workflows/projects": [self.item({"problem_card": {"family": "classification"}, "data_card": {}, "solution": {"target": "churn"},
+                                              "workflow": {"source": "rules"}, "pipeline": [{"step": "data", "run": "r1"}]}, "workflows")],
+        }
+        got = B.session_examples(other, run)
+        by = {(e.family, e.provenance.origin, e.provenance.split) for e in got}
+        self.assertIn(("understand_problem", "rule_prod", "train"), by)
+        self.assertIn(("understand_problem", "teacher_claude", "eval_only"), by)
+        self.assertIn(("agent_step", "rule_prod", "train"), by)
+        self.assertIn(("solution_design", "rule_prod", "train"), by)
+        self.assertEqual(sum(1 for e in got if e.family == "agent_step"), 1)  # the refused move is not taught
+        self.assertEqual(run.dropped["workspace:w/conversations/x"]["written by a model whose terms are not known"], 1)
+        from dclab_core import lake as L
+
+        self.assertEqual(L.gold_problems(got), [])
 
 
 if __name__ == "__main__":
