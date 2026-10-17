@@ -4,6 +4,11 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.62.1 (2026-10-17)
+
+- `clean.impure` reads a table-level sample's outcome column (`target_state`) as a column state and a count of columns as a
+  count: 0.61.0's check refused every task-framing decision of OpenML's real tables (package 26.9 found the set empty).
+
 ## 0.62.0 (2026-10-17)
 
 Package 26.8: images in the engine.

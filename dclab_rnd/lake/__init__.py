@@ -474,10 +474,15 @@ def build(lake: Path = LAKE, homes: Iterable[Path] | None = None, manifest_path:
     (lake / "bronze" / "INPUTS.json").write_text(json.dumps({"built_at": now(), "inputs": run.inputs, "skipped": run.skipped}, indent=1) + "\n", encoding="utf-8")
     sets = []
     by_point: dict[str, list[L.DecisionSample]] = defaultdict(list)
+    attached: Counter = Counter()
     for d in decisions:
         by_point[d.decision_point].append(d)
+    from .answers import attach
+
     for point, rows in sorted(by_point.items()):
         kept, why = clean_decisions(rows)
+        kept, answered = attach(kept)  # 26.9: every other answerer's captured answer beside its decision, never the label
+        attached.update(answered)
         sources = {r.provenance.source for r in rows}
         sets.append(write_set(lake / "gold" / "decisions" / point / VERSION, "decision_sample", f"decisions/{point}", kept,
                               [i for i in run.inputs if point in i["path"] or "datasets" in i["path"] or "openml" in i["path"]],
@@ -497,7 +502,8 @@ def build(lake: Path = LAKE, homes: Iterable[Path] | None = None, manifest_path:
     summary = {"name": "DCLab training lake", "version": VERSION, "builder_commit": commit(),
                "workspaces_read": len(homes) - len(run.skipped), "workspaces_skipped": [s["why"] for s in run.skipped], "inputs": len(run.inputs),
                "silver_only": {k: len(v) for k, v in sorted(others.items())},
-               "reasoning": dict(reasoned),  # 27.9: the examples that carry a verified trace (their `<think>`), and those without
+               "reasoning": dict(reasoned),
+               "other_answers": dict(attached),  # 26.9: captured answers attached to their decisions (lake/bronze/answers)  # 27.9: the examples that carry a verified trace (their `<think>`), and those without
                "dropped_by_source": {k: dict(v) for k, v in sorted(run.dropped.items()) if v},
                "sets": [{"name": s["name"], "written": s["written"], **({"problems": s["problems"]} if not s["written"] else {}),
                          **{k: s["manifest"][k] for k in ("rows", "by_split", "by_origin", "by_family", "groups", "dropped")}} for s in sets],

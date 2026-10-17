@@ -46,7 +46,13 @@ def impure(features: Mapping[str, Any]) -> list[str]:
     checked one by one; an empty field is no field."""
     state = {k: v for k, v in features.items() if v is not None}
     columns = state.pop("columns", None)
+    target_state = state.pop("target_state", None)  # a table-level sample's outcome column, as a column state
+    if isinstance(columns, int) and not isinstance(columns, bool):
+        state["columns"], columns = columns, None  # a count of columns
     problems = list(check_state(state))
+    if target_state is not None:
+        problems += [f"target_state.{p}" for p in (check_state({k: v for k, v in target_state.items() if v is not None})
+                                                    if isinstance(target_state, dict) else ["a column state"])]
     if columns is not None:
         if not isinstance(columns, list):
             problems.append("columns: a list of column states")

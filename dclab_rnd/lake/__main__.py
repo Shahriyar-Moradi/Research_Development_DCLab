@@ -32,10 +32,30 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--no-think", action="store_true", help="27.9: write the solver's answers without their verified <think> block")
     o = sub.add_parser("openml", help="26.2: fetch and profile OpenML's public tables (resumable; the owner's yes, 2026-10-16)")
     o.add_argument("--limit", type=int, default=1200)
+    a = sub.add_parser("answers", help="26.9: another answerer (GLiNER2.5-Decide) on every gold decision, every detail kept (run in the ai12 env)")
+    a.add_argument("--answerer", default="gliner2.5-decide")
+    a.add_argument("--points", default="")
+    a.add_argument("--splits", default="train,dev,sealed")
+    a.add_argument("--limit", type=int, default=None, help="at most this many new decisions per point and split")
+    a.add_argument("--batch", type=int, default=32)
+    sub.add_parser("answers-summary", help="26.9: what was captured, per answerer and point (dev agreement only); the committed manifest")
     p = sub.add_parser("selfplay", help="27.3: solve the engine kinds' replicas by seed, keep only verified solves")
     p.add_argument("--seeds", type=int, default=20)
     p.add_argument("--kinds", default="", help="comma-separated kind keys (default: every engine kind)")
     args = parser.parse_args(argv)
+    if args.command == "answers":
+        from .answers import capture, summary
+
+        got = capture(args.answerer, [x for x in args.points.split(",") if x] or None, tuple(x for x in args.splits.split(",") if x),
+                      args.limit, args.batch)
+        print(json.dumps({k: v for k, v in got["asked"].items() if v}, indent=1))
+        summary()
+        return 0
+    if args.command == "answers-summary":
+        from .answers import summary
+
+        print(json.dumps(summary()["answerers"], indent=1, default=str)[:6000])
+        return 0
     if args.command == "openml":
         from . import openml
 

@@ -199,7 +199,10 @@ def samples(dropped: Counter) -> list[L.DecisionSample]:
         if target and target_col is not None and states:
             task = ("regression" if target_col.get("openml_type") == "numeric" else
                     "binary" if target_col.get("distinct_nominal") == 2 else "multiclass" if (target_col.get("distinct_nominal") or 0) > 2 else None)
-            table = {"rows": rec.get("rows"), "target": target, "target_state": target_col.get("state"), "columns": len(states)}
+            from dclab_core.bands import rows_band
+
+            # the row count as its band, as every state holds it (27.5's purity check refused the raw count)
+            table = {"rows": rows_band(rec.get("rows")), "target": target, "target_state": target_col.get("state"), "columns": len(states)}
             if task:
                 options = ["binary", "multiclass", "regression"]
                 out.append(L.DecisionSample(sample_id=f"openml{rec['did']}:task", decision_point="task.framing", subject_kind="dataset",

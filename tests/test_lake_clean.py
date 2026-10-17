@@ -41,6 +41,11 @@ class CoreTests(unittest.TestCase):
         good = {"columns": [{"name_tokens": ["order", "id"], "dtype": "integer", "uniqueness": "all"}]}
         self.assertEqual(clean.impure(good), [])
         self.assertTrue(clean.impure({"columns": [{"name_tokens": ["order"], "sample_values": ["a@b.com"]}]}))
+        table = {"rows": "tiny", "target": "class", "columns": 18,  # a table-level sample: a count of columns and the outcome's state
+                 "target_state": {"column": "class", "name_tokens": ["class"], "dtype": "categorical", "cardinality": "low"}}
+        self.assertEqual(clean.impure(table), [])
+        self.assertTrue(clean.impure({**table, "rows": 148}))  # a raw row count is not a band
+        self.assertTrue(clean.impure({**table, "target_state": {"column": "class", "top_values": ["yes"]}}))
 
     def test_personal_data_is_found_and_a_measured_number_is_not_it(self):
         self.assertEqual(clean.personal(["no one here", None]), {})

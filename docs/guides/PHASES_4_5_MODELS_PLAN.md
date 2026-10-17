@@ -179,6 +179,22 @@ Two tracks, because "as good as XGBoost" is a claim to be measured, not assumed:
   across the line, never hidden. Left: decision points and sets for images (labels' quality, augmentation, a pretrained backbone,
   the owner's download), and images in self-play.
 
+### 26.9 Other decision models' answers, captured whole (the owner, 2026-10-17)
+- **Why:** the owner compared three hosted or open decision models (Fastino's GLiNER2.5-Decide and GLiDE, TypeSafe's Jev,
+  OpenAI's Decisions API) and chose to **collect, not train**: every answer another model gives on DCLab's decisions is
+  stored with every detail, as data for training DCLab's own models later. The research, with its sources, is
+  `DECISION_MODEL_OPTIONS.md`: GLiNER2.5-Decide's weights are open (Apache 2.0) and run on this machine, so its
+  answers carry no service's terms (`use: train`); Jev, GLiDE and OpenAI are hosted, and their answers are recorded
+  `eval_only` until their terms are checked (OpenAI's terms forbid using outputs to build competing models).
+- **Delivers:** `dclab_rnd/lake/answers.py` (`python -m dclab_rnd.lake answers`, run in the environment that has the model):
+  every gold decision asked once, resumable; each answer kept whole (the text and schema asked, its fingerprint, the raw
+  output, the value, the confidence, the model's revision, the library, the machine, the time, the licence and use) in
+  `lake/bronze/answers/<answerer>/<point>/<split>.jsonl`; the lake build attaches each to its decision as `other_answers`
+  (never the label); the committed summary `research/llm-fine-tuning/experiments/lake/answers/MANIFEST.json` (agreement
+  on dev only; the sealed split answered, never scored).
+- **Done when:** every gold decision has GLiNER2.5-Decide's answer stored whole, the lake carries them, and adding a hosted
+  answerer is one entry with its use.
+
 ## Part D. Phase 5 — a model that solves machine-learning problems (packages 27.x)
 
 ### What the model must be able to do

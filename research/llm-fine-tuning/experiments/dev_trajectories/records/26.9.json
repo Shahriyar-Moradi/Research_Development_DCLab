@@ -1,0 +1,54 @@
+{
+ "package": "26.9",
+ "title": "Other decision models' answers on every lake decision, captured whole for training DCLab's own models",
+ "date": "2026-10-17",
+ "request": "Capture everything another decision model does on DCLab's decisions and store all of it as training data; do not train or fine-tune (the owner, 2026-10-17).",
+ "spec": "dclab_rnd/lake/answers.py: render each gold decision as text and a schema, ask the answerer in batches, append every answer whole (input, fingerprint, raw output, value, confidence, revision, library, machine, time, licence, use), resume, summarise on dev only, attach to the lake's decisions as other_answers.",
+ "plan": [
+  "Research the three options and choose by data rights first.",
+  "Run the open-weight model locally so its answers carry no service terms.",
+  "Keep the labels in gold and join by id; never score the sealed split here."
+ ],
+ "decisions": [
+  {
+   "decision": "GLiNER2.5-Decide first, recorded use train; hosted models later, recorded eval_only.",
+   "why": "Its weights are Apache 2.0 and run on this machine; Jev's and GLiDE's terms are unknown, and OpenAI's forbid training competing models."
+  },
+  {
+   "decision": "Each answer stores a fingerprint of what was asked.",
+   "why": "A decision whose state changes must be asked again, and an old answer must never be attached to a new state."
+  }
+ ],
+ "change": "lake/answers.py, the lake command's answers and answers-summary, the lake build attaching other_answers, the OpenML task state's row count as a band, the purity check reading table-level states, DECISION_MODEL_OPTIONS.md, plan 26.9.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Every task-framing decision of OpenML's real tables was dropped from the lake.",
+   "scenario": "The capture found task.framing empty: 775 decisions refused as not a pure state.",
+   "cause": "27.5's purity check did not know a table-level state (the outcome's column state, a count of columns), and the OpenML builder stored the raw row count instead of its band.",
+   "fix": "The builder bands the row count; the purity check reads target_state as a column state and a column count as a count; 479 decisions are back (the rest are duplicates and evaluation rows).",
+   "test": "test_a_value_in_the_features_is_impure_and_a_table_level_sample_is_checked_column_by_column"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "latent",
+   "defect": "A target column's options differ from table to table.",
+   "scenario": "One schema for a whole batch would have asked one table's columns about another's.",
+   "cause": "The model takes one schema per call.",
+   "fix": "Decisions are grouped by their schema before batching.",
+   "test": "test_a_target_column_is_asked_with_its_own_options"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Every lake decision is asked of GLiNER2.5-Decide on this machine and each answer is stored whole beside its decision.",
+ "lessons": [
+  "Choose an outside model by what its answers may be used for before how well it scores."
+ ],
+ "risks": [
+  "The model answers from text rendered from bands; its zero-shot agreement says little about what it could learn."
+ ],
+ "commits": []
+}

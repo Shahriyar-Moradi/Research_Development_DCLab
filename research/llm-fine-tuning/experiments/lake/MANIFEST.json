@@ -1,7 +1,7 @@
 {
  "name": "DCLab training lake",
  "version": "v1",
- "builder_commit": "a456aa1",
+ "builder_commit": "f15fcc7",
  "workspaces_read": 0,
  "workspaces_skipped": [
   "no sets built (make datasets writes what its consent allows)",
@@ -10,7 +10,7 @@
  "inputs": 16,
  "silver_only": {},
  "reasoning": {
-  "no reasoning for this family yet": 2923,
+  "no reasoning for this family yet": 2979,
   "reasoning kept": 1466,
   "answer misses the replica's planted truth (example dropped)": 78
  },
@@ -184,14 +184,24 @@
   {
    "name": "decisions/task.framing",
    "written": true,
-   "rows": 0,
-   "by_split": {},
-   "by_origin": {},
-   "by_family": {},
-   "groups": 0,
+   "rows": 479,
+   "by_split": {
+    "train": 311,
+    "sealed": 99,
+    "dev": 69
+   },
+   "by_origin": {
+    "public_catalog": 479
+   },
+   "by_family": {
+    "task.framing": 479
+   },
+   "groups": 479,
    "dropped": {
     "an ignored column (its role is not said)": 57,
-    "features not a pure state (a value)": 775
+    "train row identical to an evaluation row": 202,
+    "duplicate": 56,
+    "dev row identical to an evaluation row": 38
    }
   },
   {
@@ -219,17 +229,17 @@
   {
    "name": "solver/engineering",
    "written": true,
-   "rows": 2572,
+   "rows": 2628,
    "by_split": {
-    "eval_only": 2572
+    "eval_only": 2628
    },
    "by_origin": {
-    "dev_record": 2572
+    "dev_record": 2628
    },
    "by_family": {
-    "engineering": 2572
+    "engineering": 2628
    },
-   "groups": 236,
+   "groups": 242,
    "dropped": {
     "personal data": 21
    }
