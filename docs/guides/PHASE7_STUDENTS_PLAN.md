@@ -171,6 +171,25 @@ bands, its options), then a student.
   Claude's answers vote only in evaluation, never as homework (the owner's rule).
 - **Done when:** the committee has a sealed verdict on at least the six table points, beside each member's.
 
+### 29.17 Claude and GLiNER beside every student (the owner's $30, 2026-10-17)
+- **The owner's decisions:** $30 "to use Claude to enhance the result, enhance everything"; Claude's answers are evaluation by
+  default and, on real projects only (truth unknown), silver labels: lower weight, tagged, kept apart, removable; GLiNER
+  (instead of Jev) joins as an examinee and committee member and its answers may train the students (silver, weighted by its
+  measured accuracy per point) and evaluate; GLiNER itself is not fine-tuned.
+- **Delivers:** `python -m dclab_rnd.students_exam` (plan printed; `--yes --cap-eur`): the dev decisions of every point with a
+  generated set, the student's disagreements with the rule first, answered by the rule, the student (batched), Claude through
+  `decision_answer` (six at a time, the gateway's cap) and GLiNER (its captured answers, read); each scored on the decisions all
+  answered, and on the disagreements who was right; Claude's answers kept whole with their reasons
+  (`lake/bronze/answers/claude/lake/<point>/dev.jsonl`, `use: eval_only`, never a label on homework); the result
+  `evidence/campaigns/students_exam_v1/results/SEX-NNN.json`; the run's requests in `agent_runs/live_tests/2026-10-17_students_exam/`.
+- **Status: run (2026-10-17), EUR 3.00 of the owner's $30:** SEX-001 (1,800 decisions) and SEX-002 (rescored, no request). The
+  students lead on the points they were trained for (role 0.91, leakage 0.97, category code 0.85, time 0.90 on the hard-first sample);
+  the rules are perfect on identifiers and groups; Claude is close on category codes (recall 1.0) and catches the group student's
+  mistakes (9 of 9), but misses leaks seen only as bands (7 of 57 on the student's disagreements); GLiNER is behind on these points.
+- **Next in the same package:** Claude as the judge of each disagreement with its reason, measured against the planted truth;
+  the image and workflow points (their states through a purpose that may see them); the silver path for real projects; GLiNER
+  and Claude as committee members (29.16).
+
 ---
 
 ## Part C2. What the owner can do (the levers only a person has)

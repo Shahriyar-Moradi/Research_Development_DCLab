@@ -1,0 +1,103 @@
+{
+ "package": "29.17",
+ "title": "Claude and GLiNER beside every student: the same dev decisions answered by the rule, the student, Claude and GLiNER",
+ "date": "2026-10-17",
+ "request": "The owner (2026-10-17): '$30 for this: use Claude to enhance the result, enhance everything, and capture, record and store all decisions, practices, results, questions, answers, rules, final decisions and what we learn.' Claude: evaluation by default and silver labels on real projects only. Instead of Jev, GLiNER: an examinee and committee member whose answers may train the students and evaluate.",
+ "spec": "docs/guides/PHASE7_STUDENTS_PLAN.md, package 29.17",
+ "plan": [
+  "Sample each point's dev decisions with the student's disagreements with the rule first.",
+  "Ask Claude through the gateway's decision_answer purpose, six at a time, capped; read GLiNER's captured answers.",
+  "Score every examinee on the decisions they all answered, and on the disagreements who was right.",
+  "Keep every Claude answer with its reason, eval_only on homework; keep the run's requests in agent_runs/live_tests."
+ ],
+ "decisions": [
+  {
+   "decision": "Claude's answers on homework are eval_only, never labels.",
+   "why": "The truth is planted; the owner's silver path is for real projects where the truth is unknown."
+  },
+  {
+   "decision": "The student's answers are batched with one predict_proba per point, checked equal to the one-by-one answers.",
+   "why": "Seven thousand single calls took over twenty minutes under load; the batch takes seconds."
+  },
+  {
+   "decision": "Claude's requests six at a time.",
+   "why": "The owner allows Claude calls in parallel on the Mac (builds stay serial); the gateway's cap holds within a request per worker."
+  },
+  {
+   "decision": "An examinee with no answer at a point is left out of that point's comparison and named.",
+   "why": "GLiNER's capture had not reached two points; requiring all four left them unscored."
+  },
+  {
+   "decision": "A rescore reads the kept answers and sends nothing.",
+   "why": "Scoring changes must never cost a second run."
+  }
+ ],
+ "change": "dclab_rnd/students_exam.py (sample, student_values, gliner, score, run, keep_claude, rescore, write, the CLI with plan, --yes, --cap-eur, --workers, --rescore); tests/test_students_exam.py; the plan's 29.17; the live test's README.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The first live launch asked no model and would have kept 1,800 abstentions as Claude's answers.",
+   "scenario": "The script built the gateway without loading .env; every request had no client; the run wrote SEX-001 with Claude answering none.",
+   "cause": "Only the journeys' runner loaded .env; the gateway's advisor returns None when no model serves a purpose.",
+   "fix": ".env loaded as the journeys do; a preflight refuses the run when no client serves decision_answer; a run where the model answered none and nothing failed raises before anything is kept. The empty outputs were removed before any commit.",
+   "test": "test_a_run_no_model_answered_keeps_nothing"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The plan took over twenty minutes.",
+   "scenario": "Seven thousand dev rows, each a single predict_proba, under a load of 59.",
+   "cause": "The student was asked row by row.",
+   "fix": "One batch per point, the same choice rule as ClassifierAnswerer.answer.",
+   "test": "test_the_batched_student_answers_are_the_one_by_one_answers"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The second result file could not be numbered.",
+   "scenario": "SEX-001.json's id read as '001.json'.",
+   "cause": "The id was split on an underscore these files do not have.",
+   "fix": "The id is read from the file's stem.",
+   "test": "test_four_examinees_are_scored_on_the_same_decisions_and_claudes_answers_are_kept_never_as_labels"
+  },
+  {
+   "id": "T3",
+   "source": "test",
+   "severity": "gap",
+   "defect": "Two points had no comparison.",
+   "scenario": "GLiNER had not reached column.time and feature.leakage_suspect; requiring every examinee left 0 common decisions.",
+   "cause": "The common set required all four.",
+   "fix": "Examinees with no answer at a point are left out and named.",
+   "test": "test_an_examinee_with_no_answer_at_a_point_is_left_out_not_a_hole"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the students' exam beside Claude and GLiNER (SEX-001, rescored SEX-002)",
+   "gate": "none fixed: a dev comparison, never a promotion",
+   "fixed_before_run": true,
+   "result": "1,800 dev decisions, EUR 3.0029, 36 Claude replies unreadable (abstentions); accuracy on the decisions each point's examinees all answered: column.category_code: rule 0.7254, student 0.8525, Claude 0.8443, GLiNER 0.5205; column.group: rule 1.0, student 0.9697, Claude 0.8552, GLiNER 0.9091; column.is_identifier: rule 1.0, student 0.9603, Claude 0.7942, GLiNER 0.7798; column.semantic_role: rule 0.6777, student 0.9132, Claude 0.6901, GLiNER 0.376; column.time: rule 0.77, student 0.9033, Claude 0.8333, GLiNER None; feature.leakage_suspect: rule 0.7713, student 0.9659, Claude 0.7372, GLiNER None. On the student's disagreements with the rule, the student was right 89 of 92 (category code), 116 of 120 (role), 68 of 96 (time), 62 of 62 (leakage), 0 of 10 (group) and 0 of 12 (identifier); Claude 88, 89, 47, 7, 9 and 0.",
+   "verdict": "not scored",
+   "cost_eur": 3.0029,
+   "against_gate": "Not scored: dev only, and the sample is weighted to the hard cases (every disagreement first).",
+   "limits": [
+    "The sample puts every disagreement first, so every examinee scores lower than on the whole dev set.",
+    "Invented tables: the students trained on this kind of homework; Claude never saw it.",
+    "Claude sees bands and name tokens only, as the students do: it cannot see values."
+   ]
+  }
+ ],
+ "outcome": "Each table point has its four examinees side by side: the students lead where they were trained, the rules are perfect on identifiers and groups, Claude is strong on category codes and on the group student's mistakes, weak on leaks seen as bands; GLiNER is behind on these points.",
+ "lessons": [
+  "A run must refuse before it writes when the model it measures is not there: an abstention and a missing model look the same in the result.",
+  "Order a sample by what can teach (disagreements first) and say so beside every score."
+ ],
+ "risks": [
+  "The cap holds within one request per worker."
+ ],
+ "commits": []
+}

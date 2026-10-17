@@ -1,0 +1,347 @@
+{
+ "id": "SEX-001",
+ "experiment_id": "SEX-001",
+ "campaign_id": "students_exam_v1",
+ "kind": "students_exam",
+ "status": "completed",
+ "at": "2026-10-17T18:54:16+00:00",
+ "model": "claude-sonnet-5-5",
+ "cap_eur": 6.0,
+ "estimate_eur": 4.32,
+ "per_point": 300,
+ "seed": 0,
+ "decisions": 1800,
+ "scores": {
+  "column.category_code": {
+   "decisions": 300,
+   "answered_by": {
+    "rule": 300,
+    "student": 300,
+    "claude": 299,
+    "gliner2.5-decide": 245
+   },
+   "common": 244,
+   "on_common": {
+    "rule": {
+     "n": 244,
+     "accuracy": 0.7254,
+     "accuracy_ci": [
+      0.6662,
+      0.7776
+     ],
+     "precision": 0.4667,
+     "recall": 0.3281
+    },
+    "student": {
+     "n": 244,
+     "accuracy": 0.8525,
+     "accuracy_ci": [
+      0.8025,
+      0.8915
+     ],
+     "precision": 0.7188,
+     "recall": 0.7188
+    },
+    "claude": {
+     "n": 244,
+     "accuracy": 0.8443,
+     "accuracy_ci": [
+      0.7935,
+      0.8844
+     ],
+     "precision": 0.6275,
+     "recall": 1.0
+    },
+    "gliner2.5-decide": {
+     "n": 244,
+     "accuracy": 0.5205,
+     "accuracy_ci": [
+      0.458,
+      0.5824
+     ],
+     "precision": 0.0508,
+     "recall": 0.0469
+    }
+   },
+   "student_vs_rule": {
+    "disagreements": 92,
+    "right": {
+     "rule": 3,
+     "student": 89,
+     "claude": 88,
+     "gliner2.5-decide": 11
+    },
+    "answered": {
+     "rule": 92,
+     "student": 92,
+     "claude": 92,
+     "gliner2.5-decide": 37
+    }
+   }
+  },
+  "column.group": {
+   "decisions": 300,
+   "answered_by": {
+    "rule": 300,
+    "student": 300,
+    "claude": 297,
+    "gliner2.5-decide": 300
+   },
+   "common": 297,
+   "on_common": {
+    "rule": {
+     "n": 297,
+     "accuracy": 1.0,
+     "accuracy_ci": [
+      0.9872,
+      1.0
+     ],
+     "precision": 1.0,
+     "recall": 1.0
+    },
+    "student": {
+     "n": 297,
+     "accuracy": 0.9697,
+     "accuracy_ci": [
+      0.9434,
+      0.984
+     ],
+     "precision": 1.0,
+     "recall": 0.6667
+    },
+    "claude": {
+     "n": 297,
+     "accuracy": 0.8552,
+     "accuracy_ci": [
+      0.8107,
+      0.8907
+     ],
+     "precision": 0.371,
+     "recall": 0.8519
+    },
+    "gliner2.5-decide": {
+     "n": 297,
+     "accuracy": 0.9091,
+     "accuracy_ci": [
+      0.871,
+      0.9368
+     ],
+     "precision": null,
+     "recall": 0.0
+    }
+   },
+   "student_vs_rule": {
+    "disagreements": 10,
+    "right": {
+     "rule": 10,
+     "student": 0,
+     "claude": 9,
+     "gliner2.5-decide": 0
+    },
+    "answered": {
+     "rule": 10,
+     "student": 10,
+     "claude": 9,
+     "gliner2.5-decide": 10
+    }
+   }
+  },
+  "column.is_identifier": {
+   "decisions": 300,
+   "answered_by": {
+    "rule": 300,
+    "student": 300,
+    "claude": 278,
+    "gliner2.5-decide": 299
+   },
+   "common": 277,
+   "on_common": {
+    "rule": {
+     "n": 277,
+     "accuracy": 1.0,
+     "accuracy_ci": [
+      0.9863,
+      1.0
+     ],
+     "precision": 1.0,
+     "recall": 1.0
+    },
+    "student": {
+     "n": 277,
+     "accuracy": 0.9603,
+     "accuracy_ci": [
+      0.9303,
+      0.9777
+     ],
+     "precision": 0.973,
+     "recall": 0.7826
+    },
+    "claude": {
+     "n": 277,
+     "accuracy": 0.7942,
+     "accuracy_ci": [
+      0.7427,
+      0.8377
+     ],
+     "precision": 0.4068,
+     "recall": 0.5217
+    },
+    "gliner2.5-decide": {
+     "n": 277,
+     "accuracy": 0.7798,
+     "accuracy_ci": [
+      0.7273,
+      0.8246
+     ],
+     "precision": 0.377,
+     "recall": 0.5
+    }
+   },
+   "student_vs_rule": {
+    "disagreements": 12,
+    "right": {
+     "rule": 12,
+     "student": 0,
+     "claude": 0,
+     "gliner2.5-decide": 0
+    },
+    "answered": {
+     "rule": 12,
+     "student": 12,
+     "claude": 12,
+     "gliner2.5-decide": 11
+    }
+   }
+  },
+  "column.semantic_role": {
+   "decisions": 300,
+   "answered_by": {
+    "rule": 300,
+    "student": 300,
+    "claude": 297,
+    "gliner2.5-decide": 245
+   },
+   "common": 242,
+   "on_common": {
+    "rule": {
+     "n": 242,
+     "accuracy": 0.6777,
+     "accuracy_ci": [
+      0.6164,
+      0.7334
+     ],
+     "precision": 0.8201,
+     "recall": 0.7508
+    },
+    "student": {
+     "n": 242,
+     "accuracy": 0.9132,
+     "accuracy_ci": [
+      0.871,
+      0.9425
+     ],
+     "precision": 0.9443,
+     "recall": 0.9438
+    },
+    "claude": {
+     "n": 242,
+     "accuracy": 0.6901,
+     "accuracy_ci": [
+      0.6292,
+      0.745
+     ],
+     "precision": 0.8017,
+     "recall": 0.7711
+    },
+    "gliner2.5-decide": {
+     "n": 242,
+     "accuracy": 0.376,
+     "accuracy_ci": [
+      0.3174,
+      0.4386
+     ],
+     "precision": 0.5462,
+     "recall": 0.4073
+    }
+   },
+   "student_vs_rule": {
+    "disagreements": 120,
+    "right": {
+     "rule": 4,
+     "student": 116,
+     "claude": 89,
+     "gliner2.5-decide": 27
+    },
+    "answered": {
+     "rule": 120,
+     "student": 120,
+     "claude": 120,
+     "gliner2.5-decide": 65
+    }
+   }
+  },
+  "column.time": {
+   "decisions": 300,
+   "answered_by": {
+    "rule": 300,
+    "student": 300,
+    "claude": 300,
+    "gliner2.5-decide": 0
+   },
+   "common": 0,
+   "on_common": {},
+   "student_vs_rule": {
+    "disagreements": 96,
+    "right": {
+     "rule": 28,
+     "student": 68,
+     "claude": 47,
+     "gliner2.5-decide": 0
+    },
+    "answered": {
+     "rule": 96,
+     "student": 96,
+     "claude": 96,
+     "gliner2.5-decide": 0
+    }
+   }
+  },
+  "feature.leakage_suspect": {
+   "decisions": 300,
+   "answered_by": {
+    "rule": 300,
+    "student": 300,
+    "claude": 293,
+    "gliner2.5-decide": 0
+   },
+   "common": 0,
+   "on_common": {},
+   "student_vs_rule": {
+    "disagreements": 62,
+    "right": {
+     "rule": 0,
+     "student": 62,
+     "claude": 7,
+     "gliner2.5-decide": 0
+    },
+    "answered": {
+     "rule": 62,
+     "student": 62,
+     "claude": 57,
+     "gliner2.5-decide": 0
+    }
+   }
+  }
+ },
+ "claude_errors": 36,
+ "kept": 1800,
+ "prompt": "3f05eeb3d1dbaf09",
+ "abstained": {
+  "column.category_code": 1,
+  "column.group": 3,
+  "column.is_identifier": 22,
+  "column.semantic_role": 3,
+  "feature.leakage_suspect": 7
+ },
+ "rule": "The generated sets' dev decisions (never the sealed partition), answered by the recorded rule, the student, Claude through decision_answer (bands and name tokens, never values) and GLiNER2.5-Decide (captured by 26.9), against the planted truth. Dev only: nothing here is a sealed verdict, and nothing is used or trained on."
+}
