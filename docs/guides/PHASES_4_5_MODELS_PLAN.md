@@ -126,8 +126,11 @@ trained language model of DCLab's, a single clean store that every model reads, 
 
 - **Status: built (2026-10-17).** `decide` answers the workflow points and reads a journey arm's routing; the Home agent's `decide_point`
   (a read tool from the draft's own state, a routed model never freeing a column the rules hold back); `python -m dclab_rnd.agent_eval.journeys
-  --live-arms --yes --cap-eur N`: the rules, the workflow model alone, the two together, an arm cut short by its cap not stored. Left: the twin
-  runs' third lane.
+  --live-arms --yes --cap-eur N`: the rules, the workflow model alone, the two together, an arm cut short by its cap not stored.
+  **Measured live once (DWF-005, EUR 1.18):** the rules 15 of 15, the configured model alone 0 of 15, with the decision models 3 of 15:
+  the model-led conversations stopped waiting for a written person who answers only questions tagged with a field it holds, or with
+  the outcome column unsettled. This measures the harness as much as the model; the rules keep serving. Left: written people who
+  answer a question by its meaning, a second pass (approved, EUR 1.50), and the twin runs' third lane.
 
 ### 26.6 A classifier from the decision line that stands beside XGBoost and random forests
 Two tracks, because "as good as XGBoost" is a claim to be measured, not assumed:

@@ -52,10 +52,26 @@
    "test": ""
   }
  ],
- "measurements": [],
- "outcome": "The workflow model can ask the decision models at every typed decision, through the validator; the live measurement of the three arms follows.",
+ "measurements": [
+  {
+   "name": "the three arms live on the 15 dev journeys (DWF-005)",
+   "gate": "decision_workflow_gate_v1: every arm right at least as often as the rules on the card, the workflow, the pipeline and the holdout, no graph move refused",
+   "fixed_before_run": true,
+   "result": "the rules 15 of 15 right; the configured model alone 0 of 15 (cards 13, workflows 0); with the decision models 3 of 15 (cards 14, workflows 4); the decision models changed 1 decision and the validator refused 1; spent EUR 1.1835 of 1.5",
+   "verdict": "fail",
+   "cost_eur": 1.1835,
+   "against_gate": "Both live arms are right less often than the rules on every part: 0 and 3 of 15 against 15 of 15.",
+   "next": "Make the written people answer a question by its meaning, not only by its field, before measuring again; the rules keep serving.",
+   "limits": [
+    "The written people answer only a question tagged with a field they hold: most live runs stopped waiting for the person or with the card's outcome column unsettled, which measures the harness as much as the model.",
+    "One pass: the model's run-to-run variation is not measured (a replay of one person succeeded where the pass failed)."
+   ]
+  }
+ ],
+ "outcome": "The workflow model asks the decision models at every typed decision through the validator; measured live (DWF-005), the model-led conversations did not reach a build within the written people's answers, so the rules keep serving.",
  "lessons": [
-  "A tool a model calls must apply the same validator as the code path it replaces."
+  "A tool a model calls must apply the same validator as the code path it replaces.",
+  "A suite of written people tuned to the rules' questions cannot judge a model that asks in its own words: fix the harness before reading the score."
  ],
  "risks": [
   "The twin runs' third lane is not built."
