@@ -183,7 +183,34 @@ DC.view('admin', {
     if (intern.status === 'fulfilled') this.paintModels(el, intern.value, gw.status === 'fulfilled' ? gw.value : null);
     this.paintStats(el, pol.value, lim.status === 'fulfilled' ? lim.value : null, intern.status === 'fulfilled' ? intern.value : null);
     this.S.offset = 0;
-    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadDatasets(el), this.loadEvaluation(el), this.loadTwin(el)]);
+    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadDatasets(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el)]);
+  },
+
+  // 29.1: the students' register: a decision model behind every choice, and how far each is trusted
+  async loadStudents(el) {
+    const { $, esc } = DC;
+    let r;
+    try { r = await DC.client.studentsRegister({ quiet: true }); } catch (e) { DC.states.failed($('#stu-body', el), e, { retry: () => this.loadStudents(el), cols: 7 }); return; }
+    const n = v => Number(v || 0).toLocaleString('en-US');
+    const acc = v => (v === null || v === undefined) ? '—' : Number(v).toFixed(3);
+    const c = r.summary || {};
+    $('#stu-stats', el).innerHTML = [[n(c.points), `choices DCLab makes · ${n(c.technical)} technical, ${n(c.workflow)} workflow`], [n(c.with_homework), 'with homework (answers known)'],
+      [n(c.with_student), 'with a student'], [n(c.passed), `passed their exam · ${n(c.serving)} serving above whisper`]]
+      .map(([v, l]) => `<div class="stat"><span class="v">${esc(v)}</span><span class="l">${esc(l)}</span></div>`).join('');
+    const note = $('#stu-note', el), warns = r.warnings || [];
+    note.hidden = !warns.length;
+    note.textContent = warns.length ? 'Note: ' + warns.join('; ') : '';
+    const items = r.items || [];
+    if (!items.length) { DC.states.empty($('#stu-body', el), 'No decision point is known here.', { cols: 7 }); return; }
+    const pill = s => s.startsWith('acts') ? 'ok' : s.startsWith('flags') ? 'accent' : s.startsWith('whisper, ready') || s.startsWith('whisper, may') ? 'ok' : s.startsWith('whisper') ? 'outline' : s === 'not decided' ? 'warn' : 'outline';
+    $('#stu-body', el).innerHTML = items.map(x => { const hw = x.homework || {}, s = x.student || {}, v = x.verdict || null;
+      const home = hw.decisions ? `${n(hw.decisions)} · ${n(hw.sealed)} sealed` : '—';
+      const stu = s.skipped ? `skipped: ${esc(s.skipped)}` : s.family ? `${esc(s.family)} · ${n(s.trained_on)} rows` : '—';
+      const exam = v ? (v.pass ? '<span class="pill ok">pass</span>' : `<span class="pill warn" title="${esc((v.failed || []).join('; '))}">fail</span>`) : '—';
+      const why = x.not_decided ? ` <span class="small" title="${esc(x.not_decided)}">(why)</span>` : '';
+      return `<tr><td class="mono small" title="${esc(x.about || '')}">${esc(x.point)}</td><td class="mono small">${n(x.recorded)}</td><td class="mono small">${home}</td>`
+        + `<td class="small">${stu}</td><td class="mono small">${acc(s.dev_accuracy)} · ${acc(s.rule_accuracy)}</td><td>${exam}</td>`
+        + `<td><span class="pill ${pill(x.status)}">${esc(x.status)}</span>${why}</td></tr>`; }).join('');
   },
 
   // 19.13: the catalog of the datasets, and the sessions each came from

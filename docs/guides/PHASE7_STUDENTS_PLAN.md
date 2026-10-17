@@ -126,6 +126,65 @@ bands, its options), then a student.
   the owner's (GPU).
 - **Done when:** the export's manifest lists every point with its counts, and a run's adapter can be compared per point.
 
+### 29.10 Every user is a teacher: disagreements shown where the work happens
+- **Delivers:** on a project's pages and on Home, where a student whispered something other than the rule, a small note:
+  "the rule said X, a student thinks Y; which is right?", one click to answer; the answer is a label (`user_decision_exposed`
+  when the person saw both, as 19.8 counts it), never a change of what was decided; the person can turn the notes off.
+- **Done when:** a disagreement on a replica project shows the note, the click writes the label, the register counts it,
+  and nothing about the project's run changes.
+
+### 29.11 Students ask for the labels they need most (active learning)
+- **Delivers:** the label queue (29.8, 29.10) ranked by what a label would teach: disagreements first, then the student's
+  least sure answers, then points furthest from their MIN_LABELS; a student's needed labels shrink faster.
+- **Done when:** on the generated sets, a student trained with the queue's first 200 labels beats one trained with 200 drawn
+  at random (dev, the same seeds), recorded as a measurement.
+
+### 29.12 Harder homework where students fail (a curriculum)
+- **Delivers:** the generators (benchgen, the image shapes, the priors) told which kinds of table each student gets wrong
+  on dev, and make more of those (more look-alike scenes, subtler leaks, names in other languages); the sealed sets never
+  change; each round's sets are a new version with its manifest.
+- **Done when:** two rounds of curriculum on one point raise its dev accuracy with the sealed set untouched, and the rounds
+  are in the register's history.
+
+### 29.13 A student explains itself
+- **Delivers:** each answer carries the two or three state fields that moved it most (the coefficients or the trees'
+  contributions on the bands), shown beside the whisper and kept in the ledger; a person judges the reason, not only the
+  answer.
+- **Done when:** the leakage student's whisper on a planted leak names the timing band among its reasons, and the reasons are
+  in the record.
+
+### 29.14 Report cards over time
+- **Delivers:** the register's history (`students/register.jsonl`) as a report card per student on the Students tab: dev
+  score, labels, exam, level, by date; a student that slips is shown before demotion fires.
+- **Done when:** two register runs with a retrain between them draw the change on the page.
+
+### 29.15 Real homework from public data
+- **Delivers:** OpenML's tables (already in the lake, 26.2) give truths for `target.column`, `task.framing` and
+  `column.is_identifier` on real columns (the dataset's own declared target and ID columns); Kaggle (with the owner's key,
+  27.4) adds human choices from public notebooks (dropped columns, the split used). Real-table sets get their own sealed
+  partition.
+- **Done when:** at least three points have a real-table set beside the invented one, and each student is scored on both.
+
+### 29.16 A committee: the rule, the student, the other models
+- **Delivers:** a point may be answered by a vote of the rule, its student, GLiNER (26.9) and a model role, each weighted by
+  its measured accuracy on that point; the committee is one more answerer in the register, examined like any student.
+  Claude's answers vote only in evaluation, never as homework (the owner's rule).
+- **Done when:** the committee has a sealed verdict on at least the six table points, beside each member's.
+
+---
+
+## Part C2. What the owner can do (the levers only a person has)
+
+1. **Label disagreements, blind, a few minutes a day** (Admin → Decisions). The two students that passed need 20 labelled
+   disagreements each before they may act; nothing else moves a student from whisper to work as fast.
+2. **Bring real problems.** Every real project solved in DCLab is homework with real answers; a few of the owner's own
+   startup tables teach more than thousands of invented ones.
+3. **Invite testers** (`make tester-setup`, 25.11): each tester's sessions and labels come back with `make collect`.
+4. **Approve promotions.** When the register says "may act", one audited switch moves a student to flag, then to act.
+5. **Say which choices matter most.** The order of 29.2 and 29.15 follows the choices whose mistakes cost the most (the
+   leakage, the outcome column, the split come first unless the owner says otherwise).
+6. **The Kaggle key and a GPU run** (27.4, 26.4): real human choices as homework, and the one model that answers every point.
+
 ---
 
 ## Part D. How phase 6 and phase 7 feed each other
@@ -144,4 +203,9 @@ constraint; the caps stay as a habit, set generously.
 
 ## Status
 
-- **Design (2026-10-17):** written from the owner's words; 29.1 next, beside phase 6's 28.2.
+- **Design (2026-10-17):** written from the owner's words; widened the same day (29.10 to 29.16, Part C2) after the owner asked how to
+  involve the idea more.
+- **29.1 built (2026-10-17), the review's 5 findings fixed:** `dclab_rnd/students.py` (`read` shared by the command and the page,
+  exams matched by `name@version`, workflow counts on their labelled rows, warnings instead of unmeasured counts, each run kept in
+  `<home>/students/register.jsonl`), `GET /api/students` (owner), Admin → Students, `make students`. Today: 52 points, 13 with
+  homework, 13 students, 2 passed, none serving.

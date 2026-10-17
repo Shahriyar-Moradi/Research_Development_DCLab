@@ -1,0 +1,107 @@
+{
+ "package": "29.1",
+ "title": "The students' register: one row per decision point, every number read from its file, on the Admin page and the command",
+ "date": "2026-10-17",
+ "request": "The owner, on the little students (2026-10-17): 'I really love this idea; I want it in all small processes; this is one of DCLab's important goals; build it together and make it better; let's bring this idea into the platform.' 29.1: one place that shows every choice DCLab makes and where its student stands.",
+ "spec": "docs/guides/PHASE7_STUDENTS_PLAN.md, package 29.1",
+ "plan": [
+  "Read, never compute: the ledger, the generated sets' manifests, the cards, the sealed verdicts, the routing document, the shadow measurement.",
+  "One status phrase per point: not decided, no homework, homework with no student, whisper (not examined, failed, ready after N labels, may act), flags, acts.",
+  "One read for the command and the page; every run of the command kept in the workspace.",
+  "An owner-only route and an Admin tab on the repository's page patterns."
+ ],
+ "decisions": [
+  {
+   "decision": "The register reads files and the ledger; it trains and examines nothing.",
+   "why": "Each number already has one owner (a manifest, a card, a verdict); a second computation would drift from it."
+  },
+  {
+   "decision": "An exam belongs to the version that sat it, by name@version.",
+   "why": "A retrained student never saw the sealed set; routing already refuses it, and the page must say the same."
+  },
+  {
+   "decision": "A failed or skipped shadow measurement is a warning on the page, never a count.",
+   "why": "A count of labels still needed that was never measured would read as a fact."
+  },
+  {
+   "decision": "Every run of the command appends the register to <home>/students/register.jsonl.",
+   "why": "The owner's capture rule: each student's standing over time is itself data (the report cards of 29.14 read it)."
+  }
+ ],
+ "change": "dclab_rnd/students.py (homework, students, verdicts, register, read, record, the CLI); dclab_rnd/agentic/pages/students.py (GET /api/students); guard.SPECIAL admin; pages MODULES; the Admin Students tab and its feature entry; make students; tests/test_students.py.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The workflow points' sealed count showed 0.",
+   "scenario": "solution.route sat its exam on 8 sealed decisions, kept in its result file; the manifest has only train and dev.",
+   "cause": "The sealed count was read from the manifest's splits only.",
+   "fix": "When the manifest gives none, the exam's own sealed count is shown, said as such.",
+   "test": "test_every_point_has_a_row_and_the_numbers_are_the_files"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The workflow points' homework and rule accuracy used the played rows, not the labelled ones.",
+   "scenario": "solution.route showed 414 decisions and a rule accuracy of 0.473; the file says 196 right of 220 labelled (0.891).",
+   "cause": "rows counted every played decision while rule_right counts the labelled.",
+   "fix": "The labelled count is the homework; the played rows and the people are kept beside it.",
+   "test": "test_every_point_has_a_row_and_the_numbers_are_the_files"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The command and the page computed the labels still needed differently.",
+   "scenario": "With 25 labelled disagreements the page said 'may act' and the command said 'after 20 labels', and kept that in the register's history.",
+   "cause": "Only the page took the shadow measurement.",
+   "fix": "One read for both; a measurement that failed or was off is a warning.",
+   "test": "test_the_command_and_the_page_read_the_same_way"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A retrained student would inherit its predecessor's exam.",
+   "scenario": "After 29.4 retrains a card, the register would still say 'pass' for a version that never saw the sealed set.",
+   "cause": "Verdicts were matched by point.",
+   "fix": "Matched by name@version; the earlier exam is kept and said.",
+   "test": "test_a_retrained_student_has_not_sat_its_predecessors_exam"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The tests pinned today's artefacts (2 passed, a point with no homework).",
+   "scenario": "29.2 and 29.4 change them by design and would turn the tests red with no defect.",
+   "cause": "Expectations written as constants.",
+   "fix": "Every expectation is read from the result files, manifests and cards.",
+   "test": "test_every_row_says_where_its_student_stands"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the register on this repository (2026-10-17)",
+   "gate": "every point a row; every number equal to its file",
+   "fixed_before_run": true,
+   "result": "52 points: 13 with homework, 13 with a student, 2 passed their exam, none serving above whisper, 10 not decided; checked in the browser on the Admin tab with no console error",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "Met: the tests compare every manifest, card and verdict with the register's rows.",
+   "limits": [
+    "The workspace used for the check had no shadow labels: the labels still needed show the minimum."
+   ]
+  }
+ ],
+ "outcome": "Every choice DCLab makes is on one page with its student's standing, and the command keeps each run's register as data.",
+ "lessons": [
+  "A register that reads files must use each file's own denominator: the same word (decisions) meant played rows in one manifest and labelled rows in another.",
+  "Expectations in a test should come from the artefacts the code reads when the plan says those artefacts will change."
+ ],
+ "risks": [
+  "The shadow measurement loads every fitted model once per process (seconds), as the routing page already does."
+ ],
+ "commits": []
+}

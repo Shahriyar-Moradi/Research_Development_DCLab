@@ -360,6 +360,7 @@
     resume: ["POST", "/runs/{run_id}/resume", ["run_id"], []],
     artifact: ["GET", "/runs/{run_id}/trials/{trial_id}/{filename}", ["run_id", "trial_id", "filename"], []],
     samples: ["GET", "/samples", [], []],
+    studentsRegister: ["GET", "/students", [], []],
     studioStatus: ["GET", "/studio", [], []],
     syntheticTemplates: ["GET", "/synthetic/templates", [], []],
     twinSessions: ["GET", "/twin/sessions", [], ["limit"]],
@@ -1295,6 +1296,12 @@
   client.samples = (...args) => call('samples', args);
   client.path.samples = (...args) => build('samples', args).path;
   client.href.samples = (...args) => '/api' + build('samples', args).path;
+  /** GET /api/students: Students Register
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.studentsRegister = (...args) => call('studentsRegister', args);
+  client.path.studentsRegister = (...args) => build('studentsRegister', args).path;
+  client.href.studentsRegister = (...args) => '/api' + build('studentsRegister', args).path;
   /** GET /api/studio: Studio Status
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Page>} */

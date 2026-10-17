@@ -24,7 +24,7 @@ import importlib
 from dataclasses import dataclass, field
 from typing import Any
 
-MODULES = ("ops", "lab", "learn", "platform", "evidence", "sessions", "ledger", "consent", "datasets", "twin", "evaluation")
+MODULES = ("ops", "lab", "learn", "platform", "evidence", "sessions", "ledger", "consent", "datasets", "twin", "evaluation", "students")
 
 
 @dataclass
