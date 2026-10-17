@@ -46,6 +46,17 @@ def shapes(seed: int = 0, scenes: int = 80, shots: int = 4, size: int = 32) -> R
     return Replica(images, pd.DataFrame(rows), {"source": "scene", "label": "label", "kind": "image", "synthetic": True})
 
 
+def shapes_table(seed: int = 0, scenes: int = 80, shots: int = 4, size: int = 32, prefix: str = "px_") -> Replica:
+    """26.8: the shapes as a person's export holds images: one row per image, its scene and label, and its grey pixels as
+    columns (``px_0000`` … row by row), as image tables come (a digits table, a scan export). The same scenes, shots and
+    near copies as :func:`shapes`."""
+    base = shapes(seed, scenes, shots, size)
+    pixels = pd.DataFrame(np.stack([np.asarray(i, dtype=np.float32).reshape(-1) for i in base.items]).round(4),
+                          columns=[f"{prefix}{k:04d}" for k in range(size * size)])
+    table = pd.concat([base.table.reset_index(drop=True), pixels], axis=1)
+    return Replica(base.items, table, {**base.facts, "pixel_prefix": prefix, "size": size, "shots_per_scene": shots})
+
+
 WORDS = {"urgent": ["outage", "cannot log in", "payments failing", "data lost", "all users affected", "production is down"],
          "calm": ["question about", "would like to know", "small typo", "feature idea", "when convenient", "thank you"]}
 FILL = ["we use the service every day", "our team has twelve people", "the dashboard shows the usual numbers", "we checked the guide",

@@ -219,18 +219,24 @@ def perturb_text(item: Any, rng: np.random.Generator) -> str:
     return "Sent again. " + str(item)  # the same text with a new first line
 
 
-def calibrate(items: Sequence[Any], encoder: Encoder, perturb: Any, *, sample: int = 60, seed: int = 0) -> dict[str, Any]:
+def calibrate(items: Sequence[Any], encoder: Encoder, perturb: Any, *, sample: int = 60, seed: int = 0,
+              sources: Optional[Sequence[Any]] = None) -> dict[str, Any]:
     """The similarity this encoder gives a near copy (an item and a slightly changed copy of it) against the similarity
     of two different items: the threshold lies between them (the 5th percentile of copies and the 99.9th of different
     pairs), three quarters of the way towards the copies. When they overlap the encoder cannot tell near copies apart,
-    and the record says so."""
+    and the record says so. ``sources`` (26.8): two items of one source (two shots of a scene) are not counted as
+    different items: they may be the very copies to find."""
     rng = np.random.default_rng(seed)
     pick = rng.choice(len(items), min(sample, len(items)), replace=False)
     base = _unit(encoder.encode([items[i] for i in pick]))
     copy = _unit(encoder.encode([perturb(items[i], rng) for i in pick]))
     near = np.sum(base * copy, axis=1)
     others = base @ base.T
-    apart = others[np.triu_indices(len(pick), 1)]
+    upper = np.triu_indices(len(pick), 1)
+    apart = others[upper]
+    if sources is not None:
+        src = np.asarray(sources, dtype=object)[pick]
+        apart = apart[src[upper[0]] != src[upper[1]]]
     low, high = float(np.quantile(near, 0.05)), float(np.quantile(apart, 0.999)) if len(apart) else 0.0
     return {"encoder": encoder.name, "copies_5th_percentile": _r(low, 4), "different_999th_percentile": _r(high, 4),
             # three quarters of the way to the copies: a pair must be nearly as alike as a copy, not merely closer than strangers
@@ -301,6 +307,63 @@ class HashingText:
             for token in words + [a + " " + b for a, b in zip(words, words[1:])]:
                 out[n, int.from_bytes(hashlib.md5(token.encode()).digest()[:4], "little") % self.width] += 1.0
         return _unit(np.log1p(out))
+
+
+def pixel_columns(columns: Sequence[Any], prefix: str) -> list[str]:
+    """26.8: an image table's pixel columns in pixel order, by the number after the prefix (``pixel2`` before ``pixel10``:
+    names sorted as text would scramble an unpadded image); a column with the prefix and no number after it is refused."""
+    found = [str(c) for c in columns if str(c).startswith(prefix)]
+    bad = [c for c in found if not c[len(prefix):].isdigit()]
+    if bad:
+        raise ValueError(f"{bad[:3]} start with {prefix!r} but no pixel number follows: a pixel column is the prefix and its number")
+    return sorted(found, key=lambda c: int(c[len(prefix):]))
+
+
+def images_of(table: pd.DataFrame, pixels: Sequence[str]) -> list[np.ndarray]:
+    """Each row's pixels as a square grey image (the side is the square root of the pixel count)."""
+    side = int(round(len(pixels) ** 0.5))
+    if side * side != len(pixels):
+        raise ValueError(f"{len(pixels)} pixel columns do not make a square image")
+    return list(table[list(pixels)].to_numpy(dtype=np.float32).reshape(-1, side, side))
+
+
+class Pixels:
+    """26.8: an image as its grey pixels, averaged down to a grid and standardised: what finding a near copy (the same
+    scene photographed again) compares, as a perceptual hash does. Not a model's features: two shots of one scene stay
+    nearly identical here, while features built to classify pull every image of a class together."""
+
+    pretrained = False
+
+    def __init__(self, grid: int = 16):
+        self.grid, self.name = grid, f"pixels-{grid}"
+
+    def encode(self, items: Sequence[Any]) -> np.ndarray:
+        out = []
+        for image in items:
+            a = np.asarray(image, dtype=np.float32)
+            a = a.mean(axis=2) if a.ndim == 3 else a
+            step = max(a.shape[0] // self.grid, 1)
+            g = a[:step * self.grid, :step * self.grid].reshape(self.grid, step, self.grid, step).mean(axis=(1, 3)).reshape(-1)
+            out.append((g - g.mean()) / (g.std() + 1e-6))
+        return _unit(np.asarray(out, dtype=np.float32))
+
+
+class Centred:
+    """An encoder's vectors centred on a mean fitted on training items (then unit length): a baseline whose vectors are
+    all alike (pooled rectified features, every cosine near 1) becomes able to tell a near copy from another item. The
+    mean is the training items' only, never a held-out item's (26.8)."""
+
+    def __init__(self, encoder: Any, mean: np.ndarray):
+        self.encoder, self.mean = encoder, np.asarray(mean, dtype=np.float32)
+        self.name = f"{encoder.name}-centred-{hashlib.sha256(self.mean.tobytes()).hexdigest()[:8]}"  # a cache never mixes two means
+        self.pretrained = bool(getattr(encoder, "pretrained", False))
+
+    @classmethod
+    def fit(cls, encoder: Any, training_items: Sequence[Any]) -> "Centred":
+        return cls(encoder, encoder.encode(training_items).mean(axis=0))
+
+    def encode(self, items: Sequence[Any]) -> np.ndarray:
+        return _unit(self.encoder.encode(items) - self.mean)
 
 
 class RandomFeatures:

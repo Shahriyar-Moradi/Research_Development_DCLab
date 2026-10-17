@@ -229,6 +229,29 @@ value = (scored["holdout"].get({_c(chosen)}) or {{}}).get("integrated_brier")'''
 def _embedded(project: dict[str, Any], records: dict[str, Any], f: dict[str, Any]) -> list[tuple[str, str]]:
     solution = project["solution"]
     text, source, target, chosen = f["text_column"], f["source_column"], solution["target"], _chosen(records, "models")
+    if f.get("item_kind") == "image":  # 26.8: images as pixel columns, encoded as the engine did (centred on the training images)
+        return [
+            ("data", f'''from dclab_core import embeddings
+
+table = read_table({_c(project["data"]["filename"])})
+PIXELS = embeddings.pixel_columns(table.columns, {_c(f["pixel_prefix"])})  # in pixel order
+readable = table[PIXELS].notna().all(axis=1) & table[{_c(source)}].notna()
+parts = embeddings.split(table.loc[readable, {_c(source)}], seed=0)  # whole sources, from their names alone
+assert parts["holdout_fingerprint"] == {_c(_ev(records, "data").get("split", {}).get("holdout_fingerprint"))}
+rows = table[readable & table[{_c(target)}].notna()].reset_index(drop=True)
+test = embeddings.holdout_mask(rows[{_c(source)}], parts)
+seen = sorted({{str(v) for v in rows.loc[~test, {_c(target)}]}})  # the classes as the training rows have them
+positive = {_c(_positive(project, solution))} or seen[-1]
+y = (rows[{_c(target)}].astype(str) == str(positive)).astype(int).to_numpy()'''),
+            ("features", '''items = embeddings.images_of(rows, PIXELS)
+side = len(items[0])
+encoder = embeddings.Centred.fit(embeddings.RandomFeatures(size=side), [items[i] for i in range(len(items)) if not test[i]])  # training images only
+X, _ = embeddings.encode(items, encoder)  # a local baseline, not pretrained'''),
+            ("models", f'''picked = embeddings.choose(X[~test], y[~test], rows[{_c(source)}][~test])  # folds grouped by source
+{_check(records, 'picked["chosen"]')}'''),
+            ("final", f'''scored = embeddings.score(X, y, rows[{_c(source)}], parts, {_c(chosen)})  # the held-out sources, read once
+value = scored["holdout"]'''),
+        ]
     return [
         ("data", f'''from dclab_core import embeddings
 

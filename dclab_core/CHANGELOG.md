@@ -4,6 +4,16 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.62.0 (2026-10-17)
+
+Package 26.8: images in the engine.
+
+- `embeddings`: `Pixels` (an image averaged down to a grid and standardised: what finding a near copy compares), `Centred`
+  (an encoder's vectors centred on a mean fitted on training items: pooled rectified features are otherwise all alike),
+  `pixel_columns` (an image table's pixel columns in pixel order, by number) and `images_of`; `calibrate` takes `sources`
+  (two items of one source are not counted as different items).
+- `replicas.shapes_and_notes.shapes_table`: the shapes as one row per image with its pixels as columns.
+
 ## 0.61.0 (2026-10-17)
 
 Packages 26.7, 27.5 and 27.9: a company's own decision models, the cleaning pass, verified reasoning traces.

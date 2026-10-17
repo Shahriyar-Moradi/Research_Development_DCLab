@@ -1,8 +1,9 @@
 """Images and long text through encoders (package 16.12): each item becomes a vector (cached by its content), then a
 tabular model reads the vectors, with folds that keep a source (a scene, an author) on one side and near copies across
 the split counted. Long texts run in the engine since 16.15 C: the text is a column of the project's table, the holdout
-whole sources chosen from their names alone, the model chosen on folds grouped by source. Images stay a library: their
-encoder needs weights on this machine (the owner's download)."""
+whole sources chosen from their names alone, the model chosen on folds grouped by source. Images run in the engine since 26.8,
+as rows of pixel columns read by a local baseline encoder (random patch projections, not pretrained); a pretrained encoder
+needs weights on this machine (the owner's download)."""
 
 from __future__ import annotations
 
@@ -21,6 +22,7 @@ class EmbeddedFields(BaseModel):
     item_kind: str = "image"  # "image" or "text"
     near_duplicate_threshold: float | None = None  # None: calibrated for the encoder (calibrate)
     text_column: str | None = None  # 16.15 C: the column holding each long text, in the engine
+    pixel_prefix: str | None = None  # 26.8: images in the engine, one grey pixel per column (px_0000 …), a square image per row
 
 
 class Embedded(ProblemKind):
@@ -46,7 +48,7 @@ class Embedded(ProblemKind):
     evidence_track = "computer-vision"  # 16.14: the research track whose evidence agents cite for this kind
     aliases = ('image classification', 'computer vision', 'document classification', 'duplicate photos')  # 16.14: the names this kind of problem goes by (read into its evidence record)
     stratify = False
-    runs_in_engine = True  # 16.15 C: long texts, a column of the table; images wait for local weights
+    runs_in_engine = True  # 16.15 C: long texts, a column of the table; 26.8: images as pixel columns, a baseline encoder
     open_decisions = ("a pretrained local encoder is measured on the replicas",)  # needs weights on this machine: the owner's download
     Fields = EmbeddedFields
     export = {"notebook": False, "service": False}
@@ -74,18 +76,28 @@ class Embedded(ProblemKind):
         k = solution.kind_fields
         if solution.task not in ("binary", "multiclass", "regression"):
             raise ValueError(f"The embedded machine answers a yes or no, a class or a number: not {solution.task!r}")
-        if k["item_kind"] != "text" or not k.get("text_column"):
-            raise ValueError("In the engine the items are long texts in a column (text_column): images need an encoder with local weights, "
-                             "the owner's download, and run as a library")
-        if k["text_column"] in (k["source_column"], solution.target) or k["source_column"] == solution.target:
+        if k["item_kind"] == "image":  # 26.8: images as pixel columns, read by a local baseline encoder (a pretrained one is the owner's download)
+            if not k.get("pixel_prefix"):
+                raise ValueError("In the engine images are rows of pixel columns: name their prefix (pixel_prefix, e.g. px_)")
+            if str(solution.target).startswith(k["pixel_prefix"]) or str(k["source_column"]).startswith(k["pixel_prefix"]):
+                raise ValueError("The source and the target are not pixel columns")
+            if k["source_column"] == solution.target:
+                raise ValueError("The source and the target must be different columns")
+            if any(str(f.column).startswith(k["pixel_prefix"]) for f in solution.forbidden):  # the machine reads every pixel
+                raise ValueError("A pixel column cannot be forbidden: the model reads the whole image (crop the images instead)")
+        elif k["item_kind"] != "text" or not k.get("text_column"):
+            raise ValueError("In the engine the items are long texts in a column (text_column) or images as pixel columns (pixel_prefix)")
+        elif k["text_column"] in (k["source_column"], solution.target) or k["source_column"] == solution.target:
             raise ValueError("The text, the source and the target must be different columns")
-        if k["text_column"] in {f.column for f in solution.forbidden}:
+        elif k["text_column"] in {f.column for f in solution.forbidden}:
             raise ValueError(f"{k['text_column']} is forbidden: the model would read nothing else")
         if solution.metric and solution.metric != self.default_metric(solution, None):
             raise ValueError(f"The embedded machine reports {self.default_metric(solution, None)} for this task: {solution.metric!r} would be ignored")
 
     def accept_engine(self, run: Any) -> list[dict[str, Any]]:
-        from .acceptance import check
+        from .acceptance import check, engine_run
+
+        images = self.accept_image_engine(engine_run(self.image_case(0), self.key))  # 26.8: the images run in the engine too
 
         records, f = run.records, run.case.facts["notes"]
         leak, models, final = run.evidence("leakage"), records["models"], run.evidence("final")
@@ -108,7 +120,50 @@ class Embedded(ProblemKind):
                 check("in the engine the notes are solved on whole authors: folds by author at least 0.9, the holdout at least 0.8",
                       (run.evidence("models").get("grouped_folds") or 0) >= 0.9 and (final.get("holdout_metrics", {}).get(final.get("metric")) or 0) >= 0.8,
                       f"folds by author {run.evidence('models').get('grouped_folds')}, random folds {run.evidence('models').get('random_folds')}, "
-                      f"holdout {final.get('holdout_metrics', {}).get(final.get('metric'))}")]
+                      f"holdout {final.get('holdout_metrics', {}).get(final.get('metric'))}")] + images
+
+    def image_case(self, seed: int = 0) -> Any:
+        """26.8: the shapes as a person's image table (one row per image, its pixels as columns), for the engine."""
+        from dclab_core.replicas import shapes_and_notes
+
+        from .acceptance import Case
+
+        shapes = shapes_and_notes.shapes_table(seed)
+        return Case(shapes.table, "label", "binary", "When a photo of a part arrives: is it a square?",
+                    solution={"kind": "embedded", "kind_fields": {"source_column": "scene", "item_kind": "image", "pixel_prefix": "px_"},
+                              "identifiers": ["item"], "positive_label": "square"},
+                    facts={"images": shapes.facts})
+
+    def accept_image_engine(self, run: Any) -> list[dict[str, Any]]:
+        """26.8: the image case in the engine: a scene's shots on one side, no near copy across the holdout line (the shots of
+        a scene are near copies a random split would spread), the model chosen on folds by scene scored once, solved."""
+        from .acceptance import check
+
+        records, leak, final, models = run.records, run.evidence("leakage"), run.evidence("final"), run.evidence("models")
+        chosen = ((records.get("models") or {}).get("decision") or {}).get("chosen")  # the stage's decision, beside its evidence
+        table = run.case.table
+        return [check("images: the engine runs every stage as the embedded machine", all((records[s] or {}).get("machine") == self.key for s in records),
+                      ", ".join(f"{s}: {(records[s] or {}).get('machine')}" for s in records)),
+                check("images: a scene's shots stay on one side, and the holdout's images are never fitted",
+                      final.get("sources_on_both_sides") == 0 and final.get("fitted_rows") == final.get("train_rows")
+                      and final.get("train_rows", 0) + final.get("holdout_rows", 0) == len(table),
+                      f"{final.get('holdout_rows')} images of {run.evidence('data').get('split', {}).get('holdout_sources')} scenes held out"),
+                # a scene's own shots never straddle the line (the split is by scene); two scenes that happen to look alike may,
+                # and the engine reports them with a warning rather than hide them
+                check("images: the near copies are caught: most shots of one scene are flagged, images of different scenes almost never",
+                      (leak.get("calibration") or {}).get("separable") is True
+                      and leak.get("same_source_pairs", 0) > 0 and leak.get("same_source_pairs_flagged", 0) >= 0.9 * leak["same_source_pairs"]
+                      and leak.get("different_source_pairs_flagged", 0) <= 0.001 * max(leak.get("different_source_pairs", 0), 1),
+                      f"{leak.get('same_source_pairs_flagged')} of {leak.get('same_source_pairs')} same-scene pairs flagged, "
+                      f"{leak.get('different_source_pairs_flagged')} of {leak.get('different_source_pairs')} other pairs; "
+                      f"{leak.get('near_duplicates_across_holdout')} across the line; threshold {leak.get('threshold')}"),
+                check("images: the model chosen on folds by scene is the one the holdout scores, once",
+                      chosen is not None and final.get("model") == chosen and final.get("holdout_uses_in_this_project") == 1,
+                      f"chosen {chosen}, scored {final.get('model')}"),
+                check("images: the shapes are solved on whole scenes: folds by scene at least 0.9, the holdout at least 0.8",
+                      (models.get("grouped_folds") or 0) >= 0.9 and (final.get("holdout_metrics", {}).get(final.get("metric")) or 0) >= 0.8,
+                      f"folds by scene {models.get('grouped_folds')}, random folds {models.get('random_folds')}, holdout "
+                      f"{final.get('holdout_metrics', {}).get(final.get('metric'))}")]
 
     def case(self, seed: int = 0) -> Any:
         from dclab_core.replicas import shapes_and_notes
@@ -206,7 +261,14 @@ class EmbeddedMachine(Machine):
         self.task = solution.task if solution.task in ("binary", "multiclass", "regression") else "binary"
         self.primary_metric = kind.default_metric(solution, None)
         self.text, self.source, self.target = f["text_column"], f["source_column"], solution.target
-        readable = frame[self.text].notna() & frame[self.source].notna()
+        self.image = f["item_kind"] == "image"  # 26.8
+        self.pixels = embeddings.pixel_columns(frame.columns, f["pixel_prefix"]) if self.image else []
+        if self.image:
+            self.size = int(round(len(self.pixels) ** 0.5))
+            if self.size < 8 or self.size * self.size != len(self.pixels):
+                raise ValueError(f"{len(self.pixels)} pixel columns: a square image of at least 8 by 8 is needed")
+        read = frame[self.pixels].notna().all(axis=1) if self.image else frame[self.text].notna()
+        readable = read & frame[self.source].notna()
         # the sources are held out from the rows with a text and a source, before any label is looked at: a missing label
         # never moves a source to the other side
         self.parts = embeddings.split(frame.loc[readable, self.source], seed=0)
@@ -218,14 +280,49 @@ class EmbeddedMachine(Machine):
         self.test = embeddings.holdout_mask(self.rows[self.source], self.parts)
         if not self.test.any() or self.test.all():
             raise ValueError(f"The held-out {self.source}s hold {int(self.test.sum())} of {len(self.test)} labelled rows: no honest split")
-        self.encoder = embeddings.HashingText()
+        if self.image:  # centred on the training images only: pooled rectified features are otherwise all alike (26.8)
+            self.encoder = embeddings.Centred.fit(embeddings.RandomFeatures(size=self.size), self.items(self.rows[~self.test]))
+            self.copies = embeddings.Pixels()  # near copies are found on the pictures, not on a classifier's features
+        else:
+            self.encoder = self.copies = embeddings.HashingText()
+        self._C = None
         self._X = None
+
+    def items(self, rows: Any) -> list[Any]:
+        """The items a model reads: each row's image (its pixel columns as a square), or its text."""
+        if self.image:
+            from dclab_core import embeddings
+
+            return embeddings.images_of(rows, self.pixels)
+        return rows[self.text].astype(str).tolist()
+
+    def _copy_vectors(self) -> Any:
+        from dclab_core import embeddings
+
+        if self._C is None:
+            self._C, _ = embeddings.encode(self.items(self.rows), self.copies)
+        return self._C
+
+    def _copies_within(self, X: Any, threshold: float) -> dict[str, Any]:
+        """26.8: on the training images, how many pairs of one source (two shots of a scene) reach the near-copy threshold,
+        and how many pairs of different sources do: the trap a random split would fall into, shown on training rows."""
+        train = ~self.test
+        V, src = X[train], self.rows.loc[train, self.source].to_numpy()
+        S = V @ V.T
+        i, j = np.triu_indices(len(V), 1)
+        same = src[i] == src[j]
+        over = S[i, j] >= threshold
+        return {"same_source_pairs": int(same.sum()), "same_source_pairs_flagged": int((same & over).sum()),
+                "different_source_pairs": int((~same).sum()), "different_source_pairs_flagged": int((~same & over).sum())}
+
+    def item_name(self) -> str:
+        return f"the images ({len(self.pixels)} pixel columns)" if self.image else str(self.text)
 
     def X(self) -> Any:
         from dclab_core import embeddings
 
         if self._X is None:
-            self._X, self.encoding = embeddings.encode(self.rows[self.text].astype(str).tolist(), self.encoder)
+            self._X, self.encoding = embeddings.encode(self.items(self.rows), self.encoder)
         return self._X
 
     def seen(self) -> list[str]:
@@ -300,6 +397,7 @@ class EmbeddedMachine(Machine):
                     "positive_class": positive, "task": self.task,
                     **({"classes": self.seen()} if self.task == "multiclass" else {}),
                     "usable_feature_count": 1, "text_column": self.text, "source_column": self.source,
+                    **({"pixel_columns": len(self.pixels), "image_size": self.size} if self.image else {}),
                     "notes_for_person": [{"title": "Whole sources held out", "proof": ["DCLAB-R02"],
                                           "text": f"{train} training rows; the holdout is {self.holdout_description()}: a source is never on both sides. "
                                                   f"Left out: {dropped['without_text_or_source']} rows without a text or a {self.source}, "
@@ -315,38 +413,42 @@ class EmbeddedMachine(Machine):
     def leakage(self, eid: str, previous: dict) -> tuple:
         from dclab_core import embeddings
 
-        X = self.X()
-        texts = self.training_rows()[self.text].astype(str).tolist()
-        calibration = embeddings.calibrate(texts, self.encoder, embeddings.perturb_text)  # on training texts only
+        X = self.X() if not self.image else self._copy_vectors()
+        texts = self.items(self.training_rows())
+        calibration = embeddings.calibrate(texts, self.copies, embeddings.perturb_image if self.image else embeddings.perturb_text,  # training items only
+                                           sources=self.training_rows()[self.source].tolist() if self.image else None)
         threshold = self.fields["near_duplicate_threshold"] or calibration["threshold"] or embeddings.THRESHOLD
         across = embeddings.near_duplicates(X, np.where(self.test, "holdout", "train"), threshold=threshold)  # texts only, never a label
-        not_read = [c for c in self.frame.columns if c not in (self.text, self.source, self.target)]
+        not_read = [c for c in self.frame.columns if c not in (self.text, self.source, self.target) and c not in set(self.pixels)]
         forbidden = [x.column for x in self.solution.forbidden]
         evidence = {"kept_out": sorted(set(not_read) | set(forbidden)), "declared_leakage_features": sorted(set(forbidden)),
-                    "why": {c: f"the model reads {self.text} only" for c in not_read}, "calibration": calibration, "threshold": threshold,
+                    "why": {c: f"the model reads {self.item_name()} only" for c in not_read}, "calibration": calibration, "threshold": threshold,
                     "near_duplicates_across_holdout": across["pairs_across_sides"], "near_duplicates_method": across["method"],
                     "near_duplicates_recall": across.get("recall_at_threshold"),  # hashed past EXACT_UP_TO texts: a pair can be missed
                     "near_duplicates_across_holdout_pairs": [[int(self.index[a]), int(self.index[b]), sim] for a, b, sim in across["pairs"]],
+                    **(self._copies_within(X, threshold) if self.image else {}),
                     "notes_for_person": [{"level": "warning" if across["pairs_across_sides"] else "info", "proof": ["DCLAB-R01"],
                                           "title": f"{across['pairs_across_sides']} near copies straddle the holdout line",
                                           "text": "A text pasted again by another source lets a model recognise rather than predict: the holdout "
                                                   "score may be helped by them." if across["pairs_across_sides"] else "No text is a near copy across the line."}]}
         searched = ("every pair compared" if across["method"] == "exact" else
                     f"pairs found by hashing, each found with probability {across.get('recall_at_threshold')} at the threshold: a lower count")
-        claims = [claim(f"{eid}-C1", "fact", f"The model reads {self.text} only; {across['pairs_across_sides']} near copies (cosine at least "
+        claims = [claim(f"{eid}-C1", "fact", f"The model reads {self.item_name()} only; {across['pairs_across_sides']} near copies (cosine at least "
                         f"{threshold}) straddle the holdout line ({searched}).", ["evidence.near_duplicates_across_holdout", "evidence.kept_out"])]
         return evidence, claims, f"{across['pairs_across_sides']} near copies across the holdout line", None
 
     def features(self, eid: str, previous: dict) -> tuple:
         self.X()
         recipe = self.encoder.name
-        about = f"each text as {self.encoder.width} hashed word and word-pair counts: a local baseline, not a pretrained encoder"
+        about = (f"each image as fixed random projections of 5x5 patches, pooled ({self.encoder.name}): a local baseline, not a pretrained encoder"
+                 if self.image else f"each text as {self.encoder.width} hashed word and word-pair counts: a local baseline, not a pretrained encoder")
+        width = int(self.X().shape[1])
         evidence = {"selected_recipe": recipe, "best_recipe": recipe, "selected_recipe_description": about, "encoding": self.encoding,
-                    "pretrained": False, "stage_results": [{"recipe": recipe, "description": about, "feature_count_mean": self.encoder.width,
+                    "pretrained": False, "stage_results": [{"recipe": recipe, "description": about, "feature_count_mean": width,
                                                             "metrics": {self.primary_metric: {"mean": None, "std": None}}}],
                     "selection_rule": "one encoder: the local baseline (a pretrained one needs the owner's download)"}
         decision = {"kind": "recipe", "selected": recipe, "chosen": recipe, "rule": evidence["selection_rule"],
-                    "options": [{"id": recipe, "label": recipe, "description": about, "features": self.encoder.width}]}
+                    "options": [{"id": recipe, "label": recipe, "description": about, "features": width}]}
         return evidence, [claim(f"{eid}-C1", "fact", f"{about}.", ["evidence.encoding"], ["Not a pretrained encoder: a baseline."])], about, decision
 
     def models(self, eid: str, previous: dict) -> tuple:

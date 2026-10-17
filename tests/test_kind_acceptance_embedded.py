@@ -1,7 +1,8 @@
 """Package 16.15 C, long texts in the engine: a table of support notes with a text column, an author and a label runs
 the embedded machine. The holdout is whole authors chosen from their names alone; near copies across the holdout line
 are counted from the texts; the regularisation is chosen on folds grouped by author; the holdout's labels are read
-once, in the final stage. Images stay a library (their encoder needs local weights, the owner's download)."""
+once, in the final stage. Images run in the engine too since 26.8 (tests/test_images_engine.py): their checks are named
+"images: …" and asserted here beside the texts'."""
 
 import dataclasses
 import sys
@@ -42,6 +43,9 @@ class TextsInTheEngineTest(unittest.TestCase):
         engine = [c for c in result["checks"] if c["decision"].startswith(("the engine", "in the engine"))]
         self.assertEqual(len(engine), 5)
         self.assertTrue(all(c["ok"] for c in engine), engine)
+        images = [c for c in result["checks"] if c["decision"].startswith("images:")]  # 26.8
+        self.assertEqual(len(images), 5)
+        self.assertTrue(all(c["ok"] for c in images), images)
 
     def test_the_holdout_labels_reach_the_final_stage_only(self):
         held = set(self.records["final"]["evidence"]["holdout_row_positions"])

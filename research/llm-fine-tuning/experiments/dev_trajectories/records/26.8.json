@@ -1,0 +1,94 @@
+{
+ "package": "26.8",
+ "title": "Beyond tables: images in the engine, their near copies and their scenes caught",
+ "date": "2026-10-17",
+ "request": "Phase 4: extend DCLab beyond tables to image classification and other uses.",
+ "spec": "The embedded machine reads images from pixel columns (pixel_prefix), encodes them with a centred local baseline, finds near copies on the pixels, holds out whole scenes; the shapes replica as an image table; the image acceptance; the code export.",
+ "plan": [
+  "Keep images inside the embedded kind, as image tables come (pixels as columns).",
+  "Find copies on the pictures, classify on features.",
+  "Check the trap is caught on several seeds, not only that the split is by scene."
+ ],
+ "decisions": [
+  {
+   "decision": "Images stay in the embedded kind, not a new kind.",
+   "why": "The kind already owns the words for images; a second kind would split the Home's detection."
+  },
+  {
+   "decision": "Near copies are found on pixels averaged to a grid, not on the classifier's features.",
+   "why": "Features built to classify pull every image of a class together: a copy and another image of its class looked alike."
+  }
+ ],
+ "change": "embeddings (Pixels, Centred, pixel_columns, images_of, calibrate sources), shapes_table, EmbeddedMachine image path, image_case and accept_image_engine, code export of images.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An existing acceptance test counted the new image checks as text checks.",
+   "scenario": "The test filtered checks by their prefix and found 7, not 5.",
+   "cause": "The image checks shared the text checks' wording.",
+   "fix": "The image checks are named images: and asserted beside the texts.",
+   "test": "test_every_engine_decision_holds_and_only_the_pretrained_encoder_is_missing"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The near-copy trap was not caught: the check passed by 0.0002 at one seed and failed at another.",
+   "scenario": "Every pair of images had a cosine near 0.998; two shots of a scene counted as different pairs in calibration.",
+   "cause": "Rectified pooled features are all alike, and calibration ignored the sources.",
+   "fix": "Copies are found on pixels; calibration leaves same-source pairs out; the check requires most shot pairs flagged and almost no other pair, on seeds 0 to 3.",
+   "test": "test_the_trap_is_caught_on_other_seeds_and_the_holdout_labels_reach_the_final_stage_only"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Pixel columns were ordered as text.",
+   "scenario": "pixel10 came before pixel2: an MNIST-style table's images were scrambled.",
+   "cause": "sorted() on names.",
+   "fix": "Ordered by the number after the prefix; a name without one is refused.",
+   "test": "test_pixels_are_read_in_pixel_order_and_a_name_without_a_number_is_refused"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An image project's code export would not run.",
+   "scenario": "It read a text column that images do not have.",
+   "cause": "The export knew texts only.",
+   "fix": "The export writes the image path and reproduces the holdout.",
+   "test": "test_the_exported_code_reproduces_the_image_holdout"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A forbidden pixel was still read while the evidence said kept out.",
+   "scenario": "The person forbids px_0042 as a watermark.",
+   "cause": "The image branch skipped the text branch's checks.",
+   "fix": "A forbidden pixel and a source equal to the target are refused when the solution is saved.",
+   "test": "test_a_forbidden_pixel_is_refused"
+  },
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The check demanded no near copy across the holdout line.",
+   "scenario": "At seed 3 two scenes that look alike sit on both sides: 16 pairs.",
+   "cause": "A scene's shots never straddle the line; two alike scenes may.",
+   "fix": "The engine reports and warns about them; the check asks that they are reported, not absent.",
+   "test": ""
+  }
+ ],
+ "measurements": [],
+ "outcome": "Images run in the engine to their holdout, their near copies and scenes caught on four seeds, and their code reproduces the number.",
+ "lessons": [
+  "Find copies on the data itself; a classifier's features are built to make different items alike."
+ ],
+ "risks": [
+  "The encoder is a baseline, not pretrained; decision sets for image points are not built."
+ ],
+ "commits": []
+}

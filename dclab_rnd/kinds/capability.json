@@ -1,6 +1,6 @@
 {
  "generated_by": "make kinds-check",
- "at": "2026-10-15T11:58:41+00:00",
+ "at": "2026-10-17T04:56:51+00:00",
  "results": [
   {
    "kind": "rare_event",
@@ -551,6 +551,31 @@
      "decision": "in the engine the notes are solved on whole authors: folds by author at least 0.9, the holdout at least 0.8",
      "ok": true,
      "detail": "folds by author 1.0, random folds 1.0, holdout 1.0"
+    },
+    {
+     "decision": "images: the engine runs every stage as the embedded machine",
+     "ok": true,
+     "detail": "data: embedded, leakage: embedded, features: embedded, models: embedded, final: embedded"
+    },
+    {
+     "decision": "images: a scene's shots stay on one side, and the holdout's images are never fitted",
+     "ok": true,
+     "detail": "64 images of 16 scenes held out"
+    },
+    {
+     "decision": "images: the near copies are caught: most shots of one scene are flagged, images of different scenes almost never",
+     "ok": true,
+     "detail": "383 of 384 same-scene pairs flagged, 0 of 32256 other pairs; 0 across the line; threshold 0.9814"
+    },
+    {
+     "decision": "images: the model chosen on folds by scene is the one the holdout scores, once",
+     "ok": true,
+     "detail": "chosen 10.0, scored 10.0"
+    },
+    {
+     "decision": "images: the shapes are solved on whole scenes: folds by scene at least 0.9, the holdout at least 0.8",
+     "ok": true,
+     "detail": "folds by scene 0.9996, random folds 1.0, holdout 1.0"
     }
    ],
    "missing": [

@@ -700,3 +700,12 @@ the example does not hold, written as the `<think>` block). Where it goes there:
 records passes the same cleaning before it leaves, and its reasoning traces are built by the same rules from its own records, never
 from a model's text.
 
+## Images in the engine (26.8)
+
+The library's: `dclab_core.embeddings.pixel_columns` and `images_of` (an image table's rows as images, in pixel order),
+`RandomFeatures` centred by `Centred` on the training images (a local baseline, not pretrained), `Pixels` for near copies, and
+`calibrate(..., sources=)`. Where it goes there: the main product's image datasets (a table of pixel columns, or files it turns into
+one) are split by their source (a scene, a camera, a patient) with `split`, encoded and scored with `choose` and `score`, and their
+near copies across the split reported with `near_duplicates` on `Pixels` vectors; a pretrained encoder is its own injected
+`Encoder` when weights are on its machines.
+

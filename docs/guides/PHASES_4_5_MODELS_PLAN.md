@@ -168,6 +168,14 @@ Two tracks, because "as good as XGBoost" is a claim to be measured, not assumed:
 - **Done when:** the image kind runs a replica to its holdout number and its traps are caught; then the same path to
   decision models as the tabular points.
 
+- **Status: images run in the engine (2026-10-17), the review's 5 findings fixed.** An image table (one row per image, its pixels as
+  columns) runs the embedded machine: the holdout is whole scenes, the model reads a local baseline encoder (random patch
+  projections centred on the training images; not pretrained), near copies are found on the pixels, and the exported code
+  reproduces the holdout number. The shapes replica reaches its holdout on seeds 0 to 3 (folds by scene 0.997, holdout 1.0 at seed
+  0), with 381 to 384 of 384 shot pairs found as near copies and no false one; two scenes that happen to look alike are reported
+  across the line, never hidden. Left: decision points and sets for images (labels' quality, augmentation, a pretrained backbone,
+  the owner's download), and images in self-play.
+
 ## Part D. Phase 5 — a model that solves machine-learning problems (packages 27.x)
 
 ### What the model must be able to do

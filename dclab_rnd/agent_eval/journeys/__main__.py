@@ -164,12 +164,13 @@ def _live_arms(args, seed: int) -> int:
         if client is None:
             print("no model can serve the Home agent here (no key, or DCLAB_NO_LIVE_MODELS): nothing live to run")
             return 2
-        client.run_limit_eur = args.cap_eur / 4  # half the cap per live arm: half for the Home agent, half for the roles
-        live = {"client": client, "advisor": GatewayAdvisor(gateway, cap_eur=args.cap_eur / 4)}
+        arm_cap = args.cap_eur / 2  # half the cap per live arm, shared by the Home agent and the roles as they spend it
+        client.run_limit_eur = arm_cap
+        live = {"client": client, "advisor": GatewayAdvisor(gateway, cap_eur=arm_cap)}
         rows, most = [], 0.0
         for j in people:
             before = client.spent_eur + live["advisor"].spent_eur()
-            left = min(client.run_limit_eur - client.spent_eur, args.cap_eur / 4 - live["advisor"].spent_eur())
+            left = arm_cap - client.spent_eur - live["advisor"].spent_eur()
             if rows and left < 1.5 * most:  # the next journey could run out mid-way: it would quietly fall back to the rules
                 incomplete.append(f"{name}: stopped before {j['id']} (EUR {left:.3f} left, a journey took up to EUR {most:.3f})")
                 break
