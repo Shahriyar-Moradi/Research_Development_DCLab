@@ -60,6 +60,26 @@
    "cause": "A written person answered only a question tagged with a field it holds.",
    "fix": "A question is also answered by what its words ask when its field is not one the person holds; the rules' questions are answered as before.",
    "test": "test_a_models_question_in_its_own_words_is_answered_by_its_meaning"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "In the second live pass the model-led Home stopped before every build again, on a question no written person was given.",
+   "scenario": "JD-01 to JD-05 with the configured model: the agent asked in plain text whether churned means the subscriber did not renew; the coordinator, finding no tagged question open, stopped at the problem card with which column holds the outcome.",
+   "cause": "The harness's written person answered only tagged questions; a person in the chat answers whatever the agent asks.",
+   "fix": "A walk that stops on a question is answered by the person by its meaning (the stop's words and the agent's last text), and walks on, at most three times.",
+   "test": "test_a_walk_stopped_on_an_untagged_question_is_answered_as_in_the_chat_and_goes_on"
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "A live run's journeys were played in temporary folders: their drafts, turns and events were lost when it ended.",
+   "scenario": "The first live pass kept only the stored result's rows.",
+   "cause": "play() used a temporary directory and kept nothing of it.",
+   "fix": "--keep DIR copies each live journey's workspace, events and row into DIR/<arm>/<id>/.",
+   "test": "test_a_kept_play_leaves_its_whole_record"
   }
  ],
  "measurements": [
@@ -75,6 +95,19 @@
    "limits": [
     "The written people answer only a question tagged with a field they hold: most live runs stopped waiting for the person or with the card's outcome column unsettled, which measures the harness as much as the model.",
     "One pass: the model's run-to-run variation is not measured (a replay of one person succeeded where the pass failed)."
+   ]
+  },
+  {
+   "name": "the second live pass, cut short (2026-10-17)",
+   "gate": "the same as DWF-005: the combined arm switched on per point only where it measured better than the rules and the model alone on the 15 dev journeys",
+   "fixed_before_run": true,
+   "result": "the run stopped when the disk filled after 5 journeys of the model-alone arm (JD-01 to JD-05), EUR 0.3082 spent, 0 of 5 built: each stopped at the problem card on a question asked in plain text; nothing stored",
+   "verdict": "not scored",
+   "cost_eur": 0.3082,
+   "against_gate": "Not scored: 5 of 15 journeys of one arm is not the measurement.",
+   "next": "Run it again with the person answering a stop's question, EUR 1.19 left of the approved 1.50.",
+   "limits": [
+    "Five journeys of one arm say where the harness failed, not how the arms compare."
    ]
   }
  ],

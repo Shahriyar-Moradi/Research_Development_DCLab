@@ -131,6 +131,14 @@ class _Person:
         return None
 
 
+def _last_agent_text(draft: dict[str, Any]) -> str:
+    """What the agent last said in the chat (where a model asks in its own words)."""
+    for m in reversed(draft.get("messages") or []):
+        if m.get("role") == "agent" and m.get("kind") in (None, "text", "question"):
+            return str(m.get("content") or m.get("text") or "")
+    return ""
+
+
 def _upload(drafts: Any, agent: Any, draft_id: str, name: str, source: Path) -> None:
     from dclab_rnd.draft import pipeline
 
@@ -264,6 +272,16 @@ def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]]
         only_reader = live is not None and set(live) <= {"reader"}  # 20.10 v4: the reader alone is measured; every other role keeps the rules
         with private_scope(True) if live is None or only_reader else contextlib.nullcontext():  # 21.5: in a live run the roles ask their models
             out = Coordinator(drafts, projects, agent, advisor).run(start_at, person.person)
+            for _ in range(3):  # 26.5: a walk that stops on a question no tagged one carries (a model asks in its own words, or the card's
+                # blocker names what is missing) is answered as a person in the chat would answer it, and the walk goes on
+                says = str(out.get("says") or "")
+                if out.get("project_id") or out.get("next") != "stop" or "?" not in says or says.startswith(("Waiting for the person", "Not built")):
+                    break
+                said = person._answer("chat", says + " " + _last_agent_text(drafts.get(start_at)))
+                if not said:
+                    break
+                agent.reply(start_at, said)
+                out = Coordinator(drafts, projects, agent, advisor).run(start_at, person.person)
         row["handoffs"] = [{k: h.get(k) for k in ("role", "allowed", "refused_columns", "source")}
                            for h in (drafts.get(start_at).get("coordinator") or {}).get("handoffs") or []]
         understood = card_of(drafts.get(start_at))

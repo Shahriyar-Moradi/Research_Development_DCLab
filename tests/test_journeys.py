@@ -53,6 +53,24 @@ class JourneyTest(unittest.TestCase):
         self.assertEqual(json.loads((keep / "row.json").read_text())["id"], row["id"])
         self.assertTrue(list((keep / "workspace" / "drafts").rglob("*.json")))  # the drafts with every turn of the conversation
 
+    def test_a_walk_stopped_on_an_untagged_question_is_answered_as_in_the_chat_and_goes_on(self):  # 26.5 live pass 2
+        from dclab_rnd.draft import coordinator
+
+        calls = []
+        stop = {"state": "problem", "next": "stop", "says": "The problem card is not ready: Which column holds the outcome?", "steps": [],
+                "blockers": [], "project_id": None}
+        later = {**stop, "says": "No progress at problem: nothing more"}
+
+        def run(self, draft_id, person):
+            calls.append(draft_id)
+            return stop if len(calls) == 1 else later
+
+        with mock.patch.object(coordinator.Coordinator, "run", run):
+            row = journeys.play(journey("JD-03"))
+        self.assertEqual(len(calls), 2)  # walked again after the person's answer
+        self.assertIn("chat→target", row["asked"])
+        self.assertFalse(row["right"])
+
     def test_a_person_who_answers_nothing_is_never_built_and_the_row_says_why(self):
         row = journeys.play({**journey("JD-02"), "answers": {}})
         self.assertFalse(row["right"])
