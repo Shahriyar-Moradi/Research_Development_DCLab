@@ -35,11 +35,15 @@ def system() -> str:
     return prompts.text(PROMPT).strip()
 
 
-def _columns(table: Any, target: str | None, masked: bool) -> tuple[list[dict[str, Any]], dict[str, str]]:
-    """The table's columns as DCLab states (bands, never values), and the name map when masked."""
+def _columns(table: Any, target: str | None, masked: bool, pixel_prefix: str | None = None) -> tuple[list[dict[str, Any]], dict[str, str]]:
+    """The table's columns as DCLab states (bands, never values), and the name map when masked. An image table's pixel
+    columns (26.8) are one state: how many, the image's side, never a pixel's value."""
     from ..ledger import column_state
     from ..studio.data import profile_table
 
+    pixels = [c for c in table.columns if pixel_prefix and str(c).startswith(pixel_prefix)]
+    if pixels:
+        table = table.drop(columns=pixels)
     profile = profile_table(table)
     rows = int(len(table))
     names = [c.get("name") for c in profile.get("columns") or []]
@@ -51,7 +55,43 @@ def _columns(table: Any, target: str | None, masked: bool) -> tuple[list[dict[st
             s = {k: v for k, v in s.items() if k not in ("name_tokens",)}
         s["column"] = alias[c.get("name")]
         out.append(s)
+    if pixels:
+        side = int(round(len(pixels) ** 0.5))
+        out.append({"column": f"{pixel_prefix}*", "kind": "pixels", "count": len(pixels),
+                    "image": f"{side}x{side}" if side * side == len(pixels) else None, "dtype": "float"})
     return out, alias
+
+
+class _Images:
+    """26.8: the embedded kind's image case as a self-play kind of its own (``selfplay:<kind>_images:<seed>``), solved by
+    the same engine and verified by the image checks."""
+
+    runs_in_engine = True
+
+    def __init__(self, base: Any):
+        self.base, self.key, self.engine_key = base, f"{base.key}_images", base.key
+        self.title = f"{getattr(base, 'title', base.key)}: images"
+
+    def case(self, seed: int = 0) -> Any:
+        return self.base.image_case(seed)
+
+    def accept_engine(self, run: Any) -> list[dict[str, Any]]:
+        return self.base.accept_image_engine(run)
+
+    def own_machine(self) -> Any:
+        return self.base.own_machine()
+
+
+def _kinds() -> list[Any]:
+    """Every engine kind, and an image variant beside a kind that has an image case."""
+    from .. import kinds
+
+    out = []
+    for kind in kinds.all_kinds():
+        out.append(kind)
+        if hasattr(kind, "image_case") and hasattr(kind, "accept_image_engine"):
+            out.append(_Images(kind))
+    return out
 
 
 # The answer each family asks for, stated in the question (live, 2026-10-16: a model asked cold answered right in substance
@@ -100,7 +140,7 @@ def beats_chance(primary: str | None, metrics: dict[str, Any], baseline: dict[st
 
 def examples_of(kind: Any, seed: int, case: Any, run: Any, checks: list[dict[str, Any]], masked: bool) -> list[L.TrainingExample]:
     """The families one verified solve teaches, in one naming variant."""
-    columns, alias = _columns(case.table, case.target, masked)
+    columns, alias = _columns(case.table, case.target, masked, ((case.solution or {}).get("kind_fields") or {}).get("pixel_prefix"))
     rename = lambda c: alias.get(c, c) if c else c  # noqa: E731
     order = sorted((n for n in alias if n and alias[n] != n), key=len, reverse=True)
 
@@ -110,7 +150,9 @@ def examples_of(kind: Any, seed: int, case: Any, run: Any, checks: list[dict[str
             text = text.replace(str(n), alias[n])
         return text
 
-    sol = run.solution or {}
+    sol = dict(run.solution or {})
+    # the embedded kind keeps its group (an author, a scene) as its source column: the split's group all the same
+    sol["group_column"] = sol.get("group_column") or ((case.solution or {}).get("kind_fields") or {}).get("source_column")
     data, models, features, final = (run.evidence(s) for s in ("data", "models", "features", "final"))
     target = rename(case.target)
     group = f"selfplay:{kind.key}:{seed}"
@@ -125,7 +167,7 @@ def examples_of(kind: Any, seed: int, case: Any, run: Any, checks: list[dict[str
         out.append(L.TrainingExample(example_id=eid, family=family, messages=msgs, verification=ok, quality=0.8, provenance=prov))  # type: ignore[arg-type]
 
     add("problem_type", "What kind of machine-learning problem is this?", base,
-        {"task": case.task, "kind": kind.key, "why": (getattr(kind, "title", "") or kind.key)})
+        {"task": case.task, "kind": getattr(kind, "engine_key", kind.key), "why": (getattr(kind, "title", "") or kind.key)})
     leak = run.evidence("leakage")
     signals = [{"column": rename(x.get("feature") or x.get("column")), **{k: x[k] for k in ("score", "metric", "auc", "value") if k in x}}
                for x in (leak.get("top_univariate_signals") or []) if isinstance(x, dict)][:8]
@@ -155,7 +197,7 @@ def examples_of(kind: Any, seed: int, case: Any, run: Any, checks: list[dict[str
         {"step": "final", "decision": {"metric": final.get("metric"), "holdout_read_once": final.get("holdout_uses_in_this_project") == 1}},
     ]
     add("solution_design", "Lay out the solution workflow for this problem, step by step, before anything is fitted.", base,
-        {"task": case.task, "kind": kind.key, "workflow": workflow})
+        {"task": case.task, "kind": getattr(kind, "engine_key", kind.key), "workflow": workflow})
     metrics = final.get("holdout_metrics") or {}
     ci = final.get("holdout_primary_metric_ci")
     if metrics and not masked:
@@ -176,7 +218,7 @@ def screen_record(kind: Any, seed: int, case: Any, run: Any) -> dict[str, Any]:
     (every family's cross-validated score in the screen, on training folds only). No value of the table."""
     from collections import Counter as _C
 
-    columns, _ = _columns(case.table, case.target, False)
+    columns, _ = _columns(case.table, case.target, False, ((case.solution or {}).get("kind_fields") or {}).get("pixel_prefix"))
     data, models = run.evidence("data"), run.evidence("models")
     return {"group": f"selfplay:{kind.key}:{seed}", "kind": kind.key, "task": case.task, "rows": int(len(case.table)),
             "columns": len(columns), "dtypes": dict(_C(c.get("dtype") for c in columns)),
@@ -209,14 +251,13 @@ def _run_recorded(A: Any, case: Any, key: str, group: str) -> Any:
 def backfill(kinds_keys: Iterable[str] | None = None, log=print, limit: int | None = None) -> dict[str, Any]:
     """Problems verified before 27.3's widening, solved again to record their decision ledger and their solution workflow
     example (the other examples are already kept); resumable."""
-    from .. import kinds
     from ..kinds import acceptance as A
 
     tried = [json.loads(x) for x in (OUT / "done.jsonl").read_text(encoding="utf-8").splitlines() if x.strip()] if (OUT / "done.jsonl").is_file() else []
     marks = OUT / "backfill_done.jsonl"
     done = {json.loads(x)["group"] for x in marks.read_text(encoding="utf-8").splitlines() if x.strip()} if marks.is_file() else set()
     wanted, n = set(kinds_keys or []), 0
-    by_key = {k.key: k for k in kinds.all_kinds()}
+    by_key = {k.key: k for k in _kinds()}
     for t in tried:
         group = t["group"]
         _, key, seed = group.split(":")
@@ -227,7 +268,7 @@ def backfill(kinds_keys: Iterable[str] | None = None, log=print, limit: int | No
         kind, started = by_key[key], time.perf_counter()
         try:
             case = kind.case(int(seed))
-            run = _run_recorded(A, case, key, group)
+            run = _run_recorded(A, case, getattr(kind, "engine_key", key), group)
             checks = kind.accept_engine(run) if kind.own_machine() is not None else kind.accept(run)
             got = [e for masked in (False, True) for e in examples_of(kind, int(seed), case, run, checks, masked) if e.family == "solution_design"]
             if not [c for c in checks if not c["ok"]]:
@@ -245,7 +286,6 @@ def backfill(kinds_keys: Iterable[str] | None = None, log=print, limit: int | No
 
 def solve(kinds_keys: Iterable[str] | None = None, seeds: int = 20, log=print) -> dict[str, Any]:
     """Every kind's replica for each seed, solved and verified; examples and rejections written to bronze."""
-    from .. import kinds
     from ..kinds import acceptance as A
 
     OUT.mkdir(parents=True, exist_ok=True)
@@ -263,7 +303,7 @@ def solve(kinds_keys: Iterable[str] | None = None, seeds: int = 20, log=print) -
         with done_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps({"group": group, **outcome}) + "\n")
 
-    for kind in kinds.all_kinds():
+    for kind in _kinds():
         if wanted and kind.key not in wanted:
             continue
         if not getattr(kind, "runs_in_engine", True):
@@ -277,7 +317,7 @@ def solve(kinds_keys: Iterable[str] | None = None, seeds: int = 20, log=print) -
                 case = kind.case(seed)
                 if case is None or case.target is None:
                     break  # a kind without a replica case, or one with no outcome (anomaly: its own path)
-                run = _run_recorded(A, case, kind.key, group)
+                run = _run_recorded(A, case, getattr(kind, "engine_key", kind.key), group)
                 # a kind with its own machine checks the engine's run with accept_engine (its accept reads its own machine's result)
                 checks = kind.accept_engine(run) if kind.own_machine() is not None else kind.accept(run)
             except Exception as exc:  # noqa: BLE001 — a solve that breaks is a rejection with its reason, never a stop
@@ -303,6 +343,28 @@ def solve(kinds_keys: Iterable[str] | None = None, seeds: int = 20, log=print) -
     tried = [json.loads(x) for x in done_path.read_text(encoding="utf-8").splitlines() if x.strip()]
     (OUT / "rejected.json").write_text(json.dumps([t for t in tried if not t.get("verified")], indent=1) + "\n", encoding="utf-8")
     return {"examples": len(examples()), "problems": sum(1 for t in tried if t.get("verified")), "rejected": sum(1 for t in tried if not t.get("verified"))}
+
+
+def forget(kinds_keys: Iterable[str]) -> dict[str, int]:
+    """A kind's solves taken out of the self-play files (its examples, screens, tries and ledgers), so ``solve`` does
+    them again whole, when what a solve records has changed (26.8: the embedded kind's group column)."""
+    wanted = set(kinds_keys)
+    if not wanted:
+        raise ValueError("name the kinds to solve again")
+    mine = lambda group: str(group or "").split(":")[1:2] and str(group).split(":")[1] in wanted  # noqa: E731
+    removed: dict[str, int] = {}
+    for name, key in (("examples.jsonl", lambda d: d.get("provenance", {}).get("group")), ("screens.jsonl", lambda d: d.get("group")),
+                      ("done.jsonl", lambda d: d.get("group")), ("backfill_done.jsonl", lambda d: d.get("group"))):
+        path = OUT / name
+        if not path.is_file():
+            continue
+        lines = [x for x in path.read_text(encoding="utf-8").splitlines() if x.strip()]
+        kept = [x for x in lines if not mine(key(json.loads(x)))]
+        removed[name] = len(lines) - len(kept)
+        path.write_text("".join(x + "\n" for x in kept), encoding="utf-8")
+    for k in wanted:
+        shutil.rmtree(OUT / "ledgers" / k, ignore_errors=True)
+    return removed
 
 
 def examples() -> list[L.TrainingExample]:

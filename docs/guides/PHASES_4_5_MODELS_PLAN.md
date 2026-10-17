@@ -148,7 +148,16 @@ Two tracks, because "as good as XGBoost" is a claim to be measured, not assumed:
 - **Status of 26.6a (2026-10-16): built, measuring.** `python -m dclab_rnd.lake automl`: a meta-model picks the family from a
   table's meta-features, trained on the self-play screens (every family's cross-validated score on training folds), judged
   leaving one problem kind out at a time by normalised regret against always-XGBoost, always-random-forest and the most frequent
-  winner. 26.6b (the in-context tabular model) waits on a GPU budget.
+  winner.
+- **Status of 26.6b (2026-10-17): its pretraining data built; the model waits on a GPU budget.** `make priors` (`dclab_core/priors.py`,
+  `dclab_rnd/lake/priors.py`): invented classification tables from three priors (a random structural causal model, random shallow
+  trees, a noisy linear model) with categories as permuted codes, missing cells, 2 to 5 uneven classes and noise columns, one table per
+  seed, in `lake/bronze/priors/priors_v1/<split>/` (split by the seed's hash; the sealed tables measure the model once), each with a
+  quick model's lift over the majority class and the positions of any shown feature that is the outcome's effect; a seed is never
+  kept twice. **First corpus:** 2,000 tables (seeds 0 to 1,999), 693,617 rows, 36 MB; 1,402 train, 314 dev, 284 sealed; 651 causal,
+  654 trees, 695 linear; a quick model beats the majority class by more than 2 points on 1,342 of the 1,954 it could check (mean lift
+  0.096), 46 not checkable (a class of one row), 351 with an effect of the outcome shown. Left: the model (a GPU run, the owner's), and
+  26.6's sealed set of 30 real datasets to judge it.
 
 ### 26.7 Your own decision models: the fine-tuning kit for companies and engineers
 - **Delivers:** a workspace exports its consented decisions in the gold shape; a fine-tune of DCLab's base decision
@@ -176,8 +185,11 @@ Two tracks, because "as good as XGBoost" is a claim to be measured, not assumed:
   projections centred on the training images; not pretrained), near copies are found on the pixels, and the exported code
   reproduces the holdout number. The shapes replica reaches its holdout on seeds 0 to 3 (folds by scene 0.997, holdout 1.0 at seed
   0), with 381 to 384 of 384 shot pairs found as near copies and no false one; two scenes that happen to look alike are reported
-  across the line, never hidden. Left: decision points and sets for images (labels' quality, augmentation, a pretrained backbone,
-  the owner's download), and images in self-play.
+  across the line, never hidden. **Images in self-play (2026-10-17):** `selfplay:embedded_images:<seed>`, solved by the engine and
+  verified by the image checks, its decisions in its own ledger, its examples with the pixels as one column state (how many, the
+  side); the embedded kind's split examples now name their group (the scene, the author), and `selfplay --again --kinds embedded`
+  solves its earlier problems again whole. Left: decision points and sets for images (labels' quality, augmentation, a pretrained
+  backbone, the owner's download).
 
 ### 26.9 Other decision models' answers, captured whole (the owner, 2026-10-17)
 - **Why:** the owner compared three hosted or open decision models (Fastino's GLiNER2.5-Decide and GLiDE, TypeSafe's Jev,
@@ -358,6 +370,14 @@ write a report with its uncertainty; and drive DCLab's tools step by step as an 
   (Home understanding, the intern, the expert design, the report) only where it measured better on the same
   conversations; the decision models of Phase 4 as its tools (26.5).
 - **Done when:** one role is switched on by evidence, and switching it off restores the earlier model.
+
+- **Status: the path built (2026-10-17); switching a role waits for a trained model.** `python -m dclab_rnd.models.tuned
+  plan|shadow|unshadow|promote|retire PURPOSE`, the review's 5 findings fixed: the tuned tier shadows a role (only on this
+  machine); `plan` says what is still missing (the tier, a shadow with answered requests and its agreement, the harness suite
+  passed with it, an approval that still names the configured model; an understanding role's measurement apart); `promote` is
+  refused while anything is missing and then goes through the routing's audited switch and its rules (21.4, 21.5); `retire`
+  puts back the model that served before the tuned one while its approval holds (the owner's audited override), else the role's
+  own tier. Left: the owner's trained model behind `DCLAB_TIER_TUNED_*`, then one role switched on its evidence.
 
 ## Part E. Decisions for the owner
 

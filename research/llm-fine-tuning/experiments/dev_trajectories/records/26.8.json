@@ -17,9 +17,17 @@
   {
    "decision": "Near copies are found on pixels averaged to a grid, not on the classifier's features.",
    "why": "Features built to classify pull every image of a class together: a copy and another image of its class looked alike."
+  },
+  {
+   "decision": "Images join self-play as a variant of the embedded kind, not a kind of their own.",
+   "why": "The engine runs them as the embedded machine; the problem_type answer must name an engine kind, so the variant answers 'embedded' while its group keeps the image name."
+  },
+  {
+   "decision": "An image table's pixel columns are one column state in the examples.",
+   "why": "1,024 pixel states would drown the question and teach nothing a pixel's band says; the count and the side are what a decision needs."
   }
  ],
- "change": "embeddings (Pixels, Centred, pixel_columns, images_of, calibrate sources), shapes_table, EmbeddedMachine image path, image_case and accept_image_engine, code export of images.",
+ "change": "embeddings (Pixels, Centred, pixel_columns, images_of, calibrate sources), shapes_table, EmbeddedMachine image path, image_case and accept_image_engine, code export of images. Then images in self-play: a variant kind solved by the engine (selfplay.py _Images), pixels as one column state, forget() and --again.",
  "findings": [
   {
    "id": "R1",
@@ -80,12 +88,23 @@
    "cause": "A scene's shots never straddle the line; two alike scenes may.",
    "fix": "The engine reports and warns about them; the check asks that they are reported, not absent.",
    "test": ""
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The embedded kind's split examples named no group column.",
+   "scenario": "An image solve's split_design answer gave group_column None although the holdout is whole scenes; the 36 earlier split examples of the notes (by author) had the same gap.",
+   "cause": "The embedded kind keeps its group as kind_fields.source_column, not group_column.",
+   "fix": "examples_of reads the source column as the group; selfplay --again --kinds embedded solves the earlier problems again whole.",
+   "test": "test_an_image_problem_is_solved_in_self_play_and_its_pixels_are_one_state"
   }
  ],
  "measurements": [],
  "outcome": "Images run in the engine to their holdout, their near copies and scenes caught on four seeds, and their code reproduces the number.",
  "lessons": [
-  "Find copies on the data itself; a classifier's features are built to make different items alike."
+  "Find copies on the data itself; a classifier's features are built to make different items alike.",
+  "When a kind keeps a common fact under its own field, every consumer that reads the common field silently gets None: read both, and test the answer, not only that the solve verified."
  ],
  "risks": [
   "The encoder is a baseline, not pretrained; decision sets for image points are not built."

@@ -53,6 +53,10 @@ evidence.
    the fresh sealed sets are OpenML's and self-play's, by group.
 4. It serves only through the switches that exist (22.6 for a decision point, 21.4 for a role), in shadow first, and only
    where it measured better on the same cases.
+5. A role, step by step (27.8): `python -m dclab_rnd.models.tuned shadow reporter` (it answers beside the serving model,
+   logged, never used), `... plan reporter` (what is still missing), `make harness-eval` with it serving the role, then
+   `... promote reporter --reason "..." [--measured dclab-solver=0.87,claude-sonnet-5-5=0.83]` (an understanding role
+   needs the measurement); `... retire reporter --reason "..."` puts the earlier model back.
 
 ## 4. What it may not claim
 

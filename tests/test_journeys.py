@@ -44,6 +44,15 @@ class JourneyTest(unittest.TestCase):
         self.assertEqual(row["refused_moves"], 0)
         self.assertLessEqual(row["questions"], 5)
 
+    def test_a_kept_play_leaves_its_whole_record(self):  # 26.5: a live run's journeys are kept, not lost with their temporary folder
+        import tempfile
+
+        keep = Path(tempfile.mkdtemp()) / "arm" / "JD-02"
+        row = journeys.play({**journey("JD-02"), "answers": {}}, keep=keep)
+        self.assertTrue((keep / "row.json").is_file() and (keep / "events.jsonl").is_file())
+        self.assertEqual(json.loads((keep / "row.json").read_text())["id"], row["id"])
+        self.assertTrue(list((keep / "workspace" / "drafts").rglob("*.json")))  # the drafts with every turn of the conversation
+
     def test_a_person_who_answers_nothing_is_never_built_and_the_row_says_why(self):
         row = journeys.play({**journey("JD-02"), "answers": {}})
         self.assertFalse(row["right"])

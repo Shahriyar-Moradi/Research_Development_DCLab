@@ -709,3 +709,11 @@ one) are split by their source (a scene, a camera, a patient) with `split`, enco
 near copies across the split reported with `near_duplicates` on `Pixels` vectors; a pretrained encoder is its own injected
 `Encoder` when weights are on its machines.
 
+
+## Invented tables for an in-context tabular model (26.6b)
+
+The library's: `dclab_core.priors.sample(seed, prior=None)` (one classification table from a random causal model, random trees or
+a noisy linear model, the same table from the same seed) and `learnable(table)`. Where it goes there: nowhere in the main product's
+request path; it is a data generator. A team that pretrains or evaluates an in-context tabular model calls it with its own seeds,
+or reads DCLab's corpus (`make priors`, `lake/bronze/priors/priors_v1/`); `params.effects_shown` marks the tables whose shown
+features include the outcome's effects, for a team that wants none.

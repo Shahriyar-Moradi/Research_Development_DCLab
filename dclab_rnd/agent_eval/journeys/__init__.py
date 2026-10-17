@@ -27,9 +27,11 @@ before any rule changed for v1's failures; it ran once (JRN-004: 24 of 30, a fai
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import math
+import shutil
 import tempfile
 import time
 from concurrent.futures import ProcessPoolExecutor
@@ -170,9 +172,21 @@ def arms() -> dict[str, dict[str, Any]]:
     return out
 
 
-def play(journey: dict[str, Any], seed: int = 0, routing_doc: Optional[dict[str, Any]] = None, live: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+@contextlib.contextmanager
+def _kept(home: Path, keep: Optional[Path]):
+    """The play's folder (drafts, projects, the person's files) copied into ``keep`` when the play ends, however it ends."""
+    try:
+        yield
+    finally:
+        if keep is not None and home.is_dir():
+            shutil.copytree(home, Path(keep) / "workspace", dirs_exist_ok=True)
+
+
+def play(journey: dict[str, Any], seed: int = 0, routing_doc: Optional[dict[str, Any]] = None, live: Optional[dict[str, Any]] = None,
+         keep: Optional[Path] = None) -> dict[str, Any]:
     """One journey played from its first sentence; its scores and what happened at each part. ``routing_doc``: the
-    decision models routed while it plays (22.9); the rules alone by default."""
+    decision models routed while it plays (22.9); the rules alone by default. ``keep``: a folder the play's whole record is
+    copied into (its drafts with every turn, its project, its events and its row), a live run's records kept for good."""
     from dclab_rnd.ledger import use
 
     from dclab_core import signals
@@ -183,10 +197,13 @@ def play(journey: dict[str, Any], seed: int = 0, routing_doc: Optional[dict[str,
         log, before = experience.FileLog(Path(tmp), "journey"), experience.current_log()  # 21.5: the play's own record, graded
         experience.install(log)
         try:
-            row = _play(journey, seed, live)
+            row = _play(journey, seed, live, keep)
         finally:
             experience.install(before)
         events = log.read(limit=100_000)
+        if keep is not None:
+            Path(keep).mkdir(parents=True, exist_ok=True)
+            (Path(keep) / "events.jsonl").write_text("".join(e.model_dump_json() + "\n" for e in events), encoding="utf-8")
     row["flags"] = sorted({f.detector for f in signals.detect(events)})
     asked_models = [e.payload for e in events if e.kind == "model.request" and e.payload.get("model")]  # 21.5: who answered, at what cost
     row["models"] = {str(p.get("purpose")): str(p.get("model")) for p in asked_models if p.get("purpose")}
@@ -198,10 +215,12 @@ def play(journey: dict[str, Any], seed: int = 0, routing_doc: Optional[dict[str,
     row["by_model"] = sum(1 for d in row["decisions"] if d["changed"])  # what the model changed, not an agreement
     row["agreed"] = sum(1 for d in row["decisions"] if d["used"] not in ("rule", "none") and not d["changed"])
     row["refused_by_validator"] = sum(1 for d in row["decisions"] if d["refused"])
+    if keep is not None:
+        (Path(keep) / "row.json").write_text(json.dumps(row, indent=1, default=str) + "\n", encoding="utf-8")
     return row
 
 
-def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]] = None, keep: Optional[Path] = None) -> dict[str, Any]:
     """One journey played from its first sentence; its scores and what happened at each part."""
     from dclab_rnd import kinds
     from dclab_rnd.draft import workflow as wf
@@ -218,7 +237,7 @@ def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]]
     kind = kinds.get(journey["kind"]) if journey.get("kind") else None  # 21.5: a recorded session has no kind's replica
     replica = kind.case(seed) if kind is not None else _from_card(journey["data_card"], seed)
     row: dict[str, Any] = {"id": journey["id"], "kind": journey["kind"], "family": journey["family"], "parts": {}, "why": []}
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory() as tmp, _kept(Path(tmp), keep):
         home, mine = Path(tmp), Path(tmp) / "person"
         mine.mkdir()
         drafts, projects = DraftStore(home / "drafts"), ProjectStore(home / "projects")

@@ -1,0 +1,99 @@
+{
+ "package": "27.8",
+ "title": "Serve the owner's tuned model role by role, only where it measured better",
+ "date": "2026-10-17",
+ "request": "Phases 4 and 5: the trained model behind the gateway, in shadow first, switched role by role only on evidence; switching it off restores the earlier model.",
+ "spec": "dclab_rnd/models/tuned.py: plan (what a role still needs), shadow/unshadow, promote and retire, each the routing's audited switch; a command; tests.",
+ "plan": [
+  "Reuse routing.switch: no new rule decides who serves.",
+  "Say what is missing before a promotion instead of only refusing it.",
+  "Test the whole way: shadow, refused without the suite, refused without a better measurement, promoted, retired."
+ ],
+ "decisions": [
+  {
+   "decision": "The module is a thin path over models/routing.py, not a second switch.",
+   "why": "21.4 and 21.5 already hold the rules (reviewer and reason, the harness suite, measured better for an understanding role, local-only shadows); a second switch could disagree with them."
+  },
+  {
+   "decision": "promote refuses while plan lists anything missing, before the routing's own rules run.",
+   "why": "routing.change never looks at the shadow: shadow first had to be enforced here, or a model that never shadowed (or a remote one) could serve."
+  },
+  {
+   "decision": "retire puts back the tier that served before the tuned model, while its approval holds, as the owner's audited override; otherwise the role's own tier.",
+   "why": "Switching off must restore the earlier model, and the earlier model's measurement did not include the tuned one, so the rules alone would refuse it."
+  }
+ ],
+ "change": "dclab_rnd/models/tuned.py, tests/test_tuned_serving.py, the plan's status, TRAINING.md's runbook, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The first draft of plan read the shadow log through a method it does not have.",
+   "scenario": "plan on a workspace with shadowed requests reported none.",
+   "cause": "The shadow log's reader is rows(), not read(); a hasattr guard hid the mistake by returning an empty list.",
+   "fix": "plan reads open_shadows(home).rows() for the purpose and keeps the tuned model's agreement only.",
+   "test": "test_the_way_to_serving_shadow_then_suite_then_promote_then_retire"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "promote did not require the tuned model to have shadowed the role.",
+   "scenario": "A fresh workspace with the suite passed and no shadow: promote served the tuned model, a remote endpoint too.",
+   "cause": "routing.change checks the suite and the measurement, never the shadow.",
+   "fix": "promote computes plan and refuses with what is missing.",
+   "test": "test_promotion_without_a_shadow_is_refused"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "plan reported the tuned model as serving after it was swapped for another.",
+   "scenario": "Promote dclab-solver-8b, then set DCLAB_TIER_TUNED_MODEL to a v2: plan said serving and ready while the gateway served the role's own model.",
+   "cause": "plan read only the routed tier, not whether its approval still held.",
+   "fix": "serving needs routing.approved; otherwise the stale approval is listed as missing.",
+   "test": "test_a_swapped_tuned_model_is_not_reported_as_serving"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "retire always went back to the role's own tier.",
+   "scenario": "A reviewer moved a role to strong, the tuned model replaced it, retire: the role went to standard, not strong.",
+   "cause": "retire set serve to None.",
+   "fix": "retire reads the history for the tier before the tuned one and restores it while its approval holds.",
+   "test": "test_retiring_puts_back_the_model_that_served_before"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "ready was true with only failed shadow requests, and for an understanding role while promote would refuse.",
+   "scenario": "Three shadow rows all with outcome error gave ready true.",
+   "cause": "ready counted requests, not answers, and folded the measurement into missing.",
+   "fix": "a shadow that only failed is missing; needs_measurement is reported apart from ready.",
+   "test": "test_a_shadow_that_only_failed_is_not_ready"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A malformed --measured crashed the command.",
+   "scenario": "--measured dclab-solver (no =) raised ValueError with a traceback.",
+   "cause": "float('') unguarded.",
+   "fix": "each pair is checked and refused as model=score.",
+   "test": "test_a_malformed_measurement_is_refused_not_a_traceback"
+  }
+ ],
+ "measurements": [],
+ "outcome": "The path to serve a tuned model exists and every step is audited; no role is switched yet because no tuned model exists yet (the training run is the owner's).",
+ "lessons": [
+  "A defensive hasattr around an API you are not sure of turns a wrong name into silent emptiness: read the interface instead.",
+  "A thin wrapper over existing rules still owns the rules its docstring promises: if the wrapped function does not check something, the wrapper must."
+ ],
+ "risks": [
+  "The harness suite must be run with the tuned tier serving the role before a promotion; that run needs the model on this machine."
+ ],
+ "commits": []
+}

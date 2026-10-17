@@ -4,6 +4,15 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.64.0 (2026-10-17)
+
+Package 26.6b (data only): invented tables for pretraining an in-context tabular model.
+
+- `priors`: `sample(seed, prior=None)`, one classification table from a random structural causal model, random shallow
+  trees or a noisy linear model, with categories (permuted codes), missing cells, uneven classes and noise columns;
+  the same seed always makes the same table; `learnable(table)` measures a quick model's lift over the majority class.
+  numpy and scikit-learn only; no contract, so no schema.
+
 ## 0.63.0 (2026-10-17)
 
 Packages 27.2 and 27.3: who answered, and the solution workflow.

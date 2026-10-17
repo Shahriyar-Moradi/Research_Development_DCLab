@@ -1,0 +1,94 @@
+{
+ "package": "26.6b",
+ "title": "The pretraining corpus of an in-context tabular model: invented tables from random priors (data only)",
+ "date": "2026-10-17",
+ "request": "Collect and store everything a future model needs, never train: for 26.6b, the many invented tables a TabPFN-style model is pretrained on.",
+ "spec": "dclab_core/priors.py: three priors (a random structural causal model, random shallow trees, a noisy linear model), categories, missing cells, uneven classes and noise columns, one table per seed; dclab_rnd/lake/priors.py writes them to the lake in shards with a split per seed and a learnability check; make priors.",
+ "plan": [
+  "Generate, never train: the run is the owner's GPU.",
+  "Make every table reproducible from its seed, so the corpus is its seeds.",
+  "Split by the seed's hash so a sealed part exists before any model sees the corpus.",
+  "Check each table carries signal, and keep the ones that do not, marked, as the prior holds them."
+ ],
+ "decisions": [
+  {
+   "decision": "Category codes are permuted, not ranks of the underlying value.",
+   "why": "Ranks would give an ordinal meaning a real category does not have, and a model would learn a shortcut."
+  },
+  {
+   "decision": "The outcome of the causal model is never a root node.",
+   "why": "A root has no causes among the nodes, so the shown features could only be its effects or noise; a prior should hold causes too."
+  },
+  {
+   "decision": "A seed already in the corpus is never written again, whatever the start or the shard size; a seed in two shards is an error.",
+   "why": "Shard names alone could not prevent duplicates across overlapping runs, and repeated tables would inflate the training stream and the manifest."
+  }
+ ],
+ "change": "dclab_core/priors.py, dclab_rnd/lake/priors.py, the lake command priors, make priors, tests/test_lake_priors.py, the plan's status.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "flaky",
+   "defect": "The learnability check ran very slowly while the gate ran.",
+   "scenario": "Thirty tables did not finish in five minutes at a load average above 200.",
+   "cause": "The gradient-boosting check starts one thread per core for every table, competing with the gate's processes.",
+   "fix": "make priors and the test run the check on one thread (OMP_NUM_THREADS=1).",
+   "test": "test_most_tables_carry_signal_a_quick_model_finds"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Overlapping runs or another shard size added duplicate tables, and the manifest counted them.",
+   "scenario": "build(20, 0, 5) then build(20, 10, 5) gave 39 tables for 30 seeds.",
+   "cause": "Shard names depend on where chunks start; the manifest counted lines.",
+   "fix": "build skips seeds already kept; the manifest refuses a seed in two shards.",
+   "test": "test_the_corpus_is_written_in_shards_that_read_back_whole_with_their_split"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "learnable called tables it never checked tables without signal.",
+   "scenario": "Seed 570 with class counts [2, 14, 2, 0, 49]: majority 1.0, no signal; about 2.9% of 2,000 seeds.",
+   "cause": "An empty class code counted as a class of zero rows.",
+   "fix": "Empty codes are dropped; a class of one row returns signal None, counted apart in the manifest.",
+   "test": "test_a_table_with_a_class_too_small_to_split_is_not_checked_rather_than_called_empty"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A causal-model table did not say which shown features are the outcome's effects.",
+   "scenario": "An effect with identity activation and low noise is a near copy of the outcome; a corpus could not be filtered for it.",
+   "cause": "The descendants were not tracked.",
+   "fix": "params.effects_shown lists their positions in the shown table; the manifest counts such tables.",
+   "test": "test_the_outcomes_effects_shown_are_recorded_as_positions"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The first corpus",
+   "gate": "a description, not a gate: most tables should carry a signal a quick model finds (more than half above 2 points of lift)",
+   "fixed_before_run": true,
+   "result": "2,000 tables (seeds 0 to 1,999), 693,617 rows, 36 MB: 1,402 train, 314 dev, 284 sealed; 651 causal, 654 trees, 695 linear; a quick model beats the majority class by more than 2 points on 1,342 of the 1,954 checkable tables (mean lift 0.096; causal 489 of 641, trees 409 of 634, linear 444 of 679); 46 not checkable; 351 tables show an effect of the outcome.",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "against_gate": "1,342 of 1,954 is above half; the description holds.",
+   "next": "The pretraining run is the owner's (GPU); then 26.6's sealed set of 30 real datasets.",
+   "limits": [
+    "Lift over the majority class says a table carries a signal, not that the prior resembles real tables.",
+    "A quick model's lift on the held-out rows of a small table is noisy."
+   ]
+  }
+ ],
+ "outcome": "A reproducible corpus of invented tables with its sealed part, in the lake; the model itself is the owner's run.",
+ "lessons": [
+  "A corpus that is its seeds can be checked, regrown and split before anything learns from it."
+ ],
+ "risks": [
+  "Priors are a guess about what real tables look like; a model pretrained on them is evidence about the priors until it is measured on 26.6's sealed real datasets."
+ ],
+ "commits": []
+}

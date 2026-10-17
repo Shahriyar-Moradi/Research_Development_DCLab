@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from pathlib import Path
 
 from . import GATES, SEALED, families, measure, sealed_runs, store, store_compare, verdict
 
@@ -21,6 +22,7 @@ def main() -> int:
     parser.add_argument("--yes", action="store_true", help="send the reader's requests (with --reader)")
     parser.add_argument("--cap-eur", type=float, default=0.5, help="the reader's spend cap for the whole run")
     parser.add_argument("--spent", action="store_true", help="read a sealed set already run as dev material: nothing is stored")
+    parser.add_argument("--keep", type=Path, default=None, help="with --live-arms: every live journey's whole record copied into DIR/<arm>/<id>/")
     parser.add_argument("--live-arms", action="store_true", help="26.5: the rules, the workflow model alone, and the workflow model with the "
                                                                     "decision models, on dev (with --yes and --cap-eur)")
     args = parser.parse_args()
@@ -175,7 +177,7 @@ def _live_arms(args, seed: int) -> int:
                 incomplete.append(f"{name}: stopped before {j['id']} (EUR {left:.3f} left, a journey took up to EUR {most:.3f})")
                 break
             try:
-                rows.append(play(j, seed, doc, live))
+                rows.append(play(j, seed, doc, live, keep=args.keep / name.replace("+", "_and_") / j["id"] if args.keep else None))
             except Exception as error:  # noqa: BLE001 - a journey that breaks is wrong, with its reason
                 rows.append({"id": j["id"], "kind": j["kind"], "family": j["family"], "parts": {}, "right": False,
                              "why": [f"broke: {type(error).__name__}: {str(error)[:300]}"]})

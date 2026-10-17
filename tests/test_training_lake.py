@@ -192,6 +192,26 @@ class PublicAndSelfplayTests(unittest.TestCase):
         self.assertIn(case.facts["leak"], [f["column"] for f in leak["forbidden"]])  # verified: the planted leak is kept out
 
 
+    def test_an_image_problem_is_solved_in_self_play_and_its_pixels_are_one_state(self):
+        from dclab_rnd.lake import selfplay as P
+
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(P, "OUT", Path(tmp)), mock.patch.dict("os.environ", {"DCLAB_DECISION_SHADOW": "0"}):
+            done = P.solve(["embedded_images"], seeds=1)
+            got = P.examples()
+            ledgers = list((Path(tmp) / "ledgers" / "embedded_images" / "0").rglob("*.jsonl"))
+        self.assertEqual((done["problems"], done["rejected"]), (1, 0))
+        self.assertTrue(ledgers)  # the image solve's decisions are recorded in its own ledger
+        self.assertEqual({e.provenance.group for e in got}, {"selfplay:embedded_images:0"})
+        kind = json.loads(next(e for e in got if e.family == "problem_type").messages[2]["content"])
+        self.assertEqual(kind["kind"], "embedded")  # an engine kind, not the variant's name
+        given = json.loads(next(e for e in got if e.family == "split_design").messages[1]["content"])
+        pixels = [c for c in given["columns"] if c.get("kind") == "pixels"]
+        self.assertEqual((len(pixels), pixels[0]["count"], pixels[0]["image"]), (1, 1024, "32x32"))
+        self.assertLess(len(given["columns"]), 10)
+        split = json.loads(next(e for e in got if e.family == "split_design").messages[2]["content"])
+        self.assertEqual(split["group_column"], "scene")  # whole scenes on one side
+
+
 class ExportTests(unittest.TestCase):
     def test_the_training_files_hold_no_sealed_or_evaluation_only_row(self):
         from dclab_rnd.lake.train import export
@@ -291,6 +311,23 @@ class SelfplayLedgerTests(unittest.TestCase):
         self.assertIs(ledger._INSTALLED.get("ledger"), before)  # the solve's ledger is put back afterwards
         book = ledger.FileLedger(tmp / "ledgers" / "binary" / "7", "selfplay")
         self.assertEqual([r.point for r in book.records()], ["split.strategy"])
+
+
+class SelfplayForgetTests(unittest.TestCase):
+    def test_forgetting_a_kind_takes_out_only_its_solves(self):
+        from dclab_rnd.lake import selfplay
+
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "done.jsonl").write_text(json.dumps({"group": "selfplay:embedded:0"}) + "\n" + json.dumps({"group": "selfplay:binary:0"}) + "\n")
+        (tmp / "examples.jsonl").write_text(json.dumps({"provenance": {"group": "selfplay:embedded:0"}}) + "\n")
+        (tmp / "ledgers" / "embedded" / "0").mkdir(parents=True)
+        with mock.patch.object(selfplay, "OUT", tmp):
+            got = selfplay.forget(["embedded"])
+            with self.assertRaises(ValueError):
+                selfplay.forget([])
+        self.assertEqual((got["done.jsonl"], got["examples.jsonl"]), (1, 1))
+        self.assertEqual([json.loads(x)["group"] for x in (tmp / "done.jsonl").read_text().splitlines()], ["selfplay:binary:0"])
+        self.assertFalse((tmp / "ledgers" / "embedded").exists())
 
 
 class SessionMappingTests(unittest.TestCase):

@@ -32,6 +32,11 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--no-think", action="store_true", help="27.9: write the solver's answers without their verified <think> block")
     o = sub.add_parser("openml", help="26.2: fetch and profile OpenML's public tables (resumable; the owner's yes, 2026-10-16)")
     o.add_argument("--limit", type=int, default=1200)
+    pr = sub.add_parser("priors", help="26.6b: invented tables from random priors, the pretraining data of an in-context tabular model")
+    pr.add_argument("--tables", type=int, default=2000)
+    pr.add_argument("--start", type=int, default=0, help="the first seed (more seeds later add to the corpus)")
+    pr.add_argument("--shard", type=int, default=250)
+    pr.add_argument("--lake", type=Path, default=LAKE)
     a = sub.add_parser("answers", help="26.9: another answerer (GLiNER2.5-Decide) on every DCLab test, every detail kept (run in the ai12 env)")
     a.add_argument("--answerer", default="gliner2.5-decide")
     a.add_argument("--sources", default="lake,workflow,journeys,selfplay")
@@ -48,6 +53,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--kinds", default="", help="comma-separated kind keys (default: every engine kind)")
     p.add_argument("--backfill", action="store_true", help="27.3: problems verified before, solved again for their decision ledger and solution workflow")
     p.add_argument("--limit", type=int, default=None, help="with --backfill: at most this many problems")
+    p.add_argument("--again", action="store_true", help="26.8: the named kinds' solves forgotten and solved again whole (--kinds required)")
     args = parser.parse_args(argv)
     if args.command == "answers":
         from .answers import capture, summary
@@ -87,6 +93,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "selfplay":
         from . import selfplay
 
+        if args.again:
+            print(selfplay.forget([k for k in args.kinds.split(",") if k]))
         if args.backfill:
             print(selfplay.backfill([k for k in args.kinds.split(",") if k] or None, limit=args.limit))
             return 0
@@ -109,6 +117,12 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         doc = benchmark.run(args.answerer, args.split, args.limit, args.cap_eur)
         print(json.dumps({k: doc.get(k) for k in ("id", "answerer", "split", "cases", "problems", "families", "spent_eur")}, indent=1, default=str))
+        return 0
+    if args.command == "priors":
+        from . import priors
+
+        doc = priors.build(args.tables, args.start, args.shard, args.lake)
+        print(json.dumps({k: v for k, v in doc.items() if k not in ("rule", "added")}, indent=1))
         return 0
     if args.command == "automl":
         from . import automl
