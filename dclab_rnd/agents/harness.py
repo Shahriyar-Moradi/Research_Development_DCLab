@@ -46,6 +46,7 @@ AGENTS: dict[str, Agent] = {
     "team": Agent("dclab_rnd.studio.team:run", "session", (), "the team of roles on a project"),
     "campaign": Agent("dclab_rnd.agentic.engine:run_research", "session", ("campaign",), "the research campaign's phases and experiments"),
     "mcp": Agent("dclab_rnd.mcp_server:build_server", "session", (), "the calls of an MCP client (Hugging Face Chat UI, ML Intern)"),
+    "orchestra": Agent("dclab_rnd.orchestra.spike:Spike.run", "session", (), "28.1: the orchestration layer's graph on a draft; each node a step, each pause a stopped run"),
     "coordinator": Agent("dclab_rnd.draft.coordinator:Coordinator.run", "session", (), "the lead agent: problem to built project, gate by gate"),
     "twin": Agent("dclab_rnd.twin:run", "session", ("ai_first",), "a twin run (25.2, 25.3): the current system and Claude on one problem, two lanes at once, "
                                                        "each a workspace folder; Claude serves every purpose of its lane through the lane's own client"),

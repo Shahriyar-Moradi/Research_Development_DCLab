@@ -1,0 +1,135 @@
+{
+ "package": "28.1",
+ "title": "The orchestration layer's spike: LangGraph used thinly, the gateway as the model, checkpoints in the workspace, every node in the harness",
+ "date": "2026-10-17",
+ "request": "Phase 6 (the owner, 2026-10-17): a multi-agent system for problem understanding and for the solution, on the best existing framework, enhancing what the repository has, never replacing it; LangGraph chosen; Home first; three pauses for the person; capture everything. 28.1: the framework decision made concrete with a thin adapter, a checkpointer bound to the workspace store, and a three-node spike graph on a draft, resumable, every node recorded.",
+ "spec": "docs/guides/PHASE6_MULTI_AGENT_PLAN.md, Part C (the decision), Part D1, package 28.1",
+ "plan": [
+  "Compare the frameworks on DCLab's criteria (model-agnostic through the gateway, explicit graph, checkpoints and interrupts, parallel, tracing we own, licence, fit) and decide.",
+  "Take only orchestration from LangGraph: our functions as nodes, our gateway as the model, our registry as tools, our harness on every node.",
+  "A checkpointer in the workspace's store: PostgreSQL when the workspace runs on it, SQLite in a file workspace.",
+  "A spike of three nodes on the existing conversation functions, with interrupt() for the person and resume by thread; prove resume from another process.",
+  "Record every node and pause in the harness; read them back in the probe test."
+ ],
+ "decisions": [
+  {
+   "decision": "LangGraph, used thinly (the graph, typed state, checkpoints, interrupt, Send); none of LangChain's agents, tools or model classes.",
+   "why": "It is model-agnostic, already in the agent environment running the campaign loop, MIT, and keeps deterministic code in charge of every edge; the Claude SDK is one vendor, the OpenAI SDK and CrewAI put control in the agents, the Microsoft framework is newer and absent here."
+  },
+  {
+   "decision": "The adapter is a function (complete/text) over installed().client(purpose), not a BaseChatModel.",
+   "why": "The gateway already routes, caps, shadows and records every request; a LangChain model class would be a second door and a second place to hold a key."
+  },
+  {
+   "decision": "A pause is recorded after invoke returns, from the graph's pending interrupts, as one 'interrupt' step and a run ended 'stopped'.",
+   "why": "A node re-executes from its start on resume; recording the pause inside the node would record it twice. The coordinator's stopped runs are the same shape."
+  },
+  {
+   "decision": "The answer step records the fields the rules read, not the person's words.",
+   "why": "The person's words belong to purposes whose keeps_text allows them; the harness step is not one."
+  },
+  {
+   "decision": "The three new pins go to base.txt and product.txt as >=, agent.txt keeps its exact pins and the lock is regenerated with uv.",
+   "why": "The product runs on .venv; langgraph was there only as an undeclared dependency of langchain."
+  }
+ ],
+ "change": "dclab_rnd/orchestra/ (the package docstring and thread ids; model.py the adapter; checkpoints.py where() and open_checkpointer() for PostgreSQL or SQLite; spike.py the Spike graph with interviewer, analyst and confirm nodes, run() starting or resuming a thread inside harness.session('orchestra')); AGENTS entry 'orchestra' and its probe; requirements; tests/test_orchestra.py (the probe, resume in another process, the error path, PostgreSQL checkpoints, the adapter with a scripted gateway and with no model).",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The adapter test compared the scripted transport's purpose with its name.",
+   "scenario": "Scripted keeps the Purpose object the gateway built it with.",
+   "cause": "A guess at the transport's record.",
+   "fix": "The test compares with settings.PURPOSES['home_agent'].",
+   "test": "test_a_node_asks_a_model_through_the_gateway_only"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The PostgreSQL checkpointer could not open with the repository's URL form.",
+   "scenario": "DCLAB_DATABASE_URL is a SQLAlchemy URL (postgresql+psycopg://user@/db); psycopg refused it, so the PostgreSQL pass of the suite failed and a PostgreSQL workspace had no checkpointer.",
+   "cause": "The URL went to PostgresSaver unchanged.",
+   "fix": "storage.notify.dsn converts it, as LISTEN/NOTIFY already does.",
+   "test": "test_postgres_holds_the_checkpoints_when_the_workspace_runs_on_it"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The agent environment's lock did not pin the PostgreSQL checkpointer.",
+   "scenario": "agent.txt said >=3.2 among exact pins and the lock was not regenerated.",
+   "cause": "The pin was added without the compile.",
+   "fix": "langgraph-checkpoint-postgres==3.2.0 and the lock regenerated with uv (with psycopg and the mcp package agent.txt had listed unlocked).",
+   "test": "requirements/agent.lock.txt"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The interviewer and its edge judged 'nothing more to ask' on two different cards, so the graph could spin.",
+   "scenario": "With an advisor whose card had no question while the rules' card had one, the node returned nothing and the edge sent it back, until the recursion limit (each turn a model call).",
+   "cause": "The edge recomputed a card instead of reading the state.",
+   "fix": "The interviewer writes done into the state; the edge is a pure function of the state.",
+   "test": "test_the_edge_reads_the_state_only_so_a_quiet_card_ends_at_the_analyst"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A correction at the confirmation was recorded as an approval.",
+   "scenario": "resume='no, the outcome is not that column' ended confirmed=True, a wrong label in training data.",
+   "cause": "bool() of any non-empty string.",
+   "fix": "Approval is True or a yes-word; anything else is not confirmed.",
+   "test": "test_a_correction_at_the_confirmation_is_not_an_approval"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Resuming a thread with no pause open crashed inside a node and recorded a failed run.",
+   "scenario": "A stale client or a wrong draft id resumed a fresh thread: KeyError in the interviewer.",
+   "cause": "No check of the thread's pending interrupts before invoke.",
+   "fix": "A resume with no open pause is refused before any node runs and nothing is recorded.",
+   "test": "test_a_new_walk_needs_the_words_and_a_resume_needs_a_thread"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "One Spike shared by two concurrent walks mixed their harness sessions.",
+   "scenario": "Two drafts on one compiled graph in the API's thread pool: steps recorded under the wrong run, then an AttributeError when the first walk cleared the session.",
+   "cause": "The session was an attribute of the instance.",
+   "fix": "The session is a context variable set per walk (LangGraph copies the context into its tasks).",
+   "test": "test_the_spike_is_a_session_of_the_orchestra_agent"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the spike on JD-02 by rules (no model)",
+   "gate": "the walk pauses on each question and the confirmation, resumes from its checkpoint in another process, asks nothing twice, and every node and pause is in the harness and the experience log",
+   "fixed_before_run": true,
+   "result": "six tests pass in .venv: the walk asks its questions one by one and ends confirmed; a second process resumes from the SQLite file with what was asked kept; PostgreSQL holds the checkpoints when DCLAB_DATABASE_URL is set; the adapter reaches a scripted gateway and returns None with no model",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "Met on the dev journey by rules; no live model was called.",
+   "limits": [
+    "A spike of three nodes: the board, the hand-offs and the teams are later packages.",
+    "Rules only; a model advisor is wired but not measured."
+   ]
+  }
+ ],
+ "outcome": "The orchestration layer exists as a thin wrapper over existing functions: a graph pauses for the person, resumes from the workspace's checkpoints, asks the model only through the gateway, and records every node and pause.",
+ "lessons": [
+  "On resume LangGraph re-runs a node from its start: record a pause from the graph's pending interrupts, after invoke, never inside the node.",
+  "Declare a dependency the environment already has by accident; it is not a dependency until it is pinned.",
+  "An edge of the graph reads the state and nothing else: a second computation in the edge is a second opinion the node never gave."
+ ],
+ "risks": [
+  "SQLite checkpoints with check_same_thread=False share one connection across the API's threads; PostgreSQL is the store where it matters.",
+  "langgraph's import stays inside functions so environments without it still import dclab_rnd."
+ ],
+ "commits": []
+}
