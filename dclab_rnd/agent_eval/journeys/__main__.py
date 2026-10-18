@@ -14,7 +14,7 @@ from . import GATES, PARTS as PARTS_, SEALED, families, measure, sealed_runs, st
 
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--split", default="dev", choices=("dev", "sealed", "sealed_v2", "sealed_v3", "sealed_v4", "sealed_v5"))
+    parser.add_argument("--split", default="dev", choices=("dev", "sealed", "sealed_v2", "sealed_v3", "sealed_v4", "sealed_v5", "sealed_v6"))
     parser.add_argument("--workers", type=int, default=min(4, max(1, (os.cpu_count() or 2) - 1)))  # each one an engine: memory
     parser.add_argument("--only", nargs="*")
     parser.add_argument("--no-store", action="store_true")
@@ -47,7 +47,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.split == "sealed_v4" and not args.spent and not args.reader:
         print("the fourth sealed set judges the reader against the rules: run it with --reader, both arms at once")
         return 2
-    if args.split == "sealed_v5" and not args.spent and not args.team_arms:
+    if args.split in ("sealed_v5", "sealed_v6") and not args.spent and not args.team_arms:
         print("the fifth sealed set judges the team against the rules and the single agent: run it with --team-arms, the three arms at once")
         return 2
     if sealed and (args.only or args.no_store):
@@ -298,9 +298,12 @@ def _team_arms(args, seed: int) -> int:
     if args.cap_eur is None or args.cap_eur <= 0:
         print("refused: the team arms need --cap-eur above zero", file=sys.stderr)
         return 2
+    from dclab_rnd.orchestra import patterns as team_patterns
+
+    joined = {name: True for name in ("second_opinion",) if team_patterns.passed(name)}  # 28.6: a pattern joins the team only where it passed
     if not args.yes:
         print(f"Plan: {len(people)} people, three arms (the rules; the loop with the conversation reader; the graph with the reader and the "
-              f"understanding critic's model), about 3 to 5 reader requests and 1 to 3 critic requests a person; capped at {args.cap_eur} EUR "
+              f"understanding critic's model{', and ' + ', '.join(sorted(joined)) if joined else ''}), about 3 to 5 reader requests and 1 to 3 critic requests a person; capped at {args.cap_eur} EUR "
               f"(the single agent a third, the team two thirds). Gate: {TEAM_GATE['rule']}. Add --yes to send them.")
         return 0
     from dotenv import load_dotenv
@@ -322,7 +325,7 @@ def _team_arms(args, seed: int) -> int:
     by_arm = {"rules": measure(args.split, seed, args.workers, args.only)}
     by_arm["single"], by_arm["team"] = [], []
     for j in people:
-        for arm, live, walk in (("single", {"reader": single}, "loop"), ("team", {"reader": team_reader, "critic": critic}, "graph")):
+        for arm, live, walk in (("single", {"reader": single}, "loop"), ("team", {"reader": team_reader, "critic": critic, **joined}, "graph")):
             try:
                 by_arm[arm].append(play(j, seed, None, live, keep / arm / j["id"], walk=walk))
             except Exception as error:  # noqa: BLE001 - a journey that breaks is wrong, with its reason

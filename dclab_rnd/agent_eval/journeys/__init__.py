@@ -44,7 +44,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 RESULTS = ROOT / "evidence" / "campaigns" / "journeys_v1" / "results"
 SEALED = {"sealed": "sealed.sha256", "sealed_v2": "sealed_v2.sha256", "sealed_v3": "sealed_v3.sha256", "sealed_v4": "sealed_v4.sha256",
-          "sealed_v5": "sealed_v5.sha256"}
+          "sealed_v5": "sealed_v5.sha256", "sealed_v6": "sealed_v6.sha256"}
 GATE = {
     "version": "journeys_gate_v1",
     "split": "sealed",
@@ -74,7 +74,10 @@ GATE_V4 = {**GATE_V2, "version": "journeys_gate_v4", "split": "sealed_v4", "seed
 GATE_V5 = {**GATE_V2, "version": "journeys_gate_v5", "split": "sealed_v5", "seed": 5,
            "team": "the team passes TEAM_GATE on these people: at least the rules on every part, a card right more often than the single "
                    "agent's, no request failed, no move refused, no holdout read twice, within the cap a journey"}
-GATES = {"sealed": GATE, "sealed_v2": GATE_V2, "sealed_v3": GATE_V3, "sealed_v4": GATE_V4, "sealed_v5": GATE_V5}
+# 28.7, again: the fifth set judged the team once (it failed); a sixth, written by a fresh agent from the replicas' tables only and
+# pinned before any run, judges the team as it stands after 28.4 and 28.6 (with any pattern that passed), under the same gate
+GATE_V6 = {**GATE_V5, "version": "journeys_gate_v6", "split": "sealed_v6", "seed": 6}
+GATES = {"sealed": GATE, "sealed_v2": GATE_V2, "sealed_v3": GATE_V3, "sealed_v4": GATE_V4, "sealed_v5": GATE_V5, "sealed_v6": GATE_V6}
 # 28.7: the team (the walk's graph, the conversation reader and the understanding critic with a model) beside the rules and
 # the single agent (the loop with the same reader), fixed before any run; on a sealed set "beats" is strict
 TEAM_GATE = {"version": "team_gate_v1",

@@ -408,6 +408,14 @@ families; nothing is captured for the first time there.
   measured only on a fresh sealed set. Four failures are shared by all three arms (grouped folds, a family, a weather
   column read as known ahead): the engine's and the card's, not the team's. EUR 1.16; `team_passed()` is false.
 
+- **A sixth sealed set, frozen (2026-10-18) before any run.** The fifth set judged the team once and is spent; the team
+  has changed since (28.4's two readers, 28.6's patterns), so a fresh one judges it: 30 people, two per kind, written by a
+  new agent that read only a brief of the replicas' tables (their columns and types, label files, related tables, the
+  moment, the Solution page's statements) and the journeys' format, never the rules, the code or any earlier person;
+  checked for its structure only (nobody has read the people), pinned by SHA-256 (`sealed_v6.sha256`), replica seed 6,
+  under the same gate (`GATE_V6`, `TEAM_GATE`). The team arm is the walk with the reader and the critic's model, joined by
+  any 28.6 pattern that passed; `team_passed()` reads the newest sealed team verdict. Run once, after 28.6's results.
+
 ### 28.8 Home and the product
 - **Delivers:** the Home page shows the board (which node works, what it found, the open interrupt), answers resume the
   thread, "build it" is an approval; the Admin trace view shows a run's nodes, hand-offs, cost; the API

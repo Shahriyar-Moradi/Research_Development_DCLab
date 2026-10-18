@@ -77,14 +77,16 @@ def _lines(home: Path, name: str) -> list[dict[str, Any]]:
 
 
 def team_passed() -> bool:
-    """Whether the team passed its sealed measurement (the fifth sealed set's team arm against ``TEAM_GATE``)."""
+    """Whether the team passed its sealed measurement: the newest sealed team arm (the fifth set, then the sixth, 28.7)
+    against ``TEAM_GATE``."""
     from ..agent_eval.journeys import RESULTS
 
-    for path in sorted(RESULTS.glob("JRN-*_sealed_v5.json")) if RESULTS.exists() else []:
+    newest = None
+    for path in sorted(RESULTS.glob("JRN-*_sealed_v[56].json")) if RESULTS.exists() else []:
         doc = json.loads(path.read_text(encoding="utf-8"))
         if doc.get("arm") == "team_live":
-            return bool(((doc.get("team_against") or {}).get("passed")))
-    return False
+            newest = doc  # JRN ids rise with time: the last one read is the newest
+    return bool(((newest or {}).get("team_against") or {}).get("passed"))
 
 
 def _critic(gateway: Any, draft_id: str, cap_eur: Optional[float] = None) -> Any:
