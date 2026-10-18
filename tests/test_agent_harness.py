@@ -48,7 +48,8 @@ TOOL_CALLERS = {("dclab_rnd/agents/runtime.py", "_run"), ("dclab_rnd/agents/regi
                 ("dclab_rnd/intern/loop.py", "Intern._step"), ("dclab_rnd/intern/tools.py", "Toolbox.call"),
                 ("dclab_rnd/draft/chat.py", "HomeAgent.run_tool"), ("dclab_rnd/mcp_server.py", "build_server.call_tool"),
                 ("dclab_rnd/agentic/engine.py", "build_graph.execute"),
-                ("dclab_rnd/orchestra/solution.py", "SolutionTeam.compose")}  # 28.5: the team's compose step records the run_programme call it makes
+                ("dclab_rnd/orchestra/solution.py", "SolutionTeam.compose"), ("dclab_rnd/orchestra/solution.py", "SolutionTeam.stage"),
+                ("dclab_rnd/orchestra/solution.py", "SolutionTeam._compose_single")}  # 28.5, 30.1: the team's steps record the tool calls they make
 SKIP = ("dclab_rnd/agent_eval/",)  # measurement harnesses: they drive the agents, they are not entry points
 
 

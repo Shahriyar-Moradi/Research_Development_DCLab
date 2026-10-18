@@ -110,3 +110,79 @@ def decided(store: Any, project_id: str, verdict: core.AuditVerdict, kept_out: b
 
 
 __all__ = ["AuditError", "audit", "forbid", "decided", "suspects_of", "moment_of"]
+
+
+# ---------------------------------------------------------------------------------------------------------------- 30.1: a project of one problem
+
+STRONG = ("exact_target_proxy", "arithmetic_target_identity", "extreme_univariate_signal", "suspicious_name")
+
+
+def single_inputs(project: dict[str, Any]) -> str:
+    """What the single-problem auditor screens and the person approves reading the holdout on: the table and the solution
+    (its forbidden columns among it)."""
+    import hashlib
+
+    doc = {"data": (project.get("data") or {}).get("sha256"), "solution": project.get("solution")}
+    return hashlib.sha256(json.dumps(doc, sort_keys=True, default=str).encode()).hexdigest()[:16]
+
+
+def audit_single(store: Any, project_id: str, round_: int = 1) -> core.AuditVerdict:
+    """30.1: the auditor on a project of one problem, before features, models and the holdout: the engine's own leakage
+    stage screened the training rows (``heuristic_review_candidates``: an exact proxy of the target, an arithmetic identity,
+    an extreme univariate signal, a name that says so); a column it found so and the solution still keeps is a suspect,
+    put to the person. It fits nothing new and reads no other row."""
+    project = store.get(project_id)
+    record = store.read_stage(project_id, "leakage") or {}  # the leakage stage's own record (written by the engine)
+    evidence = record.get("evidence") or {}
+    forbidden = {f.get("column") for f in (project.get("solution") or {}).get("forbidden") or []}
+    suspects, scores = [], {}
+    for f in evidence.get("heuristic_review_candidates") or []:
+        column = f.get("feature") or f.get("column")  # the runner names a finding's column "feature"
+        if not column:
+            continue
+        column, reasons = str(column), [r for r in f.get("reasons") or [] if r in STRONG]
+        signal = f.get("univariate_auc", f.get("signal"))  # an AUC for a binary outcome; another task's own signal otherwise
+        if isinstance(signal, (int, float)):
+            scores[column] = round(min(1.0, max(0.0, float(signal))), 4)
+        if reasons and column not in forbidden and "declared_post_outcome_or_contested" not in (f.get("reasons") or []):
+            suspects.append(core.Suspect(column=column[:200], auc=scores.get(column, 1.0),
+                                         reason=("the leakage stage found it on the training rows: " + ", ".join(r.replace("_", " ") for r in reasons))[:600]))
+    rows = int(((evidence.get("heuristic_rules") or {}).get("rows_scanned")) or 0)
+    counts = {"rows": rows, "positives": core.MIN_POSITIVES, "columns": len(evidence.get("top_univariate_signals") or []) or len(scores), "scores": scores}
+    verdict = core.verdict(project_id, suspects, counts, (), round_, inputs=single_inputs(project),
+                           limits="The engine's leakage stage screened these training rows; a score is its univariate AUC for a yes or no outcome, another task's own signal otherwise.")
+    project = store.get(project_id)
+    own = dict(project.get("auditor") or {})
+    own["history"] = [*(own.get("history") or []), {"at": _now(), "verdict": json.loads(verdict.model_dump_json()), "screened": sorted(scores)}]
+    own["last"] = own["history"][-1]
+    project["auditor"] = own
+    store.save(project)
+    store.log(project_id, "project_audited", {"verdict": verdict.verdict, "round": verdict.round, "suspects": [s.column for s in verdict.suspects]})
+    from ..ledger import capture
+
+    capture.leak_screened(project_id, verdict, (project.get("data") or {}).get("profile") or {}, screened=sorted(scores))
+    return verdict
+
+
+def forbid_in_solution(store: Any, project_id: str, columns: list[str], reason: str, actor: str = "human") -> dict[str, Any]:
+    """30.1: a person keeps columns out of a project of one problem the way they always do: the solution's forbidden list,
+    saved through the move ``set_solution`` (the stages run again, and the code export reads the same list)."""
+    from .. import audit as trail
+
+    project = store.get(project_id)
+    solution = dict(project.get("solution") or {})
+    if not solution:
+        raise AuditError("save the solution first: its forbidden list is where a column is kept out")
+    verdict_ = studio_graph.check(project, "set_solution", actor, target=solution.get("target"))
+    if not verdict_.allowed:
+        studio_graph.log(store, project_id, verdict_, project)
+        raise AuditError(verdict_.message)
+    have = {f.get("column") for f in solution.get("forbidden") or []}
+    solution["forbidden"] = [*(solution.get("forbidden") or []), *({"column": c, "reason": reason[:300]} for c in columns if c not in have)]
+    project["solution"] = solution
+    store.save(project)
+    studio_graph.log(store, project_id, verdict_, store.get(project_id), outcome=f"done: {', '.join(columns)[:200]} kept out")
+    store.clear_stages(project_id)
+    store.log(project_id, "solution_saved", {"target": solution.get("target"), "task": solution.get("task"), "forbidden": [f.get("column") for f in solution["forbidden"]]})
+    trail.solution(store, store.get(project_id), solution, "human")
+    return store.get(project_id)

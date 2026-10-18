@@ -1,0 +1,151 @@
+{
+  "id": "RPB-006",
+  "experiment_id": "RPB-006",
+  "campaign_id": "real_problems_v1",
+  "kind": "real_problem",
+  "status": "completed",
+  "at": "2026-10-18T05:05:43+00:00",
+  "problem": "hyperack",
+  "private": false,
+  "words": "We run deliveries by bike. When an order is created we want to know whether a biker will accept it quickly, so dispatch can raise the fare or reassign it in time.",
+  "answers_written": [
+    "action",
+    "budget",
+    "data_plan",
+    "entity",
+    "family",
+    "labels",
+    "prediction_moment",
+    "target"
+  ],
+  "started": "2026-10-18T05:04:30+00:00",
+  "files": [
+    "hyper_ackt-dataset.csv"
+  ],
+  "workspace": "agent_runs/real_problems/2026-10-18_hyperack",
+  "understanding": {
+    "next": "done",
+    "says": "The project is built.",
+    "state": "built",
+    "asked": [
+      "target",
+      "prediction_moment",
+      "action"
+    ],
+    "gates": [
+      "build"
+    ]
+  },
+  "solution_saved": "saved",
+  "kept_by_person": [
+    "deliverey_category_id"
+  ],
+  "settings": {
+    "quick": false,
+    "max_rows": 200000,
+    "folds": 5
+  },
+  "plan": {
+    "solution": {
+      "target": "hyper_ack",
+      "task": "binary",
+      "time_column": "created_date",
+      "group_column": null,
+      "metric": null
+    }
+  },
+  "solution": {
+    "next": "done",
+    "says": "",
+    "nodes": [
+      "stage",
+      "stage",
+      "audit",
+      "stage",
+      "stage",
+      "compose",
+      "report"
+    ],
+    "gates": [
+      "build",
+      "holdout"
+    ],
+    "holdout_uses": 1,
+    "audits": [
+      {
+        "schema_version": "dclab_core.audit_verdict.v1",
+        "subject": "06f6c6aaf39f",
+        "round": 1,
+        "rows": 8876,
+        "positives": 10,
+        "columns": 8,
+        "bar": 0.98,
+        "scores": {
+          "final_biker_fare": 0.5441,
+          "final_customer_fare": 0.8019
+        },
+        "inputs": "1ad590fb2d3b3454",
+        "suspects": [],
+        "after_moment": [],
+        "verdict": "pass",
+        "note": "No column alone separates the confirmed cases, and the moment names none written after it. The engine's leakage stage screened these training rows; a score is its univariate AUC for a yes or no outcome, another task's own signal otherwise."
+      }
+    ]
+  },
+  "number": {
+    "kind": "stages",
+    "metric": "roc_auc",
+    "holdout": {
+      "roc_auc": 0.933882037446101,
+      "average_precision": 0.9370703842994743,
+      "recall_at_precision_target": 0.8009569377990431,
+      "precision_target": 0.9,
+      "precision_at_k_positives": 0.8421052631578947,
+      "accuracy": 0.8657052726453357,
+      "majority_baseline_accuracy": 0.5290671473636773,
+      "precision": 0.8894681960375391,
+      "recall": 0.816267942583732,
+      "f1": 0.8512974051896207,
+      "brier": 0.09539570857678759,
+      "log_loss": 0.3177477712629432,
+      "positive_rate": 0.4709328526363227,
+      "threshold": 0.5,
+      "ap_lift": 1.9898173997708455,
+      "fit_seconds": 1.2194392500096
+    },
+    "interval": {
+      "point": 0.933882037446101,
+      "low": 0.9227502599165238,
+      "median": 0.9331283048194586,
+      "high": 0.9455583925101916,
+      "draws": 400,
+      "method": "iid row bootstrap"
+    },
+    "model": "extra_trees",
+    "feature_recipe": "raw",
+    "holdout_rows": 2219,
+    "train_rows": 8876,
+    "holdout_split": "last 2219 of 11095 rows by `created_date`",
+    "cv_to_holdout_gap": 0.034646772694769234,
+    "baselines": {
+      "majority_class": {
+        "accuracy": 0.5290671473636773,
+        "roc_auc": 0.5,
+        "average_precision_random_ranking": 0.4709328526363227
+      }
+    }
+  },
+  "result": "solved",
+  "decisions": 145,
+  "events": 833,
+  "earlier": {
+    "source": "research/tabular-classification (optimized_safe_model, exp 53: soft vote ET + LGBM + XGB)",
+    "numbers": {
+      "roc_auc": 0.9455,
+      "safe_baseline_roc_auc": 0.945,
+      "with_the_final_fares_roc_auc_inflated": 0.9793
+    },
+    "protocol": "the tabular track's ladder, without the final fares (known only after the outcome)"
+  },
+  "rule": "One run on the problem's own data, played with written answers; its number is one holdout of DCLab's own split, set beside an earlier solution measured on another protocol: evidence about this run, not production readiness."
+}

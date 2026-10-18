@@ -31,6 +31,12 @@ solution, with its limits. The records of each run are kept whole in `agent_runs
 - **Done when:** the dev journeys' one-problem kinds build through the team with the parts the engine's journeys reach;
   a planted leak in a one-problem table is sent back; the holdout is read once (a test counts).
 
+- **Status: built (2026-10-18).** The team's single-problem path: the engine's stages through the registry's `run_stage`
+  as an agent; the auditor after the leakage stage reads that stage's own screen of the training rows (an exact proxy, an
+  arithmetic identity, an extreme univariate signal, a name that says so); a keep-out goes into the solution's forbidden
+  list through `set_solution` (the stages run again); the final stage after the person approves reading the holdout. A
+  planted leak, unticked by the person, is sent back and kept out, and the holdout read once (a test).
+
 ### 30.2 Delivery fraud, end to end (private)
 - **Delivers:** the owner's morning (the words, the two files) through the understanding walk and the solution team, on
   a private project; the comparison with `Snap_fruad/complete_solution`.
@@ -41,9 +47,22 @@ solution, with its limits. The records of each run are kept whole in `agent_runs
 - **Delivers:** the walk and the team on Telco with the rules arm and the Claude arms (reader, critic, map roles),
   capped; the comparison with the churn track's champion.
 
+- **Status: run (2026-10-18).** `python -m dclab_rnd.real_problems telco` (the rules; no model): RPB-004 on the whole table:
+  logistic regression, holdout ROC-AUC 0.842 (95% 0.821 to 0.865), average precision 0.631, 1,409 holdout rows, the
+  cross-validation to holdout gap -0.004; the churn track's champion (0.850 on its own protocol) inside the interval.
+  RPB-001 to RPB-003 are the same run on the product's quick pass (3,000 rows) and its two fixes (the runner set the
+  table's rows before the Solution save reset them). The Claude arms on Telco are next.
+
 ### 30.4 HyperAck, the auditor's real test
 - **Delivers:** the walk and the team on HyperAck; the auditor's verdict on the fares; the comparison with the tabular
   track's champion on the same leak-free contract.
+
+- **Status: run (2026-10-18).** RPB-005: the proposal's audit forbade `deliverey_category_id` as "separating the classes"
+  at an AUC of 0.816; accepted unread, the holdout ROC-AUC was 0.668. RPB-006: the person unticks it on the Solution page
+  (the category is chosen when the order is created): extra trees, holdout ROC-AUC 0.934 (95% 0.923 to 0.946), average
+  precision 0.937, the latest 2,219 orders by creation date; the final fares stayed forbidden (the proposal's precedent
+  LEAK-hyperack) and the auditor passed. The track's 0.9455 (its own protocol) at the interval's top. Found: the
+  proposal's bar for "separates the classes" is too low (0.8): 30.6 measures it on the studied samples.
 
 ### 30.5 The business-examples knowledge base
 - **Delivers:** a knowledge base of real business examples, each written as problem → data → solution → workflow,

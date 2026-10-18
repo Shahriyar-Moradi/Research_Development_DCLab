@@ -1,0 +1,143 @@
+{
+  "id": "RPB-003",
+  "experiment_id": "RPB-003",
+  "campaign_id": "real_problems_v1",
+  "kind": "real_problem",
+  "status": "completed",
+  "at": "2026-10-18T05:00:12+00:00",
+  "problem": "telco",
+  "private": false,
+  "words": "We are a telecom. We want to know which customers will leave us next month, so the retention team can call them first.",
+  "answers_written": [
+    "action",
+    "budget",
+    "data_plan",
+    "entity",
+    "family",
+    "labels",
+    "prediction_moment",
+    "target"
+  ],
+  "started": "2026-10-18T04:59:27+00:00",
+  "files": [
+    "WA_Fn-UseC_-Telco-Customer-Churn.csv"
+  ],
+  "workspace": "agent_runs/real_problems/2026-10-18_telco",
+  "understanding": {
+    "next": "done",
+    "says": "The project is built.",
+    "state": "built",
+    "asked": [
+      "prediction_moment",
+      "target"
+    ],
+    "gates": [
+      "build"
+    ]
+  },
+  "settings": {
+    "quick": false,
+    "max_rows": 200000,
+    "folds": 5
+  },
+  "solution_saved": "saved",
+  "plan": {
+    "solution": {
+      "target": "Churn",
+      "task": "binary",
+      "time_column": null,
+      "group_column": null,
+      "metric": null
+    }
+  },
+  "solution": {
+    "next": "done",
+    "says": "",
+    "nodes": [
+      "stage",
+      "stage",
+      "audit",
+      "stage",
+      "stage",
+      "compose",
+      "report"
+    ],
+    "gates": [
+      "build",
+      "holdout"
+    ],
+    "holdout_uses": 1,
+    "audits": [
+      {
+        "schema_version": "dclab_core.audit_verdict.v1",
+        "subject": "12ef91172197",
+        "round": 1,
+        "rows": 2400,
+        "positives": 10,
+        "columns": 8,
+        "bar": 0.98,
+        "scores": {},
+        "inputs": "d260db43219a09ea",
+        "suspects": [],
+        "after_moment": [],
+        "verdict": "pass",
+        "note": "No column alone separates the confirmed cases, and the moment names none written after it. The engine's leakage stage screened these training rows; a score is its univariate AUC for a yes or no outcome, another task's own signal otherwise."
+      }
+    ]
+  },
+  "number": {
+    "kind": "stages",
+    "metric": "roc_auc",
+    "holdout": {
+      "roc_auc": 0.8502545672356993,
+      "average_precision": 0.6721095254958568,
+      "recall_at_precision_target": 0.031446540880503145,
+      "precision_target": 0.9,
+      "precision_at_k_positives": 0.6540880503144654,
+      "accuracy": 0.8183333333333334,
+      "majority_baseline_accuracy": 0.735,
+      "precision": 0.6893939393939394,
+      "recall": 0.5723270440251572,
+      "f1": 0.6254295532646048,
+      "brier": 0.13153721330403476,
+      "log_loss": 0.41257632086331003,
+      "positive_rate": 0.265,
+      "threshold": 0.5,
+      "ap_lift": 2.536262360361724,
+      "fit_seconds": 0.23424383299425244
+    },
+    "interval": {
+      "point": 0.8502545672356993,
+      "low": 0.8150372170476811,
+      "median": 0.8530877949898521,
+      "high": 0.8841813822564657,
+      "draws": 400,
+      "method": "iid row bootstrap"
+    },
+    "model": "logistic_regression",
+    "feature_recipe": "selected_mi",
+    "holdout_rows": 600,
+    "train_rows": 2400,
+    "holdout_split": "stratified random 600 of 3000 rows",
+    "cv_to_holdout_gap": 0.008561371787177086,
+    "baselines": {
+      "majority_class": {
+        "accuracy": 0.735,
+        "roc_auc": 0.5,
+        "average_precision_random_ranking": 0.265
+      }
+    }
+  },
+  "result": "solved",
+  "decisions": 129,
+  "events": 605,
+  "earlier": {
+    "source": "research/churn-prediction (CHURN-014, logistic regression with charge features)",
+    "numbers": {
+      "roc_auc": 0.8499,
+      "average_precision": 0.6708
+    },
+    "protocol": "the churn track's own split and folds"
+  },
+  "rule": "One run on the problem's own data, played with written answers; its number is one holdout of DCLab's own split, set beside an earlier solution measured on another protocol: evidence about this run, not production readiness."
+}

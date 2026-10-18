@@ -402,6 +402,62 @@ class TrainingDataTests(unittest.TestCase):
 
 
 @unittest.skipIf(MISSING, MISSING)
+class SingleProblemTests(unittest.TestCase):
+    """30.1: a project of one problem through the team: the engine's stages through the validator, the auditor after the
+    leakage stage, a planted leak sent back and kept out through the solution, the holdout read once after approval."""
+
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp())
+        experience.install(experience.FileLog(self.home / "experience", "w"))
+        self.addCleanup(experience.install, None)
+
+    def project(self, leak: bool):
+        import dataclasses
+
+        from dclab_rnd import kinds
+        from dclab_rnd.kinds import acceptance
+
+        case = kinds.get("binary").case(0)
+        if leak:  # a neutral name, built from the outcome: the leakage stage's own screen finds it on the training rows
+            table = case.table.copy()
+            table["account_score"] = (table["churned"].astype(str).str.lower() == "yes").astype(float) * 10 + (table["monthly_fee"] % 3) / 100
+            case = dataclasses.replace(case, table=table)
+        store, pid = acceptance.build(case, self.home / "projects")
+        if leak:  # the proposal's own audit forbade it; a person unticked it on the Solution page: the team's auditor is what is left
+            project = store.get(pid)
+            before = [f["column"] for f in project["solution"]["forbidden"]]
+            self.assertIn("account_score", before)  # the product caught it first
+            project["solution"]["forbidden"] = [f for f in project["solution"]["forbidden"] if f["column"] != "account_score"]
+            store.save(project)
+        return store, pid
+
+    def run_team(self, store, pid, person):
+        from unittest import mock
+
+        from dclab_rnd.expansion import runner
+        from dclab_rnd.orchestra import checkpoints
+        from dclab_rnd.orchestra.solution import SolutionTeam, drive
+
+        with runner.fast_profile(), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None), \
+                checkpoints.open_checkpointer(self.home, database_url="") as saver:
+            return drive(SolutionTeam(store, saver, home=self.home), pid, person)
+
+    def test_a_planted_leak_in_a_project_of_one_problem_is_kept_out_before_the_holdout(self):
+        store, pid = self.project(leak=True)
+        person = Person(keep_out=True)
+        out = self.run_team(store, pid, person)
+        self.assertEqual(out["next"], "done", out["says"])
+        gates = [g for g, _ in person.gates]
+        self.assertEqual(gates, ["audit", "holdout"])
+        self.assertIn("account_score", " ".join(person.gates[0][1]["suspects"]))
+        project = store.get(pid)
+        self.assertIn("account_score", [f["column"] for f in project["solution"]["forbidden"]])  # the person's ban, in the solution
+        self.assertEqual(int(project.get("holdout_uses") or 0), 1)
+        self.assertEqual([h["verdict"]["verdict"] for h in project["auditor"]["history"]], ["send_back", "pass"])
+        self.assertTrue(all(((project.get("stages") or {}).get(k) or {}).get("status") in ("completed", "approved") for k in ("data", "leakage", "features", "models", "final")))
+
+
+@unittest.skipIf(MISSING, MISSING)
 class JourneyTests(unittest.TestCase):
     def test_a_programme_journey_reaches_the_same_result_through_the_team(self):
         from dclab_rnd.agent_eval.journeys import programme as jp

@@ -1,0 +1,143 @@
+{
+  "id": "RPB-004",
+  "experiment_id": "RPB-004",
+  "campaign_id": "real_problems_v1",
+  "kind": "real_problem",
+  "status": "completed",
+  "at": "2026-10-18T05:01:15+00:00",
+  "problem": "telco",
+  "private": false,
+  "words": "We are a telecom. We want to know which customers will leave us next month, so the retention team can call them first.",
+  "answers_written": [
+    "action",
+    "budget",
+    "data_plan",
+    "entity",
+    "family",
+    "labels",
+    "prediction_moment",
+    "target"
+  ],
+  "started": "2026-10-18T05:00:33+00:00",
+  "files": [
+    "WA_Fn-UseC_-Telco-Customer-Churn.csv"
+  ],
+  "workspace": "agent_runs/real_problems/2026-10-18_telco",
+  "understanding": {
+    "next": "done",
+    "says": "The project is built.",
+    "state": "built",
+    "asked": [
+      "prediction_moment",
+      "target"
+    ],
+    "gates": [
+      "build"
+    ]
+  },
+  "solution_saved": "saved",
+  "settings": {
+    "quick": false,
+    "max_rows": 200000,
+    "folds": 5
+  },
+  "plan": {
+    "solution": {
+      "target": "Churn",
+      "task": "binary",
+      "time_column": null,
+      "group_column": null,
+      "metric": null
+    }
+  },
+  "solution": {
+    "next": "done",
+    "says": "",
+    "nodes": [
+      "stage",
+      "stage",
+      "audit",
+      "stage",
+      "stage",
+      "compose",
+      "report"
+    ],
+    "gates": [
+      "build",
+      "holdout"
+    ],
+    "holdout_uses": 1,
+    "audits": [
+      {
+        "schema_version": "dclab_core.audit_verdict.v1",
+        "subject": "435e52d546fe",
+        "round": 1,
+        "rows": 5634,
+        "positives": 10,
+        "columns": 8,
+        "bar": 0.98,
+        "scores": {},
+        "inputs": "d260db43219a09ea",
+        "suspects": [],
+        "after_moment": [],
+        "verdict": "pass",
+        "note": "No column alone separates the confirmed cases, and the moment names none written after it. The engine's leakage stage screened these training rows; a score is its univariate AUC for a yes or no outcome, another task's own signal otherwise."
+      }
+    ]
+  },
+  "number": {
+    "kind": "stages",
+    "metric": "roc_auc",
+    "holdout": {
+      "roc_auc": 0.8415536438554341,
+      "average_precision": 0.631062787524924,
+      "recall_at_precision_target": 0.008021390374331552,
+      "precision_target": 0.9,
+      "precision_at_k_positives": 0.606951871657754,
+      "accuracy": 0.8069552874378992,
+      "majority_baseline_accuracy": 0.7345635202271115,
+      "precision": 0.6583850931677019,
+      "recall": 0.5668449197860963,
+      "f1": 0.6091954022988506,
+      "brier": 0.13827177031262214,
+      "log_loss": 0.42091252690208,
+      "positive_rate": 0.2654364797728886,
+      "threshold": 0.5,
+      "ap_lift": 2.377453121985609,
+      "fit_seconds": 0.08532095799455419
+    },
+    "interval": {
+      "point": 0.8415536438554341,
+      "low": 0.8210646512801029,
+      "median": 0.8418805421954996,
+      "high": 0.8647355342055614,
+      "draws": 400,
+      "method": "iid row bootstrap"
+    },
+    "model": "logistic_regression",
+    "feature_recipe": "raw",
+    "holdout_rows": 1409,
+    "train_rows": 5634,
+    "holdout_split": "stratified random 1409 of 7043 rows",
+    "cv_to_holdout_gap": -0.0044347423892592275,
+    "baselines": {
+      "majority_class": {
+        "accuracy": 0.7345635202271115,
+        "roc_auc": 0.5,
+        "average_precision_random_ranking": 0.2654364797728886
+      }
+    }
+  },
+  "result": "solved",
+  "decisions": 129,
+  "events": 605,
+  "earlier": {
+    "source": "research/churn-prediction (CHURN-014, logistic regression with charge features)",
+    "numbers": {
+      "roc_auc": 0.8499,
+      "average_precision": 0.6708
+    },
+    "protocol": "the churn track's own split and folds"
+  },
+  "rule": "One run on the problem's own data, played with written answers; its number is one holdout of DCLab's own split, set beside an earlier solution measured on another protocol: evidence about this run, not production readiness."
+}

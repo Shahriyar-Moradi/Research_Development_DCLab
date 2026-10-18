@@ -1,0 +1,55 @@
+{
+ "package": "30.1",
+ "title": "The solution team on a project of one problem: the engine's stages, the auditor after the leakage stage, the holdout approved",
+ "date": "2026-10-18",
+ "request": "Phase 8 (the owner): solve real problems with the Phase 6 teams; Telco and HyperAck are projects of one problem.",
+ "spec": "docs/guides/PHASE8_REAL_PROBLEMS_PLAN.md, package 30.1",
+ "plan": [
+  "The engine's stages one by one through the registry's run_stage tool, as an agent.",
+  "The auditor after the leakage stage reads that stage's own screen of the training rows.",
+  "A keep-out through the solution's forbidden list and set_solution (the stages run again, the export reads the same list).",
+  "The final stage only after the person approves reading the holdout, recorded on the gate."
+ ],
+ "decisions": [
+  {
+   "decision": "The single-problem auditor reuses the leakage stage's own screen.",
+   "why": "Enhance, never replace: the engine already screens the training rows; a second screen would be a second rule."
+  },
+  {
+   "decision": "A keep-out goes into the solution, not the person's separate list.",
+   "why": "The engine and its code export read the solution's forbidden list: one place, one number reproduced."
+  }
+ ],
+ "change": "SolutionTeam: _situate_single, stage, _compose_single, the audit and its gate by the project's kind; leak_audit.single_inputs, audit_single, forbid_in_solution; the harness's recorded tool callers.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The auditor forbade a column named 'None'.",
+   "scenario": "A planted leak sent back and kept out; the stages ran again and the data stage failed: column 'None' not in the data.",
+   "cause": "The leakage stage names a finding's column 'feature', not 'column'.",
+   "fix": "Read the finding's own key; the score its univariate AUC.",
+   "test": "test_a_planted_leak_in_a_project_of_one_problem_is_kept_out_before_the_holdout"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The planted leak never reached the team's auditor.",
+   "scenario": "The proposal's own column audit had already forbidden it at the build.",
+   "cause": "The product catches a leak that separates the classes before the team starts.",
+   "fix": "The test plays a person who unticked it: what is left for the team's auditor.",
+   "test": "test_a_planted_leak_in_a_project_of_one_problem_is_kept_out_before_the_holdout"
+  }
+ ],
+ "measurements": [],
+ "outcome": "A project of one problem is solved by the team, its leaks screened before any holdout, the holdout read once on the person's approval.",
+ "lessons": [
+  "Read another module's records by its own keys; a guessed key turns a column's name into 'None'."
+ ],
+ "risks": [
+  "The single-problem auditor sees what the leakage stage screened: a leak it misses, the team misses too."
+ ],
+ "commits": []
+}

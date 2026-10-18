@@ -123,7 +123,7 @@ class SolutionTeam:
 
         project = self.projects.get(state["project_id"])
         if programme.plan_of(project) is None:
-            return {"next": "stop", "says": "This project solves one problem: its stages run in the studio (the team covers a programme of several parts)."}
+            return self._situate_single(state, project)  # 30.1: a project of one problem, through the engine's stages
         if len(state.get("steps") or []) >= self.max_steps:
             return {"next": "stop", "says": "The team's step budget was used."}
         p = programme.stored(project)
@@ -141,6 +141,44 @@ class SolutionTeam:
             return {"next": "drop_gate"}
         return {"next": "compose"}
 
+    # ------------------------------------------------------------------------------------------------ 30.1: one problem
+    STAGES = ("data", "leakage", "features", "models", "final")
+
+    def _situate_single(self, state: SolveState, project: dict[str, Any]) -> dict[str, Any]:
+        """The engine's stages in order, the auditor after the leakage stage and before anything is chosen, the holdout read
+        by the final stage only after the person approves it."""
+        from ..studio import leak_audit
+
+        if not project.get("solution"):
+            return {"next": "stop", "says": "Save the solution first: the team runs a project of one problem from its saved solution (the person's)."}
+        if len(state.get("steps") or []) >= self.max_steps:
+            return {"next": "stop", "says": "The team's step budget was used."}
+        status = {k: ((project.get("stages") or {}).get(k) or {}).get("status") for k in self.STAGES}
+        done = ("completed", "approved")
+        nxt = next((k for k in self.STAGES if status[k] not in done), None)
+        if nxt is None:
+            return {"next": "done" if state.get("reported") else "report"}
+        if status["leakage"] in done and state.get("audited_for") != leak_audit.single_inputs(project):
+            return {"next": "audit"}
+        return {"next": "compose" if nxt == "final" else "stage"}
+
+    def stage(self, state: SolveState) -> dict[str, Any]:
+        """30.1: the next stage of the engine, run through the registry's tool and the validator, as an agent."""
+        from ..intern.tools import Toolbox
+
+        project = self.projects.get(state["project_id"])
+        status = {k: ((project.get("stages") or {}).get(k) or {}).get("status") for k in self.STAGES}
+        key = next(k for k in self.STAGES if status[k] not in ("completed", "approved"))
+        clock = time.monotonic()
+        out = Toolbox(self.projects).call("run_stage", {"project_id": state["project_id"], "stage": key})  # its guard the validator
+        failed = isinstance(out, dict) and (out.get("error") or out.get("blocked"))
+        step = self._step("stage", {"stage": key}, {"refused": str(failed)[:300]} if failed else {"stage": key, "status": (out or {}).get("status") if isinstance(out, dict) else None},
+                          time.monotonic() - clock)
+        board = self._advance(state, "stage", key if not failed else "refused")
+        if failed:
+            return {"steps": [step], "board": board, "next": "stop", "says": f"The {key} stage did not run: {failed}"[:600]}
+        return {"steps": [step], "board": board, "next": "situate"}
+
     def _fan(self, state: SolveState) -> Any:
         """The router's fan-out: one ``Send`` a sub-problem, each routed on its own, all in the same step."""
         from langgraph.graph import END
@@ -150,7 +188,7 @@ class SolutionTeam:
 
         nxt = state.get("next")
         if nxt != "route":
-            return nxt if nxt in ("design", "audit", "audit_gate", "compose", "drop_gate", "report") else END
+            return nxt if nxt in ("design", "audit", "audit_gate", "compose", "drop_gate", "report", "stage") else END
         m, _ = programme.maps(self.projects.get(state["project_id"]))
         return [Send("route_part", {"project_id": state["project_id"], "sub": s.id, "card": state["card"]}) for s in m.sub_problems]
 
@@ -208,8 +246,9 @@ class SolutionTeam:
 
         clock = time.monotonic()
         rnd = int(state.get("send_backs") or 0) + 1  # the rounds are the send-backs: a restart is not one
+        single = programme.plan_of(self.projects.get(state["project_id"])) is None
         try:
-            v = leak_audit.audit(self.projects, state["project_id"], rnd)
+            v = (leak_audit.audit_single if single else leak_audit.audit)(self.projects, state["project_id"], rnd)
         except (leak_audit.AuditError, programme.ProgrammeError) as exc:  # a table too short for the split, no data: said, never a crash
             step = self._step("audit", {"round": rnd}, {"refused": str(exc)[:300]}, time.monotonic() - clock)
             return {"steps": [step], "next": "stop", "says": f"The auditor could not screen the columns: {exc}"[:600],
@@ -244,8 +283,14 @@ class SolutionTeam:
         clock = time.monotonic()
         columns = leak_audit.suspects_of(v)
         if keep_out:
+            from ..studio import programme as _programme
+
+            single = _programme.plan_of(project) is None
             try:
-                leak_audit.forbid(self.projects, state["project_id"], columns, f"the auditor's screen, round {v.round}: kept out by the person", actor="human", verdict=v)
+                if single:  # 30.1: the solution's own forbidden list, through set_solution (the stages run again)
+                    leak_audit.forbid_in_solution(self.projects, state["project_id"], columns, f"the auditor's screen, round {v.round}: kept out by the person")
+                else:
+                    leak_audit.forbid(self.projects, state["project_id"], columns, f"the auditor's screen, round {v.round}: kept out by the person", actor="human", verdict=v)
             except leak_audit.AuditError as exc:
                 return {"next": "stop", "says": f"The columns could not be kept out: {exc}"[:600], "board": self._advance(state, "audit", "refused", board)}
         leak_audit.decided(self.projects, state["project_id"], v, keep_out)
@@ -262,6 +307,8 @@ class SolutionTeam:
         from ..studio import graph as studio_graph, programme
 
         project = self.projects.get(state["project_id"])
+        if programme.plan_of(project) is None:
+            return self._compose_single(state, project)
         audited = programme.audit_inputs(project)
         p = programme.stored(project)
         if p is not None and p.holdout is not None and not programme.stale_reasons(project):
@@ -290,6 +337,33 @@ class SolutionTeam:
             return {"approved_for": audited, "steps": [step], "board": board, "next": "stop",
                     "says": ("The programme did not read the holdout: " + "; ".join(out.get("blockers") or out.get("issues") or [str(out.get("state"))]))[:600]}
         return {"approved_for": audited, "steps": [step], "board": board, "next": "situate"}
+
+    def _compose_single(self, state: SolveState, project: dict[str, Any]) -> dict[str, Any]:
+        """30.1: the final stage (tuning on the training folds, then the holdout once) after the person approves reading it,
+        the approval recorded as the project's gate; run through the registry's tool as an agent."""
+        from ..intern.tools import Toolbox
+        from ..studio import graph as studio_graph, leak_audit
+
+        fp = leak_audit.single_inputs(project)
+        token = _PAUSES.set([])
+        try:
+            approved = state.get("approved_for") == fp or self.asker.approve("holdout", {"stages": [k for k in self.STAGES if k != "final"],
+                                                                                         "target": (project.get("solution") or {}).get("target")})
+            board = self._close_pauses(state, "compose")
+        finally:
+            _PAUSES.reset(token)
+        if not approved:
+            return {"next": "stop", "says": "Waiting for the person's approval to read the holdout.", "board": self._advance(state, "compose", "declined", board)}
+        clock = time.monotonic()
+        if state.get("approved_for") != fp:
+            studio_graph.approve_gate(self.projects, state["project_id"], "holdout", by="person", reason="approved in the solution team, after its audit")
+        out = Toolbox(self.projects).call("run_stage", {"project_id": state["project_id"], "stage": "final"})
+        failed = isinstance(out, dict) and (out.get("error") or out.get("blocked"))
+        step = self._step("compose", {"stage": "final"}, {"refused": str(failed)[:300]} if failed else {"final": "done"}, time.monotonic() - clock)
+        if failed:
+            return {"next": "stop", "says": f"The final stage did not run: {failed}"[:600], "steps": [step], "approved_for": fp,
+                    "board": self._advance(state, "compose", "refused", board)}
+        return {"approved_for": fp, "steps": [step], "board": self._advance(state, "compose", "final", board), "next": "situate"}
 
     def drop_gate(self, state: SolveState) -> dict[str, Any]:
         """A part that cannot run, put to the person: drop it with a reason (their move ``drop_leaf``), or stop."""
@@ -327,7 +401,7 @@ class SolutionTeam:
         clock = time.monotonic()
         project = self.projects.get(state["project_id"])
         p = programme.stored(project)
-        text = core_programme.markdown(p) if p is not None else ""
+        text = core_programme.markdown(p) if p is not None else json.dumps((self.projects.read_stage(state["project_id"], "final") or {}).get("summary") or "", default=str)
         step = self._step("report", {}, {"characters": len(text), "sections": len(core_programme.sections(p)) if p is not None else 0}, time.monotonic() - clock)
         return {"reported": True, "steps": [step], "board": self._advance(state, "report", "reported", parts=self._parts(project)), "next": "situate"}
 
@@ -341,12 +415,12 @@ class SolutionTeam:
 
         g = StateGraph(SolveState)
         g.add_node("situate", self.situate)
-        for name in ("route_part", "design", "audit", "audit_gate", "compose", "drop_gate", "report"):
+        for name in ("route_part", "design", "audit", "audit_gate", "compose", "drop_gate", "report", "stage"):
             g.add_node(name, getattr(self, name))
         g.add_edge(START, "situate")
-        g.add_conditional_edges("situate", self._fan, ["route_part", "design", "audit", "audit_gate", "compose", "drop_gate", "report", END])
+        g.add_conditional_edges("situate", self._fan, ["route_part", "design", "audit", "audit_gate", "compose", "drop_gate", "report", "stage", END])
         g.add_edge("route_part", "design")  # every part routed, then the designer: the join of the fan-out
-        for name in ("design", "audit", "audit_gate", "compose", "drop_gate", "report"):
+        for name in ("design", "audit", "audit_gate", "compose", "drop_gate", "report", "stage"):
             g.add_conditional_edges(name, self._after, {"situate": "situate", "audit_gate": "audit_gate", "compose": "compose", "end": END})
         self.graph = g.compile(checkpointer=self.checkpointer)
         return self.graph
