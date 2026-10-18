@@ -793,6 +793,15 @@ product's agent asks the critic once its brief is confirmed and before it plans,
 question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
 whether to go on, recording the decision.
 
+## The understanding critic's questions in the records (28.4, dclab-core 0.80.0)
+
+The library's: `experience_event.v11`, whose `chat.agent` carries `question_source` (meta: `critic` when the understanding
+critic sent a card field back to the person; v10 events read as v11), and `datasets.conversations`, whose examples list the
+critic's turns (`critic`: the turn and the field; the person's answer is the turn after it). Where it goes there: the main
+product's clarification messages map onto `chat.agent` as before (`adapters/main_product_experience.py`); when it has a critic
+of its own, its question rows set `question_source`, and its conversation sets then hold the critic's questions and the
+answers as examples of their own. Nothing to change until then: the field is optional.
+
 ## A team of agents: the board, the hand-offs, the record (28.2, dclab-core 0.67.0)
 
 The library's: `dclab_core.orchestra.Board` v1 (what a team knows at one moment: the problem in names and codes, the tables as

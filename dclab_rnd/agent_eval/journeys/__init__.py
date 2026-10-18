@@ -336,6 +336,14 @@ def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]]
                 out = _walk(Coordinator(drafts, projects, agent, advisor), start_at, person.person, walk, home, (live or {}).get("critic"))
         row["handoffs"] = [{k: h.get(k) for k in ("role", "allowed", "refused_columns", "source")}
                            for h in (drafts.get(start_at).get("coordinator") or {}).get("handoffs") or []]
+        if walk == "graph":  # 28.4: what the team's readers did: the analyst's fills, the critic's rounds, each send-back with its reason
+            own = drafts.get(start_at).get("coordinator") or {}
+            history = (own.get("critic") or {}).get("history") or []
+            why = {c.get("field"): c.get("why") or c.get("question") for h in history for c in h.get("concerns") or []}
+            row["team"] = {"analyst": own.get("analyst"), "critic_rounds": len(history),
+                           "sent_back": [{"field": h["sent_back"], "why": why.get(h["sent_back"]), "source": h.get("source")} for h in history if h.get("sent_back")],
+                           "concerns_standing": [c.get("field") for c in (own.get("critic") or {}).get("awaiting") or []],
+                           "overridden": bool((own.get("critic") or {}).get("overridden"))}
         understood = card_of(drafts.get(start_at))
         card = understood.family.value
         accepted = journey["family"] if isinstance(journey.get("family"), list) else [journey.get("family")]

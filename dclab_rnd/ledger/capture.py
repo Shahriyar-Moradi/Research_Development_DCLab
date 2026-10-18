@@ -669,7 +669,7 @@ def leak_screened(project_id: str, verdict: Any, profile: dict[str, Any] | None,
     return written
 
 
-TEAM_NODES = ("answer", "draw_map", "confirm_map", "bring_table", "analyse", "plan_workflow", "build", "critic", "critic_gate",
+TEAM_NODES = ("answer", "draw_map", "confirm_map", "bring_table", "analyse", "reread", "plan_workflow", "build", "critic", "critic_gate",
               "route", "design", "audit", "audit_gate", "compose", "drop_gate", "report", "stop", "done", "wait_for_data")
 
 

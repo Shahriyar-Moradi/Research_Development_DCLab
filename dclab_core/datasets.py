@@ -256,7 +256,8 @@ def conversations(events: Iterable[dict[str, Any]], *, workspace: Optional[str] 
                   drafts: Optional[dict[str, str]] = None) -> tuple[list[dict[str, Any]], DatasetManifest]:
     """Chat examples from Home conversations that ended in a build (the person accepted the problem as understood). 23.6:
     a reply the person edited is the example's reply (the original kept in ``edits``), a thumb up marks it, and a
-    thumb down on a reply ends the example before it (what the person rejected is not taught)."""
+    thumb down on a reply ends the example before it (what the person rejected is not taught). 28.4: ``critic`` lists the
+    turns in which the understanding critic sent a field back (its question; the person's answer is the turn after it)."""
     from dclab_core import feedback
 
     rows = []
@@ -272,6 +273,7 @@ def conversations(events: Iterable[dict[str, Any]], *, workspace: Optional[str] 
                 said[ref].append(p)
         messages = [{"role": "system", "content": SYSTEM}]
         edits: list[dict[str, Any]] = []
+        critic: list[dict[str, Any]] = []
         approved = False
         for e in items:
             p = e.get("payload") or {}
@@ -289,6 +291,8 @@ def conversations(events: Iterable[dict[str, Any]], *, workspace: Optional[str] 
                 else:
                     approved = approved or bool(verdict and verdict["label"] == "approved")
                     messages.append({"role": "assistant", "content": str(p["text"])})
+                if p.get("question_source") == "critic":
+                    critic.append({"at": len(messages) - 1, "field": p.get("question_field")})
             elif e["kind"] == "draft.built":
                 break
         merged: list[dict[str, str]] = []
@@ -305,14 +309,15 @@ def conversations(events: Iterable[dict[str, Any]], *, workspace: Optional[str] 
             continue
         while merged and merged[-1]["role"] != "assistant":
             merged.pop()
+        critic = [{"turn": place[c["at"]], "field": c["field"]} for c in critic if place[c["at"]] + 1 < len(merged)]  # with its answer, the turn after
         project = next(((e.get("ids") or {}).get("project") for e in items if (e.get("ids") or {}).get("project")), None)
         group = group_of(project, conversation, None, drafts, f"conversation:{conversation}")
         rows.append({"conversation": conversation, "messages": merged, "group": group, "split": split_of(group), "consent": lowest(e.get("consent") for e in items),
                      "models": _models(items),
-                     "label": "edit" if edits else "thumbs_up" if approved else None, "edits": edits,
+                     "label": "edit" if edits else "thumbs_up" if approved else None, "edits": edits, "critic": critic,
                      "sources": [("conversation", conversation)] + [("event", e.get("id")) for e in items]})
     return rows, manifest("conversations", "conversations.problem_understanding", rows, sources_of(rows), use="train", consent=consent, workspace=workspace,
-                          counts={"labels": dict(Counter(r["label"] or "none" for r in rows))},
+                          counts={"labels": dict(Counter(r["label"] or "none" for r in rows)), "critic": dict(Counter(str(c["field"]) for r in rows for c in r["critic"]))},
                           policy="One example per built draft; grouped with the project it became, split as every set. A reply the person edited "
                                  "is the reply (the original in `edits`); a thumb up marks the example; a thumb down ends it before that reply.",
                           limits=["Text is as the export redacted it.", "A conversation not built is left out: its understanding was not accepted.",
@@ -616,7 +621,8 @@ def routes(items: Iterable[dict[str, Any]], *, workspace: Optional[str] = None, 
 # ------------------------------------------------------------------------------------------------ (h) a team's walks (28.9)
 
 TEAM_FAMILY = {"design": "solution_design", "plan_workflow": "solution_design", "audit": "leakage_judgment", "compose": "read_results",
-               "drop": "read_results", "report": "report", "critic": "ask_question"}  # every other node of a walk: agent_step (the routes are in the design's board)
+               "drop": "read_results", "report": "report", "critic": "ask_question",
+               "analyse": "understand_problem", "analyse_problem": "understand_problem"}  # 28.4: the analyst's readings, the brief before and after  # every other node of a walk: agent_step (the routes are in the design's board)
 
 
 def team_walks(items: Iterable[dict[str, Any]], *, workspace: Optional[str] = None, consent: str = "train") -> tuple[list[dict[str, Any]], DatasetManifest]:

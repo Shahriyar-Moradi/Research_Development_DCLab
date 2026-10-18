@@ -346,6 +346,43 @@ class HomeAgent:
             found["action"] = brief.action.quote
         return found
 
+    def read_answers(self, draft_id: str) -> dict[str, Any]:
+        """28.4, the problem analyst of the understanding team: the first sentence and every answer the person gave, read
+        together with the table's columns (``dclab_core.understand``, as ``read_brief`` reads the sentence alone), for what
+        is said in answer to another question. Only the action is taken from them ("..., to send each one to the review
+        team", said with the review capacity), in the person's own words (``plans.quoted``), when it is still open; the
+        outcome never is: by the analysis it is settled by the person or by the data (a file of known cases, the table's
+        suggestion), and words that merely name a column are no outcome (the review of 28.4). No model is asked: the facts
+        taken here are the person's stated words, and a model's are inferred. The record on the draft names the fields,
+        never the words (they are in the understanding), and keeps every field the analyst ever filled."""
+        from dclab_core.understand import understand
+
+        draft = self.store.get(draft_id)
+        texts = [t for t in plans.user_text(draft) if str(t or "").strip()]
+        columns = [c.get("name") for c in ((draft.get("analysis") or {}).get("profile") or {}).get("columns") or [] if c.get("name")]
+        brief = understand(". ".join(str(t).strip().rstrip(".") for t in texts), {"table": columns} if columns else None)
+        filled: list[str] = []
+        fact = brief.action
+        if fact.status == "stated" and not (draft.get("understanding") or {}).get("action") and plans.quoted(fact.quote, texts):
+            self.note(draft_id, "action", fact.quote, "stated", "analyst", fact.quote)
+            filled.append("action")
+        if filled:
+            self.update_plan(draft_id)
+        return self.analyst_read(draft_id, len(texts), filled)
+
+    def analyst_read(self, draft_id: str, read: int, filled: list[str], error: str | None = None) -> dict[str, Any]:
+        """The problem analyst's record on the draft: how many of the person's texts it has read, what it filled this time
+        (``last``) and ever (``filled``), and an error when its reading failed (it still counts as read: the walk goes on)."""
+        out: dict[str, Any] = {}
+
+        def keep(d: dict[str, Any]) -> None:
+            before = (d.get("coordinator") or {}).get("analyst") or {}
+            out.update(filled=sorted(set(before.get("filled") or []) | set(filled)), last=list(filled), read=int(read), source="rules",
+                       **({"error": error} if error else {}))
+            d.setdefault("coordinator", {})["analyst"] = dict(out)
+        self.store.update(draft_id, keep)
+        return dict(out)
+
     @turn
     def replan(self, draft_id: str) -> None:
         """The problem sentence changed: forget what was read from the old one and read the new one (no model)."""

@@ -4,6 +4,18 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.80.0 (2026-10-18)
+
+Package 28.4 (the rest): the understanding team's critic, in the records.
+
+- `experience` v11 (`dclab_core.experience_event.v11`, v10 read as v11): `chat.agent` gains `question_source` (meta), who
+  sent the question: `critic` when the understanding critic sent a card field back to the person.
+- `datasets.conversations`: each example's `critic` lists the turns in which the critic asked (`turn`, `field`); the
+  person's answer is the turn after it (a question whose answer the example does not hold is not listed). The manifest
+  counts the critic's questions by field.
+- `datasets.TEAM_FAMILY`: a team's `analyse` and `analyse_problem` hand-offs (the problem analyst's readings: the brief
+  before and after) are `understand_problem` examples.
+
 ## 0.79.0 (2026-10-18)
 
 Package 30.11: the first three modifiers.

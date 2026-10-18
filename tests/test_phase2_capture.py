@@ -33,7 +33,7 @@ NEW = ("problem.mapped", "problem.part_changed", "solution.routed", "solution.co
 class ContractTest(unittest.TestCase):
     def test_the_five_kinds_are_declared_with_their_classes_and_the_contract_is_v9(self):
         self.assertTrue(set(NEW) <= set(x.KINDS))
-        self.assertEqual(x.ExperienceEvent.model_fields["schema_version"].default, "dclab_core.experience_event.v10")
+        self.assertEqual(x.ExperienceEvent.model_fields["schema_version"].default, "dclab_core.experience_event.v11")
         self.assertIn("dclab_core.experience_event.v8", x.READ_AS_CURRENT)
         for kind in NEW:
             self.assertTrue(set(x.KINDS[kind].values()) <= {"meta", "count", "person_text"}, "nothing a model said and no cell value")
@@ -51,7 +51,7 @@ class ContractTest(unittest.TestCase):
     def test_a_v8_event_is_read_as_v9_and_a_v2_label_as_v3(self):
         old = {"schema_version": "dclab_core.experience_event.v8", "id": "ev0000003", "at": "2026-10-16T10:00:00+00:00", "seq": 0, "ids": {"workspace": "w1"},
                "actor": "person", "kind": "visit.started", "payload": {"surface": "web"}, "classes": {"surface": "meta"}}
-        self.assertEqual(x.ExperienceEvent.read(old).schema_version, "dclab_core.experience_event.v10")
+        self.assertEqual(x.ExperienceEvent.read(old).schema_version, "dclab_core.experience_event.v11")
         label = core_ledger.DecisionLabel.read({"schema_version": "dclab_core.decision_label.v2", "id": "dl0000001", "record": "r1", "point": "column.is_identifier",
                                                 "value": True, "source": "benchmark", "by": "replica", "at": "2026-10-16T10:00:00+00:00"})
         self.assertEqual(label.schema_version, "dclab_core.decision_label.v3")

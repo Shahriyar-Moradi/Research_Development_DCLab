@@ -91,7 +91,8 @@ def from_draft_event(draft_id: str, kind: str, data: dict[str, Any] | None) -> N
 
             record("chat.agent", "agent", {"text": text, "kind": message.get("kind"), "question_field": question.get("field"),
                                            "options": [str(o)[:120] for o in question.get("options") or []][:12] or None,
-                                           "surface": "home", "message": str(message.get("id") or "")[:80] or None, "version": release()},
+                                           "surface": "home", "message": str(message.get("id") or "")[:80] or None, "version": release(),
+                                           "question_source": str(question.get("source"))[:40] if question.get("source") else None},  # 28.4: "critic"
                    model_request=last_model_request() if message.get("by") == "model" else None, **ids)  # 23.10: only a reply a model wrote joins its request
     elif kind == "pipeline":
         step, asset = data.get("step"), data.get("asset")

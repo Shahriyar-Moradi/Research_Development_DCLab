@@ -287,9 +287,20 @@ families; nothing is captured for the first time there.
   is not asked about what the person already answered; when concerns stand and none can be sent back, the person decides
   (an approval: go on, recorded as overridden, or stop with the concerns shown). Every round is kept with its concerns, its
   refusals and their reasons (`draft.coordinator.critic.history`). "Yes" to a critic's question keeps what is known; a
-  family is read from the answer, never stored as its words. Left: the analyst and the investigator as parallel nodes of a
-  D2 subgraph, the measurement against the single Home agent (with 28.7), and the critic's questions and answers as
-  conversation examples and the briefs as `solution_design` inputs (with 28.9).
+  family is read from the answer, never stored as its words.
+  **Completed (2026-10-18, 28.4b):** once a table is there, the walk sends the problem analyst and the data investigator in
+  the same step (one `Send` each: `analyse_problem`, the Home agent's `read_answers` over the first sentence and every answer
+  with the table's columns; `analyse_data`, the coordinator's own analysis, unchanged), joined by `analysed` into one step and
+  one hand-off; before the critic reads the card, the analyst reads again whatever the person said since (`reread`). The
+  analyst takes only the action from the answers, in the person's words and when still open (never the outcome: by then the
+  person or the data settles it, and words naming a column are no outcome, the review's finding); no model is asked there; a
+  failed reading is recorded and the walk goes on. The critic's questions carry `question_source` on `chat.agent`
+  (`experience_event.v11`, dclab-core 0.80.0), and the conversation examples list the critic's turns with their answers; the
+  analyst's hand-offs, the brief before and after, are `understand_problem` examples of `team_walks` (the brief reaches
+  `solution_design` as the input of the workflow's hand-offs: labelling a reading as a design would mislabel it). Measured:
+  the dev journeys through the graph 15 of 15 (JRN-022), identical to the single Home agent's on every card field and part
+  (JRN-020), 50 questions each and none asked twice; 15 critic rounds, no send-back, the analyst filled nothing new (the dev
+  people state no action in another answer: no regression shown, not a gain). The review's 6 findings fixed.
 
 ### 28.5 The solution team
 - **Delivers:** the nodes of D3 as a subgraph; parts of a complex problem routed and designed in parallel (`Send`) and

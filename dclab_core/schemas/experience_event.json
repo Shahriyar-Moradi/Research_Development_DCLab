@@ -178,7 +178,7 @@
     },
     "JsonValue": {}
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v10.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v11.json",
   "additionalProperties": false,
   "allOf": [
     {
@@ -1817,6 +1817,46 @@
               "properties": {
                 "payload": {
                   "required": [
+                    "question_source"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "question_source"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "question_source"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "question_source"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
                     "surface"
                   ]
                 }
@@ -1948,6 +1988,9 @@
               "question_field": {
                 "const": "meta"
               },
+              "question_source": {
+                "const": "meta"
+              },
               "surface": {
                 "const": "meta"
               },
@@ -1964,6 +2007,7 @@
                 "message",
                 "options",
                 "question_field",
+                "question_source",
                 "surface",
                 "text",
                 "version"
@@ -1977,6 +2021,7 @@
                 "message",
                 "options",
                 "question_field",
+                "question_source",
                 "surface",
                 "text",
                 "version"
@@ -15510,8 +15555,8 @@
       "type": "array"
     },
     "schema_version": {
-      "const": "dclab_core.experience_event.v10",
-      "default": "dclab_core.experience_event.v10",
+      "const": "dclab_core.experience_event.v11",
+      "default": "dclab_core.experience_event.v11",
       "title": "Schema Version",
       "type": "string"
     },

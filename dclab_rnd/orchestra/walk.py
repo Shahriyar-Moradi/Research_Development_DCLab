@@ -14,6 +14,7 @@ from __future__ import annotations
 import contextvars
 import hashlib
 import json
+import threading
 import time
 from datetime import datetime, timezone
 import operator
@@ -26,11 +27,16 @@ ACTS = ("answer", "draw_map", "confirm_map", "bring_table", "analyse", "plan_wor
 _SESSION: contextvars.ContextVar[Any] = contextvars.ContextVar("orchestra_walk_session")
 _PAUSES: contextvars.ContextVar[list] = contextvars.ContextVar("orchestra_walk_pauses")  # the pauses a node closed, in order
 AGAIN = 5  # at most this many times a node asks again because what is open changed while the walk waited
+_STEP = threading.Lock()  # 28.4: the analyst and the investigator write their steps one at a time
 
 
 def _key(*parts: Any) -> str:
     """What a pause asks, as a short key: an answer resumes only the pause it was given to (the review of 28.3)."""
     return hashlib.sha1(json.dumps(parts, sort_keys=True, default=str).encode()).hexdigest()[:12]
+
+
+def _union(a: Optional[dict[str, Any]], b: Optional[dict[str, Any]]) -> dict[str, Any]:
+    return {**(a or {}), **(b or {})}
 
 
 def _closed(item: dict[str, Any]) -> None:
@@ -52,6 +58,8 @@ class WalkState(TypedDict, total=False):
     project_id: Optional[str]
     started: str
     runs: Annotated[list[str], operator.add]  # every session of the walk, appended (the review of 28.8: a stale read lost one)
+    analysis: Annotated[dict[str, Any], _union]  # 28.4: the two readers' results, merged at the join
+    spent_at: float  # 28.4: what the walk had spent when the two readers began
 
 
 def _answered(draft: dict[str, Any]) -> set[str]:
@@ -128,8 +136,10 @@ class Walk:
     TEAM = "orchestra"
 
     def __init__(self, coordinator: Any, checkpointer: Any, home: Any = None, max_steps: Optional[int] = None,
-                 critic: bool = True, critic_advisor: Any = None, max_eur: Optional[float] = None, node_eur: Optional[float] = None):
+                 critic: bool = True, critic_advisor: Any = None, max_eur: Optional[float] = None, node_eur: Optional[float] = None,
+                 parallel: bool = True):
         self.c, self.checkpointer, self.home = coordinator, checkpointer, home
+        self.parallel = parallel  # 28.4: the analysis as the problem analyst and the data investigator in the same step
         self.critic_on, self.critic_advisor = critic, critic_advisor  # 28.4: the understanding critic (its rules, or a model)
         self.max_steps = max_steps or getattr(coordinator, "max_steps", 40)
         self.max_eur, self.node_eur = max_eur, node_eur  # 28.8: the walk's euro budget across its resumes, and one node's
@@ -191,7 +201,11 @@ class Walk:
             if self.c.agent.pending(self.c.drafts.get(state["draft_id"])) is not None:
                 nxt = "answer"  # a question the critic sent back is open: its answer comes before the workflow is drawn again
             elif not self._critic_done(state["draft_id"]):
-                nxt = "critic"  # 28.4: before a solution is drawn, the understanding is read again
+                # 28.4: before a solution is drawn, the understanding is read again: the problem analyst first, when the person
+                # answered since it last read, then the critic, on the card with every answer in it
+                last = (state.get("steps") or [{}])[-1]
+                failed = last.get("action") == "analyse_problem" and bool((last.get("result") or {}).get("error"))  # never read again at once
+                nxt = "reread" if self.parallel and not failed and self._analyst_behind(state["draft_id"]) else "critic"
         spent = _spent(state["draft_id"], state.get("runs") or []) if self.max_eur is not None else 0.0
         over_node = next((s for s in state.get("steps") or [] if self.node_eur is not None and float(s.get("cost_eur") or 0.0) > self.node_eur), None)
         if len(state.get("steps") or []) >= self.max_steps and nxt not in ("done", "stop", "wait_for_data"):
@@ -210,7 +224,11 @@ class Walk:
                           open_questions=sum(1 for q in draft.get("questions") or [] if not q.get("answered")),
                           pending=self.c.agent.pending(draft) is not None, critic_passed=self._critic_done(state["draft_id"]) if self.critic_on else None,
                           step=len(state.get("steps") or []))
-        return {"next": nxt, "state": now.state, "says": says, "situation": json.loads(now.model_dump_json())}
+        out = {"next": nxt, "state": now.state, "says": says, "situation": json.loads(now.model_dump_json())}
+        if nxt == "analyse" and self.parallel:  # the pair is one node: one budget, its cost from here
+            self._cap_node()
+            out["spent_at"] = _spent(state["draft_id"], state.get("runs") or [])
+        return out
 
     def _act(self, action: str):
         def node(state: WalkState) -> dict[str, Any]:
@@ -248,19 +266,98 @@ class Walk:
                 board = self._close_pauses(state, action)
             finally:
                 _PAUSES.reset(token)
-            steps = [*state.get("steps", []), {"state": now.state, "action": action, "says": now.says, "seconds": seconds, "result": result,
-                                               "cost_eur": cost}]
-            update: dict[str, Any] = {"steps": steps, "board": self._advance(state, action, action, board),
-                                      "project_id": result.get("project_id") or state.get("project_id")}
-            if result.get("stopped"):
-                return {**update, "next": "stop", "says": result["stopped"]}
-            done = json.dumps([now.state, action, json.dumps(result, sort_keys=True, default=str)])
-            seen = dict(state.get("seen") or {})
-            seen[done] = seen.get(done, 0) + 1
-            if done == state.get("last") or seen[done] >= 3:  # the same outcome again, or a loop of questions: no progress
-                return {**update, "seen": seen, "last": done, "next": "stop", "says": f"No progress at {now.state}: {now.says}"}
-            return {**update, "seen": seen, "last": done, "next": "situate"}
+            return self._finish(state, now, action, result, seconds, cost, board)
         return node
+
+    def _finish(self, state: WalkState, now: Any, action: str, result: dict[str, Any], seconds: float, cost: float, board: Any) -> dict[str, Any]:
+        """An action's step on the walk: kept with its cost, the board advanced, a stop said, and no progress caught."""
+        steps = [*state.get("steps", []), {"state": now.state, "action": action, "says": now.says, "seconds": seconds, "result": result,
+                                           "cost_eur": cost}]
+        update: dict[str, Any] = {"steps": steps, "board": self._advance(state, action, action, board),
+                                  "project_id": result.get("project_id") or state.get("project_id")}
+        if result.get("stopped"):
+            return {**update, "next": "stop", "says": result["stopped"]}
+        done = json.dumps([now.state, action, json.dumps(result, sort_keys=True, default=str)])
+        seen = dict(state.get("seen") or {})
+        seen[done] = seen.get(done, 0) + 1
+        if done == state.get("last") or seen[done] >= 3:  # the same outcome again, or a loop of questions: no progress
+            return {**update, "seen": seen, "last": done, "next": "stop", "says": f"No progress at {now.state}: {now.says}"}
+        return {**update, "seen": seen, "last": done, "next": "situate"}
+
+    # ------------------------------------------------------------------------------------------------ 28.4: the analysis, two readers at once
+    def _fan(self, state: WalkState) -> Any:
+        """Once a table is there the problem analyst and the data investigator read in the same step (one ``Send`` each),
+        joined by ``analysed``; every other next node as the coordinator chose it."""
+        from langgraph.types import Send
+
+        nxt = self._route(state)
+        if nxt != "analyse" or not self.parallel:
+            return nxt
+        branch = {"draft_id": state["draft_id"], "situation": state["situation"]}
+        return [Send("analyse_problem", branch), Send("analyse_data", branch)]
+
+    def analyse_problem(self, state: WalkState) -> dict[str, Any]:
+        """The problem analyst: the first sentence and every answer read into the brief, with the table's columns (the Home
+        agent's ``read_answers``: a field still open filled from the person's own words, nothing overwritten). A reader that
+        fails leaves the brief as the conversation made it: the investigator and the walk go on."""
+        clock = time.monotonic()
+        try:
+            result = {"role": "problem_analyst", **self.c.agent.read_answers(state["draft_id"])}
+        except Exception as exc:  # noqa: BLE001 - an extra reader: its failure is recorded, never the walk's
+            from ..draft import plan as plans
+
+            texts = sum(1 for t in plans.user_text(self.c.drafts.get(state["draft_id"])) if str(t or "").strip())
+            try:  # read, though it failed: the walk goes on to the critic (the review of 28.4: it read again until no progress)
+                result = {"role": "problem_analyst", **self.c.agent.analyst_read(state["draft_id"], texts, [], type(exc).__name__)}
+            except Exception:  # noqa: BLE001 - nothing more to keep
+                result = {"role": "problem_analyst", "filled": [], "last": [], "read": texts, "source": "rules", "error": type(exc).__name__}
+        seconds = round(time.monotonic() - clock, 3)
+        with _STEP:
+            _SESSION.get().step("analyse_problem", {"state": state["situation"].get("state")}, result, seconds)
+        return {"analysis": {"problem": result, "problem_seconds": seconds}}
+
+    def analyse_data(self, state: WalkState) -> dict[str, Any]:
+        """The data investigator: the coordinator's own analysis (``Coordinator.act``), unchanged."""
+        from dclab_core import coordinator as machine
+
+        now = machine.Situation.model_validate(state["situation"])
+        clock = time.monotonic()
+        result = self.c.act(state["draft_id"], now, self.asker)
+        seconds = round(time.monotonic() - clock, 3)
+        with _STEP:
+            _SESSION.get().step("analyse_data", {"state": now.state}, result, seconds)
+        return {"analysis": {"data": result, "data_seconds": seconds}}
+
+    def _analyst_behind(self, draft_id: str) -> bool:
+        """The person said more than the problem analyst has read (its record counts the texts it read)."""
+        from ..draft import plan as plans
+
+        draft = self.c.drafts.get(draft_id)
+        read = int(((draft.get("coordinator") or {}).get("analyst") or {}).get("read") or 0)
+        return read < sum(1 for t in plans.user_text(draft) if str(t or "").strip())
+
+    def reread(self, state: WalkState) -> dict[str, Any]:
+        """The problem analyst alone, before the critic reads the card: the answers given since it last read."""
+        from dclab_core import coordinator as machine
+
+        now = machine.Situation.model_validate(state["situation"])
+        self._cap_node()
+        before = _spent(state["draft_id"], state.get("runs") or [])
+        got = self.analyse_problem({"draft_id": state["draft_id"], "situation": state["situation"]})["analysis"]
+        cost = round(max(0.0, _spent(state["draft_id"], state.get("runs") or []) - before), 6)
+        return self._finish(state, now, "analyse_problem", got["problem"], got["problem_seconds"], cost, self._board(state))
+
+    def analysed(self, state: WalkState) -> dict[str, Any]:
+        """The join: the two readings as one step and one hand-off; its time the longer reader's, its cost what the pair's
+        requests cost."""
+        from dclab_core import coordinator as machine
+
+        now = machine.Situation.model_validate(state["situation"])
+        got = state.get("analysis") or {}
+        result = {"data": got.get("data") or {}, "problem": got.get("problem") or {}}
+        seconds = round(max(float(got.get("data_seconds") or 0.0), float(got.get("problem_seconds") or 0.0)), 3)
+        cost = round(max(0.0, _spent(state["draft_id"], state.get("runs") or []) - float(state.get("spent_at") or 0.0)), 6)
+        return self._finish(state, now, "analyse", result, seconds, cost, self._board(state))
 
     def _critic_answer(self, state: WalkState, now: Any) -> dict[str, Any]:
         """A question the critic sent back, put to the person. An answer is taken as the Home agent takes any (``reply``); no
@@ -389,7 +486,7 @@ class Walk:
     @staticmethod
     def _route(state: WalkState) -> str:
         nxt = state.get("next")
-        return nxt if nxt in (*ACTS, "critic", "critic_gate") else "end"
+        return nxt if nxt in (*ACTS, "critic", "critic_gate", "reread") else "end"
 
     @staticmethod
     def _after(state: WalkState) -> str:
@@ -409,7 +506,14 @@ class Walk:
         g.add_node("critic_gate", self.critic_gate)
         g.add_conditional_edges("critic_gate", self._after, {"situate": "situate", "end": END})
         g.add_edge(START, "situate")
-        g.add_conditional_edges("situate", self._route, {**{a: a for a in ACTS}, "critic": "critic", "critic_gate": "critic_gate", "end": END})
+        g.add_node("analyse_problem", self.analyse_problem)  # 28.4: the two readers, sent together, joined by ``analysed``
+        g.add_node("analyse_data", self.analyse_data)
+        g.add_node("analysed", self.analysed)
+        g.add_edge(["analyse_problem", "analyse_data"], "analysed")
+        g.add_conditional_edges("analysed", self._after, {"situate": "situate", "end": END})
+        g.add_node("reread", self.reread)
+        g.add_conditional_edges("reread", self._after, {"situate": "situate", "end": END})
+        g.add_conditional_edges("situate", self._fan, {**{a: a for a in ACTS}, "critic": "critic", "critic_gate": "critic_gate", "reread": "reread", "end": END})
         self.graph = g.compile(checkpointer=self.checkpointer)
         return self.graph
 

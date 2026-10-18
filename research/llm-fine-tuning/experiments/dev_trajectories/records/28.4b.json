@@ -1,0 +1,146 @@
+{
+ "package": "28.4b",
+ "title": "The understanding team's two readers at once, and the critic's questions in the records",
+ "date": "2026-10-18",
+ "request": "Phase 6 (the owner): finish the understanding team; what was left of 28.4 after the critic: the problem analyst and the data investigator as parallel nodes, the measurement against the single Home agent, and the critic's questions and answers and the briefs captured for training.",
+ "spec": "docs/guides/PHASE6_MULTI_AGENT_PLAN.md, package 28.4 and D2 (the understanding team)",
+ "plan": [
+  "Write the tests first: the two readers in one superstep joined as one hand-off, the analyst reading every answer, the walk without the parallel analysis, the critic's question marked in the conversation events.",
+  "Fan the walk's analysis out to the problem analyst and the data investigator with one Send each, joined by a node that records one step, one hand-off and the pair's cost.",
+  "Let the analyst read the person's answers given after the analysis before the critic reads the card.",
+  "Mark the critic's questions in the experience contract and in the conversation examples; give the analyst's hand-offs their training family.",
+  "Measure the walk on the dev journeys against the single agent's loop, field by field."
+ ],
+ "decisions": [
+  {
+   "decision": "The data investigator in the team is the coordinator's own analysis, called unchanged; the problem analyst is a new reading of the first sentence and every answer.",
+   "why": "The owner's rule for the team is enhance, never replace: every node names an existing function, and only the team behaviour is new."
+  },
+  {
+   "decision": "The analyst reads again before the critic whenever the person said more since its last reading, not only at the analysis.",
+   "why": "The answers that matter most to the analyst (the review capacity with its action) are often given after the analysis; read only then, it never saw them."
+  },
+  {
+   "decision": "The analyst takes only the action from the answers, never the outcome.",
+   "why": "By the analysis the outcome is settled by the person or by the data; a free reading of the answers bound words that merely name a column as the outcome."
+  },
+  {
+   "decision": "The analyst's hand-offs are understanding examples, not solution designs.",
+   "why": "They change the brief, not the design; the brief reaches design examples as the input of the workflow's hand-offs, and calling a reading a design would mislabel the training data."
+  },
+  {
+   "decision": "The critic's question is marked by a new field on the agent's chat event, which moves the experience contract to v11.",
+   "why": "The vocabulary is closed: a new field moves the version, and older events are read as the new one."
+  }
+ ],
+ "change": "dclab_rnd/orchestra/walk.py (_fan, analyse_problem, analyse_data, analysed, reread, _finish); dclab_rnd/draft/chat.py (read_answers, analyst_read); dclab_rnd/ledger/capture.py (the reread node); dclab_rnd/experience/hooks.py (question_source); dclab_rnd/agent_eval/journeys (the team's readers in each graph journey's row); dclab_core/experience.py (v11), dclab_core/datasets.py (the critic's turns, the analyst's family; dclab-core 0.80.0); tests/test_team_analysis.py.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The analyst read at the analysis never saw the answers given after it.",
+   "scenario": "The person said the action while answering the review capacity question, after the table was analysed; the brief the critic read had no action.",
+   "cause": "The analysis step runs once, before the remaining questions.",
+   "fix": "Before the critic reads the card the analyst reads again whatever the person said since its last reading.",
+   "test": "test_the_analyst_reads_every_answer_into_the_brief_and_never_overwrites_a_field"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The analyst wrote an outcome the data had already settled.",
+   "scenario": "On a draft holding the orders and the known cases, an answer saying the courier app records the fare in a named column became the outcome, the project took that name, and the critic sent the outcome back to the person.",
+   "cause": "The analyst filled the outcome whenever it was empty, and at the analysis it is empty only when the data supplies it.",
+   "fix": "The analyst takes only the action from the answers; the outcome is never read there.",
+   "test": "test_the_analyst_never_takes_the_outcome_from_an_answer_the_data_settles_it"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A failing analyst stopped the whole walk.",
+   "scenario": "With the analyst's reading raising an error, the walk read again, saw the same outcome and stopped with no progress before the critic and the build.",
+   "cause": "A failed reading left the analyst behind the person's texts, so the walk chose it again.",
+   "fix": "A failed reading is recorded as read with its error, and the walk never reads again straight after a failed reading.",
+   "test": "test_a_failing_analyst_is_recorded_and_the_walk_goes_on_to_the_critic"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The analyst's hand-offs had no training family of their own.",
+   "scenario": "A walk whose workflow Home had already drawn gave no design example, and the analyst's readings were generic agent steps.",
+   "cause": "Only the workflow's and the designer's nodes were mapped to a family that reads the brief.",
+   "fix": "The analyst's hand-offs are understanding examples with the brief before and after; the plan says where the brief reaches design examples.",
+   "test": "test_the_analysts_readings_are_understanding_examples_with_the_brief_before_and_after"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The analyst's record lost its earlier fills.",
+   "scenario": "A field filled at the first reading was gone from the record after the second, and the measurement counted it as never filled.",
+   "cause": "Each reading replaced the record.",
+   "fix": "The record keeps every field the analyst ever filled and, apart, what this reading filled.",
+   "test": "test_the_analyst_reads_every_answer_into_the_brief_and_never_overwrites_a_field"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The analyst's model could be asked and its answer never used.",
+   "scenario": "Had the analyst's role been switched on, every reading would have spent a request whose inferred facts are never taken, and marked the walk as a model's.",
+   "cause": "Only the person's stated words are taken there, and a model's facts are inferred.",
+   "fix": "No model is asked in the analyst's reading of the answers.",
+   "test": "test_the_analyst_reads_every_answer_into_the_brief_and_never_overwrites_a_field"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A critic's question could be listed in a conversation example without its answer.",
+   "scenario": "When the critic's question was the conversation's last agent turn, the person's answer was cut from the example but the question was still listed as the critic's.",
+   "cause": "The list kept every critic turn left in the example, whether or not the turn after it was there.",
+   "fix": "A critic's turn is listed only when the example holds the turn after it.",
+   "test": "test_a_critics_question_is_marked_in_the_conversation_events"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the dev journeys through the walk's graph with the team's readers, beside the single Home agent's loop (JRN-022 against JRN-020)",
+   "gate": "the team's brief at least as right as the single agent's on every card field and every part, nothing asked twice (the package's own condition, fixed before the run)",
+   "fixed_before_run": true,
+   "result": "15 of 15 journeys right through the graph, identical to the loop on every card field and part; 50 questions in each arm, none asked twice; 15 critic rounds and no send-back; the analyst filled no new field",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "Met: the two readers at once change nothing the single agent got right.",
+   "limits": [
+    "Dev people, written beside the rules: no regression is shown, not a gain.",
+    "No dev person states the action in answer to another question, so the analyst's reading of the answers is shown by the tests, not by the journeys."
+   ]
+  },
+  {
+   "name": "the same run before the review's fixes (JRN-021)",
+   "gate": "the team's brief at least as right as the single agent's on every card field and every part, nothing asked twice",
+   "fixed_before_run": true,
+   "result": "15 of 15 journeys right, identical to the loop on every card field and part",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "Met; kept as the run the review read, its outcome finding not reached by the dev people.",
+   "limits": [
+    "The outcome finding needs a draft whose outcome the data settles and an answer naming a column, which no dev person has."
+   ]
+  }
+ ],
+ "outcome": "The understanding team reads the problem and the data at once, the analyst reads every answer before the critic, and the critic's questions and the analyst's readings are training examples of their own.",
+ "lessons": [
+  "A reader added beside the rules must take only what nothing else settles: an empty field can be empty because something else will fill it.",
+  "A node that runs once at a fixed step misses what the person says after it; read again before the next decision that depends on it."
+ ],
+ "risks": [
+  "A future call inside either reader that takes the draft's turn would deadlock: the walk holds it and the readers run in other threads.",
+  "The analyst's reading of the answers is shown on invented people only; real conversations may state actions the rules' pattern does not read."
+ ],
+ "commits": []
+}
