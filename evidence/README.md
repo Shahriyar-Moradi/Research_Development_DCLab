@@ -3,6 +3,7 @@
 | Folder | Contents | Edited by |
 |---|---|---|
 | [`campaigns/`](campaigns/) | One JSON result per experiment, plus each campaign's report, manifest and claim memory | The campaign engines (`dclab_rnd`) |
+| [`business_examples/`](business_examples/) | Real business examples, problem to workflow, each with its source (30.5) | **Generated only** (`make business-examples`) |
 | [`knowledge/`](knowledge/) | Research memory derived from all results: registry, knowledge base, field guide, rules, workflow blocks, evidence index | **Generated only** (`make rd-sync`, `make master-guide`, `make knowledge`) |
 
 ## Campaigns

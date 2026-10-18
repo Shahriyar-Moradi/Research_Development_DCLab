@@ -50,7 +50,7 @@ TOOL_CALLERS = {("dclab_rnd/agents/runtime.py", "_run"), ("dclab_rnd/agents/regi
                 ("dclab_rnd/agentic/engine.py", "build_graph.execute"),
                 ("dclab_rnd/orchestra/solution.py", "SolutionTeam.compose"), ("dclab_rnd/orchestra/solution.py", "SolutionTeam.stage"),
                 ("dclab_rnd/orchestra/solution.py", "SolutionTeam._compose_single")}  # 28.5, 30.1: the team's steps record the tool calls they make
-SKIP = ("dclab_rnd/agent_eval/",)  # measurement harnesses: they drive the agents, they are not entry points
+SKIP = ("dclab_rnd/agent_eval/", "dclab_rnd/real_problems.py")  # measurement harnesses: they drive the agents (the real problems' runner plays the person, 30.2 to 30.4), they are not entry points
 
 
 def _sources():

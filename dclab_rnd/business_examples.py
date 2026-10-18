@@ -5,7 +5,7 @@ and champion (``research/<track>/README.md`` and ``INDEX.md``), every replica's 
 (``dclab_core/replicas``: the docstring a careful data scientist wrote for it), the owner's own fraud solution (its
 README's results, when the folder is beside this one), and the examples written from public knowledge in
 ``dclab_rnd/knowledge/written_examples.json`` (marked ``written``: never a record of a run). Written to
-``research/business_examples/examples.jsonl`` with its ``MANIFEST.json``; ``find(words)`` returns the closest for a
+``evidence/business_examples/examples.jsonl`` with its ``MANIFEST.json``; ``find(words)`` returns the closest for a
 person's words. A role reads them as context only once an arm of the journeys measured it better (30.5's gate).
 """
 
@@ -23,7 +23,7 @@ from typing import Any, Optional
 from dclab_core.business_examples import BusinessExample, ExampleSource, Result, Understanding, brief, search
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "research" / "business_examples"
+OUT = ROOT / "evidence" / "business_examples"
 WRITTEN = ROOT / "dclab_rnd" / "knowledge" / "written_examples.json"
 SNAP = ROOT.parent / "Snap_fruad" / "README.md"
 

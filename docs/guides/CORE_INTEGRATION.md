@@ -726,6 +726,13 @@ request path; it is a data generator. A team that pretrains or evaluates an in-c
 or reads DCLab's corpus (`make priors`, `lake/bronze/priors/priors_v1/`); `params.effects_shown` marks the tables whose shown
 features include the outcome's effects, for a team that wants none.
 
+## An outcome named but left open, asked once more (28.7, dclab-core 0.74.0)
+
+The library's: `dclab_core.conversation.outcome_again(card, answers, columns, asked)` and `named_columns`. Where it goes
+there: wherever the main product's understanding conversation would stop on an unsettled outcome after asking it once,
+ask this narrower question with the named columns as choices first; its answer reads as any outcome answer
+(`read_answer("outcome", ...)`).
+
 ## Business examples (30.5, dclab-core 0.73.0)
 
 The library's: `dclab_core.business_examples` (`BusinessExample` v1, `search`, `brief`). Where it goes there: the main

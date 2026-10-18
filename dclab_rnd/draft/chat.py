@@ -635,7 +635,7 @@ class HomeAgent:
         """20.2: when the plan has nothing left to ask but the problem card still blocks, its question that unblocks the
         most (a contradiction between the words and the data first), never one asked before."""
         from dclab_core.card import LABELS_OPTIONS
-        from dclab_core.conversation import next_question
+        from dclab_core.conversation import next_question, outcome_again
 
         from .card import card_of, meeting
 
@@ -652,6 +652,13 @@ class HomeAgent:
             return None
         asked = tuple(self.CARD_FIELDS.get(q.get("field"), q.get("field")) for q in draft["questions"])
         q = next_question(card, asked=asked)
+        if getattr(q, "field", None) not in ("labels", "family", "outcome"):
+            # 28.7: an outcome answered with columns named but none settled is asked once more, with those columns
+            columns = [str(c.get("name")) for c in (draft["analysis"]["profile"].get("columns") or [])]
+            q = outcome_again(card, [str(x.get("answered")) for x in draft["questions"] if x.get("field") in ("target", "outcome")
+                                     and isinstance(x.get("answered"), str)], columns, asked=tuple(asked_home))
+            if q is not None:
+                return (q.field, q.text, list(q.options), q.why)
         if q is None or getattr(q, "field", None) not in ("labels", "family", "outcome"):  # the plan asks the rest its own way
             return None
         return (self.HOME_FIELDS.get(q.field, q.field), q.text, list(q.options), q.why)

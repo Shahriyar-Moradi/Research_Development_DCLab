@@ -344,6 +344,13 @@ families; nothing is captured for the first time there.
   5657478 before any run. First dev pass (JRN-011 to 013): the team 9 of 15, stopped on questions the critic's model asked
   that the people could not answer; fixed (a critic's question with no answer is declined, its concern decided at the
   critic's gate). Second pass (JRN-014 to 016): the rules, the single agent and the team 15 of 15 on every part; EUR 0.52.
+  **The sealed verdict (JRN-017 to 019, 2026-10-18): the team fails its gate and stays off.** The fifth sealed set, run once:
+  the rules 16 of 30, the single agent 26 of 30 (it passes the suite's own gate: 95% 0.703 to 0.947), the team 25 of 30.
+  The team's card was right as often as the single agent's (29 and 29), not more often as a sealed set demands, and it lost
+  JS5-18: the reader, on an identical prompt, left out the outcome column it quoted for the single agent, and nothing asked
+  again. Fixed on dev (dclab-core 0.74.0: an outcome named but left open is asked once more with the columns it named);
+  measured only on a fresh sealed set. Four failures are shared by all three arms (grouped folds, a family, a weather
+  column read as known ahead): the engine's and the card's, not the team's. EUR 1.16; `team_passed()` is false.
 
 ### 28.8 Home and the product
 - **Delivers:** the Home page shows the board (which node works, what it found, the open interrupt), answers resume the

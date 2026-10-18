@@ -92,6 +92,34 @@ class ReaderOnHomeTest(unittest.TestCase):
         agent.read_card_answer(draft_id, "target", "mostly we look at the days_subscribed numbers")
         self.assertEqual(store.get(draft_id)["understanding"]["target"], "days_subscribed")
 
+    def test_an_outcome_named_but_left_open_is_asked_once_more_with_the_columns_it_named(self):
+        # 28.7 (the fifth sealed set, JS5-18): the answer named the column without starting with it, the reader did not quote
+        # it, the card blocked on the outcome and nothing asked again: the walk stopped. The card asks once more, narrower.
+        cols = ("subscriber_id", "signup_date", "plan", "days_subscribed", "cancelled")
+        words = "How long they'll stay. There's days_subscribed, and cancelled tells you if they've gone."
+        store, agent, draft_id = self.agent(None, "How long will each new subscriber stay?")
+        store.update(draft_id, lambda d: d.update(analysis={"profile": {"columns": [{"name": n} for n in cols]}}))
+        agent.ask(draft_id, "target", "Which column is the outcome the model should predict?")
+        agent.note(draft_id, "target", words, "stated", "answer", words)
+        store.update(draft_id, lambda d: d["questions"][-1].update(answered=words))
+        agent.read_card_answer(draft_id, "target", words)
+        draft = store.get(draft_id)
+        self.assertNotIn(draft["understanding"]["target"], cols)  # the words alone: the card still blocks on the outcome
+        field, text, options, _ = agent.card_question(draft)
+        self.assertEqual((field, options), ("target_check", ["days_subscribed", "cancelled"]))
+        self.assertIn("days_subscribed", text)
+        agent.ask(draft_id, field, text, options)
+        agent.read_card_answer(draft_id, field, words)  # the same words, now to "which column is it": its first column named
+        self.assertEqual(store.get(draft_id)["understanding"]["target"], "days_subscribed")
+        self.assertIsNone(agent.card_question(store.get(draft_id)))  # settled: never asked a third time
+
+    def test_an_outcome_left_open_with_no_column_named_is_not_asked_again(self):
+        store, agent, draft_id = self.agent(None, "How long will each new subscriber stay?")
+        store.update(draft_id, lambda d: d.update(analysis={"profile": {"columns": [{"name": n} for n in ("plan", "days_subscribed")]}}))
+        agent.ask(draft_id, "target", "Which column is the outcome the model should predict?")
+        store.update(draft_id, lambda d: d["questions"][-1].update(answered="I don't know"))
+        self.assertIsNone(agent.card_question(store.get(draft_id)))  # nothing to narrow it to: the stop says what is missing
+
     def test_off_unless_switched_on_served_and_measured(self):
         from dclab_rnd.agent_eval import journeys
 

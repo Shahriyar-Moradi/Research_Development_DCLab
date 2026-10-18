@@ -4,6 +4,15 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.74.0 (2026-10-18)
+
+Package 28.7 (a finding of the fifth sealed set): an outcome named but left open is asked once more.
+
+- `conversation.outcome_again(card, answers, columns, asked)`: when the outcome was asked, its answers named the table's
+  columns without settling one, and the card still blocks on it, the question asked once more (`target_check`), narrower,
+  with the columns named as its options; None when settled, asked so already, or no column was named.
+- `conversation.named_columns(text, columns)`: the columns an answer names, in the order it names them.
+
 ## 0.73.0 (2026-10-18)
 
 Package 30.5: business examples.

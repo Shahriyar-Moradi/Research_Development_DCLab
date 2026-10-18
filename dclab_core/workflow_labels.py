@@ -41,6 +41,8 @@ NOT_LEARNED = {
     "agent.tool_choice": "no agent with a model runs in a journey; its labels come from recorded sessions' outcomes (27.2)",
     "experiment.next": "the engine's own improvement loop: labelled by its measured results, not by a journey",
     "solution.compose": "labelled where it is decided, by the holdout's measured comparison (24.7)",
+    "team.next_node": "the walk's own routing rule (situate) chooses the node from the coordinator's answer: a classifier on it can only copy the rule (29.6)",
+    "critic.send_back": "labelled where it is decided, by whether the person's answer changed the card's field (29.6)",
     "command.intent_route": "not decided by the studio yet",
     "proposal.completeness": "not decided by the studio yet",
 }

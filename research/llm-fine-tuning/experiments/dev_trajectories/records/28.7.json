@@ -35,6 +35,26 @@
    "cause": "A critic's question was treated as blocking as the card's own questions are.",
    "fix": "A critic's question with no answer is declined, recorded on the question; its concern stands, and the person decides at the critic's gate whether to build on.",
    "test": "test_a_critic_question_with_no_answer_is_declined_and_the_person_decides_at_the_gate"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "On the fifth sealed set the team stopped on a time-to-event person (JS5-18) that the single agent built.",
+   "scenario": "The outcome question was answered with words that mention days_subscribed and cancelled without starting with either; on the identical prompt the conversation reader quoted the column for the single agent and left it out for the team; the card kept blocking on the outcome, the Home agent had no question left to ask, and the walk stopped with no progress.",
+   "cause": "The card's own question is never asked twice, so an outcome left open after its answer had no way back to the person: the walk depended on one model reading.",
+   "fix": "conversation.outcome_again (dclab-core 0.74.0): when the outcome was asked, its answers named the table's columns, and the card still blocks on it, the Home agent asks once more (target_check) with those columns as options; the answer reads as any outcome answer.",
+   "test": "test_an_outcome_named_but_left_open_is_asked_once_more_with_the_columns_it_named"
+  },
+  {
+   "id": "G1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The quick gate on the commits after 29.5 failed in four files.",
+   "scenario": "check-quick on af7a67d: two new workflow points with no reason in NOT_LEARNED, the real problems' runner calling a tool outside the harness's recorded callers, the knowledge base's folder under research/ read as a track, and the data catalog not regenerated.",
+   "cause": "Commits made without the gate passing first (the owner's rule is to run it before pushing).",
+   "fix": "The two points' reasons added; the runner listed with the measurement harnesses it is; the knowledge base moved to evidence/business_examples/; the catalog and the research index regenerated.",
+   "test": "test_every_workflow_point_is_learned_or_says_why_not; test_no_tool_is_called_outside_the_functions_that_record_it; test_every_track_readme_status_is_read_in_both_forms; test_the_committed_catalog_is_what_the_code_generates"
   }
  ],
  "measurements": [
@@ -62,11 +82,27 @@
     "Dev people: the gate's strict test is the sealed set, where the team must beat the single agent on the card.",
     "A dev pass after a fix made on dev's own failures is optimistic by construction."
    ]
+  },
+  {
+   "name": "the fifth sealed set, once (JRN-017 to JRN-019)",
+   "gate": "TEAM_GATE (team_gate_v1) and journeys_gate_v5, fixed in code before any run",
+   "fixed_before_run": true,
+   "result": "rules 16 of 30 (card 21, workflow 20, pipeline 20, holdout 18); single agent 26 of 30 (95% interval 0.703 to 0.947; card 29, workflow 30, pipeline 30, holdout 27); team 25 of 30 (card 29, workflow 29, pipeline 29, holdout 26); EUR 0.2659 the single agent, EUR 0.8912 the team (EUR 0.0297 a journey, 65 critic requests EUR 0.5825), no request failed, no move refused",
+   "verdict": "fail",
+   "cost_eur": 1.1571,
+   "against_gate": "Failed: on a sealed set the team's card must be right more often than the single agent's, and it was right as often (29 and 29); it also lost a time-to-event journey the single agent built. The single agent passed the suite's own gate (26 of 30, 95% interval 0.703 to 0.947); the team stays off: team_passed() is false and the rules serve.",
+   "limits": [
+    "Thirty people: one journey is the whole difference between the two live arms.",
+    "Four of the five failures are shared by both arms and the rules (folds grouped by biker, a regression read as time to event, a weather column read as known ahead on two forecasts): the engine and the card, not the team.",
+    "The sealed set is spent: the fix below is measured only on a fresh sealed set."
+   ]
   }
  ],
- "outcome": "The team measured live against the rules and the single agent, its gate fixed first; the first pass failed and taught a fix.",
+ "outcome": "The team measured live against the rules and the single agent, its gate fixed first: the dev pass failed, taught a fix and passed; the fifth sealed set failed the team's gate (25 of 30 against the single agent's 26), so the team stays off and the rules serve.",
  "lessons": [
-  "A critic's question is advice the person may decline: a send-back must never become a stop the person did not choose."
+  "A critic's question is advice the person may decline: a send-back must never become a stop the person did not choose.",
+  "A step that only a model's reading can move needs a way back to the person: a question asked once more, narrower, before a stop.",
+  "A sealed set judges once: its failures are read for causes and fixed on dev, never measured again on the same people."
  ],
  "risks": [],
  "commits": []

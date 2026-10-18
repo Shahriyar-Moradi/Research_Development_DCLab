@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Iterable, Optional
 
 from dclab_core.agents import Role
 from dclab_core.card import FAMILIES, ProblemCard, label_said, problem_card, refine_family
@@ -150,6 +150,30 @@ def next_question(card: ProblemCard, contradictions: tuple[Any, ...] = (), asked
     return min(blocking, key=lambda q: ORDER.index(q.field) if q.field in ORDER else len(ORDER), default=None)
 
 
+def named_columns(text: str, columns: Optional[list[str]]) -> list[str]:
+    """The table's columns an answer names, in the order it names them."""
+    return _named(str(text or ""), columns)
+
+
+def outcome_again(card: ProblemCard, answers: Iterable[str], columns: Optional[list[str]], asked: tuple[str, ...] = ()) -> Optional[Any]:
+    """28.7 (the fifth sealed set): the outcome asked, answered with words that name columns without settling one ("how long
+    they stay; there's days_subscribed, and cancelled tells you"), and the card still blocks on it: asked once more,
+    narrower, with the columns those answers named as its options. None when the outcome is settled, was asked so twice,
+    or no answer named a column (nothing to narrow it to: the stop says what is missing)."""
+    from dclab_core.card import CardQuestion
+
+    if "target_check" in asked or not any(q.blocks and q.field == "outcome" for q in card.questions):
+        return None
+    named: list[str] = []
+    for answer in answers:
+        named += [c for c in named_columns(answer, columns) if c not in named]
+    if not named:
+        return None
+    listed = named[0] if len(named) == 1 else ", ".join(named[:-1]) + f" or {named[-1]}"
+    return CardQuestion(field="target_check", text=f"Which column is the outcome itself: {listed}?"[:1000], options=named[:8], blocks=True,
+                        why="The answer named the table's columns but not which one the model predicts.")
+
+
 def summary(card: ProblemCard) -> dict[str, Any]:
     """What the person confirms before a build: the family, the labels, the outcome, the moment, the unit, the action,
     and what still blocks."""
@@ -231,4 +255,4 @@ READER = Role(name="conversation_reader", description="reads a person's answer i
               merge=lambda rules, model: {**rules, **(model or {})})
 
 
-__all__ = ["card_for", "next_question", "read_answer", "converse", "summary", "READER", "ORDER", "LIMIT", "FAMILY_ANSWERS"]
+__all__ = ["card_for", "next_question", "outcome_again", "named_columns", "read_answer", "converse", "summary", "READER", "ORDER", "LIMIT", "FAMILY_ANSWERS"]
