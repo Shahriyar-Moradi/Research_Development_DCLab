@@ -204,6 +204,11 @@
       <div class="panel-body"><div class="grid g2" id="home-und-fields"></div></div>
     </div>
 
+    <div class="panel" id="home-team" hidden data-f="home.team">
+      <div class="panel-head"><div class="panel-title"><h2>The team</h2><span class="sub">The understanding team walks this draft step by step, and stops only to ask you: a question, a confirmation, or leave to build.</span></div><button type="button" class="btn sm" id="home-team-go">Walk with the team</button></div>
+      <div class="panel-body"><div id="home-team-board" class="stack"></div></div>
+    </div>
+
     <div class="grid g-chat" id="home-lanes">
     <div class="panel" id="home-chat" hidden data-f="home.chat">
       <div class="panel-head"><div class="panel-title"><h2>Conversation</h2><span class="sub" id="home-chat-sub">A few questions to understand the problem, and the data as it gets ready.</span></div><span class="row" data-style="gap:8px;align-items:center"><span class="pill outline" id="home-chat-mode" hidden></span><button type="button" class="btn primary sm" id="home-create" title="DCLab builds the project from what this chat settled and its agent plans and runs it">Build this chat as a project</button></span></div>
@@ -2073,6 +2078,18 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
       <div class="panel-head"><div class="panel-title"><h2>A student behind every choice</h2><span class="sub">Each decision point, the homework its student learned from (answers known by construction, by outcome or by a person), the student beside the rule on dev, its sealed exam taken once, and where it stands: whisper, flags, or acts. A student decides only where it proved better than the rule.</span></div></div>
       <div class="panel-body small" id="stu-note" hidden></div>
       <div class="table-wrap"><table class="data compact"><thead><tr><th>Point</th><th>Recorded</th><th>Homework</th><th>Student</th><th>Dev · rule</th><th>Exam</th><th>Status</th></tr></thead><tbody id="stu-body"></tbody></table></div>
+    </div>
+  </div>
+  <div class="pane" data-pane="teams" data-label="Teams">
+    <div class="stats" id="team-stats">
+      <div class="stat"><span class="v">—</span><span class="l">walks</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">completed</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">pauses for a person</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">spent</span></div>
+    </div>
+    <div class="panel" data-f="admin.teams">
+      <div class="panel-head"><div class="panel-title"><h2>Every walk of the teams</h2><span class="sub">The understanding team on drafts and the solution team on projects: each walk's nodes with their steps and seconds, the hand-offs, the pauses for a person, the cost and the models asked. The critic's model serves only after the team passed its sealed gate.</span></div><span class="pill outline" id="team-serves"></span></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Team</th><th>Thread</th><th>Status</th><th>Nodes</th><th>Hand-offs</th><th>Pauses</th><th>Cost</th><th>Models</th><th>Started</th></tr></thead><tbody id="team-body"></tbody></table></div>
     </div>
   </div>
   <div class="pane" data-pane="decisions" data-label="Decisions">

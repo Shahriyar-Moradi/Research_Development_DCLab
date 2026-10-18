@@ -50,7 +50,7 @@ class SolveState(TypedDict, total=False):
     next: str
     says: str
     started: str
-    runs: list[str]
+    runs: Annotated[list[str], operator.add]  # every session of the walk, appended
 
 
 class SolutionTeam:
@@ -371,7 +371,7 @@ class SolutionTeam:
                     self.graph.invoke({"project_id": project_id, "board": B.new(thread, state="solution").model_dump(mode="json"), "steps": [],
                                        "started": B.now(), "runs": [current.run_id]}, config)
                 else:
-                    self.graph.invoke(Command(resume=resume, update={"runs": [*(snap.values.get("runs") or []), current.run_id]}), config)
+                    self.graph.invoke(Command(resume=resume, update={"runs": [current.run_id]}), config)
             finally:
                 _SESSION.reset(token)
             snap = self.graph.get_state(config)

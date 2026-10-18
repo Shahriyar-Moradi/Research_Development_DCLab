@@ -259,6 +259,8 @@
     draftSolution: ["PUT", "/drafts/{draft_id}/solution", ["draft_id"], []],
     draftSolutionMap: ["GET", "/drafts/{draft_id}/solution-map", ["draft_id"], []],
     draftProposal: ["POST", "/drafts/{draft_id}/solution/proposal", ["draft_id"], []],
+    teamBoard: ["GET", "/drafts/{draft_id}/team", ["draft_id"], []],
+    teamWalk: ["POST", "/drafts/{draft_id}/team", ["draft_id"], []],
     twinView: ["GET", "/drafts/{draft_id}/twin", ["draft_id"], []],
     twinBudget: ["POST", "/drafts/{draft_id}/twin/budget", ["draft_id"], []],
     twinMessage: ["POST", "/drafts/{draft_id}/twin/messages", ["draft_id"], []],
@@ -347,6 +349,8 @@
     runStage: ["POST", "/projects/{project_id}/stages/{stage}/run", ["project_id", "stage"], ["wait", "reuse_reason"]],
     projectSteps: ["GET", "/projects/{project_id}/steps", ["project_id"], ["stage", "decision"]],
     uploadTable: ["PUT", "/projects/{project_id}/tables/{name}", ["project_id", "name"], ["filename"]],
+    projectTeam: ["GET", "/projects/{project_id}/team", ["project_id"], []],
+    projectTeamWalk: ["POST", "/projects/{project_id}/team", ["project_id"], []],
     projectTwinRuns: ["GET", "/projects/{project_id}/twin", ["project_id"], []],
     runTwin: ["POST", "/projects/{project_id}/twin", ["project_id"], []],
     research: ["GET", "/research", [], []],
@@ -363,6 +367,7 @@
     studentsRegister: ["GET", "/students", [], []],
     studioStatus: ["GET", "/studio", [], []],
     syntheticTemplates: ["GET", "/synthetic/templates", [], []],
+    teamWalks: ["GET", "/teams", [], []],
     twinSessions: ["GET", "/twin/sessions", [], ["limit"]],
     twinSettings: ["GET", "/twin/settings", [], []],
     setTwinSettings: ["PUT", "/twin/settings", [], []],
@@ -668,6 +673,19 @@
    *  @returns {Promise<Doc>} */
   client.draftProposal = (...args) => call('draftProposal', args);
   client.path.draftProposal = (...args) => build('draftProposal', args).path;
+  /** GET /api/drafts/{draft_id}/team: Team Board
+   *  @param {string} draft_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.teamBoard = (...args) => call('teamBoard', args);
+  client.path.teamBoard = (...args) => build('teamBoard', args).path;
+  client.href.teamBoard = (...args) => '/api' + build('teamBoard', args).path;
+  /** POST /api/drafts/{draft_id}/team: Team Walk
+   *  @param {string} draft_id
+   *  @param {{body?: (AnyObject|null), headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.teamWalk = (...args) => call('teamWalk', args);
+  client.path.teamWalk = (...args) => build('teamWalk', args).path;
   /** GET /api/drafts/{draft_id}/twin: Twin View
    *  @param {string} draft_id
    *  @param {{headers?: Object}} [opts]
@@ -1213,6 +1231,19 @@
    *  @returns {Promise<Project>} */
   client.uploadTable = (...args) => call('uploadTable', args);
   client.path.uploadTable = (...args) => build('uploadTable', args).path;
+  /** GET /api/projects/{project_id}/team: Project Team
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.projectTeam = (...args) => call('projectTeam', args);
+  client.path.projectTeam = (...args) => build('projectTeam', args).path;
+  client.href.projectTeam = (...args) => '/api' + build('projectTeam', args).path;
+  /** POST /api/projects/{project_id}/team: Project Team Walk
+   *  @param {string} project_id
+   *  @param {{body?: (AnyObject|null), headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.projectTeamWalk = (...args) => call('projectTeamWalk', args);
+  client.path.projectTeamWalk = (...args) => build('projectTeamWalk', args).path;
   /** GET /api/projects/{project_id}/twin: Project Twin Runs
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]
@@ -1314,6 +1345,12 @@
   client.syntheticTemplates = (...args) => call('syntheticTemplates', args);
   client.path.syntheticTemplates = (...args) => build('syntheticTemplates', args).path;
   client.href.syntheticTemplates = (...args) => '/api' + build('syntheticTemplates', args).path;
+  /** GET /api/teams: Team Walks
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.teamWalks = (...args) => call('teamWalks', args);
+  client.path.teamWalks = (...args) => build('teamWalks', args).path;
+  client.href.teamWalks = (...args) => '/api' + build('teamWalks', args).path;
   /** GET /api/twin/sessions: Twin Sessions
    *  @param {{query?: {limit?: *}, headers?: Object}} [opts]
    *  @returns {Promise<Page>} */

@@ -183,7 +183,24 @@ DC.view('admin', {
     if (intern.status === 'fulfilled') this.paintModels(el, intern.value, gw.status === 'fulfilled' ? gw.value : null);
     this.paintStats(el, pol.value, lim.status === 'fulfilled' ? lim.value : null, intern.status === 'fulfilled' ? intern.value : null);
     this.S.offset = 0;
-    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadDatasets(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el)]);
+    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadDatasets(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el)]);
+  },
+
+  // 28.8: every walk of the teams, for the trace view
+  async loadTeams(el) {
+    const { $, esc } = DC;
+    let r;
+    try { r = await DC.client.teamWalks({ quiet: true }); } catch (e) { DC.states.failed($('#team-body', el), e, { retry: () => this.loadTeams(el), cols: 9 }); return; }
+    const walks = r.walks || [];
+    const done = walks.filter(w => w.status === 'completed').length, pauses = walks.reduce((a, w) => a + Number(w.interrupts || 0), 0);
+    const spent = walks.reduce((a, w) => a + Number(w.spent_eur || 0), 0);
+    $('#team-stats', el).innerHTML = [[walks.length, 'walks'], [done, 'completed'], [pauses, 'pauses for a person'], ['€' + spent.toFixed(2), 'spent']]
+      .map(([v, l]) => `<div class="stat"><span class="v">${esc(String(v))}</span><span class="l">${esc(l)}</span></div>`).join('');
+    $('#team-serves', el).textContent = r.team_serves_a_model ? 'critic: model' : 'critic: rules';
+    if (!walks.length) { DC.states.empty($('#team-body', el), 'No team has walked here yet.', { cols: 9 }); return; }
+    $('#team-body', el).innerHTML = walks.map(w => `<tr><td>${esc(w.team || '')}</td><td class="mono small">${esc(w.thread || '')}</td><td><span class="pill ${w.status === 'completed' ? 'ok' : 'outline'}">${esc(w.status || '')}</span></td>
+      <td class="small">${(w.nodes || []).map(x => esc(x.node) + ' ×' + esc(String(x.steps))).join(', ')}</td><td>${esc(String(w.handoffs ?? '—'))}</td><td>${esc(String(w.interrupts ?? '—'))}</td>
+      <td>${w.spent_eur == null ? '—' : '€' + Number(w.spent_eur).toFixed(3)}</td><td class="small">${(w.models || []).map(esc).join(', ') || (w.models ? 'none' : '—')}</td><td class="small">${esc(w.started || '')}</td></tr>`).join('');
   },
 
   // 29.1: the students' register: a decision model behind every choice, and how far each is trusted

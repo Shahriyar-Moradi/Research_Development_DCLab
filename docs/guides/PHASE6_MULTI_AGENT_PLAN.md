@@ -352,6 +352,19 @@ families; nothing is captured for the first time there.
 - **Done when:** the product e2e flows pass through the graph; a browser test drives a question, a confirmation and a
   build; the page needs no page-specific model call.
 
+- **Status: built in part (2026-10-18).** `dclab_rnd/orchestra/service.py` (start or resume a walk once; read a walk without
+  running it: its last board, the pause it waits on, its last record; list every finished walk). Routes: `GET`/`POST
+  /api/drafts/{id}/team` (409 while the Home agent answers the draft, or when there is no pause to resume),
+  `GET`/`POST /api/projects/{id}/team`, `GET /api/teams` (the owner's). Home's Team panel shows the walk's state, the node
+  that worked and the pause it waits on (an answer, or yes and no for a confirmation or leave to build); Admin's Teams tab
+  lists every walk with its nodes, pauses, cost and models. The critic's model serves only after the team's sealed gate.
+  Checked in the app's browser: a draft walked, its first question answered on the page, the next asked. The review's 12
+  findings fixed: a resume of the holdout approval demands the gate's own permission; the pause is read from the
+  checkpoint with what it approves; an answer must fit its pause; a start while a pause waits keeps the walk; one walk of
+  a project at a time. Left (built in part): the Playwright browser test and the product e2e flows through the graph
+  (Home's Build button still builds directly), and, from 28.3, the workspace's team switch and a budget per run and per
+  node (only the step budget exists).
+
 ### 28.9 The team's work as training data
 - **Delivers:** trajectories from runs (the board before and after each node, the hand-offs, the person's answers)
   into the lake under consent, as `solution_design` and `read_results` examples; self-play (27.3) runs through the team

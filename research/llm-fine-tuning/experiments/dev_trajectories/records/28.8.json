@@ -1,0 +1,171 @@
+{
+ "package": "28.8",
+ "title": "The teams in the product: the walk on Home, the solution team on a project, every walk on Admin",
+ "date": "2026-10-18",
+ "request": "Phase 6 (the owner): Home and the product: the board, the pauses answered on the page, the API for testers.",
+ "spec": "docs/guides/PHASE6_MULTI_AGENT_PLAN.md, package 28.8",
+ "plan": [
+  "A service the routes call: start or resume a walk once, read a walk without running it, list the walks.",
+  "Routes for drafts, projects and Admin.",
+  "A Team panel on Home and a Teams tab on Admin.",
+  "The critic's model only after the sealed gate."
+ ],
+ "decisions": [
+  {
+   "decision": "A step only when the person asks: the page reads the walk, and POST runs it to its next pause.",
+   "why": "A walk waits on the person; nothing should run behind their back or twice."
+  },
+  {
+   "decision": "The pause shown is read from the pauses the walk writes, not from the checkpoint's internals.",
+   "why": "The walk already writes each pause open and closes it: one source the page and the dataset both read."
+  },
+  {
+   "decision": "The critic's model serves only once the team passed its sealed gate.",
+   "why": "The measurement decides what serves; until then the rules ask."
+  }
+ ],
+ "change": "dclab_rnd/orchestra/service.py; GET/POST /api/drafts/{id}/team (draft/api.py), GET/POST /api/projects/{id}/team and GET /api/teams (agentic/pages/team.py, the owner's); Home's Team panel and Admin's Teams tab; the API client and the app rebuilt.",
+ "findings": [
+  {
+   "id": "B1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The Team panel showed nothing when the walk paused before its first hand-off.",
+   "scenario": "In the browser: the walk paused on the first question; the page said it had not walked yet.",
+   "cause": "The panel drew only when a board existed.",
+   "fix": "The panel shows the waiting pause whether or not a board was written.",
+   "test": "manual check in the app's browser (screenshots), tests/test_team_api.py"
+  },
+  {
+   "id": "H1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "An ML engineer could open the holdout through the new project route.",
+   "scenario": "A data_scientist posted approve=true while the solution team waited on the holdout gate: the gate was approved and the programme read the holdout.",
+   "cause": "The route needed only write; the walk approved the gate as the person.",
+   "fix": "A resume of a holdout approval demands approve_gate (an owner or a reviewer).",
+   "test": "test_the_solution_team_through_its_route_and_the_holdout_is_the_gates_own_permission"
+  },
+  {
+   "id": "M1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The page showed a pause the walk no longer waited on.",
+   "scenario": "An empty answer ended the walk; the page still showed the question; answering it gave 409.",
+   "cause": "The pause was read from the last line of the pauses file, which a skipped question never closes.",
+   "fix": "The pause is read from the walk's checkpoint.",
+   "test": "test_an_empty_answer_leaves_no_stale_pause_on_the_page"
+  },
+  {
+   "id": "M2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Starting again while a draft's walk waited threw the walk away.",
+   "scenario": "After two answers, POST {} restarted the walk from nothing; the first left orphaned boards and no record.",
+   "cause": "The walk did not guard a start against an open pause, as the solution team did.",
+   "fix": "A start while a pause waits returns that pause; a new walk starts on a fresh thread.",
+   "test": "test_an_answer_must_fit_its_pause_and_a_start_while_it_waits_keeps_the_walk"
+  },
+  {
+   "id": "M3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An answer was not checked against its pause.",
+   "scenario": "approve=false sent to the prediction moment's question recorded the moment as 'False'.",
+   "cause": "Any body resumed any pause.",
+   "fix": "A question takes words, a confirmation or an approval a yes or no; anything else 422.",
+   "test": "test_an_answer_must_fit_its_pause_and_a_start_while_it_waits_keeps_the_walk"
+  },
+  {
+   "id": "M4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Two runs of a project's team could overlap.",
+   "scenario": "Two POSTs at the holdout approval both approved the gate; one approval stayed unused for a later read.",
+   "cause": "The project's running flag is set only inside the programme's run.",
+   "fix": "One walk of a project at a time (409 otherwise).",
+   "test": "tests/test_team_api.py"
+  },
+  {
+   "id": "M5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Items carried over from 28.3 were dropped silently.",
+   "scenario": "28.3's Left moved the team switch and the per-run budget to 28.8; neither was built or listed.",
+   "cause": "The status was written from what was built.",
+   "fix": "Listed under 28.8's Left.",
+   "test": "docs/guides/PHASE6_MULTI_AGENT_PLAN.md"
+  },
+  {
+   "id": "M6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An approval was asked without showing what it approves.",
+   "scenario": "Approve: understanding with Yes and No, the critic's concerns unseen, recorded as overridden.",
+   "cause": "The view dropped the pause's summary.",
+   "fix": "The pause's summary (the concerns, the parts, the build's state) shown, escaped.",
+   "test": "test_the_solution_team_through_its_route_and_the_holdout_is_the_gates_own_permission"
+  },
+  {
+   "id": "L1",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Two quick resumes could lose a session from the walk's record.",
+   "scenario": "The state was read before the turn lock; the second request rewrote runs from a stale read; the spend and models under-counted.",
+   "cause": "The read and the walk were not under one lock; runs was overwritten.",
+   "fix": "The read is inside the turn; runs is appended by a reducer.",
+   "test": "tests/test_orchestra_walk.py"
+  },
+  {
+   "id": "L2",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The busy check blocked the event loop on PostgreSQL.",
+   "scenario": "answering() opened a connection on the loop.",
+   "cause": "Called directly in the async route.",
+   "fix": "Run in a thread, as the message route does.",
+   "test": "tests/test_team_api.py"
+  },
+  {
+   "id": "L3",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "A test would fail the day the sealed team run passes.",
+   "scenario": "It asserted the critic's model never serves, from the repository's evidence.",
+   "cause": "A fact of the evidence asserted as a constant.",
+   "fix": "team_passed patched in the test.",
+   "test": "tests/test_team_api.py"
+  },
+  {
+   "id": "L4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The dev corpus was not rebuilt.",
+   "scenario": "test_devlog: train.chat.jsonl stale.",
+   "cause": "make sft-dev not run after the record.",
+   "fix": "The dev corpus rebuilt with make sft-dev after the record.",
+   "test": "tests/test_devlog.py"
+  },
+  {
+   "id": "L5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Failure paths were untested.",
+   "scenario": "No test for the project route, a wrong answer, a restart, the holdout permission.",
+   "cause": "Only the happy path was tested.",
+   "fix": "Tests for each.",
+   "test": "tests/test_team_api.py"
+  }
+ ],
+ "measurements": [],
+ "outcome": "A person can walk a draft with the team on Home, answer its pauses there, and the owner sees every walk on Admin.",
+ "lessons": [
+  "A view of a paused process must show the pause even before the process has produced anything else.",
+  "A route that resumes a gate must demand the gate's own permission: the permission of the route is not the permission of the decision it carries.",
+  "Read a paused process's state from the process, never from a log that a skipped step does not close."
+ ],
+ "risks": [
+  "The product's Build button still builds directly; the walk's approval is the team's own path until Home moves to the graph."
+ ],
+ "commits": []
+}

@@ -805,6 +805,35 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             experience.record("draft.refused", "system", {"reason": str(exc)[:2000], "rule": exc.rule}, conversation=draft_id)
             raise HTTPException(409, str(exc)) from None
 
+    # ------------------------------------------------------------------------------------------------ 28.8: the team's walk
+    @router.get("/api/drafts/{draft_id}/team", response_model=Doc)
+    async def team_board(draft_id: str):
+        """The understanding walk on this draft as it stands: its last board (the node that worked, what it found), the pause
+        waiting for the person, and its last record. Nothing runs."""
+        get(draft_id)
+        from ..orchestra import service as team
+
+        home, _ = workspace()
+        return await asyncio.to_thread(team.view, home, f"draft:{draft_id}")
+
+    @router.post("/api/drafts/{draft_id}/team", response_model=Doc)
+    async def team_walk(draft_id: str, payload: AnyObject | None = Body(None)):
+        """Start the understanding walk, or resume it: ``{"answer": "..."}`` answers the question it waits on, ``{"approve": true}``
+        (or false) the confirmation or approval; it runs until its next pause or its end, and says which."""
+        get(draft_id)
+        if (draft_id + ":agent") in jobs or await asyncio.to_thread(answering, draft_id):
+            raise HTTPException(409, "the agent is answering this draft: try again when it is done")
+        from ..orchestra import service as team
+
+        home, gateway = workspace()
+        try:
+            resume = await asyncio.to_thread(team.resume_value, home, f"draft:{draft_id}", dump(payload))
+            return await asyncio.to_thread(team.walk_draft, home, drafts, projects, agent(draft_id), draft_id, resume, gateway)
+        except team.WrongAnswer as exc:  # words for a question, a yes or no for a confirmation or an approval
+            raise HTTPException(422, str(exc)[:300]) from None
+        except ValueError as exc:  # nothing to resume: no pause is open
+            raise HTTPException(409, str(exc)[:300]) from None
+
     async def quick_build(draft_id: str) -> dict[str, Any]:
         """25.13: "build it" in one step (the owner, 2026-10-16: the wizard and a page of stages to start by hand were not
         practical). The solution the audit proposes is accepted as it stands (its forbidden columns, identifiers and

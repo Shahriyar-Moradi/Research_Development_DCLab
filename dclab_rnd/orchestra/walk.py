@@ -16,7 +16,8 @@ import hashlib
 import json
 import time
 from datetime import datetime, timezone
-from typing import Any, Optional, TypedDict
+import operator
+from typing import Annotated, Any, Optional, TypedDict
 
 from ..agents import harness
 from . import thread_id
@@ -50,7 +51,7 @@ class WalkState(TypedDict, total=False):
     situation: dict[str, Any]
     project_id: Optional[str]
     started: str
-    runs: list[str]
+    runs: Annotated[list[str], operator.add]  # every session of the walk, appended (the review of 28.8: a stale read lost one)
 
 
 def _answered(draft: dict[str, Any]) -> set[str]:
@@ -377,47 +378,57 @@ class Walk:
             self.build()
         thread = thread_id("draft", draft_id)
         config = {"configurable": {"thread_id": thread}, "recursion_limit": 4 * self.max_steps + 20}
-        snap = self.graph.get_state(config)
-        open_ = [i for t in snap.tasks for i in (getattr(t, "interrupts", None) or ())]
-        if resume is not None and not open_:
-            raise ValueError(f"nothing to resume on {thread}: no pause is open")
-        if resume is not None and not (isinstance(resume, dict) and "key" in resume):
-            resume = {"key": dict(open_[0].value).get("key"), "answer": resume}  # the answer is to the pause the person was shown
-        with self.c.drafts.turn(draft_id), experience.bind(conversation=draft_id), \
-                harness.session("orchestra.walk", store=store, params={"draft": draft_id, "resumed": resume is not None}) as current:
-            token = _SESSION.set(current)
-            try:
-                if resume is None:
-                    self.graph.invoke({"draft_id": draft_id, "board": B.new(thread).model_dump(mode="json"), "steps": [], "seen": {}, "last": None,
-                                       "started": B.now(), "runs": [current.run_id]}, config)
-                else:
-                    self.graph.invoke(Command(resume=resume, update={"runs": [*(snap.values.get("runs") or []), current.run_id]}), config)
-            finally:
-                _SESSION.reset(token)
+        with self.c.drafts.turn(draft_id):  # the state read and the walk under one turn: two requests never resume from the same read
             snap = self.graph.get_state(config)
-            pending = [i for task in snap.tasks for i in (getattr(task, "interrupts", None) or ())]
-            values = snap.values
-            if pending:
-                asks = dict(pending[0].value)
-                current.step("interrupt", {"kind": asks.get("kind"), "field": asks.get("field"), "gate": asks.get("gate")}, "paused")
-                current.status = "stopped"
-                from dclab_core.orchestra import Board
+            open_ = [i for t in snap.tasks for i in (getattr(t, "interrupts", None) or ())]
+            if resume is not None and not open_:
+                raise ValueError(f"nothing to resume on {thread}: no pause is open")
+            if resume is None and open_:  # started again while a pause waits: the pause stands (the review of 28.8: the walk was thrown away)
+                return {"status": "paused", "asks": dict(open_[0].value), "state": snap.values.get("state")}
+            if resume is None and snap.values:  # a new walk starts from the draft as it is, on a fresh thread
+                self.checkpointer.delete_thread(thread)
+            if resume is not None and not (isinstance(resume, dict) and "key" in resume):
+                resume = {"key": dict(open_[0].value).get("key"), "answer": resume}  # the answer is to the pause the person was shown
+            with experience.bind(conversation=draft_id), \
+                    harness.session("orchestra.walk", store=store, params={"draft": draft_id, "resumed": resume is not None}) as current:
+                token = _SESSION.set(current)
+                try:
+                    if resume is None:
+                        self.graph.invoke({"draft_id": draft_id, "board": B.new(thread).model_dump(mode="json"), "steps": [], "seen": {}, "last": None,
+                                           "started": B.now(), "runs": [current.run_id]}, config)
+                    else:
+                        self.graph.invoke(Command(resume=resume, update={"runs": [current.run_id]}), config)
+                finally:
+                    _SESSION.reset(token)
+                return self._after_invoke(draft_id, thread, config, current)
 
-                B.interrupt(Board.model_validate(values["board"]), asks.get("kind") or "question", "walk", self.TEAM, field=asks.get("field"),
-                            gate=asks.get("gate"), text=str(asks.get("text") or ""), status="open", home=self.home)
-                return {"status": "paused", "asks": asks, "state": values.get("state")}
-            if values.get("next") != "done":
-                current.status = "stopped"
-            now = self.c.where(draft_id)
-            if values.get("next") == "stop":
-                now = now.model_copy(update={"next": "stop", "says": values.get("says") or now.says})
-            self.c._remember(draft_id, now)  # the coordinator's own record of where it stopped
-            from dclab_core.orchestra import Board
+    def _after_invoke(self, draft_id: str, thread: str, config: dict[str, Any], current: Any) -> dict[str, Any]:
+        """The walk's end of a run, inside its session and its turn: the pause it waits on (opened on the board), or its end
+        (the coordinator's own record of where it stopped, and the walk's record with its spend and the models it asked)."""
+        from dclab_core.orchestra import Board
 
-            spent, models = _requests(values.get("runs") or [], conversation=draft_id)
-            B.record(thread, self.TEAM, _nodes(values.get("steps") or []), Board.model_validate(values["board"]),
-                     "completed" if now.next == "done" else "stopped", values.get("started") or B.now(), home=self.home,
-                     spent_eur=spent, walk=_walk_id(values), models=models)
+        from . import board as B
+
+        snap = self.graph.get_state(config)
+        pending = [i for task in snap.tasks for i in (getattr(task, "interrupts", None) or ())]
+        values = snap.values
+        if pending:
+            asks = dict(pending[0].value)
+            current.step("interrupt", {"kind": asks.get("kind"), "field": asks.get("field"), "gate": asks.get("gate")}, "paused")
+            current.status = "stopped"
+            B.interrupt(Board.model_validate(values["board"]), asks.get("kind") or "question", "walk", self.TEAM, field=asks.get("field"),
+                        gate=asks.get("gate"), text=str(asks.get("text") or ""), status="open", home=self.home)
+            return {"status": "paused", "asks": asks, "state": values.get("state")}
+        if values.get("next") != "done":
+            current.status = "stopped"
+        now = self.c.where(draft_id)
+        if values.get("next") == "stop":
+            now = now.model_copy(update={"next": "stop", "says": values.get("says") or now.says})
+        self.c._remember(draft_id, now)  # the coordinator's own record of where it stopped
+        spent, models = _requests(values.get("runs") or [], conversation=draft_id)
+        B.record(thread, self.TEAM, _nodes(values.get("steps") or []), Board.model_validate(values["board"]),
+                 "completed" if now.next == "done" else "stopped", values.get("started") or B.now(), home=self.home,
+                 spent_eur=spent, walk=_walk_id(values), models=models)
         return {"status": "done", "state": now.state, "next": now.next, "says": now.says, "blockers": [b.model_dump() for b in now.blockers],
                 "passed": now.passed, "steps": values.get("steps") or [], "board": values.get("board"),
                 "project_id": values.get("project_id") or self.c.drafts.get(draft_id).get("project_id")}
