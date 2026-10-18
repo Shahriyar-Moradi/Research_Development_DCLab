@@ -24,7 +24,7 @@
  "measurements": [
   {
    "name": "the seven new students' sealed exams (DMG-007 to DMG-013)",
-   "gate": "decision_gate_v1 (22.3), fixed before the runs",
+   "gate": "decision_gate_v1 (22.3), fixed before the runs: accuracy at least 0.9 at the lower bound, a margin over the rule, no class missed, at most 2% of the rule's right answers turned wrong",
    "fixed_before_run": true,
    "result": "all seven fail. task.framing 0.918 (lower bound 0.886 < 0.9; 6.6% of the rule's right answers turned wrong); data.cases_table, data.cleaning_step and split.strategy beat their rules by 0.19 to 0.26 at the lower bound but turn 10 to 21% of the rule's right answers wrong (cleaning misses trim, split misses group and stratified); image.flip_safe and image.label_suspect no margin over near-perfect rules; image.near_copy 0.911 (lower bound under 0.9)",
    "verdict": "fail",
@@ -32,7 +32,7 @@
    "against_gate": "Failed: none serves; all stay in shadow.",
    "limits": [
     "Invented tables and images: these exams say how the students read these planted kinds.",
-    "The 'rule's right answers kept' bar (2%) is the one most failed: a student that beats its rule overall but breaks what the rule gets right is not promoted, by design."
+    "The bar on the rule's right answers kept is the one most failed: a student that beats its rule overall but breaks what the rule gets right is not promoted, by design."
    ]
   }
  ],
