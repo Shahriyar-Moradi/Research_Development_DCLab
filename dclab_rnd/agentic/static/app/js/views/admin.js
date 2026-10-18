@@ -374,6 +374,57 @@ DC.view('admin', {
       + `<td class="mono small">${pct(s.accuracy_on_disagreements)} of ${n(s.labelled_disagreements)} labelled</td></tr>`).join('');
     else DC.states.empty($('#shadow-body', el), 'No classifier answers in shadow on this machine (make decision-models fits them).', { cols: 6 });
     await this.loadBlind(el);
+    await this.loadQueue(el);
+  },
+
+  // 29.8: the disagreements worth a person's look, one click each; the next one is already here, nothing reloads
+  async loadQueue(el, keep) {
+    const { $, esc } = DC;
+    const box = $('#queue-body', el), pick = $('#queue-point', el);
+    this.queueSkipped = this.queueSkipped || [];
+    this.queueDone = this.queueDone || 0;
+    const point = pick.value || undefined;
+    let r;
+    try { r = await DC.client.ledgerQueue({ query: { ...(point ? { point } : {}), limit: 30, ...(this.queueSkipped.length ? { skip: this.queueSkipped.join(',') } : {}) }, quiet: true }); }
+    catch (e) { DC.states.failed(box, e, { retry: () => this.loadQueue(el) }); return; }
+    const counts = r.points || {};
+    if (!keep) {
+      pick.innerHTML = '<option value="">every point</option>' + Object.entries(counts).map(([p, n]) => `<option value="${esc(p)}">${esc(p)} (${esc(String(n))})</option>`).join('');
+      if (point && counts[point] !== undefined) pick.value = point;
+      if (!pick.dataset.wired) { pick.dataset.wired = '1'; pick.addEventListener('change', () => this.loadQueue(el, true)); }
+    }
+    this.queueItems = r.items || [];
+    this.drawQueue(el);
+  },
+
+  drawQueue(el) {
+    const { $, esc } = DC;
+    const box = $('#queue-body', el);
+    const item = (this.queueItems || [])[0];
+    if (!item) {
+      DC.states.empty(box, this.queueDone ? `Labelled ${this.queueDone} here. No disagreement left to label at this point.` : 'No disagreement waiting: no student disagrees with the rule on a drawn decision yet.');
+      return;
+    }
+    const state = Object.entries(item.state || {}).map(([k, v]) => `<dt>${esc(k.replace(/_/g, ' '))}</dt><dd class="mono small">${esc(Array.isArray(v) ? v.join(', ') : String(v))}</dd>`).join('');
+    box.innerHTML = `<div><b>${esc(item.question)}</b><div class="xs muted">${esc(item.point)} · about the ${esc(item.subject.kind)} <code>${esc(item.subject.key)}</code> · weight ${esc(String(item.weight))}`
+      + ` · ${esc(String(this.queueItems.length))} in this batch${this.queueDone ? ` · ${esc(String(this.queueDone))} labelled` : ''}</div></div>`
+      + (state ? `<dl class="kv">${state}</dl>` : '<div class="xs muted">No state was recorded for this decision.</div>')
+      + `<div class="row" data-style="flex-wrap:wrap;gap:6px">${(item.options || []).map(o => `<button type="button" class="btn sm" data-q="${esc(o)}">${esc(o)}</button>`).join('')}`
+      + `<button type="button" class="btn sm ghost" data-q-skip title="Leave it unlabelled: a gap is reported, a guess is not">Can't tell — next</button></div>`;
+    const next = () => { this.queueItems.shift(); if (this.queueItems.length) this.drawQueue(el); else this.loadQueue(el, true); };
+    // a second click of a double click lands on the next decision's button: clicks this soon after drawing are ignored
+    const drawnAt = performance.now();
+    const read = ev => ev.detail <= 1 && performance.now() - drawnAt > 350;
+    $('[data-q-skip]', box).addEventListener('click', ev => { if (!read(ev)) return; this.queueSkipped.push(item.record); next(); });
+    box.querySelectorAll('[data-q]').forEach(b => b.addEventListener('click', async ev => {
+      if (!read(ev)) return;
+      box.querySelectorAll('button').forEach(x => { x.disabled = true; });
+      const raw = b.dataset.q;
+      const value = item.answer === 'noul' ? raw === 'yes' : raw;
+      try { await DC.client.ledgerBlindLabel(item.record, { body: { value } }); this.queueDone += 1; next(); }
+      catch (e) { DC.toast(e.message, { ok: false }); box.querySelectorAll('button').forEach(x => { x.disabled = false; }); }
+    }));
+    DC.hydrate(el);
   },
 
   async loadBlind(el) {

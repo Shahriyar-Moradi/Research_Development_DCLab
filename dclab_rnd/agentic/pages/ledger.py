@@ -2,6 +2,7 @@
 
     GET  /api/ledger/summary              how many decisions by point, kind and who decided; labels by source
     GET  /api/ledger/blind/next           the next decision drawn for a blind label: its question and state only
+    GET  /api/ledger/queue                29.8: the drawn disagreements (a point's student against the rule), shown blind
     POST /api/ledger/blind/{record_id}    a blind reviewer's answer, kept with its sampling weight
 
 Only the owner and reviewers read or label them (``accounts.guard``: ``review``). A blind reviewer never sees an
@@ -27,6 +28,12 @@ def register(app, ctx) -> None:
     def store() -> Any:
         return getattr(ctx, "ledger", None)
 
+    def home() -> Any:  # 29.8: the workspace's folder, where the testers' collected records are
+        from ... import context
+
+        found = getattr(context.services() or ctx, "store", None)
+        return getattr(found, "home", None)
+
     @router.get("/api/ledger/summary", response_model=Page)
     async def ledger_summary():
         """Decisions by point, kind and who decided; labels by source; how many are drawn for blind labels."""
@@ -47,6 +54,21 @@ def register(app, ctx) -> None:
             raise HTTPException(422, "skip lists decision ids")
         item = await asyncio.to_thread(labels.next_blind, store(), "blind-v1", point, skipped)
         return {"item": item}
+
+    @router.get("/api/ledger/queue", response_model=Page)
+    async def ledger_queue(point: str | None = None, limit: int = 50, skip: str | None = None):
+        """29.8: the decisions where a point's student disagrees with the rule, drawn for blind labels and not yet labelled,
+        in an order drawn from the seed (any part labelled is a fair sample): each shown blind (its question, subject, state
+        and options), with the weight its label will carry; ``points``: how many each point has waiting. Label one with
+        POST /api/ledger/blind/{record_id}."""
+        from ...ledger import labels
+
+        if point is not None and not re.fullmatch(r"[a-z_.]{3,60}", point):
+            raise HTTPException(422, "point is a decision point")
+        skipped = [x for x in (skip or "").split(",") if x][:500]
+        if not all(ID.fullmatch(x) for x in skipped):
+            raise HTTPException(422, "skip lists decision ids")
+        return await asyncio.to_thread(labels.queue, store(), point, max(1, min(int(limit), 200)), "blind-v1", skipped)
 
     @router.post("/api/ledger/blind/{record_id}", response_model=Page)
     async def ledger_blind_label(record_id: str, body: Any = Body(None)):
@@ -75,7 +97,9 @@ def register(app, ctx) -> None:
                 routed = [p for p, e in (ctx.models.routing.get().get("decisions") or {}).items() if e.get("level")]
                 if out.point not in routed:  # only a label at a routed point can change a routed model's figures
                     return []
-                return routing.demote(ctx.models.routing, ctx.audit, store().records(point=out.point), store().labels(point=out.point))
+                from ...ledger import shadow
+
+                return routing.demote(ctx.models.routing, ctx.audit, *shadow.labelled(store(), home(), point=out.point))  # 29.8: testers' labels too
 
             try:
                 demoted = await asyncio.to_thread(check)
@@ -92,7 +116,7 @@ def register(app, ctx) -> None:
         from ...ledger import routing, shadow
 
         doc = ctx.models.routing.get()
-        measured = await asyncio.to_thread(shadow.measure, store().records() if store() is not None else [], store().labels() if store() is not None else [])
+        measured = await asyncio.to_thread(lambda: shadow.measure(*shadow.labelled(store(), home())))  # 29.8: the testers' collected labels too
         points = sorted({p for p in POINTS if routing.entry(doc, p) or routing.candidates(p)})
         return {"points": {p: {"routed": routing.entry(doc, p) or None, "candidates": routing.candidates(p, measured)} for p in points},
                 "history": [h for h in doc.get("history") or [] if h.get("decision_point")][-50:]}
@@ -112,7 +136,7 @@ def register(app, ctx) -> None:
         book = store()
 
         def measured() -> dict[str, Any]:  # the shadow figures a promotion to act rests on
-            return shadow.measure(book.records(point=point), book.labels(point=point)) if book is not None else {}
+            return shadow.measure(*shadow.labelled(book, home(), point=point)) if book is not None else {}  # 29.8: and the testers' labels
 
         try:
             level = int(b.get("level") or 0)

@@ -207,7 +207,7 @@ def read(ledger: Any = None, routing_doc: Optional[dict[str, Any]] = None, measu
 
         if shadow.on():
             try:
-                measured = shadow.measure(ledger.records(), ledger.labels())
+                measured = shadow.measure(*shadow.labelled(ledger, home))  # 29.8: with home, every collected tester's labels too
             except Exception as error:  # noqa: BLE001 - a classifier that cannot be read measures nothing
                 warnings.append(f"the shadow measurement failed ({type(error).__name__}): labelled disagreements are unknown")
         else:

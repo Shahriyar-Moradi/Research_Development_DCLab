@@ -1,0 +1,44 @@
+{
+ "package": "29.8",
+ "title": "The people's labels, made easy: every student whispers, a blind queue of its disagreements, testers' labels counted",
+ "date": "2026-10-18",
+ "request": "Phase 7 (the owner): a student behind every choice; 29.8 makes a person's labels cheap where they teach most, and lets the testers' labels count.",
+ "spec": "docs/guides/PHASE7_STUDENTS_PLAN.md, package 29.8",
+ "plan": [
+  "Let every student DCLab fitted answer in shadow, and measure them where they answer.",
+  "Queue the drawn decisions where a student disagrees with the rule, shown blind, one click each, without reloading the page.",
+  "Count a collected tester's labels toward the register's needed to act, through the same measurement.",
+  "Tests first: a queue blind and drawn, 30 labels through the route counted by the register, a tester's labels counted."
+ ],
+ "decisions": [
+  {"decision": "The queue holds only decisions of the blind draw, labelled through the blind route.", "why": "Each label then keeps the weight of how its decision was drawn; an exposed label that sides with the rule is dropped by the label rule, so labels a person gives after seeing both answers would count only one way."},
+  {"decision": "The queue's order is drawn from a seed, not the student's surest first as the package first said.", "why": "The weights correct for the draw, not for choosing inside it: a person who labels the first part of a confidence-ordered queue gives the act check the student's best cases (the review measured a student right on a quarter of its disagreements reach may act on 30 labels)."},
+  {"decision": "Only the point's current student, as the register's card names it, fills the queue.", "why": "A label of another version's or an own student's disagreement counts toward nothing the register shows."},
+  {"decision": "A tester's decisions are answered by the students as they are, counted once by id, and only those stamped for improving DCLab.", "why": "A tester's machine has no student; a tester may share twice under two names; a record stamped operate never leaves its workspace."},
+  {"decision": "The default measurement reads DCLab's students only.", "why": "A workspace's own student learns from these very labels: its figures on them are in-sample."}
+ ],
+ "change": "ledger/shadow.py: FOLDERS (every student folder), answerable for non-column points, labelled(ledger, home, point) with the testers' cached, consented, deduplicated records; ledger/labels.py: queue of the current students' drawn disagreements in a seeded order; GET /api/ledger/queue (review role); the routing measurement and both demotions read the testers' labels; the Decisions tab's queue panel; tests/test_label_queue.py.",
+ "findings": [
+  {"id": "R1", "source": "reviewer", "severity": "behaviour", "defect": "The surest-first queue biased the figures a promotion rests on.", "scenario": "400 disagreements, the student right only on its surest quarter: the first 30 labels gave it 50 to 0 weighted and ready_to_act said it may act; over all 244 drawn it is right on 61.", "cause": "The 1/p weights correct for the draw, not for choosing which drawn decisions are labelled first.", "fix": "An order drawn from the seed: any prefix is a uniform sample of the drawn disagreements.", "test": "test_the_queue_is_the_drawn_disagreements_shown_blind_in_an_order_that_does_not_favour_the_student", "impact": "A weak student could have been promoted to act on its best cases alone.", "alternatives": ["Count queue labels toward acting only once a point's drawn disagreements are all labelled: set aside, a person rarely finishes a point."]},
+  {"id": "R2", "source": "reviewer", "severity": "behaviour", "defect": "The queue held disagreements the register never counts.", "scenario": "An own student disagreeing while DCLab's agreed: 30 labels, the register still needed 20.", "cause": "Any shadow answer made a decision a disagreement.", "fix": "Only the point's current student, as the register's card names it.", "test": "test_only_the_points_current_student_fills_the_queue"},
+  {"id": "R3", "source": "reviewer", "severity": "behaviour", "defect": "Five of the newly listed students never whispered in production.", "scenario": "split.strategy, data.cases_table and the three image points: their states have no column band, so answerable was False.", "cause": "answerable asked for a column's bands on every technical point.", "fix": "A decision about something other than a column is answerable from any field but a name, as a workflow decision is.", "test": "test_the_new_students_can_answer_the_states_production_records"},
+  {"id": "R4", "source": "reviewer", "severity": "behaviour", "defect": "A tester's records shared twice counted twice.", "scenario": "Twelve labelled decisions under two tester folders gave 24 labelled disagreements and needed to act 0.", "cause": "The testers' records were concatenated as found.", "fix": "Each record and label counted once by id.", "test": "test_a_testers_collected_labels_count_toward_acting"},
+  {"id": "R5", "source": "reviewer", "severity": "privacy", "defect": "A tester's record stamped operate could be used.", "scenario": "Share copies whole ledger files, including records written before setup or in a project whose consent was off.", "cause": "The consent stamp of each record was not read.", "fix": "Only records exportable for improve, and only their labels.", "test": "test_a_tester_record_stamped_operate_never_counts", "impact": "A record its workspace never allowed to leave would have weighed on a promotion."},
+  {"id": "R6", "source": "reviewer", "severity": "latent", "defect": "Every page read answered every tester record again.", "scenario": "About 4 seconds per call for 6,000 tester records on the Students page, routing and the loop.", "cause": "No cache.", "fix": "The shadowed records are kept until the tester's files or the students change.", "test": ""},
+  {"id": "R7", "source": "reviewer", "severity": "latent", "defect": "The default measurement read the workspace's own students, in-sample.", "scenario": "The Decisions tab's shadow table showed an own student right where it differs, on the labels it learned from.", "cause": "The default models included the own ones.", "fix": "DCLab's students by default.", "test": "test_the_default_measure_reads_dclabs_students_never_the_workspaces_own"},
+  {"id": "R8", "source": "reviewer", "severity": "behaviour", "defect": "A double click could label the next decision unread.", "scenario": "The first click labels and redraws; the second lands on the next decision's button in the same place.", "cause": "No guard after a redraw.", "fix": "A second click of a double click, or a click within 350 ms of a redraw, is ignored.", "test": ""},
+  {"id": "R9", "source": "reviewer", "severity": "latent", "defect": "Tester labels counted toward promotion but not demotion.", "scenario": "A model promoted partly on tester labels would never be demoted by later ones.", "cause": "demote read the workspace's records only.", "fix": "The blind route's check and the loop's demotion read the testers' labels too.", "test": ""}
+ ],
+ "measurements": [
+  {"name": "the queue's tests", "gate": "Done when: a person can label 30 disagreements of one point in a few minutes, and the register counts them toward needed to act", "fixed_before_run": true, "result": "30 labels through the route in under 30 seconds of server time, then labelled_disagreements 30 and needed_to_act 0 in the register; 9 tests pass; the page checked in a browser: three clicks labelled three decisions with no reload, no overflow at 375 px", "verdict": "pass", "cost_eur": 0, "limits": ["Planted disagreements on one point; no person has used the queue yet.", "A person's own time per label is not measured here."]}
+ ],
+ "outcome": "A person can now label a student's disagreements in a few clicks, blind and in a fair order, and every such label (a tester's too) moves the student toward acting or back to shadow by the same measurement.",
+ "lessons": [
+  "Weights correct for how a sample was drawn, not for which part of it a person gets to: an order inside the sample is a second selection.",
+  "Test a whisper on the states production writes, not on states the test invents: a mocked loader hid five silent students."
+ ],
+ "risks": [
+  "Ranking the queue by what a label teaches (29.11) must keep those labels apart from the measurement a promotion reads."
+ ],
+ "commits": []
+}

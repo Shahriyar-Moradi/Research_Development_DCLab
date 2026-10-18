@@ -172,6 +172,18 @@ bands, its options), then a student.
 - **Done when:** a person can label 30 disagreements of one point in a few minutes, and the register counts them toward
   the point's "needed to act".
 
+- **Status: built (2026-10-18), the review's 9 findings fixed.** Every student DCLab fitted whispers (`ledger.shadow.FOLDERS`:
+  the column, table-level, image and workflow students; a decision about something other than a column is answerable from
+  its own fields). The Admin Decisions tab has a queue (`GET /api/ledger/queue`, `ledger/labels.queue`): the drawn
+  decisions where a point's current student disagrees with the rule, shown blind, one click each with the next one already
+  on the page. Not "the surest first", as this package first said: that order hands the figures a promotion rests on the
+  student's best cases (the review measured a student right on a quarter of its disagreements reach "may act" on the
+  first 30 labels); the queue's order is drawn from a seed, so any part labelled is a fair sample. 30 labels through the
+  route count toward the register's "needed to act". A collected tester's decisions (`make collect`) count too: answered
+  by the students as they are, each counted once, only those whose consent stamp allows improving DCLab, and in demotion
+  as well as promotion. Left: ranking the queue by what a label would teach is 29.11's, and needs labels kept apart from
+  the measurement a promotion reads.
+
 ### 29.9 Generation 2: one small language model for every point (26.4, extended)
 - **Delivers:** the export for 26.4 covers every point with a set (the typed questions of 22.5), the recipe unchanged;
   the comparison on dev (`decision_model_compare`) per point against the students and the rules. The training run is

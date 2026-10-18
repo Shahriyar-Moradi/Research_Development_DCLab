@@ -36,6 +36,9 @@ RESULTS = ROOT / "evidence/campaigns/decision_shadow_v1/results"
 GATE = ROOT / "evidence/campaigns/decision_models_v1/results"
 WORKFLOW_MODELS = ROOT / "research/llm-fine-tuning/experiments/decisions/workflow_models_v1"  # 26.3: the workflow points' classifiers
 WORKFLOW_GATE = ROOT / "evidence/campaigns/workflow_models_v1/results"
+MODELS_V2 = ROOT / "research/llm-fine-tuning/experiments/decisions/models_v2"  # 29.2: the table-level choices' students
+MODELS_IMAGES = ROOT / "research/llm-fine-tuning/experiments/decisions/models_images_v1"  # 26.8: the image points' students
+FOLDERS = (MODELS, MODELS_V2, MODELS_IMAGES, WORKFLOW_MODELS)  # 29.8: every student DCLab fitted whispers
 BANDS = ("dtype", "uniqueness", "nulls", "cardinality", "value_pattern")  # a state with none of these holds only a name
 NAMES = ("column", "target")
 
@@ -47,8 +50,9 @@ def on() -> bool:
 @functools.lru_cache(maxsize=4)
 def answerers(models: Optional[str] = None) -> tuple[Any, ...]:
     """The fitted classifiers whose bytes match ``fitted.json`` and whose card describes them; none when none is here.
-    By default the column points' (22.2) and the workflow points' (26.3); ``models``: one folder only."""
-    folders = [MODELS, WORKFLOW_MODELS] if models is None else [Path(models)]
+    By default every folder of ``FOLDERS`` (22.2's column points, 29.2's table-level choices, 26.8's images, 26.3's
+    workflow points); ``models``: one folder only."""
+    folders = list(FOLDERS) if models is None else [Path(models)]
     return tuple(m for folder in folders for m in _load(folder))
 
 
@@ -102,13 +106,15 @@ def banded(state: dict[str, Any]) -> bool:
 
 def answerable(record: Any) -> bool:
     """Whether a classifier has something to answer from: a column decision's bands, or (26.3) a workflow decision's
-    counts, flags and codes (any field but a name)."""
+    counts, flags and codes (any field but a name), and (29.8) the same for a technical decision about something other than
+    a column (a split's, a cases table's, an image's state: their bands are not a column's)."""
     from dclab_core.ledger import POINTS
 
     if banded(record.state):
         return True
     point = POINTS.get(record.point)
-    return point is not None and point.kind == "workflow" and any(v is not None for k, v in record.state.items() if k not in NAMES)
+    return (point is not None and (point.kind == "workflow" or "column" not in point.subjects)
+            and any(v is not None for k, v in record.state.items() if k not in NAMES))
 
 
 def _answers(model: Any, records: list[Any]) -> list[Any]:
@@ -194,6 +200,8 @@ def measure(records: Iterable[Any], labels: Iterable[Any], models: Optional[Iter
     from dclab_core.answerers import RecordedRule, _key
     from dclab_core.ledger import current_labels, effective_label
 
+    # DCLab's students by default; a workspace's own student learns from these labels, so it is measured only where a caller
+    # keeps its training rows out (the review of 29.8: in-sample figures)
     models = list(answerers() if models is None else models)
     records = list(records)
     by_record: dict[str, list[Any]] = {}
@@ -247,6 +255,60 @@ def measure(records: Iterable[Any], labels: Iterable[Any], models: Optional[Iter
             row[k] = round(row[k], 4)
         out[name] = row
     return out
+
+
+def labelled(ledger: Any, home: Optional[Any] = None, point: Optional[str] = None) -> tuple[list[Any], list[Any]]:
+    """29.8: the decisions and labels a student is measured on: the workspace's, and with ``home`` every collected tester's
+    (``<home>/testers/<id>/ledger``, rebuilt by ``make collect``). A tester's machine had no student: its decisions are
+    answered now by the students as they are (their answers marked shadow, never used); a tester's ledger that cannot be
+    read costs its own decisions only."""
+    records = list(ledger.records(point=point)) if ledger is not None else []
+    labels = list(ledger.labels(point=point)) if ledger is not None else []
+    if home is None:
+        return records, labels
+    from ..evaluation import testers
+
+    seen, seen_labels = {r.id for r in records}, {x.id for x in labels}
+    for folder in testers(Path(home)):
+        if not (folder / "ledger").is_dir():
+            continue
+        try:
+            theirs, their_labels = _tester(folder)
+        except Exception:  # noqa: BLE001
+            continue
+        kept = {r.id for r in theirs if r.id not in seen and (point is None or r.point == point)}  # a tester shared twice counts once
+        records += [r for r in theirs if r.id in kept]
+        labels += [x for x in their_labels if x.record in kept and x.id not in seen_labels]
+        seen |= kept
+        seen_labels |= {x.id for x in their_labels if x.record in kept}
+    return records, labels
+
+
+_TESTERS: dict[str, tuple[Any, tuple[list[Any], list[Any]]]] = {}
+
+
+def _tester(folder: Path) -> tuple[list[Any], list[Any]]:
+    """A collected tester's decisions that may be used to improve DCLab (each record's own consent stamp, 23.1: one stamped
+    operate never leaves its workspace), answered by the students as they are, and their labels; kept until the tester's
+    files or the students change (a page reads it on every request)."""
+    from dclab_core.consent import exportable
+
+    from . import FileLedger
+
+    book = FileLedger(folder / "ledger", folder.name)
+    key = (book.label_signature(), _files(folder / "ledger" / "decisions"), tuple(sorted(f"{m.name}@{m.version}" for m in [*answerers(), *_own()])), on())
+    cached = _TESTERS.get(str(folder))
+    if cached is not None and cached[0] == key:
+        return cached[1]
+    records = [r for r in book.records() if exportable(getattr(r, "consent", "operate"), "improve")]
+    kept = {r.id for r in records}
+    found = (add_many(records), [x for x in book.labels() if x.record in kept])
+    _TESTERS[str(folder)] = (key, found)
+    return found
+
+
+def _files(folder: Path) -> str:
+    return "|".join(f"{p.relative_to(folder)}:{p.stat().st_size}:{p.stat().st_mtime_ns}" for p in sorted(folder.glob("*/*/*.jsonl"))) if folder.is_dir() else ""
 
 
 def replicas(keys: Optional[list[str]] = None, seed: int = 0) -> tuple[list[Any], list[Any], list[str]]:

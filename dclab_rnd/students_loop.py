@@ -177,7 +177,9 @@ def _run(home: Path, ledger: Any, routing_store: Any, audit_log: Any, *, measure
     # demotion first: the safety step never waits for a fit that fails (the review of 29.7)
     checkpoint()
     progress(step="demotion", of=4)
-    demoted = routing.demote(routing_store, audit_log, list(ledger.records()), list(ledger.labels()))
+    from .ledger import shadow
+
+    demoted = routing.demote(routing_store, audit_log, *shadow.labelled(ledger, home))  # 29.8: with every collected tester's labels
     checkpoint()
     progress(step="sets", of=4)
     manifest = own_models.export(home, ledger)

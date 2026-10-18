@@ -75,6 +75,57 @@ def next_blind(ledger: Any = None, seed: str = "blind-v1", point: Optional[str] 
     return None
 
 
+def _disagreement(record: Any, student: Optional[str]) -> bool:
+    """29.8: whether the point's current student (``name@version``, the one the register counts) disagrees with the rule's
+    answer on this decision, in shadow. Another version, or a workspace's own student, does not count here: a label of it
+    would count toward nothing the register shows (the review of 29.8)."""
+    from dclab_core.answerers import SHADOW, _key
+
+    rule = next((a for a in record.answers if a.by == "rule" and a.value is not None), None)
+    if rule is None or not student:
+        return False
+    return any(a.source == SHADOW and a.answerer == student and a.value is not None and _key(a.value) != _key(rule.value) for a in record.answers)
+
+
+def _students() -> dict[str, str]:
+    """Each point's current student, as the register names it (its card's ``name@version``)."""
+    from ..students import students
+
+    return {p: c["answerer"] for p, c in students().items() if c.get("answerer")}
+
+
+def queue(ledger: Any = None, point: Optional[str] = None, limit: int = 50, seed: str = "blind-v1", skip: Sequence[str] = (),
+          current: Optional[dict[str, str]] = None) -> dict[str, Any]:
+    """29.8: the disagreements worth a person's look: decisions where the point's current student (in shadow) disagrees
+    with the rule, not yet labelled blind, each shown blind (``blind_view``: the question, the subject, the state and the
+    options; never an answer, nor whose it was). Only decisions of the blind draw are queued, so a label keeps the weight
+    of how its decision was drawn; and they come in an order drawn from the seed, never the student's surest first: any
+    part of the queue a person labels is then a fair sample of the drawn disagreements, so the figures a student's
+    promotion rests on are not its best cases (the review of 29.8). ``current``: each point's student (default: the
+    register's cards); ``points``: how many each point has waiting."""
+    import hashlib
+
+    from dclab_core import ledger as contract
+
+    store = ledger if ledger is not None else current_ledger()
+    if store is None:
+        return {"items": [], "points": {}, "seed": seed}
+    current = _students() if current is None else current
+    done = {x.record for x in store.labels() if x.source == "blind"}
+    skipped = set(skip)
+    waiting: list[tuple[str, Any]] = []
+    counts: dict[str, int] = {}
+    for r in store.records():
+        if r.id in done or not contract.blind_draw(r, seed) or not _disagreement(r, current.get(r.point)):
+            continue
+        counts[r.point] = counts.get(r.point, 0) + 1
+        if (point is None or r.point == point) and r.id not in skipped:
+            waiting.append((hashlib.sha256(f"{seed}:queue:{r.id}".encode()).hexdigest(), r))
+    waiting.sort(key=lambda x: x[0])
+    items = [{**contract.blind_view(r), "weight": round(1 / contract.blind_probability(r), 6), "seed": seed} for _, r in waiting[:max(0, int(limit))]]
+    return {"items": items, "points": dict(sorted(counts.items())), "seed": seed}
+
+
 def blind_label(record_id: str, value: Any, by: str, seed: str = "blind-v1", ledger: Any = None) -> Any:
     """A blind reviewer's label for a drawn decision, with its weight; refused for a decision not in the draw."""
     from dclab_core import ledger as contract
