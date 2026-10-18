@@ -1,7 +1,7 @@
 {
  "name": "DCLab training lake",
  "version": "v1",
- "builder_commit": "093b43a",
+ "builder_commit": "abb4aee",
  "workspaces_read": 1,
  "workspaces_skipped": [
   "no sets built (make datasets writes what its consent allows)",
@@ -11,10 +11,10 @@
   "no sets built (make datasets writes what its consent allows)",
   "no sets built (make datasets writes what its consent allows)"
  ],
- "inputs": 597,
+ "inputs": 601,
  "silver_only": {},
  "reasoning": {
-  "no reasoning for this family yet": 3357,
+  "no reasoning for this family yet": 3385,
   "reasoning kept": 1816,
   "answer misses the replica's planted truth (example dropped)": 78,
   "reasoning not grounded": 36
@@ -25,6 +25,9 @@
   "claude: kept without the fingerprint of its question (not attached)": 1494
  },
  "dropped_by_source": {
+  "decisions/workflow_v1": {
+   "no usable label": 240
+  },
   "openml": {
    "an ignored column (its role is not said)": 57
   },
@@ -343,6 +346,69 @@
    }
   },
   {
+   "name": "decisions/problem.family",
+   "written": true,
+   "rows": 23,
+   "by_split": {
+    "dev": 20,
+    "train": 3
+   },
+   "by_origin": {
+    "construction": 23
+   },
+   "by_family": {
+    "problem.family": 23
+   },
+   "groups": 23,
+   "dropped": {
+    "no usable label": 240,
+    "train row identical to an evaluation row": 144,
+    "duplicate": 69
+   }
+  },
+  {
+   "name": "decisions/problem.ready",
+   "written": true,
+   "rows": 27,
+   "by_split": {
+    "dev": 20,
+    "train": 7
+   },
+   "by_origin": {
+    "construction": 27
+   },
+   "by_family": {
+    "problem.ready": 27
+   },
+   "groups": 27,
+   "dropped": {
+    "no usable label": 240,
+    "train row identical to an evaluation row": 154,
+    "duplicate": 99
+   }
+  },
+  {
+   "name": "decisions/solution.route",
+   "written": true,
+   "rows": 22,
+   "by_split": {
+    "dev": 15,
+    "train": 7
+   },
+   "by_origin": {
+    "construction": 22
+   },
+   "by_family": {
+    "solution.route": 22
+   },
+   "groups": 17,
+   "dropped": {
+    "no usable label": 240,
+    "train row identical to an evaluation row": 118,
+    "duplicate": 80
+   }
+  },
+  {
    "name": "decisions/split.strategy",
    "written": true,
    "rows": 311,
@@ -440,6 +506,27 @@
    }
   },
   {
+   "name": "decisions/workflow.next_question",
+   "written": true,
+   "rows": 43,
+   "by_split": {
+    "train": 12,
+    "dev": 31
+   },
+   "by_origin": {
+    "construction": 43
+   },
+   "by_family": {
+    "workflow.next_question": 43
+   },
+   "groups": 16,
+   "dropped": {
+    "no usable label": 240,
+    "train row identical to an evaluation row": 876,
+    "duplicate": 401
+   }
+  },
+  {
    "name": "solver/algorithm_choice",
    "written": true,
    "rows": 125,
@@ -464,17 +551,17 @@
   {
    "name": "solver/engineering",
    "written": true,
-   "rows": 3006,
+   "rows": 3034,
    "by_split": {
-    "eval_only": 3006
+    "eval_only": 3034
    },
    "by_origin": {
-    "dev_record": 3006
+    "dev_record": 3034
    },
    "by_family": {
-    "engineering": 3006
+    "engineering": 3034
    },
-   "groups": 279,
+   "groups": 281,
    "dropped": {
     "personal data": 21
    }

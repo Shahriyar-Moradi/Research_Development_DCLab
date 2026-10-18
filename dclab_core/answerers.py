@@ -201,9 +201,11 @@ class ModelAnswerer:
 
     def __init__(self, advisor: Any, points: Iterable[str], name: str = "model", version: str = "1", purpose: str = "decision_answer"):
         points = frozenset(points)
-        other = sorted(p for p in points if "column" not in POINTS[p].subjects)
-        if other:  # its purpose may see a column's state: a decision about a project or a workflow holds other things
-            raise ValueError(f"a model answers column decisions only here: {', '.join(other)}")
+        unknown = sorted(p for p in points if p not in POINTS)
+        if unknown:
+            raise ValueError(f"not decision points: {', '.join(unknown)}")
+        # 29.9: every point's state is bands, counts and codes (dclab_core.ledger.STATE_FIELDS), never a table's value: the
+        # purpose may see any point's, not only a column's
         self.advisor, self.points, self.name, self.version, self.purpose = advisor, points, name, version, purpose
         self.errors = 0  # requests that failed (a cut or broken reply): each an abstention, counted
 
@@ -213,6 +215,10 @@ class ModelAnswerer:
         from dclab_core.decision_export import request
 
         if point not in self.points:
+            return None
+        from dclab_core.ledger import check_state
+
+        if check_state(dict(state)):  # 29.9: only a state the ledger would keep (bands, counts, codes) is ever sent: else no answer
             return None
         evidence = request(point, state, options)  # what a tuned model was trained on, word for word
         try:
@@ -263,11 +269,14 @@ def _unshadowed(record: DecisionRecord) -> DecisionRecord:
     return record if len(shown) == len(record.answers) else record.model_copy(update={"answers": shown})
 
 
-def compare(records: Iterable[DecisionRecord], labels: Iterable[DecisionLabel], answerers: Iterable[DecisionAnswerer]) -> dict[str, Any]:
+def compare(records: Iterable[DecisionRecord], labels: Iterable[DecisionLabel], answerers: Iterable[DecisionAnswerer],
+            accepted: Optional[Mapping[str, Iterable[Any]]] = None) -> dict[str, Any]:
     """Each answerer on the same recorded decisions: how many it answered (coverage), its agreement with the rule
     (where both answered), its accuracy where it answered and a label says what was right, and its accuracy over every
     labelled decision with an abstention counted as wrong (``accuracy_all``: a selective answerer is not flattered);
-    overall and by point. Shadow answers already in a record never move what counts as right."""
+    overall and by point. Shadow answers already in a record never move what counts as right. ``accepted`` (29.9): per
+    record, every answer that counts as right (a workflow decision's journey accepts several); otherwise the label's."""
+    accepted_keys = {r: {_key(v) for v in values} for r, values in (accepted or {}).items()}
     answerers = list(answerers)
     from dclab_core.ledger import current_labels
 
@@ -284,10 +293,12 @@ def compare(records: Iterable[DecisionRecord], labels: Iterable[DecisionLabel], 
                 continue
             key = f"{a.name}@{a.version}"
             got = a.of(record) if isinstance(a, RecordedRule) else a.answer(record.point, record.state, list(record.options))
+            single = len(record.options) < 2  # 29.9: a decision with one option: any answer to it is right, so it is counted apart
             for scope in ("all", record.point):
                 c = stats.setdefault(key, {}).setdefault(scope, Counter())
                 c["decisions"] += 1
                 c["truths"] += int(truth is not None)
+                c["single_option"] += int(single)
                 if got is None or got.value is None:
                     continue
                 c["answered"] += 1
@@ -296,14 +307,20 @@ def compare(records: Iterable[DecisionRecord], labels: Iterable[DecisionLabel], 
                     c["agree_with_rule"] += int(_key(got.value) == _key(ruled.value))
                 if truth is not None:
                     c["labelled"] += 1
-                    c["right"] += int(_key(got.value) == _key(truth.value))
+                    right = accepted_keys.get(record.id) or {_key(truth.value)}
+                    c["right"] += int(_key(got.value) in right)
+                    if not single:
+                        c["labelled_choices"] += 1
+                        c["right_choices"] += int(_key(got.value) in right)
 
     def rates(c: Counter) -> dict[str, Any]:
         return {"decisions": c["decisions"], "answered": c["answered"],
                 "coverage": round(c["answered"] / c["decisions"], 4) if c["decisions"] else None,
                 "agreement_with_rule": round(c["agree_with_rule"] / c["compared_with_rule"], 4) if c["compared_with_rule"] else None,
                 "labelled": c["labelled"], "accuracy": round(c["right"] / c["labelled"], 4) if c["labelled"] else None,
-                "accuracy_all": round(c["right"] / c["truths"], 4) if c["truths"] else None}  # an abstention counted as wrong
+                "accuracy_all": round(c["right"] / c["truths"], 4) if c["truths"] else None,  # an abstention counted as wrong
+                "single_option": c["single_option"],  # 29.9: decisions with one option (any answer is right): left out of the next
+                "accuracy_choices": round(c["right_choices"] / c["labelled_choices"], 4) if c["labelled_choices"] else None}
 
     return {key: {scope: rates(c) for scope, c in scopes.items()} for key, scopes in stats.items()}
 

@@ -262,6 +262,20 @@ class DataLimitTests(unittest.TestCase):
             answerer.answer("column.is_identifier", column_state(column, len(table)), ["yes", "no"])
         self.assertEqual(self.assertWithinLimit("decision_answer"), set())
 
+    def test_the_decision_answerer_sees_a_tables_counts_never_its_values(self):  # 29.9: points about a table, not a column
+        from dclab_core.answerers import ModelAnswerer
+        from dclab_rnd.core_advisor import GatewayAdvisor
+        from dclab_rnd.ledger import states
+        from dclab_rnd.studio.data import profile_table
+
+        table = marked_table()
+        profile = profile_table(table)
+        gw = gateway({"decision_answer": [{"content": '{"answer": "random", "reason": "a count"}', "tool_calls": [], "usage": {}}] * 2})
+        answerer = ModelAnswerer(GatewayAdvisor(gw), {"split.strategy", "data.cases_table"})
+        answerer.answer("split.strategy", states.split_state(profile, None, None), ["random", "time", "group", "time_and_group"])
+        answerer.answer("data.cases_table", states.cases_state(profile, "customers.csv"), ["yes", "no"])
+        self.assertEqual(self.assertWithinLimit("decision_answer"), set())
+
     def test_the_solver_sees_bands_and_names_never_values(self):  # 27.6: the benchmark's questions, built as self-play builds them
         from dclab_rnd.lake.selfplay import _ask, _columns
 

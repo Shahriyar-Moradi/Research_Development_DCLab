@@ -9,7 +9,7 @@ purpose) and is compared with them on the same decisions. Which model, and on wh
 
 ```bash
 make decisions-gen       # the generated decision sets (22.1), if they are not here
-make decisions-export    # export_v1/: train.chat.jsonl, val.chat.jsonl (dev), README.md (dataset card), tabular.parquet, typed.jsonl
+make decisions-export    # export_v2/ (every point with a set, 29.9): train.chat.jsonl, val.chat.jsonl (dev), README.md (dataset card), tabular.parquet, typed.jsonl
 ```
 
 The sealed partition is never exported: a tuned model must not see it.
@@ -21,13 +21,13 @@ On a CUDA GPU (owned or rented), with `pip install "trl>=0.12" "peft>=0.13" "tra
 ```bash
 python research/llm-fine-tuning/experiments/sft/train_lora.py \
   --model Qwen/Qwen2.5-1.5B-Instruct \
-  --data-dir research/llm-fine-tuning/experiments/decisions/export_v1 \
+  --data-dir research/llm-fine-tuning/experiments/decisions/export_v2 \
   --out research/llm-fine-tuning/experiments/decisions/finetune/runs/qwen2.5-1.5b-r16 \
   --rank 16 --epochs 2 --max-length 1024
 ```
 
 On Apple silicon, `mlx-lm` takes the same chat files (`mlx_lm.lora --model <a local MLX model> --train --data
-research/llm-fine-tuning/experiments/decisions/export_v1`; MLX reads `train.jsonl` and `valid.jsonl`, so link or copy
+research/llm-fine-tuning/experiments/decisions/export_v2`; MLX reads `train.jsonl` and `valid.jsonl`, so link or copy
 the two chat files under those names first).
 
 Record each run as `runs/<name>.json`: the base model and its revision, the data's `MANIFEST.json` counts, the

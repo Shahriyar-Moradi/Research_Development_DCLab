@@ -214,6 +214,19 @@ class TrainAndGateTests(unittest.TestCase):
             shadow.answerers.cache_clear()
 
 
+class SealedTests(unittest.TestCase):
+    def test_a_sealed_journey_set_is_played_only_once_its_gate_has_read_it(self):  # 29.9
+        import tempfile
+
+        from dclab_rnd import workflow_models as W
+
+        results = Path(tempfile.mkdtemp())
+        (results / "JRN-001_sealed_v2.json").write_text("{}")
+        self.assertTrue(W._spent(results, "sealed_v2"))
+        self.assertFalse(W._spent(results, "sealed_v7"))  # a fresh set its gate has not read: still sealed, never a training row
+        self.assertFalse(W._spent(results, "sealed"))  # "_sealed.json" is not "_sealed_v2.json"
+
+
 @unittest.skipUnless(HAVE_ML, "needs the ML environment (.venv)")
 class PlayTests(unittest.TestCase):
     def test_a_journey_leaves_labelled_workflow_decisions_up_to_its_build(self):

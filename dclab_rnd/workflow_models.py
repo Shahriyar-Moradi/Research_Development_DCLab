@@ -81,10 +81,19 @@ def journeys(sealed: bool = False) -> list[tuple[str, dict[str, Any]]]:
             raise ValueError("the workflow models' sealed journeys changed since they were sealed: a sealed set is never edited")
         return [("workflow_sealed", j) for j in json.loads(SEALED_FILE.read_text(encoding="utf-8"))]
     out = [("dev", j) for j in J.load("dev")]
-    for split in J.SEALED:  # each spent: read once by its own gate, dev material since
-        out += [(split, j) for j in J.load(split)]
-    out += [("programme_dev", j) for j in P.load("dev")] + [("programme_sealed", j) for j in P.load("sealed")]
+    for split in J.SEALED:  # each spent: read once by its own gate, dev material since; one never read is still sealed (29.9)
+        if _spent(J.RESULTS, split):
+            out += [(split, j) for j in J.load(split)]
+    out += [("programme_dev", j) for j in P.load("dev")]
+    if _spent(P.RESULTS, "sealed"):
+        out += [("programme_sealed", j) for j in P.load("sealed")]
     return out
+
+
+def _spent(results: Path, split: str) -> bool:
+    """A sealed journey set is spent once its gate stored a result for it (``<id>_<split>.json``): until then it is never
+    played into the workflow sets, nor into the exports and the lake that read them (the review of 29.9)."""
+    return any(Path(results).glob(f"*_{split}.json")) if Path(results).is_dir() else False
 
 
 def play(item: tuple[str, dict[str, Any], int]) -> dict[str, Any]:

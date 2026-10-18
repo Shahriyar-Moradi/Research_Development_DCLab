@@ -13,7 +13,10 @@ options, the label and its source, the group and the split) are written three wa
   a hosted judgment model's typed questions (the main product's Jev purposes).
 
 A row of the sealed partition is never written here: a fine-tuned model must not have seen it, and the comparison reads
-it once from where it was generated. Nothing in a state is a table's value (bands and the column's name tokens).
+it once from where it was generated. Nothing in a state is a table's value: a column's bands and name tokens, a table's,
+an image set's or a conversation's counts, flags and codes (``dclab_core.ledger.STATE_FIELDS``). 29.9: every point with a
+set, the workflow points' rows included once :func:`normalize` has given them the point's choices, a subject and the
+rule's answer.
 
 Pure: no dependency beyond the standard library and this package.
 """
@@ -30,6 +33,23 @@ from dclab_core.ledger import POINTS, STATE_FIELDS
 PURPOSE = "decision_answer"  # the prompt a model answering a decision is given (dclab_core/prompts), in training and when asked
 NAMES = ("column", "target")  # whole names: a table carries their tokens only
 
+
+
+def normalize(row: Mapping[str, Any]) -> dict[str, Any]:
+    """29.9: a decision row in the shape every builder reads. A workflow set's row (26.3) has no subject, no answers and,
+    for a choice among the point's own (a problem's family), no options: it gets the point's choices (yes and no for a
+    yes/no/unknown point), the point's first subject kind with the row's id as its key, and the rule's recorded answer
+    (``value_raw``, else ``value_used``). A row that has all three is returned as it is."""
+    out = dict(row)
+    point = POINTS[out["point"]]
+    if not out.get("options"):
+        out["options"] = [str(c) for c in point.choices] if point.choices else (["yes", "no"] if point.answer == "noul" else [])
+    if not out.get("subject"):
+        out["subject"] = {"kind": point.subjects[0], "key": str(out.get("record"))[:200]}
+    if not out.get("answers"):
+        value = out.get("value_raw", out.get("value_used"))
+        out["answers"] = [{"by": "rule", "answerer": f"rule:{out['point']}", "value": value}] if value is not None else []
+    return out
 
 
 def _usable(rows: Iterable[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
@@ -96,7 +116,11 @@ def typed(rows: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
 
 def summary(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
     usable = _usable(rows)
+    by_point_split: dict[str, Counter] = {}
+    for r in usable:
+        by_point_split.setdefault(r["point"], Counter())[r.get("split")] += 1
     return {"rows": len(usable), "by_point": dict(Counter(r["point"] for r in usable)), "by_split": dict(Counter(r.get("split") for r in usable)),
+            "by_point_split": {p: dict(c) for p, c in sorted(by_point_split.items())},  # 29.9: every point with its counts
             "by_label_source": dict(Counter((r.get("label") or {}).get("source") for r in usable)),
             "groups": len({r.get("group") for r in usable})}
 
@@ -112,7 +136,8 @@ def card(name: str, rows: Iterable[Mapping[str, Any]], source: str, limits: Iter
              "- by point: " + ", ".join(f"{k} {v}" for k, v in sorted(s["by_point"].items())),
              "- by split: " + ", ".join(f"{k} {v}" for k, v in sorted(s["by_split"].items())),
              "- labels by source: " + ", ".join(f"{k} {v}" for k, v in sorted(s["by_label_source"].items())), "",
-             "Each row's user turn holds the question, what is known about the column as bands (never a value of the table) and "
+             "Each row's user turn holds the question, what is known about the decision's subject (a column's bands and name "
+             "tokens, a table's, an image set's or a conversation's counts, flags and codes; never a value of the table) and "
              "the options; the assistant's turn the answer as JSON. The sealed partition is not here: it is read once, to compare "
              "a tuned model with the rules and the classical classifiers on the same gate.", "", "## Limits", ""]
     lines += [f"- {x}" for x in limits] or ["- None stated."]

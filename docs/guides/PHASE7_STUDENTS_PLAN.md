@@ -190,6 +190,18 @@ bands, its options), then a student.
   the owner's (GPU).
 - **Done when:** the export's manifest lists every point with its counts, and a run's adapter can be compared per point.
 
+- **Status: built (2026-10-19), the review's 6 findings fixed.** `make decisions-export` writes `decisions/export_v2/`
+  from every decision set (22.1's columns, 29.2's table-level choices, 26.8's images, 26.3's workflow points, read through
+  `dclab_core.decision_export.normalize`): 81,570 decisions of 17 points, each point's counts by split in the manifest, the
+  same records in the three formats; the recipe (`decisions/finetune/README.md`) reads it unchanged. The model answerer and
+  the `decision_answer` prompt take any point's state (bands, counts and codes; a state the ledger would not keep is never
+  sent); `decision_model_compare` reads every point's dev rows and compares per point, a workflow decision right when its
+  journey accepts the answer and a decision with one option counted apart: a stand-in model, the 17 students and the
+  rules compared on 340 dev decisions, every point reported. The lake reads the workflow sets too. Left: `target.column`
+  and `labels.join_key` (a ranking of columns, not a choice among options: a typed ranking question first) and the lake's
+  measured-outcome and OpenML sets, which reach the lake's own export (`python -m dclab_rnd.lake export`), not this one;
+  the workflow points have no sealed set left (their own read by DWM-001 to 004). The training run is the owner's (GPU).
+
 ### 29.10 Every user is a teacher: disagreements shown where the work happens
 - **Delivers:** on a project's pages and on Home, where a student whispered something other than the rule, a small note:
   "the rule said X, a student thinks Y; which is right?", one click to answer; the answer is a label (`user_decision_exposed`

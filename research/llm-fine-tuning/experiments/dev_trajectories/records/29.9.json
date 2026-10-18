@@ -1,0 +1,40 @@
+{
+ "package": "29.9",
+ "title": "One language model for every point: the export of every decision set, any point's state, a comparison per point",
+ "date": "2026-10-19",
+ "request": "Phase 7 (the owner): a student behind every choice; 29.9 widens 26.4's language model from six column points to every point with a set, the training run being the owner's.",
+ "spec": "docs/guides/PHASE7_STUDENTS_PLAN.md, package 29.9",
+ "plan": [
+  "Read every decision set into one export, the workflow rows given the shape the others have.",
+  "Let the model answerer and its prompt take any point's state, within what a state may hold.",
+  "Compare any answerer per point on every point's dev rows, a workflow decision scored against every answer its journey accepts."
+ ],
+ "decisions": [
+  {"decision": "A new export folder (export_v2) beside 22.5's export_v1.", "why": "export_v1's manifest says what an earlier run trained on; a widened export is another dataset, not an edit of that one."},
+  {"decision": "A workflow row is normalised where it is read: the point's choices, a subject, the rule's recorded answer.", "why": "The workflow sets were written by 26.3 for its classifiers; one function makes every builder read them, without rewriting the sets."},
+  {"decision": "The answerer drops its column-only guard but checks every state against the ledger's state fields before sending it.", "why": "Every point's state is bands, counts and codes by the ledger's contract; the guard by subject kind was the wrong check, the state check is the right one."},
+  {"decision": "A decision with one option is counted apart in the comparison.", "why": "Any answer to it is right: 102 of 220 solution.route decisions have one option, and a model that always answers the first scored 0.95 there."}
+ ],
+ "change": "dclab_core: decision_export.normalize and by_point_split, ModelAnswerer for any point (a state the ledger would not keep is never sent), compare with accepted answers and single-option counts, the decision_answer prompt for any state (dclab-core 0.83.0); dclab_rnd: decision_export reads the four set folders into export_v2, decision_model_compare every point's dev rows, the lake the workflow sets, the lake's answer source skips them (the workflow source asks them), a sealed journey set is played into the workflow sets only once its gate read it; the recipe points at export_v2.",
+ "findings": [
+  {"id": "R1", "source": "reviewer", "severity": "behaviour", "defect": "Two lake tests failed on the owner's tree.", "scenario": "The test build patched the three generated folders but not the new workflow one, so it read the real workflow rows: 44 rows where 1 was expected.", "cause": "A new source read through a module path the tests did not redirect; the gate's worktree has no workflow rows (gitignored), so it passed there.", "fix": "The test redirects the workflow folder too, and a test builds a workflow row into the lake.", "test": "test_a_workflow_decision_is_read_with_its_points_choices_its_problem_and_its_split"},
+  {"id": "R2", "source": "reviewer", "severity": "leakage", "defect": "A sealed journey set not yet read could become training rows.", "scenario": "A fresh sealed set committed, the workflow sets collected before its gate ran, then the export and the lake: its people in train.chat.jsonl and the lake's train split.", "cause": "Collecting took every sealed journey set, read or not; today every one has been read, so nothing leaked yet.", "fix": "A sealed journey set is played only once its gate stored a result; the export's limits say the workflow points have no sealed set left.", "test": "test_a_sealed_journey_set_is_played_only_once_its_gate_has_read_it", "impact": "A later sealed verdict would have been read on journeys a tuned model had learned from."},
+  {"id": "R3", "source": "reviewer", "severity": "gap", "defect": "target.column and labels.join_key were not covered and not declared left.", "scenario": "The plan assigns them to 29.9; the export reads the four set folders only.", "cause": "They are a ranking of columns, not a choice among options, and their set lives in the lake (OpenML).", "fix": "Declared left in the status with why; the lake's own export carries the OpenML set.", "test": ""},
+  {"id": "R4", "source": "reviewer", "severity": "privacy", "defect": "The answerer no longer checked what it sends.", "scenario": "A caller passing a state with free text (a person's words) would have it sent to the decision_answer purpose.", "cause": "The removed guard was the only check on that path.", "fix": "Every state is checked against the ledger's state fields; anything else is no answer and nothing is sent.", "test": "test_a_state_the_ledger_would_not_keep_is_never_sent_and_an_unknown_point_is_refused"},
+  {"id": "R5", "source": "reviewer", "severity": "latent", "defect": "GLiNER would be asked every workflow decision twice.", "scenario": "Once the lake holds the workflow points, the lake source and the workflow source both yield them.", "cause": "The lake source reads every gold point.", "fix": "The lake source skips rows whose source is the workflow sets.", "test": ""},
+  {"id": "R6", "source": "reviewer", "severity": "behaviour", "defect": "One-option decisions inflated a point's accuracy.", "scenario": "solution.route: 102 of 220 rows have one option; a first-option model scored 0.95.", "cause": "Accuracy counted decisions that cannot be answered wrong.", "fix": "single_option counted, and accuracy_choices on the decisions with a choice.", "test": "test_a_decision_with_one_option_is_counted_apart"}
+ ],
+ "measurements": [
+  {"name": "the export", "gate": "Done when: the export's manifest lists every point with its counts", "fixed_before_run": true, "result": "export_v2: 81,570 decisions of 17 points from 4,217 groups, each point's train and dev counts in the manifest, the same records in the chat, table and typed formats", "verdict": "pass", "cost_eur": 0, "limits": ["Invented tables, image sets and written journeys: not real tables."]},
+  {"name": "the comparison per point", "gate": "Done when: a run's adapter can be compared per point", "fixed_before_run": true, "result": "A stand-in model answering the first option, the 17 students and the rules compared on 340 dev decisions (20 a point): every one of the 17 points reported; the harness suite passed 17 of 17 on the changed prompt (HRN-021)", "verdict": "pass", "cost_eur": 0, "limits": ["No tuned model exists yet: the training run is the owner's."]}
+ ],
+ "outcome": "A tuned model can now be trained on, and compared at, every decision point with a set, through the same request it learns from, without a state ever carrying more than the ledger keeps.",
+ "lessons": [
+  "When a new source is read through a module path, every test that redirects the old paths must redirect the new one: a gitignored source makes the gate pass where the owner's tree fails.",
+  "A set played from sealed material is safe only while each sealed part has been read; make the check, not the memory, say so."
+ ],
+ "risks": [
+  "The workflow points' rows include journeys a later measurement plays again: a model trained on them is measured on decisions it learned from."
+ ],
+ "commits": []
+}

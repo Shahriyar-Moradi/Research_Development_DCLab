@@ -66,7 +66,7 @@ class LakeBuildTests(unittest.TestCase):
         from dclab_rnd import lake as B
 
         with mock.patch.object(B, "GENERATED", self.tmp / "generated"), mock.patch.object(B, "GENERATED_IMAGES", self.tmp / "generated_images"), \
-                mock.patch.object(B, "GENERATED_V2", self.tmp / "generated_v2"), \
+                mock.patch.object(B, "GENERATED_V2", self.tmp / "generated_v2"), mock.patch.object(B, "GENERATED_WORKFLOW", self.tmp / "workflow"), \
                 mock.patch.object(B, "SFT_V3", sft or self.tmp / "none"), \
                 mock.patch.object(B, "SFT_DEV", dev or self.tmp / "none"), mock.patch("dclab_rnd.lake.openml.CACHE", self.tmp / "openml"), \
                 mock.patch("dclab_rnd.lake.selfplay.OUT", self.tmp / "selfplay"):
@@ -107,6 +107,21 @@ class LakeBuildTests(unittest.TestCase):
         self.assertEqual(ident["dropped"]["train row identical to an evaluation row"], 1)  # decontaminated, whatever its group
         sealed = [json.loads(x) for x in (self.tmp / "lake" / "gold" / "decisions" / "column.is_identifier" / "v1" / "sealed.jsonl").read_text().splitlines()]
         self.assertTrue(all(x["provenance"]["from_sealed"] for x in sealed))
+
+    def test_a_workflow_decision_is_read_with_its_points_choices_its_problem_and_its_split(self):  # 29.9
+        folder = self.tmp / "workflow" / "problem.family"
+        folder.mkdir(parents=True)
+        rows = [{"record": f"dev:JD-0{i}:s0:1", "point": "problem.family", "state": {"labels": "file", "open_questions": i, "outcome_known": True},
+                 "options": [], "value_raw": "rare_event", "used": "rule", "group": f"dev:JD-0{i}", "split": split, "value_used": "rare_event",
+                 "label": {"value": "rare_event", "accepted": ["rare_event"], "source": "benchmark"}} for i, split in ((1, "train"), (2, "dev"))]
+        (folder / "rows.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+        summary = self.build([])
+        got = next(s for s in summary["sets"] if s["name"] == "decisions/problem.family")
+        self.assertEqual(got["by_split"], {"train": 1, "dev": 1})  # the journey's own split, kept
+        sample = json.loads((self.tmp / "lake" / "gold" / "decisions" / "problem.family" / "v1" / "train.jsonl").read_text().splitlines()[0])
+        self.assertEqual(sample["subject_kind"], "problem")
+        self.assertIn("rare_event", sample["options"])  # the point's choices, where the row had none
+        self.assertEqual((sample["rule_answer"], sample["provenance"]["source"]), ("rare_event", "decisions/workflow_v1"))
 
     def test_a_workspace_is_read_only_under_train_consent_and_claude_only_as_evaluation(self):
         off, improve, stale, on = self.workspace(train=False), self.workspace(use="improve"), self.workspace(stale=True), self.workspace()

@@ -22,28 +22,39 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-SETS = ROOT / "research/llm-fine-tuning/experiments/decisions/generated_v1/decisions"
+from dclab_rnd.decision_export import SETS  # noqa: E402 - 29.9: every point with a set, the export's own
 RESULTS = ROOT / "evidence/campaigns/decision_llm_v1/results"
 OLLAMA = "http://localhost:11434/v1"
 
 
-def dev_rows(per_point: int, seed: int = 0, sets: Path = SETS) -> list[dict[str, Any]]:
-    """``per_point`` dev decisions of each point, drawn with ``seed`` (train rows and the sealed file are not read)."""
+def dev_rows(per_point: int, seed: int = 0, sets: Any = SETS) -> list[dict[str, Any]]:
+    """``per_point`` dev decisions of each point, drawn with ``seed`` (train rows and the sealed file are not read), from
+    every set folder (29.9), each row normalised (a workflow row gets its point's choices, a subject and the rule's answer)."""
+    from dclab_core.decision_export import normalize
+
     rng = random.Random(seed)
     out = []
-    for folder in sorted(p for p in Path(sets).iterdir() if p.is_dir()):
-        with open(folder / "rows.jsonl", encoding="utf-8") as handle:
-            dev = [r for r in (json.loads(line) for line in handle if line.strip()) if r.get("split") == "dev" and (r.get("label") or {}).get("value") is not None]
-        out += rng.sample(dev, min(per_point, len(dev)))
+    for root in ([sets] if isinstance(sets, (str, Path)) else list(sets)):
+        for folder in sorted(p for p in Path(root).iterdir() if p.is_dir()) if Path(root).is_dir() else []:
+            with open(folder / "rows.jsonl", encoding="utf-8") as handle:
+                dev = [r for r in (json.loads(line) for line in handle if line.strip()) if r.get("split") == "dev" and (r.get("label") or {}).get("value") is not None]
+            out += [normalize(r) for r in rng.sample(dev, min(per_point, len(dev)))]
     return out
+
+
+def accepted(rows: list[dict[str, Any]]) -> dict[str, list[Any]]:
+    """29.9: per decision, every answer its label accepts (a workflow journey may accept several)."""
+    return {r["record"]: list(r["label"]["accepted"]) for r in rows if (r.get("label") or {}).get("accepted")}
 
 
 def as_records(rows: list[dict[str, Any]]) -> tuple[list[Any], list[Any]]:
     """Ledger records and benchmark labels from generated rows (the rule's recorded answer kept)."""
     from dclab_core import ledger as contract
 
+    from dclab_core.decision_export import normalize
+
     records, labels = [], []
-    for r in rows:
+    for r in map(normalize, rows):
         rec = contract.DecisionRecord(id=r["record"], point=r["point"], subject=contract.Subject(**r["subject"]), state=r["state"],
                                       options=[str(o) for o in r.get("options") or []],
                                       answers=[contract.Answer(**a) for a in r.get("answers") or []], value_used=r.get("value_used"),
@@ -89,7 +100,7 @@ def compare(rows: list[dict[str, Any]], answerer: Any, classifiers: list[Any]) -
     from dclab_core.answerers import RecordedRule, compare as core_compare
 
     records, labels = as_records(rows)
-    return core_compare(records, labels, [RecordedRule(), *classifiers, answerer])
+    return core_compare(records, labels, [RecordedRule(), *classifiers, answerer], accepted=accepted(rows))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -104,8 +115,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--write", action="store_true")
     args = parser.parse_args(argv)
-    if not SETS.exists():
-        print("no generated decision sets: run make decisions-gen first")
+    if not any(Path(x).exists() for x in SETS):
+        print("no decision sets: run make decisions-gen first")
         return 2
     from dclab_core import prompts
     from dclab_core.answerers import ModelAnswerer

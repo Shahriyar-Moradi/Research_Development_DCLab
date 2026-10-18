@@ -153,8 +153,10 @@ def _lake(lake: Path) -> Iterator[dict[str, Any]]:
                 if not line.strip():
                     continue
                 d = json.loads(line)
-                text, schema = render(d["decision_point"], d.get("features") or {}, list(d.get("options") or []))
                 prov = d.get("provenance") or {}
+                if prov.get("source") == "decisions/workflow_v1":
+                    continue  # 29.9: the workflow source asks these, with every answer their journey accepts: never twice
+                text, schema = render(d["decision_point"], d.get("features") or {}, list(d.get("options") or []))
                 yield {"sample_id": d["sample_id"], "decision_point": d["decision_point"], "split": split, "group": prov.get("group"),
                        "text": text, "schema": schema, "options": d.get("options"), "label": d.get("label"), "accepted": None,
                        "rule_answer": d.get("rule_answer"), "label_origin": prov.get("origin")}

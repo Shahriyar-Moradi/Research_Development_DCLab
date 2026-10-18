@@ -103,6 +103,90 @@ class ExportTest(unittest.TestCase):
                 decision_export.build(sets.parent, Path(tmp) / "out2")
 
 
+def workflow_row(n, split="dev", value="rare_event", accepted=("rare_event",)):
+    """A workflow set's row as 26.3 writes it: no subject, no answers, no options (the choices are the point's)."""
+    return {"record": f"dev:JD-{n:02d}:s0:1", "point": "problem.family", "state": {"labels": "file", "open_questions": 1, "outcome_known": True},
+            "options": [], "value_raw": value, "used": "rule", "group": f"dev:JD-{n:02d}", "split": split, "value_used": value,
+            "label": {"value": value, "accepted": list(accepted), "source": "benchmark", "by": "workflow_labels_v2"}}
+
+
+class EveryPointTest(unittest.TestCase):
+    """29.9: the export and the comparison cover every point with a set, the workflow points' rows included."""
+
+    def test_a_workflow_row_is_read_with_its_points_choices_its_subject_and_the_rules_answer(self):
+        from dclab_core.ledger import POINTS
+
+        got = de.normalize(workflow_row(1))
+        self.assertEqual(got["options"], [str(c) for c in POINTS["problem.family"].choices])
+        self.assertEqual(got["subject"]["kind"], POINTS["problem.family"].subjects[0])
+        self.assertEqual(got["answers"], [{"by": "rule", "answerer": "rule:problem.family", "value": "rare_event"}])
+        self.assertEqual(de.normalize(row(1)), row(1))  # a generated row already has all three
+        asked = json.loads(de.chat([de.normalize(workflow_row(1))])[0]["messages"][1]["content"])
+        self.assertIn("rare_event", asked["options"])
+
+    def test_the_manifest_counts_every_point_by_split(self):
+        rows = [row(1), row(2, "dev"), de.normalize(workflow_row(3, "train")), de.normalize(workflow_row(4))]
+        self.assertEqual(de.summary(rows)["by_point_split"], {"feature.leakage_suspect": {"train": 1, "dev": 1}, "problem.family": {"train": 1, "dev": 1}})
+
+    def test_the_writer_reads_every_set_folder_and_never_a_sealed_file(self):
+        from dclab_rnd import decision_export
+
+        with tempfile.TemporaryDirectory() as tmp:
+            columns, workflow = Path(tmp) / "generated" / "feature.leakage_suspect", Path(tmp) / "workflow" / "problem.family"
+            for folder, rows in ((columns, [row(i, "train" if i < 5 else "dev", i % 2 == 0) for i in range(7)]), (workflow, [workflow_row(i) for i in range(3)])):
+                folder.mkdir(parents=True)
+                (folder / "rows.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+                (folder / "sealed.jsonl").write_text("not json: reading this file would fail\n")
+            manifest = decision_export.build([columns.parent, workflow.parent], Path(tmp) / "out")
+        self.assertEqual(set(manifest["by_point_split"]), {"feature.leakage_suspect", "problem.family"})
+        self.assertEqual(manifest["by_point_split"]["problem.family"], {"dev": 3})
+        self.assertTrue(manifest["same_records_in_every_format"])
+
+    def test_a_workflow_decision_is_compared_against_every_answer_its_journey_accepts(self):
+        from dclab_core.answerers import RecordedRule
+        from dclab_rnd import decision_model_compare as dmc
+
+        rows = [workflow_row(1, value="rare_event", accepted=("rare_event", "classification")), workflow_row(2, value="regression", accepted=("regression",))]
+        records, labels = dmc.as_records(rows)
+        m = ModelAnswerer(Advisor([{"answer": "classification"}, {"answer": "classification"}]), {"problem.family"}, name="llm:test", version="p1")
+        result = compare(records, labels, [RecordedRule(), m], accepted=dmc.accepted(rows))
+        self.assertEqual(result["llm:test@p1"]["problem.family"]["accuracy"], 0.5)  # classification is accepted on the first only
+        rule = RecordedRule()
+        self.assertEqual(result[f"{rule.name}@{rule.version}"]["problem.family"]["accuracy"], 1.0)  # the rule's own answers, accepted
+
+    def test_a_state_the_ledger_would_not_keep_is_never_sent_and_an_unknown_point_is_refused(self):
+        advisor = Advisor([{"answer": "rare_event"}])
+        m = ModelAnswerer(advisor, {"problem.family"}, name="llm:test", version="p1")
+        self.assertIsNone(m.answer("problem.family", {"words": "Maria at 12 Elm Street wants churn"}, ["rare_event", "classification"]))
+        self.assertEqual(advisor.asked, [])  # not a state field: nothing was sent
+        with self.assertRaises(ValueError):
+            ModelAnswerer(advisor, {"no.such_point"})
+
+    def test_a_decision_with_one_option_is_counted_apart(self):
+        from dclab_core.answerers import RecordedRule
+        from dclab_rnd import decision_model_compare as dmc
+
+        one = {**workflow_row(1), "point": "solution.route", "options": ["supervised"], "value_raw": "supervised", "value_used": "supervised",
+               "state": {"sub_problem": "sp1"}, "label": {"value": "supervised", "accepted": ["supervised"], "source": "benchmark"}}
+        rows = [one, workflow_row(2, value="regression", accepted=("regression",))]
+        records, labels = dmc.as_records(rows)
+        m = ModelAnswerer(Advisor([{"answer": "supervised"}, {"answer": "classification"}]), {"solution.route", "problem.family"}, name="llm:test", version="p1")
+        got = compare(records, labels, [RecordedRule(), m], accepted=dmc.accepted(rows))["llm:test@p1"]["all"]
+        self.assertEqual((got["accuracy"], got["single_option"], got["accuracy_choices"]), (0.5, 1, 0.0))  # right only where it could not be wrong
+
+    def test_dev_rows_are_read_from_every_set_folder(self):
+        from dclab_rnd import decision_model_compare as dmc
+
+        with tempfile.TemporaryDirectory() as tmp:
+            for name, rows in (("generated/feature.leakage_suspect", [row(i, "dev") for i in range(3)]), ("workflow/problem.family", [workflow_row(i) for i in range(3)])):
+                folder = Path(tmp) / name
+                folder.mkdir(parents=True)
+                (folder / "rows.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+            got = dmc.dev_rows(10, sets=[Path(tmp) / "generated", Path(tmp) / "workflow"])
+        self.assertEqual(sorted({r["point"] for r in got}), ["feature.leakage_suspect", "problem.family"])
+        self.assertTrue(all(r["options"] and r["subject"] for r in got))  # normalised as read
+
+
 class ModelAnswererTest(unittest.TestCase):
     def test_an_option_is_its_answer_and_anything_else_abstains(self):
         advisor = Advisor([{"answer": "Yes", "reason": "written after the outcome"}, {"answer": "maybe"}, None, RuntimeError("cut"), {"answer": False}])
@@ -117,8 +201,7 @@ class ModelAnswererTest(unittest.TestCase):
         self.assertFalse(m.answer("feature.leakage_suspect", state, ["yes", "no"]).value)  # a JSON false is a no
         self.assertIsNone(m.answer("column.time", state, ["yes", "no"]))  # not its point: not asked
         self.assertEqual(len(advisor.asked), 5)
-        with self.assertRaises(ValueError):  # its purpose may see a column's state, not a project's
-            ModelAnswerer(advisor, {"task.framing"})
+        ModelAnswerer(advisor, {"task.framing", "problem.family"})  # 29.9: every point's state is bands, counts and codes
         purpose, evidence = advisor.asked[0]
         self.assertEqual((purpose, set(evidence)), ("decision_answer", {"point", "question", "state", "options"}))
 

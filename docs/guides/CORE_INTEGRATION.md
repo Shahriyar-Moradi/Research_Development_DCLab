@@ -793,6 +793,15 @@ product's agent asks the critic once its brief is confirmed and before it plans,
 question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
 whether to go on, recording the decision.
 
+## One language model for every decision point (29.9, dclab-core 0.83.0)
+
+The library's: `dclab_core.decision_export.normalize` reads any decision row (a workflow decision's too) in one shape,
+`chat`/`tabular`/`typed` write it, and `answerers.ModelAnswerer` asks a model any point through the `decision_answer`
+prompt (a state of bands, counts and codes); `answerers.compare(..., accepted=)` scores a decision whose truth is several
+answers. Where it goes there: the main product's Jev purposes are the typed questions (`typed`), so a tuned model of the
+owner's answers its governed decision points through the same request it was trained on; each point is compared with
+its rule before it serves, as this studio's `decision_model_compare` does per point.
+
 ## Labels measured on validation, only where it tells the options apart (29.3, dclab-core 0.82.0)
 
 The library's: `dclab_core.measured.clear_best(options, higher_is_better)`: among a choice's measured options (each `id`,

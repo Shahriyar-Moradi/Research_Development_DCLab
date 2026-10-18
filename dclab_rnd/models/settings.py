@@ -104,9 +104,10 @@ PURPOSES: dict[str, Purpose] = {
                                                 "debate); never rows or cell values"),
     "debate_judge": Purpose("cheap", 60, "the problem brief's fields, the data findings' ids, topics and statements, the rule plan's "
                                          "decisions and the two designers' disputed choices (package 28.6, the debate); never rows or cell values"),
-    "decision_answer": Purpose("cheap", 60, "one decision's question and options, and what is known about its column: the column's name, "
-                                            "its name tokens and bands (storage type, share of distinct and missing values, the shape of its "
-                                            "written values) and the outcome column's name (package 22.5); never rows or cell values", keeps_text=True),
+    "decision_answer": Purpose("cheap", 60, "one decision's question and options, and what is known about what it decides on: a column's "
+                                            "name, its name tokens and bands (storage type, share of distinct and missing values, the shape of "
+                                            "its written values) and the outcome column's name (package 22.5); a table's, a split's, an image "
+                                            "set's or a conversation's counts, flags, codes and bands (29.9); never rows or cell values", keeps_text=True),
     "solver_answer": Purpose("standard", 90, "one question about a problem as DCLab describes it: each column's name (or a masked name), "
                                              "its bands (storage type, share of distinct and missing values, the shape of its written values), "
                                              "the outcome's name, the prediction moment, measures computed on training rows only (a column's "

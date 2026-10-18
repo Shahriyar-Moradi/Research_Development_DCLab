@@ -4,6 +4,18 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.83.0 (2026-10-19)
+
+Package 29.9: one language model for every point with a set.
+
+- `decision_export.normalize(row)`: a decision row in the shape every builder reads (a workflow set's row gets its point's
+  choices, a subject and the rule's recorded answer); `summary` counts every point by split (`by_point_split`); the dataset
+  card describes any point's state, not only a column's.
+- `answerers.ModelAnswerer` answers any point (every state is bands, counts and codes, never a table's value); a name that is
+  not a point is refused. `answerers.compare(..., accepted=)`: per decision, every answer that counts as right (a workflow
+  journey may accept several).
+- `prompts/decision_answer.md` describes a column's, a table's, a split's, an image set's or a conversation's state.
+
 ## 0.82.0 (2026-10-18)
 
 Package 29.3: truth by measured outcome.
