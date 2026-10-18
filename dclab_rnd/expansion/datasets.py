@@ -17,6 +17,7 @@ import os
 import shutil
 import ssl
 import subprocess
+import threading
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -460,19 +461,24 @@ def raw_path(root: Path, spec: DatasetSpec) -> Path:
 
 
 def _download(url: str, destination: Path) -> None:
+    """The file at ``url`` written to ``destination`` whole or not at all. Each writer has its own temporary name (two test
+    processes fetching one dataset at once raced on a shared one), and the last whole copy wins (the hash is checked after)."""
     destination.parent.mkdir(parents=True, exist_ok=True)
-    temp = destination.with_suffix(destination.suffix + ".part")
+    temp = destination.with_name(f"{destination.name}.{os.getpid()}.{threading.get_ident()}.part")
     cafile = os.environ.get("SSL_CERT_FILE") or os.environ.get("REQUESTS_CA_BUNDLE")
     try:
-        context = ssl.create_default_context(cafile=cafile) if cafile else None
-        with urllib.request.urlopen(url, timeout=300, context=context) as response:
-            with temp.open("wb") as handle:
-                shutil.copyfileobj(response, handle)
-    except Exception:  # fall back to curl, which honours the proxy CA bundle
-        if shutil.which("curl") is None:
-            raise
-        subprocess.run(["curl", "-sSfL", "-o", str(temp), url], check=True, timeout=900)
-    temp.replace(destination)
+        try:
+            context = ssl.create_default_context(cafile=cafile) if cafile else None
+            with urllib.request.urlopen(url, timeout=300, context=context) as response:
+                with temp.open("wb") as handle:
+                    shutil.copyfileobj(response, handle)
+        except Exception:  # fall back to curl, which honours the proxy CA bundle
+            if shutil.which("curl") is None:
+                raise
+            subprocess.run(["curl", "-sSfL", "-o", str(temp), url], check=True, timeout=900)
+        temp.replace(destination)
+    finally:
+        temp.unlink(missing_ok=True)  # a failed or partial copy never stays beside the file
 
 
 def ensure_raw_file(root: Path, spec: DatasetSpec, *, verify: bool = True) -> Path:

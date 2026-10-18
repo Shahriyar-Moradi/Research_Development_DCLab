@@ -1,0 +1,39 @@
+{
+ "package": "RD-download-race",
+ "title": "Each download of a raw dataset writes its own temporary file",
+ "date": "2026-10-18",
+ "request": "Found while checking the quick gate of 28.8: a test file failed in a fresh worktree although it passed alone.",
+ "spec": "dclab_rnd/expansion/datasets.py (the pinned raw files of the public datasets, downloaded once and checked by hash)",
+ "plan": [
+  "Reproduce the failure with two downloads of one file at once.",
+  "Give every writer its own temporary name, and leave no temporary file behind."
+ ],
+ "decisions": [
+  {
+   "decision": "The temporary name carries the process and the thread, and the last whole copy replaces the file.",
+   "why": "A lock across processes would need a lock file of its own; two whole copies of a pinned file are identical, and the hash is checked after the download."
+  }
+ ],
+ "change": "dclab_rnd/expansion/datasets.py (_download); tests/test_expansion.py (DownloadTests).",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "Two test files that read one public dataset at once in a fresh checkout failed one of them.",
+   "scenario": "In a new worktree with no cached downloads, two test processes fetched the same raw file together; the first renamed the shared temporary file and the second found it gone.",
+   "cause": "Every writer used the same temporary name beside the file.",
+   "fix": "Each writer writes its own temporary file and removes it whatever happens; the rename is atomic, so either whole copy is the file.",
+   "test": "test_two_processes_downloading_one_file_at_once_both_get_it"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Concurrent downloads of one pinned file both succeed and leave only the file.",
+ "lessons": [
+  "A temporary file beside its target needs a name of its own per writer when tests run in parallel."
+ ],
+ "risks": [
+  "Two processes that start together still both download the file: the time is spent twice, not the result."
+ ],
+ "commits": []
+}

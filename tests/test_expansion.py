@@ -229,6 +229,45 @@ class HelperTests(unittest.TestCase):
 
 
 @unittest.skipUnless(HAVE_GBDT, "lightgbm/xgboost not installed")
+class DownloadTests(unittest.TestCase):
+    def test_two_processes_downloading_one_file_at_once_both_get_it(self):  # the gate of 28.8: two test files raced on one .part
+        import threading
+        import time
+        from unittest import mock
+
+        class Slow:
+            def __init__(self, *a, **k):
+                self.chunks = [b"a,b\n", b"1,2\n"]
+
+            def read(self, n=-1):
+                time.sleep(0.05)  # both writers are mid-file at once
+                return self.chunks.pop(0) if self.chunks else b""
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+        target = Path(tempfile.mkdtemp()) / "raw" / "table.csv"
+        errors = []
+
+        def fetch():
+            try:
+                ds._download("https://example.invalid/table.csv", target)
+            except Exception as exc:  # noqa: BLE001 - collected for the assertion
+                errors.append(exc)
+        with mock.patch.object(ds.urllib.request, "urlopen", side_effect=lambda *a, **k: Slow()):
+            threads = [threading.Thread(target=fetch) for _ in range(2)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+        self.assertEqual(errors, [])
+        self.assertEqual(target.read_bytes(), b"a,b\n1,2\n")
+        self.assertEqual([p.name for p in target.parent.iterdir()], ["table.csv"])  # no temporary file left behind
+
+
 class StageWritingTests(unittest.TestCase):
     def test_all_stages_write_required_keys(self) -> None:
         with tempfile.TemporaryDirectory() as tmp, runner.fast_profile():
