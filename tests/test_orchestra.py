@@ -117,6 +117,16 @@ class SpikeTests(unittest.TestCase):
             later = spike.Spike(saver).run("pg1", resume="I don't know")
         self.assertEqual(later["asked"][:1], [first["asks"]["field"]])
 
+    @unittest.skipUnless(os.environ.get("DCLAB_DATABASE_URL"), "PostgreSQL checkpoints need DCLAB_DATABASE_URL")
+    def test_deleting_a_draft_deletes_its_postgres_checkpoints(self):  # the review of 28.3 (finding 8), on PostgreSQL
+        from dclab_rnd.orchestra import board
+
+        with checkpoints.open_checkpointer(self.home) as saver:
+            spike.Spike(saver).run("pg2", self.journey["words"])
+        self.assertGreaterEqual(board.forget(self.home, "draft:pg2"), 1)
+        with checkpoints.open_checkpointer(self.home) as saver:
+            self.assertIsNone(saver.get_tuple({"configurable": {"thread_id": "draft:pg2"}}))
+
 
 @unittest.skipIf(MISSING, MISSING)
 class AdapterTests(unittest.TestCase):

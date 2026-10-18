@@ -58,16 +58,32 @@ def forget(home: Path, thread: str) -> int:
     return removed
 
 
+def _checkpoint_tables(url: str) -> bool:
+    from sqlalchemy import inspect
+
+    from ..storage import db
+
+    return inspect(db.engine(url)).has_table("checkpoints")
+
+
 def _forget_checkpoints(home: Path, thread: str) -> int:
+    """Delete the thread from every store that may hold it: the workspace's SQLite file when one exists (a walk run on files,
+    or before the workspace moved to PostgreSQL) and PostgreSQL when the workspace runs on it."""
+    import os
+
     from .checkpoints import open_checkpointer, where
 
-    place = where(home)
-    if place["kind"] == "sqlite" and not Path(place["path"]).is_file():
-        return 0  # no walk ever ran here: nothing to open (and nothing created)
-    with open_checkpointer(home) as saver:
-        had = saver.get_tuple({"configurable": {"thread_id": thread}}) is not None
-        saver.delete_thread(thread)
-    return int(had)
+    places = []
+    if Path(where(home, database_url="")["path"]).is_file():
+        places.append("")  # the SQLite file
+    if os.environ.get("DCLAB_DATABASE_URL") and _checkpoint_tables(os.environ["DCLAB_DATABASE_URL"]):
+        places.append(None)  # the database the environment names, when a walk ever wrote there (a deletion never makes the tables)
+    had = 0
+    for url in places:
+        with open_checkpointer(home, database_url=url) as saver:
+            had += saver.get_tuple({"configurable": {"thread_id": thread}}) is not None
+            saver.delete_thread(thread)
+    return had
 
 
 def _keep(home: Optional[Path], name: str, doc: dict[str, Any]) -> None:

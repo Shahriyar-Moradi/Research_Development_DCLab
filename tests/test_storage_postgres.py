@@ -19,10 +19,10 @@ class SchemaTests(unittest.TestCase):
         from alembic.migration import MigrationContext
 
         from dclab_rnd.storage import db
-        from dclab_rnd.storage.models import metadata
+        from dclab_rnd.storage.models import metadata, not_ours
 
-        with db.engine(self.url).connect() as connection:
-            differences = compare_metadata(MigrationContext.configure(connection, opts={"compare_type": True}), metadata)
+        with db.engine(self.url).connect() as connection:  # LangGraph's checkpoint tables (28.1) are its own: never compared
+            differences = compare_metadata(MigrationContext.configure(connection, opts={"compare_type": True, "include_object": not_ours}), metadata)
         self.assertEqual(differences, [], "models.py and the migrations disagree: write a migration (alembic revision)")
 
     def test_the_database_is_at_the_latest_revision_and_upgrade_is_repeatable(self):

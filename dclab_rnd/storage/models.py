@@ -343,3 +343,14 @@ usage_counter = sa.Table(  # requests and bytes counted per user and per workspa
     sa.Column("amount", sa.Float, nullable=False))
 
 TABLES = [t.name for t in metadata.sorted_tables]
+
+
+# 28.1: LangGraph keeps a walk's checkpoints in the same database (its own tables, made by its saver's ``setup()``); they are
+# not modelled here, and a migration never creates, changes or drops them
+FOREIGN_TABLES = ("checkpoints", "checkpoint_blobs", "checkpoint_writes", "checkpoint_migrations")
+
+
+def not_ours(object_: object, name: str, type_: str, reflected: bool, compare_to: object) -> bool:
+    """Alembic's ``include_object``: false for the tables another library owns in this database."""
+    return not (type_ == "table" and name in FOREIGN_TABLES) and not (type_ in ("index", "column", "unique_constraint", "foreign_key_constraint")
+                                                                     and getattr(getattr(object_, "table", None), "name", None) in FOREIGN_TABLES)

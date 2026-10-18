@@ -3,7 +3,7 @@ from alembic import context
 from sqlalchemy import create_engine
 
 from dclab_rnd.storage import db
-from dclab_rnd.storage.models import metadata
+from dclab_rnd.storage.models import metadata, not_ours
 
 config = context.config
 
@@ -16,7 +16,7 @@ def run() -> None:
         engine = create_engine(url)
         connection = engine.connect()
     try:
-        context.configure(connection=connection, target_metadata=metadata, compare_type=True)
+        context.configure(connection=connection, target_metadata=metadata, compare_type=True, include_object=not_ours)
         with context.begin_transaction():
             context.run_migrations()
         if engine is not None:
