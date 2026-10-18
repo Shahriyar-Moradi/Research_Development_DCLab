@@ -242,12 +242,12 @@ check-quick:  ## the gate for a package, fast: rd-check's gates and the flows (w
 	if [ $$r = 0 ]; then echo "check-quick: passed"; else echo "check-quick: FAILED"; fi; exit $$r
 
 check-commit:  ## a gate on the last commit in its own worktree and its own test databases (dclab_check*, made fresh), so work goes on in this one: GATE=check-quick (default) or check-all; the changes since origin/main (BASE=)
-	@dir=$$(cd "$${TMPDIR:-/tmp}" && pwd -P)/dclab-check-$$(git rev-parse --short HEAD); rm -rf "$$dir"; git worktree prune; \
-	git worktree add --detach "$$dir" HEAD >/dev/null && cp tests/.timings*.json "$$dir/tests/" 2>/dev/null; \
+	@commit=$$(git rev-parse --short HEAD); dir=$$(cd "$${TMPDIR:-/tmp}" && pwd -P)/dclab-check-$$commit; rm -rf "$$dir"; git worktree prune; \
+	git worktree add --detach "$$dir" $$commit >/dev/null && cp tests/.timings*.json "$$dir/tests/" 2>/dev/null; \
 	for v in .venv .venv-agent; do [ -e "$$v" ] && ln -s "$$PWD/$$v" "$$dir/$$v"; done; \
 	for n in "" $$(seq -f _p%g 0 16); do dropdb --if-exists "dclab_check$$n" 2>/dev/null; done; createdb dclab_check 2>/dev/null; \
 	( cd "$$dir" && DCLAB_TEST_DATABASE_URL=postgresql+psycopg://$$USER@/dclab_check $(MAKE) $(or $(GATE),check-quick) BASE=$(or $(BASE),origin/main) ); r=$$?; \
-	git worktree remove --force "$$dir"; echo "check-commit ($(or $(GATE),check-quick)) on $$(git rev-parse --short HEAD): $$( [ $$r = 0 ] && echo passed || echo FAILED )"; exit $$r
+	git worktree remove --force "$$dir"; echo "check-commit ($(or $(GATE),check-quick)) on $$commit: $$( [ $$r = 0 ] && echo passed || echo FAILED )"; exit $$r  # the commit it ran on, though HEAD moved meanwhile
 
 check-quick-tests:  ## check-quick's tests: the affected files, then the PostgreSQL pass
 	@files=$$($(PYTHON) scripts/affected_tests.py --base $(or $(BASE),HEAD)); echo "files: $$(echo $$files | wc -w | tr -d ' ') test files ($$( [ "$$files" = ALL ] && echo all || echo affected))"; \
