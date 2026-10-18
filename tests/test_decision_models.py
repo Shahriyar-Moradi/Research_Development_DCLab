@@ -152,6 +152,26 @@ class ImportTest(unittest.TestCase):
 
 
 @unittest.skipIf(MISSING, MISSING)
+class ExplainTest(unittest.TestCase):
+    def test_a_leakage_whisper_names_the_timing_band_among_its_reasons(self):  # 29.13
+        from dclab_core.answerers import ClassifierAnswerer
+
+        rng = random.Random(3)
+        rows = []
+        for i in range(400):
+            after = rng.random() < 0.5  # the truth: written after the moment
+            rows.append(({"availability": "after_moment" if after else "at_moment", "nulls": rng.choice(["none", "low", "high"]),
+                          "dtype": rng.choice(["numeric", "text"]), "uniqueness": rng.choice(["low", "high"])}, after))
+        clf = ClassifierAnswerer("feature.leakage_suspect").fit(rows)
+        clf.explain = True
+        got = clf.answer("feature.leakage_suspect", {"availability": "after_moment", "nulls": "low", "dtype": "numeric", "uniqueness": "high"}, [True, False])
+        self.assertIs(got.value, True)
+        self.assertTrue(got.reason.startswith("moved by: availability"), got.reason)  # the timing band, first
+        clf.explain = False
+        self.assertIsNone(clf.answer("feature.leakage_suspect", {"availability": "after_moment"}, [True, False]).reason)  # off unless asked
+
+
+@unittest.skipIf(MISSING, MISSING)
 class BuildTest(unittest.TestCase):
     def test_the_build_refuses_measured_labels_without_their_fields_left_out(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -176,6 +196,26 @@ class BuildTest(unittest.TestCase):
             card = json.loads((out / "column.is_identifier.json").read_text())
             self.assertEqual(card["schema_version"], "dclab_core.decision_model_card.v1")
             self.assertEqual(card["dev"]["n"], 60)
+
+    def test_every_point_gets_a_student_or_a_reason_and_one_failure_costs_nothing_else(self):  # 29.4
+        from unittest import mock
+
+        with tempfile.TemporaryDirectory() as tmp:
+            sets, out = Path(tmp) / "sets", Path(tmp) / "out"
+            good = signal_rows() + signal_rows(6, 10, seed=9, split="dev")
+            few = signal_rows(2, 10)
+            one = [dict(r, label={"value": True, "source": "benchmark"}) for r in signal_rows()]
+            for point, data in (("column.is_identifier", good), ("column.group", few), ("column.time", one)):
+                (sets / point).mkdir(parents=True)
+                (sets / point / "rows.jsonl").write_text("".join(json.dumps(r) + "\n" for r in data))
+            with mock.patch.dict(decision_models_build.GENERATIONS, {"t": (sets, out)}, clear=True):
+                made = decision_models_build.build_all(quick=True, generations=("t",))["t"]
+                lines = decision_models_build.compare(generations=("t",))
+            self.assertEqual(made["column.is_identifier"].point, "column.is_identifier")
+            skipped = json.loads((out / "SKIPPED.json").read_text())
+            self.assertIn("training rows", skipped["column.group"])
+            self.assertIn("single class", skipped["column.time"])
+            self.assertTrue(any("no student" in x and "column.time" in x for x in lines))
 
 
 if __name__ == "__main__":

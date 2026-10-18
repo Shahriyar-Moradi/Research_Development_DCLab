@@ -4,6 +4,15 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.72.0 (2026-10-18)
+
+Package 29.13: a student explains itself.
+
+- `answerers.contributions(model, state, cls)`: how much each state field moved a classifier toward ``cls`` (the
+  probability with the state as it is, less the probability with the field left out; any model), strongest first;
+  `answerers.explain(...)`: the two or three strongest as an answer's reason. `ClassifierAnswerer` answers with its
+  reason when its ``explain`` is on.
+
 ## 0.71.0 (2026-10-18)
 
 Package 29.6: points for the teams' own choices.

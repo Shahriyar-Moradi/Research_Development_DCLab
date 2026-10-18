@@ -1,0 +1,29 @@
+{
+ "package": "29.14",
+ "title": "Report cards over time: each student's scores by run, a slip shown before demotion",
+ "date": "2026-10-18",
+ "request": "Phase 7 (the owner): every student watched as it learns; 29.14: report cards over time.",
+ "spec": "docs/guides/PHASE7_STUDENTS_PLAN.md, package 29.14",
+ "plan": [
+  "Read the register's own history back per point.",
+  "Flag a student whose dev score fell, or whose exam turned, since its last run.",
+  "Show it on the Students tab."
+ ],
+ "decisions": [
+  {
+   "decision": "A slip is shown, never acted on here.",
+   "why": "Demotion is the routing's audited switch; the page warns the owner first."
+  }
+ ],
+ "change": "students.history and SLIP; /api/students carries the history; the Students tab draws the last scores and a slipping pill.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "The owner sees each student's scores over its runs and a slip before any demotion fires.",
+ "lessons": [
+  "Keep every run of a register: the history is the report card, and it costs one line a run."
+ ],
+ "risks": [
+  "The register is written when someone runs it: a nightly run is 29.7's."
+ ],
+ "commits": []
+}

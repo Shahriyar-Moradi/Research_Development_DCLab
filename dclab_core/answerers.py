@@ -113,6 +113,34 @@ def features(state: Mapping[str, Any], exclude: Iterable[str] = ()) -> dict[str,
     return out
 
 
+def contributions(model: Any, state: Mapping[str, Any], cls: Any, exclude: Iterable[str] = ()) -> list[tuple[str, float]]:
+    """29.13: how much each state field moved a classifier toward ``cls``: the probability of ``cls`` with the state as it
+    is, less the probability with that field left out (occlusion; any model). Strongest first; a field whose absence
+    raises the probability moved it away (a negative number)."""
+    skip = set(exclude)
+    classes = list(model.classes_)
+    if cls not in classes:
+        return []
+    k = classes.index(cls)
+    full = float(model.predict_proba([features(state, skip)])[0][k])
+    fields = [f for f in state if f not in skip]
+    if not fields:
+        return []
+    rows = [features({g: v for g, v in state.items() if g != f}, skip) for f in fields]
+    probs = model.predict_proba(rows)
+    out = [(f, round(full - float(p[k]), 4)) for f, p in zip(fields, probs)]
+    return sorted(out, key=lambda x: -abs(x[1]))
+
+
+def explain(answerer: Any, state: Mapping[str, Any], cls: Any, top: int = 3) -> Optional[str]:
+    """The two or three state fields that moved an answer most, as its reason: ``"moved by: uniqueness +0.31, ..."``."""
+    try:
+        moved = [x for x in contributions(answerer.model, state, cls, getattr(answerer, "exclude", ())) if abs(x[1]) >= 0.01][:top]
+    except Exception:  # noqa: BLE001 - an answer without its reason is still the answer
+        return None
+    return ("moved by: " + ", ".join(f"{f} {d:+.2f}" for f, d in moved))[:600] if moved else None
+
+
 class ClassifierAnswerer:
     """A classical classifier for one decision point: logistic regression on the state's features, trained on decision
     rows with labels; it abstains below ``abstain_below`` confidence."""
@@ -159,8 +187,9 @@ class ClassifierAnswerer:
         confidence = float(proba[best]) / total
         if confidence < self.abstain_below:
             return None
+        why = explain(self, state, classes[best]) if getattr(self, "explain", False) else None
         return Answer(by="classifier", answerer=f"{self.name}@{self.version}", value=self._values.get(classes[best], classes[best]),
-                      raw=round(confidence, 6), confidence=round(confidence, 4))
+                      raw=round(confidence, 6), confidence=round(confidence, 4), reason=why)
 
 
 class ModelAnswerer:
@@ -279,5 +308,5 @@ def compare(records: Iterable[DecisionRecord], labels: Iterable[DecisionLabel], 
     return {key: {scope: rates(c) for scope, c in scopes.items()} for key, scopes in stats.items()}
 
 
-__all__ = ["DecisionAnswerer", "REGISTRY", "register", "RecordedRule", "ScriptedAnswerer", "ClassifierAnswerer", "features",
+__all__ = ["contributions", "explain", "DecisionAnswerer", "REGISTRY", "register", "RecordedRule", "ScriptedAnswerer", "ClassifierAnswerer", "features",
            "with_answers", "compare"]

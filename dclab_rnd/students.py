@@ -221,6 +221,33 @@ def record(home: Path, reg: dict[str, Any]) -> Path:
     return path
 
 
+SLIP = 0.02  # a student whose dev score fell by more than this since its last run is shown slipping, before any demotion
+
+
+def history(home: Path, last: int = 12) -> dict[str, list[dict[str, Any]]]:
+    """29.14: each point's report card: its last ``last`` register runs (when, the student, its dev score, its exam, its
+    level, decisions recorded), oldest first, and whether it slipped since the run before."""
+    path = Path(home) / "students" / "register.jsonl"
+    cards: dict[str, list[dict[str, Any]]] = {}
+    for line in (path.read_text(encoding="utf-8").splitlines() if path.is_file() else []):
+        try:
+            doc = json.loads(line)
+        except ValueError:
+            continue
+        for point, row in (doc.get("points") or {}).items():
+            cards.setdefault(point, []).append({"at": doc.get("at"), **{k: row.get(k) for k in ("student", "dev_accuracy", "exam", "level", "recorded", "status")}})
+    out = {}
+    for point, rows in cards.items():
+        rows = rows[-last:]
+        for before, now in zip(rows, rows[1:]):
+            a, b = before.get("dev_accuracy"), now.get("dev_accuracy")
+            now["slipped"] = bool(a is not None and b is not None and b < a - SLIP) or (before.get("exam") is True and now.get("exam") is False)
+        if rows:
+            rows[0]["slipped"] = False
+        out[point] = rows
+    return out
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     import argparse
 

@@ -172,5 +172,26 @@ class RouteTests(unittest.TestCase):
             self.assertEqual(client.get("/api/students").status_code, 403)
 
 
+
+class ReportCardTest(unittest.TestCase):
+    def test_two_runs_with_a_retrain_between_them_draw_the_change_and_a_slip_is_shown(self):  # 29.14
+        import tempfile
+
+        from dclab_rnd import students
+
+        home = Path(tempfile.mkdtemp())
+
+        def run(acc, exam=None):
+            item = {"point": "task.framing", "status": "whisper", "recorded": 3, "student": {"answerer": "task.framing.boosting@a", "dev_accuracy": acc},
+                    "verdict": {"pass": exam} if exam is not None else None, "level": 0}
+            students.record(home, {"summary": {}, "items": [item]})
+
+        run(0.91)
+        run(0.93)
+        run(0.88)
+        card = students.history(home)["task.framing"]
+        self.assertEqual([c["dev_accuracy"] for c in card], [0.91, 0.93, 0.88])
+        self.assertEqual([c["slipped"] for c in card], [False, False, True])  # 0.93 to 0.88: shown before any demotion
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,33 @@
+{
+ "package": "29.13",
+ "title": "A student explains itself: the fields that moved each whisper, kept with it",
+ "date": "2026-10-18",
+ "request": "Phase 7 (the owner): a student behind every choice, trusted only where it proves itself; 29.13: a student explains itself.",
+ "spec": "docs/guides/PHASE7_STUDENTS_PLAN.md, package 29.13",
+ "plan": [
+  "How much each state field moved the answer, for any model: the answer's probability less the probability without that field.",
+  "The two or three strongest as the answer's reason.",
+  "On for the students answering in shadow, so every whisper in the ledger carries them."
+ ],
+ "decisions": [
+  {
+   "decision": "Occlusion, not a model's own importances.",
+   "why": "It works for the logistic and the boosted students alike and speaks in the state's own fields, which a person can judge."
+  },
+  {
+   "decision": "Off unless asked for.",
+   "why": "One prediction a field: the batched exams would pay twenty times their cost for reasons no one reads."
+  }
+ ],
+ "change": "dclab_core.answerers.contributions and explain; ClassifierAnswerer answers with its reason when explain is on; the shadow students answer with it.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "Every whisper of a student in the ledger says which fields moved it, so a person judges the reason and not only the answer.",
+ "lessons": [
+  "Explain in the inputs' own vocabulary: a reason a person cannot read is no reason."
+ ],
+ "risks": [
+  "Occlusion measures one field at a time: two fields that only matter together are each under-credited."
+ ],
+ "commits": []
+}

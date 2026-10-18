@@ -7,6 +7,8 @@ what, and how it compares with the rule); the fitted models to ``models_v1/<poin
 The sealed rows are never read here: 22.3 reads them once, under a gate fixed before.
 
     python -m dclab_rnd.decision_models_build [--points p1,p2] [--quick]
+    python -m dclab_rnd.decision_models_build --all        # 29.4: every generation, a student or a reason it has none
+    python -m dclab_rnd.decision_models_build --compare    # 29.4: every student beside its rule on dev, from the cards
 """
 
 from __future__ import annotations
@@ -25,10 +27,71 @@ V2_SETS = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / 
 V2_OUT = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "models_v2"
 
 
+GENERATIONS = {"v1": (SETS, OUT), "v2": (V2_SETS, V2_OUT), "images": (IMAGE_SETS, IMAGE_OUT)}
+MIN_TRAIN = 50  # fewer training rows than this: no student (a reason, not a model)
+
+
 def rows(point: str, sets: Path = SETS) -> list[dict[str, Any]]:
     """The training and dev rows of a point; the sealed file is not opened."""
     path = Path(sets) / point / "rows.jsonl"
     return [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines()]
+
+
+def why_not(point: str, data: list[dict[str, Any]]) -> str | None:
+    """Why a point gets no student (29.4), or None: labels from a source whose fields are not excluded yet, too few
+    training rows, or a single class among them."""
+    sources = {(r.get("label") or {}).get("source") for r in data if r.get("label")}
+    if sources - {"benchmark"}:
+        return f"labels from {sorted(sources - {'benchmark'})} need the fields they are measured from excluded (22.4)"
+    train = [r for r in data if r["split"] == "train" and (r.get("label") or {}).get("value") is not None]
+    if len(train) < MIN_TRAIN:
+        return f"{len(train)} training rows (at least {MIN_TRAIN})"
+    if len({str(r["label"]["value"]) for r in train}) < 2:
+        return "a single class among the training rows"
+    return None
+
+
+def build_all(quick: bool = False, generations: tuple[str, ...] = tuple(GENERATIONS)) -> dict[str, dict[str, Any]]:
+    """29.4: every generation's points: a student (its card written, its fitted file hashed) or a reason it has none,
+    in each generation's ``SKIPPED.json``. One command, whatever a point holds."""
+    out: dict[str, dict[str, Any]] = {}
+    for gen in generations:
+        sets, folder = GENERATIONS[gen]
+        if not Path(sets).exists():
+            out[gen] = {"_": "no decision sets (make decisions-gen first)"}
+            continue
+        skipped: dict[str, str] = {}
+        done: dict[str, Any] = {}
+        for point in sorted(p.name for p in Path(sets).iterdir() if p.is_dir()):
+            reason = why_not(point, rows(point, sets))
+            if reason is not None:
+                skipped[point] = reason
+                continue
+            try:
+                done.update(build([point], quick, sets=sets, out=folder))
+            except Exception as exc:  # noqa: BLE001 - one point that cannot be trained never costs the others
+                skipped[point] = f"{type(exc).__name__}: {str(exc)[:300]}"
+        Path(folder).mkdir(parents=True, exist_ok=True)
+        (Path(folder) / "SKIPPED.json").write_text(json.dumps(skipped, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+        out[gen] = {**{k: c for k, c in done.items()}, **{k: f"skipped: {v}" for k, v in skipped.items()}}
+    return out
+
+
+def compare(generations: tuple[str, ...] = tuple(GENERATIONS)) -> list[str]:
+    """29.4: every student beside its rule on dev, from the committed cards (nothing trained)."""
+    lines = []
+    for gen in generations:
+        _, folder = GENERATIONS[gen]
+        for card in sorted(Path(folder).glob("*.json")):
+            if card.stem in ("fitted", "SKIPPED"):
+                continue
+            c = json.loads(card.read_text(encoding="utf-8"))
+            d, r = c.get("dev") or {}, c.get("rule_dev") or {}
+            lines.append(f"{gen:<7} {c['point']:<26} {c['family']:<9} dev {d.get('accuracy')} {d.get('accuracy_ci')}  rule {r.get('accuracy')} {r.get('accuracy_ci')}")
+        skipped = Path(folder) / "SKIPPED.json"
+        for point, why in (json.loads(skipped.read_text(encoding="utf-8")).items() if skipped.exists() else []):
+            lines.append(f"{gen:<7} {point:<26} no student: {why}")
+    return lines
 
 
 def build(points: list[str] | None = None, quick: bool = False, sets: Path = SETS, out: Path = OUT) -> dict[str, Any]:
@@ -75,7 +138,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--quick", action="store_true", help="one candidate per point (for a quick look)")
     parser.add_argument("--images", action="store_true", help="26.8: the image points' sets, to models_images_v1/")
     parser.add_argument("--v2", action="store_true", help="29.2: the table-level points' sets, to models_v2/")
+    parser.add_argument("--all", action="store_true", help="29.4: every generation, a student or a reason (SKIPPED.json) for every point")
+    parser.add_argument("--compare", action="store_true", help="29.4: every student beside its rule on dev, from the cards")
     args = parser.parse_args(argv)
+    if args.compare:
+        print("\n".join(compare()))
+        return 0
+    if args.all:
+        for gen, made in build_all(args.quick).items():
+            for point, c in made.items():
+                print(f"{gen:<7} {point:<26} " + (c if isinstance(c, str) else f"{c.family} dev {c.dev.accuracy} rule {c.rule_dev.accuracy}"))
+        return 0
     sets, out = (V2_SETS, V2_OUT) if args.v2 else (IMAGE_SETS, IMAGE_OUT) if args.images else (SETS, OUT)
     if not sets.exists():
         print(f"No decision sets: run make decisions-gen{' ARGS=--images' if args.images else ''} first.", file=sys.stderr)

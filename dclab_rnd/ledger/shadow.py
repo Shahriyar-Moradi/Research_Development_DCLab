@@ -75,6 +75,7 @@ def _load(folder: Path) -> list[Any]:
             continue
         if getattr(model, "version", None) == card.get("version") and getattr(model, "point", None) == card.get("point"):
             model.name = card.get("name") or model.name
+            model.explain = True  # 29.13: every whisper carries the fields that moved it most, kept in the ledger
             out.append(model)
     return out
 

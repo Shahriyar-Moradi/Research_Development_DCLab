@@ -1,0 +1,29 @@
+{
+ "package": "29.4",
+ "title": "Train every student in one command, and see each beside its rule",
+ "date": "2026-10-18",
+ "request": "Phase 7 (the owner): a student behind every choice; 29.4: train everything, one command.",
+ "spec": "docs/guides/PHASE7_STUDENTS_PLAN.md, package 29.4",
+ "plan": [
+  "--all: every generation's points, a student or a reason it has none in SKIPPED.json.",
+  "--compare: every student beside its rule on dev, from the cards.",
+  "One point failing never costs the others."
+ ],
+ "decisions": [
+  {
+   "decision": "A point with too few rows, one class, or labels whose fields are not excluded gets a reason, not a model.",
+   "why": "A student trained on nothing it can learn from would whisper noise beside a rule."
+  }
+ ],
+ "change": "decision_models_build: GENERATIONS, why_not, build_all, compare, --all and --compare.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "One command trains or explains every student, and one prints them all beside their rules.",
+ "lessons": [
+  "A batch over many points must keep going past a point that fails, and say why."
+ ],
+ "risks": [
+  "A full run retrains every generation: about half an hour on the Mac."
+ ],
+ "commits": []
+}

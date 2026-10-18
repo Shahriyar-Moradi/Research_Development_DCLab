@@ -219,6 +219,13 @@ DC.view('admin', {
     note.textContent = warns.length ? 'Note: ' + warns.join('; ') : '';
     const items = r.items || [];
     if (!items.length) { DC.states.empty($('#stu-body', el), 'No decision point is known here.', { cols: 7 }); return; }
+    const hist = r.history || {};
+    // 29.14: the report card: the student's dev score over its last runs, and "slipping" before any demotion fires
+    const card = point => { const h = (hist[point] || []).filter(y => y.dev_accuracy !== null && y.dev_accuracy !== undefined).slice(-4);
+      if (h.length < 2) return '';
+      const trail = h.map(y => acc(y.dev_accuracy)).join(' → ');
+      const slip = (hist[point] || []).slice(-1)[0] || {};
+      return `<br><span class="muted" title="${esc(h.map(y => y.at).join(', '))}">${esc(trail)}</span>${slip.slipped ? ' <span class="pill warn">slipping</span>' : ''}`; };
     const pill = s => s.startsWith('acts') ? 'ok' : s.startsWith('flags') ? 'accent' : s.startsWith('whisper, ready') || s.startsWith('whisper, may') ? 'ok' : s.startsWith('whisper') ? 'outline' : s === 'not decided' ? 'warn' : 'outline';
     $('#stu-body', el).innerHTML = items.map(x => { const hw = x.homework || {}, s = x.student || {}, v = x.verdict || null;
       const home = hw.decisions ? `${n(hw.decisions)} · ${n(hw.sealed)} sealed` : '—';
@@ -226,7 +233,7 @@ DC.view('admin', {
       const exam = v ? (v.pass ? '<span class="pill ok">pass</span>' : `<span class="pill warn" title="${esc((v.failed || []).join('; '))}">fail</span>`) : '—';
       const why = x.not_decided ? ` <span class="small" title="${esc(x.not_decided)}">(why)</span>` : '';
       return `<tr><td class="mono small" title="${esc(x.about || '')}">${esc(x.point)}</td><td class="mono small">${n(x.recorded)}</td><td class="mono small">${home}</td>`
-        + `<td class="small">${stu}</td><td class="mono small">${acc(s.dev_accuracy)} · ${acc(s.rule_accuracy)}</td><td>${exam}</td>`
+        + `<td class="small">${stu}</td><td class="mono small">${acc(s.dev_accuracy)} · ${acc(s.rule_accuracy)}${card(x.point)}</td><td>${exam}</td>`
         + `<td><span class="pill ${pill(x.status)}">${esc(x.status)}</span>${why}</td></tr>`; }).join('');
   },
 

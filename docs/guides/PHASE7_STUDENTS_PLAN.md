@@ -104,6 +104,11 @@ bands, its options), then a student.
   `ARGS=compare` prints every student beside its rule on dev.
 - **Done when:** the command runs end to end on the Mac in under an hour, and the register (29.1) shows every new card.
 
+- **Status: built (2026-10-18).** `python -m dclab_rnd.decision_models_build --all` trains every generation's points (v1, the
+  v2 homework, the images), each a student or a reason it has none in its `SKIPPED.json` (labels whose fields are not
+  excluded, fewer than 50 training rows, one class), one point's failure costing nothing else; `--compare` prints every
+  student beside its rule on dev from the cards.
+
 ### 29.5 The exams
 - **Delivers:** the sealed gate run once per new set (`make decision-gate` extended to v2 and the images), the verdicts
   in `evidence/campaigns/`, the passed students routed to shadow with their bar; the register shows each verdict.
@@ -175,10 +180,18 @@ bands, its options), then a student.
 - **Done when:** the leakage student's whisper on a planted leak names the timing band among its reasons, and the reasons are
   in the record.
 
+- **Status: built (2026-10-18).** `dclab_core.answerers.contributions` and `explain`: how much each state field moved an
+  answer (the answer's probability less the probability without the field: any model), the two or three strongest as its
+  reason; the students in shadow answer with it, so every whisper in the ledger says what moved it.
+
 ### 29.14 Report cards over time
 - **Delivers:** the register's history (`students/register.jsonl`) as a report card per student on the Students tab: dev
   score, labels, exam, level, by date; a student that slips is shown before demotion fires.
 - **Done when:** two register runs with a retrain between them draw the change on the page.
+
+- **Status: built (2026-10-18).** `students.history`: each point's report card from the register's own runs (the student,
+  its dev score, its exam, its level), a slip (a dev score fallen by more than 0.02, or an exam turned) shown before any
+  demotion; the Students tab draws the last scores and a slipping pill.
 
 ### 29.15 Real homework from public data
 - **Delivers:** OpenML's tables (already in the lake, 26.2) give truths for `target.column`, `task.framing` and
