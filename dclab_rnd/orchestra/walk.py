@@ -54,8 +54,9 @@ class WalkState(TypedDict, total=False):
 
 
 def _answered(draft: dict[str, Any]) -> set[str]:
-    """The fields the person answered a question about (a model's doubt about them is not asked again)."""
-    return {str(q.get("field")) for q in draft.get("questions") or [] if q.get("answered")}
+    """The fields the person answered a question about (a model's doubt about them is not asked again); a question they
+    declined is not one: its concern stands, for the person to decide on at the critic's gate."""
+    return {str(q.get("field")) for q in draft.get("questions") or [] if q.get("answered") and not q.get("declined")}
 
 
 IDENTIFIER = __import__("re").compile(r"`([^`]{1,80})`|\b([A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+)\b")
@@ -152,7 +153,7 @@ class Walk:
         now = self.c.where(state["draft_id"])
         draft = self.c.drafts.get(state["draft_id"])
         assets = draft.get("assets") or []
-        return B.advance(board if board is not None else self._board(state), node, what, self.TEAM, home=self.home, state=str(now.state)[:40],
+        return B.advance(board if board is not None else self._board(state), node, what, self.TEAM, home=self.home, walk=_walk_id(state), state=str(now.state)[:40],
                          blockers=[str(b.code)[:80] for b in now.blockers][:40], problem=self._problem(state["draft_id"]),
                          open_questions=[str(b.field)[:80] for b in now.blockers if getattr(b, "field", None)][:40],
                          data={"tables": len(assets), "ready": sum(a.get("status") == "ready" for a in assets)}).model_dump(mode="json")
@@ -192,6 +193,8 @@ class Walk:
             try:
                 if action == "answer" and self.c.agent.pending(self.c.drafts.get(draft_id)) is None:
                     return {"next": "situate"}  # answered elsewhere while the walk waited: situated again, nothing to ask
+                if action == "answer" and (self.c.agent.pending(self.c.drafts.get(draft_id)) or {}).get("source") == "critic":
+                    return self._critic_answer(state, now)  # 28.7: a critic's question is advisory: no answer is a decline, never a stop
                 if action == "build":
                     approved = self.asker.approve("build", {"state": now.state, "passed": list(now.passed)})
                     _SESSION.get().step("approve", {"gate": "build"}, {"approved": approved})
@@ -223,6 +226,30 @@ class Walk:
                 return {**update, "seen": seen, "last": done, "next": "stop", "says": f"No progress at {now.state}: {now.says}"}
             return {**update, "seen": seen, "last": done, "next": "situate"}
         return node
+
+    def _critic_answer(self, state: WalkState, now: Any) -> dict[str, Any]:
+        """A question the critic sent back, put to the person. An answer is taken as the Home agent takes any (``reply``); no
+        answer (they do not know, or skip it) declines it: recorded on the question, the concern left standing for the critic's
+        gate, where the person decides whether to build on (the measurement of 28.7: the walk stopped on six of fifteen people
+        who could not say what one row is)."""
+        draft_id = state["draft_id"]
+        q = self.c.agent.pending(self.c.drafts.get(draft_id)) or {}
+        clock = time.monotonic()
+        said = self.asker.ask(q.get("field"), q.get("text") or "")
+        if said:
+            self.c.agent.reply(draft_id, said)
+            result = {"answered": q.get("field"), "source": "critic"}
+        else:
+            def declined(d: dict[str, Any]) -> None:
+                for item in d.get("questions") or []:
+                    if item.get("id") == q.get("id"):
+                        item["answered"], item["declined"] = "(no answer)", True
+            self.c.drafts.update(draft_id, declined)
+            result = {"declined": q.get("field"), "source": "critic"}
+        _SESSION.get().step("answer", {"state": now.state, "field": q.get("field"), "source": "critic"}, result, time.monotonic() - clock)
+        board = self._close_pauses(state, "answer")
+        steps = [*state.get("steps", []), {"state": now.state, "action": "answer", "says": now.says, "seconds": round(time.monotonic() - clock, 3), "result": result}]
+        return {"steps": steps, "board": self._advance(state, "answer", "declined" if not said else "answer", board), "next": "situate"}
 
     # ------------------------------------------------------------------------------------------------ 28.4: the critic
     def _critic_done(self, draft_id: str) -> bool:
@@ -387,12 +414,19 @@ class Walk:
             self.c._remember(draft_id, now)  # the coordinator's own record of where it stopped
             from dclab_core.orchestra import Board
 
+            spent, models = _requests(values.get("runs") or [], conversation=draft_id)
             B.record(thread, self.TEAM, _nodes(values.get("steps") or []), Board.model_validate(values["board"]),
                      "completed" if now.next == "done" else "stopped", values.get("started") or B.now(), home=self.home,
-                     spent_eur=_spent(draft_id, values.get("runs") or []))
+                     spent_eur=spent, walk=_walk_id(values), models=models)
         return {"status": "done", "state": now.state, "next": now.next, "says": now.says, "blockers": [b.model_dump() for b in now.blockers],
                 "passed": now.passed, "steps": values.get("steps") or [], "board": values.get("board"),
                 "project_id": values.get("project_id") or self.c.drafts.get(draft_id).get("project_id")}
+
+
+def _walk_id(state: Any) -> Optional[str]:
+    """A walk's id: its first session's run (unique, and the same at every resume of the walk)."""
+    runs = (state or {}).get("runs") or []
+    return str(runs[0]) if runs else None
 
 
 def _nodes(steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -405,16 +439,21 @@ def _nodes(steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return list(out.values())
 
 
-def _spent(draft_id: str, runs: list[str]) -> float:
-    """What the walk's model requests cost: the requests of its sessions (one per start or resume) in the experience log."""
+def _requests(runs: list[str], **scope: str) -> tuple[float, Optional[list[str]]]:
+    """What the walk's model requests cost and which models answered them: the requests of its sessions (one per start or
+    resume) in the experience log; the models None when no log is there to say (unknown: such a walk never trains)."""
     from .. import experience
 
     log = experience.current_log()
-    if log is None or not runs:
-        return 0.0
+    if log is None:
+        return 0.0, None
     mine = set(runs)
-    return round(sum(float(e.payload.get("cost") or 0.0) for e in log.read(conversation=draft_id)
-                     if e.kind == "model.request" and e.ids.run in mine), 6)
+    found = [e for e in log.read(**scope) if e.kind == "model.request" and e.ids.run in mine]
+    return round(sum(float(e.payload.get("cost") or 0.0) for e in found), 6), sorted({str(e.payload.get("model")) for e in found if e.payload.get("model")})
+
+
+def _spent(draft_id: str, runs: list[str]) -> float:
+    return _requests(runs, conversation=draft_id)[0]
 
 
 def drive(walk: Walk, draft_id: str, person: Any, max_pauses: int = 60) -> dict[str, Any]:

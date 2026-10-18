@@ -4,6 +4,16 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.70.0 (2026-10-18)
+
+Package 28.9: a team's walks as training data.
+
+- `datasets.team_walks(items)`: one example per hand-off of a team's walk (the board before the node, the node and what it
+  did, the board after; the problem's short phrases redacted), each with its family (`TEAM_FAMILY`: the design and the
+  routes `solution_design`, the audit `leakage_judgment`, the run `read_results`, the report `report`, the critic's
+  send-back `ask_question`, every other node `agent_step`).
+- `DatasetManifest` v7 (`dclab_core.dataset_manifest.v7`, v1 to v6 read as v7): the builder `team_walks`.
+
 ## 0.69.0 (2026-10-18)
 
 Package 28.5: the auditor of a solution team.

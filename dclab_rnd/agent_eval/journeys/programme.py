@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
 import tempfile
 import time
 from collections import Counter
@@ -178,8 +179,11 @@ def play(journey: dict[str, Any], seed: int = 0, stores: Any = None, live: Optio
             from dclab_rnd.orchestra import checkpoints
             from dclab_rnd.orchestra.solution import SolutionTeam, drive as drive_team
 
+            shadow = (live or {}).get("shadow_router")  # 28.10: a model routing beside the router, never used
             with checkpoints.open_checkpointer(home, database_url="") as saver:
-                team_out = drive_team(SolutionTeam(projects, saver, home=home, advisor=advisor), built, _TeamPerson(when_blocked))
+                team_out = drive_team(SolutionTeam(projects, saver, home=home, advisor=advisor, shadow=shadow, shadow_name=(live or {}).get("shadow_name", "")),
+                                      built, _TeamPerson(when_blocked))
+            row["route_labels"] = _label_routes(draft_id, expect)
             row["team"] = {"next": team_out.get("next"), "says": str(team_out.get("says") or "")[:300], "nodes": [s.get("action") for s in team_out.get("steps") or []]}
             view = programme.view(projects.get(built))
             plan = programme.plan_of(projects.get(built))
@@ -259,6 +263,24 @@ def _end(row: dict[str, Any], started: float) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------------------------------------------- the suite
+
+def _label_routes(draft_id: str, expect: dict[str, Any]) -> int:
+    """28.10: each route the team recorded for this journey's draft, labelled with the expert's approach for its family (a benchmark label:
+    the journey's written truth), so every answerer on it (the rules, a shadow) is scored on the evaluation board. How many were labelled."""
+    from dclab_rnd import ledger as ledger_module
+    from dclab_rnd.ledger import label
+
+    book = ledger_module.current_ledger()
+    if book is None:
+        return 0
+    wanted = dict(zip(expect.get("families") or [], expect.get("approaches") or []))
+    n = 0
+    for rec in book.records(draft=draft_id, point="solution.route"):
+        truth = wanted.get(rec.state.get("family"))
+        if truth is not None:
+            n += bool(label(rec, truth, "benchmark", "journey:programme_expert"))
+    return n
+
 
 class _TeamPerson:
     """The written person at the solution team's pauses: keeps a leak suspect out, approves reading the holdout, and at a part
@@ -351,6 +373,45 @@ def roles_passed() -> bool:
 
 # ---------------------------------------------------------------------------------------------------------------- the command
 
+def _shadow_router(args: Any) -> int:
+    """28.10: the dev programme journeys through the team with a local model (Ollama) routing beside the router in shadow; every
+    route a decision with the expert's approach as its label; the evaluation board scores the rules and the shadow on them. Local:
+    nothing leaves the Mac, nothing is paid; the shadow serves nothing."""
+    import tempfile
+
+    from dclab_core import evaluation
+    from dclab_rnd import ledger as ledger_module
+    from dclab_rnd.core_advisor import GatewayAdvisor
+    from dclab_rnd.decision_model_compare import local_gateway
+
+    if args.split != "dev":
+        print("refused: a shadow is measured on dev", file=sys.stderr)
+        return 2
+    gateway, _ = local_gateway(args.shadow_router, False)
+    advisor = GatewayAdvisor(gateway, max_tokens=400, models={"solution_router": args.shadow_router})
+    if advisor._client("solution_router") is None:  # made before the journeys' private scope (the local model is asked in it, the rules arm's)
+        print("no local model serves solution_router", file=sys.stderr)
+        return 2
+    book = ledger_module.FileLedger(Path(tempfile.mkdtemp()) / "ledger", "shadow")
+    ledger_module.install(book)
+    try:
+        rows = measure(args.split, 0 if args.seed is None else args.seed, {"shadow_router": advisor, "shadow_name": args.shadow_router}, args.only, team=True)
+    finally:
+        ledger_module.install(None)
+    board_doc = json.loads(evaluation.from_ledger(book.records(point="solution.route"), book.labels(point="solution.route"),
+                                                  source="the dev programme journeys' routes, labelled by the expert").model_dump_json())
+    for r in rows:
+        print(f"{'ok  ' if r['right'] else 'MISS'} team  {r['id']:6} {json.dumps(r['parts'])} labelled {r.get('route_labels')}  {'; '.join(r['why'])[:200]}")
+    for sc in board_doc["scores"]:
+        print(f"  {sc['answerer']:34} {sc['by']:10} n={sc.get('n')} accuracy={sc.get('accuracy')} {sc.get('accuracy_ci')}")
+    print("team:", verdict(rows), f"; the shadow asked {advisor.calls.get('solution_router', 0)} times")
+    if not args.no_store:
+        print(store(rows, args.split, "rules_team_shadow", 0 if args.seed is None else args.seed,
+                    extra={"walk": "solution_team", "shadow": {"node": "route", "model": args.shadow_router, "local": True, "requests": advisor.calls.get("solution_router", 0)},
+                           "evaluation_board": board_doc}))
+    return 0
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     """``python -m dclab_rnd.agent_eval.journeys.programme --split dev|sealed [--yes --cap-eur 0.5] [--no-store] [--only ID ...]``.
 
@@ -367,13 +428,18 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--only", nargs="*")
     parser.add_argument("--no-store", action="store_true")
     parser.add_argument("--team", action="store_true", help="28.5: the rules arm solved by the solution team (dev only), stored as the arm rules_team")
+    parser.add_argument("--shadow-router", metavar="MODEL", default=None,
+                        help="28.10: with --team, a local model (Ollama) routes beside the router in shadow, never used; scored on the evaluation board")
     args = parser.parse_args(argv)
     sealed = args.split == "sealed"
     if args.team:
         if sealed or args.yes:
             print("refused: the team arm is measured on dev, with the rules (28.7 measures it with models)", file=sys.stderr)
             return 2
-        rows = measure(args.split, 0 if args.seed is None else args.seed, None, args.only, team=True)
+        live, board_doc = None, None
+        if args.shadow_router:
+            return _shadow_router(args)
+        rows = measure(args.split, 0 if args.seed is None else args.seed, live, args.only, team=True)
         for r in rows:
             print(f"{'ok  ' if r['right'] else 'MISS'} team  {r['id']:6} {json.dumps(r['parts'])} {r.get('seconds', '')}s {r.get('team', {}).get('nodes')}  {'; '.join(r['why'])[:300]}")
         print("team:", verdict(rows))

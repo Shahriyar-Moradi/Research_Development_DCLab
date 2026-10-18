@@ -40,7 +40,7 @@ from dclab_core.contracts import CONTRACTS, Contract, Versioned, _version
 
 VERSION = "1"
 Builder = Literal["decisions", "conversations", "preferences", "trajectories", "workflows", "failures", "development", "outcomes", "episodes",
-                  "model_calls", "problem_maps", "routes", "twin"]  # outcomes: 23.5; episodes and model_calls: 23.10; problem_maps and routes: 24.7; twin: 25.7
+                  "model_calls", "problem_maps", "routes", "twin", "team_walks"]  # outcomes: 23.5; episodes and model_calls: 23.10; problem_maps and routes: 24.7; twin: 25.7; team_walks: 28.9
 SourceKind = Literal["decision", "label", "event", "visit", "conversation", "run", "project", "draft", "package", "flag", "step"]
 SPLITS = (("sealed", 0.2), ("dev", 0.4))  # a group's hash below 0.2: sealed; below 0.4: dev; the rest train
 SALT = "dclab-datasets-v1"  # one salt for every set: a project is sealed (or not) everywhere at once
@@ -55,9 +55,9 @@ class Source(Contract):
 class DatasetManifest(Versioned):
     """What a dataset holds and where every row came from."""
 
-    schema_version: Literal["dclab_core.dataset_manifest.v6"] = _version("dataset_manifest", 6)
+    schema_version: Literal["dclab_core.dataset_manifest.v7"] = _version("dataset_manifest", 7)  # v7 (28.9): the builder team_walks
     READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.dataset_manifest.v1", "dclab_core.dataset_manifest.v2", "dclab_core.dataset_manifest.v3",
-                                                 "dclab_core.dataset_manifest.v4", "dclab_core.dataset_manifest.v5"})  # v2 added levels; v3 the outcomes builder; v4 the scrubber and the commit; v5 the problem_maps and routes builders; v6 the twin builder and the step source
+                                                 "dclab_core.dataset_manifest.v4", "dclab_core.dataset_manifest.v5", "dclab_core.dataset_manifest.v6"})  # v2 added levels; v3 the outcomes builder; v4 the scrubber and the commit; v5 the problem_maps and routes builders; v6 the twin builder and the step source; v7 the team_walks builder
     builder: Builder
     name: str = Field(min_length=1, max_length=120)
     version: str = Field(min_length=1, max_length=20)
@@ -80,8 +80,9 @@ class DatasetManifest(Versioned):
     @classmethod
     def _read_v1(cls, data: Any) -> Any:
         if isinstance(data, dict) and data.get("schema_version") in ("dclab_core.dataset_manifest.v1", "dclab_core.dataset_manifest.v2", "dclab_core.dataset_manifest.v3",
-                                                                    "dclab_core.dataset_manifest.v4", "dclab_core.dataset_manifest.v5"):
-            data = {**data, "schema_version": "dclab_core.dataset_manifest.v6"}
+                                                                    "dclab_core.dataset_manifest.v4", "dclab_core.dataset_manifest.v5",
+                                                                    "dclab_core.dataset_manifest.v6"):
+            data = {**data, "schema_version": "dclab_core.dataset_manifest.v7"}
         return data
 
 
@@ -612,6 +613,49 @@ def routes(items: Iterable[dict[str, Any]], *, workspace: Optional[str] = None, 
                           limits=["Codes and counts only: no reason text, no column name, no value."])
 
 
+# ------------------------------------------------------------------------------------------------ (h) a team's walks (28.9)
+
+TEAM_FAMILY = {"design": "solution_design", "plan_workflow": "solution_design", "audit": "leakage_judgment", "compose": "read_results",
+               "drop": "read_results", "report": "report", "critic": "ask_question"}  # every other node of a walk: agent_step (the routes are in the design's board)
+
+
+def team_walks(items: Iterable[dict[str, Any]], *, workspace: Optional[str] = None, consent: str = "train") -> tuple[list[dict[str, Any]], DatasetManifest]:
+    """A team's walk, one example per hand-off: the board before the node, the node and what it did, the board after
+    (28.9). ``items`` as the host assembles them (``thread``, ``team``, ``project``, ``draft``, ``status``, ``spent_eur``,
+    ``steps`` each with ``node``, ``what``, ``before`` and ``after``). Boards hold names, codes and counts; the problem's
+    short phrases are redacted as every exported text."""
+    rows = []
+    for item in items:
+        group = group_of(item.get("project"), item.get("draft"), None, None, "team_walk")
+        for i, step in enumerate(item.get("steps") or []):
+            node = str(step.get("node") or "")
+            rows.append({"thread": item.get("thread"), "team": item.get("team"), "draft": item.get("draft"), "project": item.get("project"),
+                         "step": i, "node": node, "what": step.get("what"), "family": TEAM_FAMILY.get(node, "agent_step"),
+                         "before": _board(step.get("before")), "after": _board(step.get("after")), "status": item.get("status"),
+                         "spent_eur": item.get("spent_eur"), "models": item.get("models"),  # None: not known whose answers they are (never trained)
+                         "closed_pause": len((step.get("after") or {}).get("interrupts") or []) > len((step.get("before") or {}).get("interrupts") or []),  # the person decided here
+                         "group": group, "split": split_of(group),
+                         "sources": [("draft", item.get("draft")), ("project", item.get("project"))]})
+    return rows, manifest("team_walks", "team.boards", rows, sources_of(rows), use="train", consent=consent, workspace=workspace,
+                          counts={"family": dict(Counter(r["family"] for r in rows)), "team": dict(Counter(str(r["team"]) for r in rows))},
+                          policy="One example per hand-off of a team's walk; grouped by the project (or the draft), split as every set.",
+                          limits=["A walk in which a model was asked is a teacher's: evaluation only, by the lake's rule.",
+                                  "The boards say what the team knew and did, in names and codes: the person's words are in the conversations set."])
+
+
+def _board(board: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    if not board:
+        return None
+    out = {k: board.get(k) for k in ("version", "state", "data", "open_questions", "spent_eur")}
+    out["problem"] = {k: (_redacted(v, 200) if k not in ("family", "ready") else v) for k, v in (board.get("problem") or {}).items()}  # labels holds the person's words too
+    out["parts"] = [{**{k: x.get(k) for k in ("part", "family", "route", "status")}, "title": _redacted(x.get("title"), 200),
+                     "workflow": [_redacted(w, 120) for w in x.get("workflow") or []]} for x in board.get("parts") or []]
+    out["blockers"] = [_redacted(b, 80) for b in board.get("blockers") or []]  # a blocker may carry a part's title
+    out["handoffs"] = len(board.get("handoffs") or [])
+    out["interrupts"] = [{k: i.get(k) for k in ("kind", "node", "field", "gate", "status")} for i in board.get("interrupts") or []]
+    return out
+
+
 # ------------------------------------------------------------------------------------------------ (f) failures
 
 def failures(sessions: Iterable[dict[str, Any]], reviews: Optional[dict[str, dict[str, Any]]] = None, *, workspace: Optional[str] = None,
@@ -642,7 +686,7 @@ def failures(sessions: Iterable[dict[str, Any]], reviews: Optional[dict[str, dic
                           limits=["A candidate is not a case until a reviewer accepts it."])
 
 
-__all__ = ["group_of", "sources_of", "refit", "SALT", "DatasetManifest", "Source", "decisions", "conversations", "preferences", "trajectories", "workflows", "problem_maps", "routes", "failures", "manifest",
+__all__ = ["group_of", "sources_of", "refit", "SALT", "DatasetManifest", "Source", "decisions", "conversations", "preferences", "trajectories", "workflows", "problem_maps", "routes", "team_walks", "TEAM_FAMILY", "failures", "manifest",
            "split_of", "LABEL_SOURCES", "VERSION"]
 
 

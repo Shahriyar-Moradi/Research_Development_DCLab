@@ -315,6 +315,56 @@ def _twin_items(home: Path, switches: dict[str, bool], projects: dict[str, dict[
     return list(items.values()), traces
 
 
+def _team_items(home: Path, switches: dict[str, bool], projects: dict[str, dict[str, Any]], drafts: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    """28.9: every finished team walk of the workspace: its hand-offs from ``orchestra/boards.jsonl`` (grouped by the walk's
+    id), each with the board before and after, paired with the walk's record in ``orchestra/walks.jsonl`` by that id (its
+    status, its spend, the models its requests were answered by). A walk with no record (unfinished, or written before walks
+    had ids) is left out, never guessed; a hand-off leaves only at the consent level it was written under (23.1); a walk of a
+    draft or a project the train switches refuse, or whose draft or project was deleted, never."""
+    from dclab_core.consent import exportable
+
+    from . import consent
+
+    def lines(name: str) -> list[dict[str, Any]]:
+        path = Path(home) / "orchestra" / name
+        out = []
+        for line in (path.read_text(encoding="utf-8").splitlines() if path.is_file() else []):
+            try:
+                out.append(json.loads(line))
+            except ValueError:
+                continue
+        return out
+
+    walks: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for doc in lines("boards.jsonl"):
+        thread, walk = str((doc.get("board") or {}).get("thread") or ""), doc.get("walk")
+        if walk:
+            walks.setdefault((thread, str(walk)), []).append(doc)
+    records = {(str(r.get("thread") or ""), str(r.get("walk"))): r for r in lines("walks.jsonl") if r.get("walk")}
+    items = []
+    for (thread, walk), docs in walks.items():
+        rec = records.get((thread, walk))
+        if rec is None:
+            continue  # unfinished, or its record lost: whose answers its hand-offs are is not known
+        kind, _, ident = thread.partition(":")
+        draft = drafts.get(ident) if kind == "draft" else None
+        project = projects.get(ident) if kind == "project" else projects.get(str((draft or {}).get("project_id") or ""))
+        if (kind == "draft" and draft is None) or (kind == "project" and project is None) or (draft is not None and draft.get("project_id") and project is None):
+            continue  # deleted (or the project its draft built was): its walks went with it
+        if not consent.allowed(switches, project, "train"):
+            continue
+        steps, before = [], None
+        for doc in docs:
+            if exportable(doc.get("consent"), "train"):  # written while the workspace allowed it to leave for training
+                steps.append({"node": doc.get("node"), "what": doc.get("what"), "before": before, "after": doc.get("board")})
+            before = doc.get("board")
+        if steps:
+            items.append({"thread": thread, "walk": walk, "team": docs[0].get("team"), "draft": ident if kind == "draft" else ((project or {}).get("draft") or {}).get("id"),
+                          "project": (project or {}).get("id"), "status": rec.get("status"), "spent_eur": rec.get("spent_eur"), "models": rec.get("models"),
+                          "steps": steps})
+    return items
+
+
 def build(services: Any, root: Path | None = None) -> dict[str, Any]:
     """Every set this workspace's consent allows, written under its datasets folder; what was built, and what not. A
     set this build does not write (its use switched off, its project withdrawn or deleted, its point gone) is removed:
@@ -368,6 +418,7 @@ def build(services: Any, root: Path | None = None) -> dict[str, Any]:
         keep("workflows", "problem_to_pipeline", lambda: builders.workflows(_workflow_items(services, allowed), workspace=workspace, consent=basis))
         keep("problem_maps", "brief_to_map", lambda: builders.problem_maps(_map_items(services, allowed), workspace=workspace, consent=basis))  # 24.7: assembled inside keep, so
         keep("routes", "sub_problem_to_approach", lambda: builders.routes(_map_items(services, allowed), workspace=workspace, consent=basis))  # a draft it cannot read costs these two sets only
+        keep("team_walks", "boards", lambda: builders.team_walks(_team_items(home, switches, projects, all_drafts), workspace=workspace, consent=basis))  # 28.9
         try:  # 25.7: the twin's sets: what the system and Claude answered on the same inputs, and Claude's answers as a teacher's
             twin_items, traces = _twin_items(home, switches, projects, all_drafts)
             decisions_by: dict[tuple[str, str], list[dict[str, Any]]] = {}

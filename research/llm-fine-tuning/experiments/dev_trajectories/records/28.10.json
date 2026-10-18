@@ -1,0 +1,52 @@
+{
+ "package": "28.10",
+ "title": "DCLab's own models beside a node: a local model shadowing the team's router, scored on the evaluation board",
+ "date": "2026-10-18",
+ "request": "Phase 6 (the owner): DCLab's own models as nodes, shadowed first, promoted only where measured better.",
+ "spec": "docs/guides/PHASE6_MULTI_AGENT_PLAN.md, package 28.10",
+ "plan": [
+  "A shadow answerer beside the router node, never used.",
+  "Every route the team makes a decision, the shadow's answer on it.",
+  "The expert's approaches of the journeys as the labels; the evaluation board scores every answerer."
+ ],
+ "decisions": [
+  {
+   "decision": "The shadow on the router node, measured on solution.route.",
+   "why": "The programme journeys write the expert's approach for every part: a node with labels is a node a shadow can be scored on."
+  },
+  {
+   "decision": "A local model (Ollama) as the shadow.",
+   "why": "Free, and nothing leaves the Mac; a shadow serves nothing, so no gate is needed to run it, only to promote it."
+  },
+  {
+   "decision": "The shadow's answer counts only when its model answered.",
+   "why": "A rules fallback scored as the model's would credit the rules to the model."
+  }
+ ],
+ "change": "capture.route_chosen(shadow=); SolutionTeam(shadow=, shadow_name=) records every route it makes with the shadow's answer; refresh_plan(record=False) when the team recorded; the programme journeys' --shadow-router arm labels each route with the expert's approach and stores the evaluation board.",
+ "findings": [],
+ "measurements": [
+  {
+   "name": "the dev programme journeys with a local shadow router (JPR-006)",
+   "gate": "none fixed: a shadow is measured, never served",
+   "fixed_before_run": true,
+   "result": "6 of 6 journeys right through the team; on solution.route against the expert's approaches: the rules 31 of 34 (0.912), qwen2.5-coder:1.5b in shadow 5 of 5 answered (19 asked; the rest no valid answer), the solution.route decision student in shadow 34 of 34",
+   "verdict": "not scored",
+   "cost_eur": 0,
+   "against_gate": "Not scored: a shadow's measurement; nothing serves without the sealed gate.",
+   "limits": [
+    "Six people on one replica; the routes recorded at the draft's map and at the team count both.",
+    "The 1.5B model answered a quarter of the asks: too few to judge it.",
+    "The student's homework may share these journeys' shapes: its score here is not evidence for promotion."
+   ]
+  }
+ ],
+ "outcome": "A node can carry a shadow of DCLab's own models, and its answers are scored beside the rules' on labelled decisions.",
+ "lessons": [
+  "Put a shadow where the decisions have labels: a shadow on an unlabelled node measures only agreement."
+ ],
+ "risks": [
+  "A small local model mostly fails the router's format: a larger or tuned one is the next shadow."
+ ],
+ "commits": []
+}

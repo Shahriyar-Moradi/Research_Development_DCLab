@@ -380,9 +380,11 @@ def map_edited(draft_id: str, action: str, before: int, after: int) -> int:
 
 
 @_quiet
-def route_chosen(draft_id: str, sub: Any, route: Any, data: Any, parts: int) -> int:
+def route_chosen(draft_id: str, sub: Any, route: Any, data: Any, parts: int, shadow: Any = None, shadow_by: str = "") -> Any:
     """The approach routed to for one sub-problem (24.2's map, 24.3's catalogue): the rules' choice, the advisor's when it served, with the
-    candidates as the options. The state holds the family, the label situation and what the data card shows (counts and flags, never a value)."""
+    candidates as the options. The state holds the family, the label situation and what the data card shows (counts and flags, never a value).
+    ``shadow`` (28.10): another answerer's route for the same sub-problem (a local model in shadow), recorded beside the others and never used.
+    The record (or None)."""
     rules_choice = route.chosen if route.source != "advisor" else None
     answers = []
     if route.source == "advisor":
@@ -396,8 +398,12 @@ def route_chosen(draft_id: str, sub: Any, route: Any, data: Any, parts: int) -> 
              "tables": len(tables), "related_tables": sum(1 for t in tables if getattr(t, "role", None) == "related"), "has_time": any(getattr(c, "purpose", None) == "time" for c in columns),
              "has_text": any(getattr(c, "purpose", None) == "text" for c in columns)}
     by = "model_role" if route.source == "advisor" else "rule"
-    return int(bool(_put("solution.route", ("draft", draft_id), answers, route.chosen, by, state=state, options=[c.approach for c in route.candidates],
-                         level=2 if by == "model_role" else 0, draft=draft_id, conversation=draft_id)))
+    if shadow is not None:
+        from dclab_core.ledger import SHADOW
+
+        answers.append(answer("model_role", f"shadow:{shadow_by or 'model'}"[:120], getattr(shadow, "chosen", None), source=SHADOW))
+    return _put("solution.route", ("draft", draft_id), answers, route.chosen, by, state=state, options=[c.approach for c in route.candidates],
+                level=2 if by == "model_role" else 0, draft=draft_id, conversation=draft_id)
 
 
 @_quiet

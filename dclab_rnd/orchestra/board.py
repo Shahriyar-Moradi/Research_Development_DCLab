@@ -38,7 +38,7 @@ def forget(home: Path, thread: str) -> int:
     """Remove a walk's boards, pauses and record from the workspace's orchestra files, and its checkpoints (they hold the
     person's answers: the review of 28.3), for a deleted draft or project."""
     removed = _forget_checkpoints(home, thread)
-    for name in ("boards.jsonl", "interrupts.jsonl", "teams.jsonl"):
+    for name in ("boards.jsonl", "interrupts.jsonl", "teams.jsonl", "walks.jsonl"):
         path = Path(home) / "orchestra" / name
         if not path.is_file():
             continue
@@ -95,9 +95,21 @@ def _keep(home: Optional[Path], name: str, doc: dict[str, Any]) -> None:
         out.write(json.dumps(doc, ensure_ascii=False, default=str) + "\n")
 
 
-def advance(board: Any, node: str, what: str, team: str, *, home: Optional[Path] = None, frame: Any = None, **changes: Any) -> Any:
+def _level(home: Optional[Path], thread: str) -> str:
+    """The consent level a record written now carries (23.1): it leaves only at the level it was written under."""
+    from .. import consent
+
+    kind, _, ident = str(thread).partition(":")
+    try:
+        return consent.current_level(home=Path(home), project=ident if kind == "project" else None) if home is not None else "operate"
+    except Exception:  # noqa: BLE001 - a level that cannot be read is the one that never leaves
+        return "operate"
+
+
+def advance(board: Any, node: str, what: str, team: str, *, home: Optional[Path] = None, frame: Any = None, walk: Optional[str] = None,
+            **changes: Any) -> Any:
     """The next board: ``changes`` applied by ``node`` (refused when it would hold one of ``frame``'s values), its hand-off
-    an event, the whole board kept."""
+    an event, the whole board kept with its walk's id (``walk``) and the consent level it was written under."""
     from dclab_core import orchestra as core
 
     from .. import experience
@@ -111,7 +123,8 @@ def advance(board: Any, node: str, what: str, team: str, *, home: Optional[Path]
     experience.record("team.handoff", "agent", {"thread": after.thread, "team": team, "from_node": h.from_node, "to_node": h.to_node,
                                                "what": h.what, "board_before": h.board_before, "board_after": h.board_after, "state": after.state},
                       **_conversation(after.thread))
-    _keep(home, "boards.jsonl", {"at": h.at, "team": team, "node": node, "what": what, "board": json.loads(after.model_dump_json())})
+    _keep(home, "boards.jsonl", {"at": h.at, "team": team, "node": node, "what": what, "walk": walk, "consent": _level(home, after.thread) if home is not None else None,
+                                  "board": json.loads(after.model_dump_json())})
     return after
 
 
@@ -143,9 +156,11 @@ def distinct_values(frame: Any, per_column: int = 200) -> set[str]:
 
 
 def record(thread: str, team: str, nodes: list[dict[str, Any]], board: Any, status: str, started: str, home: Optional[Path] = None,
-           spent_eur: Optional[float] = None) -> Any:
+           spent_eur: Optional[float] = None, walk: Optional[str] = None, models: Optional[list[str]] = None) -> Any:
     """The walk's record, node by node, kept in the workspace and as a ``team.recorded`` event (and returned). ``spent_eur``
-    what its model requests cost (the board's own spend when not given)."""
+    what its model requests cost (the board's own spend when not given); ``walk`` its id and ``models`` the models its
+    requests were answered by, kept beside it (``walks.jsonl``): what pairs a walk's boards with its record, and what says
+    whose answers its hand-offs are (28.9's review)."""
     from dclab_core.orchestra import TeamRecord
 
     from .. import experience
@@ -154,6 +169,8 @@ def record(thread: str, team: str, nodes: list[dict[str, Any]], board: Any, stat
     rec = TeamRecord(thread=thread, team=team, nodes=nodes, handoffs=len(board.handoffs), interrupts=len(board.interrupts),
                      spent_eur=spent, board_version=board.version, status=status, started=started, finished=now())
     _keep(home, "teams.jsonl", json.loads(rec.model_dump_json()))
+    _keep(home, "walks.jsonl", {"thread": thread, "walk": walk, "team": team, "status": status, "spent_eur": spent, "models": None if models is None else sorted(set(models)),
+                                "started": started, "finished": rec.finished, "consent": _level(home, thread) if home is not None else None})
     experience.record("team.recorded", "agent", {"thread": thread, "team": team, "status": status, "nodes": len(rec.nodes), "handoffs": rec.handoffs,
                                                 "interrupts": rec.interrupts, "board_version": rec.board_version, "cost": spent,
                                                 "seconds": round(sum(n.seconds for n in rec.nodes), 3), "started": started, "finished": rec.finished},

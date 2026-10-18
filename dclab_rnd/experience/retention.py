@@ -228,7 +228,7 @@ def forget(*, project: str | None = None, draft: str | None = None, visit: str |
         except Exception as exc:  # noqa: BLE001
             out.setdefault("failed", []).append("orchestra")
             print(f"retention: could not remove the team records of what was deleted: {type(exc).__name__}", file=sys.stderr, flush=True)
-    if home is not None and (out.get("events") or out.get("decisions")):  # 23.10: a set may hold what was just removed: rebuild it
+    if home is not None and (out.get("events") or out.get("decisions") or out.get("orchestra")):  # 23.10: a set may hold what was just removed: rebuild it
         try:
             from .. import datasets
 

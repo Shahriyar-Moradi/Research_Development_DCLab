@@ -1,0 +1,1185 @@
+{
+  "id": "JRN-013",
+  "campaign_id": "journeys_v1",
+  "kind": "acceptance_journeys",
+  "split": "dev",
+  "arm": "team_live",
+  "journeys": "59d8ed59b4882c8e47f13ee1f9bdbcc47409810c2cc2faece502892284337279",
+  "at": "2026-10-18T02:40:38+00:00",
+  "gate": {
+    "version": "journeys_gate_v1",
+    "split": "sealed",
+    "journey": "right on the card, the workflow, the pipeline and the holdout (or, for a family the engine does not run, on the card and a build refused with its reason)",
+    "suite": "at least 85% of the sealed journeys right, the lower end of the 95% Wilson interval at least 0.6, every family with a journey, and no move the graph's validator refused in any journey",
+    "seed": 1
+  },
+  "seed": 0,
+  "spent_eur": 0.3196,
+  "rows": [
+    {
+      "id": "JD-01",
+      "kind": "rare_event",
+      "family": "rare_event",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget"
+      ],
+      "questions": 5,
+      "steps": [
+        "answer",
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "bring_table",
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "critic",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "rare_event",
+        "target": "is_case",
+        "kind": "rare_event",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "roc_auc": 0.7527047913446677,
+        "average_precision": 0.5031055900621118,
+        "recall_at_precision_target": 0.5,
+        "precision_target": 0.9,
+        "precision_at_k_positives": 0.5,
+        "accuracy": 0.9984591679506933,
+        "majority_baseline_accuracy": 0.9969183359013868,
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "brier": 0.0018520551823895878,
+        "log_loss": 0.013982461695014752,
+        "positive_rate": 0.0030816640986132513,
+        "threshold": 0.5,
+        "ap_lift": 163.25776397515526,
+        "alert_budget": 0.038522,
+        "alerts_at_budget": 26,
+        "recall_at_budget": 0.5,
+        "precision_at_budget": 0.038461538461538464,
+        "fit_seconds": 0.2507103750031092,
+        "recall_at_budget_ci": {
+          "point": 0.5,
+          "low": 0.0,
+          "median": 0.5,
+          "high": 1.0,
+          "draws": 37,
+          "method": "cluster bootstrap over 81 groups"
+        }
+      },
+      "right": true,
+      "seconds": 53.7,
+      "flags": [],
+      "models": {
+        "conversation_reader": "claude-sonnet-5-5",
+        "understanding_critic": "claude-sonnet-5-5"
+      },
+      "spent_eur": 0.026998,
+      "coordinator": [],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-02",
+      "kind": "binary",
+      "family": "classification",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "entity"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "critic",
+        "answer",
+        "critic",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "classification",
+        "target": "churned",
+        "kind": "binary",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "roc_auc": 0.7463216641298832,
+        "average_precision": 0.5398731707182224,
+        "recall_at_precision_target": 0.030864197530864196,
+        "precision_target": 0.9,
+        "precision_at_k_positives": 0.5246913580246914,
+        "accuracy": 0.745,
+        "majority_baseline_accuracy": 0.73,
+        "precision": 0.7142857142857143,
+        "recall": 0.09259259259259259,
+        "f1": 0.16393442622950818,
+        "brier": 0.17465386033842212,
+        "log_loss": 0.52837404016736,
+        "positive_rate": 0.27,
+        "threshold": 0.5,
+        "ap_lift": 1.999530261919342,
+        "fit_seconds": 0.01905475000239676
+      },
+      "right": true,
+      "seconds": 23.1,
+      "flags": [],
+      "models": {
+        "conversation_reader": "claude-sonnet-5-5",
+        "understanding_critic": "claude-sonnet-5-5"
+      },
+      "spent_eur": 0.026312,
+      "coordinator": [],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-03",
+      "kind": "multiclass",
+      "family": "classification",
+      "parts": {
+        "card": true,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "not built: stopped at build: Waiting for the person: Is assigned_team the team that first received the ticket, or the team that finally handled it after any rerouting? How does it relate to resolved_by?"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "labels"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "critic",
+        "answer"
+      ],
+      "state": "build",
+      "said": "Waiting for the person: Is assigned_team the team that first received the ticket, or the team that finally handled it after any rerouting? How does it relate to resolved_by?",
+      "got": {
+        "family": "classification"
+      },
+      "right": false,
+      "seconds": 28.5,
+      "flags": [
+        "spend_without_result"
+      ],
+      "models": {
+        "conversation_reader": "claude-sonnet-5-5",
+        "understanding_critic": "claude-sonnet-5-5"
+      },
+      "spent_eur": 0.019556,
+      "coordinator": [],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-04",
+      "kind": "regression",
+      "family": "regression",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "critic",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "regression",
+        "target": "actual_minutes",
+        "kind": "regression",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "mae": 8.463764920081084,
+        "rmse": 11.629999286889134,
+        "mape": 0.3006075734343922,
+        "r2": 0.2017599956886309,
+        "bias": -2.9805929920514513,
+        "fit_seconds": 0.03303329199843574
+      },
+      "right": true,
+      "seconds": 17.5,
+      "flags": [],
+      "models": {
+        "conversation_reader": "claude-sonnet-5-5",
+        "understanding_critic": "claude-sonnet-5-5"
+      },
+      "spent_eur": 0.014158,
+      "coordinator": [],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-05",
+      "kind": "places",
+      "family": "regression",
+      "parts": {
+        "card": true,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "not built: stopped at build: Waiting for the person: What is one row: a single flat, a single listing of a flat (the same flat could be listed more than once), or something else?"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "entity"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "critic",
+        "answer"
+      ],
+      "state": "build",
+      "said": "Waiting for the person: What is one row: a single flat, a single listing of a flat (the same flat could be listed more than once), or something else?",
+      "got": {
+        "family": "regression"
+      },
+      "right": false,
+      "seconds": 30.1,
+      "flags": [
+        "spend_without_result"
+      ],
+      "models": {
+        "conversation_reader": "claude-sonnet-5-5",
+        "understanding_critic": "claude-sonnet-5-5"
+      },
+      "spent_eur": 0.012404,
+      "coordinator": [],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-06",
+      "kind": "text_tabular",
+      "family": [
+        "classification",
+        "text_or_images"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "entity\u2192target"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "critic",
+        "answer",
+        "critic",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "classification",
+        "target": "negative",
+        "kind": "text_tabular",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "roc_auc": 0.8685767879316265,
+        "average_precision": 0.6717222424640459,
+        "recall_at_precision_target": 0.2903225806451613,
+        "precision_target": 0.9,
+        "precision_at_k_positives": 0.5698924731182796,
+        "accuracy": 0.814,
+        "majority_baseline_accuracy": 0.8140000000000001,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "brier": 0.12234500887002517,
+        "log_loss": 0.3936431984392808,
+        "positive_rate": 0.186,
+        "threshold": 0.5,
+        "ap_lift": 3.6114099057206768,
+        "fit_seconds": 0.0756747080013156
+      },
+      "right": true,
+      "seconds": 48.8,
+      "flags": [],
+      "models": {
+        "conversation_reader": "claude-sonnet-5-5",
+        "understanding_critic": "claude-sonnet-5-5"
+      },
+      "spent_eur": 0.025454,
+      "coordinator": [],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-07",
+      "kind": "anomaly",
+      "family": "anomaly",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "entity"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "critic",
+        "answer",
+        "critic",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "anomaly",
+        "target": null,
+        "kind": "anomaly",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "planted_recall_at_budget": 0.6667
+      },
+      "right": true,
+      "seconds": 28.5,
+      "flags": [],
+      "models": {
+        "conversation_reader": "claude-sonnet-5-5",
+        "understanding_critic": "claude-sonnet-5-5"
+      },
+      "spent_eur": 0.02045,
+      "coordinator": [],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-08",
+      "kind": "forecasting",
+      "family": "forecasting",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "entity\u2192target"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "critic",
+        "answer",
+        "critic",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "forecasting",
+        "target": "units",
+        "kind": "forecasting",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "mase": 0.6578,
+        "smape": 0.1545,
+        "mae": 12.8831
+      },
+      "right": true,
+      "seconds": 27.5,
+      "flags": [],
+      "models": {
+        "conversation_reader": "claude-sonnet-5-5",
+        "understanding_critic": "claude-sonnet-5-5"
+      },
+      "spent_eur": 0.020886,
+      "coordinator": [],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-09",
+      "kind": "time_to_event",
+      "family": "time_to_event",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "critic",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "time_to_event",
+        "target": "days_subscribed",
+        "kind": "time_to_event",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "integrated_brier": 0.0896,
+        "c_index": 0.6362,
+        "auc_90": 0.6432
+      },
+      "right": true,
+      "seconds": 16.5,
+      "flags": [],
+      "models": {
+        "conversation_reader": "claude-sonnet-5-5",
+        "understanding_critic": "claude-sonnet-5-5"
+      },
+      "spent_eur": 0.01832,
+      "coordinator": [],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-10",
+      "kind": "embedded",
+      "family": [
+        "text_or_images",
+        "classification"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "entity\u2192target"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "critic",
+        "answer",
+        "critic",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "text_or_images",
+        "target": "urgent",
+        "kind": "embedded",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "roc_auc": 1.0
+      },
+      "right": true,
+      "seconds": 29.9,
+      "flags": [],
+      "models": {
+        "conversation_reader": "claude-sonnet-5-5",
+        "understanding_critic": "claude-sonnet-5-5"
+      },
+      "spent_eur": 0.018268,
+      "coordinator": [],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-11",
+      "kind": "streams",
+      "family": "streams",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "labels\u2192prediction_moment"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "critic",
+        "answer",
+        "critic",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "streams",
+        "target": null,
+        "kind": "streams",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "threshold": 0.032413,
+        "incidents": 22,
+        "caught": 22,
+        "incident_recall": 1.0,
+        "lead_time_hours_median": 36.0,
+        "alerts": 147,
+        "alerts_per_unit_day": 0.232,
+        "false_alerts_per_unit_day": 0.013,
+        "unit_days": 634.0
+      },
+      "right": true,
+      "seconds": 33.8,
+      "flags": [],
+      "models": {
+        "conversation_reader": "claude-sonnet-5-5",
+        "understanding_critic": "claude-sonnet-5-5"
+      },
+      "spent_eur": 0.030902,
+      "coordinator": [],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-12",
+      "kind": "entity_tables",
+      "family": "entity_tables",
+      "parts": {
+        "card": true,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "not built: stopped at build: Waiting for the person: Where can we see whether a customer ordered within 30 days after a cutoff? The tables show only each customer's most recent order date and a total order count, with no order-by-order history."
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "prediction_moment",
+        "target",
+        "action",
+        "entity\u2192target",
+        "labels"
+      ],
+      "questions": 5,
+      "steps": [
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "answer",
+        "critic",
+        "answer",
+        "critic",
+        "answer"
+      ],
+      "state": "build",
+      "said": "Waiting for the person: Where can we see whether a customer ordered within 30 days after a cutoff? The tables show only each customer's most recent order date and a total order count, with no order-by-order history.",
+      "got": {
+        "family": "entity_tables"
+      },
+      "right": false,
+      "seconds": 73.9,
+      "flags": [
+        "spend_without_result"
+      ],
+      "models": {
+        "conversation_reader": "claude-sonnet-5-5",
+        "understanding_critic": "claude-sonnet-5-5"
+      },
+      "spent_eur": 0.028604,
+      "coordinator": [],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-13",
+      "kind": "segmentation",
+      "family": "segmentation",
+      "parts": {
+        "card": true,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "not built: stopped at build: Waiting for the person: Is each row one customer, so that each customer_id is placed in exactly one group, or is the unit something else?"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "family",
+        "entity"
+      ],
+      "questions": 5,
+      "steps": [
+        "draw_map",
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "critic",
+        "answer",
+        "critic",
+        "answer"
+      ],
+      "state": "build",
+      "said": "Waiting for the person: Is each row one customer, so that each customer_id is placed in exactly one group, or is the unit something else?",
+      "got": {
+        "family": "segmentation"
+      },
+      "right": false,
+      "seconds": 20.7,
+      "flags": [
+        "spend_without_result"
+      ],
+      "models": {
+        "conversation_reader": "claude-sonnet-5-5",
+        "understanding_critic": "claude-sonnet-5-5"
+      },
+      "spent_eur": 0.025318,
+      "coordinator": [],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-14",
+      "kind": "uplift",
+      "family": "uplift",
+      "parts": {
+        "card": true,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "not built: stopped at build: Waiting for the person: Is each row one customer, identified by customer_id, and is the offer ranked and sent per customer?"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "entity"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "critic",
+        "answer"
+      ],
+      "state": "build",
+      "said": "Waiting for the person: Is each row one customer, identified by customer_id, and is the offer ranked and sent per customer?",
+      "got": {
+        "family": "uplift"
+      },
+      "right": false,
+      "seconds": 20.0,
+      "flags": [
+        "spend_without_result"
+      ],
+      "models": {
+        "conversation_reader": "claude-sonnet-5-5",
+        "understanding_critic": "claude-sonnet-5-5"
+      },
+      "spent_eur": 0.015418,
+      "coordinator": [],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-15",
+      "kind": "ranking",
+      "family": "ranking",
+      "parts": {
+        "card": true,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "not built: stopped at build: Waiting for the person: Is the thing to be ranked each item for a customer, so each row to score is a customer and item pair, or is it only the customer?"
+      ],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "entity"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "critic",
+        "answer"
+      ],
+      "state": "build",
+      "said": "Waiting for the person: Is the thing to be ranked each item for a customer, so each row to score is a customer and item pair, or is it only the customer?",
+      "got": {
+        "family": "ranking"
+      },
+      "right": false,
+      "seconds": 16.6,
+      "flags": [
+        "spend_without_result"
+      ],
+      "models": {
+        "conversation_reader": "claude-sonnet-5-5",
+        "understanding_critic": "claude-sonnet-5-5"
+      },
+      "spent_eur": 0.016596,
+      "coordinator": [],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    }
+  ],
+  "families": [
+    {
+      "family": "anomaly",
+      "journeys": 1,
+      "right": 1,
+      "interval": [
+        0.207,
+        1.0
+      ]
+    },
+    {
+      "family": "classification",
+      "journeys": 3,
+      "right": 2,
+      "interval": [
+        0.208,
+        0.939
+      ]
+    },
+    {
+      "family": "entity_tables",
+      "journeys": 1,
+      "right": 0,
+      "interval": [
+        0.0,
+        0.793
+      ]
+    },
+    {
+      "family": "forecasting",
+      "journeys": 1,
+      "right": 1,
+      "interval": [
+        0.207,
+        1.0
+      ]
+    },
+    {
+      "family": "ranking",
+      "journeys": 1,
+      "right": 0,
+      "interval": [
+        0.0,
+        0.793
+      ]
+    },
+    {
+      "family": "rare_event",
+      "journeys": 1,
+      "right": 1,
+      "interval": [
+        0.207,
+        1.0
+      ]
+    },
+    {
+      "family": "regression",
+      "journeys": 2,
+      "right": 1,
+      "interval": [
+        0.095,
+        0.905
+      ]
+    },
+    {
+      "family": "segmentation",
+      "journeys": 1,
+      "right": 0,
+      "interval": [
+        0.0,
+        0.793
+      ]
+    },
+    {
+      "family": "streams",
+      "journeys": 1,
+      "right": 1,
+      "interval": [
+        0.207,
+        1.0
+      ]
+    },
+    {
+      "family": "text_or_images",
+      "journeys": 1,
+      "right": 1,
+      "interval": [
+        0.207,
+        1.0
+      ]
+    },
+    {
+      "family": "time_to_event",
+      "journeys": 1,
+      "right": 1,
+      "interval": [
+        0.207,
+        1.0
+      ]
+    },
+    {
+      "family": "uplift",
+      "journeys": 1,
+      "right": 0,
+      "interval": [
+        0.0,
+        0.793
+      ]
+    }
+  ],
+  "summary": {
+    "journeys": 15,
+    "right": 9,
+    "by_part": {
+      "card": 15,
+      "workflow": 9,
+      "pipeline": 9,
+      "holdout": 9
+    }
+  },
+  "verdict": "fail: 9 of 15 journeys right (95% interval 0.357 to 0.802), 0 moves refused by the validator",
+  "status": "completed",
+  "experiment_id": "JRN-013",
+  "team_against": {
+    "parts": {
+      "rules": {
+        "card": 15,
+        "workflow": 15,
+        "pipeline": 15,
+        "holdout": 15
+      },
+      "single": {
+        "card": 15,
+        "workflow": 15,
+        "pipeline": 15,
+        "holdout": 15
+      },
+      "team": {
+        "card": 15,
+        "workflow": 9,
+        "pipeline": 9,
+        "holdout": 9
+      }
+    },
+    "spent_eur": {
+      "single": 0.1053,
+      "team": 0.3196
+    },
+    "per_journey_eur": 0.0213,
+    "failures": 0,
+    "passed": false,
+    "gate": {
+      "version": "team_gate_v1",
+      "rule": "the team is right on at least as many journeys as the rules on each of the card, the workflow, the pipeline and the holdout; its card is right at least as often as the single agent's on dev, and more often on a sealed set; no request failed, no move refused, no holdout read twice; the team arm costs at most cap_per_journey_eur a journey",
+      "cap_per_journey_eur": 0.06
+    },
+    "critic_requests": [
+      {
+        "role": "understanding_critic",
+        "model": "claude-sonnet-5-5",
+        "tier": "standard",
+        "prompt": "81e7afb8f501cf7e",
+        "requests": 23,
+        "cost_eur": 0.204292
+      }
+    ]
+  },
+  "walk": "graph",
+  "rule": "Scores on 15 written journeys over seeded replicas say how DCLab carries these people from their first sentence to a holdout number; they are not a claim about any other problem or about production readiness."
+}

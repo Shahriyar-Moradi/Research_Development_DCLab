@@ -24,7 +24,7 @@ from typing import Annotated, Any, Optional, TypedDict
 
 from ..agents import harness
 from . import thread_id
-from .walk import _PAUSES, Asker, _nodes, _spent
+from .walk import _PAUSES, Asker, _nodes, _requests, _walk_id
 
 _SESSION: contextvars.ContextVar[Any] = contextvars.ContextVar("orchestra_solution_session")
 _STEP = threading.Lock()  # parallel routes write their steps one at a time
@@ -56,8 +56,10 @@ class SolveState(TypedDict, total=False):
 class SolutionTeam:
     TEAM = "solution"
 
-    def __init__(self, projects: Any, checkpointer: Any, home: Any = None, advisor: Any = None, max_steps: int = 40):
+    def __init__(self, projects: Any, checkpointer: Any, home: Any = None, advisor: Any = None, max_steps: int = 40,
+                 shadow: Any = None, shadow_name: str = ""):
         self.projects, self.checkpointer, self.home, self.advisor = projects, checkpointer, home, advisor
+        self.shadow, self.shadow_name = shadow, shadow_name  # 28.10: a model that answers the router's question beside it, never used
         self.max_steps = max_steps
         self.asker = Asker()
         self.graph = None
@@ -69,7 +71,7 @@ class SolutionTeam:
         from . import board as B
 
         b = board if board is not None else Board.model_validate(state["board"])
-        return B.advance(b, node, what, self.TEAM, home=self.home, **changes).model_dump(mode="json")
+        return B.advance(b, node, what, self.TEAM, home=self.home, walk=_walk_id(state), **changes).model_dump(mode="json")
 
     def _close_pauses(self, state: SolveState, node: str) -> Any:
         from dclab_core.orchestra import Board
@@ -149,12 +151,26 @@ class SolutionTeam:
 
         from ..studio import programme
 
+        from ..ledger import capture
+
         clock = time.monotonic()
-        m, _ = programme.maps(self.projects.get(state["project_id"]))
+        project = self.projects.get(state["project_id"])
+        m, _ = programme.maps(project)
         sub = next(s for s in m.sub_problems if s.id == state["sub"])
-        route, source = solutions.route_with(sub, DataCard.model_validate(state["card"]), m, None, self.advisor)
-        step = self._step("route", {"part": sub.id}, {"chosen": route.chosen, "source": route.source, "candidates": [c.approach for c in route.candidates][:16]},
-                          time.monotonic() - clock)
+        card = DataCard.model_validate(state["card"])
+        route, source = solutions.route_with(sub, card, m, None, self.advisor)
+        shadow = None
+        if self.shadow is not None:  # 28.10: the shadow's own route, from its model alone (no rules fallback is its answer)
+            try:
+                guess, how = solutions.route_with(sub, card, m, None, self.shadow)
+                shadow = guess if how == "advisor" or getattr(guess, "source", None) == "advisor" else None
+            except Exception:  # noqa: BLE001 - a shadow that fails is no answer, never the walk's failure
+                shadow = None
+        owner = (project.get("draft") or {}).get("id") or state["project_id"]
+        rec = capture.route_chosen(owner, sub, route, card, len(m.parts), shadow=shadow, shadow_by=self.shadow_name)  # every route the team makes, a decision
+        step = self._step("route", {"part": sub.id}, {"chosen": route.chosen, "source": route.source, "candidates": [c.approach for c in route.candidates][:16],
+                                                     "shadow": getattr(shadow, "chosen", None) if self.shadow is not None else None,
+                                                     "record": getattr(rec, "id", None)}, time.monotonic() - clock)
         return {"routes": {sub.id: json.loads(route.model_dump_json())}, "steps": [step]}
 
     def design(self, state: SolveState) -> dict[str, Any]:
@@ -165,7 +181,7 @@ class SolutionTeam:
 
         clock = time.monotonic()
         routes = {k: solutions.Route.model_validate(v) for k, v in (state.get("routes") or {}).items()}
-        changed = programme.refresh_plan(self.projects, state["project_id"], self.advisor, routes=routes)
+        changed = programme.refresh_plan(self.projects, state["project_id"], self.advisor, routes=routes, record=False)  # the routes were recorded as they were made
         project = self.projects.get(state["project_id"])
         sm = (programme.plan_of(project) or {}).get("solution_map") or {}
         blockers = [str(b)[:80] for b in sm.get("blockers") or []]
@@ -375,19 +391,10 @@ class SolutionTeam:
                 current.status = "stopped"
             from dclab_core.orchestra import Board
 
+            spent, models = _requests(values.get("runs") or [], project=project_id)
             B.record(thread, self.TEAM, _nodes(values.get("steps") or []), Board.model_validate(values["board"]), "completed" if nxt == "done" else "stopped",
-                     values.get("started") or B.now(), home=self.home, spent_eur=_spent_project(project_id, values.get("runs") or []))
+                     values.get("started") or B.now(), home=self.home, spent_eur=spent, walk=_walk_id(values), models=models)
         return {"status": "done", "next": nxt, "says": values.get("says") or "", "steps": values.get("steps") or [], "board": values.get("board")}
-
-
-def _spent_project(project_id: str, runs: list[str]) -> float:
-    from .. import experience
-
-    log = experience.current_log()
-    if log is None or not runs:
-        return 0.0
-    mine = set(runs)
-    return round(sum(float(e.payload.get("cost") or 0.0) for e in log.read(project=project_id) if e.kind == "model.request" and e.ids.run in mine), 6)
 
 
 def drive(team: SolutionTeam, project_id: str, person: Any, max_pauses: int = 40) -> dict[str, Any]:

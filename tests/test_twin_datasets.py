@@ -40,7 +40,7 @@ class BuilderTest(unittest.TestCase):
         self.assertNotIn("example.com", json.dumps(steps))  # Claude's words go through the redaction
         pairs, m = sets["twin.preferences"]
         self.assertEqual([(p["chosen"]["arm"], p["chosen"]["value"]) for p in pairs], [("ai_first", {"pack": "churn"})])
-        self.assertEqual(m.schema_version, "dclab_core.dataset_manifest.v6")
+        self.assertEqual(m.schema_version, "dclab_core.dataset_manifest.v7")
         workflow, _ = sets["twin.teacher.workflow"]
         self.assertEqual([(r["point"], r["rule"]["answerer"], r["teacher"]["value"], r["truth"], r["state"]) for r in workflow],
                          [("problem.pack", "rule:pack_detect", "churn", "churn", {"family": "classification"})])

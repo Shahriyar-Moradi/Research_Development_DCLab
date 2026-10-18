@@ -1,0 +1,139 @@
+{
+ "package": "28.9",
+ "title": "A team's walks as training data: one example per hand-off, the board before and after, under consent",
+ "date": "2026-10-18",
+ "request": "Phase 6 (the owner): capture, record and store everything the teams do for training the solver model.",
+ "spec": "docs/guides/PHASE6_MULTI_AGENT_PLAN.md, package 28.9 and D8",
+ "plan": [
+  "A builder in dclab_core for a walk's hand-offs.",
+  "The studio assembles the walks from the orchestra files under consent.",
+  "The lake maps each hand-off to a family; a walk with a model is a teacher's."
+ ],
+ "decisions": [
+  {
+   "decision": "One example per hand-off, the board before the node and after it.",
+   "why": "The board is what the team knew; the change a node made to it is what the solver model must learn to make."
+  },
+  {
+   "decision": "A family per node: design and routes, the audit, the run, the report, the critic's send-back, the rest agent steps.",
+   "why": "The lake's families are how Model 1's corpus is balanced and judged; a node's work belongs to one of them."
+  },
+  {
+   "decision": "A walk in which a model was asked is evaluation only.",
+   "why": "The owner's rule: Claude's outputs are evaluation material; DCLab's own rules' walks are gold."
+  }
+ ],
+ "change": "dclab_core.datasets.team_walks and TEAM_FAMILY (dclab-core 0.70.0, DatasetManifest v7, v6 read as v7); dclab_rnd/datasets.py _team_items and the set team_walks/boards; the lake's mapping of the set.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A walk that used Claude could be labelled DCLab's own and land in train.",
+   "scenario": "The datasets build ran while a walk waited at the build approval: its Claude critic's send-back became ask_question, rule_prod, train; a restarted thread took another walk's record.",
+   "cause": "Walks were paired with records by position, and no record read as no spend.",
+   "fix": "Every board line carries its walk's id; walks.jsonl keeps each walk's record by that id; a walk with no record is left out, never guessed.",
+   "test": "test_an_unfinished_walk_is_left_out"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Two walks merged when the second began with an answered pause.",
+   "scenario": "The version a closed pause raised made the second walk's first hand-off look like the first walk's next.",
+   "cause": "A new walk was detected by the board's version.",
+   "fix": "Walks grouped by their id.",
+   "test": "test_a_walk_becomes_one_example_a_handoff_with_no_value_of_the_table"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Spend > 0 missed models that cost nothing.",
+   "scenario": "A critic on a local or an unpriced model made its answers rule_prod gold: a student trained on its own output.",
+   "cause": "The origin was read from the spend.",
+   "fix": "The walk keeps the models its requests were answered by; Claude's a teacher's (evaluation only), another model's left out, none DCLab's own.",
+   "test": "test_a_walk_a_model_answered_in_is_a_teachers_and_one_by_another_model_is_left_out"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A deleted project's draft walk left under the workspace switch alone.",
+   "scenario": "Draft d1 built p1, whose train switch is off; p1 deleted; d1's walk was exported.",
+   "cause": "The draft's project being gone made it a draft without a project.",
+   "fix": "A draft whose project was deleted never leaves.",
+   "test": "test_a_walk_of_a_deleted_projects_draft_never_leaves"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The person's words left unredacted in labels, part titles and blockers.",
+   "scenario": "labels 'Maria Lopez keeps them, call +44 20 ...' stayed raw.",
+   "cause": "Only some problem fields were redacted.",
+   "fix": "labels, part titles, workflow names and blockers redacted as every exported text.",
+   "test": "test_the_person_s_words_are_redacted_on_the_board"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A walk written while the workspace was at operate left once training was switched on.",
+   "scenario": "The hand-off events were refused by their level; the board lines were not.",
+   "cause": "Board lines carried no level.",
+   "fix": "Each board line and walk record carries the consent level it was written under; only lines that may leave for training leave.",
+   "test": "test_a_walk_written_before_training_was_allowed_never_leaves"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A deletion that removed only orchestra lines did not mark the sets stale.",
+   "scenario": "Events already purged by retention; the deleted walk's rows stayed in the built set.",
+   "cause": "The stale marker looked at events and decisions only.",
+   "fix": "The orchestra lines removed count too.",
+   "test": "tests/test_orchestra_board.py"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The person's decisions were taught as the rules'.",
+   "scenario": "kept_by_person on a leak suspect became leakage_judgment, rule_prod.",
+   "cause": "No origin for a hand-off that closed a pause.",
+   "fix": "A hand-off that closed a pause is human_exposed.",
+   "test": "test_a_walk_becomes_one_example_a_handoff_with_no_value_of_the_table"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Some nodes had the wrong family.",
+   "scenario": "plan_workflow fell to agent_step; route never reached the board.",
+   "cause": "The mapping missed the understanding walk's workflow node.",
+   "fix": "plan_workflow is solution_design; the routes are in the design's board.",
+   "test": "tests/test_orchestra_solution.py"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The no-value check could never fail and many paths were untested.",
+   "scenario": "The test looked for another fixture's marker.",
+   "cause": "A convenient check, not the project's own values.",
+   "fix": "The project's own order ids checked; a test per finding.",
+   "test": "tests/test_orchestra_solution.py"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Every walk of both teams reaches the training lake under consent, a hand-off at a time.",
+ "lessons": [
+  "Keep the shared state of a multi-agent run whole at every hand-off: the training example is the difference between two boards.",
+  "Pair two records by an id written into both, never by their order: an unfinished run shifts every pairing after it."
+ ],
+ "risks": [
+  "Walks are few until testers and projects run through the teams."
+ ],
+ "commits": []
+}

@@ -302,6 +302,104 @@ class TeamTests(unittest.TestCase):
 
 
 @unittest.skipIf(MISSING, MISSING)
+class TrainingDataTests(unittest.TestCase):
+    """28.9: a team's walks as training data, under the train consent: one example per hand-off, the board before and after,
+    paired with the walk's own record, never guessed."""
+
+    def setUp(self):
+        from dclab_rnd import consent
+
+        self.home = Path(tempfile.mkdtemp())
+        self.store = ProjectStore(self.home / "projects")
+        experience.install(experience.FileLog(self.home / "experience", "w"))
+        self.addCleanup(experience.install, None)
+        consent.set_workspace_consent(self.home, "train", True)  # switched on before the walks: they are written at that level
+        self.pid, self.replica = make_project(self.store)
+        project = self.store.get(self.pid)
+        project["settings"]["consent"] = {"train": True}
+        self.store.save(project)
+        consent._PROJECTS.clear()  # as a change through the API does: the switch read while the project was built is old
+
+    def walk(self, person=None, finish=True):
+        from dclab_rnd.orchestra import checkpoints
+        from dclab_rnd.orchestra.solution import SolutionTeam, drive
+
+        with checkpoints.open_checkpointer(self.home, database_url="") as saver:
+            team = SolutionTeam(self.store, saver, home=self.home)
+            return drive(team, self.pid, person or Person()) if finish else team.run(self.pid)
+
+    def items(self, switches=None, drafts=None):
+        from dclab_rnd import datasets as studio_sets
+
+        return studio_sets._team_items(self.home, switches or {"train": True}, {self.pid: self.store.get(self.pid)}, drafts or {})
+
+    def test_a_walk_becomes_one_example_a_handoff_with_no_value_of_the_table(self):
+        from dclab_core import datasets as builders
+        from dclab_rnd.lake import Run, session_examples
+
+        self.walk()
+        items = self.items()
+        self.assertEqual([i["status"] for i in items], ["completed"])
+        rows, manifest = builders.team_walks(items)
+        self.assertEqual(len(rows), len((self.home / "orchestra" / "boards.jsonl").read_text().splitlines()))  # every hand-off
+        self.assertIsNone(rows[0]["before"])
+        self.assertEqual(rows[1]["before"]["version"], rows[0]["after"]["version"])
+        self.assertTrue({"solution_design", "leakage_judgment", "read_results", "report"} <= set(manifest.counts["family"]))
+        examples = session_examples({"team_walks/boards": [{"row": r, "source": "w", "from_sealed": False} for r in rows]}, Run())
+        self.assertEqual(len(examples), len(rows))
+        self.assertEqual({e.provenance.origin for e in examples}, {"rule_prod", "human_exposed"})  # DCLab's rules; the person's approval
+        blob = json.dumps([e.messages for e in examples])
+        for value in self.replica.rides["order_id"].astype(str).head(50):
+            self.assertNotIn(value, blob)  # no cell of the table
+        self.assertEqual(self.items({"train": False}), [])  # the workspace's switch off
+
+    def test_an_unfinished_walk_is_left_out(self):
+        out = self.walk(finish=False)  # paused at the holdout: no record of the walk yet
+        self.assertEqual(out["status"], "paused")
+        self.assertEqual(self.items(), [])
+
+    def test_a_walk_a_model_answered_in_is_a_teachers_and_one_by_another_model_is_left_out(self):
+        from dclab_core import datasets as builders
+        from dclab_rnd.lake import Run, session_examples
+
+        self.walk()
+        path = self.home / "orchestra" / "walks.jsonl"
+        rec = json.loads(path.read_text().splitlines()[0])
+        for models, expected in ((["claude-sonnet-5-5"], {"teacher_claude"}), (["qwen2.5-coder:1.5b"], set())):
+            path.write_text(json.dumps({**rec, "models": models}) + "\n")
+            rows, _ = builders.team_walks(self.items())
+            examples = session_examples({"team_walks/boards": [{"row": r, "source": "w", "from_sealed": False} for r in rows]}, Run())
+            self.assertEqual({e.provenance.origin for e in examples}, expected, models)
+            self.assertTrue(all(e.provenance.split == "eval_only" for e in examples))
+
+    def test_a_walk_written_before_training_was_allowed_never_leaves(self):
+        from dclab_rnd import consent
+
+        consent.set_workspace_consent(self.home, "train", False)
+        consent._PROJECTS.clear()
+        self.walk()  # written at operate
+        self.assertEqual(self.items(), [])  # switched on later: still not
+
+    def test_the_person_s_words_are_redacted_on_the_board(self):
+        from dclab_core import datasets as builders
+
+        board = {"version": 3, "problem": {"labels": "Maria Lopez keeps them, call +44 20 7946 0958", "family": "rare_event"},
+                 "parts": [{"part": "sp1", "title": "Ask Maria Lopez at +44 20 7946 0958", "status": "open"}],
+                 "blockers": ["sp1 (Ask Maria Lopez at +44 20 7946 0958): no table"]}
+        rows, _ = builders.team_walks([{"thread": "draft:d", "team": "orchestra", "steps": [{"node": "analyse", "what": "x", "before": None, "after": board}]}])
+        self.assertNotIn("7946", json.dumps(rows))
+
+    def test_a_walk_of_a_deleted_projects_draft_never_leaves(self):
+        from dclab_rnd import datasets as studio_sets
+        from dclab_rnd.orchestra import board as B
+
+        b = B.advance(B.new("draft:d1"), "analyse", "analysed", "orchestra", home=self.home, walk="w1")
+        B.record("draft:d1", "orchestra", [], b, "completed", B.now(), home=self.home, walk="w1", models=[])
+        self.assertEqual(studio_sets._team_items(self.home, {"train": True}, {}, {"d1": {"id": "d1"}})[0]["walk"], "w1")
+        self.assertEqual(studio_sets._team_items(self.home, {"train": True}, {}, {"d1": {"id": "d1", "project_id": "gone"}}), [])
+
+
+@unittest.skipIf(MISSING, MISSING)
 class JourneyTests(unittest.TestCase):
     def test_a_programme_journey_reaches_the_same_result_through_the_team(self):
         from dclab_rnd.agent_eval.journeys import programme as jp

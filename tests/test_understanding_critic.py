@@ -134,6 +134,8 @@ class RoundTests(unittest.TestCase):
         replica = dfr.generate(seed=0, n_orders=6000, n_bikers=240)
         cls.orders, cls.cases = replica.rides, replica.sample.assign(final_status="DELIVERED")
 
+    silent = False  # a person who cannot answer the critic's questions (28.7's measurement)
+
     def walk(self, rounds, approve):
         import tempfile
 
@@ -160,7 +162,7 @@ class RoundTests(unittest.TestCase):
         advisor = ScriptedAdvisor({"understanding_critic": [{"concerns": [{"field": f, "question": f"Round {i}: is the {f} right?", "columns": []}]}
                                                             for i, f in enumerate(rounds)]})
         self.asked, self.gates = [], []
-        person = team.Person(answer=lambda field, q: self.asked.append(q) or ANSWERS.get(field) or "Each order",
+        person = team.Person(answer=lambda field, q: self.asked.append(q) or ((None if q.startswith("Round") else ANSWERS.get(field)) if self.silent else (ANSWERS.get(field) or "Each order")),
                              approve=lambda gate, summary: self.gates.append((gate, summary)) or approve(gate), who="p")
         from unittest import mock
 
@@ -177,6 +179,15 @@ class RoundTests(unittest.TestCase):
         own = draft["coordinator"]["critic"]
         self.assertEqual((own["rounds"], own["overridden"], own["passed"]), (ROUNDS, True, True))
         self.assertIn("understanding", [g for g, _ in self.gates])  # the concern that stood was shown to the person
+
+    def test_a_critic_question_with_no_answer_is_declined_and_the_person_decides_at_the_gate(self):  # 28.7: it stopped six of fifteen
+        self.silent = True
+        out, draft, _ = self.walk(["entity", "entity"], approve=lambda gate: True)
+        self.assertEqual(out["next"], "done", out["says"])  # never "Waiting for the person"
+        declined = [q for q in draft["questions"] if q.get("declined")]
+        self.assertEqual([q["field"] for q in declined], ["entity"])
+        self.assertIn("understanding", [g for g, _ in self.gates])  # the concern stood and was shown before the build
+        self.assertTrue(draft["coordinator"]["critic"]["overridden"])
 
     def test_a_declined_understanding_gate_stops_with_the_concerns(self):
         out, draft, _ = self.walk(["entity", "labels", "family", "entity", "labels"], approve=lambda gate: gate != "understanding")

@@ -726,6 +726,13 @@ request path; it is a data generator. A team that pretrains or evaluates an in-c
 or reads DCLab's corpus (`make priors`, `lake/bronze/priors/priors_v1/`); `params.effects_shown` marks the tables whose shown
 features include the outcome's effects, for a team that wants none.
 
+## A team's walks as training data (28.9, dclab-core 0.70.0)
+
+The library's: `dclab_core.datasets.team_walks` (one example per hand-off: the board before, the node and what it did, the
+board after, a family per node) and `DatasetManifest` v7. Where it goes there: once the main product's agents keep a board
+per run (28.2's section), its dataset build turns each run's hand-offs into these rows under the same consent as its other
+sets, a run in which a model answered kept for evaluation only.
+
 ## The auditor before a holdout (28.5, dclab-core 0.69.0)
 
 The library's: `dclab_core.auditor` (`screen`, `AuditVerdict` v1, `verdict`): the columns a solution would read, each alone

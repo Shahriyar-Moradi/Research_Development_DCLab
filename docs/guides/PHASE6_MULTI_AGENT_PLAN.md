@@ -337,6 +337,14 @@ families; nothing is captured for the first time there.
 - **Budget:** about €4 per full dev pass (approved 2026-10-17; two live arms × 15 journeys with room for send-backs),
   planned, printed and capped before any request; the spend reported after.
 
+- **Status: dev passed (2026-10-18); the sealed set next.** `journeys --team-arms`: the rules, the single agent (the loop with
+  the conversation reader) and the team (the graph with the reader and the understanding critic's model) on the same people,
+  each live model with its share of the cap, a run with a failed request never stored, every live journey's whole record
+  in `agent_runs/live_tests/`; `TEAM_GATE` and a fifth sealed set (written by an agent that never read the rules) frozen in
+  5657478 before any run. First dev pass (JRN-011 to 013): the team 9 of 15, stopped on questions the critic's model asked
+  that the people could not answer; fixed (a critic's question with no answer is declined, its concern decided at the
+  critic's gate). Second pass (JRN-014 to 016): the rules, the single agent and the team 15 of 15 on every part; EUR 0.52.
+
 ### 28.8 Home and the product
 - **Delivers:** the Home page shows the board (which node works, what it found, the open interrupt), answers resume the
   thread, "build it" is an approval; the Admin trace view shows a run's nodes, hand-offs, cost; the API
@@ -350,12 +358,27 @@ families; nothing is captured for the first time there.
   so the verified solves carry the team's hand-offs; Claude's nodes evaluation-only.
 - **Done when:** `make lake` reads them, the cleaning (27.5) passes, and the export for Model 1 holds the new families.
 
+- **Status: built (2026-10-18).** `dclab_core.datasets.team_walks` (dclab-core 0.70.0, `DatasetManifest` v7) and
+  `dclab_rnd/datasets.py`'s `_team_items`: every walk of the workspace's `orchestra/boards.jsonl` (the understanding walk's
+  and the solution team's), each hand-off with the board before and after and the walk's record, written by `make datasets`
+  as `team_walks/boards` when the workspace's and the project's train switches allow it (a deleted draft's or project's
+  walks never); the lake (`make lake`) turns each into an example of its family (`solution_design`, `leakage_judgment`,
+  `read_results`, `report`, `ask_question`, `agent_step`), DCLab's own when no model was asked in the walk, evaluation
+  only when one was. Left: self-play through the team (it solves projects of one problem, which the team takes in 30.1).
+
 ### 28.10 DCLab's own models as nodes
 - **Delivers:** per-node model routing through 27.8: a tuned model shadows a node, is measured on the node's own
   decisions, promoted where it measured better, retired in one change; the tabular decision models (22.2, 26.3, 26.8)
   as answerers inside the nodes that ask their points.
 - **Done when:** one node runs with a shadowed local model on the dev journeys and its shadow answers are measured in
   the evaluation board; nothing serves without the sealed gate.
+
+- **Status: a shadow on the router built and measured (2026-10-18).** The solution team takes a shadow answerer for its
+  router (`SolutionTeam(shadow=)`): every route it makes is a `solution.route` decision with the shadow's answer beside the
+  rules', never used; the programme journeys' `--shadow-router MODEL` labels each with the expert's approach and stores the
+  evaluation board (JPR-006: the rules 31 of 34; qwen2.5-coder:1.5b, local, answered 5 of 19 asks, all right; the
+  `solution.route` decision student in shadow 34 of 34). Nothing serves: promotion goes through 27.8's switches after a
+  sealed gate. Left: a tuned model as the shadow, and shadows on the auditor's and the critic's nodes.
 
 ### 28.11 (optional, the owner's call) A spike on the second-choice framework
 - A three-node spike of 28.1 on the Microsoft Agent Framework, timed and compared on the same test; a note in the

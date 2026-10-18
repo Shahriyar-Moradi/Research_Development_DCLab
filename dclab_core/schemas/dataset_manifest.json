@@ -35,7 +35,7 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.dataset_manifest.v6.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.dataset_manifest.v7.json",
   "additionalProperties": false,
   "description": "What a dataset holds and where every row came from.",
   "properties": {
@@ -53,7 +53,8 @@
         "model_calls",
         "problem_maps",
         "routes",
-        "twin"
+        "twin",
+        "team_walks"
       ],
       "title": "Builder",
       "type": "string"
@@ -135,8 +136,8 @@
       "type": "integer"
     },
     "schema_version": {
-      "const": "dclab_core.dataset_manifest.v6",
-      "default": "dclab_core.dataset_manifest.v6",
+      "const": "dclab_core.dataset_manifest.v7",
+      "default": "dclab_core.dataset_manifest.v7",
       "title": "Schema Version",
       "type": "string"
     },

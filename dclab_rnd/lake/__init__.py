@@ -271,6 +271,18 @@ def session_examples(other: dict[str, list[dict[str, Any]]], run: Run) -> list[L
                             {"role": "assistant", "content": json.dumps(answer, ensure_ascii=False, sort_keys=True, default=str)}]
                 add("solution_design", messages, item, origin,
                     L.Verification(kind="executed", passed=bool(r.get("pipeline")), detail="the project ran its pipeline"), group)
+            elif builder == "team_walks" and r.get("after"):  # 28.9: a team's hand-off: what it knew, the node, what it knew after
+                models = r.get("models")
+                origin = None if models is None else _origin_of({m: m for m in models})  # Claude: a teacher's; another model: left out; none: DCLab's own
+                if origin == "rule_prod" and r.get("closed_pause"):
+                    origin = "human_exposed"  # the person decided at this hand-off (kept a suspect, approved, dropped a part), shown what the team proposed
+                asked = {"team": r.get("team"), "node": r.get("node"), "board": r.get("before")}
+                messages = [{"role": "system", "content": selfplay.system()},
+                            {"role": "user", "content": json.dumps(asked, ensure_ascii=False, sort_keys=True, default=str)},
+                            {"role": "assistant", "content": json.dumps({"did": r.get("what"), "board": r.get("after")}, ensure_ascii=False, sort_keys=True, default=str)}]
+                family = r.get("family") if r.get("family") in L.FAMILIES else "agent_step"
+                add(family, messages, item, origin, L.Verification(kind="none", passed=r.get("status") == "completed",
+                                                                  detail="a node of a walk that " + ("completed" if r.get("status") == "completed" else "stopped")), group)
             else:
                 run.drop(item["source"], f"{builder}: no mapping yet")
     return out

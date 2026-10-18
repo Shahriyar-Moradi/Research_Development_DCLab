@@ -143,11 +143,12 @@ def plan_card(store: Any, project: dict[str, Any]) -> Any:
     return datacard.card_of(tables, roles={name: "main", **{k: "related" for k in tables if k != name}})
 
 
-def refresh_plan(store: Any, project_id: str, advisor: Any = None, routes: Optional[dict[str, Any]] = None) -> bool:
+def refresh_plan(store: Any, project_id: str, advisor: Any = None, routes: Optional[dict[str, Any]] = None, record: bool = True) -> bool:
     """Draw the solution map and the routes again from the confirmed problem map and the tables the project holds now. The person confirmed the problem (its parts and how they
     combine); which approach reads which table follows from the data, so attaching the table of accounts is what lets the rings be routed. Returns whether the plan changed;
     a changed plan makes a stored programme stale (it ran another solution map). ``advisor``: the solution router when it serves (24.8), as it does on Home. ``routes``:
-    the routes already chosen by the same router for every sub-problem (28.5's team, which asks it part by part in parallel)."""
+    the routes already chosen by the same router for every sub-problem (28.5's team, which asks it part by part in parallel). ``record`` false: the routes' decisions
+    were recorded by whoever chose them (the team records each route it makes, with its shadow's answer: 28.10)."""
     from dclab_core import solution_map as sm_mod, solutions
 
     project = store.get(project_id)
@@ -168,7 +169,7 @@ def refresh_plan(store: Any, project_id: str, advisor: Any = None, routes: Optio
     from ..ledger import capture
 
     draft_id = (project.get("draft") or {}).get("id") or project_id
-    for sid, route in routes.items():  # an approach that changed with the tables is a decision again: recorded under the draft the project was built from
+    for sid, route in (routes.items() if record else ()):  # an approach that changed with the tables is a decision again: recorded under the draft the project was built from
         was = (plan.get("routes") or {}).get(sid) or {}
         if was.get("chosen") != route.chosen or was.get("source") != route.source:
             sub = next(x for x in m.sub_problems if x.id == sid)

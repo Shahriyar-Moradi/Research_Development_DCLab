@@ -1,0 +1,73 @@
+{
+ "package": "28.7",
+ "title": "The team measured live beside the rules and the single agent, its gate fixed before the run",
+ "date": "2026-10-18",
+ "request": "Phase 6 (the owner): measure the teams; about EUR 4 a dev pass, the sealed set once; $20 for testing and improving the two agentic systems.",
+ "spec": "docs/guides/PHASE6_MULTI_AGENT_PLAN.md, package 28.7",
+ "plan": [
+  "Three arms on the same people: the rules, the single agent (the loop with the conversation reader), the team (the graph with the reader and the critic's model).",
+  "A gate fixed in code before any request.",
+  "A fresh sealed set, written by an agent that never read the rules, frozen first.",
+  "Dev first; the sealed set once."
+ ],
+ "decisions": [
+  {
+   "decision": "A fifth sealed set, written and pinned before the team was measured.",
+   "why": "The four sealed sets were each read once; a set an arm has seen cannot judge it."
+  },
+  {
+   "decision": "Each live model with its own share of the cap; a run with a failed request is not stored.",
+   "why": "A request that failed is answered by the rules, so the arm would partly be the rules."
+  },
+  {
+   "decision": "Every live journey's whole record kept in agent_runs/live_tests.",
+   "why": "The owner's rule: record everything a run does, whole, permanently."
+  }
+ ],
+ "change": "journeys --team-arms (TEAM_GATE, the three arms, the cap shares, the records kept), GATE_V5 and the fifth sealed set; the walk takes a critic model; a critic's question with no answer is declined, never a stop.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The team stopped on six of the fifteen dev people.",
+   "scenario": "JRN-013: the critic's model asked what one row is or what the outcome means; the written person held no answer for that field; the walk waited for the person and built nothing (9 of 15 against 15 for the rules and the single agent).",
+   "cause": "A critic's question was treated as blocking as the card's own questions are.",
+   "fix": "A critic's question with no answer is declined, recorded on the question; its concern stands, and the person decides at the critic's gate whether to build on.",
+   "test": "test_a_critic_question_with_no_answer_is_declined_and_the_person_decides_at_the_gate"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the dev team arms, first pass (JRN-011 to JRN-013)",
+   "gate": "TEAM_GATE (team_gate_v1), fixed in code before the run",
+   "fixed_before_run": true,
+   "result": "rules 15 of 15, single agent 15 of 15, team 9 of 15 (card 15, workflow 9, pipeline 9, holdout 9); EUR 0.105 the single agent, EUR 0.320 the team (EUR 0.021 a journey), no request failed",
+   "verdict": "fail",
+   "cost_eur": 0.4249,
+   "against_gate": "Failed on the workflow, the pipeline and the holdout: the walk stopped on questions the people could not answer.",
+   "limits": [
+    "Dev people written for the rules' questions: six hold no answer about the unit the critic asked about."
+   ]
+  },
+  {
+   "name": "the dev team arms, second pass after the decline fix (JRN-014 to JRN-016)",
+   "gate": "TEAM_GATE (team_gate_v1), fixed in code before the first pass",
+   "fixed_before_run": true,
+   "result": "rules 15 of 15, single agent 15 of 15, team 15 of 15 on every part; EUR 0.105 the single agent, EUR 0.415 the team (EUR 0.028 a journey), no request failed",
+   "verdict": "pass",
+   "cost_eur": 0.5208,
+   "against_gate": "Met on dev: the team at least the rules on every part, its card as often right as the single agent's, within the cap a journey.",
+   "limits": [
+    "Dev people: the gate's strict test is the sealed set, where the team must beat the single agent on the card.",
+    "A dev pass after a fix made on dev's own failures is optimistic by construction."
+   ]
+  }
+ ],
+ "outcome": "The team measured live against the rules and the single agent, its gate fixed first; the first pass failed and taught a fix.",
+ "lessons": [
+  "A critic's question is advice the person may decline: a send-back must never become a stop the person did not choose."
+ ],
+ "risks": [],
+ "commits": []
+}
