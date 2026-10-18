@@ -218,7 +218,7 @@ def measure(records: Iterable[Any], labels: Iterable[Any], models: Optional[Iter
         row = {"point": next(iter(m.points)), "gate": gates.get(name), "decisions": len(mine), "without_bands": sum(not answerable(r) for r in mine),
                "answered": 0, "with_rule": 0, "agree": 0, "disagree": 0, "labelled_disagreements": 0, "right_on_disagreements": 0,
                "rule_right_on_disagreements": 0, "weighted_disagreements": 0.0, "weighted_right": 0.0, "weighted_rule_right": 0.0,
-               "labels_by_source": {}, "labelled": 0, "right": 0}
+               "labels_by_source": {}, "labelled": 0, "right": 0, "exposed_disagreements": 0, "exposed_student_wrong": 0}
         for r in mine:
             got = _recorded(r, name) or fresh.get(r.id)
             if got is None or got.value is None:
@@ -236,6 +236,11 @@ def measure(records: Iterable[Any], labels: Iterable[Any], models: Optional[Iter
                 row["agree"] += 1
                 continue
             row["disagree"] += 1
+            if truth is not None and truth.source == "user_decision_exposed":
+                # 29.10: a person who saw the answers may demote a student, never promote it: counted apart, never toward acting
+                row["exposed_disagreements"] += 1
+                row["exposed_student_wrong"] += _key(got.value) != _key(truth.value)
+                continue
             if truth is not None:
                 weight = float(truth.weight or 1.0) if truth.source == "blind" else 1.0
                 row["labelled_disagreements"] += 1

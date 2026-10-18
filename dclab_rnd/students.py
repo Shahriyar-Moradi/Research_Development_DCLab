@@ -185,6 +185,8 @@ def register(ledger: Any = None, routing_doc: Optional[dict[str, Any]] = None, m
                "homework": work, "student": student, "verdict": verdict, "earlier_exam": exam if exam and verdict is None else None,
                "level": route.get("level") if route.get("answerer") == name and name else None, "serving": route.get("answerer"),
                "labelled_disagreements": shadow.get("labelled_disagreements"), "shadow_agreement": shadow.get("agreement"),
+               # 29.10: people's answers to the notes (they saw both answers): may demote a student, never count toward acting
+               "people_disagreements": shadow.get("exposed_disagreements"), "people_say_student_wrong": shadow.get("exposed_student_wrong"),
                "needed_to_act": max(0, MIN_LABELS - int(shadow.get("labelled_disagreements") or 0)) if name else None,
                "own": mine.get(key)}
         row["status"] = status_of(row)

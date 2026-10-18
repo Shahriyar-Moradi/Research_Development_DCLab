@@ -54,7 +54,7 @@ class ContractTest(unittest.TestCase):
         self.assertEqual(x.ExperienceEvent.read(old).schema_version, "dclab_core.experience_event.v11")
         label = core_ledger.DecisionLabel.read({"schema_version": "dclab_core.decision_label.v2", "id": "dl0000001", "record": "r1", "point": "column.is_identifier",
                                                 "value": True, "source": "benchmark", "by": "replica", "at": "2026-10-16T10:00:00+00:00"})
-        self.assertEqual(label.schema_version, "dclab_core.decision_label.v4")
+        self.assertEqual(label.schema_version, "dclab_core.decision_label.v5")
         self.assertIn("holdout_vs_best_leaf", core_ledger.Evidence.model_fields["kind"].annotation.__args__)
 
     def test_the_manifest_is_v5_and_reads_v4(self):

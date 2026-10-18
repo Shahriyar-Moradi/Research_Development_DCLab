@@ -260,6 +260,20 @@ async def workspace(s: Services = Depends(services)):
         for it in items:
             if not it["has_solution"]:
                 needs.append({"kind": "solution", "project": it["id"], "title": f"{it['name']}: write the solution draft", "sub": "Nothing is trained until the solution is saved.", "tag": "WF-01"})
+        try:  # 29.10: where a student disagrees with the rule on a project's decisions, a person may say which is right
+            from ...accounts.principal import current
+            from ...ledger import notes
+
+            who = current()
+            person = f"person:{who.user_id}" if who is not None and who.user_id else "person"
+            open_notes = notes.counts(getattr(s, "ledger", None), person)  # one read of the ledger for every project
+            for it in items:
+                n = open_notes.get(it["id"], 0)
+                if n:
+                    needs.append({"kind": "disagreements", "project": it["id"], "title": f"{it['name']}: a student disagrees with the rule",
+                                  "sub": f"{n} decision{'s' if n != 1 else ''} where you can say which is right; nothing decided changes.", "tag": "students"})
+        except Exception:  # noqa: BLE001 - Home stands without its notes
+            pass
         return {"projects": items, "needs": needs[:8],
                 "stats": {"forbidden": forbidden, "holdouts_once": opened, "holdout_projects": holdout_projects, "blocked_moves": blocked,
                           "projects": len(items), "drafts": sum(1 for d in drafts.list(200) if d.get("status") == "open")}}

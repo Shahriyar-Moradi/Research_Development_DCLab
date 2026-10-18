@@ -272,10 +272,14 @@ DC.view('home', {
       }
       const inbox = $('[data-f="home.inbox"]', el);
       if (inbox) {
-        $('.pill', inbox).textContent = ws.needs.length;
-        $('.list', inbox).innerHTML = ws.needs.length ? ws.needs.map(n => `<a class="list-item" href="${n.draft ? '#home' : '#project'}" ${n.draft ? `data-resume="${esc(n.draft)}"` : `data-open-project="${esc(n.project)}"`}>
+        let off = false;
+        try { off = localStorage.getItem('dclab-notes-off') === '1'; } catch (e) { off = false; }
+        const needs = ws.needs.filter(n => !(off && n.kind === 'disagreements'));  // 29.10: a person who turned the notes off
+        $('.pill', inbox).textContent = needs.length;
+        const label = { question: 'Question', solution: 'Solution', disagreements: 'Which is right?' };
+        $('.list', inbox).innerHTML = needs.length ? needs.map(n => `<a class="list-item" href="${n.draft ? '#home' : n.kind === 'disagreements' ? '#solution' : '#project'}" ${n.draft ? `data-resume="${esc(n.draft)}"` : n.kind === 'disagreements' ? `data-open-notes="${esc(n.project)}"` : `data-open-project="${esc(n.project)}"`}>
             <span class="avatar ai">AI</span>
-            <div class="li-main"><span class="li-title">${esc(n.title)}</span><span class="li-sub">${esc(n.sub || '')}</span><span class="row"><span class="pill warn">${n.kind === 'question' ? 'Question' : 'Solution'}</span><span class="tag">${esc(n.tag)}</span></span></div></a>`).join('')
+            <div class="li-main"><span class="li-title">${esc(n.title)}</span><span class="li-sub">${esc(n.sub || '')}</span><span class="row"><span class="pill warn">${esc(label[n.kind] || 'Solution')}</span><span class="tag">${esc(n.tag)}</span></span></div></a>`).join('')
           : '<div class="empty">Nothing waits for you. Start from one sentence above.</div>';
       }
       const count = $(`.ptab[data-ptab="projects"] .n`, el);
@@ -949,6 +953,8 @@ DC.view('home', {
       const b = e.target.closest('[data-build]'); if (b) { build(); return; }
       const fo = e.target.closest('[data-follow]'); if (fo) { DC.state.internSession = fo.dataset.follow; if (fo.dataset.project) DC.state.projectId = fo.dataset.project; location.hash = 'intern'; return; }
       const op = e.target.closest('[data-open-project]'); if (op) { DC.state.projectId = op.dataset.openProject; location.hash = 'project'; return; }
+      // 29.10: a note opens its own project's Solution page, whatever project was open before
+      const on = e.target.closest('[data-open-notes]'); if (on) { e.preventDefault(); DC.state.projectId = null; DC.state.project = 'p:' + on.dataset.openNotes; DC.currentProject.clear(); location.hash = 'solution'; return; }
       const wz = e.target.closest('[data-wizard]'); if (wz) { wizard(); return; }
       const c = e.target.closest('[data-connect]');
       if (c) {

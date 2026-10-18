@@ -47,6 +47,7 @@ WRITE_ROUTES = {
     "POST /api/drafts/{draft_id}/map": (EVENTS, ["graph.move"]),  # 24.2: drawing it again (redraw true) is a move; the first drawing is kept without one, as a map.size decision in the ledger
     "POST /api/drafts/{draft_id}/map/edit": (EVENTS, ["graph.move"]),  # 24.2: a person's add, remove, merge or confirm, allowed or refused with its checks
     "POST /api/ledger/blind/{record_id}": (NONE, "a blind label is the ledger's own record (decision_label), not a session event"),
+    "POST /api/projects/{project_id}/disagreements/{record_id}": (NONE, "29.10: a person's answer to a note is the ledger's own record (an exposed decision_label naming what was shown)"),
     "POST /api/feedback": (EVENTS, ["feedback.given"]),
     "PUT /api/consent": (EVENTS, ["decision.accepted"]),  # the switch, audited as a policy
     "PUT /api/twin/settings": (EVENTS, ["decision.accepted"]),  # 25.4: the owner's switch for Claude beside the system, audited as a policy

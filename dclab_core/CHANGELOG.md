@@ -4,6 +4,17 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.84.0 (2026-10-19)
+
+Package 29.10: every user is a teacher.
+
+- `ledger.DecisionLabel` v5 (`dclab_core.decision_label.v5`, v1 to v4 read as v5): `shown`, the answers (their answerers)
+  a person giving an exposed label saw; only an exposed label names them.
+- `ledger.effective_label`: an exposed label counts when it differs from an answer the person was shown, a shadow named
+  in `shown` included; a person who saw the rule and a student and sided with either is heard. The rule stands: such a
+  label may demote, never promote (the host keeps it out of the figures a promotion reads).
+- `datasets.decisions`: a row's `label` carries `shown` when its label is an exposed one that names what was shown.
+
 ## 0.83.0 (2026-10-19)
 
 Package 29.9: one language model for every point with a set.

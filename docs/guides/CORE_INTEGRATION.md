@@ -793,6 +793,14 @@ product's agent asks the critic once its brief is confirmed and before it plans,
 question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
 whether to go on, recording the decision.
 
+## A person's answer where a student disagrees (29.10, dclab-core 0.84.0)
+
+The library's: `DecisionLabel` v5 `shown` and `effective_label` reading it: a label from a person who saw the rule's answer
+and a student's counts whichever they chose, and may only demote. Where it goes there: where the main product shows a
+person its rule's answer beside a model's, its exposed label should name both (`shown`), and R3's promotion gates should
+leave such labels out, as this studio's measurement does; `adapters/main_product_ledger.py` reads its labels without
+`shown` today (an empty list: the 19.8 rule), so carrying it across is that repository's change.
+
 ## One language model for every decision point (29.9, dclab-core 0.83.0)
 
 The library's: `dclab_core.decision_export.normalize` reads any decision row (a workflow decision's too) in one shape,

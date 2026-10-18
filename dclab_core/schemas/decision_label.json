@@ -54,7 +54,7 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.decision_label.v4.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.decision_label.v5.json",
   "additionalProperties": false,
   "description": "What the right value of a decision was, from one source; a new label supersedes an older one, never edits it.",
   "properties": {
@@ -97,10 +97,19 @@
       "type": "string"
     },
     "schema_version": {
-      "const": "dclab_core.decision_label.v4",
-      "default": "dclab_core.decision_label.v4",
+      "const": "dclab_core.decision_label.v5",
+      "default": "dclab_core.decision_label.v5",
       "title": "Schema Version",
       "type": "string"
+    },
+    "shown": {
+      "description": "v5 (29.10): an exposed label's answers the person saw (their answerers): a student's answer shown beside the rule's counts as shown, though it was a shadow.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 10,
+      "title": "Shown",
+      "type": "array"
     },
     "source": {
       "enum": [

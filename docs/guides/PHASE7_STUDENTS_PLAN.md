@@ -209,6 +209,16 @@ bands, its options), then a student.
 - **Done when:** a disagreement on a replica project shows the note, the click writes the label, the register counts it,
   and nothing about the project's run changes.
 
+- **Status: built (2026-10-19), the review's 7 findings fixed.** The Solution page shows a note where a point's current
+  student disagrees with the rule on the project's decisions ("the rule said X, a student thinks Y"), Home's inbox says
+  where; one click (any role, as feedback) writes a label naming the two answers the person saw (`DecisionLabel` v5
+  `shown`, dclab-core 0.84.0), never a change of what was decided; the person can hide the notes. The counting was
+  one-sided before: a label agreeing with the rule was dropped, one agreeing with the student counted toward acting. Now
+  `effective_label` hears both, and the measurement keeps these labels out of what a promotion reads (the register's
+  "people's answers", demotion, never "needed to act", never an own student's exam). A decision of the blind draw is never
+  a note: it stays the blind queue's. Left: a note per column on the decisions table itself; the notes for points the
+  project's pages do not show (images, workflow points) reach Home's count only.
+
 ### 29.11 Students ask for the labels they need most (active learning)
 - **Delivers:** the label queue (29.8, 29.10) ranked by what a label would teach: disagreements first, then the student's
   least sure answers, then points furthest from their MIN_LABELS; a student's needed labels shrink faster.

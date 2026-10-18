@@ -440,6 +440,50 @@ async def project_decisions(project_id: str, s: Services = Depends(services)):
     return {"columns": await asyncio.to_thread(answers)}
 
 
+def _person() -> str:
+    from ...accounts.principal import current
+
+    who = current()
+    return f"person:{who.user_id}" if who is not None and who.user_id else "person"
+
+
+@router.get("/api/projects/{project_id}/disagreements", response_model=Page)
+async def project_disagreements(project_id: str, s: Services = Depends(services)):
+    """29.10: the project's decisions where a point's student disagrees with the rule and this person has not answered:
+    the question, the rule's answer and the student's, the options. Answer one with POST .../disagreements/{record_id}."""
+    from ...ledger import notes
+
+    s.project(project_id)  # 404 when the project is not there
+    return await asyncio.to_thread(notes.pending, getattr(s, "ledger", None), project_id, _person())
+
+
+@router.post("/api/projects/{project_id}/disagreements/{record_id}", response_model=Page)
+async def project_disagreement_answer(project_id: str, record_id: str, body: Any = Body(None), s: Services = Depends(services)):
+    """29.10: which is right, {"value": an option}: a label given having seen both answers, never a change of what was
+    decided. It may send a routed student back to shadow (where it says the student was wrong), never promote one."""
+    from ...ledger import notes, routing, shadow
+
+    s.project(project_id)
+    value = (body or {}).get("value") if isinstance(body, dict) else None
+    if value is None or not isinstance(value, (bool, str)):
+        raise HTTPException(422, "value is one of the decision's options")
+    book = getattr(s, "ledger", None)
+    try:
+        out = await asyncio.to_thread(notes.answer, book, project_id, record_id, value, _person())
+    except KeyError:
+        raise HTTPException(404, "No such decision in this project") from None
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from None
+    demoted: list = []
+    try:  # as a blind label does (22.6): a routed student this label says was wrong may go back to shadow
+        routed = [pt for pt, e in (s.gateway.routing.get().get("decisions") or {}).items() if e.get("level")]
+        if out.point in routed:
+            demoted = await asyncio.to_thread(lambda: routing.demote(s.gateway.routing, s.audit, *shadow.labelled(book, s.store.home, point=out.point)))
+    except Exception:  # noqa: BLE001 - the label is kept; a failed check runs again with the next label
+        demoted = []
+    return {"label": out.model_dump(mode="json"), "demoted": demoted}
+
+
 @router.get("/api/projects/{project_id}/pipeline", response_model=Page)
 async def project_pipeline(project_id: str, path: str | None = None, s: Services = Depends(services)):
     """The project's pipeline of workflows (20.8): every step behind its numbers, from the problem card to the report,

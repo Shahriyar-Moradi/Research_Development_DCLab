@@ -324,6 +324,8 @@
     uploadData: ["PUT", "/projects/{project_id}/data", ["project_id"], ["filename"]],
     useSample: ["POST", "/projects/{project_id}/data/sample", ["project_id"], []],
     projectDecisions: ["GET", "/projects/{project_id}/decisions", ["project_id"], []],
+    projectDisagreements: ["GET", "/projects/{project_id}/disagreements", ["project_id"], []],
+    projectDisagreementAnswer: ["POST", "/projects/{project_id}/disagreements/{record_id}", ["project_id", "record_id"], []],
     exportCode: ["GET", "/projects/{project_id}/export/code", ["project_id"], []],
     exportNotebook: ["GET", "/projects/{project_id}/export/notebook", ["project_id"], []],
     exportReport: ["GET", "/projects/{project_id}/export/report", ["project_id"], []],
@@ -1069,6 +1071,20 @@
   client.projectDecisions = (...args) => call('projectDecisions', args);
   client.path.projectDecisions = (...args) => build('projectDecisions', args).path;
   client.href.projectDecisions = (...args) => '/api' + build('projectDecisions', args).path;
+  /** GET /api/projects/{project_id}/disagreements: Project Disagreements
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.projectDisagreements = (...args) => call('projectDisagreements', args);
+  client.path.projectDisagreements = (...args) => build('projectDisagreements', args).path;
+  client.href.projectDisagreements = (...args) => '/api' + build('projectDisagreements', args).path;
+  /** POST /api/projects/{project_id}/disagreements/{record_id}: Project Disagreement Answer
+   *  @param {string} project_id
+   *  @param {string} record_id
+   *  @param {{body?: *, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.projectDisagreementAnswer = (...args) => call('projectDisagreementAnswer', args);
+  client.path.projectDisagreementAnswer = (...args) => build('projectDisagreementAnswer', args).path;
   /** GET /api/projects/{project_id}/export/code: Export Code
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]

@@ -433,8 +433,9 @@ def _consent_now(ledger: Any, project: Any) -> str:
 
 
 def label(record: Any, value: Any, source: str, by: str, *, evidence: dict[str, Any] | None = None, supersedes: str | None = None,
-          weight: float | None = None, ledger: Any = None) -> Optional[Any]:
-    """What was right for ``record``, from one source (19.8 writes them from every source)."""
+          weight: float | None = None, ledger: Any = None, shown: list[str] | None = None) -> Optional[Any]:
+    """What was right for ``record``, from one source (19.8 writes them from every source); ``shown`` (29.10): the answers
+    a person giving an exposed label saw."""
     from ..experience import _QUIET
 
     target = ledger if ledger is not None else current_ledger()
@@ -443,7 +444,7 @@ def label(record: Any, value: Any, source: str, by: str, *, evidence: dict[str, 
     try:
         out = contract.DecisionLabel(id="dl" + secrets.token_hex(10), record=record.id, point=record.point, value=value, source=source,
                                      by=str(by)[:120], at=_now(), supersedes=supersedes, weight=weight,
-                                     evidence=contract.Evidence(**evidence) if evidence else None)
+                                     evidence=contract.Evidence(**evidence) if evidence else None, shown=list(shown or [])[:10])
         _write(target, "label", out)
         return out
     except Exception as exc:  # noqa: BLE001

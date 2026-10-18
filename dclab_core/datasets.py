@@ -179,7 +179,8 @@ def decisions(docs: Iterable[dict[str, Any]], point: str, *, workspace: Optional
                      "consent": record.consent, "outcome": outcome,
                      "answers": [{"by": a.by, "answerer": a.answerer, "value": a.value, "confidence": a.confidence} for a in record.answers],
                      "value_used": record.value_used, "used": record.used, "labels": apart,
-                     "label": {"value": effective.value, "source": effective.source} if effective is not None else None,
+                     "label": ({"value": effective.value, "source": effective.source, **({"shown": list(effective.shown)} if effective.shown else {})}
+                               if effective is not None else None),  # 29.10: what a person giving an exposed label saw
                      "group": group, "split": split_of(group), "sources": [("decision", record.id)] + [("label", x.id) for x in labels]})
     by_source["unlabelled"] = sum(1 for r in rows if r["label"] is None)
     return rows, manifest("decisions", f"decisions.{point}", rows, sources_of(rows), use="train", consent=consent, workspace=workspace,

@@ -1,0 +1,136 @@
+{
+ "package": "29.10",
+ "title": "Every user is a teacher: notes where a student disagrees, answered in one click, heard both ways, never promoting",
+ "date": "2026-10-19",
+ "request": "Phase 7 (the owner): a student behind every choice; 29.10 asks the people at work, on a project's pages and on Home, which answer was right where a student and the rule disagree.",
+ "spec": "docs/guides/PHASE7_STUDENTS_PLAN.md, package 29.10",
+ "plan": [
+  "List a project's decisions where the point's current student disagrees with the rule, as notes on the Solution page and a count on Home.",
+  "Write the person's answer as an exposed label naming what they saw, never touching the decision.",
+  "Make the label rule hear both answers and keep these labels out of what a promotion reads."
+ ],
+ "decisions": [
+  {
+   "decision": "DecisionLabel v5 carries the answers the person saw (shown).",
+   "why": "On a recorded decision the student's answer is a shadow, which the label rule never counted as shown: a person siding with the rule was dropped and one siding with the student counted, the opposite of may demote, never promote."
+  },
+  {
+   "decision": "Exposed labels are counted apart in the measurement: people's answers, demotion, never needed to act, never an own student's exam.",
+   "why": "A person who saw both answers is anchored on them: such a label may push a student down, never up."
+  },
+  {
+   "decision": "A decision of the blind draw is never a note.",
+   "why": "The blind queue's labels may count toward acting; a decision a person saw both answers of must not come back there as blind."
+  },
+  {
+   "decision": "Any role may answer, as feedback.",
+   "why": "Every user is a teacher, and an answer only labels: it never changes what was decided and cannot promote."
+  }
+ ],
+ "change": "dclab_core: DecisionLabel v5 shown, effective_label reading it (0.84.0); dclab_rnd: ledger/notes.py (pending, counts, answer), label(shown=), the measurement's exposed counts kept apart, the register's people's answers, the routes GET/POST /api/projects/{id}/disagreements (read role), Home's inbox item from one read of the ledger, an own student's exam without exposed labels; the Solution page's notes panel with its off switch, Home's link to the right project.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The label rule counted a person's note one way only.",
+   "scenario": "A person seeing the rule's yes and a student's no: siding with the rule was dropped, siding with the student counted toward acting; twenty clicks could promote it.",
+   "cause": "A shadow answer is never counted as shown.",
+   "fix": "Labels name what was shown; exposed labels never count toward acting.",
+   "test": "test_a_person_who_saw_both_answers_is_heard_either_way; test_an_exposed_label_never_counts_toward_acting_and_is_counted_apart"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Demotion counted a routed model's errors only.",
+   "scenario": "A model right on 380 of 400 exposed labels was demoted at accuracy 0.0.",
+   "cause": "Exposed labels agreeing with the routed model were skipped.",
+   "fix": "The skip removed: demotion reads every exposed label.",
+   "test": "test_a_routed_model_mostly_right_by_people_who_saw_it_stays",
+   "impact": "Every routed model would have been demoted after 20 corrections, whatever its error rate."
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An answered note could come back as a blind label counting toward promotion.",
+   "scenario": "The person answered a note, the decision stayed in the blind queue, and the same person labelled it blind with a weight.",
+   "cause": "Notes and the blind queue took the same disagreements.",
+   "fix": "A decision of the blind draw, or one with a blind label, is never a note; answering one is refused.",
+   "test": "test_a_note_leaves_the_blind_queues_decisions_alone"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Home's note opened the wrong project.",
+   "scenario": "With project A open, the item for B showed A's Solution page and A's notes.",
+   "cause": "The link set only the project id the Solution page does not read.",
+   "fix": "The link sets the project the page reads and opens its Solution page.",
+   "test": ""
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Home read the whole ledger once per project.",
+   "scenario": "20 projects of 500 decisions: 10 seconds per workspace request.",
+   "cause": "Each project's count read every record and label.",
+   "fix": "One read of the ledger for every project's count.",
+   "test": "test_a_note_leaves_the_blind_queues_decisions_alone"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Reviewers and viewers saw notes they could not answer.",
+   "scenario": "A reviewer's click returned 403.",
+   "cause": "The POST needed the write role by default.",
+   "fix": "The answer route needs the read role, as feedback does.",
+   "test": "test_a_reviewer_may_answer_a_note"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An own student's exam read exposed labels.",
+   "scenario": "Sealed rows labelled by people who saw DCLab's student, the own model's base, graded it.",
+   "cause": "The decision sets take the effective label, exposed included.",
+   "fix": "The exam leaves out a note's answer (an exposed label naming a shown student, carried in the decision set's label); a company's own correction of the rule, which saw the rule only, stays the evidence it was in 26.7 (the first fix dropped every exposed label, and the own models' test caught it: the company's convention then vanished from its exam).",
+   "test": "test_an_own_students_exam_never_reads_an_exposed_label"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The notes panel could act on another project.",
+   "scenario": "After switching projects, Hide or Show redrew the first project's notes; a sample page kept a real project's notes.",
+   "cause": "The switch kept the project it was wired with; the sample did not hide the panel.",
+   "fix": "The switch reads the project open now; the sample hides the panel.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the notes",
+   "gate": "Done when: a disagreement on a replica project shows the note, the click writes the label, the register counts it, and nothing about the project's run changes",
+   "fixed_before_run": true,
+   "result": "9 tests pass; a browser check on a replica project: Home's item opened its Solution page, three notes, one answered and gone, the notes hidden and shown again, no console error",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "A scripted student and planted disagreements; no person has used the notes yet."
+   ]
+  }
+ ],
+ "outcome": "People can now teach the students where they work, and their answers are heard both ways while never lifting a student toward acting.",
+ "lessons": [
+  "A label rule tuned for one kind of shown answer can invert itself for another: check both answers' fate whenever a new kind of answer is shown to a person.",
+  "Two queues over the same decisions must split them, or one person's look in one becomes the other's evidence."
+ ],
+ "risks": [
+  "A person's note answer trains the workspace's own student: anchored labels in its training set."
+ ],
+ "commits": []
+}

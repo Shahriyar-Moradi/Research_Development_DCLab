@@ -354,8 +354,9 @@ class Evidence(Contract):
 class DecisionLabel(Versioned):
     """What the right value of a decision was, from one source; a new label supersedes an older one, never edits it."""
 
-    schema_version: Literal["dclab_core.decision_label.v4"] = _version("decision_label", 4)
-    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.decision_label.v1", "dclab_core.decision_label.v2", "dclab_core.decision_label.v3"})  # stored labels stay readable
+    schema_version: Literal["dclab_core.decision_label.v5"] = _version("decision_label", 5)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.decision_label.v1", "dclab_core.decision_label.v2", "dclab_core.decision_label.v3",
+                                                 "dclab_core.decision_label.v4"})  # stored labels stay readable
     id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{6,80}$")
     record: str = Field(min_length=1, max_length=80, description="The decision record it labels.")
     point: str
@@ -370,15 +371,18 @@ class DecisionLabel(Versioned):
     weight: Optional[float] = Field(default=None, gt=0, description="A blind label's sampling weight (1 / its probability of being drawn).")
     weight_note: Optional[str] = Field(default=None, max_length=300, description="Why a blind label has no weight here: its "
                                        "source keeps the sampling probability elsewhere. An estimate must not use it unweighted.")
+    shown: list[str] = Field(default_factory=list, max_length=10, description="v5 (29.10): an exposed label's answers the person saw "
+                             "(their answerers): a student's answer shown beside the rule's counts as shown, though it was a shadow.")
 
     @model_validator(mode="before")
     @classmethod
     def _read_v1(cls, data: Any) -> Any:
         """A label as stored; a v1, v2 or v3 label is read as v4: v2 only added a source, v3 an evidence kind (24.7: a composition's
         holdout against its best leaf), v4 two (29.3: the option that measured clearly best on validation, ``dclab_core.measured``;
-        a tuning judged on a fresh draw of a replica's process)."""
-        if isinstance(data, dict) and data.get("schema_version") in ("dclab_core.decision_label.v1", "dclab_core.decision_label.v2", "dclab_core.decision_label.v3"):
-            data = {**data, "schema_version": "dclab_core.decision_label.v4"}
+        a tuning judged on a fresh draw of a replica's process); v5 the answers an exposed label's person saw (29.10)."""
+        if isinstance(data, dict) and data.get("schema_version") in ("dclab_core.decision_label.v1", "dclab_core.decision_label.v2", "dclab_core.decision_label.v3",
+                                                                    "dclab_core.decision_label.v4"):
+            data = {**data, "schema_version": "dclab_core.decision_label.v5"}  # v5 (29.10) added shown, empty for an older label
         return data
 
     @model_validator(mode="after")
@@ -396,6 +400,8 @@ class DecisionLabel(Versioned):
             raise ValueError(f"value: {problem}")
         if self.supersedes == self.id:
             raise ValueError("a label cannot supersede itself")
+        if self.shown and self.source != "user_decision_exposed":
+            raise ValueError("only a label given by a person who saw the answers names what they saw")
         return self
 
 
@@ -420,10 +426,15 @@ def effective_label(record: DecisionRecord, labels: list[DecisionLabel]) -> Opti
     answer a rule or a model gave. A label without a value says nothing and never counts."""
     mine = [x for x in current_labels(labels) if x.record == record.id and x.value is not None]
     shown = [a.value for a in record.answers if a.by != "person" and a.value is not None and a.source != SHADOW]  # a shadow was never shown
+
+    def seen(label: DecisionLabel) -> list[Any]:  # v5 (29.10): and what this person was shown beside it, a shadow included
+        named = set(label.shown)
+        return shown + [a.value for a in record.answers if a.source == SHADOW and a.answerer in named and a.value is not None]
+
     for source in PRECEDENCE:
         found = sorted((x for x in mine if x.source == source), key=lambda x: x.at)
         if source == "user_decision_exposed":
-            found = [x for x in found if any(v != x.value for v in shown)]
+            found = [x for x in found if any(v != x.value for v in seen(x))]
         if found:
             return found[-1]
     return None

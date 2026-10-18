@@ -364,6 +364,7 @@ DC.view('solution', {
       $('#sol-memory', el).hidden = false;
       $('#sol-memory-body', el).innerHTML = memoryReal(p);
       decisionsReal(p);
+      notesReal(p);
       const n = DC.$('.ptab[data-ptab="owner"] .n', el);
       if (n) n.textContent = String(qs.filter(q => !q.done).length);
       if (cost.calc) {
@@ -373,6 +374,40 @@ DC.view('solution', {
       }
       DC.hydrate(el);
       if (busy(p)) watch();
+    }
+    /* 29.10: where a student disagrees with the rule, the person may say which is right (a label, never a change); off by choice */
+    const notesOff = () => { try { return localStorage.getItem('dclab-notes-off') === '1'; } catch (e) { return false; } };
+    async function notesReal(p) {
+      const panel = $('#sol-notes', el), box = $('#sol-notes-body', el), toggle = $('#sol-notes-toggle', el);
+      if (!panel || !box) return;
+      if (!toggle.dataset.wired) {
+        toggle.dataset.wired = '1';
+        // the project open now, never the one this was wired on (the review of 29.10)
+        toggle.addEventListener('click', () => { try { localStorage.setItem('dclab-notes-off', notesOff() ? '0' : '1'); } catch (e) { /* a private window: the notes stay as they are */ } if (real) notesReal(real); });
+      }
+      let r;
+      try { r = await DC.client.projectDisagreements(p.id, { quiet: true }); } catch (e) { panel.hidden = true; return; }
+      const items = r.items || [];
+      panel.hidden = !items.length;
+      if (!items.length) return;
+      if (notesOff()) {
+        toggle.textContent = 'Show the notes';
+        box.innerHTML = `<div class="xs muted">${esc(String(r.total))} note${r.total === 1 ? '' : 's'} hidden. The students still learn from other people's answers.</div>`;
+        return;
+      }
+      toggle.textContent = 'Hide these notes';
+      const say = v => v === true ? 'yes' : v === false ? 'no' : String(v);
+      box.innerHTML = items.slice(0, 10).map(n => `<div class="list-item" data-note="${esc(n.record)}"><div class="li-main"><span><b>${esc(n.question)}</b></span>`
+        + `<span class="li-sub">About the ${esc(n.subject.kind)} <code>${esc(n.subject.key)}</code> · the rule said <b>${esc(say(n.rule.value))}</b>, a student thinks <b>${esc(say(n.student.value))}</b></span>`
+        + `<span class="row" data-style="gap:6px;flex-wrap:wrap">${(n.options || []).map(o => `<button type="button" class="btn sm" data-note-answer="${esc(o)}">${esc(o)}</button>`).join('')}</span></div></div>`).join('')
+        + (r.total > 10 ? `<div class="xs muted">${esc(String(r.total - 10))} more after these.</div>` : '');
+      box.querySelectorAll('[data-note-answer]').forEach(b => b.addEventListener('click', async ev => {
+        if (ev.detail > 1) return;  // a double click answers once
+        const row = b.closest('[data-note]');
+        row.querySelectorAll('button').forEach(x => { x.disabled = true; });
+        try { await DC.client.projectDisagreementAnswer(p.id, row.dataset.note, { body: { value: b.dataset.noteAnswer } }); DC.toast('Thank you: the students learn from it.'); notesReal(p); }
+        catch (e) { DC.toast(e.message, { ok: false }); row.querySelectorAll('button').forEach(x => { x.disabled = false; }); }
+      }));
     }
     /* 22.8: what DCLab decides about each column, the rule beside the classifiers, a disagreement marked */
     async function decisionsReal(p) {
@@ -406,6 +441,7 @@ DC.view('solution', {
       if (stopPoll) { stopPoll(); stopPoll = null; }
       $('#sol-memory', el).hidden = true;
       if ($('#sol-decisions', el)) $('#sol-decisions', el).hidden = true;
+      if ($('#sol-notes', el)) $('#sol-notes', el).hidden = true;  // 29.10: a sample page never carries a project's notes
       real = null;
       if (mode === 'sample') return;
       mode = 'sample';
