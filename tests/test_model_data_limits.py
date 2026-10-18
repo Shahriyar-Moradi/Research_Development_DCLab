@@ -329,6 +329,26 @@ class DataLimitTests(unittest.TestCase):
         self.assertEqual(self.assertWithinLimit("solution_planner"), set())
         self.assertEqual(self.assertWithinLimit("critic"), set())
 
+    def test_the_debates_challenger_and_judge_see_summaries_never_values(self):  # 28.6
+        import json as _json
+
+        from dclab_core.analyse import analyse
+        from dclab_core.debate import debate
+        from dclab_rnd.core_advisor import GatewayAdvisor
+        table = marked_table()
+        findings = analyse({"customers": table}, target="churned", task="binary")
+        cite = findings.findings[0].id
+        change = {"key": "metric.primary", "choice": "average_precision", "reason": "the positives matter more than the negatives here", "cites": [cite]}
+        gw = gateway({"solution_planner": [{"content": _json.dumps({"decisions": [change]}), "tool_calls": [], "usage": {}}],
+                      "solution_challenger": [{"content": _json.dumps({"decisions": [{**change, "choice": "f1", "reason": "the review budget makes f1 the fairer reading"}]}),
+                                               "tool_calls": [], "usage": {}}],  # a different choice: a dispute, so the judge is asked
+                      "debate_judge": [{"content": _json.dumps({"rulings": [{"key": "metric.primary", "keep": "a", "reason": "the first design's metric fits the use",
+                                                                             "cites": [cite]}]}), "tool_calls": [], "usage": {}}]})
+        out = debate(GatewayAdvisor(gw), GatewayAdvisor(gw), GatewayAdvisor(gw), None, findings)
+        self.assertEqual(out["debate"].sources["judge"], "advisor")  # the judge was asked: its request is checked below
+        self.assertEqual(self.assertWithinLimit("solution_challenger"), set())
+        self.assertEqual(self.assertWithinLimit("debate_judge"), set())
+
     def test_the_reporter_sees_the_reports_lines_never_values(self):
         from dclab_rnd.core_advisor import GatewayAdvisor
         from dclab_rnd.expansion import runner
@@ -407,7 +427,7 @@ class DataLimitTests(unittest.TestCase):
         tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
                   "decision_answer", "decision_labeler", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first", "solver_answer",
-                  "understanding_critic"}
+                  "understanding_critic", "solution_challenger", "debate_judge"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

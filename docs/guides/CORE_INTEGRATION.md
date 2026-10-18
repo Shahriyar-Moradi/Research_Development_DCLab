@@ -793,6 +793,16 @@ product's agent asks the critic once its brief is confirmed and before it plans,
 question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
 whether to go on, recording the decision.
 
+## The second opinion on the problem's family (28.6, dclab-core 0.81.0)
+
+The library's: `dclab_core.second_opinion` (`Opinion` v1, `judge_family(reader, rules)`): where a host reads a problem's family
+twice (a model's reading of the person's words, and its rules on the words and the data) and the two differ, the person is
+asked to choose, once, with both readings as the choices; their choice is the family they stated; agreement, or a single
+reading, asks nothing. Where it goes there: the main product reads a problem with one reader today, so nothing changes until
+it has two; it then records each verdict on its `problem.family` decision point with both answers and the person's choice
+(`adapters/main_product_ledger.py`), and turns the pattern on only where it measured better on its own conversations
+(this studio's measurement: `evidence/campaigns/orchestra_v1/`).
+
 ## The understanding critic's questions in the records (28.4, dclab-core 0.80.0)
 
 The library's: `experience_event.v11`, whose `chat.agent` carries `question_source` (meta: `critic` when the understanding

@@ -37,7 +37,7 @@ import time
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 from unittest import mock
 
 HERE = Path(__file__).resolve().parent
@@ -82,8 +82,66 @@ TEAM_GATE = {"version": "team_gate_v1",
                      "holdout; its card is right at least as often as the single agent's on dev, and more often on a sealed set; no "
                      "request failed, no move refused, no holdout read twice; the team arm costs at most cap_per_journey_eur a journey",
              "cap_per_journey_eur": 0.06}
+# 28.6: the team's patterns, each against its baseline in the same run, on the same people and seed, fixed before any run. The
+# material: the dev people and the fifth sealed set, spent in 28.7 and read as dev material (its failures were read while the
+# patterns were designed): dev evidence, never a sealed verdict
+PATTERN_MATERIAL = (("dev", 0), ("sealed_v5", 5))
+SECOND_OPINION_GATE = {"version": "second_opinion_gate_v1", "target": "card", "baseline": "single", "cost_ratio": 1.5, "extra_questions": 1.0,
+                       "rule": "against the single agent (the loop with the conversation reader) on the same 45 people: more cards gained where "
+                               "the judge asked and the person chose than cards lost anywhere (a gain the judge did not make is the reader's "
+                               "noise, never the pattern's), no fewer right on the workflow, the pipeline or the holdout, at most one more "
+                               "question a person on average, nobody asked a field twice, no request failed, no journey broke, no move "
+                               "refused, the arm's cost at most cost_ratio times the single agent's (a priced baseline)"}
+DEBATE_GATE = {"version": "debate_gate_v1", "target": "holdout", "baseline": "designer", "cost_ratio": 1.5, "extra_questions": None,
+               "rule": "against the single designer (the solution planner alone, its answer shared by both arms) on the same 45 people, "
+                       "the conversation by the rules: more holdouts gained where the debate changed the plan than holdouts lost anywhere, "
+                       "no fewer right on the card, the workflow or the pipeline, no solution refused, nobody asked a field twice, no "
+                       "request failed, no journey broke, no move refused, the arm's cost at most cost_ratio times the single designer "
+                       "arm's (a priced baseline)"}
+PATTERN_GATES = {"second_opinion": SECOND_OPINION_GATE, "debate": DEBATE_GATE}
 PARTS = ("card", "workflow", "pipeline", "holdout")
 REFUSED = "family not built yet"  # dclab_core.coordinator.FAMILY_NOT_RUN: the build's rule for a family the engine does not run
+
+
+def _attributable(name: str, row: dict[str, Any]) -> bool:
+    """The pattern acted on this person: the judge asked and the person chose (the second opinion), or the debate changed
+    the single designer's plan (the debate)."""
+    if name == "second_opinion":
+        made = row.get("second_opinion") or {}
+        return int(made.get("chose") or 0) > 0  # the person answered and the answer chose (the review: asked is not chose)
+    return bool((row.get("debate") or {}).get("changed"))
+
+
+def _broke(row: dict[str, Any]) -> bool:
+    return any(str(w).startswith("broke:") for w in row.get("why") or [])
+
+
+def pattern_verdict(name: str, baseline: list[dict[str, Any]], arm: list[dict[str, Any]], spent: dict[str, float], failures: int) -> dict[str, Any]:
+    """A pattern's arm against its baseline under the pattern's gate (``PATTERN_GATES``): the parts, the gains the pattern
+    made against every loss, the questions, anyone asked a field twice, broken journeys, the refusals, the cost; ``passed``
+    only when every condition holds (the review of 28.6: a gain the pattern did not make, a broken baseline journey, a
+    subset or an unpriced run must never pass)."""
+    gate = PATTERN_GATES[name]
+    if [r["id"] for r in baseline] != [r["id"] for r in arm]:
+        raise ValueError("the pattern and its baseline must be played on the same people, in the same order")
+    parts = {side: {p: sum(1 for r in rows if r["parts"].get(p) is True) for p in PARTS} for side, rows in (("baseline", baseline), ("arm", arm))}
+    target = gate["target"]
+    gained = sorted(r["id"] for r, b in zip(arm, baseline) if r["parts"].get(target) is True and b["parts"].get(target) is not True)
+    made = sorted(r["id"] for r, b in zip(arm, baseline) if r["id"] in gained and _attributable(name, r))
+    lost = sorted(r["id"] for r, b in zip(arm, baseline) if r["parts"].get(target) is not True and b["parts"].get(target) is True)
+    no_worse = all(parts["arm"][p] >= parts["baseline"][p] for p in PARTS if p != target)
+    questions = {side: round(sum(int(r.get("questions") or 0) for r in rows) / max(1, len(rows)), 3) for side, rows in (("baseline", baseline), ("arm", arm))}
+    twice = {side: sorted(r["id"] for r in rows if len(f := [str(a).split("→")[-1] for a in r.get("asked") or []]) != len(set(f)))
+             for side, rows in (("baseline", baseline), ("arm", arm))}
+    broke = sorted({r["id"] for r in (*baseline, *arm) if _broke(r)})
+    refused = sum(int(r.get("refused_moves") or 0) + int(r.get("refused_plans") or 0) for r in arm)
+    priced = spent.get("baseline", 0.0) > 0
+    cost_ok = priced and spent.get("arm", 0.0) <= gate["cost_ratio"] * spent["baseline"] + 1e-9
+    extra = gate.get("extra_questions")
+    questions_ok = extra is None or questions["arm"] - questions["baseline"] <= extra
+    passed = bool(len(made) > len(lost) and no_worse and questions_ok and not twice["arm"] and not broke and refused == 0 and failures == 0 and cost_ok)
+    return {"gate": gate, "parts": parts, "questions": questions, "asked_twice": twice, "broke": broke, "refused": refused, "failures": failures,
+            "spent_eur": spent, "priced": priced, "cost_ok": cost_ok, "gained": gained, "gained_by_the_pattern": made, "lost": lost, "passed": passed}
 
 
 def fingerprint(path: Path) -> str:
@@ -300,7 +358,8 @@ def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]]
         home, mine = Path(tmp), Path(tmp) / "person"
         mine.mkdir()
         drafts, projects = DraftStore(home / "drafts"), ProjectStore(home / "projects")
-        agent = HomeAgent(drafts, (live or {}).get("client"), reader=(live or {}).get("reader"))  # 21.5: the served model in a live run; the rules otherwise
+        agent = HomeAgent(drafts, (live or {}).get("client"), reader=(live or {}).get("reader"),  # 21.5: the served model in a live run; the rules otherwise
+                          second_opinion=bool((live or {}).get("second_opinion")))  # 28.6: the second opinion on the family
         table, labels = _files(replica, mine)
         first = drafts.create(journey["words"])["id"]
         agent.start(first)
@@ -320,7 +379,7 @@ def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]]
             advisor = ScriptedAdvisor(journey["advisor"])
         import contextlib
 
-        only_reader = live is not None and set(live) <= {"reader", "critic"}  # 20.10 v4: the reader (28.7: and the critic) alone measured; every other role keeps the rules
+        only_reader = live is not None and set(live) <= {"reader", "critic", "second_opinion", "designer", "challenger", "judge"}  # 28.6: the patterns' arms under the same scope  # 20.10 v4: the reader (28.7: and the critic) alone measured; every other role keeps the rules
         with private_scope(True) if live is None or only_reader else contextlib.nullcontext():  # 21.5: in a live run the roles ask their models
             coordinator = Coordinator(drafts, projects, agent, advisor)
             out = _walk(coordinator, start_at, person.person, walk, home, (live or {}).get("critic"))
@@ -336,6 +395,11 @@ def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]]
                 out = _walk(Coordinator(drafts, projects, agent, advisor), start_at, person.person, walk, home, (live or {}).get("critic"))
         row["handoffs"] = [{k: h.get(k) for k in ("role", "allowed", "refused_columns", "source")}
                            for h in (drafts.get(start_at).get("coordinator") or {}).get("handoffs") or []]
+        if (live or {}).get("second_opinion"):  # 28.6: what the judge asked, and whether the person chose
+            asked_again = [q for q in drafts.get(start_at).get("questions") or [] if q.get("source") == "second_opinion"]
+            row["second_opinion"] = {"asked": len(asked_again), "declined": sum(bool(q.get("declined")) for q in asked_again),
+                                     "chose": sum(bool(q.get("answered")) and not q.get("declined") for q in asked_again),
+                                     "family": (drafts.get(start_at).get("understanding") or {}).get("family")}
         if walk == "graph":  # 28.4: what the team's readers did: the analyst's fills, the critic's rounds, each send-back with its reason
             own = drafts.get(start_at).get("coordinator") or {}
             history = (own.get("critic") or {}).get("history") or []
@@ -373,8 +437,14 @@ def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]]
             sd.attach_table(projects, built, f"{name}.csv", name)
         project = projects.get(built)
         refusal = None
+        designed: dict[str, Any] = {}
+        designers = (live or {}).get("designer") is not None
         if not project.get("solution"):  # the person saves the Solution page: the proposal, and what they state on it
-            refusal = _save(projects, project, journey.get("solution") or {})
+            design = (lambda p, f, t, k, m: _design(p, f, t, k, m, journey.get("words") or "", live)) if designers else None  # 28.6
+            refusal = _save(projects, project, journey.get("solution") or {}, design=design, record=designed)
+        if designers:
+            row["debate" if "changed" in designed else "design"] = designed
+            row["refused_plans"] = int(bool(refusal))
         if refusal:
             row["parts"].update(workflow=False, pipeline=False, holdout=False)
             row["why"].append(f"solution refused: {refusal}")
@@ -471,9 +541,70 @@ def _solution_workflow(card: Any, project: dict[str, Any]) -> list[str]:
     return [f"solution workflow: {p}" for p in sw.validate(flow)]
 
 
-def _save(projects: Any, project: dict[str, Any], statements: dict[str, Any]) -> Optional[str]:
+def _design(project: dict[str, Any], frame: Any, target: str, task: str, moment: str, words: str, live: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """28.6: the designers given in ``live`` over the rules' plan: the solution planner alone (``designer``), or the debate
+    (``designer``, ``challenger``, ``judge``). Returns what their plan changes from the rules' plan, as solution fields
+    (kept-out columns, identifiers, a group split), and what they did; the code checks every change as the planner's."""
+    import json as _json
+
+    from dclab_core.analyse import analyse
+    from dclab_core.understand import understand
+    from dclab_rnd.core_adapter import solution_fields_from_plan
+    from dclab_rnd.studio.solution import provisional_training_rows
+    from dclab_rnd.studio.team import _fact
+
+    brief = understand(words or "", {"table": [str(c) for c in frame.columns]})
+    brief = _fact(brief, "target_column", target, target)
+    if moment:
+        brief = _fact(brief, "prediction_moment", moment, moment)
+    times = [c for c in ((project.get("data") or {}).get("profile") or {}).get("time_candidates") or [] if c in frame.columns]
+    present = frame.index[frame[target].notna()]
+    train = provisional_training_rows(present, frame.loc[present, times[0]] if times else None)
+    findings = analyse({"table": frame}, target=target, task=task, brief=brief, train_index=train, moment=moment)
+    def applied(rule_plan: Any, plan: Any) -> tuple[dict[str, Any], Optional[str]]:
+        """What a plan changes from the rules' plan, as the solution's fields; and what could not be applied."""
+        rule, final = solution_fields_from_plan(rule_plan, target, moment), solution_fields_from_plan(plan, target, moment)
+        fields: dict[str, Any] = {}
+        ruled_out = {f["column"] for f in rule["forbidden"]}
+        added = [f for f in final["forbidden"] if f["column"] not in ruled_out and f["column"] != target]
+        if added:
+            fields["forbidden"] = added
+        if set(final["identifiers"]) - set(rule["identifiers"]):
+            fields["identifiers"] = sorted(set(final["identifiers"]) - set(rule["identifiers"]))
+        if final.get("group_column") and final["group_column"] != rule.get("group_column"):
+            if final.get("time_column") or not times:  # a grouped forward split, or a table with no time: applied
+                fields["group_column"] = final["group_column"]
+            else:  # a group split that drops the time order is the person's call (30.11): said, not applied
+                return fields, "a group split without the time column would drop the time order"
+        return fields, None
+
+    if live.get("challenger") is not None or live.get("judge") is not None:
+        from dclab_core.debate import debate
+
+        out = debate(live.get("designer"), live.get("challenger"), live.get("judge"), brief, findings)
+        fields, skipped = applied(out["rule_plan"], out["plan"])
+        single, _ = applied(out["rule_plan"], out["single"]["plan"])
+        rec = out["debate"]
+        done = {"changed": sorted(k for k in set(fields) | set(single) if _json.dumps(fields.get(k), sort_keys=True) != _json.dumps(single.get(k), sort_keys=True)),
+                "agreed": rec.agreed, "a": [c.key for c in rec.a], "b": [c.key for c in rec.b], "kept": [c.key for c in rec.kept],
+                "rulings": [{"key": r.key, "keep": r.keep, "by": r.by} for r in rec.rulings], "sources": rec.sources}  # changed: what reaches the solution
+    else:
+        from dclab_core.plan import plan_with
+
+        out = plan_with(live.get("designer"), brief, findings)
+        fields, skipped = applied(out["rule_plan"], out["plan"])
+        done = {"kept": [c["key"] for c in out.get("kept") or []], "refused": len(out.get("refused") or []), "source": out.get("source")}
+    if skipped:
+        done["not_applied"] = skipped
+    done["applied"] = sorted(fields)
+    return fields, done
+
+
+def _save(projects: Any, project: dict[str, Any], statements: dict[str, Any], design: Optional[Callable[..., tuple[dict[str, Any], dict[str, Any]]]] = None,
+          record: Optional[dict[str, Any]] = None) -> Optional[str]:
     """The person saves the Solution page through the same checks as the route: the graph's validator, then the
-    columns; the refusal's words, or None when saved."""
+    columns; the refusal's words, or None when saved. 28.6: ``design`` (the designers' changes to the proposal, the
+    person's statements still over them), what it did kept in ``record``."""
     from dclab_rnd.kinds.acceptance import adopt
     from dclab_rnd.studio import graph
     from dclab_rnd.studio.solution import Solution
@@ -497,6 +628,19 @@ def _save(projects: Any, project: dict[str, Any], statements: dict[str, Any]) ->
     else:
         task = statements.get("task") or proposal.get("task") or "binary"
     moment = suggestion.get("prediction_moment") or ((project.get("draft") or {}).get("understanding") or {}).get("prediction_moment") or ""
+    if design is not None and target and proposal:
+        frame = sd.load_table(sd.data_path(projects, project))
+        if (project.get("labels") or {}).get("target") == target:  # the outcome from a file of known cases, joined as the engine joins it
+            from dclab_rnd.studio import labels as label_file
+
+            frame = label_file.apply(projects, project, frame)
+        fields, done = design(project, frame, target, task, moment)
+        already = {f["column"] for f in proposal.get("forbidden") or []}  # the review of 28.6: a column kept out twice refused the solution
+        proposal = {**proposal, "forbidden": [*(proposal.get("forbidden") or []), *(f for f in fields.get("forbidden", []) if f["column"] not in already)],
+                    "identifiers": sorted({*(proposal.get("identifiers") or []), *fields.get("identifiers", [])}),
+                    **({"group_column": fields["group_column"]} if fields.get("group_column") else {})}
+        if record is not None:
+            record.update(done)
     verdict = graph.check(project, "set_solution", "human", target=target)
     graph.log(projects, project["id"], verdict, project, outcome="done: solution saved" if verdict.allowed else None)
     if not verdict.allowed:

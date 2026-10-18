@@ -1,0 +1,311 @@
+{
+ "package": "28.6",
+ "title": "The team's patterns as experiments: a second opinion on the family, and a debate between two designers",
+ "date": "2026-10-18",
+ "request": "Phase 6 (the owner): finish the multi-agent team in the agreed order; 28.6 measures two patterns, each kept only where it beats the single agent on its own field, with a gate fixed before the run and a budget of about two euros a pattern.",
+ "spec": "docs/guides/PHASE6_MULTI_AGENT_PLAN.md, package 28.6 and D5 (patterns the team may use, each measured before kept)",
+ "plan": [
+  "Choose the material: the dev people and the spent fifth sealed set read as dev material, its failures read while designing, so a result is dev evidence only.",
+  "Build the second opinion: two readers of the family, a judge that asks the person only where they differ, the choice read by code.",
+  "Build the debate: the solution planner and a challenger, a judge on disputes, every kept change through the planner's checks.",
+  "Fix each pattern's gate in code before any run, with a runner that stores only a whole, clean run and a switch on only where the result passed.",
+  "Have the change reviewed twice before spending, then run both and store their results."
+ ],
+ "decisions": [
+  {
+   "decision": "The second opinion lives in the Home agent, used by both the loop and the walk, and acts only where the reader's family and the rules' family disagree.",
+   "why": "Measured against the single agent with nothing else changed; agreement or a single reading asks nothing, so the person's time is spent only where two readings conflict."
+  },
+  {
+   "decision": "The person's choice is read by hand-written cue phrases of each family, never by a model and never from words taken from a family's meaning.",
+   "why": "The first reading chose from words such as not, review or predict; a choice must be the person's, and an ambiguous answer keeps the card."
+  },
+  {
+   "decision": "One reader serves both arms of the second opinion with its answers remembered.",
+   "why": "Two readers answer identical prompts differently, and that noise could decide a gate measured on one or two people."
+  },
+  {
+   "decision": "The debate's challenger and judge run on the cheap tier (Haiku), the planner on the standard tier, its answer shared by both arms.",
+   "why": "On Sonnet a debate costs about twice a single designer and could never meet the gate's 1.5 times bound; sharing the planner's answer makes the debate the only difference."
+  },
+  {
+   "decision": "The debate runs although it is expected to fail on this material.",
+   "why": "No baseline holdout failure here is one a designer may fix, and the run is cheap; it is run for the record and to capture the designers' proposals, with the expectation written before the run."
+  }
+ ],
+ "change": "dclab_core/second_opinion.py (Opinion v1, judge_family, read_choice), dclab_core/debate.py (Debate v1, the challenger and the judge), their prompts, dclab_core/plan.py (column-list entries shaped as the rules write them), dclab-core 0.81.0; dclab_rnd/draft/chat.py (the judge's question, the choice, the served path), draft/coordinator.py (a decline), draft/work.py (the switch), ledger/capture.py, orchestra/patterns.py and settings.py, models/settings.py (two purposes), agent_eval/journeys (the gates, the runner, the designers at the save); tests/test_second_opinion.py, tests/test_debate.py.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "A debate on Sonnet could never pass its cost bound.",
+   "scenario": "Two designers and a judge on the standard tier cost about twice a single designer, against a bound of 1.5 times.",
+   "cause": "The seats' tier was not chosen with the bound in mind.",
+   "fix": "The challenger and the judge run on the cheap tier, the planner's answer is shared by both arms.",
+   "test": "test_the_debates_run_shares_the_designer_and_stores_only_a_whole_clean_run"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The challenger's request was refused before it was sent.",
+   "scenario": "A first design that kept a column out nested a list of objects in the evidence, which the evidence check refuses as a table.",
+   "cause": "Choices were sent as they are, not as the compact text the rules' plan uses.",
+   "fix": "Every designer's choice reaches a model as compact text.",
+   "test": "test_a_judged_change_reaches_the_saved_solution_and_is_the_debates"
+  },
+  {
+   "id": "T3",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The designers could not read a project whose outcome comes from a file of known cases.",
+   "scenario": "On the delivery fraud journeys the outcome is joined from the labels, so the table alone had no outcome column.",
+   "cause": "The table was read without the engine's label join.",
+   "fix": "The labels are joined as the engine joins them before the designers read the data.",
+   "test": "test_a_judged_change_reaches_the_saved_solution_and_is_the_debates"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Importing the problem card in a fresh interpreter failed.",
+   "scenario": "The main product's first import of the card raised a circular import, and the walk's tests errored.",
+   "cause": "The new modules imported the card and the planner at load time while the contracts imported them back.",
+   "fix": "Both read the card and the planner only when used; a test imports each module first in a fresh interpreter.",
+   "test": "test_both_modules_import_first_in_a_fresh_interpreter"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The team settings route's test failed on the new keys.",
+   "scenario": "The route returned two switches the test did not expect.",
+   "cause": "The test pinned the old keys.",
+   "fix": "The test expects the switches and that turning one on is refused while nothing passed.",
+   "test": "test_the_teams_switch_and_budgets_start_off_and_every_change_is_audited"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A run on a few people could be stored as a pass.",
+   "scenario": "A run on one person gained one card and was stored, turning the switch on.",
+   "cause": "The runner stored whatever subset it ran.",
+   "fix": "A subset is never stored.",
+   "test": "test_a_subset_or_a_run_with_a_broken_journey_is_never_stored"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A broken baseline journey counted for the pattern.",
+   "scenario": "One baseline journey raised, scored nothing, and the arm looked strictly better.",
+   "cause": "Broken journeys were not counted.",
+   "fix": "A broken journey in either arm refuses the pass and the store.",
+   "test": "test_a_subset_or_a_run_with_a_broken_journey_is_never_stored"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The pattern's arm ran outside the private scope the baseline had.",
+   "scenario": "Any other model purpose would have been live in the arm and not in the baseline.",
+   "cause": "The scope listed only the reader and the critic.",
+   "fix": "The patterns' keys run under the same scope.",
+   "test": "test_a_subset_or_a_run_with_a_broken_journey_is_never_stored"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The gate's rule on asking twice was looser than the plan's.",
+   "scenario": "A family asked at a chat stop and again by the judge was not counted.",
+   "cause": "The count compared tags, not fields, and allowed as many as the baseline.",
+   "fix": "Nobody may be asked a field twice, counted on the field.",
+   "test": "test_the_gate_wants_a_gain_on_its_field_and_nothing_lost_elsewhere"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A card gained by the reader's noise could pass the gate.",
+   "scenario": "The arm won a card where the judge never asked.",
+   "cause": "Every gain counted.",
+   "fix": "Only gains where the judge asked and the person chose count, against every loss.",
+   "test": "test_the_gate_wants_a_gain_on_its_field_and_nothing_lost_elsewhere"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A shape answer was taken as the person's choice.",
+   "scenario": "An answer saying a yes or no for each order flipped a rare event card to a class.",
+   "cause": "The rules' shape reading counted as a choice.",
+   "fix": "A shape never chooses; only a named choice, one family's cue or a stated reading does.",
+   "test": "test_an_answer_chooses_only_when_it_names_or_means_one_of_the_two"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The judge asked over a kind the person stated.",
+   "scenario": "A person who chose time to event on the Solution page was asked again.",
+   "cause": "The stated kind was left in the rules' reading.",
+   "fix": "No question when the person stated the kind.",
+   "test": "test_a_kind_the_person_stated_is_never_put_to_them_again"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "With a model serving Home the person's choice was never read.",
+   "scenario": "The model made a tool step, so its turn never reached the answer, and the question stayed open.",
+   "cause": "Only the script's turn read answers.",
+   "fix": "A pending second opinion is read by code before the model's turn.",
+   "test": "test_with_a_model_serving_home_the_choice_is_still_read_by_code"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Choices were recomputed when the answer arrived.",
+   "scenario": "A click on an option shown before the draft changed could be declined.",
+   "cause": "The verdict was not kept with the question.",
+   "fix": "The verdict travels with the question and the shown options are read.",
+   "test": "test_a_shape_answer_keeps_the_card_and_the_choices_are_what_the_person_was_shown"
+  },
+  {
+   "id": "R12",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The result named no model, and an unpriced run met the cost bound.",
+   "scenario": "Both arms spent nothing when usage had no price, and the cost check passed.",
+   "cause": "The models came from a missing attribute; the bound did not need a priced baseline.",
+   "fix": "The result keeps each seat's report; the bound needs a priced baseline.",
+   "test": "test_the_gate_wants_a_gain_on_its_field_and_nothing_lost_elsewhere"
+  },
+  {
+   "id": "R13",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The capture map named only the build's family decision.",
+   "scenario": "The judge's family decision was written without its place in the map.",
+   "cause": "The map was not updated.",
+   "fix": "The map names both writers.",
+   "test": "test_the_committed_catalog_is_what_the_code_generates"
+  },
+  {
+   "id": "S1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The debate cannot pass its gate on this material.",
+   "scenario": "Of the baseline's holdout failures one is already the rules' plan and two need a kept-out column back, which no designer may do.",
+   "cause": "The material holds no failure a designer may fix.",
+   "fix": "The expectation is written before the run; the run is for the record and the capture; the switch stays off.",
+   "test": "test_the_debates_run_shares_the_designer_and_stores_only_a_whole_clean_run"
+  },
+  {
+   "id": "S2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Answers the planner's checks accepted broke the solution built from the plan.",
+   "scenario": "A column to confirm given as a name, or an identifier given as an object, raised when the solution was made.",
+   "cause": "The guard checked only that a column list was a list.",
+   "fix": "Each entry must have the shape the rules write: names for identifiers, column and reason, column and question.",
+   "test": "test_no_seat_can_undo_a_safety_decision_of_the_rules"
+  },
+  {
+   "id": "S3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A designer's kept-out column already in the proposal refused the solution.",
+   "scenario": "On a churn journey a designer kept out a column the proposal already kept out, and the save failed.",
+   "cause": "The design's additions were filtered against the rules' plan, not the proposal.",
+   "fix": "A column already kept out is not added again.",
+   "test": "test_a_judged_change_reaches_the_saved_solution_and_is_the_debates"
+  },
+  {
+   "id": "S4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The challenger's silence was read as a dispute.",
+   "scenario": "Every change of the planner went to the judge, who could drop one the challenger accepted.",
+   "cause": "Only changes both restated counted as agreed.",
+   "fix": "A first-design change the challenger left alone is agreed; a dispute is where it chose otherwise.",
+   "test": "test_a_change_both_designers_make_is_kept_without_the_judge"
+  },
+  {
+   "id": "S5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Two independent readers made the second opinion's arms differ by noise.",
+   "scenario": "A single noise loss among 45 people would have failed the gate.",
+   "cause": "Each arm had its own reader.",
+   "fix": "One reader with remembered answers serves both arms.",
+   "test": "test_a_subset_or_a_run_with_a_broken_journey_is_never_stored"
+  },
+  {
+   "id": "S6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Words taken from a family's meaning chose wrongly.",
+   "scenario": "Not sure chose uplift, review chose anomaly, predict chose segmentation.",
+   "cause": "The cues were the words of each family's description.",
+   "fix": "Hand-written cue phrases, negations and not sure read as no choice; no written person's answer picks a wrong family of any pair.",
+   "test": "test_no_written_persons_answer_picks_the_wrong_family_of_any_pair"
+  },
+  {
+   "id": "S7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A decline recorded the rules' family although the reader's stood.",
+   "scenario": "A card that kept the reader's uplift was recorded as the rules' class.",
+   "cause": "The record took the rules' reading on a decline.",
+   "fix": "The family that stands is recorded, with the reader as its answerer when it is the reader's.",
+   "test": "test_no_answer_keeps_the_card_and_a_walk_goes_on"
+  },
+  {
+   "id": "S8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A question asked and never answered counted as the person's choice.",
+   "scenario": "A journey that left the judge's question open would have counted as the pattern's gain.",
+   "cause": "Asked and not declined was read as chosen.",
+   "fix": "A gain is the pattern's only where the person answered and the answer chose.",
+   "test": "test_the_gate_wants_a_gain_on_its_field_and_nothing_lost_elsewhere"
+  },
+  {
+   "id": "S9",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The debate's switch reached nothing in the product.",
+   "scenario": "Turning it on after a pass would have changed nothing.",
+   "cause": "No serving path reads it.",
+   "fix": "The switch refuses until a serving path reads it.",
+   "test": "test_a_pattern_switch_turns_on_only_where_its_result_passed"
+  },
+  {
+   "id": "S10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A declined family question did not stop the judge.",
+   "scenario": "In the walk, a family the critic sent back and the person declined would be asked again by the judge.",
+   "cause": "Only answered family questions blocked the judge.",
+   "fix": "Any earlier family question blocks it.",
+   "test": "test_off_nothing_is_asked_and_a_family_the_person_answered_is_never_asked_again"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Both patterns are built and measured honestly: the second opinion asks only where two readings conflict and reads the choice by code, the debate checks every change as the planner's, and each switch turns on only where a whole, clean run passed its gate.",
+ "lessons": [
+  "A gate must count only what the pattern did: a gain the pattern did not make is noise, and a loss anywhere counts.",
+  "Check a gate's bounds against the arm's cost before choosing the models: a debate on the strong tier could never pass.",
+  "Read a person's answer to a choice by what only one choice means, and let anything ambiguous keep what stands."
+ ],
+ "risks": [
+  "The fifth sealed set's failures were read while designing: its results are dev evidence, and the sixth sealed set judges.",
+  "The cue phrases were checked on 45 written people; real people will say things they do not hold."
+ ],
+ "commits": []
+}

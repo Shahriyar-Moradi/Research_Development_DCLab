@@ -81,6 +81,7 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     # 29.6: the teams' own choices (28.x), as codes, counts and flags
     "team": (CODE, ()), "field": (CODE, ()), "concern_source": (CODE, ()), "pending": (FLAG, ()), "critic_passed": (FLAG, ()),
     "rounds": (COUNT, ()), "answered": (FLAG, ()),
+    "verdict": (CODE, ()), "agreed": (FLAG, ()),  # 28.6: the second opinion's judge, and whether its two readers agreed
     # 30.11: the modifiers' evidence, as aggregates of the training rows
     "rows_per_key": (MEASURE, ()), "rate_change": (MEASURE, ()), "class_shift": (MEASURE, ()), "level_shift": (MEASURE, ()),
     "strength": (RATIO, ()),

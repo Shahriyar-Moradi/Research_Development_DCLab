@@ -80,6 +80,7 @@ class ScriptedAdvisor:
 def roles() -> dict[str, Role]:
     """Every role dclab_core defines, by name (the advisor purpose a host routes to a model)."""
     from dclab_core.analyse import DATA_INVESTIGATOR
+    from dclab_core.debate import DEBATE_JUDGE, SOLUTION_CHALLENGER
     from dclab_core.features import FEATURE_ENGINEER
     from dclab_core.mapping import DATA_NEED, DECOMPOSER, MAP_REVIEWER
     from dclab_core.solutions import SOLUTION_ROUTER
@@ -89,4 +90,4 @@ def roles() -> dict[str, Role]:
     from dclab_core.understand import BRIEF_CHECKER, PROBLEM_ANALYST
 
     return {role.name: role for role in (PROBLEM_ANALYST, BRIEF_CHECKER, DATA_INVESTIGATOR, FEATURE_ENGINEER, SOLUTION_PLANNER, CRITIC, REPORTER,
-                                         DECOMPOSER, MAP_REVIEWER, DATA_NEED, SOLUTION_ROUTER)}
+                                         DECOMPOSER, MAP_REVIEWER, DATA_NEED, SOLUTION_ROUTER, SOLUTION_CHALLENGER, DEBATE_JUDGE)}

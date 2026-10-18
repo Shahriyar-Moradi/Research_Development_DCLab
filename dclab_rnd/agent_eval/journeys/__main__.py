@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from typing import Optional
 from pathlib import Path
 
@@ -29,7 +30,11 @@ def main(argv: Optional[list[str]] = None) -> int:
                         "(the graph with the reader and the understanding critic's model) on the same people; with --yes and --cap-eur")
     parser.add_argument("--live-arms", action="store_true", help="26.5: the rules, the workflow model alone, and the workflow model with the "
                                                                     "decision models, on dev (with --yes and --cap-eur)")
+    parser.add_argument("--pattern", choices=("second_opinion", "debate"), help="28.6: a team pattern against its baseline on the dev people and "
+                        "the spent fifth sealed set (dev material); with --yes and --cap-eur")
     args = parser.parse_args(argv)
+    if args.pattern:
+        return _pattern(args)
     sealed = args.split in SEALED
     if args.spent:
         if not (sealed and sealed_runs(args.split)):
@@ -155,6 +160,128 @@ class _Counted:
 
     def __getattr__(self, name):
         return getattr(self.inner, name)
+
+
+class _Shared(_Counted):
+    """28.6: the single designer's answer, asked once for the same evidence and shared by both arms of the debate: the
+    rules' conversation gives the planner the same evidence in both, so the debate alone differs between them."""
+
+    def __init__(self, inner):
+        super().__init__(inner)
+        self.memo: dict[str, object] = {}
+
+    def ask(self, purpose, evidence):
+        key = purpose + json.dumps(evidence, sort_keys=True, default=str)
+        if key not in self.memo:
+            self.memo[key] = super().ask(purpose, evidence)
+        return self.memo[key]
+
+
+def _debate_seats(args):
+    """The debate's three seats, their clients made before the journeys' private scope: the planner on the standard tier,
+    the challenger and the judge on the cheap tier (Haiku 5.5 unless the workspace names another), each with its share of
+    the cap; None when a seat has no model."""
+    from dclab_rnd.core_advisor import GatewayAdvisor
+    from dclab_rnd.models.gateway import for_workspace
+
+    os.environ.setdefault("DCLAB_TIER_CHEAP_MODEL", "claude-haiku-5-5")
+    gateway = for_workspace()
+    designer = _Shared(GatewayAdvisor(gateway, cap_eur=args.cap_eur * 0.6, max_tokens=1500))
+    challenger = _Counted(GatewayAdvisor(gateway, cap_eur=args.cap_eur * 0.25, max_tokens=1500))
+    judge = _Counted(GatewayAdvisor(gateway, cap_eur=args.cap_eur * 0.15, max_tokens=900))
+    if any(seat._client(purpose) is None for seat, purpose in ((designer, "solution_planner"), (challenger, "solution_challenger"), (judge, "debate_judge"))):
+        return None
+    return designer, challenger, judge
+
+
+def _pattern(args) -> int:
+    """28.6: one team pattern against its baseline, both live, on the same people and seeds, one after the other in this
+    process: the second opinion against the single agent (the loop with the conversation reader). The gate
+    (``PATTERN_GATES``) is fixed before the run; each arm has half the cap; a run in which a request failed is not stored;
+    every live journey's whole record is kept in ``agent_runs/live_tests/<date>_pattern_<name>/<arm>/``."""
+    from datetime import date
+
+    from . import PATTERN_GATES, PATTERN_MATERIAL, load, pattern_verdict, play
+
+    gate = PATTERN_GATES[args.pattern]
+    people = [(j, seed, split) for split, seed in PATTERN_MATERIAL for j in load(split) if not args.only or j["id"] in args.only]
+    if args.only:
+        args.no_store = True  # a subset is never stored: the gate is over the whole material (the review of 28.6)
+    if args.cap_eur is None or args.cap_eur <= 0:
+        print("refused: a pattern's arms need --cap-eur above zero", file=sys.stderr)
+        return 2
+    if not args.yes:
+        material = f"{len(people)} people ({', '.join(f'{s} seed {d}' for s, d in PATTERN_MATERIAL)}; the spent sealed set read as dev material)"
+        if args.pattern == "debate":
+            print(f"Plan: {material}, the conversation by the rules in both arms; the single designer (the solution planner, standard tier, its "
+                  f"answer asked once a person and shared by both arms) and the debate (the same, with the challenger and the judge on the cheap "
+                  f"tier, Haiku 5.5 unless DCLAB_TIER_CHEAP_MODEL names another; the judge only on a dispute); about 1 planner and 1 to 2 cheap "
+                  f"requests a person; capped at {args.cap_eur} EUR (the planner 60%, the challenger 25%, the judge 15%). "
+                  f"Gate {gate['version']}: {gate['rule']}. Add --yes to send them.")
+        else:
+            print(f"Plan: {material}, two arms: the single agent (the loop with the conversation reader) and the same with the second "
+                  f"opinion on the family (no model request added: the person's choice is read by code), one reader shared by both with its "
+                  f"answers remembered (the same answer read once); about 3 to 5 reader requests a person; capped at {args.cap_eur} EUR. "
+                  f"Gate {gate['version']}: {gate['rule']}. Add --yes to send them.")
+        return 0
+    from dotenv import load_dotenv
+
+    from dclab_rnd.draft.reader import reader
+    from dclab_rnd.models.gateway import for_workspace
+    from dclab_rnd.orchestra import patterns
+    from dclab_rnd.settings import ROOT as ROOT_
+
+    load_dotenv(ROOT_ / ".env", override=False)  # the provider and its key, as the server reads them
+    os.environ.pop("DCLAB_NO_LIVE_MODELS", None)
+    if args.pattern == "debate":
+        seats = _debate_seats(args)
+        if seats is None:
+            print("No model serves solution_planner, solution_challenger or debate_judge: set the provider's key (and leave DCLAB_NO_LIVE_MODELS unset).")
+            return 2
+        designer, challenger, judge = seats
+        lives = {"baseline": {"designer": designer}, "arm": {"designer": designer, "challenger": challenger, "judge": judge}}
+    else:
+        gateway = for_workspace()
+        shared = reader(gateway, cap_eur=args.cap_eur, force=True, prebuild=True)
+        if shared is None:
+            print("No model serves conversation_reader: set the provider's key (and leave DCLAB_NO_LIVE_MODELS unset).")
+            return 2
+        # one reader for both arms, its answers remembered: the same answer is read the same way in both, so the arms differ only
+        # where the judge acts (the second review of 28.6: two readers' noise decided the gate); the judge adds no request
+        shared.advisor.memo = True
+        readers = {"baseline": shared, "arm": shared}
+        lives = {"baseline": {"reader": shared}, "arm": {"reader": shared, args.pattern: True}}
+    keep = ROOT_ / "agent_runs" / "live_tests" / f"{date.today().isoformat()}_pattern_{args.pattern}"
+    by_arm: dict[str, list] = {"baseline": [], "arm": []}
+    for j, seed, split in people:
+        for arm, live in lives.items():
+            try:
+                row = play(j, seed, None, live, keep / arm / j["id"])
+            except Exception as error:  # noqa: BLE001 - a journey that breaks is wrong, with its reason
+                row = {"id": j["id"], "kind": j["kind"], "family": j["family"], "parts": {}, "right": False,
+                       "why": [f"broke: {type(error).__name__}: {str(error)[:300]}"]}
+            by_arm[arm].append({**row, "split": split})
+    if args.pattern == "debate":  # the designer's answer is both arms' (asked once): the debate's seats add to it
+        spent = {"baseline": round(designer.spent_eur(), 4), "arm": round(designer.spent_eur() + challenger.spent_eur() + judge.spent_eur(), 4)}
+        failures = designer.failures + challenger.failures + judge.failures
+        models = {"designer": designer.report(), "challenger": challenger.report(), "judge": judge.report()}
+    else:  # one shared reader: both arms cost what it spent
+        spent = {"baseline": round(shared.advisor.spent_eur(), 4), "arm": round(shared.advisor.spent_eur(), 4)}
+        failures = shared.failures
+        models = {"reader": shared.advisor.report() if hasattr(shared.advisor, "report") else None}
+    against = pattern_verdict(args.pattern, by_arm["baseline"], by_arm["arm"], spent, failures)
+    for side in ("baseline", "arm"):
+        print(f"{side:8} parts {against['parts'][side]}, {against['questions'][side]} questions a person, asked a field twice: {against['asked_twice'][side]}")
+    print(f"gained {against['gained']} (by the pattern {against['gained_by_the_pattern']}), lost {against['lost']}, broke {against['broke']}; "
+          f"spent EUR {spent} (cap {args.cap_eur}); {failures} failed requests; {args.pattern} against {gate['version']}: "
+          f"{'pass' if against['passed'] else 'fail'}; records kept in {keep}")
+    if failures or against["broke"]:
+        print("a request failed or a journey broke: these are not the two arms the gate compares; nothing is stored")
+        return 1
+    if not args.no_store:
+        print(patterns.store(args.pattern, [f"{s} seed {d}" for s, d in PATTERN_MATERIAL], by_arm, against,
+                             extra={"models": models, "cap_eur": args.cap_eur}))
+    return 0
 
 
 def _team_arms(args, seed: int) -> int:

@@ -71,6 +71,7 @@ bands, its options), then a student.
   prints the same.
 - **Done when:** every one of the 52 points has a row, the numbers equal the files they are read from (a test), and the
   page shows the 2 passed students as "whisper, ready to act after N labels".
+- **Status: built (2026-10-17, 6ee0fcb).**
 
 ### 29.2 Truth by construction for the technical points (benchgen v2)
 - **Delivers:** `dclab_core.benchgen` v2: the replicas' and the prior tables' facts become benchmark labels for

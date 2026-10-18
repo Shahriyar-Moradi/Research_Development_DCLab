@@ -24,7 +24,18 @@ class DraftWork:
         from .reader import reader
 
         return HomeAgent(self.drafts, self.models.client("home_agent", draft_id=draft_id), on_request=self.requests, traces=self.traces,
-                         reader=reader(self.models, draft_id=draft_id))
+                         reader=reader(self.models, draft_id=draft_id), second_opinion=self.pattern_on("second_opinion"))
+
+    def pattern_on(self, name: str) -> bool:
+        """28.6: a team pattern's switch in this workspace's settings (on only where its gate passed)."""
+        home = getattr(getattr(self.jobs, "store", None), "home", None)
+        if home is None:
+            return False
+        from ..orchestra.settings import settings
+
+        from ..orchestra.patterns import passed
+
+        return bool(settings(home).get(name)) and passed(name)  # a switch left on serves only while its result still passes
 
     def requests(self, draft_id: str, what: str, args: dict[str, Any]) -> None:
         """The agent asked for something that runs in the background: simulate data, or build and train (25.13: the

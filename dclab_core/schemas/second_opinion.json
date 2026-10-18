@@ -1,0 +1,84 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.second_opinion.v1.json",
+  "additionalProperties": false,
+  "description": "What the judge made of the two readings of one card field.",
+  "properties": {
+    "choices": {
+      "description": "The families the person chooses between (ask only).",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 2,
+      "title": "Choices",
+      "type": "array"
+    },
+    "field": {
+      "const": "family",
+      "default": "family",
+      "title": "Field",
+      "type": "string"
+    },
+    "question": {
+      "default": "",
+      "description": "What the person is asked (ask only), in DCLab's words.",
+      "maxLength": 600,
+      "title": "Question",
+      "type": "string"
+    },
+    "reader": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The conversation reader's family (a model's), or None.",
+      "title": "Reader"
+    },
+    "rules": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The card rules' family from the words and the data, or None.",
+      "title": "Rules"
+    },
+    "schema_version": {
+      "const": "dclab_core.second_opinion.v1",
+      "default": "dclab_core.second_opinion.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "verdict": {
+      "enum": [
+        "agree",
+        "one_reader",
+        "ask"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    },
+    "why": {
+      "maxLength": 400,
+      "title": "Why",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "verdict",
+    "why"
+  ],
+  "title": "Opinion",
+  "type": "object"
+}

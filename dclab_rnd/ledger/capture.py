@@ -687,6 +687,18 @@ def team_node(owner: tuple[str, str], team: str, state_code: str, rule_next: str
 
 
 @_quiet
+def second_opinion(draft_id: str, opinion: Any, chosen: Any, stands: Any = None) -> Any:
+    """28.6: the second opinion on the card's family: the conversation reader's family (a model role's) and the card rules',
+    the judge's verdict, and the family the person chose (or none: the card stands). The person was shown both readings."""
+    state = {"verdict": _code(opinion.verdict) or "ask", "agreed": opinion.reader is not None and opinion.reader == opinion.rules}
+    answers = [answer("model_role", "conversation_reader", opinion.reader), answer("rule", "card:family", opinion.rules, reason=opinion.why[:600]),
+               answer("person", "person", chosen) if chosen is not None else None]
+    used = "person" if chosen is not None else "model_role" if stands is not None and stands == opinion.reader else "rule"
+    return _put("problem.family", ("draft", draft_id), answers, chosen if chosen is not None else (stands or opinion.rules), used,
+                state=state, options=list(opinion.choices), exposed=chosen is not None, draft=draft_id, conversation=draft_id)
+
+
+@_quiet
 def critic_weighed(draft_id: str, field: str, source: str, sent: bool, reason: str = "", rounds: int = 0) -> Any:
     """29.6: one concern the understanding critic weighed for a card field: sent back to the person or not (a round spent, the
     field asked before, a model's doubt about what the person said, its words refused), with why."""

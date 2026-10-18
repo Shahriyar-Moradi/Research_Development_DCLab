@@ -1,0 +1,128 @@
+{
+  "$defs": {
+    "Change": {
+      "additionalProperties": false,
+      "properties": {
+        "choice": {
+          "default": null
+        },
+        "cites": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "type": "array"
+        },
+        "key": {
+          "maxLength": 80,
+          "type": "string"
+        },
+        "reason": {
+          "default": "",
+          "maxLength": 400,
+          "type": "string"
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "type": "object"
+    },
+    "Ruling": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "enum": [
+            "judge",
+            "fallback"
+          ],
+          "type": "string"
+        },
+        "keep": {
+          "enum": [
+            "a",
+            "b",
+            "neither"
+          ],
+          "type": "string"
+        },
+        "key": {
+          "maxLength": 80,
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 600,
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "keep",
+        "reason",
+        "by"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "a": {
+      "items": {
+        "$ref": "#/$defs/Change"
+      },
+      "maxItems": 13,
+      "type": "array"
+    },
+    "agreed": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 13,
+      "type": "array"
+    },
+    "b": {
+      "items": {
+        "$ref": "#/$defs/Change"
+      },
+      "maxItems": 13,
+      "type": "array"
+    },
+    "kept": {
+      "items": {
+        "$ref": "#/$defs/Change"
+      },
+      "maxItems": 13,
+      "type": "array"
+    },
+    "refused": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "maxItems": 52,
+      "type": "array"
+    },
+    "rulings": {
+      "items": {
+        "$ref": "#/$defs/Ruling"
+      },
+      "maxItems": 13,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.debate.v1",
+      "default": "dclab_core.debate.v1",
+      "type": "string"
+    },
+    "sources": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "type": "object"
+}

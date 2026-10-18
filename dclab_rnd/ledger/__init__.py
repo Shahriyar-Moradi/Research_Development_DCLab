@@ -62,7 +62,7 @@ CAPTURED = {
     "labels.join_key": "studio/labels.py review: the key that joins the label file",
     "data.cases_table": "draft/pipeline.py: a table read as a list of known cases",
     "data.cleaning_step": "draft/clean.py: each cleaning step applied",
-    "problem.family": "draft/api.py build: the card's family",
+    "problem.family": "draft/api.py build: the card's family; draft/chat.py take_second_opinion: the second opinion's verdict and the person's choice (28.6)",
     "problem.ready": "draft/api.py build: whether the card is ready",
     "problem.pack": "draft/chat.py: the pack detected or chosen",
     "map.size": "draft/map.py draw: the rules' reading of the words and the decomposer's, when it serves",

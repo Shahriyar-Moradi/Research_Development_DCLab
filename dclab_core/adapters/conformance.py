@@ -53,6 +53,8 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "business_example": LIBRARY + " (30.5: knowledge for the understanding and planning agents; the main product has no store of examples yet)",
     "recipe_part": LIBRARY + " (30.10: a task kind or a modifier as one contract; the main product's task kinds and its expansion pack can be read as parts the same way)",
     "resolved_recipe": LIBRARY + " (30.10: the choices one run resolves to, each with its part and reason; the main product's training plan has no such record yet)",
+    "second_opinion": LIBRARY + " (28.6: the judge on two readings of a card's family; the main product reads a problem with one reader and keeps no such record)",
+    "debate": LIBRARY + " (28.6: two solution designers and a judge over a plan; the main product plans with one designer and keeps no such record)",
     "expert_trace": LIBRARY + " (an AI-first agent's record of a problem and its solution; the main product's Jev answers single questions and writes none)",
     "decision_sample": LIBRARY + " (built from decision records: the main product's semantic_decision_answers reach it through adapters/main_product_ledger)",
     "training_example": LIBRARY + " (built by the host's lake builders from its own consented records)",

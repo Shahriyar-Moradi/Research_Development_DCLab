@@ -179,6 +179,9 @@ class Coordinator:
             return {"stopped": "No question is open to answer."}
         text = q.get("text") or q.get("question") or ""
         said = person.ask(q.get("field"), text) if hasattr(person, "ask") else person.answer(q.get("field"), text)
+        if (said is None or not str(said).strip()) and q.get("source") == "second_opinion":
+            self.agent.decline(draft_id, q)  # 28.6: an advisory question: no answer keeps the card, never a stop
+            return {"declined": q.get("field"), "source": "second_opinion"}
         if said is None or not str(said).strip():  # the question that stopped the walk is in the person's record too
             return {"stopped": f"Waiting for the person: {text}"}
         self.agent.reply(draft_id, str(said).strip())

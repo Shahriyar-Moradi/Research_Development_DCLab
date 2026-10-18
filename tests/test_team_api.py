@@ -65,8 +65,15 @@ class TeamApiTests(unittest.TestCase):
     def test_the_teams_switch_and_budgets_start_off_and_every_change_is_audited(self):  # 28.8
         c = self.client
         got = c.get("/api/team/settings").json()
-        self.assertEqual(got["settings"], {"on": False, "run_eur": 0.5, "node_eur": 0.2, "max_steps": 40})
-        for bad in ({"on": "yes"}, {"run_eur": 0}, {"node_eur": 9}, {"max_steps": 7.5}, {"colour": 1}):
+        self.assertEqual(got["settings"], {"on": False, "run_eur": 0.5, "node_eur": 0.2, "max_steps": 40, "second_opinion": False, "debate": False})
+        from unittest import mock
+
+        from dclab_rnd.orchestra import patterns
+
+        with mock.patch.object(patterns, "RESULTS", self.home / "no-results"):  # 28.6: no pattern passed its gate here
+            for bad in ({"on": "yes"}, {"run_eur": 0}, {"node_eur": 9}, {"max_steps": 7.5}, {"colour": 1}, {"second_opinion": True}, {"debate": True}):
+                self.assertEqual(c.put("/api/team/settings", json=bad, headers=self.h).status_code, 422, bad)
+        for bad in ():
             self.assertEqual(c.put("/api/team/settings", json=bad, headers=self.h).status_code, 422, bad)
         after = c.put("/api/team/settings", json={"on": True, "run_eur": 1.0}, headers=self.h).json()["settings"]
         self.assertEqual((after["on"], after["run_eur"], after["node_eur"]), (True, 1.0, 0.2))  # the other keys kept

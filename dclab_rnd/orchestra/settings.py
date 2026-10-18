@@ -8,6 +8,8 @@ field by field, and a tester's CLI calling it builds what it was told (the secon
 the most one node may spend; ``max_steps``: the walk's step budget. A walk that reaches a budget stops with a blocker the
 person sees; a node whose model reaches its cap falls back to the rules. Defaults are off and small: the team serves only
 when the owner turns it on, and its models only after its sealed gate (``service.team_passed``).
+``second_opinion``, ``debate`` (28.6): the team's patterns, each turned on only where its stored result passed its gate
+(``orchestra.patterns.passed``); off, the single reader and the single designer serve.
 """
 
 from __future__ import annotations
@@ -17,8 +19,9 @@ from pathlib import Path
 from typing import Any
 
 SETTINGS_FILE = "team.json"
-DEFAULTS: dict[str, Any] = {"on": False, "run_eur": 0.5, "node_eur": 0.2, "max_steps": 40}
+DEFAULTS: dict[str, Any] = {"on": False, "run_eur": 0.5, "node_eur": 0.2, "max_steps": 40, "second_opinion": False, "debate": False}
 LIMITS = {"run_eur": (0.01, 20.0), "node_eur": (0.01, 5.0), "max_steps": (5, 200)}
+UNSERVED = ("debate",)  # 28.6 (the review): a pattern no serving path reads stays off whatever its result
 
 
 def settings(home: Path) -> dict[str, Any]:
@@ -51,6 +54,12 @@ def set_settings(home: Path, changes: dict[str, Any]) -> dict[str, Any]:
         if isinstance(default, bool):
             if not isinstance(value, bool):
                 raise ValueError(f"{key} is true or false")
+            from .patterns import PATTERNS, passed
+
+            if key in PATTERNS and value and not passed(key):
+                raise ValueError(f"{key} has not passed its gate on the journeys: it stays off (evidence/campaigns/orchestra_v1)")
+            if key in UNSERVED and value:
+                raise ValueError(f"{key} is measured only: nothing in the product serves it yet, so it cannot be turned on")
         else:
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 raise ValueError(f"{key} is a number")

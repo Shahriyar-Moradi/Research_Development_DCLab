@@ -1,0 +1,152 @@
+{
+  "$defs": {
+    "Change": {
+      "additionalProperties": false,
+      "properties": {
+        "choice": {
+          "default": null,
+          "title": "Choice"
+        },
+        "cites": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Cites",
+          "type": "array"
+        },
+        "key": {
+          "maxLength": 80,
+          "title": "Key",
+          "type": "string"
+        },
+        "reason": {
+          "default": "",
+          "maxLength": 400,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "title": "Change",
+      "type": "object"
+    },
+    "Ruling": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "enum": [
+            "judge",
+            "fallback"
+          ],
+          "title": "By",
+          "type": "string"
+        },
+        "keep": {
+          "enum": [
+            "a",
+            "b",
+            "neither"
+          ],
+          "title": "Keep",
+          "type": "string"
+        },
+        "key": {
+          "maxLength": 80,
+          "title": "Key",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 600,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "keep",
+        "reason",
+        "by"
+      ],
+      "title": "Ruling",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.debate.v1.json",
+  "additionalProperties": false,
+  "description": "One debate over a plan: what each designer changed, what they agreed on, how each dispute was ruled, what was kept.",
+  "properties": {
+    "a": {
+      "items": {
+        "$ref": "#/$defs/Change"
+      },
+      "maxItems": 13,
+      "title": "A",
+      "type": "array"
+    },
+    "agreed": {
+      "description": "Decision keys both designers changed the same way.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 13,
+      "title": "Agreed",
+      "type": "array"
+    },
+    "b": {
+      "items": {
+        "$ref": "#/$defs/Change"
+      },
+      "maxItems": 13,
+      "title": "B",
+      "type": "array"
+    },
+    "kept": {
+      "description": "The changes in the plan, after the code checks.",
+      "items": {
+        "$ref": "#/$defs/Change"
+      },
+      "maxItems": 13,
+      "title": "Kept",
+      "type": "array"
+    },
+    "refused": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "maxItems": 52,
+      "title": "Refused",
+      "type": "array"
+    },
+    "rulings": {
+      "items": {
+        "$ref": "#/$defs/Ruling"
+      },
+      "maxItems": 13,
+      "title": "Rulings",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.debate.v1",
+      "default": "dclab_core.debate.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sources": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Each seat's source: advisor, or fallback with why.",
+      "title": "Sources",
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "title": "Debate",
+  "type": "object"
+}

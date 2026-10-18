@@ -562,6 +562,15 @@ def _guard(key: str, choice: Any, current: SolutionPlan, findings: DataFindings)
     if key in ADDITIONS_ONLY:
         if not isinstance(choice, list):
             return "a column list is a list"
+        # each entry shaped as the rules write it (the review of 28.6: a model's names or partial objects passed the checks
+        # and broke the solution built from the plan): identifiers are names; a column kept out is {column, reason}; a column
+        # to confirm is {column, question}
+        shape = {"features.identifiers": (str, ()), "features.forbidden": (Mapping, ("column", "reason")),
+                 "features.to_confirm": (Mapping, ("column", "question"))}[key]
+        bad = [c for c in choice if not isinstance(c, shape[0]) or (shape[1] and not all(isinstance(c.get(f), str) and c.get(f).strip() for f in shape[1]))]
+        if bad:
+            return (f"each entry of {key} is " + ("a column's name" if shape[0] is str else "{" + ", ".join(shape[1]) + "}")
+                    + f" (not {str(bad[0])[:80]})")
         lost = _columns(old.choice if old else []) - _columns(choice)
         if lost:
             return f"an advisor may add columns here, never remove them (would drop {', '.join(sorted(lost)[:5])})"

@@ -99,6 +99,11 @@ PURPOSES: dict[str, Purpose] = {
                                                     "name, the prediction moment, the unit and the action in the person's words), each column's "
                                                     "name, purpose, role, type, missing and distinct share, and the checks' mismatches (package "
                                                     "28.4); never rows or cell values", keeps_text=True),
+    "solution_challenger": Purpose("cheap", 90, "what the solution planner sees (the problem brief's fields, the data findings' ids, topics "
+                                                "and statements, the rule plan's decisions) and the first designer's changes (package 28.6, the "
+                                                "debate); never rows or cell values"),
+    "debate_judge": Purpose("cheap", 60, "the problem brief's fields, the data findings' ids, topics and statements, the rule plan's "
+                                         "decisions and the two designers' disputed choices (package 28.6, the debate); never rows or cell values"),
     "decision_answer": Purpose("cheap", 60, "one decision's question and options, and what is known about its column: the column's name, "
                                             "its name tokens and bands (storage type, share of distinct and missing values, the shape of its "
                                             "written values) and the outcome column's name (package 22.5); never rows or cell values", keeps_text=True),

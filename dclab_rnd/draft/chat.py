@@ -168,8 +168,10 @@ def moment_options(pack: str | None) -> list[str]:
 
 class HomeAgent:
     def __init__(self, store: DraftStore, client=None, on_request: Callable[[str, str, dict[str, Any]], None] | None = None,
-                 registry: Registry | None = None, traces: Any = None, reader: Callable[..., Any] | None = None):
+                 registry: Registry | None = None, traces: Any = None, reader: Callable[..., Any] | None = None,
+                 second_opinion: bool = False):
         self.store, self.client, self.traces = store, client, traces
+        self.second_opinion = second_opinion  # 28.6: the reader's family and the rules' judged before the card is concluded
         # 20.10 v4: the conversation reader (dclab_core.conversation.READER through a model), reading the problem sentence
         # and the card's answers; (field, text, columns) -> what the model read, each value quoting the person's words
         self.reader = reader
@@ -190,19 +192,19 @@ class HomeAgent:
         return msg
 
     def ask(self, draft_id: str, field: str, question: str, options: list[str] | None = None, why: str = "",
-            source: str | None = None) -> dict[str, Any] | None:
+            source: str | None = None, extra: dict[str, Any] | None = None) -> dict[str, Any] | None:
         """``source="critic"`` (28.4): the understanding critic sends a settled field back to the person (the card it read
         is wrong or unsure there); it is asked past the cap and over a settled field, still never twice while open."""
         draft = self.store.get(draft_id)
         asked = [q for q in draft["questions"] if not q.get("superseded")]
-        critic = source == "critic"
+        critic = source in ("critic", "second_opinion")  # 28.4, 28.6: a field the card settled is put to the person again
         over = len(asked) >= MAX_QUESTIONS and field not in self.CONTRADICTIONS.values() and not critic  # 21.5: the words and the data disagreeing
         if over or any(q.get("field") == field and not q.get("answered") for q in draft["questions"]):  # is asked past the cap, once
             return None
         if self.settled(draft, field) and field not in self.CONTRADICTIONS.values() and not critic:
             return None  # the person said it already, or the table is here: asking again is what they found unintelligent
         q = {"id": f"q{len(draft['questions']) + 1}", "field": field, "text": question, "options": (options or [])[:4], "why": why, "answered": None,
-             **({"source": source} if source else {})}
+             **({"source": source} if source else {}), **(extra or {})}  # 28.6: the second opinion's verdict travels with its question
 
         def add(d):
             d["questions"].append(q)
@@ -213,7 +215,7 @@ class HomeAgent:
         """The open question: not answered, and about something still unknown (live, 2026-10-16: a field the person had told
         in their own words, and the data once a table was ready, were asked again)."""
         for q in draft["questions"]:
-            if q.get("answered") or (self.settled(draft, q.get("field")) and q.get("source") != "critic"):  # 28.4: a critic's question re-opens its field
+            if q.get("answered") or (self.settled(draft, q.get("field")) and q.get("source") not in ("critic", "second_opinion")):  # 28.4: a critic's question re-opens its field
                 continue
             return q
         return None
@@ -533,6 +535,11 @@ class HomeAgent:
             if done is not None:
                 self.built(draft_id, done)
                 return
+        waiting = self.pending(self.store.get(draft_id))
+        if self.client is not None and waiting is not None and waiting.get("source") == "second_opinion":
+            # 28.6 (the review): the model's turn reaches take_answer only when it made no tool step; the person's choice
+            # between the two readings is read here first, by code, and the model then carries the conversation on
+            self.take_second_opinion(draft_id, waiting, text, then_next=False)
         if self.client is not None:
             try:
                 self.model_turn(draft_id, text=text)
@@ -586,6 +593,9 @@ class HomeAgent:
 
     def take_answer(self, draft_id: str, q: dict[str, Any], value: str) -> None:
         """The user's message answers the open question: record it, redraw the workflow, ask the next thing."""
+        if q.get("source") == "second_opinion":
+            self.take_second_opinion(draft_id, q, value)
+            return
         draft = self.store.get(draft_id)
         critic = q.get("source") == "critic"
         if critic and (CONFIRMED.match(value) or q["field"] not in (*plans.ALL_FIELDS, *self.RECORDED_AS_SAID)):
@@ -667,6 +677,75 @@ class HomeAgent:
                     self.record(draft_id, "family", "rare_event")  # 21.5: "anomaly", then "these are the cases we found": a rare event
             if read.get("target_column"):
                 self.record(draft_id, "target", read["target_column"])
+
+    # ------------------------------------------------------------------ 28.6: the second opinion on the family
+    def _opinion(self, draft: dict[str, Any]) -> Any:
+        """The judge on the two readings of the family: the conversation reader's (kept in the understanding when it set the
+        family) and the card rules' from the words and the data alone."""
+        from dclab_core import second_opinion as so
+
+        from .card import card_of
+
+        u = draft.get("understanding") or {}
+        reader = u.get("family") if u.get("family_by") == "reader" else None
+        rules = card_of({**draft, "understanding": {k: v for k, v in u.items() if k not in ("family", "family_by", "family_shape_only")}}).family.value
+        return so.judge_family(reader, rules)
+
+    def second_opinion_question(self, draft: dict[str, Any]) -> tuple[str, str, list[str], str, str, dict[str, Any]] | None:
+        """The second opinion's question (field, text, options, why, source, and its verdict to keep on the question), once
+        a draft: only where the reader and the rules both named a family and the two differ."""
+        from dclab_core import second_opinion as so
+
+        if any(q.get("source") == "second_opinion" or q.get("field") == "family" for q in draft.get("questions") or []):
+            return None  # once a draft, and never after any family question (answered, declined or open): nothing is asked twice
+        if (draft.get("solution") or {}).get("kind"):
+            return None  # a kind the person stated on the Solution page is theirs: never put to them again (the review of 28.6)
+        opinion = self._opinion(draft)
+        if opinion.verdict != "ask":
+            return None
+        return ("family", opinion.question, [so.option_label(c) for c in opinion.choices], opinion.why, "second_opinion",
+                {"opinion": json.loads(opinion.model_dump_json())})
+
+    def take_second_opinion(self, draft_id: str, q: dict[str, Any], value: str, then_next: bool = True) -> None:
+        """The person's answer to the second opinion, read by code (``second_opinion.read_choice``) between the choices they
+        were shown: one named, the words of one meaning, or a family the rules read as stated (never a shape). Their choice
+        is the family they stated; any other answer keeps the card. Either way recorded, with the verdict they were shown."""
+        from dclab_core import second_opinion as so
+        from dclab_core.conversation import read_answer
+
+        draft = self.store.get(draft_id)
+        opinion = so.Opinion.model_validate(q["opinion"]) if q.get("opinion") else self._opinion(draft)
+        choices = so.choices_of(q.get("options") or []) or list(opinion.choices)  # what the person was shown (the review: never recomputed)
+        columns = [str(c.get("name")) for c in ((draft.get("analysis") or {}).get("profile") or {}).get("columns") or []]
+        read = read_answer("family", value, columns or None) if value.strip() else {}
+        stated = read.get("family") if read.get("family") and read.get("family_shape_only") != "yes" else None
+        choice = so.read_choice(value, choices, stated) if value.strip() else None
+
+        def answered(d: dict[str, Any]) -> None:
+            for item in d["questions"]:
+                if item["id"] == q["id"]:
+                    item["answered"] = value or "(no answer)"
+                    if choice is None:
+                        item["declined"] = True
+        self.store.update(draft_id, answered)
+        if choice is not None:
+            self.record(draft_id, "family", choice)
+            self.record(draft_id, "family_by", "person")
+            self.record(draft_id, "family_shape_only", "no")  # a choice between two families is a family stated, never a shape
+        from ..ledger import capture
+        from .card import card_of
+
+        stands = card_of(self.store.get(draft_id)).family.value  # the review of 28.6: on a decline the card that stands is recorded
+        capture.second_opinion(draft_id, opinion.model_copy(update={"choices": choices}), choice, stands)
+        self.update_plan(draft_id)
+        self.refresh_workflow(draft_id)
+        if then_next:
+            self.next_turn(draft_id)
+
+    def decline(self, draft_id: str, q: dict[str, Any]) -> None:
+        """An advisory question the person did not answer (the second opinion): the card stays as it is, never asked again."""
+        if q.get("source") == "second_opinion":
+            self.take_second_opinion(draft_id, q, "")
 
     def card_question(self, draft: dict[str, Any]) -> tuple[str, str, list[str], str] | None:
         """20.2: when the plan has nothing left to ask but the problem card still blocks, its question that unblocks the
@@ -750,6 +829,8 @@ class HomeAgent:
         question = self.next_question(self.store.get(draft_id), opening)
         if question is None and not opening:  # the plan is done; the problem card may still block (20.2)
             question = self.card_question(self.store.get(draft_id))
+        if question is None and not opening and self.second_opinion:  # 28.6: two readings of the family that differ are asked
+            question = self.second_opinion_question(self.store.get(draft_id))
         asked = question is not None and self.ask(draft_id, *question)
         from ..ledger import capture  # 19.7: the question actually asked, or none
 

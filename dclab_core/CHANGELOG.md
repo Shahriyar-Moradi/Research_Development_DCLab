@@ -4,6 +4,22 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.81.0 (2026-10-18)
+
+Package 28.6: the second opinion, a team pattern measured before it is kept.
+
+- `second_opinion.Opinion` v1 (`dclab_core.second_opinion.v1`) and `judge_family(reader, rules)`: two readings of the problem
+  card's family, the conversation reader's (a model's) and the card rules' (the words and the data). They agree, or only one
+  names a family: the card stands and nothing is asked; they differ: the person chooses, the two readings as the choices,
+  once (`question`, `choices`, `option_label`, `from_label`, `chosen`). The person's choice is a family they stated.
+- `ledger`: the state fields `verdict` (a code) and `agreed` (a flag), for the judge's decision on `problem.family`.
+- `debate.Debate` v1 (`dclab_core.debate.v1`) and `debate(designer, challenger, judge, brief, findings)`: two solution
+  designers and a judge over the rules' plan. The first is the solution planner; the second, the role `solution_challenger`
+  (prompt `solution_challenger.md`), reads the same evidence and the first design and proposes what it missed; a change
+  both make is kept, a disputed one goes to `debate_judge` (prompt `debate_judge.md`), who keeps a side or neither citing
+  the findings; every kept change passes the planner's guard and validator again. No judge, or a refused ruling: the first
+  design stands. `agents.roles()` lists the two new roles.
+
 ## 0.80.0 (2026-10-18)
 
 Package 28.4 (the rest): the understanding team's critic, in the records.

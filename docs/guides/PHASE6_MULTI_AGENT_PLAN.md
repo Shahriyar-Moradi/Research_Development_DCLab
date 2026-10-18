@@ -278,7 +278,7 @@ families; nothing is captured for the first time there.
   (the harness-eval grading), with the critic's send-backs counted and each one's reason recorded; nothing is asked twice;
   **capture:** the critic's questions and the person's answers as conversation examples, the brief before and after each
   node as `solution_design` inputs.
-- **Status: the critic built (2026-10-18); the rest open.** `dclab_core/understanding_critic.py` (dclab-core 0.68.0; rules:
+- **Status: complete (2026-10-18): the critic first, then the two readers at once (28.4b, below).** `dclab_core/understanding_critic.py` (dclab-core 0.68.0; rules:
   the meet check's blocking mismatches on the field each names, an outcome the data card reads as no outcome, a time and no
   moment; a model adds concerns on card fields only, refused when a column it names, in its list or its words, is not in
   the tables; prompt `prompts/understanding_critic.md`) and the walk's `critic` and `critic_gate` nodes: before the workflow
@@ -338,6 +338,51 @@ families; nothing is captured for the first time there.
   agent); kept only where it passes. **Budget:** about €2 per pattern, planned and capped before the run.
 - **Done when:** each pattern has its result file in `evidence/campaigns/orchestra_v1/` and its switch (on where it
   passed, off elsewhere), audited.
+- **Design (2026-10-18, before any run).** Material: the 15 dev people and the 30 people of the fifth sealed set, spent
+  in 28.7 and read here as dev material: their failures were read while these patterns were designed (JS5-08: the reader
+  said a number, the rules read "how long until" as time to event and won with no question; JS5-02: the folds not grouped
+  by the biker; JS5-15/16: a measured weather column kept out though the person says it is known ahead), so a result on
+  them is dev evidence, never a sealed verdict: the fresh sixth sealed set of 28.7 judges the team with whatever passed.
+  Each pattern is measured against the single agent (the loop with the conversation reader) in the same run, on the same
+  people and seed; a run with a failed request is never stored.
+  - **Second opinion** (`dclab_core.second_opinion`): two readers of the card's family, the conversation reader (the
+    model, from the person's words) and the card's rules (the words and the data). A judge keeps the card where they agree
+    or only one names a family; where both name a family and they differ, the person is asked to choose, the two readings
+    as the choices, once (never over a kind the person stated, nor a family they answered); their choice, read by code
+    (one choice named, or the words of exactly one choice's meaning, or a family the rules read as stated, never a shape),
+    is the family they stated; any other answer keeps the card. No model request is added. Gate `second_opinion_gate_v1`
+    (revised after the review, before any run): more cards gained where the judge asked and the person chose than cards
+    lost anywhere (a gain the judge did not make is the reader's noise), no fewer right on the workflow, the pipeline or
+    the holdout, at most one more question a person on average, nobody asked a field twice, no request failed, no journey
+    broke, no move refused, the arm's cost at most 1.5 times the single agent's; a run on a subset is never stored. Cap
+    EUR 1.5 for both arms (expected about 0.8).
+  - **Debate** (two designers, a judge): at the save of the solution, the solution planner (`dclab_core.plan`, the rules'
+    plan with its findings) and a challenger who reads the first design and looks for what it missed (a repeated entity,
+    a column known ahead or written after); a change both make is kept, a disputed change goes to a judge who keeps a side
+    or neither citing the findings; code checks the plan after every change as it does today (an advisor may add a column
+    to keep out, never bring one back), and with no judge the first design stands. The planner on the standard tier, the
+    challenger and the judge on the cheap tier (Haiku 5.5 for the run): on Sonnet a debate costs about twice a single
+    designer and could never meet the 1.5 times bound. Against the single designer, its answer shared by both arms (the
+    rules' conversation is the same in both, so the planner sees the same evidence), so the debate alone differs. Gate
+    `debate_gate_v1`: more holdouts gained where the debate changed the plan than holdouts lost anywhere, no fewer right on
+    the card, the workflow or the pipeline, no solution refused, nobody asked a field twice, no request failed, no journey
+    broke, no move refused, the arm's cost at most 1.5 times the single designer arm's. Cap EUR 1.0 (expected about 0.3:
+    26 of the 45 people reach the save). **Expected before the run (the second review):** no baseline holdout failure on
+    this material is one the designers may change (JS5-02's grouping is the rules' plan already; JS5-15 and JS5-16 need a
+    kept-out column back, which no designer may do), so the debate is expected to fail its gate and stay off; it runs for
+    the record and to capture the designers' proposals. Its switch cannot be turned on until a serving path reads it.
+  - **Second opinion, revised after the second review (before any run):** the person's choice is read by hand-written cue
+    phrases of each family (never words taken from a family's meaning, never a negated cue, nothing from "not sure"; cues
+    of both choose nothing); one reader serves both arms with its answers remembered, so the arms differ only where the
+    judge acts; a gain is the pattern's only where the person chose.
+  Each switch (`second_opinion`, `debate` in the team's settings) can be turned on only where its stored result passed;
+  every change is audited.
+- **Status: in progress (2026-10-18).** Both patterns built (dclab-core 0.81.0: `second_opinion.Opinion` v1 and
+  `read_choice`; `debate.Debate` v1 with the roles `solution_challenger` and `debate_judge` on the cheap tier); the runner
+  `journeys --pattern second_opinion|debate`, the result store `orchestra/patterns.py`, the switches in the team's settings;
+  two reviews' 23 findings fixed (an import cycle, a failing test, five ways the gate could pass dishonestly, the judge's
+  reading of a free answer, the served path, the debate's seats, its dispute rule, shapes the planner must refuse). Gates
+  fixed in code before any run. Next: the two live runs, their results, the switches.
 
 ### 28.7 The measurement: the team beside the rules and the single agent
 - **Delivers:** a `team` arm in the journeys suite and in the twin matrix: accuracy per step, agreement, cost, time; the
@@ -370,7 +415,7 @@ families; nothing is captured for the first time there.
 - **Done when:** the product e2e flows pass through the graph; a browser test drives a question, a confirmation and a
   build; the page needs no page-specific model call.
 
-- **Status: built in part (2026-10-18).** `dclab_rnd/orchestra/service.py` (start or resume a walk once; read a walk without
+- **Status: complete (2026-10-18): built in part first, then completed (below).** `dclab_rnd/orchestra/service.py` (start or resume a walk once; read a walk without
   running it: its last board, the pause it waits on, its last record; list every finished walk). Routes: `GET`/`POST
   /api/drafts/{id}/team` (409 while the Home agent answers the draft, or when there is no pause to resume),
   `GET`/`POST /api/projects/{id}/team`, `GET /api/teams` (the owner's). Home's Team panel shows the walk's state, the node

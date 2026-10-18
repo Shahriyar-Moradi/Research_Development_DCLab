@@ -99,6 +99,11 @@
    "version": "dclab_core.dataset_manifest.v7"
   },
   {
+   "contract": "debate",
+   "reads": [],
+   "version": "dclab_core.debate.v1"
+  },
+  {
    "contract": "decision",
    "reads": [],
    "version": "dclab_core.decision.v1"
@@ -226,6 +231,11 @@
    "version": "dclab_core.run_record.v2"
   },
   {
+   "contract": "second_opinion",
+   "reads": [],
+   "version": "dclab_core.second_opinion.v1"
+  },
+  {
    "contract": "solution_map",
    "reads": [],
    "version": "dclab_core.solution_map.v1"
@@ -338,7 +348,7 @@
    "what": "A team's walk, one row per hand-off: the board before the node, the node and what it did, the board after, with the walk's status and the models it asked; the person's words redacted, only lines written where training was allowed (28.9)."
   }
  ],
- "dclab_core": "0.80.0",
+ "dclab_core": "0.81.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -759,7 +769,7 @@
   {
    "about": "Which family of problem is it?",
    "answer": "choice",
-   "decided_in": "draft/api.py build: the card's family",
+   "decided_in": "draft/api.py build: the card's family; draft/chat.py take_second_opinion: the second opinion's verdict and the person's choice (28.6)",
    "kind": "workflow",
    "main_product": null,
    "point": "problem.family",

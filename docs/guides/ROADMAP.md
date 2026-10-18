@@ -86,3 +86,11 @@ Each milestone's status is kept here as it moves: **A — done** (19.4–19.8, 2
 DCLab enters as a Challenge Pack with a hidden answer key; the agent attempts it, is graded, diagnosed at its first wrong
 step, and learns at one of four levels (case memory, the playbook, skills as code, model weights), kept only when it
 passes variants it never saw. The plan, its stages and the owner's decisions: `PHASE9_LEARNING_LOOP_PLAN.md`.
+
+**Phases 6 to 9 (2026-10-18).** Phase 6, the multi-agent team (`PHASE6_MULTI_AGENT_PLAN.md`): 28.1 to 28.5 and 28.8 to
+28.10 built, 28.4 and 28.8 complete; 28.6 (second opinion, debate) built, its live runs next; 28.7's sealed verdict failed
+once (the team 25 of 30 against the single agent's 26), a fresh sixth sealed set next; 28.11 waits for the owner. Phase 7,
+the students (`PHASE7_STUDENTS_PLAN.md`): 29.1, 29.2, 29.4, 29.5, 29.13, 29.14 and 29.17 built or run, 29.6 for the teams;
+29.3, 29.7 to 29.12, 29.15, 29.16 and 29.18 open. Phase 8, the knowledge cards and recipes
+(`PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md`): 30.7 to 30.11 built; 30.12 to 30.20 and Part G open. Phase 9, the learning
+loop (`PHASE9_LEARNING_LOOP_PLAN.md`): planned only, built after phases 6 to 8.
