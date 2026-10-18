@@ -86,9 +86,10 @@
     "dclab_core.dataset_manifest.v2",
     "dclab_core.dataset_manifest.v3",
     "dclab_core.dataset_manifest.v4",
-    "dclab_core.dataset_manifest.v5"
+    "dclab_core.dataset_manifest.v5",
+    "dclab_core.dataset_manifest.v6"
    ],
-   "version": "dclab_core.dataset_manifest.v6"
+   "version": "dclab_core.dataset_manifest.v7"
   },
   {
    "contract": "decision",
@@ -313,9 +314,14 @@
    "builder": "twin",
    "needs": "train",
    "what": "What the system and Claude, as the AI-first expert, answered on the same inputs: every twin step, the preference pairs a truth decided, the expert's records with what became of them, and Claude's answers as a teacher's beside the rule's at the ledger's points, one set per use (workflow, technical); Claude's words redacted (25.7)."
+  },
+  {
+   "builder": "team_walks",
+   "needs": "train",
+   "what": "A team's walk, one row per hand-off: the board before the node, the node and what it did, the board after, with the walk's status and the models it asked; the person's words redacted, only lines written where training was allowed (28.9)."
   }
  ],
- "dclab_core": "0.69.0",
+ "dclab_core": "0.70.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1458,7 +1464,6 @@
    "emitted_by": [
     "dclab_rnd/agent_eval/journeys/__init__.py",
     "dclab_rnd/experience/hooks.py",
-    "dclab_rnd/orchestra/solution.py",
     "dclab_rnd/orchestra/walk.py"
    ],
    "example": "python -m dclab_rnd.experience search --kind model.request",
