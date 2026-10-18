@@ -89,6 +89,10 @@ solution, with its limits. The records of each run are kept whole in `agent_runs
 - **Done when:** the sealed programme journeys are run once more on a fresh sealed set after the fixes, with the gate
   fixed before.
 
+## Part C. Real business knowledge, the four cards and recipes
+
+Designed with the owner on 2026-10-18 from their retail interview's documents: [`PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md`](PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md) (packages 30.7 to 30.20, then patterns 7, 8, 10 and 11 as features). It takes over 30.5's "left" (the examples read by roles, measured) and 30.6.
+
 ## Status
 
 - **Plan (2026-10-18):** written. Phase 6's teams (28.1 to 28.5) are built; 28.7 measures them live first.
