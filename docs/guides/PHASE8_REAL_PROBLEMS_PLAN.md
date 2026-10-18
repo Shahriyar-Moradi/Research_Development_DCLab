@@ -74,6 +74,14 @@ solution, with its limits. The records of each run are kept whole in `agent_runs
 - **Done when:** the knowledge base has its index and its retrieval questions, the critic and the designer read it in an
   arm of the journeys, and the arm is kept only where it measured better.
 
+- **Status: the base built (2026-10-18); its use measured next.** `make business-examples`: 38 examples in
+  `research/business_examples/examples.jsonl` (5 research tracks' contracts and champions, 16 replicas with the traps they
+  plant, the owner's fraud solution, 16 written from public knowledge across insurance, lending, retail, manufacturing,
+  software, sales, support, logistics, mobility, e-commerce, marketing, payments, healthcare, energy, HR and site
+  selection); `dclab_core.business_examples` (dclab-core 0.73.0): the contract and a search without a model (the owner's
+  fraud words find the fraud replicas first). Left: the examples as a tool the critic and the designer read, measured as
+  an arm of the journeys before it serves; more examples from the 50-experiment campaign.
+
 ### 30.6 Bigger and more problems
 - **Delivers:** what the three runs and the sealed programme journeys (2 of 10 for the rules, JPR-003) show is missing,
   each as a package: larger tables (sampling and chunked reading under the engine), more parts per programme, more

@@ -1,0 +1,259 @@
+{
+  "$defs": {
+    "ExampleSource": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "research_track",
+            "campaign",
+            "replica",
+            "owner_solution",
+            "written"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "ref": {
+          "description": "Where it is: a path, a record id, or the public knowledge it rests on.",
+          "maxLength": 600,
+          "minLength": 1,
+          "title": "Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "title": "ExampleSource",
+      "type": "object"
+    },
+    "Result": {
+      "additionalProperties": false,
+      "properties": {
+        "metric": {
+          "maxLength": 80,
+          "title": "Metric",
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "description": "The protocol it was measured on, and its limits.",
+          "maxLength": 600,
+          "title": "Note",
+          "type": "string"
+        },
+        "source": {
+          "description": "The record the number comes from.",
+          "maxLength": 600,
+          "title": "Source",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "metric",
+        "value",
+        "source"
+      ],
+      "title": "Result",
+      "type": "object"
+    },
+    "Understanding": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What is done with a prediction, and what a mistake costs.",
+          "title": "Action"
+        },
+        "family": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Family"
+        },
+        "labels": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How the outcome is known: every row, a sample of cases, none.",
+          "title": "Labels"
+        },
+        "moment": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When the prediction is made, and what is known then.",
+          "title": "Moment"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "One row: what is predicted for.",
+          "title": "Unit"
+        }
+      },
+      "title": "Understanding",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.business_example.v1.json",
+  "additionalProperties": false,
+  "description": "One real problem, as a careful data scientist would write it up for the next one.",
+  "properties": {
+    "data": {
+      "description": "The tables and their important columns, in words (never a value).",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 40,
+      "title": "Data",
+      "type": "array"
+    },
+    "id": {
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+    },
+    "industry": {
+      "default": "",
+      "maxLength": 80,
+      "title": "Industry",
+      "type": "string"
+    },
+    "pitfalls": {
+      "description": "What goes wrong here: leaks, wrong splits, wrong labels, the trap.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Pitfalls",
+      "type": "array"
+    },
+    "problem": {
+      "description": "The problem in a person's words.",
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Problem",
+      "type": "string"
+    },
+    "results": {
+      "items": {
+        "$ref": "#/$defs/Result"
+      },
+      "maxItems": 12,
+      "title": "Results",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.business_example.v1",
+      "default": "dclab_core.business_example.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "solution": {
+      "description": "The approach, the split, the metric, the model family, why.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Solution",
+      "type": "array"
+    },
+    "source": {
+      "$ref": "#/$defs/ExampleSource"
+    },
+    "tags": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Tags",
+      "type": "array"
+    },
+    "title": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "understanding": {
+      "$ref": "#/$defs/Understanding"
+    },
+    "workflow": {
+      "description": "The steps, in order.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Workflow",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "title",
+    "problem",
+    "source"
+  ],
+  "title": "BusinessExample",
+  "type": "object"
+}

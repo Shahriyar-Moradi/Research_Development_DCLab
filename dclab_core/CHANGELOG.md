@@ -4,6 +4,15 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.73.0 (2026-10-18)
+
+Package 30.5: business examples.
+
+- `business_examples`: `BusinessExample` v1 (`dclab_core.business_example.v1`: a real problem as problem → understanding →
+  data → pitfalls → solution → workflow → results, with its source: a research track, a campaign, a replica, an owner's
+  solution, or written from public knowledge and marked so), `search(examples, words, top)` (shared words weighed by
+  their rarity: no model) and `brief(example)`.
+
 ## 0.72.0 (2026-10-18)
 
 Package 29.13: a student explains itself.

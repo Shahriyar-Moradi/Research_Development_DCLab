@@ -726,6 +726,12 @@ request path; it is a data generator. A team that pretrains or evaluates an in-c
 or reads DCLab's corpus (`make priors`, `lake/bronze/priors/priors_v1/`); `params.effects_shown` marks the tables whose shown
 features include the outcome's effects, for a team that wants none.
 
+## Business examples (30.5, dclab-core 0.73.0)
+
+The library's: `dclab_core.business_examples` (`BusinessExample` v1, `search`, `brief`). Where it goes there: the main
+product's understanding and planning agents can be given the closest examples to a person's words as context (what to
+ask, which trap to look for, which split), once its own measurement shows it helps; every example says where it comes from.
+
 ## A team's walks as training data (28.9, dclab-core 0.70.0)
 
 The library's: `dclab_core.datasets.team_walks` (one example per hand-off: the board before, the node and what it did, the
