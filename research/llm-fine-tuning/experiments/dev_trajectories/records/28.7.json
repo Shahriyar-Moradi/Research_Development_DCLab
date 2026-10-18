@@ -96,9 +96,22 @@
     "Four of the five failures are shared by both arms and the rules (folds grouped by biker, a regression read as time to event, a weather column read as known ahead on two forecasts): the engine and the card, not the team.",
     "The sealed set is spent: the fix below is measured only on a fresh sealed set."
    ]
+  },
+  {
+   "name": "the sixth sealed set, once (JRN-023 to JRN-025): the rules, the single agent, and the team with the second opinion",
+   "gate": "TEAM_GATE (team_gate_v1) on GATE_V6: the team at least the rules on every part, its card right more often than the single agent's, no request failed, no move refused, no holdout read twice, at most EUR 0.06 a journey",
+   "fixed_before_run": true,
+   "result": "right on every part: the rules 10 of 30, the single agent 16 of 30 (95% interval 0.361 to 0.698), the team 21 of 30 (0.521 to 0.833); the card right for the team 24 against the single agent's 19; workflow, pipeline and holdout equal for the team and the single agent (27, 26, 24); EUR 0.27 for the single agent and 0.94 for the team (0.031 a journey); no request failed",
+   "verdict": "pass",
+   "cost_eur": 1.21,
+   "against_gate": "Met on every condition: the team's switch may be turned on, and its critic's model serves where it is.",
+   "limits": [
+    "Thirty people, written by an agent from the replicas' tables: the intervals of the team and the single agent overlap, so the team is better on these people by the gate's count, not clearly better on any population.",
+    "The set was harder than the fifth: every arm scored lower; most misses on both sides are a card the conversation could not settle."
+   ]
   }
  ],
- "outcome": "The team measured live against the rules and the single agent, its gate fixed first: the dev pass failed, taught a fix and passed; the fifth sealed set failed the team's gate (25 of 30 against the single agent's 26), so the team stays off and the rules serve.",
+ "outcome": "The team measured live against the rules and the single agent, its gate fixed first: the dev pass failed, taught a fix and passed; the fifth sealed set failed the team's gate (25 of 30 against the single agent's 26), so the team stays off and the rules serve. The sixth sealed set, written fresh after the team changed, was run once: the team passed its gate (21 of 30 right against the single agent's 16 and the rules' 10; its card 24 against 19), so team_passed() is true.",
  "lessons": [
   "A critic's question is advice the person may decline: a send-back must never become a stop the person did not choose.",
   "A step that only a model's reading can move needs a way back to the person: a question asked once more, narrower, before a stop.",

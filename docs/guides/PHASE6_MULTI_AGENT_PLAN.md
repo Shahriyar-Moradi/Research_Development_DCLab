@@ -407,7 +407,7 @@ families; nothing is captured for the first time there.
 - **Budget:** about €4 per full dev pass (approved 2026-10-17; two live arms × 15 journeys with room for send-backs),
   planned, printed and capped before any request; the spend reported after.
 
-- **Status: dev passed (2026-10-18); the sealed set next.** `journeys --team-arms`: the rules, the single agent (the loop with
+- **Status: complete (2026-10-18): the fifth sealed set failed the team, the sixth passed it (below).** `journeys --team-arms`: the rules, the single agent (the loop with
   the conversation reader) and the team (the graph with the reader and the understanding critic's model) on the same people,
   each live model with its share of the cap, a run with a failed request never stored, every live journey's whole record
   in `agent_runs/live_tests/`; `TEAM_GATE` and a fifth sealed set (written by an agent that never read the rules) frozen in
@@ -429,6 +429,12 @@ families; nothing is captured for the first time there.
   checked for its structure only (nobody has read the people), pinned by SHA-256 (`sealed_v6.sha256`), replica seed 6,
   under the same gate (`GATE_V6`, `TEAM_GATE`). The team arm is the walk with the reader and the critic's model, joined by
   any 28.6 pattern that passed; `team_passed()` reads the newest sealed team verdict. Run once, after 28.6's results.
+  **The sixth sealed verdict (JRN-023 to 025, 2026-10-18): the team passes its gate.** Right on every part: the rules 10 of
+  30, the single agent 16 (95% interval 0.361 to 0.698), the team with the second opinion 21 (0.521 to 0.833); the card
+  right for the team 24 against the single agent's 19, every other part equal; EUR 0.27 and 0.94 (0.031 a journey), no
+  request failed. `team_passed()` is true: the critic's model serves where the team's switch is on (the owner's, in Admin
+  → Teams). The intervals overlap: better by the gate's count on these thirty people, not clearly better beyond them.
+  **Phase 6 complete**, but for 28.11 (the owner's call).
 
 ### 28.8 Home and the product
 - **Delivers:** the Home page shows the board (which node works, what it found, the open interrupt), answers resume the
