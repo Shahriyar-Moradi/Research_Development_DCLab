@@ -58,6 +58,7 @@ REFUSALS = {
     "run_all": (bare, {}),  # no solution
     "approve_stage": (lambda s: ready(s, "data"), {"stage": "models"}),  # models has not run
     "export_notebook": (bare, {}),  # nothing to capture
+    "run_programme": (bare, {}),  # 28.5: no programme to run (no plan of several parts, no data)
 }
 
 

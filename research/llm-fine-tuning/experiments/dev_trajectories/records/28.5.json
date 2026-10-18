@@ -224,6 +224,16 @@
    "cause": "No registry tool ran a programme.",
    "fix": "The tool run_programme (scope project, move run_programme, its guard the validator); the team calls it.",
    "test": "tests/test_agents_runtime.py"
+  },
+  {
+   "id": "G1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The new tool and move were committed without their refusal case and without the scripted suites run on them.",
+   "scenario": "check-commit on b327160: test_agents_validator wanted a refusal case for run_programme; test_harness_gate and test_prompt_gate: tools:project and validator:graph changed since HRN-018 and AEV-033.",
+   "cause": "A tool schema and a graph move are code the suites must see; the package ran its own tests only.",
+   "fix": "A refusal case (no programme to run) and make agent-eval (AEV-034) and make harness-eval (HRN-019, 17 of 17).",
+   "test": "tests/test_agents_validator.py; tests/test_harness_gate.py; tests/test_prompt_gate.py"
   }
  ],
  "measurements": [
@@ -246,7 +256,8 @@
   "A screen that decides nothing still needs the rows it reads chosen as carefully as a model's: the fit rows only.",
   "When a framework re-runs a node on resume, put a run that must happen once in the node of the pause that allows it.",
   "A checkpoint remembers what a step decided, never what it read: keep a fingerprint of the inputs with every decision a later run may trust.",
-  "A person's decision needs its own field: a field another step rebuilds will lose it."
+  "A person's decision needs its own field: a field another step rebuilds will lose it.",
+  "A new tool or move is a change to the agents' world: run the agent eval and the harness eval before committing it."
  ],
  "risks": [
   "The screen's bar (0.98) is fixed, not measured: a real signal that clean would be shown as a suspect, and the person decides."
