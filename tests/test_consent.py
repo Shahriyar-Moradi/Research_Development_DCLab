@@ -79,6 +79,20 @@ class RedactionTest(unittest.TestCase):
 
 
 @unittest.skipIf(MISSING, MISSING)
+class WorkspaceSwitchTest(unittest.TestCase):
+    def test_changing_a_switch_keeps_every_other_key_of_the_file(self):  # the projects_inherit flag was dropped on every change
+        home = Path(tempfile.mkdtemp())
+        (home / consent.FILE).write_text(json.dumps({"keep_me": "untouched"}), encoding="utf-8")
+        consent.set_inherits(home, True)
+        consent.set_workspace_consent(home, "improve", True)
+        self.assertTrue(consent.inherits(home))
+        consent.set_workspace_consent(home, "train", True)
+        consent.set_workspace_consent(home, "improve", False)
+        self.assertTrue(consent.inherits(home))
+        self.assertEqual(consent.workspace_consent(home), {"improve": False, "train": True})
+        self.assertEqual(json.loads((home / consent.FILE).read_text(encoding="utf-8"))["keep_me"], "untouched")
+
+
 class ExportTest(unittest.TestCase):
     def setUp(self):
         self.home = Path(tempfile.mkdtemp())

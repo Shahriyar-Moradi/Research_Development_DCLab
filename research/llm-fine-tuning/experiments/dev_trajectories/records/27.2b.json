@@ -1,0 +1,37 @@
+{
+ "package": "27.2b",
+ "title": "Keep the workspace's inherit flag when a consent switch changes",
+ "date": "2026-10-18",
+ "request": "The owner: fix the bug a reviewer found while mapping the team's switch: changing a workspace consent switch dropped the flag that gives new projects the workspace's switches.",
+ "spec": "dclab_rnd/consent.py (the workspace's consent file; decision 6 of the phases 4-5 plan, package 27.2)",
+ "plan": [
+  "Write a test that sets the inherit flag, changes the switches, and reads the flag back.",
+  "Make every writer of the consent file change only its own keys and keep the rest."
+ ],
+ "decisions": [
+  {
+   "decision": "One function changes the consent file's keys under a process lock, and both writers use it.",
+   "why": "Each writer read the file and wrote back only what it knew; the switch's writer knew only the two switches, so it dropped the inherit flag, and two writers at once could drop each other's change."
+  }
+ ],
+ "change": "dclab_rnd/consent.py (_update; set_workspace_consent and set_inherits through it); tests/test_consent.py (WorkspaceSwitchTest).",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Changing a workspace consent switch dropped the projects_inherit flag.",
+   "scenario": "The owner set new projects to inherit the workspace's switches, then turned on training consent: the file was rewritten with the two switches only, and new projects no longer inherited them.",
+   "cause": "The switch's writer rebuilt the file from the two switches it reads, not from the file.",
+   "fix": "Every writer reads the whole file, changes its own keys and writes it back atomically, one at a time in the process.",
+   "test": "test_changing_a_switch_keeps_every_other_key_of_the_file"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Changing a consent switch keeps the inherit flag and every other key of the workspace's consent file.",
+ "lessons": [
+  "A settings file written by more than one function needs one writer that changes keys, not whole files."
+ ],
+ "risks": [],
+ "commits": []
+}

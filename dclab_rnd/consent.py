@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import re
+import threading
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -48,15 +49,29 @@ def workspace_consent(home: Path) -> dict[str, bool]:
     return {use: data.get(use) is True for use in USES}  # the inherit flag (INHERIT) is read by inherits()
 
 
+_FILE_LOCK = threading.Lock()  # one change of consent.json at a time in this process (only the server writes it)
+
+
+def _update(home: Path, changes: dict[str, Any]) -> dict[str, Any]:
+    """Change some keys of consent.json and keep every other one (a switch's change dropped the inherit flag before)."""
+    path = Path(home) / FILE
+    with _FILE_LOCK:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            data = {}
+        data = {**(data if isinstance(data, dict) else {}), **changes}
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
+        tmp.replace(path)
+    return data
+
+
 def set_workspace_consent(home: Path, use: str, on: bool, who: str = "owner") -> dict[str, bool]:
     if use not in USES:
         raise ValueError(f"use is one of {', '.join(USES)}")
+    _update(home, {use: bool(on)})
     current = workspace_consent(home)
-    current[use] = bool(on)
-    path = Path(home) / FILE
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(current, indent=1) + "\n", encoding="utf-8")
-    tmp.replace(path)
     if not on:  # 23.10: sets built under a use that is now off are removed by the next sweep
         try:
             from . import datasets
@@ -79,15 +94,7 @@ def inherits(home: Path) -> bool:
 
 def set_inherits(home: Path, on: bool) -> bool:
     """Whether a project made from now on starts with this workspace's switches (each still changeable on the project)."""
-    path = Path(home) / FILE
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        data = {}
-    data[INHERIT] = bool(on)
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
-    tmp.replace(path)
+    _update(home, {INHERIT: bool(on)})
     return bool(on)
 
 
