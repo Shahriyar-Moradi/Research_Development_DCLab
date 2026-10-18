@@ -181,10 +181,23 @@ def brief(e: BusinessExample) -> dict[str, Any]:
     return out
 
 
+def practice_recall(examples: Iterable[BusinessExample], top: int = 3) -> dict[str, Any]:
+    """30.8: for every practice question, whether the search (which never indexes the questions) ranks its own example in the
+    first ``top`` among all the examples: the knowledge base's evaluation."""
+    examples = list(examples)
+    rows = []
+    for e in examples:
+        for q in e.practice:
+            ranked = [x.id for x, _ in search(examples, q.question, top)]
+            rows.append({"pattern": e.id, "question": q.question, "found": e.id in ranked,
+                         "rank": ranked.index(e.id) + 1 if e.id in ranked else None, "first": ranked[0] if ranked else None})
+    return {"questions": len(rows), "found": sum(r["found"] for r in rows), "top": top, "rows": rows}
+
+
 def for_model(examples: Iterable[BusinessExample]) -> list[BusinessExample]:
     """The examples a model may read: never a ``rules_only`` one (30.7). Every model reader goes through this."""
     return [e for e in examples if e.visibility == "model"]
 
 
 __all__ = ["Understanding", "ExampleSource", "Result", "Elsewhere", "Pattern", "Practice", "RecipeLink", "BusinessExample",
-           "tokens", "search", "brief", "for_model"]
+           "tokens", "search", "brief", "for_model", "practice_recall"]

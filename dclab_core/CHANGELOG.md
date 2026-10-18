@@ -4,6 +4,13 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.77.0 (2026-10-18)
+
+Package 30.8: pattern cards.
+
+- `business_examples.practice_recall(examples, top)`: for every practice question, whether the search (which never indexes the
+  questions) ranks its own example in the first ``top``: the knowledge base's evaluation, the same on every host.
+
 ## 0.76.0 (2026-10-18)
 
 Package 30.9: the retail returns replica.

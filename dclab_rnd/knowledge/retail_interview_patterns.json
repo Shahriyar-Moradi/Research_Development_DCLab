@@ -1,0 +1,969 @@
+{
+ "source": "docs/sources/2026-10_retail_interview/ml_problem_patterns.pdf",
+ "note": "The owner's eleven problem patterns (2026-10-14) from an interview with the AI lead of a large retail group in the Gulf, transcribed without anyone's name, internal tool name or brand; the raw transcript is not in this repository. Each pattern keeps the owner's card: what was said, the general problem, why it is hard, how to solve it, how to measure it, the common mistakes, the same problem elsewhere. The owner's rubric for every practice question: a strong answer names the metric, the validation split and the first simple baseline before any model (`rubric`); each question's further `names` are derived from its pattern's card by the transcriber, not written by the owner. The owner tags practice question 1 with patterns 1 and 2; it is filed under pattern 1.",
+ "patterns": [
+  {
+   "id": "pattern:01_fraud_no_labels",
+   "title": "Anomaly and fraud detection with no labels",
+   "problem": "We have millions of point-of-sale transactions from thousands of stores; staff copy a real bill and file a fake return late in the evening to take the money; our rules guess that about one bill in ten may be fake, but nobody knows which.",
+   "understanding": {
+    "unit": "One bill or return",
+    "target": "A return later confirmed fake",
+    "labels": "None at the start: business rules only",
+    "action": "Reviewers check the riskiest cases each day",
+    "family": "anomaly"
+   },
+   "said": "About 2,500 to 3,000 stores create millions of point-of-sale transactions. Staff copy a real bill and, after 11 p.m., file a fake return to take the money. Rules suggest about 10,000 of every 100,000 bills may be fake, but nobody knows which.",
+   "general_problem": "You have huge volumes of events, a few bad ones hidden inside, and no list of which are bad.",
+   "why_hard": [
+    "Without labels you cannot compute precision or recall, so you cannot tell if a model works.",
+    "Unusual is not the same as fraud: a big holiday sale is unusual but honest.",
+    "Fraudsters copy normal behaviour, so the strongest signal is often in relations (the same bill, the same cashier, the same hour), not in one row.",
+    "The fraud rate is low and changes when people learn they are being watched."
+   ],
+   "how_to_solve": [
+    "Profile the data: missing values, time patterns, per-store and per-cashier baselines.",
+    "Build features at the right level: per transaction, per cashier per shift, per store per day; most fraud shows up in aggregates.",
+    "Score with several unsupervised views: Isolation Forest for global outliers, an autoencoder's reconstruction error, rules as features, and peer comparison (this cashier against others in the same store).",
+    "Rank by risk and send the top cases to human reviewers; their answers become the first labels.",
+    "Once labels exist, move to a supervised model and keep the unsupervised score as one feature."
+   ],
+   "how_to_measure": [
+    "Precision at K: of the top 100 or 1,000 flagged cases, how many reviewers confirm.",
+    "Recall on a small random audit sample, the only honest way to estimate missed fraud.",
+    "Money recovered per reviewer hour."
+   ],
+   "mistakes": [
+    "Reporting accuracy: with 1% fraud, a model that flags nothing is 99% accurate.",
+    "Running DBSCAN on millions of rows: it does not scale; use a sample or HDBSCAN.",
+    "Splitting train and test randomly: split by time, and keep stores or cashiers apart when you can."
+   ],
+   "elsewhere": [
+    [
+     "banking",
+     "card and payment fraud; money-laundering patterns across accounts"
+    ],
+    [
+     "insurance",
+     "staged accidents, inflated claims"
+    ],
+    [
+     "telecom",
+     "SIM-box and subscription fraud"
+    ],
+    [
+     "healthcare",
+     "billing for services never given"
+    ],
+    [
+     "e-commerce",
+     "coupon abuse, return fraud, fake reviews"
+    ],
+    [
+     "logistics",
+     "fuel-card misuse, fake delivery proof"
+    ],
+    [
+     "manufacturing",
+     "abnormal machine readings"
+    ],
+    [
+     "travel",
+     "fake bookings, loyalty-point theft"
+    ]
+   ],
+   "recipe": {
+    "kind": "anomaly",
+    "modifiers": [
+     "no_target",
+     "review_capacity",
+     "groups",
+     "time_order"
+    ],
+    "capability": "built"
+   },
+   "replicas": [
+    "retail_returns",
+    "fraud_programme",
+    "delivery_fraud"
+   ],
+   "tags": [
+    "fraud",
+    "anomaly",
+    "no labels",
+    "retail",
+    "point of sale",
+    "returns",
+    "review queue"
+   ],
+   "industry": "retail"
+  },
+  {
+   "id": "pattern:02_labels_from_nothing",
+   "title": "Building a labelled dataset from nothing",
+   "problem": "We began with a dozen business rules and no labels; the loss-prevention team confirms cases and clustering finds similar ones, and our labels grew to tens of thousands. How do we train a model that learns the fraud and not our rules?",
+   "understanding": {
+    "unit": "One case reviewed",
+    "target": "Confirmed fraud",
+    "labels": "Mixed: rules, expert review and clustering, each a different quality",
+    "family": "rare_event"
+   },
+   "said": "The team began with 10 to 20 business rules and zero labels. The loss-prevention team confirmed real fraud cases, and k-means clustering found similar cases. Labels grew from 0 to about 20,000, then to about 70,000. The lead's view: good data solves 70 to 80% of the problem.",
+   "general_problem": "You need a supervised model, but labels are expensive because only experts can give them.",
+   "why_hard": [
+    "Rule-based labels copy the rules' blind spots: a model trained on them learns the rules, not the fraud.",
+    "Experts only review what you show them, so cases no rule flags never get a label.",
+    "Clustering spreads labels to neighbours, which also spreads mistakes."
+   ],
+   "how_to_solve": [
+    "Treat rules as noisy votes, not truth: weak supervision (for example Snorkel) combines many rules into one probability per case.",
+    "Use active learning: send experts the cases the model is least sure about, not only the highest scores.",
+    "Always add a small random sample to every review batch: it is the only way to find fraud the rules miss.",
+    "Record who labelled each case, when and from which source (rule, expert, cluster); weight sources by how reliable they prove to be.",
+    "Measure agreement between two reviewers on the same cases: low agreement means the label definition is unclear."
+   ],
+   "how_to_measure": [
+    "Model quality per 1,000 new labels (the learning curve).",
+    "Precision of each label source against expert-confirmed cases.",
+    "The share of confirmed fraud that no rule would have flagged."
+   ],
+   "mistakes": [
+    "Evaluating on labels made by the same rules the model was trained on: the score looks great and means nothing.",
+    "Mixing guessed labels (from clustering) with confirmed labels without marking which is which."
+   ],
+   "elsewhere": [
+    [
+     "healthcare",
+     "medical image labels that need doctors"
+    ],
+    [
+     "legal",
+     "document review"
+    ],
+    [
+     "media",
+     "content moderation"
+    ],
+    [
+     "banking",
+     "money-laundering alerts that need investigators"
+    ],
+    [
+     "manufacturing",
+     "defect labels in factory inspection"
+    ]
+   ],
+   "recipe": {
+    "kind": "binary",
+    "modifiers": [
+     "noisy_labels",
+     "rare_positives",
+     "review_capacity"
+    ],
+    "capability": "planned",
+    "package": "30.12"
+   },
+   "replicas": [
+    "retail_returns"
+   ],
+   "tags": [
+    "labels",
+    "weak supervision",
+    "active learning",
+    "audit sample",
+    "label source",
+    "noisy labels"
+   ],
+   "industry": "retail"
+  },
+  {
+   "id": "pattern:03_two_stage_screening",
+   "title": "Two-stage screening: high recall first, then high precision",
+   "problem": "We want to catch every fraud first and then cut the false alarms, with language models and similarity models in the middle of the pipeline; labelling is our bottleneck.",
+   "understanding": {
+    "unit": "One flagged case",
+    "target": "Confirmed fraud",
+    "labels": "Confirmed by reviewers, as many as the team can check each day",
+    "action": "A review team checks as many cases as it can each day",
+    "family": "rare_event"
+   },
+   "said": "The owner proposed aiming for high recall first (a lower threshold so no fraud is missed), then language and similarity models in the middle of the pipeline to filter cases and raise precision. The lead said this was very close to what they do, and that labelling is the main bottleneck.",
+   "general_problem": "Positive cases are rare and every check by a person is expensive: you need many cheap filters first and few expensive checks last.",
+   "why_hard": [
+    "High recall floods reviewers with false alarms, and the team can check only so many cases a day.",
+    "A case dropped at stage 1 is never seen again, so the final precision hides early misses."
+   ],
+   "how_to_solve": [
+    "Set the stage-1 threshold from a recall target on known fraud, then check that the volume fits review capacity.",
+    "Put cheap, exact checks next (near-duplicates and links) before anything expensive.",
+    "Use a language model to read notes and receipts and write a short case summary for reviewers; the decision stays with people and models.",
+    "If reviewers can check K cases a day, the review threshold is the score of the K-th case.",
+    "Calibrate scores so 0.8 really means about 80%, then rank by probability times money at risk, not by probability alone.",
+    "Every reviewed case becomes a label, fraud or genuine, with its source; every review batch carries a random audit sample; the labels train a supervised model, which becomes the new first stage (the loop)."
+   ],
+   "how_to_measure": [
+    "Recall of each stage on confirmed fraud.",
+    "Precision at K at review.",
+    "Review minutes per case, and money recovered per day."
+   ],
+   "mistakes": [
+    "Measuring only the last stage.",
+    "Letting the language model label cases as fraud by itself."
+   ],
+   "elsewhere": [
+    [
+     "banking",
+     "money-laundering alert queues"
+    ],
+    [
+     "healthcare",
+     "cancer screening: a cheap test, then a biopsy"
+    ],
+    [
+     "hiring",
+     "CV screening"
+    ],
+    [
+     "media",
+     "content moderation"
+    ],
+    [
+     "search",
+     "fast retrieval, then a slower re-ranker"
+    ]
+   ],
+   "recipe": {
+    "kind": "rare_event",
+    "modifiers": [
+     "review_capacity",
+     "rare_positives"
+    ],
+    "capability": "planned",
+    "package": "30.17"
+   },
+   "replicas": [
+    "retail_returns",
+    "fraud_programme"
+   ],
+   "tags": [
+    "cascade",
+    "screening",
+    "recall",
+    "precision at K",
+    "review capacity",
+    "threshold",
+    "calibration",
+    "case summary"
+   ],
+   "industry": "retail"
+  },
+  {
+   "id": "pattern:04_near_duplicates",
+   "title": "Finding near-duplicates and linked records",
+   "problem": "The fraud works by copying a real bill and using the copy for a fake return; how do we find the copies and the linked cases among millions of bills?",
+   "understanding": {
+    "unit": "A pair of records",
+    "target": "The same thing, or linked in a suspicious way",
+    "family": "matching"
+   },
+   "said": "The fraud works by copying a real bill and using the copy for a fake return. The owner suggested Siamese networks, which learn whether two items are the same or different.",
+   "general_problem": "Two records that look different are really the same thing, or are linked in a suspicious way.",
+   "why_hard": [
+    "Comparing every pair is impossible at scale: 1 million bills means about 500 billion pairs.",
+    "Copies are rarely exact: amounts, times or identifiers change slightly.",
+    "Many matches are honest: a real customer returning a real item."
+   ],
+   "how_to_solve": [
+    "Start with exact links that cost nothing: the same bill returned twice, a return linked to a bill from another store, a return processed by the cashier who made the sale.",
+    "Use blocking to cut the pairs: only compare records that share a store, a day or an amount range.",
+    "For fuzzy matches, turn each record into a vector and use nearest-neighbour search (for example FAISS).",
+    "If bills are scanned images, a Siamese or contrastive model can compare the images themselves.",
+    "Build a graph of cashier, customer, bill and return: rings of linked cases are often clearer than single cases."
+   ],
+   "how_to_measure": [
+    "Match precision and recall on a hand-checked set of pairs.",
+    "The number of fraud rings found that single-case scoring missed."
+   ],
+   "mistakes": [
+    "Jumping to a deep Siamese model when a SQL join on bill identifier and cashier would catch most cases."
+   ],
+   "elsewhere": [
+    [
+     "insurance",
+     "the same damage claimed twice with different photos"
+    ],
+    [
+     "healthcare",
+     "one patient under two record identifiers"
+    ],
+    [
+     "banking",
+     "one person behind many accounts"
+    ],
+    [
+     "telecom",
+     "re-registered customers who skip debt"
+    ],
+    [
+     "logistics",
+     "duplicate supplier invoices"
+    ],
+    [
+     "e-commerce",
+     "duplicate listings, reseller accounts"
+    ],
+    [
+     "travel",
+     "the same traveller in many loyalty accounts"
+    ],
+    [
+     "machine learning",
+     "near-duplicate images leaking between train and test sets"
+    ]
+   ],
+   "recipe": {
+    "kind": "matching",
+    "modifiers": [
+     "groups"
+    ],
+    "capability": "planned",
+    "package": "30.16"
+   },
+   "replicas": [
+    "retail_returns",
+    "shapes_and_notes"
+   ],
+   "tags": [
+    "near duplicates",
+    "record linkage",
+    "entity resolution",
+    "matching",
+    "blocking",
+    "rings",
+    "copied bills"
+   ],
+   "industry": "retail"
+  },
+  {
+   "id": "pattern:05_drift_in_production",
+   "title": "Running models in production over time",
+   "problem": "A model that scored well in testing gets worse in the real world; its precision dropped sharply on new data and nobody noticed for weeks.",
+   "understanding": {
+    "unit": "One scored case in production",
+    "target": "The model's live quality",
+    "labels": "Arrive late: a fraud case may be confirmed a month after the transaction"
+   },
+   "said": "The lead asked how well the owner owns deployment. The owner described building their own API, deploying on managed cloud services, monitoring with experiment trackers, blue-green releases, and precision dropping sharply on new data because of drift or hidden overfitting.",
+   "general_problem": "A model that scored well in testing gets worse in the real world, and often nobody notices for weeks.",
+   "why_hard": [
+    "True labels arrive late.",
+    "Three causes look the same from outside: data drift (inputs change), concept drift (what counts as fraud changes) and leakage or overfitting (the test score was never real).",
+    "In fraud, the people being caught change their behaviour on purpose."
+   ],
+   "how_to_solve": [
+    "Before launch, test on a later time period than training: if the score falls there, it will fall in production too.",
+    "Monitor what you can see at once: input distributions (PSI), the share of cases flagged, the score distribution.",
+    "Monitor what arrives late: precision on reviewed cases, recall on audit samples.",
+    "Release safely: shadow mode first (the new model scores but does not act), then a canary or blue-green switch with one-click rollback.",
+    "Retrain on a schedule and when drift alerts fire, and check the new version against the old one on the same recent data."
+   ],
+   "how_to_measure": [
+    "Time from drift to detection.",
+    "Time to roll back.",
+    "The gap between offline and live precision."
+   ],
+   "mistakes": [
+    "Watching only server metrics (latency, errors) and not model quality.",
+    "Retraining on the latest data without checking that the new model is actually better."
+   ],
+   "elsewhere": [
+    [
+     "banking",
+     "credit scoring after an interest-rate change"
+    ],
+    [
+     "retail",
+     "demand forecasts after a pandemic or a new competitor"
+    ],
+    [
+     "email",
+     "spam filters"
+    ],
+    [
+     "e-commerce",
+     "recommendation models after a catalogue change"
+    ],
+    [
+     "telecom",
+     "churn models after a new price plan"
+    ]
+   ],
+   "recipe": {
+    "modifiers": [
+     "drift",
+     "time_order"
+    ],
+    "capability": "planned",
+    "package": "30.15"
+   },
+   "replicas": [
+    "subscription_churn",
+    "retail_returns"
+   ],
+   "tags": [
+    "drift",
+    "monitoring",
+    "PSI",
+    "deployment",
+    "shadow mode",
+    "rollback",
+    "retraining"
+   ],
+   "industry": ""
+  },
+  {
+   "id": "pattern:06_why_did_it_change",
+   "title": "Ask-your-data BI and root-cause analysis",
+   "problem": "A brand head asks why their sales are down in one mall against last year; the answer must come in minutes, with the reason and not only the number.",
+   "understanding": {
+    "unit": "One metric for one segment and period",
+    "target": "Which factor moved the metric, and by how much",
+    "action": "A suggested action, such as personalised offers"
+   },
+   "said": "A conversational BI tool replaces fixed dashboards. A brand head asks why a brand's sales are down in one mall against last year. A language model selects (does not write) the right SQL, gets the data and explains it: footfall fell from about 1 million to about 800,000. The next step is action, such as personalised offers.",
+   "general_problem": "Business users want answers to new questions in minutes, without waiting for an analyst, and they want the reason, not just the number.",
+   "why_hard": [
+    "A wrong number that sounds confident is worse than no answer; free text-to-SQL often joins the wrong tables or uses the wrong date range.",
+    "Why needs a breakdown of the change, not one query.",
+    "Users ask about things the data cannot answer (for example competitor activity)."
+   ],
+   "how_to_solve": [
+    "Build a semantic layer first: approved metric definitions (sales, footfall, conversion) and approved joins.",
+    "Let the language model pick from tested query templates and fill in parameters; allow free SQL only behind validation.",
+    "For why questions, decompose the change: sales = footfall × conversion rate × average basket; show which factor moved and by how much.",
+    "Show the query, the data source and the date range under every answer so users can check it.",
+    "End with a suggested action and, later, measure whether the action helped."
+   ],
+   "how_to_measure": [
+    "Accuracy on a test set of real business questions with known answers.",
+    "The share of questions answered without an analyst.",
+    "Time to answer."
+   ],
+   "mistakes": [
+    "Stopping at footfall dropped without checking conversion and basket size.",
+    "Treating a correlation as the cause."
+   ],
+   "elsewhere": [
+    [
+     "banking",
+     "why did card spend drop in one region"
+    ],
+    [
+     "insurance",
+     "why did the loss ratio rise this quarter"
+    ],
+    [
+     "telecom",
+     "why did churn rise after the price change; network KPIs"
+    ],
+    [
+     "healthcare",
+     "why did readmissions rise in one hospital; bed occupancy"
+    ],
+    [
+     "e-commerce",
+     "why did conversion fall on mobile"
+    ],
+    [
+     "logistics",
+     "why are deliveries late in one city"
+    ],
+    [
+     "travel",
+     "why did bookings drop for one destination"
+    ],
+    [
+     "marketing",
+     "campaign results"
+    ]
+   ],
+   "recipe": {
+    "kind": "metric_change",
+    "capability": "planned",
+    "package": "30.20"
+   },
+   "replicas": [],
+   "tags": [
+    "business intelligence",
+    "root cause",
+    "metric decomposition",
+    "semantic layer",
+    "text to SQL",
+    "why did sales drop"
+   ],
+   "industry": "retail"
+  },
+  {
+   "id": "pattern:07_secure_llm_platform",
+   "title": "A secure internal LLM platform",
+   "problem": "Our staff want strong AI models to chat, upload files and run analyses, but we cannot send customer or financial data to public tools.",
+   "understanding": {
+    "unit": "One question or analysis by one employee"
+   },
+   "said": "The company built its own chat tool on a cloud provider's managed model service. Staff can chat, upload files and run analyses, with access to several models including frontier ones. All inference runs inside the company's own cloud setup, so data stays with them.",
+   "general_problem": "Employees want strong AI models, but the company cannot send customer or financial data to public tools.",
+   "why_hard": [
+    "Security is more than hosting: who can see which files, and can one user's upload leak into another's answer?",
+    "Uploaded files bring problems: large spreadsheets, scanned PDFs, and hidden instructions inside documents (prompt injection).",
+    "Costs grow fast once thousands of staff use it, and nobody knows which use is worth it."
+   ],
+   "how_to_solve": [
+    "Put one gateway in front of all models: login, per-team access rules, logging, cost per team, and model choice.",
+    "Route by task: a small, cheap model for simple questions, a frontier model for hard ones.",
+    "For file analysis, run real code on the data in a sandbox instead of asking the model to guess numbers from text.",
+    "Mask personal data before it reaches the model, and keep audit logs of what was asked and answered.",
+    "Track usage per department so the next AI projects go where people already find value."
+   ],
+   "how_to_measure": [
+    "Weekly active users.",
+    "Cost per useful answer.",
+    "Security incidents (target zero).",
+    "User-rated answer quality."
+   ],
+   "mistakes": [
+    "Treating hosted in our cloud as the whole security story.",
+    "Letting the model compute numbers in its head instead of in code."
+   ],
+   "elsewhere": [
+    [
+     "banking",
+     "banks and insurers with strict regulators"
+    ],
+    [
+     "healthcare",
+     "hospitals with patient records"
+    ],
+    [
+     "legal",
+     "law firms"
+    ],
+    [
+     "government",
+     "government agencies"
+    ],
+    [
+     "any",
+     "any company under data-residency laws such as the UAE's"
+    ]
+   ],
+   "recipe": {
+    "capability": "knowledge"
+   },
+   "replicas": [],
+   "tags": [
+    "LLM gateway",
+    "governance",
+    "data residency",
+    "prompt injection",
+    "cost per team",
+    "sandbox"
+   ],
+   "industry": ""
+  },
+  {
+   "id": "pattern:08_department_agents",
+   "title": "Department agents that act on company data",
+   "problem": "Finance, merchandising and pricing each want an assistant that does not only answer questions but takes steps: pulls reports, proposes prices, drafts orders.",
+   "understanding": {
+    "unit": "One action an agent proposes",
+    "action": "A person approves, or the agent acts within hard limits"
+   },
+   "said": "A finance agent, a merchandising agent and a pricing agent are in the pipeline. The goal is to put AI into every department.",
+   "general_problem": "Each department wants an assistant that does not only answer questions but takes steps: pulls reports, proposes prices, drafts orders.",
+   "why_hard": [
+    "An agent that changes a price or an order can lose real money in one mistake.",
+    "Each department has its own data, rules and vocabulary, so one general agent does poorly.",
+    "Long multi-step tasks fail quietly: step 7 uses a wrong number from step 2."
+   ],
+   "how_to_solve": [
+    "Start each agent read-only: it answers and recommends, a person approves.",
+    "Give it narrow, typed tools (get_sales(store, period), propose_price(sku, new_price)) instead of open database access.",
+    "Put hard limits in code, not in the prompt: maximum price change, budget caps, approval above a set amount.",
+    "Let the numbers come from models and rules (forecast, price elasticity); the language model explains and organises.",
+    "Log every step, so any action can be traced and undone.",
+    "Allow automatic action only for low-risk decisions the agent has already got right many times."
+   ],
+   "how_to_measure": [
+    "The share of recommendations accepted by staff.",
+    "Money impact against a control group.",
+    "Error rate.",
+    "Hours saved per week."
+   ],
+   "mistakes": [
+    "Letting the language model decide prices directly.",
+    "Building ten agents at once instead of making one reliable first."
+   ],
+   "elsewhere": [
+    [
+     "insurance",
+     "claims-handling and claims-triage agents"
+    ],
+    [
+     "banking",
+     "credit-review assistants"
+    ],
+    [
+     "logistics",
+     "route-planning and dispatch agents"
+    ],
+    [
+     "healthcare",
+     "coding and billing assistant"
+    ],
+    [
+     "travel",
+     "revenue-management agents (hotels and airlines)"
+    ],
+    [
+     "manufacturing",
+     "procurement agents"
+    ],
+    [
+     "telecom",
+     "retention-offer agents"
+    ],
+    [
+     "e-commerce",
+     "pricing and promotion agents"
+    ]
+   ],
+   "recipe": {
+    "capability": "knowledge"
+   },
+   "replicas": [],
+   "tags": [
+    "agents",
+    "typed tools",
+    "guardrails",
+    "approval",
+    "audit",
+    "pricing agent"
+   ],
+   "industry": "retail"
+  },
+  {
+   "id": "pattern:09_simplest_tool",
+   "title": "Choosing the simplest tool that works",
+   "problem": "Every request arrives as we need AI, but some are plain automation where OCR and a Python script are enough, and others need small or frontier language models.",
+   "understanding": {
+    "unit": "One request from a business team"
+   },
+   "said": "Business teams bring many requests. Some are plain automation where OCR and Python are enough. Others need language models, either small language models or frontier models.",
+   "general_problem": "Every request arrives as we need AI, but the right answer ranges from a script to a large model.",
+   "why_hard": [
+    "A complex solution looks impressive in a demo but costs more, breaks more often and is harder to explain.",
+    "A too-simple one fails on messy real inputs."
+   ],
+   "how_to_solve": [
+    "Ask in order and stop at the first yes: is the input fixed and the rule clear? a script or rules (moving data between two systems).",
+    "Is the text printed in a fixed layout? OCR and templates (standard supplier invoices).",
+    "Is it a prediction from table data with labels? classical machine learning, gradient boosting or logistic regression (churn, demand, fraud score).",
+    "Is it a narrow language task with many examples? a small or fine-tuned model (ticket routing, field extraction).",
+    "Does it need reasoning over messy, varied input? a frontier model (contract review, open questions)."
+   ],
+   "how_to_measure": [
+    "Cost per task.",
+    "Accuracy on a fixed test set.",
+    "Time to build; compare the chosen tool with the next simpler one."
+   ],
+   "mistakes": [
+    "Using a language model to do arithmetic or exact lookups.",
+    "Never testing whether a simpler method was already good enough."
+   ],
+   "elsewhere": [
+    [
+     "banking",
+     "the same triage in banks"
+    ],
+    [
+     "healthcare",
+     "hospitals"
+    ],
+    [
+     "travel",
+     "airlines"
+    ],
+    [
+     "government",
+     "government teams with a queue of requests"
+    ]
+   ],
+   "recipe": {
+    "capability": "planned",
+    "package": "30.14"
+   },
+   "replicas": [],
+   "tags": [
+    "triage",
+    "approach level",
+    "rules",
+    "OCR",
+    "classical machine learning",
+    "small language model",
+    "frontier model"
+   ],
+   "industry": ""
+  },
+  {
+   "id": "pattern:10_data_foundation",
+   "title": "One shared data foundation for the whole company",
+   "problem": "A group with many brands, stores and systems wants one trusted place where every AI project can find clean, linked data, within a year or a year and a half.",
+   "understanding": {
+    "unit": "One table or entity across systems"
+   },
+   "said": "The long-term vision is a company-wide brain: a platform collecting all company data, with a target of 12 to 18 months.",
+   "general_problem": "A group with many brands, stores and systems wants one trusted place where every AI project can find clean, linked data.",
+   "why_hard": [
+    "The same customer, product or store has different identifiers in different systems.",
+    "Each brand defines metrics differently (what counts as a sale after a return?).",
+    "Big platform projects often take years before any user sees value."
+   ],
+   "how_to_solve": [
+    "Build it through real use cases: each project adds the tables it needs, cleaned and documented, so value arrives every few months.",
+    "Agree on shared identifiers and metric definitions early, and record them in a catalog.",
+    "Resolve entities: link the same customer or product across systems with rules plus matching models.",
+    "Keep history: store data as it was at each point in time, so models can be trained without future information.",
+    "Add data-quality checks and an owner for every important table."
+   ],
+   "how_to_measure": [
+    "Time for a new AI project to get usable data.",
+    "The share of key tables with an owner and quality checks.",
+    "The number of projects reusing the same tables."
+   ],
+   "mistakes": [
+    "Collecting everything first and planning use later.",
+    "Overwriting old values, which makes honest backtesting impossible."
+   ],
+   "elsewhere": [
+    [
+     "banking",
+     "bank groups with many products"
+    ],
+    [
+     "healthcare",
+     "hospital networks"
+    ],
+    [
+     "travel",
+     "airline groups with loyalty programmes"
+    ],
+    [
+     "telecom",
+     "operators across countries"
+    ],
+    [
+     "conglomerates",
+     "groups after acquisitions"
+    ]
+   ],
+   "recipe": {
+    "capability": "knowledge"
+   },
+   "replicas": [],
+   "tags": [
+    "data platform",
+    "catalog",
+    "entity resolution",
+    "point in time",
+    "data quality",
+    "metric definitions"
+   ],
+   "industry": ""
+  },
+  {
+   "id": "pattern:11_many_projects",
+   "title": "Delivering many AI projects fast",
+   "problem": "Our small AI team deployed five or six projects in six months and has about fifteen in the pipeline for the next six; engineers also act as product managers who talk directly with the business.",
+   "understanding": {
+    "unit": "One requested project"
+   },
+   "said": "The team deployed 5 or 6 projects in the last 6 months and has about 15 in the pipeline for the next 6. Expectations are high, and engineers also act as product managers who talk directly with the business.",
+   "general_problem": "A small AI team must roughly triple its output without lowering quality.",
+   "why_hard": [
+    "Every project is built from scratch, so each new one costs as much as the last.",
+    "Projects that are shipped but not used still take maintenance time."
+   ],
+   "how_to_solve": [
+    "Score every request on value, data readiness, effort and risk, and say no or later to the rest.",
+    "Reuse shared parts: one LLM gateway, one feature store, one deployment and monitoring setup, one evaluation harness.",
+    "Agree on a success number with the business owner before building, such as reviewer hours per confirmed fraud case.",
+    "Ship a small first version within weeks and measure real usage.",
+    "Retire projects nobody uses, to free the team."
+   ],
+   "how_to_measure": [
+    "Time from request to first live version.",
+    "The share of projects with a measured business result.",
+    "The share of projects still in use after 3 months."
+   ],
+   "mistakes": [
+    "Counting projects shipped instead of value delivered.",
+    "Starting all 15 at once."
+   ],
+   "elsewhere": [
+    [
+     "any",
+     "every central AI or data team in a large company; the exact pain DCLab aims at: less time per machine-learning project"
+    ]
+   ],
+   "recipe": {
+    "capability": "knowledge"
+   },
+   "replicas": [],
+   "tags": [
+    "portfolio",
+    "prioritisation",
+    "reuse",
+    "success metric",
+    "AI team"
+   ],
+   "industry": ""
+  }
+ ],
+ "practice": [
+  {
+   "pattern": "pattern:01_fraud_no_labels",
+   "question": "An insurer has 2 million claims and no fraud labels. How do you find the first 500 cases worth reviewing, and how do you know your list is better than the current rules?",
+   "names": [
+    "the metric",
+    "the validation split",
+    "the first simple baseline before any model",
+    "precision at K on reviewed cases",
+    "recall on a random audit sample",
+    "a split by time, keeping groups apart",
+    "the current rules as the baseline"
+   ]
+  },
+  {
+   "pattern": "pattern:02_labels_from_nothing",
+   "question": "You have 70,000 labels, but 60,000 came from rules. How do you train and test so the model learns fraud and not the rules?",
+   "names": [
+    "the metric",
+    "the validation split",
+    "the first simple baseline before any model",
+    "evaluation on expert-confirmed labels only",
+    "the label source recorded per case",
+    "the share of confirmed fraud no rule flagged",
+    "rules as noisy votes, not truth"
+   ]
+  },
+  {
+   "pattern": "pattern:03_two_stage_screening",
+   "question": "Your fraud model must catch at least 95% of fraud, but the review team can check only 300 cases a day. How do you set the threshold?",
+   "names": [
+    "the metric",
+    "the validation split",
+    "the first simple baseline before any model",
+    "the recall target on known fraud for stage 1",
+    "the review threshold at the 300th score",
+    "recall per stage",
+    "calibration before ranking by money at risk"
+   ]
+  },
+  {
+   "pattern": "pattern:04_near_duplicates",
+   "question": "A bank suspects one person runs 40 accounts. How do you find linked accounts among 5 million without comparing every pair?",
+   "names": [
+    "the metric",
+    "the validation split",
+    "the first simple baseline before any model",
+    "exact links first",
+    "blocking",
+    "nearest-neighbour search on embeddings",
+    "match precision and recall on hand-checked pairs"
+   ]
+  },
+  {
+   "pattern": "pattern:05_drift_in_production",
+   "question": "Your model's precision fell from 0.80 to 0.55 in one month. Walk through how you decide between data drift, concept drift and leakage.",
+   "names": [
+    "the metric",
+    "the validation split",
+    "the first simple baseline before any model",
+    "a later-period test before launch",
+    "input distributions (PSI) and the flagged share",
+    "precision on reviewed cases and recall on audit samples",
+    "the new model against the old one on the same recent data"
+   ]
+  },
+  {
+   "pattern": "pattern:06_why_did_it_change",
+   "question": "A manager asks the chatbot: why did revenue fall 12% in Q3? What must happen before the answer is shown?",
+   "names": [
+    "the metric",
+    "the validation split",
+    "the first simple baseline before any model",
+    "approved metric definitions and joins",
+    "a tested query template",
+    "the change decomposed into its factors",
+    "the query, source and date range shown"
+   ]
+  },
+  {
+   "pattern": "pattern:08_department_agents",
+   "question": "A pricing agent suggests a 30% discount on 2,000 products. What stops it from being applied automatically?",
+   "names": [
+    "the metric",
+    "the validation split",
+    "the first simple baseline before any model",
+    "read-only first, a person approves",
+    "hard limits in code",
+    "every step logged and undoable",
+    "automatic only for proven low-risk decisions"
+   ]
+  },
+  {
+   "pattern": "pattern:09_simplest_tool",
+   "question": "Three teams each ask for an AI solution for invoices, emails and demand planning. Which tool fits each, and why?",
+   "names": [
+    "the metric",
+    "the validation split",
+    "the first simple baseline before any model",
+    "OCR and templates for fixed-layout invoices",
+    "a small tuned model for a narrow email task",
+    "classical machine learning for demand from tables",
+    "a comparison with the next simpler tool"
+   ]
+  },
+  {
+   "pattern": "pattern:10_data_foundation",
+   "question": "Your company has the same customer in 4 systems with different identifiers. How do you build one customer view without breaking existing reports?",
+   "names": [
+    "the metric",
+    "the validation split",
+    "the first simple baseline before any model",
+    "shared identifiers in a catalog",
+    "entity resolution with rules plus matching",
+    "history kept as it was at each date",
+    "an owner and quality checks per table"
+   ]
+  },
+  {
+   "pattern": "pattern:11_many_projects",
+   "question": "You have 15 requested projects and capacity for 5. How do you choose, and what do you reuse?",
+   "names": [
+    "the metric",
+    "the validation split",
+    "the first simple baseline before any model",
+    "value, data readiness, effort and risk scored",
+    "a success number agreed before building",
+    "shared gateway, deployment and evaluation reused",
+    "projects nobody uses retired"
+   ]
+  }
+ ],
+ "rubric": [
+  "the metric",
+  "the validation split",
+  "the first simple baseline before any model"
+ ]
+}

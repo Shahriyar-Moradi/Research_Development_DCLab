@@ -202,6 +202,12 @@ Designed in detail once Part E is built; each keeps DCLab's rules (the validator
   earlier hours in the last three months. Every trap bites on seeds 0 to 2 and no returns column alone reaches 0.85 of ROC-AUC
   (0.74 to 0.78) while the cross-table link does better (0.84 to 0.91). Left for 30.11: the replica through the engine, its
   journeys people and a sealed set.
+- **30.8 built (2026-10-18), the review's 8 findings fixed:** the owner's eleven problem patterns as business examples
+  (`dclab_rnd/knowledge/retail_interview_patterns.json`, no person's name, brand or internal tool: a hashed list checks it), each
+  with its recipe link (built, planned in a named package, or knowledge), the cross-industry table whole for patterns 1, 4, 6 and 8,
+  and the ten practice questions with the owner's rubric (the metric, the validation split, the first simple baseline);
+  `dclab_core.business_examples.practice_recall` (0.77.0): 10 of 10 questions find their own pattern first among 49 examples, the
+  questions never indexed. Left: paraphrases by an independent writer (30.18), the easy test being one author's.
 
 ---
 

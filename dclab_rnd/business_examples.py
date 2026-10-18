@@ -3,7 +3,8 @@
 Built from what the repository already knows, each example with its source: every research track's prediction contract
 and champion (``research/<track>/README.md`` and ``INDEX.md``), every replica's problem and the traps it plants
 (``dclab_core/replicas``: the docstring a careful data scientist wrote for it), the owner's own fraud solution (its
-README's results, when the folder is beside this one), and the examples written from public knowledge in
+README's results, when the folder is beside this one; read by the rules only), the owner's problem patterns from their
+retail interview (``dclab_rnd/knowledge/retail_interview_patterns.json``, 30.8), and the examples written from public knowledge in
 ``dclab_rnd/knowledge/written_examples.json`` (marked ``written``: never a record of a run). Written to
 ``evidence/business_examples/examples.jsonl`` with its ``MANIFEST.json``; ``find(words)`` returns the closest for a
 person's words. A role reads them as context only once an arm of the journeys measured it better (30.5's gate).
@@ -20,11 +21,13 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
-from dclab_core.business_examples import BusinessExample, ExampleSource, Result, Understanding, brief, for_model, search
+from dclab_core.business_examples import (BusinessExample, Elsewhere, ExampleSource, Pattern, Practice, RecipeLink, Result, Understanding, brief,
+                                          for_model, practice_recall, search)
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "evidence" / "business_examples"
 WRITTEN = ROOT / "dclab_rnd" / "knowledge" / "written_examples.json"
+PATTERNS = ROOT / "dclab_rnd" / "knowledge" / "retail_interview_patterns.json"  # 30.8: the owner's eleven problem patterns
 SNAP = ROOT.parent / "Snap_fruad" / "README.md"
 
 FAMILY = {"binary": "classification", "multiclass": "classification", "regression": "regression", "stream": "streams",
@@ -137,6 +140,28 @@ def from_owner_fraud() -> list[BusinessExample]:
                             visibility="rules_only")]  # 30.7: the owner's private data: the rules read it, a model never does
 
 
+def from_owner_documents(path: Path = PATTERNS) -> list[BusinessExample]:
+    """30.8: the owner's problem patterns from their retail interview (the owner's own document, transcribed without anyone's
+    name), each with its practice questions and the recipe it maps to."""
+    if not path.is_file():
+        return []
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    practice: dict[str, list[Practice]] = {}
+    for q in doc.get("practice") or []:
+        practice.setdefault(q["pattern"], []).append(Practice(question=q["question"], names=q.get("names") or []))
+    out = []
+    for p in doc["patterns"]:
+        pattern = Pattern(said=p.get("said"), general_problem=p.get("general_problem"), why_hard=p.get("why_hard") or [],
+                          how_to_solve=p.get("how_to_solve") or [], how_to_measure=p.get("how_to_measure") or [],
+                          elsewhere=[Elsewhere(industry=i, case=c) for i, c in p.get("elsewhere") or []])
+        out.append(BusinessExample(id=p["id"], title=p["title"], industry=p.get("industry", ""), problem=p["problem"],
+                                   understanding=Understanding(**(p.get("understanding") or {})), pitfalls=p.get("mistakes") or [],
+                                   pattern=pattern, practice=practice.get(p["id"], []), recipe=RecipeLink(**(p.get("recipe") or {})),
+                                   replicas=p.get("replicas") or [], source=ExampleSource(kind="owner_document", ref=f"{doc['source']}#{p['id']}"),
+                                   tags=["pattern", *(p.get("tags") or [])][:20]))
+    return out
+
+
 def from_written() -> list[BusinessExample]:
     if not WRITTEN.is_file():
         return []
@@ -145,7 +170,7 @@ def from_written() -> list[BusinessExample]:
 
 
 def build(out: Path = OUT) -> dict[str, Any]:
-    examples = [*from_tracks(), *from_replicas(), *from_owner_fraud(), *from_written()]
+    examples = [*from_tracks(), *from_replicas(), *from_owner_fraud(), *from_owner_documents(), *from_written()]
     out.mkdir(parents=True, exist_ok=True)
     lines = "".join(e.model_dump_json() + "\n" for e in examples)
     (out / "examples.jsonl").write_text(lines, encoding="utf-8")
@@ -177,7 +202,14 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.business_examples", description=__doc__.split("\n")[0])
     parser.add_argument("--find", default=None, help="print the closest examples for these words")
+    parser.add_argument("--practice", action="store_true", help="30.8: does the search find each practice question's own pattern")
     args = parser.parse_args(argv)
+    if args.practice:
+        found = practice_recall(load())
+        for r in found["rows"]:
+            print(f"{'found' if r['found'] else 'MISSED':6} rank {r['rank'] or '-'}  {r['pattern']:34} first: {r['first']}")
+        print(f"{found['found']} of {found['questions']} practice questions find their own pattern in the first {found['top']}")
+        return 0
     if args.find:
         print(json.dumps(find(args.find), indent=1, ensure_ascii=False))
         return 0

@@ -726,6 +726,13 @@ request path; it is a data generator. A team that pretrains or evaluates an in-c
 or reads DCLab's corpus (`make priors`, `lake/bronze/priors/priors_v1/`); `params.effects_shown` marks the tables whose shown
 features include the outcome's effects, for a team that wants none.
 
+## Pattern cards and their evaluation (30.8, dclab-core 0.77.0)
+
+The library's: `dclab_core.business_examples.practice_recall`. Where it goes there: the main product can measure its own
+examples the same way (practice questions kept out of the index, each expected to find its own example); the owner's eleven
+patterns themselves live in the studio's knowledge folder (`dclab_rnd/knowledge/retail_interview_patterns.json`) and reach the
+main product as business examples, read through `for_model` like any other.
+
 ## The retail returns replica (30.9, dclab-core 0.76.0)
 
 The library's: `dclab_core.replicas.retail_returns`. Where it goes there: the main product's acceptance cases for fraud and

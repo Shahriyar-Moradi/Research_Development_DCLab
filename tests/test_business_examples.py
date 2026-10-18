@@ -111,5 +111,75 @@ class WhatAModelMayReadTests(unittest.TestCase):
         self.assertEqual(lines(out), lines(kb.OUT), "run: make business-examples")
 
 
+
+class PatternCardTests(unittest.TestCase):
+    """30.8: the owner's eleven problem patterns from their retail interview, each with its recipe and practice questions."""
+
+    # SHA-256 (first 16 hex) of the names, brands and internal tools of the interview that must never appear in the
+    # knowledge base: the tokens themselves are not written here (the review of 30.8)
+    FORBIDDEN = {"94574690588bc3af", "f4d25158ccdd82c2", "7722aba40e28d98f", "630471bc17c69d0b", "860731b8f5d6db7c", "646b1045ad1e5259",
+                 "6543723a48ab585d", "2d7f45d7b98b427f", "8bd8f9ff7afbfeb4", "77dc08c272fd3be2", "48017af3b98b07bc", "6bd455f33de782ba",
+                 "b15df7b65fa45a57"}
+    INDUSTRIES = {"banking", "insurance", "telecom", "healthcare", "e-commerce", "logistics", "travel"}
+
+    @classmethod
+    def setUpClass(cls):
+        cls.patterns = kb.from_owner_documents()
+
+    def test_eleven_patterns_each_linking_a_recipe_or_saying_it_is_knowledge(self):
+        from dclab_rnd import kinds
+
+        self.assertEqual(len(self.patterns), 11)
+        plan = (ROOT / "docs" / "guides" / "PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md").read_text(encoding="utf-8")
+        built = {k.key for k in kinds.all_kinds()}
+        replicas = {p.stem for p in (ROOT / "dclab_core" / "replicas").glob("*.py") if p.stem != "__init__"}
+        for e in self.patterns:
+            self.assertEqual((e.source.kind, e.visibility), ("owner_document", "model"), e.id)
+            self.assertTrue(e.pattern.general_problem and e.pattern.how_to_solve and e.pattern.how_to_measure and e.pitfalls, e.id)
+            self.assertTrue((ROOT / e.source.ref.split("#")[0]).is_file(), e.source.ref)  # the owner's document is in the repository
+            link = e.recipe
+            if link.capability == "built":
+                self.assertIn(link.kind, built, e.id)
+            elif link.capability == "planned":
+                self.assertIn(f"| {link.package} |", plan, e.id)  # a planned capability names the package that builds it
+                self.assertTrue(link.kind not in built or link.modifiers, e.id)  # what is planned: a new kind, or the modifiers on a built one
+            else:
+                self.assertEqual((link.kind, link.package), (None, None), e.id)
+            self.assertEqual(set(e.replicas) - replicas, set(), e.id)  # every replica it names exists
+        self.assertEqual(sum(len(e.practice) for e in self.patterns), 10)
+
+    def test_the_cross_industry_table_is_whole(self):
+        by_id = {e.id: e for e in self.patterns}
+        for pid in ("pattern:01_fraud_no_labels", "pattern:04_near_duplicates", "pattern:06_why_did_it_change", "pattern:08_department_agents"):
+            self.assertLessEqual(self.INDUSTRIES, {x.industry for x in by_id[pid].pattern.elsewhere}, pid)
+        self.assertEqual({e.id for e in self.patterns if not e.industry},  # the owner: these are not tied to an industry
+                         {"pattern:05_drift_in_production", "pattern:07_secure_llm_platform", "pattern:09_simplest_tool",
+                          "pattern:10_data_foundation", "pattern:11_many_projects"})
+
+    def test_every_practice_question_carries_the_owners_rubric(self):
+        for e in self.patterns:
+            for q in e.practice:
+                self.assertEqual(q.names[:3], ["the metric", "the validation split", "the first simple baseline before any model"], q.question)
+
+    def test_the_search_finds_each_practice_questions_own_pattern(self):
+        from dclab_core.business_examples import practice_recall
+
+        found = practice_recall(kb.from_tracks() + kb.from_replicas() + self.patterns + kb.from_written(), top=3)
+        self.assertEqual(found["found"], found["questions"], [r for r in found["rows"] if not r["found"]])
+
+    def test_no_name_brand_or_internal_tool_and_no_conversation_reaches_a_model(self):
+        import hashlib
+        import re
+
+        text = (ROOT / "dclab_rnd" / "knowledge" / "retail_interview_patterns.json").read_text(encoding="utf-8").lower()
+        words = re.findall(r"[a-z]+", text)
+        grams = set(words) | {f"{a} {b}" for a, b in zip(words, words[1:])}
+        hashed = {hashlib.sha256(g.encode()).hexdigest()[:16] for g in grams}
+        self.assertEqual(hashed & self.FORBIDDEN, set())
+        shown = json.dumps(kb.context_for_model(self.patterns, "fraud returns labels drift agents data platform projects tools", 11))
+        for e in self.patterns:
+            self.assertNotIn(e.pattern.said, shown, e.id)  # what was said stays out of a model's context
+
+
 if __name__ == "__main__":
     unittest.main()

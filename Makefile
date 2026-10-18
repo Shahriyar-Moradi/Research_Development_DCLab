@@ -390,7 +390,7 @@ collect:  ## 25.11: the owner pulls the records repository (RECORDS= its clone) 
 harness-eval:  ## 21.5: the regression cases (the owner's morning first), accepted session cases (ARGS="--home DIR") and the dev journeys, graded step by step; a change to a prompt, a model or a gate is on only after it passes
 	$(if $(findstring --live,$(ARGS)),,DCLAB_NO_LIVE_MODELS=1) $(PYTHON) -m dclab_rnd.agent_eval.regression $(ARGS)
 
-business-examples:  ## 30.5: the business-examples knowledge base (tracks, replicas, the owner's solution, written examples), each with its source; ARGS="--find 'words'" searches it
+business-examples:  ## 30.5: the business-examples knowledge base (tracks, replicas, the owner's solution, written examples), each with its source; ARGS="--find 'words'" searches it; ARGS=--practice measures the search on the practice questions (30.8)
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.business_examples $(ARGS)
 
 lake:  ## 26.1: the training lake: bronze (inputs and hashes), silver (every source normalised, redacted), gold (one set per decision point and task family, checked); manifest in research/llm-fine-tuning/experiments/lake/

@@ -1,0 +1,134 @@
+{
+ "package": "30.8",
+ "title": "Pattern cards: the owner's eleven problem patterns from a retail interview, each with its recipe and practice questions",
+ "date": "2026-10-18",
+ "request": "Phase 8, Part C (the owner): better and real business examples with a lot of knowledge the agents can use, from the problems a retail group's AI lead described in an interview.",
+ "spec": "docs/guides/PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md, package 30.8",
+ "plan": [
+  "Transcribe the owner's eleven problem cards into the knowledge base's v2 shape: what was said, the general problem, why it is hard, how to solve and measure it, the common mistakes, the same problem in other industries.",
+  "Link each pattern to the recipe it maps to: built today, planned in a named package, or knowledge only.",
+  "Attach the ten practice questions to their patterns and measure whether the search finds each question's own pattern."
+ ],
+ "decisions": [
+  {
+   "decision": "The patterns are written without anyone's name, internal tool name or brand, and the conversation itself is kept only in the field a model never reads.",
+   "why": "The owner decided that a model reads patterns, not people; the raw transcript stays in the owner's own folder."
+  },
+  {
+   "decision": "The common mistakes go into the example's pitfalls, where every role already looks, rather than a second list.",
+   "why": "The roles and the replicas already read pitfalls; one list avoids two copies of the same text."
+  },
+  {
+   "decision": "The cross-industry cases are kept on each pattern, not as separate thin examples.",
+   "why": "A case of one line has nothing a role can use on its own; on the pattern it lets a person's words from another industry find the pattern."
+  }
+ ],
+ "change": "dclab_rnd/knowledge/retail_interview_patterns.json (the eleven patterns, the ten practice questions, the owner's rubric); dclab_core.business_examples.practice_recall (dclab-core 0.77.0); dclab_rnd/business_examples.py (from_owner_documents, --practice); tests/test_business_examples.py (PatternCardTests); evidence/business_examples rebuilt.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The cross-industry table was incomplete and misfiled.",
+   "scenario": "Filtering the patterns by industry, healthcare and travel never showed the department agents, nor logistics the near-duplicates.",
+   "cause": "Two industries were renamed in transcription and one row of the owner's table was left out.",
+   "fix": "The table's cases filed under the owner's seven industries, the missing one added; a test that patterns 1, 4, 6 and 8 cover all seven.",
+   "test": "test_the_cross_industry_table_is_whole"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Pattern 9 lost the owner's example for each rung of the ladder.",
+   "scenario": "Practice question 8 (invoices, emails, demand planning) is answered by those examples, and the card no longer held them.",
+   "cause": "The examples column of the owner's table was not transcribed.",
+   "fix": "Each rung carries its example (moving data between systems, standard supplier invoices, churn and demand, ticket routing, contract review).",
+   "test": "test_eleven_patterns_each_linking_a_recipe_or_saying_it_is_knowledge"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Pattern 3 lost the audit sample and the label source of the owner's cascade.",
+   "scenario": "30.17 builds that cascade from the card, which never said each review batch carries a random audit sample.",
+   "cause": "The diagram's fifth and sixth stages were summarised away.",
+   "fix": "The card says every reviewed case keeps its source, every batch carries a random audit sample, and the trained model becomes the new first stage.",
+   "test": "test_eleven_patterns_each_linking_a_recipe_or_saying_it_is_knowledge"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The practice questions' criteria were the transcriber's, filed as the owner's.",
+   "scenario": "A grader in 30.18 would judge answers by criteria the owner did not write; four questions named no split or baseline.",
+   "cause": "The owner's one rubric (the metric, the validation split, the first simple baseline) was replaced by per-question picks.",
+   "fix": "The owner's rubric heads every question's list, and the note says the rest is derived from the card.",
+   "test": "test_every_practice_question_carries_the_owners_rubric"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The recipe-link test passed with a misspelt kind or a missing replica.",
+   "scenario": "A pattern marked built with a kind that does not exist, or naming a replica no module provides, passed.",
+   "cause": "The test checked only that a planned package appears in the plan.",
+   "fix": "Built kinds must be in the registry, planned ones name a new kind or modifiers, knowledge links carry none, and every replica named exists.",
+   "test": "test_eleven_patterns_each_linking_a_recipe_or_saying_it_is_knowledge"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The name test checked nothing in the gate and never checked brands or tools.",
+   "scenario": "In the gate's clean worktree the owner's folder is absent, so the test read no names and a brand put into a field passed.",
+   "cause": "The names were read from a folder outside the repository.",
+   "fix": "The test hashes every word and pair of words of the patterns against committed hashes of the forbidden names, brands and tools, and checks every pattern's conversation stays out of a model's context.",
+   "test": "test_no_name_brand_or_internal_tool_and_no_conversation_reaches_a_model"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The knowledge base's evaluation lived where the main product cannot import it.",
+   "scenario": "The main product could not measure its own examples the same way.",
+   "cause": "practice_recall was written in the studio's package.",
+   "fix": "practice_recall moved into dclab_core (0.77.0), with its integration note.",
+   "test": "test_the_search_finds_each_practice_questions_own_pattern"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Wording departed from the owner's document.",
+   "scenario": "Five patterns the owner calls industry-free were filed under retail; a near-duplicate case was shown as a mistake; data-residency laws were limited to governments.",
+   "cause": "Transcription choices made without checking the source page.",
+   "fix": "Industry left empty for those five, the case moved to the other industries, the laws applied to any company, the review capacity in the owner's words.",
+   "test": "test_the_cross_industry_table_is_whole"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "practice questions against the search (30.8)",
+   "gate": "every practice question finds its own pattern among the first three of every example (the plan's Done when)",
+   "fixed_before_run": true,
+   "result": "10 of 10 practice questions rank their own pattern first among 49 examples (4 research tracks, 17 replicas, 1 owner solution, 11 patterns, 16 written); the questions are not in the index",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "Met: every question finds its own pattern, each at rank 1.",
+   "limits": [
+    "The owner wrote the questions and the patterns from the same cards: they share words, so this is an easy test; paraphrases by an independent writer come with the package where roles read the examples.",
+    "A search that finds the pattern does not show that a role reading it decides better: that is measured on the journeys."
+   ]
+  }
+ ],
+ "outcome": "The knowledge base holds the owner's eleven patterns as examples a role may read, each with its recipe link and practice questions, and the search finds each question's pattern first.",
+ "lessons": [
+  "A knowledge base needs its own evaluation questions kept out of its index, or the search measures itself.",
+  "Transcribing a document is a measurement too: each field is checked against its page, and a test pins what the transcriber must not change."
+ ],
+ "risks": [
+  "Four patterns (7, 8, 10 and 11) are knowledge only until Part G builds them.",
+  "The practice measurement is optimistic by construction (one author)."
+ ],
+ "commits": []
+}
