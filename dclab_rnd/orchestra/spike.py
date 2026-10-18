@@ -35,14 +35,27 @@ class SpikeState(TypedDict, total=False):
     confirmed: Optional[bool]
     limit: int
     done: bool  # the interviewer has nothing more to ask (or reached the limit): the edge reads this, never a card
+    board: dict[str, Any]  # 28.2: the team's board (dclab_core.orchestra.Board), advanced by every node
 
 
 class Spike:
     """The three-node graph of 28.1, built over an open checkpointer."""
 
-    def __init__(self, checkpointer: Any, advisor: Any = None):
-        self.checkpointer, self.advisor = checkpointer, advisor
+    TEAM = "understanding"
+
+    def __init__(self, checkpointer: Any, advisor: Any = None, home: Any = None):
+        self.checkpointer, self.advisor, self.home = checkpointer, advisor, home
         self.graph = None
+
+    def _board(self, state: SpikeState) -> Any:
+        from dclab_core.orchestra import Board
+
+        return Board.model_validate(state["board"])
+
+    def _advance(self, state: SpikeState, node: str, what: str, **changes: Any) -> dict[str, Any]:
+        from . import board as B
+
+        return B.advance(self._board(state), node, what, self.TEAM, home=self.home, **changes).model_dump(mode="json")
 
     @property
     def _session(self) -> Any:
@@ -62,13 +75,19 @@ class Spike:
         asked = list(state.get("asked") or [])
         question = next_question(self._card(state), asked=tuple(asked))
         if question is None or len(asked) >= state.get("limit", LIMIT):
-            return {"done": True}
+            return {"done": True, "board": self._advance(state, "interviewer", "questions_done", to="analyst")}  # what is still open stays open
         field = getattr(question, "field", None) or getattr(question, "code", "")
         answer = interrupt({"kind": "question", "field": field, "text": getattr(question, "text", ""), "why": getattr(question, "why", "")})
         with self._session.timed("answer", {"field": field}) as out:  # on resume: the node runs again and the interrupt returns the answer
             read = read_answer(field, str(answer or ""), state.get("columns"))
             out["result"] = {"read": sorted(read)}
-        return {"said": {**(state.get("said") or {}), **read}, "asked": asked + [field]}
+        from . import board as B
+
+        board = B.interrupt(self._board(state), "question", "interviewer", self.TEAM, field=field, text=getattr(question, "text", ""),
+                            status="answered", home=self.home)
+        still = [q for q in board.open_questions if q != field] + ([field] if not read else [])  # an unread answer leaves its field open
+        board = B.advance(board, "interviewer", "answer", self.TEAM, home=self.home, open_questions=still)
+        return {"said": {**(state.get("said") or {}), **read}, "asked": asked + [field], "board": board.model_dump(mode="json")}
 
     def analyst(self, state: SpikeState) -> dict[str, Any]:
         from dclab_core.conversation import summary
@@ -77,7 +96,9 @@ class Spike:
             card = self._card(state)
             shown = summary(card)
             out["result"] = {"ready": shown["ready"], "family": shown["family"], "blocking": len(shown["blocking"])}
-        return {"summary": shown}
+        problem = {k: (None if shown.get(k) is None else str(shown.get(k))[:200]) for k in ("family", "labels", "outcome", "moment", "unit", "action", "ready")}
+        return {"summary": shown, "board": self._advance(state, "analyst", "brief", to="confirm", problem=problem,
+                                                         open_questions=[str(b)[:80] for b in shown.get("blocking") or []])}
 
     def confirm(self, state: SpikeState) -> dict[str, Any]:
         from langgraph.types import interrupt
@@ -86,7 +107,11 @@ class Spike:
         approved = answer is True or (isinstance(answer, str) and bool(YES.match(answer)))  # a correction is not an approval
         with self._session.timed("confirm", {"approved": approved}) as out:
             out["result"] = {"confirmed": approved}
-        return {"confirmed": approved}
+        from . import board as B
+
+        board = B.interrupt(self._board(state), "confirmation", "confirm", self.TEAM, status="answered" if approved else "declined", home=self.home)
+        board = B.advance(board, "confirm", "confirmation", self.TEAM, home=self.home, state="map" if approved else "problem")
+        return {"confirmed": approved, "board": board.model_dump(mode="json")}
 
     # ---------------------------------------------------------------------------------------------------- the graph
     @staticmethod
@@ -122,11 +147,17 @@ class Spike:
             raise ValueError("a new walk needs the problem's words")
         if resume is not None and not any(getattr(t, "interrupts", None) for t in self.graph.get_state(config).tasks):
             raise ValueError(f"nothing to resume on {config['configurable']['thread_id']}: no pause is open")
-        with harness.session("orchestra", store=store, params={"draft": draft_id, "resumed": resume is not None}) as current:
+        from .. import experience
+
+        with experience.bind(conversation=draft_id), \
+                harness.session("orchestra", store=store, params={"draft": draft_id, "resumed": resume is not None}) as current:
             token = _SESSION.set(current)
             try:
                 if resume is None:
-                    self.graph.invoke({"problem": problem, "columns": columns, "said": {}, "asked": [], "limit": limit, "done": False}, config)
+                    from . import board as B
+
+                    self.graph.invoke({"problem": problem, "columns": columns, "said": {}, "asked": [], "limit": limit, "done": False,
+                                       "board": B.new(thread_id("draft", draft_id)).model_dump(mode="json")}, config)
                 else:
                     self.graph.invoke(Command(resume=resume), config)
             finally:
@@ -136,10 +167,17 @@ class Spike:
             if pending:
                 asks = dict(pending[0].value)
                 current.step("interrupt", {"kind": asks.get("kind"), "field": asks.get("field")}, "paused")
+                from dclab_core.orchestra import Board
+
+                from . import board as B
+
+                B.interrupt(Board.model_validate(snapshot.values["board"]), asks.get("kind") or "question", "interviewer" if asks.get("kind") == "question" else "confirm",
+                            self.TEAM, field=asks.get("field"), text=str(asks.get("text") or ""), status="open", home=self.home)  # opened: an event
                 current.status = "stopped"  # the walk waits for the person, as the coordinator's does
                 return {"status": "paused", "asks": asks, "asked": list(snapshot.values.get("asked") or [])}
             values = snapshot.values
-            return {"status": "done", "confirmed": values.get("confirmed"), "summary": values.get("summary"), "asked": list(values.get("asked") or [])}
+            return {"status": "done", "confirmed": values.get("confirmed"), "summary": values.get("summary"), "asked": list(values.get("asked") or []),
+                    "board": values.get("board")}
 
 
 __all__ = ["LIMIT", "Spike", "SpikeState"]

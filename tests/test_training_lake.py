@@ -66,6 +66,7 @@ class LakeBuildTests(unittest.TestCase):
         from dclab_rnd import lake as B
 
         with mock.patch.object(B, "GENERATED", self.tmp / "generated"), mock.patch.object(B, "GENERATED_IMAGES", self.tmp / "generated_images"), \
+                mock.patch.object(B, "GENERATED_V2", self.tmp / "generated_v2"), \
                 mock.patch.object(B, "SFT_V3", sft or self.tmp / "none"), \
                 mock.patch.object(B, "SFT_DEV", dev or self.tmp / "none"), mock.patch("dclab_rnd.lake.openml.CACHE", self.tmp / "openml"), \
                 mock.patch("dclab_rnd.lake.selfplay.OUT", self.tmp / "selfplay"):

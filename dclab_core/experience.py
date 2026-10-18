@@ -56,7 +56,8 @@ SECRET = re.compile(
 SHAREABLE = frozenset({"meta", "count"})  # what any export may keep
 READ_AS_CURRENT = frozenset({"dclab_core.experience_event.v1", "dclab_core.experience_event.v2", "dclab_core.experience_event.v3",
                              "dclab_core.experience_event.v4", "dclab_core.experience_event.v5",
-                             "dclab_core.experience_event.v6", "dclab_core.experience_event.v7", "dclab_core.experience_event.v8"})  # read as v9: v9 added the problem.*, solution.* and programme.* kinds of a problem of several parts; read as v8: each a subset (v3 added consent; v4 the ui.* and auth.* kinds; v5 the error fingerprint; v6 outcome.observed; v7 feedback kinds, column sensitivity and the pipeline steps; v8 trace, span and parent_span in the ids)
+                             "dclab_core.experience_event.v6", "dclab_core.experience_event.v7", "dclab_core.experience_event.v8",
+                             "dclab_core.experience_event.v9"})  # v10 (28.2) added team.handoff, team.interrupt and team.recorded; v9 is read as v10  # read as v9: v9 added the problem.*, solution.* and programme.* kinds of a problem of several parts; read as v8: each a subset (v3 added consent; v4 the ui.* and auth.* kinds; v5 the error fingerprint; v6 outcome.observed; v7 feedback kinds, column sensitivity and the pipeline steps; v8 trace, span and parent_span in the ids)
 FINAL_STAGES = frozenset({"final", "terminal"})  # the last stage: this studio's, and the main product's
 
 M, C, P, A, X, V = "meta", "count", "person_text", "agent_text", "model_text", "cell_values"
@@ -139,6 +140,12 @@ KINDS: dict[str, dict[str, str]] = {
     "solution.composed": {"programme": M, "solution": M, "chosen": M, "best_leaf": M, "leaves": C, "positives": C, "best_leaf_score": C, "chosen_score": C},
     "programme.built": {"programme": M, "state": M, "metric": M, "holdout_read": M, "leaves_built": C, "leaves_blocked": C, "composed": C, "best_leaf": C,
                         "difference": C, "low": C, "high": C, "beats_best_leaf": M},
+    # v10 (28.2): a team of agents passing its board, and the pauses a person answers
+    "team.handoff": {"thread": M, "team": M, "from_node": M, "to_node": M, "what": M, "board_before": C, "board_after": C, "state": M},
+    "team.interrupt": {"thread": M, "team": M, "node": M, "interrupt": M, "field": M, "gate": M, "status": M, "text": A,
+                       "board_before": C, "board_after": C},
+    "team.recorded": {"thread": M, "team": M, "status": M, "nodes": C, "handoffs": C, "interrupts": C, "board_version": C, "cost": C,
+                      "seconds": C, "started": M, "finished": M},
 }
 
 
@@ -191,7 +198,7 @@ class ExperienceEvent(Versioned):
 
     model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False, json_schema_extra=_vocabulary)
 
-    schema_version: Literal["dclab_core.experience_event.v9"] = _version("experience_event", 9)
+    schema_version: Literal["dclab_core.experience_event.v10"] = _version("experience_event", 10)
     id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{6,80}$")
     at: str = Field(description="ISO 8601 with microseconds, UTC.")
     seq: int = Field(default=0, ge=0)

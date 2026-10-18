@@ -104,6 +104,7 @@ def asks_to_build(messages: list[dict[str, Any]]) -> bool:
 
 SIM_ROWS = 10_000  # the owner (2026-10-16): a simulated table is at most 10,000 rows
 SIMULATE_WORDS = re.compile(r"\b(simulat\w*|synthetic|fake data|generate (some )?data)\b", re.I)
+CONFIRMED = re.compile(r"^\s*(yes|yeah|yep|correct|right|that'?s right|exactly|ok|okay|sure|confirmed?)\s*[.!]*\s*$", re.I)  # a bare yes
 
 POLICY = prompts.text("home_agent")  # dclab_rnd/prompts/home_agent.md (A4.3: prompts are versioned files)
 
@@ -188,15 +189,20 @@ class HomeAgent:
         self.store.emit(draft_id, "chat", msg)
         return msg
 
-    def ask(self, draft_id: str, field: str, question: str, options: list[str] | None = None, why: str = "") -> dict[str, Any] | None:
+    def ask(self, draft_id: str, field: str, question: str, options: list[str] | None = None, why: str = "",
+            source: str | None = None) -> dict[str, Any] | None:
+        """``source="critic"`` (28.4): the understanding critic sends a settled field back to the person (the card it read
+        is wrong or unsure there); it is asked past the cap and over a settled field, still never twice while open."""
         draft = self.store.get(draft_id)
         asked = [q for q in draft["questions"] if not q.get("superseded")]
-        over = len(asked) >= MAX_QUESTIONS and field not in self.CONTRADICTIONS.values()  # 21.5: the words and the data disagreeing
+        critic = source == "critic"
+        over = len(asked) >= MAX_QUESTIONS and field not in self.CONTRADICTIONS.values() and not critic  # 21.5: the words and the data disagreeing
         if over or any(q.get("field") == field and not q.get("answered") for q in draft["questions"]):  # is asked past the cap, once
             return None
-        if self.settled(draft, field) and field not in self.CONTRADICTIONS.values():
+        if self.settled(draft, field) and field not in self.CONTRADICTIONS.values() and not critic:
             return None  # the person said it already, or the table is here: asking again is what they found unintelligent
-        q = {"id": f"q{len(draft['questions']) + 1}", "field": field, "text": question, "options": (options or [])[:4], "why": why, "answered": None}
+        q = {"id": f"q{len(draft['questions']) + 1}", "field": field, "text": question, "options": (options or [])[:4], "why": why, "answered": None,
+             **({"source": source} if source else {})}
 
         def add(d):
             d["questions"].append(q)
@@ -207,7 +213,7 @@ class HomeAgent:
         """The open question: not answered, and about something still unknown (live, 2026-10-16: a field the person had told
         in their own words, and the data once a table was ready, were asked again)."""
         for q in draft["questions"]:
-            if q.get("answered") or self.settled(draft, q.get("field")):
+            if q.get("answered") or (self.settled(draft, q.get("field")) and q.get("source") != "critic"):  # 28.4: a critic's question re-opens its field
                 continue
             return q
         return None
@@ -544,7 +550,10 @@ class HomeAgent:
     def take_answer(self, draft_id: str, q: dict[str, Any], value: str) -> None:
         """The user's message answers the open question: record it, redraw the workflow, ask the next thing."""
         draft = self.store.get(draft_id)
-        if q["field"] in plans.ALL_FIELDS:
+        critic = q.get("source") == "critic"
+        if critic and (CONFIRMED.match(value) or q["field"] not in (*plans.ALL_FIELDS, *self.RECORDED_AS_SAID)):
+            pass  # 28.4 (the review): "yes" to a critic's question keeps what is known; a family is read below, never its words
+        elif q["field"] in plans.ALL_FIELDS:
             self.note(draft_id, q["field"], value, "stated", "answer", value)
         else:
             self.record(draft_id, q["field"], value)
@@ -570,6 +579,7 @@ class HomeAgent:
                    "labels_check": "labels", "target_check": "outcome"}
     LABEL_PHRASES = {"column": "A column marks them", "file": "A file lists the known ones", "none": "Nothing is labelled"}
     CONTRADICTIONS = {"labels_contradict": "labels_check", "target_absent": "target_check", "target_refused": "target_check"}
+    RECORDED_AS_SAID = ("entity", "labels")  # a critic's question on these keeps the person's words, as the Home agent's own does
     HOME_FIELDS = {"outcome": "target", "labels": "labels", "family": "family", "prediction_moment": "prediction_moment", "data": "data_plan"}
 
     def read_card_answer(self, draft_id: str, field: str, value: str) -> None:

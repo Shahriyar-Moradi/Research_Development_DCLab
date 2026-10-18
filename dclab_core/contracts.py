@@ -392,3 +392,4 @@ import dclab_core.twin  # noqa: E402,F401  (the twin: the system and an AI-first
 import dclab_core.expert  # noqa: E402,F401  (the expert's record, 25.3)
 import dclab_core.lake  # noqa: E402,F401  (the training lake's records, 26.1)
 import dclab_core.evaluation  # noqa: E402,F401  (every answerer's scores, 25.8)
+import dclab_core.orchestra  # noqa: E402,F401  (a team of agents: its board and its record, 28.2)

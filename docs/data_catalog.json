@@ -123,7 +123,7 @@
   {
    "contract": "experience_event",
    "reads": [],
-   "version": "dclab_core.experience_event.v9"
+   "version": "dclab_core.experience_event.v10"
   },
   {
    "contract": "experience_session",
@@ -144,6 +144,11 @@
    "contract": "map_review",
    "reads": [],
    "version": "dclab_core.map_review.v1"
+  },
+  {
+   "contract": "orchestra_board",
+   "reads": [],
+   "version": "dclab_core.orchestra_board.v1"
   },
   {
    "contract": "outcome",
@@ -216,6 +221,11 @@
    "contract": "solution_workflow",
    "reads": [],
    "version": "dclab_core.solution_workflow.v1"
+  },
+  {
+   "contract": "team_record",
+   "reads": [],
+   "version": "dclab_core.team_record.v1"
   },
   {
    "contract": "training_example",
@@ -300,7 +310,7 @@
    "what": "What the system and Claude, as the AI-first expert, answered on the same inputs: every twin step, the preference pairs a truth decided, the expert's records with what became of them, and Claude's answers as a teacher's beside the rule's at the ledger's points, one set per use (workflow, technical); Claude's words redacted (25.7)."
   }
  ],
- "dclab_core": "0.65.0",
+ "dclab_core": "0.68.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1442,7 +1452,8 @@
   {
    "emitted_by": [
     "dclab_rnd/agent_eval/journeys/__init__.py",
-    "dclab_rnd/experience/hooks.py"
+    "dclab_rnd/experience/hooks.py",
+    "dclab_rnd/orchestra/walk.py"
    ],
    "example": "python -m dclab_rnd.experience search --kind model.request",
    "family": "model",
@@ -1784,6 +1795,74 @@
     "stage": "meta"
    },
    "kind": "stage.started",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/orchestra/board.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.handoff",
+   "family": "team",
+   "fields": {
+    "board_after": "count",
+    "board_before": "count",
+    "from_node": "meta",
+    "state": "meta",
+    "team": "meta",
+    "thread": "meta",
+    "to_node": "meta",
+    "what": "meta"
+   },
+   "kind": "team.handoff",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/orchestra/board.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.interrupt",
+   "family": "team",
+   "fields": {
+    "board_after": "count",
+    "board_before": "count",
+    "field": "meta",
+    "gate": "meta",
+    "interrupt": "meta",
+    "node": "meta",
+    "status": "meta",
+    "team": "meta",
+    "text": "agent_text",
+    "thread": "meta"
+   },
+   "kind": "team.interrupt",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/orchestra/board.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind team.recorded",
+   "family": "team",
+   "fields": {
+    "board_version": "count",
+    "cost": "count",
+    "finished": "meta",
+    "handoffs": "count",
+    "interrupts": "count",
+    "nodes": "count",
+    "seconds": "count",
+    "started": "meta",
+    "status": "meta",
+    "team": "meta",
+    "thread": "meta"
+   },
+   "kind": "team.recorded",
    "leaves_at": "improve",
    "never_leaves": [],
    "train_only": []

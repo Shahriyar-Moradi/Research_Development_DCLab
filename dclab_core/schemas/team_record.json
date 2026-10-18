@@ -1,0 +1,157 @@
+{
+  "$defs": {
+    "NodeRun": {
+      "additionalProperties": false,
+      "properties": {
+        "cost_eur": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Cost Eur",
+          "type": "number"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "node": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Node",
+          "type": "string"
+        },
+        "seconds": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Seconds",
+          "type": "number"
+        },
+        "status": {
+          "default": "completed",
+          "enum": [
+            "completed",
+            "failed",
+            "paused",
+            "skipped"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "steps": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Steps",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "node"
+      ],
+      "title": "NodeRun",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.team_record.v1.json",
+  "additionalProperties": false,
+  "description": "A walk of a team, node by node: the trajectory kept for the solver model (28.2).",
+  "properties": {
+    "board_version": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Board Version",
+      "type": "integer"
+    },
+    "finished": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Finished"
+    },
+    "handoffs": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Handoffs",
+      "type": "integer"
+    },
+    "interrupts": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Interrupts",
+      "type": "integer"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/NodeRun"
+      },
+      "maxItems": 400,
+      "title": "Nodes",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.team_record.v1",
+      "default": "dclab_core.team_record.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "spent_eur": {
+      "default": 0.0,
+      "minimum": 0,
+      "title": "Spent Eur",
+      "type": "number"
+    },
+    "started": {
+      "maxLength": 40,
+      "title": "Started",
+      "type": "string"
+    },
+    "status": {
+      "default": "completed",
+      "enum": [
+        "completed",
+        "paused",
+        "failed",
+        "stopped"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "team": {
+      "enum": [
+        "understanding",
+        "solution",
+        "orchestra"
+      ],
+      "title": "Team",
+      "type": "string"
+    },
+    "thread": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Thread",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "thread",
+    "team",
+    "started"
+  ],
+  "title": "TeamRecord",
+  "type": "object"
+}

@@ -47,6 +47,8 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "twin_step": "dclab_core.adapters.main_product_twin:twin_steps",
     "twin_matrix": LIBRARY + " (``twin.effectiveness`` over adapted twin steps)",
     "evaluation_board": LIBRARY + " (scores over adapted twin steps and decision records)",
+    "orchestra_board": LIBRARY + " (28.2: a team's board, kept by whatever orchestrates the team; the main product has no team of agents yet)",
+    "team_record": LIBRARY + " (28.2: a team's walk, node by node; the main product has no team of agents yet)",
     "expert_trace": LIBRARY + " (an AI-first agent's record of a problem and its solution; the main product's Jev answers single questions and writes none)",
     "decision_sample": LIBRARY + " (built from decision records: the main product's semantic_decision_answers reach it through adapters/main_product_ledger)",
     "training_example": LIBRARY + " (built by the host's lake builders from its own consented records)",

@@ -725,3 +725,32 @@ a noisy linear model, the same table from the same seed) and `learnable(table)`.
 request path; it is a data generator. A team that pretrains or evaluates an in-context tabular model calls it with its own seeds,
 or reads DCLab's corpus (`make priors`, `lake/bronze/priors/priors_v1/`); `params.effects_shown` marks the tables whose shown
 features include the outcome's effects, for a team that wants none.
+
+## The understanding critic (28.4, dclab-core 0.68.0)
+
+The library's: `dclab_core.understanding_critic` (`concerns`, the role `UNDERSTANDING_CRITIC`, `critique`): the problem card read
+against the data card before a solution is drawn, each concern a card field and a question for the person, never an edit of
+the card; a model's concern kept only when it names card fields and the tables' own columns. Where it goes there: the main
+product's agent asks the critic once its brief is confirmed and before it plans, puts each concern to the person as one more
+question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
+whether to go on, recording the decision.
+
+## A team of agents: the board, the hand-offs, the record (28.2, dclab-core 0.67.0)
+
+The library's: `dclab_core.orchestra.Board` v1 (what a team knows at one moment: the problem in names and codes, the tables as
+counted, the map's parts with their routes and workflow step names, open questions, blockers, spend, hand-offs, interrupts and
+the ledger ids of its decisions), `Handoff`, `Interrupt` (a question, a confirmation, an approval), `TeamRecord` v1 (a walk node
+by node), `advance(board, node, what, at, **changes)` (the next board, validated, its hand-off recorded) and
+`values_in(board, values)` (where a board would hold a table's value); the experience kinds `team.handoff`, `team.interrupt` and `team.recorded`
+(`experience_event.v10`). Where it goes there: the main product's agent runs keep a board per run in the same shape whatever
+orchestrates them (its own loop or a graph), write each hand-off and pause as an experience event, and refuse a board that holds
+a value of the run's tables; the boards and records are the trajectories its solver model is trained on.
+
+## Homework for table-level choices (29.2, dclab-core 0.66.0)
+
+The library's: `dclab_core.benchgen2` (`task_table`, `split_table`, `cases_table`, `dirty_table`: seeded invented tables with the
+outcome's kind, the split, a list of known cases and each column's cleaning step planted, traps included) and the state fields
+`integer_valued`, `date_columns`, `id_columns`, `repeat_share`, `key_unique`, `reason_like`, `status_constant`,
+`name_says_cases`. Where it goes there: the main product's own rules for these choices answer the same tables, and the sets it
+builds from them train and examine its decision models exactly as the studio's do.
+

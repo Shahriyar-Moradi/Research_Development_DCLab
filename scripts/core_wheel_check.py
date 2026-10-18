@@ -68,7 +68,14 @@ xcols = mp.recorded()["experience_tables"]["experiments"]
 run = mpl.from_experiment({c: None for c in xcols} | {"id": "e1", "workspace_id": "w1", "status": "COMPLETED", "seed": 7, "git_commit": "abc",
                                                      "started_at": "2026-10-14T08:00:00+00:00", "result": {"mae": 3.2}})
 ev = mpx.from_run_record(run)
-assert (run.outputs.numbers, ev.kind, ev.schema_version) == ({"mae": 3.2}, "run.recorded", "dclab_core.experience_event.v8"), (run, ev)
+assert (run.outputs.numbers, ev.kind, ev.schema_version) == ({"mae": 3.2}, "run.recorded", xp.ExperienceEvent.model_fields["schema_version"].default), (run, ev)
+# 28.2 and 29.2: a team's board and the table-level homework, from the wheel
+from dclab_core import benchgen2, orchestra
+board = orchestra.advance(orchestra.Board(thread="draft:d1"), "analyst", "brief", "2026-10-18T00:00:00+00:00", problem={"family": "rare_event"})
+assert (board.version, board.handoffs[-1].board_after) == (1, 1), board
+assert orchestra.values_in(orchestra.Board(thread="draft:d1", problem={"unit": "each biker BK-77812"}), {"BK-77812"}) == ["problem.unit"]
+frame, target, facts = benchgen2.task_table(3)
+assert target in frame.columns and facts["task"] in ("binary", "multiclass", "regression"), facts
 # 23.4 to 23.12 from the installed wheel: the fingerprint, an outcome, feedback, the sensitivity scan, a step, the trace, the queries,
 # the catalog and the conformance gate (every module the wheel must carry)
 from dclab_core import catalog, errors, feedback, outcomes, queries, sensitivity, steps, tracing

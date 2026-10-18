@@ -52,6 +52,27 @@ class BesideTests(unittest.TestCase):
         memory = (root / R.CAMPAIGN_DIR / R.memory_name_for_model("claude-sonnet-5-5")).read_text().splitlines()
         self.assertEqual(len(memory), 2)
 
+    def test_a_reply_cut_at_its_limit_is_asked_again_with_more_room_and_the_cut_one_is_kept(self):
+        root = Path(tempfile.mkdtemp())
+        results = root / R.CAMPAIGN_DIR / "results"
+        results.mkdir(parents=True)
+        (results / "EXP-023_d_kind.json").write_text(json.dumps({"experiment_id": "EXP-023", "dataset": "d", "kind": "kind", "status": "completed",
+                                                              "claims": [{"claim_id": "C1", "statement": "s"}], "evidence": {"n": 5}}))
+        keep = root / R.CAMPAIGN_DIR / "reviews" / "claude-sonnet-5-5"
+        keep.mkdir(parents=True)
+        cut = {"experiment_id": "EXP-023", "raw_reply": '{"decision": "ke', "finish_reason": "length", "usage": {"output_tokens": 8192}}
+        (keep / "EXP-023.json").write_text(json.dumps(cut))
+        client = Client()
+        limits = []
+        original = client.complete
+        client.complete = lambda messages, **kw: (limits.append(kw.get("max_tokens")), original(messages, **kw))[1]
+        with mock.patch.object(R, "_client", return_value=client):
+            self.assertEqual(R.run_llm_reviews(root, model="claude-sonnet-5-5", beside=True, sleep_s=0), 0)
+            self.assertEqual(R.run_llm_reviews(root, model="claude-sonnet-5-5", beside=True, sleep_s=0), 0)  # whole now: not again
+        self.assertEqual(limits, [R.RETRY_MAX_TOKENS])  # once, with more room than the default that cut it
+        self.assertEqual(json.loads((keep / "EXP-023.json").read_text())["finish_reason"], "stop")
+        self.assertEqual(json.loads((keep / "superseded" / "EXP-023.1.json").read_text()), cut)  # the cut reply kept as it was
+
 
 if __name__ == "__main__":
     unittest.main()

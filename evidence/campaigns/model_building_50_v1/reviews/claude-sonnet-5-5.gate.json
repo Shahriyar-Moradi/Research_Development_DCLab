@@ -1,0 +1,2129 @@
+{
+ "model": "claude-sonnet-5-5",
+ "summary": {
+  "experiments": 50,
+  "recomputable_rules": 30,
+  "rule_inconsistencies": 0,
+  "critic_challenges": 190,
+  "contradicted_challenges": 1,
+  "experiments_with_contradicted_challenges": [
+   "EXP-008"
+  ],
+  "unparsed": []
+ },
+ "experiments": [
+  {
+   "experiment_id": "EXP-001",
+   "dataset": "adult",
+   "kind": "data_understanding",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-001-C1",
+     "issue": "The claim reports 48842 source rows next to a training positive rate without stating the training row count or split method. The profiles imply about 3200 training rows, so the claim may mislead about the data actually analyzed. The empty limitations list is not justified.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-001-C2",
+     "issue": "'0 features triggered' covers only 10 of 14 features, because feature_profiles lacks 4. Zero missingness is potentially an artifact of factorization. PSI is null for sex. The near-unique fnlwgt is not flagged and thresholds are not shown. The conclusion of no risk is not supported, and the claim's kind ('risk') conflicts with its content, which asserts absence of risk.",
+     "severity": "high",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 2,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-001.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-002",
+   "dataset": "adult",
+   "kind": "leakage_audit",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-002-C1",
+     "issue": "The fact itself is supported, but it should not be read as evidence that real columns are leak-free. Only exact-target detection was tested, with no partial-proxy canary and no reported detector settings.",
+     "severity": "low",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-002-C2",
+     "issue": "'Declared exclusions: none' is a decision claim backed by an empty list and a null CV result. It lacks any per-column review or decision-time/availability documentation, and its cited evidence (safe_vs_unsafe_training_cv) is empty. It may be misread as 'no leakage found', which the bundle does not support.",
+     "severity": "high",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 2,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-002.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-003",
+   "dataset": "adult",
+   "kind": "feature_engineering",
+   "rule_check": {
+    "rule": "smallest feature matrix within 0.002 mean CV roc_auc of the best stage",
+    "metric": "roc_auc",
+    "recomputed": "raw",
+    "recorded": "raw",
+    "consistent": true,
+    "eligible": [
+     "interactions",
+     "logs",
+     "ratios",
+     "raw"
+    ]
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-003-C1",
+     "issue": "The recommendation is a screening choice, but it implicitly endorses 14 raw features with no decision-time or production-availability review. fnlwgt, the most important raw feature, is a sampling weight, and four sensitive demographic attributes are included.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-003-C1",
+     "issue": "The choice of raw over interactions rests on a 0.00012 ROC-AUC gap judged by an arbitrary 0.002 tolerance, against a fold std of about 0.0065 with 3 folds, 1 repeat and overlapping CIs. The evidence cannot distinguish raw from interactions, ratios or full_fe.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-003-C1",
+     "issue": "The research question concerns validation evidence and feature dilution, but only training-CV is reported, with no held-out validation and no controlled dilution test. Stages are cumulative, so no stage-level result isolates feature count or any single feature family.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-003-C1",
+     "issue": "The claim does not mention that the selected stage (25 features, ROC-AUC 0.8862) is the worst stage, nor that its selection procedure and fold-internal fitting are undocumented. The 'train-fitted' premise is therefore unverified.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-003-C1",
+     "issue": "The limitations field in the evidence bundle is empty and the claim limitation is generic. The missing items are the non-domain transforms on categorical codes, the truncated stability tables, the single metric and fixed threshold, and the undisclosed fold sizes.",
+     "severity": "low",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 5,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-003.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-004",
+   "dataset": "adult",
+   "kind": "model_selection",
+   "rule_check": {
+    "rule": "rank by mean CV roc_auc - 0.25×fold std (higher is better), then runtime",
+    "metric": "roc_auc",
+    "recomputed": "lightgbm",
+    "recorded": "lightgbm",
+    "consistent": true,
+    "scores": {
+     "logistic_regression": 0.8458,
+     "extra_trees": 0.887247,
+     "hist_gradient_boosting": 0.893083,
+     "lightgbm": 0.893936,
+     "xgboost": 0.889875
+    }
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-004-C1",
+     "issue": "The LightGBM lead over HistGradientBoosting (about 0.0002 mean ROC-AUC, inconsistent per-fold sign) is within fold noise from 3 folds and 1 repeat. Naming a single candidate overstates the evidence, and HistGradientBoosting is effectively tied.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-004-C1",
+     "issue": "The question asks for 'strongest stable' evidence, but stability rests on a 3-fold std. HistGradientBoosting and LightGBM stds differ by only about 0.0025 and are themselves unreliable estimates.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-004-C1",
+     "issue": "The ranking uses ROC-AUC alone. ExtraTrees has better log loss and Brier, and logistic regression has much better ECE, so 'best' is metric-dependent. If probabilities will be used, calibration matters.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-004-C1",
+     "issue": "The claim says 'raw features' without any decision-time or production-availability review. LightGBM leans heavily on fnlwgt, and sex and race are included, so the candidate is not feature-approved.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-004-C1",
+     "issue": "Baseline-only models (no tuning) cannot support a conclusion about algorithm family strength, only about default configurations.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 5,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-004.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-005",
+   "dataset": "adult",
+   "kind": "optimization_reliability",
+   "rule_check": {
+    "rule": "keep the best tuned candidate only if mean CV roc_auc improves by at least 0.001",
+    "metric": "roc_auc",
+    "recomputed": "lightgbm_C02",
+    "recorded": "lightgbm_C02",
+    "consistent": true,
+    "gain": 0.006683,
+    "required": 0.001
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-005-C1",
+     "issue": "The claim is factually supported as a holdout score, but it does not address the question's optimization-gain component. It omits CV baseline vs tuned results, and the empty limitations hide that the CI is bootstrap-over-test-set only and that the holdout size is unreported.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-005-C1",
+     "issue": "The phrase 'preselected recipe' is not backed by evidence showing the selection-rule outcome (tuned vs baseline) or a CV delta against the 0.001 gate.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-005-C2",
+     "issue": "As a recommendation it is appropriate, but the cited evidence contains no decision-time or production-availability assessment. It is also based on 3 folds and an unspecified importance type, and fnlwgt (top feature) and the sensitive attributes are not flagged. The empty limitations field is inadequate.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-005-C2",
+     "issue": "Top importance and fold-stability are descriptive predictive-model statistics. They must not be read as evidence that any feature has a causal effect or is suitable for production.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-005.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-006",
+   "dataset": "bank_marketing",
+   "kind": "data_understanding",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-006-C2",
+     "issue": "States that 0 features triggered review rules, but profiles for only 9 of 16 features are present in evidence.feature_profiles. The claim is unsupported for the remaining 7.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-006-C2",
+     "issue": "Empty production_risks lists are not evidence of production readiness. The rules checked cover only missingness, identifiers, near-constant values, and random-split shift. No decision-time availability or leakage rule was evaluated, and PSI is null for default, housing, and loan.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-006-C1",
+     "issue": "Mixes the 45211 source-row count with a training positive rate that appears to come from a smaller sample (about 3200 rows implied by unique_ratio). Population and split are unstated, and limitations are empty.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-006-C2",
+     "issue": "missing_rate 0.0 on float64 factorized categoricals may reflect the encoding rather than true completeness. 'Unknown' levels and sentinel codes are not examined.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-006-C2",
+     "issue": "day_of_week with 31 unique values contradicts its name, suggesting a mislabeled field and unreliable metadata.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 5,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-006.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-007",
+   "dataset": "bank_marketing",
+   "kind": "leakage_audit",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-007-C1",
+     "issue": "The canary pass is true as stated, but it is easily over-read. It validates the detector only against an exact-target copy and carries no limitations. It does not show the detector would flag partial proxies, post-outcome fields, or time-shifted features among the real columns.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-007-C2",
+     "issue": "The +0.1842 AUC lift is reported as an apparent training-CV effect, which is fine. But the exclusion of 'duration' is a declaration without recorded decision-time evidence (such as a data dictionary or event timestamp). The claim also does not show that other columns were examined, so it should not be read as an answer to 'which columns violate the contract'. The lift reflects predictive association only, not causation.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-007-C2",
+     "issue": "The effective sample for the AUC comparison is 3 folds with 1 repeat. The statement gives a point estimate without the CI, and the safe and unsafe CIs, while non-overlapping, are not paired or repeated.",
+     "severity": "low",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 3,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-007.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-008",
+   "dataset": "bank_marketing",
+   "kind": "feature_engineering",
+   "rule_check": {
+    "rule": "smallest feature matrix within 0.002 mean CV roc_auc of the best stage",
+    "metric": "roc_auc",
+    "recomputed": "ratios",
+    "recorded": "ratios",
+    "consistent": true,
+    "eligible": [
+     "ratios"
+    ]
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-008-C1",
+     "issue": "The claim says ratios 'achieved 0.7172' but does not state that the gain over raw (0.7130) is only about +0.0042, versus a fold std of about 0.013-0.017. The claim also has no paired or repeated comparison.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-008-C1",
+     "issue": "The claim implies improvement 'without feature dilution' but cites only ROC-AUC. Ratios adds 23 features, worsens log_loss, Brier and ECE, and shrinks the importance of the strongest raw features. Dilution is not tested.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-008-C1",
+     "issue": "The stated limitation covers domain meaning only. It omits that ratios appear to use categorical-coded columns and that decision-time availability has not been reviewed. A recommendation to use these features needs that review first.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-008-C1",
+     "issue": "The selected stage (25 features, ROC-AUC 0.7029) is undocumented and conflicts with the selection rule's apparent outcome. The claim is silent on this inconsistency.",
+     "severity": "medium",
+     "gate": "contradicted"
+    },
+    {
+     "claim_id": "EXP-008-C1",
+     "issue": "The CV scores are used both to choose the recipe and to report its performance, which allows selection bias. The claim should be labeled as exploratory training-CV evidence.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 1,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-008.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-009",
+   "dataset": "bank_marketing",
+   "kind": "model_selection",
+   "rule_check": {
+    "rule": "rank by mean CV roc_auc - 0.25×fold std (higher is better), then runtime",
+    "metric": "roc_auc",
+    "recomputed": "extra_trees",
+    "recorded": "extra_trees",
+    "consistent": true,
+    "scores": {
+     "logistic_regression": 0.711363,
+     "extra_trees": 0.721455,
+     "hist_gradient_boosting": 0.708585,
+     "lightgbm": 0.713072,
+     "xgboost": 0.698798
+    }
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-009-C1",
+     "issue": "The question asks about 'strongest stable' evidence, but extra_trees has the second-highest fold std of five models (0.0295). Its win depends on the weak 0.25×std penalty and a ~0.008 score margin. The stability framing is unsupported.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-009-C1",
+     "issue": "3 folds × 1 repeat with no paired test. Per-fold advantage over logistic_regression and lightgbm changes sign, and the lead is driven largely by one fold, so the ranking is not demonstrated to be reproducible.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-009-C1",
+     "issue": "The comparison covers default-parameter baselines only. It cannot speak to algorithm families in general, only to these default implementations.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-009-C1",
+     "issue": "ROC-AUC-only selection ignores that logistic_regression is better on log_loss, brier, ece_10, accuracy and mean avg_precision. 'Candidate' status is metric-dependent and should be stated.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-009-C1",
+     "issue": "Unverified leakage and production-availability status of the 'ratios' features. The claim names the feature set without decision-time review, and top features include ratios of encoded categoricals.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-009-C1",
+     "issue": "The claim's 'ratios' feature set is not compared with the base feature set in this bundle, so the model candidate is conflated with feature-stage choice.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 6,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-009.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-010",
+   "dataset": "bank_marketing",
+   "kind": "optimization_reliability",
+   "rule_check": {
+    "rule": "keep the best tuned candidate only if mean CV roc_auc improves by at least 0.001",
+    "metric": "roc_auc",
+    "recomputed": "extra_trees_C02",
+    "recorded": "extra_trees_C02",
+    "consistent": true,
+    "gain": 0.023466,
+    "required": 0.001
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-010-C1",
+     "issue": "The numbers match the evidence paths, but the claim has no limitations listed. The interval is wide, only holdout resampling variance is covered, and nothing connects the holdout result to the question about CV gain from optimization. It also does not show that the recipe was preselected independently of the holdout.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-010-C1",
+     "issue": "The bundle answers only the second half of the question. No evidence supports or refutes a meaningful optimization gain in CV.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-010-C2",
+     "issue": "The recommendation is sensible but unsupported by per-feature review. No feature has been checked for decision-time or production availability. Stability evidence (3 folds, impurity-style importance) is weak, and redundant or engineered features (log1p_*, ratio_*) dominate the list.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-010-C2",
+     "issue": "Feature importance must not be read as a causal or business driver. Importance of poutcome, month, etc. reflects predictive use in this model only.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-010.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-011",
+   "dataset": "breast_cancer",
+   "kind": "data_understanding",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-011-C1",
+     "issue": "The numeric facts are traceable to evidence.source_rows, feature_count, and positive_rate_train. However, the claim omits the holdout size, the positive-class definition, and the split method, and its limitations list is empty despite the small sample.",
+     "severity": "low",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-011-C2",
+     "issue": "'1 features triggered' is not verifiable because only 10 of 30 profiles are present. The wording also lumps four rule types together while the only visible trigger is random-split shift. The claim is framed as a production risk, but a random-split PSI cannot establish production instability. No threshold or null calibration is provided.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-011-C2",
+     "issue": "The categorical-factorization limitation does not obviously apply to the profiled float64 features, which suggests boilerplate caveats or an unexplained scope gap.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-011-C2",
+     "issue": "The package never addresses identifier or leakage review beyond unique_ratio and top_value_frequency. High unique_ratio on continuous floats is expected and is not a leakage test, and no decision-time availability check is present.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-011.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-012",
+   "dataset": "breast_cancer",
+   "kind": "leakage_audit",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-012-C1",
+     "issue": "Factually supported, but it is a detector sanity check only. It shows the tool works on an exact-target canary, not that the breast_cancer columns are clean. The empty limitations field overstates its scope.",
+     "severity": "low",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-012-C2",
+     "issue": "The claim 'Declared decision-time exclusions: none' is a decision resting on an empty declaration list and a null safe_vs_unsafe_training_cv. No decision-time semantics review is cited, and the claim risks being read as 'no leakage found'. It should be reworded as 'no exclusions declared; audit incomplete'.",
+     "severity": "high",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 2,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-012.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-013",
+   "dataset": "breast_cancer",
+   "kind": "feature_engineering",
+   "rule_check": {
+    "rule": "smallest feature matrix within 0.002 mean CV roc_auc of the best stage",
+    "metric": "roc_auc",
+    "recomputed": "raw",
+    "recorded": "raw",
+    "consistent": true,
+    "eligible": [
+     "full_fe",
+     "interactions",
+     "logs",
+     "ratios",
+     "raw"
+    ]
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-013-C1",
+     "issue": "The claim reports a single-metric mean (0.9907) as if raw were superior, but full_fe, logs and the others are within noise of it. Raw is selected only by a parsimony tie-break, and the claim does not say so.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-013-C1",
+     "issue": "The evidence is training-CV only, with 3 folds and 1 repeat. There is no held-out confirmation and no paired uncertainty on stage differences.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-013-C1",
+     "issue": "The claim ignores that the ratios stage is better on log loss, Brier, ECE and accuracy. The metric choice is unjustified and can flip the recommendation.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-013-C1",
+     "issue": "It is not shown that engineered and selected features were fitted train-fold-only, and the selected stage's degradation is unexplained. A leakage or selection-procedure defect cannot be excluded.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-013-C1",
+     "issue": "The claim says 'about 30 features'. The evidence gives exactly 30.0, so this is only a minor precision issue. It also implies no dilution evaluation, which was not performed.",
+     "severity": "low",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 5,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-013.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-014",
+   "dataset": "breast_cancer",
+   "kind": "model_selection",
+   "rule_check": {
+    "rule": "rank by mean CV roc_auc - 0.25×fold std (higher is better), then runtime",
+    "metric": "roc_auc",
+    "recomputed": "logistic_regression",
+    "recorded": "logistic_regression",
+    "consistent": true,
+    "scores": {
+     "logistic_regression": 0.994333,
+     "extra_trees": 0.988584,
+     "hist_gradient_boosting": 0.98902,
+     "lightgbm": 0.989097,
+     "xgboost": 0.988859
+    }
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-014-C1",
+     "issue": "The claim's wording as the 'training-CV model candidate' is acceptable as a recommendation, but the evidence package does not show that logistic_regression is stably better than the alternatives. The ROC-AUC CIs overlap, there are 3 folds and 1 repeat, and there is one tie fold.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-014-C1",
+     "issue": "The comparison is among untuned baselines (optimization=baseline, model_params={}). It cannot support conclusions about the algorithm family, which the question asks.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-014-C1",
+     "issue": "Preprocessing, fold-internal fitting, stratification, and duplicate or group leakage are not documented. 'Raw features' is not sufficient to rule out leakage or an unfair setup.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-014-C1",
+     "issue": "No decision-time or production-availability review exists for the 30 input features. The claim must not be read as approving the feature set.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-014-C1",
+     "issue": "The bundle's top-level limitations list is empty, which understates the caveats the claim itself acknowledges.",
+     "severity": "low",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 5,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-014.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-015",
+   "dataset": "breast_cancer",
+   "kind": "optimization_reliability",
+   "rule_check": {
+    "rule": "keep the best tuned candidate only if mean CV roc_auc improves by at least 0.001",
+    "metric": "roc_auc",
+    "recomputed": "baseline",
+    "recorded": "baseline",
+    "consistent": true,
+    "gain": -6.3e-05,
+    "required": 0.001
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-015-C1",
+     "issue": "The numbers match the evidence. The claim does not address the CV-gain question, omits the missing CV comparison, and has empty limitations. Its interval is holdout-resampling only and is capped at 1.0, and the holdout size is unreported. 'Preselected' is asserted without provenance.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-015-C2",
+     "issue": "The recommendation is reasonable, but the cited evidence is only a 3-fold importance ranking with an unspecified method and no availability or monitoring data. It cannot support promoting or demoting any specific feature. Importance must not be read causally, and collinearity can distort it. Empty limitations understate this.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 2,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-015.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-016",
+   "dataset": "heart_disease",
+   "kind": "data_understanding",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-016-C1",
+     "issue": "The numbers are supported by the evidence paths, but the claim has no limitations and omits split sizes and holdout class balance. With only 303 rows, any later performance estimate will be high variance. It also says '13 cached features' while only 10 are profiled.",
+     "severity": "low",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-016-C2",
+     "issue": "The claim lumps four rule types (missingness, identifier, near-constant, shift) into a count of 3, but the visible evidence shows only shift flags. The evidence path points to the whole feature_profiles array and covers only 10 of 13 features, so the count cannot be verified for the full feature set. The shift flags rest on a random-split PSI that is likely noise-dominated and computed on factorized codes. The claim also does not address production availability, which the question asks about.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-016-C2",
+     "issue": "The 0.0 missing_rate on every visible feature is not discussed in the claim, yet it is the only evidence on missingness and the upstream factorization limitation undermines it.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 3,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-016.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-017",
+   "dataset": "heart_disease",
+   "kind": "leakage_audit",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-017-C1",
+     "issue": "Labeled a fact with no limitations, but a passed exact-target canary only validates detector plumbing. It does not support any claim that real columns are free of leakage or proxies, so it should not be cited as support for the exclusion decision.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-017-C2",
+     "issue": "The decision 'none' is backed by an empty declaration list and a null safe_vs_unsafe_training_cv. There is no per-column review, no detector flags, and no decision-time semantics, so the claim is unsupported. 'None declared' is also easily misread as 'none needed'. The claim's own limitation says that only decision-time semantics can confirm leakage, and none are provided.",
+     "severity": "high",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 2,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-017.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-018",
+   "dataset": "heart_disease",
+   "kind": "feature_engineering",
+   "rule_check": {
+    "rule": "smallest feature matrix within 0.002 mean CV roc_auc of the best stage",
+    "metric": "roc_auc",
+    "recomputed": "raw",
+    "recorded": "raw",
+    "consistent": true,
+    "eligible": [
+     "logs",
+     "ratios",
+     "raw"
+    ]
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-018-C1",
+     "issue": "The claim reports 0.8700 as the winner, but the ROC-AUC gaps to logs (0.0000), ratios (about 0.0014) and interactions (about 0.0025) are far below the fold std (about 0.03) with heavily overlapping CIs, from 3 folds and 1 repeat. The evidence supports 'no demonstrated improvement from feature engineering', not 'raw is best'. The selection rule is also nearly tautological here: raw is itself the best-scoring stage and is tied with logs.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-018-C1",
+     "issue": "The claim's limitation covers only generic generated features. The recommendation to use the raw recipe has no decision-time or production-availability review of the 13 raw features, so it must not be read as feature approval.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-018-C1",
+     "issue": "The recipe is selected and scored on the same training-CV folds, with no holdout. The question asks for validation evidence, but only training-CV is reported. Whether the 'selected' stage's feature selection ran inside the folds is not documented.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-018-C1",
+     "issue": "The scope 'for the next model screen' is plausible. However, the evidence comes from one default-parameter LightGBM at a fixed 0.5 threshold, so it does not show that raw is preferable for other model families. The claim also omits that raw has the best Brier, ECE and log-loss, which is the stronger part of the evidence and is not cited.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-018-C1",
+     "issue": "The 'about 13 features' phrasing is accurate for raw (feature_count_mean 13.0). However, the dilution question is only addressed through count versus mean ROC-AUC, with no test that extra features actually hurt.",
+     "severity": "low",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 5,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-018.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-019",
+   "dataset": "heart_disease",
+   "kind": "model_selection",
+   "rule_check": {
+    "rule": "rank by mean CV roc_auc - 0.25×fold std (higher is better), then runtime",
+    "metric": "roc_auc",
+    "recomputed": "extra_trees",
+    "recorded": "extra_trees",
+    "consistent": true,
+    "scores": {
+     "logistic_regression": 0.88918,
+     "extra_trees": 0.891697,
+     "hist_gradient_boosting": 0.851521,
+     "lightgbm": 0.86158,
+     "xgboost": 0.852131
+    }
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-019-C1",
+     "issue": "The ROC-AUC margin over logistic_regression (mean 0.8978 vs 0.8941; rule score about 0.8917 vs 0.8892) is much smaller than fold variability. CIs overlap and per-fold wins are mixed (2 of 3). The claim presents extra_trees as the candidate without noting it is effectively tied with the baseline, which has lower std, higher accuracy and better ECE.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-019-C1",
+     "issue": "The question asks about 'stable' evidence, but extra_trees has a higher fold std (0.0244) than logistic_regression (0.0198), and the stability penalty weight of 0.25 is arbitrary. A different weight or a different metric such as accuracy or ECE could reorder the top two.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-019-C1",
+     "issue": "Default-parameter baselines with 3 folds and 1 repeat do not support conclusions about algorithm families. No nested tuning or repeated CV is present, and the selection-bias effect of ranking 5 candidates is unquantified.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-019-C1",
+     "issue": "The 'raw features' basis has no decision-time or production-availability review. Top features such as ca and thal may be diagnostic outputs, so the score cannot be tied to a deployable prediction setting. Feature importances must not be read causally.",
+     "severity": "high",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-019.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-020",
+   "dataset": "heart_disease",
+   "kind": "optimization_reliability",
+   "rule_check": {
+    "rule": "keep the best tuned candidate only if mean CV roc_auc improves by at least 0.001",
+    "metric": "roc_auc",
+    "recomputed": "extra_trees_C02",
+    "recorded": "extra_trees_C02",
+    "consistent": true,
+    "gain": 0.006938,
+    "required": 0.001
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-020-C1",
+     "issue": "The statement is numerically consistent with evidence.holdout_metrics and the bootstrap CI, but the empty limitations field is unjustified. The claim omits the holdout size, the wide interval's implication, the poor calibration (ece_10 = 0.149), the absence of a baseline comparison, and the fact that it does not answer whether optimization helped.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-020-C1",
+     "issue": "Citing a single consumed-holdout point estimate invites over-reading. Any later tuning on this holdout would invalidate it as an unbiased estimate.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-020-C2",
+     "issue": "The recommendation is reasonable, but it is supported only by a rule string (evidence.production_feature_rule), not by any review of decision-time or production availability for the listed features. The empty limitations field hides this. Fold stability from only 3 folds is weak, and importance does not establish causal or clinical validity.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-020-C2",
+     "issue": "The top-10 frequency for the 13-feature set is nearly uninformative, since only 3 features can be excluded. Stability of rank and importance magnitude across more folds or repeats has not been shown.",
+     "severity": "low",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-020.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-021",
+   "dataset": "credit_default",
+   "kind": "data_understanding",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-021-C2",
+     "issue": "The claim covers all features, but the evidence includes only 10 of 23 profiles, so the zero-triggered result is unsupported for 13 features.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-021-C2",
+     "issue": "The profile row basis appears inconsistent with 30000 source rows (implied n of about 3200 from unique_ratio), and this is not documented.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-021-C2",
+     "issue": "The review rules do not cover decision-time availability or leakage, so 'no review rules triggered' could be misread as production readiness. The claim is typed as a risk, but its statement reports only the absence of triggered rules, with no assessment of the risks that remain.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-021-C2",
+     "issue": "Null PSI for X2 is unexplained, so the shift check was apparently not applied to every feature, yet the claim treats the shift rule as passed.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-021-C1",
+     "issue": "The training positive rate is reported without train size, holdout positive rate or split description, and the limitations list is empty. This is a minor completeness gap, but the fact itself is supported.",
+     "severity": "low",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 5,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-021.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-022",
+   "dataset": "credit_default",
+   "kind": "leakage_audit",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-022-C1",
+     "issue": "The fact is supported (canary passed), but it only establishes detector function on an exact-target copy. It should not be read as evidence that the real feature set is clean, and the claim lists no limitations to say so.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-022-C2",
+     "issue": "The decision 'no declared exclusions' cites safe_vs_unsafe_training_cv, which is null, so the cited evidence does not support it. No decision-time review is documented, and the claim's own limitation says only decision-time semantics can confirm leakage. An empty list is consistent with both 'reviewed and clean' and 'not reviewed'.",
+     "severity": "high",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 2,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-022.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-023",
+   "dataset": "credit_default",
+   "kind": "feature_engineering",
+   "rule_check": {
+    "rule": "smallest feature matrix within 0.002 mean CV roc_auc of the best stage",
+    "metric": "roc_auc",
+    "recomputed": "raw",
+    "recorded": "raw",
+    "consistent": true,
+    "eligible": [
+     "logs",
+     "raw"
+    ]
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-023-C1",
+     "issue": "The claim recommends raw using training-CV ROC-AUC, while the experiment question is about validation evidence. No validation-stage evidence supports it, and selection and scoring share the same CV.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-023-C1",
+     "issue": "Raw's ROC-AUC advantage over the other stages (about 0.003 to 0.0115) is below the fold std (about 0.015 to 0.026), with overlapping ci95. The data do not support a 'raw is better' or 'dilution occurred' conclusion, and the selection rule picks raw through a trivially small tolerance.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-023-C1",
+     "issue": "Raw and logs have identical metrics, so the log-transform result is untested for informativeness. This should be explained, for example as tree-model invariance or a pipeline bug, before 'logs' is discounted.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-023-C1",
+     "issue": "The recommendation does not mention the metric trade-offs. full_fe is better on threshold-0.5 accuracy/F1/precision/recall but worse on calibration and log loss, and selected is higher on avg_precision. A ROC-AUC-only rule may hide task-relevant differences.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-023-C1",
+     "issue": "Limitations omit missing production-availability and decision-time review, the small CV size, and the leakage-audit gap. The recommendation must not be read as approving raw features for deployment.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-023-C1",
+     "issue": "'About 23 features' matches feature_count_mean 23.0. 'Feature dilution' is never measured directly (for example via per-feature contribution or ablation), only inferred from smaller per-feature importance shares in larger matrices.",
+     "severity": "low",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 6,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-023.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-024",
+   "dataset": "credit_default",
+   "kind": "model_selection",
+   "rule_check": {
+    "rule": "rank by mean CV roc_auc - 0.25×fold std (higher is better), then runtime",
+    "metric": "roc_auc",
+    "recomputed": "extra_trees",
+    "recorded": "extra_trees",
+    "consistent": true,
+    "scores": {
+     "logistic_regression": 0.707102,
+     "extra_trees": 0.732281,
+     "hist_gradient_boosting": 0.720273,
+     "lightgbm": 0.727861,
+     "xgboost": 0.709515
+    }
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-024-C1",
+     "issue": "The ±0.0159 is a fold std, but the claim does not say so and could be read as a confidence interval. The lead over lightgbm is far smaller than fold variability, so 'the' candidate overstates the separation.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-024-C1",
+     "issue": "The question asks for the strongest 'stable' evidence, but extra_trees has a higher fold std than logistic_regression, hist_gradient_boosting and lightgbm. Stability enters the rule only through the 0.25 weight.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-024-C1",
+     "issue": "The evidence supports only a default-parameter, 3-fold, raw-feature comparison. The bundle's limitations list is empty and omits the missing tuning, repeats, split design and feature provenance review.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-024-C1",
+     "issue": "ROC-AUC alone is used for selection. logistic_regression leads avg_precision and Brier, so the selection may not match calibration or precision-focused objectives.",
+     "severity": "low",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-024.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-025",
+   "dataset": "credit_default",
+   "kind": "optimization_reliability",
+   "rule_check": {
+    "rule": "keep the best tuned candidate only if mean CV roc_auc improves by at least 0.001",
+    "metric": "roc_auc",
+    "recomputed": "extra_trees_C02",
+    "recorded": "extra_trees_C02",
+    "consistent": true,
+    "gain": 0.018881,
+    "required": 0.001
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-025-C1",
+     "issue": "The numeric statement matches evidence.holdout_metrics.roc_auc and the bootstrap interval. However, it is presented against a question about optimization gain and gives no baseline comparison, so it cannot support any conclusion about optimization. The limitations field is empty even though split design, holdout size, and selection variance are undocumented.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-025-C1",
+     "issue": "The bootstrap interval is easy to read as total uncertainty, but it only reflects resampling of holdout rows. Seed, training-set, and candidate-selection variance are excluded.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-025-C2",
+     "issue": "The recommendation is reasonable, but the cited evidence cannot verify decision-time or production availability, and the feature names are opaque. Importance and top-10 frequency from 3 folds are weak stability evidence. The fact that X13, X15 and X18 have 0.0 top-10 frequency despite appearing in the final top-15 is a flag for importance instability and should not be taken as validation of any feature.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 3,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-025.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-026",
+   "dataset": "german_credit",
+   "kind": "data_understanding",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-026-C1",
+     "issue": "The counts are reported as facts with no limitations. The positive rate is train-only, the train/holdout sizes are not stated (about 800 train rows is only inferable from unique_ratio), the label definition is absent, and 'cached features' does not confirm that the 20 columns match the raw source schema.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-026-C2",
+     "issue": "The claim says 0 features triggered review rules, but only 10 of 20 profiles are in the evidence, rule thresholds are not given, and Attribute10 has a null PSI. Factorized categoricals also weaken the validity of the near-constant, identifier and PSI checks. A random-split PSI cannot support any production stability claim.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-026-C2",
+     "issue": "Absence of a triggered flag is being treated as absence of risk. Decision-time availability, leakage and protected-attribute review are outside what these rules test, so they are unaddressed rather than cleared.",
+     "severity": "high",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 3,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-026.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-027",
+   "dataset": "german_credit",
+   "kind": "leakage_audit",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-027-C1",
+     "issue": "The fact is accurately stated but narrow. A passed exact-target canary shows only that the detector fires on a trivially leaky column. It does not show detector sensitivity to realistic proxies or that the real columns are clean. It should not be used as evidence of dataset cleanliness.",
+     "severity": "low",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-027-C2",
+     "issue": "Typed as 'decision' but its cited evidence includes a null path (safe_vs_unsafe_training_cv). An empty exclusion list is an absence of declarations, not evidence of no leakage. The statement 'none' has no recorded review basis, and its own limitation says only decision-time semantics can confirm leakage, yet no such semantics are supplied. No feature should be approved without decision-time and production-availability review.",
+     "severity": "high",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 2,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-027.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-028",
+   "dataset": "german_credit",
+   "kind": "feature_engineering",
+   "rule_check": {
+    "rule": "smallest feature matrix within 0.002 mean CV roc_auc of the best stage",
+    "metric": "roc_auc",
+    "recomputed": "interactions",
+    "recorded": "interactions",
+    "consistent": true,
+    "eligible": [
+     "interactions"
+    ]
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-028-C1",
+     "issue": "The recommendation rests on a +0.0073 mean ROC-AUC difference vs raw with overlapping CIs and worse results in 2 of 3 folds (per-fold ROC-AUC). The stage selection and the reported score come from the same CV, so the selection is optimistic.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-028-C1",
+     "issue": "The claim cites only ROC-AUC. Log loss and ECE_10 are worse than raw, and Brier is only slightly better, so 'improves validation evidence' is overstated.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-028-C1",
+     "issue": "The 'without feature dilution' question is not answered. Going from 20 to 56 features gives a noise-level gain, and the key interactions are seen in only 1 fold. The selection rule picks the best stage, which is not shown to be the least diluted.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-028-C1",
+     "issue": "The claim says 'training-CV' but the experiment question refers to 'validation evidence'. The evidence contains no independent validation or holdout.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-028-C1",
+     "issue": "Interactions are not a fixed recipe, since the feature set varies across folds. Production semantics and availability are unreviewed, and the evidence's own limitations list is empty despite the claim's stated limitation.",
+     "severity": "high",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 5,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-028.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-029",
+   "dataset": "german_credit",
+   "kind": "model_selection",
+   "rule_check": {
+    "rule": "rank by mean CV roc_auc - 0.25×fold std (higher is better), then runtime",
+    "metric": "roc_auc",
+    "recomputed": "extra_trees",
+    "recorded": "extra_trees",
+    "consistent": true,
+    "scores": {
+     "logistic_regression": 0.735892,
+     "extra_trees": 0.769428,
+     "hist_gradient_boosting": 0.759268,
+     "lightgbm": 0.751851,
+     "xgboost": 0.751791
+    }
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-029-C1",
+     "issue": "The claim names extra_trees as the candidate with ROC-AUC 0.7769±0.0298. The ranking margin over hist_gradient_boosting (0.7673±0.0321) is far smaller than the fold std, so 'strongest stable' is not supported at 3 folds × 1 repeat. Fold-level ranks also disagree (EXP-029 / evidence.model_results[*].fold_metrics[*].roc_auc).",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-029-C1",
+     "issue": "'Using interactions features' implies the interactions stage is part of the selected configuration, but no other feature stage is shown for comparison, so the benefit of the interactions stage is unsupported. The leakage-safety of the engineered features (fold-internal fitting) and their decision-time availability are also unreviewed.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-029-C1",
+     "issue": "Models are untuned baselines (optimization 'baseline', empty model_params). A single-split-protocol ranking of defaults does not justify a family-level conclusion for the dataset profile. The claim's own limitation concedes it is not a universal winner.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-029-C1",
+     "issue": "The selection rule uses ROC-AUC alone. Extra_trees has lower recall and F1 at the 0.5 threshold than hist_gradient_boosting, lightgbm, and xgboost (EXP-029 / evidence.model_results[*].metrics.recall.mean, .f1.mean). It is therefore not shown to be best for any specific operating point or cost structure. Its better calibration is observed but not part of the rule.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-029-C1",
+     "issue": "The evidence contains no per-feature decision-time or availability review and potentially sensitive attributes appear among top features. Feature-importance lists must not be used to justify features or imply drivers.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 5,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-029.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-030",
+   "dataset": "german_credit",
+   "kind": "optimization_reliability",
+   "rule_check": {
+    "rule": "keep the best tuned candidate only if mean CV roc_auc improves by at least 0.001",
+    "metric": "roc_auc",
+    "recomputed": "extra_trees_C01",
+    "recorded": "extra_trees_C01",
+    "consistent": true,
+    "gain": 0.009867,
+    "required": 0.001
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-030-C1",
+     "issue": "The statement is factually supported, but the empty limitations list is not. The claim omits the CI width, the missing holdout size, the missing baseline comparison, and the lack of any CV-gain evidence that the study question asks for. Citing it as the answer to the question would overreach.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-030-C1",
+     "issue": "holdout_consumed=true does not establish a clean single-use, preselected protocol, and the bootstrap interval reflects only test-set sampling noise.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-030-C2",
+     "issue": "The recommendation is reasonable, but the cited evidence (importances, 3-fold stability) cannot show decision-time or production availability. Those fields are absent, and production_feature_rule is a policy statement rather than a review result. No feature is cleared by this bundle.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-030-C2",
+     "issue": "Many top final-fit features are interactions that are unstable or unobserved in CV. Their importance should not be read as signal, and importance must not be read as a causal effect.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-030.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-031",
+   "dataset": "mushroom",
+   "kind": "data_understanding",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-031-C1",
+     "issue": "The counts are consistent with the evidence fields, but the claim has no limitations listed. The positive class, the training split size and the split method are not specified, so 'training positive rate' is not interpretable beyond the number itself.",
+     "severity": "low",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-031-C2",
+     "issue": "The claim cites evidence.feature_profiles, but the visible profiles show no triggered risk and cover only 10 of 22 features. The flagged feature and rule are not identifiable, so the claim is unsupported as presented.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-031-C2",
+     "issue": "Null PSI values for all five two-category features mean the random-split shift rule was not evaluated for them. The 'only 1 flagged' count may therefore understate shift or other risks.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-031-C2",
+     "issue": "Factorized float64 encodings can mask categorical missingness or placeholder categories, so a missing_rate of 0.0 is weak evidence of data completeness. The claim's own limitation concedes this.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-031.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-032",
+   "dataset": "mushroom",
+   "kind": "leakage_audit",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-032-C1",
+     "issue": "Factually supported (canary true), but a single exact-target canary only shows minimal detector function. It does not show sensitivity to partial proxies or that real columns were screened, so it should not be read as evidence that the dataset is clean.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-032-C2",
+     "issue": "The 'none' exclusion declaration cites safe_vs_unsafe_training_cv, which is null, and declared_leakage_features, which is just an empty list. Neither supports the absence of leakage. No semantic availability review is shown. The claim is labeled a decision, but there is no evidential basis for it.",
+     "severity": "high",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 2,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-032.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-033",
+   "dataset": "mushroom",
+   "kind": "feature_engineering",
+   "rule_check": {
+    "rule": "smallest feature matrix within 0.002 mean CV roc_auc of the best stage",
+    "metric": "roc_auc",
+    "recomputed": "raw",
+    "recorded": "raw",
+    "consistent": true,
+    "eligible": [
+     "full_fe",
+     "interactions",
+     "logs",
+     "ratios",
+     "raw",
+     "selected"
+    ]
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-033-C1",
+     "issue": "The claim reports '1.0000' mean training-CV ROC-AUC for raw, but the observed mean is 0.99997885. This is rounding of a saturated metric. All stages tie within 0.002, so raw is selected by the tie-break rule and not because it is better.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-033-C1",
+     "issue": "The study question asks which recipe 'improves validation evidence', but the evidence supports no improvement over raw: stage differences are about 1e-5 in ROC-AUC, fold-3 errors are identical across stages, and the fold CIs overlap. The recommendation should be framed as a parsimony default, not a finding that raw is superior or that feature dilution was avoided.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-033-C1",
+     "issue": "The recommendation cites only training-CV and does not state that no production-availability or decision-time review of the raw features has occurred. The limitation text addresses generic engineered features but not the raw ones.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-033-C1",
+     "issue": "Feature dilution is asserted as the evaluation target, but it was not directly tested. Only importance concentration and a 3-fold ROC-AUC were reported, and the metric is too saturated to detect dilution.",
+     "severity": "low",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-033.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-034",
+   "dataset": "mushroom",
+   "kind": "model_selection",
+   "rule_check": {
+    "rule": "rank by mean CV roc_auc - 0.25×fold std (higher is better), then runtime",
+    "metric": "roc_auc",
+    "recomputed": "extra_trees",
+    "recorded": "extra_trees",
+    "consistent": true,
+    "scores": {
+     "logistic_regression": 0.99909,
+     "extra_trees": 1.0,
+     "hist_gradient_boosting": 0.999919,
+     "lightgbm": 0.99997,
+     "xgboost": 0.999987
+    }
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-034-C1",
+     "issue": "The statement '1.0000±0.0000 ROC-AUC across folds' matches evidence.model_results[1].metrics.roc_auc, but it implies a stable, distinguishable lead. Competing models differ by only about 1e-5 to 1e-4 ROC-AUC, based on 3 folds and 1 repeat, and the zero std is not meaningful stability evidence.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-034-C1",
+     "issue": "The claim does not state that extra_trees ties the boosted models on accuracy, recall and F1, with the same fold-3 error profile, or that it has a recall miss at threshold 0.5 despite perfect AUC. Selecting on ROC-AUC alone hides this.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-034-C1",
+     "issue": "The claim's limitation covers the unseen holdout but omits unaudited duplicate rows, fold-size and sample-size uncertainty, and the absence of any decision-time or production-availability review of the raw features used.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-034-C1",
+     "issue": "'Algorithm family' ranking is based on default hyperparameters only. The lead of one family over others cannot be attributed to the family rather than to default settings.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-034.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-035",
+   "dataset": "mushroom",
+   "kind": "optimization_reliability",
+   "rule_check": {
+    "rule": "keep the best tuned candidate only if mean CV roc_auc improves by at least 0.001",
+    "metric": "roc_auc",
+    "recomputed": "baseline",
+    "recorded": "baseline",
+    "consistent": true,
+    "gain": 0.0,
+    "required": 0.001
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-035-C1",
+     "issue": "The 'limitations' field is empty, though the evidence has several: unreported holdout size, no duplicate or leakage audit, and a degenerate bootstrap interval that conveys no real uncertainty. The claim also does not say which recipe was chosen. It names 'extra_trees/baseline', but no evidence path shows the selection outcome.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-035-C1",
+     "issue": "The claim does not answer the stated question about CV gain from optimization. No CV evidence is cited in the claim's evidence list.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-035-C1",
+     "issue": "Calling the 1.0000–1.0000 interval a '95% interval' can mislead. With a perfect score it only reflects resampling of an error-free sample.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-035-C2",
+     "issue": "The recommendation is reasonable, but its limitations list is empty. The cited importance and stability evidence is model-internal and says nothing about decision-time or production availability, and the evidence lists no per-feature availability review, so the stated criteria cannot yet be checked.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-035-C2",
+     "issue": "The importance method is unspecified, and 3-fold stability is thin. High importance for odor, gill-size, and spore-print-color must not be read as causal or as grounds for promotion.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 5,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-035.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-036",
+   "dataset": "spambase",
+   "kind": "data_understanding",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-036-C2",
+     "issue": "'0 features triggered' is not backed by a trigger count or by complete profiles (10 of 57 shown), and the rule thresholds are missing. word_freq_3d (top_value_frequency 0.989375, null PSI) appears to deserve review but has empty production_risks.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-036-C2",
+     "issue": "Random-split PSI is acknowledged as a smoke check, yet the claim reads as a general absence of risk. Production-availability and temporal shift were not assessed.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-036-C2",
+     "issue": "The categorical-factorization limitation does not obviously match the float64 features shown, so the limitation text is not tied to this dataset's evidence.",
+     "severity": "low",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-036-C1",
+     "issue": "The claim mixes the full-source row count (4601) with a training-only positive rate without stating train/holdout sizes or the holdout rate. The empty limitations list hides this.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-036.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-037",
+   "dataset": "spambase",
+   "kind": "leakage_audit",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-037-C1",
+     "issue": "The claim is factually supported (detector_canary_passed = true) but has no listed limitations. It is easy to over-read as a clean audit; it only establishes detector sanity on an exact-target canary, not coverage of real columns or partial proxies.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-037-C2",
+     "issue": "The statement 'Declared decision-time exclusions: none' is cited to safe_vs_unsafe_training_cv, which is null, so the cited evidence does not support any conclusion. The empty list is a declaration, not evidence of absence of leakage. The claim is typed as a decision, but no decision-time semantics review is recorded to justify declaring no exclusions. It must not be read as approval of all features.",
+     "severity": "high",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 2,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-037.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-038",
+   "dataset": "spambase",
+   "kind": "feature_engineering",
+   "rule_check": {
+    "rule": "smallest feature matrix within 0.002 mean CV roc_auc of the best stage",
+    "metric": "roc_auc",
+    "recomputed": "raw",
+    "recorded": "raw",
+    "consistent": true,
+    "eligible": [
+     "full_fe",
+     "interactions",
+     "logs",
+     "ratios",
+     "raw"
+    ]
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-038-C1",
+     "issue": "The claim cites training-CV only, but the study question asks about validation evidence. Nothing in the bundle shows a holdout or repeated-CV confirmation, and the stage was selected on the same CV that reports the score.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-038-C1",
+     "issue": "The claim omits that ratios scored higher on ROC-AUC (0.98799 vs 0.98694) and on the secondary metrics. Raw wins only through the 0.002 ROC-AUC tolerance and a parsimony preference, so the wording could overstate how well raw is supported.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-038-C1",
+     "issue": "Stated limitations cover only generic-feature semantics. They do not cover fold-internal fitting verification, duplicate rows, dataset-specific tokens (hp, george, edu), or production-availability review. The empty evidence.limitations list is inadequate.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-038-C1",
+     "issue": "'Use raw' is a recommendation for a screen, not a finding that engineered features lack value. The data cannot separate 'no effect' from 'too little power' with 3 folds and 1 repeat. The sharp drop of the selected stage also shows the feature-selection step has an unexplained failure.",
+     "severity": "low",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-038.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-039",
+   "dataset": "spambase",
+   "kind": "model_selection",
+   "rule_check": {
+    "rule": "rank by mean CV roc_auc - 0.25×fold std (higher is better), then runtime",
+    "metric": "roc_auc",
+    "recomputed": "hist_gradient_boosting",
+    "recorded": "hist_gradient_boosting",
+    "consistent": true,
+    "scores": {
+     "logistic_regression": 0.972349,
+     "extra_trees": 0.983198,
+     "hist_gradient_boosting": 0.986859,
+     "lightgbm": 0.986376,
+     "xgboost": 0.986112
+    }
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-039-C1",
+     "issue": "The claim names hist_gradient_boosting as the candidate on the strength of a mean ROC-AUC lead of roughly 0.0004 to 0.0006 over lightgbm and xgboost. That lead is within fold std on 3 folds and 1 repeat. The wording is acceptably hedged ('training-CV model candidate'), but it omits that the top three boosters are effectively tied.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-039-C1",
+     "issue": "The '±0.0021' is fold std from only 3 values and is not an uncertainty interval for the mean. It could be misread as stability evidence.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-039-C1",
+     "issue": "The 'raw features' claim and the question's 'dataset profile' framing are not supported by any profile, duplicate check or leakage audit in the bundle. Feature availability at decision time is unreviewed.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-039-C1",
+     "issue": "Because models are compared only at default parameters, 'algorithm family' conclusions are limited to default configurations.",
+     "severity": "low",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-039.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-040",
+   "dataset": "spambase",
+   "kind": "optimization_reliability",
+   "rule_check": {
+    "rule": "keep the best tuned candidate only if mean CV roc_auc improves by at least 0.001",
+    "metric": "roc_auc",
+    "recomputed": "baseline",
+    "recorded": "baseline",
+    "consistent": true,
+    "gain": 0.000118,
+    "required": 0.001
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-040-C1",
+     "issue": "The claim is labeled fact and its numbers match holdout_metrics and the bootstrap interval. However, 'preselected' and 'baseline' are not backed by any evidence field: no CV results, selected-candidate record or preselection log. The empty limitations list also omits that the interval covers test sampling only and that no duplicate-overlap check was reported.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-040-C1",
+     "issue": "The package question asks about CV gain from optimization, but the cited evidence contains only holdout metrics, so the claim does not address that question.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-040-C2",
+     "issue": "The recommendation cites top_final_features and cv_feature_stability, which are both empty, so no feature-level evidence supports or illustrates it. It is a sound policy statement but is not empirically grounded in this experiment, and no feature has been reviewed for decision-time or production availability.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 3,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-040.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-041",
+   "dataset": "online_shoppers",
+   "kind": "data_understanding",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-041-C2",
+     "issue": "Asserts 0 features triggered review rules, yet only 10 of 17 features appear in evidence.feature_profiles. The conclusion is not supported for the remaining 7, which are likely the factorized categoricals.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-041-C2",
+     "issue": "Framed as a 'risk' claim but reads as reassurance. A zero-trigger result from rules that cannot assess decision-time availability or leakage should not be read as production readiness.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-041-C1",
+     "issue": "States 12330 rows and a 'training' positive rate with no limitations. The implied profile denominator (~3200 rows) and the unreported split sizes leave the relationship between source rows and training data unexplained.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-041-C2",
+     "issue": "Random-split PSI values (all below about 0.021) are being used as shift evidence. Random splits are expected to show near-zero PSI by construction, so they cannot show temporal or production drift, as the limitation already concedes.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-041.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-042",
+   "dataset": "online_shoppers",
+   "kind": "leakage_audit",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-042-C1",
+     "issue": "The claim is true as stated, but a passed exact-target canary only demonstrates detection of the most trivial leak. It must not be read as evidence that the detector would surface partial proxies, or that undeclared columns are clean. The claim lists no limitations.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-042-C2",
+     "issue": "The claim is a decision resting on a declaration. The evidence shows a declared exclusion and a predictive lift, but no decision-time semantics or production-availability record. Its own limitation says only decision-time semantics can confirm leakage. The lift is correlational and cannot establish leakage or any causal role for PageValues.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-042-C2",
+     "issue": "The 'apparent lift' comes from a single 3-fold, 1-repeat run with no paired uncertainty, no grouped or temporal split, and no holdout. Its size is not robustly estimated.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-042-C2",
+     "issue": "The claim implies the exclusion list is complete, but nothing in the bundle shows that other columns were audited. The question asks about all violating or proxy-like columns.",
+     "severity": "high",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-042.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-043",
+   "dataset": "online_shoppers",
+   "kind": "feature_engineering",
+   "rule_check": {
+    "rule": "smallest feature matrix within 0.002 mean CV roc_auc of the best stage",
+    "metric": "roc_auc",
+    "recomputed": "raw",
+    "recorded": "raw",
+    "consistent": true,
+    "eligible": [
+     "full_fe",
+     "interactions",
+     "logs",
+     "raw"
+    ]
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-043-C1",
+     "issue": "The claim reports 0.7156 mean ROC-AUC for raw without uncertainty or comparison to full_fe (0.7164). The selection rule's 0.002 tolerance is smaller than fold std and CI width, so the choice is effectively a tie-break on feature count. The claim also does not say that the study found no improvement from engineering.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-043-C1",
+     "issue": "It is a recommendation for 'the next model screen' that generalizes beyond a single default LightGBM with 3 folds. Raw-vs-engineered ranking may differ for other model families or tuned models.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-043-C1",
+     "issue": "The only stated limitation concerns domain meaning. It omits decision-time and production availability, fold design and nested-fitting confirmation, and the absent holdout.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-043-C1",
+     "issue": "The cited evidence supports ROC-AUC and feature counts, but the question's phrase 'train-fitted ... without feature dilution' is not quantified. Dilution is inferred from feature counts only, with no controlled test.",
+     "severity": "low",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-043.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-044",
+   "dataset": "online_shoppers",
+   "kind": "model_selection",
+   "rule_check": {
+    "rule": "rank by mean CV roc_auc - 0.25×fold std (higher is better), then runtime",
+    "metric": "roc_auc",
+    "recomputed": "extra_trees",
+    "recorded": "extra_trees",
+    "consistent": true,
+    "scores": {
+     "logistic_regression": 0.733342,
+     "extra_trees": 0.734855,
+     "hist_gradient_boosting": 0.718168,
+     "lightgbm": 0.712235,
+     "xgboost": 0.707677
+    }
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-044-C1",
+     "issue": "The claim names extra_trees the leader on a rule-score margin of about 0.0015 over logistic_regression, which has the higher raw mean ROC-AUC (0.7376 vs 0.7366). The fold scores and CIs overlap, and logistic_regression wins 2 of 3 folds. The lead comes from a noisy 3-fold std penalty, so it is not distinguishable from a tie.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-044-C1",
+     "issue": "The '±0.0072' in the statement is not labeled as a std (it matches the 3-fold sample std). Presenting it as a stability margin overstates precision at n=3, and the declared limitations omit the small fold count and 1 repeat.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-044-C1",
+     "issue": "The question asks about the 'algorithm family', but only default-parameter, untuned, single-run models were compared. The result cannot be read as a family-level ranking.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-044-C1",
+     "issue": "The claim does not address validation leakage (grouping, duplicates, time) or decision-time feature availability. Session-aggregate features such as ExitRates, BounceRates and the duration and page-count features have not been reviewed for production availability.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-044-C1",
+     "issue": "logistic_regression is better on log_loss, Brier and ECE and is faster. Choosing extra_trees on ROC-AUC alone ignores that probability-quality evidence and the runtime tiebreak.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 5,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-044.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-045",
+   "dataset": "online_shoppers",
+   "kind": "optimization_reliability",
+   "rule_check": {
+    "rule": "keep the best tuned candidate only if mean CV roc_auc improves by at least 0.001",
+    "metric": "roc_auc",
+    "recomputed": "extra_trees_C02",
+    "recorded": "extra_trees_C02",
+    "consistent": true,
+    "gain": 0.019986,
+    "required": 0.001
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-045-C1",
+     "issue": "The claim is factually supported as a point estimate and interval, but with empty limitations it omits the missing baseline comparison, the split design, the holdout size, and the bootstrap's failure to capture selection variance. It does not address the question's CV-gain half, and the recipe name is not verifiable from the evidence payload.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-045-C1",
+     "issue": "Any reading of the holdout score as evidence that optimization helped would be unsupported, because no baseline or tuned CV scores are included.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-045-C2",
+     "issue": "The recommendation is sound as policy, but the cited evidence shows only importance and fold frequency, not decision-time or production-availability review. Fold stability over 3 folds is weak, and importance cannot support causal or promotion claims. No feature should be treated as approved on this basis.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 3,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-045.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-046",
+   "dataset": "wine_quality",
+   "kind": "data_understanding",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-046-C1",
+     "issue": "The claim says 11 cached features, but only 10 are profiled in evidence.feature_profiles. The claim also lists no limitations, although the target definition, split sizes, and duplicate status are missing, and 'positive' is undefined.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-046-C2",
+     "issue": "'0 features triggered review rules' covers at most 10 of 11 features. Absence of a triggered rule is not evidence of production safety, because the rules do not test decision-time availability, duplicates, or group leakage. The claim is typed 'risk' but reports no risks, and the rule thresholds are not provided. The empty production_risks lists should not be read as production-availability clearance.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-046-C2",
+     "issue": "Random-split PSI values (about 0.007 to 0.036) are low by construction for a random split and are not informative about shift in deployment.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 3,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-046.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-047",
+   "dataset": "wine_quality",
+   "kind": "leakage_audit",
+   "rule_check": null,
+   "challenges": [
+    {
+     "claim_id": "EXP-047-C1",
+     "issue": "Labeled as fact and the canary result is observed. However, it has no limitations listed, and it demonstrates only sensitivity to an exact-target copy; it should not be read as evidence that real columns are leak-free.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-047-C2",
+     "issue": "Cites evidence.safe_vs_unsafe_training_cv, which is null, as support, and the empty declared_leakage_features list is not itself evidence of absence. A 'decision' of 'none' lacks decision-time semantic review and any per-column audit results. The claim's own limitation says only decision-time semantics can confirm leakage, yet none is provided.",
+     "severity": "high",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 2,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-047.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-048",
+   "dataset": "wine_quality",
+   "kind": "feature_engineering",
+   "rule_check": {
+    "rule": "smallest feature matrix within 0.002 mean CV roc_auc of the best stage",
+    "metric": "roc_auc",
+    "recomputed": "ratios",
+    "recorded": "ratios",
+    "consistent": true,
+    "eligible": [
+     "full_fe",
+     "ratios"
+    ]
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-048-C1",
+     "issue": "The recommendation to 'use the ratios feature recipe' rests on a 0.0031 mean ROC-AUC gain over raw. The gain comes from one of three folds, ratios is lower in the other two, and the ci95 intervals overlap (raw 0.8325 to 0.8470, ratios 0.8383 to 0.8474). The claim does not state this uncertainty.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-048-C1",
+     "issue": "The claim reports only mean training-CV ROC-AUC. Average precision is lower for ratios than for raw, ECE is slightly worse, and only some calibration and threshold metrics improve. Selecting on one metric hides mixed evidence.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-048-C1",
+     "issue": "'Without feature dilution' is not demonstrated. Feature count rises from 11 to about 32, and importance spreads across many correlated ratios with low top10 stability. No ablation or redundancy analysis was done, and importance is not causal evidence.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-048-C1",
+     "issue": "No decision-time or production-availability review is included. Generic ratio features need domain review of semantics, denominator behavior, and availability at prediction time before any feature is approved. The recommendation should be framed as a screening hypothesis only.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-048-C1",
+     "issue": "'About 32 features' obscures that the matrix varies by fold and that the stage definition (cumulative or not, log-denominator ratios included) is not specified. The recipe is not reproducible from this evidence alone.",
+     "severity": "low",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-048-C1",
+     "issue": "The selection rule's 0.002 tolerance is below fold-level noise, and six stages were compared on the same 3 folds, so the choice of ratios is within selection-noise range and likely optimistic.",
+     "severity": "medium",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 6,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-048.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-049",
+   "dataset": "wine_quality",
+   "kind": "model_selection",
+   "rule_check": {
+    "rule": "rank by mean CV roc_auc - 0.25×fold std (higher is better), then runtime",
+    "metric": "roc_auc",
+    "recomputed": "extra_trees",
+    "recorded": "extra_trees",
+    "consistent": true,
+    "scores": {
+     "logistic_regression": 0.8038,
+     "extra_trees": 0.860039,
+     "hist_gradient_boosting": 0.837944,
+     "lightgbm": 0.841875,
+     "xgboost": 0.830471
+    }
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-049-C1",
+     "issue": "The claim names 'ratios features' as part of the candidate, but the bundle has no non-ratio stage for comparison, so any benefit of the ratio features is unsupported. Their decision-time and production availability is also unreviewed.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-049-C1",
+     "issue": "The ±0.0036 is a std over only 3 folds with 1 repeat, and fold splitting (duplicates, grouping, stratification) is undocumented. Duplicate leakage could inflate high-capacity models such as extra_trees.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-049-C1",
+     "issue": "The ranking compares untuned default configurations ('baseline'), so 'strongest algorithm family' is not established. It reflects only this default-parameter comparison.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-049-C1",
+     "issue": "The claim is worded as a recommendation and correctly notes the unseen holdout, but the bundle's limitations are empty and leave out the validation risks above. It should not be read as cleared for promotion.",
+     "severity": "low",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 4,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-049.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  },
+  {
+   "experiment_id": "EXP-050",
+   "dataset": "wine_quality",
+   "kind": "optimization_reliability",
+   "rule_check": {
+    "rule": "keep the best tuned candidate only if mean CV roc_auc improves by at least 0.001",
+    "metric": "roc_auc",
+    "recomputed": "baseline",
+    "recorded": "baseline",
+    "consistent": true,
+    "gain": -0.001361,
+    "required": 0.001
+   },
+   "challenges": [
+    {
+     "claim_id": "EXP-050-C1",
+     "issue": "The numeric values are traceable to the cited paths. However, 'preselected' and 'extra_trees/baseline' are not supported by the cited evidence, and the claim carries no limitations (split design, holdout size, duplicate audit, CI scope). Presenting it as unqualified fact overstates certainty.",
+     "severity": "medium",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-050-C1",
+     "issue": "The claim does not address the experiment's question about the CV gain from optimization, because no CV comparison is cited. Any inference that tuning helped or did not help is unsupported.",
+     "severity": "high",
+     "gate": "unverified"
+    },
+    {
+     "claim_id": "EXP-050-C2",
+     "issue": "The recommendation is reasonable, but the cited stability evidence uses only 3 folds, and importances are correlated and nearly flat after the top feature. No feature has been reviewed for decision-time or production availability, so the evidence cannot support promoting any feature. Importance also must not be read as causal.",
+     "severity": "low",
+     "gate": "unverified"
+    }
+   ],
+   "contradicted": 0,
+   "kept": 3,
+   "path": "evidence/campaigns/model_building_50_v1/reviews/claude-sonnet-5-5/EXP-050.json",
+   "parsed": true,
+   "finish_reason": "stop"
+  }
+ ]
+}

@@ -1,0 +1,128 @@
+{
+ "package": "28.3",
+ "title": "The coordinator's state machine as a LangGraph graph: its own actions as nodes, the person as pauses, nothing replaced",
+ "date": "2026-10-18",
+ "request": "Phase 6 (the owner): a multi-agent system on an orchestration layer that enhances, never replaces, what exists; 28.3: the orchestrator.",
+ "spec": "docs/guides/PHASE6_MULTI_AGENT_PLAN.md, package 28.3",
+ "plan": [
+  "One node situates the draft with the coordinator's own situation; it alone chooses the next node.",
+  "One node per action calls the coordinator's act unchanged.",
+  "The person is reached through pauses: a question, a confirmation, an approval.",
+  "Every node advances the board; a walk's record kept.",
+  "Measure the dev journeys through the graph against the loop."
+ ],
+ "decisions": [
+  {
+   "decision": "The graph calls Coordinator.act and where unchanged; the loop stays the path with no framework.",
+   "why": "The owner: enhance, never replace; one set of rules decides what comes next whichever path walks it."
+  },
+  {
+   "decision": "An answer carries the key of the pause it was given to.",
+   "why": "A draft can change while a walk waits (the person answers in the chat, the map is redrawn); an answer must never be taken for another question."
+  },
+  {
+   "decision": "After an approval the draft is situated again before the build.",
+   "why": "The approval may wait for hours; what was true before it is not evidence after it."
+  },
+  {
+   "decision": "A pause is not a failed harness step; it is closed on the board, answered or declined.",
+   "why": "The traces are training data: a pause recorded as an error teaches the wrong thing."
+  }
+ ],
+ "change": "dclab_rnd/orchestra/walk.py (Walk, Asker, drive, the critic's nodes of 28.4); the harness's timed step lets a pause through; board.record emits team.recorded; deleting a draft deletes its checkpoints; the journeys' --walk graph stored as the arm rules_graph; agent orchestra.walk.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The build ran on a situation read before the approval's pause.",
+   "scenario": "The walk paused for the build's approval; the page's Build button built the draft meanwhile; resuming built a second project for the one draft.",
+   "cause": "The node acted on the situation computed before the pause; the build's own checks did not refuse a built draft.",
+   "fix": "After the approval the draft is situated again; the walk builds only when the situation still says build.",
+   "test": "test_a_build_made_while_its_approval_waited_is_not_made_twice"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A resumed answer was recorded against whatever question was open at the resume.",
+   "scenario": "The walk paused on the outcome; the person answered it in the chat, so the moment became the open question; resuming with the outcome's words recorded them as the prediction moment.",
+   "cause": "LangGraph re-runs the node on resume and hands the stored answer to the first pause whatever it now asks.",
+   "fix": "Each pause carries a key of what it asks; the answer is wrapped with the key of the pause shown; a different key asks again.",
+   "test": "test_an_answer_is_taken_only_for_the_question_it_was_given_to"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Every pause was recorded as a failed harness step, and a declined build was not recorded.",
+   "scenario": "Each question wrote a step with error GraphInterrupt, then the same step again on resume; a declined build left no step and no closed pause.",
+   "cause": "The interrupt raised inside the harness's timed block.",
+   "fix": "The harness lets LangGraph's interrupt through without a step; the decline and the approval are steps; every pause is closed on the board, answered or declined, with its event.",
+   "test": "test_a_declined_build_stops_and_says_why"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The walk's record missed its pauses, spend, time and start, and was no event.",
+   "scenario": "A walk with nine pauses recorded 0 interrupts, 0 spend, every node 0 seconds, and a start equal to its end.",
+   "cause": "The board held only closed pauses, which the walk never wrote; the start was taken at the end.",
+   "fix": "The start kept in the walk's state at its first invoke; the pauses closed on the board; the spend from the model requests of the walk's sessions; each node's seconds; team.recorded emitted.",
+   "test": "test_the_walk_is_a_session_of_the_orchestra_walk_agent"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Deleting a draft left its walk's checkpoints, with the person's answers.",
+   "scenario": "After retention.forget, the SQLite checkpoints still held the resumed answers of the draft's thread.",
+   "cause": "Retention removed the orchestra files only.",
+   "fix": "forget deletes the thread's checkpoints (SQLite or PostgreSQL), opened only where a walk ever ran.",
+   "test": "test_deleting_the_draft_deletes_its_walk_checkpoints"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The board after a node showed the draft before it.",
+   "scenario": "After the build the board said state build, not built.",
+   "cause": "The board was computed from the situation before the action.",
+   "fix": "The board after a node reads the draft after it.",
+   "test": "test_the_walk_is_a_session_of_the_orchestra_walk_agent"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Resume, the approval window, a changed question and retention had no tests; parity covered 3 of the 15 journeys.",
+   "scenario": "A broken resume would have passed.",
+   "cause": "Tests drove one Walk object in one process.",
+   "fix": "Tests for each; the 15 dev journeys run through the graph and stored as a result.",
+   "test": "tests/test_orchestra_walk.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the dev journeys through the graph (JRN-010)",
+   "gate": "15 of 15 dev journeys right through the graph, as through the loop, with no move refused by the validator",
+   "fixed_before_run": true,
+   "result": "15 of 15 right on the card, the workflow, the pipeline and the holdout (95% interval 0.796 to 1.0), 0 moves refused, the critic's rules on; stored as the arm rules_graph",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "Met.",
+   "limits": [
+    "Written journeys over seeded replicas: the same rules decide in both walks, so parity says the graph changes nothing, not that it is better."
+   ]
+  }
+ ],
+ "outcome": "The coordinator's walk runs as a graph that pauses for the person and resumes from its checkpoint, with every step, pause and spend recorded, and nothing of the coordinator rewritten.",
+ "lessons": [
+  "A framework that re-runs a node on resume makes every value read before a pause stale: read again after it.",
+  "Give each pause an identity; an answer is to a question, not to a position in a node."
+ ],
+ "risks": [
+  "The product's Home still walks the loop: the graph serves after 28.8."
+ ],
+ "commits": []
+}

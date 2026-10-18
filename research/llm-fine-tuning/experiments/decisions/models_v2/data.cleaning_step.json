@@ -1,0 +1,345 @@
+{
+ "schema_version": "dclab_core.decision_model_card.v1",
+ "point": "data.cleaning_step",
+ "name": "data.cleaning_step.logistic",
+ "version": "5c49b5a6cb15",
+ "family": "logistic",
+ "strength": 0.1,
+ "features": 42,
+ "fields": [
+  "cardinality",
+  "column",
+  "dtype",
+  "name_tokens",
+  "nulls",
+  "rows",
+  "uniqueness",
+  "value_pattern"
+ ],
+ "excluded": [],
+ "trained_on": 8472,
+ "trained_set": "9d31e6a1f408e5b6b4b919d95b7a13430aae91b536957bcf41814806f48eddd9",
+ "groups": 706,
+ "label_sources": {
+  "benchmark": 8472
+ },
+ "chosen_by": "out-of-fold accuracy over 5 folds grouped by table; best logistic:0.1",
+ "oof_accuracy": {
+  "logistic:0.1": 0.9103,
+  "logistic:1.0": 0.9103,
+  "logistic:10.0": 0.9103,
+  "boosting:0.1": 0.9103,
+  "boosting:1.0": 0.9103,
+  "boosting:10.0": 0.9103
+ },
+ "calibration": "Platt scaling on the same 5 table-grouped folds of the training rows",
+ "dev": {
+  "n": 2784,
+  "accuracy": 0.9224,
+  "accuracy_ci": [
+   0.9119,
+   0.9318
+  ],
+  "precision": 0.8123,
+  "precision_ci": [
+   0.8096,
+   0.815
+  ],
+  "recall": 0.8333,
+  "recall_ci": [
+   0.8333,
+   0.8333
+  ],
+  "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+  "answered": 2784,
+  "per_class": {
+   "booleans": {
+    "n": 272,
+    "precision": 1.0,
+    "precision_ci": [
+     0.9861,
+     1.0
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9861,
+     1.0
+    ]
+   },
+   "dates": {
+    "n": 268,
+    "precision": 1.0,
+    "precision_ci": [
+     0.9859,
+     1.0
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9859,
+     1.0
+    ]
+   },
+   "missing_markers": {
+    "n": 266,
+    "precision": 1.0,
+    "precision_ci": [
+     0.9858,
+     1.0
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9858,
+     1.0
+    ]
+   },
+   "none": {
+    "n": 1496,
+    "precision": 0.8738,
+    "precision_ci": [
+     0.8573,
+     0.8887
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9974,
+     1.0
+    ]
+   },
+   "numbers": {
+    "n": 266,
+    "precision": 1.0,
+    "precision_ci": [
+     0.9858,
+     1.0
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9858,
+     1.0
+    ]
+   },
+   "trim": {
+    "n": 216,
+    "precision": 0.0,
+    "precision_ci": [
+     null,
+     null
+    ],
+    "recall": 0.0,
+    "recall_ci": [
+     0.0,
+     0.0175
+    ]
+   }
+  }
+ },
+ "rule_dev": {
+  "n": 2784,
+  "accuracy": 0.7263,
+  "accuracy_ci": [
+   0.7094,
+   0.7425
+  ],
+  "precision": 0.8094,
+  "precision_ci": [
+   0.8007,
+   0.8186
+  ],
+  "recall": 0.9151,
+  "recall_ci": [
+   0.9111,
+   0.9193
+  ],
+  "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+  "answered": 2784,
+  "per_class": {
+   "booleans": {
+    "n": 272,
+    "precision": 1.0,
+    "precision_ci": [
+     0.9861,
+     1.0
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9861,
+     1.0
+    ]
+   },
+   "dates": {
+    "n": 268,
+    "precision": 1.0,
+    "precision_ci": [
+     0.9859,
+     1.0
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9859,
+     1.0
+    ]
+   },
+   "missing_markers": {
+    "n": 266,
+    "precision": 0.5135,
+    "precision_ci": [
+     0.4705,
+     0.5563
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9858,
+     1.0
+    ]
+   },
+   "none": {
+    "n": 1496,
+    "precision": 1.0,
+    "precision_ci": [
+     0.9948,
+     1.0
+    ],
+    "recall": 0.4906,
+    "recall_ci": [
+     0.4654,
+     0.516
+    ]
+   },
+   "numbers": {
+    "n": 266,
+    "precision": 0.3428,
+    "precision_ci": [
+     0.3102,
+     0.3769
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9858,
+     1.0
+    ]
+   },
+   "trim": {
+    "n": 216,
+    "precision": 1.0,
+    "precision_ci": [
+     0.9825,
+     1.0
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9825,
+     1.0
+    ]
+   }
+  }
+ },
+ "dev_by_source": {
+  "benchmark": {
+   "n": 2784,
+   "accuracy": 0.9224,
+   "accuracy_ci": [
+    0.9119,
+    0.9318
+   ],
+   "precision": 0.8123,
+   "precision_ci": [
+    0.8096,
+    0.815
+   ],
+   "recall": 0.8333,
+   "recall_ci": [
+    0.8333,
+    0.8333
+   ],
+   "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+   "answered": 2784,
+   "per_class": {
+    "booleans": {
+     "n": 272,
+     "precision": 1.0,
+     "precision_ci": [
+      0.9861,
+      1.0
+     ],
+     "recall": 1.0,
+     "recall_ci": [
+      0.9861,
+      1.0
+     ]
+    },
+    "dates": {
+     "n": 268,
+     "precision": 1.0,
+     "precision_ci": [
+      0.9859,
+      1.0
+     ],
+     "recall": 1.0,
+     "recall_ci": [
+      0.9859,
+      1.0
+     ]
+    },
+    "missing_markers": {
+     "n": 266,
+     "precision": 1.0,
+     "precision_ci": [
+      0.9858,
+      1.0
+     ],
+     "recall": 1.0,
+     "recall_ci": [
+      0.9858,
+      1.0
+     ]
+    },
+    "none": {
+     "n": 1496,
+     "precision": 0.8738,
+     "precision_ci": [
+      0.8573,
+      0.8887
+     ],
+     "recall": 1.0,
+     "recall_ci": [
+      0.9974,
+      1.0
+     ]
+    },
+    "numbers": {
+     "n": 266,
+     "precision": 1.0,
+     "precision_ci": [
+      0.9858,
+      1.0
+     ],
+     "recall": 1.0,
+     "recall_ci": [
+      0.9858,
+      1.0
+     ]
+    },
+    "trim": {
+     "n": 216,
+     "precision": 0.0,
+     "precision_ci": [
+      null,
+      null
+     ],
+     "recall": 0.0,
+     "recall_ci": [
+      0.0,
+      0.0175
+     ]
+    }
+   }
+  }
+ },
+ "dev_calibration_error": 0.013,
+ "limits": [
+  "Measured on dev rows; the sealed partition is read once, under 22.3's gate.",
+  "Trained on generated tables (22.1): it learns these planted kinds, not real tables.",
+  "A group is a base and a seed: dev holds new seeds of the same bases as training, not new kinds of table, so dev measures reading planted kinds in tables like those trained on.",
+  "Every generated table plants the same kinds, so intervals drawn by table group are narrow: they say how stable the model is across these tables, not across other kinds of table."
+ ]
+}

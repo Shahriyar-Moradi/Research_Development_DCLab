@@ -1,0 +1,122 @@
+{
+ "package": "28.2",
+ "title": "The board and the hand-off contracts of a team of agents, framework-free, every hand-off and pause an event",
+ "date": "2026-10-18",
+ "request": "Phase 6 (the owner): a multi-agent system on an orchestration layer, capture everything; 28.2: the shared state and its contracts.",
+ "spec": "docs/guides/PHASE6_MULTI_AGENT_PLAN.md, package 28.2, Part D4",
+ "plan": [
+  "Contracts in dclab_core with no framework import: Board, Handoff, Interrupt, TeamRecord.",
+  "Every hand-off and pause an experience event with the board's version.",
+  "Keep the whole board at every hand-off; refuse a board holding a table's value."
+ ],
+ "decisions": [
+  {
+   "decision": "The board holds names, codes and counts; the draft keeps the person's whole words.",
+   "why": "A board is read by every node and kept at every hand-off: it must never carry rows."
+  },
+  {
+   "decision": "An answered pause raises the board's version; an open one is an event only.",
+   "why": "Every change has one version; a walk waiting is not a change."
+  },
+  {
+   "decision": "Team events carry the draft as their conversation, and deleting a draft removes the orchestra files' lines of its thread.",
+   "why": "Retention must remove everything a deleted draft left."
+  }
+ ],
+ "change": "dclab_core/orchestra.py, experience v10 (team.handoff, team.interrupt), dclab-core 0.67.0, schemas, conformance reasons; dclab_rnd/orchestra/board.py; the spike carries a board; retention.forget removes a thread's team files; the wheel check reads the current version.",
+ "findings": [
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "values_in missed fields and values inside longer text.",
+   "scenario": "A unit 'each biker, e.g. BK-77812', an open question naming it, a blocker naming a person passed.",
+   "cause": "Exact matches on a few fields.",
+   "fix": "Every text-bearing field read, substrings included; list items bounded.",
+   "test": "test_every_text_field_is_read_inside_longer_text_and_the_vocabulary_is_not"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "values_in refused DCLab's own codes.",
+   "scenario": "A table with a 'none' cell refused problem.labels='none'.",
+   "cause": "Vocabulary fields compared with values.",
+   "fix": "family, labels and ready are never compared; values under four characters are not either.",
+   "test": "test_every_text_field_is_read_inside_longer_text_and_the_vocabulary_is_not"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A two-line answer crashed the walk.",
+   "scenario": "'When the order is placed,\\nbefore a courier is assigned' raised in the analyst and the thread was stuck.",
+   "cause": "The validator refused a newline.",
+   "fix": "Whitespace made one line in the board's validator; the draft keeps the whole words.",
+   "test": "test_a_two_line_answer_is_one_line_on_the_board"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "team.interrupt carried no board version.",
+   "scenario": "An answered pause changed the board without a version.",
+   "cause": "The interrupt event lacked the fields.",
+   "fix": "board_before and board_after on the event; an answered pause raises the version.",
+   "test": "test_a_pause_answered_raises_the_version_and_its_event_says_both"
+  },
+  {
+   "id": "R12",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "core-wheel-check failed on a stale version pin.",
+   "scenario": "The script asserted experience_event.v8.",
+   "cause": "A literal version in the check.",
+   "fix": "It reads the current version; smoke calls for the board and the homework added.",
+   "test": "scripts/core_wheel_check.py"
+  },
+  {
+   "id": "R13",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Deleting a draft left its team events and board files.",
+   "scenario": "retention.forget removed 0 of 11 team events.",
+   "cause": "Team events carried no conversation; the orchestra files were never cleaned.",
+   "fix": "Events bound to the draft; forget removes the thread's lines from the orchestra files.",
+   "test": "test_deleting_a_draft_removes_its_team_records"
+  },
+  {
+   "id": "R14",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The spike's open questions were wrong.",
+   "scenario": "An earlier unread answer was dropped; reaching the limit cleared the list.",
+   "cause": "Each answer replaced the list.",
+   "fix": "The answered field leaves, an unread one stays.",
+   "test": "test_every_handoff_and_pause_is_an_event_and_the_whole_board_is_kept"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the spike with a board, on JD-02",
+   "gate": "every change one version, none skipped; every hand-off's board kept; pauses as events",
+   "fixed_before_run": true,
+   "result": "every hand-off and answered pause raised the version once and in order; the whole board kept at every hand-off; open and answered pauses recorded; the walk's record kept",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "Met.",
+   "limits": [
+    "The spike's three nodes only: the understanding and solution teams come in later packages."
+   ]
+  }
+ ],
+ "outcome": "A team's shared state is a contract, every change of it an event with its version, every board kept, never a row.",
+ "lessons": [
+  "A value check must read every field that carries text, and never DCLab's own vocabulary.",
+  "Normalise what a person wrote into a summary field; never let it crash the walk."
+ ],
+ "risks": [
+  "A long-lived project thread could reach the board's hand-off cap (400)."
+ ],
+ "commits": []
+}

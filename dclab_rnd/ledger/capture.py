@@ -82,9 +82,12 @@ def solution_saved(proposal: dict[str, Any] | None, profile: dict[str, Any] | No
                                  options=((profile or {}).get("target_candidates") or [])[:20], level=level, exposed=exposed, **ids))
         detected = (proposal.get("detected") or {}).get("task")
         if task:
+            from .states import task_state  # 29.2: the fields the homework's students read, built one way
+
             written += bool(_put("task.framing", where, [answer("rule", "rule:detect_task", detected if detected in TASKS else None),
                                                           answer(by, who, solution.get("task"))],
-                                 solution.get("task"), by, state=problem, options=list(TASKS), level=level, exposed=exposed, **ids))
+                                 solution.get("task"), by, state=task_state(profile, target) if target else problem, options=list(TASKS),
+                                 level=level, exposed=exposed, **ids))
         ids_rule = set(own.get("identifiers") or [])
         by_model = {str(d.get("column")): d for d in own.get("decided_by_models") or [] if d.get("answerer")}  # 22.9
         audit = {f.get("column") for f in own.get("forbidden") or [] if "DCLAB-R01" not in (f.get("proof") or [])
@@ -182,8 +185,10 @@ def stage_decisions(stage: str, record: dict[str, Any], prepared: Any, owner: di
             solution = getattr(prepared, "solution", None)
             spec = getattr(getattr(prepared, "bundle", None), "spec", None)
             if spec is not None:
+                from .states import split_state  # 29.2: the fields the homework's students read, built one way
+
                 put("split.strategy", getattr(spec, "split_strategy", None), "rule:kind_split",
-                    state={"has_time": bool(getattr(solution, "time_column", None)), "has_groups": bool(getattr(solution, "group_column", None))})
+                    state=split_state(data.get("profile"), getattr(solution, "time_column", None), getattr(solution, "group_column", None)))
             chosen_metric = getattr(solution, "metric", None)
             put("metric.primary", None if chosen_metric else metric, "rule:kind_default_metric", person=chosen_metric or None)
             folds = settings.get("folds")
@@ -480,13 +485,32 @@ def problem_card(draft: dict[str, Any], card: Any) -> int:
     return written
 
 
+COLUMN_STEPS = ("missing_markers", "numbers", "dates", "booleans", "trim")  # the steps that act on one column's values
+
+
 @_quiet
-def cleaning(draft_id: str, log: list[dict[str, Any]], rows: int | None) -> int:
-    """Each cleaning step the rules applied, per column it changed (the step's key; never a cell)."""
+def cleaning(draft_id: str, log: list[dict[str, Any]], rows: int | None, profile: dict[str, Any] | None = None) -> int:
+    """Each cleaning step the rules applied, per column it changed (the step's key; never a cell). With ``profile`` (the
+    raw table's, 29.2): every column, its first column step or ``none``, with the raw column's bands, as the homework's."""
     written = 0
     with batch():
+        if profile is not None:
+            from .states import cleaning_state
+
+            first: dict[str, str] = {}
+            for entry in log:
+                if entry.get("step") in COLUMN_STEPS:
+                    for column in entry.get("columns") or []:
+                        first.setdefault(str(column), str(entry["step"]))
+            for col in (profile.get("columns") or [])[:MAX_COLUMNS]:
+                name = str(col.get("name"))
+                step = first.get(name, "none")
+                written += bool(_put("data.cleaning_step", ("column", name[:200]), [answer("rule", "rule:clean", step)], step, "rule",
+                                     state=cleaning_state(profile, name), options=[*COLUMN_STEPS, "none"], draft=draft_id, conversation=draft_id))
         for entry in log[:50]:
             step = _code(entry.get("step"))
+            if profile is not None and step in COLUMN_STEPS:
+                continue  # recorded above, with every column
             for column in (entry.get("columns") or ["*"])[:20]:
                 if step:
                     written += bool(_put("data.cleaning_step", ("column", str(column)[:200]), [answer("rule", "rule:clean", step)], step, "rule",
@@ -497,9 +521,11 @@ def cleaning(draft_id: str, log: list[dict[str, Any]], rows: int | None) -> int:
 @_quiet
 def cases_table(draft_id: str, name: str, cases: dict[str, Any] | None, profile: dict[str, Any]) -> int:
     """Whether a table is a list of known cases (the labels of another table) rather than rows to score."""
+    from .states import cases_state  # 29.2: the fields the homework's students read, built one way
+
     found = cases is not None
     return int(bool(_put("data.cases_table", ("draft", draft_id), [answer("rule", "rule:cases_table", found)], found, "rule",
-                         state={"rows": rows_band(profile.get("rows")), "columns": len(profile.get("columns") or []) or None},
+                         state=cases_state(profile, name),
                          options=["yes", "no"], draft=draft_id, conversation=draft_id)))
 
 

@@ -1,0 +1,66 @@
+{
+ "version": "benchgen_v2",
+ "at": "2026-10-14T00:00:00+00:00",
+ "seeds": 1200,
+ "tables": 9600,
+ "decisions": 21600,
+ "grouping": "a table and its hidden-name twin are one group: their decisions never sit in two splits",
+ "sets": {
+  "data.cases_table": {
+   "decisions": 2400,
+   "tables": 1200,
+   "splits": {
+    "train": 1406,
+    "dev": 530,
+    "sealed": 464
+   },
+   "rule_right": 1289,
+   "label_yes": 1200,
+   "sealed_fingerprint": "ce39a4f4fa430d9be62c90b5a75d90d5566d70ca9d615250bac6b9b4c3a14afe"
+  },
+  "data.cleaning_step": {
+   "decisions": 14400,
+   "tables": 1200,
+   "splits": {
+    "train": 8472,
+    "dev": 2784,
+    "sealed": 3144
+   },
+   "rule_right": 10476,
+   "label_yes": 0,
+   "sealed_fingerprint": "7ba3e45c9a30b69f0ce2ce0d92851fcb1f84b3147dba4c6737d9a4c29c5d525c"
+  },
+  "split.strategy": {
+   "decisions": 2400,
+   "tables": 1200,
+   "splits": {
+    "sealed": 476,
+    "train": 1406,
+    "dev": 518
+   },
+   "rule_right": 1161,
+   "label_yes": 0,
+   "sealed_fingerprint": "fd54742cecd8d897a3a6ac40559800ae565a71927cd8fc4cc9e793ca63cb7ae5"
+  },
+  "task.framing": {
+   "decisions": 2400,
+   "tables": 1200,
+   "splits": {
+    "sealed": 490,
+    "train": 1424,
+    "dev": 486
+   },
+   "rule_right": 1920,
+   "label_yes": 0,
+   "sealed_fingerprint": "d670eb665bcf67b44036f288fe01267e0d6d4dc79a08235cbb4e69f4f0fafd05"
+  }
+ },
+ "states": "built as production builds them (dclab_rnd/ledger/states.py), from each table's profile",
+ "rules": {
+  "task.framing": "studio.data.detect_task",
+  "split.strategy": "kinds.base.default_split on the proposal's first time and group candidates (the wizard's declaration; Home's build declares no group)",
+  "data.cases_table": "studio.labels.cases_table",
+  "data.cleaning_step": "draft.clean.clean, the first column step or none"
+ },
+ "rule": "Invented tables with planted truths (the outcome's kind, the split, a list of known cases, each column's cleaning step) and traps; names drawn from pools shared across truths and every table also with its names hidden, so no name says the truth. Labels are true by construction; scores on them say how a model reads these traps, not real tables. The sealed partition is never used for tuning."
+}

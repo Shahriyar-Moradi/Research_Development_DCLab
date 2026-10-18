@@ -140,10 +140,13 @@ def _run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=Non
         store.emit(draft_id, "pipeline", {"asset": asset_id, "step": "structured", "text": _structured_text(info), "info": info})
 
         checkpoint()
+        from ..studio.data import profile_table
+
+        raw = profile_table(frame.sample(min(len(frame), 5000), random_state=0) if len(frame) > 5000 else frame)  # 29.2: the raw columns' bands
         frame, log = clean.clean(frame)
         from ..ledger import capture  # 19.7: each cleaning step applied
 
-        capture.cleaning(draft_id, log, int(len(frame)))
+        capture.cleaning(draft_id, log, int(len(frame)), profile=raw)
         codes = clean.category_code_columns(frame)
         store.emit(draft_id, "pipeline", {"asset": asset_id, "step": "cleaned",
                                           "text": f"{len(log)} cleaning step{'s' if len(log) != 1 else ''} applied" if log else "No cleaning needed",

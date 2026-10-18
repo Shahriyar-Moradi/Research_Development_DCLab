@@ -23,6 +23,7 @@ def main() -> int:
     parser.add_argument("--cap-eur", type=float, default=0.5, help="the reader's spend cap for the whole run")
     parser.add_argument("--spent", action="store_true", help="read a sealed set already run as dev material: nothing is stored")
     parser.add_argument("--keep", type=Path, default=None, help="with --live-arms: every live journey's whole record copied into DIR/<arm>/<id>/")
+    parser.add_argument("--walk", choices=("loop", "graph"), default="loop", help="28.3: the coordinator's loop, or its graph (the orchestration layer)")
     parser.add_argument("--live-arms", action="store_true", help="26.5: the rules, the workflow model alone, and the workflow model with the "
                                                                     "decision models, on dev (with --yes and --cap-eur)")
     args = parser.parse_args()
@@ -66,7 +67,7 @@ def main() -> int:
         return _reader_arm(args, seed)
     if args.live_arms:
         return _live_arms(args, seed)
-    rows = measure(args.split, seed, args.workers, args.only)
+    rows = measure(args.split, seed, args.workers, args.only, walk=args.walk)
     for r in rows:
         mark = "ok  " if r["right"] else "MISS"
         print(f"{mark} {r['id']:6} {r['kind']:14} {json.dumps(r['parts'])} {r.get('seconds', '')}s asked {r.get('asked')} card {r.get('got')}  {'; '.join(r['why'])[:300]}")
@@ -74,8 +75,8 @@ def main() -> int:
         print(f"  {f['family']:16} {f['right']}/{f['journeys']}  interval {f['interval']}")
     result = verdict(rows)
     print(result)
-    if not args.no_store:
-        print(store(rows, args.split, result, seed=seed))
+    if not args.no_store:  # 28.3: a walk through the graph is stored as its own arm, beside the loop's
+        print(store(rows, args.split, result, arm="rules" if args.walk == "loop" else "rules_graph", seed=seed, extra={"walk": args.walk}))
     return 0
 
 

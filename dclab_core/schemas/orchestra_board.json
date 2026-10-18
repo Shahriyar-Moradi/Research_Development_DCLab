@@ -1,0 +1,322 @@
+{
+  "$defs": {
+    "Handoff": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "maxLength": 40,
+          "title": "At",
+          "type": "string"
+        },
+        "board_after": {
+          "description": "The board's version the node left.",
+          "minimum": 0,
+          "title": "Board After",
+          "type": "integer"
+        },
+        "board_before": {
+          "description": "The board's version when the node read it.",
+          "minimum": 0,
+          "title": "Board Before",
+          "type": "integer"
+        },
+        "from_node": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "From Node",
+          "type": "string"
+        },
+        "to_node": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "To Node",
+          "type": "string"
+        },
+        "what": {
+          "description": "What was handed over, as a code (brief, data_card, map, routes, workflow).",
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "What",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from_node",
+        "to_node",
+        "what",
+        "board_before",
+        "board_after",
+        "at"
+      ],
+      "title": "Handoff",
+      "type": "object"
+    },
+    "Interrupt": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "maxLength": 40,
+          "title": "At",
+          "type": "string"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "For a question: the card field it settles.",
+          "title": "Field"
+        },
+        "gate": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "For an approval: what is approved (build, holdout, promote).",
+          "title": "Gate"
+        },
+        "kind": {
+          "enum": [
+            "question",
+            "confirmation",
+            "approval"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "node": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Node",
+          "type": "string"
+        },
+        "status": {
+          "default": "open",
+          "enum": [
+            "open",
+            "answered",
+            "declined"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "text": {
+          "default": "",
+          "description": "What DCLab asks, in its own words: never a row.",
+          "maxLength": 600,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "node",
+        "at"
+      ],
+      "title": "Interrupt",
+      "type": "object"
+    },
+    "Part": {
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Family"
+        },
+        "part": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Part",
+          "type": "string"
+        },
+        "route": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Route"
+        },
+        "status": {
+          "default": "open",
+          "enum": [
+            "open",
+            "routed",
+            "designed",
+            "built",
+            "blocked"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "title": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Title",
+          "type": "string"
+        },
+        "workflow": {
+          "description": "The step names of its solution workflow.",
+          "items": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "maxItems": 40,
+          "title": "Workflow",
+          "type": "array"
+        }
+      },
+      "required": [
+        "part"
+      ],
+      "title": "Part",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.orchestra_board.v1.json",
+  "additionalProperties": false,
+  "description": "What a team knows at one moment (28.2).",
+  "properties": {
+    "blockers": {
+      "description": "Codes of what stops a build.",
+      "items": {
+        "maxLength": 80,
+        "type": "string"
+      },
+      "maxItems": 40,
+      "title": "Blockers",
+      "type": "array"
+    },
+    "data": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "The tables as counted: tables, rows, columns, labelled rows.",
+      "title": "Data",
+      "type": "object"
+    },
+    "decisions": {
+      "description": "Ledger ids of the decisions made in this walk.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 2000,
+      "title": "Decisions",
+      "type": "array"
+    },
+    "handoffs": {
+      "items": {
+        "$ref": "#/$defs/Handoff"
+      },
+      "maxItems": 400,
+      "title": "Handoffs",
+      "type": "array"
+    },
+    "interrupts": {
+      "items": {
+        "$ref": "#/$defs/Interrupt"
+      },
+      "maxItems": 200,
+      "title": "Interrupts",
+      "type": "array"
+    },
+    "open_questions": {
+      "description": "The card fields still asked.",
+      "items": {
+        "maxLength": 80,
+        "type": "string"
+      },
+      "maxItems": 40,
+      "title": "Open Questions",
+      "type": "array"
+    },
+    "parts": {
+      "items": {
+        "$ref": "#/$defs/Part"
+      },
+      "maxItems": 40,
+      "title": "Parts",
+      "type": "array"
+    },
+    "problem": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "description": "The card's fields as understood: family, labels, outcome (a column's name), moment, unit, action, ready: each a name, a code or a short phrase.",
+      "title": "Problem",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "dclab_core.orchestra_board.v1",
+      "default": "dclab_core.orchestra_board.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "spent_eur": {
+      "default": 0.0,
+      "minimum": 0,
+      "title": "Spent Eur",
+      "type": "number"
+    },
+    "state": {
+      "default": "problem",
+      "description": "The coordinator's state (dclab_core.coordinator.STATES).",
+      "maxLength": 40,
+      "title": "State",
+      "type": "string"
+    },
+    "thread": {
+      "description": "draft:<id> or project:<id>: the walk this board belongs to.",
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Thread",
+      "type": "string"
+    },
+    "version": {
+      "default": 0,
+      "description": "Raised by one at every node that changes the board.",
+      "minimum": 0,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "thread"
+  ],
+  "title": "Board",
+  "type": "object"
+}

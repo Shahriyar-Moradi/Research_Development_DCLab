@@ -242,6 +242,11 @@ families; nothing is captured for the first time there.
 - **Done when:** the schemas are frozen (`make core-schemas`), `core-wheel-check` passes, a board with a cell value is
   refused, and a hand-off round-trips through the experience log; **capture:** `team.handoff` and `team.interrupt` events
   carry the board's version before and after, and `make archive` keeps them.
+- **Status: built (2026-10-18).** `dclab_core.orchestra` (`Board` v1, `Handoff`, `Interrupt`, `Part`, `NodeRun`, `TeamRecord` v1,
+  `advance`, `values_in`; dclab-core 0.67.0), `experience_event.v10` with `team.handoff` and `team.interrupt`;
+  `dclab_rnd/orchestra/board.py` (every hand-off and pause an event, the whole board kept in `orchestra/boards.jsonl`, pauses in
+  `interrupts.jsonl`, walks in `teams.jsonl`, a board holding a table's value refused, the parallel parts' reducer); the spike
+  carries a board through its three nodes.
 
 ### 28.3 The orchestrator: the coordinator's machine as the graph
 - **Delivers:** the top-level graph, one node per coordinator state, edges by `situation()`; the three interrupts; the
@@ -251,6 +256,19 @@ families; nothing is captured for the first time there.
 - **Done when:** the 15 dev journeys carry to the same result through the graph as through the loop (the rules arm
   15 of 15), with the walk resumable at every state and every step in the harness; **capture:** each run's node
   sequence, interrupts and spend as one `TeamRecord` in the experience log, and every decision in the ledger as today.
+- **Status: built (2026-10-18).** `dclab_rnd/orchestra/walk.py`: `Walk` (a `situate` node runs `Coordinator.where`, the only
+  chooser of the next node; one node per action calls `Coordinator.act` unchanged; the person is `Asker`, whose `ask` and
+  `approve` are the graph's interrupts: a question, a confirmation (the map) and an approval (the build); an answer carries
+  its pause's key and is never taken for another question; a build is approved first and the draft situated again after
+  the approval; every node advances the board with the draft as it is after it, and closes its pauses on it, answered or
+  declined; the walk's `TeamRecord` (its real start, nodes with their seconds, pauses, spend) kept and emitted as
+  `team.recorded`) and `drive(walk, draft, person)`; the journeys play through either (`--walk graph`, stored as the arm
+  `rules_graph`); agent `orchestra.walk` in the harness (a pause is not a failed step); deleting a draft deletes its walk's
+  checkpoints. Measured: the dev journeys through the graph as through the loop (the result file is in the record of the
+  package); the owner's morning (two files, labels joined on the order) builds through it; a declined build stops and says
+  why; a build made while its approval waited is not made twice; a walk resumes from a new `Walk` on the same checkpoints.
+  Left: the workspace's team switch in `draft/coordinator.py` and the budget per run and per node move to 28.8, where Home
+  walks the graph; the loop stays the path with no framework.
 
 ### 28.4 The understanding team
 - **Delivers:** the nodes of D2 as a subgraph; the analyst and the investigator in parallel; the understanding critic
@@ -260,6 +278,18 @@ families; nothing is captured for the first time there.
   (the harness-eval grading), with the critic's send-backs counted and each one's reason recorded; nothing is asked twice;
   **capture:** the critic's questions and the person's answers as conversation examples, the brief before and after each
   node as `solution_design` inputs.
+- **Status: the critic built (2026-10-18); the rest open.** `dclab_core/understanding_critic.py` (dclab-core 0.68.0; rules:
+  the meet check's blocking mismatches on the field each names, an outcome the data card reads as no outcome, a time and no
+  moment; a model adds concerns on card fields only, refused when a column it names, in its list or its words, is not in
+  the tables; prompt `prompts/understanding_critic.md`) and the walk's `critic` and `critic_gate` nodes: before the workflow
+  and the build the card is read again; its first new concern is a question the interviewer asks next (one a round, a field
+  never twice, at most two rounds); a model's concern is kept only when every name and number in it is in what it read, and
+  is not asked about what the person already answered; when concerns stand and none can be sent back, the person decides
+  (an approval: go on, recorded as overridden, or stop with the concerns shown). Every round is kept with its concerns, its
+  refusals and their reasons (`draft.coordinator.critic.history`). "Yes" to a critic's question keeps what is known; a
+  family is read from the answer, never stored as its words. Left: the analyst and the investigator as parallel nodes of a
+  D2 subgraph, the measurement against the single Home agent (with 28.7), and the critic's questions and answers as
+  conversation examples and the briefs as `solution_design` inputs (with 28.9).
 
 ### 28.5 The solution team
 - **Delivers:** the nodes of D3 as a subgraph; parts of a complex problem routed and designed in parallel (`Send`) and

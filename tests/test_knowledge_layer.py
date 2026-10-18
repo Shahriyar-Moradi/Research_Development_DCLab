@@ -66,6 +66,16 @@ class CriticGateTests(unittest.TestCase):
         challenge = {"issue": "The CV leader is not evidence that this family is best on unseen data.", "severity": "medium"}
         self.assertEqual(critic_gate.classify_challenge(challenge, {"consistent": True}), "unverified")
 
+    def test_a_second_reviewers_kept_reviews_go_through_the_same_gate(self):  # 29.18: Claude beside the campaign's reviewer
+        gated = {g["experiment_id"]: g for g in critic_gate.gate_beside("claude-sonnet-5-5", ROOT)}
+        if not gated:
+            self.skipTest("no kept reviews")
+        self.assertEqual(gated["EXP-008"]["rule_check"]["recomputed"], "ratios")  # paired with its result, its rule recomputed
+        self.assertGreaterEqual(gated["EXP-008"]["contradicted"], 1)  # the "selected" recipe read as the rule's choice, in Claude's words
+        self.assertTrue(all(g["parsed"] or g["finish_reason"] == "length" for g in gated.values()))  # a cut reply is reported, never guessed
+        caveat = {"issue": "The selection rule's 0.002 tolerance is below fold-level noise, so the choice is within noise."}
+        self.assertEqual(critic_gate.classify_challenge(caveat, {"consistent": True}), "unverified")  # a fair caveat is kept
+
 
 class SFTv3Tests(unittest.TestCase):
     @classmethod

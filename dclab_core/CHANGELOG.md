@@ -4,6 +4,41 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.68.0 (2026-10-18)
+
+Package 28.4: the understanding critic.
+
+- `understanding_critic`: `concerns(card, columns, mismatches)` (the rules: the meet check's blocking mismatches, each on the
+  card field it names; an outcome the data card reads as an identifier, an entity, a time, a leak suspect, a row number or a
+  constant; a time in the table and no prediction moment), the role `UNDERSTANDING_CRITIC` (a model adds concerns about
+  card fields only; an answer naming a column the tables do not hold, in its list or its words, is refused) and
+  `critique(advisor, card, columns, mismatches)`. `FIELDS`, `ROUNDS` (two send-backs a walk). The prompt
+  `prompts/understanding_critic.md`.
+
+## 0.67.0 (2026-10-18)
+
+Package 28.2: the contracts of a team of agents, framework-free.
+
+- `orchestra`: `Board` v1 (`dclab_core.orchestra_board.v1`: the thread, its version, the coordinator's state, the problem as
+  understood in names and codes, the tables as counted, the map's parts with their routes and workflow step names, the open
+  questions and blockers, the spend, the hand-offs, the interrupts, the ledger ids of its decisions; never a row),
+  `Handoff`, `Interrupt` (a question, a confirmation or an approval), `Part`, `NodeRun`, `TeamRecord` v1
+  (`dclab_core.team_record.v1`: a walk node by node). `values_in(board, values)` says where a board would hold a table's
+  value; `advance(board, node, what, at, **changes)` returns the next board, validated, its hand-off recorded.
+- `experience` v10 (`dclab_core.experience_event.v10`, v9 read as v10): `team.handoff`, `team.interrupt` and `team.recorded` (a walk's record: its nodes, pauses, cost and time).
+
+## 0.66.0 (2026-10-18)
+
+Package 29.2: homework for table-level choices, with planted truths.
+
+- `benchgen2`: `task_table(seed)` (the outcome's kind, with small counts that are numbers and many codes that are
+  classes), `split_table(seed)` (the row's own time and a repeating entity, with a date that is not the row's time, an id
+  that never repeats, an entity under a plain name), `cases_table(seed)` (a list of known cases or not, with a cases list
+  without a status and a transaction table with a reason), `dirty_table(seed)` (each column's cleaning step, with a country
+  code "NA", codes with leading zeros, versions like 1.10 and a date-like id). Seeded, small, facts true by construction.
+- `ledger.STATE_FIELDS`: `integer_valued`, `date_columns`, `id_columns`, `repeat_share`, `key_unique`, `reason_like`,
+  `status_constant`, `name_says_cases` (counts, ratios and flags). No contract's shape changed.
+
 ## 0.65.0 (2026-10-17)
 
 Package 26.8 (its decision points): what an image problem decides, as ledger records with their truths.

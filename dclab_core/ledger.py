@@ -68,6 +68,9 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "similarity": (MEASURE, ()), "near_threshold": (MEASURE, ()), "margin": (MEASURE, ()), "same_label": (FLAG, ()),
     "images": (COUNT, ()), "copies": (COUNT, ()), "copies_agree": (RATIO, ()), "neighbours_agree": (RATIO, ()),
     "flip_drop": (MEASURE, ()), "flip_accuracy": (RATIO, ()), "plain_accuracy": (RATIO, ()), "image_side": (COUNT, ()),
+    # 29.2: table-level homework (benchgen v2), as counts and flags (never a value)
+    "integer_valued": (FLAG, ()), "date_columns": (COUNT, ()), "id_columns": (COUNT, ()), "repeat_share": (RATIO, ()),
+    "key_unique": (FLAG, ()), "reason_like": (FLAG, ()), "status_constant": (FLAG, ()), "name_says_cases": (FLAG, ()),
     # the workflow
     "stage": (CODE, ()), "move": (CODE, ()), "from_state": (CODE, ()), "to_state": (CODE, ()), "agent": (CODE, ()),
     "pack": (CODE, ()), "kind": (CODE, ()), "metric": (CODE, ()), "strategy": (CODE, ()), "step": (COUNT, ()),

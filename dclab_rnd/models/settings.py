@@ -95,6 +95,10 @@ PURPOSES: dict[str, Purpose] = {
     "data_investigator": Purpose("standard", 60, "the prediction moment, the target's name and the task, and each column's name, kind, "
                                                  "missing share and distinct share (dclab_core's data investigator, package 18.3); "
                                                  "never rows or cell values"),
+    "understanding_critic": Purpose("standard", 60, "the problem as DCLab understood it (family, how outcomes are known, the outcome column's "
+                                                    "name, the prediction moment, the unit and the action in the person's words), each column's "
+                                                    "name, purpose, role, type, missing and distinct share, and the checks' mismatches (package "
+                                                    "28.4); never rows or cell values", keeps_text=True),
     "decision_answer": Purpose("cheap", 60, "one decision's question and options, and what is known about its column: the column's name, "
                                             "its name tokens and bands (storage type, share of distinct and missing values, the shape of its "
                                             "written values) and the outcome column's name (package 22.5); never rows or cell values", keeps_text=True),

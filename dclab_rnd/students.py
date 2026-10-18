@@ -24,9 +24,9 @@ ROOT = Path(__file__).resolve().parents[1]
 DECISIONS = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions"
 CAMPAIGNS = ROOT / "evidence" / "campaigns"
 # the homework: where each generated set's manifest is, and the shape of its per-point entry
-SETS = (("generated_v1", "benchgen_v1"), ("generated_images_v1", "image_decisions_v1"), ("workflow_v1", "workflow_v1"))
+SETS = (("generated_v1", "benchgen_v1"), ("generated_images_v1", "image_decisions_v1"), ("generated_v2", "benchgen_v2"), ("workflow_v1", "workflow_v1"))
 # the students: the folders of cards, and the campaign that examined them (None: not examined yet)
-STUDENTS = (("models_v1", "decision_models_v1"), ("models_images_v1", None), ("workflow_models_v1", "workflow_models_v1"))
+STUDENTS = (("models_v1", "decision_models_v1"), ("models_images_v1", None), ("models_v2", None), ("workflow_models_v1", "workflow_models_v1"))
 
 
 def _json(path: Path) -> Optional[dict[str, Any]]:

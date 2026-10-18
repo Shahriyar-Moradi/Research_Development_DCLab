@@ -1,0 +1,126 @@
+{
+ "package": "28.4",
+ "title": "The understanding critic: the card read again against the data before a solution is drawn, each concern a question",
+ "date": "2026-10-18",
+ "request": "Phase 6 (the owner): the understanding team, with critic rounds; capture everything.",
+ "spec": "docs/guides/PHASE6_MULTI_AGENT_PLAN.md, package 28.4 and D5",
+ "plan": [
+  "A critic role in dclab_core: rules first, a model adding concerns, a validator.",
+  "A critic node before the workflow and the build, sending back to the interviewer.",
+  "Bound the rounds; never ask a field twice; keep every round."
+ ],
+ "decisions": [
+  {
+   "decision": "The critic never edits the card: each concern is a question for the person.",
+   "why": "The person's words are the truth of the problem; a model's doubt is evidence for a question, not a change."
+  },
+  {
+   "decision": "One question a round, two rounds; concerns that stand go to the person as an approval.",
+   "why": "The Home agent asks one thing at a time; the plan's third round stops with what the person sees, and the person may go on."
+  },
+  {
+   "decision": "A model's concern about what the person already answered is kept, not asked.",
+   "why": "Nothing asked twice: the rules may send a field back with evidence; a model's doubt alone may not."
+  },
+  {
+   "decision": "The gate is a node of its own.",
+   "why": "Resuming a pause re-runs its node; the critic's model must not be asked again on a resume."
+  }
+ ],
+ "change": "dclab_core/understanding_critic.py and its prompt (dclab-core 0.68.0); the walk's critic and critic_gate nodes; the Home agent's critic questions (past the cap, re-opening a settled field, a bare yes keeping what is known, a family read and never stored as words); purpose understanding_critic; the agent eval and harness eval rerun for the prompt.",
+ "findings": [
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A critic's send-back on the family stored the person's raw words as the family.",
+   "scenario": "Family anomaly, stated; the critic asked whether it is anomaly detection; the answer Yes. made the family 'Yes.' and its status fell from stated to inferred.",
+   "cause": "family is not a plan field, so the answer was recorded as said.",
+   "fix": "A critic's question answered with a bare yes keeps what is known; a family is read from the answer through the card's reader, never stored as words.",
+   "test": "test_yes_to_a_critics_family_question_keeps_the_family"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The rounds did not match the plan: spent rounds passed silently.",
+   "scenario": "With rounds spent and concerns remaining the walk built and the concern was never shown; a concern refused because a question was open was dropped.",
+   "cause": "passed was set once the rounds were spent.",
+   "fix": "Concerns that stand when none can be sent back go to the person as an approval (go on, recorded as overridden; or stop with the concerns shown); while a critic's question is open the walk answers it first.",
+   "test": "test_at_most_two_rounds_then_the_person_decides"
+  },
+  {
+   "id": "R4b",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Earlier rounds' reasons were overwritten.",
+   "scenario": "Only the last round's concerns were kept.",
+   "cause": "One field held the last critique.",
+   "fix": "Every round kept: its concerns, the refused ones with why, what was sent back, the source.",
+   "test": "test_the_critic_sends_back_once_the_person_answers_and_the_walk_builds"
+  },
+  {
+   "id": "R4c",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A field the person had answered was asked again.",
+   "scenario": "The person answered the unit to the Home agent; the critic's model concern asked it again.",
+   "cause": "Only the critic's own asked fields were excluded.",
+   "fix": "A model's concern about an answered field is refused with its reason; the rules may still send back with evidence.",
+   "test": "test_the_critic_sends_back_once_the_person_answers_and_the_walk_builds"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The harness gate failed after the prompt was added.",
+   "scenario": "test_harness_gate: core prompts changed since HRN-017.",
+   "cause": "A prompt change needs the agent eval and the harness eval (the repository's rule).",
+   "fix": "make agent-eval and make harness-eval rerun.",
+   "test": "tests/test_harness_gate.py"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A model's question could name a column the tables do not hold.",
+   "scenario": "'Is it per driver_rating?' with no columns listed was asked.",
+   "cause": "The validator read the listed columns only.",
+   "fix": "A backticked or snake_case name in a concern's words that is neither a column nor a card field refuses the answer; a number not in the evidence refuses that concern.",
+   "test": "test_a_name_in_a_concerns_words_must_be_a_column"
+  },
+  {
+   "id": "R12",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Mismatches mapped to the wrong field; several questions at once; no version, changelog or integration section.",
+   "scenario": "time_absent and unit_grain were sent back as the family; a round posted all its questions.",
+   "cause": "A two-way mapping; a loop over all concerns.",
+   "fix": "Each mismatch to the field it names; one question a round; dclab-core 0.68.0 with its changelog and section.",
+   "test": "test_each_mismatch_is_sent_back_on_the_field_it_names"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the harness eval after the prompt (HRN-018)",
+   "gate": "the regression cases and the dev journeys right on every step after a prompt change",
+   "fixed_before_run": true,
+   "result": "17 of 17 right on every step and part, EUR 0; the dev journeys through the graph with the critic's rules 15 of 15 (JRN-010)",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "Met for the rules; the model critic is not measured.",
+   "limits": [
+    "The critic's rules raise few concerns on these journeys: the send-back is exercised by tests, not measured on people."
+   ]
+  }
+ ],
+ "outcome": "Before a solution is drawn the card is read again against the tables, and what is still unsure goes back to the person as one question at a time, bounded, every round kept.",
+ "lessons": [
+  "A send-back loop needs three bounds: rounds, fields, and what the person already said.",
+  "A model's words are evidence only when every name and number in them is in what it read."
+ ],
+ "risks": [
+  "Not yet measured against the single Home agent (28.7); a model critic is off until it is."
+ ],
+ "commits": []
+}

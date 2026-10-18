@@ -84,6 +84,9 @@ FIELDS_MISSING = {
 
 # contract kinds the main product's tables cannot fill today, and why (never invented)
 KINDS_MISSING = {
+    "team.handoff": "no team of agents there yet (28.2): its agent runs are one loop; a hand-off is recorded when it adopts the board",
+    "team.interrupt": "no team of agents there yet (28.2): its pauses for a person are rows of their own pages, not a team's",
+    "team.recorded": "no team of agents there yet (28.3): a walk's record has no counterpart",
     "consent.changed": "no consent switch on its workspace rows (23.1): the host passes the level it allows when it maps them (CONSENT_MISSING)",
     "model.checked": "the verdict of the code that checks a model's reply is not a row of its own there (23.10): the host records it where it checks",
     "pipeline.step_started": "its fold and candidate rows are steps of a run, read by steps_from_run_events() (23.8), not events",

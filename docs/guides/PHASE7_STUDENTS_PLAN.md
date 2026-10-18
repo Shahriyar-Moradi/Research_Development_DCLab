@@ -29,8 +29,10 @@ The 39 without a student, by where their truth can come from:
 
 | Source of truth | Points | How |
 |---|---|---|
-| **By construction** (planted in invented tables and problems; the answer is known because we planted it) | `target.column`, `task.framing`, `labels.situation`, `labels.join_key`, `data.cases_table`, `split.strategy`, `split.folds`, `metric.primary`, `data.sampling`, `column.missing_value_action`, `data.cleaning_step`, `features.recipe`, `model.family`, `threshold.operating_point` | benchgen v2: replicas and 26.6b's prior tables with the truth in their facts (which column is the outcome, the task, the label situation, the join key, the moment and so the split, the cost that fixes the threshold, the structure that favours a family) |
-| **By measured outcome** (the project's own later numbers say what was right) | `holdout.reuse`, `tuning.accept`, `experiment.accept`, `experiment.next`, `model.review`, `model.promote`, `improve.next_action`, `solution.compose`, `workflow.revisit`, `workflow.stop` | the measured labels of 19.8 extended: the validation and holdout numbers after the choice label it (a kept experiment that did not help; a promotion the holdout contradicted); self-play (27.3) gives thousands of verified solves |
+| **By construction** (planted in invented tables; the answer is known because it was planted) | `task.framing`, `split.strategy`, `data.cases_table`, `data.cleaning_step` (built in 29.2) | benchgen v2: each table's truth planted with traps, the product's own rules beside it, states built as production builds them |
+| **A choice among a table's columns** (a ranking, not one state) | `target.column`, `labels.join_key` | 29.9: the language model reads every candidate column; a classifier on one decision's state cannot rank them |
+| **By measured outcome** (the project's own later numbers say what was right) | `metric.primary`, `split.folds`, `data.sampling`, `features.recipe`, `model.family`, `threshold.operating_point`, `holdout.reuse`, `tuning.accept`, `experiment.accept`, `experiment.next`, `model.review`, `model.promote`, `improve.next_action`, `solution.compose`, `workflow.revisit`, `workflow.stop` | 29.3: the validation and holdout numbers after the choice label it (the metric whose winner held on the holdout, the recipe or family that measured best, the threshold whose cost was lowest); self-play gives thousands of verified solves |
+| **Not decided today** | `labels.situation`, `column.missing_value_action` | NOT_DECIDED: the system makes no such choice yet, so there is nothing to learn |
 | **By people and by the journeys** (a person's choice, exposed or blind; the written people's scripted truth) | `workflow.move`, `workflow.template`, `workflow.stage_approval`, `map.size`, `map.edit`, `problem.pack`, `agent.tool_choice`, `command.intent_route`, `proposal.completeness`, `report.claim`, `lesson.accept`, `ops.diagnose`, `ops.retrain`, `ops.release`, `ops.rollback` | the journeys suite (labels per step), the tester records (25.11), the blind draws (19.8), the ops loop's own outcomes (23.x); the four workflow students failed for lack of homework (154 to 936 rows): these points need the volume phase 6 and self-play produce |
 
 And beyond the ledger: small processes that are not decision points yet (the structure reader's choice of header and
@@ -78,6 +80,15 @@ bands, its options), then a student.
   the sets with a sealed partition; the lake reads them as gold.
 - **Done when:** each point's set has at least 2,000 decisions over at least 100 tables and both labels; the manifest is
   committed and reproducible (fingerprints); the rules' accuracy per point is in the manifest.
+- **Status: built (2026-10-18) for four points, the review's 14 findings (with 28.2's) fixed.** `dclab_core.benchgen2` and
+  `python -m dclab_rnd.decisions_gen --v2 --seeds 1200` (`generated_v2/`): 1,200 table pairs (each table also with every name
+  hidden, the twins one group), 21,600 decisions, a sealed partition by group; names drawn from pools shared across truths, so no
+  name says the truth (a name-only guess is at chance); the rules are the product's own (`detect_task`; `default_split` on
+  `propose()`'s first time and group candidates, as the wizard declares them: Home's build declares no group; `cases_table`;
+  `clean`), right on 80% (task), 48% (split), 54% (cases) and 73% (cleaning); every state built by `dclab_rnd/ledger/states.py`,
+  which production capture now calls too (task, split, cases, and every column's cleaning step or `none` with the raw column's
+  bands). Students fitted to `models_v2/`. Left: `target.column` and `labels.join_key` (a ranking: 29.9), and the six choices
+  right or wrong by what was measured after them (29.3).
 
 ### 29.3 Truth by measured outcome
 - **Delivers:** `ledger/labels.py` extended: a measured label for each outcome point from the numbers that came after it

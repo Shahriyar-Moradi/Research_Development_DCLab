@@ -20,7 +20,7 @@ import hashlib
 import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "generated_v1"
@@ -144,6 +144,123 @@ def build_images(seeds: int = 40, out: Path = IMAGES) -> dict[str, Any]:
     return summary
 
 
+V2 = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "generated_v2"
+
+
+def _record(point: str, subject: tuple[str, str], state: dict[str, Any], options: list[Any], rule_id: str, rule: Any, truth: Any,
+            table: str, key: str, group: Optional[str] = None) -> tuple[Any, Any]:
+    from dclab_core.ledger import Answer, DecisionLabel, DecisionRecord
+
+    digest = hashlib.sha256(f"{table}|{key}|{point}".encode()).hexdigest()[:20]
+    record = DecisionRecord(id=f"g2{digest}", point=point, subject={"kind": subject[0], "key": subject[1][:200]}, state=state,
+                            options=[str(o) for o in options], answers=[Answer(by="rule", answerer=rule_id, value=rule)], value_used=rule,
+                            used="rule", dataset=(group or table)[:80], at=AT)  # a table and its hidden-name twin share a group
+    label = DecisionLabel(id=f"l2{digest}", record=record.id, point=point, value=truth, source="benchmark", by="generated:benchgen_v2", at=AT)
+    return record, label
+
+
+def _hide(frame: Any, seed: int) -> tuple[Any, dict[str, str]]:
+    """Every column renamed ``f000``… in an order shuffled by ``seed`` (v1's hidden-name twin): a name never says the truth."""
+    import numpy as np
+
+    order = [str(c) for c in np.random.default_rng(seed).permutation(np.array(frame.columns, dtype=object))]
+    names = {c: f"f{i:03d}" for i, c in enumerate(order)}
+    return frame.rename(columns=names), names
+
+
+def decide_v2(seed: int) -> tuple[list[Any], list[Any]]:
+    """The rules' decisions on one seed's four tables (benchgen v2), each table with its names and with them hidden (one
+    group: the twins never sit in two splits), each decision's state built as production builds it (``ledger.states``)
+    and its planted truth beside it."""
+    from dclab_core import benchgen2 as g
+
+    from .draft.clean import clean
+    from .kinds.base import default_split
+    from .ledger import states
+    from .studio.data import detect_task, profile_table
+    from .studio.labels import cases_table as rule_cases
+    from .studio.solution import propose
+
+    records, labels = [], []
+
+    def add(pair: tuple[Any, Any]) -> None:
+        records.append(pair[0])
+        labels.append(pair[1])
+
+    def twins(frame: Any, salt: int) -> list[tuple[str, Any, dict[str, str]]]:
+        hidden, names = _hide(frame, seed * 104729 + salt)
+        return [("", frame, {str(c): str(c) for c in frame.columns}), ("-ob", hidden, names)]
+
+    # the outcome's kind
+    frame, target, facts = g.task_table(seed)
+    group = f"task-s{seed}"
+    for suffix, f, names in twins(frame, 1):
+        t = names[target]
+        add(_record("task.framing", ("draft", group + suffix), states.task_state(profile_table(f), t), ["binary", "multiclass", "regression"],
+                    "rule:detect_task", detect_task(f, t)["task"], facts["task"], group + suffix, t, group))
+    # the split: the product's rule on the product's proposal (its first time and group candidates, as the wizard declares them)
+    frame, facts = g.split_table(seed)
+    group = f"split-s{seed}"
+    for suffix, f, names in twins(frame, 2):
+        profile = profile_table(f)
+        proposal = propose(f, profile, names["outcome"])
+        time_c = (proposal.get("time_candidates") or [None])[0]
+        group_c = (proposal.get("group_candidates") or [None])[0]
+        add(_record("split.strategy", ("draft", group + suffix), states.split_state(profile, time_c, group_c), list(g.SPLITS), "rule:kind_split",
+                    default_split({"time_column": time_c, "group_column": group_c, "spatial": False}), facts["split"], group + suffix, "split", group))
+    # a list of known cases
+    frame, filename, facts = g.cases_table(seed)
+    group = f"cases-s{seed}"
+    for suffix, f, _ in twins(frame, 3):
+        profile = profile_table(f)
+        add(_record("data.cases_table", ("draft", group + suffix), states.cases_state(profile, filename), ["yes", "no"], "rule:cases_table",
+                    rule_cases(profile, filename) is not None, facts["cases"], group + suffix, "cases", group))
+    # each column's cleaning step
+    frame, truth = g.dirty_table(seed)
+    group = f"clean-s{seed}"
+    for suffix, f, names in twins(frame, 4):
+        profile = profile_table(f)
+        _, log = clean(f)
+        applied: dict[str, str] = {}
+        for entry in log:
+            if entry["step"] in g.CLEAN_STEPS:
+                for c in entry["columns"]:
+                    applied.setdefault(str(c), entry["step"])
+        for column, step in truth.items():
+            c = names[column]
+            add(_record("data.cleaning_step", ("column", c), states.cleaning_state(profile, c), list(g.CLEAN_STEPS), "rule:clean",
+                        applied.get(c, "none"), step, group + suffix, c, group))
+    return records, labels
+
+
+def build_v2(seeds: int = 2400, out: Path = V2) -> dict[str, Any]:
+    """29.2: the table-level homework (benchgen v2): every seed's four tables, the rules' decisions and the planted truth,
+    one set per point with a sealed partition by table, through the same builder as every other set."""
+    records, labels = [], []
+    for seed in range(seeds):
+        r, l = decide_v2(seed)
+        records += r
+        labels += l
+    by_record: dict[str, list[dict[str, Any]]] = {}
+    for label in labels:
+        by_record.setdefault(label.record, []).append(json.loads(label.model_dump_json()))
+    docs = [{**json.loads(r.model_dump_json()), "labels": by_record.get(r.id, [])} for r in records]
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "records.jsonl").write_text("".join(json.dumps(d, ensure_ascii=False) + "\n" for d in docs), encoding="utf-8")
+    summary = {"version": "benchgen_v2", "at": AT, "seeds": seeds, "tables": seeds * 8, "decisions": len(docs),
+               "grouping": "a table and its hidden-name twin are one group: their decisions never sit in two splits", "sets": _write_sets(docs, out),
+               "states": "built as production builds them (dclab_rnd/ledger/states.py), from each table's profile",
+               "rules": {"task.framing": "studio.data.detect_task", "split.strategy": "kinds.base.default_split on the proposal's first time and group candidates (the wizard's declaration; Home's build declares no group)",
+                         "data.cases_table": "studio.labels.cases_table", "data.cleaning_step": "draft.clean.clean, the first column step or none"},
+               "rule": "Invented tables with planted truths (the outcome's kind, the split, a list of known cases, each column's cleaning "
+                       "step) and traps; names drawn from pools shared across truths and every table also with its names hidden, so no "
+                       "name says the truth. Labels are true by construction; scores on them say how a model reads these traps, not "
+                       "real tables. The sealed partition is never used for tuning."}
+    (out / "MANIFEST.json").write_text(json.dumps(summary, indent=1) + "\n", encoding="utf-8")
+    return summary
+
+
 def main(argv: list[str] | None = None) -> int:
     import argparse
 
@@ -152,8 +269,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--rows", type=int, default=1500)
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--images", action="store_true", help="26.8: the image decision sets (generated_images_v1)")
+    parser.add_argument("--v2", action="store_true", help="29.2: the table-level homework (generated_v2)")
     args = parser.parse_args(argv)
-    done = (build_images(args.seeds or 40, args.out or IMAGES) if args.images else build(args.seeds or 24, args.rows, args.out or OUT))
+    done = (build_v2(args.seeds or 2400, args.out or V2) if args.v2 else
+            build_images(args.seeds or 40, args.out or IMAGES) if args.images else build(args.seeds or 24, args.rows, args.out or OUT))
     print(f"{done['tables']} tables, {done['decisions']} decisions")
     for point, s in done["sets"].items():
         print(f"  {point:<26} {s['decisions']:>6} decisions on {s['tables']} tables; splits {s['splits']}; rules right {s['rule_right']}")

@@ -78,6 +78,26 @@
    "cause": "Fixtures written without the contract's rules.",
    "fix": "Fixtures use valid ids and a Claude-led decision at level 2 with the rule's answer beside it.",
    "test": "test_claudes_verdicts_on_real_decisions_are_silver_weighted_by_its_measured_accuracy"
+  },
+  {
+   "id": "M3",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The critic gate could not read a second reviewer's kept reviews, and its dispute pattern did not know Claude's wording.",
+   "scenario": "Gating Claude's 50 kept reviews found 0 contradicted challenges; read by hand, EXP-008 says the stage named 'selected' conflicts with the selection rule's outcome, while the rule chose 'ratios' and the recomputation confirms it.",
+   "cause": "The gate read only results' own reviews; its pattern was written from the first reviewer's phrasing; a kept review's result file is named with its dataset and kind.",
+   "fix": "critic_gate.gate_beside (each kept raw reply parsed as the reviewer's, paired with its result by experiment prefix, its rule recomputed), the gate's verdicts kept whole beside the reviews, the phrasing added to the pattern (the first reviewer's count unchanged at 10).",
+   "test": "test_a_second_reviewers_kept_reviews_go_through_the_same_gate"
+  },
+  {
+   "id": "M4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A review cut at the default output limit was kept as a review and never asked again.",
+   "scenario": "EXP-023's reply ended at 8,192 output tokens with 8,607 characters of text: thinking took most of the room, the JSON was cut, and the resume skipped it as done.",
+   "cause": "A kept file counted as done whatever its finish reason.",
+   "fix": "A kept review cut at its length limit is moved, unchanged, to superseded/ and asked once more with 24,000 tokens of room; EXP-023 re-asked (5,107 output tokens, whole).",
+   "test": "test_a_reply_cut_at_its_limit_is_asked_again_with_more_room_and_the_cut_one_is_kept"
   }
  ],
  "measurements": [
@@ -117,13 +137,27 @@
    "limits": [
     "Not yet checked by critic_gate."
    ]
+  },
+  {
+   "name": "the critic gate on Claude's 50 reviews",
+   "gate": "the deterministic gate (critic_gate): a challenge that disputes a selection the recomputation confirms is contradicted and never a teaching target",
+   "fixed_before_run": true,
+   "result": "50 reviews parsed, 30 rules recomputable and all consistent; 190 challenges, 1 contradicted (EXP-008, the 'selected' recipe read as the rule's choice), against 10 of 157 for the first reviewer; EXP-023 re-asked whole for EUR 0.13",
+   "verdict": "not scored",
+   "cost_eur": 0.13,
+   "against_gate": "Not scored: a count of contradicted challenges, kept with each verdict beside the reviews.",
+   "limits": [
+    "The gate recognises disputes by their wording; a dispute phrased otherwise is unverified, not confirmed.",
+    "Only the selection rules are recomputed; methodology challenges stay unverified."
+   ]
   }
  ],
  "outcome": "Claude has judged every past decision and reviewed every past experiment; its reliability is measured where the truth is known, its verdicts on real work are silver with honest weights, and every judgment is kept whole and archived.",
  "lessons": [
   "Measure a judge where the truth is known before using its verdicts where it is not.",
   "A model's stated confidence can be the best weight: here its high-confidence verdicts never failed.",
-  "Keep the whole reply before any field that must be short."
+  "Keep the whole reply before any field that must be short.",
+  "A deterministic gate written from one reviewer's phrasing is blind to another's: read a sample by hand before trusting a zero."
  ],
  "risks": [
   "The silver weights follow the latest judge run; a new run changes them."

@@ -1,0 +1,264 @@
+{
+  "$defs": {
+    "Handoff": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "maxLength": 40,
+          "type": "string"
+        },
+        "board_after": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "board_before": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "from_node": {
+          "maxLength": 80,
+          "minLength": 1,
+          "type": "string"
+        },
+        "to_node": {
+          "maxLength": 80,
+          "minLength": 1,
+          "type": "string"
+        },
+        "what": {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "from_node",
+        "to_node",
+        "what",
+        "board_before",
+        "board_after",
+        "at"
+      ],
+      "type": "object"
+    },
+    "Interrupt": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "maxLength": 40,
+          "type": "string"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "gate": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "kind": {
+          "enum": [
+            "question",
+            "confirmation",
+            "approval"
+          ],
+          "type": "string"
+        },
+        "node": {
+          "maxLength": 80,
+          "minLength": 1,
+          "type": "string"
+        },
+        "status": {
+          "default": "open",
+          "enum": [
+            "open",
+            "answered",
+            "declined"
+          ],
+          "type": "string"
+        },
+        "text": {
+          "default": "",
+          "maxLength": 600,
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "node",
+        "at"
+      ],
+      "type": "object"
+    },
+    "Part": {
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "part": {
+          "maxLength": 80,
+          "minLength": 1,
+          "type": "string"
+        },
+        "route": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "default": "open",
+          "enum": [
+            "open",
+            "routed",
+            "designed",
+            "built",
+            "blocked"
+          ],
+          "type": "string"
+        },
+        "workflow": {
+          "items": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "maxItems": 40,
+          "type": "array"
+        }
+      },
+      "required": [
+        "part"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "blockers": {
+      "items": {
+        "maxLength": 80,
+        "type": "string"
+      },
+      "maxItems": 40,
+      "type": "array"
+    },
+    "data": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "decisions": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 2000,
+      "type": "array"
+    },
+    "handoffs": {
+      "items": {
+        "$ref": "#/$defs/Handoff"
+      },
+      "maxItems": 400,
+      "type": "array"
+    },
+    "interrupts": {
+      "items": {
+        "$ref": "#/$defs/Interrupt"
+      },
+      "maxItems": 200,
+      "type": "array"
+    },
+    "open_questions": {
+      "items": {
+        "maxLength": 80,
+        "type": "string"
+      },
+      "maxItems": 40,
+      "type": "array"
+    },
+    "parts": {
+      "items": {
+        "$ref": "#/$defs/Part"
+      },
+      "maxItems": 40,
+      "type": "array"
+    },
+    "problem": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "dclab_core.orchestra_board.v1",
+      "default": "dclab_core.orchestra_board.v1",
+      "type": "string"
+    },
+    "spent_eur": {
+      "default": 0.0,
+      "minimum": 0,
+      "type": "number"
+    },
+    "state": {
+      "default": "problem",
+      "maxLength": 40,
+      "type": "string"
+    },
+    "thread": {
+      "maxLength": 120,
+      "minLength": 1,
+      "type": "string"
+    },
+    "version": {
+      "default": 0,
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "thread"
+  ],
+  "type": "object"
+}

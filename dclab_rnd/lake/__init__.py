@@ -42,6 +42,7 @@ LAKE = ROOT / "lake"
 MANIFEST = ROOT / "research" / "llm-fine-tuning" / "experiments" / "lake" / "MANIFEST.json"
 GENERATED = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "generated_v1" / "decisions"
 GENERATED_IMAGES = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "generated_images_v1" / "decisions"  # 26.8
+GENERATED_V2 = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "generated_v2" / "decisions"  # 29.2
 SFT_V3 = ROOT / "research" / "llm-fine-tuning" / "experiments" / "sft" / "out_v3"
 SFT_DEV = ROOT / "research" / "llm-fine-tuning" / "experiments" / "sft" / "out_dev"
 VERSION = "v1"
@@ -149,7 +150,8 @@ def decision_samples(rows: Iterable[dict[str, Any]], source: str, consent: str, 
 
 def generated_decisions(run: Run) -> list[L.DecisionSample]:
     out: list[L.DecisionSample] = []
-    for root, source in ((GENERATED, "decisions/generated_v1"), (GENERATED_IMAGES, "decisions/generated_images_v1")):
+    for root, source in ((GENERATED, "decisions/generated_v1"), (GENERATED_IMAGES, "decisions/generated_images_v1"),
+                         (GENERATED_V2, "decisions/generated_v2")):
         for folder in sorted(root.glob("*")) if root.is_dir() else []:
             for name, sealed in (("rows.jsonl", False), ("sealed.jsonl", True)):
                 path = folder / name

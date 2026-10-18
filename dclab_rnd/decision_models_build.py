@@ -21,6 +21,8 @@ SETS = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "ge
 OUT = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "models_v1"
 IMAGE_SETS = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "generated_images_v1" / "decisions"  # 26.8
 IMAGE_OUT = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "models_images_v1"
+V2_SETS = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "generated_v2" / "decisions"  # 29.2
+V2_OUT = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "models_v2"
 
 
 def rows(point: str, sets: Path = SETS) -> list[dict[str, Any]]:
@@ -72,8 +74,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--points", default="")
     parser.add_argument("--quick", action="store_true", help="one candidate per point (for a quick look)")
     parser.add_argument("--images", action="store_true", help="26.8: the image points' sets, to models_images_v1/")
+    parser.add_argument("--v2", action="store_true", help="29.2: the table-level points' sets, to models_v2/")
     args = parser.parse_args(argv)
-    sets, out = (IMAGE_SETS, IMAGE_OUT) if args.images else (SETS, OUT)
+    sets, out = (V2_SETS, V2_OUT) if args.v2 else (IMAGE_SETS, IMAGE_OUT) if args.images else (SETS, OUT)
     if not sets.exists():
         print(f"No decision sets: run make decisions-gen{' ARGS=--images' if args.images else ''} first.", file=sys.stderr)
         return 2

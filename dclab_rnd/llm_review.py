@@ -201,6 +201,7 @@ def review_one(
     model: str,
     persist: bool = True,
     keep: Path | None = None,
+    max_tokens: int | None = None,
 ) -> dict[str, Any]:
     """One critique. ``persist`` writes it onto the experiment's result (the campaign's own reviewer); ``keep`` (29.18,
     a second reviewer beside the first) writes exactly what was sent and the whole raw reply to ``keep/<id>.json`` before
@@ -227,7 +228,7 @@ def review_one(
                 ),
             },
         ],
-        max_tokens=None,  # no cap, as before: a cut-off JSON critique cannot be parsed
+        max_tokens=max_tokens,  # the gateway's default unless asked again with more room (a cut-off JSON critique cannot be parsed)
         temperature=0.2,
         response_format={"type": "json_object"},
     )
@@ -379,11 +380,32 @@ def run_llm_reviews(
     return 0
 
 
+RETRY_MAX_TOKENS = 24_000  # a reply cut at the default limit (thinking took most of it) is asked once more with this room
+
+
+def _cut(path: Path) -> bool:
+    try:
+        return json.loads(path.read_text(encoding="utf-8")).get("finish_reason") == "length"
+    except ValueError:
+        return False
+
+
+def _supersede(keep: Path, eid: str) -> None:
+    """Move a cut review aside, whole and unchanged, before it is asked again: nothing earlier is deleted."""
+    old = keep / f"{eid}.json"
+    aside = keep / "superseded"
+    aside.mkdir(exist_ok=True)
+    n = 1 + sum(1 for _ in aside.glob(f"{eid}.*.json"))
+    old.replace(aside / f"{eid}.{n}.json")
+
+
 def _beside(client: Any, root: Path, model: str, experiment_ids: list[str] | None, limit: int | None, sleep_s: float) -> int:
     model_memory = memory_name_for_model(model)
     keep = root / CAMPAIGN_DIR / "reviews" / "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in model)
-    done = {p.stem for p in keep.glob("*.json")} if keep.is_dir() else set()
-    tasks = [t for t in load_all_review_tasks(root) if t.get("experiment_id") not in done]  # a review kept once is not asked again
+    kept = list(keep.glob("*.json")) if keep.is_dir() else []
+    cut = {p.stem for p in kept if _cut(p)}
+    done = {p.stem for p in kept} - cut
+    tasks = [t for t in load_all_review_tasks(root) if t.get("experiment_id") not in done]  # a whole review kept once is not asked again
     if experiment_ids:
         wanted = {eid.strip() for eid in experiment_ids}
         tasks = [t for t in tasks if t.get("experiment_id") in wanted]
@@ -392,8 +414,12 @@ def _beside(client: Any, root: Path, model: str, experiment_ids: list[str] | Non
     print(f"Reviewing {len(tasks)} experiment(s) beside the campaign's reviewer with model={model}; kept in {keep.relative_to(root)}")
     failures = 0
     for idx, task in enumerate(tasks, start=1):
+        eid = task.get("experiment_id")
         try:
-            review = review_one(client, root, task, model=model, persist=False, keep=keep)
+            if eid in cut:
+                _supersede(keep, eid)
+            review = review_one(client, root, task, model=model, persist=False, keep=keep,
+                                max_tokens=RETRY_MAX_TOKENS if eid in cut else None)
             append_memory(root, review, memory_filename=model_memory)
             print(f"[{idx}/{len(tasks)}] {task.get('experiment_id')} | confidence={review.get('overall_confidence')}", flush=True)
         except Exception as exc:  # noqa: BLE001 - keep the batch going; the raw reply is already kept

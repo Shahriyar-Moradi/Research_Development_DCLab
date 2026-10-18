@@ -13,6 +13,7 @@ CLI::
 
     python -m dclab_rnd.critic_gate            # per-experiment report
     python -m dclab_rnd.critic_gate --json
+    python -m dclab_rnd.critic_gate --beside claude-sonnet-5-5   # a second reviewer's kept reviews (29.18)
 """
 
 from __future__ import annotations
@@ -33,7 +34,8 @@ OPT_MIN_GAIN = 0.001
 _RULE_DISPUTE = re.compile(
     r"(not within|would (instead|not) (choose|select)|not satisfied|rule is not|"
     r"is not the smallest|smaller than raw yet|much lower mean|not supported by the (stated )?(selection|ranking) rule|"
-    r"appears pote|highest reported mean|inconsistent with its fold)",
+    r"appears pote|highest reported mean|inconsistent with its fold|"
+    r"conflicts with the selection rule)",  # Claude's wording for the same confusion (29.18: EXP-008)
     re.IGNORECASE,
 )
 _RULE_TOPIC = re.compile(r"(selection rule|ranking rule|within 0\.002|0\.25\s*[×x*]|selected stage|fold std)", re.IGNORECASE)
@@ -172,6 +174,30 @@ def gate_campaigns(root: Path = ROOT) -> list[dict[str, Any]]:
     return gated
 
 
+def gate_beside(model: str, root: Path = ROOT) -> list[dict[str, Any]]:
+    """A second reviewer's kept reviews (``llm_review --beside``, 29.18) through the same gate: each raw reply parsed as
+    the campaign's own reviewer's is, its challenges checked against the experiment's recomputed rule."""
+    from .llm_review import _parse_json_response
+
+    gated = []
+    for kept in sorted(root.glob(f"evidence/campaigns/*/reviews/{model}/EXP-*.json")):
+        doc = json.loads(kept.read_text(encoding="utf-8"))
+        found = sorted((kept.parents[2] / "results").glob(f"{kept.stem}_*.json")) + [kept.parents[2] / "results" / kept.name]
+        result_path = next((x for x in found if x.is_file()), None)  # results are EXP-001_<dataset>_<kind>.json
+        result = json.loads(result_path.read_text(encoding="utf-8")) if result_path else {}
+        try:
+            review = _parse_json_response(doc.get("raw_reply") or "")
+        except ValueError:
+            review = None
+        if not isinstance(review, dict):
+            gated.append({"experiment_id": doc.get("experiment_id"), "path": kept.relative_to(root).as_posix(), "parsed": False,
+                          "finish_reason": doc.get("finish_reason"), "challenges": [], "contradicted": 0, "kept": 0, "rule_check": recompute(result)})
+            continue
+        g = gate_result({**result, "llm_review": {"review": review}})
+        gated.append({**g, "path": kept.relative_to(root).as_posix(), "parsed": True, "finish_reason": doc.get("finish_reason")})
+    return gated
+
+
 def summary(gated: list[dict[str, Any]]) -> dict[str, Any]:
     checks = [g["rule_check"] for g in gated if g["rule_check"]]
     return {
@@ -181,15 +207,22 @@ def summary(gated: list[dict[str, Any]]) -> dict[str, Any]:
         "critic_challenges": sum(len(g["challenges"]) for g in gated),
         "contradicted_challenges": sum(g["contradicted"] for g in gated),
         "experiments_with_contradicted_challenges": sorted(g["experiment_id"] for g in gated if g["contradicted"]),
+        **({"unparsed": sorted(g["experiment_id"] for g in gated if g.get("parsed") is False)} if any("parsed" in g for g in gated) else {}),
     }
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.critic_gate", description=__doc__.split("\n")[0])
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--beside", metavar="MODEL", help="gate a second reviewer's kept reviews; the gate is kept whole beside them")
     args = parser.parse_args(argv)
-    gated = gate_campaigns(ROOT)
+    gated = gate_beside(args.beside, ROOT) if args.beside else gate_campaigns(ROOT)
     stats = summary(gated)
+    if args.beside:  # kept whole beside the reviews: what was checked, every challenge with its verdict
+        for folder in sorted({Path(g["path"]).parent for g in gated}):
+            mine = [g for g in gated if Path(g["path"]).parent == folder]
+            (ROOT / folder.parent / f"{folder.name}.gate.json").write_text(
+                json.dumps({"model": args.beside, "summary": summary(mine), "experiments": mine}, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     if args.json:
         print(json.dumps({"summary": stats, "experiments": gated}, indent=2, ensure_ascii=False))
         return 0

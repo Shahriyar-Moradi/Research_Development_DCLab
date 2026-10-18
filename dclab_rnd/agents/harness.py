@@ -47,13 +47,15 @@ AGENTS: dict[str, Agent] = {
     "campaign": Agent("dclab_rnd.agentic.engine:run_research", "session", ("campaign",), "the research campaign's phases and experiments"),
     "mcp": Agent("dclab_rnd.mcp_server:build_server", "session", (), "the calls of an MCP client (Hugging Face Chat UI, ML Intern)"),
     "orchestra": Agent("dclab_rnd.orchestra.spike:Spike.run", "session", (), "28.1: the orchestration layer's graph on a draft; each node a step, each pause a stopped run"),
+    "orchestra.walk": Agent("dclab_rnd.orchestra.walk:Walk.run", "session", (), "28.3: the coordinator's state machine as a graph on a draft; each action a step, each pause a stopped run"),
     "coordinator": Agent("dclab_rnd.draft.coordinator:Coordinator.run", "session", (), "the lead agent: problem to built project, gate by gate"),
     "twin": Agent("dclab_rnd.twin:run", "session", ("ai_first",), "a twin run (25.2, 25.3): the current system and Claude on one problem, two lanes at once, "
                                                        "each a workspace folder; Claude serves every purpose of its lane through the lane's own client"),
 }
 
 ROLES: tuple[str, ...] = ("problem_analyst", "conversation_reader", "brief_checker", "solution_planner", "reporter", "critic",
-                          "feature_engineer", "data_investigator", "decomposer", "map_reviewer", "data_need", "solution_router")
+                          "feature_engineer", "data_investigator", "decomposer", "map_reviewer", "data_need", "solution_router",
+                          "understanding_critic")
 
 MODEL_USES: dict[str, str] = {  # purpose -> why it is not an agent: one completion for one job, recorded as model.request
     "embedding": "vectors for evidence search",
@@ -127,9 +129,15 @@ class Session:
         try:
             yield out
         except BaseException as exc:
-            self.step(tool, arguments, {"error": type(exc).__name__}, time.monotonic() - clock)
+            if not _pause(exc):  # a graph pausing for the person (28.3) is no error: the step is recorded when it resumes
+                self.step(tool, arguments, {"error": type(exc).__name__}, time.monotonic() - clock)
             raise
         self.step(tool, arguments, out["result"], time.monotonic() - clock)
+
+
+def _pause(exc: BaseException) -> bool:
+    """LangGraph's interrupt (``GraphBubbleUp`` and its kind), known by name: the harness imports no framework."""
+    return any(c.__name__ == "GraphBubbleUp" for c in type(exc).__mro__)
 
 
 @contextmanager

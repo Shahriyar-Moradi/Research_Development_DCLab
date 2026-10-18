@@ -155,6 +155,18 @@ class _Person:
         return None
 
 
+def _walk(coordinator: Any, draft_id: str, person: Any, walk: str, home: Any) -> dict[str, Any]:
+    """The coordinator's loop, or (28.3) its state machine as the orchestration layer's graph, driven by the same person."""
+    if walk != "graph":
+        return coordinator.run(draft_id, person)
+    from dclab_rnd.orchestra import checkpoints
+    from dclab_rnd.orchestra.walk import Walk, drive
+
+    with checkpoints.open_checkpointer(Path(home), database_url="") as saver:
+        out = drive(Walk(coordinator, saver, home=Path(home)), draft_id, person)
+    return out
+
+
 def _last_agent_text(draft: dict[str, Any]) -> str:
     """What the agent last said in the chat (where a model asks in its own words)."""
     for m in reversed(draft.get("messages") or []):
@@ -215,7 +227,7 @@ def _kept(home: Path, keep: Optional[Path]):
 
 
 def play(journey: dict[str, Any], seed: int = 0, routing_doc: Optional[dict[str, Any]] = None, live: Optional[dict[str, Any]] = None,
-         keep: Optional[Path] = None) -> dict[str, Any]:
+         keep: Optional[Path] = None, walk: str = "loop") -> dict[str, Any]:
     """One journey played from its first sentence; its scores and what happened at each part. ``routing_doc``: the
     decision models routed while it plays (22.9); the rules alone by default. ``keep``: a folder the play's whole record is
     copied into (its drafts with every turn, its project, its events and its row), a live run's records kept for good."""
@@ -229,7 +241,7 @@ def play(journey: dict[str, Any], seed: int = 0, routing_doc: Optional[dict[str,
         log, before = experience.FileLog(Path(tmp), "journey"), experience.current_log()  # 21.5: the play's own record, graded
         experience.install(log)
         try:
-            row = _play(journey, seed, live, keep)
+            row = _play(journey, seed, live, keep, walk)
         finally:
             experience.install(before)
         events = log.read(limit=100_000)
@@ -252,7 +264,8 @@ def play(journey: dict[str, Any], seed: int = 0, routing_doc: Optional[dict[str,
     return row
 
 
-def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]] = None, keep: Optional[Path] = None) -> dict[str, Any]:
+def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]] = None, keep: Optional[Path] = None,
+          walk: str = "loop") -> dict[str, Any]:
     """One journey played from its first sentence; its scores and what happened at each part."""
     from dclab_rnd import kinds
     from dclab_rnd.draft import workflow as wf
@@ -295,7 +308,8 @@ def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]]
 
         only_reader = live is not None and set(live) <= {"reader"}  # 20.10 v4: the reader alone is measured; every other role keeps the rules
         with private_scope(True) if live is None or only_reader else contextlib.nullcontext():  # 21.5: in a live run the roles ask their models
-            out = Coordinator(drafts, projects, agent, advisor).run(start_at, person.person)
+            coordinator = Coordinator(drafts, projects, agent, advisor)
+            out = _walk(coordinator, start_at, person.person, walk, home)
             for _ in range(3):  # 26.5: a walk that stops on a question no tagged one carries (a model asks in its own words, or the card's
                 # blocker names what is missing) is answered as a person in the chat would answer it, and the walk goes on
                 says = str(out.get("says") or "")
@@ -305,7 +319,7 @@ def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]]
                 if not said:
                     break
                 agent.reply(start_at, said)
-                out = Coordinator(drafts, projects, agent, advisor).run(start_at, person.person)
+                out = _walk(Coordinator(drafts, projects, agent, advisor), start_at, person.person, walk, home)
         row["handoffs"] = [{k: h.get(k) for k in ("role", "allowed", "refused_columns", "source")}
                            for h in (drafts.get(start_at).get("coordinator") or {}).get("handoffs") or []]
         understood = card_of(drafts.get(start_at))
@@ -481,22 +495,24 @@ def _end(row: dict[str, Any], started: float) -> dict[str, Any]:
     return row
 
 
-def _play_one(args: tuple[dict[str, Any], int, Optional[dict[str, Any]]]) -> dict[str, Any]:
-    journey, seed, doc = args
+def _play_one(args: tuple[Any, ...]) -> dict[str, Any]:
+    journey, seed, doc = args[:3]
+    walk = args[3] if len(args) > 3 else "loop"
     try:
-        return play(journey, seed, doc)
+        return play(journey, seed, doc, walk=walk)
     except Exception as error:  # noqa: BLE001 - a journey that breaks is wrong, with its reason
         return {"id": journey["id"], "kind": journey["kind"], "family": journey["family"], "parts": {p: False for p in PARTS},
                 "right": False, "why": [f"broke: {type(error).__name__}: {str(error)[:300]}"]}
 
 
 def measure(split: str, seed: int = 0, workers: int = 1, only: Optional[list[str]] = None,
-            routing_doc: Optional[dict[str, Any]] = None) -> list[dict[str, Any]]:
+            routing_doc: Optional[dict[str, Any]] = None, walk: str = "loop") -> list[dict[str, Any]]:
+    """Every journey of ``split`` played; ``walk``: the coordinator's loop, or (28.3) its graph."""
     journeys = [j for j in load(split) if not only or j["id"] in only or j["kind"] in only]
     if workers <= 1:
-        return [_play_one((j, seed, routing_doc)) for j in journeys]
+        return [_play_one((j, seed, routing_doc, walk)) for j in journeys]
     with ProcessPoolExecutor(max_workers=workers) as pool:
-        return list(pool.map(_play_one, [(j, seed, routing_doc) for j in journeys]))
+        return list(pool.map(_play_one, [(j, seed, routing_doc, walk) for j in journeys]))
 
 
 def compare(by_arm: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:

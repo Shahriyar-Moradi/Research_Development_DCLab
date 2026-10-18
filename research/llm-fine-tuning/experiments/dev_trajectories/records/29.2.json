@@ -1,0 +1,141 @@
+{
+ "package": "29.2",
+ "title": "Homework for table-level choices: planted truths with traps, the product's own rules, states built as production builds them",
+ "date": "2026-10-18",
+ "request": "Phase 7 (the owner): a student behind every choice; 29.2 first in the suggested order: homework with known answers for the technical choices 22.1 did not reach.",
+ "spec": "docs/guides/PHASE7_STUDENTS_PLAN.md, package 29.2 and Part A",
+ "plan": [
+  "Plant the truth of four table-level choices in invented tables, with traps where the rules fail.",
+  "Call the product's own rules on each table.",
+  "Build each decision's state the way production builds it.",
+  "Write per-point sets with a sealed partition by table, through the same builder as every set."
+ ],
+ "decisions": [
+  {
+   "decision": "Four points by construction; the column choices go to the language model (29.9) and six choices to measured outcomes (29.3).",
+   "why": "A classifier on one state cannot rank a table's columns; a metric, a recipe or a threshold is right by what was measured after it, not by a plant."
+  },
+  {
+   "decision": "One state builder (ledger/states.py) for production capture and the homework.",
+   "why": "A student trained on fields production never records would answer every real decision from its intercept."
+  },
+  {
+   "decision": "Names from pools shared across truths, and every table also with its names hidden, one group.",
+   "why": "Names drawn per truth let a student read the answer from the name."
+  },
+  {
+   "decision": "The split rule is default_split on propose()'s first time and group candidates.",
+   "why": "That is what the product declares (the wizard); the data card's purposes are not what runs."
+  }
+ ],
+ "change": "dclab_core/benchgen2.py; dclab_rnd/decisions_gen.py (decide_v2, build_v2, --v2); dclab_rnd/ledger/states.py and its use in capture (task, split, cases, every column's cleaning step with the raw bands) and the pipeline; ledger STATE_FIELDS; the lake, the register, the trainer and the archive read generated_v2; dclab-core 0.66.0; tests.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The planted truth could be read from the state's names.",
+   "scenario": "Grouping by name tokens alone scored 100% on task.framing and data.cleaning_step; country and app_version were always none; the cases flags gave one pattern per variant (the fitted card 1.0 on dev).",
+   "cause": "Names and flags were drawn per truth.",
+   "fix": "Shared name pools, hidden-name twins in one group, the cases signals varied within each variant; a name-only guess is now at chance.",
+   "test": "test_no_name_says_the_truth_and_every_table_has_a_hidden_twin_in_its_group"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The split rule recorded was not the product's.",
+   "scenario": "The v2 rule read the data card's purposes; Home declares the proposal's first time candidate and no group, the wizard the first time and group candidates; they differed on 80 of 160 seeds.",
+   "cause": "The rule was rebuilt rather than called as the product calls it.",
+   "fix": "default_split on propose()'s candidates (the wizard's declaration); the rule is now right on 48%, not the 75% of a rule that never runs.",
+   "test": "test_the_states_are_production_s_and_the_split_rule_is_the_products"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Some planted truths a careful data scientist would dispute.",
+   "scenario": "A transaction table with a fraud reason on every row read as cases; a contract start or first-seen date can be the right split key.",
+   "cause": "Variants drawn too close to the other side's.",
+   "fix": "Payment notes, mostly empty and never a fraud's kind; only dates that are never a row's time, one per entity.",
+   "test": "test_the_traps_are_planted_as_their_truth_says"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A rare binary table could have no positive.",
+   "scenario": "Three tables with a constant target labelled binary, one in the sealed partition.",
+   "cause": "The positives were drawn at 1 to 5% of 300 rows.",
+   "fix": "At least three positives.",
+   "test": "test_a_rare_binary_table_always_holds_positives"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The homework's states did not match what production records.",
+   "scenario": "Production recorded rows and columns for the task and cases, has_time and has_groups for the split, only applied steps for cleaning.",
+   "cause": "Two state builders.",
+   "fix": "One builder (ledger/states.py) for both; production now records the same fields, every column's cleaning step or none.",
+   "test": "test_the_states_are_production_s_and_the_split_rule_is_the_products"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Ten of the fourteen points were not built, against the plan's Part A.",
+   "scenario": "Part A listed six choices as true by construction.",
+   "cause": "Part A was written before the points were studied.",
+   "fix": "Part A corrected: two column choices to 29.9, six to measured outcomes in 29.3, two not decided today.",
+   "test": "docs/guides/PHASE7_STUDENTS_PLAN.md"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The new tests skipped instead of failing when a new module broke.",
+   "scenario": "A failed import of benchgen2 skipped the whole file.",
+   "cause": "The new modules' imports sat inside the ImportError guard.",
+   "fix": "Only numpy and pandas are guarded.",
+   "test": "tests/test_benchgen_v2.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the v2 homework",
+   "gate": "each built point: 2,000 decisions or more over 100 groups or more, both labels, a sealed partition, reproducible",
+   "fixed_before_run": true,
+   "result": "1,200 table pairs, 21,600 decisions: task.framing 2,400 (rule right 80%), split.strategy 2,400 (48%), data.cases_table 2,400 (54%), data.cleaning_step 14,400 (73%); a name-only guess at chance",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "Met for the four built points; the manifest records the rules' accuracy.",
+   "limits": [
+    "Invented tables: the scores say how a model reads these traps, not real tables.",
+    "Home's build declares no group: its split rule is weaker than the wizard's measured here."
+   ]
+  },
+  {
+   "name": "the four students on their dev rows",
+   "gate": "none fixed: each student beside its rule on dev, with intervals; the sealed partition unread",
+   "fixed_before_run": true,
+   "result": "task.framing 0.916 [0.888, 0.937] against the rule's 0.790; split.strategy 0.772 [0.734, 0.806] against 0.504; data.cases_table 0.883 [0.853, 0.908] against 0.541; data.cleaning_step 0.922 [0.912, 0.932] against 0.726",
+   "verdict": "not scored",
+   "cost_eur": 0,
+   "against_gate": "Not scored: dev rows of invented tables; promotion needs the sealed gate and real decisions.",
+   "limits": [
+    "Dev holds new seeds of the same generators, not new kinds of table.",
+    "Shadow only: none acts."
+   ]
+  }
+ ],
+ "outcome": "Four more choices have homework with known answers, read the way production records them.",
+ "lessons": [
+  "A planted truth must not be readable from anything but what it is about: draw names from shared pools and hide them in twins.",
+  "Call the product's rule where the product calls it; a reimplementation measures a rule that never runs."
+ ],
+ "risks": [
+  "The students of these points are not in shadow until production has recorded decisions with the new states."
+ ],
+ "commits": []
+}
