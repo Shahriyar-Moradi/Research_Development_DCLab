@@ -189,6 +189,7 @@ def run_one(name: str, slots: Queue, pg: bool, verbose: bool, threads_one: bool 
     tmp = tempfile.mkdtemp(prefix=f"dclab-{name.split('::')[0][5:-3]}-")
     env = {**ONE_THREAD, **os.environ, "TMPDIR": tmp} if threads_one else {**os.environ, "TMPDIR": tmp}
     env.setdefault("DCLAB_DECISION_SHADOW", "0")  # 22.4: the fitted classifiers live on some machines only; a test turns them on itself
+    env.setdefault("DCLAB_STUDENTS_LOOP", "0")  # 29.7: no worker of a test server retrains students behind its back; a test turns it on itself
     env.update({k: "" for k in OWNER_MODEL_CHOICE})  # the owner's .env picks a provider; a test sets the model settings it reads itself
     if slot is not None:
         env["DCLAB_TEST_DATABASE_URL"] = slot

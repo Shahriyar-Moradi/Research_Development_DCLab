@@ -502,6 +502,9 @@ families; nothing is captured for the first time there.
 ### 28.11 (optional, the owner's call) A spike on the second-choice framework
 - A three-node spike of 28.1 on the Microsoft Agent Framework, timed and compared on the same test; a note in the
   plan. Only if the owner wants the exit measured, not assumed.
+- **Status: approved by the owner (2026-10-18) for after every phase is finished; skipped until then.** It needs the
+  `agent-framework` package from PyPI, installed in an environment of its own (never `.venv`); the test is scripted, no
+  model spend.
 
 ---
 

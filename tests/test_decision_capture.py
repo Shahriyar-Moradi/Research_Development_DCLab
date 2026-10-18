@@ -313,6 +313,15 @@ class StoreTest(unittest.TestCase):
         self.assertEqual([x.id for x in store.labels(record=rec.id)], [lab.id])
         self.assertEqual(store.records(point="model.family"), [])
 
+    def test_the_label_signature_changes_with_a_label_and_reads_none(self):
+        store = self.store()  # 29.7: the students' sweep reads it every minute instead of every label
+        before = store.label_signature()
+        rec = ledger.decide("split.strategy", ("project", "p1"), answers=[ledger.answer("rule", "rule:kind_split", "time")], value_used="time",
+                            used="rule", state={"has_time": True}, ledger=store, project="p1")
+        self.assertEqual(store.label_signature(), before)  # a decision without a label changes nothing to learn from
+        ledger.label(rec, "time", "measured", "optimism_gap", evidence={"kind": "optimism_gap", "value": 0.04}, ledger=store)
+        self.assertNotEqual(store.label_signature(), before)
+
     def test_a_replay_records_no_decision(self):
         from dclab_rnd import experience
 

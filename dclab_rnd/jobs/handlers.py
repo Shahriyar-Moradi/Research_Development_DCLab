@@ -1,6 +1,6 @@
 """The kinds of job (package 10.3): stage runs, draft data pipelines, synthetic data, intern turns, and (20.8) a
-pipeline step rerun from its record, (24.5) a programme, and (25.6) a twin run of a project: the current system and Claude
-on the same problem in two lanes.
+pipeline step rerun from its record, (24.5) a programme, (25.6) a twin run of a project: the current system and Claude
+on the same problem in two lanes, and (29.7) the students' loop of a workspace.
 
 ``env`` is the app's ``Services`` (``agentic/services.py``): the stores, the model gateway and the draft work, the same
 in the server and in ``python -m dclab_rnd.worker``. A payload holds ids and plain values only, so any worker can run it.
@@ -172,6 +172,23 @@ def _twin_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, An
                                                        "why": TEXT.get(reason) or job.get("error") or "The twin run ended before it finished"})
 
 
+def _students_run(s: Any, payload: dict[str, Any]) -> None:
+    """29.7: the students' loop on this workspace: sets, the students whose homework grew, demotion, the register."""
+    from pathlib import Path
+
+    from .. import students_loop
+
+    students_loop.run(Path(s.store.home), s.ledger, s.gateway.routing, s.audit)
+
+
+def _students_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
+    from pathlib import Path
+
+    from .. import students_loop
+
+    students_loop.failed(Path(s.store.home))  # the next run waits an hour
+
+
 def register() -> None:
     handler("stage", _stage_run, _stage_settle)
     handler("pipeline", _pipeline_run, _pipeline_settle)
@@ -180,6 +197,7 @@ def register() -> None:
     handler("rerun", _rerun_run, _rerun_settle)
     handler("programme", _programme_run, _programme_settle)
     handler("twin", _twin_run, _twin_settle)
+    handler("students", _students_run, _students_settle)
 
 
 register()

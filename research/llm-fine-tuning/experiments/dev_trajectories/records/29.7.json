@@ -1,0 +1,203 @@
+{
+ "package": "29.7",
+ "title": "The students' loop made continuous: retrain where homework grew, demote below the bar, the register's history per point",
+ "date": "2026-10-18",
+ "request": "Phase 7 (the owner): a student behind every choice, kept up with its labels without anyone running a command; 29.7 in the plan's order after 29.3.",
+ "spec": "docs/guides/PHASE7_STUDENTS_PLAN.md, package 29.7",
+ "plan": [
+  "A loop module whose one run rebuilds the workspace's sets, retrains the students whose homework grew by a margin, demotes a routed model below its bar and writes the register line.",
+  "A job kind queued by the worker's sweep after new labels (with a cooldown) or once a night; a failed run waits an hour.",
+  "The register reads each point's own student beside DCLab's; the history shows the new card; the Students page draws its trail.",
+  "Tests first: a first fit, growth past and below the margin, a planted slip demoted, the schedule, the job through a real worker."
+ ],
+ "decisions": [
+  {
+   "decision": "The loop trains the workspace's own students (own_models, 26.7), not DCLab's generated-set students.",
+   "why": "DCLab's students learn only from construction labels by design (decision_models_build refuses other sources); a workspace's new labels are its own data and stay in its folder."
+  },
+  {
+   "decision": "Promotion is never the loop's: it only demotes, through the audited switch, by DCLab.",
+   "why": "Promotion needs a sealed pass and a shadow measurement, a person's audited change (22.6); a loop that promoted would act on its own measurement."
+  },
+  {
+   "decision": "Retrain when the train and dev rows grew by a tenth and at least five rows, or shrank; a point without a card gets its first.",
+   "why": "A fit per label would churn versions and reset every shadow measurement (a version starts again from zero labelled disagreements); a shrink means deleted rows, which must leave the model."
+  },
+  {
+   "decision": "Demotion runs before any fit.",
+   "why": "The safety step must never wait for a fit that fails (the review: a failing fit blocked it every hour)."
+  },
+  {
+   "decision": "A model that serves above shadow is frozen: the loop leaves its files alone until a person moves it to shadow.",
+   "why": "Fitting again in place replaced the routed version's file: the route then named a model that no longer loads, a silent, unaudited demotion (the review's high finding)."
+  },
+  {
+   "decision": "The sweep reads a cheap label signature (file metadata, or one count query) and nothing inside the cooldown.",
+   "why": "It runs every minute in every worker; parsing every label each time was the cost the review measured."
+  }
+ ],
+ "change": "dclab_rnd/students_loop.py (new: due, sweep_due, failed, run under the students folder's lock, main); a job kind students in jobs/handlers.py, queued from the worker's retention thread; students.py reads own cards (own), keeps own and own_dev_accuracy in the register line and the history, drops a line that changed nothing; own_models.py: a pass belongs to the version that sat it, forget, set folders of points with no rows removed; ledger label_signature on files and PostgreSQL; the Students page shows the own student and its trail; tests/run_parallel.py turns the loop off for every test file.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The loop overwrote a routed own model's files.",
+   "scenario": "An own model passed its gate and was routed at level 3; six more projects were labelled and the loop fitted again: only the new version loaded while the route still named the old one.",
+   "cause": "Growth ignored the routing and own_models.fit writes the point's files in place.",
+   "fix": "A point whose route is an own model above shadow is frozen and said in waiting; a pass counts only for the version that sat the exam.",
+   "test": "test_a_model_that_serves_is_never_replaced_and_a_pass_belongs_to_the_version_that_sat_it",
+   "impact": "The rule would have answered silently where a person had routed a model, and the old pass could route a model with no file."
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A fit error blocked the demotion.",
+   "scenario": "One point's fit raised RuntimeError: the run raised before the demotion, so a slipping routed model stayed at its level, run after run.",
+   "cause": "Demotion ran after training, and own_models.fit catches only ValueError.",
+   "fix": "Demotion first; each point fitted alone in its own try.",
+   "test": "test_a_fit_that_fails_costs_its_point_only_and_the_demotion_still_runs"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A failed fit left a model file whose hash no longer matched.",
+   "scenario": "After the failing run a fresh load returned only the other point's model while the card claimed the new version.",
+   "cause": "Files were written for every point before fitted.json was written once at the end.",
+   "fix": "One point per fit call: fitted.json is written after each.",
+   "test": "test_a_fit_that_fails_costs_its_point_only_and_the_demotion_still_runs"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The slipping pill vanished after one more run.",
+   "scenario": "Lines own@a 0.95, own@b 0.80 (slipped), then a nightly own@b 0.80: the page reads the last line, which no longer says slipped.",
+   "cause": "The loop writes a line every night and after labels; the history compared the last two lines whatever they were.",
+   "fix": "A line equal to the one before it on the card's fields is dropped from the history.",
+   "test": "test_the_history_shows_runs_that_changed_the_card_and_slipping_stays_shown"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The command read an empty file ledger on a PostgreSQL workspace.",
+   "scenario": "python -m dclab_rnd.students_loop with DCLAB_DATABASE_URL set: the sets were rewritten empty and an all-zero register line written.",
+   "cause": "open_ledger(home) without the workspace id opens the file ledger.",
+   "fix": "open_ledger(home, file_workspace_id(home)), as own_models does.",
+   "test": ""
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Deleted labels left their sets and the model trained on them.",
+   "scenario": "A project deleted under retention: a point with no labels left kept its rows.jsonl and chat.jsonl and its model kept answering.",
+   "cause": "The export only wrote the points it found, and a shrink was never a reason to fit.",
+   "fix": "The export removes set folders of points with no rows; a shrink refits; a point with nothing left forgets its model (demoted first if it served); exam results are kept.",
+   "test": "test_deleted_labels_leave_no_set_and_no_model_and_a_shrink_refits",
+   "impact": "A deleted project's decisions would have stayed in the workspace's sets and in a model, against the retention rule."
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A skipped point was tried again without growth.",
+   "scenario": "Fitted at N, later skipped at M: every run retried it.",
+   "cause": "The last count preferred the fit's over the skip's.",
+   "fix": "The last try counts, fitted or skipped; no card and not skipped means a first fit.",
+   "test": "test_homework_grown_by_the_margin_retrains_and_a_little_does_not"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The sweep parsed every label every minute, and an unreadable ledger queued a run.",
+   "scenario": "Every worker of every workspace, every 60 seconds, even inside the cooldown.",
+   "cause": "The due check counted labels first.",
+   "fix": "The cooldown is checked before anything is read; a cheap label signature; an unreadable ledger is not due.",
+   "test": "test_due_after_new_labels_or_a_night_and_never_when_switched_off; test_the_label_signature_changes_with_a_label_and_reads_none"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Two runs could fit into the same files at once.",
+   "scenario": "The command beside a job, or a job retried as stale while it still ran.",
+   "cause": "The job table holds one job per key, but the command does not go through it.",
+   "fix": "A run holds the students folder's lock.",
+   "test": ""
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The job's wiring and its failure path were untested, and test servers could retrain students.",
+   "scenario": "No test ran a students job through a worker; a test server alive for a minute with labels would queue a real fit.",
+   "cause": "Tests called run directly; the runner blanked the shadows but not the loop.",
+   "fix": "A test runs the job through a real worker (done, then a failing run settled with the hour's wait); the test runner sets DCLAB_STUDENTS_LOOP=0.",
+   "test": "test_the_job_runs_through_a_worker_and_a_failed_run_waits"
+  },
+  {
+   "id": "N1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Another ledger on the same folder was read as every label deleted.",
+   "scenario": "The owner's make dev (PostgreSQL) and make notebook (files) share agent_runs: a files-mode run saw no labels, removed every set and forgot every own model, while the PostgreSQL route still named one at level 1.",
+   "cause": "Neither the loop's state nor the forget step knew which ledger the models learned from.",
+   "fix": "The state keeps the ledger's kind and workspace; another ledger is never due and the command refuses it until a person passes --adopt; a route naming an own model that is no longer here goes back to shadow, audited.",
+   "test": "test_another_ledger_on_the_same_folder_changes_nothing_until_a_person_adopts_it",
+   "impact": "A passed, routed model would have been destroyed with its exam (its sealed rows already read once) and the rule would have answered silently under a route naming nothing.",
+   "alternatives": [
+    "State kept per ledger: set aside, the models folder is one; two sources would overwrite each other's models."
+   ]
+  },
+  {
+   "id": "N2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Deleted rows could stay in a model.",
+   "scenario": "38 of 40 projects deleted: the refit was skipped for too few tables and the old model, trained on all 40, kept whispering; a routed point that shrank stayed frozen with them.",
+   "cause": "A skipped refit left the old model, and a frozen point never looked at its homework.",
+   "fix": "A shrink that cannot be fitted again forgets the model; a routed point whose decisions shrank goes back to shadow first, then is fitted on what is left.",
+   "test": "test_a_route_to_a_model_that_is_gone_or_learned_from_deleted_decisions_goes_back_to_shadow"
+  },
+  {
+   "id": "N3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A demotion in the deletion path was missing from the run's record.",
+   "scenario": "Audited, but not in demoted nor in the run.recorded numbers.",
+   "cause": "It called the switch directly.",
+   "fix": "Every route the loop moves back to shadow goes through one helper that also says it in demoted.",
+   "test": "test_a_route_to_a_model_that_is_gone_or_learned_from_deleted_decisions_goes_back_to_shadow"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the loop's tests",
+   "gate": "Done when: a new labelled decision retrains its student on the next run and the register shows the new card; a demotion happens when a planted slip crosses the bar",
+   "fixed_before_run": true,
+   "result": "13 tests pass: a first card in the register and its history; growth past the margin retrains and one project does not; a planted slip of 25 blind labels at a fifth right demoted with DCLab's audit row; the job through a real worker; another ledger refused until adopted",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "Synthetic labels on one point; no real workspace has run the loop yet."
+   ]
+  }
+ ],
+ "outcome": "A workspace's own students now follow its labels by themselves: retrained when their homework grows, frozen while they serve, demoted below their bar by an audited change, their history on the Students page; promotion stays a person's switch.",
+ "lessons": [
+  "A loop that writes files under a route must check the route first: a version replaced in place is a demotion nobody audited.",
+  "Put the safety step before the step that can fail.",
+  "A history read from a log that writes on a schedule must drop the lines that changed nothing, or every warning lasts one tick.",
+  "Know which source a model learned from before reading an empty source as a deletion: one folder may have two ledgers."
+ ],
+ "risks": [
+  "A version retrained starts its shadow measurement again from zero: a point that keeps growing may never reach the labels it needs to act.",
+  "DCLab's generated-set students do not learn from a workspace's labels here: only the workspace's own students do."
+ ],
+ "commits": []
+}

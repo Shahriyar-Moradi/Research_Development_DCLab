@@ -304,7 +304,7 @@ class Worker:
         """Raw uploads past DCLAB_RETENTION_RAW_DAYS (package 12.5): on a thread of its own, so a long sweep never delays a heartbeat."""
         from .. import retention
 
-        from .. import datasets
+        from .. import datasets, students_loop
 
         state: dict[str, float] = {}
         while not halt.wait(60):
@@ -314,6 +314,10 @@ class Worker:
                 traceback.print_exc()
             try:  # 23.10: the sets, once a day where consent allows and after a deletion
                 datasets.sweep_due(self.env)
+            except Exception:  # noqa: BLE001
+                traceback.print_exc()
+            try:  # 29.7: the students' loop, queued as a job after new labels or once a night
+                students_loop.sweep_due(self.env)
             except Exception:  # noqa: BLE001
                 traceback.print_exc()
 

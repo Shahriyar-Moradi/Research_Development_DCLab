@@ -89,8 +89,8 @@ passes variants it never saw. The plan, its stages and the owner's decisions: `P
 
 **Phases 6 to 9 (2026-10-18).** Phase 6, the multi-agent team (`PHASE6_MULTI_AGENT_PLAN.md`): 28.1 to 28.5 and 28.8 to
 28.10 built, 28.4, 28.6 and 28.8 complete (28.6: the second opinion kept, ORC-001; the debate off, ORC-005); 28.7's sealed
-verdict failed once (the team 25 of 30 against the single agent's 26), a fresh sixth sealed set frozen and being run once;
-28.11 waits for the owner. Phase 7,
+verdict failed once (the team 25 of 30 against the single agent's 26), a fresh sixth sealed set frozen and run once: passed (the team 21 of 30, the single agent 16, the rules 10; the intervals overlap);
+28.11 approved by the owner for after every phase is finished, skipped until then. Phase 7,
 the students (`PHASE7_STUDENTS_PLAN.md`): 29.1, 29.2, 29.4, 29.5, 29.13, 29.14 and 29.17 built or run, 29.6 for the teams;
 29.3, 29.7 to 29.12, 29.15, 29.16 and 29.18 open. Phase 8, the knowledge cards and recipes
 (`PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md`): 30.7 to 30.11 built; 30.12 to 30.20 and Part G open. Phase 9, the learning

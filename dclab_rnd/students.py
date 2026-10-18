@@ -135,15 +135,38 @@ def status_of(row: dict[str, Any]) -> str:
     return "whisper, not examined"
 
 
+def own(home: Optional[Path]) -> dict[str, dict[str, Any]]:
+    """29.7: per point, the workspace's own student (``own_models``, retrained by ``students_loop``): its card's name,
+    family, rows, dev score beside the rule's, and its own sealed verdict when it sat one."""
+    if home is None:
+        return {}
+    from . import own_models
+
+    models, results = own_models.root(Path(home)) / "models", own_models.root(Path(home)) / "results"
+    out: dict[str, dict[str, Any]] = {}
+    for path in sorted(models.glob("*.json")) if models.is_dir() else []:
+        card = _json(path) or {}
+        if path.name == "fitted.json" or not card.get("point"):
+            continue
+        dev, rule = card.get("dev") or {}, card.get("rule_dev") or {}
+        result = _json(results / path.name) or {}
+        mine = result.get("model", {}).get("version") == card.get("version")
+        out[card["point"]] = {"answerer": f"{card.get('name')}@{card.get('version')}", "family": card.get("family"), "trained_on": card.get("trained_on"),
+                              "dev_accuracy": dev.get("accuracy"), "rule_accuracy": rule.get("accuracy"),
+                              "exam": result.get("result") if mine else None}
+    return out
+
+
 def register(ledger: Any = None, routing_doc: Optional[dict[str, Any]] = None, measured: Optional[dict[str, Any]] = None,
-             warnings: Optional[list[str]] = None) -> dict[str, Any]:
-    """The register: a row per point of ``dclab_core.ledger.POINTS`` and the counts over them."""
+             warnings: Optional[list[str]] = None, home: Optional[Path] = None) -> dict[str, Any]:
+    """The register: a row per point of ``dclab_core.ledger.POINTS`` and the counts over them; with ``home``, each point's
+    own student in that workspace beside DCLab's (29.7)."""
     from dclab_core.ledger import POINTS
 
     from .ledger import CAPTURED, NOT_DECIDED
     from .ledger.routing import MIN_LABELS, entry
 
-    hw, st, vd = homework(), students(), verdicts()
+    hw, st, vd, mine = homework(), students(), verdicts(), own(home)
     recorded, labelled = _ledger_counts(ledger)
     rows = []
     for key, point in POINTS.items():
@@ -162,7 +185,8 @@ def register(ledger: Any = None, routing_doc: Optional[dict[str, Any]] = None, m
                "homework": work, "student": student, "verdict": verdict, "earlier_exam": exam if exam and verdict is None else None,
                "level": route.get("level") if route.get("answerer") == name and name else None, "serving": route.get("answerer"),
                "labelled_disagreements": shadow.get("labelled_disagreements"), "shadow_agreement": shadow.get("agreement"),
-               "needed_to_act": max(0, MIN_LABELS - int(shadow.get("labelled_disagreements") or 0)) if name else None}
+               "needed_to_act": max(0, MIN_LABELS - int(shadow.get("labelled_disagreements") or 0)) if name else None,
+               "own": mine.get(key)}
         row["status"] = status_of(row)
         rows.append(row)
     counts = Counter(r["status"].split(",")[0] for r in rows)
@@ -174,7 +198,7 @@ def register(ledger: Any = None, routing_doc: Optional[dict[str, Any]] = None, m
                         "recorded": sum(r["recorded"] for r in rows), "by_status": dict(counts), "min_labels_to_act": MIN_LABELS}}
 
 
-def read(ledger: Any = None, routing_doc: Optional[dict[str, Any]] = None, measure: bool = True) -> dict[str, Any]:
+def read(ledger: Any = None, routing_doc: Optional[dict[str, Any]] = None, measure: bool = True, home: Optional[Path] = None) -> dict[str, Any]:
     """The register as the page and the command both show it: the shadow measurement taken when shadows are on (a
     failure is said in ``warnings``, never shown as a number)."""
     measured, warnings = None, []
@@ -188,7 +212,7 @@ def read(ledger: Any = None, routing_doc: Optional[dict[str, Any]] = None, measu
                 warnings.append(f"the shadow measurement failed ({type(error).__name__}): labelled disagreements are unknown")
         else:
             warnings.append("shadows are off here (DCLAB_DECISION_SHADOW=0): labelled disagreements are not measured")
-    return register(ledger, routing_doc, measured, warnings)
+    return register(ledger, routing_doc, measured, warnings, home=home)
 
 
 def table(reg: dict[str, Any]) -> str:
@@ -215,13 +239,15 @@ def record(home: Path, reg: dict[str, Any]) -> Path:
     line = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "summary": reg["summary"],
             "points": {r["point"]: {"status": r["status"], "recorded": r["recorded"], "student": (r.get("student") or {}).get("answerer"),
                                     "dev_accuracy": (r.get("student") or {}).get("dev_accuracy"), "exam": (r.get("verdict") or {}).get("pass"),
-                                    "level": r.get("level")} for r in reg["items"]}}
+                                    "level": r.get("level"), "own": (r.get("own") or {}).get("answerer"),
+                                    "own_dev_accuracy": (r.get("own") or {}).get("dev_accuracy")} for r in reg["items"]}}
     with path.open("a", encoding="utf-8") as out:
         out.write(json.dumps(line, ensure_ascii=False) + "\n")
     return path
 
 
 SLIP = 0.02  # a student whose dev score fell by more than this since its last run is shown slipping, before any demotion
+SAME = ("student", "dev_accuracy", "exam", "level", "own", "own_dev_accuracy")  # a register line equal on these to the one before shows nothing new
 
 
 def history(home: Path, last: int = 12) -> dict[str, list[dict[str, Any]]]:
@@ -235,13 +261,19 @@ def history(home: Path, last: int = 12) -> dict[str, list[dict[str, Any]]]:
         except ValueError:
             continue
         for point, row in (doc.get("points") or {}).items():
-            cards.setdefault(point, []).append({"at": doc.get("at"), **{k: row.get(k) for k in ("student", "dev_accuracy", "exam", "level", "recorded", "status")}})
+            line = {"at": doc.get("at"), **{k: row.get(k) for k in ("student", "dev_accuracy", "exam", "level", "recorded", "status", "own", "own_dev_accuracy")}}
+            mine = cards.setdefault(point, [])
+            if mine and all(mine[-1].get(k) == line.get(k) for k in SAME):
+                continue  # 29.7: the loop writes a line every night and after labels; a line that changed nothing is no new run of the card
+            mine.append(line)
     out = {}
     for point, rows in cards.items():
         rows = rows[-last:]
         for before, now in zip(rows, rows[1:]):
             a, b = before.get("dev_accuracy"), now.get("dev_accuracy")
-            now["slipped"] = bool(a is not None and b is not None and b < a - SLIP) or (before.get("exam") is True and now.get("exam") is False)
+            c, d = before.get("own_dev_accuracy"), now.get("own_dev_accuracy")  # 29.7: the workspace's own student, the same way
+            now["slipped"] = (bool(a is not None and b is not None and b < a - SLIP) or (before.get("exam") is True and now.get("exam") is False)
+                              or bool(c is not None and d is not None and d < c - SLIP))
         if rows:
             rows[0]["slipped"] = False
         out[point] = rows
@@ -270,7 +302,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         routing_doc = open_routing(home).get()
     except Exception:  # noqa: BLE001
         routing_doc = None
-    reg = read(ledger, routing_doc, measure=not args.no_shadow)
+    reg = read(ledger, routing_doc, measure=not args.no_shadow, home=home)
     record(home, reg)
     print(json.dumps(reg, indent=1, ensure_ascii=False) if args.json else table(reg))
     return 0

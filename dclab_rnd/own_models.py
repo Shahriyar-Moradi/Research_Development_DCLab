@@ -61,11 +61,20 @@ def export(home: Path, book: Any = None, points: Optional[list[str]] = None) -> 
     docs = [{**r.model_dump(mode="json"), "labels": labels.get(r.id, [])} for r in book.records()]
     wanted = sorted({d["point"] for d in docs if d["labels"]} if points is None else set(points))
     out, summary = root(home) / "sets", {}
+    if points is None and out.is_dir():  # 29.7: a point whose labelled decisions are all gone (deleted) keeps no set of them
+        import shutil
+
+        for folder in sorted(f for f in out.iterdir() if f.is_dir() and f.name not in wanted):
+            shutil.rmtree(folder, ignore_errors=True)
     system = prompts.text(PURPOSE)
     for point in wanted:
         rows, _ = datasets.decisions(docs, point, workspace=Path(home).name)
         rows = [r for r in rows if r["label"] is not None]
         if not rows:
+            if points is None:  # 29.7: as above, its old rows go
+                import shutil
+
+                shutil.rmtree(out / point, ignore_errors=True)
             continue
         folder = out / point
         folder.mkdir(parents=True, exist_ok=True)
@@ -129,6 +138,21 @@ def fit(home: Path, points: Optional[list[str]] = None) -> dict[str, Any]:
     return {"cards": cards, "skipped": skipped}
 
 
+def forget(home: Path, point: str) -> bool:
+    """29.7: the point's own model and card removed (its training rows were deleted); ``fitted.json`` written again. Its
+    exam result stays, as every result does: without its card it no longer counts as a pass. True when there was one."""
+    models = root(home) / "models"
+    gone = False
+    for path in (models / f"{point}.json", models / f"{point}.joblib"):
+        if path.is_file():
+            path.unlink()
+            gone = True
+    if models.is_dir():
+        hashes = {p.stem: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(models.glob("*.joblib"))}
+        (models / "fitted.json").write_text(json.dumps(hashes, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    return gone
+
+
 def load(home: Path) -> list[Any]:
     """The workspace's own fitted models whose bytes match ``fitted.json`` and whose card describes them."""
     import joblib
@@ -179,7 +203,12 @@ def passed(home: Path) -> dict[str, dict[str, Any]]:
     out = {}
     for path in sorted((root(home) / "results").glob("*.json")) if (root(home) / "results").is_dir() else []:
         doc = json.loads(path.read_text(encoding="utf-8"))
-        if doc.get("result") == "pass":
+        card = root(home) / "models" / path.name
+        try:  # 29.7: a pass belongs to the version that sat the exam; a model fitted again since has not sat it
+            current = json.loads(card.read_text(encoding="utf-8")).get("version")
+        except (OSError, ValueError):
+            current = None
+        if doc.get("result") == "pass" and current == doc["model"]["version"]:
             out[f"{doc['model']['name']}@{doc['model']['version']}"] = {"point": doc["point"], "verdict": doc.get("verdict") or {},
                                                                        "gate": doc["gate"]["version"], "family": doc["model"].get("family"),
                                                                        "own": True}

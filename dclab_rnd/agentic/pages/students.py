@@ -28,14 +28,15 @@ def register(app, ctx) -> None:
                 routing_doc = models.routing.get()
             except Exception:  # noqa: BLE001 - no routing document yet
                 routing_doc = None
-        reg = students.read(getattr(ctx, "ledger", None), routing_doc)  # the command's own read: the same numbers
+        from pathlib import Path
+
+        from ... import context
+
+        store = getattr(context.services() or ctx, "store", None)
+        home = Path(store.home) if store is not None and getattr(store, "home", None) else None
+        reg = students.read(getattr(ctx, "ledger", None), routing_doc, home=home)  # the command's own read: the same numbers (29.7: and the workspace's own)
         try:  # 29.14: each student's report card from the register's own history
-            from pathlib import Path
-
-            from ... import context
-
-            store = getattr(context.services() or ctx, "store", None)
-            reg["history"] = students.history(Path(store.home)) if store is not None and getattr(store, "home", None) else {}
+            reg["history"] = students.history(home) if home is not None else {}
         except Exception:  # noqa: BLE001 - no history yet: the register stands alone
             reg["history"] = {}
         return reg

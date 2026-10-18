@@ -141,6 +141,17 @@ bands, its options), then a student.
 - **Done when:** a new labelled decision in a test workspace retrains its student on the next run and the register
   shows the new card; a demotion happens when a planted slip crosses the bar.
 
+- **Status: built (2026-10-18), the two reviews' 13 findings fixed.** `dclab_rnd/students_loop.py`: one run (a job of kind
+  `students`, queued by the worker's sweep after new labels with a 15-minute cooldown, or once a night;
+  `DCLAB_STUDENTS_LOOP=0` off; a failed run waits an hour) demotes first (`ledger.routing.demote`, DCLab's audited
+  change), rebuilds the workspace's sets (`own_models.export`; a point with no labels left keeps no set and forgets its
+  model), fits again each point whose train and dev rows grew by a tenth (five rows at least) or shrank, one point at a
+  time, never a model that serves above shadow (frozen until a person moves it to shadow), and writes the register line;
+  the register and its history carry each point's own student, and the Students page draws its trail. Promotion stays a
+  person's switch. The loop keeps which ledger its students learned from: another ledger on the same folder (files beside
+  PostgreSQL) changes nothing until a person adopts it (`--adopt`). Left: the workspace's labels train its own students only (DCLab's students learn from construction
+  labels); a retrained version starts its shadow measurement from zero.
+
 ### 29.8 The people's labels, made easy
 - **Delivers:** the Admin Decisions tab's blind draws and corrections (19.8) widened to every point with a student, a
   queue of the disagreements worth a person's look (student against rule, highest confidence first), one click per label;

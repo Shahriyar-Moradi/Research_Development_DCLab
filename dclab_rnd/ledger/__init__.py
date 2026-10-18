@@ -224,6 +224,19 @@ class FileLedger:
         return [x for x in self._read("labels", contract.DecisionLabel)
                 if (record is None or x.record == record) and (point is None or x.point == point)]
 
+    def label_signature(self) -> str:
+        """29.7: what changes when a label is added or one is deleted (each label file's size and time), read from the
+        files' metadata alone: a sweep every minute never parses the labels to know nothing changed."""
+        folder = self.root / "labels"
+        parts = []
+        for path in sorted(folder.glob("*/*/*.jsonl")) if folder.exists() else []:
+            try:
+                info = path.stat()
+            except OSError:
+                continue
+            parts.append(f"{path.relative_to(folder)}:{info.st_size}:{info.st_mtime_ns}")
+        return "|".join(parts)
+
 
 class PgLedger:
     def __init__(self, workspace: str, engine: Any = None, url: str | None = None):
@@ -306,6 +319,16 @@ class PgLedger:
                 q = q.where(column == value)
         with self.engine.connect() as c:
             return [contract.DecisionLabel.read(r[0]) for r in c.execute(q.order_by(t.c.at, t.c.id))]
+
+    def label_signature(self) -> str:
+        """29.7: the workspace's label count and the newest label's time: one query, no label parsed."""
+        import sqlalchemy as sa
+
+        from ..storage.models import decision_label as t
+
+        with self.engine.connect() as c:
+            n, newest = c.execute(sa.select(sa.func.count(), sa.func.max(t.c.at)).where(t.c.workspace_id == self.workspace)).one()
+        return f"{int(n)}:{newest}"
 
 
 def open_ledger(home: Path, workspace_id: str | None = None) -> Any:
