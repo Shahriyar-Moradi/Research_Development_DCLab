@@ -120,6 +120,26 @@ class Api:
                 time.sleep(0.5)
         raise Failed("the agent stayed busy for 30 seconds")
 
+    def team(self, draft_id: str, answers: dict[str, str], steps: int = 30) -> dict:
+        """28.8: walk the draft's understanding team through its API to its end: start it, answer each question by its field
+        (an unknown field gets an empty answer: the walk declines it), approve each confirmation and approval."""
+        body: dict = {}
+        out: dict = {}
+        for _ in range(steps):
+            for _ in range(60):
+                try:
+                    out = self.call("POST", f"/drafts/{draft_id}/team", body)
+                    break
+                except Failed as error:
+                    if "answered 409" not in str(error):
+                        raise
+                    time.sleep(0.5)
+            if out.get("status") != "paused":
+                return out
+            asks = out.get("asks") or {}
+            body = {"answer": answers.get(str(asks.get("field")), "")} if asks.get("kind") == "question" else {"approve": True}
+        raise Failed(f"the team was still walking after {steps} pauses")
+
     def run_all(self, project_id: str) -> dict:
         self.call("POST", f"/projects/{project_id}/run")
         project = self.wait(f"/projects/{project_id}", lambda p: all(p["stages"][s]["status"] in ("completed", "failed", "approved") for s in STAGES), what="the five stages")
@@ -172,6 +192,54 @@ def flow_upload(api: Api) -> str:
     check("Synthetic data." not in notebook, "real data was labelled synthetic")
     check(all(m["status"] == "allowed" for m in project["transitions"]), "the validator refused a move on the standard path")
     return f"7,043 rows, 5 folds, five stages; holdout {holdout(project)}"
+
+
+def flow_upload_team(api: Api) -> str:
+    """28.8: the upload flow with the team's switch on: the chat's answers, then Build goes through the understanding team's walk
+    (the build being its approval); what the walk asks first is answered through its own API; the project it builds runs every
+    stage."""
+    check(TELCO.is_file(), f"{TELCO.relative_to(ROOT)} is missing")
+    check(api.call("PUT", "/team/settings", {"on": True})["settings"]["on"] is True, "the team's switch did not turn on")
+    draft_id = api.draft("Rank telecom customers by their risk of leaving next month so the retention team can call them.")
+    api.call("PUT", f"/drafts/{draft_id}/data?filename=telco.csv", raw=TELCO.read_bytes())
+    api.asset_ready(draft_id)
+    draft = api.answer(draft_id, ["Churn", "At the start of each month, before the retention call.", "A call costs 5 euro; a lost customer costs 300."])
+    answers = {"target": "Churn", "outcome": "Churn", "prediction_moment": "At the start of each month, before the retention call.",
+               "action": "The retention team calls the riskiest; a call costs 5 euro, a lost customer 300.", "entity": "One customer",
+               "labels": "A column marks them", "data_plan": "The table is uploaded"}
+    asked = 0
+    for _ in range(4):  # "build it" in the chat, the page's own path (the Build button sends it): the walk builds, or asks first
+        count = len(api.call("GET", f"/drafts/{draft_id}")["messages"])
+        api.say(draft_id, "build it")
+        draft = api.wait(f"/drafts/{draft_id}", lambda d: d.get("project_id") or (len(d["messages"]) > count + 1 and d["messages"][-1]["role"] == "agent"),
+                         180, "the build or the team's question")
+        if draft.get("project_id"):
+            break
+        said = (draft["messages"][-1].get("text") or "").lower()
+        check("team asks first" in said or "team" in said, f"the build was refused without the team: {said[:200]}")
+        asked += 1
+        api.team(draft_id, answers)  # what the walk asks first, answered through its own API (it may build at its end)
+        if api.call("GET", f"/drafts/{draft_id}").get("project_id"):
+            break
+    else:
+        raise Failed("Build kept waiting on the team")
+    draft = api.call("GET", f"/drafts/{draft_id}")
+    # the draft has its project once the build node returns; the walk writes its end record when it ends, a moment later
+    board = api.wait(f"/drafts/{draft_id}/team", lambda v: (v.get("walk") or {}).get("status") == "completed", 60, "the walk's end record")
+    project = api.call("GET", f"/projects/{draft['project_id']}")
+    check(bool(project.get("solution")), "the project the team built has no solution")
+    draft = api.wait(f"/drafts/{draft_id}", lambda d: any(m["role"] == "agent" and m.get("kind") == "build" for m in d["messages"]), 120,
+                     "the chat's build message")  # it comes after the build returns
+    started = any(m.get("kind") == "build" and m.get("session_id") for m in draft["messages"] if m["role"] == "agent")
+    if started:  # the build started the agent that runs the stages: follow it, never a second runner
+        project = api.wait(f"/projects/{project['id']}", lambda p: all(p["stages"][s]["status"] in ("completed", "failed", "approved") for s in STAGES),
+                           900, "the five stages the agent runs")
+        check(all(project["stages"][s]["status"] in ("completed", "approved") for s in STAGES), f"stages: {[project['stages'][s]['status'] for s in STAGES]}")
+    else:
+        project = api.run_all(project["id"])
+    check(all(m["status"] == "allowed" for m in project["transitions"]), "the validator refused a move on the team's path")
+    api.call("PUT", "/team/settings", {"on": False})
+    return f"\"build it\" through the team ({board.get('handoffs')} hand-offs, {asked} pause(s) answered first, stages {'by the agent' if started else 'by the run'}); holdout {holdout(project)}"
 
 
 def flow_no_data(api: Api) -> str:
@@ -227,7 +295,7 @@ def flow_log_file(api: Api) -> str:
     return f"400 log lines read as {asset['columns']} columns ({structure.get('format')}, parse rate {structure['parse_rate']:.0%})"
 
 
-FLOWS = {"upload": flow_upload, "no-data": flow_no_data, "synthetic": flow_synthetic, "log-file": flow_log_file}
+FLOWS = {"upload": flow_upload, "upload-team": flow_upload_team, "no-data": flow_no_data, "synthetic": flow_synthetic, "log-file": flow_log_file}
 
 
 # ------------------------------------------------------------------------------------------------ server

@@ -71,6 +71,8 @@ SPECIAL = {
     ("GET", "/api/students"): "admin",  # 29.1: the students' register, every choice and how far its model is trusted
     ("GET", "/api/teams"): "admin",  # 28.8: every walk of the teams, its nodes, pauses, cost and the models asked
     # Claude beside the system (25.4): the owner's switch; the sessions are the record's, as the timelines
+    ("GET", "/api/team/settings"): "read",  # 28.8: the team's switch and budgets
+    ("PUT", "/api/team/settings"): "admin",
     ("GET", "/api/twin/settings"): "read",
     ("PUT", "/api/twin/settings"): "admin",
     ("GET", "/api/twin/sessions"): "timelines",

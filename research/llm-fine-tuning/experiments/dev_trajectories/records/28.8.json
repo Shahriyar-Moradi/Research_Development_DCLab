@@ -8,7 +8,11 @@
   "A service the routes call: start or resume a walk once, read a walk without running it, list the walks.",
   "Routes for drafts, projects and Admin.",
   "A Team panel on Home and a Teams tab on Admin.",
-  "The critic's model only after the sealed gate."
+  "The critic's model only after the sealed gate.",
+  "The team's switch and budgets as one workspace file, changed by an admin, every change audited (the twin switch's pattern).",
+  "Budgets per walk (euros across its resumes, steps) and per node (euros), each walk stopping with the reason the person sees.",
+  "Home's Build through the walk when the switch is on: the proposal's solution and settings accepted as before, the build being the walk's approval.",
+  "A product flow through the team, and a browser test of the Team panel."
  ],
  "decisions": [
   {
@@ -22,9 +26,21 @@
   {
    "decision": "The critic's model serves only once the team passed its sealed gate.",
    "why": "The measurement decides what serves; until then the rules ask."
+  },
+  {
+   "decision": "With the switch on, the person's \"build it\" approves only the walk's build pause; a question, the map's confirmation or the critic's concerns come back to the chat as what the team asks first.",
+   "why": "The owner's three interrupts each belong to the person; turning \"build it\" into an approval of the critic's concerns would override them without the person seeing them."
+  },
+  {
+   "decision": "The euro budget per walk is checked between nodes from the experience log's requests, and each node's model is capped by the gateway at a node's budget for each start or resume.",
+   "why": "A request in flight cannot be stopped; the gateway's own run cap bounds every request, and the walk's check stops it before the next node."
+  },
+  {
+   "decision": "The switch is off by default.",
+   "why": "The team failed its sealed gate (JRN-019): the rules and the direct build serve until the owner turns the team on."
   }
  ],
- "change": "dclab_rnd/orchestra/service.py; GET/POST /api/drafts/{id}/team (draft/api.py), GET/POST /api/projects/{id}/team and GET /api/teams (agentic/pages/team.py, the owner's); Home's Team panel and Admin's Teams tab; the API client and the app rebuilt.",
+ "change": "dclab_rnd/orchestra/service.py; GET/POST /api/drafts/{id}/team (draft/api.py), GET/POST /api/projects/{id}/team and GET /api/teams (agentic/pages/team.py, the owner's); Home's Team panel and Admin's Teams tab; the API client and the app rebuilt. Then (completing 28.8): dclab_rnd/orchestra/settings.py (team.json: on, run_eur, node_eur, max_steps); GET/PUT /api/team/settings (an admin's, audited) and the Admin Teams tab's switch; the walk stops at its euro budget and after a node over its own, records each node's cost and shows the live spend on its board; the solution team stops at its euro budget; orchestra.service.build_draft and Home's quick build through it when the switch is on; scripts/product_e2e.py flow upload-team; the Team panel follows a build.",
  "findings": [
   {
    "id": "B1",
@@ -165,17 +181,184 @@
    "cause": "Every write route must name the events it writes; the routes were added without the entry.",
    "fix": "Both declared: the walk's team.handoff and team.interrupt events (team.recorded at its end).",
    "test": "test_every_write_route_says_what_it_records"
+  },
+  {
+   "id": "T15",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The new write route said nothing of what it records.",
+   "scenario": "The rule that every write route says what it records failed on the team settings route.",
+   "cause": "The route was added without its entry.",
+   "fix": "The route records a policy decision, as the twin switch does.",
+   "test": "test_every_write_route_says_what_it_records"
+  },
+  {
+   "id": "R15",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "With the switch on, \"build it\" in the chat locked the draft for ever.",
+   "scenario": "The Home agent's turn holds the draft's lock; its build ran the walk in another thread, which waited on that lock; every later chat turn on the draft was stuck until a restart.",
+   "cause": "The build from the chat handed the walk to a worker thread.",
+   "fix": "From the chat the walk runs in the thread that holds the turn (the lock is re-entrant within a thread).",
+   "test": "upload-team (the product flow through the chat's build)"
+  },
+  {
+   "id": "R16",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The walk's euro budget never counted the Home agent's model requests.",
+   "scenario": "Thirty answered questions at five cents each spent EUR 1.50 against a budget of EUR 0.50 and the walk never stopped.",
+   "cause": "The Home agent's own run rebinds the run id, so its requests carried another run than the walk's.",
+   "fix": "The walk binds its run as the parent of every request made inside it, and counts a request of its run or of a run inside it.",
+   "test": "test_a_walk_counts_its_nested_agents_requests_and_caps_each_node"
+  },
+  {
+   "id": "R17",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A node's budget capped a whole start or resume, not one node.",
+   "scenario": "Two nodes of one resume at EUR 0.15 each: the second was refused although neither passed its budget.",
+   "cause": "The cap was set once per start or resume.",
+   "fix": "Before each node the models' caps are set to what they had spent plus one node's budget.",
+   "test": "test_a_walk_counts_its_nested_agents_requests_and_caps_each_node"
+  },
+  {
+   "id": "R18",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "\"Build it\" could approve the critic's concerns for the person.",
+   "scenario": "A build approved in one tab situated the walk again onto the critic's gate; a Build pressed in another tab resumed it with a bare yes.",
+   "cause": "The resume was an answer to whatever pause was open.",
+   "fix": "The resume is keyed to the build pause that was read; another pause asks again.",
+   "test": "test_with_the_switch_on_home_builds_through_the_walk_and_says_what_it_asks_first"
+  },
+  {
+   "id": "R19",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Two Build presses at once gave a server error.",
+   "scenario": "Both reached the build pause; the second found nothing to resume and raised.",
+   "cause": "A resume with no pause raised past the build.",
+   "fix": "A pause already answered by another request reads the draft again and returns its project.",
+   "test": "test_with_the_switch_on_home_builds_through_the_walk_and_says_what_it_asks_first"
+  },
+  {
+   "id": "R20",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Approving the build on the Team panel built a project whose stages never started.",
+   "scenario": "The panel resumed the walk directly, without the step that starts the agent on the project.",
+   "cause": "The panel's approval did not go through Build.",
+   "fix": "The panel's build approval calls Build with the team, which the walk takes as its approval, and the agent starts.",
+   "test": "team (the browser check of the Team panel)"
+  },
+  {
+   "id": "T16",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "The team flow read the walk's record too early.",
+   "scenario": "The draft gets its project inside the build node; the walk writes its end record a moment later, and the flow read none.",
+   "cause": "The flow checked the record as soon as the project appeared.",
+   "fix": "The flow waits for the walk's end record and for the chat's build message, then follows the agent's stages.",
+   "test": "upload-team (the product flow through the chat's build)"
+  },
+  {
+   "id": "T17",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The panel's build approval skipped the walk when the switch was off.",
+   "scenario": "Walking with the team on Home and approving its build built directly, leaving the walk waiting on its approval.",
+   "cause": "Build followed the switch alone.",
+   "fix": "Build takes the panel's approval through the walk whatever the switch.",
+   "test": "team (the browser check of the Team panel)"
+  },
+  {
+   "id": "T18",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Build through the team asked for a single outcome on a problem of several parts.",
+   "scenario": "A fraud problem drawn as several parts with a file of known cases was refused for want of an outcome column.",
+   "cause": "The step that accepts a single solution ran before the walk.",
+   "fix": "Through the team, a problem with no single named outcome is left to the walk's own build, which handles several parts.",
+   "test": "team (the browser check of the Team panel)"
+  },
+  {
+   "id": "R21",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "With the switch on, a question answered in the chat never cleared the walk's pause, so build it repeated the answered question for ever.",
+   "scenario": "The person answered the outcome question in the chat and said build it again; each time the chat said the team asks first which column is the outcome, and only the Team panel could unstick the walk.",
+   "cause": "Home's build through the team refused on any pause that was not the build's approval, even one the person had settled elsewhere; and the map's confirmation did not look at the draft again.",
+   "fix": "A question whose field and words are no longer the draft's open question, or a map confirmed elsewhere, is resumed with a key no pause has, so the walk reads the draft again and moves on or asks what is open now; the critic's concerns are never looked past, and the chat says what they are and where to decide.",
+   "test": "test_build_it_after_answering_in_the_chat_never_asks_the_answered_question_again"
+  },
+  {
+   "id": "R22",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Every error raised inside the walk was reported as a pause another request had answered.",
+   "scenario": "A build that failed on a changed table after its project was made said another request answered the team's pause, and the real reason was lost.",
+   "cause": "The catch for nothing to resume took every ValueError, and the data, validation and map errors are ValueErrors.",
+   "fix": "One error of its own (NothingToResume) is raised by the walk, the solution team and the service when no pause is open, and only it is caught.",
+   "test": "test_with_the_switch_on_home_builds_through_the_walk_and_says_what_it_asks_first"
+  },
+  {
+   "id": "R23",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The wizard's build route built directly with the switch on, and nothing said so.",
+   "scenario": "A tester's command line or the wizard built a draft past the walk and its critic while the owner believed the switch covered every build.",
+   "cause": "The switch was wired to Home's one-step build only, and the exception was written in the record, not in the code.",
+   "fix": "The exception is stated in the switch's settings and on the route: the wizard is where the person sets the solution field by field, and its build stays direct.",
+   "test": "test_with_the_switch_on_home_builds_through_the_walk_and_says_what_it_asks_first"
+  },
+  {
+   "id": "R24",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The wiring of a node's budget and of a nested run's spend had no test.",
+   "scenario": "Removing the walk's parent binding or its node cap left every test green.",
+   "cause": "The test bound the parent itself and called the cap directly.",
+   "fix": "A walk with a stub coordinator whose node records a model request in a nested run: the node's cost is that request and the client's limit was set before it acted.",
+   "test": "test_a_node_is_capped_before_it_acts_and_its_nested_runs_cost_is_its_own"
   }
  ],
- "measurements": [],
- "outcome": "A person can walk a draft with the team on Home, answer its pauses there, and the owner sees every walk on Admin.",
+ "measurements": [
+  {
+   "name": "the product flow through the team (upload-team)",
+   "gate": "the chat's build goes through the walk, the walk completes, the agent runs the stages, the validator refuses no move",
+   "fixed_before_run": true,
+   "result": "\"build it\" through the team: 4 hand-offs, the walk completed, the stages run by the agent; holdout roc_auc 0.8416 (95% 0.8211 to 0.8647), logistic regression",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "Met on Telco with the rules (no model).",
+   "limits": [
+    "One table and no model: the walk asked nothing first on Telco."
+   ]
+  },
+  {
+   "name": "the browser check of the Team panel (Chromium)",
+   "gate": "a question answered, a confirmation given and the build approved on the page, the draft a project",
+   "fixed_before_run": true,
+   "result": "5 questions, 1 confirmation and the build approved on the Team panel; the draft built",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "Met on the delivery-fraud replica's files with the rules.",
+   "limits": [
+    "Headless Chromium on one machine; the rules only."
+   ]
+  }
+ ],
+ "outcome": "A person can walk a draft with the team on Home, answer its pauses there, and with the owner's switch on, Build goes through the team's walk; every walk is bounded by its euro and step budgets, its cost is shown live, and the owner sees every walk on Admin.",
  "lessons": [
   "A view of a paused process must show the pause even before the process has produced anything else.",
   "A route that resumes a gate must demand the gate's own permission: the permission of the route is not the permission of the decision it carries.",
-  "Read a paused process's state from the process, never from a log that a skipped step does not close."
+  "Read a paused process's state from the process, never from a log that a skipped step does not close.",
+  "A pause read from a checkpoint can be stale: before refusing on it, compare it with the state it asks about."
  ],
  "risks": [
-  "The product's Build button still builds directly; the walk's approval is the team's own path until Home moves to the graph."
+  "The wizard's step-by-step Build builds directly whatever the switch, by design (said in the settings and on the route).",
+  "A pause settled elsewhere is closed by the person's own message in the chat, not on the board, so its board entry stays open."
  ],
  "commits": []
 }

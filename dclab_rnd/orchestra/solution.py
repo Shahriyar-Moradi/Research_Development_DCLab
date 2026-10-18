@@ -23,7 +23,7 @@ import time
 from typing import Annotated, Any, Optional, TypedDict
 
 from ..agents import harness
-from . import thread_id
+from . import NothingToResume, thread_id
 from .walk import _PAUSES, Asker, _nodes, _requests, _walk_id
 
 _SESSION: contextvars.ContextVar[Any] = contextvars.ContextVar("orchestra_solution_session")
@@ -57,10 +57,11 @@ class SolutionTeam:
     TEAM = "solution"
 
     def __init__(self, projects: Any, checkpointer: Any, home: Any = None, advisor: Any = None, max_steps: int = 40,
-                 shadow: Any = None, shadow_name: str = ""):
+                 shadow: Any = None, shadow_name: str = "", max_eur: Optional[float] = None):
         self.projects, self.checkpointer, self.home, self.advisor = projects, checkpointer, home, advisor
         self.shadow, self.shadow_name = shadow, shadow_name  # 28.10: a model that answers the router's question beside it, never used
         self.max_steps = max_steps
+        self.max_eur = max_eur  # 28.8: the team's euro budget across its resumes
         self.asker = Asker()
         self.graph = None
 
@@ -126,6 +127,10 @@ class SolutionTeam:
             return self._situate_single(state, project)  # 30.1: a project of one problem, through the engine's stages
         if len(state.get("steps") or []) >= self.max_steps:
             return {"next": "stop", "says": "The team's step budget was used."}
+        if self.max_eur is not None:  # 28.8
+            spent = _requests(state.get("runs") or [], project=state["project_id"])[0]
+            if spent >= self.max_eur:
+                return {"next": "stop", "says": f"The team's euro budget was used: €{spent:.2f} of €{self.max_eur:.2f}."}
         p = programme.stored(project)
         if p is not None and p.holdout is not None and not programme.stale_reasons(project):
             return {"next": "done" if state.get("reported") else "report"}
@@ -153,6 +158,10 @@ class SolutionTeam:
             return {"next": "stop", "says": "Save the solution first: the team runs a project of one problem from its saved solution (the person's)."}
         if len(state.get("steps") or []) >= self.max_steps:
             return {"next": "stop", "says": "The team's step budget was used."}
+        if self.max_eur is not None:  # 28.8
+            spent = _requests(state.get("runs") or [], project=state["project_id"])[0]
+            if spent >= self.max_eur:
+                return {"next": "stop", "says": f"The team's euro budget was used: €{spent:.2f} of €{self.max_eur:.2f}."}
         status = {k: ((project.get("stages") or {}).get(k) or {}).get("status") for k in self.STAGES}
         done = ("completed", "approved")
         nxt = next((k for k in self.STAGES if status[k] not in done), None)
@@ -441,7 +450,7 @@ class SolutionTeam:
         snap = self.graph.get_state(config)
         open_ = [i for t in snap.tasks for i in (getattr(t, "interrupts", None) or ())]
         if resume is not None and not open_:
-            raise ValueError(f"nothing to resume on {thread}: no pause is open")
+            raise NothingToResume(f"nothing to resume on {thread}: no pause is open")
         if resume is None and open_:  # started again while a pause waits for the person: the pause stands, nothing is redone
             return {"status": "paused", "asks": dict(open_[0].value)}
         if resume is None and snap.values:  # a new run starts from the project as it is: the last run's state never answers for it

@@ -377,12 +377,22 @@ DC.view('home', {
       const asks = !wait ? `<span class="muted small">${v.walk ? 'The walk ' + esc(v.walk.status || '') + '.' : 'Working.'}</span>`
         : wait.kind === 'question'
           ? `<div class="stack"><span>${esc(wait.text || '')}</span><span class="row"><label class="sr-only" for="home-team-answer">Your answer</label><input id="home-team-answer" type="text" placeholder="Your answer (or leave it empty to skip)"><button type="button" class="btn primary sm" id="home-team-answer-go">Answer</button></span></div>`
-          : `<div class="stack"><span>${esc(wait.kind === 'confirmation' ? 'Confirm the map of the problem?' : 'Approve: ' + (wait.gate || ''))}</span>${teamSummary(wait.summary)}<div class="row"><button type="button" class="btn primary sm" data-team-approve="1">Yes</button><button type="button" class="btn sm" data-team-approve="0">No</button></div></div>`;
-      box.innerHTML = `<div class="row"><span class="pill outline">${esc(b.state || 'starting')}</span><span class="muted small">${v.node ? esc(v.node) + ' · ' + esc(v.what || '') + ' · ' : ''}${v.handoffs} steps</span></div>
+          : `<div class="stack" data-team-kind="${esc(wait.kind || '')}" data-team-gate="${esc(wait.gate || '')}"><span>${esc(wait.kind === 'confirmation' ? 'Confirm the map of the problem?' : 'Approve: ' + (wait.gate || ''))}</span>${teamSummary(wait.summary)}<div class="row"><button type="button" class="btn primary sm" data-team-approve="1">Yes</button><button type="button" class="btn sm" data-team-approve="0">No</button></div></div>`;
+      const spent = Number(b.spent_eur || 0) > 0 ? ` · €${Number(b.spent_eur).toFixed(3)}` : '';
+      box.innerHTML = `<div class="row"><span class="pill outline">${esc(b.state || 'starting')}</span><span class="muted small">${v.node ? esc(v.node) + ' · ' + esc(v.what || '') + ' · ' : ''}${v.handoffs} steps${spent}</span></div>
         <div class="row">${fields}</div>${(b.blockers || []).length ? `<div class="muted small">Blocked by: ${(b.blockers || []).map(esc).join(', ')}</div>` : ''}${asks}`;
       const go = $('#home-team-answer-go', box);
       if (go) go.onclick = () => teamStep({ answer: $('#home-team-answer', box).value });
-      box.querySelectorAll('[data-team-approve]').forEach(btn => { btn.onclick = () => teamStep({ approve: btn.dataset.teamApprove === '1' }); });
+      box.querySelectorAll('[data-team-approve]').forEach(btn => {
+        const buildYes = wait && wait.kind === 'approval' && wait.gate === 'build' && btn.dataset.teamApprove === '1';
+        btn.onclick = () => buildYes ? teamBuild() : teamStep({ approve: btn.dataset.teamApprove === '1' });  // 28.8: Build starts the stages too
+      });
+    }
+    async function teamBuild() {
+      const box = $('#home-team-board', el);
+      DC.states.loading(box, { text: 'Building through the team…' });
+      try { await DC.client.buildAndRun(S.draft.id, { body: { team: true } }); const d = await DC.client.readDraft(S.draft.id, { quiet: true }); S.draft = d; openDraft(d); }
+      catch (e) { DC.states.failed(box, e, { lead: 'The team could not build: ', retry: loadTeam }); }
     }
     function teamSummary(sm) {  // what a confirmation or an approval is about: the critic's concerns, the map's parts, the build's state
       if (!sm || typeof sm !== 'object') return '';
@@ -393,7 +403,13 @@ DC.view('home', {
       const box = $('#home-team-board', el);
       if (!S.draft) return;
       DC.states.loading(box, { text: 'The team is working…' });
-      try { const out = await DC.client.teamWalk(S.draft.id, { body }); drawTeam(out.view); }
+      try {
+        const out = await DC.client.teamWalk(S.draft.id, { body }); drawTeam(out.view);
+        if (out.project_id || (out.view && out.view.board && out.view.board.state === 'built')) {  // 28.8: the walk built: the page follows
+          const d = await DC.client.readDraft(S.draft.id, { quiet: true });
+          if (d.project_id) { S.draft = d; openDraft(d); }
+        }
+      }
       catch (e) { DC.states.failed(box, e, { lead: 'The team could not go on: ', retry: loadTeam }); }
     }
     async function resume(id) {

@@ -18,7 +18,7 @@ import threading
 from pathlib import Path
 from typing import Any, Optional
 
-from . import checkpoints, thread_id
+from . import NothingToResume, checkpoints, thread_id
 
 _PROJECT_LOCKS: dict[str, threading.Lock] = {}
 _GUARD = threading.Lock()
@@ -55,7 +55,7 @@ def resume_value(home: Path, thread: str, body: dict[str, Any]) -> Any:
         return None
     waiting = pending(home, thread)
     if waiting is None:
-        raise ValueError("nothing to resume: no pause is open")
+        raise NothingToResume("nothing to resume: no pause is open")
     if waiting.get("kind") == "question":
         if "answer" not in body or not isinstance(body["answer"], str):
             raise WrongAnswer("this pause is a question: answer it in words ({\"answer\": \"...\"}), or with an empty answer to skip it")
@@ -87,12 +87,12 @@ def team_passed() -> bool:
     return False
 
 
-def _critic(gateway: Any, draft_id: str) -> Any:
+def _critic(gateway: Any, draft_id: str, cap_eur: Optional[float] = None) -> Any:
     if gateway is None or not team_passed():
         return None  # the critic's rules: its model serves after the sealed gate
     from ..core_advisor import GatewayAdvisor
 
-    return GatewayAdvisor(gateway, draft_id=draft_id, max_tokens=1200)
+    return GatewayAdvisor(gateway, draft_id=draft_id, max_tokens=1200, cap_eur=cap_eur)  # 28.8: a node's budget
 
 
 def view(home: Path, thread: str) -> dict[str, Any]:
@@ -111,10 +111,96 @@ def walk_draft(home: Path, drafts: Any, projects: Any, agent: Any, draft_id: str
     from ..draft.coordinator import Coordinator
     from .walk import Walk
 
+    from .settings import settings
+
+    budget = settings(Path(home))  # 28.8: the workspace's budgets for its team
+    client = getattr(agent, "client", None)
+    if client is not None and hasattr(client, "run_limit_eur"):
+        client.run_limit_eur = budget["node_eur"]  # what the Home agent's model may spend in this start or resume, at most a node's budget
     with checkpoints.open_checkpointer(home) as saver:
-        walk = Walk(Coordinator(drafts, projects, agent), saver, home=Path(home), critic_advisor=_critic(gateway, draft_id))
+        walk = Walk(Coordinator(drafts, projects, agent), saver, home=Path(home), max_steps=budget["max_steps"],
+                    critic_advisor=_critic(gateway, draft_id, budget["node_eur"]), max_eur=budget["run_eur"], node_eur=budget["node_eur"])
         out = walk.run(draft_id, resume=resume)
     return {**{k: v for k, v in out.items() if k != "board"}, "view": view(home, thread_id("draft", draft_id))}
+
+
+class TeamWaits(Exception):
+    """28.8: Home's build through the team stopped short of the build: what the walk asks first, or why it stopped (``rule``)."""
+
+    def __init__(self, message: str, rule: str):
+        super().__init__(message)
+        self.rule = rule
+
+
+def _stale(waiting: dict[str, Any], drafts: Any, projects: Any, agent: Any, draft_id: str) -> bool:
+    """A pause the person settled elsewhere while the walk waited (the second review of 28.8): a question answered in the chat
+    (the Home agent's open question is another one, or none), a map confirmed on the page. The critic's concerns and an
+    approval are never stale: the person decides them."""
+    if waiting.get("kind") == "question":
+        now = agent.pending(drafts.get(draft_id)) if agent is not None else None
+        return now is None or (now.get("field"), now.get("text") or now.get("question") or "") != (waiting.get("field"), waiting.get("text") or "")
+    if waiting.get("kind") == "confirmation":
+        from ..draft.coordinator import Coordinator
+
+        return Coordinator(drafts, projects, agent).where(draft_id).next != "confirm_map"
+    return False
+
+
+LOOK_AGAIN = {"key": "", "answer": None}  # a resume no pause has: the node reads the draft again, moves on or pauses on what is open now
+
+
+def _asks_first(asks: dict[str, Any]) -> str:
+    if asks.get("kind") == "approval" and asks.get("gate") == "understanding":
+        concerns = "; ".join(str(c.get("question") or c.get("field")) for c in (asks.get("summary") or {}).get("concerns") or [])[:400]
+        return f"The team asks first: the understanding critic's concerns stand ({concerns or 'see the Team panel'}). Decide on the Team panel."
+    if asks.get("kind") == "confirmation":
+        return "The team asks first: confirm the map of the problem on the Team panel."
+    return f"The team asks first: {asks.get('text') or asks.get('gate') or 'a confirmation'}"
+
+
+def build_draft(home: Path, drafts: Any, projects: Any, agent: Any, draft_id: str, gateway: Any = None) -> str:
+    """28.8: Home's build with the team's switch on: the build is the understanding walk's approval, and the person's "build
+    it" is that approval. The walk runs from where it is; a question, a confirmation or the critic's concerns it pauses on raise
+    ``TeamWaits`` with what it asks (the chat shows it, the Team panel answers it); a stop raises it with why. Only the build
+    approval is taken from "build it": a concern of the critic is never approved without the person. A question the person
+    answered in the chat meanwhile, or a map confirmed elsewhere, is not asked again: the walk reads the draft again and goes
+    on. Returns the project id."""
+    thread = thread_id("draft", draft_id)
+    waiting = pending(home, thread)
+
+    def walked(resume: Any) -> dict[str, Any]:
+        """One start or resume; a pause already resumed by another request is not an error: the draft is read again. Every
+        other error is the walk's own and is raised (the second review of 28.8: a failed build was reported as taken)."""
+        try:
+            return walk_draft(home, drafts, projects, agent, draft_id, resume, gateway)
+        except NothingToResume:
+            return {"status": "done", "next": "done" if (drafts.get(draft_id) or {}).get("project_id") else "stop",
+                    "says": "Another request answered the team's pause."}
+
+    if waiting is None:
+        out = walked(None)
+    elif waiting.get("kind") == "approval" and waiting.get("gate") == "build":
+        out = walked({"key": waiting.get("key"), "answer": True})
+    elif _stale(waiting, drafts, projects, agent, draft_id):
+        out = walked(LOOK_AGAIN)
+    else:
+        raise TeamWaits(_asks_first(waiting), "team waiting")
+    for _ in range(6):  # the walk reaches its build approval ("build it" is that approval, and only that one), or a pause settled elsewhere
+        asks = out.get("asks") or {}
+        if out.get("status") != "paused":
+            break
+        if asks.get("kind") == "approval" and asks.get("gate") == "build":
+            out = walked({"key": asks.get("key"), "answer": True})
+        elif _stale(asks, drafts, projects, agent, draft_id):
+            out = walked(LOOK_AGAIN)
+        else:
+            break
+    project_id = (drafts.get(draft_id) or {}).get("project_id")
+    if project_id:
+        return str(project_id)
+    if out.get("status") == "paused":
+        raise TeamWaits(_asks_first(out.get("asks") or {}), "team waiting")
+    raise TeamWaits(str(out.get("says") or "The team stopped before building."), "team stopped")
 
 
 def walk_project(home: Path, projects: Any, project_id: str, resume: Any = None) -> dict[str, Any]:
@@ -127,8 +213,11 @@ def walk_project(home: Path, projects: Any, project_id: str, resume: Any = None)
     if not lock.acquire(blocking=False):
         raise Busy(f"the team is already walking project {project_id}")
     try:
+        from .settings import settings
+
+        budget = settings(Path(home))  # 28.8
         with checkpoints.open_checkpointer(home) as saver:
-            out = SolutionTeam(projects, saver, home=Path(home)).run(project_id, resume=resume)
+            out = SolutionTeam(projects, saver, home=Path(home), max_steps=budget["max_steps"], max_eur=budget["run_eur"]).run(project_id, resume=resume)
     finally:
         lock.release()
     return {**{k: v for k, v in out.items() if k != "board"}, "view": view(home, thread_id("project", project_id))}

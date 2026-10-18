@@ -371,6 +371,21 @@ families; nothing is captured for the first time there.
   a project at a time. Left (built in part): the Playwright browser test and the product e2e flows through the graph
   (Home's Build button still builds directly), and, from 28.3, the workspace's team switch and a budget per run and per
   node (only the step budget exists).
+  **Completed (2026-10-18):** the team's switch and budgets (`orchestra/settings.py`, `team.json`: on, a walk's euros, a node's
+  euros, a walk's steps; `GET`/`PUT /api/team/settings`, an admin's, audited; Admin → Teams); a walk stops at its euro budget
+  (from its requests in the experience log, across its resumes) and after a node over its own, each node's cost recorded and the
+  live spend on its board; the critic's and the Home agent's models capped at a node's budget by the gateway; the solution team
+  stops at its euro budget. With the switch on, Home's Build (the button, "build it", the model's tool) goes through the walk
+  (`orchestra.service.build_draft`): the solution and settings accepted as before, "build it" the walk's build approval, and a
+  question, a confirmation or the critic's concerns returned as what the team asks first (never approved for the person); the
+  Team panel follows the build. The product flow `upload-team` builds through the chat's "build it" with the switch on (4
+  hand-offs, the walk completed, the stages run by the agent, holdout ROC-AUC 0.842), and the browser check `team` drives the
+  Team panel in Chromium: 5 questions, the map confirmed, the build approved (the panel's approval goes through the walk
+  whatever the switch). The review's 6 findings fixed (a lock-up of "build it", the spend of nested runs, a node's cap, a keyed
+  resume, two builds at once, the stages' start) and 3 found by running it; the second review's 4 fixed (a question answered
+  in the chat, or a map confirmed on the page, is never asked again by "build it": the walk reads the draft again; only
+  `NothingToResume` is taken for a pause answered elsewhere; the wizard's build stays direct whatever the switch, said in
+  the settings and on the route; the node cap and the nested spend tested through the walk). 28.8 complete.
 
 ### 28.9 The team's work as training data
 - **Delivers:** trajectories from runs (the board before and after each node, the hand-offs, the person's answers)

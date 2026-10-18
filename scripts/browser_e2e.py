@@ -8,6 +8,7 @@ Needs Playwright: pip install -r requirements/browser.txt && python -m playwrigh
 
   flow     one sentence and the Telco CSV uploaded on Home, the chat's questions answered by clicking their options,
            the wizard's five steps with their defaults, a run of every stage from the Workflow page, then the brief
+  team     28.8: the Team panel on Home: a question, the map's confirmation, the data given, the build approved
   stats    the numbers on Home, Compute, Integrations and Packs equal the API's (read over HTTP, not through the page)
   pages    all 19 pages at 1280 px: no console error, no uncaught error, no CSP violation, no failed-load warning
   mobile   all 19 pages at 375 px: nothing wider than the screen (no sideways scroll)
@@ -29,6 +30,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(1, str(ROOT))  # the team check writes a replica's files (dclab_core)
 TELCO = ROOT / "data/project/telco/WA_Fn-UseC_-Telco-Customer-Churn.csv"
 VIEWS = ["home", "new", "project", "solution", "notebook", "audit", "models", "reliability", "brief", "intern", "compute",
          "evidence", "lab", "benchmark", "policy", "packs", "integrations", "admin", "blueprint"]
@@ -171,6 +173,72 @@ def check_flow(b: Browser) -> str:
             f"brief {metric} {shown} on {record.get('holdout_rows')} rows")
 
 
+FRAUD = ("Find the fake rides and fake orders our bikers and customers make. We have a few confirmed cases, nothing else is labelled, "
+         "and the team can review 200 a day.")
+TEAM_ANSWERS = (("moment|when", "After delivery, in the daily audit of the day's rides."), ("unit|one row|entity|who", "One ride"),
+                ("label|case|known", "A file lists the known cases"), ("outcome|predict|target|column", "The confirmed fraud cases"),
+                ("action|cost|wrong|happens", "The audit team reviews the flagged rides; a missed fraud costs money"),
+                ("budget|how many|review", "About 200 a day"))
+
+
+def _team_answer(text: str) -> str:
+    low = (text or "").lower()
+    return next((a for pattern, a in TEAM_ANSWERS if re.search(pattern, low)), "")
+
+
+def check_team(b: Browser) -> str:
+    """28.8: the Team panel on Home: a question answered in its box, the map confirmed, the data given when the walk waits for it,
+    and the build approved, all on the page; the walk's own record says it completed and the draft is a project."""
+    from dclab_core.replicas import delivery_fraud
+
+    page = b.page
+    folder = Path(tempfile.mkdtemp(prefix="dclab-browser-fraud-"))
+    files = delivery_fraud.save(delivery_fraud.generate(0), folder)
+    page.fill("#home-task", FRAUD)
+    page.click("#home-start")
+    page.wait_for_selector("#home-team:not([hidden])")
+    seen, uploaded = [], False
+    page.click("#home-team-go")
+    for _ in range(40):
+        page.wait_for_function("() => { const t = (document.querySelector('#home-team-board') || {}).textContent || ''; "
+                               "return t && !/is working|Building through the team/.test(t); }", timeout=180_000)
+        board = page.locator("#home-team-board")
+        if page.locator("#home-team-answer").count():
+            text = board.inner_text()
+            page.fill("#home-team-answer", _team_answer(text))
+            page.click("#home-team-answer-go")
+            seen.append("question")
+            continue
+        approve = page.locator("#home-team-board [data-team-approve='1']")
+        if approve.count():
+            kind = page.locator("#home-team-board [data-team-kind]").first.get_attribute("data-team-kind") or ""
+            gate = page.locator("#home-team-board [data-team-gate]").first.get_attribute("data-team-gate") or ""
+            seen.append(f"{kind}:{gate}" if gate else kind)
+            approve.first.click()
+            continue
+        text = board.inner_text().lower()
+        if "completed" in text:
+            break
+        if not uploaded:  # the walk waits for the data: the person gives the rides and the known cases, then walks on
+            page.click("#home-connect")
+            for path in (files["rides"], files["sample"]):
+                page.set_input_files("#home-file", str(path))
+                page.wait_for_function("n => document.querySelectorAll('#home-thread [data-asset-state].ok').length >= n",
+                                       arg=1 if path == files["rides"] else 2, timeout=180_000)
+            uploaded = True
+            page.click("#home-team-go")
+            continue
+        raise Failed(f"the walk stopped without a pause: {board.inner_text()[:300]}")
+    kinds = {x.split(":")[0] for x in seen}
+    check("question" in kinds, f"no question was asked on the panel: {seen}")
+    check("confirmation" in kinds, f"no confirmation was asked on the panel: {seen}")
+    check("approval:build" in seen, f"no build was approved on the panel: {seen}")
+    drafts = b.api("/drafts")
+    built = [d for d in (drafts.get("drafts") if isinstance(drafts, dict) else drafts) or [] if d.get("project_id")]
+    check(bool(built), "the walk's build made no project")
+    return f"{seen.count('question')} question(s), {len([x for x in seen if x.startswith('confirmation')])} confirmation(s), the build approved on the Team panel"
+
+
 def check_stats(b: Browser) -> str:
     page = b.page
     b.view("home", settle=2)
@@ -254,7 +322,7 @@ CULPRIT = """() => { const w = document.documentElement.clientWidth;
   return el ? el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\\s+/).join('.') : '') + ' "' + (el.textContent || '').trim().slice(0, 40) + '"' : '?'; }"""
 
 
-CHECKS = {"flow": (check_flow, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "ui": (check_ui_events, 1280), "mobile": (check_mobile, 375)}
+CHECKS = {"flow": (check_flow, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "ui": (check_ui_events, 1280), "mobile": (check_mobile, 375)}
 
 
 def main(argv: list[str] | None = None) -> int:

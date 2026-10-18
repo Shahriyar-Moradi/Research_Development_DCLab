@@ -367,6 +367,8 @@
     studentsRegister: ["GET", "/students", [], []],
     studioStatus: ["GET", "/studio", [], []],
     syntheticTemplates: ["GET", "/synthetic/templates", [], []],
+    teamSettings: ["GET", "/team/settings", [], []],
+    setTeamSettings: ["PUT", "/team/settings", [], []],
     teamWalks: ["GET", "/teams", [], []],
     twinSessions: ["GET", "/twin/sessions", [], ["limit"]],
     twinSettings: ["GET", "/twin/settings", [], []],
@@ -551,7 +553,7 @@
   client.path.build = (...args) => build('build', args).path;
   /** POST /api/drafts/{draft_id}/build/run: Build And Run
    *  @param {string} draft_id
-   *  @param {{headers?: Object}} [opts]
+   *  @param {{body?: (AnyObject|null), headers?: Object}} [opts]
    *  @returns {Promise<Doc>} */
   client.buildAndRun = (...args) => call('buildAndRun', args);
   client.path.buildAndRun = (...args) => build('buildAndRun', args).path;
@@ -1345,6 +1347,17 @@
   client.syntheticTemplates = (...args) => call('syntheticTemplates', args);
   client.path.syntheticTemplates = (...args) => build('syntheticTemplates', args).path;
   client.href.syntheticTemplates = (...args) => '/api' + build('syntheticTemplates', args).path;
+  /** GET /api/team/settings: Team Settings
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.teamSettings = (...args) => call('teamSettings', args);
+  client.path.teamSettings = (...args) => build('teamSettings', args).path;
+  client.href.teamSettings = (...args) => '/api' + build('teamSettings', args).path;
+  /** PUT /api/team/settings: Set Team Settings
+   *  @param {{body?: *, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.setTeamSettings = (...args) => call('setTeamSettings', args);
+  client.path.setTeamSettings = (...args) => build('setTeamSettings', args).path;
   /** GET /api/teams: Team Walks
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Page>} */

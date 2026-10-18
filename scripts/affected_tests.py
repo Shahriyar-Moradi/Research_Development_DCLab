@@ -33,7 +33,7 @@ ALWAYS = ("test_config.py", "test_api_contract.py", "test_devlog.py", "test_harn
 PG_MARKERS = ("DCLAB_DATABASE_URL", "pgtest", "PgLog", "PgAudit", "postgres", "PostgreSQL")
 # product code the end-to-end flows exercise: a change here runs them
 E2E_PATHS = ("dclab_rnd/agentic/", "dclab_rnd/draft/", "dclab_rnd/studio/", "dclab_rnd/jobs/", "dclab_rnd/intern/", "dclab_rnd/kinds/",
-             "dclab_rnd/models/", "dclab_rnd/agents/", "scripts/product_e2e.py", "general_pipeline/", "dclab_core/")
+             "dclab_rnd/models/", "dclab_rnd/agents/", "dclab_rnd/orchestra/", "scripts/product_e2e.py", "general_pipeline/", "dclab_core/")
 
 
 def module_of(path: Path) -> str | None:

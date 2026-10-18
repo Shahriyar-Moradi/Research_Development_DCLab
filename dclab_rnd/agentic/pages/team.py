@@ -6,6 +6,8 @@
                                    it runs until its next pause or its end
     GET  /api/teams                every finished walk of the workspace for the Admin trace view: team, status, nodes,
                                    hand-offs, pauses, cost, the models asked (the owner's: ``accounts.guard``)
+    GET  /api/team/settings        the team's switch and budgets (``orchestra.settings``), with their defaults and bounds
+    PUT  /api/team/settings        change them (an admin's), each change a row in the audit trail
 """
 
 from __future__ import annotations
@@ -75,6 +77,34 @@ def register(app, ctx) -> None:
             raise HTTPException(409, str(exc)[:300]) from None
         except ValueError as exc:  # nothing to resume
             raise HTTPException(409, str(exc)[:300]) from None
+
+    @router.get("/api/team/settings", response_model=Page)
+    async def team_settings():
+        """The team's switch (Home's Build through the walk) and its budgets, with their defaults and bounds."""
+        from ...orchestra import settings as team_settings
+
+        return {"settings": team_settings.settings(home()), "defaults": team_settings.DEFAULTS, "limits": team_settings.LIMITS}
+
+    @router.put("/api/team/settings", response_model=Page)
+    async def set_team_settings(body: Any = Body(None)):
+        """Change the team's switch or budgets: only the known keys, within their bounds; every change audited."""
+        from ... import audit
+        from ...orchestra import settings as team_settings
+
+        body = body if isinstance(body, dict) else {}
+        before = team_settings.settings(home())
+        try:
+            after = await asyncio.to_thread(team_settings.set_settings, home(), body)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+        changed = {k: after[k] for k in after if before.get(k) != after[k]}
+        if changed:
+            from ...experience import hooks
+
+            audit.record(ctx.audit, "policy", "human", move="set_team", status="allowed", args={"policy": "team", "changed": changed,
+                                                                                               "was": {k: before.get(k) for k in changed}})
+            hooks.settings_changed({f"team_{k}": v for k, v in changed.items()})
+        return {"settings": after}
 
     @router.get("/api/teams", response_model=Page)
     async def team_walks():

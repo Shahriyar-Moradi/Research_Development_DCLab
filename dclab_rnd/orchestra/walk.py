@@ -20,7 +20,7 @@ import operator
 from typing import Annotated, Any, Optional, TypedDict
 
 from ..agents import harness
-from . import thread_id
+from . import NothingToResume, thread_id
 
 ACTS = ("answer", "draw_map", "confirm_map", "bring_table", "analyse", "plan_workflow", "build")
 _SESSION: contextvars.ContextVar[Any] = contextvars.ContextVar("orchestra_walk_session")
@@ -128,12 +128,25 @@ class Walk:
     TEAM = "orchestra"
 
     def __init__(self, coordinator: Any, checkpointer: Any, home: Any = None, max_steps: Optional[int] = None,
-                 critic: bool = True, critic_advisor: Any = None):
+                 critic: bool = True, critic_advisor: Any = None, max_eur: Optional[float] = None, node_eur: Optional[float] = None):
         self.c, self.checkpointer, self.home = coordinator, checkpointer, home
         self.critic_on, self.critic_advisor = critic, critic_advisor  # 28.4: the understanding critic (its rules, or a model)
         self.max_steps = max_steps or getattr(coordinator, "max_steps", 40)
+        self.max_eur, self.node_eur = max_eur, node_eur  # 28.8: the walk's euro budget across its resumes, and one node's
         self.graph = None
         self.asker = Asker()
+
+    def _cap_node(self) -> None:
+        """28.8: a node's budget, set before it acts: the Home agent's model and the critic's may spend at most ``node_eur`` more
+        than they had when the node began (the gateway refuses past it and the node falls back to its rules)."""
+        if self.node_eur is None:
+            return
+        client = getattr(getattr(self.c, "agent", None), "client", None)
+        if client is not None and hasattr(client, "run_limit_eur"):
+            client.run_limit_eur = float(getattr(client, "spent_eur", 0.0) or 0.0) + self.node_eur
+        advisor = self.critic_advisor
+        if advisor is not None and hasattr(advisor, "cap_eur") and callable(getattr(advisor, "spent_eur", None)):
+            advisor.cap_eur = float(advisor.spent_eur()) + self.node_eur
 
     # ------------------------------------------------------------------------------------------------ the board
     def _board(self, state: WalkState) -> Any:
@@ -157,7 +170,8 @@ class Walk:
         return B.advance(board if board is not None else self._board(state), node, what, self.TEAM, home=self.home, walk=_walk_id(state), state=str(now.state)[:40],
                          blockers=[str(b.code)[:80] for b in now.blockers][:40], problem=self._problem(state["draft_id"]),
                          open_questions=[str(b.field)[:80] for b in now.blockers if getattr(b, "field", None)][:40],
-                         data={"tables": len(assets), "ready": sum(a.get("status") == "ready" for a in assets)}).model_dump(mode="json")
+                         data={"tables": len(assets), "ready": sum(a.get("status") == "ready" for a in assets)},
+                         spent_eur=_spent(state["draft_id"], state.get("runs") or [])).model_dump(mode="json")  # 28.8: live, not 0 until the end
 
     def _close_pauses(self, state: WalkState, node: str) -> Any:
         """The board with the pauses this node closed (answered or declined): each raises its version, each an event."""
@@ -178,8 +192,15 @@ class Walk:
                 nxt = "answer"  # a question the critic sent back is open: its answer comes before the workflow is drawn again
             elif not self._critic_done(state["draft_id"]):
                 nxt = "critic"  # 28.4: before a solution is drawn, the understanding is read again
+        spent = _spent(state["draft_id"], state.get("runs") or []) if self.max_eur is not None else 0.0
+        over_node = next((s for s in state.get("steps") or [] if self.node_eur is not None and float(s.get("cost_eur") or 0.0) > self.node_eur), None)
         if len(state.get("steps") or []) >= self.max_steps and nxt not in ("done", "stop", "wait_for_data"):
             nxt, says = "stop", "The coordinator's step budget was used."
+        elif self.max_eur is not None and spent >= self.max_eur and nxt not in ("done", "stop", "wait_for_data"):
+            nxt, says = "stop", f"The team's euro budget was used: €{spent:.2f} of €{self.max_eur:.2f}."  # 28.8
+        elif over_node is not None and nxt not in ("done", "stop", "wait_for_data"):
+            nxt, says = "stop", (f"The {over_node.get('action')} node spent €{float(over_node['cost_eur']):.2f}, over its budget of "
+                                 f"€{self.node_eur:.2f}: the team stops for the person to decide.")
         else:
             says = now.says
         from ..ledger import capture
@@ -201,6 +222,8 @@ class Walk:
             try:
                 if action == "answer" and self.c.agent.pending(self.c.drafts.get(draft_id)) is None:
                     return {"next": "situate"}  # answered elsewhere while the walk waited: situated again, nothing to ask
+                if action == "confirm_map" and self.c.where(draft_id).next != "confirm_map":
+                    return {"next": "situate"}  # the map was confirmed (or changed) elsewhere while the walk waited (the second review of 28.8)
                 if action == "answer" and (self.c.agent.pending(self.c.drafts.get(draft_id)) or {}).get("source") == "critic":
                     return self._critic_answer(state, now)  # 28.7: a critic's question is advisory: no answer is a decline, never a stop
                 if action == "build":
@@ -216,13 +239,17 @@ class Walk:
                         return {"next": "situate", "board": self._advance(state, "build", "situated_again", self._close_pauses(state, "build"))}
                     now = again
                 clock = time.monotonic()
+                self._cap_node()
+                before = _spent(draft_id, state.get("runs") or [])
                 with _SESSION.get().timed(action, {"state": now.state}) as out:
                     out["result"] = result = self.c.act(draft_id, now, self.asker)  # the coordinator's own action
                 seconds = round(time.monotonic() - clock, 3)
+                cost = round(max(0.0, _spent(draft_id, state.get("runs") or []) - before), 6)  # 28.8: what this node's model requests cost
                 board = self._close_pauses(state, action)
             finally:
                 _PAUSES.reset(token)
-            steps = [*state.get("steps", []), {"state": now.state, "action": action, "says": now.says, "seconds": seconds, "result": result}]
+            steps = [*state.get("steps", []), {"state": now.state, "action": action, "says": now.says, "seconds": seconds, "result": result,
+                                               "cost_eur": cost}]
             update: dict[str, Any] = {"steps": steps, "board": self._advance(state, action, action, board),
                                       "project_id": result.get("project_id") or state.get("project_id")}
             if result.get("stopped"):
@@ -287,6 +314,8 @@ class Walk:
         mismatches = [{"code": m.code, "question": m.question} for m in (met.mismatches if met else []) if m.blocking]
         rounds = int(own.get("rounds") or 0)
         asked = set(own.get("asked") or [])
+        self._cap_node()
+        before = _spent(draft_id, state.get("runs") or [])
         with _SESSION.get().timed("critic", {"round": rounds + 1}) as out:
             result = critique(self.critic_advisor, card, columns, mismatches)
             rules = {json.dumps(c, sort_keys=True) for c in concerns(card, columns, mismatches)}
@@ -321,7 +350,8 @@ class Walk:
         self._keep_critic(draft_id, own)
         now = machine.Situation.model_validate(state["situation"])
         steps = [*state.get("steps", []), {"state": now.state, "action": "critic", "says": now.says, "seconds": 0.0,
-                                          "result": {"sent_back": [sent] if sent else [], "concerns": len(kept), "refused": len(refused), "source": result.source}}]
+                                          "result": {"sent_back": [sent] if sent else [], "concerns": len(kept), "refused": len(refused), "source": result.source},
+                                          "cost_eur": round(max(0.0, _spent(draft_id, state.get("runs") or []) - before), 6)}]
         what = "send_back" if sent else "concerns_stand" if gate else "critique_passed"
         return {"steps": steps, "next": "critic_gate" if gate else "situate", "board": self._advance(state, "critic", what)}
 
@@ -400,7 +430,7 @@ class Walk:
             snap = self.graph.get_state(config)
             open_ = [i for t in snap.tasks for i in (getattr(t, "interrupts", None) or ())]
             if resume is not None and not open_:
-                raise ValueError(f"nothing to resume on {thread}: no pause is open")
+                raise NothingToResume(f"nothing to resume on {thread}: no pause is open")
             if resume is None and open_:  # started again while a pause waits: the pause stands (the review of 28.8: the walk was thrown away)
                 return {"status": "paused", "asks": dict(open_[0].value), "state": snap.values.get("state")}
             if resume is None and snap.values:  # a new walk starts from the draft as it is, on a fresh thread
@@ -411,11 +441,12 @@ class Walk:
                     harness.session("orchestra.walk", store=store, params={"draft": draft_id, "resumed": resume is not None}) as current:
                 token = _SESSION.set(current)
                 try:
-                    if resume is None:
-                        self.graph.invoke({"draft_id": draft_id, "board": B.new(thread).model_dump(mode="json"), "steps": [], "seen": {}, "last": None,
-                                           "started": B.now(), "runs": [current.run_id]}, config)
-                    else:
-                        self.graph.invoke(Command(resume=resume, update={"runs": [current.run_id]}), config)
+                    with experience.bind(parent=current.run_id):  # 28.8: a nested agent's requests (the Home agent's run) count for the walk
+                        if resume is None:
+                            self.graph.invoke({"draft_id": draft_id, "board": B.new(thread).model_dump(mode="json"), "steps": [], "seen": {}, "last": None,
+                                               "started": B.now(), "runs": [current.run_id]}, config)
+                        else:
+                            self.graph.invoke(Command(resume=resume, update={"runs": [current.run_id]}), config)
                 finally:
                     _SESSION.reset(token)
                 return self._after_invoke(draft_id, thread, config, current)
@@ -472,12 +503,14 @@ def _walk_id(state: Any) -> Optional[str]:
 
 
 def _nodes(steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """The walk node by node: how many times each ran and the seconds it took, in the order first run."""
+    """The walk node by node: how many times each ran, the seconds it took and what its model requests cost (28.8), in the
+    order first run."""
     out: dict[str, dict[str, Any]] = {}
     for s in steps:
-        n = out.setdefault(str(s.get("action")), {"node": str(s.get("action")), "steps": 0, "seconds": 0.0})
+        n = out.setdefault(str(s.get("action")), {"node": str(s.get("action")), "steps": 0, "seconds": 0.0, "cost_eur": 0.0})
         n["steps"] += 1
         n["seconds"] = round(n["seconds"] + float(s.get("seconds") or 0.0), 3)
+        n["cost_eur"] = round(n["cost_eur"] + float(s.get("cost_eur") or 0.0), 6)
     return list(out.values())
 
 
@@ -490,7 +523,7 @@ def _requests(runs: list[str], **scope: str) -> tuple[float, Optional[list[str]]
     if log is None:
         return 0.0, None
     mine = set(runs)
-    found = [e for e in log.read(**scope) if e.kind == "model.request" and e.ids.run in mine]
+    found = [e for e in log.read(**scope) if e.kind == "model.request" and (e.ids.run in mine or e.ids.parent in mine)]  # a nested run's too
     return round(sum(float(e.payload.get("cost") or 0.0) for e in found), 6), sorted({str(e.payload.get("model")) for e in found if e.payload.get("model")})
 
 

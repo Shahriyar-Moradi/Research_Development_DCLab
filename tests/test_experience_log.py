@@ -50,6 +50,7 @@ WRITE_ROUTES = {
     "POST /api/feedback": (EVENTS, ["feedback.given"]),
     "PUT /api/consent": (EVENTS, ["decision.accepted"]),  # the switch, audited as a policy
     "PUT /api/twin/settings": (EVENTS, ["decision.accepted"]),  # 25.4: the owner's switch for Claude beside the system, audited as a policy
+    "PUT /api/team/settings": (EVENTS, ["decision.accepted"]),  # 28.8: the team's switch and budgets, audited as a policy
     "POST /api/drafts/{draft_id}/twin/messages": (EVENTS, ["chat.person"]),  # 25.4: a message to Claude alone (surface twin); Claude's lane is the twin folder
     "POST /api/drafts/{draft_id}/twin/pick": (EVENTS, ["decision.accepted"]),  # 25.5: the person's pick between the two answers (point twin.pick)
     "POST /api/drafts/{draft_id}/understanding": (EVENTS, ["chat.person"]),  # 25.5: a correction in the person's words, a message of the conversation

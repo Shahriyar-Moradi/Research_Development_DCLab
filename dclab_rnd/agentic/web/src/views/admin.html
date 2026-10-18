@@ -159,6 +159,16 @@
       <div class="stat"><span class="v">—</span><span class="l">pauses for a person</span></div>
       <div class="stat"><span class="v">—</span><span class="l">spent</span></div>
     </div>
+    <div class="panel" data-f="admin.team_settings">
+      <div class="panel-head"><div class="panel-title"><h3>The team's switch and budgets</h3><span class="sub">On: Home's Build goes through the understanding team, the build being its approval; off: Home builds as before. A walk stops when it reaches its budget; a node's model falls back to the rules at its own. The owner's switch, every change audited.</span></div></div>
+      <div class="panel-body grid g2 small" id="team-settings">
+        <label class="switch"><input type="checkbox" id="team-on"><span class="track"></span><span>Build through the understanding team</span></label>
+        <div class="field"><label for="team-run">A walk's budget (€)</label><input id="team-run" type="number" min="0.01" max="20" step="0.1"></div>
+        <div class="field"><label for="team-node">A node's budget (€)</label><input id="team-node" type="number" min="0.01" max="5" step="0.05"></div>
+        <div class="field"><label for="team-steps">A walk's steps</label><input id="team-steps" type="number" min="5" max="200" step="1"></div>
+        <div class="row"><button type="button" class="btn sm primary" id="team-save">Save</button><span class="muted xs" id="team-note"></span></div>
+      </div>
+    </div>
     <div class="panel" data-f="admin.teams">
       <div class="panel-head"><div class="panel-title"><h2>Every walk of the teams</h2><span class="sub">The understanding team on drafts and the solution team on projects: each walk's nodes with their steps and seconds, the hand-offs, the pauses for a person, the cost and the models asked. The critic's model serves only after the team passed its sealed gate.</span></div><span class="pill outline" id="team-serves"></span></div>
       <div class="table-wrap"><table class="data compact"><thead><tr><th>Team</th><th>Thread</th><th>Status</th><th>Nodes</th><th>Hand-offs</th><th>Pauses</th><th>Cost</th><th>Models</th><th>Started</th></tr></thead><tbody id="team-body"></tbody></table></div>
@@ -439,7 +449,7 @@ DC.view('admin', {
     if (intern.status === 'fulfilled') this.paintModels(el, intern.value, gw.status === 'fulfilled' ? gw.value : null);
     this.paintStats(el, pol.value, lim.status === 'fulfilled' ? lim.value : null, intern.status === 'fulfilled' ? intern.value : null);
     this.S.offset = 0;
-    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadDatasets(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el)]);
+    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadDatasets(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el), this.loadTeamSettings(el)]);
   },
 
   // 28.8: every walk of the teams, for the trace view
@@ -537,6 +547,24 @@ DC.view('admin', {
     }));
   },
 
+  async loadTeamSettings(el) {
+    const { $ } = DC;
+    let r;
+    try { r = await DC.client.teamSettings({ quiet: true }); } catch (err) { $('#team-note', el).textContent = err.message; return; }
+    const t = r.settings;
+    $('#team-on', el).checked = !!t.on; $('#team-run', el).value = t.run_eur; $('#team-node', el).value = t.node_eur; $('#team-steps', el).value = t.max_steps;
+    const save = $('#team-save', el);
+    if (!save.dataset.bound) {
+      save.dataset.bound = '1';
+      save.addEventListener('click', async () => {
+        const body = { on: $('#team-on', el).checked, run_eur: Number($('#team-run', el).value), node_eur: Number($('#team-node', el).value),
+                       max_steps: Number($('#team-steps', el).value) };
+        try { await DC.client.setTeamSettings({ body }); DC.toast('Saved. The change is in the audit log.'); }
+        catch (err) { DC.toast(err.message, { ok: false }); }
+        await this.loadTeamSettings(el);
+      });
+    }
+  },
   async loadTwin(el) {
     const { $ } = DC;
     let r;

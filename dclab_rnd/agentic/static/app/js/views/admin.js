@@ -183,7 +183,7 @@ DC.view('admin', {
     if (intern.status === 'fulfilled') this.paintModels(el, intern.value, gw.status === 'fulfilled' ? gw.value : null);
     this.paintStats(el, pol.value, lim.status === 'fulfilled' ? lim.value : null, intern.status === 'fulfilled' ? intern.value : null);
     this.S.offset = 0;
-    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadDatasets(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el)]);
+    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadDatasets(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el), this.loadTeamSettings(el)]);
   },
 
   // 28.8: every walk of the teams, for the trace view
@@ -281,6 +281,24 @@ DC.view('admin', {
     }));
   },
 
+  async loadTeamSettings(el) {
+    const { $ } = DC;
+    let r;
+    try { r = await DC.client.teamSettings({ quiet: true }); } catch (err) { $('#team-note', el).textContent = err.message; return; }
+    const t = r.settings;
+    $('#team-on', el).checked = !!t.on; $('#team-run', el).value = t.run_eur; $('#team-node', el).value = t.node_eur; $('#team-steps', el).value = t.max_steps;
+    const save = $('#team-save', el);
+    if (!save.dataset.bound) {
+      save.dataset.bound = '1';
+      save.addEventListener('click', async () => {
+        const body = { on: $('#team-on', el).checked, run_eur: Number($('#team-run', el).value), node_eur: Number($('#team-node', el).value),
+                       max_steps: Number($('#team-steps', el).value) };
+        try { await DC.client.setTeamSettings({ body }); DC.toast('Saved. The change is in the audit log.'); }
+        catch (err) { DC.toast(err.message, { ok: false }); }
+        await this.loadTeamSettings(el);
+      });
+    }
+  },
   async loadTwin(el) {
     const { $ } = DC;
     let r;

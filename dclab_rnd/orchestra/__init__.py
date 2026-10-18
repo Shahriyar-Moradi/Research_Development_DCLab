@@ -24,4 +24,9 @@ def thread_id(kind: str, ident: str) -> str:
     return f"{kind}:{ident}"
 
 
-__all__ = ["ROOT", "FOLDER", "thread_id"]
+class NothingToResume(ValueError):
+    """A resume sent to a walk with no pause open (another request answered it, or the walk ended): the one error a caller
+    may take as "read the draft again"; every other error inside a walk is its own (the second review of 28.8)."""
+
+
+__all__ = ["ROOT", "FOLDER", "thread_id", "NothingToResume"]

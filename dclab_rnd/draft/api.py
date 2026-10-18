@@ -791,6 +791,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
     @router.post("/api/drafts/{draft_id}/build", status_code=201, response_model=Project)
     async def build(draft_id: str):
+        """The wizard's build: direct whatever the team's switch (``orchestra/settings.py``): the person set the solution here."""
         draft = get(draft_id)
         if draft.get("project_id"):
             try:
@@ -834,7 +835,29 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         except ValueError as exc:  # nothing to resume: no pause is open
             raise HTTPException(409, str(exc)[:300]) from None
 
-    async def quick_build(draft_id: str) -> dict[str, Any]:
+    def team_on() -> bool:
+        """28.8: the workspace's switch: Home's build goes through the understanding team's walk."""
+        from ..orchestra import settings as team_settings
+
+        home, _ = workspace()
+        return bool(team_settings.settings(home)["on"])
+
+    async def build_through_team(draft_id: str, inline: bool = False) -> None:
+        """28.8: the switch on: the understanding walk builds (``orchestra.service.build_draft``), or a 409 says what it asks
+        first or why it stopped. ``inline``: called from the Home agent's own turn ("build it", its build tool): the walk runs in
+        this thread, which holds the draft's turn (another thread would wait on it for ever: the review of 28.8)."""
+        from ..orchestra import service as team
+
+        home, gateway = workspace()
+        try:
+            if inline:
+                team.build_draft(home, drafts, projects, agent(draft_id), draft_id, gateway)
+            else:
+                await asyncio.to_thread(team.build_draft, home, drafts, projects, agent(draft_id), draft_id, gateway)
+        except team.TeamWaits as waits:
+            raise HTTPException(409, str(waits), headers={"X-DCLab-Rule": waits.rule}) from None
+
+    async def quick_build(draft_id: str, inline: bool = False, team: bool = False) -> dict[str, Any]:
         """25.13: "build it" in one step (the owner, 2026-10-16: the wizard and a page of stages to start by hand were not
         practical). The solution the audit proposes is accepted as it stands (its forbidden columns, identifiers and
         time column, as the wizard ticks them by default), the project is built and its five stages start as a job.
@@ -863,7 +886,9 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         # live, 2026-10-16: words that read "nothing labelled" built an anomaly project on a table whose simulated label
         # column was named: a named outcome column means a supervised solution, whatever the card inferred
         unlabelled = card_of(draft).family.value == "anomaly" and plans.label_asset(draft) is None and named is None
-        if not draft.get("solution") and not unlabelled:
+        # 28.8: the switch on, or the Team panel's own approval (``team``): the walk builds, which handles a problem of several parts
+        through_team = team or await asyncio.to_thread(team_on)
+        if not draft.get("solution") and not unlabelled and not (through_team and named is None):
             target = named
             if target is None:
                 raise HTTPException(409, "Which column is the outcome the model should learn? Name it (for example “the outcome is is_fraud”), then say build again.")
@@ -885,6 +910,8 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             rows = int(asset.get("rows") or ((get(draft_id).get("analysis") or {}).get("summary") or {}).get("rows") or 20000)
             # the whole table up to 50,000 rows (live, 2026-10-16: quick mode trained on 3,000 of 100,000 rows and its interval was too wide to use)
             await draft_settings(draft_id, AnyObject.model_validate({"quick": False, "max_rows": min(rows, 50000), "folds": 3}))
+        if not get(draft_id).get("project_id") and through_team:
+            await build_through_team(draft_id, inline)  # 28.8: the team's walk builds, or says what it asks first
         if not get(draft_id).get("project_id"):
             blockers = await asyncio.to_thread(build_blockers, drafts, draft_id)
             if blockers:  # said with its rule, so the chat can offer the step that clears it (a map to confirm, a question)
@@ -892,7 +919,8 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
                 experience.record("draft.refused", "system", {"reason": str(blockers[0])[:2000], "rule": blockers[0].rule}, conversation=draft_id)
                 raise HTTPException(409, str(blockers[0]), headers={"X-DCLab-Rule": blockers[0].rule})
-        project = await build(draft_id)
+        built_id = get(draft_id).get("project_id")
+        project = projects.get(built_id) if built_id else await build(draft_id)
         draft = get(draft_id)
         plan = [f"{n.get('label')}: {str(n.get('detail') or '').strip()}"[:220].rstrip(": ")
                 for n in (draft.get("workflow") or {}).get("nodes") or [] if n.get("label")]
@@ -917,14 +945,15 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                 "plan": plan[:10], "note": None if session_id else "The project is built; start its stages from the project page."}
 
     @router.post("/api/drafts/{draft_id}/build/run", status_code=201, response_model=Doc)
-    async def build_and_run(draft_id: str):
-        """25.13: build the project and start its five stages in one step (what "Let's build the solution" and "build it" do)."""
-        return await quick_build(draft_id)
+    async def build_and_run(draft_id: str, payload: AnyObject | None = Body(None)):
+        """25.13: build the project and start its five stages in one step (what "Let's build the solution" and "build it" do).
+        ``{"team": true}`` (28.8, the Team panel's approval of the build): through the understanding walk, whatever the switch."""
+        return await quick_build(draft_id, team=bool(dump(payload).get("team")))
 
     def build_from_chat(draft_id: str) -> dict[str, Any]:
         """The Home agent's "build it", from its own thread: the same step as the button, a refusal said as its reason."""
         try:
-            return asyncio.run(quick_build(draft_id))
+            return asyncio.run(quick_build(draft_id, inline=True))  # the agent's turn is held by this thread
         except HTTPException as exc:
             detail = exc.detail.get("message") if isinstance(exc.detail, dict) else exc.detail
             return {"refused": str(detail), "rule": (exc.headers or {}).get("X-DCLab-Rule")}
