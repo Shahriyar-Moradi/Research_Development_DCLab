@@ -604,3 +604,36 @@ def lesson_review(lesson: dict[str, Any], action: str, role: str | None) -> int:
     proposer = answer("model_role", "lesson_proposal", True) if lesson.get("written_by") == "model" else answer("rule", "rule:lesson_drafts", True)
     return int(bool(_put("lesson.accept", ("project", str(project or "?")), [proposer, answer("person", str(role or "reviewer"), kept)], kept, "person",
                          state={"kind": _code(lesson.get("written_by"))}, options=["yes", "no"], **({"project": project} if project else {}))))
+
+
+@_quiet
+def leak_screened(project_id: str, verdict: Any, profile: dict[str, Any] | None, decided: dict[str, bool] | None = None,
+                  screened: list[str] | None = None) -> int:
+    """28.5: the auditor's screen before a holdout is read, on the point ``feature.leakage_suspect``: every column it screened, the
+    rule's answer (a suspect or not, with how cleanly it alone separates the cases), and for a suspect the person's decision when
+    they made one (kept out or kept; shown the rule's answer first, so a person who keeps a suspect contradicts it). Columns
+    it did not flag are recorded once, when screened; a suspect when the person decides (or with the rule alone when the run
+    stopped on it). Names and bands only."""
+    columns = {c.get("name"): c for c in (profile or {}).get("columns") or []}
+    rows = (profile or {}).get("rows")
+    suspects = {s.column: s for s in getattr(verdict, "suspects", [])}
+    flagged = set(suspects) | {i.column for i in getattr(verdict, "after_moment", [])}  # the screen's suspects and what the moment says comes after it
+    scores = dict(getattr(verdict, "scores", {}) or {})
+    written = 0
+    names = list(decided) if decided is not None else [c for c in (screened or []) if c not in flagged]
+    if decided is None and getattr(verdict, "verdict", None) == "stop":
+        names += sorted(flagged)
+    for name in dict.fromkeys(names):
+        s = suspects.get(name)
+        state = {**(column_state(columns[name], rows) if name in columns else {"column": str(name)[:200]}), "task": "binary_classification",
+                 "separation": round(2 * abs(scores[name] - 0.5), 4) if name in scores else None,  # every screened column's, a suspect's or not
+                 "positives": int(getattr(verdict, "positives", 0) or 0)}
+        answers = [answer("rule", "rule:auditor_screen", name in flagged, reason=(s.reason[:600] if s is not None else None))]
+        if decided is not None and name in decided:
+            answers.append(answer("person", "team audit", bool(decided[name])))
+            used, value = "person", bool(decided[name])
+        else:
+            used, value = "rule", name in flagged
+        written += bool(_put("feature.leakage_suspect", ("column", str(name)), answers, value, used, state={k: v for k, v in state.items() if v is not None},
+                             options=["yes", "no"], exposed=used == "person", project=project_id))
+    return written

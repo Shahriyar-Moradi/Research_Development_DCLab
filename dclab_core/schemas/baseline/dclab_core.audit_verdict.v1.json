@@ -1,0 +1,138 @@
+{
+  "$defs": {
+    "MomentItem": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 600,
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 40,
+          "type": "string"
+        }
+      },
+      "required": [
+        "column",
+        "reason",
+        "source"
+      ],
+      "type": "object"
+    },
+    "Suspect": {
+      "additionalProperties": false,
+      "properties": {
+        "auc": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        "column": {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 600,
+          "type": "string"
+        }
+      },
+      "required": [
+        "column",
+        "auc",
+        "reason"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "after_moment": {
+      "items": {
+        "$ref": "#/$defs/MomentItem"
+      },
+      "maxItems": 200,
+      "type": "array"
+    },
+    "bar": {
+      "default": 0.98,
+      "exclusiveMinimum": 0.5,
+      "maximum": 1.0,
+      "type": "number"
+    },
+    "columns": {
+      "default": 0,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "inputs": {
+      "default": "",
+      "maxLength": 80,
+      "type": "string"
+    },
+    "note": {
+      "default": "",
+      "maxLength": 600,
+      "type": "string"
+    },
+    "positives": {
+      "default": 0,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "round": {
+      "default": 1,
+      "maximum": 3,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "rows": {
+      "default": 0,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.audit_verdict.v1",
+      "default": "dclab_core.audit_verdict.v1",
+      "type": "string"
+    },
+    "scores": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "subject": {
+      "maxLength": 120,
+      "minLength": 1,
+      "type": "string"
+    },
+    "suspects": {
+      "items": {
+        "$ref": "#/$defs/Suspect"
+      },
+      "maxItems": 200,
+      "type": "array"
+    },
+    "verdict": {
+      "default": "pass",
+      "enum": [
+        "pass",
+        "send_back",
+        "stop",
+        "not_screened"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "subject"
+  ],
+  "type": "object"
+}

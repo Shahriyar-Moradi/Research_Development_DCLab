@@ -77,7 +77,8 @@ def excluded(project: dict[str, Any]) -> list[str]:
     case) and every column of the main table the data card marks as a leak suspect, an outcome or an identifier."""
     sug, sol = project.get("suggestion") or {}, project.get("solution") or {}
     names: list[Any] = [*(sug.get("identifiers") or []), *(sug.get("forbidden") or []), *(sol.get("identifiers") or []), *(sol.get("forbidden") or []),
-                        *((project.get("labels") or {}).get("key") or [])]
+                        *((project.get("labels") or {}).get("key") or []),
+                        *(project.get("forbidden_by_person") or [])]  # 28.5: a person's own bans (the move forbid_columns), which no new table clears
     card = (project.get("data") or {}).get("card") or {}
     for table in card.get("tables") or []:
         if table.get("role", "main") == "main":
@@ -97,6 +98,18 @@ def inputs_of(project: dict[str, Any]) -> dict[str, Any]:
             "labels_sha256": (project.get("labels") or {}).get("sha256"),
             "solution_map": (plan.get("solution_map") or {}).get("fingerprint"),
             "budget": budget_of(project), "excluded": excluded(project), "core_version": __version__, "seed": SEED, "bootstraps": BOOTSTRAPS}
+
+
+def routing_inputs(project: dict[str, Any]) -> str:
+    """What the routes are drawn from: the tables and the labels (28.5: the team routes again when one changes)."""
+    return _hash({"data": (project.get("data") or {}).get("sha256"), "tables": {n: t.get("sha256") for n, t in sorted((project.get("tables") or {}).items())},
+                  "labels": (project.get("labels") or {}).get("sha256")})
+
+
+def audit_inputs(project: dict[str, Any]) -> str:
+    """What the auditor screens and the person approves reading the holdout on: the tables, the labels, the columns kept out and the budget (28.5: a change to any of them
+    makes the screen and the approval old)."""
+    return _hash({"routing": routing_inputs(project), "excluded": excluded(project), "budget": budget_of(project)})
 
 
 def load(store: Any, project: dict[str, Any]) -> dict[str, Any]:
@@ -119,23 +132,32 @@ def load(store: Any, project: dict[str, Any]) -> dict[str, Any]:
 
 # ---------------------------------------------------------------------------------------------------------------- the plan follows the tables
 
-def refresh_plan(store: Any, project_id: str, advisor: Any = None) -> bool:
+def plan_card(store: Any, project: dict[str, Any]) -> Any:
+    """The data card the router reads: the main table and every related one the project holds now (names, purposes and bands)."""
+    from dclab_core import datacard
+
+    name = str(project["data"].get("filename") or "table").rsplit(".", 1)[0]
+    tables = {name: sd.load_table(sd.data_path(store, project))}
+    if project.get("tables"):
+        tables.update(sd.load_tables(store, project, list(project["tables"].keys())))
+    return datacard.card_of(tables, roles={name: "main", **{k: "related" for k in tables if k != name}})
+
+
+def refresh_plan(store: Any, project_id: str, advisor: Any = None, routes: Optional[dict[str, Any]] = None) -> bool:
     """Draw the solution map and the routes again from the confirmed problem map and the tables the project holds now. The person confirmed the problem (its parts and how they
     combine); which approach reads which table follows from the data, so attaching the table of accounts is what lets the rings be routed. Returns whether the plan changed;
-    a changed plan makes a stored programme stale (it ran another solution map). ``advisor``: the solution router when it serves (24.8), as it does on Home."""
-    from dclab_core import datacard, solution_map as sm_mod, solutions
+    a changed plan makes a stored programme stale (it ran another solution map). ``advisor``: the solution router when it serves (24.8), as it does on Home. ``routes``:
+    the routes already chosen by the same router for every sub-problem (28.5's team, which asks it part by part in parallel)."""
+    from dclab_core import solution_map as sm_mod, solutions
 
     project = store.get(project_id)
     plan = plan_of(project)
     if plan is None or not project.get("data"):
         return False
     m = ProblemMap.read(plan["problem_map"])
-    name = str(project["data"].get("filename") or "table").rsplit(".", 1)[0]
-    tables = {name: sd.load_table(sd.data_path(store, project))}
-    if project.get("tables"):
-        tables.update(sd.load_tables(store, project, list(project["tables"].keys())))
-    card = datacard.card_of(tables, roles={name: "main", **{k: "related" for k in tables if k != name}})
-    routes = {s.id: solutions.route_with(s, card, m, None, advisor)[0] for s in m.sub_problems}
+    card = plan_card(store, project)
+    if routes is None:  # 28.5: the solution team routes the parts in parallel and hands its routes here, the same router's
+        routes = {s.id: solutions.route_with(s, card, m, None, advisor)[0] for s in m.sub_problems}
     sm = sm_mod.solution_map(m, routes, card)
     if sm.fingerprint == plan["solution_map"].get("fingerprint"):
         return False
@@ -224,9 +246,11 @@ def _release(store: Any, project_id: str) -> None:
         store.save(project)
 
 
-def run(store: Any, project_id: str, actor: str = "human", reuse_reason: Optional[str] = None, advisor: Any = None) -> dict[str, Any]:
+def run(store: Any, project_id: str, actor: str = "human", reuse_reason: Optional[str] = None, advisor: Any = None,
+        routes: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     """The graph's move ``run_programme``, then the run. The project is marked running while it reads its files (no table can be attached under it), what it read is recorded
-    from the project as it was when the run started, and the holdout is consumed only when the composition reads it."""
+    from the project as it was when the run started, and the holdout is consumed only when the composition reads it. ``routes`` (28.5): the routes the solution team
+    chose and its auditor screened the plan of, so the plan that runs is that one (none: the router is asked again here)."""
     project = store.get(project_id)
     verdict = studio_graph.check(project, "run_programme", actor, reuse_reason=reuse_reason)
     if not verdict.allowed:
@@ -237,7 +261,7 @@ def run(store: Any, project_id: str, actor: str = "human", reuse_reason: Optiona
     store.save(project)
     studio_graph.log(store, project_id, verdict, store.get(project_id), outcome="started")
     try:
-        refresh_plan(store, project_id, advisor)
+        refresh_plan(store, project_id, advisor, routes=routes)
         snapshot = store.get(project_id)
         inputs = inputs_of(snapshot)
         execution = execute(store, snapshot, prior=prior)

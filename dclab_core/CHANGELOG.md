@@ -4,6 +4,18 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.69.0 (2026-10-18)
+
+Package 28.5: the auditor of a solution team.
+
+- `auditor`: `screen(frame, labels, rows, columns)` (each column alone against the confirmed cases on the rows given, the
+  training rows: a single-column ROC AUC at least `BAR` = 0.98, or at most 0.02, is a leak suspect; a missing value is its
+  own value; a code column with more than `MAX_CODES` codes is not screened; fewer than `MIN_POSITIVES` cases and the
+  screen says nothing), `AuditVerdict` v1 (`dclab_core.audit_verdict.v1`: the suspects with their scores, the columns
+  the moment says are written after it, the verdict `pass`, `send_back`, `stop` or `not_screened`, the round),
+  `verdict(...)` and `as_lines(...)`. `ROUNDS` = 2 send-backs before a stop. It fits nothing and forbids nothing.
+- `ledger.STATE_FIELDS`: `separation` (2·|AUC − 0.5| of a column alone, a ratio).
+
 ## 0.68.0 (2026-10-18)
 
 Package 28.4: the understanding critic.

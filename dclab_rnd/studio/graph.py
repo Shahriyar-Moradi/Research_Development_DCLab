@@ -59,7 +59,7 @@ GATES = {"solution": "The owner signs the solution before WF-04.",
 DEFAULT_POLICY = {"require_solution_signoff": False, "require_holdout_approval": False}
 MOVES = ("run_stage", "set_solution", "approve_stage", "approve_gate", "capture",
          "create_project", "attach_data", "set_settings", "propose_solution", "attach_labels", "attach_table",
-         "run_programme", "drop_leaf")  # the last five: every other project write; run_programme (24.5) runs a problem of several parts and reads its holdout once; drop_leaf drops a blocked leaf of it
+         "run_programme", "drop_leaf", "forbid_columns")  # the last five: every other project write; run_programme (24.5) runs a problem of several parts and reads its holdout once; drop_leaf drops a blocked leaf of it
 DONE = ("completed", "approved")
 
 
@@ -185,7 +185,7 @@ def check(project: dict[str, Any], move: str, actor: str = "human", **args: Any)
             "approve_gate": _approve_gate, "capture": _capture, "create_project": _create_project,
             "attach_data": _attach_data, "set_settings": _set_settings, "propose_solution": _propose_solution,
             "attach_labels": _attach_labels, "attach_table": _attach_table, "run_programme": _run_programme,
-            "drop_leaf": _drop_leaf}[move](project, actor, frm, clean)
+            "drop_leaf": _drop_leaf, "forbid_columns": _forbid_columns}[move](project, actor, frm, clean)
 
 
 def _verdict(move: str, actor: str, frm: str | None, to: str | None, checks: list[dict[str, Any]], rules: list[str],
@@ -388,6 +388,23 @@ def _drop_leaf(project: dict[str, Any], actor: str, frm: str | None, args: dict[
               _check("A reason", bool(str(args.get("reason") or "").strip()), "A dropped leaf needs the reason."),
               _check("Holdout unread", not _programme_read_before(project), "The holdout was already read on this project: a leaf cannot be dropped after it.")]
     return _verdict("drop_leaf", actor, frm, "WF-07", checks, ["DCLAB-R01"], ["PIT-006"], ["The composition goes on without the leaf, and the programme says so."], args)
+
+
+def _forbid_columns(project: dict[str, Any], actor: str, frm: str | None, args: dict[str, Any]) -> Verdict:
+    """A person keeps columns out of every model of the project (28.5: the auditor's suspects, shown to them). Only a person; columns the tables hold; a reason. After
+    the holdout was read the columns still go out, and a new estimate on it needs a written reason, as any second read does."""
+    columns = [str(c) for c in args.get("columns") or []]
+    held = set((project.get("data") or {}).get("columns") or []) | {c.get("name") for t in ((project.get("data") or {}).get("card") or {}).get("tables") or []
+                                                                   for c in t.get("columns") or []}
+    checks = [_check("Data", bool(project.get("data")), "Attach a table before keeping its columns out."), _not_running(project),
+              _check("A person decides", actor == "human", "Only a person keeps a column out of the models."),
+              _check("Columns named", bool(columns), "Name the columns to keep out."),
+              _check("Columns held", all(c in held for c in columns), f"Not columns of the tables: {', '.join(c for c in columns if c not in held)[:300]}"),
+              _check("A reason", bool(str(args.get("reason") or "").strip()), "Say why the columns are kept out.")]
+    side = ["The stored programme and the stages that read these columns become stale."]
+    if _programme_read_before(project) or int(project.get("holdout_uses", 0) or 0):
+        side.append("The holdout stays used: a new estimate on it will need a reason.")
+    return _verdict("forbid_columns", actor, frm, "WF-05", checks, ["DCLAB-R04", "DCLAB-R05"], ["PIT-006"], side, args)
 
 
 def plan_fingerprint(project: dict[str, Any]) -> str | None:

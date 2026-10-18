@@ -57,6 +57,11 @@
  },
  "contracts": [
   {
+   "contract": "audit_verdict",
+   "reads": [],
+   "version": "dclab_core.audit_verdict.v1"
+  },
+  {
    "contract": "coordinator_situation",
    "reads": [],
    "version": "dclab_core.coordinator_situation.v1"
@@ -310,7 +315,7 @@
    "what": "What the system and Claude, as the AI-first expert, answered on the same inputs: every twin step, the preference pairs a truth decided, the expert's records with what became of them, and Claude's answers as a teacher's beside the rule's at the ledger's points, one set per use (workflow, technical); Claude's words redacted (25.7)."
   }
  ],
- "dclab_core": "0.68.0",
+ "dclab_core": "0.69.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1453,6 +1458,7 @@
    "emitted_by": [
     "dclab_rnd/agent_eval/journeys/__init__.py",
     "dclab_rnd/experience/hooks.py",
+    "dclab_rnd/orchestra/solution.py",
     "dclab_rnd/orchestra/walk.py"
    ],
    "example": "python -m dclab_rnd.experience search --kind model.request",

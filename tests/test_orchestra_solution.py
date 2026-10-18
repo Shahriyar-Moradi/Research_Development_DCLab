@@ -1,0 +1,359 @@
+"""Package 28.5: the solution team on a programme project: the parts routed in parallel by the router the programme calls,
+the plan drawn from those routes, the auditor's screen before the holdout (a planted leak sent back to the person and kept
+out), the holdout read once after the person approves it, a part that cannot run put to the person, every node a step and
+a hand-off, the walk's record kept."""
+
+import json
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+try:
+    import langgraph  # noqa: F401
+
+    from dclab_core.replicas import fraud_programme as fp
+    from dclab_rnd import experience
+    from dclab_rnd.studio import ProjectStore, programme as sp
+    from tests.test_studio_programme import SMALL, make_project
+except ImportError as error:  # pandas or langgraph are not in every environment
+    MISSING = str(error)
+else:
+    MISSING = ""
+
+
+class Person:
+    """Approves every gate it is shown unless told otherwise; answers a part that cannot run with ``drop``."""
+
+    def __init__(self, keep_out=True, holdout=True, drop=""):
+        self.keep_out, self.holdout, self.drop = keep_out, holdout, drop
+        self.gates, self.asked = [], []
+
+    def approve(self, gate, summary):
+        self.gates.append((gate, summary))
+        return self.keep_out if gate == "audit" else self.holdout if gate == "holdout" else True
+
+    def ask(self, field, question):
+        self.asked.append((field, question))
+        return self.drop
+
+
+def leak(seed=0):
+    """A column a careless export would carry: the settled amount, written after a case is confirmed (a neutral name)."""
+    cases = set(fp.generate(seed=seed, **SMALL).cases["order_id"])
+    return {"basket_total": lambda rides: rides["fare"] + rides["order_id"].isin(cases).astype(float) * 40.0}
+
+
+@unittest.skipIf(MISSING, MISSING)
+class TeamTests(unittest.TestCase):
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp())
+        self.store = ProjectStore(self.home / "projects")
+        self.log = experience.FileLog(self.home / "experience", "wtest")
+        experience.install(self.log)
+        self.addCleanup(experience.install, None)
+        from dclab_rnd import ledger
+
+        self.book = ledger.FileLedger(self.home / "ledger", "wtest")
+        ledger.install(self.book)
+        self.addCleanup(ledger.install, None)
+
+    def team(self):
+        from dclab_rnd.orchestra import checkpoints
+        from dclab_rnd.orchestra.solution import SolutionTeam
+
+        cm = checkpoints.open_checkpointer(self.home, database_url="")
+        saver = cm.__enter__()
+        self.addCleanup(cm.__exit__, None, None, None)
+        return SolutionTeam(self.store, saver, home=self.home)
+
+    def test_the_team_is_a_session_of_the_orchestra_solution_agent(self):  # the harness's probe
+        from dclab_core import solutions
+        from dclab_rnd.orchestra.solution import drive
+
+        pid, _ = make_project(self.store)
+        m, _ = sp.maps(self.store.get(pid))
+        rules = solutions.routes(m, sp.plan_card(self.store, self.store.get(pid)))
+        person = Person()
+        out = drive(self.team(), pid, person)
+        self.assertEqual(out["next"], "done", out["says"])
+        project = self.store.get(pid)
+        view = sp.view(project)
+        self.assertEqual((view["state"], view["holdout_reads"], project["holdout_uses"]), ("composed", 1, 1))  # read once
+        self.assertEqual({k: v["chosen"] for k, v in sp.plan_of(project)["routes"].items()}, {k: r.chosen for k, r in rules.items()})  # the router's own routes
+        self.assertEqual([g for g, _ in person.gates], ["holdout"])  # nothing to keep out: the approval to read the holdout alone
+        self.assertEqual(project["auditor"]["last"]["verdict"]["verdict"], "pass")  # a clean replica raises no suspect
+        events = self.log.read()
+        steps = [e.payload.get("tool") for e in events if e.kind == "agent.step" and e.payload["agent"] == "orchestra.solution"]
+        self.assertEqual(steps.count("route"), len(m.sub_problems))  # one route a part, in parallel
+        for node in ("design", "audit", "compose", "report"):
+            self.assertIn(node, steps)
+        self.assertEqual([e.payload["team"] for e in events if e.kind == "team.recorded"], ["solution"])
+        handoffs = [e.payload["from_node"] for e in events if e.kind == "team.handoff"]
+        self.assertEqual(handoffs[:1], ["design"])
+        decisions = self._records()
+        self.assertTrue(decisions and all(r["used"] == "rule" and r["value_used"] is False for r in decisions))  # every screened column a decision
+        self.assertEqual({r["subject"]["key"] for r in decisions}, set(project["auditor"]["last"]["screened"]))
+
+    def _records(self, point="feature.leakage_suspect"):
+        return [json.loads(r.model_dump_json()) for r in self.book.records(point=point)]
+
+    def test_a_planted_leak_is_sent_back_and_kept_out_before_the_holdout(self):
+        from dclab_rnd.orchestra.solution import drive
+
+        pid, _ = make_project(self.store, rides_extra=leak())
+        person = Person(keep_out=True)
+        out = drive(self.team(), pid, person)
+        self.assertEqual(out["next"], "done", out["says"])
+        gates = [g for g, _ in person.gates]
+        self.assertEqual(gates, ["audit", "holdout"])  # the suspect first, then the holdout
+        self.assertIn("basket_total", " ".join(person.gates[0][1]["suspects"]))
+        project = self.store.get(pid)
+        self.assertIn("basket_total", sp.excluded(project))
+        for leaf in sp.stored(project).leaves:
+            self.assertNotIn("basket_total", leaf.columns)  # no leaf read it
+        history = [h["verdict"]["verdict"] for h in project["auditor"]["history"]]
+        self.assertEqual(history, ["send_back", "pass"])  # sent back once, screened again clean
+        self.assertEqual(project["holdout_uses"], 1)
+        kept = [r for r in self._records() if r["subject"]["key"] == "basket_total" and r["used"] == "person"]
+        self.assertEqual([r["value_used"] for r in kept], [True])  # the person's decision on the suspect, beside the rule's
+
+    def test_a_suspect_the_person_keeps_is_their_decision_and_the_holdout_still_read_once(self):
+        from dclab_rnd.orchestra.solution import drive
+
+        pid, _ = make_project(self.store, rides_extra=leak())
+        out = drive(self.team(), pid, Person(keep_out=False))
+        self.assertEqual(out["next"], "done", out["says"])
+        project = self.store.get(pid)
+        self.assertNotIn("basket_total", sp.excluded(project))
+        self.assertEqual(project["holdout_uses"], 1)
+        kept = [r for r in self._records() if r["subject"]["key"] == "basket_total" and r["used"] == "person"]
+        self.assertEqual([r["value_used"] for r in kept], [False])
+        from dclab_rnd import ledger
+
+        labels = [x for x in self.book.labels() if x.record == kept[0]["id"]] if hasattr(self.book, "labels") else []
+        self.assertEqual([x.source for x in labels], ["user_decision_exposed"])  # shown the rule's yes, the person said no: a label
+
+    def test_only_a_person_keeps_a_column_out(self):
+        from dclab_rnd.studio import leak_audit
+
+        pid, _ = make_project(self.store)
+        with self.assertRaises(leak_audit.AuditError):
+            leak_audit.forbid(self.store, pid, ["fare"], "an agent's idea", actor="agent")
+        with self.assertRaises(leak_audit.AuditError):
+            leak_audit.forbid(self.store, pid, ["not_a_column"], "a person's idea", actor="human")
+        leak_audit.forbid(self.store, pid, ["fare"], "a person's idea", actor="human")
+        self.assertIn("fare", sp.excluded(self.store.get(pid)))
+
+    def test_the_team_resumes_from_a_new_team_and_reads_the_holdout_once(self):
+        pid, _ = make_project(self.store)
+        out = self.team().run(pid)
+        self.assertEqual((out["status"], out["asks"].get("gate")), ("paused", "holdout"))
+        self.assertEqual(int(self.store.get(pid).get("holdout_uses") or 0), 0)  # nothing read while it waits
+        out = self.team().run(pid, resume=True)  # another process, the same checkpoints
+        self.assertEqual(out["next"], "done", out["says"])
+        self.assertEqual(self.store.get(pid)["holdout_uses"], 1)
+
+    def test_a_part_that_cannot_run_is_put_to_the_person(self):
+        from dclab_rnd.orchestra.solution import drive
+
+        pid, _ = make_project(self.store, tables=False, plan_with_accounts=False)  # no table of accounts: the rings cannot run
+        stopped = drive(self.team(), pid, Person(drop=""))
+        self.assertEqual(stopped["next"], "stop")
+        self.assertEqual(int(self.store.get(pid).get("holdout_uses") or 0), 0)  # the person stops: the holdout stays closed
+        pid2, _ = make_project(self.store, tables=False, plan_with_accounts=False)
+        person = Person(drop="We have no table of accounts yet; the rings wait for it.")
+        out = drive(self.team(), pid2, person)
+        self.assertEqual(out["next"], "done", out["says"])
+        self.assertTrue(person.asked and person.asked[0][0].startswith("drop:"))
+        self.assertEqual(self.store.get(pid2)["holdout_uses"], 1)
+
+    def test_the_code_export_of_a_team_built_programme_reproduces_its_number(self):
+        import subprocess
+
+        from dclab_rnd.orchestra.solution import drive
+        from dclab_rnd.studio import code
+
+        pid, _ = make_project(self.store)
+        drive(self.team(), pid, Person())
+        folder = Path(tempfile.mkdtemp()) / "code"
+        code.export(self.store, pid, folder)
+        run = subprocess.run([sys.executable, "-I", str(folder / "programme.py")], capture_output=True, text=True, cwd=tempfile.mkdtemp(), timeout=900)
+        self.assertEqual(run.returncode, 0, run.stdout[-800:] + run.stderr[-800:])
+        self.assertTrue(json.loads(run.stdout.strip().splitlines()[-1])["same"])  # the holdout number, recomputed
+
+
+    def _reattach(self, pid, rides_extra=None):
+        """The person uploads the export again (the table, its cases and the accounts), now as ``rides_extra`` says."""
+        from dclab_rnd.studio import data as sd
+
+        r = fp.generate(seed=0, **SMALL)
+        for name, values in (rides_extra or {}).items():
+            r.rides[name] = values(r.rides)
+        d = self.store.data_dir(pid)
+        r.rides.to_csv(d / "rides.csv", index=False)
+        sd.attach_data(self.store, pid, "rides.csv")
+        r.cases.to_csv(d / "cases.csv", index=False)
+        sd.attach_labels(self.store, pid, "cases.csv", target="is_case", key=["order_id"])
+        r.accounts.to_csv(d / "accounts.csv", index=False)
+        sd.attach_table(self.store, pid, "accounts.csv", "accounts")
+        project = self.store.get(pid)
+        project["suggestion"] = {**(project.get("suggestion") or {}), "alert_budget": 0.02}
+        self.store.save(project)
+
+    def test_a_table_changed_after_a_run_is_screened_again_before_its_holdout(self):  # the review of 28.5, finding 1
+        from dclab_rnd.orchestra.solution import drive
+
+        pid, _ = make_project(self.store)
+        stopped = drive(self.team(), pid, Person(holdout=False))  # screened clean; the person declines the holdout
+        self.assertEqual((stopped["next"], int(self.store.get(pid).get("holdout_uses") or 0)), ("stop", 0))
+        self._reattach(pid, leak())  # the export again, now carrying the leak
+        person = Person(keep_out=True)
+        out = drive(self.team(), pid, person)
+        self.assertEqual(out["next"], "done", out["says"])
+        self.assertEqual([g for g, _ in person.gates], ["audit", "holdout"])  # screened again, and the holdout approved again
+        project = self.store.get(pid)
+        for leaf in sp.stored(project).leaves:
+            self.assertNotIn("basket_total", leaf.columns)
+        self.assertEqual(project["holdout_uses"], 1)
+
+    def test_a_persons_ban_outlives_a_new_label_file(self):  # the review of 28.5, finding 2
+        from dclab_rnd.studio import data as sd, leak_audit
+
+        pid, r = make_project(self.store, rides_extra=leak())
+        leak_audit.forbid(self.store, pid, ["basket_total"], "written after the case is confirmed", actor="human")
+        r.cases.to_csv(self.store.data_dir(pid) / "cases.csv", index=False)
+        sd.attach_labels(self.store, pid, "cases.csv", target="is_case", key=["order_id"])
+        self.assertIn("basket_total", sp.excluded(self.store.get(pid)))
+
+    def test_the_persons_approval_is_the_projects_approval_of_the_holdout(self):  # the review of 28.5, finding 3
+        from dclab_rnd.orchestra.solution import drive
+
+        pid, _ = make_project(self.store)
+        project = self.store.get(pid)
+        project["policy"] = {"require_holdout_approval": True}
+        self.store.save(project)
+        out = drive(self.team(), pid, Person())
+        self.assertEqual(out["next"], "done", out["says"])
+        project = self.store.get(pid)
+        self.assertEqual([(a["gate"], a["by"]) for a in project.get("approvals") or []], [("holdout", "person")])
+        self.assertEqual(project["holdout_uses"], 1)
+
+    def test_a_declined_holdout_reads_nothing(self):
+        from dclab_rnd.orchestra.solution import drive
+
+        pid, _ = make_project(self.store)
+        out = drive(self.team(), pid, Person(holdout=False))
+        self.assertEqual(out["next"], "stop")
+        self.assertIn("approval to read the holdout", out["says"])
+        self.assertEqual(int(self.store.get(pid).get("holdout_uses") or 0), 0)
+        declined = [e.payload for e in self.log.read() if e.kind == "team.interrupt" and e.payload["status"] == "declined"]
+        self.assertEqual([(d["interrupt"], d["gate"]) for d in declined], [("approval", "holdout")])
+
+    def test_a_start_while_a_pause_waits_returns_the_pause_and_redoes_nothing(self):  # the review of 28.5, finding 5
+        pid, _ = make_project(self.store, rides_extra=leak())
+        team = self.team()
+        first = team.run(pid)
+        self.assertEqual(first["asks"].get("gate"), "audit")
+        screens = len(self.store.get(pid)["auditor"]["history"])
+        again = team.run(pid)
+        self.assertEqual(again["asks"], first["asks"])
+        self.assertEqual(len(self.store.get(pid)["auditor"]["history"]), screens)  # not screened again, no round spent
+
+    def test_the_router_fans_out_one_send_a_part(self):
+        from langgraph.types import Send
+
+        pid, _ = make_project(self.store)
+        team = self.team()
+        m, _ = sp.maps(self.store.get(pid))
+        sends = team._fan({"project_id": pid, "next": "route", "card": {}})
+        self.assertTrue(all(isinstance(x, Send) and x.node == "route_part" for x in sends))
+        self.assertEqual(sorted(x.arg["sub"] for x in sends), sorted(s.id for s in m.sub_problems))  # all in one step: run in parallel
+
+    def test_the_team_resumes_in_another_process(self):
+        import subprocess
+
+        pid, _ = make_project(self.store)
+        out = self.team().run(pid)
+        self.assertEqual(out["asks"].get("gate"), "holdout")
+        script = ("import sys; sys.path.insert(0, %r)\n"
+                  "from pathlib import Path\n"
+                  "from dclab_rnd.studio import ProjectStore\n"
+                  "from dclab_rnd.orchestra import checkpoints\n"
+                  "from dclab_rnd.orchestra.solution import SolutionTeam\n"
+                  "home = Path(%r)\n"
+                  "with checkpoints.open_checkpointer(home, database_url='') as saver:\n"
+                  "    print(SolutionTeam(ProjectStore(home / 'projects'), saver, home=home).run(%r, resume=True)['next'])\n") % (str(ROOT), str(self.home), pid)
+        run = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, timeout=600, env={**__import__("os").environ, "DCLAB_NO_LIVE_MODELS": "1"})
+        self.assertEqual(run.stdout.strip().splitlines()[-1:], ["done"], run.stderr[-1200:])
+        self.assertEqual(self.store.get(pid)["holdout_uses"], 1)
+
+    def test_the_board_after_the_audit_keeps_the_plans_blockers(self):  # the review of 28.5, finding 12
+        pid, _ = make_project(self.store, tables=False, plan_with_accounts=False)
+        self.team().run(pid)
+        boards = [json.loads(x)["board"] for x in (self.home / "orchestra" / "boards.jsonl").read_text().splitlines()]
+        designed = next(b for b in boards if b["handoffs"][-1]["from_node"] == "design")
+        audited = next(b for b in boards if b["handoffs"][-1]["from_node"] == "audit")
+        self.assertTrue(designed["blockers"])
+        self.assertEqual(audited["blockers"][:len(designed["blockers"])], designed["blockers"])
+
+
+@unittest.skipIf(MISSING, MISSING)
+class JourneyTests(unittest.TestCase):
+    def test_a_programme_journey_reaches_the_same_result_through_the_team(self):
+        from dclab_rnd.agent_eval.journeys import programme as jp
+
+        person = jp.load("dev")[0]
+        direct = jp.play(person)
+        team = jp.play(person, team=True)
+        self.assertEqual((team["right"], team["parts"]), (direct["right"], direct["parts"]), team.get("why"))
+        self.assertEqual(team["got"]["approaches"], direct["got"]["approaches"])  # the same routes, the same plan
+
+
+@unittest.skipIf(MISSING, MISSING)
+class ScreenTests(unittest.TestCase):
+    def frame(self, n=400, positives=40, seed=0):
+        import numpy as np
+        import pandas as pd
+
+        rng = np.random.default_rng(seed)
+        y = pd.Series([1] * positives + [0] * (n - positives))
+        return pd.DataFrame({"fare": rng.normal(10, 2, n), "after": y * 50 + rng.normal(0, 1, n),
+                             "filled_later": [1.0 if v else None for v in y], "code": ["a" if v else "b" for v in y],
+                             "many": [f"c{i}" for i in range(n)]}), y
+
+    def test_a_column_that_alone_separates_the_cases_is_a_suspect_and_every_column_is_scored(self):
+        from dclab_core import auditor
+
+        frame, y = self.frame()
+        suspects, counts = auditor.screen(frame, y, frame.index, list(frame.columns))
+        self.assertEqual({s.column for s in suspects}, {"after", "filled_later", "code"})  # a value, a gap, a code that gives it away
+        self.assertNotIn("fare", {s.column for s in suspects})
+        self.assertEqual(set(counts["scores"]), {"fare", "after", "filled_later", "code"})  # "many" codes: not screened
+        self.assertEqual(counts["columns"], 4)
+
+    def test_too_few_cases_say_nothing_and_the_rounds_end_in_a_stop(self):
+        from dclab_core import auditor
+
+        frame, y = self.frame(positives=auditor.MIN_POSITIVES - 1)
+        suspects, counts = auditor.screen(frame, y, frame.index, list(frame.columns))
+        self.assertEqual((suspects, auditor.verdict("p", [], counts).verdict), ([], "not_screened"))
+        frame, y = self.frame()
+        suspects, counts = auditor.screen(frame, y, frame.index, ["after"])
+        self.assertEqual([auditor.verdict("p", suspects, counts, round_=r).verdict for r in (1, 2, 3)], ["send_back", "send_back", "stop"])
+        self.assertEqual(auditor.verdict("p", [], counts).verdict, "pass")
+
+    def test_the_screen_reads_only_the_rows_it_is_given(self):
+        from dclab_core import auditor
+
+        frame, y = self.frame()
+        fit = frame.index[100:]  # the cases are the first 40 rows: none on these rows
+        suspects, counts = auditor.screen(frame, y, fit, ["after"])
+        self.assertEqual((counts["rows"], counts["positives"], suspects), (300, 0, []))
+
+
+if __name__ == "__main__":
+    unittest.main()

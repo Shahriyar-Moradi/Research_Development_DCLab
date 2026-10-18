@@ -726,6 +726,14 @@ request path; it is a data generator. A team that pretrains or evaluates an in-c
 or reads DCLab's corpus (`make priors`, `lake/bronze/priors/priors_v1/`); `params.effects_shown` marks the tables whose shown
 features include the outcome's effects, for a team that wants none.
 
+## The auditor before a holdout (28.5, dclab-core 0.69.0)
+
+The library's: `dclab_core.auditor` (`screen`, `AuditVerdict` v1, `verdict`): the columns a solution would read, each alone
+against the confirmed cases on the training rows only, a column that separates them almost perfectly named a leak suspect
+with its score; the verdict says pass, send back or stop. Where it goes there: the main product's experiment runs the
+screen on its train partition before its holdout is scored, shows the suspects to the person, records each column's
+answer and the person's decision on its leakage decision point, and reads the holdout only after the person has decided.
+
 ## The understanding critic (28.4, dclab-core 0.68.0)
 
 The library's: `dclab_core.understanding_critic` (`concerns`, the role `UNDERSTANDING_CRITIC`, `critique`): the problem card read

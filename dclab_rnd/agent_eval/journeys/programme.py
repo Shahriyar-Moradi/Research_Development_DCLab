@@ -93,9 +93,11 @@ def _workflow_ok(expect: dict[str, Any], families: list[str], approaches: list[O
     return True, ""
 
 
-def play(journey: dict[str, Any], seed: int = 0, stores: Any = None, live: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+def play(journey: dict[str, Any], seed: int = 0, stores: Any = None, live: Optional[dict[str, Any]] = None, team: bool = False) -> dict[str, Any]:
     """One programme journey from its first sentence; its scores and what happened at each part. ``stores``: the (drafts, projects) it plays in, a workspace's own when a
-    test wants to read what the journey left in its record; else temporary ones. ``live``: ``{"map_advisor": ...}``, the map roles served by a model (the roles arm)."""
+    test wants to read what the journey left in its record; else temporary ones. ``live``: ``{"map_advisor": ...}``, the map roles served by a model (the roles arm).
+    ``team`` (28.5): the built project is solved by the solution team (the parts routed in parallel, the auditor, the holdout approved, a blocked part put to the
+    person) instead of the direct calls; the same person answers its pauses."""
     import importlib
 
     from dclab_rnd.agent_eval.journeys import _Person, _upload, refused
@@ -172,19 +174,33 @@ def play(journey: dict[str, Any], seed: int = 0, stores: Any = None, live: Optio
         if "accounts" in brings:
             replica.accounts.to_csv(projects.data_dir(built) / "accounts.csv", index=False)
             sd.attach_table(projects, built, "accounts.csv", "accounts")
-        programme.refresh_plan(projects, built, advisor)
-        plan = programme.plan_of(projects.get(built))
-        families = [s["family"] for s in plan["problem_map"]["sub_problems"]]
-        approaches = [(plan["routes"].get(s["id"]) or {}).get("chosen") for s in plan["problem_map"]["sub_problems"]]
-        row["got"].update(families=families, approaches=approaches)
-        ok, why = _workflow_ok(expect, families, approaches)
-        view = programme.run(projects, built, advisor=advisor)
-        if view["state"] == "planned" and view.get("blockers") and when_blocked == "drop":  # the person drops each part the files cannot do, with the reason, and goes on
-            stored = programme.stored(projects.get(built))
-            for leaf in (stored.leaves if stored is not None else []):
-                if leaf.status == "blocked":
-                    programme.drop(projects, built, leaf.block, DROP_REASON)
+        if team:  # 28.5: the solution team solves it, the person answering its pauses as they would the direct calls
+            from dclab_rnd.orchestra import checkpoints
+            from dclab_rnd.orchestra.solution import SolutionTeam, drive as drive_team
+
+            with checkpoints.open_checkpointer(home, database_url="") as saver:
+                team_out = drive_team(SolutionTeam(projects, saver, home=home, advisor=advisor), built, _TeamPerson(when_blocked))
+            row["team"] = {"next": team_out.get("next"), "says": str(team_out.get("says") or "")[:300], "nodes": [s.get("action") for s in team_out.get("steps") or []]}
+            view = programme.view(projects.get(built))
+            plan = programme.plan_of(projects.get(built))
+            families = [s["family"] for s in plan["problem_map"]["sub_problems"]]
+            approaches = [(plan["routes"].get(s["id"]) or {}).get("chosen") for s in plan["problem_map"]["sub_problems"]]
+            row["got"].update(families=families, approaches=approaches)
+            ok, why = _workflow_ok(expect, families, approaches)
+        else:
+            programme.refresh_plan(projects, built, advisor)
+            plan = programme.plan_of(projects.get(built))
+            families = [s["family"] for s in plan["problem_map"]["sub_problems"]]
+            approaches = [(plan["routes"].get(s["id"]) or {}).get("chosen") for s in plan["problem_map"]["sub_problems"]]
+            row["got"].update(families=families, approaches=approaches)
+            ok, why = _workflow_ok(expect, families, approaches)
             view = programme.run(projects, built, advisor=advisor)
+            if view["state"] == "planned" and view.get("blockers") and when_blocked == "drop":  # the person drops each part the files cannot do, with the reason, and goes on
+                stored = programme.stored(projects.get(built))
+                for leaf in (stored.leaves if stored is not None else []):
+                    if leaf.status == "blocked":
+                        programme.drop(projects, built, leaf.block, DROP_REASON)
+                view = programme.run(projects, built, advisor=advisor)
         refused_moves = refused(projects, built)
         row["refused_moves"] = len(refused_moves)
         row["parts"]["workflow"] = ok and not refused_moves
@@ -244,9 +260,23 @@ def _end(row: dict[str, Any], started: float) -> dict[str, Any]:
 
 # ---------------------------------------------------------------------------------------------------------------- the suite
 
-def _play_one(journey: dict[str, Any], seed: int, live: Optional[dict[str, Any]]) -> dict[str, Any]:
+class _TeamPerson:
+    """The written person at the solution team's pauses: keeps a leak suspect out, approves reading the holdout, and at a part
+    that cannot run drops it with the reason when their journey says so (else says nothing, and the team stops)."""
+
+    def __init__(self, when_blocked: str):
+        self.when_blocked = when_blocked
+
+    def approve(self, gate: str, summary: Any) -> bool:
+        return True
+
+    def ask(self, field: Any, question: str) -> str:
+        return DROP_REASON if str(field or "").startswith("drop:") and self.when_blocked == "drop" else ""
+
+
+def _play_one(journey: dict[str, Any], seed: int, live: Optional[dict[str, Any]], team: bool = False) -> dict[str, Any]:
     try:
-        return play(journey, seed, None, live)
+        return play(journey, seed, None, live, team=team)
     except Exception as error:  # noqa: BLE001 - a journey that breaks is wrong, with its reason
         import traceback
 
@@ -255,8 +285,8 @@ def _play_one(journey: dict[str, Any], seed: int, live: Optional[dict[str, Any]]
                 "why": [f"broke: {type(error).__name__}: {str(error)[:240]} at {where.name}:{where.lineno}"]}
 
 
-def measure(split: str, seed: int, live: Optional[dict[str, Any]] = None, only: Optional[list[str]] = None) -> list[dict[str, Any]]:
-    return [_play_one(j, seed, live) for j in load(split) if not only or j["id"] in only]
+def measure(split: str, seed: int, live: Optional[dict[str, Any]] = None, only: Optional[list[str]] = None, team: bool = False) -> list[dict[str, Any]]:
+    return [_play_one(j, seed, live, team) for j in load(split) if not only or j["id"] in only]
 
 
 def wilson(right: int, n: int, z: float = 1.96) -> tuple[float, float]:
@@ -336,8 +366,20 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--only", nargs="*")
     parser.add_argument("--no-store", action="store_true")
+    parser.add_argument("--team", action="store_true", help="28.5: the rules arm solved by the solution team (dev only), stored as the arm rules_team")
     args = parser.parse_args(argv)
     sealed = args.split == "sealed"
+    if args.team:
+        if sealed or args.yes:
+            print("refused: the team arm is measured on dev, with the rules (28.7 measures it with models)", file=sys.stderr)
+            return 2
+        rows = measure(args.split, 0 if args.seed is None else args.seed, None, args.only, team=True)
+        for r in rows:
+            print(f"{'ok  ' if r['right'] else 'MISS'} team  {r['id']:6} {json.dumps(r['parts'])} {r.get('seconds', '')}s {r.get('team', {}).get('nodes')}  {'; '.join(r['why'])[:300]}")
+        print("team:", verdict(rows))
+        if not args.no_store:
+            print(store(rows, args.split, "rules_team", 0 if args.seed is None else args.seed, extra={"walk": "solution_team"}))
+        return 0
     if sealed and sealed_runs():
         print(f"refused: the sealed programme journeys were run ({sealed_runs()[0].name}); a sealed set is run once", file=sys.stderr)
         return 2

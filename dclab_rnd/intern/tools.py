@@ -82,7 +82,7 @@ def _expected(exc: Exception) -> dict[str, Any] | None:
     return None
 
 
-SELF_LOGGED = ("run_stage", "set_solution", "approve_stage", "capture")  # their handlers log the allowed move with its outcome
+SELF_LOGGED = ("run_stage", "set_solution", "approve_stage", "capture", "run_programme")  # their handlers log the allowed move with its outcome
 
 
 class ProjectGuard:
@@ -178,6 +178,9 @@ def register(registry: Registry) -> None:
         "Run one stage (data, leakage, features, models, final) now. Stages run in order; each needs the previous one. Returns the stage record: summary, numbers, claims, notes with proof, decision.",
         "write", "run_stage")
     add("run_all", pid, ["project_id"], "Run every remaining stage in order and return all records. The final stage consumes the holdout once.", "write", "run_stage")
+    add("run_programme", {**pid, "keep_plan": {"type": "boolean", "description": "True: run the plan as it is drawn (its routes kept); false: route the parts again from the tables first."}},
+        ["project_id"], "Run the programme of a problem of several parts (28.5): every leaf, the composition chosen on validation, and the holdout read once when nothing blocks. "
+        "Returns the programme's state, blockers and holdout reads.", "write", "run_programme")
     add("approve_stage", {**pid, "stage": {**S, "enum": list(STAGE_KEYS)}, "choice": {**S, "description": "Optional: an option id from the stage's decision, to override the rule's choice (clears later stages)."}},
         ["project_id", "stage"], "Approve a completed stage, optionally choosing a different recipe or model than the rule picked.", "write", "approve_stage")
     add("get_results", {**pid, "stage": {**S, "enum": list(STAGE_KEYS)}}, ["project_id"], "Return the records of the finished stages (or one stage).")
@@ -427,6 +430,19 @@ class Toolbox:
         except Exception as exc:  # noqa: BLE001 — the failure is the tool result
             return {"error": f"{stage} failed: {type(exc).__name__}: {str(exc)[:400]}"}
         return compact_record(record)
+
+    def run_programme(self, project_id: str, keep_plan: bool = False) -> dict[str, Any]:
+        from dclab_core import solutions
+
+        from ..studio import programme
+
+        project = self.projects.get(project_id)
+        routes = None
+        if keep_plan:  # the plan's own routes: the plan that runs is the one drawn (and screened, by the solution team's auditor)
+            routes = {k: solutions.Route.model_validate(v) for k, v in ((programme.plan_of(project) or {}).get("routes") or {}).items()} or None
+        view = programme.run(self.projects, project_id, actor="agent", routes=routes)
+        return {"state": view.get("state"), "holdout_reads": view.get("holdout_reads"), "blockers": list(view.get("blockers") or [])[:20],
+                "issues": list(view.get("issues") or [])[:20]}
 
     def run_all(self, project_id: str) -> dict[str, Any]:
         project = self.projects.get(project_id)

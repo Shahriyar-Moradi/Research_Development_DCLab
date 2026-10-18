@@ -1,0 +1,169 @@
+{
+  "$defs": {
+    "MomentItem": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Column",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 600,
+          "title": "Reason",
+          "type": "string"
+        },
+        "source": {
+          "description": "audit, moment or model: who says it is written after the prediction moment.",
+          "maxLength": 40,
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "column",
+        "reason",
+        "source"
+      ],
+      "title": "MomentItem",
+      "type": "object"
+    },
+    "Suspect": {
+      "additionalProperties": false,
+      "properties": {
+        "auc": {
+          "description": "The column alone against the confirmed cases, on the screened rows.",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Auc",
+          "type": "number"
+        },
+        "column": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Column",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 600,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "column",
+        "auc",
+        "reason"
+      ],
+      "title": "Suspect",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.audit_verdict.v1.json",
+  "additionalProperties": false,
+  "description": "One audit of a solution before its holdout is read: names, scores and counts, never a row.",
+  "properties": {
+    "after_moment": {
+      "items": {
+        "$ref": "#/$defs/MomentItem"
+      },
+      "maxItems": 200,
+      "title": "After Moment",
+      "type": "array"
+    },
+    "bar": {
+      "default": 0.98,
+      "exclusiveMinimum": 0.5,
+      "maximum": 1.0,
+      "title": "Bar",
+      "type": "number"
+    },
+    "columns": {
+      "default": 0,
+      "description": "The columns screened.",
+      "minimum": 0,
+      "title": "Columns",
+      "type": "integer"
+    },
+    "inputs": {
+      "default": "",
+      "description": "The fingerprint of what was screened: a change to the tables, the labels or the columns kept out makes the verdict old.",
+      "maxLength": 80,
+      "title": "Inputs",
+      "type": "string"
+    },
+    "note": {
+      "default": "",
+      "maxLength": 600,
+      "title": "Note",
+      "type": "string"
+    },
+    "positives": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Positives",
+      "type": "integer"
+    },
+    "round": {
+      "default": 1,
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Round",
+      "type": "integer"
+    },
+    "rows": {
+      "default": 0,
+      "description": "The training rows screened.",
+      "minimum": 0,
+      "title": "Rows",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.audit_verdict.v1",
+      "default": "dclab_core.audit_verdict.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scores": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "description": "Every screened column's AUC alone (a suspect's and every other's).",
+      "title": "Scores",
+      "type": "object"
+    },
+    "subject": {
+      "description": "The project (or the stage) audited.",
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Subject",
+      "type": "string"
+    },
+    "suspects": {
+      "items": {
+        "$ref": "#/$defs/Suspect"
+      },
+      "maxItems": 200,
+      "title": "Suspects",
+      "type": "array"
+    },
+    "verdict": {
+      "default": "pass",
+      "enum": [
+        "pass",
+        "send_back",
+        "stop",
+        "not_screened"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "subject"
+  ],
+  "title": "AuditVerdict",
+  "type": "object"
+}

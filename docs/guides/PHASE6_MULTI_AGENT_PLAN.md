@@ -299,6 +299,28 @@ families; nothing is captured for the first time there.
   **capture:** each part's route, design, audit verdict and send-back as ledger records and `solution_design` /
   `read_results` examples; self-play (27.3) solves through the team so verified solves carry the hand-offs.
 
+- **Status: built on programmes (2026-10-18).** `dclab_rnd/orchestra/solution.py`: `SolutionTeam` on a project's thread
+  (`project:<id>`): `situate` chooses every node from the project as it is and a fingerprint of what each step read (the
+  tables, the labels, the columns kept out, the budget: a change makes the routes, the design, the audit or the approval old,
+  and the team does it again; a new run starts a fresh thread, a start while a pause waits returns the pause); the router
+  routes each sub-problem in parallel (one `Send` a part, `solutions.route_with`); the designer draws the solution map from
+  those routes (`programme.refresh_plan(routes=)`); the auditor (`dclab_core.auditor`, dclab-core 0.69.0;
+  `studio/leak_audit.py`) screens the main table's columns the leaves would read, each alone against the confirmed cases on
+  the fit rows only, every column scored, adds what the moment says is written after it, and sends a suspect back to the
+  person (an approval: keep it out through the new person's move `forbid_columns`, kept in the project's own
+  `forbidden_by_person` that no upload clears, the plan drawn again and screened again; or keep it, their decision,
+  recorded), stopping with the suspects as its blocker after two send-backs; the person's approval to read the holdout is
+  recorded as the project's approval of the gate, and the programme runs through the registry's new tool `run_programme`
+  (the validator as its guard, the plan that was screened kept); a part that cannot run is a question (drop it with a reason
+  through `drop_leaf`, or stop); the reporter closes with the programme's report. Every screened column is a
+  `feature.leakage_suspect` decision (once for each set of inputs; a suspect with the person's answer), every verdict kept
+  whole, every node a harness step of `orchestra.solution` and a hand-off, the walk's `TeamRecord` (team `solution`) kept
+  and emitted. Measured: the dev programme journeys 6 of 6 through the team (JPR-005), every part as the direct path's
+  (JPR-001). Found on the way: `programme.excluded()` read a forbidden `{column, reason}` record as its text (fixed,
+  52d0016). Left: the related tables' columns are not screened (said in every verdict); a project of one problem (the
+  engine's stages) through the team; the experimenter node; the routes and designs as ledger points of their own and the
+  `solution_design` / `read_results` examples (28.9); self-play through the team (28.9); the team with models (28.7).
+
 ### 28.6 Patterns as experiments: second opinion and debate
 - **Delivers:** the second-opinion reader with a judge, and a two-designer debate, each as an arm on the dev journeys
   with a gate fixed before the run (better on the field it targets, no worse elsewhere, cost within 1.5× the single

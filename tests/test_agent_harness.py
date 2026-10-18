@@ -37,6 +37,7 @@ PROBES = {
     "coordinator": "tests/test_coordinator.py::test_the_mornings_walk_is_a_run_of_the_coordinator",
     "orchestra": "tests/test_orchestra.py::test_the_spike_is_a_session_of_the_orchestra_agent",
     "orchestra.walk": "tests/test_orchestra_walk.py::test_the_walk_is_a_session_of_the_orchestra_walk_agent",
+    "orchestra.solution": "tests/test_orchestra_solution.py::test_the_team_is_a_session_of_the_orchestra_solution_agent",
     "twin": "tests/test_twin_runs.py::test_the_run_is_a_session_of_the_twin_agent",
 }
 
@@ -46,7 +47,8 @@ PROBES = {
 TOOL_CALLERS = {("dclab_rnd/agents/runtime.py", "_run"), ("dclab_rnd/agents/registry.py", "Registry.acall"),
                 ("dclab_rnd/intern/loop.py", "Intern._step"), ("dclab_rnd/intern/tools.py", "Toolbox.call"),
                 ("dclab_rnd/draft/chat.py", "HomeAgent.run_tool"), ("dclab_rnd/mcp_server.py", "build_server.call_tool"),
-                ("dclab_rnd/agentic/engine.py", "build_graph.execute")}
+                ("dclab_rnd/agentic/engine.py", "build_graph.execute"),
+                ("dclab_rnd/orchestra/solution.py", "SolutionTeam.compose")}  # 28.5: the team's compose step records the run_programme call it makes
 SKIP = ("dclab_rnd/agent_eval/",)  # measurement harnesses: they drive the agents, they are not entry points
 
 

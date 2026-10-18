@@ -71,6 +71,8 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     # 29.2: table-level homework (benchgen v2), as counts and flags (never a value)
     "integer_valued": (FLAG, ()), "date_columns": (COUNT, ()), "id_columns": (COUNT, ()), "repeat_share": (RATIO, ()),
     "key_unique": (FLAG, ()), "reason_like": (FLAG, ()), "status_constant": (FLAG, ()), "name_says_cases": (FLAG, ()),
+    # 28.5: the auditor's screen, a column alone against the confirmed cases on the training rows (2·|AUC − 0.5|)
+    "separation": (RATIO, ()),
     # the workflow
     "stage": (CODE, ()), "move": (CODE, ()), "from_state": (CODE, ()), "to_state": (CODE, ()), "agent": (CODE, ()),
     "pack": (CODE, ()), "kind": (CODE, ()), "metric": (CODE, ()), "strategy": (CODE, ()), "step": (COUNT, ()),

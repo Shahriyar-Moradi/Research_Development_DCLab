@@ -1,0 +1,255 @@
+{
+ "package": "28.5",
+ "title": "The solution team: parts routed in parallel, an auditor before the holdout, the person at every decision",
+ "date": "2026-10-18",
+ "request": "Phase 6 (the owner): the solution multi-agents (router, planner, the engine through the validator, critic rounds, compose and programme, the report) on LangGraph, enhancing what exists; capture everything.",
+ "spec": "docs/guides/PHASE6_MULTI_AGENT_PLAN.md, package 28.5 and D3",
+ "plan": [
+  "A team graph on a project's thread whose nodes call the studio's modules.",
+  "Route the parts in parallel with the programme's own router.",
+  "An auditor with send-back before the holdout is read.",
+  "The person's decisions as pauses; every node a step; the record kept.",
+  "The programme journeys through the team."
+ ],
+ "decisions": [
+  {
+   "decision": "The auditor screens each column alone on the fit rows only.",
+   "why": "Screening on validation or holdout rows would choose columns by the rows that judge them; a column that alone separates the confirmed cases almost perfectly is usually written after the outcome."
+  },
+  {
+   "decision": "The auditor never forbids: the person decides through a new person's move, forbid_columns.",
+   "why": "A leak is a judgement about when a column is written; the screen is evidence, the person owns the decision, and the validator refuses an agent."
+  },
+  {
+   "decision": "Every screened column is a feature.leakage_suspect decision, a suspect with the person's answer.",
+   "why": "The screens become a student's homework with both answers, and a person who keeps a suspect contradicts the rule: a label."
+  },
+  {
+   "decision": "The designer takes the team's routes; refresh_plan stays the one place a plan is drawn.",
+   "why": "Enhance, never replace: the parallel routes are the same router's answers, so the plan is the one the direct call draws."
+  },
+  {
+   "decision": "Reading the holdout is an approval; the approval and the run share a node, every other pause its own.",
+   "why": "A node re-runs on resume: a run after a later pause would read the holdout twice."
+  }
+ ],
+ "change": "dclab_core/auditor.py (dclab-core 0.69.0, AuditVerdict v1, the state field separation); dclab_rnd/studio/leak_audit.py; the graph move forbid_columns; programme.plan_card and refresh_plan(routes=); capture.leak_screened; dclab_rnd/orchestra/solution.py (SolutionTeam, drive); agent orchestra.solution; the programme journeys' --team arm.",
+ "findings": [
+  {
+   "id": "E1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A column forbidden as the solution writes it was read by every programme leaf.",
+   "scenario": "A {column, reason} record in the forbidden list became its text in excluded(), so the column stayed a measure.",
+   "cause": "str() of each entry.",
+   "fix": "Read the record's column (committed apart, 52d0016).",
+   "test": "test_a_column_forbidden_as_the_solution_writes_it_never_reaches_a_leaf"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The walk ended after the design.",
+   "scenario": "The fan-out left next at route and the designer set none, so the edge after it ended the walk.",
+   "cause": "A node that returns no next inherits the last one.",
+   "fix": "The designer hands back to situate.",
+   "test": "test_the_team_is_a_session_of_the_orchestra_solution_agent"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The screen's decisions were refused by the ledger.",
+   "scenario": "Every screened column's record was refused: task 'classification' is not one of its bands.",
+   "cause": "The state used the family's word, not the ledger's task band.",
+   "fix": "binary_classification, the ledger's band.",
+   "test": "test_the_team_is_a_session_of_the_orchestra_solution_agent"
+  },
+  {
+   "id": "T3",
+   "source": "test",
+   "severity": "gap",
+   "defect": "A planted leak named settled_amount never reached the auditor.",
+   "scenario": "The data card's name rule marked it a leak suspect and kept it out by itself.",
+   "cause": "The test's leak had a name the card already catches.",
+   "fix": "The planted leak has a neutral name (basket_total): what the screen exists for.",
+   "test": "test_a_planted_leak_is_sent_back_and_kept_out_before_the_holdout"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A second run trusted the first run's audit and approval: a table re-uploaded with a leak was read by the leaves and the holdout opened.",
+   "scenario": "Run 1 screened clean and the person declined the holdout; the export came back with basket_total; run 2 skipped the audit, asked only the holdout, and two leaves read the leak.",
+   "cause": "The checkpoint kept the run's booleans (routed, designed, audited, approved); situate trusted them and never looked at the project.",
+   "fix": "Each step keeps a fingerprint of what it read (the tables, labels, columns kept out, budget): a change makes it old and the team does it again; a new run starts a fresh thread; an open pause is returned.",
+   "test": "test_a_table_changed_after_a_run_is_screened_again_before_its_holdout"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A person's keep-out was wiped by a routine label upload.",
+   "scenario": "A suspect kept out, then a fresh label file attached: the column was no longer excluded.",
+   "cause": "The ban was written into the suggestion, which attach_labels rebuilds and attach_data clears.",
+   "fix": "The person's bans have their own field (forbidden_by_person), read by excluded(), cleared by no upload.",
+   "test": "test_a_persons_ban_outlives_a_new_label_file"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The person's approval to read the holdout was not the project's approval of the gate.",
+   "scenario": "With the policy requiring a holdout approval the team's run was refused after the person approved; without it, the read left no approval in the audit trail.",
+   "cause": "The team took the answer from the pause and ran as an agent without recording the gate.",
+   "fix": "The person's answer is recorded with approve_gate(holdout, by person); the agent's run uses it.",
+   "test": "test_the_persons_approval_is_the_projects_approval_of_the_holdout"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An error in the audit crashed the graph.",
+   "scenario": "A table too short for the split raised in the audit; compose's graceful path was never reached.",
+   "cause": "The audit node caught nothing.",
+   "fix": "AuditError and ProgrammeError stop the walk with the reason; a refused forbid stops it too.",
+   "test": "tests/test_orchestra_solution.py"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The round counter counted audits, not send-backs; a restart while a pause waited screened again.",
+   "scenario": "Three starts while the audit question was open stopped the run without the person answering.",
+   "cause": "run() started the graph whatever was open; the audit counted itself.",
+   "fix": "An open pause is returned when started again; the rounds count send-backs.",
+   "test": "test_a_start_while_a_pause_waits_returns_the_pause_and_redoes_nothing"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The programme could run a plan other than the one screened.",
+   "scenario": "With a router model serving, programme.run routed every part again after the audit and the approval.",
+   "cause": "run() always redrew the plan from a fresh routing.",
+   "fix": "run(routes=) and the registry tool's keep_plan: the plan that runs is the one drawn and screened.",
+   "test": "test_a_programme_journey_reaches_the_same_result_through_the_team"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The audit's save could revert a table attached during the screen.",
+   "scenario": "The project read before the screen was saved after it.",
+   "cause": "No re-read before the write.",
+   "fix": "The project is read again before the verdict is saved.",
+   "test": "tests/test_orchestra_solution.py"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A crash after a saved run ended in a misleading stop.",
+   "scenario": "A resumed compose ran again; the validator refused the second read and the team stopped saying the programme did not run.",
+   "cause": "compose did not look at what the run had saved.",
+   "fix": "compose returns to situate when the stored programme already read the holdout on these inputs.",
+   "test": "tests/test_orchestra_solution.py"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The separation field gave the rule's answer away to a student.",
+   "scenario": "Only suspects had separation; every 'no' record lacked it.",
+   "cause": "The screen returned scores for suspects only.",
+   "fix": "Every screened column's AUC kept in the verdict and recorded.",
+   "test": "test_a_column_that_alone_separates_the_cases_is_a_suspect_and_every_column_is_scored"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The whole verdict was not kept permanently.",
+   "scenario": "The project kept the last 12 verdicts; the steps kept the verdict's word.",
+   "cause": "A cap and a summary.",
+   "fix": "Every verdict kept whole in the project and in the audit step's result.",
+   "test": "tests/test_orchestra_solution.py"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Clean columns were recorded again at every audit.",
+   "scenario": "The leak test wrote every clean column twice.",
+   "cause": "Each audit recorded every unflagged column.",
+   "fix": "Once for each set of inputs.",
+   "test": "tests/test_orchestra_solution.py"
+  },
+  {
+   "id": "R12",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "An audit pass cleared the plan's blockers on the board.",
+   "scenario": "After the audit the board showed no blocker while a part could not run.",
+   "cause": "The audit replaced the blockers with the suspects.",
+   "fix": "The plan's blockers kept, the suspects added.",
+   "test": "test_the_board_after_the_audit_keeps_the_plans_blockers"
+  },
+  {
+   "id": "R13",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The related tables' columns are not screened.",
+   "scenario": "A leak in the accounts table passes the audit.",
+   "cause": "The screen reads the main table's measures.",
+   "fix": "Said in every verdict's note and in the status; screening the links leaf's features is left.",
+   "test": "tests/test_orchestra_solution.py"
+  },
+  {
+   "id": "R14",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Several paths were untested; the parallel and resume tests would pass on a broken implementation.",
+   "scenario": "A sequential loop passed the parallel test; the resume reused the saver.",
+   "cause": "Tests counted steps and stayed in one process.",
+   "fix": "Tests for each path; the fan-out returns one Send a part; a resume in a subprocess; the screen's unit tests.",
+   "test": "tests/test_orchestra_solution.py"
+  },
+  {
+   "id": "R15",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The builder was not called through the registry.",
+   "scenario": "The team called programme.run directly.",
+   "cause": "No registry tool ran a programme.",
+   "fix": "The tool run_programme (scope project, move run_programme, its guard the validator); the team calls it.",
+   "test": "tests/test_agents_runtime.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the dev programme journeys through the team (JPR-005)",
+   "gate": "the programme journeys' gate (24.8): right on the card, the workflow, the pipeline and the holdout, no move refused, no holdout read twice; the same parts as the direct rules arm (JPR-001)",
+   "fixed_before_run": true,
+   "result": "6 of 6 right (95% interval 0.61 to 1.0), 0 moves refused, 0 holdouts read twice; every part as the direct path's: card 6/6, workflow 6/6, pipeline 5/5, holdout 5/5; JP-03 dropped its blocked part through the person's question; the routes the direct path draws",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "Met: the team reaches what the direct calls reach.",
+   "limits": [
+    "Six written people on one replica; the sealed programme journeys (2 of 10 for the rules) are where the capability falls short, which the team does not change by itself.",
+    "The auditor raised no suspect on these replicas: the send-back is shown by the planted-leak tests."
+   ]
+  }
+ ],
+ "outcome": "A programme is solved by a team that routes its parts in parallel, audits for leaks before anything is read, and puts every decision to the person, with nothing of the studio rewritten.",
+ "lessons": [
+  "A screen that decides nothing still needs the rows it reads chosen as carefully as a model's: the fit rows only.",
+  "When a framework re-runs a node on resume, put a run that must happen once in the node of the pause that allows it.",
+  "A checkpoint remembers what a step decided, never what it read: keep a fingerprint of the inputs with every decision a later run may trust.",
+  "A person's decision needs its own field: a field another step rebuilds will lose it."
+ ],
+ "risks": [
+  "The screen's bar (0.98) is fixed, not measured: a real signal that clean would be shown as a suspect, and the person decides."
+ ],
+ "commits": []
+}
