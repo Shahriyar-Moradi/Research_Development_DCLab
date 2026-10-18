@@ -1,0 +1,722 @@
+[
+ {
+  "id": "JS5-01",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "words": "We run a same-day parcel service: shops book a motorbike courier through our app and we pay the courier a fare per drop. A handful of couriers are gaming it, booking jobs from their own phone and delivering to themselves, or logging trips that start and end on the same corner. Finance keeps the confirmed cases in known_frauds.csv. I want to catch more of them before payday.",
+  "answers": {
+   "target": "Whether a ride is one of the frauds. Every ride listed in known_frauds.csv counts as fraud; its reason column says which trick it was, fake_trip or self_delivery.",
+   "prediction_moment": "After the ride is marked DELIVERED, when we go through the previous day's rides before the courier payout.",
+   "entity": "The ride, by order_id, but the person cheating is the courier behind it, the biker_id.",
+   "labels": "Only the ones finance confirmed, about a hundred rides in that file. Anything not in it we treated as fine, though some surely slipped past us.",
+   "budget": "Our two auditors can check roughly half a percent of the rides, so nine or ten a day.",
+   "action": "The auditors open the flagged rides and freeze that courier's fare until it is explained.",
+   "family": "Find the few cheating rides among thousands of honest ones.",
+   "data_plan": "rides.csv with every ride (created_date, account_id, biker_id, biker_phone, sender_phone, the source and destination coordinates, biker_fare, category, status) and known_frauds.csv."
+  }
+ },
+ {
+  "id": "JS5-02",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "words": "Our riders get paid per completed drop, and the payout bill on one corporate account keeps creeping up. I'm fairly sure some of those drops never physically happened. Our security guy keeps a list of the ones he could prove, nothing more. Can you tell me where to look each morning?",
+  "answers": {
+   "target": "Not sure what you'd call it. A drop we paid for that was a scam: the rider sent it to himself, or the trip didn't really go anywhere. The list from security is known_frauds.csv.",
+   "prediction_moment": "In the morning, when we go over the drops from the day before. They're all delivered by then.",
+   "entity": "Hmm, the drop I suppose, the order_id. Though in the end it's the rider we act on.",
+   "labels": "Only what security caught and could prove, around a hundred. He never looked properly at most days.",
+   "budget": "Ten-ish a day, he can't do more next to his other work.",
+   "action": "He calls the rider and the sender; if the story doesn't add up the payout for that drop is cancelled.",
+   "family": "A fraud detector, I guess? Spotting the scam drops.",
+   "data_plan": "The full ride export, rides.csv, and his known_frauds.csv. The account_id column tells you which client a ride was for."
+  }
+ },
+ {
+  "id": "JS5-03",
+  "kind": "binary",
+  "family": "classification",
+  "words": "I run a recipe and meal-planning app with three paid plans. About one in five subscribers drops off at renewal and I'd like to see it coming. The export has a churned column with yes or no.",
+  "answers": {
+   "target": "churned, yes or no. Yes means they didn't renew.",
+   "prediction_moment": "Shortly before their renewal date, while they're still paying.",
+   "entity": "Each subscriber, the subscriber_id.",
+   "labels": "Every subscriber in the file has churned filled in; it's all past renewals.",
+   "budget": "We could personally email maybe two hundred a month.",
+   "action": "Send the ones at risk a discount code or a personal note from me.",
+   "family": "Predict yes or no: will they leave.",
+   "data_plan": "One export: subscriber_id, signup_time, plan, monthly_fee, tenure_months, support_calls, late_payments, final_refund_amount and churned."
+  }
+ },
+ {
+  "id": "JS5-04",
+  "kind": "binary",
+  "family": "classification",
+  "words": "We sell monthly mobile data plans online: basic, plus and pro. What worries me is the people who quietly walk away when their plan comes up; we usually only notice when the refund goes out. Retention wants a heads-up.",
+  "answers": {
+   "target": "The ones who leave us. There's a column, churned, I think it says yes or no.",
+   "prediction_moment": "When their renewal comes up, before they've made up their mind.",
+   "entity": "A subscriber; one line per subscriber_id.",
+   "labels": "Yes, churned is filled in for everyone, it's history.",
+   "budget": "Retention is three people on the phones, a few hundred calls a month at most.",
+   "action": "Call the risky ones and offer a cheaper plan or extra data.",
+   "family": "No idea of the technical word. Telling apart who stays and who goes.",
+   "data_plan": "The customer export with signup_time, plan, monthly_fee, tenure_months, support_calls, late_payments, final_refund_amount and churned."
+  }
+ },
+ {
+  "id": "JS5-05",
+  "kind": "multiclass",
+  "family": "classification",
+  "words": "We host online shops for about seven hundred small merchants, and all their support tickets land in one inbox. Someone spends half the morning just deciding which team each ticket belongs to. I want each ticket routed to the right team as soon as it's created.",
+  "answers": {
+   "target": "assigned_team, the team that ended up owning the ticket. There are twelve of them.",
+   "prediction_moment": "The moment the ticket is created, before anyone has read or answered it.",
+   "entity": "The ticket, ticket_id. One merchant (customer_id) can send lots of them.",
+   "labels": "Every past ticket has its assigned_team. A few teams, legal and security for example, hardly ever get one.",
+   "budget": "No limit, it would run on every ticket.",
+   "action": "Drop the ticket straight into that team's queue; a wrong one costs a re-route and an annoyed merchant.",
+   "family": "Pick one of the twelve teams for each ticket.",
+   "data_plan": "The ticket export: ticket_id, created_at, customer_id, plan, channel, product_area, subject_words, body_words, has_attachment, the mentions_ flags, resolved_by, first_response_minutes and assigned_team."
+  }
+ },
+ {
+  "id": "JS5-06",
+  "kind": "multiclass",
+  "family": "classification",
+  "words": "Designers sell their prints and mugs through us and we ship the parcels for them. Their help requests come in by email, chat, a web form or phone and sit for hours before the right people see them. Some belong to billing, some to shipping, some to the app people; there are a dozen desks in total.",
+  "answers": {
+   "target": "Which desk it should go to. In the export I believe that's assigned_team.",
+   "prediction_moment": "When the request lands, before anybody has touched it.",
+   "entity": "One help request, the ticket_id.",
+   "labels": "We know the desk for all the old ones. Integrations, legal and security get very few.",
+   "budget": "Not really a budget thing, every request needs a desk.",
+   "action": "Route it automatically; if the guess is shaky, leave it for the coordinator.",
+   "family": "Sorting requests into desks.",
+   "data_plan": "The help-desk export with created_at, customer_id, plan, channel, product_area, the word counts, the mentions_ checkboxes, has_attachment, resolved_by, first_response_minutes and assigned_team."
+  }
+ },
+ {
+  "id": "JS5-07",
+  "kind": "regression",
+  "family": "regression",
+  "words": "We're a food ordering app in a mid-sized city, about three hundred restaurants on it. The arrival time we show customers is a guess and we get a lot of angry chats when it's off. I'd like to predict actual_minutes for each order.",
+  "answers": {
+   "target": "actual_minutes, from the order being placed to the food at the door.",
+   "prediction_moment": "At checkout, when the customer places the order and before a courier is assigned.",
+   "entity": "Each order, order_id; the restaurant is restaurant_id.",
+   "labels": "Every order in the file has actual_minutes. I think the system stops counting at 60, though.",
+   "budget": "Doesn't apply, it runs on every order.",
+   "action": "Show the predicted minutes on the checkout screen.",
+   "family": "Estimating a number of minutes.",
+   "data_plan": "The orders file: order_id, order_time, restaurant_id, distance_km, couriers_online, weather, basket_items, order_value, delivered_at, courier_rating and actual_minutes."
+  }
+ },
+ {
+  "id": "JS5-08",
+  "kind": "regression",
+  "family": "regression",
+  "words": "We supply couriers to restaurants that don't have their own. The restaurants keep asking how long until the food reaches their customer, and our dispatchers just say half an hour to everyone. Rain makes it all worse, obviously.",
+  "answers": {
+   "target": "How long the trip takes, start to finish. There's actual_minutes in the export, I believe that's it.",
+   "prediction_moment": "When the order comes in from the restaurant, before we've picked a courier.",
+   "entity": "The order. Each restaurant has its restaurant_id.",
+   "labels": "We have the real time for every past order. A few distances look weird, some are even negative.",
+   "budget": "No budget, every order gets an estimate.",
+   "action": "Send the restaurant the estimate with the order confirmation so they can tell their customer.",
+   "family": "Predict the minutes, a number.",
+   "data_plan": "The dispatch export: order_time, restaurant_id, distance_km, couriers_online, weather (sometimes empty), basket_items, order_value, delivered_at, courier_rating, actual_minutes."
+  }
+ },
+ {
+  "id": "JS5-09",
+  "kind": "places",
+  "family": "regression",
+  "words": "We run a flat listing site in Tehran. Owners keep typing in prices that are way off, so listings either sit for months or go in a day. I want a fair price for each flat from where it is, its size, rooms and age.",
+  "answers": {
+   "target": "The price column.",
+   "prediction_moment": "When an owner creates the listing; we know lat, lon, size_m2, rooms and age_years at that point.",
+   "entity": "Each flat, one row per flat.",
+   "labels": "All 3000 flats in the file have a price.",
+   "budget": "Not relevant.",
+   "action": "Show the owner a suggested price range next to the one they typed.",
+   "family": "Estimate a price, a number.",
+   "data_plan": "One table: lat, lon, size_m2, rooms, age_years, price."
+  }
+ },
+ {
+  "id": "JS5-10",
+  "kind": "places",
+  "family": "regression",
+  "words": "We make cash offers on apartments so owners don't have to wait for a buyer. Offer too much and we lose money when we resell; too little and they walk away. The neighbourhood matters a lot, two streets apart can be a different world.",
+  "answers": {
+   "target": "What the apartment is worth; that's the price column.",
+   "prediction_moment": "When the owner fills in our request form with the location, size and rooms, before an agent visits.",
+   "entity": "The apartment.",
+   "labels": "We have a price for every one of the 3000 we've looked at.",
+   "budget": "We can't visit everyone, but the estimate itself would run for everyone.",
+   "action": "Base our first offer on it; an agent confirms it on the visit.",
+   "family": "Valuing a property from where it is and what it has.",
+   "data_plan": "A file with lat and lon, size_m2, rooms, age_years and price."
+  }
+ },
+ {
+  "id": "JS5-11",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "words": "We sell our own clothing line online: dresses, knitwear, tops and trousers. Customers leave written reviews, and we want to catch the negative ones fast so someone answers before it snowballs. The negative column is 1 when the review was bad.",
+  "answers": {
+   "target": "negative, 1 or 0.",
+   "prediction_moment": "As soon as the review is posted, before our team writes a reply.",
+   "entity": "Each review, review_id.",
+   "labels": "All 2500 reviews are marked.",
+   "budget": "Our community manager can handle maybe thirty urgent ones a day.",
+   "action": "Put the likely negative ones at the top of her queue.",
+   "family": "Read the review text and say bad or not.",
+   "data_plan": "The reviews export: review_id, category, price, past_reviews, review_text, shop_reply, negative."
+  }
+ },
+ {
+  "id": "JS5-12",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "words": "We're a small boutique reselling clothes from independent designers. Every week a few unhappy customers write long rants under a product, and by the time I see them the damage is done. I'd love to know which ones are going to be trouble just from what they wrote.",
+  "answers": {
+   "target": "The unhappy ones. I tagged them; I think the column is called negative, 1 for unhappy.",
+   "prediction_moment": "When the review shows up on the site, before we reply.",
+   "entity": "A review.",
+   "labels": "Every review has the tag, I went through them by hand last winter.",
+   "budget": "I can deal with a handful a day myself.",
+   "action": "Reply personally and offer a return or a refund.",
+   "family": "Something that reads text. Unhappy or fine.",
+   "data_plan": "The product reviews: review_text, the category, the price, how many past_reviews the customer had left, our shop_reply, and the negative tag."
+  }
+ },
+ {
+  "id": "JS5-13",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "words": "We deliver groceries from partner shops with freelance riders on motorbikes. Nobody has ever checked the rides properly, but some fares look too high and some riders do strange trips. I don't have a single confirmed case, I just want the weird ones pulled out of each day's rides.",
+  "answers": {
+   "target": "There isn't one, really. Rides that look odd compared with the rest.",
+   "prediction_moment": "After the day is over, in a review of that day's delivered rides.",
+   "entity": "Each ride (order_id), and the rider behind it, biker_id.",
+   "labels": "None. We've never marked a ride as fraud or as fine.",
+   "budget": "I can look at twenty rides a day, no more.",
+   "action": "Check those twenty and call the rider if something's off.",
+   "family": "Finding outliers without any examples.",
+   "data_plan": "The rides export: created_date, account_id, biker_id, biker_phone, sender_phone, the source and destination lat/lon, biker_fare, category, status, order_id."
+  }
+ },
+ {
+  "id": "JS5-14",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "words": "Our courier costs jumped this month and the number of parcels didn't. Something in the daily rides isn't right, but I can't tell you what. There's no list of bad rides; nobody has ever investigated one.",
+  "answers": {
+   "target": "I don't know yet, that's the point. Whatever rides look unusual.",
+   "prediction_moment": "Each evening, once the day's deliveries are done.",
+   "entity": "The rides, and probably the riders behind them (biker_id).",
+   "labels": "Nothing. Not one ride has been checked.",
+   "budget": "Maybe fifteen a day for our ops lead.",
+   "action": "She pulls up the flagged rides and asks the rider and the sender about them.",
+   "family": "Not sure. Spot what's strange?",
+   "data_plan": "One file of delivered rides: the rider's and the sender's phone, the pickup and drop-off coordinates, biker_fare, category, the account_id it was for and the created_date."
+  }
+ },
+ {
+  "id": "JS5-15",
+  "kind": "forecasting",
+  "family": "forecasting",
+  "words": "We have four bakeries and bake five main products every day. We throw bread away when we bake too much and lose sales when we bake too little. I want next week's daily units for each shop and product, planned on Sunday evening.",
+  "answers": {
+   "target": "units, how many we sold that day.",
+   "prediction_moment": "Sunday evening, for the seven days ahead.",
+   "entity": "Each shop and product pair; the series column joins them, like S1-P1.",
+   "labels": "We have units for every day since March.",
+   "budget": "No budget.",
+   "action": "The head baker sets the dough quantities for the week.",
+   "family": "Forecasting daily sales.",
+   "data_plan": "A daily table: store, product, date, on_promotion (planned weeks ahead), rain_mm, units, series."
+  },
+  "solution": {
+   "kind": "forecasting",
+   "time_column": "date",
+   "kind_fields": {
+    "series_column": "series",
+    "horizon": 7,
+    "season": 7
+   }
+  }
+ },
+ {
+  "id": "JS5-16",
+  "kind": "forecasting",
+  "family": "forecasting",
+  "words": "I own four juice bars and we squeeze five signature drinks. Every Sunday I order fruit for the whole week and I'm either short by Thursday or composting crates by Saturday. Rainy days and our two-for-one days change everything.",
+  "answers": {
+   "target": "How many of each drink we'll sell, day by day. The column is units.",
+   "prediction_moment": "Sunday night, before I place the fruit order, covering Monday to Sunday.",
+   "entity": "Each bar and each drink: store and product, and there's a combined series code.",
+   "labels": "Sales are recorded every day, nothing missing as far as I know.",
+   "budget": "Not applicable.",
+   "action": "Order fruit to match, with a small buffer.",
+   "family": "A forecast for the week.",
+   "data_plan": "Daily sales by store and product with the date, the on_promotion flag (we plan those a month ahead) and rain_mm, which we copy from the weather station at the end of each day."
+  },
+  "solution": {
+   "kind": "forecasting",
+   "time_column": "date",
+   "kind_fields": {
+    "series_column": "series",
+    "horizon": 7,
+    "season": 7
+   }
+  }
+ },
+ {
+  "id": "JS5-17",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "words": "We run climbing gyms with three membership levels. On the day someone signs up, I want to know how long they're likely to keep paying. Plenty of members are still with us, so for them I only know how long they've been around so far.",
+  "answers": {
+   "target": "days_subscribed, with cancelled saying whether they actually left (1) or are still a member (0).",
+   "prediction_moment": "At signup, before the first monthly bill.",
+   "entity": "Each member, subscriber_id.",
+   "labels": "Everyone has days_subscribed; cancelled is 0 for people still climbing with us.",
+   "budget": "None.",
+   "action": "Members expected to leave early get a free coaching session in their first month. I care about three months, six months and a year, per plan.",
+   "family": "How long until they cancel.",
+   "data_plan": "The members export: subscriber_id, signup_date, plan, signup_discount, signup_week_calls, age, months_billed, tickets_so_far, days_subscribed, cancelled."
+  },
+  "solution": {
+   "kind": "time_to_event",
+   "time_column": null,
+   "kind_fields": {
+    "duration_column": "days_subscribed",
+    "event_column": "cancelled",
+    "start_column": "signup_date",
+    "horizons": [
+     90,
+     180,
+     365
+    ],
+    "group_column": "plan"
+   }
+  }
+ },
+ {
+  "id": "JS5-18",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "words": "We sell audiobook subscriptions, basic, plus and pro. Finance wants a lifetime estimate for every new listener so they know how much we can spend to win one. Lots of people are still subscribed, so we don't know where they'll end.",
+  "answers": {
+   "target": "How long they'll stick around. There's days_subscribed, and cancelled tells you if they've gone.",
+   "prediction_moment": "The day they join, nothing billed yet.",
+   "entity": "A listener, subscriber_id.",
+   "labels": "For the ones who left we know when. The others are still running.",
+   "budget": "No.",
+   "action": "Finance sets the acquisition spend per plan from it; three months, half a year and a year are the numbers they ask about.",
+   "family": "Not sure. Estimating the time until they leave?",
+   "data_plan": "One subscriber table: subscriber_id, signup_date, plan, signup_discount, signup_week_calls, age, months_billed, tickets_so_far, days_subscribed, cancelled."
+  },
+  "solution": {
+   "kind": "time_to_event",
+   "time_column": null,
+   "kind_fields": {
+    "duration_column": "days_subscribed",
+    "event_column": "cancelled",
+    "start_column": "signup_date",
+    "horizons": [
+     90,
+     180,
+     365
+    ],
+    "group_column": "plan"
+   }
+  }
+ },
+ {
+  "id": "JS5-19",
+  "kind": "embedded",
+  "family": [
+   "text_or_images",
+   "classification"
+  ],
+  "words": "Our app helps plumbing and heating firms schedule their crews, and the support inbox gets notes all day. Most are feature ideas and questions, but a few say data was lost or nobody can log in, and those can't wait. I'd like each note flagged urgent or not when it arrives.",
+  "answers": {
+   "target": "urgent, 1 when it couldn't wait.",
+   "prediction_moment": "When the note reaches the inbox, before anyone reads it.",
+   "entity": "Each note, the item number. The author is the customer contact, and some write lots of notes.",
+   "labels": "Our support lead marked all 312 notes in the file.",
+   "budget": "No cap, every note gets a flag.",
+   "action": "Urgent notes ring the on-call phone; the rest wait for office hours.",
+   "family": "Read the note's text and decide urgent or not.",
+   "data_plan": "A small file with item, author, urgent and the text of each note."
+  },
+  "solution": {
+   "kind": "embedded",
+   "kind_fields": {
+    "source_column": "author",
+    "item_kind": "text",
+    "text_column": "text"
+   },
+   "identifiers": [
+    "item"
+   ]
+  }
+ },
+ {
+  "id": "JS5-20",
+  "kind": "embedded",
+  "family": [
+   "text_or_images",
+   "classification"
+  ],
+  "words": "We make bookkeeping software for small accounting offices. When something breaks for them at month end it's a real emergency, but it sits in the same inbox as 'could you add a button'. Can you help us sort the messages?",
+  "answers": {
+   "target": "Whether it's an emergency. We called it urgent in the sheet, 1 or 0.",
+   "prediction_moment": "When the message comes in.",
+   "entity": "The message, its item number. The author is the customer, and people sometimes send the same message twice.",
+   "labels": "Every message in the sheet is marked.",
+   "budget": "We don't have a number.",
+   "action": "Emergencies go straight to the engineer on duty.",
+   "family": "Text classification, I'd guess?",
+   "data_plan": "The message sheet: item, author, text, urgent."
+  },
+  "solution": {
+   "kind": "embedded",
+   "kind_fields": {
+    "source_column": "author",
+    "item_kind": "text",
+    "text_column": "text"
+   },
+   "identifiers": [
+    "item"
+   ]
+  }
+ },
+ {
+  "id": "JS5-21",
+  "kind": "streams",
+  "family": "streams",
+  "words": "We run 24 injection moulding presses with temperature, vibration and pressure sensors logging every hour. When a press breaks down mid-run we lose the whole batch. I want a warning a day or two before a press fails, and we keep a list of when each one failed.",
+  "answers": {
+   "target": "A breakdown within the next two days or so; the failures are in the incidents table, machine and failed_at.",
+   "prediction_moment": "Every six hours, for each press.",
+   "entity": "Each press, the machine column, M00 to M23.",
+   "labels": "The incidents list has every failure since January, around fifty.",
+   "budget": "Maintenance can respond to two or three alerts a day.",
+   "action": "Schedule a stop and swap the worn part before it fails.",
+   "family": "Early warning from sensor readings.",
+   "data_plan": "The hourly sensor log (machine, time, temperature, vibration, pressure) and the incidents table (machine, failed_at)."
+  },
+  "solution": {
+   "kind": "streams",
+   "kind_fields": {
+    "unit_column": "machine",
+    "time_column": "time",
+    "sensor_columns": [
+     "temperature",
+     "vibration",
+     "pressure"
+    ],
+    "incident_time_column": "failed_at"
+   }
+  }
+ },
+ {
+  "id": "JS5-22",
+  "kind": "streams",
+  "family": "streams",
+  "words": "We rent industrial air compressors to quarries and building sites, 24 units with telemetry. When one dies on site the customer is furious and we pay for an emergency truck. Readings arrive every hour; the breakdown dates are in a separate list.",
+  "answers": {
+   "target": "Whether a unit is about to give up. A couple of days' warning, 48 hours, would be plenty.",
+   "prediction_moment": "We'd check about four times a day for each unit.",
+   "entity": "The compressor, the machine column.",
+   "labels": "Only the breakdowns we had to send a truck for; that's the incidents list with machine and failed_at. Fifty-something since New Year.",
+   "budget": "We can send a technician out maybe twice a day.",
+   "action": "Swap the unit or service it on site before it fails.",
+   "family": "Predictive maintenance, maybe?",
+   "data_plan": "Hourly readings per machine with time, temperature, vibration and pressure, plus the incidents file."
+  },
+  "solution": {
+   "kind": "streams",
+   "kind_fields": {
+    "unit_column": "machine",
+    "time_column": "time",
+    "sensor_columns": [
+     "temperature",
+     "vibration",
+     "pressure"
+    ],
+    "incident_time_column": "failed_at"
+   }
+  }
+ },
+ {
+  "id": "JS5-23",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "words": "We run an online grocery app in Tehran, Shiraz and Tabriz. At each month end I want to know which customers won't order anything in the next 30 days, so we can win them back first. I have a customers table, an orders table, the support tickets and their delivery addresses.",
+  "answers": {
+   "target": "No order from the customer in the 30 days after the cutoff date; you'd work it out from ordered_at in the orders table.",
+   "prediction_moment": "On each month-end cutoff, using only what happened before it.",
+   "entity": "The customer, customer_id.",
+   "labels": "There's no ready-made column; it comes from the orders table.",
+   "budget": "Marketing can send a voucher to about two hundred customers a month.",
+   "action": "Send a voucher to the ones likely to go quiet.",
+   "family": "Predict which customers stop ordering, using several tables.",
+   "data_plan": "customers (customer_id, signup_date, plan, region, last_order_date, lifetime_orders), orders (customer_id, ordered_at, amount), tickets (customer_id, opened_at, severity) and addresses (customer_id, city)."
+  },
+  "solution": {
+   "kind": "entity_tables",
+   "kind_fields": {
+    "key_column": "customer_id",
+    "target_table": "orders",
+    "horizon_days": 30,
+    "absent": true,
+    "cutoffs": [
+     "2025-05-31",
+     "2025-06-30",
+     "2025-07-30",
+     "2025-08-29",
+     "2025-09-28",
+     "2025-10-28",
+     "2025-11-12",
+     "2025-11-27",
+     "2025-12-22"
+    ],
+    "event_tables": [
+     {
+      "name": "orders",
+      "time_column": "ordered_at",
+      "sum_columns": [
+       "amount"
+      ]
+     },
+     {
+      "name": "tickets",
+      "time_column": "opened_at"
+     }
+    ],
+    "joined_tables": [
+     "addresses"
+    ]
+   }
+  }
+ },
+ {
+  "id": "JS5-24",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "words": "We roast coffee and sell the beans online, mostly to people who reorder. Customers never cancel anything, they just go quiet and start buying supermarket coffee. I'd like a list of who's about to drift away, a month ahead.",
+  "answers": {
+   "target": "Someone who buys nothing in the next month. You'd see it in the orders table.",
+   "prediction_moment": "On a fixed date, looking a month ahead; we'd run it every month or so.",
+   "entity": "The customer; customer_id is in every table.",
+   "labels": "No flag anywhere, it has to come from the order dates.",
+   "budget": "We'd email the top hundred or so.",
+   "action": "Email them a reminder with a small discount on their usual beans.",
+   "family": "Not sure. Who's going to stop buying?",
+   "data_plan": "Four exports: customers (signup_date, plan, region, plus last_order_date and lifetime_orders, which our system refreshes every night), orders with ordered_at and amount, support tickets with opened_at and severity, and addresses with the city. One customer can have several addresses."
+  },
+  "solution": {
+   "kind": "entity_tables",
+   "kind_fields": {
+    "key_column": "customer_id",
+    "target_table": "orders",
+    "horizon_days": 30,
+    "absent": true,
+    "cutoffs": [
+     "2025-05-31",
+     "2025-06-30",
+     "2025-07-30",
+     "2025-08-29",
+     "2025-09-28",
+     "2025-10-28",
+     "2025-11-12",
+     "2025-11-27",
+     "2025-12-22"
+    ],
+    "event_tables": [
+     {
+      "name": "orders",
+      "time_column": "ordered_at",
+      "sum_columns": [
+       "amount"
+      ]
+     },
+     {
+      "name": "tickets",
+      "time_column": "opened_at"
+     }
+    ],
+    "joined_tables": [
+     "addresses"
+    ]
+   }
+  }
+ },
+ {
+  "id": "JS5-25",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "words": "We sell cosmetics in our stores, on the web and in our app, and we have a yearly loyalty club. Marketing sends everyone the same newsletter, which is lazy. I'd like to split customers into a handful of groups by how they shop, and then see which groups renew the club.",
+  "answers": {
+   "target": "No single thing to predict, it's grouping. renewed shows whether they renewed the club; use it to describe the groups.",
+   "prediction_moment": "Now, from their history so far, to plan the next campaigns.",
+   "entity": "The customer, customer_id.",
+   "labels": "renewed is filled in for everyone, but nobody has a group yet.",
+   "budget": "Five to seven groups at most, marketing can't write more campaigns than that.",
+   "action": "Write one campaign per group.",
+   "family": "Segmenting customers.",
+   "data_plan": "One table: customer_id, orders_per_month, avg_basket, discount_share, days_since_last_order, channel, region, signup_week, renewed."
+  },
+  "solution": {
+   "kind": "segmentation",
+   "kind_fields": {
+    "outcome_column": "renewed",
+    "max_segments": 7
+   }
+  }
+ },
+ {
+  "id": "JS5-26",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "words": "We're a chain of hardware stores in four regions, with a paid card for builders and keen DIY people. Some buy every week, some only in the sales, some vanished months ago. I want to understand what types we have, so promotions stop going to the wrong crowd.",
+  "answers": {
+   "target": "I don't have one thing to predict, I want the types. Whether they renewed the card (renewed) would be nice to see per type.",
+   "prediction_moment": "No particular moment, today's snapshot.",
+   "entity": "Each cardholder, customer_id.",
+   "labels": "There are no types yet.",
+   "budget": "No more than seven types, or nobody will remember them.",
+   "action": "A different promotion for each type.",
+   "family": "Grouping. Clustering, maybe.",
+   "data_plan": "The cardholder table: orders_per_month, avg_basket, discount_share, days_since_last_order, channel, region, signup_week and renewed."
+  },
+  "solution": {
+   "kind": "segmentation",
+   "kind_fields": {
+    "outcome_column": "renewed",
+    "max_segments": 7
+   }
+  }
+ },
+ {
+  "id": "JS5-27",
+  "kind": "uplift",
+  "family": "uplift",
+  "words": "We run a cinema chain with a membership scheme. Last season we sent a ticket voucher to a random half of our members to see what happens; got_offer marks who got it, and bought says whether they bought tickets afterwards. Now I want to send the voucher only to the people it actually changes.",
+  "answers": {
+   "target": "bought, but what matters is the difference the voucher makes.",
+   "prediction_moment": "When we draw up the list, before any voucher goes out.",
+   "entity": "Each member, customer_id.",
+   "labels": "bought is known for all 20,000 members in the test.",
+   "budget": "We can afford vouchers for about a quarter of the members.",
+   "action": "Send vouchers only to members who buy because of it.",
+   "family": "Who is persuadable: the effect of the voucher.",
+   "data_plan": "The test table: customer_id, age, app_user, past_purchases, tenure_months, region, got_offer, bought. got_offer was a coin flip."
+  },
+  "solution": {
+   "kind": "uplift",
+   "kind_fields": {
+    "treatment_column": "got_offer",
+    "randomised": true
+   }
+  }
+ },
+ {
+  "id": "JS5-28",
+  "kind": "uplift",
+  "family": "uplift",
+  "words": "We tried a free-delivery coupon on a random half of our customer list. Overall buying went up a little, but I suspect we handed free delivery to lots of people who would have bought anyway. Who's worth the coupon next time?",
+  "answers": {
+   "target": "Whether the coupon is what makes them buy. bought is in the file.",
+   "prediction_moment": "Before the next mailing, when we pick the names.",
+   "entity": "A customer, customer_id.",
+   "labels": "We know who bought for everyone in the trial, coupon or not.",
+   "budget": "Not decided, maybe a third of the list.",
+   "action": "Coupon only for the ones it tips over.",
+   "family": "Not sure. Something about who reacts to the coupon?",
+   "data_plan": "The trial file: customer_id, age, app_user, past_purchases, tenure_months, region, got_offer (who got the coupon, picked at random) and bought."
+  },
+  "solution": {
+   "kind": "uplift",
+   "kind_fields": {
+    "treatment_column": "got_offer",
+    "randomised": true
+   }
+  }
+ },
+ {
+  "id": "JS5-29",
+  "kind": "ranking",
+  "family": "ranking",
+  "words": "We sell e-books, about three hundred titles. The home page shows everyone the same bestseller list. I'd like each reader to get their own top ten, based on what they viewed and bought, for the next two weeks.",
+  "answers": {
+   "target": "What each reader buys in the two weeks after the list goes up: a purchase event in the log.",
+   "prediction_moment": "The list goes live on 2025-04-10 and stays up for 14 days.",
+   "entity": "The reader (user_id) and the book (item_id).",
+   "labels": "The event log has every view and purchase since January.",
+   "budget": "Ten books per reader.",
+   "action": "Show those ten on the reader's home page.",
+   "family": "Recommending: ranking the books for each reader.",
+   "data_plan": "The event log (user_id, item_id, time, event) and the items table (item_id, category, price, created_at, lifetime_sales)."
+  },
+  "solution": {
+   "kind": "ranking",
+   "kind_fields": {
+    "user_column": "user_id",
+    "item_column": "item_id",
+    "time_column": "time",
+    "event_column": "event",
+    "relevant_event": "purchase",
+    "moment": "2025-04-10",
+    "window_days": 14,
+    "k": 10,
+    "created_column": "created_at",
+    "category_column": "category"
+   }
+  }
+ },
+ {
+  "id": "JS5-30",
+  "kind": "ranking",
+  "family": "ranking",
+  "words": "We're a specialty tea shop online with a few hundred teas and blends. Our fortnightly newsletter shows the same picks to everybody and hardly anyone clicks. New blends arrive all the time, so the list has to cope with teas nobody has bought yet.",
+  "answers": {
+   "target": "The teas they end up ordering in the fortnight after the newsletter. In the log that's event = purchase; views don't count.",
+   "prediction_moment": "The newsletter that goes out on 2025-04-10, covering the following two weeks.",
+   "entity": "Each customer, user_id, and each tea, item_id.",
+   "labels": "Views and purchases since the start of the year.",
+   "budget": "Ten teas per newsletter.",
+   "action": "Put each person's ten in their newsletter.",
+   "family": "Personal recommendations, I think.",
+   "data_plan": "The clicks log (user_id, item_id, time, event) and the product list, items, with category, price, created_at and lifetime_sales."
+  },
+  "solution": {
+   "kind": "ranking",
+   "kind_fields": {
+    "user_column": "user_id",
+    "item_column": "item_id",
+    "time_column": "time",
+    "event_column": "event",
+    "relevant_event": "purchase",
+    "moment": "2025-04-10",
+    "window_days": 14,
+    "k": 10,
+    "created_column": "created_at",
+    "category_column": "category"
+   }
+  }
+ }
+]

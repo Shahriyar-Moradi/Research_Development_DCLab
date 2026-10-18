@@ -5,14 +5,15 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from typing import Optional
 from pathlib import Path
 
-from . import GATES, SEALED, families, measure, sealed_runs, store, store_compare, verdict
+from . import GATES, PARTS as PARTS_, SEALED, families, measure, sealed_runs, store, store_compare, verdict
 
 
-def main() -> int:
+def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--split", default="dev", choices=("dev", "sealed", "sealed_v2", "sealed_v3", "sealed_v4"))
+    parser.add_argument("--split", default="dev", choices=("dev", "sealed", "sealed_v2", "sealed_v3", "sealed_v4", "sealed_v5"))
     parser.add_argument("--workers", type=int, default=min(4, max(1, (os.cpu_count() or 2) - 1)))  # each one an engine: memory
     parser.add_argument("--only", nargs="*")
     parser.add_argument("--no-store", action="store_true")
@@ -24,9 +25,11 @@ def main() -> int:
     parser.add_argument("--spent", action="store_true", help="read a sealed set already run as dev material: nothing is stored")
     parser.add_argument("--keep", type=Path, default=None, help="with --live-arms: every live journey's whole record copied into DIR/<arm>/<id>/")
     parser.add_argument("--walk", choices=("loop", "graph"), default="loop", help="28.3: the coordinator's loop, or its graph (the orchestration layer)")
+    parser.add_argument("--team-arms", action="store_true", help="28.7: the rules, the single agent (the loop with the conversation reader) and the team "
+                        "(the graph with the reader and the understanding critic's model) on the same people; with --yes and --cap-eur")
     parser.add_argument("--live-arms", action="store_true", help="26.5: the rules, the workflow model alone, and the workflow model with the "
                                                                     "decision models, on dev (with --yes and --cap-eur)")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     sealed = args.split in SEALED
     if args.spent:
         if not (sealed and sealed_runs(args.split)):
@@ -38,6 +41,9 @@ def main() -> int:
         return 2
     if args.split == "sealed_v4" and not args.spent and not args.reader:
         print("the fourth sealed set judges the reader against the rules: run it with --reader, both arms at once")
+        return 2
+    if args.split == "sealed_v5" and not args.spent and not args.team_arms:
+        print("the fifth sealed set judges the team against the rules and the single agent: run it with --team-arms, the three arms at once")
         return 2
     if sealed and (args.only or args.no_store):
         print("the sealed journeys are run whole and stored, once")
@@ -67,6 +73,8 @@ def main() -> int:
         return _reader_arm(args, seed)
     if args.live_arms:
         return _live_arms(args, seed)
+    if args.team_arms:
+        return _team_arms(args, seed)
     rows = measure(args.split, seed, args.workers, args.only, walk=args.walk)
     for r in rows:
         mark = "ok  " if r["right"] else "MISS"
@@ -129,6 +137,95 @@ def _reader_arm(args, seed: int) -> int:
         for arm, rows in by_arm.items():
             print(store(rows, args.split, verdict(rows), arm=arm, seed=seed, spent_eur=spent if arm == "reader" else 0.0,
                         extra={"reader_against_rules": against} if arm == "reader" else None))
+    return 0
+
+
+class _Counted:
+    """An advisor whose failed requests are counted (a role falls back to its rules on one: that is no live arm)."""
+
+    def __init__(self, inner):
+        self.inner, self.failures = inner, 0
+
+    def ask(self, purpose, evidence):
+        try:
+            return self.inner.ask(purpose, evidence)
+        except Exception:
+            self.failures += 1
+            raise
+
+    def __getattr__(self, name):
+        return getattr(self.inner, name)
+
+
+def _team_arms(args, seed: int) -> int:
+    """28.7: three arms on the same people, one after the other in this process (the models' clients live here): the rules
+    (the loop, no model), the single agent (the loop with the conversation reader) and the team (the graph, the same reader
+    and the understanding critic's model). The gate (``TEAM_GATE``) is fixed before the run; each live arm has its own share
+    of the cap; a run in which a request failed is not stored; every live journey's whole record is kept in
+    ``agent_runs/live_tests/<date>_team_arms/<arm>/``."""
+    from datetime import date
+
+    from . import TEAM_GATE, load, play, verdict
+
+    people = [j for j in load(args.split) if not args.only or j["id"] in args.only or j["kind"] in args.only]
+    if args.cap_eur is None or args.cap_eur <= 0:
+        print("refused: the team arms need --cap-eur above zero", file=sys.stderr)
+        return 2
+    if not args.yes:
+        print(f"Plan: {len(people)} people, three arms (the rules; the loop with the conversation reader; the graph with the reader and the "
+              f"understanding critic's model), about 3 to 5 reader requests and 1 to 3 critic requests a person; capped at {args.cap_eur} EUR "
+              f"(the single agent a third, the team two thirds). Gate: {TEAM_GATE['rule']}. Add --yes to send them.")
+        return 0
+    from dotenv import load_dotenv
+
+    from dclab_rnd.core_advisor import GatewayAdvisor
+    from dclab_rnd.draft.reader import reader
+    from dclab_rnd.models.gateway import for_workspace
+    from dclab_rnd.settings import ROOT as ROOT_
+
+    load_dotenv(ROOT_ / ".env", override=False)  # the provider and its key, as the server reads them
+    gateway = for_workspace()
+    single = reader(gateway, cap_eur=args.cap_eur / 3, force=True, prebuild=True)
+    team_reader = reader(gateway, cap_eur=args.cap_eur / 3, force=True, prebuild=True)
+    critic = _Counted(GatewayAdvisor(gateway, cap_eur=args.cap_eur / 3, max_tokens=1200))
+    if single is None or team_reader is None or critic._client("understanding_critic") is None:  # made before the journeys' private scope
+        print("No model serves conversation_reader or understanding_critic: set the provider's key (and leave DCLAB_NO_LIVE_MODELS unset).")
+        return 2
+    keep = ROOT_ / "agent_runs" / "live_tests" / f"{date.today().isoformat()}_team_arms"
+    by_arm = {"rules": measure(args.split, seed, args.workers, args.only)}
+    by_arm["single"], by_arm["team"] = [], []
+    for j in people:
+        for arm, live, walk in (("single", {"reader": single}, "loop"), ("team", {"reader": team_reader, "critic": critic}, "graph")):
+            try:
+                by_arm[arm].append(play(j, seed, None, live, keep / arm / j["id"], walk=walk))
+            except Exception as error:  # noqa: BLE001 - a journey that breaks is wrong, with its reason
+                by_arm[arm].append({"id": j["id"], "kind": j["kind"], "family": j["family"], "parts": {}, "right": False,
+                                    "why": [f"broke: {type(error).__name__}: {str(error)[:300]}"]})
+    spent = {"single": round(single.advisor.spent_eur(), 4), "team": round(team_reader.advisor.spent_eur() + critic.spent_eur(), 4)}
+    failures = single.failures + team_reader.failures + critic.failures
+    parts = {arm: {p: sum(1 for r in rows if r["parts"].get(p) is True) for p in PARTS_} for arm, rows in by_arm.items()}
+    sealed = args.split != "dev"
+    card_ok = parts["team"]["card"] > parts["single"]["card"] if sealed else parts["team"]["card"] >= parts["single"]["card"]
+    per = spent["team"] / max(1, len(people))
+    passed = (all(parts["team"][p] >= parts["rules"][p] for p in PARTS_) and card_ok and failures == 0 and per <= TEAM_GATE["cap_per_journey_eur"]
+              and not any((r.get("refused_moves") or 0) for r in by_arm["team"]))
+    against = {"parts": parts, "spent_eur": spent, "per_journey_eur": round(per, 4), "failures": failures, "passed": passed, "gate": TEAM_GATE,
+               "critic_requests": critic.report() if hasattr(critic, "report") else None}
+    for arm, rows in by_arm.items():
+        print(f"{arm:7} {sum(r['right'] for r in rows)} of {len(rows)} right, parts {parts[arm]}")
+    rules = {r["id"]: r for r in by_arm["rules"]}
+    for arm in ("single", "team"):
+        for r in by_arm[arm]:
+            if r["right"] != rules[r["id"]]["right"]:
+                print(f"  {arm} {'GAINED' if r['right'] else 'LOST':6} {r['id']} {r['kind']}: {'; '.join(r['why'] or rules[r['id']]['why'])[:200]}")
+    print(f"spent EUR {spent} (cap {args.cap_eur}); {failures} failed requests; team against the gate: {'pass' if passed else 'fail'}; records kept in {keep}")
+    if failures:
+        print("a request failed (the provider, or the cap): the rules answered for it, so these are not live arms; nothing is stored")
+        return 1
+    if not args.no_store:
+        for arm, rows in by_arm.items():
+            print(store(rows, args.split, verdict(rows), arm=arm if arm == "rules" else f"{arm}_live", seed=seed, spent_eur=spent.get(arm, 0.0),
+                        extra={"team_against": against, "walk": "graph" if arm == "team" else "loop"} if arm != "rules" else None))
     return 0
 
 

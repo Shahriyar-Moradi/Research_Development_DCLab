@@ -164,6 +164,28 @@ class JourneyParityTests(unittest.TestCase):
             graph = journeys.play(person, walk="graph")
             self.assertEqual((graph["right"], graph["parts"]), (loop["right"], loop["parts"]), person["id"])
 
+    def test_a_journey_through_the_graph_asks_the_critics_model_when_one_is_given(self):  # 28.7's team arm, without a live request
+        from dclab_core.agents import ScriptedAdvisor
+
+        person = next(j for j in journeys.load("dev") if j["id"] == "JD-01")
+        critic = ScriptedAdvisor({"understanding_critic": {"concerns": []}})
+        out = journeys.play(person, live={"critic": critic}, walk="graph")
+        self.assertTrue(out["right"], out.get("why"))
+        self.assertEqual([p for p, _ in critic.requests], ["understanding_critic"])  # asked once: no concern, the walk went on
+
+    def test_the_team_arms_print_their_plan_and_send_nothing_without_yes(self):
+        import io
+        from contextlib import redirect_stdout
+
+        from dclab_rnd.agent_eval.journeys import __main__ as cli
+
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            code = cli.main(["--split", "dev", "--team-arms", "--cap-eur", "1"])
+        self.assertEqual(code, 0)
+        self.assertIn("Plan: 15 people, three arms", buffer.getvalue())
+        self.assertIn("Add --yes", buffer.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

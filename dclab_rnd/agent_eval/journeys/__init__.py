@@ -43,7 +43,8 @@ from unittest import mock
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 RESULTS = ROOT / "evidence" / "campaigns" / "journeys_v1" / "results"
-SEALED = {"sealed": "sealed.sha256", "sealed_v2": "sealed_v2.sha256", "sealed_v3": "sealed_v3.sha256", "sealed_v4": "sealed_v4.sha256"}
+SEALED = {"sealed": "sealed.sha256", "sealed_v2": "sealed_v2.sha256", "sealed_v3": "sealed_v3.sha256", "sealed_v4": "sealed_v4.sha256",
+          "sealed_v5": "sealed_v5.sha256"}
 GATE = {
     "version": "journeys_gate_v1",
     "split": "sealed",
@@ -68,7 +69,19 @@ GATE_V4 = {**GATE_V2, "version": "journeys_gate_v4", "split": "sealed_v4", "seed
            # and is right on at least as many of these people as the rules arm, with every reader request answered
            "reader": "the reader arm passes the suite bar alone, is right on at least as many people as the rules arm on the same "
                      "people, and no reader request failed (a run with a failed request is not stored)"}
-GATES = {"sealed": GATE, "sealed_v2": GATE_V2, "sealed_v3": GATE_V3, "sealed_v4": GATE_V4}
+# 2026-10-18: a fifth, written the same way (an agent that read only the replicas' tables and the format), frozen before the
+# team (28.7) was measured: it judges the team against the rules and the single agent on the same people, the three arms once
+GATE_V5 = {**GATE_V2, "version": "journeys_gate_v5", "split": "sealed_v5", "seed": 5,
+           "team": "the team passes TEAM_GATE on these people: at least the rules on every part, a card right more often than the single "
+                   "agent's, no request failed, no move refused, no holdout read twice, within the cap a journey"}
+GATES = {"sealed": GATE, "sealed_v2": GATE_V2, "sealed_v3": GATE_V3, "sealed_v4": GATE_V4, "sealed_v5": GATE_V5}
+# 28.7: the team (the walk's graph, the conversation reader and the understanding critic with a model) beside the rules and
+# the single agent (the loop with the same reader), fixed before any run; on a sealed set "beats" is strict
+TEAM_GATE = {"version": "team_gate_v1",
+             "rule": "the team is right on at least as many journeys as the rules on each of the card, the workflow, the pipeline and the "
+                     "holdout; its card is right at least as often as the single agent's on dev, and more often on a sealed set; no "
+                     "request failed, no move refused, no holdout read twice; the team arm costs at most cap_per_journey_eur a journey",
+             "cap_per_journey_eur": 0.06}
 PARTS = ("card", "workflow", "pipeline", "holdout")
 REFUSED = "family not built yet"  # dclab_core.coordinator.FAMILY_NOT_RUN: the build's rule for a family the engine does not run
 
@@ -155,15 +168,16 @@ class _Person:
         return None
 
 
-def _walk(coordinator: Any, draft_id: str, person: Any, walk: str, home: Any) -> dict[str, Any]:
-    """The coordinator's loop, or (28.3) its state machine as the orchestration layer's graph, driven by the same person."""
+def _walk(coordinator: Any, draft_id: str, person: Any, walk: str, home: Any, critic: Any = None) -> dict[str, Any]:
+    """The coordinator's loop, or (28.3) its state machine as the orchestration layer's graph, driven by the same person;
+    ``critic`` (28.7): the understanding critic's model, its rules otherwise."""
     if walk != "graph":
         return coordinator.run(draft_id, person)
     from dclab_rnd.orchestra import checkpoints
     from dclab_rnd.orchestra.walk import Walk, drive
 
     with checkpoints.open_checkpointer(Path(home), database_url="") as saver:
-        out = drive(Walk(coordinator, saver, home=Path(home)), draft_id, person)
+        out = drive(Walk(coordinator, saver, home=Path(home), critic_advisor=critic), draft_id, person)
     return out
 
 
@@ -306,10 +320,10 @@ def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]]
             advisor = ScriptedAdvisor(journey["advisor"])
         import contextlib
 
-        only_reader = live is not None and set(live) <= {"reader"}  # 20.10 v4: the reader alone is measured; every other role keeps the rules
+        only_reader = live is not None and set(live) <= {"reader", "critic"}  # 20.10 v4: the reader (28.7: and the critic) alone measured; every other role keeps the rules
         with private_scope(True) if live is None or only_reader else contextlib.nullcontext():  # 21.5: in a live run the roles ask their models
             coordinator = Coordinator(drafts, projects, agent, advisor)
-            out = _walk(coordinator, start_at, person.person, walk, home)
+            out = _walk(coordinator, start_at, person.person, walk, home, (live or {}).get("critic"))
             for _ in range(3):  # 26.5: a walk that stops on a question no tagged one carries (a model asks in its own words, or the card's
                 # blocker names what is missing) is answered as a person in the chat would answer it, and the walk goes on
                 says = str(out.get("says") or "")
@@ -319,7 +333,7 @@ def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]]
                 if not said:
                     break
                 agent.reply(start_at, said)
-                out = _walk(Coordinator(drafts, projects, agent, advisor), start_at, person.person, walk, home)
+                out = _walk(Coordinator(drafts, projects, agent, advisor), start_at, person.person, walk, home, (live or {}).get("critic"))
         row["handoffs"] = [{k: h.get(k) for k in ("role", "allowed", "refused_columns", "source")}
                            for h in (drafts.get(start_at).get("coordinator") or {}).get("handoffs") or []]
         understood = card_of(drafts.get(start_at))
