@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from dclab_core.recipes import Choice, Detection, RecipePart, ResolvedRecipe, resolve
+from dclab_core import modifiers as M
 
 CAPABILITY = Path(__file__).resolve().parent / "kinds" / "capability.json"
 
@@ -84,13 +85,19 @@ def kind_parts() -> list[RecipePart]:
     return [part_of(k, evidence) for k in kinds.all_kinds()]
 
 
-def resolve_for(kind: Any, solution: Any, positive_rate: Optional[float] = None, machine: Any = None) -> ResolvedRecipe:
+def resolve_for(kind: Any, solution: Any, positive_rate: Optional[float] = None, machine: Any = None,
+                detected: Optional[list[dict[str, Any]]] = None) -> ResolvedRecipe:
     """The recipe a run resolves to, before any modifier exists (30.11 adds them): the kind's part, the metric the person
     stated or the kind's default for the training rows' positive rate, and the split the solution's declared columns give.
     The values are exactly the run's (``kind.split``, ``kind.default_metric``, or a kind's own machine and its metric); what
     is new is the part and the reason behind each."""
     part = part_of(kind)
     stated_metric = _value(solution, "metric")
+    found = {d.get("name"): d for d in detected or [] if d.get("applies") and d.get("name") in M.PARTS}  # 30.11: what the proposal applied
+    run_metric = stated_metric or (getattr(machine, "metric", None) if machine is not None else kind.default_metric(solution, positive_rate))
+    kept = {n: d for n, d in found.items() if (n == "rare_positives" and run_metric == M.PARTS["rare_positives"].primary_metric)
+            or (n == "groups" and d.get("value") == _value(solution, "group_column"))
+            or (n == "time_order" and d.get("value") == _value(solution, "time_column"))}  # what the run applies (the review of 30.11)
     machine_metric, machine_split = None, ""
     if machine is not None:  # a prepared machine (its metric, its holdout description) or the machine itself
         machine_metric = getattr(machine, "metric", None) or getattr(machine, "primary_metric", None)
@@ -107,15 +114,23 @@ def resolve_for(kind: Any, solution: Any, positive_rate: Optional[float] = None,
                 declared = [f"{k} `{str(_value(solution, k))[:80]}`" for k in ("time_column", "group_column") if _value(solution, k)]
                 if _value(solution, "spatial"):
                     declared.append("spatial blocks")
-                if declared:
+                by = [M.PARTS[n].ref for n in ("time_order", "groups") if n in kept]
+                if by:  # the modifiers the rows showed and the person kept
+                    why = "; ".join(str(kept[n].get("reason") or "") for n in ("time_order", "groups") if n in kept)
+                    c = Choice(field="split", value=split, part=", ".join(by), reason=why[:600])
+                elif declared:
                     c = Choice(field="split", value=split, part="solution", reason=f"the solution declares {' and '.join(declared)}"[:600])
                 elif split != c.value:
                     c = Choice(field="split", value=split, part=part.ref, reason=f"the kind {kind.key}'s split for this solution")
         elif c.field == "primary_metric" and not stated_metric:
             metric = machine_metric if machine is not None else kind.default_metric(solution, positive_rate)
             rate = f" for a positive rate of {positive_rate:.3g} on the training rows" if positive_rate is not None else ""
-            c = Choice(field="primary_metric", value=metric, part="machine" if machine is not None else part.ref,
-                       reason="the kind's own machine judges by it" if machine is not None else f"the kind {kind.key}'s default{rate}")
+            if machine is None and "rare_positives" in kept and metric == M.PARTS["rare_positives"].primary_metric:
+                c = Choice(field="primary_metric", value=metric, part=M.PARTS["rare_positives"].ref,
+                           reason=str(kept["rare_positives"].get("reason") or "")[:600])
+            else:
+                c = Choice(field="primary_metric", value=metric, part="machine" if machine is not None else part.ref,
+                           reason="the kind's own machine judges by it" if machine is not None else f"the kind {kind.key}'s default{rate}")
         elif c.field == "guard_metrics":
             continue
         elif c.field == "model_families":
@@ -126,14 +141,19 @@ def resolve_for(kind: Any, solution: Any, positive_rate: Optional[float] = None,
     primary = next(c.value for c in choices if c.field == "primary_metric")
     guards = [m for m, _ in kind.metrics if m != primary]
     choices.append(Choice(field="guard_metrics", value=guards, part=part.ref, reason="the kind's other metrics, beside the primary one"))
-    return ResolvedRecipe(kind=r.kind, modifiers=r.modifiers, choices=choices, ask=r.ask)
+    return ResolvedRecipe(kind=r.kind, modifiers=[M.PARTS[n].ref for n in ("rare_positives", "groups", "time_order") if n in kept],
+                          choices=choices, ask=r.ask)
 
 
-def record_for(kind: Any, solution: Any, positive_rate: Optional[float] = None, machine: Any = None) -> dict[str, Any]:
-    """The resolved recipe as a stage record holds it; a failure to resolve is recorded, never raised: the recipe describes a
-    run, it must not stop one (the review of 30.10)."""
+def record_for(kind: Any, solution: Any, positive_rate: Optional[float] = None, machine: Any = None,
+               detected: Optional[list[dict[str, Any]]] = None) -> dict[str, Any]:
+    """The resolved recipe as a stage record holds it, with every modifier the rows showed (applied or not, and why); a
+    failure to resolve is recorded, never raised: the recipe describes a run, it must not stop one (the review of 30.10)."""
     try:
-        return resolve_for(kind, solution, positive_rate, machine).model_dump(mode="json")
+        out = resolve_for(kind, solution, positive_rate, machine, detected).model_dump(mode="json")
+        if detected:
+            out["detected"] = [{k: d.get(k) for k in ("name", "applies", "reason", "strength", "value")} for d in detected][:12]
+        return out
     except Exception as error:  # noqa: BLE001
         return {"error": f"{type(error).__name__}: {str(error)[:300]}"}
 

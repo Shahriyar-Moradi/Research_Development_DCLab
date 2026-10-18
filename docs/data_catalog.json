@@ -338,7 +338,7 @@
    "what": "A team's walk, one row per hand-off: the board before the node, the node and what it did, the board after, with the walk's status and the models it asked; the person's words redacted, only lines written where training was allowed (28.9)."
   }
  ],
- "dclab_core": "0.78.0",
+ "dclab_core": "0.79.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -673,6 +673,42 @@
    "main_product": "experiment.review",
    "point": "model.review",
    "subjects": [
+    "project"
+   ]
+  },
+  {
+   "about": "Do rows repeat an identifier whose values must each stay on one side of the split?",
+   "answer": "noul",
+   "decided_in": "ledger/capture.py solution_saved: the proposal's rule against the saved group column (30.11)",
+   "kind": "technical",
+   "main_product": null,
+   "point": "modifier.groups",
+   "subjects": [
+    "draft",
+    "project"
+   ]
+  },
+  {
+   "about": "Are the positives rare enough to change the metric (under 5% of the training rows)?",
+   "answer": "noul",
+   "decided_in": "ledger/capture.py solution_saved: the proposal's rule against the saved metric (30.11)",
+   "kind": "technical",
+   "main_product": null,
+   "point": "modifier.rare_positives",
+   "subjects": [
+    "draft",
+    "project"
+   ]
+  },
+  {
+   "about": "Do the rows' times order the split (the holdout the latest period)?",
+   "answer": "noul",
+   "decided_in": "ledger/capture.py solution_saved: the proposal's rule against the saved time column (30.11)",
+   "kind": "technical",
+   "main_product": null,
+   "point": "modifier.time_order",
+   "subjects": [
+    "draft",
     "project"
    ]
   },

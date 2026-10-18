@@ -13,6 +13,8 @@ import re
 import sys
 from typing import Any, Callable
 
+from dclab_core.bands import ratio_band
+
 from . import answer, batch, column_state, decide, label, rows_band
 
 MAX_COLUMNS = 200  # columns recorded per saved solution, besides every column a rule or the person named
@@ -132,6 +134,23 @@ def solution_saved(proposal: dict[str, Any] | None, profile: dict[str, Any] | No
                                                                       answer(by, who, name == solution.get("time_column"))],
                                      name == solution.get("time_column"), by, state=column_state(columns[name], rows), options=["yes", "no"],
                                      level=level, exposed=exposed, **ids))
+        for found in own.get("modifiers") or []:  # 30.11: each modifier the rows showed, against what the saved solution keeps
+            name = found.get("name")
+            # what the saved solution applies (the review of 30.11): a group or time column of any name, the rare metric
+            kept = {"rare_positives": solution.get("metric") == "average_precision" or (not solution.get("metric") and bool(found.get("applies"))),
+                    "groups": bool(solution.get("group_column")), "time_order": bool(solution.get("time_column"))}.get(name)
+            if kept is None:
+                continue
+            facts = own.get("modifier_facts") or {}
+            key = next((k for k in facts.get("keys") or [] if k.get("column") == found.get("value")), {})
+            state = {"task": task, "positive_rate": ratio_band(facts.get("minority_rate")) if facts.get("minority_rate") is not None else None,
+                     "rows": rows_band(rows), "has_time": bool(facts.get("time_column")), "has_groups": bool(facts.get("keys")),
+                     "rows_per_key": key.get("rows_per_key"), "rate_change": facts.get("rate_change"), "class_shift": facts.get("class_shift"),
+                     "level_shift": facts.get("level_shift"), "strength": found.get("strength")}
+            written += bool(_put(f"modifier.{name}", where, [answer("rule", f"rule:modifier.{name}", bool(found.get("applies")), reason=str(found.get("reason") or "")[:600]),
+                                                              answer(by, who, kept)],
+                                 kept, by, state={k: v for k, v in state.items() if v is not None},
+                                 options=["yes", "no"], level=level, exposed=False, **ids))  # no page shows the modifiers' rule yet: never exposed
         groups = list(own.get("group_candidates") or [])
         for name in dict.fromkeys(groups[:10] + ([solution["group_column"]] if solution.get("group_column") else [])):
             if name in columns:

@@ -81,6 +81,9 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     # 29.6: the teams' own choices (28.x), as codes, counts and flags
     "team": (CODE, ()), "field": (CODE, ()), "concern_source": (CODE, ()), "pending": (FLAG, ()), "critic_passed": (FLAG, ()),
     "rounds": (COUNT, ()), "answered": (FLAG, ()),
+    # 30.11: the modifiers' evidence, as aggregates of the training rows
+    "rows_per_key": (MEASURE, ()), "rate_change": (MEASURE, ()), "class_shift": (MEASURE, ()), "level_shift": (MEASURE, ()),
+    "strength": (RATIO, ()),
 }
 Scalar = Union[str, int, float, bool, None]
 
@@ -176,6 +179,10 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     _p("image.near_copy", T, "project", "noul", "Are two images of different sources the same subject photographed again?"),
     _p("image.label_suspect", T, "project", "noul", "Is the image's label likely wrong?"),
     _p("image.flip_safe", T, "project", "noul", "Does a mirror flip keep the image's label (may training images be flipped)?"),
+    # 30.11: the recipes' modifiers, each detected from the training rows and applied above its threshold (dclab_core.modifiers)
+    _p("modifier.rare_positives", T, DP, "noul", "Are the positives rare enough to change the metric (under 5% of the training rows)?"),
+    _p("modifier.groups", T, DP, "noul", "Do rows repeat an identifier whose values must each stay on one side of the split?"),
+    _p("modifier.time_order", T, DP, "noul", "Do the rows' times order the split (the holdout the latest period)?"),
     # workflow: what steers solving (the second use)
     _p("problem.family", W, DP, "choice", "Which family of problem is it?", choices=FAMILIES),
     _p("problem.ready", W, DP, "noul", "Is the problem understood enough to build?"),

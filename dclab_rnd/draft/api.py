@@ -255,7 +255,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                                                (draft.get("pack") or {}).get("key"), hint.get("time_column"))
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
-        proposal["rule"] = {k: proposal.get(k) for k in ("identifiers", "forbidden", "time_candidates", "group_candidates")}  # 19.7: the rules' own
+        proposal["rule"] = {k: proposal.get(k) for k in ("identifiers", "forbidden", "time_candidates", "group_candidates", "modifiers", "modifier_facts")}  # 19.7: the rules' own
         if hint:  # a studied sample: merge the solution the R&D wrote for it (same rule as a project's proposal)
             known = {f["column"] for f in proposal["forbidden"]}
             proposal["forbidden"] = [{**f, "proof": ["DCLAB-R01"]} for f in hint.get("forbidden") or [] if f["column"] not in known] + proposal["forbidden"]
@@ -878,7 +878,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                     "forbidden": [{"column": f["column"], "reason": f.get("reason") or "declared unavailable at the prediction moment"}
                                   for f in proposal.get("forbidden") or []],
                     "identifiers": list(proposal.get("identifiers") or []), "time_column": (proposal.get("time_candidates") or [None])[0],
-                    "group_column": None, "text_columns": list(proposal.get("text_columns") or []), "metric": proposal.get("metric"),
+                    "group_column": proposal.get("group_column"), "text_columns": list(proposal.get("text_columns") or []), "metric": proposal.get("metric"),
                     "notes": "Accepted as the audit proposed it, from “build it” on Home."}
             await save_solution(draft_id, body, "agent")
         if not get(draft_id).get("settings"):
@@ -1221,6 +1221,9 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
 
             project = projects.get(pid)
             project["solution"] = built_solution
+            proposed = draft.get("proposal") or {}
+            if proposed.get("target") == built_solution.get("target"):  # 30.11: the run names the modifiers its proposal found (the review)
+                project["proposal"] = proposed
             saved_by = draft.get("solution_by") or "human"  # 25.13: "agent" when DCLab accepted the audit's proposal on "build it"
             studio_memory.solution_saved(project, None, built_solution, saved_by)  # A5.2: the person saved it in the wizard
             projects.save(project)

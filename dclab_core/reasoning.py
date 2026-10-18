@@ -19,6 +19,8 @@ import json
 import re
 from typing import Any, Mapping, Optional
 
+from dclab_core.modifiers import RARE_BELOW  # 30.11: one cut-off for rare positives
+
 VERSION = "reasoning_v1"
 FAMILIES = ("problem_type", "leakage_judgment", "split_design", "algorithm_choice", "read_results", "solution_design")
 _NUMBER = re.compile(r"(?<![\w.])-?\d+(?:\.\d+)?(?!\w)(?!\.\d)")  # a sentence's full stop after a number is not part of it
@@ -147,7 +149,7 @@ def trace(family: str, given: Mapping[str, Any], answer: Mapping[str, Any]) -> O
         if isinstance(rate, (int, float)):
             positives = t.get("positives_train")
             steps.append(f"The positive class is {_n(rate)} of the training rows" + (f" ({_n(positives)} positives)" if isinstance(positives, (int, float)) else "")
-                         + (": rare, so accuracy says little and the ranking metric decides." if rate < 0.1 else "."))
+                         + (": rare, so accuracy says little and the ranking metric decides." if rate < RARE_BELOW else "."))
         ranking = [str(r) for r in answer.get("ranking") or []]
         if ranking:
             steps.append("Every family was screened on the same training folds; best first: " + ", ".join(ranking) + ".")

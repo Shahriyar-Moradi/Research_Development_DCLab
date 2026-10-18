@@ -36,7 +36,7 @@ HISTORY_NAME = re.compile(r"(^|_)(prev|previous|prior|last|avg|average|mean|medi
 ID_NAME = re.compile(r"(^id$|_id$|_ref$|^id_|_key$|_uuid$)", re.I)
 TIME_NAME = re.compile(r"(date|time|_at$|timestamp|created|month)", re.I)
 TINY_SHARE, TINY_ROWS = 0.01, 30
-RARE_SHARE = 0.01
+from dclab_core.modifiers import RARE_BELOW as RARE_SHARE  # noqa: E402  (30.11: one cut-off, was 1%)
 LIST_CAP = 20
 
 # single-column power, out of fold: AUC for binary (folded to >= 0.5), gain over the majority class normalised to [0, 1]

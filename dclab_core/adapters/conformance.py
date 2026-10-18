@@ -75,6 +75,7 @@ POINTS_NOT_MAPPED: dict[str, str] = {
         "workflow.stage_approval", "workflow.stop", "agent.tool_choice", "team.next_node", "critic.send_back")},
     **{p: _NO_NAME.format(what="reporting and learning point") for p in ("report.claim", "lesson.accept")},
     **{p: _NO_NAME.format(what="image problem's check (26.8)") for p in ("image.near_copy", "image.label_suspect", "image.flip_safe")},
+    **{p: _NO_NAME.format(what="recipe modifier (30.11)") for p in ("modifier.rare_positives", "modifier.groups", "modifier.time_order")},
 }
 
 

@@ -171,6 +171,50 @@ class Solution(BaseModel):
         return default_metric(self.task, positive_rate)
 
 
+def modifier_facts(X: pd.DataFrame, y: pd.Series, task: str, time_column: str | None, group_candidates: list[str],
+                   positive_rate: float | None, positive_label: Any = None) -> Any:
+    """30.11: what the modifiers' rules read, from the rows read (the provisional training rows): the minority share, how
+    many rows each identifier-like value holds, and whether the target moves between the first and the last third in time."""
+    from dclab_core import modifiers as M
+
+    minority = None
+    if task == "binary" and positive_rate is not None:
+        minority = min(positive_rate, 1 - positive_rate)
+    elif task == "multiclass" and len(y):
+        minority = float(y.astype(str).value_counts(normalize=True).min())
+    t = pd.to_datetime(X[time_column], errors="coerce") if time_column and time_column in X else None
+    ordered = t is not None and len(X) >= 60 and t.notna().mean() >= 0.8
+    order = t.rank(method="first") if ordered else None
+    keys = []
+    for c in group_candidates:
+        if c not in X or not X[c].notna().any():
+            continue
+        values = X[c].astype(str)
+        recurring = None
+        if ordered:  # the latest third's rows whose key appeared in the earlier rows: a key that recurs cannot also split forward
+            last_rows = order > 2 * len(order) / 3
+            recurring = float(values[last_rows].isin(set(values[~last_rows])).mean()) if last_rows.any() else None
+        keys.append(M.KeyFact(column=str(c)[:200], rows_per_key=float(values.value_counts().median()), groups=int(values.nunique()),
+                              recurring=recurring))
+    change = shift = level = None
+    if ordered:
+        first, last = order <= len(order) / 3, order > 2 * len(order) / 3
+        if task == "binary" and positive_label is not None:  # the positive class's rate, first third against last
+            hits = y.astype(str) == str(positive_label)
+            a, b = float(hits[first].mean()), float(hits[last].mean())
+            change = (b / a) if a > 0 else (2.0 if b > 0 else None)
+        elif task == "multiclass":
+            pa, pb = y[first].astype(str).value_counts(normalize=True), y[last].astype(str).value_counts(normalize=True)
+            shift = min(1.0, 0.5 * float(pa.subtract(pb, fill_value=0).abs().sum()))  # rounding can pass 1 (the review of 30.11)
+        elif task == "regression":
+            v = pd.to_numeric(y, errors="coerce")
+            sd = float(v.std())
+            level = float((v[last].mean() - v[first].mean()) / sd) if sd and sd > 0 else None
+    return M.Facts(task=task, minority_rate=minority, positive_rate=positive_rate if task == "binary" else None, keys=keys[:40],
+                   time_column=str(time_column)[:200] if time_column else None,
+                   rate_change=change, class_shift=shift, level_shift=level if level is None or abs(level) < 1e6 else None)
+
+
 def default_metric(task: str, positive_rate: float | None = None) -> str:
     return kinds.get(task).default_metric(None, positive_rate)
 
@@ -202,6 +246,7 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
         rate = float((y.astype(str) == str(detected["positive_label"])).mean())
         detected = {**detected, "positive_rate": rate,
                     "note": f"Two classes; `{detected['positive_label']}` is treated as the positive class ({rate:.1%} of the rows read)."}
+    X_read, y_read = X, y  # 30.11: the modifiers count on every row read, not the sample (the review)
     if len(X) > 20000:
         X = X.sample(20000, random_state=42)
         y = y.loc[X.index]
@@ -227,6 +272,15 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
     text_columns = [name for name in profile["text_candidates"] if name != target]
     positive_rate = detected.get("positive_rate")
     kind = kinds.resolve({"task": task, "text_columns": text_columns}, pack)
+    from dclab_core import modifiers as M  # 30.11: the modifiers the rows read show, each applied above its threshold with its reason
+
+    try:  # a modifier never stops a proposal (the review of 30.11): without its facts, the proposal goes on without modifiers
+        facts = modifier_facts(X_read, y_read, task, time_candidates[0] if time_candidates else None, group_candidates, positive_rate,
+                               detected.get("positive_label"))
+        found = M.detect(facts)
+    except Exception:  # noqa: BLE001
+        facts, found = None, []
+    applied = {d.name: d for d in found if d.applies}
     return {
         "target": target, "task": task, "kind": kind.key, "kind_title": kind.title, "detected": detected,
         "positive_label": detected.get("positive_label"),
@@ -240,6 +294,8 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
         "rows_read": rows_read_note(len(read), len(present), time_candidates[0] if time_candidates else None, by_time),
         "all_columns": audit["all_columns"],
         "plan": _core_plan(X, y, target, task, time_candidates[0] if time_candidates else None, rows=X.index),
+        "modifiers": [d.model_dump() for d in found], "modifier_facts": facts.model_dump() if facts is not None else None,
+        **({"group_column": applied["groups"].value} if "groups" in applied else {}),  # shown with its reason on the Solution form
         **({"decided_by_models": decided} if decided else {}),
     }
 

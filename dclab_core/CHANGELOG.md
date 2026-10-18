@@ -4,6 +4,19 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.79.0 (2026-10-18)
+
+Package 30.11: the first three modifiers.
+
+- `modifiers`: the parts `rare_positives` (the minority under 5% of the training rows: average precision; a yes/no problem
+  only, macro F1 already weighs a small class), `groups` (an identifier repeating at two rows per value at the median: a
+  group split on the finest such key) and `time_order` (a time column orders the rows: a forward split; a moving target is
+  said and strengthens the evidence); `Facts` (aggregates of the training rows, never a row), `detect(facts)` (each modifier,
+  whether it applies, why, how strongly, with which column) and `applied`.
+- One cut-off for rare positives: `plan.RARE` and `plan.IMBALANCED` are `modifiers.RARE_BELOW` (were 1% and 10%).
+- `ledger`: the points `modifier.rare_positives`, `modifier.groups` and `modifier.time_order`, and the state fields
+  `rows_per_key`, `rate_change`, `class_shift`, `level_shift` (measures) and `strength` (a ratio).
+
 ## 0.78.0 (2026-10-18)
 
 Package 30.10: the recipe registry.

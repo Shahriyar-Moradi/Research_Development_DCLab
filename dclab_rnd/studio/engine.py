@@ -251,7 +251,9 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     prepared.kind = kind
     from dclab_rnd import recipes as recipe_registry  # 30.10: the recipe the run resolves to, each choice with its part (nothing changes)
 
-    prepared.recipe = recipe_registry.record_for(kind, solution, positive_rate)
+    proposed = project.get("proposal") or {}  # 30.11: the modifiers the proposal for this target found on its rows
+    detected = (proposed.get("rule") or proposed).get("modifiers") if proposed.get("target") in (None, solution.target) else None
+    prepared.recipe = recipe_registry.record_for(kind, solution, positive_rate, detected=detected)
     prepared.decided = decided
     prepared.plan, prepared.label_info = project.get("plan"), project.get("labels")
     prepared.critic = _critic_advisor(project)

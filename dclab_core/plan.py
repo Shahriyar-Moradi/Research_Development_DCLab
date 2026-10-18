@@ -19,8 +19,10 @@ from typing import Any, Optional
 
 from dclab_core.contracts import DataFindings, Decision, Finding, ProblemBrief, Risk, SolutionPlan
 
-RARE = 0.01
-IMBALANCED = 0.10
+from dclab_core.modifiers import RARE_BELOW  # noqa: E402  (30.11: one cut-off for rare positives, the owner's 5%)
+
+RARE = RARE_BELOW         # the rare-event families and recall at a budget join the plan below it (was 1%)
+IMBALANCED = RARE_BELOW   # average precision becomes the primary metric below it (was 10%)
 
 METRICS = {
     "binary": ("average_precision", "roc_auc", "recall_at_budget", "precision_at_budget", "f1", "log_loss", "brier"),

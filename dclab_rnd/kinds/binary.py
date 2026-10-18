@@ -45,7 +45,9 @@ class Binary(ProblemKind):
     def default_metric(self, solution: Any, positive_rate: float | None, pack: dict[str, Any] | None = None) -> str:
         if (pack or {}).get("metric"):
             return pack["metric"]
-        return "average_precision" if positive_rate is not None and positive_rate < 0.10 else "roc_auc"
+        from dclab_core.modifiers import RARE_BELOW  # 30.11: one cut-off for rare positives (was 10% here, 5% in the screen)
+
+        return "average_precision" if positive_rate is not None and positive_rate < RARE_BELOW else "roc_auc"
 
     def target(self, frame: pd.DataFrame, solution: Any) -> tuple[pd.Series, list[str] | None]:
         name = _get(solution, "target")
@@ -76,7 +78,9 @@ class Binary(ProblemKind):
         return {**({"rare_event": True} if (pack or {}).get("rare_event") else {}), **({"alert_budget": budget} if budget else {})}
 
     def rare_screen(self, task_type: str, positive_rate: float | None, solution: Any, settings: dict[str, Any]) -> bool:
-        return task_type == "binary_imbalanced" and ((positive_rate or 1) < 0.05 or _get(solution, "labels") == "partial"
+        from dclab_core.modifiers import RARE_BELOW
+
+        return task_type == "binary_imbalanced" and ((positive_rate or 1) < RARE_BELOW or _get(solution, "labels") == "partial"
                                                      or bool(settings.get("rare_event")))
 
     def summarise_target(self, y: pd.Series, class_labels: list[str] | None, solution: Any) -> tuple[dict[str, Any], str]:

@@ -160,6 +160,8 @@ def adopt(store: Any, project: dict[str, Any], proposal: dict[str, Any], target:
     if stated.get("positive_label") is not None:  # as the save route does (20.10)
         stated["positive_label"] = as_table_label(stated["positive_label"], profile_booleans(project["data"].get("profile"), stated.get("target")))
     project["solution"] = Solution(**stated).model_dump()
+    if proposal.get("target") is not None:  # 30.11: kept as the product keeps it, so the run can say which modifiers it applied
+        project["proposal"] = proposal
     project["settings"]["quick"] = quick
     store.save(project)
     from dclab_rnd.ledger import capture  # 19.7: the proposal a person accepts, as decisions (when a ledger keeps them)

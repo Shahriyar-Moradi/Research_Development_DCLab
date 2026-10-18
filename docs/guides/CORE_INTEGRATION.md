@@ -726,6 +726,13 @@ request path; it is a data generator. A team that pretrains or evaluates an in-c
 or reads DCLab's corpus (`make priors`, `lake/bronze/priors/priors_v1/`); `params.effects_shown` marks the tables whose shown
 features include the outcome's effects, for a team that wants none.
 
+## The first three modifiers (30.11, dclab-core 0.79.0)
+
+The library's: `dclab_core.modifiers` (`Facts`, `detect`, `PARTS`). Where it goes there: the main product's dataset profiling
+can fill `Facts` from its training rows, show each detected modifier with its reason before training, and apply the ones above
+their threshold to its `split.strategy` and `spec.objective` decision points; each answer is a ledger decision on the points
+`modifier.*` (this studio's names; the main product has none of its own yet).
+
 ## Recipes: a kind plus modifiers (30.10, dclab-core 0.78.0)
 
 The library's: `dclab_core.recipes` (`RecipePart`, `ResolvedRecipe`, `resolve`). Where it goes there: the main product's task

@@ -1,0 +1,173 @@
+{
+ "package": "30.11",
+ "title": "The first three modifiers: rare positives, groups and time order, detected from the rows and applied with their reason",
+ "date": "2026-10-18",
+ "request": "Phase 8, Part C (the owner's task recipes): most real-world difficulty lives in modifiers, each detected from the data or stated by the person, each changing a small known set of steps; the owner decided modifiers apply on their own above their threshold, each shown with its reason.",
+ "spec": "docs/guides/PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md, package 30.11",
+ "plan": [
+  "Write the three modifiers in dclab_core as recipe parts with their detection rules and thresholds, read from aggregates of the training rows.",
+  "Make one cut-off for rare positives everywhere the studio had its own.",
+  "Measure the facts in the proposal, show every modifier with its reason and apply those above their threshold.",
+  "Record each modifier as a decision against what the person kept, and name the modifier behind the run's split and metric."
+ ],
+ "decisions": [
+  {
+   "decision": "A time column alone applies time order; a moving target is said and strengthens the evidence.",
+   "why": "The owner's table asks for a time column and a moving rate, but a random split of ordered rows reads the future whether or not the rate moves (DCLAB-R02), and the product already splits forward on a time column."
+  },
+  {
+   "decision": "Rare positives changes the metric of a yes or no problem only.",
+   "why": "A multiclass problem is judged by macro F1, which already weighs a small class; average precision is a two-class metric."
+  },
+  {
+   "decision": "The groups modifier takes the coarsest identifier with at least twenty values that repeats, names the others and asks when several repeat; with a time column, a key whose values recur over time is not grouped, the person is asked.",
+   "why": "A finer key nests inside a coarser one, so grouping only the finer leaves the coarser entity on both sides; and a key that recurs over time cannot also be split forward without leaving almost nothing to test on (the engine refuses it), so the rules ask instead of failing the run."
+  },
+  {
+   "decision": "Group candidates stay the product's existing rule (identifier-like names that are not numbers).",
+   "why": "Widening them would group by numeric identifiers on every replica, a change to measure on its own; this package applies the modifiers within the candidates the product already proposes."
+  },
+  {
+   "decision": "The modifiers' rule answers are never recorded as exposed to the person until a page shows them, and the person's answer is what the saved solution applies.",
+   "why": "An exposed label must mean the person saw the rule's answer; the wizard now shows it, but the project page and the API do not yet."
+  }
+ ],
+ "change": "dclab_core/modifiers.py (PARTS, Facts, Detected, detect; dclab-core 0.79.0); dclab_core/plan.py (one cut-off); dclab_core/ledger.py (three points, five state fields); dclab_rnd/kinds/binary.py (the cut-off); dclab_rnd/studio/solution.py (modifier_facts, the proposal's modifiers and group column); dclab_rnd/draft/api.py (Home's build keeps the proposal's group column); the routes keep the modifiers in the proposal's rule; dclab_rnd/ledger/capture.py (the modifier decisions); dclab_rnd/recipes.py and the engine (the modifier behind the split and metric); dclab_rnd/kinds/acceptance.py (the proposal kept on the project); tests/test_modifiers.py.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Home's build and the acceptance adoption produced a grouped forward split the engine refused.",
+   "scenario": "On a table whose shop code recurs over time, the proposal set the group and the time column; the holdout kept no row of an unseen shop and the run failed.",
+   "cause": "The groups modifier applied without testing the forward split it would combine with.",
+   "fix": "With a time column, a key whose latest rows' values were seen earlier at 85% or more is not grouped: the person is asked; a run built from such a proposal reaches its holdout (both a recurring and a new-shop table).",
+   "test": "test_a_run_built_from_the_proposal_reaches_its_holdout"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The capture wrote false labels of a person's choice.",
+   "scenario": "Every save on a table with a repeating key recorded a person's no for groups, labelled as seen, though no page showed the modifier.",
+   "cause": "The person's answer was the rule's applies and kept, and the record was marked exposed.",
+   "fix": "The person's answer is what the saved solution applies, and the modifier points are never exposed until a page shows the rule's answer.",
+   "test": "test_a_saved_solution_records_each_modifier_against_the_rule"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "No page showed the modifiers or their reasons.",
+   "scenario": "The owner's decision says each modifier is shown with its reason; the wizard's group field never took the proposal's group.",
+   "cause": "The proposal carried the modifiers but the page did not read them.",
+   "fix": "The wizard shows what the rows show, each modifier applied or left to the person with its reason, and takes the proposal's group.",
+   "test": "test_the_proposal_shows_every_modifier_and_applies_those_above_their_threshold"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A proposal could fail on its modifiers.",
+   "scenario": "On a multiclass table whose first and last thirds share no class, the class shift rounded above 1 and the proposal was refused.",
+   "cause": "A rounding error passed the contract's bound, and nothing guarded the modifiers.",
+   "fix": "The shift is clamped, and a failure to read the modifiers leaves the proposal without them.",
+   "test": "test_a_proposal_never_fails_on_its_modifiers_and_counts_every_row_it_read"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Groups were missed on large tables.",
+   "scenario": "On 120,000 rows with four rows per customer, the sample of 20,000 held one row per customer at the median.",
+   "cause": "Rows per key were counted on the sample.",
+   "fix": "They are counted on every row read.",
+   "test": "test_a_proposal_never_fails_on_its_modifiers_and_counts_every_row_it_read"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Rare positives applied when nothing changed.",
+   "scenario": "A positive class at 97% was called rare from its other class, and the run named the modifier with a ROC metric.",
+   "cause": "The minority share stood for the positive class, and the run named the modifier whatever its metric.",
+   "fix": "The positive class's own share decides, a majority positive class asks which class is the event, and the run names the modifier only when its metric is the modifier's.",
+   "test": "test_rare_positives_under_five_percent_for_a_yes_or_no_problem_only"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Projects built on Home never named their modifiers.",
+   "scenario": "The product's main path built a project without the draft's proposal, so its run credited the split to the solution.",
+   "cause": "Home's build did not keep the proposal on the project.",
+   "fix": "The draft's proposal is kept on the project when its target is the solution's.",
+   "test": "test_the_run_names_the_modifier_behind_its_split"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The one cut-off was not one.",
+   "scenario": "The analysis finding, the reasoning traces and the plan used 1%, 10% and 5% for rare.",
+   "cause": "Three modules kept their own constants.",
+   "fix": "They read the modifier's cut-off; the rare-event kind's detection from a file of cases stays its own notion, documented.",
+   "test": "test_one_cut_off_for_rare_positives"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The finest repeating key could leave a coarser entity on both sides.",
+   "scenario": "With orders inside customers, grouping by order put each customer on both sides of the split.",
+   "cause": "The rule chose the finest key.",
+   "fix": "The coarsest key with enough values is chosen and the others named; several repeating keys ask the person.",
+   "test": "test_groups_take_the_coarsest_key_with_enough_values_and_ask_when_several_repeat"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Generated files were stale.",
+   "scenario": "The data catalog lacked the new points and version.",
+   "cause": "Not rebuilt after the ledger change.",
+   "fix": "The catalog and the dev corpus rebuilt.",
+   "test": "test_the_committed_catalog_is_what_the_code_generates"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "every kind's acceptance with the modifiers in place (make kinds-check)",
+   "gate": "no acceptance decision of any kind changes (the modifiers apply within what the product already proposes)",
+   "fixed_before_run": true,
+   "result": "15 kinds: 14 supported and 1 partial, as before; no decision changed on any kind",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "Met: the same decisions on every kind's replica.",
+   "limits": [
+    "The replicas' cases rarely carry a repeating text identifier, so the groups modifier applies on none of them: its effect is shown by the tests, not by the replicas."
+   ]
+  },
+  {
+   "name": "the dev journeys with the rules (JRN-020)",
+   "gate": "the 15 dev people right on the card, the workflow, the pipeline and the holdout, as before (journeys_gate_v1)",
+   "fixed_before_run": true,
+   "result": "15 of 15 journeys right (95% interval 0.796 to 1.0), 0 moves refused by the validator",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "Met: the conversation-to-holdout flow is unchanged with the modifiers applied.",
+   "limits": [
+    "Dev people: written beside the rules, so this shows no regression, not a gain."
+   ]
+  }
+ ],
+ "outcome": "The proposal shows the three modifiers the rows reveal with their reasons, applies those above their threshold and asks where the rules cannot settle (a key that recurs over time, a positive majority, several keys); every run names the modifier behind its split and metric, and each modifier is a recorded decision.",
+ "lessons": [
+  "A rule that already exists in three places with three thresholds is a modifier waiting for one definition.",
+  "A modifier that combines with another must test the combination before it applies: two sound rules can make an impossible split."
+ ],
+ "risks": [
+  "The certification of the modifiers on the retail replica and two real datasets, and the replica's journeys people, move to 30.12 with the noisy labels the replica needs to be solved."
+ ],
+ "commits": []
+}

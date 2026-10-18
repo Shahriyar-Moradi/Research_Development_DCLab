@@ -146,7 +146,7 @@ capture with a test that reads it back, the reviewer, its development record and
 | 30.9 | The retail returns replica | invented sales and returns tables with patterns 1 to 4's traps: copied bills (near-duplicates across train and test), the late-evening rule as a feature and as the source of rule labels, a rule computed with future data, a few dishonest cashiers and new ones later, a label source per row, drift in the last three months | its tests prove every trap bites on several seeds and no single column gives the fraud away (the journeys people move to 30.11) |
 | 30.10 | The recipe registry | `RecipePart`, `ResolvedRecipe`; the fifteen kinds as parts, versioned, through an adapter | every run's choices name their part; results unchanged on every replica (a test) |
 | 30.11 | Three modifiers | rare positives (one cut-off), groups, time order; detection with thresholds, precedence, ledger points; the retail replica as a kind's case | certified on the retail replica and two real datasets (Telco, HyperAck); the LLM-off result is the same; the retail replica's dev people written and a sealed set by an independent agent |
-| 30.12 | Labels and capacity | noisy labels (label source, confirmed-only evaluation, weights), review capacity (precision at K primary, threshold at the K-th score, value times probability), a random audit sample | the replica's rule-label trap is caught; recall is estimated from the audit sample with its interval |
+| 30.12 | Labels and capacity, and the first certification | noisy labels (label source, confirmed-only evaluation, weights), review capacity (precision at K primary, threshold at the K-th score, value times probability), a random audit sample; the retail replica as a kind's case; the three modifiers and the two new ones certified on it and two real datasets (from 30.11) | the replica's rule-label trap is caught; recall is estimated from the audit sample with its interval |
 | 30.13 | Problem Card v2 and the fit verdict | the missing fields; G1 on what changes the solution; Data Card v4 with detected modifiers and the three-way verdict; G2 | the dev journeys pass with the new fields; a "fits with changes" proposes its card edit |
 | 30.14 | The Solution Brief and G3 | the contract, the approach-level ladder, the success bar frozen and signed, the report judged against it | a brief without a bar, a baseline or an alternative is refused; the holdout's verdict against the bar is in the report |
 | 30.15 | The Workflow Run and G4 | the twelve steps with their checks, the calibrator, the export test run per kind, the monitoring plan in the artifact, `GateResult` loop-backs | `make code-check` and the export test pass for every kind; `monitor()` flags a planted drift |
@@ -214,6 +214,14 @@ Designed in detail once Part E is built; each keeps DCLab's rules (the validator
   as parts (`python -m dclab_rnd.recipes`), each versioned by its own code, all experimental until certified; every run records its
   recipe in the data stage (a machine kind's too), and the split and metric decisions carry their part and reason. The recipe's
   split and metric equal the run's on binary, regression, places, rare_event and segmentation. Left: the modifiers (30.11).
+- **30.11 built (2026-10-18), the review's 10 findings fixed:** `dclab_core.modifiers` (dclab-core 0.79.0): rare positives (the
+  positive class under 5%; one cut-off for the plan, the analysis and the reasoning), groups (the coarsest repeating key with
+  enough values; with a time column a key that recurs over time is asked, never grouped into a split the engine refuses), time
+  order (a time column; a moving target strengthens it). The proposal reads them on every row it reads, applies those above their
+  threshold and asks where the rules cannot settle; the wizard shows each with its reason; Home's build keeps the group; every run
+  names the modifier behind its split and metric; three ledger points record each against what the saved solution applies.
+  Every kind's acceptance unchanged; the dev journeys 15 of 15 (JRN-020). Moved to 30.12: the certification on the retail replica
+  and two real datasets, the replica as a kind's case and its journeys people (the replica needs the noisy labels to be solved).
 
 ---
 

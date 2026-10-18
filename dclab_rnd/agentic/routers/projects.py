@@ -243,7 +243,7 @@ async def _proposal(project_id: str, body: ProposalRequest, s: Services) -> dict
                                                studio_engine.pack_of(p))
     except ValueError as exc:
         raise HTTPException(422, str(exc))
-    proposal["rule"] = {k: proposal.get(k) for k in ("identifiers", "forbidden", "time_candidates", "group_candidates")}  # 19.7: the rules' own
+    proposal["rule"] = {k: proposal.get(k) for k in ("identifiers", "forbidden", "time_candidates", "group_candidates", "modifiers", "modifier_facts")}  # 19.7: the rules' own
     if p.get("suggestion"):  # a studied sample carries the R&D's whole solution; a draft-built project only what the chat established
         known = {f["column"] for f in proposal["forbidden"]}
         proposal["forbidden"] = [{**f, "proof": ["DCLAB-R01"]} for f in p["suggestion"].get("forbidden") or [] if f["column"] not in known] + proposal["forbidden"]
