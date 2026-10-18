@@ -52,7 +52,7 @@ def answerers(models: Optional[str] = None) -> tuple[Any, ...]:
     """The fitted classifiers whose bytes match ``fitted.json`` and whose card describes them; none when none is here.
     By default every folder of ``FOLDERS`` (22.2's column points, 29.2's table-level choices, 26.8's images, 26.3's
     workflow points); ``models``: one folder only."""
-    folders = list(FOLDERS) if models is None else [Path(models)]
+    folders = [MODELS, MODELS_V2, MODELS_IMAGES, WORKFLOW_MODELS] if models is None else [Path(models)]  # FOLDERS, read when called
     return tuple(m for folder in folders for m in _load(folder))
 
 

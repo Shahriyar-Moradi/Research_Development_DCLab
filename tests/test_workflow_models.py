@@ -194,7 +194,8 @@ class TrainAndGateTests(unittest.TestCase):
         self.W.train(sets=self.tmp / "sets", out=self.tmp / "models")
         shadow.answerers.cache_clear()
         try:
-            with mock.patch.object(shadow, "MODELS", self.tmp / "none"), mock.patch.object(shadow, "WORKFLOW_MODELS", self.tmp / "models"):
+            with mock.patch.object(shadow, "MODELS", self.tmp / "none"), mock.patch.object(shadow, "WORKFLOW_MODELS", self.tmp / "models"), \
+                    mock.patch.object(shadow, "MODELS_V2", self.tmp / "none"), mock.patch.object(shadow, "MODELS_IMAGES", self.tmp / "none"):  # 29.8: four folders
                 models = shadow.answerers()
             self.assertEqual([m.point for m in models], ["workflow.next_question"])
             self.assertEqual(shadow.answerers(str(self.tmp / "none")), ())
