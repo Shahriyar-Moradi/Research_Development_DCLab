@@ -236,6 +236,19 @@ class DataLimitTests(unittest.TestCase):
         for purpose in ("decomposer", "map_reviewer", "data_need", "solution_router"):
             self.assertEqual(self.assertWithinLimit(purpose), set(), purpose)
 
+    def test_the_understanding_critic_sees_the_card_and_column_names_never_values(self):  # 28.4
+        from dclab_core.datacard import card_of
+        from dclab_core.understanding_critic import critique
+        from dclab_rnd.core_advisor import GatewayAdvisor
+
+        table = marked_table()
+        data = card_of({"customers": table}, name="marked", keep_categories=True)  # even a card that kept its categories: lines of names and bands
+        columns = [c for t in json.loads(data.model_dump_json())["tables"] for c in t["columns"]]
+        gw = gateway({"understanding_critic": [{"content": '{"concerns": []}', "tool_calls": [], "usage": {}}]})
+        critique(GatewayAdvisor(gw), {"family": "classification", "outcome": "churned", "moment": "at signup"}, columns,
+                 [{"code": "time_absent", "question": "When is the prediction made?"}])
+        self.assertEqual(self.assertWithinLimit("understanding_critic"), set())
+
     def test_the_decision_answerer_sees_bands_and_names_never_values(self):  # 22.5
         from dclab_core.answerers import ModelAnswerer
         from dclab_rnd.core_advisor import GatewayAdvisor
@@ -393,7 +406,8 @@ class DataLimitTests(unittest.TestCase):
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
-                  "decision_answer", "decision_labeler", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first", "solver_answer"}
+                  "decision_answer", "decision_labeler", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first", "solver_answer",
+                  "understanding_critic"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

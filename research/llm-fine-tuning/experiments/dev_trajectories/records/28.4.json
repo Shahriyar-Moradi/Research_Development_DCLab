@@ -98,6 +98,16 @@
    "cause": "A two-way mapping; a loop over all concerns.",
    "fix": "Each mismatch to the field it names; one question a round; dclab-core 0.68.0 with its changelog and section.",
    "test": "test_each_mismatch_is_sent_back_on_the_field_it_names"
+  },
+  {
+   "id": "G1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The new purpose had no data-limit test.",
+   "scenario": "check-quick failed: test_every_purpose_has_a_limit_and_a_test listed understanding_critic as untested.",
+   "cause": "A purpose was registered without the test that what it sends holds no cell.",
+   "fix": "A test: the critic on a marked table's data card (categories kept) sends names, purposes and bands, never a value.",
+   "test": "test_the_understanding_critic_sees_the_card_and_column_names_never_values"
   }
  ],
  "measurements": [
