@@ -1,0 +1,44 @@
+{
+ "package": "29.6",
+ "title": "Points for the teams' own choices: every next node of a walk and every concern the critic weighed",
+ "date": "2026-10-18",
+ "request": "Phase 7 (the owner): a student behind every choice; 29.6: points for the small processes that have none, starting with Phase 6's.",
+ "spec": "docs/guides/PHASE7_STUDENTS_PLAN.md, package 29.6",
+ "plan": [
+  "Two workflow points: team.next_node and critic.send_back, with states of codes, counts and flags.",
+  "Recorded where they are made: every situate of both teams, every concern the critic weighed.",
+  "A measured label for a send-back: the person's answer changed the field or not."
+ ],
+ "decisions": [
+  {
+   "decision": "Every step of a walk is a decision, the coordinator's answer beside the node chosen.",
+   "why": "Where the walk departs from the situation (the critic first, a question first, a budget stop) is what a student must learn."
+  },
+  {
+   "decision": "A send-back is labelled by its outcome: did the person's answer change the card?",
+   "why": "A question that changed nothing cost the person a turn; one that changed the card found something the card had wrong."
+  }
+ ],
+ "change": "dclab_core.ledger: points team.next_node and critic.send_back, state fields team, field, concern_source, pending, critic_passed, rounds, answered; dclab_rnd/ledger/capture.team_node and critic_weighed; the walk's and the team's situate and the critic record them; the critic's answered question labels its send-back; CAPTURED entries and the main product's unmapped reasons.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The test expected every answered send-back to be right.",
+   "scenario": "The written person gave the same unit again: the label said not needed, the test said right.",
+   "cause": "The expectation assumed an answer always changes the card.",
+   "fix": "The test expects the label the answer earns: here, not needed.",
+   "test": "test_the_walk_records_every_next_node_and_every_send_back_with_its_measured_label"
+  }
+ ],
+ "measurements": [],
+ "outcome": "The teams' choices are decisions in the ledger, ready for a student once they have homework.",
+ "lessons": [
+  "Label a question by what its answer changed: that is the cheapest outcome truth a conversation has."
+ ],
+ "risks": [
+  "The structure reader, the synthetic schema and the retrieval's records still have no points."
+ ],
+ "commits": []
+}

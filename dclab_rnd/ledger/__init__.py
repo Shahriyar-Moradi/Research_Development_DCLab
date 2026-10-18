@@ -78,6 +78,8 @@ CAPTURED = {
     "model.review": "studio/engine.py stage_models: the critic's rounds kept or dropped",
     "experiment.accept": "studio/engine.py stage_models: each review round's experiment kept or dropped",
     "experiment.next": "studio/engine.py stage_models: each review round's experiment, the rules' first and the critic's",
+    "team.next_node": "orchestra/walk.py situate and orchestra/solution.py situate: every node a walk takes next, the coordinator's situation's answer beside the node chosen (29.6)",
+    "critic.send_back": "orchestra/walk.py critic: each concern the critic weighed, sent back to the person or not (29.6); labelled measured when the person's answer changed the field",
     "workflow.revisit": "studio/graph.py: a completed stage run again",
     "image.near_copy": "kinds/embedded.py leakage (an image table): pairs of training images of different sources, by their pictures' cosine",
     "image.label_suspect": "kinds/embedded.py leakage: training images whose near copies, else nearest images, mostly carry the other label",

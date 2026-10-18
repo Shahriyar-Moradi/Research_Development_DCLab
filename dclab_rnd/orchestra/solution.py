@@ -108,7 +108,17 @@ class SolutionTeam:
 
     # ------------------------------------------------------------------------------------------------ the nodes
     def situate(self, state: SolveState) -> dict[str, Any]:
-        """The next node, from the project as it is now and what each step last read."""
+        """The next node, from the project as it is now and what each step last read; every choice a decision (29.6)."""
+        out = self._situate(state)
+        from ..ledger import capture
+
+        project = self.projects.get(state["project_id"])
+        capture.team_node(("project", state["project_id"]), "solution", "solution", out.get("next", "stop"), out.get("next", "stop"),
+                          blockers=len(((project.get("programme_plan") or {}).get("solution_map") or {}).get("blockers") or []),
+                          step=len(state.get("steps") or []))
+        return out
+
+    def _situate(self, state: SolveState) -> dict[str, Any]:
         from ..studio import programme
 
         project = self.projects.get(state["project_id"])

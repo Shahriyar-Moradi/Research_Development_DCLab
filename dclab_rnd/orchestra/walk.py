@@ -182,6 +182,13 @@ class Walk:
             nxt, says = "stop", "The coordinator's step budget was used."
         else:
             says = now.says
+        from ..ledger import capture
+
+        draft = self.c.drafts.get(state["draft_id"])
+        capture.team_node(("draft", state["draft_id"]), "orchestra", now.state, now.next, nxt, blockers=len(now.blockers),  # 29.6: every step a decision
+                          open_questions=sum(1 for q in draft.get("questions") or [] if not q.get("answered")),
+                          pending=self.c.agent.pending(draft) is not None, critic_passed=self._critic_done(state["draft_id"]) if self.critic_on else None,
+                          step=len(state.get("steps") or []))
         return {"next": nxt, "state": now.state, "says": says, "situation": json.loads(now.model_dump_json())}
 
     def _act(self, action: str):
@@ -238,7 +245,10 @@ class Walk:
         clock = time.monotonic()
         said = self.asker.ask(q.get("field"), q.get("text") or "")
         if said:
+            before = (self.c.drafts.get(draft_id).get("understanding") or {}).get(q.get("field"))
             self.c.agent.reply(draft_id, said)
+            after = (self.c.drafts.get(draft_id).get("understanding") or {}).get(q.get("field"))
+            _label_send_back(draft_id, str(q.get("field")), before != after)  # 29.6: the send-back was right when the answer changed the card
             result = {"answered": q.get("field"), "source": "critic"}
         else:
             def declined(d: dict[str, Any]) -> None:
@@ -293,6 +303,14 @@ class Walk:
                         sent = c["field"]
                         break
             out["result"] = {"concerns": len(kept), "refused": len(refused), "sent_back": sent, "source": result.source}
+        from ..ledger import capture
+
+        for c in kept:  # 29.6: every concern the critic weighed, sent back or not, with why
+            src = "rules" if json.dumps(c, sort_keys=True) in rules else "model"
+            why = "sent back" if c["field"] == sent else "asked before" if c["field"] in asked else "the rounds are spent" if rounds >= ROUNDS else "one a round"
+            capture.critic_weighed(draft_id, c["field"], src, c["field"] == sent, why, rounds)
+        for c in refused:
+            capture.critic_weighed(draft_id, c["field"], "model", False, str(c.get("refused") or "refused"), rounds)
         waiting = self.c.agent.pending(self.c.drafts.get(draft_id)) is not None
         gate = sent is None and bool(kept) and not waiting  # concerns stand and none can be sent back: the person decides
         history = [*(own.get("history") or []), {"round": rounds + 1, "concerns": kept, "refused": refused, "sent_back": sent,
@@ -432,6 +450,19 @@ class Walk:
         return {"status": "done", "state": now.state, "next": now.next, "says": now.says, "blockers": [b.model_dump() for b in now.blockers],
                 "passed": now.passed, "steps": values.get("steps") or [], "board": values.get("board"),
                 "project_id": values.get("project_id") or self.c.drafts.get(draft_id).get("project_id")}
+
+
+def _label_send_back(draft_id: str, field: str, changed: bool) -> None:
+    """The measured label of the critic's last send-back of ``field`` on this draft: right when the person's answer changed the
+    card's field, not needed when it kept it."""
+    from .. import ledger
+
+    book = ledger.current_ledger()
+    if book is None:
+        return
+    mine = [r for r in book.records(draft=draft_id, point="critic.send_back") if r.state.get("field") == field and r.value_used is True]
+    if mine:
+        ledger.label(mine[-1], bool(changed), "measured", "person_answer", evidence={"kind": "review", "value": 1.0 if changed else 0.0, "ref": f"understanding.{field}"[:200]})
 
 
 def _walk_id(state: Any) -> Optional[str]:

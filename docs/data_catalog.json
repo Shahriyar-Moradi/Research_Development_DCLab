@@ -321,7 +321,7 @@
    "what": "A team's walk, one row per hand-off: the board before the node, the node and what it did, the board after, with the walk's status and the models it asked; the person's words redacted, only lines written where training was allowed (28.9)."
   }
  ],
- "dclab_core": "0.70.0",
+ "dclab_core": "0.71.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -409,6 +409,18 @@
    "point": "command.intent_route",
    "subjects": [
     "conversation"
+   ]
+  },
+  {
+   "about": "Does the understanding critic send this card field back to the person?",
+   "answer": "noul",
+   "decided_in": "orchestra/walk.py critic: each concern the critic weighed, sent back to the person or not (29.6); labelled measured when the person's answer changed the field",
+   "kind": "workflow",
+   "main_product": null,
+   "point": "critic.send_back",
+   "subjects": [
+    "draft",
+    "project"
    ]
   },
   {
@@ -814,6 +826,18 @@
    "kind": "technical",
    "main_product": null,
    "point": "task.framing",
+   "subjects": [
+    "draft",
+    "project"
+   ]
+  },
+  {
+   "about": "Which node does the team's walk take next?",
+   "answer": "value",
+   "decided_in": "orchestra/walk.py situate and orchestra/solution.py situate: every node a walk takes next, the coordinator's situation's answer beside the node chosen (29.6)",
+   "kind": "workflow",
+   "main_product": null,
+   "point": "team.next_node",
    "subjects": [
     "draft",
     "project"

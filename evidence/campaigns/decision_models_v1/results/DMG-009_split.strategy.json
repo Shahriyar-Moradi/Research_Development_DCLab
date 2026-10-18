@@ -1,0 +1,290 @@
+{
+  "id": "DMG-009",
+  "experiment_id": "DMG-009",
+  "campaign_id": "decision_models_v1",
+  "kind": "decision_model_gate",
+  "status": "completed",
+  "at": "2026-10-18T03:41:23+00:00",
+  "point": "split.strategy",
+  "model": {
+    "name": "split.strategy.logistic",
+    "version": "533dae099b37",
+    "family": "logistic",
+    "strength": 1.0,
+    "trained_set": "631a4179b635986d4d866049f5eb4f3d0955efa1dbdaf6eedb42b71c52443c2f"
+  },
+  "gate": {
+    "version": "decision_gate_v1",
+    "thresholds": {
+      "scored_share_min": 1.0,
+      "accuracy_lower_min": 0.9,
+      "precision_lower_min": 0.8,
+      "recall_lower_min": 0.8,
+      "margin_lower_min": 0.0,
+      "class_min_rows": 30,
+      "class_recall_min": 0.7,
+      "turned_max": 0.02,
+      "draws": 2000
+    }
+  },
+  "sealed": {
+    "decisions": 476,
+    "fingerprint": "fd54742cecd8d897a3a6ac40559800ae565a71927cd8fc4cc9e793ca63cb7ae5"
+  },
+  "verdict": {
+    "gate": "decision_gate_v1",
+    "pass": false,
+    "criteria": [
+      {
+        "criterion": "every sealed decision scored",
+        "value": "476/476",
+        "need": "100%",
+        "pass": true
+      },
+      {
+        "criterion": "accuracy, 95% lower bound (by table group)",
+        "value": 0.6471,
+        "need": ">= 0.9",
+        "pass": false
+      },
+      {
+        "criterion": "precision, 95% lower bound (by table group)",
+        "value": 0.7712,
+        "need": ">= 0.8",
+        "pass": false
+      },
+      {
+        "criterion": "recall, 95% lower bound (by table group)",
+        "value": 0.6761,
+        "need": ">= 0.8",
+        "pass": false
+      },
+      {
+        "criterion": "margin over the rule, 95% lower bound (by table group)",
+        "value": 0.1849,
+        "need": "> 0.0",
+        "pass": true
+      },
+      {
+        "criterion": "no class it misses",
+        "value": [
+          "group (62/134)",
+          "stratified (48/118)"
+        ],
+        "need": "no class with 30+ decisions below recall 0.7",
+        "pass": false
+      },
+      {
+        "criterion": "the rule's right decisions kept",
+        "value": 0.0,
+        "need": "<= 0.02 turned wrong",
+        "pass": true
+      }
+    ],
+    "bounds": {
+      "model": {
+        "accuracy": [
+          0.7017,
+          0.6471,
+          0.7563
+        ],
+        "precision": [
+          0.8058,
+          0.7712,
+          0.8419
+        ],
+        "recall": [
+          0.7174,
+          0.6761,
+          0.759
+        ]
+      },
+      "rule": {
+        "accuracy": [
+          0.4748,
+          0.4223,
+          0.5273
+        ],
+        "precision": [
+          0.6321,
+          0.5805,
+          0.6776
+        ],
+        "recall": [
+          0.4819,
+          0.4443,
+          0.5191
+        ]
+      },
+      "note": "[value, 95% lower, 95% upper], bootstrap of whole table groups; the gate reads these"
+    },
+    "model": {
+      "n": 476,
+      "accuracy": 0.7017,
+      "accuracy_ci": [
+        0.6591,
+        0.741
+      ],
+      "precision": 0.8058,
+      "precision_ci": [
+        0.7712,
+        0.8419
+      ],
+      "recall": 0.7174,
+      "recall_ci": [
+        0.6761,
+        0.759
+      ],
+      "intervals": "bootstrap of 2000 draws, clustered by table group, 95%",
+      "answered": 476,
+      "per_class": {
+        "group": {
+          "n": 134,
+          "precision": 1.0,
+          "precision_ci": [
+            0.9417,
+            1.0
+          ],
+          "recall": 0.4627,
+          "recall_ci": [
+            0.3805,
+            0.547
+          ]
+        },
+        "stratified": {
+          "n": 118,
+          "precision": 1.0,
+          "precision_ci": [
+            0.9259,
+            1.0
+          ],
+          "recall": 0.4068,
+          "recall_ci": [
+            0.3224,
+            0.497
+          ]
+        },
+        "time": {
+          "n": 118,
+          "precision": 0.6277,
+          "precision_ci": [
+            0.5566,
+            0.6936
+          ],
+          "recall": 1.0,
+          "recall_ci": [
+            0.9685,
+            1.0
+          ]
+        },
+        "time_group": {
+          "n": 106,
+          "precision": 0.5955,
+          "precision_ci": [
+            0.5221,
+            0.6649
+          ],
+          "recall": 1.0,
+          "recall_ci": [
+            0.965,
+            1.0
+          ]
+        }
+      }
+    },
+    "rule": {
+      "n": 476,
+      "accuracy": 0.4748,
+      "accuracy_ci": [
+        0.4303,
+        0.5197
+      ],
+      "precision": 0.6321,
+      "precision_ci": [
+        0.5805,
+        0.6776
+      ],
+      "recall": 0.4819,
+      "recall_ci": [
+        0.4443,
+        0.5191
+      ],
+      "intervals": "bootstrap of 2000 draws, clustered by table group, 95%",
+      "answered": 476,
+      "per_class": {
+        "group": {
+          "n": 134,
+          "precision": 1.0,
+          "precision_ci": [
+            0.8569,
+            1.0
+          ],
+          "recall": 0.1716,
+          "recall_ci": [
+            0.1172,
+            0.2444
+          ]
+        },
+        "stratified": {
+          "n": 118,
+          "precision": 0.5517,
+          "precision_ci": [
+            0.4472,
+            0.6518
+          ],
+          "recall": 0.4068,
+          "recall_ci": [
+            0.3224,
+            0.497
+          ]
+        },
+        "time": {
+          "n": 118,
+          "precision": 0.3894,
+          "precision_ci": [
+            0.3362,
+            0.4454
+          ],
+          "recall": 1.0,
+          "recall_ci": [
+            0.9685,
+            1.0
+          ]
+        },
+        "time_group": {
+          "n": 106,
+          "precision": 0.5873,
+          "precision_ci": [
+            0.4642,
+            0.7004
+          ],
+          "recall": 0.3491,
+          "recall_ci": [
+            0.265,
+            0.4436
+          ]
+        }
+      }
+    },
+    "margin": {
+      "difference": 0.2269,
+      "lower": 0.1849,
+      "upper": 0.271
+    },
+    "turned": [
+      0,
+      226
+    ],
+    "groups": 238,
+    "decisions": 476,
+    "not_yet": "Blind cases (the main product's R3 asks for them): the generated sets have benchmark labels only; decision_gate_v2 adds the blind labels of 22.4's disagreements.",
+    "demotion": {
+      "accuracy_lower_below": 0.85,
+      "margin_lower_below": -0.02,
+      "turned_above": 0.05
+    },
+    "scope": "Evidence about this model on these generated decisions, not a claim that it is ready for production."
+  },
+  "result": "fail",
+  "rule": "One run of split.strategy.logistic on 476 sealed decisions of generated tables, judged by a gate written before it; evidence about these planted kinds, not about real tables nor production readiness."
+}

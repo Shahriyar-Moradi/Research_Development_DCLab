@@ -643,3 +643,29 @@ def leak_screened(project_id: str, verdict: Any, profile: dict[str, Any] | None,
         written += bool(_put("feature.leakage_suspect", ("column", str(name)), answers, value, used, state={k: v for k, v in state.items() if v is not None},
                              options=["yes", "no"], exposed=used == "person", project=project_id))
     return written
+
+
+TEAM_NODES = ("answer", "draw_map", "confirm_map", "bring_table", "analyse", "plan_workflow", "build", "critic", "critic_gate",
+              "route", "design", "audit", "audit_gate", "compose", "drop_gate", "report", "stop", "done", "wait_for_data")
+
+
+@_quiet
+def team_node(owner: tuple[str, str], team: str, state_code: str, rule_next: str, chosen: str, *, blockers: int = 0, open_questions: int = 0,
+              pending: bool = False, critic_passed: bool | None = None, step: int = 0) -> Any:
+    """29.6: the node a team's walk takes next. The coordinator's situation answers (``rule_next``); the walk chose ``chosen``
+    (the critic before the workflow, a pending question first, a stop on the step budget). Codes and counts only."""
+    state = {"team": _code(team) or "team", "from_state": _code(state_code) or "state", "blocking": int(blockers), "open_questions": int(open_questions),
+             "pending": bool(pending), "step": int(step), **({"critic_passed": bool(critic_passed)} if critic_passed is not None else {})}
+    answers = [answer("rule", "rule:situation", str(rule_next)), answer("rule", f"rule:{team}.situate", str(chosen))]
+    kind, ident = owner
+    return _put("team.next_node", (kind, ident), answers, str(chosen), "rule", state=state, options=list(TEAM_NODES),
+                **({"draft": ident, "conversation": ident} if kind == "draft" else {"project": ident}))
+
+
+@_quiet
+def critic_weighed(draft_id: str, field: str, source: str, sent: bool, reason: str = "", rounds: int = 0) -> Any:
+    """29.6: one concern the understanding critic weighed for a card field: sent back to the person or not (a round spent, the
+    field asked before, a model's doubt about what the person said, its words refused), with why."""
+    state = {"field": _code(field) or "field", "concern_source": _code(source) or "rules", "rounds": int(rounds)}
+    return _put("critic.send_back", ("draft", draft_id), [answer("rule", f"rule:critic.{_code(source) or 'rules'}", bool(sent), reason=(reason or None) and reason[:600])],
+                bool(sent), "rule", state=state, options=["yes", "no"], draft=draft_id, conversation=draft_id)

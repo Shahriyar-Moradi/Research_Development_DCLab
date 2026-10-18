@@ -189,6 +189,8 @@
     "29.17",
     "29.18",
     "29.2",
+    "29.5",
+    "29.6",
     "3.1",
     "3.10",
     "3.2",
@@ -273,14 +275,14 @@
     "owner-2026-10-15",
     "tooling-fast-gates"
   ],
-  "total": 2850,
-  "train": 2222,
-  "val": 628,
+  "total": 2855,
+  "train": 2224,
+  "val": 631,
   "by_task": {
-    "fix_finding": 1878,
+    "fix_finding": 1879,
     "judge_measurement": 270,
-    "plan_package": 263,
-    "retrospective": 261,
+    "plan_package": 265,
+    "retrospective": 263,
     "review_change": 178
   },
   "val_packages": [
@@ -320,6 +322,7 @@
     "28.1",
     "28.10",
     "28.5",
+    "29.6",
     "3.2",
     "3.8",
     "3.9",
@@ -340,6 +343,12 @@
     "RD-sft-v3",
     "owner-2026-10-15"
   ],
-  "refused": [],
+  "refused": [
+    {
+      "package": "29.5",
+      "task": "judge_measurement",
+      "why": "a number the prompt does not give"
+    }
+  ],
   "validation_policy": "whole packages held out by the hash of their id (about 20%)"
 }

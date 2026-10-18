@@ -151,6 +151,11 @@ class RoundTests(unittest.TestCase):
         home = Path(tempfile.mkdtemp())
         experience.install(experience.FileLog(home / "experience", "w"))
         self.addCleanup(experience.install, None)
+        from dclab_rnd import ledger
+
+        self.book = ledger.FileLedger(home / "ledger", "w")
+        ledger.install(self.book)
+        self.addCleanup(ledger.install, None)
         store, projects = DraftStore(home / "drafts"), ProjectStore(home / "projects")
         agent = HomeAgent(store, None)
         orders = store.create(PROBLEM)["id"]  # the table the cases belong to, in another draft (brought by the walk)
@@ -188,6 +193,16 @@ class RoundTests(unittest.TestCase):
         self.assertEqual([q["field"] for q in declined], ["entity"])
         self.assertIn("understanding", [g for g, _ in self.gates])  # the concern stood and was shown before the build
         self.assertTrue(draft["coordinator"]["critic"]["overridden"])
+
+    def test_the_walk_records_every_next_node_and_every_send_back_with_its_measured_label(self):  # 29.6
+        out, draft, _ = self.walk(["entity"], approve=lambda gate: True)
+        self.assertEqual(out["next"], "done", out["says"])
+        nodes = self.book.records(point="team.next_node")
+        self.assertTrue(nodes and {"critic", "build"} <= {r.value_used for r in nodes})
+        sends = [r for r in self.book.records(point="critic.send_back") if r.value_used is True]
+        self.assertEqual([r.state["field"] for r in sends], ["entity"])
+        labels = self.book.labels(point="critic.send_back")
+        self.assertEqual([(x.source, x.value) for x in labels], [("measured", False)])  # this person gave the same unit again: it was not needed
 
     def test_a_declined_understanding_gate_stops_with_the_concerns(self):
         out, draft, _ = self.walk(["entity", "labels", "family", "entity", "labels"], approve=lambda gate: gate != "understanding")

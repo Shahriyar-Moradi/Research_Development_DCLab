@@ -7,7 +7,7 @@ sets' ``MANIFEST.json``; a point whose sealed set was judged is refused under an
 new sealed partition, from a new generated set), and a gate version judges every point by the same thresholds. Each
 verdict is an evidence record in ``evidence/campaigns/decision_models_v1/results/DMG-NNN_<point>.json``.
 
-    python -m dclab_rnd.decision_gate_run [--points p1,p2] [--yes]
+    python -m dclab_rnd.decision_gate_run [--set v1|v2|images] [--points p1,p2] [--yes]
 """
 
 from __future__ import annotations
@@ -23,6 +23,9 @@ ROOT = Path(__file__).resolve().parents[1]
 GENERATED = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "generated_v1"
 MODELS = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "models_v1"
 RESULTS = ROOT / "evidence" / "campaigns" / "decision_models_v1" / "results"
+DECISIONS = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions"
+SETS = {"v1": (GENERATED, MODELS), "v2": (DECISIONS / "generated_v2", DECISIONS / "models_v2"),  # 29.5: every generation's students sit their exam
+        "images": (DECISIONS / "generated_images_v1", DECISIONS / "models_images_v1")}
 
 
 def sealed_fingerprint(rows: list[dict[str, Any]]) -> str:
@@ -99,18 +102,21 @@ def main(argv: list[str] | None = None) -> int:
     import argparse
 
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.decision_gate_run", description=__doc__.split("\n")[0])
+    parser.add_argument("--set", default="v1", choices=tuple(SETS), help="29.5: which generation's students (their homework and their cards)")
     parser.add_argument("--points", default="")
     parser.add_argument("--yes", action="store_true", help="read the sealed sets (once: they are then spent for this gate)")
     args = parser.parse_args(argv)
-    points = [p for p in args.points.split(",") if p] or sorted(p.stem for p in MODELS.glob("*.json"))
+    generated, models = SETS[args.set]
+    cards = [p.stem for p in models.glob("*.json") if p.stem not in ("fitted", "SKIPPED") and (models / f"{p.stem}.joblib").exists()]
+    points = [p for p in args.points.split(",") if p] or sorted(cards)
     if not args.yes:
-        print(f"Would judge {', '.join(points)} once on their sealed decisions; add --yes to run (each set is then spent).")
+        print(f"Would judge {', '.join(points)} ({args.set}) once on their sealed decisions; add --yes to run (each set is then spent).")
         return 0
     for point in points:
-        if spent(point, committed_fingerprint(point)):
+        if spent(point, committed_fingerprint(point, generated)):
             print(f"{point:<26} already judged: its sealed set is spent")
             continue
-        doc = json.loads(judge(point).read_text(encoding="utf-8"))
+        doc = json.loads(judge(point, generated, models).read_text(encoding="utf-8"))
         v = doc["verdict"]
         print(f"{point:<26} {doc['result']:<4}  " + "  ".join(f"{c['criterion'].split(',')[0]}={c['value']}" for c in v["criteria"]))
     return 0

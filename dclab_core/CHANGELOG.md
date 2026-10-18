@@ -4,6 +4,14 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.71.0 (2026-10-18)
+
+Package 29.6: points for the teams' own choices.
+
+- `ledger.POINTS`: `team.next_node` (every node a team's walk takes next, the coordinator's answer beside it) and
+  `critic.send_back` (each concern the understanding critic weighed, sent back to the person or not). `STATE_FIELDS`:
+  `team`, `field`, `concern_source` (codes), `pending`, `critic_passed`, `answered` (flags), `rounds` (a count).
+
 ## 0.70.0 (2026-10-18)
 
 Package 28.9: a team's walks as training data.

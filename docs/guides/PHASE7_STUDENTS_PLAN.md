@@ -109,6 +109,12 @@ bands, its options), then a student.
   in `evidence/campaigns/`, the passed students routed to shadow with their bar; the register shows each verdict.
 - **Done when:** every student has a sealed verdict or a reason it has none; nothing serves without one.
 
+- **Status: run (2026-10-18).** `make decision-gate ARGS="--set v2|images --yes"`: the seven new students judged once by
+  `decision_gate_v1` (DMG-007 to DMG-013). All fail and stay in shadow: four table students beat their rules overall but
+  turn too many of the rule's right answers wrong (task framing 6.6%, the others 10 to 21%; cleaning misses trim, the
+  split misses group and stratified); two image students have no margin over near-perfect rules; near copies sit just
+  under the accuracy floor. The curriculum (29.12) is where these failures go next.
+
 ### 29.6 Points for the small processes that have none
 - **Delivers:** new points (with `CAPTURED` entries, states as bands, the main-product mapping reasons) for: the
   structure reader (header, types), each cleaning step accepted or not, the pack detector, the synthetic schema's shape,
@@ -116,6 +122,11 @@ bands, its options), then a student.
   made, with its truth source named (construction for the readers and cleaning, people and outcome for the rest).
 - **Done when:** the ledger's count grows and every new point appears in the register with recorded decisions from the
   test suite's own runs and self-play.
+
+- **Status: built for the teams (2026-10-18).** Two workflow points, `team.next_node` (every step of both teams' walks: the
+  coordinator's situation's answer beside the node chosen) and `critic.send_back` (every concern the critic weighed, sent
+  back or not, with why; labelled measured when the person's answer changed the card's field, or did not). Left: the
+  structure reader, each cleaning step's acceptance, the synthetic schema's shape and the retrieval's records.
 
 ### 29.7 The loop made continuous
 - **Delivers:** a scheduled job (the jobs table) that rebuilds the sets from new labels, retrains the students whose

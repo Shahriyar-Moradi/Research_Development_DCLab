@@ -1,0 +1,181 @@
+{
+  "id": "DMG-013",
+  "experiment_id": "DMG-013",
+  "campaign_id": "decision_models_v1",
+  "kind": "decision_model_gate",
+  "status": "completed",
+  "at": "2026-10-18T04:38:15+00:00",
+  "point": "image.near_copy",
+  "model": {
+    "name": "image.near_copy.logistic",
+    "version": "2be49c73ce95",
+    "family": "logistic",
+    "strength": 1.0,
+    "trained_set": "961dfa693152cb1364a0d66cb4d2afb652d13457c6a48a7f3b4ce3b12c027267"
+  },
+  "gate": {
+    "version": "decision_gate_v1",
+    "thresholds": {
+      "scored_share_min": 1.0,
+      "accuracy_lower_min": 0.9,
+      "precision_lower_min": 0.8,
+      "recall_lower_min": 0.8,
+      "margin_lower_min": 0.0,
+      "class_min_rows": 30,
+      "class_recall_min": 0.7,
+      "turned_max": 0.02,
+      "draws": 2000
+    }
+  },
+  "sealed": {
+    "decisions": 2160,
+    "fingerprint": "607b5f0c959d9f78e0e76d9492aa621adb0685d859b3b1d1842ed57a3d66b56b"
+  },
+  "verdict": {
+    "gate": "decision_gate_v1",
+    "pass": false,
+    "criteria": [
+      {
+        "criterion": "every sealed decision scored",
+        "value": "2160/2160",
+        "need": "100%",
+        "pass": true
+      },
+      {
+        "criterion": "accuracy, 95% lower bound (by table group)",
+        "value": 0.8634,
+        "need": ">= 0.9",
+        "pass": false
+      },
+      {
+        "criterion": "precision, 95% lower bound (by table group)",
+        "value": 0.8912,
+        "need": ">= 0.8",
+        "pass": true
+      },
+      {
+        "criterion": "recall, 95% lower bound (by table group)",
+        "value": 0.8566,
+        "need": ">= 0.8",
+        "pass": true
+      },
+      {
+        "criterion": "margin over the rule, 95% lower bound (by table group)",
+        "value": 0.0106,
+        "need": "> 0.0",
+        "pass": true
+      },
+      {
+        "criterion": "no class it misses",
+        "value": "none",
+        "need": "no class with 30+ decisions below recall 0.7",
+        "pass": true
+      },
+      {
+        "criterion": "the rule's right decisions kept",
+        "value": 0.0117,
+        "need": "<= 0.02 turned wrong",
+        "pass": true
+      }
+    ],
+    "bounds": {
+      "model": {
+        "accuracy": [
+          0.9111,
+          0.8634,
+          0.95
+        ],
+        "precision": [
+          0.9397,
+          0.8912,
+          0.9794
+        ],
+        "recall": [
+          0.9034,
+          0.8566,
+          0.9522
+        ]
+      },
+      "rule": {
+        "accuracy": [
+          0.8731,
+          0.8116,
+          0.9278
+        ],
+        "precision": [
+          0.9532,
+          0.9037,
+          0.9908
+        ],
+        "recall": [
+          0.8196,
+          0.7471,
+          0.8953
+        ]
+      },
+      "note": "[value, 95% lower, 95% upper], bootstrap of whole table groups; the gate reads these"
+    },
+    "model": {
+      "n": 2160,
+      "accuracy": 0.9111,
+      "accuracy_ci": [
+        0.8984,
+        0.9224
+      ],
+      "precision": 0.9397,
+      "precision_ci": [
+        0.9247,
+        0.9518
+      ],
+      "recall": 0.9034,
+      "recall_ci": [
+        0.8857,
+        0.9186
+      ],
+      "intervals": "Wilson, 95%",
+      "answered": 2160,
+      "per_class": {}
+    },
+    "rule": {
+      "n": 2160,
+      "accuracy": 0.8731,
+      "accuracy_ci": [
+        0.8584,
+        0.8865
+      ],
+      "precision": 0.9532,
+      "precision_ci": [
+        0.9388,
+        0.9643
+      ],
+      "recall": 0.8196,
+      "recall_ci": [
+        0.7973,
+        0.84
+      ],
+      "intervals": "Wilson, 95%",
+      "answered": 2160,
+      "per_class": {}
+    },
+    "margin": {
+      "difference": 0.038,
+      "lower": 0.0106,
+      "upper": 0.0671
+    },
+    "turned": [
+      22,
+      1886
+    ],
+    "groups": 18,
+    "decisions": 2160,
+    "not_yet": "Blind cases (the main product's R3 asks for them): the generated sets have benchmark labels only; decision_gate_v2 adds the blind labels of 22.4's disagreements.",
+    "demotion": {
+      "accuracy_lower_below": 0.85,
+      "margin_lower_below": -0.02,
+      "turned_above": 0.05
+    },
+    "scope": "Evidence about this model on these generated decisions, not a claim that it is ready for production."
+  },
+  "result": "fail",
+  "rule": "One run of image.near_copy.logistic on 2160 sealed decisions of generated tables, judged by a gate written before it; evidence about these planted kinds, not about real tables nor production readiness."
+}

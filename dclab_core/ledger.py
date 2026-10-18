@@ -78,6 +78,9 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "pack": (CODE, ()), "kind": (CODE, ()), "metric": (CODE, ()), "strategy": (CODE, ()), "step": (COUNT, ()),
     "steps_left": (COUNT, ()), "tools_offered": (COUNT, ()), "revisits": (COUNT, ()), "budget_left": (RATIO, ()),
     "gate_required": (FLAG, ()), "approved": (FLAG, ()), "holdout_used": (COUNT, ()), "reason_given": (FLAG, ()),
+    # 29.6: the teams' own choices (28.x), as codes, counts and flags
+    "team": (CODE, ()), "field": (CODE, ()), "concern_source": (CODE, ()), "pending": (FLAG, ()), "critic_passed": (FLAG, ()),
+    "rounds": (COUNT, ()), "answered": (FLAG, ()),
 }
 Scalar = Union[str, int, float, bool, None]
 
@@ -189,6 +192,9 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     _p("workflow.stop", W, "workflow", "noul", "Is the work finished, or does it go on?"),
     _p("agent.tool_choice", W, "conversation", "value", "Which tool does the agent call next?"),
     _p("experiment.next", W, "project", "value", "Which experiment is run next?"),
+    # 29.6: the teams of agents (28.x): every step of a walk and every send-back of the critic, recorded where they are made
+    _p("team.next_node", W, DP, "value", "Which node does the team's walk take next?"),
+    _p("critic.send_back", W, DP, "noul", "Does the understanding critic send this card field back to the person?"),
     _p("command.intent_route", W, "conversation", "value", "Which quick action does the person's message ask for?",
        "command.intent_route", "command.intent_route"),
     # operations, after a model is in use (the main product's governed points; this studio decides none of them yet)

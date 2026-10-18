@@ -1,0 +1,261 @@
+{
+  "id": "DMG-010",
+  "experiment_id": "DMG-010",
+  "campaign_id": "decision_models_v1",
+  "kind": "decision_model_gate",
+  "status": "completed",
+  "at": "2026-10-18T04:09:49+00:00",
+  "point": "task.framing",
+  "model": {
+    "name": "task.framing.boosting",
+    "version": "af78ac93cd3f",
+    "family": "boosting",
+    "strength": 0.1,
+    "trained_set": "f82b0552387fe3949414b3e2ed031e51bd500d7b7329b5b2cc51a8b0e941827f"
+  },
+  "gate": {
+    "version": "decision_gate_v1",
+    "thresholds": {
+      "scored_share_min": 1.0,
+      "accuracy_lower_min": 0.9,
+      "precision_lower_min": 0.8,
+      "recall_lower_min": 0.8,
+      "margin_lower_min": 0.0,
+      "class_min_rows": 30,
+      "class_recall_min": 0.7,
+      "turned_max": 0.02,
+      "draws": 2000
+    }
+  },
+  "sealed": {
+    "decisions": 490,
+    "fingerprint": "d670eb665bcf67b44036f288fe01267e0d6d4dc79a08235cbb4e69f4f0fafd05"
+  },
+  "verdict": {
+    "gate": "decision_gate_v1",
+    "pass": false,
+    "criteria": [
+      {
+        "criterion": "every sealed decision scored",
+        "value": "490/490",
+        "need": "100%",
+        "pass": true
+      },
+      {
+        "criterion": "accuracy, 95% lower bound (by table group)",
+        "value": 0.8857,
+        "need": ">= 0.9",
+        "pass": false
+      },
+      {
+        "criterion": "precision, 95% lower bound (by table group)",
+        "value": 0.8766,
+        "need": ">= 0.8",
+        "pass": true
+      },
+      {
+        "criterion": "recall, 95% lower bound (by table group)",
+        "value": 0.8739,
+        "need": ">= 0.8",
+        "pass": true
+      },
+      {
+        "criterion": "margin over the rule, 95% lower bound (by table group)",
+        "value": 0.0551,
+        "need": "> 0.0",
+        "pass": true
+      },
+      {
+        "criterion": "no class it misses",
+        "value": "none",
+        "need": "no class with 30+ decisions below recall 0.7",
+        "pass": true
+      },
+      {
+        "criterion": "the rule's right decisions kept",
+        "value": 0.066,
+        "need": "<= 0.02 turned wrong",
+        "pass": false
+      }
+    ],
+    "bounds": {
+      "model": {
+        "accuracy": [
+          0.9184,
+          0.8857,
+          0.949
+        ],
+        "precision": [
+          0.9115,
+          0.8766,
+          0.9428
+        ],
+        "recall": [
+          0.9099,
+          0.8739,
+          0.9429
+        ]
+      },
+      "rule": {
+        "accuracy": [
+          0.8041,
+          0.7551,
+          0.8531
+        ],
+        "precision": [
+          0.7841,
+          0.7355,
+          0.8356
+        ],
+        "recall": [
+          0.7838,
+          0.7355,
+          0.8353
+        ]
+      },
+      "note": "[value, 95% lower, 95% upper], bootstrap of whole table groups; the gate reads these"
+    },
+    "model": {
+      "n": 490,
+      "accuracy": 0.9184,
+      "accuracy_ci": [
+        0.8907,
+        0.9395
+      ],
+      "precision": 0.9115,
+      "precision_ci": [
+        0.8766,
+        0.9428
+      ],
+      "recall": 0.9099,
+      "recall_ci": [
+        0.8739,
+        0.9429
+      ],
+      "intervals": "bootstrap of 2000 draws, clustered by table group, 95%",
+      "answered": 490,
+      "per_class": {
+        "binary": {
+          "n": 194,
+          "precision": 1.0,
+          "precision_ci": [
+            0.9806,
+            1.0
+          ],
+          "recall": 1.0,
+          "recall_ci": [
+            0.9806,
+            1.0
+          ]
+        },
+        "multiclass": {
+          "n": 148,
+          "precision": 0.8971,
+          "precision_ci": [
+            0.8346,
+            0.9377
+          ],
+          "recall": 0.8243,
+          "recall_ci": [
+            0.755,
+            0.8772
+          ]
+        },
+        "regression": {
+          "n": 148,
+          "precision": 0.8375,
+          "precision_ci": [
+            0.7725,
+            0.8866
+          ],
+          "recall": 0.9054,
+          "recall_ci": [
+            0.8475,
+            0.9428
+          ]
+        }
+      }
+    },
+    "rule": {
+      "n": 490,
+      "accuracy": 0.8041,
+      "accuracy_ci": [
+        0.7666,
+        0.8368
+      ],
+      "precision": 0.7841,
+      "precision_ci": [
+        0.7355,
+        0.8356
+      ],
+      "recall": 0.7838,
+      "recall_ci": [
+        0.7355,
+        0.8353
+      ],
+      "intervals": "bootstrap of 2000 draws, clustered by table group, 95%",
+      "answered": 490,
+      "per_class": {
+        "binary": {
+          "n": 194,
+          "precision": 1.0,
+          "precision_ci": [
+            0.9806,
+            1.0
+          ],
+          "recall": 1.0,
+          "recall_ci": [
+            0.9806,
+            1.0
+          ]
+        },
+        "multiclass": {
+          "n": 148,
+          "precision": 0.6857,
+          "precision_ci": [
+            0.6047,
+            0.7568
+          ],
+          "recall": 0.6486,
+          "recall_ci": [
+            0.5689,
+            0.7209
+          ]
+        },
+        "regression": {
+          "n": 148,
+          "precision": 0.6667,
+          "precision_ci": [
+            0.5895,
+            0.7359
+          ],
+          "recall": 0.7027,
+          "recall_ci": [
+            0.6247,
+            0.7705
+          ]
+        }
+      }
+    },
+    "margin": {
+      "difference": 0.1143,
+      "lower": 0.0551,
+      "upper": 0.1694
+    },
+    "turned": [
+      26,
+      394
+    ],
+    "groups": 245,
+    "decisions": 490,
+    "not_yet": "Blind cases (the main product's R3 asks for them): the generated sets have benchmark labels only; decision_gate_v2 adds the blind labels of 22.4's disagreements.",
+    "demotion": {
+      "accuracy_lower_below": 0.85,
+      "margin_lower_below": -0.02,
+      "turned_above": 0.05
+    },
+    "scope": "Evidence about this model on these generated decisions, not a claim that it is ready for production."
+  },
+  "result": "fail",
+  "rule": "One run of task.framing.boosting on 490 sealed decisions of generated tables, judged by a gate written before it; evidence about these planted kinds, not about real tables nor production readiness."
+}
