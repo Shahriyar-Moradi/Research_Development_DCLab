@@ -18,6 +18,15 @@ owner are its sources, read here against the repository at `07fa011`:
 finished, and the capture of everything keeps running meanwhile. Phase 9 starts after them; the capture they finish is
 what it learns from.
 
+**What it stands on.** The Learning Loop "uses the four phases and cards from *DCLab Framework: From Problem to Solution
+Workflow*, and the recipe parts from *DCLab Task Recipes*", and adds the part that was missing: how the system grows from
+the problems it meets. So an attempt is the four phases with their four cards and gates, which phase 8 finishes: the
+Problem Card v2 and G1 (30.13), the Data Card with its fit verdict and G2 (30.13), the Solution Brief with its success bar
+and G3 (30.14), the Workflow Run and G4 (30.15), on the recipe registry and its modifiers (30.10 to 30.12), with the case
+trajectories in the lake (30.19). The answer key's fit verdict and success bar are those cards' fields; the grader cannot
+be written before them. Phase 6's team (the walk, the critic, the auditor) and phase 7's students are the solver's seats
+and the decision models of level 4.
+
 **In one paragraph.** Learn in text first, in code second, in weights last. Every system that improves an agent without
 retraining has the same three parts: a harness that scores an attempt, a reflection step that turns the verdict and the
 trace into a written lesson, and a store that keeps the lesson and feeds the next attempt. So the capability is built as
@@ -76,7 +85,8 @@ its trace against the rubric; the **reflector** compares the failed and passed a
 
 | Seat | What it is in DCLab | Runs on |
 |---|---|---|
-| Solver | the product as it is: the Home agent, the coordinator's walk (or the team), the build, the engine's stages, the recipe registry, with the four stores read as evidence | the local model where it is good enough; Claude where a step needs it, capped |
+| Solver | the product as it is (rules, a language model, and a person where the workflow asks one): the Home agent, the coordinator's walk (or the team), the build, the engine's stages, the recipe registry, with the four stores read as evidence; it never sees the key | the local model where it is good enough; Claude where a step needs it, capped |
+| Attempt trace | every decision with its reason and the data it read: the attempt's four cards, the ledger's decision records (19.6, 19.7) with their answers and states, each stage's run record (19.5), the experience events, and the files the solver opened; one object an attempt, what the grader and the reflector read | recorded as the product records today |
 | Grader | new, deterministic code (`dclab_core.grader`); no model in the scoring path | local, no API |
 | Reflector | a new role (its prompt a file, hash-gated), reading the trace, the grader's diff and, when one exists, a passing trace of the same pack; never the answer key | Claude for reflection, capped per challenge (the Build Guide), or the local model where it measures as good |
 | Curator | plain code applying ACE's rules to the playbook and filing cases; never a model's rewrite | local |
@@ -292,6 +302,14 @@ its development record, the gate, capture in its "Done when", gates fixed before
 
 **What to track from day one:** for each family, the challenges learned from, the check score, the sealed score, the
 playbook's size and the spend a challenge.
+
+**The families after the first.** The Task Recipes' trap replicas give the next ones, each with its trap and its right
+behaviour already written: rare positives (a 1% positive rate: PR-AUC or precision at K, a warning on accuracy), groups
+(copies of one entity across rows: a group split, the holdout close to the honest score), time order (a feature computed
+with future data: flagged, a temporal split), noisy labels (an outcome built from a rule that is also a feature:
+confirmed labels only, the rule feature flagged), forecasting (strong seasonality: beat the seasonal naive baseline or say
+it does not), anomaly scoring (planted anomalies: most found in the top K). Each becomes a family with its variant
+generator once the first family's curve shows the loop works.
 
 **The honest baseline:** on MLE-bench the best frontier agent medalled in under a fifth of competitions on one attempt.
 DCLab does not need to beat that; it needs to show that on a narrow family its sealed score rises with each challenge
