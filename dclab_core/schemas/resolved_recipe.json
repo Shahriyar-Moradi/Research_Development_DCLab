@@ -1,0 +1,97 @@
+{
+  "$defs": {
+    "Choice": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "maxLength": 40,
+          "title": "Field",
+          "type": "string"
+        },
+        "part": {
+          "description": "name@version of the part (or parts) that decided it, 'person' (stated), 'solution' (the Solution's declared columns), 'machine' (a kind's own machine decides it) or 'ask' (a person must settle it).",
+          "maxLength": 2400,
+          "title": "Part",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 600,
+          "title": "Reason",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "field",
+        "part",
+        "reason"
+      ],
+      "title": "Choice",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.resolved_recipe.v1.json",
+  "additionalProperties": false,
+  "description": "What one run uses: the kind, the modifiers, each choice with the part that made it and why, and what is left to ask.",
+  "properties": {
+    "ask": {
+      "description": "The fields a person must settle before the run.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Ask",
+      "type": "array"
+    },
+    "choices": {
+      "items": {
+        "$ref": "#/$defs/Choice"
+      },
+      "maxItems": 40,
+      "title": "Choices",
+      "type": "array"
+    },
+    "kind": {
+      "maxLength": 100,
+      "title": "Kind",
+      "type": "string"
+    },
+    "modifiers": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Modifiers",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.resolved_recipe.v1",
+      "default": "dclab_core.resolved_recipe.v1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind"
+  ],
+  "title": "ResolvedRecipe",
+  "type": "object"
+}

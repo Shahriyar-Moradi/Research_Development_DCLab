@@ -1,0 +1,192 @@
+{
+  "$defs": {
+    "Detection": {
+      "additionalProperties": false,
+      "properties": {
+        "asks_user": {
+          "default": false,
+          "type": "boolean"
+        },
+        "rule": {
+          "default": "",
+          "maxLength": 300,
+          "type": "string"
+        },
+        "signal": {
+          "maxLength": 80,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "signal"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_needs": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "baseline": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "calibration": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "certification": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "detection": {
+      "items": {
+        "$ref": "#/$defs/Detection"
+      },
+      "maxItems": 12,
+      "type": "array"
+    },
+    "guard_metrics": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 12,
+      "type": "array"
+    },
+    "leakage_checks": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "level": {
+      "default": "experimental",
+      "enum": [
+        "experimental",
+        "certified",
+        "product_default"
+      ],
+      "type": "string"
+    },
+    "model_families": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "name": {
+      "maxLength": 60,
+      "minLength": 1,
+      "type": "string"
+    },
+    "part_type": {
+      "enum": [
+        "kind",
+        "modifier"
+      ],
+      "type": "string"
+    },
+    "primary_metric": {
+      "anyOf": [
+        {
+          "maxLength": 60,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "report_items": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "required_inputs": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 12,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.recipe_part.v1",
+      "default": "dclab_core.recipe_part.v1",
+      "type": "string"
+    },
+    "split": {
+      "anyOf": [
+        {
+          "enum": [
+            "random",
+            "stratified",
+            "group",
+            "time",
+            "time_group",
+            "rolling_origin",
+            "spatial"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "threshold_rule": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "version": {
+      "maxLength": 40,
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "part_type",
+    "version"
+  ],
+  "type": "object"
+}

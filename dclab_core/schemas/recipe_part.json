@@ -1,0 +1,221 @@
+{
+  "$defs": {
+    "Detection": {
+      "additionalProperties": false,
+      "properties": {
+        "asks_user": {
+          "default": false,
+          "description": "A person must confirm (review capacity is always asked).",
+          "title": "Asks User",
+          "type": "boolean"
+        },
+        "rule": {
+          "default": "",
+          "description": "The threshold or pattern, e.g. '< 0.05'.",
+          "maxLength": 300,
+          "title": "Rule",
+          "type": "string"
+        },
+        "signal": {
+          "description": "What is read: minority_rate, a time column, the person's words.",
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Signal",
+          "type": "string"
+        }
+      },
+      "required": [
+        "signal"
+      ],
+      "title": "Detection",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.recipe_part.v1.json",
+  "additionalProperties": false,
+  "description": "One kind or one modifier. A kind fills every field; a modifier only the fields it changes.",
+  "properties": {
+    "artifact_needs": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Artifact Needs",
+      "type": "array"
+    },
+    "baseline": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Baseline"
+    },
+    "calibration": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Calibration"
+    },
+    "certification": {
+      "description": "The replicas and real datasets behind its level.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Certification",
+      "type": "array"
+    },
+    "detection": {
+      "items": {
+        "$ref": "#/$defs/Detection"
+      },
+      "maxItems": 12,
+      "title": "Detection",
+      "type": "array"
+    },
+    "guard_metrics": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 12,
+      "title": "Guard Metrics",
+      "type": "array"
+    },
+    "leakage_checks": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Leakage Checks",
+      "type": "array"
+    },
+    "level": {
+      "default": "experimental",
+      "enum": [
+        "experimental",
+        "certified",
+        "product_default"
+      ],
+      "title": "Level",
+      "type": "string"
+    },
+    "model_families": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Model Families",
+      "type": "array"
+    },
+    "name": {
+      "maxLength": 60,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "part_type": {
+      "enum": [
+        "kind",
+        "modifier"
+      ],
+      "title": "Part Type",
+      "type": "string"
+    },
+    "primary_metric": {
+      "anyOf": [
+        {
+          "maxLength": 60,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Primary Metric"
+    },
+    "report_items": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Report Items",
+      "type": "array"
+    },
+    "required_inputs": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 12,
+      "title": "Required Inputs",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.recipe_part.v1",
+      "default": "dclab_core.recipe_part.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "split": {
+      "anyOf": [
+        {
+          "enum": [
+            "random",
+            "stratified",
+            "group",
+            "time",
+            "time_group",
+            "rolling_origin",
+            "spatial"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Split"
+    },
+    "threshold_rule": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Threshold Rule"
+    },
+    "version": {
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "part_type",
+    "version"
+  ],
+  "title": "RecipePart",
+  "type": "object"
+}

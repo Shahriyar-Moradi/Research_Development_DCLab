@@ -1,0 +1,82 @@
+{
+  "$defs": {
+    "Choice": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "maxLength": 40,
+          "type": "string"
+        },
+        "part": {
+          "maxLength": 2400,
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 600,
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "field",
+        "part",
+        "reason"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "ask": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "choices": {
+      "items": {
+        "$ref": "#/$defs/Choice"
+      },
+      "maxItems": 40,
+      "type": "array"
+    },
+    "kind": {
+      "maxLength": 100,
+      "type": "string"
+    },
+    "modifiers": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.resolved_recipe.v1",
+      "default": "dclab_core.resolved_recipe.v1",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind"
+  ],
+  "type": "object"
+}

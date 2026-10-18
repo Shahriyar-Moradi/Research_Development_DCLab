@@ -92,6 +92,7 @@ class Prepared:
         self.critic: Any = None  # the critic's advisor (18.6) when the project turns it on, set on every prepare
         self.kind: kinds.ProblemKind = kinds.get(solution.task)  # the problem kind (16.1), set on every prepare
         self.decided: list[Any] = []  # 22.9: the column decisions a routed decision model made here (ledger.use.Choice)
+        self.recipe: dict[str, Any] | None = None  # 30.10: the resolved recipe (dclab_core.recipes), set on every prepare
         self.personal: set[str] = set()  # 23.7: the columns that hold a person's data (their levels are not named in a record)
 
     @property
@@ -248,6 +249,9 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     prepared.personal = {c["name"] for c in ((project.get("data") or {}).get("profile") or {}).get("columns", [])
                          if sensitivity.upgrade_column(c).get("sensitivity", "none") != "none"}  # 23.7: columns that hold a person's data
     prepared.kind = kind
+    from dclab_rnd import recipes as recipe_registry  # 30.10: the recipe the run resolves to, each choice with its part (nothing changes)
+
+    prepared.recipe = recipe_registry.record_for(kind, solution, positive_rate)
     prepared.decided = decided
     prepared.plan, prepared.label_info = project.get("plan"), project.get("labels")
     prepared.critic = _critic_advisor(project)
@@ -462,6 +466,8 @@ def stage_data(p: Prepared, eid: str) -> tuple[dict, list, str]:
         "feature_profiles": profiles,
         "risk_features": {pr["feature"]: pr["production_risks"] for pr in profiles if pr["production_risks"]},
         "column_roles": dict(p.roles),
+        "split_strategy": spec.split_strategy,
+        **({"recipe": p.recipe} if getattr(p, "recipe", None) else {}),  # 30.10: the kind's part and the reason behind each choice
         # 22.9: what a routed decision model decided here, after the validator (a refused answer is listed with why)
         **({"decided_by_models": [{"point": c.point, "column": c.subject, "answerer": c.answerer, "level": c.level, "model": c.model_value,
                                    "used": c.used, "changed": c.changed, "review": c.review, "refused": c.refused} for c in p.decided]}
@@ -1289,6 +1295,10 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
                 project["holdout_uses"] = int(project.get("holdout_uses", 0)) + 1
             with run_steps.step(f"{p.kind.key} machine: {stage}", "other", params={"machine": p.kind.key}):
                 evidence, claims, summary, decision = p.machine.run(stage, eid, previous)
+            if stage == "data":  # 30.10: a kind's own machine records its recipe too (its metric, and that it splits itself)
+                from dclab_rnd import recipes as recipe_registry
+
+                evidence["recipe"] = recipe_registry.record_for(p.kind, p.solution, None, machine=p)
             if stage == "final":
                 evidence["holdout_uses_in_this_project"] = project["holdout_uses"]
                 if reuse_reason:

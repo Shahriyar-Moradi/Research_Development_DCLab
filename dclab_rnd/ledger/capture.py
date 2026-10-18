@@ -172,9 +172,11 @@ def stage_decisions(stage: str, record: dict[str, Any], prepared: Any, owner: di
     settings = owner.get("settings") or {}
     written = 0
 
-    def put(point: str, rule: Any, rule_id: str, *, person: Any = None, options: Any = (), state: dict[str, Any] | None = None) -> Any:
+    def put(point: str, rule: Any, rule_id: str, *, person: Any = None, options: Any = (), state: dict[str, Any] | None = None,
+            choice: dict[str, Any] | None = None) -> Any:
         nonlocal written
-        answers = [answer("rule", rule_id, rule)] + ([answer("person", "owner", person)] if person is not None else [])
+        made = {"source": str(choice.get("part") or "")[:120] or None, "reason": str(choice.get("reason") or "")[:600] or None} if choice else {}
+        answers = [answer("rule", rule_id, rule, **made)] + ([answer("person", "owner", person)] if person is not None else [])
         who = "person" if person is not None else "rule"
         rec = _put(point, subject, answers, person if person is not None else rule, who, state={**base, **(state or {})}, options=options, **ids)
         written += bool(rec)
@@ -184,13 +186,16 @@ def stage_decisions(stage: str, record: dict[str, Any], prepared: Any, owner: di
         if stage == "data" and prepared is not None:
             solution = getattr(prepared, "solution", None)
             spec = getattr(getattr(prepared, "bundle", None), "spec", None)
+            made = {c.get("field"): c for c in ((getattr(prepared, "recipe", None) or {}).get("choices") or [])}  # 30.10: the part behind each
             if spec is not None:
                 from .states import split_state  # 29.2: the fields the homework's students read, built one way
 
                 put("split.strategy", getattr(spec, "split_strategy", None), "rule:kind_split",
-                    state=split_state(data.get("profile"), getattr(solution, "time_column", None), getattr(solution, "group_column", None)))
+                    state=split_state(data.get("profile"), getattr(solution, "time_column", None), getattr(solution, "group_column", None)),
+                    choice=made.get("split"))
             chosen_metric = getattr(solution, "metric", None)
-            put("metric.primary", None if chosen_metric else metric, "rule:kind_default_metric", person=chosen_metric or None)
+            put("metric.primary", None if chosen_metric else metric, "rule:kind_default_metric", person=chosen_metric or None,
+                choice=made.get("primary_metric"))
             folds = settings.get("folds")
             put("split.folds", DEFAULT_FOLDS, "rule:default_folds", person=int(folds) if isinstance(folds, int) else None)
             sampling = getattr(prepared, "sampling", None) or {}

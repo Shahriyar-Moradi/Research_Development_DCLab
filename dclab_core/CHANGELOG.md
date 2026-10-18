@@ -4,6 +4,19 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.78.0 (2026-10-18)
+
+Package 30.10: the recipe registry.
+
+- `recipes.RecipePart` v1 (`dclab_core.recipe_part.v1`): one task kind or one modifier as the owner's nine-field contract
+  (detection, required inputs, split, metrics, models, leakage checks, calibration and threshold rule, artifact needs, report
+  items), with a version and a certification level (experimental, certified, product default) and the evidence behind it.
+- `recipes.ResolvedRecipe` v1 (`dclab_core.resolved_recipe.v1`) and `recipes.resolve(kind, modifiers, stated)`: every choice
+  with the part that made it and why. What the person states wins (and is checked: a split must be one of `Split`, an unknown
+  field is refused); splits combine and a kind's time order is never dropped by a modifier's split; for one-value fields the
+  most specific modifier wins (review capacity, then rare positives, then the kind); lists add up in order; a conflict the
+  rules cannot settle (splits that do not combine, modifiers of equal rank that disagree) is left open in `ask`.
+
 ## 0.77.0 (2026-10-18)
 
 Package 30.8: pattern cards.

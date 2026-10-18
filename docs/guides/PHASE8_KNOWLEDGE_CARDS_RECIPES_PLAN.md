@@ -208,6 +208,12 @@ Designed in detail once Part E is built; each keeps DCLab's rules (the validator
   and the ten practice questions with the owner's rubric (the metric, the validation split, the first simple baseline);
   `dclab_core.business_examples.practice_recall` (0.77.0): 10 of 10 questions find their own pattern first among 49 examples, the
   questions never indexed. Left: paraphrases by an independent writer (30.18), the easy test being one author's.
+- **30.10 built (2026-10-18), the review's 10 findings fixed:** `dclab_core.recipes` (dclab-core 0.78.0: `RecipePart` v1 with the
+  nine fields, a version and a level; `ResolvedRecipe` v1; `resolve` with the owner's precedence, a kind's time order never
+  dropped, ties and splits that do not combine asked, what the person states checked); `dclab_rnd/recipes.py`: the fifteen kinds
+  as parts (`python -m dclab_rnd.recipes`), each versioned by its own code, all experimental until certified; every run records its
+  recipe in the data stage (a machine kind's too), and the split and metric decisions carry their part and reason. The recipe's
+  split and metric equal the run's on binary, regression, places, rare_event and segmentation. Left: the modifiers (30.11).
 
 ---
 

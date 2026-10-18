@@ -1,0 +1,93 @@
+{
+ "package": "30.10",
+ "title": "The recipe registry: a problem as one kind plus modifiers, every choice with the part that made it",
+ "date": "2026-10-18",
+ "request": "Phase 8, Part C (the owner's task recipes document): support new machine-learning problems by adding recipe parts, never new pipelines; every part fills one contract, is versioned and certified, and a resolved recipe says which part decided each choice and why.",
+ "spec": "docs/guides/PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md, package 30.10",
+ "plan": [
+  "Write the contract in dclab_core: a recipe part with the owner's nine fields, a version and a certification level, and a resolved recipe whose choices name their part and reason.",
+  "Write the precedence the owner's document gives: the person wins, splits combine, the most specific modifier wins a one-value field, lists add up, an unsettled conflict is asked.",
+  "Read the fifteen problem kinds as parts through an adapter, and record the recipe on every run without changing what the run does."
+ ],
+ "decisions": [
+  {
+   "decision": "The recipe records what the run already decides; no choice moves to the resolver until the modifiers exist.",
+   "why": "The package promises no behaviour change: the modifiers that change the split and the metric come with their own certification."
+  },
+  {
+   "decision": "A part's version is a fingerprint of its fields and of the source of its kind's class and every kind class above it.",
+   "why": "A certification names a part's version; a change inside a method must change the version, or a certified level would follow changed behaviour."
+  },
+  {
+   "decision": "Every kind's level is experimental until a certification run earns more.",
+   "why": "The owner's certified level asks for two real datasets and the same result with the model off; the capability matrix shows replicas only."
+  },
+  {
+   "decision": "A failure to resolve the recipe is recorded in the stage record, never raised.",
+   "why": "The recipe describes a run; a long column name or a kind that cannot be read as a part must not stop a run that used to succeed."
+  }
+ ],
+ "change": "dclab_core/recipes.py (RecipePart v1, Choice, ResolvedRecipe v1, resolve; dclab-core 0.78.0, the schemas and their baselines, the conformance reasons); dclab_rnd/recipes.py (part_of, kind_parts, resolve_for, record_for, python -m dclab_rnd.recipes); the engine records the recipe and the split it ran in the data stage, a machine kind's too; the split and metric decisions carry the part and reason that made them; tests/test_recipes.py.",
+ "findings": [
+  {"id": "R1", "source": "reviewer", "severity": "gap", "defect": "Kinds with their own machine recorded no recipe.",
+   "scenario": "A segmentation run's data stage held no recipe: nine kinds never reached the line that recorded it.",
+   "cause": "A machine kind's prepare returns before the tabular path, and its stages never call the tabular data stage.",
+   "fix": "The machine branch records the recipe in its data stage, with the machine's metric and the split marked as the machine's own.",
+   "test": "test_a_kind_with_its_own_machine_records_its_recipe"},
+  {"id": "R2", "source": "reviewer", "severity": "latent", "defect": "A part's version did not change when its kind changed.",
+   "scenario": "Moving the rare-class cut-off inside a kind's metric method left its version unchanged, so a certification would follow changed behaviour.",
+   "cause": "The fingerprint read class attributes only.",
+   "fix": "The version hashes the part's fields and the source of the kind's class and every kind class above it.",
+   "test": "test_a_kind_whose_behaviour_changes_gets_a_new_version"},
+  {"id": "R3", "source": "reviewer", "severity": "leakage", "defect": "A modifier's split dropped a kind's time order.",
+   "scenario": "A kind that splits forward in time with a groups modifier resolved to a plain group split.",
+   "cause": "Only the modifiers' splits were combined.",
+   "fix": "A kind's forward split joins the modifiers' splits; a rolling origin with groups, which do not combine, is asked.",
+   "test": "test_a_kinds_time_order_is_never_dropped_by_a_modifiers_split"},
+  {"id": "R4", "source": "reviewer", "severity": "behaviour", "defect": "Modifiers of equal rank that disagreed were settled by their order.",
+   "scenario": "Two modifiers setting different calibrations gave one answer, and the other when listed the other way round.",
+   "cause": "The first modifier of the lowest rank won.",
+   "fix": "Modifiers of equal rank that disagree leave the field open and ask the person.",
+   "test": "test_modifiers_of_equal_rank_that_disagree_are_asked"},
+  {"id": "R5", "source": "reviewer", "severity": "behaviour", "defect": "What a person stated was not checked, and some of it was dropped.",
+   "scenario": "A stated split of 'temporal' was accepted, which the dataset step would read as a random split; a stated list of model families vanished.",
+   "cause": "Stated values were copied without validation, and list fields were never read from them.",
+   "fix": "A stated split must be one of the contract's splits, an unknown field is refused, one-value fields take text and list fields take lists, which replace the parts' lists.",
+   "test": "test_the_person_wins_and_what_they_state_is_checked"},
+  {"id": "R6", "source": "reviewer", "severity": "behaviour", "defect": "A run that used to succeed could fail.",
+   "scenario": "A table with very long column names, as survey exports have, raised a validation error inside the engine's prepare.",
+   "cause": "The reason built from the column names exceeded the contract's length, and the engine did not guard the call.",
+   "fix": "Reasons and parts are cut to the contract's lengths, and the engine records a failure to resolve instead of raising.",
+   "test": "test_a_recipe_that_cannot_resolve_is_recorded_never_raised"},
+  {"id": "R7", "source": "reviewer", "severity": "gap", "defect": "The parts misdescribed several kinds.",
+   "scenario": "Every part said a stratified split, regression's and places' included, and two kinds named a metric they do not run by.",
+   "cause": "The part read the split of an empty solution and the first metric listed.",
+   "fix": "A part's split is the kind's own (none for a machine kind, spatial blocks for places, strata or random by the kind), its metric the kind's default, its artifact needs only the true flags.",
+   "test": "test_every_kind_is_a_part_with_a_version_its_evidence_and_its_true_defaults"},
+  {"id": "R8", "source": "reviewer", "severity": "gap", "defect": "Some recorded choices disagreed with the run.",
+   "scenario": "The models were recorded as asked by no part while the screen tried many families, and the guard metrics listed the primary itself.",
+   "cause": "Only the split and the metric were taken from the run.",
+   "fix": "The models choice says the engine's screen chooses them, and the guard metrics are the kind's others beside the primary.",
+   "test": "test_engine_kinds_record_the_split_and_metric_they_ran"},
+  {"id": "R9", "source": "reviewer", "severity": "gap", "defect": "The no-change test compared a function with itself.",
+   "scenario": "The test called the same functions the adapter calls and never ran the engine, so it would pass whatever the engine did.",
+   "cause": "It checked the adapter, not the run.",
+   "fix": "Engine runs on four kinds and a machine kind: the recipe's split and metric equal the split the run recorded and its metric.",
+   "test": "test_engine_kinds_record_the_split_and_metric_they_ran"},
+  {"id": "R10", "source": "reviewer", "severity": "gap", "defect": "The package's own steps were missing.",
+   "scenario": "No changelog entry, version, integration section or development record for two new contracts.",
+   "cause": "The review ran before them.",
+   "fix": "dclab-core 0.78.0, its changelog, the integration section and this record; the split and metric decisions now carry the part and reason that made them.",
+   "test": "test_every_kind_is_a_part_with_a_version_its_evidence_and_its_true_defaults"}
+ ],
+ "measurements": [],
+ "outcome": "Every run records its recipe, the kind's part with its version and the reason behind each choice, and the recipe's split and metric are the run's own; the precedence the modifiers will use is in place and tested.",
+ "lessons": [
+  "A test of no behaviour change must run the behaviour: comparing a function with the functions it calls proves nothing.",
+  "A version that certifies behaviour must fingerprint the code that decides, not only the declared attributes."
+ ],
+ "risks": [
+  "No modifier exists yet: the precedence is tested on invented parts until 30.11."
+ ],
+ "commits": []
+}

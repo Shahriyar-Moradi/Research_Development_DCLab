@@ -726,6 +726,13 @@ request path; it is a data generator. A team that pretrains or evaluates an in-c
 or reads DCLab's corpus (`make priors`, `lake/bronze/priors/priors_v1/`); `params.effects_shown` marks the tables whose shown
 features include the outcome's effects, for a team that wants none.
 
+## Recipes: a kind plus modifiers (30.10, dclab-core 0.78.0)
+
+The library's: `dclab_core.recipes` (`RecipePart`, `ResolvedRecipe`, `resolve`). Where it goes there: the main product's task
+kinds and its expansion pack can each be read as a part (its fields from the kind's own defaults), and its training plan can
+record the resolved recipe beside its choices, so every run says which part made each choice and why; its `task.kind`,
+`split.strategy` and `training.families_budget` decision points read their values from the recipe's choices.
+
 ## Pattern cards and their evaluation (30.8, dclab-core 0.77.0)
 
 The library's: `dclab_core.business_examples.practice_recall`. Where it goes there: the main product can measure its own
