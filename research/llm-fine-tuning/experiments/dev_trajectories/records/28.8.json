@@ -321,6 +321,16 @@
    "cause": "The test bound the parent itself and called the cap directly.",
    "fix": "A walk with a stub coordinator whose node records a model request in a nested run: the node's cost is that request and the client's limit was set before it acted.",
    "test": "test_a_node_is_capped_before_it_acts_and_its_nested_runs_cost_is_its_own"
+  },
+  {
+   "id": "T19",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "Two team route tests failed on the loaded gate: the walk's start was refused while the Home agent's job was still listed.",
+   "scenario": "Under the gate's parallel load the agent's busy flag had cleared but its job had not, so the start returned the 409 that says the agent is answering, and the helper read a pause from it.",
+   "cause": "The helper waited for one of the two signals the route checks.",
+   "fix": "The helper starts the walk again only on that 409, which starts nothing, and shows what it got when the pause is missing.",
+   "test": "test_a_walk_stops_at_its_euro_budget_and_at_a_nodes"
   }
  ],
  "measurements": [

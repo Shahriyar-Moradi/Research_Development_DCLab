@@ -54,7 +54,7 @@ class TeamApiTests(unittest.TestCase):
         empty = c.get(f"/api/drafts/{d['id']}/team").json()
         self.assertEqual((empty["board"], empty["waiting"], empty["walk"]), (None, None, None))  # nothing walked yet
         self.assertEqual(c.post(f"/api/drafts/{d['id']}/team", json={"answer": "x"}, headers=self.h).status_code, 409)  # no pause to resume
-        out = c.post(f"/api/drafts/{d['id']}/team", json={}, headers=self.h).json()
+        out = self.start_walk(d["id"])
         self.assertEqual((out["status"], out["asks"]["kind"]), ("paused", "question"), out)
         seen = c.get(f"/api/drafts/{d['id']}/team").json()
         self.assertEqual((seen["waiting"]["kind"], seen["waiting"]["field"]), ("question", out["asks"]["field"]))  # the pause, read back
@@ -210,9 +210,17 @@ class TeamApiTests(unittest.TestCase):
         d = c.post("/api/drafts", json={"problem": "Predict which customers cancel next month"}, headers=self.h).json()
         wait(lambda: c.get(f"/api/drafts/{d['id']}").json()["questions"])
         wait(lambda: not c.get(f"/api/drafts/{d['id']}").json().get("agent", {}).get("busy"))
-        out = c.post(f"/api/drafts/{d['id']}/team", json={}, headers=self.h).json()
-        self.assertEqual(out["asks"]["kind"], "question")
+        out = self.start_walk(d["id"])
+        self.assertEqual(out["asks"]["kind"], "question", out)
         return d["id"], out
+
+    def start_walk(self, draft_id):
+        """Start the walk once the Home agent's turn has ended: a 409 (the agent's job still listed, under a loaded machine)
+        starts nothing, so it is asked again (the gate of 28.8 found the race)."""
+        def start():
+            r = self.client.post(f"/api/drafts/{draft_id}/team", json={}, headers=self.h)
+            return None if r.status_code == 409 and "answering" in r.text else r.json()
+        return wait(start)
 
     def test_an_answer_must_fit_its_pause_and_a_start_while_it_waits_keeps_the_walk(self):  # the review of 28.8, M2 and M3
         c = self.client
