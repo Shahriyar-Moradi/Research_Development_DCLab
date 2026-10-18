@@ -155,6 +155,16 @@
    "cause": "Only the happy path was tested.",
    "fix": "Tests for each.",
    "test": "tests/test_team_api.py"
+  },
+  {
+   "id": "G1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The new write routes did not say what they record.",
+   "scenario": "check-commit on 14f8383: test_experience_log listed POST /api/drafts/{id}/team and /api/projects/{id}/team as write routes with no declared record.",
+   "cause": "Every write route must name the events it writes; the routes were added without the entry.",
+   "fix": "Both declared: the walk's team.handoff and team.interrupt events (team.recorded at its end).",
+   "test": "test_every_write_route_says_what_it_records"
   }
  ],
  "measurements": [],
