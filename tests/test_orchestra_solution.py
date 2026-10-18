@@ -319,6 +319,8 @@ class TrainingDataTests(unittest.TestCase):
         project["settings"]["consent"] = {"train": True}
         self.store.save(project)
         consent._PROJECTS.clear()  # as a change through the API does: the switch read while the project was built is old
+        consent._STORES[str(self.home)] = self.store  # the stamp reads this workspace's projects, on files or PostgreSQL alike
+        self.addCleanup(consent._STORES.pop, str(self.home), None)
 
     def walk(self, person=None, finish=True):
         from dclab_rnd.orchestra import checkpoints
