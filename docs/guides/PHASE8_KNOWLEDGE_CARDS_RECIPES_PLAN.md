@@ -188,7 +188,13 @@ Designed in detail once Part E is built; each keeps DCLab's rules (the validator
 
 ## Status
 
-- **Design (2026-10-18):** written and decided with the owner (D1 to D7); 30.7 next.
+- **Design (2026-10-18):** written and decided with the owner (D1 to D7).
+- **30.7 built (2026-10-18), the review's 8 findings fixed:** `BusinessExample` v2 (dclab-core 0.75.0) with `visibility`
+  (`model` or `rules_only`), the owner's pattern fields (pattern, practice questions, recipe link, replicas) in the same
+  version for 30.8 to fill, `for_model` and `context_for_model` the one way examples reach a model (no storage path, no
+  conversation, no rules_only example); an owner's solution can never be visible and a stored v1 one reads as rules_only;
+  practice questions are kept out of the index they evaluate; a rebuild without the owner's folder keeps the committed owner
+  example. Left: the check on the gateway's recorded prompts comes with 30.18, when a role first reads examples.
 
 ---
 

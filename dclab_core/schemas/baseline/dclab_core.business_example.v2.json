@@ -1,0 +1,410 @@
+{
+  "$defs": {
+    "Elsewhere": {
+      "additionalProperties": false,
+      "properties": {
+        "case": {
+          "maxLength": 600,
+          "minLength": 1,
+          "type": "string"
+        },
+        "industry": {
+          "maxLength": 80,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "industry",
+        "case"
+      ],
+      "type": "object"
+    },
+    "ExampleSource": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "research_track",
+            "campaign",
+            "replica",
+            "owner_solution",
+            "owner_document",
+            "written"
+          ],
+          "type": "string"
+        },
+        "ref": {
+          "maxLength": 600,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "type": "object"
+    },
+    "Pattern": {
+      "additionalProperties": false,
+      "properties": {
+        "elsewhere": {
+          "items": {
+            "$ref": "#/$defs/Elsewhere"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "general_problem": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "how_to_measure": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "how_to_solve": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "mistakes": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "said": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "why_hard": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "Practice": {
+      "additionalProperties": false,
+      "properties": {
+        "names": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "question": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "question"
+      ],
+      "type": "object"
+    },
+    "RecipeLink": {
+      "additionalProperties": false,
+      "properties": {
+        "capability": {
+          "default": "knowledge",
+          "enum": [
+            "built",
+            "planned",
+            "knowledge"
+          ],
+          "type": "string"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "modifiers": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "package": {
+          "anyOf": [
+            {
+              "maxLength": 20,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "type": "object"
+    },
+    "Result": {
+      "additionalProperties": false,
+      "properties": {
+        "metric": {
+          "maxLength": 80,
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "maxLength": 600,
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 600,
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "metric",
+        "value",
+        "source"
+      ],
+      "type": "object"
+    },
+    "Understanding": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "family": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "labels": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "moment": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "data": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 40,
+      "type": "array"
+    },
+    "id": {
+      "maxLength": 80,
+      "minLength": 1,
+      "type": "string"
+    },
+    "industry": {
+      "default": "",
+      "maxLength": 80,
+      "type": "string"
+    },
+    "pattern": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Pattern"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "pitfalls": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "practice": {
+      "items": {
+        "$ref": "#/$defs/Practice"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "problem": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "type": "string"
+    },
+    "recipe": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RecipeLink"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "replicas": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 12,
+      "type": "array"
+    },
+    "results": {
+      "items": {
+        "$ref": "#/$defs/Result"
+      },
+      "maxItems": 12,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.business_example.v2",
+      "default": "dclab_core.business_example.v2",
+      "type": "string"
+    },
+    "solution": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "source": {
+      "$ref": "#/$defs/ExampleSource"
+    },
+    "tags": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "understanding": {
+      "$ref": "#/$defs/Understanding"
+    },
+    "visibility": {
+      "default": "model",
+      "enum": [
+        "model",
+        "rules_only"
+      ],
+      "type": "string"
+    },
+    "workflow": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "title",
+    "problem",
+    "source"
+  ],
+  "type": "object"
+}

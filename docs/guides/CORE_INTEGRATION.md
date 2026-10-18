@@ -733,11 +733,14 @@ there: wherever the main product's understanding conversation would stop on an u
 ask this narrower question with the named columns as choices first; its answer reads as any outcome answer
 (`read_answer("outcome", ...)`).
 
-## Business examples (30.5, dclab-core 0.73.0)
+## Business examples (30.5, dclab-core 0.73.0; v2 in 30.7, 0.75.0)
 
 The library's: `dclab_core.business_examples` (`BusinessExample` v1, `search`, `brief`). Where it goes there: the main
 product's understanding and planning agents can be given the closest examples to a person's words as context (what to
-ask, which trap to look for, which split), once its own measurement shows it helps; every example says where it comes from.
+ask, which trap to look for, which split), once its own measurement shows it helps; every example says where it comes from. v2 (30.7):
+only `for_model(examples)` may fill a model's context (a `rules_only` example, such as an owner's private solution, never
+does), and an example carries its general pattern, practice questions and the recipe it maps to, which the main product's
+planner can read as it reads its own templates.
 
 ## A team's walks as training data (28.9, dclab-core 0.70.0)
 

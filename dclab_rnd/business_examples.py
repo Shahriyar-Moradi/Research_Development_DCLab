@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
-from dclab_core.business_examples import BusinessExample, ExampleSource, Result, Understanding, brief, search
+from dclab_core.business_examples import BusinessExample, ExampleSource, Result, Understanding, brief, for_model, search
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "evidence" / "business_examples"
@@ -85,6 +85,8 @@ def _table(text: str, heading: str) -> dict[str, str]:
 def from_tracks() -> list[BusinessExample]:
     out = []
     for readme in sorted((ROOT / "research").glob("*/README.md")):
+        if readme.parent.name.startswith(("_", ".")):
+            continue  # research/_template is the new-track template, not a track (the research map skips it too)
         text = readme.read_text(encoding="utf-8")
         contract = _table(text, "## Prediction contract")
         if not contract:
@@ -113,9 +115,13 @@ def from_tracks() -> list[BusinessExample]:
 
 
 def from_owner_fraud() -> list[BusinessExample]:
-    """The owner's complete fraud solution, from its README: what it found and how it chose (no row of its data)."""
+    """The owner's complete fraud solution, from its README: what it found and how it chose (no row of its data). Where the
+    owner's folder is not beside this one (a worktree, another machine), the committed copy is kept, never dropped (the
+    review of 30.7): a rebuild there must not remove what the rules read."""
     if not SNAP.is_file():
-        return []
+        kept = OUT / "examples.jsonl"
+        return [e for e in (BusinessExample.read(x) for x in kept.read_text(encoding="utf-8").splitlines())
+                if e.source.kind == "owner_solution"] if kept.is_file() else []
     text = SNAP.read_text(encoding="utf-8")
     found = [" ".join(b.split())[:600] for b in re.findall(r"\* \*\*(?:Labels|What fraud looks like|Choice)\.\*\*(.+?)(?=\n\* |\n\n|\Z)", text, re.S)]
     return [BusinessExample(id="owner:delivery_fraud", title="Delivery fraud by bikers and customers (the owner's)", industry="delivery",
@@ -127,7 +133,8 @@ def from_owner_fraud() -> list[BusinessExample]:
                                       "PU bagging chosen: tied with the best on average precision, best ROC-AUC, the labels being a sample"],
                             results=[Result(metric="average_precision", value=0.095, note="random forest, biker-grouped CV", source="Snap_fruad/README.md"),
                                      Result(metric="average_precision", value=0.081, note="PU bagging (selected), biker-grouped CV", source="Snap_fruad/README.md")],
-                            source=ExampleSource(kind="owner_solution", ref="Snap_fruad/README.md"), tags=["fraud", "positive-unlabelled", "owner"])]
+                            source=ExampleSource(kind="owner_solution", ref="Snap_fruad/README.md"), tags=["fraud", "positive-unlabelled", "owner"],
+                            visibility="rules_only")]  # 30.7: the owner's private data: the rules read it, a model never does
 
 
 def from_written() -> list[BusinessExample]:
@@ -151,12 +158,18 @@ def build(out: Path = OUT) -> dict[str, Any]:
 
 def load(out: Path = OUT) -> list[BusinessExample]:
     path = out / "examples.jsonl"
-    return [BusinessExample.model_validate_json(x) for x in path.read_text(encoding="utf-8").splitlines()] if path.is_file() else []
+    return [BusinessExample.read(x) for x in path.read_text(encoding="utf-8").splitlines()] if path.is_file() else []
 
 
 def find(words: str, top: int = 3) -> list[dict[str, Any]]:
-    """The examples closest to a person's words, as a role reads them."""
+    """The examples closest to a person's words, for the owner and the rules (every visibility)."""
     return [{**brief(e), "score": s} for e, s in search(load(), words, top)]
+
+
+def context_for_model(examples: list[BusinessExample] | None, words: str, top: int = 3) -> list[dict[str, Any]]:
+    """30.7: the examples a model's context may hold for a person's words: only those a model may read (``for_model``),
+    each as its brief (the general pattern, never where it is kept). The one way examples reach a model."""
+    return [{**brief(e), "score": s} for e, s in search(for_model(load() if examples is None else examples), words, top)]
 
 
 def main(argv: Optional[list[str]] = None) -> int:

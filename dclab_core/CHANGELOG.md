@@ -4,6 +4,18 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.75.0 (2026-10-18)
+
+Package 30.7: what a model may read.
+
+- `business_examples.BusinessExample` v2 (`dclab_core.business_example.v2`; a stored v1 reads as v2): `visibility` (`model`
+  or `rules_only`: the owner's private solutions are read by the search and never put in a model's context), the source kind
+  `owner_document`, the `pattern` (what was said without names, the general problem, why it is hard, how to solve and
+  measure it, the common mistakes, the same problem in other industries), `practice` questions with what a strong answer
+  names, the `recipe` it maps to (kind, modifiers, built / planned / knowledge), and the `replicas` that plant its traps.
+- `business_examples.for_model(examples)`: the one filter every model reader goes through; `brief` adds the pattern (never
+  the conversation) and the recipe.
+
 ## 0.74.0 (2026-10-18)
 
 Package 28.7 (a finding of the fifth sealed set): an outcome named but left open is asked once more.
