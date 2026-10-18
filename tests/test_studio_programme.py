@@ -355,6 +355,18 @@ class ReviewTest(unittest.TestCase):
         sp.run(store2, pid2)
         self.assertIn("basket_total", next(l for l in sp.stored(store2.get(pid2)).leaves if l.block == "blk1").columns, "the column is a measure unless the project forbids it")
 
+    def test_a_column_forbidden_as_the_solution_writes_it_never_reaches_a_leaf(self):  # 28.5's explorer: {"column", "reason"} was read
+        extra = {"basket_total": lambda rides: rides["fare"] * 1.1 + rides["distance_m"] / 1000}
+        store, pid, replica = self.fresh(rides_extra=extra)
+        project = store.get(pid)
+        project["suggestion"]["forbidden"] = [{"column": "basket_total", "reason": "written after the moment"}]  # the Forbidden shape
+        store.save(project)
+        self.assertIn("basket_total", sp.excluded(store.get(pid)))
+        self.assertFalse([n for n in sp.excluded(store.get(pid)) if n.startswith("{")])
+        sp.run(store, pid)
+        for leaf in sp.stored(store.get(pid)).leaves:
+            self.assertNotIn("basket_total", leaf.columns)
+
     def test_a_column_the_data_card_marks_as_a_leak_suspect_is_kept_out_without_anyone_saying_so(self):
         extra = {"final_fare": lambda rides: rides["fare"] * 1.1 + rides["distance_m"] / 1000}
         store, pid, replica = self.fresh(rides_extra=extra)

@@ -82,7 +82,8 @@ def excluded(project: dict[str, Any]) -> list[str]:
     for table in card.get("tables") or []:
         if table.get("role", "main") == "main":
             names += [c.get("name") for c in table.get("columns") or [] if c.get("purpose") in ("leak_suspect", "outcome", "identifier")]
-    return sorted({str(n) for n in names if n})
+    named = [n.get("column") if isinstance(n, dict) else n for n in names]  # a forbidden column as the solution writes it: {"column", "reason"}
+    return sorted({str(n) for n in named if n})
 
 
 def inputs_of(project: dict[str, Any]) -> dict[str, Any]:
