@@ -343,5 +343,30 @@ class StudioProposalTest(unittest.TestCase):
         self.assertLess(len(str(proposal["plan"])), 8000)  # compact: the intern reads it on every proposal
 
 
+
+class RecurringEntityTests(unittest.TestCase):
+    def test_a_grouped_forward_split_on_an_entity_that_recurs_over_time_is_refused(self):  # 28.6, the debate's live run
+        import numpy as np
+        import pandas as pd
+
+        from dclab_core.analyse import analyse
+        from dclab_core.plan import override, plan, validate
+
+        rng = np.random.default_rng(0)
+        n = 3000
+        times = pd.date_range("2026-01-01", periods=n, freq="45min").astype(str)
+        for customers, refused in ((rng.integers(0, 300, n), True), (np.arange(n) // 3, False)):  # recurring, then new ones over time
+            frame = pd.DataFrame({"created_at": times, "customer_id": customers.astype(int), "amount": rng.gamma(2, 20, n).round(2),
+                                  "churned": (rng.random(n) < np.linspace(0.1, 0.4, n)).astype(int)})
+            findings = analyse({"table": frame}, target="churned", task="binary")
+            base = plan(None, findings)
+            grouped = override(base, "split.strategy", {"kind": "time_and_group", "time_column": "created_at", "group_column": "customer_id",
+                                                        "holdout": "locked first, used once, after the choice"}, "a model's grouped forward split", by="advisor")
+            problems = [p for p in validate(grouped, findings) if "orders by time" in p]
+            self.assertEqual(bool(problems), refused, (problems, [f.evidence for f in findings.findings if f.topic == "entities"]))
+            person = override(base, "split.strategy", grouped.decision("split.strategy").choice, "a person decides it anyway", by="person")
+            self.assertFalse([p for p in validate(person, findings) if "orders by time" in p])  # a person's choice stands
+
+
 if __name__ == "__main__":
     unittest.main()

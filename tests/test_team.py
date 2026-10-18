@@ -67,6 +67,38 @@ class TeamTest(unittest.TestCase):
                 self.assertFalse(store.get(pid)["settings"].get("critic"))  # the critic was the run's, not left on
                 self.assertEqual(len([e for e in store.activity(pid, limit=500) if e["kind"] == "team_step"]), len(out["steps"]))
 
+    def test_a_planned_grouped_forward_split_the_engine_cannot_test_is_not_saved(self):  # 28.6: the debate's live runs found it
+        import numpy as np
+        import pandas as pd
+
+        from dclab_rnd.expansion import runner
+
+        rng = np.random.default_rng(0)
+        n = 1500
+        frame = pd.DataFrame({"created_at": pd.date_range("2026-01-01", periods=n, freq="h").astype(str),
+                              "customer_id": rng.integers(0, 120, n), "amount": rng.gamma(2, 20, n).round(2),  # customers recur over time
+                              "visits": rng.integers(1, 9, n), "churned": (rng.random(n) < 0.3).astype(int)})
+        store = ProjectStore(Path(tempfile.mkdtemp()))
+        pid = store.create("x", "general", "Predict which customers churn next month.")["id"]
+        frame.to_csv(store.data_dir(pid) / "customers.csv", index=False)
+        sd.attach_data(store, pid, "customers.csv")
+
+        def planner(evidence):  # a split labelled a group that still carries the time order: the validator lets it through
+            cite = next(f.split(" ")[0] for f in evidence["findings"] if "customer_id" in f)
+            return {"decisions": [{"key": "split.strategy", "choice": {"kind": "group", "group_column": "customer_id", "time_column": "created_at",
+                                                                      "holdout": "locked first, used once, after the choice"},
+                                   "reason": "the same customer appears on many rows", "cites": [cite]}]}
+        adv = ScriptedAdvisor({"reporter": echo_reporter, "solution_planner": planner})
+        said = {"target_column": "churned", "prediction_moment": "At the start of each month, before the renewal is due"}
+        who = team.Person(answer=lambda field, question: said.get(field), approve=lambda gate, summary: True, who="scripted person")
+        with runner.fast_profile():
+            out = team.run(store, pid, "Predict which customers churn next month.", who, adv, quick=True)
+        self.assertEqual(out["status"], "completed", out)  # the engine ran to its holdout
+        solution = store.get(pid)["solution"]
+        self.assertEqual((solution.get("time_column"), solution.get("group_column")), ("created_at", None))  # the time order kept
+        why = [s for s in out["steps"] if s["role"] == "solution_planner" and "recurs" in s["reason"]]
+        self.assertTrue(why, out["steps"])  # said, as a step of the run
+
     def test_the_teams_moves_are_steps_of_its_run(self):
         # 21.1: the team runs in the agent harness: each role's move is a step of one run, which ends recorded
         from dclab_rnd import experience

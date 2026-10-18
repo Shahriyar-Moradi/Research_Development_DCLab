@@ -377,7 +377,7 @@ def prepare_bundle(
         later = np.arange(n - n_test, n)
         test_idx = later[~np.isin(groups[later], groups[train_idx])]  # an entity seen in training never scores the holdout
         removed = {"holdout": int(len(later) - len(test_idx))}
-        if len(test_idx) < max(30, 0.1 * len(later)):
+        if not _enough_unseen(len(test_idx), len(later)):
             raise ValueError(f"With both `{spec.time_column}` and `{spec.group_column}` declared, {removed['holdout']} of the last "
                              f"{len(later)} rows belong to a {spec.group_column} seen earlier, leaving {len(test_idx)} to test on: "
                              "almost every entity appears in both periods. Declare only one of the two (time for a forward check, "
@@ -454,6 +454,26 @@ def _time_key(series: pd.Series) -> np.ndarray:
 
 def default_root() -> Path:
     return Path(__file__).resolve().parents[2]
+
+
+def _enough_unseen(unseen: int, later: int) -> bool:
+    """A grouped forward holdout can test: at least 30 of its rows, and a tenth, belong to entities unseen in training."""
+    return unseen >= max(30, 0.1 * later)
+
+
+def time_group_feasible(times: Any, groups: Any) -> tuple[bool, int, int]:
+    """Whether the engine can split these rows forward in time with every entity on one side (``time_group``): the rows in
+    time order, the last ``HOLDOUT_FRACTION`` as the holdout, and enough of them from entities unseen before. Returns
+    (feasible, unseen rows, holdout rows). The engine raises on the same test; a caller proposing the split asks first
+    (28.6: a debate's grouped forward split the engine then refused)."""
+    times, groups = pd.Series(times).reset_index(drop=True), pd.Series(groups).astype(str).reset_index(drop=True).to_numpy()
+    order = np.argsort(_time_key(times), kind="stable")
+    groups = groups[order]
+    n = len(groups)
+    n_test = int(round(HOLDOUT_FRACTION * n))
+    later = groups[n - n_test:]
+    unseen = int((~np.isin(later, groups[:n - n_test])).sum())
+    return _enough_unseen(unseen, len(later)), unseen, len(later)
 
 
 def raw_path(root: Path, spec: DatasetSpec) -> Path:

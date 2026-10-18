@@ -19,6 +19,12 @@ Package 28.6: the second opinion, a team pattern measured before it is kept.
   both make is kept, a disputed one goes to `debate_judge` (prompt `debate_judge.md`), who keeps a side or neither citing
   the findings; every kept change passes the planner's guard and validator again. No judge, or a refused ruling: the first
   design stands. `agents.roles()` lists the two new roles.
+- `plan`: an advisor's column lists must be shaped as the rules write them (identifiers are names, a column kept out is
+  `{column, reason}`, a column to confirm `{column, question}`); and the validator refuses a grouped forward split
+  (`time_and_group`) on an entity whose later rows were seen before at `RECURRING` or more, unless a person decides it
+  (found by the debate's live run: the engine refused the split a challenger proposed). `plan_with` and `debate` take
+  the table's `columns` when the host has them: a change naming another column (a kept-out column, an identifier, a
+  column to confirm, a split's group or time column) is refused at every seat.
 
 ## 0.80.0 (2026-10-18)
 

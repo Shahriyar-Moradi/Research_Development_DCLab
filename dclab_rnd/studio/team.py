@@ -237,7 +237,7 @@ def _run(store: Any, project_id: str, description: str, person: Person, advisor:
 
     # WF-01/WF-03: the plan, validated; the solution saved through the graph validator
     if advisor is not None:
-        proposed = plan_with(advisor, brief, findings)
+        proposed = plan_with(advisor, brief, findings, columns=columns)  # 28.6: a change naming a column the table lacks is refused
         plan_, kept, refused = proposed["plan"], proposed.get("kept", []), proposed.get("refused", [])
         _step(store, project_id, steps, "solution_planner", "WF-03", "advisor" if kept else "fallback",
               proposed.get("reason") or f"kept {len(kept)}, refused {len(refused)}", kept=[str(k)[:120] for k in kept][:20],
@@ -247,6 +247,16 @@ def _run(store: Any, project_id: str, description: str, person: Person, advisor:
         _step(store, project_id, steps, "solution_planner", "WF-03", "rules", "no advisor")
     fields = solution_fields_from_plan(plan_, target, moment)
     fields = {**fields, **{k: v for k, v in suggestion.items() if k in ("labels", "label_provenance", "positive_label") and v}}
+    group, time_used = fields.get("group_column"), fields.get("time_column")
+    if group and time_used and {group, time_used} <= set(frame.columns):
+        from ..expansion.datasets import time_group_feasible
+
+        ok, unseen, later = time_group_feasible(frame[time_used], frame[group])
+        if not ok:  # 28.6 (the debate's live runs): the engine would refuse this split; the time order is kept, the entity a stated risk
+            fields["group_column"] = None
+            _step(store, project_id, steps, "solution_planner", "WF-03", "rules",
+                  f"{group} recurs over time ({unseen} of the last {later} rows are of one unseen before): too few to test a grouped forward "
+                  f"split, so the split follows {time_used} alone and a {group} may sit on both sides")
     detected = kinds.detect(description, {**(project["data"].get("profile") or {}), "labels": project.get("labels") or {}})
     kind = kinds.get(detected["key"])
     pack = kind.packs[0] if kind.base_task == fields.get("task") and kind.packs and not project.get("pack") else None

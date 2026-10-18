@@ -143,15 +143,16 @@ DEBATE_JUDGE = _judge_role()
 
 # ------------------------------------------------------------------------------------------------ the debate
 
-def debate(designer: Any, challenger: Any, judge: Any, brief: Any, findings: Any) -> dict[str, Any]:
+def debate(designer: Any, challenger: Any, judge: Any, brief: Any, findings: Any, columns: Any = None) -> dict[str, Any]:
     """The rules' plan, the two designs, the judge's rulings, and the plan with the kept changes after the code checks
-    (``plan``), with the ``Debate`` record. Any advisor may be None: that seat falls back."""
+    (``plan``), with the ``Debate`` record. Any advisor may be None: that seat falls back. ``columns``: the table's, when
+    the host has them: a change naming another column is refused at every seat."""
     from dclab_core.agents import run_role
 
     P = _plan()
     PLANNABLE = P.PLANNABLE
     base = P.plan(brief, findings)
-    inputs = {"brief": brief, "findings": findings, "plan": base}
+    inputs = {"brief": brief, "findings": findings, "plan": base, "columns": list(columns) if columns is not None else None}
     first = run_role(P.SOLUTION_PLANNER, designer, inputs)
     a = {c["key"]: c for c in first.output.get("kept") or []}
     second = run_role(SOLUTION_CHALLENGER, challenger, {**inputs, "first": list(a.values())})

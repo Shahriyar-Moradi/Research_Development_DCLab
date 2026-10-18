@@ -105,6 +105,19 @@ class DebateTests(unittest.TestCase):
         self.assertEqual([c["column"] for c in out["plan"].decision("features.forbidden").choice], ["visits"])  # never brought back
         self.assertEqual(out["debate"].agreed, [])  # both seats' removals were refused before they could agree
 
+    def test_a_change_naming_a_column_the_table_lacks_is_refused_when_the_columns_are_known(self):  # the debate's live run (JD-01)
+        from dclab_core.agents import ScriptedAdvisor
+        from dclab_core.debate import debate
+
+        confirm = {"key": "features.to_confirm", "choice": [{"column": "visits missingness indicator", "question": "when is it written?"}],
+                   "reason": "a derived feature that should wait for a person", "cites": ["F-keys"]}
+        challenger = ScriptedAdvisor({"solution_challenger": {"decisions": [confirm]}})
+        out = debate(None, challenger, None, self.brief, self.findings, columns=["customer_code", "amount", "visits", "churned"])
+        self.assertEqual([c.key for c in out["debate"].b], [])  # refused at the challenger's own seat
+        self.assertIsNone(out["plan"].decision("features.to_confirm"))
+        out = debate(None, challenger, None, self.brief, self.findings)  # the host gave no columns: the old behaviour
+        self.assertEqual([c.key for c in out["debate"].b], ["features.to_confirm"])
+
     def test_with_no_model_at_all_the_debate_is_the_rules_plan(self):
         from dclab_core.debate import debate
         from dclab_core.plan import plan
@@ -147,6 +160,36 @@ class JourneyTests(unittest.TestCase):
         self.assertEqual(row["debate"]["changed"], ["forbidden"])  # what reaches the solution, not the plan's wording
         self.assertEqual(row["refused_plans"], 0)
 
+    def test_a_grouped_forward_split_the_engine_cannot_test_is_never_applied(self):  # the debate's live runs (JD-03, JS5-05)
+        from dclab_core.agents import ScriptedAdvisor
+        from dclab_rnd.agent_eval import journeys
+
+        person = next(j for j in journeys.load("dev") if j["id"] == "JD-03")
+
+        def challenger(evidence):
+            cites = [f.split(" ")[0] for f in evidence["findings"]][:1]
+            return {"decisions": [{"key": "split.strategy", "choice": {"kind": "group", "group_column": "customer_id", "time_column": "created_at",
+                                                                      "holdout": "locked first, used once, after the choice"},
+                                   "reason": "the same customer repeats across the rows of the table", "cites": cites}]}
+        ruling = lambda evidence: {"rulings": [{"key": d["key"], "keep": "b", "reason": "keep each customer on one side of the split",  # noqa: E731
+                                                "cites": [evidence["findings"][0].split(" ")[0]]} for d in evidence["disputes"]]}
+        live = {"designer": ScriptedAdvisor({"solution_planner": {"decisions": []}}), "challenger": ScriptedAdvisor({"solution_challenger": challenger}),
+                "judge": ScriptedAdvisor({"debate_judge": ruling})}
+        row = journeys.play(person, 0, None, live)
+        self.assertTrue(row["parts"]["pipeline"], row["why"])  # the engine ran: the grouping was not applied
+        self.assertNotIn("group_column", row["debate"]["applied"])
+
+    def test_the_engines_own_test_of_a_grouped_forward_split(self):
+        import numpy as np
+
+        from dclab_rnd.expansion.datasets import time_group_feasible
+
+        times = np.arange(1000)
+        self.assertFalse(time_group_feasible(times, np.arange(1000) % 50)[0])  # every entity recurs: nothing unseen to test
+        ok, unseen, later = time_group_feasible(times, np.arange(1000) // 5)  # new entities over time
+        self.assertTrue(ok)
+        self.assertEqual((unseen, later), (200, 200))
+
 
 @unittest.skipIf(MISSING, MISSING)
 class RunnerTests(unittest.TestCase):
@@ -174,6 +217,18 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(store.call_count, stored, argv)
         against = store.call_args.args[3]
         self.assertEqual(against["spent_eur"], {"baseline": 0.3, "arm": 0.33})  # the designer's answer counted in both arms, once
+
+    def test_the_debate_is_judged_on_asking_twice_against_its_baseline(self):  # the conversation is the rules', in both arms
+        from dclab_rnd.agent_eval.journeys import PARTS, pattern_verdict
+
+        def row(i, holdout=True, asked=("target",), changed=False):
+            return {"id": f"J{i}", "parts": {**dict.fromkeys(PARTS, True), "holdout": holdout}, "questions": len(asked), "asked": list(asked),
+                    "refused_moves": 0, "refused_plans": 0, **({"debate": {"changed": ["forbidden"]}} if changed else {})}
+        again = ("target", "chat→target", "chat→target")
+        base = [row(1, holdout=False), row(2, asked=again)]
+        self.assertTrue(pattern_verdict("debate", base, [row(1, changed=True), row(2, asked=again)], {"baseline": 0.1, "arm": 0.11}, 0)["passed"])
+        self.assertFalse(pattern_verdict("debate", base, [row(1, changed=True, asked=again), row(2, asked=again)], {"baseline": 0.1, "arm": 0.11}, 0)["passed"])
+        self.assertFalse(pattern_verdict("debate", base, [row(1), row(2, asked=again)], {"baseline": 0.1, "arm": 0.11}, 0)["passed"])  # not the debate's gain
 
     def test_a_shared_designer_is_asked_once_for_the_same_evidence(self):
         from unittest import mock

@@ -377,12 +377,26 @@ families; nothing is captured for the first time there.
     judge acts; a gain is the pattern's only where the person chose.
   Each switch (`second_opinion`, `debate` in the team's settings) can be turned on only where its stored result passed;
   every change is audited.
-- **Status: in progress (2026-10-18).** Both patterns built (dclab-core 0.81.0: `second_opinion.Opinion` v1 and
+- **Status: complete (2026-10-18).** Both patterns built (dclab-core 0.81.0: `second_opinion.Opinion` v1 and
   `read_choice`; `debate.Debate` v1 with the roles `solution_challenger` and `debate_judge` on the cheap tier); the runner
   `journeys --pattern second_opinion|debate`, the result store `orchestra/patterns.py`, the switches in the team's settings;
   two reviews' 23 findings fixed (an import cycle, a failing test, five ways the gate could pass dishonestly, the judge's
   reading of a free answer, the served path, the debate's seats, its dispute rule, shapes the planner must refuse). Gates
-  fixed in code before any run. Next: the two live runs, their results, the switches.
+  fixed in code before any run. **The second opinion passed (ORC-001, 2026-10-18, EUR 0.36):** the card right for 45 of 45
+  people against the single agent's 44, the one gain the judge's (JS5-08), none lost, every other part equal, 0.16 more
+  questions a person, nobody asked a field twice; the judge asked 7 people, 5 chose. Dev evidence (JS5-08 was read while
+  the pattern was designed): its switch may be turned on (the owner's, in Admin → Teams), and it joins the team for the
+  sixth sealed set, which judges it for real. **The debate's first run was void (2026-10-18, EUR 0.19):** four replies cut
+  at their token limits (three challengers at 1,500 tokens, a judge at 900: Haiku writes at length), so nothing was stored;
+  it gained and lost no holdout, every part equal. Before the rerun: the cheap seats get 4,000 and 2,500 tokens, and the
+  debate's rule on asking twice is measured against its baseline (the rules' conversation asked six people a field again,
+  alike in both arms; the debate never touches the conversation). **The debate failed its gate, as expected (ORC-005,
+  2026-10-18):** no holdout gained and none lost, every part equal, 8 rulings, one grouping held back because the engine
+  could not test it; its switch stays off. Three runs between (ORC-002 to 004) each lost a person to a bug, each fixed
+  and tested: the plan's validator now refuses a grouped forward split on an entity that recurs over time, the engine's
+  own test of such a split is shared (`expansion.datasets.time_group_feasible`) and used before a design's grouping is
+  applied and before the studio team saves its planner's split, and the planner and the debate refuse a change naming a
+  column the table lacks. 28.6's spend: about EUR 1.37. **28.6 complete.**
 
 ### 28.7 The measurement: the team beside the rules and the single agent
 - **Delivers:** a `team` arm in the journeys suite and in the twin matrix: accuracy per step, agreement, cost, time; the

@@ -294,9 +294,96 @@
    "cause": "Only answered family questions blocked the judge.",
    "fix": "Any earlier family question blocks it.",
    "test": "test_off_nothing_is_asked_and_a_family_the_person_answered_is_never_asked_again"
+  },
+  {
+   "id": "L1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The debate's cheap seats were cut at their token limits.",
+   "scenario": "The first live run had three challenger replies cut at 1,500 tokens and a judge reply at 900; four requests failed and the run was rightly not stored.",
+   "cause": "Haiku writes at length, and the limits were set for a terser model.",
+   "fix": "The challenger answers in up to 4,000 tokens and the judge in up to 2,500; the run was repeated.",
+   "test": "test_the_debates_run_shares_the_designer_and_stores_only_a_whole_clean_run"
+  },
+  {
+   "id": "L2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The plan's validator accepted a grouped forward split the engine refuses.",
+   "scenario": "On a person whose customers recur over time, the challenger grouped the folds by customer with the time order, the judge kept it, the plan validated, and the engine refused the run: 581 of the last 600 rows belonged to customers seen earlier.",
+   "cause": "The rules choose a group split without the time order for such an entity, but the validator never refused a model's grouped forward split.",
+   "fix": "The validator refuses a grouped forward split on an entity whose later rows were seen before at the recurrence cut-off, unless a person decides it.",
+   "test": "test_a_grouped_forward_split_on_an_entity_that_recurs_over_time_is_refused"
+  },
+  {
+   "id": "L3",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The debate's rule on asking twice judged the rules' conversation, not the debate.",
+   "scenario": "The rules' conversation asked six people a field again, alike in both arms, which would fail the gate whatever the debate did.",
+   "cause": "The rule was written for a pattern that acts in the conversation.",
+   "fix": "For the debate, nobody may be asked twice who was not in the baseline; revised before the rerun, in the open.",
+   "test": "test_the_debate_is_judged_on_asking_twice_against_its_baseline"
+  },
+  {
+   "id": "L4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The validator's recurrence check still let the engine refuse a designer's grouping.",
+   "scenario": "After the validator's fix, the debate's third run applied a group column with the time order on two people whose customers recur, and the engine refused both runs.",
+   "cause": "The validator reads only the training rows, where recurrence looked lower than on the holdout the engine tests; and a split labelled as a group can still carry a time column.",
+   "fix": "The engine's own test of a grouped forward split is one shared function, and a design's grouping is applied only where that test passes.",
+   "test": "test_a_grouped_forward_split_the_engine_cannot_test_is_never_applied"
+  },
+  {
+   "id": "L5",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A designer named a derived feature as a column, and the solution was refused.",
+   "scenario": "On a delivery fraud person the challenger asked to confirm the missingness indicator of a column, the judge kept it, and the saved solution was refused because no such column exists.",
+   "cause": "The planner's checks never asked whether a named column is in the table; the findings carry only column counts.",
+   "fix": "The planner and the debate take the table's columns when the host has them and refuse a change naming another; the designers' hook applies only names the table holds.",
+   "test": "test_a_change_naming_a_column_the_table_lacks_is_refused_when_the_columns_are_known"
+  },
+  {
+   "id": "L6",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The studio team saved a planner's split the engine could not test.",
+   "scenario": "A planner model grouped the folds by a customer that recurs over time while keeping the time column; the plan validated, the solution was saved, and the engine stopped the run with nothing left to test.",
+   "cause": "The studio team built its solution from the plan without the engine's own test of a grouped forward split, and named columns were never checked against the table.",
+   "fix": "The team passes the table's columns to the planner and tests a grouped forward split with the engine's rule before saving; where it cannot be tested the time order is kept and the entity is said as a risk, in a step of the run.",
+   "test": "test_a_planned_grouped_forward_split_the_engine_cannot_test_is_not_saved"
   }
  ],
- "measurements": [],
+ "measurements": [
+  {
+   "name": "the second opinion against the single agent, live, on the dev people and the spent fifth sealed set (ORC-001)",
+   "gate": "second_opinion_gate_v1: more cards gained where the judge asked and the person chose than cards lost anywhere, no fewer right on the other parts, at most one more question a person, nobody asked a field twice, no request failed, no journey broke, no move refused, the cost at most 1.5 times the single agent's",
+   "fixed_before_run": true,
+   "result": "card 45 of 45 against 44 of 45; workflow, pipeline and holdout equal (45, 45, 42 each); one card gained, by the judge (JS5-08), none lost; the judge asked 7 people, 5 chose and 2 declined; 3.27 questions a person against 3.11; nobody asked a field twice; one reader shared, 93 requests, EUR 0.36",
+   "verdict": "pass",
+   "cost_eur": 0.36,
+   "against_gate": "Met on every condition: the pattern's switch may be turned on, and it joins the team for the sixth sealed set.",
+   "limits": [
+    "The one gain is JS5-08, the case read while the pattern was designed: dev evidence, judged for real by the sixth sealed set.",
+    "The judge asked only people of the fifth sealed set; on the dev people the two readings never differed."
+   ]
+  },
+  {
+   "name": "the debate against the single designer, live, on the dev people and the spent fifth sealed set (ORC-005, after four runs that found bugs)",
+   "gate": "debate_gate_v1: more holdouts gained where the debate changed the plan than holdouts lost anywhere, no fewer right on the other parts, no solution refused, nobody asked twice who was not in the baseline, no request failed, no journey broke, no move refused, the cost at most 1.5 times the single designer's",
+   "fixed_before_run": true,
+   "result": "no holdout gained and none lost, every part equal (card 35, workflow 39, pipeline 39, holdout 36 in both arms); 8 rulings by the judge; one grouping held back because the engine could not test it; EUR 0.21 for the arm against 0.19 for the single designer. The runs before it: one void (four replies cut at their token limits), and three that each lost one or two people to a bug since fixed (a grouped forward split the engine refused, twice, and a derived feature named as a column)",
+   "verdict": "fail",
+   "cost_eur": 1.01,
+   "against_gate": "Not met: the debate made no gain on this material, as written before the runs; its switch stays off, and it cannot be turned on until a serving path reads it.",
+   "limits": [
+    "No baseline holdout failure on this material is one the designers may fix: the debate could only show it does no harm, which the last run did.",
+    "Each earlier run's loss came from the harness and the planner's checks, not from the designers' judgement; the fixes stand for the product's planner too."
+   ]
+  }
+ ],
  "outcome": "Both patterns are built and measured honestly: the second opinion asks only where two readings conflict and reads the choice by code, the debate checks every change as the planner's, and each switch turns on only where a whole, clean run passed its gate.",
  "lessons": [
   "A gate must count only what the pattern did: a gain the pattern did not make is noise, and a loss anywhere counts.",

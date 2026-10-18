@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 from dclab_core.contracts import DataFindings, Decision, Finding, ProblemBrief, Risk, SolutionPlan
 
@@ -479,6 +479,16 @@ def validate(plan_: SolutionPlan, findings: DataFindings) -> list[str]:
         if strong and kind in ("stratified", "random") and not _persons(split):
             problems.append(f"split.strategy is {kind} although rows repeat for an entity ({strong[0].id}); group the folds or "
                             "let a person override with a reason")
+        if kind == "time_and_group" and isinstance(split.choice, Mapping) and not _persons(split):
+            # 28.6 (the debate's live run): a grouped forward split on an entity that recurs over time leaves almost nothing to
+            # test, and the engine refuses it; the rules group without the time order there, and only a person may decide otherwise
+            column = split.choice.get("group_column")
+            recurs = [f for f in findings.findings if f.topic == "entities" and f.evidence.get("column") == column
+                      and float(f.evidence.get("later_rows_seen_before", 0.0) or 0.0) >= RECURRING]
+            if recurs:
+                problems.append(f"split.strategy groups by {column} and orders by time, but "
+                                f"{float(recurs[0].evidence['later_rows_seen_before']):.0%} of the latest rows belong to a {column} seen earlier "
+                                f"({recurs[0].id}): almost nothing would be left to test")
     forbidden = plan_.decision("features.forbidden")
     kept_out, shape = _columns_of(forbidden.choice) if forbidden is not None else (set(), None)
     if shape:
@@ -555,10 +565,17 @@ def _known_families() -> set[str]:
             "extra_trees", "lightgbm", "xgboost", "hist_gradient_boosting"} | {f for fams in FAMILIES.values() for f in fams}
 
 
-def _guard(key: str, choice: Any, current: SolutionPlan, findings: DataFindings) -> Optional[str]:
+def _guard(key: str, choice: Any, current: SolutionPlan, findings: DataFindings, columns: Optional[Sequence[str]] = None) -> Optional[str]:
     """What an advisor may not do to a decision, whatever the validator checks: undo a safety decision (a column kept
-    out, an identifier, the grouping a strong entity calls for), change the task, or write a shape the host cannot run."""
+    out, an identifier, the grouping a strong entity calls for), change the task, write a shape the host cannot run, or
+    (``columns``: the table's, when the host gives them) name a column the table does not have."""
     old = current.decision(key)
+    if columns is not None:
+        named = set(_columns(choice)) if key in ADDITIONS_ONLY and isinstance(choice, list) else \
+            {str(choice.get(f)) for f in ("group_column", "time_column") if isinstance(choice, Mapping) and choice.get(f)} if key == "split.strategy" else set()
+        unknown = sorted(named - {str(c) for c in columns})
+        if unknown:  # 28.6 (the debate's live run): a derived feature named as a column refused the solution built from the plan
+            return f"names a column the table does not have: {', '.join(unknown[:5])}"
     if key in ADDITIONS_ONLY:
         if not isinstance(choice, list):
             return "a column list is a list"
@@ -650,7 +667,7 @@ def _planner_parse(answer: Mapping[str, Any], inputs: Mapping[str, Any]) -> dict
         elif current.decision(key) is not None and current.decision(key).choice == choice:
             continue  # the rules already chose this: nothing to change
         if why is None:
-            why = _guard(key, choice, current, findings)
+            why = _guard(key, choice, current, findings, inputs.get("columns"))
         if why is None:
             try:
                 candidate = override(current, key, choice, reason[:MAX_REASON], by="advisor", cites=list(map(str, cites)))
@@ -684,10 +701,11 @@ def _planner_role():
 SOLUTION_PLANNER = _planner_role()
 
 
-def plan_with(advisor: Any, brief: Optional[ProblemBrief], findings: DataFindings) -> dict[str, Any]:
-    """The rule plan, then the solution planner's checked changes (none without an advisor)."""
+def plan_with(advisor: Any, brief: Optional[ProblemBrief], findings: DataFindings, columns: Optional[Sequence[str]] = None) -> dict[str, Any]:
+    """The rule plan, then the solution planner's checked changes (none without an advisor). ``columns``: the table's,
+    when the host has them: a change naming another column is refused."""
     from dclab_core.agents import run_role
 
     base = plan(brief, findings)
-    result = run_role(SOLUTION_PLANNER, advisor, {"brief": brief, "findings": findings, "plan": base})
+    result = run_role(SOLUTION_PLANNER, advisor, {"brief": brief, "findings": findings, "plan": base, "columns": columns})
     return {**result.output, "rule_plan": base, "source": result.source, "reason": result.reason}

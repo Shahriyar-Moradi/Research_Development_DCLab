@@ -187,8 +187,9 @@ def _debate_seats(args):
     os.environ.setdefault("DCLAB_TIER_CHEAP_MODEL", "claude-haiku-5-5")
     gateway = for_workspace()
     designer = _Shared(GatewayAdvisor(gateway, cap_eur=args.cap_eur * 0.6, max_tokens=1500))
-    challenger = _Counted(GatewayAdvisor(gateway, cap_eur=args.cap_eur * 0.25, max_tokens=1500))
-    judge = _Counted(GatewayAdvisor(gateway, cap_eur=args.cap_eur * 0.15, max_tokens=900))
+    # the first run (void: four requests failed) cut three challengers at 1,500 tokens and a judge at 900: Haiku writes at length
+    challenger = _Counted(GatewayAdvisor(gateway, cap_eur=args.cap_eur * 0.25, max_tokens=4000))
+    judge = _Counted(GatewayAdvisor(gateway, cap_eur=args.cap_eur * 0.15, max_tokens=2500))
     if any(seat._client(purpose) is None for seat, purpose in ((designer, "solution_planner"), (challenger, "solution_challenger"), (judge, "debate_judge"))):
         return None
     return designer, challenger, judge

@@ -98,9 +98,11 @@ SECOND_OPINION_GATE = {"version": "second_opinion_gate_v1", "target": "card", "b
 DEBATE_GATE = {"version": "debate_gate_v1", "target": "holdout", "baseline": "designer", "cost_ratio": 1.5, "extra_questions": None,
                "rule": "against the single designer (the solution planner alone, its answer shared by both arms) on the same 45 people, "
                        "the conversation by the rules: more holdouts gained where the debate changed the plan than holdouts lost anywhere, "
-                       "no fewer right on the card, the workflow or the pipeline, no solution refused, nobody asked a field twice, no "
-                       "request failed, no journey broke, no move refused, the arm's cost at most cost_ratio times the single designer "
-                       "arm's (a priced baseline)"}
+                       "no fewer right on the card, the workflow or the pipeline, no solution refused, nobody asked a field twice who "
+                       "was not in the baseline (the debate never touches the conversation, which is the rules' in both arms: revised "
+                       "before the rerun, the void first run showing six people asked again by the rules alike in both), no request "
+                       "failed, no journey broke, no move refused, the arm's cost at most cost_ratio times the single designer arm's "
+                       "(a priced baseline)"}
 PATTERN_GATES = {"second_opinion": SECOND_OPINION_GATE, "debate": DEBATE_GATE}
 PARTS = ("card", "workflow", "pipeline", "holdout")
 REFUSED = "family not built yet"  # dclab_core.coordinator.FAMILY_NOT_RUN: the build's rule for a family the engine does not run
@@ -142,7 +144,8 @@ def pattern_verdict(name: str, baseline: list[dict[str, Any]], arm: list[dict[st
     cost_ok = priced and spent.get("arm", 0.0) <= gate["cost_ratio"] * spent["baseline"] + 1e-9
     extra = gate.get("extra_questions")
     questions_ok = extra is None or questions["arm"] - questions["baseline"] <= extra
-    passed = bool(len(made) > len(lost) and no_worse and questions_ok and not twice["arm"] and not broke and refused == 0 and failures == 0 and cost_ok)
+    twice_ok = not twice["arm"] if name == "second_opinion" else set(twice["arm"]) <= set(twice["baseline"])  # the debate: the conversation is the baseline's
+    passed = bool(len(made) > len(lost) and no_worse and questions_ok and twice_ok and not broke and refused == 0 and failures == 0 and cost_ok)
     return {"gate": gate, "parts": parts, "questions": questions, "asked_twice": twice, "broke": broke, "refused": refused, "failures": failures,
             "spent_eur": spent, "priced": priced, "cost_ok": cost_ok, "gained": gained, "gained_by_the_pattern": made, "lost": lost, "passed": passed}
 
@@ -569,22 +572,30 @@ def _design(project: dict[str, Any], frame: Any, target: str, task: str, moment:
         rule, final = solution_fields_from_plan(rule_plan, target, moment), solution_fields_from_plan(plan, target, moment)
         fields: dict[str, Any] = {}
         ruled_out = {f["column"] for f in rule["forbidden"]}
-        added = [f for f in final["forbidden"] if f["column"] not in ruled_out and f["column"] != target]
+        added = [f for f in final["forbidden"] if f["column"] not in ruled_out and f["column"] != target and f["column"] in frame.columns]
         if added:
             fields["forbidden"] = added
-        if set(final["identifiers"]) - set(rule["identifiers"]):
-            fields["identifiers"] = sorted(set(final["identifiers"]) - set(rule["identifiers"]))
-        if final.get("group_column") and final["group_column"] != rule.get("group_column"):
-            if final.get("time_column") or not times:  # a grouped forward split, or a table with no time: applied
+        if (set(final["identifiers"]) - set(rule["identifiers"])) & set(map(str, frame.columns)):
+            fields["identifiers"] = sorted((set(final["identifiers"]) - set(rule["identifiers"])) & set(map(str, frame.columns)))
+        if final.get("group_column") and final["group_column"] != rule.get("group_column") and final["group_column"] in frame.columns:
+            if not times:  # a table with no time: a group split, applied
                 fields["group_column"] = final["group_column"]
-            else:  # a group split that drops the time order is the person's call (30.11): said, not applied
+            elif not final.get("time_column"):  # a group split that drops the time order is the person's call (30.11): said, not applied
                 return fields, "a group split without the time column would drop the time order"
+            else:  # 28.6 (the debate's live runs): applied only where the engine can test it, by its own rule
+                from dclab_rnd.expansion.datasets import time_group_feasible
+
+                ok, unseen, later = time_group_feasible(frame[times[0]], frame[final["group_column"]])
+                if not ok:
+                    return fields, (f"{final['group_column']} recurs over time: {unseen} of the last {later} rows are of one unseen before, "
+                                    "too few to test a grouped forward split")
+                fields["group_column"] = final["group_column"]
         return fields, None
 
     if live.get("challenger") is not None or live.get("judge") is not None:
         from dclab_core.debate import debate
 
-        out = debate(live.get("designer"), live.get("challenger"), live.get("judge"), brief, findings)
+        out = debate(live.get("designer"), live.get("challenger"), live.get("judge"), brief, findings, columns=[str(c) for c in frame.columns])
         fields, skipped = applied(out["rule_plan"], out["plan"])
         single, _ = applied(out["rule_plan"], out["single"]["plan"])
         rec = out["debate"]
@@ -594,7 +605,7 @@ def _design(project: dict[str, Any], frame: Any, target: str, task: str, moment:
     else:
         from dclab_core.plan import plan_with
 
-        out = plan_with(live.get("designer"), brief, findings)
+        out = plan_with(live.get("designer"), brief, findings, columns=[str(c) for c in frame.columns])
         fields, skipped = applied(out["rule_plan"], out["plan"])
         done = {"kept": [c["key"] for c in out.get("kept") or []], "refused": len(out.get("refused") or []), "source": out.get("source")}
     if skipped:
