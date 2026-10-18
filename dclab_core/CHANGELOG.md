@@ -4,6 +4,20 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.82.0 (2026-10-18)
+
+Package 29.3: truth by measured outcome.
+
+- `measured` (new): `clear_best(options, higher_is_better)`, the option that measured clearly best on validation (its
+  mean ahead of every other eligible option's by more than the two options' combined fold standard deviation, in the
+  metric's own direction), or None when validation cannot tell the best apart, an option has no spread, or the direction
+  is not known. A host labels a choice among measured options with it: right when the rule chose that option, wrong when
+  it chose another.
+- `ledger.DecisionLabel` v4 (`dclab_core.decision_label.v4`, v1 to v3 read as v4): the evidence kinds
+  `validation_clear_best` (its value the margin over the runner-up, in the metric's units, positive) and `fresh_draw` (a
+  tuning judged on new rows of a replica's own process: its value the candidate's paired gain over the default there,
+  in the metric's direction).
+
 ## 0.81.0 (2026-10-18)
 
 Package 28.6: the second opinion, a team pattern measured before it is kept.

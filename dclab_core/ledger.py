@@ -345,7 +345,8 @@ class DecisionRecord(Versioned):
 
 
 class Evidence(Contract):
-    kind: Literal["planted_truth", "apparent_lift", "optimism_gap", "tuning_gain", "ladder", "holdout_vs_cv", "review", "override", "holdout_vs_best_leaf"]  # v3: the last
+    kind: Literal["planted_truth", "apparent_lift", "optimism_gap", "tuning_gain", "ladder", "holdout_vs_cv", "review", "override", "holdout_vs_best_leaf",
+                  "validation_clear_best", "fresh_draw"]  # v3: holdout_vs_best_leaf; v4 (29.3): the last two
     value: Optional[float] = None
     ref: Optional[str] = Field(default=None, max_length=200, description="What it cites: a planted case's id, a record path.")
 
@@ -353,8 +354,8 @@ class Evidence(Contract):
 class DecisionLabel(Versioned):
     """What the right value of a decision was, from one source; a new label supersedes an older one, never edits it."""
 
-    schema_version: Literal["dclab_core.decision_label.v3"] = _version("decision_label", 3)
-    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.decision_label.v1", "dclab_core.decision_label.v2"})  # stored labels stay readable
+    schema_version: Literal["dclab_core.decision_label.v4"] = _version("decision_label", 4)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.decision_label.v1", "dclab_core.decision_label.v2", "dclab_core.decision_label.v3"})  # stored labels stay readable
     id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{6,80}$")
     record: str = Field(min_length=1, max_length=80, description="The decision record it labels.")
     point: str
@@ -373,9 +374,11 @@ class DecisionLabel(Versioned):
     @model_validator(mode="before")
     @classmethod
     def _read_v1(cls, data: Any) -> Any:
-        """A label as stored; a v1 or v2 label is read as v3: v2 only added a source, v3 an evidence kind (24.7: a composition's holdout against its best leaf)."""
-        if isinstance(data, dict) and data.get("schema_version") in ("dclab_core.decision_label.v1", "dclab_core.decision_label.v2"):
-            data = {**data, "schema_version": "dclab_core.decision_label.v3"}
+        """A label as stored; a v1, v2 or v3 label is read as v4: v2 only added a source, v3 an evidence kind (24.7: a composition's
+        holdout against its best leaf), v4 two (29.3: the option that measured clearly best on validation, ``dclab_core.measured``;
+        a tuning judged on a fresh draw of a replica's process)."""
+        if isinstance(data, dict) and data.get("schema_version") in ("dclab_core.decision_label.v1", "dclab_core.decision_label.v2", "dclab_core.decision_label.v3"):
+            data = {**data, "schema_version": "dclab_core.decision_label.v4"}
         return data
 
     @model_validator(mode="after")

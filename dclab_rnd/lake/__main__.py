@@ -53,6 +53,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--kinds", default="", help="comma-separated kind keys (default: every engine kind)")
     p.add_argument("--backfill", action="store_true", help="27.3: problems verified before, solved again for their decision ledger and solution workflow")
     p.add_argument("--limit", type=int, default=None, help="with --backfill: at most this many problems")
+    p.add_argument("--since", default=None, help="with --backfill (29.3): every verified problem recorded again unless recorded at or after this UTC time")
     p.add_argument("--again", action="store_true", help="26.8: the named kinds' solves forgotten and solved again whole (--kinds required)")
     args = parser.parse_args(argv)
     if args.command == "answers":
@@ -96,7 +97,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.again:
             print(selfplay.forget([k for k in args.kinds.split(",") if k]))
         if args.backfill:
-            print(selfplay.backfill([k for k in args.kinds.split(",") if k] or None, limit=args.limit))
+            print(selfplay.backfill([k for k in args.kinds.split(",") if k] or None, limit=args.limit, since=args.since))
             return 0
         from . import selfplay
 

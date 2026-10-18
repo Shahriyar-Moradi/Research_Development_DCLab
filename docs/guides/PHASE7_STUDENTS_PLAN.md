@@ -99,6 +99,19 @@ bands, its options), then a student.
 - **Done when:** the outcome points have sets with both labels from self-play alone, and a planted bad choice (a tuning
   accepted that the holdout contradicts) is labelled wrong by the rule and read into its set.
 
+- **Status: built (2026-10-18), after two reviews (11 findings).** A measured label is written only where the numbers can
+  tell: `dclab_core.measured.clear_best` labels a recipe or a family choice (the rule's, a person's or the intern's) when
+  one option leads every other the rule may choose by more than their combined fold spread, in the metric's own
+  direction; on self-play, `lake/replicate.py` judges a tuning on a fresh draw of the replica's process (the default and
+  the candidate fitted and scored there, a paired bootstrap), never on the project's holdout. Measured on the 193 verified
+  solves, re-recorded: `tuning.accept` 26 labels, both classes (23 "do not keep", 3 "keep"; the rule right on 23, wrong on
+  3), `model.family` 51 (the rule wrong once), `features.recipe` 19 (always the rule's); self-play's decisions reach the
+  lake's gold sets (`selfplay/ledgers`). The planted bad tuning (a candidate that shrinks every coefficient, kept by the
+  rule) is labelled wrong and read into its set. Not done, and why: a real project's tuning is not labelled (the holdout
+  would have to score the default too, a second use of it: the owner's call); `holdout.reuse` gets no made-up label;
+  `experiment.accept`, `threshold.operating_point` and `metric.primary` have no honest measurement yet; on self-play a
+  recipe or family label almost always agrees with the rule (both read the same validation numbers).
+
 ### 29.4 Train everything, one command
 - **Delivers:** `make students ARGS=train`: every point with a set gets a student (or a `SKIPPED.json` with why: one
   class, too few rows, labels from a source that needs fields excluded); the cards committed, the fitted files hashed;

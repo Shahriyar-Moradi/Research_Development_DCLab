@@ -793,6 +793,17 @@ product's agent asks the critic once its brief is confirmed and before it plans,
 question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
 whether to go on, recording the decision.
 
+## Labels measured on validation, only where it tells the options apart (29.3, dclab-core 0.82.0)
+
+The library's: `dclab_core.measured.clear_best(options, higher_is_better)`: among a choice's measured options (each `id`,
+`mean`, `std`, and `eligible: false` for one the rule may not choose), the option ahead of every other by more than their
+combined fold spread, in the metric's own direction, or None. A host writes it as a `measured` label (`DecisionLabel` v4,
+evidence `validation_clear_best`) on the decision the rule made among those options: right where the rule chose it,
+wrong where it chose another; inside the noise, nothing. Where it goes there: the main product's experiment selection and
+model comparison record their candidates' validation means and spreads; a label from this function on its
+`model.family`-like points (`adapters/main_product_ledger.py`) is the same truth this studio writes. The holdout never
+labels a tuning here: that needs the default scored on the same holdout read, a call on the holdout-once rule.
+
 ## The second opinion on the problem's family (28.6, dclab-core 0.81.0)
 
 The library's: `dclab_core.second_opinion` (`Opinion` v1, `judge_family(reader, rules)`): where a host reads a problem's family

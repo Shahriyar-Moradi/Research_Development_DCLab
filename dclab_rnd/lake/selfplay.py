@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import shutil
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -243,19 +244,58 @@ def _run_recorded(A: Any, case: Any, key: str, group: str) -> Any:
     before = ledger._INSTALLED.get("ledger")
     ledger.install(book)
     try:
-        return A.engine_run(case, key)
+        run = A.engine_run(case, key)
+        _label_tuning(book, kind, int(seed), run)
+        return run
     finally:
         ledger.install(before)
 
 
-def backfill(kinds_keys: Iterable[str] | None = None, log=print, limit: int | None = None) -> dict[str, Any]:
+def _label_tuning(book: Any, kind_key: str, seed: int, run: Any) -> None:
+    """29.3: the solve's ``tuning.accept`` labelled by a fresh draw of its replica (``lake/replicate.py``): the right answer
+    to "keep the tuning?", measured on new rows of the same process; nothing when the draw cannot tell them apart. A
+    replicate that fails costs the label only, never the solve."""
+    from .. import kinds, ledger
+    from .replicate import tuning_on_fresh_draw
+
+    try:
+        got = tuning_on_fresh_draw(kinds.get(kind_key), seed, run)
+        records = book.records(point="tuning.accept")
+        if got is None or not records:
+            return
+        value, evidence = got
+        ledger.label(max(records, key=lambda r: (r.at, r.id)), value, "measured", evidence["kind"], evidence=evidence, ledger=book)
+    except Exception as exc:  # noqa: BLE001
+        print(f"selfplay: {kind_key}:{seed}: no fresh-draw label ({type(exc).__name__}: {str(exc)[:120]})", flush=True)
+
+
+def _when(text: str) -> datetime:
+    """A UTC time from ISO 8601 (``Z`` or an offset; a time without one is UTC); ValueError when it is not one."""
+    when = datetime.fromisoformat(str(text).strip().replace("Z", "+00:00"))
+    return when if when.tzinfo is not None else when.replace(tzinfo=timezone.utc)
+
+
+def backfill(kinds_keys: Iterable[str] | None = None, log=print, limit: int | None = None, since: str | None = None) -> dict[str, Any]:
     """Problems verified before 27.3's widening, solved again to record their decision ledger and their solution workflow
-    example (the other examples are already kept); resumable."""
+    example (the other examples are already kept); resumable. ``since`` (29.3): every verified problem recorded again,
+    except those already recorded at or after that time (a change to what a ledger records: the marks are appended, the
+    latest per problem counts)."""
     from ..kinds import acceptance as A
 
     tried = [json.loads(x) for x in (OUT / "done.jsonl").read_text(encoding="utf-8").splitlines() if x.strip()] if (OUT / "done.jsonl").is_file() else []
     marks = OUT / "backfill_done.jsonl"
-    done = {json.loads(x)["group"] for x in marks.read_text(encoding="utf-8").splitlines() if x.strip()} if marks.is_file() else set()
+    lines = [json.loads(x) for x in marks.read_text(encoding="utf-8").splitlines() if x.strip()] if marks.is_file() else []
+    after = _when(since) if since is not None else None  # parsed, never compared as text (the review of 29.3)
+
+    def recorded_since(mark: dict[str, Any]) -> bool:
+        try:
+            return after is None or _when(str(mark.get("at") or "")) >= after
+        except ValueError:  # a mark without a time (written before 29.3): recorded before any time asked about
+            return False
+
+    done = {m["group"] for m in lines if recorded_since(m)}
+    # 29.3: a problem recorded again for its ledger (its outcome labels) keeps the solution-design examples it already has
+    kept = {e.provenance.group for e in examples() if e.family == "solution_design"}
     wanted, n = set(kinds_keys or []), 0
     by_key = {k.key: k for k in _kinds()}
     for t in tried:
@@ -271,14 +311,14 @@ def backfill(kinds_keys: Iterable[str] | None = None, log=print, limit: int | No
             run = _run_recorded(A, case, getattr(kind, "engine_key", key), group)
             checks = kind.accept_engine(run) if kind.own_machine() is not None else kind.accept(run)
             got = [e for masked in (False, True) for e in examples_of(kind, int(seed), case, run, checks, masked) if e.family == "solution_design"]
-            if not [c for c in checks if not c["ok"]]:
+            if not [c for c in checks if not c["ok"]] and group not in kept:
                 with (OUT / "examples.jsonl").open("a", encoding="utf-8") as f:
                     f.write("".join(e.model_dump_json() + "\n" for e in got))
             outcome = {"verified": not [c for c in checks if not c["ok"]], "examples": len(got)}
         except Exception as exc:  # noqa: BLE001 - a problem that breaks now is said, never a stop
             outcome = {"verified": False, "reason": f"{type(exc).__name__}: {str(exc)[:200]}"}
         with marks.open("a", encoding="utf-8") as f:
-            f.write(json.dumps({"group": group, **outcome, "seconds": round(time.perf_counter() - started, 1)}) + "\n")
+            f.write(json.dumps({"group": group, **outcome, "seconds": round(time.perf_counter() - started, 1), "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}) + "\n")
         n += 1
         log(f"{group}: recorded again ({outcome})")
     return {"recorded_again": n}
@@ -372,6 +412,73 @@ def examples() -> list[L.TrainingExample]:
     if not path.is_file():
         return []
     return [L.TrainingExample.read(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def decision_docs(out: Path | None = None, excluded: dict[str, int] | None = None) -> list[tuple[str, dict[str, Any]]]:
+    """29.3: every decision the verified solves recorded in their ledgers (``ledgers/<kind>/<seed>/``), each with its labels
+    (the replica's planted truth, the numbers measured after the choice) and outcomes, beside its solve's group. A solve
+    that was not verified gives nothing (its decisions may be the wrong ones), nor one recorded again that then failed its
+    checks (``backfill_done.jsonl``), nor a ledger whose run never reached the final stage's one holdout read (a run
+    stopped half way: its later decisions are missing, the review of 29.3). ``excluded``, when given, counts each reason."""
+    from .. import ledger
+
+    out = Path(out) if out is not None else OUT
+
+    def lines(name: str) -> list[dict[str, Any]]:
+        path = out / name
+        return [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines() if x.strip()] if path.is_file() else []
+
+    verified = {t["group"] for t in lines("done.jsonl") if t.get("verified")}
+    again: dict[str, bool] = {}
+    for t in lines("backfill_done.jsonl"):  # the latest re-recording of a group says whether it still passed
+        again[t["group"]] = bool(t.get("verified"))
+    docs = []
+
+    def drop(why: str) -> None:
+        if excluded is not None:
+            excluded[why] = excluded.get(why, 0) + 1
+
+    for folder in sorted(p for p in (out / "ledgers").glob("*/*") if p.is_dir()):
+        group = f"selfplay:{folder.parent.name}:{folder.name}"
+        if group not in verified:
+            drop("a solve not verified")
+            continue
+        if again.get(group) is False:
+            drop("a solve that failed its checks when recorded again")
+            continue
+        try:
+            book = ledger.FileLedger(folder, "selfplay")
+            found = book.outcomes()
+            if not any(o.observed == "holdout" for o in found):
+                drop("a ledger whose run stopped before its holdout")
+                continue
+            labels: dict[str, list[dict[str, Any]]] = {}
+            outcomes: dict[str, list[dict[str, Any]]] = {}
+            for x in book.labels():
+                labels.setdefault(x.record, []).append(x.model_dump(mode="json"))
+            for x in found:
+                outcomes.setdefault(x.record, []).append(x.model_dump(mode="json"))
+            mine = [(group, {**r.model_dump(mode="json"), "labels": labels.get(r.id, []), "outcomes": outcomes.get(r.id, [])}) for r in book.records()]
+        except OSError:  # a solve being recorded again replaced its ledger while it was read: read on the next build
+            drop("a ledger being recorded again")
+            continue
+        docs += mine
+    return docs
+
+
+def decision_rows(out: Path | None = None, excluded: dict[str, int] | None = None) -> dict[str, list[dict[str, Any]]]:
+    """29.3: the per-point decision sets of self-play alone, built as every workspace's are (``dclab_core.datasets.decisions``:
+    each label source apart, ``label`` the one that counts), each row in its solve's group and that group's split, the same
+    as the solve's examples, so one invented problem never sits in two splits."""
+    from dclab_core import datasets as builders
+
+    docs = decision_docs(out, excluded)
+    group_of = {doc["id"]: group for group, doc in docs}
+    out_rows: dict[str, list[dict[str, Any]]] = {}
+    for point in sorted({doc["point"] for _, doc in docs}):
+        rows, _ = builders.decisions([doc for _, doc in docs], point, workspace="selfplay", consent="ours: DCLab's own invented problems")
+        out_rows[point] = [{**r, "group": group_of[r["record"]], "split": L.split_of(group_of[r["record"]])} for r in rows]
+    return out_rows
 
 
 def restate(path: Path | None = None) -> int:

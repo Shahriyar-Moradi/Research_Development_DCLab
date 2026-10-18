@@ -481,11 +481,14 @@ def attach(rows: list[Any], lake: Path = LAKE) -> tuple[list[Any], Counter]:
             r = by.get((a, row.sample_id))
             if r is None:
                 continue
+            if not r.get("input_fingerprint"):  # kept in another shape (Claude's silver answers): no state to match, so never attached
+                why[f"{a}: kept without the fingerprint of its question (not attached)"] += 1
+                continue
             text, schema = render(row.decision_point, dict(row.features), list(row.options))
             if r["input_fingerprint"] != fingerprint(text, schema):
                 why[f"{a}: answered on another state (ask again)"] += 1
                 continue
-            extra[a] = {"value": r["value"], "confidence": r["confidence"], "use": r["use"], "revision": r["revision"]}
+            extra[a] = {"value": r["value"], "confidence": r.get("confidence"), "use": r["use"], "revision": r.get("revision")}
             why[f"{a}: attached"] += 1
         out.append(row.model_copy(update={"other_answers": {**dict(row.other_answers), **extra}}) if extra else row)
     return out, why

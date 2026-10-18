@@ -310,7 +310,9 @@ class ForecastMachine(Machine):
                                                   f"{next((r['mean'] for r in ranking if r['model'] == 'seasonal_naive'), None)}, over origins "
                                                   f"{', '.join(result['origins'])}; the holdout is still sealed.", "proof": ["DCLAB-R13", "DCLAB-R17"]}]}
         decision = {"kind": "model", "selected": best, "chosen": best, "rule": evidence["selection_rule"],
-                    "options": [{"id": r["model"], "label": r["model"], "mean": r["mean"], "std": r["std"]} for r in ranking]}
+                    # 29.3: the baseline and a model scored on fewer, easier forecasts are measured but never chosen (nor a measured label)
+                    "options": [{"id": r["model"], "label": r["model"], "mean": r["mean"], "std": r["std"],
+                                 "eligible": r["model"] != "seasonal_naive" and bool(r["covers_every_series"])} for r in ranking]}
         claims = [claim(f"{eid}-C1", "fact", "Validation MASE by model: " + "; ".join(f"{r['model']} {r['mean']}" for r in ranking) + f". Chosen: {best}.",
                         ["evidence.ranking", "evidence.selected_model"])]
         return evidence, claims, f"{best} chosen on {len(result['origins'])} validation origins", decision

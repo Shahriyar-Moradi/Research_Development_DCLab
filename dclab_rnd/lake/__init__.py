@@ -161,6 +161,39 @@ def generated_decisions(run: Run) -> list[L.DecisionSample]:
     return out
 
 
+def selfplay_decisions(run: Run, seeds: set[int] | None = None) -> list[L.DecisionSample]:
+    """29.3: the decisions of self-play's verified solves, labelled by the replica's planted truth and by the numbers measured
+    after each choice; a solve whose group hashes to sealed is the sealed partition, and a train or dev row of a table an
+    evaluation reads is kept out (27.5, as the solve's examples are)."""
+    from . import selfplay
+
+    seeds = eval_seeds() if seeds is None else seeds
+    source = "selfplay/ledgers"
+    for path in [selfplay.OUT / "done.jsonl", *sorted((selfplay.OUT / "ledgers").rglob("*.jsonl"))]:  # every file read, with its hash
+        try:
+            run.read(path)
+        except FileNotFoundError:  # a solve being recorded again replaced its ledger meanwhile: its files are read below as they are now
+            continue
+    out: list[L.DecisionSample] = []
+    excluded: dict[str, int] = {}
+    rows_by_point = selfplay.decision_rows(excluded=excluded)
+    for why, n in excluded.items():  # a solve left out is said in the set's manifest, with why
+        run.drop(source, why, n)
+    for point, rows in rows_by_point.items():
+        for sealed in (False, True):
+            part = []
+            for r in rows:
+                if (r["split"] == "sealed") != sealed:
+                    continue
+                seed = str(r["group"]).split(":")[-1]
+                if not sealed and seed.isdigit() and int(seed) in seeds:
+                    run.drop(source, f"{r['split']} decision of a table an evaluation reads")
+                    continue
+                part.append(r)
+            out += decision_samples(part, source, "ours", sealed, run)
+    return out
+
+
 # ---------------------------------------------------------------------------------------------------- workspaces
 
 def workspace_sets(home: Path, run: Run) -> tuple[list[L.DecisionSample], list[dict[str, Any]], dict[str, list[dict[str, Any]]]]:
@@ -529,6 +562,7 @@ def build(lake: Path = LAKE, homes: Iterable[Path] | None = None, manifest_path:
     decisions = generated_decisions(run)
     public = openml.samples(run.dropped["openml"])
     decisions += public
+    decisions += selfplay_decisions(run)  # 29.3: self-play's solves, by planted truth and by measured outcome
     evaluation: list[dict[str, Any]] = []
     others: dict[str, list[dict[str, Any]]] = {}
     for home in homes:
@@ -570,7 +604,7 @@ def build(lake: Path = LAKE, homes: Iterable[Path] | None = None, manifest_path:
         attached.update(answered)
         sources = {r.provenance.source for r in rows}
         sets.append(write_set(lake / "gold" / "decisions" / point / VERSION, "decision_sample", f"decisions/{point}", kept,
-                              [i for i in run.inputs if point in i["path"] or "datasets" in i["path"] or "openml" in i["path"]],
+                              [i for i in run.inputs if point in i["path"] or "datasets" in i["path"] or "openml" in i["path"] or "selfplay" in i["path"]],
                               _merged(run, sources, why)))
     by_family: dict[str, list[L.TrainingExample]] = defaultdict(list)
     for e in examples:

@@ -1,22 +1,38 @@
 {
  "name": "DCLab training lake",
  "version": "v1",
- "builder_commit": "f15fcc7",
- "workspaces_read": 0,
+ "builder_commit": "093b43a",
+ "workspaces_read": 1,
  "workspaces_skipped": [
+  "no sets built (make datasets writes what its consent allows)",
+  "no sets built (make datasets writes what its consent allows)",
+  "no sets built (make datasets writes what its consent allows)",
+  "no sets built (make datasets writes what its consent allows)",
   "no sets built (make datasets writes what its consent allows)",
   "no sets built (make datasets writes what its consent allows)"
  ],
- "inputs": 16,
+ "inputs": 597,
  "silver_only": {},
  "reasoning": {
-  "no reasoning for this family yet": 2979,
-  "reasoning kept": 1466,
-  "answer misses the replica's planted truth (example dropped)": 78
+  "no reasoning for this family yet": 3357,
+  "reasoning kept": 1816,
+  "answer misses the replica's planted truth (example dropped)": 78,
+  "reasoning not grounded": 36
+ },
+ "other_answers": {
+  "dclab-rules: attached": 24980,
+  "gliner2.5-decide: attached": 63705,
+  "claude: kept without the fingerprint of its question (not attached)": 1494
  },
  "dropped_by_source": {
   "openml": {
    "an ignored column (its role is not said)": 57
+  },
+  "selfplay/ledgers": {
+   "a solve not verified": 2,
+   "dev decision of a table an evaluation reads": 485,
+   "train decision of a table an evaluation reads": 2786,
+   "no usable label": 7640
   }
  },
  "sets": [
@@ -67,26 +83,30 @@
   {
    "name": "decisions/column.is_identifier",
    "written": true,
-   "rows": 23374,
+   "rows": 23377,
    "by_split": {
     "train": 14257,
     "dev": 3636,
-    "sealed": 5481
+    "sealed": 5484
    },
    "by_origin": {
-    "construction": 4537,
+    "construction": 4540,
     "public_catalog": 18837
    },
    "by_family": {
-    "column.is_identifier": 23374
+    "column.is_identifier": 23377
    },
-   "groups": 1101,
+   "groups": 1104,
    "dropped": {
+    "a solve not verified": 2,
+    "dev decision of a table an evaluation reads": 485,
+    "train decision of a table an evaluation reads": 2786,
+    "no usable label": 7640,
     "an ignored column (its role is not said)": 57,
     "personal data": 3,
-    "train row identical to an evaluation row": 7172,
-    "dev row identical to an evaluation row": 1142,
-    "duplicate": 3000
+    "train row identical to an evaluation row": 7208,
+    "dev row identical to an evaluation row": 1149,
+    "duplicate": 3009
    }
   },
   {
@@ -117,45 +137,236 @@
   {
    "name": "decisions/column.time",
    "written": true,
-   "rows": 4564,
+   "rows": 4566,
    "by_split": {
     "train": 2248,
     "dev": 715,
-    "sealed": 1601
+    "sealed": 1603
    },
    "by_origin": {
-    "construction": 4564
+    "construction": 4566
    },
    "by_family": {
-    "column.time": 4564
+    "column.time": 4566
    },
-   "groups": 240,
+   "groups": 242,
    "dropped": {
-    "train row identical to an evaluation row": 2181,
-    "dev row identical to an evaluation row": 465,
-    "duplicate": 950
+    "a solve not verified": 2,
+    "dev decision of a table an evaluation reads": 485,
+    "train decision of a table an evaluation reads": 2786,
+    "no usable label": 7640,
+    "train row identical to an evaluation row": 2201,
+    "dev row identical to an evaluation row": 467,
+    "duplicate": 955
+   }
+  },
+  {
+   "name": "decisions/data.cases_table",
+   "written": true,
+   "rows": 48,
+   "by_split": {
+    "sealed": 48
+   },
+   "by_origin": {
+    "construction": 48
+   },
+   "by_family": {
+    "data.cases_table": 48
+   },
+   "groups": 26,
+   "dropped": {
+    "train row identical to an evaluation row": 1406,
+    "dev row identical to an evaluation row": 530,
+    "duplicate": 416
+   }
+  },
+  {
+   "name": "decisions/data.cleaning_step",
+   "written": true,
+   "rows": 285,
+   "by_split": {
+    "train": 16,
+    "dev": 13,
+    "sealed": 256
+   },
+   "by_origin": {
+    "construction": 285
+   },
+   "by_family": {
+    "data.cleaning_step": 285
+   },
+   "groups": 114,
+   "dropped": {
+    "train row identical to an evaluation row": 8443,
+    "dev row identical to an evaluation row": 2765,
+    "duplicate": 2907
    }
   },
   {
    "name": "decisions/feature.leakage_suspect",
    "written": true,
-   "rows": 4559,
+   "rows": 4646,
    "by_split": {
-    "train": 2247,
-    "dev": 713,
-    "sealed": 1599
+    "train": 2297,
+    "dev": 726,
+    "sealed": 1623
    },
    "by_origin": {
-    "construction": 4559
+    "construction": 4646
    },
    "by_family": {
-    "feature.leakage_suspect": 4559
+    "feature.leakage_suspect": 4646
    },
-   "groups": 240,
+   "groups": 300,
    "dropped": {
-    "train row identical to an evaluation row": 2188,
-    "dev row identical to an evaluation row": 465,
-    "duplicate": 948
+    "a solve not verified": 2,
+    "dev decision of a table an evaluation reads": 485,
+    "train decision of a table an evaluation reads": 2786,
+    "no usable label": 7640,
+    "train row identical to an evaluation row": 2306,
+    "dev row identical to an evaluation row": 490,
+    "duplicate": 976
+   }
+  },
+  {
+   "name": "decisions/features.recipe",
+   "written": true,
+   "rows": 1,
+   "by_split": {
+    "sealed": 1
+   },
+   "by_origin": {
+    "measured_outcome": 1
+   },
+   "by_family": {
+    "features.recipe": 1
+   },
+   "groups": 1,
+   "dropped": {
+    "a solve not verified": 2,
+    "dev decision of a table an evaluation reads": 485,
+    "train decision of a table an evaluation reads": 2786,
+    "no usable label": 7640,
+    "train row identical to an evaluation row": 9,
+    "dev row identical to an evaluation row": 2,
+    "duplicate": 1
+   }
+  },
+  {
+   "name": "decisions/image.flip_safe",
+   "written": true,
+   "rows": 71,
+   "by_split": {
+    "dev": 16,
+    "train": 38,
+    "sealed": 17
+   },
+   "by_origin": {
+    "construction": 71
+   },
+   "by_family": {
+    "image.flip_safe": 71
+   },
+   "groups": 71,
+   "dropped": {
+    "duplicate": 5,
+    "train row identical to an evaluation row": 2,
+    "dev row identical to an evaluation row": 2
+   }
+  },
+  {
+   "name": "decisions/image.label_suspect",
+   "written": true,
+   "rows": 378,
+   "by_split": {
+    "dev": 108,
+    "train": 77,
+    "sealed": 193
+   },
+   "by_origin": {
+    "construction": 378
+   },
+   "by_family": {
+    "image.label_suspect": 378
+   },
+   "groups": 62,
+   "dropped": {
+    "dev row identical to an evaluation row": 6382,
+    "duplicate": 6567,
+    "train row identical to an evaluation row": 14193
+   }
+  },
+  {
+   "name": "decisions/image.near_copy",
+   "written": true,
+   "rows": 3856,
+   "by_split": {
+    "dev": 1072,
+    "train": 1402,
+    "sealed": 1382
+   },
+   "by_origin": {
+    "construction": 3856
+   },
+   "by_family": {
+    "image.near_copy": 3856
+   },
+   "groups": 80,
+   "dropped": {
+    "dev row identical to an evaluation row": 855,
+    "duplicate": 1992,
+    "train row identical to an evaluation row": 2897
+   }
+  },
+  {
+   "name": "decisions/model.family",
+   "written": true,
+   "rows": 5,
+   "by_split": {
+    "sealed": 5
+   },
+   "by_origin": {
+    "measured_outcome": 5
+   },
+   "by_family": {
+    "model.family": 5
+   },
+   "groups": 5,
+   "dropped": {
+    "a solve not verified": 2,
+    "dev decision of a table an evaluation reads": 485,
+    "train decision of a table an evaluation reads": 2786,
+    "no usable label": 7640,
+    "train row identical to an evaluation row": 27,
+    "dev row identical to an evaluation row": 4,
+    "duplicate": 3
+   }
+  },
+  {
+   "name": "decisions/split.strategy",
+   "written": true,
+   "rows": 311,
+   "by_split": {
+    "train": 149,
+    "dev": 62,
+    "sealed": 100
+   },
+   "by_origin": {
+    "construction": 293,
+    "measured_outcome": 18
+   },
+   "by_family": {
+    "split.strategy": 311
+   },
+   "groups": 304,
+   "dropped": {
+    "a solve not verified": 2,
+    "dev decision of a table an evaluation reads": 485,
+    "train decision of a table an evaluation reads": 2786,
+    "no usable label": 7640,
+    "train row identical to an evaluation row": 1251,
+    "dev row identical to an evaluation row": 456,
+    "duplicate": 416
    }
   },
   {
@@ -184,62 +395,86 @@
   {
    "name": "decisions/task.framing",
    "written": true,
-   "rows": 479,
+   "rows": 1182,
    "by_split": {
-    "train": 311,
-    "sealed": 99,
-    "dev": 69
+    "train": 564,
+    "dev": 235,
+    "sealed": 383
    },
    "by_origin": {
+    "construction": 703,
     "public_catalog": 479
    },
    "by_family": {
-    "task.framing": 479
+    "task.framing": 1182
    },
-   "groups": 479,
+   "groups": 990,
    "dropped": {
     "an ignored column (its role is not said)": 57,
-    "train row identical to an evaluation row": 202,
-    "duplicate": 56,
-    "dev row identical to an evaluation row": 38
+    "train row identical to an evaluation row": 1238,
+    "dev row identical to an evaluation row": 325,
+    "duplicate": 430
+   }
+  },
+  {
+   "name": "decisions/tuning.accept",
+   "written": true,
+   "rows": 20,
+   "by_split": {
+    "train": 13,
+    "dev": 4,
+    "sealed": 3
+   },
+   "by_origin": {
+    "measured_outcome": 20
+   },
+   "by_family": {
+    "tuning.accept": 20
+   },
+   "groups": 20,
+   "dropped": {
+    "a solve not verified": 2,
+    "dev decision of a table an evaluation reads": 485,
+    "train decision of a table an evaluation reads": 2786,
+    "no usable label": 7640
    }
   },
   {
    "name": "solver/algorithm_choice",
    "written": true,
-   "rows": 134,
+   "rows": 125,
    "by_split": {
     "sealed": 22,
-    "dev": 19,
-    "train": 93
+    "train": 85,
+    "dev": 18
    },
    "by_origin": {
-    "verified_synthetic": 134
+    "verified_synthetic": 125
    },
    "by_family": {
-    "algorithm_choice": 134
+    "algorithm_choice": 125
    },
-   "groups": 134,
+   "groups": 125,
    "dropped": {
-    "train example of a table an evaluation reads": 38,
-    "dev example of a table an evaluation reads": 9,
-    "duplicate": 12
+    "train example of a table an evaluation reads": 47,
+    "dev example of a table an evaluation reads": 10,
+    "duplicate": 11
    }
   },
   {
    "name": "solver/engineering",
    "written": true,
-   "rows": 2628,
+   "rows": 3006,
    "by_split": {
-    "eval_only": 2628
+    "eval_only": 3006
    },
    "by_origin": {
-    "dev_record": 2628
+    "dev_record": 3006
    },
    "by_family": {
-    "engineering": 2628
+    "engineering": 3006
    },
-   "groups": 242,
+   "groups": 279,
    "dropped": {
     "personal data": 21
    }
@@ -264,23 +499,23 @@
   {
    "name": "solver/leakage_judgment",
    "written": true,
-   "rows": 136,
+   "rows": 124,
    "by_split": {
     "sealed": 26,
-    "dev": 24,
-    "train": 86
+    "train": 76,
+    "dev": 22
    },
    "by_origin": {
-    "verified_synthetic": 136
+    "verified_synthetic": 124
    },
    "by_family": {
-    "leakage_judgment": 136
+    "leakage_judgment": 124
    },
-   "groups": 68,
+   "groups": 62,
    "dropped": {
-    "train example of a table an evaluation reads": 64,
-    "dev example of a table an evaluation reads": 14,
-    "train row (nearly) identical to an evaluation row": 44,
+    "train example of a table an evaluation reads": 78,
+    "dev example of a table an evaluation reads": 16,
+    "train row (nearly) identical to an evaluation row": 40,
     "duplicate": 44,
     "dev row (nearly) identical to an evaluation row": 6
    }
@@ -288,72 +523,176 @@
   {
    "name": "solver/problem_type",
    "written": true,
-   "rows": 60,
+   "rows": 58,
    "by_split": {
     "sealed": 20,
-    "dev": 10,
-    "train": 30
+    "train": 30,
+    "dev": 8
    },
    "by_origin": {
-    "verified_synthetic": 60
+    "verified_synthetic": 58
    },
    "by_family": {
-    "problem_type": 60
+    "problem_type": 58
    },
-   "groups": 30,
+   "groups": 29,
    "dropped": {
-    "train example of a table an evaluation reads": 76,
-    "dev example of a table an evaluation reads": 18,
-    "duplicate": 66,
-    "train row (nearly) identical to an evaluation row": 140,
+    "train example of a table an evaluation reads": 94,
+    "dev example of a table an evaluation reads": 20,
+    "duplicate": 62,
+    "train row (nearly) identical to an evaluation row": 126,
     "dev row (nearly) identical to an evaluation row": 26
    }
   },
   {
    "name": "solver/read_results",
    "written": true,
-   "rows": 135,
+   "rows": 126,
    "by_split": {
     "sealed": 22,
-    "dev": 19,
-    "train": 94
+    "train": 86,
+    "dev": 18
    },
    "by_origin": {
-    "verified_synthetic": 135
+    "verified_synthetic": 126
    },
    "by_family": {
-    "read_results": 135
+    "read_results": 126
    },
-   "groups": 135,
+   "groups": 126,
    "dropped": {
-    "train example of a table an evaluation reads": 38,
-    "dev example of a table an evaluation reads": 9,
-    "duplicate": 11
+    "train example of a table an evaluation reads": 47,
+    "dev example of a table an evaluation reads": 10,
+    "duplicate": 10
+   }
+  },
+  {
+   "name": "solver/solution_design",
+   "written": true,
+   "rows": 140,
+   "by_split": {
+    "sealed": 30,
+    "train": 88,
+    "dev": 22
+   },
+   "by_origin": {
+    "verified_synthetic": 140
+   },
+   "by_family": {
+    "solution_design": 140
+   },
+   "groups": 70,
+   "dropped": {
+    "dev example of a table an evaluation reads": 20,
+    "train example of a table an evaluation reads": 94,
+    "duplicate": 52,
+    "train row (nearly) identical to an evaluation row": 68,
+    "dev row (nearly) identical to an evaluation row": 12
    }
   },
   {
    "name": "solver/split_design",
    "written": true,
-   "rows": 112,
+   "rows": 106,
    "by_split": {
     "sealed": 26,
-    "dev": 20,
-    "train": 66
+    "train": 62,
+    "dev": 18
    },
    "by_origin": {
-    "verified_synthetic": 112
+    "verified_synthetic": 106
    },
    "by_family": {
-    "split_design": 112
+    "split_design": 106
    },
-   "groups": 56,
+   "groups": 53,
    "dropped": {
-    "train example of a table an evaluation reads": 76,
-    "dev example of a table an evaluation reads": 18,
-    "duplicate": 58,
-    "train row (nearly) identical to an evaluation row": 106,
+    "train example of a table an evaluation reads": 94,
+    "dev example of a table an evaluation reads": 20,
+    "duplicate": 54,
+    "train row (nearly) identical to an evaluation row": 96,
     "dev row (nearly) identical to an evaluation row": 16
    }
+  },
+  {
+   "name": "eval/twin.expert",
+   "written": true,
+   "rows": 27,
+   "by_split": {
+    "eval_only": 27
+   },
+   "by_origin": {
+    "teacher_claude": 27
+   },
+   "by_family": {
+    "solution_design": 27
+   },
+   "groups": 6,
+   "dropped": {}
+  },
+  {
+   "name": "eval/twin.preferences",
+   "written": true,
+   "rows": 5,
+   "by_split": {
+    "eval_only": 5
+   },
+   "by_origin": {
+    "teacher_claude": 5
+   },
+   "by_family": {
+    "typed_decision": 5
+   },
+   "groups": 4,
+   "dropped": {}
+  },
+  {
+   "name": "eval/twin.steps",
+   "written": true,
+   "rows": 60,
+   "by_split": {
+    "eval_only": 60
+   },
+   "by_origin": {
+    "teacher_claude": 60
+   },
+   "by_family": {
+    "typed_decision": 60
+   },
+   "groups": 6,
+   "dropped": {}
+  },
+  {
+   "name": "eval/twin.teacher.technical",
+   "written": true,
+   "rows": 78,
+   "by_split": {
+    "eval_only": 78
+   },
+   "by_origin": {
+    "teacher_claude": 78
+   },
+   "by_family": {
+    "typed_decision": 78
+   },
+   "groups": 6,
+   "dropped": {}
+  },
+  {
+   "name": "eval/twin.teacher.workflow",
+   "written": true,
+   "rows": 12,
+   "by_split": {
+    "eval_only": 12
+   },
+   "by_origin": {
+    "teacher_claude": 12
+   },
+   "by_family": {
+    "typed_decision": 12
+   },
+   "groups": 6,
+   "dropped": {}
   }
  ],
  "rule": "Counts only: the rows are in lake/ (not committed). Claude's answers and DCLab's build history are evaluation only (the owner, 2026-10-16). Counts depend on the workspaces whose train consent is on."

@@ -13,7 +13,9 @@
             "holdout_vs_cv",
             "review",
             "override",
-            "holdout_vs_best_leaf"
+            "holdout_vs_best_leaf",
+            "validation_clear_best",
+            "fresh_draw"
           ],
           "title": "Kind",
           "type": "string"
@@ -52,7 +54,7 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.decision_label.v3.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.decision_label.v4.json",
   "additionalProperties": false,
   "description": "What the right value of a decision was, from one source; a new label supersedes an older one, never edits it.",
   "properties": {
@@ -95,8 +97,8 @@
       "type": "string"
     },
     "schema_version": {
-      "const": "dclab_core.decision_label.v3",
-      "default": "dclab_core.decision_label.v3",
+      "const": "dclab_core.decision_label.v4",
+      "default": "dclab_core.decision_label.v4",
       "title": "Schema Version",
       "type": "string"
     },

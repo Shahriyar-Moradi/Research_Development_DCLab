@@ -278,11 +278,13 @@ def stage_decisions(stage: str, record: dict[str, Any], prepared: Any, owner: di
                 written += bool(_put(d["point"], ("project", f"{subject[1]}:{d['key']}"[:200]), [answer("rule", f"rule:{d['point']}", d["value"])],
                                      d["value"], "rule", state=d["state"], options=["yes", "no"], **ids))
         elif stage == "features" and decision.get("chosen") is not None:
-            put("features.recipe", str(decision.get("selected", decision["chosen"]))[:200], "rule:select_within_tolerance",
-                options=[o.get("id") for o in decision.get("options") or []])
+            rec = put("features.recipe", str(decision.get("selected", decision["chosen"]))[:200], "rule:select_within_tolerance",
+                      options=[o.get("id") for o in decision.get("options") or []])
+            _measured(rec, decision, _higher(prepared, record))  # 29.3: the recipe that measured clearly best on validation, if one did
         elif stage == "models" and decision.get("chosen") is not None:
-            put("model.family", str(decision.get("selected", decision["chosen"]))[:200], "rule:rank_rows",
-                options=[o.get("id") for o in decision.get("options") or []])
+            rec = put("model.family", str(decision.get("selected", decision["chosen"]))[:200], "rule:rank_rows",
+                      options=[o.get("id") for o in decision.get("options") or []])
+            _measured(rec, decision, _higher(prepared, record))  # 29.3: the family that measured clearly best on validation, if one did
             rounds = [r for r in (evidence.get("review") or {}).get("rounds") or [] if isinstance(r, dict)]
             for r in rounds[:20]:
                 critic = (r.get("critic") or {}).get("order") or []
@@ -366,9 +368,11 @@ def approval(stage: str, record: dict[str, Any] | None, choice: Any, actor: str,
                              state={"stage": _code(stage)}, options=options, level=level, project=project_id))
         point = {"features": "features.recipe", "models": "model.family"}.get(stage)
         if point and choice not in (None, "") and str(choice) != str(selected):
-            written += bool(_put(point, ("project", project_id), [answer("rule", "rule:stage_selection", str(selected)[:200] if selected is not None else None),
-                                                                  answer(by, who, str(choice)[:200])],
-                                 str(choice)[:200], by, state={"stage": _code(stage)}, options=options, level=level, exposed=True, project=project_id))
+            rec = _put(point, ("project", project_id), [answer("rule", "rule:stage_selection", str(selected)[:200] if selected is not None else None),
+                                                        answer(by, who, str(choice)[:200])],
+                       str(choice)[:200], by, state={"stage": _code(stage)}, options=options, level=level, exposed=True, project=project_id)
+            written += bool(rec)
+            _measured(rec, decision, _higher(None, record))  # 29.3: a choice validation clearly beat is labelled wrong, one it clearly backs right
     return written
 
 
@@ -684,6 +688,46 @@ def team_node(owner: tuple[str, str], team: str, state_code: str, rule_next: str
     kind, ident = owner
     return _put("team.next_node", (kind, ident), answers, str(chosen), "rule", state=state, options=list(TEAM_NODES),
                 **({"draft": ident, "conversation": ident} if kind == "draft" else {"project": ident}))
+
+
+def _higher(prepared: Any, record: dict[str, Any] | None = None) -> Any:
+    """29.3: the metric's direction as the engine keeps it (a kind's machine, else the tabular bundle's spec, as the final
+    stage's outcome reads it); without a prepared project, from the stage record (its machine's, else its metric's);
+    None when it is not known, and then nothing is labelled by measurement."""
+    machine = getattr(prepared, "machine", None)
+    if machine is not None:
+        value = getattr(machine, "higher_is_better", None)
+        return value if isinstance(value, bool) else None
+    try:
+        value = prepared.bundle.spec.higher_is_better
+    except Exception:  # noqa: BLE001 - no spec: read the record
+        value = None
+        try:
+            if (record or {}).get("machine"):
+                from .. import kinds
+
+                value = getattr(kinds.get(str(record["machine"])).own_machine(), "higher_is_better", None)
+            elif (record or {}).get("primary_metric"):
+                from ..expansion.runner import HIGHER_IS_BETTER
+
+                value = HIGHER_IS_BETTER.get(str(record["primary_metric"]))
+        except Exception:  # noqa: BLE001 - a kind or a metric the tables do not know
+            value = None
+    return value if isinstance(value, bool) else None
+
+
+def _measured(record: Any, decision: dict[str, Any], higher: Any) -> None:
+    """29.3: a measured label on a choice among measured options (``dclab_core.measured.clear_best``): the option that
+    measured clearly best on validation, in the metric's own direction; nothing when the record was not kept or validation
+    cannot tell the options apart."""
+    if record is None:
+        return
+    from dclab_core.measured import clear_best
+
+    got = clear_best(decision.get("options") or [], higher)
+    if got is not None:
+        value, evidence = got
+        label(record, value, "measured", evidence["kind"], evidence=evidence)
 
 
 @_quiet
