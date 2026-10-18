@@ -143,9 +143,9 @@ capture with a test that reads it back, the reviewer, its development record and
 |---|---|---|---|
 | 30.7 | What a model may read | `visibility` on examples; the owner's fraud example `rules_only`; the three source documents in `docs/sources/2026-10_retail_interview/` (not the raw transcript, decision D7); a model's context built from the general pattern only | a test: no `rules_only` example and no person's name reaches a model's request (the gateway's recorded prompts) |
 | 30.8 | Pattern cards | `BusinessExample` v2; the eleven patterns, their cross-industry cases and the ten practice questions as examples, each citing its source document | every pattern links a recipe or says it is knowledge only; the search finds the right pattern for each practice question |
-| 30.9 | The retail returns replica | invented sales and returns tables with patterns 1 to 4's traps: copied bills (near-duplicates across train and test), the late-evening rule as a feature and as the source of rule labels, a rule computed with future data, cashier and store groups, a label source per row, drift in the last three months | its acceptance tests name every trap and the right behaviour; dev people written; a sealed set by an independent agent |
+| 30.9 | The retail returns replica | invented sales and returns tables with patterns 1 to 4's traps: copied bills (near-duplicates across train and test), the late-evening rule as a feature and as the source of rule labels, a rule computed with future data, a few dishonest cashiers and new ones later, a label source per row, drift in the last three months | its tests prove every trap bites on several seeds and no single column gives the fraud away (the journeys people move to 30.11) |
 | 30.10 | The recipe registry | `RecipePart`, `ResolvedRecipe`; the fifteen kinds as parts, versioned, through an adapter | every run's choices name their part; results unchanged on every replica (a test) |
-| 30.11 | Three modifiers | rare positives (one cut-off), groups, time order; detection with thresholds, precedence, ledger points | certified on the retail replica and two real datasets (Telco, HyperAck); the LLM-off result is the same |
+| 30.11 | Three modifiers | rare positives (one cut-off), groups, time order; detection with thresholds, precedence, ledger points; the retail replica as a kind's case | certified on the retail replica and two real datasets (Telco, HyperAck); the LLM-off result is the same; the retail replica's dev people written and a sealed set by an independent agent |
 | 30.12 | Labels and capacity | noisy labels (label source, confirmed-only evaluation, weights), review capacity (precision at K primary, threshold at the K-th score, value times probability), a random audit sample | the replica's rule-label trap is caught; recall is estimated from the audit sample with its interval |
 | 30.13 | Problem Card v2 and the fit verdict | the missing fields; G1 on what changes the solution; Data Card v4 with detected modifiers and the three-way verdict; G2 | the dev journeys pass with the new fields; a "fits with changes" proposes its card edit |
 | 30.14 | The Solution Brief and G3 | the contract, the approach-level ladder, the success bar frozen and signed, the report judged against it | a brief without a bar, a baseline or an alternative is refused; the holdout's verdict against the bar is in the report |
@@ -195,6 +195,13 @@ Designed in detail once Part E is built; each keeps DCLab's rules (the validator
   conversation, no rules_only example); an owner's solution can never be visible and a stored v1 one reads as rules_only;
   practice questions are kept out of the index they evaluate; a rebuild without the owner's folder keeps the committed owner
   example. Left: the check on the gateway's recorded prompts comes with 30.18, when a role first reads examples.
+- **30.9 built (2026-10-18), rebuilt after the review's 9 findings:** `dclab_core.replicas.retail_returns` (dclab-core 0.76.0): sales and
+  returns over nine months, staff return fraud on copies of real bills (new near-duplicate bills, the amount edited a little,
+  sometimes from another store) among honest repeat purchases, labels that grow from the late-evening rule to a team reviewing
+  five returns a day with a random part, a cashier statistic over the whole log, the review verdict, new dishonest cashiers and
+  earlier hours in the last three months. Every trap bites on seeds 0 to 2 and no returns column alone reaches 0.85 of ROC-AUC
+  (0.74 to 0.78) while the cross-table link does better (0.84 to 0.91). Left for 30.11: the replica through the engine, its
+  journeys people and a sealed set.
 
 ---
 

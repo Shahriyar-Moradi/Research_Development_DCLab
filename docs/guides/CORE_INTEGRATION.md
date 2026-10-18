@@ -726,6 +726,12 @@ request path; it is a data generator. A team that pretrains or evaluates an in-c
 or reads DCLab's corpus (`make priors`, `lake/bronze/priors/priors_v1/`); `params.effects_shown` marks the tables whose shown
 features include the outcome's effects, for a team that wants none.
 
+## The retail returns replica (30.9, dclab-core 0.76.0)
+
+The library's: `dclab_core.replicas.retail_returns`. Where it goes there: the main product's acceptance cases for fraud and
+anomaly detection can run on it as they run on the other replicas; its `facts` say what a careful solution decides (the split,
+the columns to keep out, the labels to evaluate on, the metric, the review capacity).
+
 ## An outcome named but left open, asked once more (28.7, dclab-core 0.74.0)
 
 The library's: `dclab_core.conversation.outcome_again(card, answers, columns, asked)` and `named_columns`. Where it goes

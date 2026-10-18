@@ -4,6 +4,16 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.76.0 (2026-10-18)
+
+Package 30.9: the retail returns replica.
+
+- `replicas.retail_returns`: point-of-sale bills and the returns filed against them, with staff return fraud on copied bills
+  planted (the owner's interview patterns 1 to 5): rare positives, labels from a late-evening rule beside expert reviews, a
+  random audit sample and clustering, a cashier statistic computed with future data, the review verdict written after the
+  review, copies linked only across the two tables, a few dishonest cashiers, drift in the last three months, and a daily
+  review capacity. `generate(seed)`, `save(replica, folder)`; `truth` is for tests only.
+
 ## 0.75.0 (2026-10-18)
 
 Package 30.7: what a model may read.
