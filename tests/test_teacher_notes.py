@@ -134,7 +134,8 @@ class DemotionAndQueueTests(unittest.TestCase):
         folder.mkdir(parents=True)
         kinds = [{"source": "blind"}, {"source": "user_decision_exposed", "shown": ["rule:id", NAME]}, {"source": "user_decision_exposed"}, {"source": "blind"}]
         rows = [{"record": f"r{i}", "point": POINT, "state": {"dtype": "string"}, "options": ["yes", "no"], "split": "sealed", "group": f"project:p{i}",
-                 "label": {"value": True, **kinds[i]}} for i in range(4)]
+                 "label": {"value": True, **kinds[i]}, "labels": {"blind": {"value": True, "weight": 1.67}} if kinds[i]["source"] == "blind" else {}}
+                for i in range(4)]  # as datasets.decisions writes them: a drawn blind label with its weight
         (folder / "rows.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
 
         class Model:

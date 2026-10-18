@@ -225,6 +225,19 @@ bands, its options), then a student.
 - **Done when:** on the generated sets, a student trained with the queue's first 200 labels beats one trained with 200 drawn
   at random (dev, the same seeds), recorded as a measurement.
 
+- **Status: built and measured (2026-10-19); Done when not met.** The measurement (`python -m dclab_rnd.active_learning`,
+  `evidence/campaigns/active_learning_v1`, gates fixed before each run): the queue's first rule, a disagreement with the
+  rule first then the least sure (ALQ-001), taught less than 200 random labels (data.cases_table -0.090, one seed
+  collapsing to 0.51: it skewed the labels to one kind of case); a second rule written after it failed and judged on the
+  same dev rows, half the least sure and half at random (ALQ-002), did not pass either (split.strategy +0.062 on 5 of 5
+  seeds, data.cases_table +0.005, task.framing -0.004; the gate asked for two points of three). One quick logistic
+  student, invented tables. The product offers the second as an order a person chooses on the Admin queue, never the
+  default, said as not passed; it reaches only decisions outside the blind draw without a truth yet, and its labels carry
+  no weight: they train, and never count toward acting, demotion, the Evaluation page or an own student's exam
+  (`dclab_core.active.split_labels`; the same rule now keeps the main product's unweighted blind labels out of estimates).
+  Not delivered: "points furthest from MIN_LABELS" (taught labels never count toward it, so the order cannot shrink it)
+  and "a student's needed labels shrink faster".
+
 ### 29.12 Harder homework where students fail (a curriculum)
 - **Delivers:** the generators (benchgen, the image shapes, the priors) told which kinds of table each student gets wrong
   on dev, and make more of those (more look-alike scenes, subtler leaks, names in other languages); the sealed sets never

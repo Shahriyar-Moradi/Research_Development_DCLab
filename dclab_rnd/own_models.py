@@ -237,7 +237,8 @@ def gate(home: Path, points: Optional[list[str]] = None) -> dict[str, Any]:
         # 29.10: a note's answer (a person who saw DCLab's student, this model's base, beside the rule) never grades it; a
         # company's own correction of the rule (it saw the rule only) stays the evidence it was in 26.7
         sealed = [r for r in rows(home, point) if r["split"] == "sealed"
-                  and not ((r.get("label") or {}).get("source") == "user_decision_exposed" and (r.get("label") or {}).get("shown"))]
+                  and not ((r.get("label") or {}).get("source") == "user_decision_exposed" and (r.get("label") or {}).get("shown"))
+                  and not ((r.get("label") or {}).get("source") == "blind" and ((r.get("labels") or {}).get("blind") or {}).get("weight") is None)]  # 29.11: nor a taught one
         fingerprint = hashlib.sha256("\n".join(sorted(json.dumps({k: r[k] for k in ("record", "state", "label")}, sort_keys=True, default=str)
                                                       for r in sealed)).encode()).hexdigest()
         mark = marks / f"{point}.json"

@@ -793,6 +793,14 @@ product's agent asks the critic once its brief is confirmed and before it plans,
 question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
 whether to go on, recording the decision.
 
+## Labels asked for, kept apart from estimates (29.11, dclab-core 0.85.0)
+
+The library's: `dclab_core.active.select_mixed` orders decisions for a person to label (the least sure and a random one in
+turn), and `split_labels` keeps a label chosen that way out of any estimate (a blind label without a sampling weight).
+Where it goes there: the main product's labelling queue may offer the order as a person's choice, never its default; its
+R3 gates already read only labels with known weights, and the adapter's unweighted blind labels (`BLIND_WEIGHT_NOTE`) are
+the same kind: training data, never an estimate.
+
 ## A person's answer where a student disagrees (29.10, dclab-core 0.84.0)
 
 The library's: `DecisionLabel` v5 `shown` and `effective_label` reading it: a label from a person who saw the rule's answer

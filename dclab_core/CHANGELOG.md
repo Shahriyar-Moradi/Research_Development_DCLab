@@ -4,6 +4,15 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.85.0 (2026-10-19)
+
+Package 29.11: students ask for the labels they need most.
+
+- `active` (new): `priority`/`select` (a disagreement with the rule first, the least sure first) and `select_mixed` (half the
+  least sure answers, half drawn at random), the orders measured on invented tables (neither passed its gate: see the
+  module), `split_labels` (labels an estimate may read, and labels chosen to teach: a blind label without a weight never
+  estimates) and `TEACH_NOTE`.
+
 ## 0.84.0 (2026-10-19)
 
 Package 29.10: every user is a teacher.

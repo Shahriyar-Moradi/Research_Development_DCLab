@@ -95,14 +95,19 @@ def _students() -> dict[str, str]:
 
 
 def queue(ledger: Any = None, point: Optional[str] = None, limit: int = 50, seed: str = "blind-v1", skip: Sequence[str] = (),
-          current: Optional[dict[str, str]] = None) -> dict[str, Any]:
+          current: Optional[dict[str, str]] = None, order: str = "fair") -> dict[str, Any]:
     """29.8: the disagreements worth a person's look: decisions where the point's current student (in shadow) disagrees
     with the rule, not yet labelled blind, each shown blind (``blind_view``: the question, the subject, the state and the
     options; never an answer, nor whose it was). Only decisions of the blind draw are queued, so a label keeps the weight
     of how its decision was drawn; and they come in an order drawn from the seed, never the student's surest first: any
     part of the queue a person labels is then a fair sample of the drawn disagreements, so the figures a student's
     promotion rests on are not its best cases (the review of 29.8). ``current``: each point's student (default: the
-    register's cards); ``points``: how many each point has waiting."""
+    register's cards); ``points``: how many each point has waiting. ``order="teach"`` (29.11): every decision a point's
+    student answered outside the blind draw and without a truth yet, the student's least sure answer and a decision drawn
+    at random in turn (see ``_teach`` for what its measurement showed: not passed); its labels are written without a
+    weight (``blind_label(taught=True)``): they train, and never estimate."""
+    if order == "teach":
+        return _teach(ledger, point, limit, seed, skip, current)
     import hashlib
 
     from dclab_core import ledger as contract
@@ -126,21 +131,74 @@ def queue(ledger: Any = None, point: Optional[str] = None, limit: int = 50, seed
     return {"items": items, "points": dict(sorted(counts.items())), "seed": seed}
 
 
-def blind_label(record_id: str, value: Any, by: str, seed: str = "blind-v1", ledger: Any = None) -> Any:
-    """A blind reviewer's label for a drawn decision, with its weight; refused for a decision not in the draw."""
+def _teach(ledger: Any, point: Optional[str], limit: int, seed: str, skip: Sequence[str], current: Optional[dict[str, str]]) -> dict[str, Any]:
+    """29.11: the teaching order (see ``queue``): the student's least sure answer and a decision drawn at random, in turn
+    (``dclab_core.active.select_mixed``), chosen within each point and the points taken in turn (confidences of points with
+    different numbers of options are not compared). Measured on invented tables (ALQ-002, a second rule written after the
+    first failed, on the same dev rows): it did not pass its gate (split.strategy +0.062 on 5 of 5 seeds, data.cases_table
+    +0.005, task.framing -0.004); the first rule, a disagreement first (ALQ-001), taught less than random labels. A decision
+    of the blind draw is left to the fair queue (a taught label there would take it out of the sample a promotion reads),
+    and one that already has a truth (a benchmark, a measurement, a blind label) is not asked again."""
+    from dclab_core import ledger as contract
+    from dclab_core.active import select_mixed
+    from dclab_core.answerers import SHADOW
+
+    store = ledger if ledger is not None else current_ledger()
+    if store is None:
+        return {"items": [], "points": {}, "seed": seed, "order": "teach"}
+    current = _students() if current is None else current
+    known = {x.record for x in store.labels() if x.source in ("blind", "benchmark", "measured")}  # a truth already there
+    skipped = set(skip)
+    by_point: dict[str, list[tuple[Any, Any]]] = {}
+    counts: dict[str, int] = {}
+    for r in store.records():
+        name = current.get(r.point)
+        student = next((a for a in r.answers if a.source == SHADOW and a.answerer == name and a.value is not None), None) if name else None
+        if student is None or not contract.blind_eligible(r) or r.id in known or contract.blind_draw(r, seed):
+            continue
+        counts[r.point] = counts.get(r.point, 0) + 1
+        if r.id not in skipped and (point is None or r.point == point):
+            by_point.setdefault(r.point, []).append((r, student))
+    lists = []
+    for p in sorted(by_point):  # within each point: one least sure, one drawn at random, in turn
+        pool = sorted(by_point[p], key=lambda x: x[0].id)  # a stable pool: the seed decides the random half
+        picked = select_mixed([{"confidence": s.confidence} for _, s in pool], max(0, int(limit)), f"{seed}:teach:{p}")
+        unsure, drawn = picked[: len(picked) // 2], picked[len(picked) // 2:]
+        order = [i for pair in zip(unsure, drawn) for i in pair] + unsure[len(drawn):] + drawn[len(unsure):]
+        lists.append([pool[i][0] for i in order])
+    chosen: list[Any] = []  # the points in turn, each in its own order
+    for i in range(max((len(x) for x in lists), default=0)):
+        chosen += [x[i] for x in lists if i < len(x)]
+    items = [{**contract.blind_view(r), "weight": None, "taught": True, "seed": seed} for r in chosen[:max(0, int(limit))]]
+    return {"items": items, "points": dict(sorted(counts.items())), "seed": seed, "order": "teach"}
+
+
+def blind_label(record_id: str, value: Any, by: str, seed: str = "blind-v1", ledger: Any = None, taught: bool = False) -> Any:
+    """A blind reviewer's label for a drawn decision, with its weight; refused for a decision not in the draw. ``taught``
+    (29.11): a label asked for by the teaching order, on any decision: no weight, a note saying it was chosen to teach
+    (it trains a student, and never estimates one's accuracy)."""
     from dclab_core import ledger as contract
 
     store = ledger if ledger is not None else current_ledger()
     record = next((r for r in store.records() if r.id == record_id), None) if store is not None else None
     if record is None:
         raise KeyError("no such decision")
-    if not contract.blind_draw(record, seed):
+    if not taught and not contract.blind_draw(record, seed):
         raise ValueError("this decision is not in the blind draw: its weight would be unknown")
+    if taught and not contract.blind_eligible(record):
+        raise ValueError("this decision cannot be answered blind: its state names the answer, or it has no options")
+    if taught and contract.blind_draw(record, seed):
+        raise ValueError("this decision is in the blind draw: label it from the fair sample, where its label carries a weight")
     if value is None:
         raise ValueError("a blind label says what was right: a value")
     if any(x.source == "blind" and x.record == record_id and x.by == by for x in store.labels(record=record_id)):
         raise ValueError("this reviewer has labelled this decision already: one blind label each, or its weight counts twice")
-    out = label(record, value, "blind", by, weight=round(1 / contract.blind_probability(record), 6), ledger=store)  # as the page showed it
+    if taught:
+        from dclab_core.active import TEACH_NOTE
+
+        out = label(record, value, "blind", by, weight_note=TEACH_NOTE, ledger=store)
+    else:
+        out = label(record, value, "blind", by, weight=round(1 / contract.blind_probability(record), 6), ledger=store)  # as the page showed it
     if out is None:
         raise ValueError("the label was refused: the value is not an answer at this point")
     return out

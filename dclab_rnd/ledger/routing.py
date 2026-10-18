@@ -207,6 +207,7 @@ def demote(store: Any, audit_log: Any, records: Iterable[Any], labels: Iterable[
     """Each routed answerer whose accuracy on the decisions labelled since it was routed (blind labels weighted by their
     draw; an exposed label only where it says the routed answer was wrong, as the label rule reads it) is below its bar,
     moved back to shadow by DCLab itself, audited; the rule answers again."""
+    from dclab_core.active import split_labels
     from dclab_core.answerers import _key
     from dclab_core.ledger import current_labels, effective_label
 
@@ -227,7 +228,7 @@ def demote(store: Any, audit_log: Any, records: Iterable[Any], labels: Iterable[
             if r.point != point or _when(r.at) < since:
                 continue
             mine = next((a for a in r.answers if a.answerer == name and a.value is not None), None)
-            truth = effective_label(r, by_record.get(r.id, []))
+            truth = effective_label(r, split_labels(by_record.get(r.id, []))[0])  # 29.11: a label chosen to teach never estimates
             if mine is None or truth is None:
                 continue
             weight = float(truth.weight or 1.0) if truth.source == "blind" else 1.0

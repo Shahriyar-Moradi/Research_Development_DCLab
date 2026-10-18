@@ -1,0 +1,157 @@
+{
+ "id": "ALQ-002",
+ "experiment_id": "ALQ-002",
+ "campaign_id": "active_learning_v1",
+ "kind": "active_learning",
+ "status": "completed",
+ "at": "2026-10-18T22:47:49+00:00",
+ "gate": {
+  "version": "active_learning_gate_v2",
+  "fixed": "2026-10-19, after ALQ-001 failed, before ALQ-002",
+  "points": [
+   "split.strategy",
+   "data.cases_table",
+   "task.framing"
+  ],
+  "seeds": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "budget": 200,
+  "start": 20,
+  "batch": 20,
+  "pass": "the asked-for student's mean dev accuracy over the seeds exceeds the random one's by at least 0.01 on at least two of the three points, and is below it by more than 0.01 on none",
+  "rule": "least_sure_and_random"
+ },
+ "points": {
+  "split.strategy": {
+   "train_pool": 1406,
+   "dev": 518,
+   "seeds": [
+    {
+     "seed": 0,
+     "random": 0.61,
+     "asked_for": 0.6429,
+     "seconds": 38.3
+    },
+    {
+     "seed": 1,
+     "random": 0.4768,
+     "asked_for": 0.5328,
+     "seconds": 35.1
+    },
+    {
+     "seed": 2,
+     "random": 0.5039,
+     "asked_for": 0.6081,
+     "seconds": 34.6
+    },
+    {
+     "seed": 3,
+     "random": 0.5598,
+     "asked_for": 0.6486,
+     "seconds": 27.8
+    },
+    {
+     "seed": 4,
+     "random": 0.5367,
+     "asked_for": 0.5637,
+     "seconds": 18.5
+    }
+   ],
+   "random_mean": 0.5374,
+   "asked_for_mean": 0.5992,
+   "difference": 0.0618,
+   "asked_for_better_on_seeds": 5
+  },
+  "data.cases_table": {
+   "train_pool": 1406,
+   "dev": 530,
+   "seeds": [
+    {
+     "seed": 0,
+     "random": 0.8377,
+     "asked_for": 0.8925,
+     "seconds": 11.0
+    },
+    {
+     "seed": 1,
+     "random": 0.8566,
+     "asked_for": 0.8377,
+     "seconds": 11.0
+    },
+    {
+     "seed": 2,
+     "random": 0.8528,
+     "asked_for": 0.8377,
+     "seconds": 12.0
+    },
+    {
+     "seed": 3,
+     "random": 0.834,
+     "asked_for": 0.8472,
+     "seconds": 11.0
+    },
+    {
+     "seed": 4,
+     "random": 0.8547,
+     "asked_for": 0.8434,
+     "seconds": 11.1
+    }
+   ],
+   "random_mean": 0.8472,
+   "asked_for_mean": 0.8517,
+   "difference": 0.0045,
+   "asked_for_better_on_seeds": 2
+  },
+  "task.framing": {
+   "train_pool": 1424,
+   "dev": 486,
+   "seeds": [
+    {
+     "seed": 0,
+     "random": 0.9074,
+     "asked_for": 0.8992,
+     "seconds": 12.7
+    },
+    {
+     "seed": 1,
+     "random": 0.9136,
+     "asked_for": 0.9033,
+     "seconds": 12.8
+    },
+    {
+     "seed": 2,
+     "random": 0.9074,
+     "asked_for": 0.9095,
+     "seconds": 14.3
+    },
+    {
+     "seed": 3,
+     "random": 0.9033,
+     "asked_for": 0.9012,
+     "seconds": 22.1
+    },
+    {
+     "seed": 4,
+     "random": 0.9074,
+     "asked_for": 0.9053,
+     "seconds": 12.9
+    }
+   ],
+   "random_mean": 0.9078,
+   "asked_for_mean": 0.9037,
+   "difference": -0.0041,
+   "asked_for_better_on_seeds": 1
+  }
+ },
+ "verdict": {
+  "better_by_0_01": 1,
+  "worse_by_0_01": 0,
+  "pass": false
+ },
+ "rule": "Two quick students per point and seed, each on 200 labelled training decisions of the generated sets: the first 200 in the seed's order, or the same first 20 then rounds of 20 chosen by what they would teach; both scored on every dev decision. Invented tables: evidence about choosing labels, not about real projects."
+}

@@ -1,0 +1,47 @@
+{
+ "campaign_id": "active_learning_v1",
+ "objective": "29.11: does a student learn more from the labels it asks for (a disagreement with the rule, then its least sure answer) than from as many labels drawn at random?",
+ "rule": "Invented tables of the generated sets (29.2), the same seeds and the same quick student for both arms, scored on every dev decision; the gate fixed before the first run.",
+ "command": "python -m dclab_rnd.active_learning --write [--gate v1|v2]",
+ "gate": {
+  "version": "active_learning_gate_v1",
+  "fixed": "2026-10-19, before the first run",
+  "points": [
+   "split.strategy",
+   "data.cases_table",
+   "task.framing"
+  ],
+  "seeds": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "budget": 200,
+  "start": 20,
+  "batch": 20,
+  "pass": "the asked-for student's mean dev accuracy over the seeds exceeds the random one's by at least 0.01 on at least two of the three points, and is below it by more than 0.01 on none"
+ },
+ "gate_v2": {
+  "version": "active_learning_gate_v2",
+  "fixed": "2026-10-19, after ALQ-001 failed, before ALQ-002",
+  "points": [
+   "split.strategy",
+   "data.cases_table",
+   "task.framing"
+  ],
+  "seeds": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "budget": 200,
+  "start": 20,
+  "batch": 20,
+  "pass": "the asked-for student's mean dev accuracy over the seeds exceeds the random one's by at least 0.01 on at least two of the three points, and is below it by more than 0.01 on none",
+  "rule": "least_sure_and_random"
+ }
+}

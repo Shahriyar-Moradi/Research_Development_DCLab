@@ -78,7 +78,9 @@ def board(home: Path, ledger: Any = None, with_testers: bool = True) -> dict[str
         except Exception:  # noqa: BLE001 - a ledger that cannot be read costs its own scores only
             continue
     if books:
-        boards.append(evaluation.from_ledger(records, labels, "the decision ledgers"))
+        from dclab_core.active import split_labels
+
+        boards.append(evaluation.from_ledger(records, split_labels(labels)[0], "the decision ledgers"))  # 29.11: a taught label never estimates
     merged = evaluation.merge(boards, "the twin folders and the decision ledgers" + (f", with {len(folders)} testers" if folders else ""))
     matrix = twin.effectiveness(twin_steps(home, expert=False) + [s for f in folders for s in twin_steps(f, expert=False)],  # each system answer once
                                 "the twin folders: Home sessions (a person's pick: a preference between the two) and twin runs (a blind seed's planted truth)")

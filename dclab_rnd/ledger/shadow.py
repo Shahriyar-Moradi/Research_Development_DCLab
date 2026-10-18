@@ -197,6 +197,7 @@ def measure(records: Iterable[Any], labels: Iterable[Any], models: Optional[Iter
     with a value), disagreements, and accuracy on the labelled disagreements beside the rule's, with the labels' sources
     and the blind ones weighted by their draw. ``answer``: answer again where no shadow of this version is recorded
     (a run measuring models); otherwise only the recorded shadows count (a page)."""
+    from dclab_core.active import split_labels
     from dclab_core.answerers import RecordedRule, _key
     from dclab_core.ledger import current_labels, effective_label
 
@@ -218,14 +219,17 @@ def measure(records: Iterable[Any], labels: Iterable[Any], models: Optional[Iter
         row = {"point": next(iter(m.points)), "gate": gates.get(name), "decisions": len(mine), "without_bands": sum(not answerable(r) for r in mine),
                "answered": 0, "with_rule": 0, "agree": 0, "disagree": 0, "labelled_disagreements": 0, "right_on_disagreements": 0,
                "rule_right_on_disagreements": 0, "weighted_disagreements": 0.0, "weighted_right": 0.0, "weighted_rule_right": 0.0,
-               "labels_by_source": {}, "labelled": 0, "right": 0, "exposed_disagreements": 0, "exposed_student_wrong": 0}
+               "labels_by_source": {}, "labelled": 0, "right": 0, "exposed_disagreements": 0, "exposed_student_wrong": 0,
+               "taught_disagreements": 0}
         for r in mine:
             got = _recorded(r, name) or fresh.get(r.id)
             if got is None or got.value is None:
                 continue
             row["answered"] += 1
             rule = rule_of.of(r)
-            truth = effective_label(r, by_record.get(r.id, []))
+            mine_labels = by_record.get(r.id, [])
+            estimate, taught = split_labels(mine_labels)  # 29.11: a label chosen to teach never displaces a truth an estimate reads
+            truth = effective_label(r, estimate)
             if truth is not None:
                 row["labelled"] += 1
                 row["right"] += _key(got.value) == _key(truth.value)
@@ -240,6 +244,9 @@ def measure(records: Iterable[Any], labels: Iterable[Any], models: Optional[Iter
                 # 29.10: a person who saw the answers may demote a student, never promote it: counted apart, never toward acting
                 row["exposed_disagreements"] += 1
                 row["exposed_student_wrong"] += _key(got.value) != _key(truth.value)
+                continue
+            if truth is None and taught:
+                row["taught_disagreements"] += 1  # 29.11: only a label chosen to teach (or kept without its weight): trains, never estimates
                 continue
             if truth is not None:
                 weight = float(truth.weight or 1.0) if truth.source == "blind" else 1.0

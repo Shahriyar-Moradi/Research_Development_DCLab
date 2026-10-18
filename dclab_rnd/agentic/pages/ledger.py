@@ -56,19 +56,22 @@ def register(app, ctx) -> None:
         return {"item": item}
 
     @router.get("/api/ledger/queue", response_model=Page)
-    async def ledger_queue(point: str | None = None, limit: int = 50, skip: str | None = None):
+    async def ledger_queue(point: str | None = None, limit: int = 50, skip: str | None = None, order: str = "fair"):
         """29.8: the decisions where a point's student disagrees with the rule, drawn for blind labels and not yet labelled,
         in an order drawn from the seed (any part labelled is a fair sample): each shown blind (its question, subject, state
         and options), with the weight its label will carry; ``points``: how many each point has waiting. Label one with
-        POST /api/ledger/blind/{record_id}."""
+        POST /api/ledger/blind/{record_id}. ``order=teach`` (29.11): by what a label would teach, on any decision a
+        student answered; label one with {"value", "taught": true}: it trains, never estimates."""
         from ...ledger import labels
 
+        if order not in ("fair", "teach"):
+            raise HTTPException(422, "order is fair or teach")
         if point is not None and not re.fullmatch(r"[a-z_.]{3,60}", point):
             raise HTTPException(422, "point is a decision point")
         skipped = [x for x in (skip or "").split(",") if x][:500]
         if not all(ID.fullmatch(x) for x in skipped):
             raise HTTPException(422, "skip lists decision ids")
-        return await asyncio.to_thread(labels.queue, store(), point, max(1, min(int(limit), 200)), "blind-v1", skipped)
+        return await asyncio.to_thread(lambda: labels.queue(store(), point, max(1, min(int(limit), 200)), "blind-v1", skipped, order=order))
 
     @router.post("/api/ledger/blind/{record_id}", response_model=Page)
     async def ledger_blind_label(record_id: str, body: Any = Body(None)):
@@ -81,10 +84,11 @@ def register(app, ctx) -> None:
         value = (body or {}).get("value") if isinstance(body, dict) else None
         if value is None or not isinstance(value, (bool, int, float, str)):
             raise HTTPException(422, "value is a flag, a number or a short text")
+        taught = isinstance(body, dict) and body.get("taught") is True  # 29.11: asked for by the teaching order (exactly true)
         who = current()
         by = f"reviewer:{who.user_id}" if who is not None and who.user_id else "reviewer"
         try:
-            out = await asyncio.to_thread(labels.blind_label, record_id, value, by, "blind-v1", store())
+            out = await asyncio.to_thread(lambda: labels.blind_label(record_id, value, by, "blind-v1", store(), taught=taught))
         except KeyError:
             raise HTTPException(404, "No such decision") from None
         except ValueError as exc:

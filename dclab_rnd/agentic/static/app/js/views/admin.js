@@ -384,8 +384,14 @@ DC.view('admin', {
     this.queueSkipped = this.queueSkipped || [];
     this.queueDone = this.queueDone || 0;
     const point = pick.value || undefined;
+    const orderPick = $('#queue-order', el), order = orderPick ? orderPick.value : 'fair';  // 29.11
+    const sub = $('#queue-sub', el);
+    if (sub) sub.textContent = order === 'teach'
+      ? 'Decisions outside the fair sample, the student\'s least sure answers and others drawn at random, in turn; shown blind. These labels train the students and never count toward one acting (measured on invented tables: not passed).'
+      : 'Where a point\'s student disagrees with the rule, shown blind (you never see who said what) and in a random order, so whatever part you label is a fair sample. Each label counts toward that student\'s "needed to act".';
+    if (orderPick && !orderPick.dataset.wired) { orderPick.dataset.wired = '1'; orderPick.addEventListener('change', () => { this.queueSkipped = []; this.loadQueue(el); }); }
     let r;
-    try { r = await DC.client.ledgerQueue({ query: { ...(point ? { point } : {}), limit: 30, ...(this.queueSkipped.length ? { skip: this.queueSkipped.join(',') } : {}) }, quiet: true }); }
+    try { r = await DC.client.ledgerQueue({ query: { ...(point ? { point } : {}), limit: 30, order, ...(this.queueSkipped.length ? { skip: this.queueSkipped.join(',') } : {}) }, quiet: true }); }
     catch (e) { DC.states.failed(box, e, { retry: () => this.loadQueue(el) }); return; }
     const counts = r.points || {};
     if (!keep) {
@@ -406,7 +412,7 @@ DC.view('admin', {
       return;
     }
     const state = Object.entries(item.state || {}).map(([k, v]) => `<dt>${esc(k.replace(/_/g, ' '))}</dt><dd class="mono small">${esc(Array.isArray(v) ? v.join(', ') : String(v))}</dd>`).join('');
-    box.innerHTML = `<div><b>${esc(item.question)}</b><div class="xs muted">${esc(item.point)} · about the ${esc(item.subject.kind)} <code>${esc(item.subject.key)}</code> · weight ${esc(String(item.weight))}`
+    box.innerHTML = `<div><b>${esc(item.question)}</b><div class="xs muted">${esc(item.point)} · about the ${esc(item.subject.kind)} <code>${esc(item.subject.key)}</code> · ${item.taught ? 'chosen to teach: it trains, never counts toward acting' : 'weight ' + esc(String(item.weight))}`
       + ` · ${esc(String(this.queueItems.length))} in this batch${this.queueDone ? ` · ${esc(String(this.queueDone))} labelled` : ''}</div></div>`
       + (state ? `<dl class="kv">${state}</dl>` : '<div class="xs muted">No state was recorded for this decision.</div>')
       + `<div class="row" data-style="flex-wrap:wrap;gap:6px">${(item.options || []).map(o => `<button type="button" class="btn sm" data-q="${esc(o)}">${esc(o)}</button>`).join('')}`
@@ -421,7 +427,7 @@ DC.view('admin', {
       box.querySelectorAll('button').forEach(x => { x.disabled = true; });
       const raw = b.dataset.q;
       const value = item.answer === 'noul' ? raw === 'yes' : raw;
-      try { await DC.client.ledgerBlindLabel(item.record, { body: { value } }); this.queueDone += 1; next(); }
+      try { await DC.client.ledgerBlindLabel(item.record, { body: { value, ...(item.taught ? { taught: true } : {}) } }); this.queueDone += 1; next(); }
       catch (e) { DC.toast(e.message, { ok: false }); box.querySelectorAll('button').forEach(x => { x.disabled = false; }); }
     }));
     DC.hydrate(el);

@@ -296,7 +296,7 @@
     learnPolicy: ["GET", "/learn/policy", [], []],
     ledgerBlindNext: ["GET", "/ledger/blind/next", [], ["point", "skip"]],
     ledgerBlindLabel: ["POST", "/ledger/blind/{record_id}", ["record_id"], []],
-    ledgerQueue: ["GET", "/ledger/queue", [], ["point", "limit", "skip"]],
+    ledgerQueue: ["GET", "/ledger/queue", [], ["point", "limit", "skip", "order"]],
     ledgerRouting: ["GET", "/ledger/routing", [], []],
     ledgerRoute: ["POST", "/ledger/routing", [], []],
     ledgerSummary: ["GET", "/ledger/summary", [], []],
@@ -904,7 +904,7 @@
   client.ledgerBlindLabel = (...args) => call('ledgerBlindLabel', args);
   client.path.ledgerBlindLabel = (...args) => build('ledgerBlindLabel', args).path;
   /** GET /api/ledger/queue: Ledger Queue
-   *  @param {{query?: {point?: *, limit?: *, skip?: *}, headers?: Object}} [opts]
+   *  @param {{query?: {point?: *, limit?: *, skip?: *, order?: *}, headers?: Object}} [opts]
    *  @returns {Promise<Page>} */
   client.ledgerQueue = (...args) => call('ledgerQueue', args);
   client.path.ledgerQueue = (...args) => build('ledgerQueue', args).path;
