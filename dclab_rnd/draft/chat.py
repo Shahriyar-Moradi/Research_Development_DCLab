@@ -223,15 +223,10 @@ class HomeAgent:
         if replied is not None and (replied["field"] == field or replied.get("source") in ("critic", "second_opinion")):
             replied = None
         said = next((str(m.get("text") or "") for m in reversed(draft.get("messages") or []) if m.get("role") == "user"), "") if replied else ""
+        if replied is not None:  # live (HRN-022): the question the person replied to stayed open behind the new one, and was put to them again
+            self._replied(draft_id, replied, said)
 
         def add(d):
-            if replied is not None:  # live (HRN-022): the question the person replied to stayed open behind the new one, and was
-                for item in d["questions"]:  # put to them again; replied to, it is closed, its field left as unsettled as it was
-                    if item["id"] == replied["id"] and not item.get("answered"):
-                        # a plan field their words did not settle is asked again by the plan (superseded: neither asked nor
-                        # counted), never left closed and unknown (the review: an entity said and never recorded was built without)
-                        item.update(answered=said.strip()[:400] or "(replied)", unsettled=True,
-                                    **({"superseded": True} if replied["field"] in plans.ALL_FIELDS else {}))
             d["questions"].append(q)
         self.store.update(draft_id, add)
         return self.say(draft_id, question, kind="question", question=q)
@@ -616,8 +611,9 @@ class HomeAgent:
         text += ("\n\nThe plan:\n" + "\n".join(steps)) if steps else ""
         self.say(draft_id, text, kind="build", project_id=done.get("project_id"), session_id=done.get("session_id"))
 
-    def take_answer(self, draft_id: str, q: dict[str, Any], value: str) -> None:
-        """The user's message answers the open question: record it, redraw the workflow, ask the next thing."""
+    def take_answer(self, draft_id: str, q: dict[str, Any], value: str, then_next: bool = True) -> None:
+        """The user's message answers the open question: record it, redraw the workflow, ask the next thing (``then_next``:
+        not when a model has already replied)."""
         if q.get("source") == "second_opinion":
             self.take_second_opinion(draft_id, q, value)
             return
@@ -644,7 +640,31 @@ class HomeAgent:
         if q["field"] == "data_plan" and SIMULATE_WORDS.search(value):
             self.on_request(draft_id, "simulate", {"prompt": draft["problem"]})
         self.refresh_workflow(draft_id)
-        self.next_turn(draft_id)
+        if then_next:
+            self.next_turn(draft_id)
+
+    def _replied(self, draft_id: str, q: dict[str, Any], said: str) -> None:
+        """The open question the person replied to, closed as the model moves on: a plan field their words did not settle
+        is superseded, so the plan asks it again (never left closed and unknown: an entity said and never recorded was
+        built without); an optional one is closed on their words; a card's question (a contradiction, the family) is
+        answered by them, read for the card as any answer is (the full live rerun: a contradiction closed unread)."""
+        if q["field"] in plans.ALL_FIELDS:
+            def supersede(d):
+                for item in d["questions"]:
+                    if item["id"] == q["id"] and not item.get("answered"):
+                        item.update(answered=said.strip()[:400] or "(replied)", unsettled=True, superseded=True)
+            self.store.update(draft_id, supersede)
+        elif q["field"] in (*OPTIONAL, "notes"):
+            self.close_optional(draft_id, q, said)
+        elif said.strip():
+            self.record(draft_id, q["field"], said)
+
+            def answered(d):
+                for item in d["questions"]:
+                    if item["id"] == q["id"] and not item.get("answered"):
+                        item["answered"] = said.strip()[:400]
+            self.store.update(draft_id, answered)
+            self.read_card_answer(draft_id, q["field"], said)
 
     def close_optional(self, draft_id: str, q: dict[str, Any], value: str) -> None:
         """A question about a field no plan settles, replied to in the person's words: closed. Their words are kept only
@@ -1058,6 +1078,14 @@ class HomeAgent:
             # the model did not record, stayed open and was put to them again and again, and the build waited on it: their
             # words are its answer (the card reads them), and the conversation goes on
             self.close_optional(draft_id, open_question, text)
+            after = self.store.get(draft_id)
+        elif text and open_question and still and still["id"] == open_question["id"] and open_question["field"] not in plans.ALL_FIELDS \
+                and "?" not in text and not acted and open_question.get("source") not in ("critic", "second_opinion") \
+                and after["messages"] and after["messages"][-1].get("role") != "user":
+            # the full live rerun (JD-06): "negative" answered the card's "Which column is the outcome itself: negative?"; the
+            # model said "Confirmed" and recorded nothing, and the walk asked it three more times: a card's question is read
+            # from the person's words, as the rules read it (only what the rules parse is recorded)
+            self.take_answer(draft_id, open_question, text, then_next=False)
             after = self.store.get(draft_id)
         if out.steps and text and after["messages"] and after["messages"][-1].get("role") == "user":
             # Live (2026-10-16): the model re-asked the open question (a no-op) and the turn ended in silence, three

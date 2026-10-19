@@ -184,6 +184,8 @@ class _Person:
     # 26.5: what a question asks, read from its words, when its field is not one the person holds (a model asks in its own
     # words, under no field or another one); the first field whose words match and that the person can answer
     MEANING = (
+        # the card's contradiction about the labels says "when nothing is labelled": read before the moment's "when" (live, 2026-10-19)
+        ("labels", r"\blearn from the known cases\b|\bsay nothing is labelled\b"),
         ("prediction_moment", r"\b(when\b|moment|at what point|known (at|then|when)|before .{0,40}(made|scored|known)|time of (the )?prediction)"),
         ("budget", r"\b(how many|review (each|per|a) |capacity|per day|a day\b|each (day|morning|week)|budget)"),
         ("labels", r"\b(label|labelled|labeled|confirmed (cases|frauds?)|cases (you|we|they) (found|confirmed)|known cases|ground truth)"),

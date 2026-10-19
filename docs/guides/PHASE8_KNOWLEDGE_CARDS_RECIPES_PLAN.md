@@ -275,12 +275,12 @@ Designed in detail once Part E is built; each keeps DCLab's rules (the validator
   `GET`/`PUT /api/projects/{id}/brief`; the audit kind `brief` and the event `decision.accepted` (point `solution.brief`).
   Harness on the rules 17 of 17 (HRN-023). Left: a brief exists only when a person saves one (the Solution page's editor,
   sign-off on by default and a model drafting the words are the owner's), the main product's Objective has no bar yet.
-- **Live tests (2026-10-19, $20 budget; EUR 2.63 spent):** the product's model (Claude) through the harness suite for the
-  first time: 10 of 17 (HRN-022; the rules alone 17 of 17). Found and being fixed: a costs question asked again and again
-  and blocking the build; a fraud walk built without its entity (no grouped folds), the model reading "the day's orders" as
-  the entity and writing the card's unit itself; a question replied to left open behind the next one; the suite keeping no
-  records of its plays; the code gate reading a live measurement. Reruns with the first fixes: JD-05, JD-06, JD-08, JD-09
-  and RG-01 right; RG-02 and JD-01 still wrong. Next: the second review's fixes, a full live rerun, then the team arms,
+- **Live tests (2026-10-19, $20 budget; EUR 4.02 spent):** the product's model (Claude) through the harness suite for the
+  first time: 10 of 17 (HRN-022; the rules alone 17 of 17). Fixed: a costs question asked again and again and blocking the
+  build; a fraud walk built without its entity (no grouped folds); the model reading "the day's orders" as the entity and
+  writing the card's unit itself; questions replied to left open or repeated; a budget kept in the model's paraphrase; the
+  suite keeping no records of its plays; the code gate reading a live measurement. After the fixes: 14 of 17 (HRN-024);
+  its last two causes (a contradiction closed unread, a card answer never recorded) fixed after it. Next: the team arms,
   the real problems (Telco, HyperAck) and the scripted judgment suite live.
 
 ---

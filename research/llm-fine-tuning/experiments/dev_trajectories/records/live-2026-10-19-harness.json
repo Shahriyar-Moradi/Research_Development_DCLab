@@ -229,6 +229,36 @@
    "cause": "Old code reached by live runs now.",
    "fix": "A paid run's folder is never deleted; the logs installed after the last refusal.",
    "test": ""
+  },
+  {
+   "id": "M11",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A card's contradiction question was closed without its answer being read.",
+   "scenario": "RG-02 (the full live rerun, HRN-024): 'A sample of the cases we found' replied to 'You said anomaly detection, but a file of known cases joins the table'; the model asked the next question; the family stayed anomaly and the meet check stopped the build.",
+   "cause": "The fix for M5 closed every replied question as unsettled; a card question has no plan to ask it again.",
+   "fix": "A replied card question is answered by the person's words and read for the card, as any answer is; only a plan field is superseded.",
+   "test": "test_a_card_question_replied_to_is_read_as_its_answer_when_the_model_moves_on"
+  },
+  {
+   "id": "M12",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A card question the person answered was asked again and again.",
+   "scenario": "JD-06 (HRN-024): 'negative' to 'Which column is the outcome itself: negative?'; the model said 'Confirmed' and recorded nothing; asked three more times.",
+   "cause": "Only the model's record closed a question; its reply alone left it open.",
+   "fix": "A card question still open after the model replied is read from the person's statement (only what the rules parse is recorded).",
+   "test": "test_a_card_question_answered_is_closed_when_the_model_replies_without_recording_it"
+  },
+  {
+   "id": "M13",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The commit's gate failed: the scripted judgment suite had not run on the changed validator and tools.",
+   "scenario": "test_prompt_gate: tools:project and validator:graph changed since AEV-035.",
+   "cause": "The suite is rerun by hand after a change to the graph's moves.",
+   "fix": "make agent-eval (AEV-036): every score the same.",
+   "test": "test_every_prompt_and_tool_schema_was_run_through_the_suite"
   }
  ],
  "measurements": [
@@ -278,6 +308,30 @@
    "against_gate": "the fixes change nothing on the rules' path",
    "limits": [
     "Scripted people; no model asked."
+   ]
+  },
+  {
+   "name": "the harness suite, live, after the fixes (HRN-024)",
+   "gate": "21.5: every case right on every step and part",
+   "fixed_before_run": true,
+   "result": "14 of 17 (from 10 of 17); the owner's first morning case right on every part, its questions in another order than the rules' exact expectation",
+   "verdict": "fail",
+   "cost_eur": 1.0315,
+   "against_gate": "the second morning case and one text journey wrong, each from a cause found and fixed after this run",
+   "limits": [
+    "One seed; the written people; the fixes for its two failures were made after it started."
+   ]
+  },
+  {
+   "name": "the scripted judgment suite (AEV-036)",
+   "gate": "the prompt gate: the suite ran on what is here",
+   "fixed_before_run": true,
+   "result": "every policy's scores the same as AEV-035",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "the validator and the tools changed; the judgments did not",
+   "limits": [
+    "Scripted policies on planted traps."
    ]
   }
  ],

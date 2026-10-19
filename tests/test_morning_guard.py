@@ -377,6 +377,28 @@ class LiveHarnessFindingsTest(unittest.TestCase):
         texts = [m.get("text") for m in draft["messages"] if m.get("kind") == "question"]
         self.assertEqual(texts.count("Are some cases already confirmed?"), 1)  # never put to them again, word for word
 
+    def test_a_card_question_replied_to_is_read_as_its_answer_when_the_model_moves_on(self):
+        store, did = self.draft(PROBLEM, "is_fraud")
+        d = {"id": did}
+        store.update(d["id"], lambda x: x.setdefault("understanding", {}).update(family="anomaly"))
+        HomeAgent(store, None).ask(d["id"], "labels_check", "You said anomaly detection, but a file of known cases joins the table: learn "
+                                                             "from the known cases, or say nothing is labelled?", [], "w")
+        nxt = ScriptedClient([("ask_user", {"field": "budget", "question": "How many alerts a day?", "why": "w", "options": ["a", "b"]})])
+        HomeAgent(store, nxt).reply(d["id"], "A sample of the cases we found")
+        draft = store.get(d["id"])
+        check = next(q for q in draft["questions"] if q["field"] == "labels_check")
+        self.assertEqual(check["answered"], "A sample of the cases we found")
+        self.assertEqual(draft["understanding"].get("family"), "rare_event")  # the contradiction settled by their words
+
+    def test_a_card_question_answered_is_closed_when_the_model_replies_without_recording_it(self):
+        store, did = self.draft("Tell which product reviews are negative as soon as they are posted", "negative")
+        HomeAgent(store, None).ask(did, "target_check", "Which column is the outcome itself: negative?", [], "w")
+        talks = Prose([("get_profile", {})], "Confirmed: `negative` is the outcome column.")
+        HomeAgent(store, talks).reply(did, "negative")
+        draft = store.get(did)
+        self.assertEqual(next(q for q in draft["questions"] if q["field"] == "target_check")["answered"], "negative")
+        self.assertNotEqual((HomeAgent(store, None).pending(draft) or {}).get("field"), "target_check")  # never put to them again
+
     def test_a_budget_answer_is_kept_in_the_persons_words_not_the_models(self):
         store, did = self.draft("Find fraudulent rides of bikers and customers", "is_fraud")
         store.update(did, lambda x: x.update(pack={"key": "imbalanced", "source": "user"}))
