@@ -246,8 +246,11 @@ check-commit:  ## a gate on the last commit in its own worktree and its own test
 	git worktree add --detach "$$dir" $$commit >/dev/null && cp tests/.timings*.json "$$dir/tests/" 2>/dev/null; \
 	for v in .venv .venv-agent; do [ -e "$$v" ] && ln -s "$$PWD/$$v" "$$dir/$$v"; done; \
 	for n in "" $$(seq -f _p%g 0 16); do dropdb --if-exists "dclab_check$$n" 2>/dev/null; done; createdb dclab_check 2>/dev/null; \
-	( cd "$$dir" && DCLAB_TEST_DATABASE_URL=postgresql+psycopg://$$USER@/dclab_check $(MAKE) $(or $(GATE),check-quick) BASE=$(or $(BASE),origin/main) ); r=$$?; \
-	git worktree remove --force "$$dir"; echo "check-commit ($(or $(GATE),check-quick)) on $$commit: $$( [ $$r = 0 ] && echo passed || echo FAILED )"; exit $$r  # the commit it ran on, though HEAD moved meanwhile
+	gates=$$PWD/training_records/test_runs/gates/$$(date -u +%Y-%m-%d); mkdir -p "$$gates"; log="$$gates/$$(date -u +%Y%m%dT%H%M%SZ)-$$commit-$(or $(GATE),check-quick).log"; \
+	( ( cd "$$dir" && DCLAB_TEST_DATABASE_URL=postgresql+psycopg://$$USER@/dclab_check $(MAKE) $(or $(GATE),check-quick) BASE=$(or $(BASE),origin/main) ); echo $$? > "$$log.rc" ) 2>&1 | tee "$$log"; \
+	r=$$(cat "$$log.rc"); rm -f "$$log.rc"; git worktree remove --force "$$dir"; verdict="check-commit ($(or $(GATE),check-quick)) on $$commit: $$( [ $$r = 0 ] && echo passed || echo FAILED )"; \
+	echo "$$verdict" | tee -a "$$log"; printf '{"kind": "gate", "at": "%s", "commit": "%s", "gate": "%s", "ok": %s, "log": "%s"}\n' "$$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$$(git rev-parse $$commit)" \
+	"$(or $(GATE),check-quick)" "$$( [ $$r = 0 ] && echo true || echo false )" "$${log#$$PWD/training_records/test_runs/}" >> training_records/test_runs/gates.jsonl; exit $$r  # kept whole: training_records/test_runs/gates/; the commit it ran on, though HEAD moved meanwhile
 
 check-quick-tests:  ## check-quick's tests: the affected files, then the PostgreSQL pass
 	@files=$$($(PYTHON) scripts/affected_tests.py --base $(or $(BASE),HEAD)); echo "files: $$(echo $$files | wc -w | tr -d ' ') test files ($$( [ "$$files" = ALL ] && echo all || echo affected))"; \

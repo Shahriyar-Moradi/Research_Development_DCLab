@@ -41,6 +41,7 @@ from queue import Queue
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 TIMINGS = HERE / ".timings.json"  # .timings-pg.json for the PostgreSQL run
+RUNS_ENV = "DCLAB_TEST_RUNS"  # where every run is kept (default: <main checkout>/training_records/test_runs); "off" keeps none
 # Several files run at once, so each gets one thread: LightGBM, XGBoost and BLAS otherwise each start a thread per core
 # in every worker, and the machine spends its time switching between them (the suite took 7x its serial CPU time).
 ONE_THREAD = {k: "1" for k in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "VECLIB_MAXIMUM_THREADS", "NUMEXPR_NUM_THREADS",
@@ -389,11 +390,75 @@ def main(argv: list[str] | None = None) -> int:
     print(f"\nRan {total} tests in {len(by_file)} files ({len(results)} units) in {wall:.1f}s (one at a time: {sum(r['seconds'] for r in results):.1f}s)"
           + (f"; {_WAITED[0]} files waited for free memory" if _WAITED[0] else "")
           + (f"; {_KILLED[0]} ended by the system and ran again" if _KILLED[0] else ""))
+    kept = capture(results, sys.argv[1:] if argv is None else list(argv), wall, not failed, args.pg)
+    if kept is not None:
+        print(f"kept: {kept}")
     if failed:
         print(f"FAILED ({sum(r['failed'] for r in failed)} failing tests in {len(failed)} files: {', '.join(r['file'] for r in failed)})")
         return 1
     print(f"OK (skipped={skipped})" if skipped else "OK")
     return 0
+
+
+def runs_dir() -> Path | None:
+    """Where test runs are kept: the main checkout's training_records/test_runs, also from a gate's own worktree (its git common dir
+    is the main checkout's), so a gate's record outlives the worktree; None when DCLAB_TEST_RUNS=off."""
+    chosen = os.environ.get(RUNS_ENV, "").strip()
+    if chosen.lower() == "off":
+        return None
+    if chosen:
+        return Path(chosen)
+    try:
+        common = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], cwd=ROOT, capture_output=True, text=True, timeout=10)
+        main_root = Path(common.stdout.strip()).parent if common.returncode == 0 and common.stdout.strip() else ROOT
+    except (OSError, subprocess.SubprocessError):
+        main_root = ROOT
+    return main_root / "training_records" / "test_runs"
+
+
+def _git(*args: str) -> str:
+    try:
+        out = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, timeout=10)
+        return out.stdout.strip() if out.returncode == 0 else ""
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def capture(results: list[dict], argv: list[str], wall: float, ok: bool, pg: bool, where: Path | None = None) -> Path | None:
+    """Keep the run whole: a header (when, the commit and whether the tree was dirty, the command, the switches that change what runs, the
+    verdict, the counts) and one line per unit with its whole output, gzipped under ``<runs>/<day>/<run>.jsonl.gz``; one line in
+    ``<runs>/runs.jsonl`` indexes it. Never cut, never overwritten; a failure to keep it is said, never fatal."""
+    import gzip
+    from datetime import datetime, timezone
+
+    where = runs_dir() if where is None else where
+    if where is None:
+        return None
+    now = datetime.now(timezone.utc)
+    commit, dirty = _git("rev-parse", "HEAD"), bool(_git("status", "--porcelain", "--untracked-files=no"))
+    run = f"{now.strftime('%Y%m%dT%H%M%S%fZ')}-{(commit or 'nogit')[:10]}-{os.getpid()}"
+    header = {"kind": "test_run", "run": run, "at": now.isoformat(timespec="seconds"), "commit": commit, "dirty": dirty, "branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
+              "worktree": str(ROOT), "argv": argv, "pg": pg, "ok": ok, "wall_seconds": round(wall, 1), "units": len(results),
+              "tests": sum(r["tests"] for r in results), "failed": sum(r["failed"] for r in results), "skipped": sum(r["skipped"] for r in results),
+              "failing_files": sorted(r["file"] for r in results if not r["ok"]), "python": sys.version.split()[0],
+              "env": {k: os.environ.get(k) for k in ("DCLAB_NO_LIVE_MODELS", "DCLAB_DECISION_SHADOW", "DCLAB_DATABASE_URL") if os.environ.get(k) is not None}}
+    if "DCLAB_DATABASE_URL" in header["env"]:
+        header["env"]["DCLAB_DATABASE_URL"] = re.sub(r"//[^@/]*@", "//", header["env"]["DCLAB_DATABASE_URL"])  # never a password
+    try:
+        day = where / now.strftime("%Y-%m-%d")
+        day.mkdir(parents=True, exist_ok=True)
+        path = day / f"{run}.jsonl.gz"
+        with gzip.open(path, "xt", encoding="utf-8") as fh:
+            fh.write(json.dumps(header, ensure_ascii=False) + "\n")
+            for r in sorted(results, key=lambda r: r["file"]):
+                fh.write(json.dumps({"kind": "unit", "run": run, **{k: (round(v, 2) if k == "seconds" else v) for k, v in r.items()}}, ensure_ascii=False) + "\n")
+        with open(where / "runs.jsonl", "a", encoding="utf-8") as fh:
+            fh.write(json.dumps({**{k: header[k] for k in ("run", "at", "commit", "dirty", "argv", "pg", "ok", "units", "tests", "failed", "skipped", "failing_files",
+                                                            "wall_seconds")}, "path": str(path.relative_to(where))}, ensure_ascii=False) + "\n")
+        return path
+    except OSError as exc:
+        print(f"note: the run was not kept ({exc})", flush=True)
+        return None
 
 
 if __name__ == "__main__":

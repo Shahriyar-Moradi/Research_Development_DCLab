@@ -42,6 +42,8 @@ SOURCES = {  # name: folders copied as they are (the workspace goes through stor
     # 29.18 (the owner: every judgment with all its details, permanently): the live runs whole, their requests, the full
     # replies (judgments/, answers/), the judge's ledgers; results are never edited, a re-run is a new folder
     "live_tests": [ROOT / "agent_runs" / "live_tests"],
+    # the owner (2026-10-19): every test run and every gate, whole (tests/run_parallel.py and make check-commit keep them here)
+    "test_runs": [ROOT / "training_records" / "test_runs"],
 }
 README = """# DCLab's training records
 
@@ -60,6 +62,12 @@ snapshot per `make archive`, never deleted by a rebuild. Each snapshot is read-o
 
 What may train a model is said in each record (`use`, `origin`, `split`); Claude's and other hosted models' answers are
 evaluation only until their terms say otherwise.
+
+- `test_runs/<day>/<run>.jsonl.gz`: every run of the test suite (`tests/run_parallel.py`, so `make test`, the gates and any direct run),
+  kept whole: a header (when, the commit and whether the tree was dirty, the command, the verdict, the counts, the switches) and one line
+  per test unit with its whole output; `test_runs/runs.jsonl` indexes them. `test_runs/gates/<day>/` keeps every `make check-commit`
+  gate's whole log, `test_runs/gates.jsonl` its verdict. `DCLAB_TEST_RUNS=off` keeps none (`DCLAB_TEST_RUNS=DIR` elsewhere). A snapshot
+  copies them as `snapshots/<time>/test_runs/`.
 """
 
 
