@@ -18,7 +18,7 @@ No champion yet. The first measured result recorded in this track becomes the ba
 
 **Related evidence campaigns** (shared across tracks, in `evidence/campaigns/`):
 
-- [kinds_v1](../../evidence/campaigns/kinds_v1): 21 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+- [kinds_v1](../../evidence/campaigns/kinds_v1): 22 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
 - [pitfalls_by_kind_v1](../../evidence/campaigns/pitfalls_by_kind_v1): 5 result files · [README.md](../../evidence/campaigns/pitfalls_by_kind_v1/README.md)
 
 ## Notebooks

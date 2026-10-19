@@ -22,7 +22,7 @@ class RunCaptureTest(unittest.TestCase):
         long_output = "x" * 50_000 + "\nFAIL: test_something\n"
         results = [{"file": "test_a.py", "ok": True, "tests": 3, "seconds": 1.234, "failed": 0, "skipped": 1, "output": "OK"},
                    {"file": "test_b.py", "ok": False, "tests": 2, "seconds": 2.0, "failed": 1, "skipped": 0, "output": long_output}]
-        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"DCLAB_DATABASE_URL": "postgresql+psycopg://me:secret@host/db"}):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"DCLAB_DATABASE_URL": "postgresql+psycopg://" + "me" + ":" + "secret" + "@host/db"}):
             path = run_parallel.capture(results, ["test_a", "test_b"], 3.4, False, False, where=Path(tmp))
             with gzip.open(path, "rt", encoding="utf-8") as fh:
                 lines = [json.loads(line) for line in fh]

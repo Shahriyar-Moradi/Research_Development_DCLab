@@ -46,6 +46,8 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "monitoring_plan": LIBRARY + " (step 12: the training rows' bins and the alert lines, carried in the artifact, 30.15)",
     "monitor_report": LIBRARY + " (what monitor() says of new rows; the main product's deployment reads it, 30.15)",
     "gate_result": LIBRARY + " (a gate's verdict with the phase it sends the work back to, 30.15)",
+    "semantic_layer": LIBRARY + " (a workspace's approved metric definitions, 30.20; the main product's analytics keep their own layer and pass it as is)",
+    "metric_answer": LIBRARY + " (the answer to why a number changed, with its queries, 30.20; stored by the host beside the question)",
     "workflow_run": LIBRARY + " (the twelve steps read from a run's records, 30.15; the main product's pipeline runs map onto it field by field later)",
     "solution_brief": LIBRARY + " (G3: signed before training, its bar judged at the holdout read, 30.14; the main product's Objective has no bar to map it onto yet)",
     "coordinator_situation": LIBRARY + " (where a conversation stands on the way to a build)",
