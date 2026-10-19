@@ -383,7 +383,8 @@ def _critic_evidence(inputs: Mapping[str, Any]) -> dict[str, Any]:
             "training_cv": inputs.get("score"), "tried": list(inputs.get("tried", []))[:10],
             "weaknesses": [f"{w.id}: {w.statement[:300]}" for w in review.weaknesses][:30],
             "experiments": {name: f"{kind.gain} ({'runs on folds' if kind.runnable else 'needs ' + kind.needs})"
-                            for name, kind in CATALOGUE.items() if task in kind.tasks}}
+                            for name, kind in CATALOGUE.items() if task in kind.tasks},
+            **({"pitfalls_of_similar_problems": [str(x)[:480] for x in inputs["examples"][:3]]} if inputs.get("examples") else {})}
 
 
 def _critic_parse(answer: Mapping[str, Any], inputs: Mapping[str, Any]) -> dict[str, Any]:
@@ -439,15 +440,16 @@ CRITIC = _critic_role()
 
 
 def critique(advisor: Any, review_: Review, task: str, *, metric: str = "", model: str = "", score: Optional[float] = None,
-             tried: Sequence[str] = ()) -> dict[str, Any]:
-    """The experiments in the critic's order (the rule order with no advisor, or when it abstains or is refused)."""
+             tried: Sequence[str] = (), examples: Sequence[str] = ()) -> dict[str, Any]:
+    """The experiments in the critic's order (the rule order with no advisor, or when it abstains or is refused). ``examples`` (30.18):
+    what goes wrong in the closest business examples, read as advice; a hypothesis still cites a measured weakness."""
     from dclab_core.advisor import EvidenceError
     from dclab_core.agents import run_role
 
     score = score if score is not None and np.isfinite(score) else None  # a missing score is said as missing, never NaN
     try:
         result = run_role(CRITIC, advisor, {"review": review_, "task": task, "metric": metric, "model": model, "score": score,
-                                             "tried": list(tried)})
+                                             "tried": list(tried), "examples": list(examples)})
     except EvidenceError:  # the critic is advice: a bad summary falls back to the rules' order, never drops the review
         return {"order": [e.name for e in review_.next_experiments], "kept": [], "refused": [], "source": "fallback",
                 "reason": "the evidence could not be summarised"}

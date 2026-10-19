@@ -117,12 +117,27 @@ def _card_summary(draft: dict[str, Any]) -> dict[str, Any]:
     return {"family": card.family.value, "labels": card.labels.value, "unit": card.brief.unit.value, "moment": card.brief.prediction_moment.value}
 
 
+def examples_for(words: str, advisor: Any) -> list[str]:
+    """30.18: the closest business examples a role reads, one line each: only with a model serving, and only where the knowledge arm
+    passed its sealed journeys and the switch is on (``business_examples.serve``), or a measurement asks for them (``advisor.examples``)."""
+    if advisor is None:
+        return []
+    from .. import business_examples as kb
+
+    if not (getattr(advisor, "examples", False) or kb.serve()):
+        return []
+    try:
+        return kb.for_role(words)
+    except Exception:  # noqa: BLE001 - examples are advice: a missing knowledge base never stops a map
+        return []
+
+
 def propose(draft: dict[str, Any], advisor: Any = None) -> tuple[pm.ProblemMap, str, str]:
     """The map for this draft's words (nothing is stored): the model's when it serves and holds, else the rules'. Needs are pointed at the
     draft's tables when it has them."""
     words = words_of(draft)
     data = data_card_of(draft)
-    made, source, reason = mapping.draw(words, advisor=advisor, card=_card_summary(draft), data=data, parts=_parts_of(draft))
+    made, source, reason = mapping.draw(words, advisor=advisor, card=_card_summary(draft), data=data, parts=_parts_of(draft), examples=examples_for(words, advisor))
     if data is not None:
         made, _, _ = mapping.needs_for(made, data, advisor)
     return made, source, reason
@@ -153,7 +168,8 @@ def compute_routes(draft: dict[str, Any], m: pm.ProblemMap, advisor: Any = None)
         if m.source == "rules" and (detected not in solutions.BY_ID or sub.family not in solutions.BY_ID[detected].families):
             detected = None  # a kind the older detection read from the table (a status column read as a yes or no) that is not the family the words say is not the route: the build
             # uses the card's family, and the route must say what the build does (a person's own single map keeps the detection to say why it was set aside)
-    return {s.id: solutions.route_with(s, data, m, detected, advisor)[0] for s in m.sub_problems}
+    examples = examples_for(words_of(draft), advisor)
+    return {s.id: solutions.route_with(s, data, m, detected, advisor, examples)[0] for s in m.sub_problems}
 
 
 def route_view(r: Any) -> dict[str, Any]:

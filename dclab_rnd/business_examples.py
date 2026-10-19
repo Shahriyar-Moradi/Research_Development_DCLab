@@ -177,6 +177,9 @@ def build(out: Path = OUT) -> dict[str, Any]:
     manifest = {"examples": len(examples), "by_source": {k: sum(1 for e in examples if e.source.kind == k) for k in sorted({e.source.kind for e in examples})},
                 "sha256": hashlib.sha256(lines.encode()).hexdigest(), "rule": "An example states its source; a written one is composed from public "
                 "knowledge and never a record of a run; a role reads them only after an arm measured it better."}
+    measured = paraphrase_recall(examples)  # 30.18: the search on an independent writer's wording, beside the author's own
+    manifest["practice"] = {"own_words": {k: practice_recall(examples)[k] for k in ("found", "questions", "top")},
+                            "other_words": {k: measured[k] for k in ("found", "questions", "top", "by_kind")}}
     (out / "MANIFEST.json").write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8")
     return manifest
 
@@ -195,6 +198,55 @@ def context_for_model(examples: list[BusinessExample] | None, words: str, top: i
     """30.7: the examples a model's context may hold for a person's words: only those a model may read (``for_model``),
     each as its brief (the general pattern, never where it is kept). The one way examples reach a model."""
     return [{**brief(e), "score": s} for e, s in search(for_model(load() if examples is None else examples), words, top)]
+
+
+PARAPHRASES = ROOT / "dclab_rnd" / "knowledge" / "practice_paraphrases_v2.json"  # 30.18: an independent writer's versions of the practice questions
+SWITCH = "DCLAB_EXAMPLES"  # 30.18: the roles read the closest examples only with it on and their sealed arm passed
+
+
+def paraphrase_recall(examples: list[BusinessExample] | None = None, top: int = 3) -> dict[str, Any]:
+    """30.18: the search on the practice questions in other words (another industry, plain words, a short query), written by an
+    agent that saw only the questions: an evaluation set, never indexed and never tuned on."""
+    examples = load() if examples is None else examples
+    versions = json.loads(PARAPHRASES.read_text(encoding="utf-8"))["versions"] if PARAPHRASES.is_file() else []
+    rows = []
+    for v in versions:
+        ranked = [x.id for x, _ in search(examples, v["text"], top)]
+        rows.append({"pattern": v["pattern"], "kind": v["kind"], "found": v["pattern"] in ranked,
+                     "rank": ranked.index(v["pattern"]) + 1 if v["pattern"] in ranked else None, "first": ranked[0] if ranked else None})
+    kinds = sorted({r["kind"] for r in rows})
+    return {"questions": len(rows), "found": sum(r["found"] for r in rows), "top": top, "rows": rows,
+            "by_kind": {k: {"found": sum(r["found"] for r in rows if r["kind"] == k), "of": sum(1 for r in rows if r["kind"] == k)} for k in kinds}}
+
+
+def switched_on() -> bool:
+    import os
+
+    return os.environ.get(SWITCH, "").strip().lower() in ("1", "on", "yes", "true")
+
+
+def serve() -> bool:
+    """Whether the roles read examples in the product: the switch on and the knowledge arm passed its sealed journeys (30.18)."""
+    if not switched_on():
+        return False
+    from dclab_rnd.agent_eval.journeys import programme
+
+    return programme.examples_passed()
+
+
+def for_role(words: str, top: int = 3) -> list[str]:
+    """The closest examples a model may read (``context_for_model``), each as one line a role reads: what it is, the recipe it maps to,
+    how it is solved and what goes wrong. Advisory: never a part the person's words do not hold."""
+    out = []
+    for e in context_for_model(None, words, top):
+        pattern, recipe = e.get("pattern") or {}, e.get("recipe") or {}
+        how = list(pattern.get("how_to_solve") or e.get("solution") or [])[:2]
+        wrong = list(pattern.get("mistakes") or e.get("pitfalls") or [])[:2]
+        line = (f"{e['title']}" + (f" (recipe: {recipe.get('kind')}" + (f" with {', '.join(recipe.get('modifiers') or [])}" if recipe.get('modifiers') else "")
+                                   + ")" if recipe.get("kind") else "")
+                + (f"; how: {' / '.join(how)}" if how else "") + (f"; what goes wrong: {' / '.join(wrong)}" if wrong else ""))
+        out.append(line[:480])
+    return out
 
 
 def main(argv: Optional[list[str]] = None) -> int:

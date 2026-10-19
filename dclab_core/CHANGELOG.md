@@ -4,6 +4,15 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.95.0 (2026-10-19)
+
+Package 30.18: the knowledge the roles read.
+
+- `mapping.draw(..., examples=)`, `solutions.route_with(..., examples=)` and `review.critique(..., examples=)`: the closest
+  business examples, one line each, in the decomposer's and the router's evidence (`similar_problems`) and the critic's
+  (`pitfalls_of_similar_problems`), only when the host gives them. Advice: a part still rests on the person's words, a
+  route is still a candidate nothing refutes, a hypothesis still cites a measured weakness. Their prompts say so.
+
 ## 0.94.0 (2026-10-19)
 
 Package 30.20: why did this number change.

@@ -34,5 +34,7 @@ Hard rules:
   combines at least two. Say the key (`joins`) when the inputs work on different units.
 - One problem is one part, one sub-problem and no steps. Do not split a problem that only shares words with a complex one.
 - If the words say no case was confirmed, there is nothing for a classifier to learn from.
+- `similar_problems`, when present, are the closest business examples (how such problems are solved, what goes wrong): advice for
+  what to look for in the person's words, never a part their words do not hold.
 - Keep every title to a few words and leave out what you have nothing to say about. Answer with the JSON object and nothing else, with no
   reasoning before or after it.

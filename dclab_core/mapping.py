@@ -19,7 +19,7 @@ The rules run with no model (``review_rules``, ``coverage``, ``fill_needs``), an
 from __future__ import annotations
 
 import re
-from typing import Any, Iterable, Literal, Mapping, Optional
+from typing import Any, Iterable, Literal, Mapping, Optional, Sequence
 
 from pydantic import Field
 
@@ -433,7 +433,8 @@ def _decomposer_evidence(inputs: Mapping[str, Any]) -> dict[str, Any]:
             "rules_read": lines(rules), "rules_template": rules.template or "",
             "tables": table_lines(inputs.get("data")) if inputs.get("data") is not None else {},
             "families": list(FAMILIES), "labels": list(LABEL_SITUATIONS), "templates": sorted(TEMPLATES),
-            "step_kinds": list(pm.StepKind.__args__), "reads": list(pm.Reads.__args__)}
+            "step_kinds": list(pm.StepKind.__args__), "reads": list(pm.Reads.__args__),
+            **({"similar_problems": [str(x)[:480] for x in inputs["examples"][:3]]} if inputs.get("examples") else {})}
 
 
 def _grounded(item: Mapping[str, Any], words: str, template: Optional[str]) -> bool:
@@ -553,13 +554,15 @@ DECOMPOSER = Role(name="decomposer", description="Draws the problem map from the
                   evidence=_decomposer_evidence, parse=_decomposer_parse, fallback=_decomposer_fallback, merge=lambda rules, model: model)
 
 
-def draw(words: str, *, advisor: Any = None, card: Optional[Mapping[str, Any]] = None, data: Any = None, parts: Optional[list[Any]] = None) -> tuple[ProblemMap, str, str]:
+def draw(words: str, *, advisor: Any = None, card: Optional[Mapping[str, Any]] = None, data: Any = None, parts: Optional[list[Any]] = None,
+         examples: Optional[Sequence[str]] = None) -> tuple[ProblemMap, str, str]:
     """The map for the person's words: the model's when it is valid, else the rules'. Returns the map, where it came from ('advisor' or
-    'fallback') and why. With no advisor it is the rules' map."""
+    'fallback') and why. With no advisor it is the rules' map. ``examples`` (30.18): the closest business examples, one line each, read
+    by the model as advice; a part still rests on the person's words or the rules' template."""
     from dclab_core.agents import run_role
 
     rules = decompose(words, parts=parts)
-    result = run_role(DECOMPOSER, advisor, {"words": words, "card": dict(card or {}), "data": data, "rules": rules})
+    result = run_role(DECOMPOSER, advisor, {"words": words, "card": dict(card or {}), "data": data, "rules": rules, "examples": list(examples or [])})
     return result.output, result.source, result.reason
 
 

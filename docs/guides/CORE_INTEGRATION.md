@@ -793,6 +793,14 @@ product's agent asks the critic once its brief is confirmed and before it plans,
 question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
 whether to go on, recording the decision.
 
+## The knowledge the roles read (30.18, dclab-core 0.95.0)
+
+The library's: `examples=` on `mapping.draw`, `solutions.route_with` and `review.critique`, the closest business examples as
+advice in the roles' evidence. Where it goes there: the main product's knowledge base (its own `BusinessExample` records,
+`for_model` keeping a private one out) is searched with the person's words and the lines passed to its decomposer, router
+and critic only once its own measurement says the roles do better with them (here, the programme journeys' sealed arm,
+`examples_passed`), behind a switch it controls.
+
 ## Why did this number change (30.20, dclab-core 0.94.0)
 
 The library's: `dclab_core.metric_change`, a question about a number answered from a `SemanticLayer` (approved metrics,

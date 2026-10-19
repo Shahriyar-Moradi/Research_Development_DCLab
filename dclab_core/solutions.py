@@ -330,7 +330,8 @@ def _router_evidence(inputs: Mapping[str, Any]) -> dict[str, Any]:
     r: Route = inputs["route"]
     sub: SubProblem = inputs["sub"]
     return {"sub_problem": f"{sub.id}: {sub.family}, labels={sub.labels}, unit={sub.unit or '?'}", "question": (sub.question or sub.title)[:300], "candidates": lines(r),
-            "chosen_by_rules": r.chosen or "", "approaches": {c.approach: BY_ID[c.approach].summary[:160] for c in r.candidates[:10]}}
+            "chosen_by_rules": r.chosen or "", "approaches": {c.approach: BY_ID[c.approach].summary[:160] for c in r.candidates[:10]},
+            **({"similar_problems": [str(x)[:480] for x in inputs["examples"][:3]]} if inputs.get("examples") else {})}
 
 
 def _router_parse(reply: Mapping[str, Any], inputs: Mapping[str, Any]) -> tuple[str, str]:
@@ -353,14 +354,16 @@ SOLUTION_ROUTER = Role(name="solution_router", description="Chooses among the ca
                        evidence=_router_evidence, parse=_router_parse, fallback=lambda inputs: (inputs["route"].chosen or "", inputs["route"].reason), merge=lambda rules, model: model)
 
 
-def route_with(sub: SubProblem, data: Any = None, m: Optional[ProblemMap] = None, detected: Optional[str] = None, advisor: Any = None) -> tuple[Route, str]:
-    """The route, with the model's choice among its candidates when the problem is not single and the advisor serves. Returns the route and why."""
+def route_with(sub: SubProblem, data: Any = None, m: Optional[ProblemMap] = None, detected: Optional[str] = None, advisor: Any = None,
+               examples: Optional[list[str]] = None) -> tuple[Route, str]:
+    """The route, with the model's choice among its candidates when the problem is not single and the advisor serves. Returns the route and why.
+    ``examples`` (30.18): the closest business examples, read as advice; the choice is still one of the candidates nothing refutes."""
     from dclab_core.agents import run_role
 
     base = route(sub, data, m, detected)
     if base.single or not base.candidates or advisor is None:
         return base, "no advisor" if advisor is None else "a single problem keeps its detected kind"
-    result = run_role(SOLUTION_ROUTER, advisor, {"route": base, "sub": sub})
+    result = run_role(SOLUTION_ROUTER, advisor, {"route": base, "sub": sub, "examples": list(examples or [])})
     if result.source != "advisor":
         return base, result.reason
     choice, reason = result.output

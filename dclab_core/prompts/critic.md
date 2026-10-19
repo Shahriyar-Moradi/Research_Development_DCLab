@@ -8,6 +8,9 @@ fix and names exactly one catalogue experiment:
 
   {"hypotheses": [{"statement": "<what you expect and why>", "cites": ["F-weak-..."], "experiment": "<catalogue name>"}]}
 
+`pitfalls_of_similar_problems`, when present, are what goes wrong in the closest business examples: a reason to look, never a
+weakness to cite.
+
 Cite only weaknesses that were measured, and only catalogue names. Prefer an experiment that addresses the largest
 measured weakness at the lowest cost; leave out one the weaknesses do not support. {"hypotheses": []} is a good answer
 when no experiment is supported.

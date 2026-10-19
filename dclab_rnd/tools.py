@@ -234,6 +234,18 @@ def _audit_frame(X: Any, y: Any, task: str = "auto", blind: bool = False, source
     }
 
 
+def find_examples(words: str, top: int = 3) -> dict[str, Any]:
+    """Business problems like the one described (30.18): for each of the closest examples, how such a problem is understood and
+    solved, what goes wrong, and the recipe it maps to. Only examples a model may read, as their general pattern; never a private one."""
+    from dclab_rnd.business_examples import context_for_model
+
+    top = max(1, min(int(top or 3), 5))
+    found = context_for_model(None, str(words or "")[:2000], top)
+    return {"examples": [{k: e[k] for k in ("id", "title", "understanding", "pitfalls", "solution", "workflow", "pattern", "recipe", "score") if k in e}
+                         for e in found],
+            "note": "Examples are advice from other problems: check each against this project's own data and words."}
+
+
 def kind_checks(kind: str) -> dict[str, Any]:
     """A problem kind's checks and evidence (16.14): its parts, the pitfall records it checks, the decisions its acceptance
     reaches on its replica (from the capability matrix) and the kind's evidence record and research track."""
@@ -303,6 +315,9 @@ TOOLS: dict[str, tuple[Callable[..., Any], dict[str, Any]]] = {
         "required": ["query"],
     }),
     "get_record": (get_record, {"type": "object", "properties": {"record_id": {"type": "string"}}, "required": ["record_id"]}),
+    "find_examples": (find_examples, {"type": "object", "properties": {"words": {"type": "string", "description": "The problem in a sentence or two."},
+                                                                      "top": {"type": "integer", "description": "How many examples, 1 to 5 (default 3)."}},
+                                      "required": ["words"]}),
     "kind_checks": (kind_checks, {"type": "object", "properties": {"kind": {"type": "string", "description": "A problem kind's key, e.g. forecasting, ranking, places."}},
                                   "required": ["kind"]}),
     "get_rules": (get_rules, {"type": "object", "properties": {"category": {"type": "string"}}}),

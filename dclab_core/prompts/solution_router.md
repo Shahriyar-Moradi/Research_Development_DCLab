@@ -12,5 +12,6 @@ Hard rules:
   approach the catalogue does not have.
 - Give the reason in terms of the sub-problem and the data: why this approach and not the one the rules chose, if you differ. A reason that
   names a column or a fact the evidence does not hold is a guess.
+- `similar_problems`, when present, are the closest business examples: advice, never a reason to choose a candidate that is blocked.
 - When in doubt, choose what the rules chose.
 - Answer with the JSON object and nothing else.

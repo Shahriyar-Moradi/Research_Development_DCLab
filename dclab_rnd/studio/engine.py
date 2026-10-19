@@ -90,6 +90,7 @@ class Prepared:
         self.plan: dict[str, Any] | None = None  # the project's adopted dclab_core plan (17.4), set on every prepare
         self.label_info: dict[str, Any] | None = None  # the project's label file (15.2), set on every prepare
         self.critic: Any = None  # the critic's advisor (18.6) when the project turns it on, set on every prepare
+        self.critic_examples: list[str] = []  # 30.18: what goes wrong in the closest business examples, when the critic reads them
         self.kind: kinds.ProblemKind = kinds.get(solution.task)  # the problem kind (16.1), set on every prepare
         self.decided: list[Any] = []  # 22.9: the column decisions a routed decision model made here (ledger.use.Choice)
         self.recipe: dict[str, Any] | None = None  # 30.10: the resolved recipe (dclab_core.recipes), set on every prepare
@@ -142,6 +143,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
         _BUNDLES[key].plan, _BUNDLES[key].label_info = project.get("plan"), project.get("labels")
         _BUNDLES[key].brief = project.get("brief")  # 30.14: read again on every prepare (signed between stages)
         _BUNDLES[key].critic = _critic_advisor(project)
+        _BUNDLES[key].critic_examples = _critic_examples(project, _BUNDLES[key].critic)
         return _BUNDLES[key]
     path = data_path(store, project)  # checked against the recorded SHA-256 (package 9.3)
     frame = load_table(path)
@@ -283,6 +285,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     prepared.plan, prepared.label_info = project.get("plan"), project.get("labels")
     prepared.brief = project.get("brief")  # 30.14: the Solution Brief, its bar judged at the one holdout read
     prepared.critic = _critic_advisor(project)
+    prepared.critic_examples = _critic_examples(project, prepared.critic)
     _BUNDLES.clear()
     _BUNDLES[key] = prepared
     return prepared
@@ -927,6 +930,14 @@ class advisor_scope:
             _ADVISOR.reset(self.token)
 
 
+def _critic_examples(project: dict[str, Any], advisor: Any) -> list[str]:
+    """30.18: the closest business examples the critic reads, from the project's own words, only where it serves and the knowledge arm
+    passed (or a measurement asks: ``advisor.examples``)."""
+    from ..draft.map import examples_for
+
+    return examples_for(" ".join(str(project.get(k) or "") for k in ("name", "goal")), advisor)
+
+
 def _critic_advisor(project: dict[str, Any]) -> Any:
     """The critic (18.6) ranks the review's experiments only when the project turns it on (off until it is measured),
     or inside a team run's scope; never for a private project."""
@@ -981,7 +992,8 @@ def _review_rounds(p: Prepared, recipe: str, selected: dict[str, Any], screened:
             rule_ranked = list(ranked)  # the rules' own order, before the critic's (19.7: experiment.next records both)
             critic = None
             if p.critic is not None:  # 18.6: the critic's ranking, each hypothesis checked against the measured weaknesses
-                critic = critique(p.critic, last, kind, metric=metric, model=family, score=rn._mean(current, metric), tried=tried)
+                critic = critique(p.critic, last, kind, metric=metric, model=family, score=rn._mean(current, metric), tried=tried,
+                                  examples=p.critic_examples)
                 for k in critic["kept"]:  # the critic may add a catalogue experiment the rules did not list, citing what it fixes
                     if CATALOGUE[k["experiment"]].runnable and k["experiment"] not in ranked:
                         ranked.append(k["experiment"])

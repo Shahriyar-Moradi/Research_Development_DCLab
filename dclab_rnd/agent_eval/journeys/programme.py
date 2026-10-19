@@ -54,6 +54,9 @@ GATE = {
     "suite": "at least 85% of the sealed journeys right, the lower end of their 95% Wilson interval at least 0.55, no graph move refused, no holdout read twice",
     "roles": "the roles arm (the decomposer, the map reviewer, the data-need agent and the solution router served by the model) is right on at least as many journeys as the rules "
              "arm and on at least as many of each part, every request answered, no graph move refused, within the cap; a role serves the product only then",
+    "examples": "30.18 (fixed on 2026-10-19, before any run of it): the roles arm reading the closest business examples (the decomposer's and the "
+                "router's evidence) is right on more journeys than the roles arm without them and on at least as many as the rules arm, every request "
+                "answered, no graph move refused, within the cap, on a sealed set run once; the examples serve the product only then",
     "seed": 5,  # the replicas' seed for the sealed run: not the dev seed (0), the calibration seeds (10 to 15) or the older sets'
     "author": "an agent given only the three files' columns, the journeys' format and the vocabulary of families and approaches; it never read the rules, the dev people or any code",
 }
@@ -371,6 +374,22 @@ def roles_passed() -> bool:
     return False
 
 
+def examples_passed() -> bool:
+    """30.18: whether the roles reading examples passed their sealed measurement: the stored roles_examples arm on the sealed set passed its
+    comparison with the rules arm and was right on more journeys than the roles arm on the same people (``GATE["examples"]``)."""
+    fp = fingerprint(SPLITS["sealed"])
+    docs = [json.loads(p.read_text(encoding="utf-8")) for p in sealed_runs()]
+    ex = next((d for d in docs if d.get("arm") == "roles_examples" and d.get("journeys") == fp), None)
+    roles = next((d for d in docs if d.get("arm") == "roles" and d.get("journeys") == fp), None)
+    if ex is None or roles is None:
+        return False
+
+    def right(doc: dict[str, Any]) -> int:
+        return sum(1 for r in doc.get("rows", []) if r.get("right"))
+
+    return bool((ex.get("roles_against_rules") or {}).get("passed")) and right(ex) > right(roles)
+
+
 # ---------------------------------------------------------------------------------------------------------------- the command
 
 def _shadow_router(args: Any) -> int:
@@ -427,6 +446,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--only", nargs="*")
     parser.add_argument("--no-store", action="store_true")
+    parser.add_argument("--examples", action="store_true", help="30.18: the roles arm reading the closest business examples, stored as roles_examples")
     parser.add_argument("--team", action="store_true", help="28.5: the rules arm solved by the solution team (dev only), stored as the arm rules_team")
     parser.add_argument("--shadow-router", metavar="MODEL", default=None,
                         help="28.10: with --team, a local model (Ollama) routes beside the router in shadow, never used; scored on the evaluation board")
@@ -497,6 +517,8 @@ def main(argv: Optional[list[str]] = None) -> int:
                 return 2
     inner = GatewayAdvisor(gateway, max_tokens=2500, cap_eur=args.cap_eur, memo=True)  # an identical ask is paid for once (the sealed run of 24.8 was made so)
     advisor = Counting(inner)
+    if args.examples:  # 30.18: the measurement asks the map roles and the router to read the closest examples (draft.map.examples_for)
+        inner.examples = advisor.examples = True
     by_arm["roles"] = measure(args.split, seed, {"map_advisor": advisor}, args.only)
     spent = round(inner.spent_eur(), 4)
     sent = sum(inner.calls.values())
@@ -513,11 +535,15 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 1
     if not args.no_store:
         for arm, rows in by_arm.items():
-            print(store(rows, args.split, arm, seed, spent if arm == "roles" else 0.0, {"roles_against_rules": result, "asks": advisor.requests, "sent": dict(inner.calls)} if arm == "roles" else None))
+            if arm == "rules" and args.examples:
+                continue  # the rules arm is the roles arm's own measurement's: stored once, with it
+            name = "roles_examples" if arm == "roles" and args.examples else arm
+            print(store(rows, args.split, name, seed, spent if arm == "roles" else 0.0, {"roles_against_rules": result, "asks": advisor.requests, "sent": dict(inner.calls),
+                                                                                         "examples": bool(args.examples)} if arm == "roles" else None))
     return 0
 
 
-__all__ = ["GATE", "PARTS", "ARMS", "load", "play", "measure", "verdict", "compare", "store", "sealed_runs", "roles_passed", "wilson"]
+__all__ = ["GATE", "PARTS", "ARMS", "load", "play", "measure", "verdict", "compare", "store", "sealed_runs", "roles_passed", "examples_passed", "wilson"]
 
 
 if __name__ == "__main__":
