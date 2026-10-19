@@ -4,6 +4,30 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.94.0 (2026-10-19)
+
+Package 30.20: why did this number change.
+
+- `metric_change` (new): `SemanticLayer` v1 (approved sums and ratios of sums, the dimensions and the column each table
+  names them by, factorizations checked to telescope, what the data does not hold and what it would need) and
+  `MetricAnswer` v1. `ask` turns a question into one of four tested templates (`metric_value`, `metric_change`,
+  `why_changed`, `top_segments`): exactly when it names its template, else an `Advisor`'s choice (purpose
+  `metric_question`: it chooses and fills, never writes SQL) validated against the layer and the data, else the rules'
+  reading. The template's SQL runs with bound parameters on an in-memory SQLite copy of the tables, so the query under the
+  answer made its numbers. A why decomposes the change in logs into its factors with intervals over days (one for all the
+  factors, Bonferroni), drills the first factor down by every dimension into mix against rate (intervals over all the
+  segments searched; one 10% chance of a false move in all, half to each), and suggests an action. Coverage checks each
+  ratio's two tables at the grain they share (the day and every dimension both hold): a key with a positive numerator and
+  no denominator row or a zero, or a positive denominator and no numerator row, refuses what it touches with what is
+  missing, in every template. A sum is compared per calendar day, so periods of unequal length compare; a period or its
+  comparison outside the data, a key the template does not take, or a store with no rows is refused, never a crash. What
+  the layer does not hold is refused with what it would need when asked about as a cause (or when no metric is named),
+  else said beside the answer.
+- `replicas.mall_sales` (new): two years of a mall group's door counts and tills, with a footfall drop, a conversion drop
+  in one category, a basket drop from the mix, a store's failed counter and a steady brand planted, eight questions and
+  their paraphrases, and the group's layer.
+- Prompt `metric_question` (the template chooser's role).
+
 ## 0.93.0 (2026-10-19)
 
 Package 30.17: the screening cascade.

@@ -1,0 +1,750 @@
+{
+  "$defs": {
+    "Choice": {
+      "additionalProperties": false,
+      "description": "A question as one template and its parameters, or a refusal with what is missing.",
+      "properties": {
+        "assumed": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Assumed",
+          "type": "array"
+        },
+        "missing": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Missing",
+          "type": "array"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Notes",
+          "type": "array"
+        },
+        "params": {
+          "$ref": "#/$defs/Params"
+        },
+        "reason": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Reason",
+          "type": "string"
+        },
+        "refused": {
+          "default": false,
+          "title": "Refused",
+          "type": "boolean"
+        },
+        "source": {
+          "default": "rules",
+          "enum": [
+            "named",
+            "rules",
+            "model"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "template": {
+          "anyOf": [
+            {
+              "enum": [
+                "metric_value",
+                "metric_change",
+                "why_changed",
+                "top_segments"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Template"
+        }
+      },
+      "title": "Choice",
+      "type": "object"
+    },
+    "Coverage": {
+      "additionalProperties": false,
+      "description": "One ratio's two tables over one period, checked at the grain they share (the day and every dimension both hold): a key where the\nnumerator is positive and the denominator has no row or reads zero, or where the denominator is positive and the numerator's table has\nno row, is a gap. A key with no row in either table is a closed day, not a gap.",
+      "properties": {
+        "days": {
+          "title": "Days",
+          "type": "integer"
+        },
+        "denominator": {
+          "title": "Denominator",
+          "type": "string"
+        },
+        "grain": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Grain",
+          "type": "array"
+        },
+        "missing": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Missing",
+          "type": "array"
+        },
+        "numerator": {
+          "title": "Numerator",
+          "type": "string"
+        },
+        "numerator_missing": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Numerator Missing",
+          "type": "array"
+        },
+        "period": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Period",
+          "type": "array"
+        },
+        "zero": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Zero",
+          "type": "array"
+        }
+      },
+      "required": [
+        "numerator",
+        "denominator",
+        "period",
+        "days"
+      ],
+      "title": "Coverage",
+      "type": "object"
+    },
+    "Drill": {
+      "additionalProperties": false,
+      "properties": {
+        "concentration": {
+          "title": "Concentration",
+          "type": "number"
+        },
+        "dimension": {
+          "title": "Dimension",
+          "type": "string"
+        },
+        "effect": {
+          "enum": [
+            "level",
+            "rate",
+            "mix"
+          ],
+          "title": "Effect",
+          "type": "string"
+        },
+        "factor": {
+          "title": "Factor",
+          "type": "string"
+        },
+        "lead": {
+          "title": "Lead",
+          "type": "string"
+        },
+        "level": {
+          "default": 0.9,
+          "title": "Level",
+          "type": "number"
+        },
+        "segments": {
+          "items": {
+            "$ref": "#/$defs/Segment"
+          },
+          "title": "Segments",
+          "type": "array"
+        }
+      },
+      "required": [
+        "factor",
+        "dimension",
+        "lead",
+        "concentration",
+        "effect"
+      ],
+      "title": "Drill",
+      "type": "object"
+    },
+    "Factor": {
+      "additionalProperties": false,
+      "properties": {
+        "change_pct": {
+          "title": "Change Pct",
+          "type": "number"
+        },
+        "ci": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ci"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "level": {
+          "default": 0.9,
+          "title": "Level",
+          "type": "number"
+        },
+        "log_change": {
+          "title": "Log Change",
+          "type": "number"
+        },
+        "moved": {
+          "title": "Moved",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Share"
+        }
+      },
+      "required": [
+        "name",
+        "label",
+        "log_change",
+        "change_pct",
+        "moved"
+      ],
+      "title": "Factor",
+      "type": "object"
+    },
+    "Params": {
+      "additionalProperties": false,
+      "properties": {
+        "compare": {
+          "anyOf": [
+            {
+              "enum": [
+                "last_year",
+                "previous_period"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Compare"
+        },
+        "dimension": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dimension"
+        },
+        "direction": {
+          "anyOf": [
+            {
+              "enum": [
+                "down",
+                "up"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Direction"
+        },
+        "filters": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Filters",
+          "type": "object"
+        },
+        "metric": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metric"
+        },
+        "period": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Period"
+        }
+      },
+      "title": "Params",
+      "type": "object"
+    },
+    "Query": {
+      "additionalProperties": false,
+      "properties": {
+        "params": {
+          "items": {},
+          "title": "Params",
+          "type": "array"
+        },
+        "purpose": {
+          "default": "numbers",
+          "enum": [
+            "numbers",
+            "drill",
+            "coverage"
+          ],
+          "title": "Purpose",
+          "type": "string"
+        },
+        "sql": {
+          "title": "Sql",
+          "type": "string"
+        },
+        "table": {
+          "title": "Table",
+          "type": "string"
+        }
+      },
+      "required": [
+        "table",
+        "sql"
+      ],
+      "title": "Query",
+      "type": "object"
+    },
+    "Segment": {
+      "additionalProperties": false,
+      "properties": {
+        "change_pct": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Change Pct"
+        },
+        "ci": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ci"
+        },
+        "contribution_pct": {
+          "title": "Contribution Pct",
+          "type": "number"
+        },
+        "mix_pct": {
+          "default": 0.0,
+          "title": "Mix Pct",
+          "type": "number"
+        },
+        "rate_pct": {
+          "default": 0.0,
+          "title": "Rate Pct",
+          "type": "number"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "contribution_pct"
+      ],
+      "title": "Segment",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.metric_answer.v1.json",
+  "additionalProperties": false,
+  "description": "The answer to one question about a number (v1): the choice, the query under it, and the reason.",
+  "properties": {
+    "action": {
+      "default": "",
+      "maxLength": 600,
+      "title": "Action",
+      "type": "string"
+    },
+    "change_pct": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Change Pct"
+    },
+    "choice": {
+      "$ref": "#/$defs/Choice"
+    },
+    "ci90": {
+      "anyOf": [
+        {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ci90"
+    },
+    "compare": {
+      "anyOf": [
+        {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Compare"
+    },
+    "coverage": {
+      "items": {
+        "$ref": "#/$defs/Coverage"
+      },
+      "title": "Coverage",
+      "type": "array"
+    },
+    "current": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Current"
+    },
+    "days": {
+      "anyOf": [
+        {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Days"
+    },
+    "drills": {
+      "items": {
+        "$ref": "#/$defs/Drill"
+      },
+      "title": "Drills",
+      "type": "array"
+    },
+    "factors": {
+      "items": {
+        "$ref": "#/$defs/Factor"
+      },
+      "title": "Factors",
+      "type": "array"
+    },
+    "first_factor": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "First Factor"
+    },
+    "first_segment": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "First Segment"
+    },
+    "follow_up": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Follow Up",
+      "type": "string"
+    },
+    "metric": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Metric"
+    },
+    "missing": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Missing",
+      "type": "array"
+    },
+    "moved": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Moved"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "period": {
+      "anyOf": [
+        {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Period"
+    },
+    "previous": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Previous"
+    },
+    "queries": {
+      "items": {
+        "$ref": "#/$defs/Query"
+      },
+      "title": "Queries",
+      "type": "array"
+    },
+    "question": {
+      "maxLength": 100000,
+      "title": "Question",
+      "type": "string"
+    },
+    "refused_because": {
+      "default": "",
+      "maxLength": 20000,
+      "title": "Refused Because",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.metric_answer.v1",
+      "default": "dclab_core.metric_answer.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "segments": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Segments",
+      "type": "array"
+    },
+    "sources": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "status": {
+      "enum": [
+        "answered",
+        "refused"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "words": {
+      "default": "",
+      "maxLength": 20000,
+      "title": "Words",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "question",
+    "choice",
+    "status"
+  ],
+  "title": "MetricAnswer",
+  "type": "object"
+}

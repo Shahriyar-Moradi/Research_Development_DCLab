@@ -104,6 +104,7 @@ flowchart LR
 | [anomaly-and-fraud-detection](anomaly-and-fraud-detection/INDEX.md) | Methods, metrics and thresholds for rare events (seed result) |
 | [recommender-systems](recommender-systems/INDEX.md) | Recommendation under time-ordered evaluation |
 | [record-linkage](record-linkage/INDEX.md) | Which records are the same thing, judged pair by pair with a record and its matches on one side (the matching kind, 30.16) |
+| [metric-root-cause](metric-root-cause/INDEX.md) | Why a business number changed: its factors in logs, where by mix against rate, refused where the data has gaps (the metric_change kind, 30.20) |
 | [causal-inference-and-experimentation](causal-inference-and-experimentation/INDEX.md) | From "what will happen" to "what happens if we act" |
 | [computer-vision](computer-vision/INDEX.md) | Accuracy per unit of compute on business image tasks |
 | [mlops-and-deployment](mlops-and-deployment/INDEX.md) | Keeping a validated model valid in production |

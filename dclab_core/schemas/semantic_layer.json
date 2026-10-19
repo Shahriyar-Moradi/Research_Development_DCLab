@@ -1,0 +1,275 @@
+{
+  "$defs": {
+    "Dimension": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 1,
+          "title": "Columns",
+          "type": "object"
+        },
+        "label": {
+          "maxLength": 120,
+          "title": "Label",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z][a-z0-9_]{0,40}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "synonyms": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Synonyms",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "label",
+        "columns"
+      ],
+      "title": "Dimension",
+      "type": "object"
+    },
+    "Factorization": {
+      "additionalProperties": false,
+      "properties": {
+        "factors": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 6,
+          "minItems": 2,
+          "title": "Factors",
+          "type": "array"
+        },
+        "metric": {
+          "title": "Metric",
+          "type": "string"
+        }
+      },
+      "required": [
+        "metric",
+        "factors"
+      ],
+      "title": "Factorization",
+      "type": "object"
+    },
+    "Metric": {
+      "additionalProperties": false,
+      "properties": {
+        "approved_by": {
+          "default": "",
+          "maxLength": 120,
+          "title": "Approved By",
+          "type": "string"
+        },
+        "column": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Column"
+        },
+        "denominator": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Denominator"
+        },
+        "kind": {
+          "enum": [
+            "sum",
+            "ratio"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 120,
+          "title": "Label",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z][a-z0-9_]{0,40}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "numerator": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Numerator"
+        },
+        "synonyms": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Synonyms",
+          "type": "array"
+        },
+        "table": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Table"
+        },
+        "unit": {
+          "default": "",
+          "maxLength": 40,
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "label",
+        "kind"
+      ],
+      "title": "Metric",
+      "type": "object"
+    },
+    "NotHeld": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 60,
+          "title": "Name",
+          "type": "string"
+        },
+        "needs": {
+          "maxLength": 300,
+          "title": "Needs",
+          "type": "string"
+        },
+        "synonyms": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Synonyms",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "needs"
+      ],
+      "title": "NotHeld",
+      "type": "object"
+    },
+    "Table": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Date",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z][a-z0-9_]{0,40}$",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "date"
+      ],
+      "title": "Table",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.semantic_layer.v1.json",
+  "additionalProperties": false,
+  "description": "The approved definitions a question is answered from (v1).",
+  "properties": {
+    "dimensions": {
+      "items": {
+        "$ref": "#/$defs/Dimension"
+      },
+      "maxItems": 20,
+      "title": "Dimensions",
+      "type": "array"
+    },
+    "factorizations": {
+      "items": {
+        "$ref": "#/$defs/Factorization"
+      },
+      "maxItems": 20,
+      "title": "Factorizations",
+      "type": "array"
+    },
+    "metrics": {
+      "items": {
+        "$ref": "#/$defs/Metric"
+      },
+      "maxItems": 40,
+      "minItems": 1,
+      "title": "Metrics",
+      "type": "array"
+    },
+    "not_held": {
+      "items": {
+        "$ref": "#/$defs/NotHeld"
+      },
+      "maxItems": 30,
+      "title": "Not Held",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.semantic_layer.v1",
+      "default": "dclab_core.semantic_layer.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "tables": {
+      "items": {
+        "$ref": "#/$defs/Table"
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "title": "Tables",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "tables",
+    "metrics"
+  ],
+  "title": "SemanticLayer",
+  "type": "object"
+}

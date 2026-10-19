@@ -386,6 +386,7 @@ import dclab_core.solution_brief  # noqa: E402,F401  (the Solution Brief and G3,
 import dclab_core.calibration  # noqa: E402,F401  (the calibrator fitted on out-of-fold scores, 30.15)
 import dclab_core.monitoring  # noqa: E402,F401  (the monitoring plan and monitor(), 30.15)
 import dclab_core.workflow_run  # noqa: E402,F401  (the Workflow Run and G4, 30.15)
+import dclab_core.metric_change  # noqa: E402,F401  (the semantic layer and the answer to why a number changed, 30.20)
 import dclab_core.datasets  # noqa: E402,F401  (dataset manifests, 19.12)
 import dclab_core.decision_models  # noqa: E402,F401  (decision model cards, 22.2)
 import dclab_core.coordinator  # noqa: E402,F401  (the coordinator's situation, 21.2)

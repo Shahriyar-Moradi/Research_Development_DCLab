@@ -793,6 +793,18 @@ product's agent asks the critic once its brief is confirmed and before it plans,
 question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
 whether to go on, recording the decision.
 
+## Why did this number change (30.20, dclab-core 0.94.0)
+
+The library's: `dclab_core.metric_change`, a question about a number answered from a `SemanticLayer` (approved metrics,
+dimensions, factorizations, what is not held) by tested templates run as bound SQL, with the factors that moved it, where,
+an action, the query, its tables and dates, or a refusal with what is missing. Where it goes there: the main product's
+conversational analytics (its BI chat over a workspace's connected tables) keeps a semantic layer per workspace, approved
+by its analysts, and asks `ask` with its own `Advisor` behind its LLM gateway (the `metric_question` prompt: the model
+chooses a template and fills it, never writes SQL); the template's SQL is run where the main product's warehouse is
+(SQLite here: the same statements, parameters bound), and every answer is stored with its choice, what the rules and the
+model each read, its queries and its coverage. Its ProblemSpec has no kind for a question about a number: the adapter
+would return the answer beside it, as for the other kinds it lacks.
+
 ## The screening cascade (30.17, dclab-core 0.93.0)
 
 The library's: `dclab_core.cascade.run`, a day's rows screened by a wide net (rules, link checks, the anomaly detector),

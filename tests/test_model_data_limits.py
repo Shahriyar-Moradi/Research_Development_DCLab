@@ -437,11 +437,28 @@ class DataLimitTests(unittest.TestCase):
         self.assertEqual(seen, set())  # the profile's names and counts only: no example value reaches the expert's record
         self.assertGreaterEqual(settings.PURPOSES["ai_first"].cell_values, 0)
 
+    def test_the_metric_chooser_sees_the_dimensions_names_never_a_number_or_another_value(self):  # 30.20
+        from dclab_core import metric_change as mc
+        from dclab_rnd.core_advisor import GatewayAdvisor
+
+        table = marked_table()
+        layer = mc.SemanticLayer(tables=[mc.Table(name="t", date="signup")], metrics=[mc.Metric(name="spend", label="Spend", kind="sum", table="t", column="spend")],
+                                 dimensions=[mc.Dimension(name="segment", label="Segment", columns={"t": "segment"}),
+                                             mc.Dimension(name="city", label="City", columns={"t": "city"})])
+        gw = gateway({"metric_question": [{"content": '{"refused": true, "missing": ["x"], "reason": "a test"}', "tool_calls": [], "usage": {}}]})
+        mc.ask("How come spend in Q7Kxcity3 moved this spring?", layer, {"t": table}, GatewayAdvisor(gw))
+        seen = self.assertWithinLimit("metric_question")
+        self.assertTrue(seen)  # the dimensions' values, so the model can name one
+        self.assertFalse({m for m in seen if m.startswith("Q7Kxnote")})  # a column no dimension names is never sent
+        self.assertFalse({m for m in seen if m in {f"{v:.4f}" for v in table["spend"]}})  # never a number of the table
+        days = {m for m in seen if m in {str(d.date()) for d in table["signup"]}}
+        self.assertLessEqual(days, {str(table["signup"].min().date()), str(table["signup"].max().date())})  # the data's first and last day only
+
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
                   "decision_answer", "decision_labeler", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first", "solver_answer",
-                  "understanding_critic", "solution_challenger", "debate_judge"}
+                  "understanding_critic", "solution_challenger", "debate_judge", "metric_question"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

@@ -346,7 +346,9 @@ class DetectedTest(unittest.TestCase):
     def test_every_kind_of_the_engine_is_in_the_catalogue_so_a_detection_is_never_silently_replaced(self):
         from dclab_rnd import kinds
 
-        self.assertEqual(sorted(k.key for k in kinds.all_kinds() if k.key not in sol.BY_ID), [])
+        self.assertEqual(sorted(k.key for k in kinds.all_kinds() if k.runs_in_engine and k.key not in sol.BY_ID), [])
+        # 30.20: a kind the engine does not run (metric_change, a question about a number) is no route: Home refuses to build it (FAMILY_NOT_RUN)
+        self.assertEqual(sorted(k.key for k in kinds.all_kinds() if not k.runs_in_engine), ["metric_change"])
 
 
 @unittest.skipIf(MISSING, MISSING)
