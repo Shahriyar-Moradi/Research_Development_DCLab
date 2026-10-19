@@ -1,0 +1,256 @@
+{
+  "$defs": {
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "Where a record or an example came from (carried by every one).",
+      "properties": {
+        "at": {
+          "title": "At",
+          "type": "string"
+        },
+        "by": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "By"
+        },
+        "commit": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Commit"
+        },
+        "consent": {
+          "default": "operate",
+          "enum": [
+            "operate",
+            "improve",
+            "train"
+          ],
+          "title": "Consent",
+          "type": "string"
+        },
+        "deleted": {
+          "default": false,
+          "title": "Deleted",
+          "type": "boolean"
+        },
+        "draft": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Draft"
+        },
+        "entry": {
+          "maxLength": 200,
+          "title": "Entry",
+          "type": "string"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Project"
+        },
+        "rule": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rule"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 4000,
+          "title": "Source",
+          "type": "string"
+        },
+        "workspace": {
+          "maxLength": 120,
+          "title": "Workspace",
+          "type": "string"
+        }
+      },
+      "required": [
+        "entry",
+        "sha256",
+        "source",
+        "workspace",
+        "at"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.judged_example.v1.json",
+  "additionalProperties": false,
+  "description": "M7: a candidate with its score, or a pair with the preferred one, its judge and the kind of evidence (v1).",
+  "properties": {
+    "candidate": {
+      "default": null,
+      "title": "Candidate"
+    },
+    "candidate_by": {
+      "maxLength": 120,
+      "title": "Candidate By",
+      "type": "string"
+    },
+    "evidence": {
+      "enum": [
+        "measured",
+        "test",
+        "verdict",
+        "person",
+        "critic",
+        "reviewer",
+        "model"
+      ],
+      "title": "Evidence",
+      "type": "string"
+    },
+    "id": {
+      "maxLength": 200,
+      "title": "Id",
+      "type": "string"
+    },
+    "judge": {
+      "maxLength": 120,
+      "title": "Judge",
+      "type": "string"
+    },
+    "judged": {
+      "maxLength": 60,
+      "title": "Judged",
+      "type": "string"
+    },
+    "model_type": {
+      "enum": [
+        "m1_students",
+        "m2_workflow_decisions",
+        "m3_ml_decisions",
+        "m4_workflow_llm",
+        "m5_solver_llm",
+        "m6_stepwise_decisions",
+        "m7_judges",
+        "m8_retrieval"
+      ],
+      "title": "Model Type",
+      "type": "string"
+    },
+    "more": {
+      "items": {
+        "$ref": "#/$defs/Provenance"
+      },
+      "title": "More",
+      "type": "array"
+    },
+    "other": {
+      "default": null,
+      "title": "Other"
+    },
+    "preferred": {
+      "anyOf": [
+        {
+          "enum": [
+            "candidate",
+            "other"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Preferred"
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance"
+    },
+    "schema_version": {
+      "const": "dclab_core.judged_example.v1",
+      "default": "dclab_core.judged_example.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "score": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Score"
+    },
+    "split": {
+      "enum": [
+        "train",
+        "dev",
+        "sealed"
+      ],
+      "title": "Split",
+      "type": "string"
+    },
+    "weight": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Weight",
+      "type": "number"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "model_type",
+    "split",
+    "provenance",
+    "judged",
+    "candidate_by",
+    "judge",
+    "evidence"
+  ],
+  "title": "JudgedExample",
+  "type": "object"
+}

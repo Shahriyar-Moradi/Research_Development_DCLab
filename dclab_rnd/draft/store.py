@@ -111,6 +111,10 @@ class DraftStore:
     def delete(self, draft_id: str) -> None:
         import shutil
 
+        from ..store import hooks
+
+        hooks.keep_before(self.home.parent, "draft", draft_id)  # 32.4: the store keeps it first
+
         # under the draft's locks: an update already reading it (its agent starting) cannot write it back after this
         with self.lock(draft_id), self.lock(draft_id + ":events"):
             shutil.rmtree(self.directory(draft_id), ignore_errors=True)

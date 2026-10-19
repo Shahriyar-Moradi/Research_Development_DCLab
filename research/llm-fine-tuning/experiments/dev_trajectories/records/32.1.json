@@ -1,0 +1,144 @@
+{
+ "package": "32.1",
+ "title": "The store's layout, contracts and capture rules: three tiers, eight model types, a rule per task that flags and never deletes",
+ "date": "2026-10-20",
+ "request": "The storing phase: a structured store (raw, records, sets) for eight model types, every path in one place, contracts good enough to train on years later, and a capture rule per task whose checks label data and never remove it.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.1",
+ "plan": [
+  "Contracts in dclab_core/store.py: a kept source, provenance, a normalised record, the examples of each model type, a curator's choice, a set's manifest.",
+  "A CaptureRule per task with check() returning findings, never a bare pass.",
+  "dclab_rnd/store: one layout module for every path, an append-only store with hashes and versions, the catalog with its schemas.",
+  "The store's root a clone of the owner's private records repository on its owner branch."
+ ],
+ "decisions": [
+  {
+   "decision": "Validation labels and routes; it never deletes.",
+   "why": "The owner: the guardrails must not prevent capturing the data; a failure is data too."
+  },
+  {
+   "decision": "Every assistant turn carries its reasoning with its source, or says why it has none.",
+   "why": "Every LLM example reasons (the owner), and a reasoning of unknown origin cannot be weighed."
+  },
+  {
+   "decision": "A decision example's state passes the ledger's state check.",
+   "why": "A row never enters a training set; the ledger already refuses table values in a state."
+  },
+  {
+   "decision": "The bulk goes to a separate private repository, the R&D repository keeps the catalog.",
+   "why": "The owner's answer: clones stay small; one branch per person."
+  }
+ ],
+ "change": "dclab_core.store (eight model types, the raw kinds, StoreEntry, Provenance, StoreRecord, DecisionExample, Message, ChatExample, PreferencePair, TrajectoryStep, SolverTrajectory, Episode, JudgedExample, RetrievalExample, CurationDecision, SetManifest, WorkflowRecord), dclab_core.store_rules (CaptureRule, check), dclab_rnd.store (layout, store, catalog, tasks, CLI), the private repository dclab-records; dclab-core 0.98.0.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Two sources could share one entry id.",
+   "scenario": "experience/a.jsonl and experience-a.jsonl both became sessions:w1:experience-a.jsonl:v1.",
+   "cause": "The id was built from a slug of the source.",
+   "fix": "The id and the file name carry a hash of the source.",
+   "test": "test_two_sources_never_share_an_id_a_long_source_is_kept_and_a_torn_index_line_is_set_aside"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A long source name refused the capture and left an orphan file.",
+   "scenario": "A 301-character source raised after its blob was written.",
+   "cause": "The entry was validated after the write.",
+   "fix": "The entry is validated before anything is written; a source may be long.",
+   "test": "test_two_sources_never_share_an_id_a_long_source_is_kept_and_a_torn_index_line_is_set_aside"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "One torn index line broke the kind for good.",
+   "scenario": "A write cut short left half a line; every later keep raised.",
+   "cause": "The index was parsed strictly.",
+   "fix": "A torn line is set aside to index.torn.jsonl; the blob is flushed before its index line.",
+   "test": "test_two_sources_never_share_an_id_a_long_source_is_kept_and_a_torn_index_line_is_set_aside"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The late check never fired on real decisions.",
+   "scenario": "A decision with no state time passed with no finding.",
+   "cause": "The check ran only when a state time existed.",
+   "fix": "A decision without both times is flagged untimed.",
+   "test": "test_every_check_flags_and_nothing_is_removed"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "True labels were flagged unconfirmed.",
+   "scenario": "A person's label (user_decision_exposed) was not in the confirming list.",
+   "cause": "The ledger's and the store's label words disagreed.",
+   "fix": "One vocabulary, the ledger's words mapped into the store's in check().",
+   "test": "test_every_check_flags_and_nothing_is_removed"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Rules that feed sets had no key to seal by.",
+   "scenario": "A teacher's answer on a sealed decision could reach a train split.",
+   "cause": "No sealed key was required.",
+   "fix": "Every rule that feeds a set names its sealed key; a teacher's answer requires its group.",
+   "test": "test_every_rule_that_feeds_a_set_is_sealed_and_names_a_real_keeper"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "An example's state took table values.",
+   "scenario": "state={'sample': an e-mail and a card number} was accepted.",
+   "cause": "The state was a free mapping.",
+   "fix": "The ledger's state check runs on decision and episode states.",
+   "test": "test_examples_carry_provenance_and_reasoning_is_labelled"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Reasoning labels were not enforced in a v1 that would be frozen.",
+   "scenario": "An assistant turn with no reasoning, or a source with no reasoning, was accepted.",
+   "cause": "No validator.",
+   "fix": "Both together, and an assistant turn without one says why.",
+   "test": "test_examples_carry_provenance_and_reasoning_is_labelled"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A read followed an index path outside the store.",
+   "scenario": "A merged branch's index could name ../../ any file.",
+   "cause": "No inside check.",
+   "fix": "Every read goes through the layout, refused outside the root.",
+   "test": "test_the_layout_refuses_a_name_that_climbs_out_and_every_store_path_is_built_by_it"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The catalog of a scratch store replaced the repository's.",
+   "scenario": "catalog --root DIR wrote training_records/STORE_CATALOG.json.",
+   "cause": "The copy's path was the default for every root.",
+   "fix": "The copy is written only for the owner's store.",
+   "test": "test_the_catalog_readme_and_schemas_are_written_at_the_root"
+  }
+ ],
+ "measurements": [],
+ "outcome": "DCLab has one structured store with its contracts, its capture rules and an append-only core, its root a private repository with a branch per person.",
+ "lessons": [
+  "Freeze a contract only after a review: v1 is forever.",
+  "A check that can pass silently on missing data is not a check: report absence as a finding."
+ ],
+ "risks": [
+  "The examples' shapes are untested against a real training run until the sets are built."
+ ],
+ "commits": []
+}

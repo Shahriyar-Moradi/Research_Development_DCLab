@@ -1,0 +1,145 @@
+{
+  "$defs": {
+    "WalkStep": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "type": "string"
+        },
+        "detail": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "kind": {
+          "enum": [
+            "draft_event",
+            "move",
+            "refused",
+            "stage",
+            "gate",
+            "decision",
+            "agent_run"
+          ],
+          "type": "string"
+        },
+        "ref": {
+          "maxLength": 200,
+          "type": "string"
+        }
+      },
+      "required": [
+        "at",
+        "kind",
+        "ref"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "agent_runs": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "decisions": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "draft": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "ended": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "gates": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "id": {
+      "maxLength": 200,
+      "type": "string"
+    },
+    "outcome": {
+      "default": "stopped_in_draft",
+      "enum": [
+        "reported",
+        "built",
+        "stopped_in_draft",
+        "deleted"
+      ],
+      "type": "string"
+    },
+    "project": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "dclab_core.workflow_record.v1",
+      "default": "dclab_core.workflow_record.v1",
+      "type": "string"
+    },
+    "started": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/WalkStep"
+      },
+      "type": "array"
+    },
+    "workflow_run": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "schema_version",
+    "id"
+  ],
+  "type": "object"
+}

@@ -390,6 +390,7 @@ import dclab_core.metric_change  # noqa: E402,F401  (the semantic layer and the 
 import dclab_core.department_agent  # noqa: E402,F401  (a department agent's policy, 30.22)
 import dclab_core.triage  # noqa: E402,F401  (a project request and the portfolio chosen, 30.24)
 import dclab_core.foundation  # noqa: E402,F401  (a table's catalog entry, 30.23)
+import dclab_core.store  # noqa: E402,F401  (the store: entries, records, examples per model type, sets; and its capture rules, 32.1)
 import dclab_core.datasets  # noqa: E402,F401  (dataset manifests, 19.12)
 import dclab_core.decision_models  # noqa: E402,F401  (decision model cards, 22.2)
 import dclab_core.coordinator  # noqa: E402,F401  (the coordinator's situation, 21.2)

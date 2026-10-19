@@ -62,8 +62,27 @@ def _claimed(job: dict[str, Any], worker: str) -> dict[str, Any]:
     return job
 
 
+HISTORY_FIELDS = ("status", "attempts", "worker", "cancel_requested", "error", "progress", "started", "finished")  # what a version records
+                                                                                                                     # (a heartbeat alone is no new state)
+
+
 class Jobs:
-    """What both backends share; each implements ``_insert``, ``_change``, ``get``, ``list`` and ``claim``."""
+    """What both backends share; each implements ``_insert``, ``_change``, ``get``, ``list`` and ``claim``. ``history``: the
+    workspace's ``jobs_history.jsonl``, one line per state a job reached (32.4: the table keeps only the newest state, the
+    file store only the newest ended jobs; the history keeps every one, append-only, for the store's tasks keeper)."""
+
+    history: Path | None = None
+
+    def _remember(self, job: dict[str, Any], before: dict[str, Any] | None) -> None:
+        if self.history is None or (before is not None and all(before.get(f) == job.get(f) for f in HISTORY_FIELDS)):
+            return
+        try:
+            line = json.dumps({"at": now(), "job": job["id"], "kind": job.get("kind"), "key": job.get("key"),
+                               "state": {f: job.get(f) for f in HISTORY_FIELDS}, "first": before is None}, ensure_ascii=False, default=str)
+            with open(self.history, "a", encoding="utf-8") as fh:
+                fh.write(line + "\n")
+        except OSError:  # the history is a record of the job, never a reason for the job to fail
+            pass
 
     def _insert(self, job: dict[str, Any]) -> dict[str, Any]: ...
     def _change(self, job_id: str, fn: Callable[[dict[str, Any]], bool]) -> dict[str, Any]: ...  # fn edits in place; False keeps it
@@ -204,18 +223,21 @@ class FileJobs(Jobs):
                 raise ActiveJob(held)
             rows[job["id"]] = job
             self._write(rows)
+            self._remember(job, None)
         return dict(job)
 
     def _change(self, job_id: str, fn) -> dict[str, Any]:
         with self._locked():
             rows = self._all()
             job = rows[job_id]  # KeyError when unknown
+            before = json.loads(json.dumps(job, default=str))
             if fn(job):
                 if job["status"] in ACTIVE:  # a retry may not take a key another job holds now
                     held = next((j for k, j in rows.items() if k != job_id and j["kind"] == job["kind"] and j["key"] == job["key"] and j["status"] in ACTIVE), None)
                     if held is not None:
                         raise ActiveJob(held)
                 self._write(rows)
+                self._remember(job, before)
             return dict(job)
 
     def get(self, job_id: str) -> dict[str, Any]:
@@ -232,8 +254,10 @@ class FileJobs(Jobs):
             rows = self._all()
             for job in rows.values():  # oldest first
                 if job["status"] == "queued" and not job.get("cancel_requested") and (job_id is None or job["id"] == job_id):
+                    before = dict(job)
                     _claimed(job, worker)
                     self._write(rows)
+                    self._remember(job, before)
                     return dict(job)
         return None
 
@@ -265,6 +289,7 @@ class PgJobs(Jobs):
                 c.execute(sa.insert(t).values(id=job["id"], workspace_id=self.workspace_id, **self._columns(job)))
         except sa.exc.IntegrityError:
             raise ActiveJob(self.active(job["kind"], job["key"])) from None
+        self._remember(job, None)
         return dict(job)
 
     def _change(self, job_id, fn):
@@ -277,10 +302,14 @@ class PgJobs(Jobs):
                 doc = c.execute(sa.select(t.c.doc).where(t.c.workspace_id == self.workspace_id, t.c.id == job_id).with_for_update()).scalar()
                 if doc is None:
                     raise KeyError(job_id)
+                before, changed = json.loads(json.dumps(doc, default=str)), False
                 if fn(doc):
                     c.execute(sa.update(t).where(t.c.workspace_id == self.workspace_id, t.c.id == job_id).values(**self._columns(doc)))
+                    changed = True
         except sa.exc.IntegrityError:  # a retry onto a key another job holds now
             raise ActiveJob(self.active(doc["kind"], doc["key"])) from None
+        if changed:
+            self._remember(doc, before)
         return doc
 
     def get(self, job_id):
@@ -321,8 +350,10 @@ class PgJobs(Jobs):
             doc = c.execute(q.order_by(t.c.created, t.c.id).limit(1).with_for_update(skip_locked=True)).scalar()
             if doc is None:
                 return None
+            before = dict(doc)
             _claimed(doc, worker)
             c.execute(sa.update(t).where(t.c.workspace_id == self.workspace_id, t.c.id == doc["id"]).values(**self._columns(doc)))
+        self._remember(doc, before)
         return doc
 
     def stale(self, seconds):
@@ -339,6 +370,6 @@ class PgJobs(Jobs):
 def open_jobs(home: Path) -> Jobs:
     from ..storage import db
 
-    if db.database_url(required=False):
-        return PgJobs(db.workspace_for(Path(home)))
-    return FileJobs(Path(home) / "jobs.json")
+    jobs: Jobs = PgJobs(db.workspace_for(Path(home))) if db.database_url(required=False) else FileJobs(Path(home) / "jobs.json")
+    jobs.history = Path(home) / "jobs_history.jsonl"
+    return jobs

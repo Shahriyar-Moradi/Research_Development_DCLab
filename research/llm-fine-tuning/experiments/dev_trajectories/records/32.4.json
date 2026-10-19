@@ -1,0 +1,54 @@
+{
+ "package": "32.4",
+ "title": "Keepers for what was lost: every job state, every intern save, the teams' boards, every student and teacher file, and a deleted project kept first",
+ "date": "2026-10-20",
+ "request": "Keep what was lost before: tasks' states, intern versions, team runs, students and judgments; a deleted project, draft or session, and events past retention, still in the store.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.4",
+ "plan": [
+  "An append-only job history.",
+  "An intern session's every save as a version.",
+  "The store's hook before every delete and before retention."
+ ],
+ "decisions": [
+  {
+   "decision": "The hook sits in each store's delete, not in the route.",
+   "why": "The route removed the project before it forgot it; the store's own delete is where every caller passes."
+  },
+  {
+   "decision": "A database row's whole document goes into its deletion record.",
+   "why": "On PostgreSQL a project has no file to keep."
+  }
+ ],
+ "change": "Jobs.history (jobs_history.jsonl), intern.sessions.remember, store.hooks (keep_before, before_removal), the deletes of ProjectStore, DraftStore, SessionStore and the PostgreSQL stores, retention.sweep_events and forget.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A deleted project was gone before the store could keep it.",
+   "scenario": "The route removed the files, then forgot the records.",
+   "cause": "The hook ran in forget, after the delete.",
+   "fix": "The hook runs in each store's delete, first.",
+   "test": "test_a_deleted_project_stays_whole_in_the_store_with_its_deletion_recorded"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "On PostgreSQL a deleted project left nothing to keep.",
+   "scenario": "Its document was a row.",
+   "cause": "Only files were kept.",
+   "fix": "The row's document is in the deletion record.",
+   "test": "test_a_deleted_project_stays_whole_in_the_store_with_its_deletion_recorded"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Nothing DCLab deletes or rewrites is lost to the store: jobs, sessions, boards, students and deleted projects are all kept first.",
+ "lessons": [
+  "Put a capture hook where every caller passes, not where one caller does."
+ ],
+ "risks": [
+  "A delete now waits for the workspace's keepers; a very large workspace makes a delete slow."
+ ],
+ "commits": []
+}

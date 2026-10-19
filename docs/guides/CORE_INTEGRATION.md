@@ -793,6 +793,15 @@ product's agent asks the critic once its brief is confirmed and before it plans,
 question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
 whether to go on, recording the decision.
 
+## The store's shapes (32.1, dclab-core 0.98.0)
+
+The library's: `dclab_core.store`, the shapes of everything kept for training (a kept source, a normalised record with
+its provenance, the examples of eight model types, a curator's choice, a set's manifest), and `dclab_core.store_rules`,
+a capture rule per task with `check`, which flags what a record lacks and never drops it. Where it goes there: when the
+main product trains its own models on its records, it writes the same example shapes (a `DecisionExample` from its
+`semantic_decision_answers`, a `ChatExample` from its agent runs with their reasoning labelled), so a set built there
+and a set built here are one corpus; its capture points are checked by the same rules. Its storage stays its own.
+
 ## Ask the workspace (30.21, dclab-core 0.97.0)
 
 The library's: `dclab_core.workspace_chat`, a typed `Computation` run by pandas on one table, its result `masked` before a

@@ -1,0 +1,29 @@
+{
+ "package": "32.5",
+ "title": "Workflows as records: each walk from a draft to a report as one record linking its moves, stages, decisions and agent runs",
+ "date": "2026-10-20",
+ "request": "A WorkflowRecord for every walk, each step linked to the ledger's decisions and the agent steps inside it.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.5",
+ "plan": [
+  "A WorkflowRecord contract with steps in time order.",
+  "A builder over drafts, transitions, stages, the ledger and the experience log.",
+  "A keeper keeping each walk, a new version when it moved on."
+ ],
+ "decisions": [
+  {
+   "decision": "A step holds names, codes and counts, never the person's words.",
+   "why": "Those stay in their own records; the walk links to them."
+  }
+ ],
+ "change": "dclab_core.store.WorkflowRecord and WalkStep, dclab_rnd.store.workflows (walk, walks, the walks keeper).",
+ "findings": [],
+ "measurements": [],
+ "outcome": "Every walk is one record whose steps link back to every decision and agent run it made.",
+ "lessons": [
+  "A record that links by id stays small and stays true to its sources."
+ ],
+ "risks": [
+  "Stage times come from the stage records; a stage with no time is left out of the order."
+ ],
+ "commits": []
+}

@@ -46,6 +46,13 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "monitoring_plan": LIBRARY + " (step 12: the training rows' bins and the alert lines, carried in the artifact, 30.15)",
     "monitor_report": LIBRARY + " (what monitor() says of new rows; the main product's deployment reads it, 30.15)",
     "gate_result": LIBRARY + " (a gate's verdict with the phase it sends the work back to, 30.15)",
+    **{name: LIBRARY + f" (the store's {what}, 32.1: the studio keeps its training data in its own store; the main product would keep its "
+                          "own beside its records, through an adapter when it trains on them)" for name, what in (
+        ("store_entry", "kept source"), ("store_record", "normalised record"), ("decision_example", "decision example"),
+        ("chat_example", "chat example"), ("preference_pair", "preference pair"), ("solver_trajectory", "solver trajectory"),
+        ("episode", "step-by-step episode"), ("judged_example", "judged example"), ("retrieval_example", "retrieval example"),
+        ("curation_decision", "curator's choice"), ("set_manifest", "set manifest"), ("capture_rule", "capture rule"),
+        ("workflow_record", "workflow record of a walk"))},
     "table_entry": LIBRARY + " (a table's catalog entry with its owner and checks, 30.23; the main product's data catalog keeps its own entries)",
     "project_request": LIBRARY + " (a requested project scored, 30.24; the main product's intake keeps its own requests and scores them through it)",
     "portfolio": LIBRARY + " (the projects chosen of the requested and what they reuse, 30.24)",

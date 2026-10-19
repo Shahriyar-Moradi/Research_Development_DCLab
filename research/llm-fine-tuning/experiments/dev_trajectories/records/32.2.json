@@ -1,0 +1,60 @@
+{
+ "package": "32.2",
+ "title": "The conductor: the store's keepers run under the hood as a worker job, every run recorded, a failure never stopping the others",
+ "date": "2026-10-20",
+ "request": "A conductor that runs the keepers (then the later tiers) under the hood, records each run, and never lets two keepers write one path.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.2",
+ "plan": [
+  "Keepers with claims; registration refused on an overlapping claim.",
+  "conduct(): each keeper a step of a harness session, one run record.",
+  "A worker job 'store', swept at most once an hour, off in tests."
+ ],
+ "decisions": [
+  {
+   "decision": "A whole run and a removal's one-workspace run are recorded apart.",
+   "why": "Only a whole run resets the hourly clock; a removal must not postpone the next whole run."
+  }
+ ],
+ "change": "dclab_rnd.store.conductor (conduct, failed, due, sweep_due), keepers (Claim, Keeper, Source, register), the job 'store' and its sweep, the harness agent 'conductor', DCLAB_STORE_LOOP.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The worker's hourly job kept nothing.",
+   "scenario": "The job ran conduct with an empty registry.",
+   "cause": "Nothing installed the keepers on the worker path.",
+   "fix": "conduct installs the keepers by default; the job passes its workspace.",
+   "test": "test_the_worker_job_keeps_its_own_workspace"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "One unreadable file stopped a keeper for the rest of the run.",
+   "scenario": "A draft's events made unreadable: every file after it was not kept, every run.",
+   "cause": "One try around the whole loop.",
+   "fix": "Each source on its own: its error kept as an entry, the rest go on.",
+   "test": "test_an_unreadable_file_is_kept_as_its_error_and_the_rest_still_run"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The hourly run could be postponed forever, and a failed one retried every minute.",
+   "scenario": "Each removal's run reset the clock; a failure wrote no record.",
+   "cause": "Every run counted; failures unrecorded.",
+   "fix": "Only whole runs count, and a failure is recorded.",
+   "test": "test_the_run_is_due_hourly_and_never_when_turned_off"
+  }
+ ],
+ "measurements": [],
+ "outcome": "The store's keepers run on their own once an hour, each run a harness session with its record, a failure of one source never stopping the rest.",
+ "lessons": [
+  "Test the production path, not only the function: the job ran with no keepers while every unit test passed."
+ ],
+ "risks": [
+  "The worker runs the conductor in its own thread: a very large workspace makes the run long."
+ ],
+ "commits": []
+}

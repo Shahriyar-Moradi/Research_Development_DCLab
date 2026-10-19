@@ -4,6 +4,23 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.98.0 (2026-10-20)
+
+Package 32.1, the storing phase's first: the store's contracts.
+
+- `store`: the eight model types (`MODEL_TYPES`, each a folder) and the raw kinds (`KINDS`); `StoreEntry` v1 (a source
+  kept whole, its version and hash), `Provenance`, `StoreRecord` v1 (a normalised record with its capture rule's flags);
+  the examples per model type: `DecisionExample` v1 (M1 to M3), `ChatExample` v1 with each assistant turn's labelled
+  reasoning and `PreferencePair` v1 (M4, M5, M7), `SolverTrajectory` v1 (M5), `Episode` v1 (M6), `JudgedExample` v1 (M7),
+  `RetrievalExample` v1 (M8); `CurationDecision` v1 and `SetManifest` v1.
+- `store_rules`: `CaptureRule` v1, one per task (each naming its keeper and, where it feeds a set, its sealed key), and
+  `check(record)`: what is missing, late or untimed (a state written after, or without, its decision's time), unconfirmed
+  or unsealed, as findings; a check never removes anything. The ledger's label sources read in the store's words
+  (`LEDGER_SOURCES`).
+- `store`: an example's state passes the ledger's state check (never a value); every assistant turn and trajectory step
+  has its reasoning with its source or says why not; an episode says its gaps; `WorkflowRecord` v1 (32.5): a walk from
+  a draft to a report as one record; the raw kind `other`, so nothing a workspace holds is left out.
+
 ## 0.97.0 (2026-10-20)
 
 Packages 30.19 and Part G (30.21 to 30.24).

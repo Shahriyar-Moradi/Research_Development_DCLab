@@ -1,0 +1,133 @@
+{
+ "package": "32.3",
+ "title": "The keepers of what DCLab records: one inventory per run, every file of every workspace kept once under one kind, tables and secrets counted only",
+ "date": "2026-10-20",
+ "request": "Keepers for sessions, actions, decisions, conversations, model requests, the audit, test runs and live tests, kept once with their hashes, a workspace without consent keeping counts only.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.3",
+ "plan": [
+  "Discover every workspace under agent_runs.",
+  "Classify every file once, in its deepest workspace, first matching class wins, the rest as other.",
+  "Logs kept by their new tails, the rest whole when changed.",
+  "PostgreSQL tables exported per workspace."
+ ],
+ "decisions": [
+  {
+   "decision": "One inventory per run instead of a pattern per keeper.",
+   "why": "Patterns per keeper missed deep workspaces and kept some files twice; one classification makes 'exactly once' true by construction."
+  },
+  {
+   "decision": "A kind 'other' for anything no class names.",
+   "why": "Collect first, find the use after: nothing is left out."
+  },
+  {
+   "decision": "Tables anywhere, secrets by name, and cell-quoting keys never kept as content.",
+   "why": "The store is pushed to a repository; a row never enters it without a person's yes."
+  }
+ ],
+ "change": "dclab_rnd.store.keepers.standard (CLASSES, inventory, scrub, notebook outputs removed), keepers.workspaces (discover, of, base_of), keepers.database (every PostgreSQL table per workspace), Store.keep_log (tails cut at a line break), the index cache.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "About 7,100 files in deep workspaces were kept by no keeper.",
+   "scenario": "Live tests' journeys at depth five and six.",
+   "cause": "Discovery stopped at depth four and the live-test keeper skipped workspace folders by name.",
+   "fix": "No depth limit; each file belongs to its deepest workspace.",
+   "test": "test_each_file_is_kept_once_at_any_depth_and_nothing_is_left_out"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Some files were kept twice or under the wrong kind.",
+   "scenario": "A nested workspace's jobs.json as a test and as a task; twin lanes as conversations.",
+   "cause": "Overlapping patterns across keepers.",
+   "fix": "One classification per file.",
+   "test": "test_each_file_is_kept_once_at_any_depth_and_nothing_is_left_out"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The live tests ignored consent.",
+   "scenario": "Consent off: the audit counted, a live test's log kept whole.",
+   "cause": "Consent was hard-coded.",
+   "fix": "Every file has its own workspace's consent.",
+   "test": "test_consent_off_counts_the_live_tests_too_and_tables_secrets_and_previews_never_leave"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Column previews were kept and pushed.",
+   "scenario": "841 drafts and 715 projects carried cell previews.",
+   "cause": "The store did not scrub as the tester share does.",
+   "fix": "The cell-quoting keys removed from those files; notebooks without outputs; tables anywhere counted only.",
+   "test": "test_consent_off_counts_the_live_tests_too_and_tables_secrets_and_previews_never_leave"
+  },
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "privacy",
+   "defect": "Tables outside data folders were going to be kept.",
+   "scenario": "person/table.csv in the journeys, found by a dry inventory.",
+   "cause": "Only data folders were treated as tables.",
+   "fix": "Any table file counted only.",
+   "test": "test_consent_off_counts_the_live_tests_too_and_tables_secrets_and_previews_never_leave"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "Two runs at once could keep an older reading after a newer one, and a tail could start mid-line.",
+   "scenario": "The worker's run and a removal's run on a growing log.",
+   "cause": "The source was read outside the lock and tails were not cut.",
+   "fix": "Read under the lock; whole lines only.",
+   "test": "test_a_log_keeps_whole_lines_only_and_a_newer_entry_version_stays_in_the_index"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Keeping slowed down as the index grew.",
+   "scenario": "37 ms per unchanged file at 1,500 entries.",
+   "cause": "The whole index was parsed twice per keep.",
+   "fix": "An index cache read incrementally; mended only when torn.",
+   "test": "test_a_kept_source_reads_back_and_a_change_is_a_new_version_beside_the_old"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The inventory took 219 seconds.",
+   "scenario": "15,024 files over 800 workspaces.",
+   "cause": "Each file checked against every workspace.",
+   "fix": "Each file walks up its parents to its workspace.",
+   "test": "test_each_file_is_kept_once_at_any_depth_and_nothing_is_left_out"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "a dry inventory of the development workspaces",
+   "gate": "every file assigned once, nothing left out",
+   "fixed_before_run": true,
+   "result": "15,024 files over 800 workspaces in 4.8 s, none twice, 3,673 tables counted only, 506 MB as content",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "met",
+   "limits": [
+    "One machine's workspaces; a tester's will differ."
+   ]
+  }
+ ],
+ "outcome": "Every file of every workspace is kept exactly once under one kind, its tables and secrets counted, its cell values scrubbed, with PostgreSQL workspaces exported too.",
+ "lessons": [
+  "Measure the inventory on the real folder before trusting a test tree.",
+  "Make 'exactly once' structural, not a test of patterns."
+ ],
+ "risks": [
+  "The first push of half a gigabyte to the records repository is untested."
+ ],
+ "commits": []
+}

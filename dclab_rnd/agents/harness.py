@@ -50,6 +50,7 @@ AGENTS: dict[str, Agent] = {
     "orchestra": Agent("dclab_rnd.orchestra.spike:Spike.run", "session", (), "28.1: the orchestration layer's graph on a draft; each node a step, each pause a stopped run"),
     "orchestra.walk": Agent("dclab_rnd.orchestra.walk:Walk.run", "session", (), "28.3: the coordinator's state machine as a graph on a draft; each action a step, each pause a stopped run"),
     "orchestra.solution": Agent("dclab_rnd.orchestra.solution:SolutionTeam.run", "session", (), "28.5: a programme solved by a team on its project: parts routed in parallel, the auditor before the holdout, each node a step"),
+    "conductor": Agent("dclab_rnd.store.conductor:conduct", "session", (), "32.2: the store's conductor: the keepers, then the later tiers, each a step"),
     "coordinator": Agent("dclab_rnd.draft.coordinator:Coordinator.run", "session", (), "the lead agent: problem to built project, gate by gate"),
     "twin": Agent("dclab_rnd.twin:run", "session", ("ai_first",), "a twin run (25.2, 25.3): the current system and Claude on one problem, two lanes at once, "
                                                        "each a workspace folder; Claude serves every purpose of its lane through the lane's own client"),

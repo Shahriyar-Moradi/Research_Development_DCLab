@@ -1,0 +1,227 @@
+{
+ "built_at": "2026-10-19T22:30:40+00:00",
+ "capture_rules": {
+  "tasks": [
+   "agent_session",
+   "agent_step",
+   "audit_row",
+   "conversation_turn",
+   "correction",
+   "curation",
+   "decision",
+   "deletion",
+   "fix",
+   "graph_move",
+   "job",
+   "label",
+   "model_request",
+   "session_event",
+   "stage_run",
+   "student_version",
+   "teacher_answer",
+   "test_run"
+  ],
+  "version": "capture_rules_v1"
+ },
+ "kinds": {
+  "actions": {
+   "bytes": 0,
+   "entries": 0,
+   "last": null,
+   "sources": 0,
+   "what": "agent steps and tool calls",
+   "workspaces": []
+  },
+  "agents": {
+   "bytes": 0,
+   "entries": 0,
+   "last": null,
+   "sources": 0,
+   "what": "other agents' sessions: Claude Code (the main checkout and its worktrees), testers'",
+   "workspaces": []
+  },
+  "audit": {
+   "bytes": 0,
+   "entries": 0,
+   "last": null,
+   "sources": 0,
+   "what": "the audit trail",
+   "workspaces": []
+  },
+  "conversations": {
+   "bytes": 0,
+   "entries": 0,
+   "last": null,
+   "sources": 0,
+   "what": "Home, the intern, the workspace chat, the twin, MCP",
+   "workspaces": []
+  },
+  "curation": {
+   "bytes": 0,
+   "entries": 0,
+   "last": null,
+   "sources": 0,
+   "what": "every curator's choice: where each record went, its quality, why, and its failed answers",
+   "workspaces": []
+  },
+  "decisions": {
+   "bytes": 0,
+   "entries": 0,
+   "last": null,
+   "sources": 0,
+   "what": "the decision ledger: records, labels and outcomes",
+   "workspaces": []
+  },
+  "deletions": {
+   "bytes": 0,
+   "entries": 0,
+   "last": null,
+   "sources": 0,
+   "what": "each deletion in the product, recorded beside what it removed",
+   "workspaces": []
+  },
+  "fixes": {
+   "bytes": 0,
+   "entries": 0,
+   "last": null,
+   "sources": 0,
+   "what": "a failing test, the passing run after it, and the commits between",
+   "workspaces": []
+  },
+  "model_requests": {
+   "bytes": 0,
+   "entries": 0,
+   "last": null,
+   "sources": 0,
+   "what": "every model request with its shadows and checks",
+   "workspaces": []
+  },
+  "sessions": {
+   "bytes": 0,
+   "entries": 0,
+   "last": null,
+   "sources": 0,
+   "what": "the experience log's events",
+   "workspaces": []
+  },
+  "students": {
+   "bytes": 0,
+   "entries": 0,
+   "last": null,
+   "sources": 0,
+   "what": "every student version, whole: the fitted model, its training snapshot, card, measurements, shadow answers",
+   "workspaces": []
+  },
+  "tasks": {
+   "bytes": 0,
+   "entries": 0,
+   "last": null,
+   "sources": 0,
+   "what": "every job's state changes; the development sessions' task lists",
+   "workspaces": []
+  },
+  "teachers": {
+   "bytes": 0,
+   "entries": 0,
+   "last": null,
+   "sources": 0,
+   "what": "every teacher's answer, whole, with its prompt, thinking, cost and version",
+   "workspaces": []
+  },
+  "tests": {
+   "bytes": 0,
+   "entries": 0,
+   "last": null,
+   "sources": 0,
+   "what": "test runs and gates",
+   "workspaces": []
+  },
+  "workflows": {
+   "bytes": 0,
+   "entries": 0,
+   "last": null,
+   "sources": 0,
+   "what": "each walk from a draft to a report; team and orchestra boards, walks and interrupts",
+   "workspaces": []
+  }
+ },
+ "model_types": {
+  "m1_students": {
+   "sets": [],
+   "shapes": [
+    "decision_example"
+   ],
+   "what": "Student models: small, many, one or more per decision of every other model"
+  },
+  "m2_workflow_decisions": {
+   "sets": [],
+   "shapes": [
+    "decision_example"
+   ],
+   "what": "Workflow decision models for DCLab, the R&D system and internal automation"
+  },
+  "m3_ml_decisions": {
+   "sets": [],
+   "shapes": [
+    "decision_example"
+   ],
+   "what": "Data science and machine-learning decision models (classification and the other families)"
+  },
+  "m4_workflow_llm": {
+   "sets": [],
+   "shapes": [
+    "chat_example",
+    "preference_pair"
+   ],
+   "what": "An LLM that knows the machine-learning workflow, from the problem and the solution to the code"
+  },
+  "m5_solver_llm": {
+   "sets": [],
+   "shapes": [
+    "solver_trajectory",
+    "chat_example",
+    "preference_pair"
+   ],
+   "what": "An LLM that knows many machine-learning problems, solutions and code, to solve MLE-bench"
+  },
+  "m6_stepwise_decisions": {
+   "sets": [],
+   "shapes": [
+    "episode"
+   ],
+   "what": "A step-by-step decision model"
+  },
+  "m7_judges": {
+   "sets": [],
+   "shapes": [
+    "judged_example",
+    "preference_pair"
+   ],
+   "what": "A judge or reward model: scores a plan, a solution, a report, a step or code"
+  },
+  "m8_retrieval": {
+   "sets": [],
+   "shapes": [
+    "retrieval_example"
+   ],
+   "what": "A retriever and reranker: finds the evidence, the example, the pitfall or the case that fits"
+  }
+ },
+ "quarantine": {},
+ "root": "the store's root (dclab-records, owner/main)",
+ "schema_version": 1,
+ "schemas": [
+  "schemas/store_entry.json",
+  "schemas/store_record.json",
+  "schemas/decision_example.json",
+  "schemas/chat_example.json",
+  "schemas/preference_pair.json",
+  "schemas/solver_trajectory.json",
+  "schemas/episode.json",
+  "schemas/judged_example.json",
+  "schemas/retrieval_example.json",
+  "schemas/curation_decision.json",
+  "schemas/set_manifest.json",
+  "schemas/capture_rule.json"
+ ]
+}

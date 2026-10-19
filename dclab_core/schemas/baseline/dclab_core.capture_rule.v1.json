@@ -1,0 +1,111 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "at_decision": {
+      "default": true,
+      "type": "boolean"
+    },
+    "confirmed_by": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "correct_when": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "feeds": {
+      "items": {
+        "enum": [
+          "m1_students",
+          "m2_workflow_decisions",
+          "m3_ml_decisions",
+          "m4_workflow_llm",
+          "m5_solver_llm",
+          "m6_stepwise_decisions",
+          "m7_judges",
+          "m8_retrieval"
+        ],
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "keeper": {
+      "default": "",
+      "maxLength": 80,
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "sessions",
+        "actions",
+        "decisions",
+        "conversations",
+        "tasks",
+        "workflows",
+        "fixes",
+        "tests",
+        "model_requests",
+        "agents",
+        "teachers",
+        "students",
+        "audit",
+        "deletions",
+        "curation",
+        "other"
+      ],
+      "type": "string"
+    },
+    "none_when": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "required": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "dclab_core.capture_rule.v1",
+      "default": "dclab_core.capture_rule.v1",
+      "type": "string"
+    },
+    "sealed_key": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "task": {
+      "maxLength": 80,
+      "type": "string"
+    },
+    "types": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "task",
+    "kind"
+  ],
+  "type": "object"
+}

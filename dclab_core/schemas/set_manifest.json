@@ -1,0 +1,126 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.set_manifest.v1.json",
+  "additionalProperties": false,
+  "description": "One training set (v1): its model type, shape, sources with their hashes, split rule, counts, labels, consent and checks.",
+  "properties": {
+    "built_at": {
+      "title": "Built At",
+      "type": "string"
+    },
+    "commit": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Commit"
+    },
+    "consent": {
+      "default": "train",
+      "enum": [
+        "operate",
+        "improve",
+        "train"
+      ],
+      "title": "Consent",
+      "type": "string"
+    },
+    "counts": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Counts",
+      "type": "object"
+    },
+    "decontaminated": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Decontaminated",
+      "type": "array"
+    },
+    "label_sources": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Label Sources",
+      "type": "object"
+    },
+    "model_type": {
+      "enum": [
+        "m1_students",
+        "m2_workflow_decisions",
+        "m3_ml_decisions",
+        "m4_workflow_llm",
+        "m5_solver_llm",
+        "m6_stepwise_decisions",
+        "m7_judges",
+        "m8_retrieval"
+      ],
+      "title": "Model Type",
+      "type": "string"
+    },
+    "name": {
+      "maxLength": 200,
+      "title": "Name",
+      "type": "string"
+    },
+    "quarantined": {
+      "default": 0,
+      "title": "Quarantined",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.set_manifest.v1",
+      "default": "dclab_core.set_manifest.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "shape": {
+      "maxLength": 80,
+      "title": "Shape",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "split_rule": {
+      "maxLength": 200,
+      "title": "Split Rule",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 40,
+      "title": "Version",
+      "type": "string"
+    },
+    "weights": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Weights",
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_type",
+    "name",
+    "version",
+    "shape",
+    "split_rule",
+    "built_at"
+  ],
+  "title": "SetManifest",
+  "type": "object"
+}

@@ -1,0 +1,165 @@
+{
+  "$defs": {
+    "WalkStep": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "title": "At",
+          "type": "string"
+        },
+        "detail": {
+          "additionalProperties": true,
+          "title": "Detail",
+          "type": "object"
+        },
+        "kind": {
+          "enum": [
+            "draft_event",
+            "move",
+            "refused",
+            "stage",
+            "gate",
+            "decision",
+            "agent_run"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "ref": {
+          "maxLength": 200,
+          "title": "Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "at",
+        "kind",
+        "ref"
+      ],
+      "title": "WalkStep",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.workflow_record.v1.json",
+  "additionalProperties": false,
+  "description": "One walk from a draft to a report as a whole (v1, 32.5): every step in time order, the Workflow Run's twelve steps and its\ngates, and the ids of the decisions and agent runs inside it, so each links back to its own record.",
+  "properties": {
+    "agent_runs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Agent Runs",
+      "type": "array"
+    },
+    "decisions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Decisions",
+      "type": "array"
+    },
+    "draft": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Draft"
+    },
+    "ended": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ended"
+    },
+    "gates": {
+      "additionalProperties": true,
+      "title": "Gates",
+      "type": "object"
+    },
+    "id": {
+      "maxLength": 200,
+      "title": "Id",
+      "type": "string"
+    },
+    "outcome": {
+      "default": "stopped_in_draft",
+      "enum": [
+        "reported",
+        "built",
+        "stopped_in_draft",
+        "deleted"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "project": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Project"
+    },
+    "schema_version": {
+      "const": "dclab_core.workflow_record.v1",
+      "default": "dclab_core.workflow_record.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "started": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Started"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/WalkStep"
+      },
+      "title": "Steps",
+      "type": "array"
+    },
+    "workflow_run": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Workflow Run"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id"
+  ],
+  "title": "WorkflowRecord",
+  "type": "object"
+}

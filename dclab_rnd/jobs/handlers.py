@@ -189,6 +189,22 @@ def _students_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str
     students_loop.failed(Path(s.store.home))  # the next run waits an hour
 
 
+def _store_run(s: Any, payload: dict[str, Any]) -> None:
+    """32.2: one run of the store's conductor (the keepers, then the later tiers), under the hood."""
+    from pathlib import Path
+
+    from ..store import conductor
+
+    conductor.conduct({"agent_runs": Path(s.store.home), "services": s})
+
+
+def _store_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
+    """Nothing to put back (the store is append-only); the failure recorded, so the next run waits its hour."""
+    from ..store import conductor
+
+    conductor.failed(why=reason)
+
+
 def register() -> None:
     handler("stage", _stage_run, _stage_settle)
     handler("pipeline", _pipeline_run, _pipeline_settle)
@@ -198,6 +214,7 @@ def register() -> None:
     handler("programme", _programme_run, _programme_settle)
     handler("twin", _twin_run, _twin_settle)
     handler("students", _students_run, _students_settle)
+    handler("store", _store_run, _store_settle)
 
 
 register()

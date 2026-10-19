@@ -1,0 +1,42 @@
+{
+ "package": "32.6",
+ "title": "Fixes, linked: a failing test joined to the run that passed it next and the commits between, accepted only by a person",
+ "date": "2026-10-20",
+ "request": "Join a failing test run to the next passing run of the same test and the commits between, and propose a fix for a person to accept.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.6",
+ "plan": [
+  "Read the kept test runs in time order.",
+  "For each failing file, the next run of that file decides.",
+  "Keep each fix; a person's yes writes it beside the development records."
+ ],
+ "decisions": [
+  {
+   "decision": "A PostgreSQL failure is fixed only by a PostgreSQL pass.",
+   "why": "The two backends fail differently; a file pass says nothing of the other."
+  }
+ ],
+ "change": "dclab_rnd.store.fixes (link, accept, the fixes keeper), python -m dclab_rnd.store fixes|accept.",
+ "findings": [],
+ "measurements": [
+  {
+   "name": "the fixes in this repository's test runs (2026-10-19 and 20)",
+   "gate": "linked, never accepted without a person",
+   "fixed_before_run": true,
+   "result": "33 proposed, 21 open",
+   "verdict": "not scored",
+   "cost_eur": 0,
+   "against_gate": "recorded",
+   "limits": [
+    "Two days of runs."
+   ]
+  }
+ ],
+ "outcome": "Every test failure is linked to its fix, ready for the owner's yes.",
+ "lessons": [
+  "The test runs kept whole were already the fixes' data; linking them cost no new capture."
+ ],
+ "risks": [
+  "A fix proposed across many commits names them all; the cause is still a person's reading."
+ ],
+ "commits": []
+}

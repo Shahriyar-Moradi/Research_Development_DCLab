@@ -1,0 +1,110 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.curation_decision.v1.json",
+  "additionalProperties": false,
+  "description": "One curator's choice for one record (v1): which model it teaches, where it goes, its quality and why.",
+  "properties": {
+    "at": {
+      "title": "At",
+      "type": "string"
+    },
+    "curator": {
+      "maxLength": 120,
+      "title": "Curator",
+      "type": "string"
+    },
+    "folder": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Folder"
+    },
+    "id": {
+      "maxLength": 200,
+      "title": "Id",
+      "type": "string"
+    },
+    "model_type": {
+      "enum": [
+        "m1_students",
+        "m2_workflow_decisions",
+        "m3_ml_decisions",
+        "m4_workflow_llm",
+        "m5_solver_llm",
+        "m6_stepwise_decisions",
+        "m7_judges",
+        "m8_retrieval"
+      ],
+      "title": "Model Type",
+      "type": "string"
+    },
+    "quality": {
+      "enum": [
+        "keep",
+        "silver",
+        "out"
+      ],
+      "title": "Quality",
+      "type": "string"
+    },
+    "reason": {
+      "default": "",
+      "maxLength": 1200,
+      "title": "Reason",
+      "type": "string"
+    },
+    "record": {
+      "maxLength": 200,
+      "title": "Record",
+      "type": "string"
+    },
+    "refused": {
+      "anyOf": [
+        {
+          "maxLength": 600,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Refused"
+    },
+    "schema_version": {
+      "const": "dclab_core.curation_decision.v1",
+      "default": "dclab_core.curation_decision.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "used": {
+      "default": true,
+      "title": "Used",
+      "type": "boolean"
+    },
+    "weight": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Weight",
+      "type": "number"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "record",
+    "model_type",
+    "quality",
+    "curator",
+    "at"
+  ],
+  "title": "CurationDecision",
+  "type": "object"
+}

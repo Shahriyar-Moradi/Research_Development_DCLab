@@ -1,0 +1,126 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.capture_rule.v1.json",
+  "additionalProperties": false,
+  "description": "One task's rule (v1).",
+  "properties": {
+    "at_decision": {
+      "default": true,
+      "title": "At Decision",
+      "type": "boolean"
+    },
+    "confirmed_by": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Confirmed By",
+      "type": "array"
+    },
+    "correct_when": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Correct When",
+      "type": "array"
+    },
+    "feeds": {
+      "items": {
+        "enum": [
+          "m1_students",
+          "m2_workflow_decisions",
+          "m3_ml_decisions",
+          "m4_workflow_llm",
+          "m5_solver_llm",
+          "m6_stepwise_decisions",
+          "m7_judges",
+          "m8_retrieval"
+        ],
+        "type": "string"
+      },
+      "title": "Feeds",
+      "type": "array"
+    },
+    "keeper": {
+      "default": "",
+      "maxLength": 80,
+      "title": "Keeper",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "sessions",
+        "actions",
+        "decisions",
+        "conversations",
+        "tasks",
+        "workflows",
+        "fixes",
+        "tests",
+        "model_requests",
+        "agents",
+        "teachers",
+        "students",
+        "audit",
+        "deletions",
+        "curation",
+        "other"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "none_when": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "title": "None When",
+      "type": "object"
+    },
+    "required": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Required",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "dclab_core.capture_rule.v1",
+      "default": "dclab_core.capture_rule.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sealed_key": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Sealed Key"
+    },
+    "task": {
+      "maxLength": 80,
+      "title": "Task",
+      "type": "string"
+    },
+    "types": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Types",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "task",
+    "kind"
+  ],
+  "title": "CaptureRule",
+  "type": "object"
+}

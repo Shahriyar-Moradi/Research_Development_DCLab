@@ -1,0 +1,143 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.store_entry.v1.json",
+  "additionalProperties": false,
+  "description": "One kept source (v1): what it was, where it came from, its version and hash; never a value of its data.",
+  "properties": {
+    "bytes": {
+      "minimum": 0,
+      "title": "Bytes",
+      "type": "integer"
+    },
+    "captured_at": {
+      "title": "Captured At",
+      "type": "string"
+    },
+    "consent": {
+      "default": "operate",
+      "enum": [
+        "operate",
+        "improve",
+        "train"
+      ],
+      "title": "Consent",
+      "type": "string"
+    },
+    "id": {
+      "maxLength": 200,
+      "title": "Id",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "sessions",
+        "actions",
+        "decisions",
+        "conversations",
+        "tasks",
+        "workflows",
+        "fixes",
+        "tests",
+        "model_requests",
+        "agents",
+        "teachers",
+        "students",
+        "audit",
+        "deletions",
+        "curation",
+        "other"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "note": {
+      "anyOf": [
+        {
+          "maxLength": 600,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Note"
+    },
+    "offset": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Offset",
+      "type": "integer"
+    },
+    "path": {
+      "maxLength": 400,
+      "title": "Path",
+      "type": "string"
+    },
+    "run": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Run"
+    },
+    "schema_version": {
+      "const": "dclab_core.store_entry.v1",
+      "default": "dclab_core.store_entry.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sha256",
+      "type": "string"
+    },
+    "source": {
+      "maxLength": 4000,
+      "title": "Source",
+      "type": "string"
+    },
+    "version": {
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "whole_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Whole Sha256"
+    },
+    "workspace": {
+      "maxLength": 120,
+      "title": "Workspace",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "kind",
+    "source",
+    "workspace",
+    "version",
+    "sha256",
+    "bytes",
+    "captured_at",
+    "path"
+  ],
+  "title": "StoreEntry",
+  "type": "object"
+}

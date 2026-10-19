@@ -127,6 +127,9 @@ class PgProjects(_Base):
     def delete(self, project_id: str) -> None:
         import shutil
 
+        from ..store import hooks
+
+        hooks.keep_before(self.files_home, "project", project_id, lambda: self.get(project_id))  # 32.4: the row's document kept first
         with self.engine.begin() as c:
             c.execute(sa.delete(project).where(project.c.id == _key(project_id), project.c.workspace_id == self.workspace_id))
         shutil.rmtree(self._folder(project_id), ignore_errors=True)
@@ -313,6 +316,9 @@ class PgDrafts(_Base):
     def delete(self, draft_id: str) -> None:
         import shutil
 
+        from ..store import hooks
+
+        hooks.keep_before(self.files_home, "draft", draft_id, lambda: self.get(draft_id))  # 32.4: the row's document kept first
         with self.engine.begin() as c:
             c.execute(sa.delete(draft).where(draft.c.id == _key(draft_id), draft.c.workspace_id == self.workspace_id))
         shutil.rmtree(self.files_home / "drafts" / draft_id, ignore_errors=True)
@@ -378,6 +384,9 @@ class PgSessions(_Base):
                                                            where=intern_session.c.workspace_id == self.workspace_id).returning(intern_session.c.id)).scalar()
             if saved is None:
                 raise KeyError(session["id"])
+        from ..intern.sessions import remember
+
+        remember(self.files_home / "intern" / "versions", session)  # 32.4: the row keeps the newest; the versions keep each
         return session
 
     def list(self, limit: int | None = None, offset: int = 0) -> list[dict[str, Any]]:
@@ -391,6 +400,9 @@ class PgSessions(_Base):
             return [{**r.doc, "steps": int(r.steps)} for r in c.execute(query)]
 
     def delete(self, session_id: str) -> None:
+        from ..store import hooks
+
+        hooks.keep_before(self.files_home, "session", session_id, lambda: self.get(session_id))  # 32.4: the row's document kept first
         with self.engine.begin() as c:
             c.execute(sa.delete(intern_session).where(intern_session.c.id == _key(session_id), intern_session.c.workspace_id == self.workspace_id))
 

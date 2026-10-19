@@ -320,6 +320,12 @@ class Worker:
                 students_loop.sweep_due(self.env)
             except Exception:  # noqa: BLE001
                 traceback.print_exc()
+            try:  # 32.2: the store's conductor, at most once an hour
+                from ..store import conductor
+
+                conductor.sweep_due(self.env)
+            except Exception:  # noqa: BLE001
+                traceback.print_exc()
 
     def recover(self) -> list[dict[str, Any]]:
         """Mark interrupted every running job whose worker stopped beating, or whose worker was a process of this machine

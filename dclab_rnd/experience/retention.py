@@ -113,6 +113,12 @@ def sweep_events(log: Any, now: Optional[datetime] = None, event_days: Optional[
     out = {"events_deleted": 0, "texts_removed": 0}
     if not event_days and not text_days:
         return out
+    try:  # 32.4: the store keeps the events first; retention then removes them from the workspace only
+        from ..store import hooks
+
+        hooks.before_removal(getattr(log, "home", None), "retention", None, by="retention")
+    except Exception:  # noqa: BLE001
+        pass
     old = (now - timedelta(days=event_days)).isoformat(timespec="microseconds") if event_days else None
     stale = (now - timedelta(days=text_days)).isoformat(timespec="microseconds") if text_days else None
     if hasattr(log, "engine"):
@@ -210,6 +216,14 @@ def forget(*, project: str | None = None, draft: str | None = None, visit: str |
 
     log = log if log is not None else experience.current_log()
     ledger = ledger if ledger is not None else current_ledger()
+    home = getattr(log, "home", None) or getattr(ledger, "home", None)
+    if visit and not (project or draft):  # 32.4: a visit's events kept first (a project's or a draft's were kept by its store's delete)
+        try:
+            from ..store import hooks
+
+            hooks.before_removal(home, "visit", visit)
+        except Exception:  # noqa: BLE001
+            pass
     out: dict[str, Any] = {"events": 0, "decisions": 0, "prompts": 0}
     for name, step in (("events", lambda: delete_events(log, project=project, conversation=draft, visit=visit) if log is not None else 0),
                        ("decisions", lambda: delete_decisions(ledger, project=project, draft=draft) if ledger is not None and (project or draft) else 0),

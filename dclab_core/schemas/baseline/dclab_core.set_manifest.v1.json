@@ -1,0 +1,108 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "built_at": {
+      "type": "string"
+    },
+    "commit": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "consent": {
+      "default": "train",
+      "enum": [
+        "operate",
+        "improve",
+        "train"
+      ],
+      "type": "string"
+    },
+    "counts": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "decontaminated": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "label_sources": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "model_type": {
+      "enum": [
+        "m1_students",
+        "m2_workflow_decisions",
+        "m3_ml_decisions",
+        "m4_workflow_llm",
+        "m5_solver_llm",
+        "m6_stepwise_decisions",
+        "m7_judges",
+        "m8_retrieval"
+      ],
+      "type": "string"
+    },
+    "name": {
+      "maxLength": 200,
+      "type": "string"
+    },
+    "quarantined": {
+      "default": 0,
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.set_manifest.v1",
+      "default": "dclab_core.set_manifest.v1",
+      "type": "string"
+    },
+    "shape": {
+      "maxLength": 80,
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "split_rule": {
+      "maxLength": 200,
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 40,
+      "type": "string"
+    },
+    "weights": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_type",
+    "name",
+    "version",
+    "shape",
+    "split_rule",
+    "built_at"
+  ],
+  "type": "object"
+}

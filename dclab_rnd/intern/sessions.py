@@ -46,6 +46,17 @@ def new_session(session_id: str, task: str, *, mode: str, model: str | None, bud
     }
 
 
+def remember(versions: Path, session: dict[str, Any]) -> None:
+    """32.4: each save of a session kept as a version, one line in ``<versions>/<id>.jsonl`` (the session file is rewritten on every
+    save, so only this keeps what it was before). Never a reason for the save to fail."""
+    try:
+        versions.mkdir(parents=True, exist_ok=True)
+        with open(versions / f"{session['id']}.jsonl", "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(session, ensure_ascii=False, default=str) + "\n")
+    except OSError:
+        pass
+
+
 class SessionStore:
     def __init__(self, home: Path):
         self.home = Path(home)
@@ -71,6 +82,7 @@ class SessionStore:
         temp = path.with_suffix(".json.tmp")
         temp.write_text(json.dumps(session, indent=1, ensure_ascii=False), encoding="utf-8")
         temp.replace(path)
+        remember(self.home / "versions", session)
         return session
 
     def list(self, limit: int | None = None, offset: int = 0) -> list[dict[str, Any]]:
@@ -85,6 +97,9 @@ class SessionStore:
         return out[offset:offset + limit] if limit is not None else out
 
     def delete(self, session_id: str) -> None:
+        from ..store import hooks
+
+        hooks.keep_before(self.home.parent, "session", session_id)  # 32.4: the store keeps it first (its versions included)
         path = self.path(session_id)
         if path.exists():
             path.unlink()

@@ -882,6 +882,36 @@ gate. Model spend:
 - the teacher's reasoning (32.10) and a model-served curator's shadow run, planned and capped on the command line, and
   reported.
 
+
+## Status
+
+- **32.1 to 32.6 built (2026-10-20), two reviews' 29 findings fixed (dclab-core 0.98.0).**
+  - **The store:**
+    - three tiers, every path through `layout.py`;
+    - the contracts of eight model types, with labelled reasoning and states that never hold a value;
+    - a capture rule per task that flags and never deletes;
+    - an append-only core with versions, hashes, tails cut at a line break, and an index cache;
+    - its root a clone of the private `dclab-records` on `owner/main`.
+  - **The conductor:** a worker job at most once an hour and a harness session.
+  - **One inventory per run:** a dry run over the development workspaces placed 15,024 files from 800 workspaces in 4.8 s,
+    none twice, nothing left out, 3,673 tables counted only.
+  - **Never kept as content:**
+    - cell-quoting keys;
+    - notebook outputs;
+    - tables anywhere;
+    - secret file names.
+  - **PostgreSQL:** workspaces exported table by table.
+  - **Kept first:**
+    - every job state and every intern save;
+    - the teams' boards, students and judgments;
+    - a deleted project, draft or session, with its deletion recorded;
+    - events past retention.
+  - **Walks:** each walk is one `WorkflowRecord`.
+  - **Fixes:** failing tests are linked to their fixes (33 proposed, 21 open in two days of runs).
+  - **Left open:**
+    - the first push of the store's bulk (about 500 MB, compressed) to the records repository, after Git LFS is installed;
+    - the keepers named in the rules for 32.7 and 32.9.
+
 ---
 
 ## خلاصهٔ فارسی
