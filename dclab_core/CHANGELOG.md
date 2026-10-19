@@ -4,6 +4,13 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.86.0 (2026-10-19)
+
+Package 29.12: harder homework where a student fails.
+
+- `benchgen2.task_table(seed, rows, kind=None)`: a curriculum may ask for an outcome kind; without it the seed's kind, so
+  every set built before is built the same.
+
 ## 0.85.0 (2026-10-19)
 
 Package 29.11: students ask for the labels they need most.

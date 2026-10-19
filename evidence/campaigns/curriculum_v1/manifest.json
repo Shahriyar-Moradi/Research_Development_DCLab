@@ -1,0 +1,14 @@
+{
+ "campaign_id": "curriculum_v1",
+ "objective": "29.12: do rounds of harder homework, tables of the kinds a student fails on dev, raise its dev accuracy with the sealed set untouched?",
+ "rule": "task.framing (benchgen v2): each round's new tables are of the failing kinds, kept only where the datasets' hash puts their group in train; the parent's dev rows and sealed file unchanged; the gate fixed before round 1.",
+ "command": "python -m dclab_rnd.curriculum --write",
+ "gate": {
+  "version": "curriculum_gate_v1",
+  "fixed": "2026-10-19, before round 1",
+  "point": "task.framing",
+  "rounds": 2,
+  "tables_per_kind": 120,
+  "pass": "round 2's student scores at least 0.008 above round 0's on the parent's dev rows (round 0: the parent's training rows alone, fitted the same way), neither round scores more than 0.004 below the one before, and the dev rows and the sealed file are byte-identical to the parent's"
+ }
+}

@@ -1,0 +1,105 @@
+{
+ "id": "CUR-002",
+ "experiment_id": "CUR-002",
+ "campaign_id": "curriculum_v1",
+ "kind": "curriculum_fresh_check",
+ "status": "completed",
+ "at": "2026-10-19T00:15:00+00:00",
+ "check": {
+  "tables": 600,
+  "decisions": 1200,
+  "rule": 0.8083,
+  "round_0": {
+   "accuracy": 0.9433,
+   "errors_by_kind": {
+    "binary_yesno": {
+     "rows": 130,
+     "wrong": 0
+    },
+    "binary_rare": {
+     "rows": 108,
+     "wrong": 0
+    },
+    "multiclass_many_codes": {
+     "rows": 142,
+     "wrong": 0
+    },
+    "regression_float": {
+     "rows": 130,
+     "wrong": 0
+    },
+    "binary_bool": {
+     "rows": 128,
+     "wrong": 0
+    },
+    "binary_12": {
+     "rows": 142,
+     "wrong": 0
+    },
+    "multiclass_codes": {
+     "rows": 116,
+     "wrong": 46
+    },
+    "multiclass_names": {
+     "rows": 116,
+     "wrong": 0
+    },
+    "regression_small_counts": {
+     "rows": 88,
+     "wrong": 22
+    },
+    "regression_large_int": {
+     "rows": 100,
+     "wrong": 0
+    }
+   }
+  },
+  "latest": {
+   "accuracy": 0.9392,
+   "errors_by_kind": {
+    "binary_yesno": {
+     "rows": 130,
+     "wrong": 0
+    },
+    "binary_rare": {
+     "rows": 108,
+     "wrong": 0
+    },
+    "multiclass_many_codes": {
+     "rows": 142,
+     "wrong": 0
+    },
+    "regression_float": {
+     "rows": 130,
+     "wrong": 0
+    },
+    "binary_bool": {
+     "rows": 128,
+     "wrong": 0
+    },
+    "binary_12": {
+     "rows": 142,
+     "wrong": 0
+    },
+    "multiclass_codes": {
+     "rows": 116,
+     "wrong": 54
+    },
+    "multiclass_names": {
+     "rows": 116,
+     "wrong": 0
+    },
+    "regression_small_counts": {
+     "rows": 88,
+     "wrong": 19
+    },
+    "regression_large_int": {
+     "rows": 100,
+     "wrong": 0
+    }
+   }
+  }
+ },
+ "note": "Run after CUR-001's verdict, not part of its gate: a fresh draw of task tables in the generator's natural mix (never trained on) scores round 0's and the last round's students.",
+ "rule": "Two curriculum rounds on task.framing: each adds tables of the kinds its student failed on dev (train groups only) and fits the student again; scored on the parent's dev rows, never on its sealed file. Invented tables: evidence about teaching a student, not about real projects."
+}

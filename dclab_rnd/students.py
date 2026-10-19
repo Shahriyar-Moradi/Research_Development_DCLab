@@ -27,6 +27,8 @@ CAMPAIGNS = ROOT / "evidence" / "campaigns"
 SETS = (("generated_v1", "benchgen_v1"), ("generated_images_v1", "image_decisions_v1"), ("generated_v2", "benchgen_v2"), ("workflow_v1", "workflow_v1"))
 # the students: the folders of cards, and the campaign that examined them (None: not examined yet)
 STUDENTS = (("models_v1", "decision_models_v1"), ("models_images_v1", None), ("models_v2", None), ("workflow_models_v1", "workflow_models_v1"))
+# 29.12: a curriculum's students (decisions/models_v2_curriculum) are not here: CUR-001's gain on the parent's dev rows did
+# not hold on a fresh draw (CUR-002), so the generation's student stays the point's
 
 
 def _json(path: Path) -> Optional[dict[str, Any]]:
@@ -271,7 +273,12 @@ def history(home: Path, last: int = 12) -> dict[str, list[dict[str, Any]]]:
     out = {}
     for point, rows in cards.items():
         rows = rows[-last:]
+        seen: set[Any] = set()
         for before, now in zip(rows, rows[1:]):
+            seen.add(before.get("student"))
+            if now.get("student") in seen and now.get("student") != before.get("student"):
+                now["slipped"] = False  # 29.12: back to a student the point had before (a curriculum's round not adopted): no slip
+                continue
             a, b = before.get("dev_accuracy"), now.get("dev_accuracy")
             c, d = before.get("own_dev_accuracy"), now.get("own_dev_accuracy")  # 29.7: the workspace's own student, the same way
             now["slipped"] = (bool(a is not None and b is not None and b < a - SLIP) or (before.get("exam") is True and now.get("exam") is False)

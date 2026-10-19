@@ -245,6 +245,21 @@ bands, its options), then a student.
 - **Done when:** two rounds of curriculum on one point raise its dev accuracy with the sealed set untouched, and the rounds
   are in the register's history.
 
+- **Status: built and measured (2026-10-19); met as written, not confirmed on a fresh draw.** `python -m dclab_rnd.curriculum`
+  on task.framing (the point with room to learn whose errors one generator knob controls; most points sit at the ceiling
+  their state allows, split.strategy's errors come from two scenarios its state cannot tell apart): each round reads the
+  kinds the student gets wrong on dev, asks `benchgen2.task_table(kind=)` for more of them (only groups the datasets' hash
+  puts in train), fits the student again as the generation's were. CUR-001, its gate fixed before round 1: dev 0.9156
+  (round 0 reproduces the generation's student) -> 0.9362 -> 0.9362, the parent's rows and sealed file byte-identical:
+  pass; the rounds are in the register's history; the second round added nothing (0.000). But the rounds chose their kinds
+  from those dev errors and were scored on those dev rows: independent checks on fresh tables in the generator's natural
+  mix, run after the verdict, give round 0 against round 2 0.9433 and 0.9392 on 600 tables (CUR-002) and 0.9290 and 0.9347
+  on 2,000 tables (CUR-003: +0.0057, 95% interval 0.000 to 0.012 by a bootstrap over tables), below the gate's 0.008. The
+  curriculum's student is kept on disk, not adopted: the register and the shadows keep the generation's. Left: a curriculum
+  whose kinds are chosen on one draw and judged on another, with an arm of as many tables of random kinds (to tell targeted
+  homework from more homework); the image shapes' and other points' curricula; for split.strategy, a state field that
+  tells its two scenarios apart (a change to production capture first).
+
 ### 29.13 A student explains itself
 - **Delivers:** each answer carries the two or three state fields that moved it most (the coefficients or the trees'
   contributions on the bands), shown beside the whisper and kept in the ledger; a person judges the reason, not only the

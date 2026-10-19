@@ -1,0 +1,197 @@
+{
+ "id": "CUR-001",
+ "experiment_id": "CUR-001",
+ "campaign_id": "curriculum_v1",
+ "kind": "curriculum",
+ "status": "completed",
+ "at": "2026-10-18T23:56:02+00:00",
+ "gate": {
+  "version": "curriculum_gate_v1",
+  "fixed": "2026-10-19, before round 1",
+  "point": "task.framing",
+  "rounds": 2,
+  "tables_per_kind": 120,
+  "pass": "round 2's student scores at least 0.008 above round 0's on the parent's dev rows (round 0: the parent's training rows alone, fitted the same way), neither round scores more than 0.004 below the one before, and the dev rows and the sealed file are byte-identical to the parent's"
+ },
+ "history": [
+  {
+   "round": 0,
+   "added": 0,
+   "trained_on": 1424,
+   "dev_accuracy": 0.9156,
+   "card_dev_accuracy": 0.9156,
+   "student": "task.framing.boosting@af78ac93cd3f",
+   "errors_by_kind": {
+    "binary_rare": {
+     "rows": 58,
+     "wrong": 0
+    },
+    "multiclass_names": {
+     "rows": 36,
+     "wrong": 0
+    },
+    "regression_large_int": {
+     "rows": 42,
+     "wrong": 0
+    },
+    "binary_bool": {
+     "rows": 52,
+     "wrong": 0
+    },
+    "binary_12": {
+     "rows": 64,
+     "wrong": 0
+    },
+    "multiclass_many_codes": {
+     "rows": 54,
+     "wrong": 0
+    },
+    "binary_yesno": {
+     "rows": 38,
+     "wrong": 0
+    },
+    "regression_float": {
+     "rows": 60,
+     "wrong": 0
+    },
+    "regression_small_counts": {
+     "rows": 48,
+     "wrong": 19
+    },
+    "multiclass_codes": {
+     "rows": 34,
+     "wrong": 22
+    }
+   },
+   "seconds": 1129.5
+  },
+  {
+   "round": 1,
+   "failing_kinds": [
+    "multiclass_codes",
+    "regression_small_counts"
+   ],
+   "added": 480,
+   "trained_on": 1904,
+   "dev_accuracy": 0.9362,
+   "card_dev_accuracy": 0.9362,
+   "student": "task.framing.boosting@f906bdd59fd2",
+   "errors_by_kind": {
+    "binary_rare": {
+     "rows": 58,
+     "wrong": 0
+    },
+    "multiclass_names": {
+     "rows": 36,
+     "wrong": 0
+    },
+    "regression_large_int": {
+     "rows": 42,
+     "wrong": 0
+    },
+    "binary_bool": {
+     "rows": 52,
+     "wrong": 0
+    },
+    "binary_12": {
+     "rows": 64,
+     "wrong": 0
+    },
+    "multiclass_many_codes": {
+     "rows": 54,
+     "wrong": 0
+    },
+    "binary_yesno": {
+     "rows": 38,
+     "wrong": 0
+    },
+    "regression_float": {
+     "rows": 60,
+     "wrong": 0
+    },
+    "regression_small_counts": {
+     "rows": 48,
+     "wrong": 12
+    },
+    "multiclass_codes": {
+     "rows": 34,
+     "wrong": 19
+    }
+   },
+   "seconds": 1220.7
+  },
+  {
+   "round": 2,
+   "failing_kinds": [
+    "multiclass_codes",
+    "regression_small_counts"
+   ],
+   "added": 480,
+   "trained_on": 2384,
+   "dev_accuracy": 0.9362,
+   "card_dev_accuracy": 0.9362,
+   "student": "task.framing.boosting@c0dfc69ef265",
+   "errors_by_kind": {
+    "binary_rare": {
+     "rows": 58,
+     "wrong": 0
+    },
+    "multiclass_names": {
+     "rows": 36,
+     "wrong": 0
+    },
+    "regression_large_int": {
+     "rows": 42,
+     "wrong": 0
+    },
+    "binary_bool": {
+     "rows": 52,
+     "wrong": 0
+    },
+    "binary_12": {
+     "rows": 64,
+     "wrong": 0
+    },
+    "multiclass_many_codes": {
+     "rows": 54,
+     "wrong": 0
+    },
+    "binary_yesno": {
+     "rows": 38,
+     "wrong": 0
+    },
+    "regression_float": {
+     "rows": 60,
+     "wrong": 0
+    },
+    "regression_small_counts": {
+     "rows": 48,
+     "wrong": 13
+    },
+    "multiclass_codes": {
+     "rows": 34,
+     "wrong": 18
+    }
+   },
+   "seconds": 1350.4
+  }
+ ],
+ "fingerprints": {
+  "before": {
+   "rows": "48bf7fbba2096ec00ba78f4936d8ecbf1bddbd8051bcc098d3de1c9281a3a055",
+   "sealed": "416c9f0a4dac42216fb802589bbc98dacfcc3de11f90289248fbef200c3a605c"
+  },
+  "after": {
+   "rows": "48bf7fbba2096ec00ba78f4936d8ecbf1bddbd8051bcc098d3de1c9281a3a055",
+   "sealed": "416c9f0a4dac42216fb802589bbc98dacfcc3de11f90289248fbef200c3a605c"
+  },
+  "unchanged": true
+ },
+ "verdict": {
+  "gain": 0.0206,
+  "steady": true,
+  "untouched": true,
+  "pass": true
+ },
+ "rule": "Two curriculum rounds on task.framing: each adds tables of the kinds its student failed on dev (train groups only) and fits the student again; scored on the parent's dev rows, never on its sealed file. Invented tables: evidence about teaching a student, not about real projects."
+}

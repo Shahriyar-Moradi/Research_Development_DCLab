@@ -1,0 +1,118 @@
+{
+ "id": "CUR-003",
+ "experiment_id": "CUR-003",
+ "campaign_id": "curriculum_v1",
+ "kind": "curriculum_fresh_check",
+ "status": "completed",
+ "at": "2026-10-19T00:51:32+00:00",
+ "check": {
+  "tables": 2000,
+  "decisions": 4000,
+  "seeds": [
+   300000,
+   301999
+  ],
+  "rule": 0.8,
+  "round_0": {
+   "accuracy": 0.929,
+   "errors_by_kind": {
+    "binary_bool": {
+     "rows": 400,
+     "wrong": 0
+    },
+    "binary_yesno": {
+     "rows": 400,
+     "wrong": 0
+    },
+    "binary_12": {
+     "rows": 400,
+     "wrong": 0
+    },
+    "binary_rare": {
+     "rows": 400,
+     "wrong": 0
+    },
+    "multiclass_names": {
+     "rows": 400,
+     "wrong": 0
+    },
+    "multiclass_codes": {
+     "rows": 400,
+     "wrong": 217
+    },
+    "multiclass_many_codes": {
+     "rows": 400,
+     "wrong": 0
+    },
+    "regression_float": {
+     "rows": 400,
+     "wrong": 0
+    },
+    "regression_large_int": {
+     "rows": 400,
+     "wrong": 0
+    },
+    "regression_small_counts": {
+     "rows": 400,
+     "wrong": 67
+    }
+   }
+  },
+  "latest": {
+   "accuracy": 0.9347,
+   "errors_by_kind": {
+    "binary_bool": {
+     "rows": 400,
+     "wrong": 0
+    },
+    "binary_yesno": {
+     "rows": 400,
+     "wrong": 0
+    },
+    "binary_12": {
+     "rows": 400,
+     "wrong": 0
+    },
+    "binary_rare": {
+     "rows": 400,
+     "wrong": 0
+    },
+    "multiclass_names": {
+     "rows": 400,
+     "wrong": 0
+    },
+    "multiclass_codes": {
+     "rows": 400,
+     "wrong": 208
+    },
+    "multiclass_many_codes": {
+     "rows": 400,
+     "wrong": 0
+    },
+    "regression_float": {
+     "rows": 400,
+     "wrong": 0
+    },
+    "regression_large_int": {
+     "rows": 400,
+     "wrong": 0
+    },
+    "regression_small_counts": {
+     "rows": 400,
+     "wrong": 53
+    }
+   }
+  },
+  "difference": {
+   "of": "latest - round_0",
+   "point": 0.0057,
+   "ci95": [
+    0.0,
+    0.0118
+   ],
+   "method": "paired bootstrap over tables"
+  }
+ },
+ "note": "Run after CUR-001's verdict, not part of its gate: a fresh draw of task tables in the generator's natural mix (never trained on) scores round 0's and the last round's students.",
+ "rule": "Two curriculum rounds on task.framing: each adds tables of the kinds its student failed on dev (train groups only) and fits the student again; scored on the parent's dev rows, never on its sealed file. Invented tables: evidence about teaching a student, not about real projects."
+}

@@ -52,9 +52,12 @@ def _features(rng: np.random.Generator, n: int, k: int = 3) -> dict[str, Any]:
 
 # ------------------------------------------------------------------------------------------------ the outcome's kind
 
-def task_table(seed: int, rows: int = 300) -> tuple[pd.DataFrame, str, dict[str, Any]]:
+def task_table(seed: int, rows: int = 300, kind: str | None = None) -> tuple[pd.DataFrame, str, dict[str, Any]]:
+    """``kind`` (29.12): a curriculum's choice of the outcome's kind; by default the seed's, as the sets were built."""
     rng = np.random.default_rng([seed, 29, 2, 1])
-    kind = TASK_KINDS[seed % len(TASK_KINDS)]
+    if kind is not None and kind not in TASK_KINDS:
+        raise ValueError(f"kind is one of {', '.join(TASK_KINDS)}")
+    kind = kind or TASK_KINDS[seed % len(TASK_KINDS)]
     truth = TASK_TRUTH[kind]
     target = str(rng.choice(TARGET_NAMES))
     n = rows
