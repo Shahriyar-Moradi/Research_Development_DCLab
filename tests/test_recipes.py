@@ -1,5 +1,5 @@
 """Package 30.10: the recipe registry. A problem is one kind plus modifiers; every part fills the same contract, has a
-version and a certification level; a resolved recipe names the part and the reason behind each choice. The fifteen kinds
+version and a certification level; a resolved recipe names the part and the reason behind each choice. The kinds (sixteen since 30.16)
 become parts through an adapter; an engine run records its recipe, and the recipe's split and metric are the run's own."""
 
 import sys

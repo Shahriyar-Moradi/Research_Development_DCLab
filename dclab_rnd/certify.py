@@ -123,17 +123,90 @@ def run(seeds: tuple[int, ...] = (0, 1, 2), log=print) -> dict[str, Any]:
                        "fraud data (D6) is the real dataset for them."]}
 
 
-def write(doc: dict[str, Any], campaign: Path = CAMPAIGN) -> Path:
+def run_kind(key: str, seeds: tuple[int, ...] = (0, 1, 2), log=print) -> dict[str, Any]:
+    """30.16: a kind certified as a part, on its trap replica (``case(seed)``) and the real datasets it names
+    (``real_cases()``), every run through the engine with no model asked: detection (the declared kind is the one that
+    runs), traps (its acceptance checks on the library and on the engine's records), baseline (the kind's own), artifact
+    (the code export rerun in an isolated Python reproduces the holdout number) and the LLM off (no model is in its path)."""
+    import tempfile
+    from unittest import mock
+
+    from dclab_core.recipes import certify
+
+    from . import kinds
+    from .expansion import runner
+    from .kinds import acceptance
+    from .models.gateway import private_scope
+    from .studio import code, engine
+
+    kind = kinds.get(key)
+    entries = [(f"{key} replica s{seed}", "replica", kind.case(seed)) for seed in seeds]
+    entries += [(f"{key} {case.facts.get('source')}", "real", case) for case in getattr(kind, "real_cases", lambda: [])()]
+    judged = []
+    for name, source, case in entries:
+        started = time.perf_counter()
+        checks = kind.accept(kind.solve(case)) if source == "replica" else []
+        store, pid = acceptance.build(case, Path(tempfile.mkdtemp()))
+        with runner.fast_profile(), private_scope(True), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None):
+            engine.run_all(store, pid)
+        records = store.records(pid)
+        checks += kind.accept_engine(acceptance.Run(case, store.get(pid)["solution"], records))
+        final = records["final"]["evidence"]
+        exported = code.export(store, pid, Path(tempfile.mkdtemp()) / "code", check=True)["checked"]
+        beats = final.get("beats")
+        metric = kind.metrics[0][0]
+        baseline = all(beats.values()) and bool(beats) if isinstance(beats, dict) else all(
+            ((final.get("holdout_metrics") or {}).get(metric) or 0) > ((final.get("baselines") or {}).get(b, {}).get(metric) or 0) for b in kind.baselines)
+        criteria = {"detection": _routed(kind, case), "traps": all(c["ok"] for c in checks), "baseline": baseline,
+                    "artifact": bool(exported.get("same")), "llm_off": True}
+        judged.append({"name": name, "source": source, "applies": True, "criteria": criteria, "checks": checks,
+                       "holdout_metrics": final.get("holdout_metrics"), "baselines": final.get("baselines"), "g4": (final.get("gate_g4") or {}).get("passed"),
+                       "seconds": round(time.perf_counter() - started, 1)})
+        log(f"{name}: {criteria}; F1 {(final.get('holdout_metrics') or {}).get(kind.metrics[0][0])} against {final.get('baselines')}")
+    replicas = [j for j in judged if j["source"] == "replica"]
+    whole = all(all(v is not False for v in j["criteria"].values()) for j in replicas)
+    counted = [j for j in judged if j["source"] != "replica"]
+    if replicas:  # the review: one seed passing is not the trap passed; the replica counts once, and only when every seed passes
+        counted.append({"name": f"{key} replica, {len(replicas)} seeds", "source": "replica", "applies": True,
+                        "criteria": {c: all(j["criteria"][c] for j in replicas) for c in replicas[0]["criteria"]}})
+    return {"runs": judged, "parts": {key: certify(counted)}, "replica_every_seed": whole,
+            "limits": ["Every run is the engine's quick mode with no model asked; the kind has no model in its path (the fields compared and the "
+                       "blocking are the person's), so the LLM-off criterion holds by construction, said rather than measured.",
+                       "Detection is the router's choice on each case's own data card for the problem's family; the replica counts once, "
+                       "only when every seed passes every criterion.",
+                       "The replica's known matches are every copy (the truth); a business knows only the copies it confirmed.",
+                       "The real datasets are public benchmarks the owner chose to download (2026-10-19): two catalogues each, labelled in full."]}
+
+
+def _routed(kind: Any, case: Any) -> bool:
+    """Detection: the router chooses the kind on the case's own data card, for the problem's family (no declaration read)."""
+    import warnings
+
+    from dclab_core import datacard as dc, problem_map as pm, solutions as sol
+
+    warnings.filterwarnings("ignore")
+    tables, roles = {"table": case.table}, {}
+    for name, frame in (case.tables or {}).items():
+        tables[name], roles[name] = frame, "related"
+    sub = pm.SubProblem(id="sp1", part="part1", title="The problem", family=case.facts.get("family", "rare_event"), labels=case.facts.get("labels", "column"))
+    m = pm.ProblemMap(size="single", parts=[pm.Part(id="part1", title="The problem")], sub_problems=[sub])
+    return sol.route(sub, dc.card_of(tables, name=kind.key, roles=roles), m).chosen == kind.key
+
+
+def write(doc: dict[str, Any], campaign: Path = CAMPAIGN, what: str = "modifiers") -> Path:
     results = Path(campaign) / "results"
     results.mkdir(parents=True, exist_ok=True)
     n = 1 + max([int(p.name.split("_")[0].split("-")[1]) for p in results.glob("CRT-*.json")] or [0])
     ident = f"CRT-{n:03d}"
     out = {"id": ident, "experiment_id": ident, "campaign_id": "certification_v1", "kind": "certification", "status": "completed",
            "at": datetime.now(timezone.utc).isoformat(timespec="seconds"), **doc,
-           "rule": "Each modifier judged on the recipes document's five criteria on the retail returns replica (three seeds), Telco and "
-                   "HyperAck, every run through the engine with no model asked; a part is certified only on a trap replica and two real "
-                   "datasets passing every criterion."}
-    path = results / f"{ident}_modifiers.json"
+           "rule": ("Each modifier judged on the recipes document's five criteria on the retail returns replica (three seeds), Telco and "
+                    "HyperAck, every run through the engine with no model asked; a part is certified only on a trap replica and two real "
+                    "datasets passing every criterion." if what == "modifiers" else
+                    f"The {what} kind judged as a part on the recipes document's five criteria on its trap replica (three seeds) and the real "
+                    "datasets it names, every run through the engine with no model asked; certified only on a trap replica and two real datasets "
+                    "passing every criterion.")}
+    path = results / f"{ident}_{what}.json"
     path.write_text(json.dumps(out, indent=1, default=str) + "\n", encoding="utf-8")
     return path
 
@@ -143,13 +216,14 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.certify", description=__doc__.split("\n")[0])
     parser.add_argument("--write", action="store_true", help="store the result in evidence/campaigns/certification_v1")
+    parser.add_argument("--kind", default=None, help="certify a kind as a part (30.16: matching) instead of the modifiers")
     args = parser.parse_args(argv)
-    doc = run()
+    doc = run_kind(args.kind) if args.kind else run()
     for part, verdict in doc["parts"].items():
         print(f"{part:<16} {verdict['level']:<13} missing: {'; '.join(verdict['missing']) or '-'}; pending: {', '.join(verdict['pending']) or '-'}; "
               f"failed: {', '.join(verdict['failed']) or '-'}")
     if args.write:
-        print(write(doc))
+        print(write(doc, what=args.kind or "modifiers"))
     return 0
 
 

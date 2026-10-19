@@ -339,9 +339,37 @@ value = scored["models"][{_c(chosen)}]["qini_coefficient"]'''),
     ]
 
 
+def _matching(project: dict[str, Any], records: dict[str, Any], f: dict[str, Any]) -> list[tuple[str, str]]:
+    from ..kinds.matching import _library_args
+
+    tables = project.get("tables") or {}
+    chosen = _chosen(records, "models")
+    models = _ev(records, "models")
+    threshold = next((r.get("threshold") for r in models.get("ranking", []) if r.get("model") == chosen), models.get("threshold"))
+    args = {k: v for k, v in _library_args(f, None).items() if k != "matches"}
+    right = f"read_table({_c((tables.get(f['right_table']) or {}).get('filename'))})" if f["right_table"] else "None"
+    return [
+        ("data", f'''from dclab_core import matching
+
+records = read_table({_c(project["data"]["filename"])})
+right = {right}
+known = read_table({_c((tables.get(f["matches_table"]) or {}).get("filename"))})  # the known matches: the outcome, never a feature
+ARGS = {_c(args)}
+ctx = matching.setup(records, right, matches=known, **ARGS)  # a record and every record it matches on one side
+assert ctx["split"] == {_c({p: (_ev(records, "data").get("split") or {}).get(p) for p in ("train", "validation", "holdout")})}, ctx["split"]'''),
+        ("leakage", f'''KEPT_OUT = {_c(_ev(records, "leakage").get("kept_out") or [])}  # not a field compared: a pair is judged on the fields named only'''),
+        ("features", '''print([f["column"] + ":" + f.get("kind", "text") for f in ARGS["fields"]], "compared for each candidate pair")'''),
+        ("models", f'''picked = matching.validate(ctx)  # every model on the validation records' pairs, the best F1 chosen
+{_check(records, 'picked["chosen"]')}'''),
+        ("final", f'''held = matching.score(ctx, {_c(chosen)}, {_c(threshold)})  # the holdout's matches, read once
+value = held["pair_f1"]'''),
+    ]
+
+
 MACHINES: dict[str, Callable[[dict, dict, dict], list[tuple[str, str]]]] = {
     "entity_tables": _entity_tables, "streams": _streams, "anomaly": _anomaly, "forecasting": _forecasting,
-    "time_to_event": _time_to_event, "embedded": _embedded, "ranking": _ranking, "segmentation": _segmentation, "uplift": _uplift}
+    "time_to_event": _time_to_event, "embedded": _embedded, "ranking": _ranking, "segmentation": _segmentation, "uplift": _uplift,
+    "matching": _matching}
 
 
 # ------------------------------------------------------------------------------------------------------ tabular projects

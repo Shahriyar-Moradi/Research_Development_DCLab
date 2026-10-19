@@ -103,6 +103,7 @@ flowchart LR
 | [nlp-and-text](nlp-and-text/INDEX.md) | When does text add signal, and how far do simple models get? (seed result) |
 | [anomaly-and-fraud-detection](anomaly-and-fraud-detection/INDEX.md) | Methods, metrics and thresholds for rare events (seed result) |
 | [recommender-systems](recommender-systems/INDEX.md) | Recommendation under time-ordered evaluation |
+| [record-linkage](record-linkage/INDEX.md) | Which records are the same thing, judged pair by pair with a record and its matches on one side (the matching kind, 30.16) |
 | [causal-inference-and-experimentation](causal-inference-and-experimentation/INDEX.md) | From "what will happen" to "what happens if we act" |
 | [computer-vision](computer-vision/INDEX.md) | Accuracy per unit of compute on business image tasks |
 | [mlops-and-deployment](mlops-and-deployment/INDEX.md) | Keeping a validated model valid in production |

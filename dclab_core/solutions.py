@@ -25,8 +25,12 @@ from dclab_core.problem_map import ProblemMap, SubProblem
 
 #: what an approach may need of the problem and the data; each is judged met, unmet, or unknown (no data card, no outcome named)
 PRECONDITIONS = ("labels", "binary_target", "many_classes", "number_target", "text_column", "place_columns", "time_column", "entity_column",
-                 "several_tables", "treatment_column", "duration_column", "budget_step", "not_budget_step")
+                 "several_tables", "treatment_column", "duration_column", "budget_step", "not_budget_step", "pairs_table")
 Met = Optional[bool]
+# the route contract's limits, frozen as v1 published them (30.16 added a precondition and an approach: a route lists one
+# family's approaches, each with its few needs, far under either)
+MAX_NEEDS, MAX_CANDIDATES = 13, 16
+PAIR_WORDS = re.compile(r"match|pair|link|dup|cop(?:y|ies)|same|original|mapping")  # a table of known pairs names itself so
 
 
 class Approach(Contract):
@@ -82,6 +86,10 @@ CATALOGUE: tuple[Approach, ...] = (
        ("entity_column", "several_tables"), 0, ("reads the events themselves",), ("a cutoff that lets the future in",), "churn-prediction"),
     _a("streams", "streams", "Alerts from readings over time", "Detectors on a unit's readings in windows, judged by alerts that come early enough to act on.",
        ("time_column", "entity_column", "several_tables"), 0, ("judged by lead time",), ("an alert after the failure is no alert",), "anomaly-and-fraud-detection"),
+    _a("matching", ("rare_event", "anomaly", "entity_tables"), "The same record twice, found pair by pair",
+       "Pairs of records compared on the fields named, blocked so only plausible pairs form, judged by pair precision and recall with a record and its matches on one side.",
+       ("pairs_table",), 40, ("finds copies no single column shows", "judged against the exact rule"), ("blocking that drops a true pair", "a record and its copy on two sides"),
+       "record-linkage"),
     _a("embedded", "text_or_images", "An outcome read from long text or images", "A pretrained encoder turns each source into a vector, then the table's models read them.",
        (), 0, ("reads what a table cannot",), ("the encoder is a download",), "computer-vision"),
 )
@@ -97,9 +105,9 @@ class Precondition(Contract):
 class Candidate(Contract):
     approach: str = Field(max_length=40)
     rank: int = Field(ge=1)
-    preconditions: list[Precondition] = Field(default_factory=list, max_length=len(PRECONDITIONS))
-    blocking: list[str] = Field(default_factory=list, max_length=len(PRECONDITIONS), description="The needs the data card or the map refutes.")
-    unknown: list[str] = Field(default_factory=list, max_length=len(PRECONDITIONS), description="The needs not known yet: a question for the person or the data.")
+    preconditions: list[Precondition] = Field(default_factory=list, max_length=MAX_NEEDS)
+    blocking: list[str] = Field(default_factory=list, max_length=MAX_NEEDS, description="The needs the data card or the map refutes.")
+    unknown: list[str] = Field(default_factory=list, max_length=MAX_NEEDS, description="The needs not known yet: a question for the person or the data.")
     reasons: list[str] = Field(default_factory=list, max_length=6)
     evidence_track: Optional[str] = Field(default=None, max_length=80)
 
@@ -110,7 +118,7 @@ class Route(Versioned):
     schema_version: Literal["dclab_core.route.v1"] = _version("route")
     sub_problem: str = Field(max_length=40)
     family: str = Field(max_length=40)
-    candidates: list[Candidate] = Field(default_factory=list, max_length=len(CATALOGUE))
+    candidates: list[Candidate] = Field(default_factory=list, max_length=MAX_CANDIDATES)
     chosen: Optional[str] = Field(default=None, max_length=40, description="The approach routed to; None when every candidate is refuted.")
     source: Literal["rules", "advisor", "detected"] = "rules"
     reason: str = Field(default="", max_length=300)
@@ -209,6 +217,23 @@ def check(code: str, sub: SubProblem, data: Any = None, m: Optional[ProblemMap] 
         if dtype == "integer":  # a count of a few values may be a class or a number: not refuted, not settled
             return (True, f"{name} is a whole number with {distinct} values") if distinct > 20 else (None, f"{name} is a whole number with {distinct} values: classes or a count")
         return False, f"{name} is {dtype}, not a number"
+    if code == "pairs_table":  # 30.16: a table of known matches (a duplicate and its original, or two catalogues' ids), and nothing else
+        if not has:  # no table: no table of pairs is shown, never an unknown that would rank matching first
+            return False, "no table yet: no table of known pairs is shown"
+        if not _has_purposes(columns):
+            return False, "the data card does not say which columns are identifiers: a table of known pairs is not shown"
+        found = []
+        for t in _tables(data):
+            cols = list(_get(t, "columns") or [])
+            if _get(t, "role", "main") in ("main", "labels") or not 2 <= len(cols) <= 3:
+                continue
+            ids = [c for c in cols if str(_get(c, "purpose") or "") == "identifier"]
+            timed = any(str(_get(c, "purpose") or "") == "time" for c in cols)
+            words = " ".join([str(_get(t, "name") or "")] + [str(_get(c, "name") or "") for c in cols]).lower()
+            # the review: an orders table, or a file of cases, has two id-like columns too; a table of pairs says what it is
+            if len(ids) >= 2 and not timed and PAIR_WORDS.search(words):
+                found.append(str(_get(t, "name")))
+        return (True, f"a table of known pairs: {found[0]}") if found else (False, "no table of two identifiers named as matches, pairs or copies")
     if not has:
         return None, "no table yet"
     if code in ("time_column", "entity_column", "place_columns") and not _has_purposes(columns):

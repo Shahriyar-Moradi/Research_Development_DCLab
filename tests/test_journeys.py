@@ -33,6 +33,12 @@ def journey(jid):
     return next(j for j in journeys.load("dev") if j["id"] == jid)
 
 
+# the kinds the frozen sealed sets (v2 to v4) were written for: a kind added later (matching, 30.16) cannot be in a set
+# frozen before it, and gets its own people when its journeys are written
+SEALED_KINDS = {"binary", "multiclass", "text_tabular", "regression", "places", "rare_event", "anomaly", "forecasting", "time_to_event", "ranking",
+                "segmentation", "uplift", "entity_tables", "streams", "embedded"}
+
+
 @unittest.skipIf(MISSING, MISSING)
 class JourneyTest(unittest.TestCase):
     def test_a_written_person_is_carried_to_the_holdout_number(self):
@@ -136,13 +142,15 @@ class JourneyTest(unittest.TestCase):
     def test_the_fourth_sealed_set_is_frozen_with_its_own_gate_and_seed(self):
         people = journeys.load("sealed_v4")
         self.assertEqual(len(people), 30)
-        self.assertEqual({j["kind"] for j in people}, {k.key for k in kinds.all_kinds()})
+        self.assertEqual({j["kind"] for j in people}, SEALED_KINDS)
+        self.assertTrue(SEALED_KINDS <= {k.key for k in kinds.all_kinds()})
         self.assertEqual((journeys.GATES["sealed_v4"]["seed"], journeys.GATES["sealed_v4"]["split"]), (4, "sealed_v4"))
 
     def test_the_third_sealed_set_is_frozen_with_its_own_gate_and_seed(self):
         people = journeys.load("sealed_v3")
         self.assertEqual(len(people), 30)
-        self.assertEqual({j["kind"] for j in people}, {k.key for k in kinds.all_kinds()})
+        self.assertEqual({j["kind"] for j in people}, SEALED_KINDS)
+        self.assertTrue(SEALED_KINDS <= {k.key for k in kinds.all_kinds()})
         self.assertEqual((journeys.GATES["sealed_v3"]["seed"], journeys.GATES["sealed_v3"]["split"]), (3, "sealed_v3"))
 
     def test_the_second_sealed_set_is_frozen_with_its_own_gate_and_seed(self):
@@ -151,7 +159,8 @@ class JourneyTest(unittest.TestCase):
         for j in people:
             by_kind[j["kind"]] = by_kind.get(j["kind"], 0) + 1
         self.assertEqual(set(by_kind.values()), {2})
-        self.assertEqual(set(by_kind), {k.key for k in kinds.all_kinds()})
+        self.assertEqual(set(by_kind), SEALED_KINDS)
+        self.assertTrue(SEALED_KINDS <= {k.key for k in kinds.all_kinds()})
         self.assertTrue(all("built" not in j for j in people))  # every kind runs in the engine
         gate = journeys.GATES["sealed_v2"]
         self.assertEqual((gate["seed"], gate["split"]), (2, "sealed_v2"))

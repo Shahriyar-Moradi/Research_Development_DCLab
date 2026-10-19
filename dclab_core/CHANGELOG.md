@@ -4,6 +4,24 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.92.0 (2026-10-19)
+
+Package 30.16: the matching kind.
+
+- `matching` (new): records matched pair by pair. `setup` fixes the split by entity before any pair is formed (the known
+  matches join records into entities, each goes whole to training, validation or holdout, seeded), one table or two;
+  `setup` refuses a repeated id or more than 5% of the known matches unfound, and every pair inside an entity is a match;
+  `candidates` pairs a part's records with every record it may see (`SEES`: validation with training, the holdout with
+  all, as a new record would be matched) by key equality with a time window, or the nearest neighbours by character
+  n-grams both ways, and measures blocking's recall; `features` compares each field by kind (a text's TF-IDF cosine and
+  token overlap, a number's relative difference, a time's minutes apart, a category's equality, a flag's either and
+  both) and gives the exact rule's verdict on the key fields; `validate` fits on training pairs and chooses among the
+  exact rule, the single best field, logistic regression and gradient boosting by pair F1 on the validation pairs, each
+  threshold searched over every distinct score (a tie to the simpler); `score` reads the holdout once, with the F1's
+  interval and the difference to the exact rule and the single field by an entity bootstrap; `evaluate` does all three.
+- `solutions`: the precondition `pairs_table` (a related table of two identifiers and little else: the known pairs) and
+  the approach `matching` for rare events, anomalies and entity tables, chosen only where such a table is shown.
+
 ## 0.91.0 (2026-10-19)
 
 Package 30.15 (part A): the Workflow Run and G4.

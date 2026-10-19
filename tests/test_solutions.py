@@ -30,7 +30,7 @@ KIND_PROBLEM = {"binary": ("classification", "column"), "multiclass": ("classifi
                 "regression": ("regression", "column"), "places": ("regression", "column"), "rare_event": ("rare_event", "file"), "anomaly": ("anomaly", "none"),
                 "forecasting": ("forecasting", "column"), "time_to_event": ("time_to_event", "column"), "ranking": ("ranking", "none"),
                 "segmentation": ("segmentation", "none"), "uplift": ("uplift", "column"), "entity_tables": ("entity_tables", "none"), "streams": ("streams", "none"),
-                "embedded": ("text_or_images", "column")}
+                "embedded": ("text_or_images", "column"), "matching": ("rare_event", "file")}  # 30.16: copied bills, a table of known pairs beside the sales
 
 
 def single(family, labels="column"):
@@ -301,7 +301,8 @@ class NeedsTest(unittest.TestCase):
         r = sol.route(sub, None, m)
         self.assertEqual(r.chosen, "rare_event")
         self.assertIn("labels", r.candidates[0].unknown)
-        self.assertEqual([c.approach for c in r.candidates], ["rare_event", "anomaly"])
+        self.assertEqual([c.approach for c in r.candidates], ["rare_event", "anomaly", "matching"])
+        self.assertEqual(r.candidates[-1].blocking, ["pairs_table"])  # 30.16: no table of known pairs, so matching is refuted, last
 
     def test_the_kind_a_map_names_is_asked_first_among_those_not_refuted(self):
         sub = pm.SubProblem(id="sp1", part="part1", title="t", family="classification", kind="multiclass", labels="column")

@@ -793,6 +793,17 @@ product's agent asks the critic once its brief is confirmed and before it plans,
 question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
 whether to go on, recording the decision.
 
+## The matching kind (30.16, dclab-core 0.92.0)
+
+The library's: `dclab_core.matching`, records matched pair by pair with a record and every record it matches on one side
+of the split, blocking measured, the exact rule and the single best field as the baselines, the model chosen on
+validation records and the holdout read once; the router's `pairs_table` precondition. Where it goes there: the main
+product's data foundation (its connectors and catalog) is where duplicate customers or products across systems appear;
+its pipeline runs a matching step with `matching.setup` on the two tables and the reviewed pairs, `validate` on the
+validation records and `score` once, and stores the chosen model's name, threshold, blocking and fields with the pipeline
+version (no row of the tables). Its ProblemSpec has no task kind for pairs: the adapter would return the spec with the
+pair metrics beside it, as for the other kinds it lacks.
+
 ## The Workflow Run and G4 (30.15, dclab-core 0.91.0)
 
 The library's: `workflow_run.STEPS`, the framework's twelve fixed steps, and `WorkflowRun` v1 (each step's status, check
