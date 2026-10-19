@@ -162,9 +162,13 @@ class NotesTests(unittest.TestCase):
 
         self.home = Path(tempfile.mkdtemp())
         card = {POINT: {"answerer": NAME, "family": "boosting", "trained_on": 100, "dev_accuracy": 0.9, "rule_accuracy": 0.8}}
+        from dclab_core import ledger as contract
+
+        # the blind draw picks decisions by their random ids: one that drew the fixture's only disagreement left no note, a
+        # failure by chance (2026-10-19, a gate); here nothing is drawn (the draw's own rule is test_a_note_leaves_the_blind_queues_decisions_alone)
         for patcher in (mock.patch.dict("os.environ", {"DCLAB_DECISION_SHADOW": "1", "DCLAB_AGENT_HOME": str(self.home)}),
                         mock.patch.object(shadow, "answerers", return_value=(Student(),)), mock.patch.object(shadow, "_own", return_value=[]),
-                        mock.patch.object(students, "students", return_value=card)):
+                        mock.patch.object(students, "students", return_value=card), mock.patch.object(contract, "blind_draw", return_value=False)):
             patcher.start()
             self.addCleanup(patcher.stop)
         self.client = TestClient(create_app(self.home))
