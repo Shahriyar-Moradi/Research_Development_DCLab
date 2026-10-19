@@ -36,5 +36,6 @@ Which records are the same thing: a copied bill and its original, one product or
 
 Also called: record linkage, entity resolution, deduplication, duplicate detection, near-duplicate matching.
 
+- **Acceptance on its replica**: every decision held on 3 of 3 seeds (95% interval [0.439, 1.0]), [KND-021](../../evidence/campaigns/kinds_v1/results/KND-021_matching.json).
 - **Benchmark**: not judged by the benchmark's scripted policies (one yes or no or numeric outcome column): see its acceptance.
 

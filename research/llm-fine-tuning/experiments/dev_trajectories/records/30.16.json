@@ -1,0 +1,229 @@
+{
+ "package": "30.16",
+ "title": "The matching kind: which records are the same thing, pair by pair, with a record and its matches on one side, certified on copied bills and two real benchmarks",
+ "date": "2026-10-19",
+ "request": "Phase 8 (the owner's pattern 4): a sixteenth kind; one row is a pair; exact links first, blocking, similarity features, nearest neighbours; split by entity; pair precision and recall; certified on the copied-bills trap and a real dataset.",
+ "spec": "docs/guides/PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md, package 30.16",
+ "plan": [
+  "Map how a kind with its own machine is added (the ranking kind as the model), the retail replica's copied bills, and which real datasets exist.",
+  "Write the library: the split by entity first, blocking, features per field, models chosen on validation pairs, the holdout read once.",
+  "Wire the kind, its machine, its code export, the router and the certification; ask the owner for a real benchmark.",
+  "Certify on three replica seeds and two real datasets under the existing rule."
+ ],
+ "decisions": [
+  {
+   "decision": "The split is fixed by entity before any pair is formed: the known matches join records, and an entity goes whole to one side.",
+   "why": "A copy learned from on one side and scored on the other would flatter every score."
+  },
+  {
+   "decision": "No real dataset was on the machine; the owner chose to download two public benchmarks (DBLP-ACM and Abt-Buy) and keep the two-real-dataset rule.",
+   "why": "The plan's 'one real dataset' would have lowered the recipes' rule; two benchmarks meet it as written."
+  },
+  {
+   "decision": "The bills carry the plan's exact link, whether the cashier who sold a bill returned it, from the returns table.",
+   "why": "A copy is always returned by its seller and an honest bill rarely; without it two of three seeds fell below the trap's bars."
+  },
+  {
+   "decision": "The router chooses matching only where a table of two identifiers and little else is shown.",
+   "why": "It must never take a rare event or an anomaly problem that has no known pairs."
+  },
+  {
+   "decision": "The frozen sealed journey sets are checked against the fifteen kinds they were written for.",
+   "why": "A set frozen before a kind existed cannot hold it; the new kind gets its own people later."
+  },
+  {
+   "decision": "A holdout record is paired with every record, not only with the holdout's.",
+   "why": "A new bill is checked against every bill sold before; pairing it only with its own part flattered recall (the first run's 0.89 on the bills fell to 0.76)."
+  }
+ ],
+ "change": "dclab_core.matching (setup, candidates, features, validate, score, evaluate); dclab_rnd.kinds.matching (Matching, MatchingFields, MatchingMachine, the replica case with the return-by-seller link, real_cases); the code export's _matching; certify.run_kind and --kind; solutions' pairs_table precondition and matching approach; research/record-linkage; dclab-core 0.92.0.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Two of three replica seeds failed the copied-bills trap check.",
+   "scenario": "Seeds 1 and 2: pair F1 0.419 and 0.333, precision or recall under the bars, though the rule's count said certified.",
+   "cause": "Amount, time, store and items alone cannot tell a copy from an honest look-alike, which outnumber copies five to one.",
+   "fix": "The plan's exact link as a field: a return by the cashier who sold the bill.",
+   "test": "test_the_engine_runs_it_on_the_copied_bills_g4_passes_and_its_code_reproduces_the_holdout"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The frozen sealed journey sets failed for a kind added after them.",
+   "scenario": "test_journeys asserted every set covers every kind.",
+   "cause": "The sets were checked against the live list of kinds.",
+   "fix": "Checked against the fifteen kinds they were written for, and those still exist.",
+   "test": "test_the_fourth_sealed_set_is_frozen_with_its_own_gate_and_seed"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The holdout's candidate pairs were formed only inside the holdout part.",
+   "scenario": "A holdout bill copied from a training bill was never paired with it, so the measured recall left out the copies a new record would be matched against.",
+   "cause": "candidates paired a part's records with the same part's records only.",
+   "fix": "SEES: validation records against training and validation, holdout records against every record, as a new record would be matched.",
+   "test": "test_the_holdout_is_compared_with_every_record_and_its_pairs_never_cross_a_match"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The router chose matching for problems with no table of known pairs.",
+   "scenario": "A rare-event brief with a related table of an id and a date ranked matching first.",
+   "cause": "pairs_table accepted any related table holding an identifier.",
+   "fix": "pairs_table needs a related table of two or three columns, at least two identifiers, no time column and a pair word in its names; with no data it is false.",
+   "test": "test_the_router_chooses_matching_only_where_a_table_of_known_pairs_is_shown"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Cleaning phrases routed to the matching kind.",
+   "scenario": "'Predict churn; the export has some duplicate rows' was detected as a matching problem.",
+   "cause": "The kind's words included plain duplicate and dedup phrases.",
+   "fix": "Only phrases of matching records across sources or copies of bills; cleaning words removed.",
+   "test": "test_cleaning_words_never_detect_matching"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The decision threshold was read from a coarse grid and refitted after the choice.",
+   "scenario": "Twenty true pairs in twenty thousand: the grid's best F1 was below the best of every distinct score, and the refit moved the threshold away from the one validated.",
+   "cause": "A fixed grid of thresholds and a refit after the choice.",
+   "fix": "Every distinct score is a candidate threshold; models are fitted on training pairs, thresholds set on validation, never refitted.",
+   "test": "test_the_threshold_is_the_best_of_every_score_and_rare_pairs_are_reached"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A forbidden or identifier column could be compared as a field.",
+   "scenario": "A solution comparing the bill id or the fraud label as a field was accepted.",
+   "cause": "check_solution did not refuse forbidden or identifier fields.",
+   "fix": "check_solution refuses an identifier compared, a forbidden column, no blocking and a wrong metric.",
+   "test": "test_the_kind_refuses_a_compared_id_and_every_pair"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Known matches whose records were missing were dropped silently.",
+   "scenario": "The pairs table's two columns swapped gave pair F1 0 silently; float ids ('12.0') matched no record.",
+   "cause": "ids were compared as written and unfound matches were ignored.",
+   "fix": "ids normalised; more than 5% of the matches unfound raises with the hint to check the column order; a repeated id raises.",
+   "test": "test_swapped_or_unknown_matches_are_refused_and_float_ids_are_ids"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The certification counted the replica as passed when one seed passed and read the baselines' win without its interval.",
+   "scenario": "Seeds 1 and 2 below the trap's bars were hidden behind the count; a win by 0.005 counted.",
+   "cause": "run_kind aggregated before checking every seed; beats was a strict greater-than only.",
+   "fix": "The replica passes only when every seed passes; detection is the router's own choice; beats needs the difference's 90% interval above 0.",
+   "test": "python -m dclab_rnd.certify --kind matching (every seed read; the baselines' wins with their intervals)"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The exact rule ignored the plan's exact links.",
+   "scenario": "The rule compared amount and time only and found no copy.",
+   "cause": "No flag field kind and no key fields.",
+   "fix": "A flag kind (either and both) and the key fields (items, returned_by_seller) the exact rule reads.",
+   "test": "test_the_engine_runs_it_on_the_copied_bills_g4_passes_and_its_code_reproduces_the_holdout"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Nearest-neighbour blocking ran one way only.",
+   "scenario": "A copy whose original was not among its own ten neighbours, but which was among the original's, was never a candidate.",
+   "cause": "kNN from the left records to the right only.",
+   "fix": "kNN both ways, pairs de-duplicated.",
+   "test": "test_two_copies_of_one_record_match_each_other_and_text_neighbours_go_both_ways"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The return-by-seller link's moment was not stated.",
+   "scenario": "The kind read a return made after the bill as if known when the bill was sold.",
+   "cause": "The moment said 'when a bill is sold'.",
+   "fix": "The moment is the end of a review period: each bill against the bills around it, with every return filed against it.",
+   "test": "the replica case's stated moment, read in the review"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Records joined through a third record were not counted as matches.",
+   "scenario": "A, B and C with A~B and B~C: the pair A,C was a non-match in training.",
+   "cause": "Only listed pairs were positives.",
+   "fix": "Entities by union-find; every pair inside an entity is a match.",
+   "test": "test_two_copies_of_one_record_match_each_other_and_text_neighbours_go_both_ways"
+  },
+  {
+   "id": "R12",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Block columns missing from a table failed deep in the run.",
+   "scenario": "A solution blocking on a column of the right table only crashed in candidates.",
+   "cause": "columns were checked only for fields.",
+   "fix": "Block columns of both tables are checked up front by columns_of and table_columns_of.",
+   "test": "test_the_kind_refuses_a_compared_id_and_every_pair"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "G4 failed on the copied bills: the holdout's F1 had no interval, so the gap to the folds could not be judged.",
+   "scenario": "The engine's final stage on seed 0: G4 back to the workflow with the gap 'unread'.",
+   "cause": "The matching machine wrote the holdout F1 without holdout_primary_metric_ci.",
+   "fix": "The F1's 95% interval from the entity bootstrap is written at the final stage.",
+   "test": "test_the_engine_runs_it_on_the_copied_bills_g4_passes_and_its_code_reproduces_the_holdout"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The router's frozen schema limits moved with a new approach.",
+   "scenario": "test_core_contracts failed: the route schema's maxItems changed from the baseline.",
+   "cause": "MAX_NEEDS and MAX_CANDIDATES were computed from the approaches.",
+   "fix": "Frozen as constants (13, 16) the approaches must fit in.",
+   "test": "test_core_contracts"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the matching kind's certification (CRT-002, from committed code)",
+   "gate": "the recipes' rule: a trap replica on every seed and two real datasets pass every criterion (detection by the router, traps, beating both baselines with the difference's 90% interval above zero, the code export, the same result with the model off)",
+   "fixed_before_run": true,
+   "result": "the copied bills' pair F1 0.760, 0.702, 0.784 on seeds 0 to 2 (exact rule 0.011 to 0.012, one field 0 to 0.012); DBLP-ACM 0.983 (exact 0.901, one field 0.921); Abt-Buy 0.610 (exact 0.035, one field 0.550); every criterion passed",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "certified",
+   "limits": [
+    "The replica's known matches are every copy; the benchmarks are labelled in full.",
+    "Every holdout record is compared with every record: the bills' scores are lower than the first run's, which compared the holdout with itself.",
+    "Abt-Buy's win over one field is the narrowest (0.610 against 0.550)."
+   ]
+  }
+ ],
+ "outcome": "DCLab matches records as its sixteenth kind, keeps a record and its matches on one side, says how many true pairs its blocking kept, and is certified on copied bills and two real benchmarks.",
+ "lessons": [
+  "Before lowering a rule to meet a plan's wording, ask whether the data that meets the rule can be had.",
+  "A trap that a rule's count passes on one seed is not passed: read every seed.",
+  "Pair a test record with what a new record would meet in use, not with what is convenient to split."
+ ],
+ "risks": [
+  "The kind has no dev or sealed journeys of its own yet, and no service export.",
+  "The router's pairs_table rule reads names (a pair word); a pairs table named otherwise is missed and the problem keeps its rare-event route."
+ ],
+ "commits": []
+}

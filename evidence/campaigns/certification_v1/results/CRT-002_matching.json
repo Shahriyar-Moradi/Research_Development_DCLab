@@ -1,0 +1,392 @@
+{
+ "id": "CRT-002",
+ "experiment_id": "CRT-002",
+ "campaign_id": "certification_v1",
+ "kind": "certification",
+ "status": "completed",
+ "at": "2026-10-19T14:16:10+00:00",
+ "runs": [
+  {
+   "name": "matching replica s0",
+   "source": "replica",
+   "applies": true,
+   "criteria": {
+    "detection": true,
+    "traps": true,
+    "baseline": true,
+    "artifact": true,
+    "llm_off": true
+   },
+   "checks": [
+    {
+     "decision": "blocking keeps the true pairs of the training and validation records",
+     "ok": true,
+     "detail": "{'train': 1.0, 'validation': 1.0}"
+    },
+    {
+     "decision": "the model is chosen on the validation records, never the holdout",
+     "ok": true,
+     "detail": "the best pair F1 on the validation records, each model's threshold set on every validation score (a tie to the simpler: exact, single field, logistic, boosting)"
+    },
+    {
+     "decision": "the chosen model beats the exact rule and the single best field on the holdout, its interval above zero",
+     "ok": true,
+     "detail": "F1 0.76; exact 0.011 (difference (0.6115, 0.8557)); single_field 0.003 (difference (0.619, 0.8661))"
+    },
+    {
+     "decision": "most links it makes are copies (honest repeat purchases are not), and it finds a good share of them",
+     "ok": true,
+     "detail": "recall 0.8636, precision 0.6786, every holdout bill compared with every bill"
+    },
+    {
+     "decision": "every stage ran on the matching machine",
+     "ok": true,
+     "detail": "{'data': 'matching', 'leakage': 'matching', 'features': 'matching', 'models': 'matching', 'final': 'matching'}"
+    },
+    {
+     "decision": "a record and every record it matches are on one side of the split",
+     "ok": true,
+     "detail": "{'by_entity': True, 'entities': 61728, 'train': {'left': 37288, 'right': None, 'matches': 73}, 'validation': {'left': 12365, 'right': None, 'matches': 21}, 'holdout': {'left': 12191, 'right': None, 'matches': 22}, 'fingerprint': '0fd65c0615fe5800'}"
+    },
+    {
+     "decision": "the model chosen on the validation records is the final one, read once",
+     "ok": true,
+     "detail": "logistic, read 1"
+    },
+    {
+     "decision": "it beats the exact rule and the single best field, the bootstrap's interval of the difference above zero",
+     "ok": true,
+     "detail": "F1 0.76 against {'exact': {'pair_f1': 0.011}, 'single_field': {'pair_f1': 0.003}}"
+    },
+    {
+     "decision": "blocking's recall is measured on the holdout",
+     "ok": true,
+     "detail": "1.0"
+    }
+   ],
+   "holdout_metrics": {
+    "pair_f1": 0.76,
+    "pair_precision": 0.6786,
+    "pair_recall": 0.8636,
+    "average_precision": 0.6802,
+    "blocking_recall": 1.0
+   },
+   "baselines": {
+    "exact": {
+     "pair_f1": 0.011
+    },
+    "single_field": {
+     "pair_f1": 0.003
+    }
+   },
+   "g4": true,
+   "seconds": 36.9
+  },
+  {
+   "name": "matching replica s1",
+   "source": "replica",
+   "applies": true,
+   "criteria": {
+    "detection": true,
+    "traps": true,
+    "baseline": true,
+    "artifact": true,
+    "llm_off": true
+   },
+   "checks": [
+    {
+     "decision": "blocking keeps the true pairs of the training and validation records",
+     "ok": true,
+     "detail": "{'train': 1.0, 'validation': 1.0}"
+    },
+    {
+     "decision": "the model is chosen on the validation records, never the holdout",
+     "ok": true,
+     "detail": "the best pair F1 on the validation records, each model's threshold set on every validation score (a tie to the simpler: exact, single field, logistic, boosting)"
+    },
+    {
+     "decision": "the chosen model beats the exact rule and the single best field on the holdout, its interval above zero",
+     "ok": true,
+     "detail": "F1 0.7018; exact 0.0117 (difference (0.5628, 0.805)); single_field 0.0117 (difference (0.5628, 0.805))"
+    },
+    {
+     "decision": "most links it makes are copies (honest repeat purchases are not), and it finds a good share of them",
+     "ok": true,
+     "detail": "recall 0.7692, precision 0.6452, every holdout bill compared with every bill"
+    },
+    {
+     "decision": "every stage ran on the matching machine",
+     "ok": true,
+     "detail": "{'data': 'matching', 'leakage': 'matching', 'features': 'matching', 'models': 'matching', 'final': 'matching'}"
+    },
+    {
+     "decision": "a record and every record it matches are on one side of the split",
+     "ok": true,
+     "detail": "{'by_entity': True, 'entities': 61731, 'train': {'left': 37058, 'right': None, 'matches': 88}, 'validation': {'left': 12494, 'right': None, 'matches': 34}, 'holdout': {'left': 12326, 'right': None, 'matches': 26}, 'fingerprint': '381e3d8219f316d7'}"
+    },
+    {
+     "decision": "the model chosen on the validation records is the final one, read once",
+     "ok": true,
+     "detail": "logistic, read 1"
+    },
+    {
+     "decision": "it beats the exact rule and the single best field, the bootstrap's interval of the difference above zero",
+     "ok": true,
+     "detail": "F1 0.7018 against {'exact': {'pair_f1': 0.0117}, 'single_field': {'pair_f1': 0.0117}}"
+    },
+    {
+     "decision": "blocking's recall is measured on the holdout",
+     "ok": true,
+     "detail": "1.0"
+    }
+   ],
+   "holdout_metrics": {
+    "pair_f1": 0.7018,
+    "pair_precision": 0.6452,
+    "pair_recall": 0.7692,
+    "average_precision": 0.6115,
+    "blocking_recall": 1.0
+   },
+   "baselines": {
+    "exact": {
+     "pair_f1": 0.0117
+    },
+    "single_field": {
+     "pair_f1": 0.0117
+    }
+   },
+   "g4": true,
+   "seconds": 39.3
+  },
+  {
+   "name": "matching replica s2",
+   "source": "replica",
+   "applies": true,
+   "criteria": {
+    "detection": true,
+    "traps": true,
+    "baseline": true,
+    "artifact": true,
+    "llm_off": true
+   },
+   "checks": [
+    {
+     "decision": "blocking keeps the true pairs of the training and validation records",
+     "ok": true,
+     "detail": "{'train': 1.0, 'validation': 1.0}"
+    },
+    {
+     "decision": "the model is chosen on the validation records, never the holdout",
+     "ok": true,
+     "detail": "the best pair F1 on the validation records, each model's threshold set on every validation score (a tie to the simpler: exact, single field, logistic, boosting)"
+    },
+    {
+     "decision": "the chosen model beats the exact rule and the single best field on the holdout, its interval above zero",
+     "ok": true,
+     "detail": "F1 0.7843; exact 0.0115 (difference (0.6553, 0.8681)); single_field 0.0 (difference (0.6667, 0.88))"
+    },
+    {
+     "decision": "most links it makes are copies (honest repeat purchases are not), and it finds a good share of them",
+     "ok": true,
+     "detail": "recall 0.7143, precision 0.8696, every holdout bill compared with every bill"
+    },
+    {
+     "decision": "every stage ran on the matching machine",
+     "ok": true,
+     "detail": "{'data': 'matching', 'leakage': 'matching', 'features': 'matching', 'models': 'matching', 'final': 'matching'}"
+    },
+    {
+     "decision": "a record and every record it matches are on one side of the split",
+     "ok": true,
+     "detail": "{'by_entity': True, 'entities': 61718, 'train': {'left': 36862, 'right': None, 'matches': 95}, 'validation': {'left': 12443, 'right': None, 'matches': 38}, 'holdout': {'left': 12572, 'right': None, 'matches': 28}, 'fingerprint': '7619030c7287d9a1'}"
+    },
+    {
+     "decision": "the model chosen on the validation records is the final one, read once",
+     "ok": true,
+     "detail": "logistic, read 1"
+    },
+    {
+     "decision": "it beats the exact rule and the single best field, the bootstrap's interval of the difference above zero",
+     "ok": true,
+     "detail": "F1 0.7843 against {'exact': {'pair_f1': 0.0115}, 'single_field': {'pair_f1': 0.0}}"
+    },
+    {
+     "decision": "blocking's recall is measured on the holdout",
+     "ok": true,
+     "detail": "1.0"
+    }
+   ],
+   "holdout_metrics": {
+    "pair_f1": 0.7843,
+    "pair_precision": 0.8696,
+    "pair_recall": 0.7143,
+    "average_precision": 0.7112,
+    "blocking_recall": 1.0
+   },
+   "baselines": {
+    "exact": {
+     "pair_f1": 0.0115
+    },
+    "single_field": {
+     "pair_f1": 0.0
+    }
+   },
+   "g4": true,
+   "seconds": 41.5
+  },
+  {
+   "name": "matching DBLP-ACM",
+   "source": "real",
+   "applies": true,
+   "criteria": {
+    "detection": true,
+    "traps": true,
+    "baseline": true,
+    "artifact": true,
+    "llm_off": true
+   },
+   "checks": [
+    {
+     "decision": "every stage ran on the matching machine",
+     "ok": true,
+     "detail": "{'data': 'matching', 'leakage': 'matching', 'features': 'matching', 'models': 'matching', 'final': 'matching'}"
+    },
+    {
+     "decision": "a record and every record it matches are on one side of the split",
+     "ok": true,
+     "detail": "{'by_entity': True, 'entities': 2686, 'train': {'left': 1572, 'right': 1395, 'matches': 1353}, 'validation': {'left': 549, 'right': 477, 'matches': 460}, 'holdout': {'left': 495, 'right': 422, 'matches': 411}, 'fingerprint': 'c761c61a2a44bbb1'}"
+    },
+    {
+     "decision": "the model chosen on the validation records is the final one, read once",
+     "ok": true,
+     "detail": "boosting, read 1"
+    },
+    {
+     "decision": "it beats the exact rule and the single best field, the bootstrap's interval of the difference above zero",
+     "ok": true,
+     "detail": "F1 0.983 against {'exact': {'pair_f1': 0.9012}, 'single_field': {'pair_f1': 0.9211}}"
+    },
+    {
+     "decision": "blocking's recall is measured on the holdout",
+     "ok": true,
+     "detail": "1.0"
+    }
+   ],
+   "holdout_metrics": {
+    "pair_f1": 0.983,
+    "pair_precision": 0.9806,
+    "pair_recall": 0.9854,
+    "average_precision": 0.9979,
+    "blocking_recall": 1.0
+   },
+   "baselines": {
+    "exact": {
+     "pair_f1": 0.9012
+    },
+    "single_field": {
+     "pair_f1": 0.9211
+    }
+   },
+   "g4": true,
+   "seconds": 19.1
+  },
+  {
+   "name": "matching Abt-Buy",
+   "source": "real",
+   "applies": true,
+   "criteria": {
+    "detection": true,
+    "traps": true,
+    "baseline": true,
+    "artifact": true,
+    "llm_off": true
+   },
+   "checks": [
+    {
+     "decision": "every stage ran on the matching machine",
+     "ok": true,
+     "detail": "{'data': 'matching', 'leakage': 'matching', 'features': 'matching', 'models': 'matching', 'final': 'matching'}"
+    },
+    {
+     "decision": "a record and every record it matches are on one side of the split",
+     "ok": true,
+     "detail": "{'by_entity': True, 'entities': 1076, 'train': {'left': 655, 'right': 659, 'matches': 663}, 'validation': {'left': 206, 'right': 209, 'matches': 209}, 'holdout': {'left': 220, 'right': 224, 'matches': 225}, 'fingerprint': '5319c18202e5e293'}"
+    },
+    {
+     "decision": "the model chosen on the validation records is the final one, read once",
+     "ok": true,
+     "detail": "boosting, read 1"
+    },
+    {
+     "decision": "it beats the exact rule and the single best field, the bootstrap's interval of the difference above zero",
+     "ok": true,
+     "detail": "F1 0.6098 against {'exact': {'pair_f1': 0.0349}, 'single_field': {'pair_f1': 0.5496}}"
+    },
+    {
+     "decision": "blocking's recall is measured on the holdout",
+     "ok": true,
+     "detail": "1.0"
+    }
+   ],
+   "holdout_metrics": {
+    "pair_f1": 0.6098,
+    "pair_precision": 0.5153,
+    "pair_recall": 0.7467,
+    "average_precision": 0.6554,
+    "blocking_recall": 1.0
+   },
+   "baselines": {
+    "exact": {
+     "pair_f1": 0.0349
+    },
+    "single_field": {
+     "pair_f1": 0.5496
+    }
+   },
+   "g4": true,
+   "seconds": 15.9
+  }
+ ],
+ "parts": {
+  "matching": {
+   "level": "certified",
+   "runs": [
+    {
+     "name": "matching DBLP-ACM",
+     "source": "real",
+     "applies": true,
+     "passed": true,
+     "failed": [],
+     "pending": []
+    },
+    {
+     "name": "matching Abt-Buy",
+     "source": "real",
+     "applies": true,
+     "passed": true,
+     "failed": [],
+     "pending": []
+    },
+    {
+     "name": "matching replica, 3 seeds",
+     "source": "replica",
+     "applies": true,
+     "passed": true,
+     "failed": [],
+     "pending": []
+    }
+   ],
+   "missing": [],
+   "pending": [],
+   "failed": []
+  }
+ },
+ "replica_every_seed": true,
+ "limits": [
+  "Every run is the engine's quick mode with no model asked; the kind has no model in its path (the fields compared and the blocking are the person's), so the LLM-off criterion holds by construction, said rather than measured.",
+  "Detection is the router's choice on each case's own data card for the problem's family; the replica counts once, only when every seed passes every criterion.",
+  "The replica's known matches are every copy (the truth); a business knows only the copies it confirmed.",
+  "The real datasets are public benchmarks the owner chose to download (2026-10-19): two catalogues each, labelled in full."
+ ],
+ "rule": "The matching kind judged as a part on the recipes document's five criteria on its trap replica (three seeds) and the real datasets it names, every run through the engine with no model asked; certified only on a trap replica and two real datasets passing every criterion."
+}

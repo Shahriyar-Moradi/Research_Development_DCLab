@@ -37,6 +37,7 @@ QUESTIONS = {
     "regression": "How do I predict a delivery time in minutes?",
     "rare_event": "How do I detect fraud when only 1% of transactions are fraud?",
     "text_tabular": "How do I use a free-text column together with numeric columns?",
+    "matching": "How do I find which records are the same customer in two systems?",  # 30.16
 }
 
 # a second set, written before the aliases were measured against it (16.14): reported, and required to reach most kinds

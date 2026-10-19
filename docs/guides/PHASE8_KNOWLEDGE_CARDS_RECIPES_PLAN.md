@@ -291,6 +291,20 @@ Designed in detail once Part E is built; each keeps DCLab's rules (the validator
   drift and, on the delivery replica's holdout, a real one (cancelled rides only after the training rows). `GET
   /api/projects/{id}/workflow-run`. Left: kinds with their own machine have no service export; G4 fails on the
   time-to-event, uplift and embedded replicas (honest on these seeds, not pinned per kind); the main product's mapping.
+- **30.16 built (2026-10-19), the review's 12 findings fixed:** `dclab_core.matching` (dclab-core 0.92.0; one table or
+  two): the split fixed by entity before any pair is formed (the known matches join records; every pair inside an entity
+  is a match; a repeated id or more than 5% of the matches unfound is refused), each part's records paired with what they
+  may see (the holdout with every record, as a new one would be), blocking by key and time window or by text neighbours
+  both ways with its recall said, features per field (text, number, time, category, flag), the exact rule on the key
+  fields, the single best field, logistic and boosting fitted on training pairs and chosen on validation pairs with each
+  threshold searched over every distinct score, the holdout read once with the F1's interval and its difference to both
+  baselines by an entity bootstrap. The sixteenth kind `matching` with its own machine (G4 passes), its code export (the
+  holdout reproduced), the router's `pairs_table` precondition (a related table of two identifiers and little else) and
+  approach, `certify.run_kind`, the track `research/record-linkage`. The owner allowed two public benchmarks (DBLP-ACM,
+  Abt-Buy; gitignored). Certified (CRT-002, run from committed code): the copied bills, with the plan's exact link (a
+  return by the cashier who sold the bill), pair F1 0.76, 0.70 and 0.78 on three seeds (the exact rule about 0.01);
+  DBLP-ACM 0.983 (one field 0.921); Abt-Buy 0.610 (one field 0.550); every seed and dataset passes every criterion, each
+  win's 90% interval above zero. Left: the kind's own dev and sealed journeys, a service export.
 - **Live tests (2026-10-19, $20 budget; EUR 4.02 spent):** the product's model (Claude) through the harness suite for the
   first time: 10 of 17 (HRN-022; the rules alone 17 of 17). Fixed: a costs question asked again and again and blocking the
   build; a fraud walk built without its entity (no grouped folds); the model reading "the day's orders" as the entity and

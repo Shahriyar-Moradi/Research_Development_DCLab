@@ -1,6 +1,6 @@
 {
  "generated_by": "make kinds-check",
- "at": "2026-10-19T04:42:02+00:00",
+ "at": "2026-10-19T14:22:12+00:00",
  "results": [
   {
    "kind": "rare_event",
@@ -199,6 +199,58 @@
      "decision": "in the engine the chosen model beats the seasonal naive on the holdout, with an interval over series",
      "ok": true,
      "detail": "MASE 0.6578 (95% 0.5695 to 0.748) against 0.9923"
+    }
+   ],
+   "missing": []
+  },
+  {
+   "kind": "matching",
+   "status": "supported",
+   "checks": [
+    {
+     "decision": "blocking keeps the true pairs of the training and validation records",
+     "ok": true,
+     "detail": "{'train': 1.0, 'validation': 1.0}"
+    },
+    {
+     "decision": "the model is chosen on the validation records, never the holdout",
+     "ok": true,
+     "detail": "the best pair F1 on the validation records, each model's threshold set on every validation score (a tie to the simpler: exact, single field, logistic, boosting)"
+    },
+    {
+     "decision": "the chosen model beats the exact rule and the single best field on the holdout, its interval above zero",
+     "ok": true,
+     "detail": "F1 0.76; exact 0.011 (difference (0.6115, 0.8557)); single_field 0.003 (difference (0.619, 0.8661))"
+    },
+    {
+     "decision": "most links it makes are copies (honest repeat purchases are not), and it finds a good share of them",
+     "ok": true,
+     "detail": "recall 0.8636, precision 0.6786, every holdout bill compared with every bill"
+    },
+    {
+     "decision": "every stage ran on the matching machine",
+     "ok": true,
+     "detail": "{'data': 'matching', 'leakage': 'matching', 'features': 'matching', 'models': 'matching', 'final': 'matching'}"
+    },
+    {
+     "decision": "a record and every record it matches are on one side of the split",
+     "ok": true,
+     "detail": "{'by_entity': True, 'entities': 61728, 'train': {'left': 37288, 'right': None, 'matches': 73}, 'validation': {'left': 12365, 'right': None, 'matches': 21}, 'holdout': {'left': 12191, 'right': None, 'matches': 22}, 'fingerprint': '0fd65c0615fe5800'}"
+    },
+    {
+     "decision": "the model chosen on the validation records is the final one, read once",
+     "ok": true,
+     "detail": "logistic, read 1"
+    },
+    {
+     "decision": "it beats the exact rule and the single best field, the bootstrap's interval of the difference above zero",
+     "ok": true,
+     "detail": "F1 0.76 against {'exact': {'pair_f1': 0.011}, 'single_field': {'pair_f1': 0.003}}"
+    },
+    {
+     "decision": "blocking's recall is measured on the holdout",
+     "ok": true,
+     "detail": "1.0"
     }
    ],
    "missing": []

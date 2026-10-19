@@ -1,0 +1,414 @@
+{
+ "schema_version": 1,
+ "campaign_id": "kinds_v1",
+ "experiment_id": "KND-021",
+ "kind": "kind_acceptance",
+ "problem_kind": "matching",
+ "title": "Matching records",
+ "description": "Which records are the same thing: a copied bill and its original, one product or person under two entries.",
+ "metrics": [
+  "Pair F1",
+  "Pair precision",
+  "Pair recall",
+  "Average precision over the candidate pairs"
+ ],
+ "baselines": [
+  "exact",
+  "single_field"
+ ],
+ "reliability": [
+  "blocking's recall: the true pairs it keeps",
+  "the exact rule and the single best field beside the model",
+  "a record and its matches on one side of the split"
+ ],
+ "track": "record-linkage",
+ "runs_in_engine": true,
+ "question": "Which decisions does DCLab reach on a matching records problem (Which records are the same thing: a copied bill and its original, one product or person under two entries), and do they hold?",
+ "hypothesis": "Each decision a careful data scientist reaches on this kind of problem holds on every seed of the kind's replica.",
+ "setup_summary": "The matching records kind's replica on seeds 0, 1, 2, brought as a person would; the five stages of the engine solve it, and each decision is checked on the finished run. No model is called.",
+ "evidence": {
+  "decisions": [
+   {
+    "decision": "blocking keeps the true pairs of the training and validation records",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the model is chosen on the validation records, never the holdout",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the chosen model beats the exact rule and the single best field on the holdout, its interval above zero",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "most links it makes are copies (honest repeat purchases are not), and it finds a good share of them",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "every stage ran on the matching machine",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "a record and every record it matches are on one side of the split",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the model chosen on the validation records is the final one, read once",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "it beats the exact rule and the single best field, the bootstrap's interval of the difference above zero",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "blocking's recall is measured on the holdout",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   }
+  ],
+  "rate": {
+   "held": 27,
+   "of": 27,
+   "share": 1.0,
+   "ci95_checks": [
+    0.875,
+    1.0
+   ],
+   "seeds_all_held": 3,
+   "seeds": 3,
+   "ci95": [
+    0.439,
+    1.0
+   ]
+  },
+  "seeds": [
+   {
+    "seed": 0,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "blocking keeps the true pairs of the training and validation records",
+      "ok": true,
+      "detail": "{'train': 1.0, 'validation': 1.0}"
+     },
+     {
+      "decision": "the model is chosen on the validation records, never the holdout",
+      "ok": true,
+      "detail": "the best pair F1 on the validation records, each model's threshold set on every validation score (a tie to the simpler: exact, single field, logistic, boosting)"
+     },
+     {
+      "decision": "the chosen model beats the exact rule and the single best field on the holdout, its interval above zero",
+      "ok": true,
+      "detail": "F1 0.76; exact 0.011 (difference (0.6115, 0.8557)); single_field 0.003 (difference (0.619, 0.8661))"
+     },
+     {
+      "decision": "most links it makes are copies (honest repeat purchases are not), and it finds a good share of them",
+      "ok": true,
+      "detail": "recall 0.8636, precision 0.6786, every holdout bill compared with every bill"
+     },
+     {
+      "decision": "every stage ran on the matching machine",
+      "ok": true,
+      "detail": "{'data': 'matching', 'leakage': 'matching', 'features': 'matching', 'models': 'matching', 'final': 'matching'}"
+     },
+     {
+      "decision": "a record and every record it matches are on one side of the split",
+      "ok": true,
+      "detail": "{'by_entity': True, 'entities': 61728, 'train': {'left': 37288, 'right': None, 'matches': 73}, 'validation': {'left': 12365, 'right': None, 'matches': 21}, 'holdout': {'left': 12191, 'right': None, 'matches': 22}, 'fingerprint': '0fd65c0615fe5800'}"
+     },
+     {
+      "decision": "the model chosen on the validation records is the final one, read once",
+      "ok": true,
+      "detail": "logistic, read 1"
+     },
+     {
+      "decision": "it beats the exact rule and the single best field, the bootstrap's interval of the difference above zero",
+      "ok": true,
+      "detail": "F1 0.76 against {'exact': {'pair_f1': 0.011}, 'single_field': {'pair_f1': 0.003}}"
+     },
+     {
+      "decision": "blocking's recall is measured on the holdout",
+      "ok": true,
+      "detail": "1.0"
+     }
+    ],
+    "missing": []
+   },
+   {
+    "seed": 1,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "blocking keeps the true pairs of the training and validation records",
+      "ok": true,
+      "detail": "{'train': 1.0, 'validation': 1.0}"
+     },
+     {
+      "decision": "the model is chosen on the validation records, never the holdout",
+      "ok": true,
+      "detail": "the best pair F1 on the validation records, each model's threshold set on every validation score (a tie to the simpler: exact, single field, logistic, boosting)"
+     },
+     {
+      "decision": "the chosen model beats the exact rule and the single best field on the holdout, its interval above zero",
+      "ok": true,
+      "detail": "F1 0.7018; exact 0.0117 (difference (0.5628, 0.805)); single_field 0.0117 (difference (0.5628, 0.805))"
+     },
+     {
+      "decision": "most links it makes are copies (honest repeat purchases are not), and it finds a good share of them",
+      "ok": true,
+      "detail": "recall 0.7692, precision 0.6452, every holdout bill compared with every bill"
+     },
+     {
+      "decision": "every stage ran on the matching machine",
+      "ok": true,
+      "detail": "{'data': 'matching', 'leakage': 'matching', 'features': 'matching', 'models': 'matching', 'final': 'matching'}"
+     },
+     {
+      "decision": "a record and every record it matches are on one side of the split",
+      "ok": true,
+      "detail": "{'by_entity': True, 'entities': 61731, 'train': {'left': 37058, 'right': None, 'matches': 88}, 'validation': {'left': 12494, 'right': None, 'matches': 34}, 'holdout': {'left': 12326, 'right': None, 'matches': 26}, 'fingerprint': '381e3d8219f316d7'}"
+     },
+     {
+      "decision": "the model chosen on the validation records is the final one, read once",
+      "ok": true,
+      "detail": "logistic, read 1"
+     },
+     {
+      "decision": "it beats the exact rule and the single best field, the bootstrap's interval of the difference above zero",
+      "ok": true,
+      "detail": "F1 0.7018 against {'exact': {'pair_f1': 0.0117}, 'single_field': {'pair_f1': 0.0117}}"
+     },
+     {
+      "decision": "blocking's recall is measured on the holdout",
+      "ok": true,
+      "detail": "1.0"
+     }
+    ],
+    "missing": []
+   },
+   {
+    "seed": 2,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "blocking keeps the true pairs of the training and validation records",
+      "ok": true,
+      "detail": "{'train': 1.0, 'validation': 1.0}"
+     },
+     {
+      "decision": "the model is chosen on the validation records, never the holdout",
+      "ok": true,
+      "detail": "the best pair F1 on the validation records, each model's threshold set on every validation score (a tie to the simpler: exact, single field, logistic, boosting)"
+     },
+     {
+      "decision": "the chosen model beats the exact rule and the single best field on the holdout, its interval above zero",
+      "ok": true,
+      "detail": "F1 0.7843; exact 0.0115 (difference (0.6553, 0.8681)); single_field 0.0 (difference (0.6667, 0.88))"
+     },
+     {
+      "decision": "most links it makes are copies (honest repeat purchases are not), and it finds a good share of them",
+      "ok": true,
+      "detail": "recall 0.7143, precision 0.8696, every holdout bill compared with every bill"
+     },
+     {
+      "decision": "every stage ran on the matching machine",
+      "ok": true,
+      "detail": "{'data': 'matching', 'leakage': 'matching', 'features': 'matching', 'models': 'matching', 'final': 'matching'}"
+     },
+     {
+      "decision": "a record and every record it matches are on one side of the split",
+      "ok": true,
+      "detail": "{'by_entity': True, 'entities': 61718, 'train': {'left': 36862, 'right': None, 'matches': 95}, 'validation': {'left': 12443, 'right': None, 'matches': 38}, 'holdout': {'left': 12572, 'right': None, 'matches': 28}, 'fingerprint': '7619030c7287d9a1'}"
+     },
+     {
+      "decision": "the model chosen on the validation records is the final one, read once",
+      "ok": true,
+      "detail": "logistic, read 1"
+     },
+     {
+      "decision": "it beats the exact rule and the single best field, the bootstrap's interval of the difference above zero",
+      "ok": true,
+      "detail": "F1 0.7843 against {'exact': {'pair_f1': 0.0115}, 'single_field': {'pair_f1': 0.0}}"
+     },
+     {
+      "decision": "blocking's recall is measured on the holdout",
+      "ok": true,
+      "detail": "1.0"
+     }
+    ],
+    "missing": []
+   }
+  ]
+ },
+ "claims": [
+  {
+   "claim_id": "KND-021-C1",
+   "kind": "fact",
+   "statement": "Matching records: on 3 of 3 seeds every decision held (95% interval over seeds [0.439, 1.0]); 27 of 27 decision checks held.",
+   "evidence": [
+    "evidence.decisions",
+    "evidence.rate"
+   ],
+   "limitations": [
+    "Invented replicas with planted traps, three seeds: what the kind decides, not how well it does on real data.",
+    "Checks on one seed share its data, so they are not independent: the interval over seeds is the honest one."
+   ]
+  },
+  {
+   "claim_id": "KND-021-C2",
+   "kind": "recommendation",
+   "statement": "On a matching records problem: blocking keeps the true pairs of the training and validation records.",
+   "evidence": [
+    "evidence.decisions.0"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-021-C3",
+   "kind": "recommendation",
+   "statement": "On a matching records problem: the model is chosen on the validation records, never the holdout.",
+   "evidence": [
+    "evidence.decisions.1"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-021-C4",
+   "kind": "recommendation",
+   "statement": "On a matching records problem: the chosen model beats the exact rule and the single best field on the holdout, its interval above zero.",
+   "evidence": [
+    "evidence.decisions.2"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-021-C5",
+   "kind": "recommendation",
+   "statement": "On a matching records problem: most links it makes are copies (honest repeat purchases are not), and it finds a good share of them.",
+   "evidence": [
+    "evidence.decisions.3"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-021-C6",
+   "kind": "recommendation",
+   "statement": "On a matching records problem: every stage ran on the matching machine.",
+   "evidence": [
+    "evidence.decisions.4"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-021-C7",
+   "kind": "recommendation",
+   "statement": "On a matching records problem: a record and every record it matches are on one side of the split.",
+   "evidence": [
+    "evidence.decisions.5"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-021-C8",
+   "kind": "recommendation",
+   "statement": "On a matching records problem: the model chosen on the validation records is the final one, read once.",
+   "evidence": [
+    "evidence.decisions.6"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-021-C9",
+   "kind": "recommendation",
+   "statement": "On a matching records problem: it beats the exact rule and the single best field, the bootstrap's interval of the difference above zero.",
+   "evidence": [
+    "evidence.decisions.7"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-021-C10",
+   "kind": "recommendation",
+   "statement": "On a matching records problem: blocking's recall is measured on the holdout.",
+   "evidence": [
+    "evidence.decisions.8"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  }
+ ],
+ "status": "completed",
+ "started_at": "2026-10-19T14:16:11+00:00",
+ "completed_at": "2026-10-19T14:17:30+00:00",
+ "elapsed_seconds": 78.7,
+ "provenance": {
+  "git_commit": "480d7d080fae84f60ef61357ba40b7b0f635f22c",
+  "git_dirty": true,
+  "python": "3.10.19",
+  "python_implementation": "CPython",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+  "random_state": null,
+  "packages": {
+   "numpy": "2.2.6",
+   "pandas": "2.3.3",
+   "scikit-learn": "1.7.2",
+   "lightgbm": "4.7.0",
+   "xgboost": "3.2.0",
+   "catboost": "1.2.10",
+   "optuna": "5.0.0",
+   "torch": "2.12.1"
+  },
+  "data_sha256": {},
+  "code_committed": true,
+  "command": "python -m dclab_rnd.kinds.campaign",
+  "seeds": [
+   0,
+   1,
+   2
+  ]
+ }
+}
