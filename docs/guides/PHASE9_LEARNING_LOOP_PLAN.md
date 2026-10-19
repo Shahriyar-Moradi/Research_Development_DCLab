@@ -14,8 +14,10 @@ owner are its sources, read here against the repository at `07fa011`:
   steps to add a kind or a modifier. Phase 8 built its registry and first modifiers (30.10, 30.11); here it is the shape
   of what the loop's third level writes.
 
-**Status: a plan only.** The owner's order (2026-10-18): nothing of phase 9 is built while phases 6, 7 and 8 are being
-finished, and the capture of everything keeps running meanwhile. Phase 9 starts after them; the capture they finish is
+**Status: a plan only; widened 2026-10-19.** The owner's order (2026-10-18): nothing of phase 9 is built while phases 6, 7
+and 8 are being finished, and the capture of everything keeps running meanwhile. On 2026-10-19 the owner added that every
+action and decision is recorded for training the three kinds of model, above all the workflow LLM, and that an agentic LLM,
+a model that solves a machine-learning problem by itself as the agent, is fine-tuned beside them (Part F2, 31.13 to 31.16). Phase 9 starts after them; the capture they finish is
 what it learns from.
 
 **What it stands on.** The Learning Loop "uses the four phases and cards from *DCLab Framework: From Problem to Solution
@@ -34,6 +36,20 @@ a small loop that runs many times, not as one large model. **The one number to t
 score on **sealed variants** after DCLab has learned from **N challenges** of that family. If it rises while N stays
 small, DCLab is learning the family; a pass on the original challenge alone proves nothing (it may have been memorised).
 That curve is the product.
+
+**Record everything; train three kinds of model and an agent (the owner, 2026-10-19).** Learning without retraining is
+the first gain, never the only use of an attempt. Every action and every decision of every run (each question asked and
+its answer, each tool called with its arguments and what it returned, each choice with the state it read and its reason,
+each card and gate, each grader verdict, each person's correction or acceptance, each failure and its recovery) is
+recorded whole, before anything is shortened, and stored permanently (the owner's standing rule: capture everything, never
+truncate before saving, keep it all for training). The same traces are the training data of DCLab's models: the decision
+models (the students, phase 7), the **workflow LLM** (one answer at each step of the workflow, with its reasoning), and the
+two combined in the workflow; and, beside them, an **agentic LLM**: one model fine-tuned to *be* the agent, so that it
+understands a machine-learning problem and solves it by itself (it reads the problem and the data, asks what it must,
+plans, calls DCLab's tools, reads what they return, recovers from its own errors, decides when the work is done and reports
+it, end to end) inside DCLab's harness, where the rules, the validator and the gates still decide what may happen (Part
+F2). The loop's attempts, the team's walks, the intern's sessions, the Home agent, self-play and the twin runs are its
+curriculum; nothing a run does is thrown away.
 
 ---
 
@@ -69,7 +85,7 @@ each level is built, cheap and inspectable first.
 | 1. Memory | a judged case joins the case library (request, data card, decisions, verdict, lesson), retrieved by structured filters, then similarity | **A** experience memory (ExpeL) | minutes, local | only as far as retrieval finds the right case | automatic, once judged | a case that looks alike but misleads |
 | 2. Knowledge | a bullet in a versioned playbook per task kind and modifier, with helpful/harmful counters; small delta edits | **B** evolving playbook (ACE, GEPA) | minutes to an hour, one reflection call | yes, when written as a rule of thumb, not a case | a person reads the wording | bloat, or a rewrite that drops old lessons (context collapse) |
 | 3. Capability | a new recipe part, modifier, leakage check or grader test, as code: a coding agent's pull request, certified on variants, approved by a person | **C** skills as code (Voyager) | hours to days a skill | yes, and enforced, not suggested | certification, then a person | code that fits only the original challenge |
-| 4. Model | the weights of the local Qwen workflow model (~8B, with `<think>`) and of the decision models, from accepted trajectories | **D** LoRA SFT, then, optional, **E** RL from the grader | 300 to 2,000 clean examples, about 30 hours a run on the M1 Max 64 GB; RL thousands of rollouts (GRPO used 24,000 in GEPA's comparison) | yes, without the long prompt | the sealed exam | locking in mistakes from the data, forgetting; with E, gaming the grader |
+| 4. Model | the weights of the local Qwen workflow model (~8B, with `<think>`), of the decision models, and of the **agentic LLM** that acts as the agent itself (Part F2), from accepted trajectories | **D** LoRA SFT, then, optional, **E** RL from the grader | 300 to 2,000 clean examples, about 30 hours a run on the M1 Max 64 GB; the agentic LLM needs whole trajectories, several thousand steps; RL thousands of rollouts (GRPO used 24,000 in GEPA's comparison) | yes, without the long prompt | the sealed exam | locking in mistakes from the data, forgetting; with E, gaming the grader; for the agentic LLM, acting where only a rule or a person may |
 
 A and B are where the loop starts and where most of the first year's gain is expected. C makes a lesson permanent and
 enforceable, and matches DCLab's rule: rules execute, the language model understands, people approve. D pays off only
@@ -94,6 +110,13 @@ its trace against the rubric; the **reflector** compares the failed and passed a
 
 The four stores are the four levels: case memory and the playbook change with every challenge; skill code changes only
 through a reviewed pull request; the SFT set grows passively from accepted runs and is used only when large enough.
+
+**Capture is part of every seat (the owner, 2026-10-19).** The attempt trace is kept whole and permanently, in a form a
+model can be trained on, not only read: every message the agent saw and wrote, every tool call with its arguments and its
+whole result, the state each decision read, the reason given, the verdict and what a person changed. It is written
+before anything is cut for a contract field (the never-truncate rule), tagged by who produced it (a rule, a student, the
+local model, Claude, a person) and by its consent, and archived (`make archive`). An attempt that failed is kept as
+carefully as one that passed: the pair is what teaches (ExpeL), and the failure is the agentic LLM's lesson in recovery.
 
 ## Part D. Rules and guardrails
 
@@ -267,6 +290,43 @@ that still has unused learning variants, and in it the variant whose generator p
 learned. Every tenth run is a regression pass over every family, so an old lesson cannot silently break; every promotion
 re-runs the whole curriculum.
 
+## Part F2. The agentic LLM: a model that is the agent (the owner, 2026-10-19)
+
+**What it is.** Beside the workflow LLM (asked one step at a time by DCLab's code) and the decision models (one small
+choice each), DCLab fine-tunes one LLM to act as the agent itself: given a problem and its data, it runs the whole solving
+loop by itself, choosing the next action at every turn. The owner's words: *fine tune a LLM model that behaves like an agent
+itself, and understands and solves by itself.* It is the difference between a model that answers a question DCLab asks and
+a model that decides which question to ask, which tool to call, what the result means and what to do next, until the
+problem is solved or it says honestly that the data cannot answer it.
+
+**What it is trained on.** Whole agent trajectories, one example a run, in the tool-calling chat format the base model
+was trained for: the system's tools (the registry's, `dclab_rnd.agents.default_registry()`, never a private list) and
+rules, the person's words and the data card (bands and roles, never a value), then each turn: the model's reasoning, the
+action (a tool and its arguments, a question to the person, a stop), and what came back. Sources, each tagged:
+
+| Source | What it gives | Use |
+|---|---|---|
+| the harness's agents (the Home agent, the intern, the team's walks, 21.1, 28.x) | real turns, tool calls and results, the validator's refusals | training, once accepted by the grader or a person |
+| the learning loop's attempts (31.x) | a pass and a fail on the same pack, the first wrong step, the lesson | training, the pair as a preference |
+| self-play (27.3) and the journeys' written people (20.10) | whole verified solves, from the first sentence to the holdout number | training (verified by construction) |
+| a person's corrections (29.10, the Solution page, the fit edits of 30.13) | where the agent was wrong, and the right action | training, weighted above the agent's own |
+| Claude as an AI-first agent (the twin runs, 25.x) | a strong agent's trajectories on the same problems | evaluation and comparison by default; as training only under the owner's rule for Claude's outputs (tagged, apart, removable in one step) and a check of the provider's terms |
+
+**How it is trained and judged.** The same ladder as Level 4: LoRA SFT on accepted trajectories (the owner's run), then
+preferences from pass/fail pairs, then, optional and last, RL from the grader. It is judged on the loop's sealed variants
+and the outside exam (31.12) beside the current system and Claude, by the same grader, and on what matters for an agent:
+the share of problems solved end to end, the first wrong step, the moves the validator refused, the questions it asked,
+the turns and the cost. **What never changes:** it acts only through the registry's tools and their guards; every move
+passes the graph validator; the holdout is still read once, after the gates; a sealed set is never trained on. It serves in
+shadow first (its actions logged beside the harness's, never used), then through the same routing levels as a student
+(flag, act with a check, act), each step on measured evidence and the owner's switch.
+
+**What exists to start from.** The harness records every agent step (`agents/harness.py`, traced); `studio/trajectories.py`
+exports opted-in projects' moves and agent steps; the lake has an `agent_step` family (26.1); the decision ledger keeps
+every choice (19.6); the twin runs keep Claude's whole agent record (25.3). **What is new:** one trajectory record whole
+enough to train on (every turn, tool call and full result, never cut), its builder into the tool-calling format with a
+sealed partition by problem family, and the agentic model's exam (31.13 to 31.16).
+
 ## Part G. What exists and what is new
 
 | Loop part | What DCLab already has | What is new |
@@ -299,6 +359,10 @@ its development record, the gate, capture in its "Done when", gates fixed before
 | **3. Fine-tune** (after 300+ accepted runs; about 30 hours a run on the M1 Max 64 GB) | 31.10 The learning export | accepted trajectories and decisions into the lake's families, tagged with the bullets read; LoRA on the Qwen workflow model and the decision-point models (the owner's run) | the tuned model without the playbook matches the base model with the playbook on sealed variants |
 | **4. RL** (optional; only if stage 3 plateaus; rented GPUs) | 31.11 RL from the grader | GRPO-style training on the grader's reward, the smallest decision model first | the sealed score rises, and a red team cannot raise the reward without raising the real score; the owner's approval |
 | outside | 31.12 The outside exam | 5 to 10 low-complexity MLE-bench competitions as a permanent sealed set | the owner's approval for the downloads; scored once a promotion of the whole loop |
+| **capture** (from day one, beside every stage) | 31.13 The whole trajectory record | `dclab_core.trajectory` v1: one run as turns (what the agent saw, its reasoning, the action, the tool's whole result), written by the harness for every agent and every loop attempt before anything is cut, tagged by producer and consent, archived | a test reads back every turn of an intern session, a team walk and a loop attempt, whole; nothing shortened before it was saved |
+| | 31.14 The agentic training set | the builder into the tool-calling chat format, a sealed partition by problem family, pass/fail pairs as preferences, Claude's trajectories apart under the owner's rule | the set's manifest; no sealed family in training; a whole trajectory replays through the registry's tools |
+| **agentic model** (after 31.10; the owner's runs) | 31.15 The agentic LLM, fine-tuned | LoRA SFT of the base model on 31.14 (the owner's run), then preferences | on sealed variants it solves more problems end to end than the base model in the same harness, with no move the validator would refuse |
+| | 31.16 The agentic LLM beside the agents | the tuned model in shadow beside the harness's agents, then through the routing levels on measured evidence | its shadow record on real sessions; served only where it measured better, retired in one change |
 
 **What to track from day one:** for each family, the challenges learned from, the check score, the sealed score, the
 playbook's size and the spend a challenge.
@@ -328,6 +392,9 @@ learned, and that each lesson is written where a person can read it.
 | Fine-tuning runs | 31.10 | the owner's, on the M1 Max, when a family has 300+ accepted examples |
 | RL and rented GPUs | 31.11 | not before 31.10's result; the owner's decision |
 | MLE-bench downloads and compute | 31.12 | the owner's choice, a low-complexity subset first |
+| The agentic LLM's base model | 31.15 | a ~8B model trained for tool calls (Qwen's line), the same family as the workflow LLM so one runtime serves both; larger only if the exam says the size is the ceiling |
+| Claude's trajectories as training data | 31.14 | evaluation and comparison by default; training only as the owner's rule for Claude's outputs allows (tagged, apart, removable) and after a check of the provider's terms |
+| The agentic LLM's fine-tuning runs | 31.15 | the owner's, when 31.14 holds a few thousand accepted steps across at least three families |
 
 ---
 
@@ -355,6 +422,18 @@ learned, and that each lesson is written where a person can read it.
 
 **مراحل:** ۰ بستر آزمون (حدود دو هفته، محلی)؛ ۱ حافظه و راهنما (حدود سه هفته)؛ ۲ مهارت به‌صورت کد (حدود چهار هفته برای
 خانوادهٔ اول)؛ ۳ تنظیم دقیق؛ ۴ یادگیری تقویتی (اختیاری). هیچ مرحله‌ای پیش از گذشتن از آزمون خروج مرحلهٔ قبل شروع نمی‌شود.
+
+**ثبت همه‌چیز، و آموزش سه نوع مدل و یک عامل (مالک، ۲۰۲۶-۱۰-۱۹):** یادگیری بدون آموزش دوباره فقط سود اول است، نه تنها
+کاربرد یک تلاش. هر کنش و هر تصمیمِ هر اجرا (هر پرسش و پاسخ، هر ابزاری که با ورودی‌هایش صدا زده شد و نتیجهٔ کاملش، هر انتخاب
+با وضعیتی که خواند و دلیلش، هر کارت و دروازه، هر حکم داور، هر اصلاح یا پذیرش انسان، هر خطا و جبرانش) کامل و پیش از هر کوتاه
+کردنی ثبت و برای همیشه نگه‌داری می‌شود. همین ردها داده‌های آموزش مدل‌های DCLab‌اند: مدل‌های تصمیم (شاگردها)، **مدل زبانیِ
+گردش‌کار** (پاسخ هر گام گردش‌کار با استدلالش) و ترکیب این دو در گردش‌کار؛ و در کنار آن‌ها **یک مدل زبانیِ عامل‌محور**: مدلی که
+تنظیم دقیق می‌شود تا خودش عامل باشد، یعنی خودش یک مسئلهٔ یادگیری ماشین را بفهمد و حل کند (مسئله و داده را بخواند، آنچه
+لازم است بپرسد، برنامه بریزد، ابزارهای DCLab را صدا بزند، نتیجه را بفهمد، از خطای خودش بازگردد، بداند کار کی تمام است و
+گزارش بدهد)، همه درون بستر DCLab که قاعده‌ها، اعتبارسنج و دروازه‌ها همچنان تصمیم می‌گیرند چه مجاز است. داده‌اش ردهای کامل
+عامل‌هاست (عامل خانه، کارآموز، گام‌های تیم، تلاش‌های حلقه، خودبازی و اجراهای دوقلو)؛ ردهای Claude پیش‌فرض فقط برای ارزیابی‌اند.
+بسته‌های ۳۱.۱۳ تا ۳۱.۱۶: ثبت کامل هر رد، ساخت مجموعهٔ آموزش در قالب فراخوانی ابزار، تنظیم دقیق مدل عامل (اجرای مالک) و
+گذاشتن آن در سایه کنار عامل‌ها و ارتقا فقط با شواهد.
 
 **سه قاعدهٔ ثابت:** عامل حل‌کننده هرگز کلید پاسخ را نمی‌بیند؛ هیچ قاعده‌ای برای قبولی یک چالش سست نمی‌شود؛ انسان هر تغییر کد
 و هر ارتقا به پیش‌فرض محصول را تأیید می‌کند.
