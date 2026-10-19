@@ -1,0 +1,45 @@
+{
+ "package": "32.9",
+ "title": "The curators: a librarian and a curator per model type place every record, a guarded write checks each placement, Claude only in shadow",
+ "date": "2026-10-20",
+ "request": "An agentic system that puts the right data for each model in the right place: a curator per model type, validated output, Claude where it measures better, in shadow first.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.9",
+ "plan": [
+  "Rules per model type: which records fit, the folder, the quality.",
+  "One guarded write: the layout, the contract, consent, a silver label never kept as confirmed.",
+  "Claude's placements in shadow, kept and never used.",
+  "Curate only record files that changed."
+ ],
+ "decisions": [
+  {
+   "decision": "Claude's curator is one completion per batch, not a tool loop.",
+   "why": "Placing a record is a classification; a loop would cost more and decide nothing more."
+  },
+  {
+   "decision": "The model sees each record's shape only.",
+   "why": "Names and short codes are enough to place it; no value needs to leave."
+  }
+ ],
+ "change": "dclab_rnd.store.curators (place, librarian, curate), curators.write (check), curators.model (ask, shape_of), the purpose store_curator and its prompt, the conductor's curate step.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A label with no point was placed nowhere.",
+   "scenario": "A test label without its point.",
+   "cause": "Placement needs the point.",
+   "fix": "The test labels carry their points, as the ledger's do.",
+   "test": "test_each_record_goes_where_it_fits_and_the_rest_is_kept_out_with_why"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Every record is placed for the models it can teach, with its quality and reason, each placement checked; Claude's answers wait in shadow.",
+ "lessons": [
+  "Show a model the shape of a record, not its content, when the shape decides."
+ ],
+ "risks": [
+  "The rules' placements are first choices, unmeasured against a person's review."
+ ],
+ "commits": []
+}

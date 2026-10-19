@@ -121,6 +121,11 @@ PURPOSES: dict[str, Purpose] = {
                                             "table's name, columns and rows, each column's kind, missing share and distinct count, and computed "
                                             "aggregates (a count, a sum, a mean, by up to two groups, at most fifty each), personal values masked "
                                             "(package 30.21); never a row", cell_values=2 * 50, keeps_text=True),
+    "reasoning_teacher": Purpose("standard", 90, "one record of the store (scrubbed: its fields and codes, the person's words redacted, never a "
+                                                 "row or a cell value) and the answer it led to, to write the reasoning behind it (32.10)", keeps_text=True),
+    "store_curator": Purpose("cheap", 60, "the store's records in their shape only (32.9): each record's kind, type, capture flags, its ledger "
+                                          "point and the names and codes of its body's fields (never their values' words, rows or cell values), "
+                                          "and the eight model types with their folders"),
     "metric_question": Purpose("cheap", 60, "a business question about a number, as the person typed it, and the semantic layer's menu: the "
                                             "tested templates, the approved metrics' names and definitions, each dimension's values (at most fifty "
                                             "each: a mall's, a brand's or a category's name), what the data does not hold, and the data's first "

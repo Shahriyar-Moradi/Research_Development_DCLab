@@ -1,0 +1,50 @@
+{
+ "package": "32.11",
+ "title": "The decision sets: M1, M2 and M3 by point, system and family, the best label first, silver apart, sealed once, and teacher-student pairs",
+ "date": "2026-10-20",
+ "request": "Decision sets for M1, M2, M3 from the ledger's records and labels, with teacher-student pairs.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.11",
+ "plan": [
+  "Read the curators' standing placements.",
+  "Join each decision to its best label.",
+  "Write each set with its splits, manifest and card, sealed once."
+ ],
+ "decisions": [
+  {
+   "decision": "A confirmed label wins over a teacher's, which weighs 0.5.",
+   "why": "The owner's rule: silver labels apart and lower."
+  }
+ ],
+ "change": "dclab_rnd.store.sets (write_set, card), sets.decisions (placements, build).",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A teacher's label kept the full weight.",
+   "scenario": "Silver examples weighed 1.0.",
+   "cause": "The weight was taken from the decision's placement.",
+   "fix": "A teacher's or a rule's label weighs 0.5.",
+   "test": "test_the_sets_hold_the_best_labels_split_by_group_with_a_manifest_and_a_card"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A state the contract refuses never entered a set, silently.",
+   "scenario": "A test state's band was not a ledger band.",
+   "cause": "The contract refused it.",
+   "fix": "Kept: it is counted as refused by its contract.",
+   "test": "test_the_sets_hold_the_best_labels_split_by_group_with_a_manifest_and_a_card"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Each decision point has its training set per model type with its best labels, its splits sealed once, and its pairs.",
+ "lessons": [
+  "Let the contract refuse what the rules allow: a test's wrong band was caught by it."
+ ],
+ "risks": [
+  "The lake's per-point sets are not yet a view of these."
+ ],
+ "commits": []
+}

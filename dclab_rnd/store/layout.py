@@ -95,6 +95,23 @@ class Layout:
             raise ValueError(f"{kind!r} is not a kind ({', '.join(KINDS)})")
         return self.root / "records" / kind / _part(workspace) / f"{_part(month)}.jsonl.gz"
 
+    def records_of(self, kind: str) -> Path:
+        """``records/<kind>/``: every workspace's records of the kind."""
+        if kind not in KINDS:
+            raise ValueError(f"{kind!r} is not a kind ({', '.join(KINDS)})")
+        return self.root / "records" / kind
+
+    def unshaped(self, kind: str, workspace: str) -> Path:
+        return self.records_of(kind) / _part(workspace) / "unshaped.jsonl"
+
+    def records_lock(self) -> Path:
+        """One shaping at a time: the worker's run and a person's command never write the same records."""
+        return self.root / "records" / ".lock"
+
+    def shaped_state(self, kind: str) -> Path:
+        """What the shapers last read of the kind (its index's size and hash): an unchanged kind is not shaped again."""
+        return self.records_of(kind) / ".shaped.json"
+
     # tier 3
     def sets(self, model_type: str, *parts: str) -> Path:
         if model_type not in MODEL_TYPES:
@@ -115,6 +132,13 @@ class Layout:
         """``quarantine/`` itself, or one reason's folder below it."""
         base = self.root / "quarantine"
         return base / _part(reason) if reason else base
+
+    def quarantine_file(self, reason: str, run: str) -> Path:
+        return self.quarantine(reason) / f"{_part(run)}.jsonl"
+
+    def curation_state(self) -> Path:
+        """Which record files the curators last read (their hashes): an unchanged file is not curated again."""
+        return self.root / "raw" / "curation" / ".curated.json"
 
     def forgotten(self) -> Path:
         return self.root / "forgotten"

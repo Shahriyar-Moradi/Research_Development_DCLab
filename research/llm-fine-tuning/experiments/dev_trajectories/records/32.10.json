@@ -1,0 +1,40 @@
+{
+ "package": "32.10",
+ "title": "The reasoning of every LLM example: recorded thinking kept whole by the gateway, reasoning from the record, a teacher's only when checked",
+ "date": "2026-10-20",
+ "request": "Every LLM example has a reasoning and thinking part, labelled by its source.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.10",
+ "plan": [
+  "The gateway keeps each exchange whole, thinking included.",
+  "Reasoning written by code from a decision's or a move's record.",
+  "A teacher's reasoning checked: every number from the record, no overclaim."
+ ],
+ "decisions": [
+  {
+   "decision": "A purpose shown cell values keeps only its exchange's shape.",
+   "why": "A cell in a prompt must not reach the store."
+  }
+ ],
+ "change": "Gateway._keep_exchange (model_exchanges/), store.reasoning (recorded, from_record, check, teacher), the purpose reasoning_teacher and its prompt.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The gateway kept no thinking and cut prompts at 20,000 characters.",
+   "scenario": "Every exchange's thinking lost; long prompts cut.",
+   "cause": "Only a prompt, cut, was logged.",
+   "fix": "Each exchange kept whole in its own log.",
+   "test": "test_the_gateway_keeps_each_exchange_whole_with_its_thinking"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Every model exchange is kept whole with its thinking, and every LLM example can carry reasoning whose source is said.",
+ "lessons": [
+  "Look for truncation in every log a model's output passes through."
+ ],
+ "risks": [
+  "The teacher has not run live yet; its reasoning's quality is unmeasured."
+ ],
+ "commits": []
+}

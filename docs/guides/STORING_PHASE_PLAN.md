@@ -911,6 +911,30 @@ gate. Model spend:
   - **Left open:**
     - the first push of the store's bulk (about 500 MB, compressed) to the records repository, after Git LFS is installed;
     - the keepers named in the rules for 32.7 and 32.9.
+- **32.7 to 32.11 built (2026-10-20), a review's 17 findings fixed.**
+  - **Other agents:** every Claude Code session on this repository is kept, the main checkout and every worktree.
+    - Credentials of every common shape are removed at capture.
+    - A tester's machine reads none of its own sessions unless they are named explicitly.
+    - Screenshots are counted only.
+    - Each MCP call is kept whole, whether it worked or not.
+  - **Shapers:** each entry is shaped once, streamed into chunks under 20 MB.
+    - A tool's printed table and every contact in a transcript's words are removed; ids, hashes and times are left as they are.
+    - Database rows are read too.
+    - Labels are sealed with their decisions, and drafts with the projects they became.
+    - A rebuild is made beside the old records and swapped in.
+  - **Curators:**
+    - a rule curator per model type;
+    - a guarded write;
+    - Claude in shadow only, shown each record's shape and never its content.
+  - **Reasoning:**
+    - the gateway keeps each exchange whole, thinking included, where the workspace keeps model text;
+    - reasoning can be written from the record;
+    - a teacher's reasoning is checked against its record.
+  - **Decision sets:** M1, M2 and M3 by point, system and family.
+    - The best label wins; a teacher's weighs 0.5.
+    - The sealed split is written once.
+    - Teacher-student pairs are kept.
+  - **Left open:** the lake's per-point sets as a view of these; live runs of the curator and the teacher (within the budget).
 
 ---
 

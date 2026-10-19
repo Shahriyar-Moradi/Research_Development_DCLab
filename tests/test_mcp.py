@@ -24,7 +24,8 @@ class McpOverHttpTests(unittest.TestCase):
             from dclab_rnd.agentic.server import create_app
         except ImportError as error:
             self.skipTest(f"dependencies not installed: {error}")
-        self.client = TestClient(create_app(Path(tempfile.mkdtemp())))
+        self.home = Path(tempfile.mkdtemp())
+        self.client = TestClient(create_app(self.home))
         self.client.__enter__()
         self.addCleanup(self.client.__exit__, None, None, None)
 
@@ -49,6 +50,11 @@ class McpOverHttpTests(unittest.TestCase):
         self.assertEqual(self.client.get(f"/api/projects/{project_id}").status_code, 200)
         bad = self.post(rpc("tools/call", {"name": "create_project", "arguments": {"name": "x"}}, 5))
         self.assertTrue(bad["result"].get("isError") or "error" in json.loads(bad["result"]["content"][0]["text"]))
+        services = self.client.app.state.services  # 32.7: every call kept whole as its own source, its run with it
+        home = getattr(services.projects, "files_home", None) or services.projects.home.parent
+        calls = [json.loads(line) for line in (Path(home) / "mcp" / "calls.jsonl").read_text(encoding="utf-8").splitlines()]
+        self.assertEqual([c["tool"] for c in calls][:2], ["search_evidence", "create_project"])  # a call the protocol refused never reached a tool
+        self.assertTrue(all(c["run"] for c in calls))
 
     def test_status_advertises_the_endpoint(self):
         info = self.client.get("/api/intern").json()

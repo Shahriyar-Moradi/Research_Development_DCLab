@@ -475,11 +475,42 @@ class DataLimitTests(unittest.TestCase):
         self.assertFalse({m for m in seen if m.startswith(("Q7Kxnote", "Q7Kxcity"))})  # a column neither grouped nor shown: never a value of it
         self.assertFalse({m for m in seen if m in {f"{v:.4f}" for v in marked_table()["spend"]}})  # never a row's number, only the means
 
+    def test_the_store_curator_sees_a_records_shape_never_its_values(self):  # 32.9
+        from dclab_core.store import Provenance, StoreRecord
+        from dclab_rnd.store.curators import model
+
+        t = marked_table()
+        row = {c: str(t[c].iloc[0]) for c in t.columns}
+        prov = Provenance(entry="e", sha256="0" * 64, source="s", workspace="w", at="2026-10-20T10:00:00+00:00")
+        record = StoreRecord(id="r1", kind="decisions", type="decision", at="2026-10-20T10:00:00+00:00", provenance=prov,
+                             body={"point": "column.is_identifier", "used": "rule", "row": row, "reason": f"see {row}", "group": "project:p1"})
+        gw = gateway({"store_curator": [{"content": "[]", "tool_calls": [], "usage": {"input_tokens": 0, "output_tokens": 0},
+                                         "assistant_message": {"role": "assistant", "content": "[]"}}]})
+        model.ask([record], gateway=gw)
+        self.assertEqual(self.assertWithinLimit("store_curator"), set())
+        self.assertFalse(any(PERSONAL.search(p) for p in Capture.prompts.get("store_curator", [])))
+
+    def test_the_reasoning_teacher_sees_a_scrubbed_record_never_a_row(self):  # 32.10
+        from dclab_core.store import Provenance, StoreRecord
+        from dclab_rnd.store import reasoning, shapers
+
+        t = marked_table()
+        row = {c: str(t[c].iloc[0]) for c in t.columns}
+        body = shapers._clean({"point": "column.is_identifier", "preview": list(row.values()), "top": list(row.values()),
+                               "reason": f"mail {row.get('email', '')}", "used": "rule"})
+        prov = Provenance(entry="e", sha256="0" * 64, source="s", workspace="w", at="2026-10-20T10:00:00+00:00")
+        record = StoreRecord(id="r1", kind="decisions", type="decision", at="2026-10-20T10:00:00+00:00", provenance=prov, body=body)
+        gw = gateway({"reasoning_teacher": [{"content": "It is unique.", "tool_calls": [], "usage": {"input_tokens": 0, "output_tokens": 0},
+                                             "assistant_message": {"role": "assistant", "content": "It is unique."}}]})
+        reasoning.teacher(record, "yes", gateway=gw)
+        self.assertEqual(self.assertWithinLimit("reasoning_teacher"), set())
+        self.assertFalse(any(PERSONAL.search(p) for p in Capture.prompts.get("reasoning_teacher", [])))
+
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
                   "decision_answer", "decision_labeler", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first", "solver_answer",
-                  "understanding_critic", "solution_challenger", "debate_judge", "metric_question", "workspace_chat"}
+                  "understanding_critic", "solution_challenger", "debate_judge", "metric_question", "workspace_chat", "store_curator", "reasoning_teacher"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

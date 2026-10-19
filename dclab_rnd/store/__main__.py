@@ -1,6 +1,7 @@
 """``python -m dclab_rnd.store run|status|catalog|fixes|accept`` (the storing phase, docs/guides/STORING_PHASE_PLAN.md):
 
-- ``run``: one whole run of the conductor (every keeper over ``agent_runs``), its record printed;
+- ``run``: one whole run of the conductor (every keeper over ``agent_runs``, then the shapers), its record printed;
+- ``shape``: ``records/`` rebuilt from ``raw/`` (every kind, unchanged or not);
 - ``status``: what the store holds, kind by kind;
 - ``catalog``: ``CATALOG.json``, ``README.md`` and the schemas rewritten;
 - ``fixes``: every failing test linked to the run that passed it next (proposed) or not yet (open);
@@ -21,7 +22,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     from .store import Store
 
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.store", description=__doc__.split("\n")[0])
-    parser.add_argument("command", choices=["run", "status", "catalog", "fixes", "accept"])
+    parser.add_argument("command", choices=["run", "shape", "status", "catalog", "fixes", "accept"])
     parser.add_argument("fix", nargs="?", help="accept: the fix's id (from the fixes command)")
     parser.add_argument("--root", default=None, help="the store's root (DCLAB_STORE, else training_records/store)")
     parser.add_argument("--by", default=None, help="accept: who accepts it")
@@ -34,6 +35,11 @@ def main(argv: Optional[list[str]] = None) -> int:
                          {"steps": [{k: s[k] for k in ("name", "read", "kept", "unchanged", "error")} | {"errors": len(s["errors"])} for s in record["steps"]]},
                          indent=1))
         return 1 if record["failed"] else 0
+    if args.command == "shape":
+        from . import shapers
+
+        print(json.dumps(shapers.shape(layout, force=True), indent=1))
+        return 0
     if args.command == "status":
         print(json.dumps({"root": str(layout.root), "kinds": Store(layout).counts()}, indent=1))
     elif args.command == "catalog":

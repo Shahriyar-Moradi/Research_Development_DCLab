@@ -56,12 +56,39 @@ def build_server(toolbox: Toolbox):
         from .agents import harness  # 21.1: each call of an MCP client is a run of the "mcp" agent, recorded even when it raises
 
         project = (arguments or {}).get("project_id")
-        with experience.bind(project=project if isinstance(project, str) else None), harness.session("mcp") as current:
-            with current.timed(name, arguments or {}) as out:
-                out["result"] = result = await asyncio.to_thread(toolbox.call, name, arguments or {})
+        result: Any = None
+        error: str | None = None
+        run: str | None = None
+        try:
+            with experience.bind(project=project if isinstance(project, str) else None), harness.session("mcp") as current:
+                run = current.run_id
+                with current.timed(name, arguments or {}) as out:
+                    out["result"] = result = await asyncio.to_thread(toolbox.call, name, arguments or {})
+        except Exception as exc:
+            error = f"{type(exc).__name__}: {exc}"
+            raise
+        finally:
+            _keep_call(toolbox, run, name, arguments or {}, result, error)  # 32.7: kept whether it worked or not
         return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False, default=str))]
 
     return server
+
+
+def _keep_call(toolbox: Toolbox, run: str | None, name: str, arguments: dict[str, Any], result: Any, error: str | None = None) -> None:
+    """32.7: an MCP client's call kept whole as its own source, ``<workspace>/mcp/calls.jsonl`` (the store's keepers keep it,
+    the keys that quote a table's cells removed). Never a reason for the call to fail."""
+    from datetime import datetime, timezone
+
+    try:
+        projects = toolbox.projects
+        home = getattr(projects, "files_home", None) or Path(projects.home).parent  # PostgreSQL's stores keep their files there
+        (Path(home) / "mcp").mkdir(parents=True, exist_ok=True)
+        line = json.dumps({"at": datetime.now(timezone.utc).isoformat(timespec="microseconds"), "run": run, "tool": name,
+                           "arguments": arguments, "result": result, "error": error}, ensure_ascii=False, default=str)
+        with open(Path(home) / "mcp" / "calls.jsonl", "a", encoding="utf-8") as fh:
+            fh.write(line + "\n")
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def session_manager(toolbox: Toolbox, *, json_response: bool = True):

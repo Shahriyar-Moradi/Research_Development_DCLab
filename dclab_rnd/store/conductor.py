@@ -81,6 +81,40 @@ def conduct(env: Any = None, layout: Optional[Layout] = None, keepers: Optional[
             session.step(f"keep:{keeper.name}", {"kinds": step["kinds"]},
                          {k: step[k] for k in ("read", "kept", "unchanged", "error")} | {"refused": len(step["refused"])}, step["seconds"],
                          verdict="failed" if step["error"] else "ok")
+        if scope == "all":  # tier 2 after tier 1 (a removal's run keeps only; the next whole run shapes it)
+            started = time.monotonic()
+            shaped: dict[str, Any] = {"name": "shapers", "stage": "shape", "error": None, "errors": [], "read": 0, "kept": 0, "unchanged": 0}
+            try:
+                from . import shapers
+
+                report = shapers.shape(layout)
+                shaped.update(records=report["records"], unshaped=report["unshaped"], unchanged_kinds=report["unchanged"])
+            except Exception as exc:  # noqa: BLE001 - the raw tier stands; the next run shapes again
+                shaped["error"] = f"{type(exc).__name__}: {exc}"
+                shaped["trace"] = traceback.format_exc()[-4000:]
+            shaped["seconds"] = round(time.monotonic() - started, 3)
+            record["steps"].append(shaped)
+            session.step("shape", {}, {k: shaped.get(k) for k in ("records", "unshaped", "error")}, shaped["seconds"],
+                         verdict="failed" if shaped["error"] else "ok")
+            started = time.monotonic()  # the curators after the shapers: each record placed for the models it can teach
+            curated: dict[str, Any] = {"name": "curators", "stage": "curate", "error": None, "errors": [], "read": 0, "kept": 0, "unchanged": 0}
+            try:
+                from . import curators
+
+                shadow = None
+                if os.environ.get("DCLAB_STORE_CURATOR_MODEL") == "shadow":  # Claude beside the rules, never used (costs: off unless asked)
+                    from .curators import model as curator_model
+
+                    shadow = curator_model.ask
+                report = curators.curate(layout, run=f"{run}-curation", model=shadow)
+                curated.update(decisions=report["decisions"], shadow=report["shadow"], by_model=report["by_model"], quarantined=report["quarantined"])
+            except Exception as exc:  # noqa: BLE001
+                curated["error"] = f"{type(exc).__name__}: {exc}"
+                curated["trace"] = traceback.format_exc()[-4000:]
+            curated["seconds"] = round(time.monotonic() - started, 3)
+            record["steps"].append(curated)
+            session.step("curate", {}, {k: curated.get(k) for k in ("decisions", "shadow", "error")}, curated["seconds"],
+                         verdict="failed" if curated["error"] else "ok")
     record["ended"] = now()
     record["failed"] = [s["name"] for s in record["steps"] if s["error"]]
     record["source_errors"] = sum(len(s["errors"]) for s in record["steps"])

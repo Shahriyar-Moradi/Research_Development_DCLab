@@ -48,7 +48,7 @@ class LostTest(unittest.TestCase):
         from dclab_rnd.store import conductor
         from dclab_rnd.store.keepers import standard
 
-        return conductor.conduct({"agent_runs": self.base, "test_runs": Path(tempfile.mkdtemp())}, self.layout, standard.install({}))
+        return conductor.conduct({"agent_runs": self.base, "test_runs": Path(tempfile.mkdtemp()), "claude_projects": None}, self.layout, standard.install({}))
 
     def test_a_jobs_states_and_a_sessions_saves_are_each_a_version_and_kept(self):
         from dclab_rnd.intern.sessions import SessionStore

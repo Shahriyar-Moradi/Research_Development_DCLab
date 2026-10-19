@@ -57,7 +57,7 @@ class KeepersTest(unittest.TestCase):
         self.base = runs_folder()
         self.test_runs = Path(tempfile.mkdtemp()) / "test_runs"
         write(self.test_runs / "runs.jsonl", '{"ok": true}\n')
-        self.env = {"agent_runs": self.base, "test_runs": self.test_runs}
+        self.env = {"agent_runs": self.base, "test_runs": self.test_runs, "claude_projects": None}  # never this machine's sessions
         self.layout = Layout(Path(tempfile.mkdtemp()) / "store")
         self.store = Store(self.layout)
         self.keepers = standard.install({})

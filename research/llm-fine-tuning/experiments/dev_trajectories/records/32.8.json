@@ -1,0 +1,150 @@
+{
+ "package": "32.8",
+ "title": "The shapers: raw entries into records, each shaped once and streamed, never holding a secret, a contact or a table's rows",
+ "date": "2026-10-20",
+ "request": "Every raw entry into normalised records with provenance, capture flags and split, scrubbed, rebuildable byte for byte.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.8",
+ "plan": [
+  "One record per JSON line, per JSON file version, per test-run line.",
+  "Redact words, remove cell-quoting keys and printed tables, keep ids, hashes and times.",
+  "Seal labels with their decisions, drafts with their projects.",
+  "Shape each entry once; rebuild whole when the shapers' version changes."
+ ],
+ "decisions": [
+  {
+   "decision": "Each raw entry is shaped once and streamed into chunks under 20 MB.",
+   "why": "Raw entries never change; a 280 MB transcript re-shaped every hour would take minutes and gigabytes, and a 280 MB file cannot be pushed."
+  },
+  {
+   "decision": "Decisions and teachers are rebuilt whole every run.",
+   "why": "A record's split depends on others: a label on its decision, a draft on the project it became."
+  },
+  {
+   "decision": "A rebuild is written beside the old records and swapped in.",
+   "why": "No stale file survives a change of the shapers."
+  }
+ ],
+ "change": "dclab_rnd.store.shapers (Context, _body with database rows and transcript fields, _tables_out, streamed _opened with its hash, _Writer chunks, per-line errors, the records lock, version marks).",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A key inside a gzip source reached the records.",
+   "scenario": "A test run's own gzip with a key in a unit's output.",
+   "cause": "Credentials were removed from the compressed bytes.",
+   "fix": "Each line is opened, then cleaned.",
+   "test": "test_the_review_cases_never_leak_and_every_record_keeps_its_links"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Contacts and table rows from tool outputs reached the records.",
+   "scenario": "A git log's e-mail and a CSV printed by head in a transcript's stdout.",
+   "cause": "Only a few text keys were redacted.",
+   "fix": "Every string of a transcript redacted, printed tables replaced by their size, unparsed lines by their hash.",
+   "test": "test_the_review_cases_never_leak_and_every_record_keeps_its_links"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Ids were destroyed.",
+   "scenario": "ids.request became [ID].",
+   "cause": "request was a text key and ids were not exempt.",
+   "fix": "Ids, hashes and times are never redacted.",
+   "test": "test_the_review_cases_never_leak_and_every_record_keeps_its_links"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "PostgreSQL's decisions got no group or split, and labels the wrong type.",
+   "scenario": "db/decision_label rows typed as decisions, group None.",
+   "cause": "Database rows keep their document under doc and their ids as project_id.",
+   "fix": "Rows lifted and renamed; typed by table; every decision's group gathered before any label.",
+   "test": "test_the_review_cases_never_leak_and_every_record_keeps_its_links"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A draft and the project it became could sit in different splits.",
+   "scenario": "A decision on draft d1 grouped draft:d1, the same table's later decisions project:p1.",
+   "cause": "The draft-to-project map was not given.",
+   "fix": "The map from every draft's newest version and the decisions holding both.",
+   "test": "test_the_review_cases_never_leak_and_every_record_keeps_its_links"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "One bad line half-shaped an entry.",
+   "scenario": "A project given as an object stopped the entry midway.",
+   "cause": "Errors were caught per entry.",
+   "fix": "Per line, its reason kept; ids coerced to text.",
+   "test": "test_the_review_cases_never_leak_and_every_record_keeps_its_links"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A rebuild left stale files.",
+   "scenario": "A file of an old month survived a forced rebuild.",
+   "cause": "Only current files were written.",
+   "fix": "Built beside and swapped in.",
+   "test": "test_a_new_shaper_version_rebuilds_and_removes_stale_files"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Transcript records had no split and the wrong time.",
+   "scenario": "Every line split None, its time the capture's.",
+   "cause": "The session and its time were under other names.",
+   "fix": "sessionId and timestamp read as session and at.",
+   "test": "test_the_review_cases_never_leak_and_every_record_keeps_its_links"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The hourly run could not handle 1.1 GB.",
+   "scenario": "Minutes of CPU, gigabytes of memory, a 280 MB month file.",
+   "cause": "Everything was re-shaped and held in memory.",
+   "fix": "Each entry once, streamed, chunked.",
+   "test": "test_records_rebuild_byte_for_byte_and_an_unchanged_kind_is_not_shaped_again"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Deleted sessions were not marked.",
+   "scenario": "A deleted intern session's records looked live.",
+   "cause": "Only projects and drafts were compared.",
+   "fix": "Sessions, conversations and ids too.",
+   "test": "test_the_review_cases_never_leak_and_every_record_keeps_its_links"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Times were redacted as phone numbers.",
+   "scenario": "A transcript's timestamp became [PHONE].",
+   "cause": "Every string of a transcript was redacted.",
+   "fix": "Times are left as they are, like ids.",
+   "test": "test_the_review_cases_never_leak_and_every_record_keeps_its_links"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Every raw entry becomes clean, linked, sealed records once, streamed, rebuildable from raw alone.",
+ "lessons": [
+  "Clean after decompressing, never before.",
+  "Splits that depend on other records need a first pass before any record is written."
+ ],
+ "risks": [
+  "A printed table without separators is not recognised as a table."
+ ],
+ "commits": []
+}

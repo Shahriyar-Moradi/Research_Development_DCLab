@@ -77,9 +77,24 @@
    "version": "dclab_core.calibrator.v1"
   },
   {
+   "contract": "capture_rule",
+   "reads": [],
+   "version": "dclab_core.capture_rule.v1"
+  },
+  {
+   "contract": "chat_example",
+   "reads": [],
+   "version": "dclab_core.chat_example.v1"
+  },
+  {
    "contract": "coordinator_situation",
    "reads": [],
    "version": "dclab_core.coordinator_situation.v1"
+  },
+  {
+   "contract": "curation_decision",
+   "reads": [],
+   "version": "dclab_core.curation_decision.v1"
   },
   {
    "contract": "data_card",
@@ -119,6 +134,11 @@
    "version": "dclab_core.decision.v1"
   },
   {
+   "contract": "decision_example",
+   "reads": [],
+   "version": "dclab_core.decision_example.v1"
+  },
+  {
    "contract": "decision_label",
    "reads": [
     "dclab_core.decision_label.v1",
@@ -149,6 +169,11 @@
    "contract": "department_policy",
    "reads": [],
    "version": "dclab_core.department_policy.v1"
+  },
+  {
+   "contract": "episode",
+   "reads": [],
+   "version": "dclab_core.episode.v1"
   },
   {
    "contract": "evaluation_board",
@@ -184,6 +209,11 @@
    "contract": "gold_manifest",
    "reads": [],
    "version": "dclab_core.gold_manifest.v1"
+  },
+  {
+   "contract": "judged_example",
+   "reads": [],
+   "version": "dclab_core.judged_example.v1"
   },
   {
    "contract": "map_review",
@@ -224,6 +254,11 @@
    "contract": "portfolio",
    "reads": [],
    "version": "dclab_core.portfolio.v1"
+  },
+  {
+   "contract": "preference_pair",
+   "reads": [],
+   "version": "dclab_core.preference_pair.v1"
   },
   {
    "contract": "problem_brief",
@@ -268,6 +303,11 @@
    "version": "dclab_core.resolved_recipe.v1"
   },
   {
+   "contract": "retrieval_example",
+   "reads": [],
+   "version": "dclab_core.retrieval_example.v1"
+  },
+  {
    "contract": "review",
    "reads": [],
    "version": "dclab_core.review.v1"
@@ -295,6 +335,11 @@
    "version": "dclab_core.semantic_layer.v1"
   },
   {
+   "contract": "set_manifest",
+   "reads": [],
+   "version": "dclab_core.set_manifest.v1"
+  },
+  {
    "contract": "solution_brief",
    "reads": [],
    "version": "dclab_core.solution_brief.v1"
@@ -320,6 +365,21 @@
    "version": "dclab_core.solution_workflow.v1"
   },
   {
+   "contract": "solver_trajectory",
+   "reads": [],
+   "version": "dclab_core.solver_trajectory.v1"
+  },
+  {
+   "contract": "store_entry",
+   "reads": [],
+   "version": "dclab_core.store_entry.v1"
+  },
+  {
+   "contract": "store_record",
+   "reads": [],
+   "version": "dclab_core.store_record.v1"
+  },
+  {
    "contract": "table_entry",
    "reads": [],
    "version": "dclab_core.table_entry.v1"
@@ -343,6 +403,11 @@
    "contract": "twin_step",
    "reads": [],
    "version": "dclab_core.twin_step.v1"
+  },
+  {
+   "contract": "workflow_record",
+   "reads": [],
+   "version": "dclab_core.workflow_record.v1"
   },
   {
    "contract": "workflow_run",
@@ -427,7 +492,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.97.0",
+ "dclab_core": "0.98.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1888,6 +1953,7 @@
   {
    "emitted_by": [
     "dclab_rnd/experience/hooks.py",
+    "dclab_rnd/store/workflows.py",
     "dclab_rnd/students_loop.py",
     "dclab_rnd/studio/engine.py",
     "dclab_rnd/studio/lineage.py"

@@ -40,11 +40,13 @@ CLASSES: tuple[tuple[str, str, re.Pattern], ...] = tuple((k, p, re.compile(rx)) 
     ("decisions", "ledger/", r"^ledger/"),
     ("actions", "agent_steps", r"^agent_steps\.jsonl$"),
     ("audit", "audit", r"^audit\.jsonl$"),
-    ("model_requests", "model_", r"^model_(requests|requests_checks|shadow)\.jsonl$"),
+    ("model_requests", "model_", r"^model_(requests|requests_checks|shadow)\.jsonl$|^model_exchanges/"),
     ("conversations", "drafts/", r"^drafts/"),
     ("conversations", "intern/", r"^intern/"),
     ("conversations", "workspace_chat/", r"^workspace_chat/"),
     ("conversations", "twin/", r"^twin/"),
+    ("conversations", "mcp/", r"^mcp/"),
+    ("agents", "claude_code/", r"^claude_code/"),  # a tester's own sessions, as their share brought them (kept by the agents keeper)
     ("workflows", "projects/", r"^projects/"),
     ("workflows", "orchestra/", r"^orchestra/"),
     ("workflows", "checkpoints", r"^checkpoints\.sqlite3$"),
@@ -57,13 +59,13 @@ CLASSES: tuple[tuple[str, str, re.Pattern], ...] = tuple((k, p, re.compile(rx)) 
 ))
 KEEPER_OF = {"sessions": "sessions", "decisions": "decisions", "actions": "actions", "audit": "audit", "model_requests": "model_requests",
              "conversations": "conversations", "workflows": "projects", "tasks": "tasks", "students": "students", "teachers": "judgments",
-             "tests": "live_tests", "other": "other"}  # kind -> the keeper of its files (a capture rule's finding names it)
+             "tests": "live_tests", "other": "other", "agents": "agents"}  # kind -> the keeper of its files (a capture rule's finding names it)
 FEEDS = {"sessions": ("m2_workflow_decisions", "m4_workflow_llm", "m6_stepwise_decisions"), "actions": ("m5_solver_llm", "m6_stepwise_decisions", "m7_judges"),
          "decisions": ("m1_students", "m2_workflow_decisions", "m3_ml_decisions"), "conversations": ("m4_workflow_llm", "m2_workflow_decisions", "m7_judges"),
          "model_requests": ("m4_workflow_llm", "m5_solver_llm", "m7_judges"), "audit": ("m2_workflow_decisions",),
          "workflows": ("m2_workflow_decisions", "m3_ml_decisions", "m5_solver_llm", "m6_stepwise_decisions"), "tasks": ("m2_workflow_decisions", "m6_stepwise_decisions"),
          "students": ("m1_students",), "teachers": ("m1_students", "m7_judges"), "tests": ("m4_workflow_llm", "m5_solver_llm", "m7_judges"),
-         "other": ()}
+         "other": (), "agents": ("m4_workflow_llm", "m5_solver_llm", "m7_judges")}
 
 
 def classify(rel: str) -> tuple[str, str]:
@@ -83,7 +85,7 @@ def _secret(rel: str) -> bool:
 def _scrubbed(rel: str) -> bool:
     from ...testers import SCRUBBED
 
-    return bool(SCRUBBED.match(rel))
+    return bool(SCRUBBED.match(rel) or rel.startswith("mcp/"))  # an MCP client's call carries a tool's result: scrubbed the same way
 
 
 def scrub(rel: str, raw: bytes) -> bytes:
@@ -210,14 +212,16 @@ ABOUT = {"sessions": "the experience log's events", "actions": "agent steps and 
          "conversations": "Home, the intern (every saved version), the workspace chat, the twin", "model_requests": "every model request with its shadows and checks",
          "audit": "the audit trail", "workflows": "the projects' records, the teams' boards, walks and checkpoints", "tasks": "every job's state changes",
          "students": "every student: registers, cards, measurements and fitted files", "teachers": "every judgment a teacher made, whole",
-         "tests": "the live tests' own files", "other": "anything else a workspace holds, so nothing is left out"}
-KEEPERS = tuple(Keeper(KEEPER_OF[kind], _claims(kind), _for_kind(kind), FEEDS[kind], ABOUT[kind]) for kind in KEEPER_OF)
+         "tests": "the live tests' own files", "other": "anything else a workspace holds, so nothing is left out",
+         "agents": "a tester's own Claude Code sessions, as their share brought them (with their yes)"}
+KEEPERS = tuple(Keeper(KEEPER_OF[kind], _claims(kind), _for_kind(kind), FEEDS[kind], ABOUT[kind]) for kind in KEEPER_OF if kind != "agents")
 TEST_RUNS_KEEPER = Keeper("test_runs", (Claim("tests", "test_runs/"),), _repo_files(TEST_RUNS, "test_runs/"), ("m2_workflow_decisions", "m7_judges"),
                           "every test run and gate of this repository, whole")
 
 
 def install(registry: Optional[dict[str, Keeper]] = None) -> dict[str, Keeper]:
     from .. import fixes, workflows
+    from .agents import KEEPER as AGENTS
     from .database import KEEPER as DATABASE
 
     reg = REGISTRY if registry is None else registry
@@ -225,7 +229,7 @@ def install(registry: Optional[dict[str, Keeper]] = None) -> dict[str, Keeper]:
                    "each walk from a draft to a report as one workflow record (32.5)")
     fix = Keeper("fixes", (Claim("fixes", "fixes/"),), fixes.keeper_sources, ("m4_workflow_llm", "m5_solver_llm", "m7_judges"),
                  "a failing test, the run that passed it next, and the commits between (32.6)")
-    for keeper in KEEPERS + (TEST_RUNS_KEEPER, DATABASE, walks, fix):
+    for keeper in KEEPERS + (TEST_RUNS_KEEPER, DATABASE, AGENTS, walks, fix):
         if keeper.name not in reg:
             register(keeper, reg)
     return reg

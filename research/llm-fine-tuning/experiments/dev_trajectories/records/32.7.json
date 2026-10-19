@@ -1,0 +1,90 @@
+{
+ "package": "32.7",
+ "title": "Other agents' sessions: every Claude Code session on this repository kept, credentials removed, a tester's machine reading none of its own",
+ "date": "2026-10-20",
+ "request": "Keep every other agent's actions, decisions and tasks: the development sessions (Claude Code, worktrees included), testers' sessions with their yes, and MCP clients' calls as their own source.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.7",
+ "plan": [
+  "Read Claude Code's folders of this repository: the main checkout, each worktree, each subfolder session.",
+  "Keep transcripts by their new lines, credentials removed line by line.",
+  "Keep each MCP call whole, whether it worked or not.",
+  "Keep testers' sessions only through their share."
+ ],
+ "decisions": [
+  {
+   "decision": "Credentials are removed at capture, not later.",
+   "why": "The store is pushed to a repository; a key a person pasted must never reach it."
+  },
+  {
+   "decision": "A tester's machine reads none of its own Claude Code sessions unless named explicitly.",
+   "why": "A tester's sessions are theirs; only their share, with their yes, brings them."
+  },
+  {
+   "decision": "Screenshots are counted only.",
+   "why": "No redaction can read text in a picture of a desktop."
+  }
+ ],
+ "change": "dclab_rnd.store.keepers.agents (folders, SECRET, redact, projects_folder, counted images), the classes mcp/ and claude_code/, mcp_server._keep_call, DCLAB_STORE_CLAUDE_PROJECTS.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Common credential shapes were missed.",
+   "scenario": "A fine-grained GitHub token, a Google or Slack key, a private key, a password in a connection string, a JWT, a Kaggle key.",
+   "cause": "The pattern knew a few key prefixes.",
+   "fix": "One pattern for every common shape, and for a key or a secret named in an assignment.",
+   "test": "test_this_repositorys_sessions_are_kept_redacted_and_grow_by_their_new_lines"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A tester's own sessions would be kept without their yes.",
+   "scenario": "A tester runs the studio from a checkout of this repository: every session of theirs kept as the owner's.",
+   "cause": "The default folder was read on every machine.",
+   "fix": "On a tester's machine none is read unless named explicitly.",
+   "test": "test_on_a_testers_machine_this_machines_sessions_are_never_read_unless_named"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "No MCP call was kept on PostgreSQL, nor a call that failed.",
+   "scenario": "PostgreSQL's stores have no home; a raising tool skipped the log.",
+   "cause": "The log used the file store's home and ran after success only.",
+   "fix": "The stores' files home, and the call kept in a finally with its error.",
+   "test": "test_initialize_list_and_call"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Desktop screenshots would be pushed whole.",
+   "scenario": "About 200 tool-result images in the transcripts' folders.",
+   "cause": "Every file was kept.",
+   "fix": "Images counted only.",
+   "test": "test_screenshots_are_counted_never_kept"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "Direct test runs read the owner's real transcripts.",
+   "scenario": "A unittest run outside the parallel runner copied 1.1 GB.",
+   "cause": "The keeper read the default folder when the test gave none.",
+   "fix": "The tests name an empty folder; the runner turns the reading off.",
+   "test": "test_every_workspace_and_kind_is_kept_and_a_table_never_read"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Every Claude Code session on this repository is kept, its credentials removed, and nothing of a tester's machine is read without their yes.",
+ "lessons": [
+  "Remove secrets where data is captured; every later layer can be skipped.",
+  "A test that reads a default folder reads the developer's machine."
+ ],
+ "risks": [
+  "A credential shape no pattern knows still reaches raw; the pattern is the only guard."
+ ],
+ "commits": []
+}

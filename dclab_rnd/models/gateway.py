@@ -22,6 +22,7 @@ import json
 import os
 import threading
 import time
+from pathlib import Path
 from typing import Any, Callable, Iterator
 
 from . import prices, settings
@@ -450,6 +451,37 @@ class Bound:
             self._record(messages, out, time.monotonic() - started, attempts, "ok")
             return out
 
+    def _keep_exchange(self, request_id: str, messages: list[dict[str, Any]], out: dict[str, Any] | None, outcome: str) -> None:
+        """32.10: the whole exchange kept, never cut: every message as sent, the reply, its tool calls and the model's thinking, one
+        line in ``<workspace>/model_exchanges/YYYY/MM/DD.jsonl`` (the store's model_requests keeper keeps it). Where the workspace
+        keeps no model text, or the purpose was shown cell values, only its shape is kept (sizes, tokens, whether it thought)."""
+        from datetime import datetime, timezone
+
+        from .. import experience
+
+        try:
+            home = _exchange_home(self.gateway)
+            if home is None:
+                return
+            shown_cells = int(getattr(self.p, "cell_values", 0) or 0) > 0
+            whole = experience.model_text_allowed() and not shown_cells
+            thinking = (out or {}).get("thinking") or []
+            doc: dict[str, Any] = {"at": datetime.now(timezone.utc).isoformat(timespec="microseconds"), "model_request": request_id,
+                                   "purpose": self.purpose, "tier": self.tier.get("name"), "model": self.model, "project": self.project_id,
+                                   "draft": self.draft_id, "outcome": outcome, "usage": (out or {}).get("usage"), "whole": whole}
+            if whole:
+                doc.update(messages=messages, reply=(out or {}).get("content"), tool_calls=(out or {}).get("tool_calls"), thinking=thinking)
+            else:
+                doc.update(messages=len(messages), reply_chars=len(str((out or {}).get("content") or "")), thought=bool(thinking),
+                           why="a purpose shown cell values, or a workspace that keeps no model text: its shape only")
+            day = datetime.now(timezone.utc)
+            folder = home / "model_exchanges" / f"{day:%Y}" / f"{day:%m}"
+            folder.mkdir(parents=True, exist_ok=True)
+            with open(folder / f"{day:%d}.jsonl", "a", encoding="utf-8") as fh:
+                fh.write(json.dumps(doc, ensure_ascii=False, default=str) + "\n")
+        except Exception:  # noqa: BLE001 - a record of the exchange, never a reason for the request to fail
+            pass
+
     def _record(self, messages: list[dict[str, Any]], out: dict[str, Any] | None, seconds: float, attempts: int, outcome: str) -> None:
         prompt = "\n\n".join(f"[{m.get('role')}] {m.get('content') or ''}" for m in messages)[:20000] if os.environ.get("DCLAB_LOG_PROMPTS") == "1" else None
         eur = self.gateway.record(self.purpose, self.model, (out or {}).get("usage"), seconds, attempts, outcome, self.project_id, self.draft_id, prompt,
@@ -460,11 +492,24 @@ class Bound:
         from .. import experience
 
         usage = (out or {}).get("usage") or {}
-        hooks.from_model_request({"id": experience.new_model_request(), "purpose": self.purpose, "tier": self.tier.get("name"), "model": self.model,
+        request_id = experience.new_model_request()
+        self._keep_exchange(request_id, messages, out, outcome)
+        hooks.from_model_request({"id": request_id, "purpose": self.purpose, "tier": self.tier.get("name"), "model": self.model,
                                   "project_id": self.project_id,
                                   "draft_id": self.draft_id, "input_tokens": usage.get("input_tokens"), "output_tokens": usage.get("output_tokens"),
                                   "cost_eur": eur, "seconds": round(seconds, 3), "outcome": outcome},
                                  messages, (out or {}).get("content") if isinstance((out or {}).get("content"), str) else None)
+
+
+def _exchange_home(gateway: Any) -> Path | None:
+    """The workspace folder a gateway's requests belong to: its usage file's folder, else the current experience log's."""
+    path = getattr(getattr(gateway, "usage", None), "path", None)
+    if path is not None:
+        return Path(path).parent
+    from .. import experience
+
+    log = experience.current_log()
+    return Path(log.home) if log is not None and getattr(log, "home", None) else None
 
 
 def check_external(purpose: str, project_id: str | None = None) -> None:

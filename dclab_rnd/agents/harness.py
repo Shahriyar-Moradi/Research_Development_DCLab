@@ -66,6 +66,8 @@ MODEL_USES: dict[str, str] = {  # purpose -> why it is not an agent: one complet
     "synthetic_schema": "the columns of a simulated table",
     "evidence_answer": "an answer from cited evidence records",
     "stage_notes": "the explanation of one stage's record",
+    "store_curator": "32.9: where a batch of the store's records goes, in shadow beside the rule curators",
+    "reasoning_teacher": "32.10: the reasoning behind one record's answer, checked against the record before it is kept",
     "lesson_proposal": "a lesson proposed from a finished project",
     "project_answer": "an answer about one project",
     "notebook_review": "a notebook's methodology review",
