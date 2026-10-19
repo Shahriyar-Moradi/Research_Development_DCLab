@@ -70,6 +70,11 @@
    "version": "dclab_core.business_example.v2"
   },
   {
+   "contract": "calibrator",
+   "reads": [],
+   "version": "dclab_core.calibrator.v1"
+  },
+  {
    "contract": "coordinator_situation",
    "reads": [],
    "version": "dclab_core.coordinator_situation.v1"
@@ -163,6 +168,11 @@
    "version": "dclab_core.fit_verdict.v1"
   },
   {
+   "contract": "gate_result",
+   "reads": [],
+   "version": "dclab_core.gate_result.v1"
+  },
+  {
    "contract": "gold_manifest",
    "reads": [],
    "version": "dclab_core.gold_manifest.v1"
@@ -171,6 +181,16 @@
    "contract": "map_review",
    "reads": [],
    "version": "dclab_core.map_review.v1"
+  },
+  {
+   "contract": "monitor_report",
+   "reads": [],
+   "version": "dclab_core.monitor_report.v1"
+  },
+  {
+   "contract": "monitoring_plan",
+   "reads": [],
+   "version": "dclab_core.monitoring_plan.v1"
   },
   {
    "contract": "orchestra_board",
@@ -290,6 +310,11 @@
    "contract": "twin_step",
    "reads": [],
    "version": "dclab_core.twin_step.v1"
+  },
+  {
+   "contract": "workflow_run",
+   "reads": [],
+   "version": "dclab_core.workflow_run.v1"
   }
  ],
  "dataset_builders": [
@@ -364,7 +389,7 @@
    "what": "A team's walk, one row per hand-off: the board before the node, the node and what it did, the board after, with the walk's status and the models it asked; the person's words redacted, only lines written where training was allowed (28.9)."
   }
  ],
- "dclab_core": "0.90.0",
+ "dclab_core": "0.91.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1019,6 +1044,17 @@
    "kind": "technical",
    "main_product": null,
    "point": "tuning.accept",
+   "subjects": [
+    "project"
+   ]
+  },
+  {
+   "about": "Is the result honest and usable, or which phase does the work go back to?",
+   "answer": "choice",
+   "decided_in": "studio/engine.py _run_stage: G4 on the final stage's facts, passed or the phase it sends the work back to (truth: the people's, where they take the work next) (30.15)",
+   "kind": "workflow",
+   "main_product": null,
+   "point": "workflow.g4",
    "subjects": [
     "project"
    ]

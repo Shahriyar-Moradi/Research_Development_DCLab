@@ -1,0 +1,75 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "a": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "b": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "brier": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "chosen_on": {
+      "default": "",
+      "maxLength": 300,
+      "type": "string"
+    },
+    "method": {
+      "enum": [
+        "none",
+        "sigmoid",
+        "isotonic"
+      ],
+      "type": "string"
+    },
+    "reason": {
+      "default": "",
+      "maxLength": 600,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.calibrator.v1",
+      "default": "dclab_core.calibrator.v1",
+      "type": "string"
+    },
+    "x": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 200,
+      "type": "array"
+    },
+    "y": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 200,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "method"
+  ],
+  "type": "object"
+}

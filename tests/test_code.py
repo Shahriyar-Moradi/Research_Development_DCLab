@@ -57,6 +57,17 @@ class CodeTest(unittest.TestCase):
             final = store.read_stage(pid, "final")
             self.assertEqual(out["expected"], final["evidence"]["holdout_metrics"][final["primary_metric"]])
 
+    def test_a_checked_export_records_that_it_reproduced_the_number_and_packages_the_run(self):
+        from dclab_rnd.studio import workflow_run
+
+        store, pid = self.projects["anomaly"]
+        described = code.export(store, pid, Path(tempfile.mkdtemp()) / "code", check=True)  # 30.15: the export's own test
+        self.assertTrue(described["checked"]["same"], described["checked"])
+        project = store.get(pid)
+        self.assertTrue(project["exports"]["code"]["same"])
+        self.assertEqual({s.id: s.status for s in workflow_run.build(store, project).steps}["package"], "done")
+        self.assertTrue((Path(described["folder"]) / "monitoring.json").is_file())  # the machine's inputs' baseline
+
     def test_one_block_per_step_in_the_module_and_the_notebook(self):
         for key, folder in self.folders.items():
             source = (folder / "pipeline.py").read_text()

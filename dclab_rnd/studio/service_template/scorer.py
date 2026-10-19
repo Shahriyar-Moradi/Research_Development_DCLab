@@ -42,10 +42,12 @@ class Scorer:
         frame = frame[self.meta["input_columns"]]
         for column, kind in self.meta.get("input_types", {}).items():  # the training types, whatever the batch holds
             values = pd.to_numeric(frame[column], errors="coerce") if kind.startswith(("int", "Int", "float")) else None
-            if values is not None and kind.startswith(("int", "Int")):
-                frame[column] = values.map(lambda v: int(v) if pd.notna(v) else np.nan).astype(object)
+            if values is not None and kind.startswith("Int"):
+                frame[column] = values.round().astype("Int64")  # a nullable integer stays one
+            elif values is not None and kind.startswith("int") and values.notna().all():
+                frame[column] = values.round().astype("int64")  # the training type exactly (an object column built other features: 30.15's check)
             elif values is not None:
-                frame[column] = values.astype(float)
+                frame[column] = values.astype(float)  # a missing value in an integer column: a float, as pandas reads one
         for column in frame.columns:
             if pd.api.types.is_bool_dtype(frame[column]) or str(frame[column].dtype) == "boolean":
                 frame[column] = pd.to_numeric(frame[column].astype("object").map({True: 1.0, False: 0.0}), errors="coerce")
@@ -79,7 +81,8 @@ class Scorer:
             if task == "binary":
                 score = float(scores[i])
                 threshold = self.meta.get("threshold")
-                out.append({"score": score, **({"alert": bool(score >= threshold)} if threshold is not None else {})})
+                out.append({"score": score, **({"alert": bool(score >= threshold)} if threshold is not None else {}),
+                            **({"calibrated_probability": float(self._calibrated([score])[0])} if self.meta.get("calibrator") else {})})
             elif task == "multiclass":
                 labels = self.meta["class_labels"]
                 best = int(np.argmax(scores[i]))
@@ -90,3 +93,31 @@ class Scorer:
             for row in out:
                 row["note"] = "behaviour features need the rows scored with this one: a single row has no history"
         return out
+
+    def _calibrated(self, scores: Any) -> Any:
+        """The score as a probability, through the calibrator fitted on the training rows' out-of-fold scores."""
+        from dclab_core.calibration import Calibrator, apply
+
+        return apply(Calibrator.read(self.meta["calibrator"]), scores)
+
+    def monitor(self, rows: Any, scores: Any = None) -> dict[str, Any]:
+        """A batch read against the training rows' bins (``monitoring.json``): each column's and the score's PSI, the share
+        the rule flags, and what crossed an alert line. ``scores``: the batch's scores when they were already computed."""
+        from dclab_core.monitoring import MonitoringPlan, monitor
+
+        if not self.meta.get("monitoring"):
+            raise RuntimeError("This export carries no monitoring plan")
+        raw = json.loads((HERE / self.meta["monitoring"]).read_text(encoding="utf-8"))
+        hashed = bool(raw.pop("hashed_levels", False))
+        plan = MonitoringPlan.read(raw)
+        frame = pd.DataFrame([rows] if isinstance(rows, dict) else rows)
+        if hashed:  # the plan keeps its levels hashed with the key: the batch's values are hashed the same way
+            import hashlib
+
+            for column in plan.columns:
+                if column.kind == "category" and column.column in frame:
+                    frame[column.column] = frame[column.column].map(
+                        lambda v: v if pd.isna(v) else "h:" + hashlib.sha256(f"{self.key}|{v}".encode()).hexdigest()[:16])
+        if scores is None and self.meta["task"] == "binary":
+            scores = [r["score"] for r in self.predict(rows)]
+        return monitor(plan, frame, scores).model_dump(mode="json")

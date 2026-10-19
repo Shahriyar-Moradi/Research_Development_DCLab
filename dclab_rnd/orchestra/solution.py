@@ -49,6 +49,7 @@ class SolveState(TypedDict, total=False):
     reported: bool
     next: str
     says: str
+    back_to: str         # 30.15: the phase a failed G4 sends the work back to (kept in the state: LangGraph drops a key it does not know)
     started: str
     runs: Annotated[list[str], operator.add]  # every session of the walk, appended
 
@@ -166,7 +167,14 @@ class SolutionTeam:
         done = ("completed", "approved")
         nxt = next((k for k in self.STAGES if status[k] not in done), None)
         if nxt is None:
-            return {"next": "done" if state.get("reported") else "report"}
+            if not state.get("reported"):
+                return {"next": "report"}
+            gate = (((project.get("stages") or {}).get("final") or {}).get("evidence") or {}).get("gate_g4") \
+                or ((self.projects.read_stage(state["project_id"], "final") or {}).get("evidence") or {}).get("gate_g4")
+            if gate and not gate.get("passed"):  # 30.15: a failed G4 names the phase the work goes back to; the team follows it, a person decides there
+                return {"next": "stop", "says": (f"G4 sends the work back to the {gate.get('back_to')}: " + "; ".join(gate.get("reasons") or [])[:3 * 200])[:600],
+                        "back_to": gate.get("back_to")}
+            return {"next": "done"}
         if status["leakage"] in done and state.get("audited_for") != leak_audit.single_inputs(project):
             return {"next": "audit"}
         return {"next": "compose" if nxt == "final" else "stage"}
@@ -487,7 +495,8 @@ class SolutionTeam:
             spent, models = _requests(values.get("runs") or [], project=project_id)
             B.record(thread, self.TEAM, _nodes(values.get("steps") or []), Board.model_validate(values["board"]), "completed" if nxt == "done" else "stopped",
                      values.get("started") or B.now(), home=self.home, spent_eur=spent, walk=_walk_id(values), models=models)
-        return {"status": "done", "next": nxt, "says": values.get("says") or "", "steps": values.get("steps") or [], "board": values.get("board")}
+        return {"status": "done", "next": nxt, "says": values.get("says") or "", "steps": values.get("steps") or [], "board": values.get("board"),
+                **({"back_to": values["back_to"]} if values.get("back_to") else {})}
 
 
 def drive(team: SolutionTeam, project_id: str, person: Any, max_pauses: int = 40) -> dict[str, Any]:

@@ -863,6 +863,9 @@ def stage_models(p: Prepared, eid: str, recipe: str) -> tuple[dict, list, str]:
                 "selection_rule": rare_rule or f"Rank by mean training-CV {_label(metric)} {sign} 0.25×fold std ({'higher' if higher else 'lower'} is better), then runtime; identical folds ({bundle.cv_description}); default parameters.",
                 **({"rare_event_choice": choice} if choice else {}),
                 "selected_metric_mean": rn._mean(selected, metric), "selected_metric_std": rn._std(selected, metric), "cv_protocol": bundle.cv_description}
+    dummy = _dummy_cv(p)
+    if dummy is not None:
+        evidence["dummy_cv"] = dummy  # 30.15 (step 3): the simple model on the screen's own folds, the number every family must beat
     table = "; ".join(f"{r['model']} {rn._ms(r, metric)} ({r['elapsed_seconds']:.1f}s)" for r in ranked)
     spread = abs(rn._mean(selected, metric) - rn._mean(runner_up, metric))
     claims = [
@@ -1279,6 +1282,12 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
     assessment = _task_assessment(p, task, selected, y_test, predictions)
     if assessment is not None:
         evidence["task_assessment"] = assessment  # 17.5: thresholds and intervals chosen out of fold, read on the holdout
+    calibrated = _calibration_fit(p, task, selected, y_test, predictions)
+    if calibrated is not None:
+        evidence["calibration_fit"] = calibrated  # 30.15: fitted on the out-of-fold scores, the holdout read for what it changed
+    watch = _monitoring_plan(p, task, selected, assessment)
+    if watch is not None:
+        evidence["monitoring"] = watch  # 30.15: the training rows as the artifact's monitor reads them
     chosen_action = _decision(p, selected, y_test, predictions)
     if chosen_action is not None:
         evidence["decision"] = chosen_action  # 16.9: the action on top of the model, by expected value
@@ -1301,6 +1310,88 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
                f"fitted {selected['config_id']} on all {len(bundle.y_train)} training rows and scored the sealed holdout once: {label} {rn._f(holdout_value)} "
                f"({rn._f(ci['low'])}–{rn._f(ci['high'])}).")
     return evidence, claims, summary
+
+
+def _regression(p: Any) -> bool:
+    """A number is predicted (the regression kind's task type is ``timeseries_regression``: the review of 30.15)."""
+    kind = getattr(p, "kind", None)
+    task = str(getattr(getattr(p, "bundle", None), "task_type", "") or getattr(p, "task_type", ""))
+    return getattr(kind, "base_task", None) == "regression" or task in ("regression", "timeseries_regression")
+
+
+def _dummy_cv(p: Prepared) -> dict[str, Any] | None:
+    """30.15 (step 3): the recipe's simple model (the training fold's rate, its class shares, or its mean) scored on the same
+    folds as the families, before the holdout; outside the ranking, so no choice moves. None when it cannot be scored."""
+    try:
+        bundle, spec = p.bundle, p.bundle.spec
+        task, metric = bundle.task_type, spec.primary_metric
+        n_classes = rn._n_classes(bundle)
+        values = []
+        for fit_idx, valid_idx in bundle.cv_splits:
+            y_fit, y_valid = bundle.y_train.iloc[fit_idx], bundle.y_train.iloc[valid_idx].reset_index(drop=True)
+            if task == "multiclass":
+                prior = np.bincount(y_fit.astype(int), minlength=n_classes) / max(len(y_fit), 1)
+                predictions = np.tile(prior, (len(y_valid), 1))
+            else:
+                predictions = np.full(len(y_valid), float(y_fit.mean()))
+            got = rn.compute_metrics(task, y_valid, predictions, n_classes=n_classes, alert_budget=spec.settings.get("alert_budget")).get(metric)
+            if isinstance(got, (int, float)) and np.isfinite(got):
+                values.append(float(got))
+        if not values:
+            return None
+        name = "training_mean" if _regression(p) else "majority_class"
+        return {"model": name, "metric": metric, "mean": float(np.mean(values)), "std": float(np.std(values)), "folds": len(values),
+                "rule": "the training fold's rate (or class shares, or mean) as every row's prediction, on the screen's folds"}
+    except Exception:  # noqa: BLE001 - a simple model the folds cannot score is left out, the screen stands
+        return None
+
+
+def _calibration_fit(p: Prepared, task: str, selected: dict[str, Any], y_test: pd.Series, predictions: np.ndarray) -> dict[str, Any] | None:
+    """30.15 (step 8): a binary model's calibrator, chosen and fitted on the training rows' out-of-fold scores only; the
+    holdout's Brier score before and after it, from the one read already made. None for another task, or when it fails."""
+    if task not in ("binary_imbalanced", "text_tabular_binary") or "_oof_pred" not in selected:
+        return None
+    try:
+        from dclab_core import calibration
+
+        oof_y = p.bundle.y_train.to_numpy()[selected["_oof_index"]]
+        fitted = calibration.fit(np.asarray(selected["_oof_pred"], dtype=float), oof_y.astype(int))
+        y = y_test.to_numpy().astype(int)
+        return {"calibrator": fitted.model_dump(mode="json"),
+                "holdout_brier": {"before": round(calibration.brier(y, predictions), 6),
+                                  "after": round(calibration.brier(y, calibration.apply(fitted, predictions)), 6)},
+                "serves": "the artifact's calibrated_probability; the ranking and the threshold stay on the model's own score"}
+    except Exception as exc:  # noqa: BLE001 - a calibrator that cannot be fitted leaves the scores as they are, said
+        return {"calibrator": None, "reason": f"not fitted ({type(exc).__name__})"}
+
+
+def _monitoring_plan(p: Prepared, task: str, selected: dict[str, Any], assessment: dict[str, Any] | None) -> dict[str, Any] | None:
+    """30.15 (step 12): the model's input columns on the training rows, their out-of-fold scores and the share the rule
+    flags, with the alert lines; a person's column never by value, an identifier never (unique on almost every row)."""
+    try:
+        from dclab_core import monitoring
+
+        # the columns the model reads, and only those (the review: identifiers, dates, the group column and blocked columns
+        # were watched, and the project's own holdout raised an alert); a person's column is never kept by value
+        personal = set(getattr(p, "personal", ()) or ())
+        features = [c for c, role in (p.roles or {}).items() if role == "feature" and c in p.bundle.X_train.columns and c not in personal]
+        frame = p.bundle.X_train[features]
+        skip = {c: "unique on almost every row (free text): its distribution says nothing"
+                for c in frame.columns if not pd.api.types.is_numeric_dtype(frame[c]) and frame[c].nunique() > 0.9 * max(len(frame), 1)}
+        scores = threshold = None
+        rule = ""
+        if (task in ("binary_imbalanced", "text_tabular_binary") or _regression(p)) and "_oof_pred" in selected:
+            oof = np.asarray(selected["_oof_pred"], dtype=float)
+            scores = oof if oof.ndim == 1 else None
+        if scores is not None and assessment and isinstance(assessment.get("threshold"), dict) and assessment["threshold"].get("value") is not None:
+            threshold = float(assessment["threshold"]["value"])
+            rule = f"a score at or above {threshold:.6g}: {assessment['threshold'].get('chosen_by') or 'the operating point'}"
+        built = monitoring.plan(frame, scores=scores, threshold=threshold, rule=rule, skip=skip,
+                                built_on=f"the {len(frame)} training rows, the model's {len(features)} input columns; the scores out of fold")
+        built = built.model_copy(update={"left_out": [*built.left_out, *(f"{c}: personal, never monitored by value" for c in sorted(personal))][:200]})
+        return built.model_dump(mode="json")
+    except Exception as exc:  # noqa: BLE001 - a plan the data does not allow is said, never a failed stage
+        return {"reason": f"no monitoring plan ({type(exc).__name__})"}
 
 
 def _baselines(p: Prepared, predictions: np.ndarray) -> dict[str, Any]:
@@ -1454,6 +1545,9 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
                 bar = _success_bar(p, evidence.get("holdout_metrics") or {}, evidence.get("baselines") or {})  # 30.14, as the tabular final
                 if bar:
                     evidence["success_bar"] = bar
+                from . import workflow_run as wrun
+
+                evidence["monitoring"] = wrun.machine_monitoring(p)  # 30.15: the inputs' baseline (the machine keeps no training table)
         elif stage == "data":
             evidence, claims, summary = stage_data(p, eid)
         elif stage == "leakage":
@@ -1483,6 +1577,13 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
             if reuse_reason:
                 evidence["holdout_reuse_reason"] = str(reuse_reason)[:500]
             decision = {"kind": "final", "selected": evidence["selected_optimization"], "chosen": evidence["selected_optimization"], "rule": evidence["selection_rule"], "options": []}
+        if stage == "final":  # 30.15: G4, honest and usable, with where a failure sends the work back
+            from . import workflow_run as wrun
+
+            evidence["gate_g4"] = wrun.g4_of(p, evidence, project)
+            from ..ledger import capture as ledger_capture
+
+            ledger_capture.gate_g4(project, evidence["gate_g4"], evidence)  # the rule's G4 in the ledger; where people take the work is its truth
         elapsed = time.perf_counter() - clock
         evidence["elapsed_seconds"] = float(elapsed)
         record = {

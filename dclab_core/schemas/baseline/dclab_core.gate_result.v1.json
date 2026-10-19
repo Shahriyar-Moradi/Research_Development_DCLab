@@ -1,0 +1,60 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "back_to": {
+      "anyOf": [
+        {
+          "enum": [
+            "problem",
+            "data",
+            "brief",
+            "workflow"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "checks": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "gate": {
+      "enum": [
+        "G1",
+        "G2",
+        "G3",
+        "G4"
+      ],
+      "type": "string"
+    },
+    "passed": {
+      "type": "boolean"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.gate_result.v1",
+      "default": "dclab_core.gate_result.v1",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "gate",
+    "passed"
+  ],
+  "type": "object"
+}

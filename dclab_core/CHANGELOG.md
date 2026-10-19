@@ -4,6 +4,27 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.91.0 (2026-10-19)
+
+Package 30.15 (part A): the Workflow Run and G4.
+
+- `workflow_run` (new): `STEPS`, the framework's twelve fixed steps; `RunStep` (status done, partial, missing or not
+  applicable, its check and the record path of its evidence); `WorkflowRun` v1 (the twelve, each once, in order) and
+  `GateResult` v1 (any gate's verdict: passed, or the phase the work goes back to, the problem, the data, the brief or the
+  workflow, with why); `g4` on one run's facts: the holdout read once, the folds' score explaining the holdout's (within a
+  tenth of the folds' value, never below a hundredth on a 0 to 1 scale, or twice the folds' spread, or inside the
+  holdout's interval), nothing too good to be honest (a value that is not finite is unread), the signed brief's bar, a
+  rule to act on, a monitoring plan; the earliest phase a failure names wins.
+- `calibration` (new): `Calibrator` v1 and `fit`, a calibrator chosen among none, Platt's sigmoid and isotonic by the
+  Brier score on the out-of-fold scores' own folds (a tie to the simpler) and fitted on all of them; `apply`, `brier`.
+- `monitoring` (new): `MonitoringPlan` v1 (each column's bins and shares on the training rows, the score's, the share the
+  rule flags; a person's column and an identifier left out; numeric edges at the shortest number between two training
+  values, shares to four decimals, so no edge is a row's value) and `monitor(plan, new_rows, scores)` → `MonitorReport` v1
+  (each column's and the score's PSI against the warn and alert lines, the flagged share against its band, too few rows
+  said and never alerted on).
+- `report`: the calibrator's effect on the holdout's Brier score and G4's verdict.
+- `ledger`: the point `workflow.g4` (65 points).
+
 ## 0.90.0 (2026-10-19)
 
 Package 30.14: the Solution Brief and G3; and the coordinator's fix from the first live harness run.

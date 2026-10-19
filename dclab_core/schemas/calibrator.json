@@ -1,0 +1,93 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.calibrator.v1.json",
+  "additionalProperties": false,
+  "description": "How scores become probabilities: the method, its fitted numbers, and how it was chosen (no row of the table).",
+  "properties": {
+    "a": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "sigmoid: the slope on the score's logit.",
+      "title": "A"
+    },
+    "b": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "sigmoid: the intercept.",
+      "title": "B"
+    },
+    "brier": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "description": "Each method's mean Brier score on the folds left out.",
+      "title": "Brier",
+      "type": "object"
+    },
+    "chosen_on": {
+      "default": "",
+      "description": "What it was chosen on: the out-of-fold rows and folds.",
+      "maxLength": 300,
+      "title": "Chosen On",
+      "type": "string"
+    },
+    "method": {
+      "enum": [
+        "none",
+        "sigmoid",
+        "isotonic"
+      ],
+      "title": "Method",
+      "type": "string"
+    },
+    "reason": {
+      "default": "",
+      "maxLength": 600,
+      "title": "Reason",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.calibrator.v1",
+      "default": "dclab_core.calibrator.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "x": {
+      "description": "isotonic: the scores at the steps' edges, increasing.",
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 200,
+      "title": "X",
+      "type": "array"
+    },
+    "y": {
+      "description": "isotonic: the probability at each edge.",
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 200,
+      "title": "Y",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "method"
+  ],
+  "title": "Calibrator",
+  "type": "object"
+}

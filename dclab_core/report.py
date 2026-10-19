@@ -766,6 +766,21 @@ def _results(w: _Writer, notes: list[str]) -> None:
                        if got and target else None)
             else:
                 w.line(f"The success bar could not be judged: {w.q(f'{sb}.reason', 300)}.")
+        fit = _m(evidence.get("calibration_fit"))
+        calibrator = _m(fit.get("calibrator"))
+        if calibrator and _m(fit.get("holdout_brier")):  # 30.15: fitted on the out-of-fold scores, read on the holdout once
+            cf = f"{e}.calibration_fit"
+            if _str(calibrator.get("method")) not in ("", "none"):
+                w.line(f"The probabilities were calibrated by {w.q(f'{cf}.calibrator.method', 20, code=True)}, chosen on the training rows' "
+                       f"out-of-fold scores: the holdout's Brier score {w.n(f'{cf}.holdout_brier.before')} before, {w.n(f'{cf}.holdout_brier.after')} after.")
+            else:
+                w.line(f"The probabilities were not calibrated: {w.q(f'{cf}.calibrator.reason', 300)}.")
+        gate = _m(evidence.get("gate_g4"))
+        if gate:  # 30.15: G4, honest and usable
+            g = f"{e}.gate_g4"
+            reasons = [w.q(f"{g}.reasons.{i}", 300) for i, _ in enumerate(gate.get("reasons") or [])][:3]
+            w.line("G4, the result honest and usable: passed." if gate.get("passed") else
+                   f"G4 does not pass, so the work goes back to the {w.q(f'{g}.back_to', 20)}: " + "; ".join(reasons) + ".")
         task = _task_of(ctx)
         kind = "binary" if "binary" in task else ("multiclass" if task == "multiclass" else "regression")
         metrics = _m(evidence.get("holdout_metrics"))

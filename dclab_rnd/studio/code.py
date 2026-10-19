@@ -272,9 +272,76 @@ value = scored["holdout"]'''),
     ]
 
 
+def _ranking(project: dict[str, Any], records: dict[str, Any], f: dict[str, Any]) -> list[tuple[str, str]]:
+    allowed, chosen = _ev(records, "features").get("features") or [], _chosen(records, "models")
+    items_file = ((project.get("tables") or {}).get(f["items_table"]) or {}).get("filename")
+    common = (f'user={_c(f["user_column"])}, item={_c(f["item_column"])}, time={_c(f["time_column"])}, event={_c(f["event_column"])}, '
+              f'relevant={_c(f["relevant_event"])}')
+    return [
+        ("data", f'''from dclab_core import ranking
+
+log = read_table({_c(project["data"]["filename"])})
+items = read_table({_c(items_file)})
+MOMENT, WINDOW_DAYS, K = {_c(f["moment"])}, {f["window_days"]}, {f["k"]}  # the models read the log up to the moment; the window after it is the holdout'''),
+        ("leakage", f'''KEPT_OUT = {_c(_ev(records, "leakage").get("kept_out") or [])}  # item columns counted after the moment, and what the solution forbids'''),
+        ("features", f'''ITEM_FEATURES = {_c(allowed)}  # each user's and item's interactions before the list's moment, and these item columns
+ctx = ranking.setup(log, items, {common}, moment=MOMENT, window_days=WINDOW_DAYS,
+                    created={_c(f["created_column"])}, category={_c(f["category_column"])}, item_features=ITEM_FEATURES)'''),
+        ("models", f'''picked = ranking.validate(ctx, k=K)  # at the validation origin, one window before the moment
+{_check(records, 'picked["chosen"]')}'''),
+        ("final", f'''held = ranking.score(ctx, k=K)  # the window after the moment, read once
+value = held["scores"][{_c(chosen)}][f"ndcg@{{K}}"]'''),
+    ]
+
+
+def _segmentation(project: dict[str, Any], records: dict[str, Any], f: dict[str, Any]) -> list[tuple[str, str]]:
+    from ..kinds.segmentation import SegmentationMachine
+
+    chosen = _chosen(records, "models") or ""
+    method, k = (chosen.split(":")[0], int(chosen.split(":")[1])) if ":" in chosen else (chosen, 0)
+    cols = _ev(records, "models").get("columns_used") or _ev(records, "leakage").get("features") or []
+    return [
+        ("data", f'''from sklearn.metrics import silhouette_score
+
+from dclab_core import segment
+
+table = read_table({_c(project["data"]["filename"])}).reset_index(drop=True)
+order = np.random.default_rng(0).permutation(len(table))  # row numbers only, seeded: never a value
+n = int(round(len(order) * {SegmentationMachine.HOLDOUT}))
+holdout, train = np.sort(order[:n]), np.sort(order[n:])'''),
+        ("leakage", f'''KEPT_OUT = {_c(_ev(records, "leakage").get("kept_out") or [])}  # the later outcome describes the segments, it never forms them'''),
+        ("features", f'''COLUMNS = {_c(cols)}
+X_train, record = segment.prepare(table.iloc[train], COLUMNS)  # each column scaled as its spread asks, fitted on the training rows'''),
+        ("models", f'''METHOD, K = {_c(method)}, {k}  # the best separated of the stable groupings, chosen on the training rows'''),
+        ("final", '''model = segment._fit(METHOD, K, X_train, 0)
+X = segment.transform(table, record)  # every row in the training rows' scaling
+labels = model.predict(X)
+value = round(float(silhouette_score(X[holdout], labels[holdout])), 3) if len(set(labels[holdout])) > 1 else None  # the held-out rows, once'''),
+    ]
+
+
+def _uplift(project: dict[str, Any], records: dict[str, Any], f: dict[str, Any]) -> list[tuple[str, str]]:
+    solution = project["solution"]
+    chosen, features = _chosen(records, "models"), _ev(records, "leakage").get("features") or []
+    common = f'treatment={_c(f["treatment_column"])}, outcome={_c(solution["target"])}, features=FEATURES, randomised={bool(f["randomised"])}'
+    return [
+        ("data", f'''from dclab_core import uplift
+
+table = read_table({_c(project["data"]["filename"])}).reset_index(drop=True)
+parts = uplift.split(table, treatment={_c(f["treatment_column"])})  # stratified by arm, fixed by the arms alone
+assert parts["fingerprint"] == {_c((_ev(records, "data").get("split") or {}).get("holdout_fingerprint"))}, parts["fingerprint"]'''),
+        ("leakage", f'''KEPT_OUT = {_c(_ev(records, "leakage").get("kept_out") or [])}  # identifiers and what is written after the list is drawn'''),
+        ("features", f'''FEATURES = {_c(features)}  # known when the list is drawn; one design for every uplift model'''),
+        ("models", f'''picked = uplift.validate(table, parts, {common})  # on a validation cut of the training rows
+{_check(records, 'picked["best"]')}'''),
+        ("final", f'''scored = uplift.score(table, parts, {common}, best={_c(chosen)})  # the holdout's outcomes, read once
+value = scored["models"][{_c(chosen)}]["qini_coefficient"]'''),
+    ]
+
+
 MACHINES: dict[str, Callable[[dict, dict, dict], list[tuple[str, str]]]] = {
     "entity_tables": _entity_tables, "streams": _streams, "anomaly": _anomaly, "forecasting": _forecasting,
-    "time_to_event": _time_to_event, "embedded": _embedded}
+    "time_to_event": _time_to_event, "embedded": _embedded, "ranking": _ranking, "segmentation": _segmentation, "uplift": _uplift}
 
 
 # ------------------------------------------------------------------------------------------------------ tabular projects
@@ -508,8 +575,9 @@ def export_programme(store: Any, project: dict[str, Any], out: Path, actor: str 
             "steps": [l.block for l in p.leaves if l.status == "built"] + ["composition", "holdout"]}
 
 
-def export(store: Any, project_id: str, out: Path, actor: str = "human") -> dict[str, Any]:
-    """Write the project's code folder to ``out`` and return what it holds."""
+def export(store: Any, project_id: str, out: Path, actor: str = "human", check: bool = False) -> dict[str, Any]:
+    """Write the project's code folder to ``out`` and return what it holds. ``check`` (30.15, step 10): run the folder's
+    ``pipeline.py`` in a Python that cannot import the repository and record whether it reproduced the holdout number."""
     from . import data as sd
 
     project = store.get(project_id)
@@ -560,6 +628,9 @@ def export(store: Any, project_id: str, out: Path, actor: str = "human") -> dict
     (out / "pipeline.ipynb").write_text(json.dumps(_notebook(made["blocks"], project), indent=1) + "\n", encoding="utf-8")
     (out / "expected.json").write_text(json.dumps({"metric": made["metric"], "value": made["value"], "kind": made["kind"],
                                                    "engine_profile": made["profile"]}, indent=1) + "\n", encoding="utf-8")
+    watch = ((store.read_stage(project_id, "final") or {}).get("evidence") or {}).get("monitoring") or {}
+    if watch.get("columns"):  # 30.15 (step 12): the inputs' (and, when there is one, the score's) baselines with the alert lines
+        (out / "monitoring.json").write_text(json.dumps(watch, indent=1, default=str) + "\n", encoding="utf-8")
     from importlib import metadata
 
     pins = []
@@ -579,7 +650,8 @@ def export(store: Any, project_id: str, out: Path, actor: str = "human") -> dict
         `data/` holds {"the rows as the engine prepared them (the solution applied, labels joined, rows sampled)" if made['prepared'] is not None
                        else "the project's own tables, as attached"}: keep this folder where that data may be kept. A score is evidence
         about the method, not production approval.
-        """), encoding="utf-8")
+        """) + ("\n`monitoring.json` holds the training rows' bins and the alert lines: `dclab_core.monitoring.monitor(plan, new_rows)` "
+                "(vendored) says whether new rows still look like them.\n" if watch.get("columns") else ""), encoding="utf-8")
     store.log(project_id, "code_exported", {"kind": made["kind"], "metric": made["metric"], "folder": out.name})
     import hashlib
 
@@ -588,4 +660,39 @@ def export(store: Any, project_id: str, out: Path, actor: str = "human") -> dict
     digests = {p.relative_to(out).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((out / "data").iterdir())}
     audit.record_for(store, "data_export", actor, project={"id": project_id, "name": project.get("name")}, move="export_code", status="allowed",
                      files=digests)
-    return {"folder": str(out), "kind": made["kind"], "metric": made["metric"], "value": made["value"], "steps": [s for s, _ in made["blocks"]]}
+    described = {"folder": str(out), "kind": made["kind"], "metric": made["metric"], "value": made["value"], "steps": [s for s, _ in made["blocks"]]}
+    if check:
+        described["checked"] = rerun(out)
+        from . import graph
+
+        graph.capture(store, project_id, actor)  # WF-10: the export after the final stage, validated and logged as any move
+        project = store.get(project_id)
+        final_run = ((store.read_stage(project_id, "final") or {}).get("run") or {}).get("run")
+        project["exports"] = {**(project.get("exports") or {}), "code": {"at": _now(), "folder": out.name, "final_run": final_run, **described["checked"]}}
+        store.save(project)
+    return described
+
+
+def _now() -> str:
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def rerun(folder: Path, timeout: int = 1800) -> dict[str, Any]:
+    """The exported ``pipeline.py`` run in a Python that cannot import the repository (only the folder and its vendored
+    code): whether it reproduced the recorded holdout number."""
+    import subprocess
+    import sys
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as cwd:
+        done = subprocess.run([sys.executable, "-I", str(Path(folder) / "pipeline.py")], capture_output=True, text=True, cwd=cwd, timeout=timeout)
+    lines = done.stdout.strip().splitlines()
+    try:
+        said = json.loads(lines[-1]) if lines else {}
+    except ValueError:
+        said = {}
+    return {"checked": True, "same": bool(said.get("same")) and done.returncode == 0, "value": said.get("value"), "expected": said.get("expected"),
+            "how": "pipeline.py run in an isolated Python, the holdout number computed again",
+            **({"error": done.stderr.strip()[-600:]} if done.returncode != 0 and not said else {})}

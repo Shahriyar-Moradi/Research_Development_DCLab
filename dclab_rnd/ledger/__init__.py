@@ -66,6 +66,7 @@ CAPTURED = {
     "data.structure_format": "draft/pipeline.py: the reader draft/structure.py chose for an uploaded file, with what it looked at (truth: the construction's, a file of known format)",
     "data.cleaning_keep": "draft/pipeline.py: every cleaning step draft/clean.py applied, per column it changed, kept by the rules (truth: the construction's, a dirty table's planted traps; one answer until a step can be reverted)",
     "data.synthetic_shape": "draft/work.py simulate: the template a person picked, the model's own design, or the rules' fallback (truth: the people's, whether the draft goes on with it)",
+    "workflow.g4": "studio/engine.py _run_stage: G4 on the final stage's facts, passed or the phase it sends the work back to (truth: the people's, where they take the work next) (30.15)",
     "data.fit_verdict": "draft/api.py build_blockers: G2's verdict against the data, at a build (truth: the people's, whether they accept its edits) (30.13)",
     "evidence.records": "agentic/pages/evidence.py ask: the record the evidence search ranked first, with how many came back (truth: the people's, or the retrieval set's 60 questions)",
     "problem.family": "draft/api.py build: the card's family; draft/chat.py take_second_opinion: the second opinion's verdict and the person's choice (28.6)",

@@ -1,0 +1,154 @@
+{
+  "$defs": {
+    "GateResult": {
+      "additionalProperties": false,
+      "properties": {
+        "back_to": {
+          "anyOf": [
+            {
+              "enum": [
+                "problem",
+                "data",
+                "brief",
+                "workflow"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "checks": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "gate": {
+          "enum": [
+            "G1",
+            "G2",
+            "G3",
+            "G4"
+          ],
+          "type": "string"
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "dclab_core.gate_result.v1",
+          "default": "dclab_core.gate_result.v1",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "gate",
+        "passed"
+      ],
+      "type": "object"
+    },
+    "RunStep": {
+      "additionalProperties": false,
+      "properties": {
+        "check": {
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "id": {
+          "enum": [
+            "lock_split",
+            "clean",
+            "baseline",
+            "features",
+            "candidates",
+            "evaluate",
+            "select",
+            "calibrate_rule",
+            "holdout_once",
+            "package",
+            "report",
+            "plan_monitoring"
+          ],
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "done",
+            "partial",
+            "missing",
+            "not_applicable"
+          ],
+          "type": "string"
+        },
+        "why": {
+          "default": "",
+          "maxLength": 4000,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "check"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "gate": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GateResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "dclab_core.workflow_run.v1",
+      "default": "dclab_core.workflow_run.v1",
+      "type": "string"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/RunStep"
+      },
+      "maxItems": 12,
+      "minItems": 12,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "steps"
+  ],
+  "type": "object"
+}

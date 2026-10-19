@@ -773,6 +773,17 @@ async def save_project_brief(project_id: str, body: AnyObject, s: Services = Dep
         raise HTTPException(409, str(exc))
 
 
+@router.get("/api/projects/{project_id}/workflow-run", response_model=Page)
+async def project_workflow_run(project_id: str, s: Services = Depends(services)):
+    """30.15: the framework's twelve steps read from the project's records (each with its check, its status and where its
+    evidence is; a step the records do not show is missing) and G4, honest and usable, with the phase a failure sends the
+    work back to."""
+    from ...studio import workflow_run as studio_workflow_run
+
+    p = s.project(project_id)
+    return await asyncio.to_thread(studio_workflow_run.view, s.projects, p)
+
+
 @router.post("/api/projects/{project_id}/approvals", response_model=Project)
 async def approve_gate(project_id: str, body: GateApproval, s: Services = Depends(services)):
     s.project(project_id)
@@ -813,10 +824,11 @@ async def export_notebook(project_id: str, s: Services = Depends(services)):
 
 
 @router.get("/api/projects/{project_id}/export/code", response_class=Response, responses=download("application/zip"))
-async def export_code(project_id: str, s: Services = Depends(services)):
+async def export_code(project_id: str, check: bool = False, s: Services = Depends(services)):
     """The project's pipeline as code (20.9): a zip with ``pipeline.py`` (one block per step), ``pipeline.ipynb``, the
     data it reads, dclab_core, the pinned requirements and ``expected.json``; ``python pipeline.py`` computes the
-    holdout number again and exits 1 when it differs from the record."""
+    holdout number again and exits 1 when it differs from the record. ``check`` (30.15): run it first, in an isolated
+    Python, and record on the project whether it reproduced the number (the Workflow Run's package step)."""
     import io
     import tempfile
     import zipfile
@@ -829,7 +841,7 @@ async def export_code(project_id: str, s: Services = Depends(services)):
     def build() -> bytes:
         with tempfile.TemporaryDirectory(prefix="dclab-code-") as tmp:
             folder = Path(tmp) / "code"
-            studio_code.export(s.projects, project_id, folder)
+            studio_code.export(s.projects, project_id, folder, check=check)  # 30.15: ?check=true reruns it first and records whether it matched
             buffer = io.BytesIO()
             with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
                 for path in sorted(folder.rglob("*")):

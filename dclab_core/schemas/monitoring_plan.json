@@ -1,0 +1,167 @@
+{
+  "$defs": {
+    "ColumnBaseline": {
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "description": "category: the bins' values, the rest as __other__.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 22,
+          "title": "Categories",
+          "type": "array"
+        },
+        "column": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Column",
+          "type": "string"
+        },
+        "edges": {
+          "description": "numeric: the inner edges of the bins, increasing.",
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 12,
+          "title": "Edges",
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "numeric",
+            "category"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "rows": {
+          "default": 0,
+          "title": "Rows",
+          "type": "integer"
+        },
+        "shares": {
+          "description": "Each bin's share of the training rows (the missing values last, as their own bin).",
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 22,
+          "title": "Shares",
+          "type": "array"
+        }
+      },
+      "required": [
+        "column",
+        "kind"
+      ],
+      "title": "ColumnBaseline",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.monitoring_plan.v1.json",
+  "additionalProperties": false,
+  "description": "The training rows as a model's monitor reads them, and what raises an alert.",
+  "properties": {
+    "built_on": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Built On",
+      "type": "string"
+    },
+    "columns": {
+      "items": {
+        "$ref": "#/$defs/ColumnBaseline"
+      },
+      "maxItems": 100,
+      "title": "Columns",
+      "type": "array"
+    },
+    "flagged_share": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The share of training rows the operating rule flags.",
+      "title": "Flagged Share"
+    },
+    "left_out": {
+      "description": "Columns not monitored, with why (personal, an identifier).",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 200,
+      "title": "Left Out",
+      "type": "array"
+    },
+    "min_rows": {
+      "default": 200,
+      "title": "Min Rows",
+      "type": "integer"
+    },
+    "psi_alert": {
+      "default": 0.25,
+      "title": "Psi Alert",
+      "type": "number"
+    },
+    "psi_warn": {
+      "default": 0.1,
+      "title": "Psi Warn",
+      "type": "number"
+    },
+    "rule": {
+      "default": "",
+      "description": "The operating rule the flagged share counts (a threshold, the top K).",
+      "maxLength": 300,
+      "title": "Rule",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.monitoring_plan.v1",
+      "default": "dclab_core.monitoring_plan.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "score": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ColumnBaseline"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "share_slack": {
+      "default": 0.5,
+      "description": "The flagged share's band, widened by this share of the training share.",
+      "minimum": 0,
+      "title": "Share Slack",
+      "type": "number"
+    },
+    "threshold": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Threshold"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "title": "MonitoringPlan",
+  "type": "object"
+}

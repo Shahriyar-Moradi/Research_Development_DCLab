@@ -793,6 +793,20 @@ product's agent asks the critic once its brief is confirmed and before it plans,
 question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
 whether to go on, recording the decision.
 
+## The Workflow Run and G4 (30.15, dclab-core 0.91.0)
+
+The library's: `workflow_run.STEPS`, the framework's twelve fixed steps, and `WorkflowRun` v1 (each step's status, check
+and the record path of its evidence; a step a host does not have is missing, never assumed done); `GateResult` v1, any
+gate's verdict with the phase a failure sends the work back to; `g4` on one run's facts (the holdout read once, the folds
+explaining the holdout, nothing too good, the brief's bar, a rule, a monitoring plan). `calibration.fit` chooses and fits
+a calibrator on out-of-fold scores only; `monitoring.plan` keeps the training rows' bins and the alert lines and
+`monitor(plan, new_rows, scores)` reads a batch against them. Where it goes there: the main product's experiment and
+pipeline runs have the steps' evidence in their own tables, so a host maps each of its stages onto `STEPS` (a field list
+read at one commit, as the other adapters do) and stores G4 beside the experiment; its model registry stores the
+`Calibrator` with the model and serves the calibrated probability beside the score; its deployment writes the
+`MonitoringPlan` with the model artifact and runs `monitor` on each scored batch, alerting on `status == "alert"`. The
+ledger point `workflow.g4` has no governed decision point there yet (`POINTS_NOT_MAPPED`).
+
 ## The Solution Brief and G3 (30.14, dclab-core 0.90.0)
 
 The library's: `SolutionBrief` v1 says what will be built and how it is judged before anything is trained: the approach

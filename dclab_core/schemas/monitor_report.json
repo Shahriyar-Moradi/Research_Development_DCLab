@@ -1,0 +1,155 @@
+{
+  "$defs": {
+    "ColumnReading": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "title": "Column",
+          "type": "string"
+        },
+        "psi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Psi"
+        },
+        "status": {
+          "enum": [
+            "stable",
+            "warn",
+            "alert",
+            "unread"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "why": {
+          "default": "",
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "column",
+        "status"
+      ],
+      "title": "ColumnReading",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.monitor_report.v1.json",
+  "additionalProperties": false,
+  "properties": {
+    "alerts": {
+      "description": "What crossed an alert line, in words.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Alerts",
+      "type": "array"
+    },
+    "columns": {
+      "items": {
+        "$ref": "#/$defs/ColumnReading"
+      },
+      "title": "Columns",
+      "type": "array"
+    },
+    "flagged_band": {
+      "anyOf": [
+        {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Flagged Band"
+    },
+    "flagged_share": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Flagged Share"
+    },
+    "flagged_status": {
+      "default": "unread",
+      "enum": [
+        "within",
+        "above",
+        "below",
+        "unread"
+      ],
+      "title": "Flagged Status",
+      "type": "string"
+    },
+    "rows": {
+      "title": "Rows",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.monitor_report.v1",
+      "default": "dclab_core.monitor_report.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "score": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ColumnReading"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "status": {
+      "enum": [
+        "stable",
+        "warn",
+        "alert",
+        "too_few_rows"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "rows",
+    "status"
+  ],
+  "title": "MonitorReport",
+  "type": "object"
+}

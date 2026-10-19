@@ -332,7 +332,7 @@
     projectDecisions: ["GET", "/projects/{project_id}/decisions", ["project_id"], []],
     projectDisagreements: ["GET", "/projects/{project_id}/disagreements", ["project_id"], []],
     projectDisagreementAnswer: ["POST", "/projects/{project_id}/disagreements/{record_id}", ["project_id", "record_id"], []],
-    exportCode: ["GET", "/projects/{project_id}/export/code", ["project_id"], []],
+    exportCode: ["GET", "/projects/{project_id}/export/code", ["project_id"], ["check"]],
     exportNotebook: ["GET", "/projects/{project_id}/export/notebook", ["project_id"], []],
     exportReport: ["GET", "/projects/{project_id}/export/report", ["project_id"], []],
     exportSft: ["GET", "/projects/{project_id}/export/sft", ["project_id"], []],
@@ -362,6 +362,7 @@
     projectTeamWalk: ["POST", "/projects/{project_id}/team", ["project_id"], []],
     projectTwinRuns: ["GET", "/projects/{project_id}/twin", ["project_id"], []],
     runTwin: ["POST", "/projects/{project_id}/twin", ["project_id"], []],
+    projectWorkflowRun: ["GET", "/projects/{project_id}/workflow-run", ["project_id"], []],
     research: ["GET", "/research", [], []],
     researchFile: ["GET", "/research/file", [], ["path"]],
     agentRoles: ["GET", "/roles", [], []],
@@ -1112,7 +1113,7 @@
   client.path.projectDisagreementAnswer = (...args) => build('projectDisagreementAnswer', args).path;
   /** GET /api/projects/{project_id}/export/code: Export Code
    *  @param {string} project_id
-   *  @param {{headers?: Object}} [opts]
+   *  @param {{query?: {check?: *}, headers?: Object}} [opts]
    *  @returns {Promise<*>} */
   client.exportCode = (...args) => call('exportCode', args);
   client.path.exportCode = (...args) => build('exportCode', args).path;
@@ -1307,6 +1308,13 @@
    *  @returns {Promise<Page>} */
   client.runTwin = (...args) => call('runTwin', args);
   client.path.runTwin = (...args) => build('runTwin', args).path;
+  /** GET /api/projects/{project_id}/workflow-run: Project Workflow Run
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.projectWorkflowRun = (...args) => call('projectWorkflowRun', args);
+  client.path.projectWorkflowRun = (...args) => build('projectWorkflowRun', args).path;
+  client.href.projectWorkflowRun = (...args) => '/api' + build('projectWorkflowRun', args).path;
   /** GET /api/research: Research
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Page>} */

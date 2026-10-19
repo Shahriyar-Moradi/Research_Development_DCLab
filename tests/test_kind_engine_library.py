@@ -27,12 +27,13 @@ else:
 
 
 class SharedReaders:
-    """The exports refuse, and every shared reader reads the machine's records; the holdout answer is the holdout's own."""
+    """The notebook export refuses, the code export reproduces the holdout number (30.15), and every shared reader reads
+    the machine's records; the holdout answer is the holdout's own."""
 
     key = ""
     holdout_metric = ""
 
-    def test_exports_refuse_and_the_shared_readers_work(self):
+    def test_the_code_reproduces_the_holdout_and_the_shared_readers_work(self):
         from dclab_core.report import to_markdown
         from dclab_rnd.intern.tools import compact_record
         from dclab_rnd.studio import agent, code, export
@@ -41,8 +42,14 @@ class SharedReaders:
         project, records = self.store.get(self.pid), self.store.records(self.pid)
         with self.assertRaises(export.ExportUnsupported):
             export.notebook(project, records)
-        with self.assertRaises(code.CodeRefused):
-            code.export(self.store, self.pid, Path(tempfile.mkdtemp()))
+        folder = Path(tempfile.mkdtemp()) / "code"  # 30.15: every kind's code export recomputes its holdout number
+        code.export(self.store, self.pid, folder)
+        import subprocess
+        import sys
+
+        ran = subprocess.run([sys.executable, "-I", str(folder / "pipeline.py")], capture_output=True, text=True, cwd=tempfile.mkdtemp(), timeout=900)
+        self.assertEqual(ran.returncode, 0, (self.key, ran.stdout[-800:], ran.stderr[-1500:]))
+        self.assertTrue(json.loads(ran.stdout.strip().splitlines()[-1])["same"], self.key)
         for record in records.values():
             self.assertIsNotNone(compact_record(record)["numbers"])
         answer = agent.answer("how good is the holdout score?", project, records, self.key)["answer"]

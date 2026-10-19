@@ -618,6 +618,24 @@ def evidence_search(question: str, hits: list[dict[str, Any]], weak: float) -> A
 
 
 @_quiet
+def gate_g4(project: dict[str, Any], gate: dict[str, Any], evidence: dict[str, Any]) -> Any:
+    """30.15: G4 on the final stage's facts, as bands (never a score or a row): how often the holdout was read, whether the
+    folds explain it, a score too good, the brief's verdict, a rule, the monitoring plan's reach. The rule's answer is
+    passed or the phase it sends the work back to."""
+    checks = {c.get("name"): bool(c.get("ok")) for c in gate.get("checks") or []}
+    plan = evidence.get("monitoring") or {}
+    state = {"holdout_used": int(project.get("holdout_uses") or 0),
+             "folds_explain": checks.get("The folds explain the holdout"), "too_good": None if "Not too good to be honest" not in checks
+             else not checks["Not too good to be honest"], "bar": _code(str((evidence.get("success_bar") or {}).get("verdict") or "none")),
+             "rule_set": checks.get("A rule to act on"), "monitoring": "score" if plan.get("score") else ("inputs" if plan.get("columns") else "none"),
+             "calibrated": _code(str(((evidence.get("calibration_fit") or {}).get("calibrator") or {}).get("method") or "none"))}
+    value = "passed" if gate.get("passed") else str(gate.get("back_to"))
+    return _put("workflow.g4", ("project", project["id"]), [answer("rule", "workflow_run:g4", value, reason="; ".join(gate.get("reasons") or [])[:600] or None)],
+                value, "rule", state={k: v for k, v in state.items() if v is not None}, options=["passed", "problem", "data", "brief", "workflow"],
+                project=project["id"])
+
+
+@_quiet
 def fit_verdict(draft: dict[str, Any], verdict: Any, checked: Any = None, card: Any = None, accepted: bool = False) -> Any:
     """30.13: G2's verdict (fits, fits with changes, does not fit), with what it was read from: the mismatches, blocking
     and not, the family, the labels, whether a time column exists and whether noisy labels were found (never the verdict's

@@ -1,0 +1,139 @@
+{
+  "$defs": {
+    "ColumnBaseline": {
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 22,
+          "type": "array"
+        },
+        "column": {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        "edges": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "numeric",
+            "category"
+          ],
+          "type": "string"
+        },
+        "rows": {
+          "default": 0,
+          "type": "integer"
+        },
+        "shares": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 22,
+          "type": "array"
+        }
+      },
+      "required": [
+        "column",
+        "kind"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "built_on": {
+      "default": "",
+      "maxLength": 300,
+      "type": "string"
+    },
+    "columns": {
+      "items": {
+        "$ref": "#/$defs/ColumnBaseline"
+      },
+      "maxItems": 100,
+      "type": "array"
+    },
+    "flagged_share": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "left_out": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 200,
+      "type": "array"
+    },
+    "min_rows": {
+      "default": 200,
+      "type": "integer"
+    },
+    "psi_alert": {
+      "default": 0.25,
+      "type": "number"
+    },
+    "psi_warn": {
+      "default": 0.1,
+      "type": "number"
+    },
+    "rule": {
+      "default": "",
+      "maxLength": 300,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.monitoring_plan.v1",
+      "default": "dclab_core.monitoring_plan.v1",
+      "type": "string"
+    },
+    "score": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ColumnBaseline"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "share_slack": {
+      "default": 0.5,
+      "minimum": 0,
+      "type": "number"
+    },
+    "threshold": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "type": "object"
+}

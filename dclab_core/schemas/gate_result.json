@@ -1,0 +1,70 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.gate_result.v1.json",
+  "additionalProperties": false,
+  "description": "A gate's verdict: passed, or where the work goes back and why.",
+  "properties": {
+    "back_to": {
+      "anyOf": [
+        {
+          "enum": [
+            "problem",
+            "data",
+            "brief",
+            "workflow"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Back To"
+    },
+    "checks": {
+      "description": "Each check: name, ok, detail.",
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "maxItems": 20,
+      "title": "Checks",
+      "type": "array"
+    },
+    "gate": {
+      "enum": [
+        "G1",
+        "G2",
+        "G3",
+        "G4"
+      ],
+      "title": "Gate",
+      "type": "string"
+    },
+    "passed": {
+      "title": "Passed",
+      "type": "boolean"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Reasons",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.gate_result.v1",
+      "default": "dclab_core.gate_result.v1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "gate",
+    "passed"
+  ],
+  "title": "GateResult",
+  "type": "object"
+}

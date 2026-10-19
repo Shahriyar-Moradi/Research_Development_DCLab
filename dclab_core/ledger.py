@@ -91,6 +91,9 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     # an evidence search (codes, flags, counts and measures; never a cell, a line of the file or a person's words)
     "suffix": (CODE, ()), "signature": (CODE, ()), "json_head": (FLAG, ()), "json_lines": (FLAG, ()), "delimiter": (CODE, ()),
     "log_like": (FLAG, ()), "cleaning": (CODE, ()), "model_available": (FLAG, ()),
+    # 30.15: G4's facts, as flags and codes (the scores themselves stay in the run's record)
+    "folds_explain": (FLAG, ()), "too_good": (FLAG, ()), "bar": (CODE, ()), "rule_set": (FLAG, ()), "monitoring": (CODE, ()),
+    "calibrated": (CODE, ()),
     "noisy": (FLAG, ()),  # 30.13: whether the data card found noisy labels (G2's reading)
     "hits": (COUNT, ()), "top_score": (MEASURE, ()), "method": (CODE, ()), "weak": (FLAG, ()),
 }
@@ -215,6 +218,8 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     _p("workflow.revisit", W, "workflow", "value", "Which earlier step is revisited, if any?"),
     _p("workflow.stage_approval", W, "project", "noul", "Is the stage's choice approved?"),
     _p("workflow.stop", W, "workflow", "noul", "Is the work finished, or does it go on?"),
+    _p("workflow.g4", W, "project", "choice", "Is the result honest and usable, or which phase does the work go back to?",
+       choices=("passed", "problem", "data", "brief", "workflow")),  # 30.15: the framework's gate G4
     _p("agent.tool_choice", W, "conversation", "value", "Which tool does the agent call next?"),
     _p("experiment.next", W, "project", "value", "Which experiment is run next?"),
     # 29.6: the teams of agents (28.x): every step of a walk and every send-back of the critic, recorded where they are made

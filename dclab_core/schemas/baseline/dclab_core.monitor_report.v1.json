@@ -1,0 +1,138 @@
+{
+  "$defs": {
+    "ColumnReading": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "type": "string"
+        },
+        "psi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "enum": [
+            "stable",
+            "warn",
+            "alert",
+            "unread"
+          ],
+          "type": "string"
+        },
+        "why": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "column",
+        "status"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "alerts": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "columns": {
+      "items": {
+        "$ref": "#/$defs/ColumnReading"
+      },
+      "type": "array"
+    },
+    "flagged_band": {
+      "anyOf": [
+        {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "flagged_share": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "flagged_status": {
+      "default": "unread",
+      "enum": [
+        "within",
+        "above",
+        "below",
+        "unread"
+      ],
+      "type": "string"
+    },
+    "rows": {
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.monitor_report.v1",
+      "default": "dclab_core.monitor_report.v1",
+      "type": "string"
+    },
+    "score": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ColumnReading"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "status": {
+      "enum": [
+        "stable",
+        "warn",
+        "alert",
+        "too_few_rows"
+      ],
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "rows",
+    "status"
+  ],
+  "type": "object"
+}

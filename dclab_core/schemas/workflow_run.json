@@ -1,0 +1,176 @@
+{
+  "$defs": {
+    "GateResult": {
+      "additionalProperties": false,
+      "description": "A gate's verdict: passed, or where the work goes back and why.",
+      "properties": {
+        "back_to": {
+          "anyOf": [
+            {
+              "enum": [
+                "problem",
+                "data",
+                "brief",
+                "workflow"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Back To"
+        },
+        "checks": {
+          "description": "Each check: name, ok, detail.",
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "maxItems": 20,
+          "title": "Checks",
+          "type": "array"
+        },
+        "gate": {
+          "enum": [
+            "G1",
+            "G2",
+            "G3",
+            "G4"
+          ],
+          "title": "Gate",
+          "type": "string"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Reasons",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "dclab_core.gate_result.v1",
+          "default": "dclab_core.gate_result.v1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "gate",
+        "passed"
+      ],
+      "title": "GateResult",
+      "type": "object"
+    },
+    "RunStep": {
+      "additionalProperties": false,
+      "properties": {
+        "check": {
+          "description": "What was checked before the next step.",
+          "maxLength": 4000,
+          "title": "Check",
+          "type": "string"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where the step's evidence is: a record path.",
+          "title": "Evidence"
+        },
+        "id": {
+          "enum": [
+            "lock_split",
+            "clean",
+            "baseline",
+            "features",
+            "candidates",
+            "evaluate",
+            "select",
+            "calibrate_rule",
+            "holdout_once",
+            "package",
+            "report",
+            "plan_monitoring"
+          ],
+          "title": "Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "done",
+            "partial",
+            "missing",
+            "not_applicable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "why": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "check"
+      ],
+      "title": "RunStep",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.workflow_run.v1.json",
+  "additionalProperties": false,
+  "description": "The twelve steps of one run, in their fixed order, and G4.",
+  "properties": {
+    "gate": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GateResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "dclab_core.workflow_run.v1",
+      "default": "dclab_core.workflow_run.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/RunStep"
+      },
+      "maxItems": 12,
+      "minItems": 12,
+      "title": "Steps",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "steps"
+  ],
+  "title": "WorkflowRun",
+  "type": "object"
+}

@@ -275,6 +275,22 @@ Designed in detail once Part E is built; each keeps DCLab's rules (the validator
   `GET`/`PUT /api/projects/{id}/brief`; the audit kind `brief` and the event `decision.accepted` (point `solution.brief`).
   Harness on the rules 17 of 17 (HRN-023). Left: a brief exists only when a person saves one (the Solution page's editor,
   sign-off on by default and a model drafting the words are the owner's), the main product's Objective has no bar yet.
+- **30.15 built (2026-10-19), the review's 12 findings fixed; Done when met.** `dclab_core.workflow_run` (dclab-core 0.91.0):
+  `WorkflowRun` v1, the framework's twelve steps read from a run's records (a step the records do not show is missing),
+  `GateResult` v1 (passed, or the phase the work goes back to, with why) and `g4`; `dclab_core.calibration` (a calibrator
+  chosen and fitted on the out-of-fold scores only); `dclab_core.monitoring` (`MonitoringPlan`, `monitor`). The engine
+  scores the simple model on the screen's own folds, fits the calibrator and builds the monitoring plan on the model's
+  input columns at the final stage, writes G4 in both final paths and records it as the ledger point `workflow.g4`; the
+  solution team stops on a failed G4 with the phase it names (`back_to`). The service export carries the calibrator
+  (`calibrated_probability` beside the score) and `monitoring.json` (levels hashed with the export key, edges between
+  training values) and checks itself: reloaded in an isolated Python, the refit's rows predicted again and matched, or
+  refused; the code export writes `monitoring.json` and, with `check`, reruns its pipeline; both are capture moves tied to
+  the final run they package. Ranking, segmentation and uplift now export code: `make code-check` reproduced every one of
+  the 15 kinds' holdout numbers in a clean Python 3.12; the binary, multiclass and regression replicas' services reloaded
+  and matched (the binary one failed first: the scorer had served integer columns as text); `monitor()` flags a planted
+  drift and, on the delivery replica's holdout, a real one (cancelled rides only after the training rows). `GET
+  /api/projects/{id}/workflow-run`. Left: kinds with their own machine have no service export; G4 fails on the
+  time-to-event, uplift and embedded replicas (honest on these seeds, not pinned per kind); the main product's mapping.
 - **Live tests (2026-10-19, $20 budget; EUR 4.02 spent):** the product's model (Claude) through the harness suite for the
   first time: 10 of 17 (HRN-022; the rules alone 17 of 17). Fixed: a costs question asked again and again and blocking the
   build; a fraud walk built without its entity (no grouped folds); the model reading "the day's orders" as the entity and

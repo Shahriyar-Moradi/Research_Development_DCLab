@@ -132,6 +132,13 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
                         "training: send a whole audit window (or a batch in time order) together; a single row gets no history, "
                         "and no state is kept between requests" if behaviour else "each row is scored on its own"),
             "production_approved": False}
+    calibrator = (final.get("calibration_fit") or {}).get("calibrator")
+    if calibrator and calibrator.get("method") != "none":  # 30.15: fitted on the out-of-fold scores; served beside the score, never instead of it
+        meta["calibrator"] = calibrator
+    watch = final.get("monitoring") or {}
+    if watch.get("columns"):  # 30.15 (step 12): the training rows' bins and the alert lines, read by Scorer.monitor
+        (out / "monitoring.json").write_text(json.dumps(_hashed_plan(watch, key), indent=1, default=str) + "\n", encoding="utf-8")
+        meta["monitoring"] = "monitoring.json"  # its category levels hashed with the key, as the model's are: no value of the table
     (out / "model.json").write_text(json.dumps(meta, indent=1, default=str) + "\n", encoding="utf-8")
     for name in ("scorer.py", "app.py"):
         shutil.copyfile(TEMPLATE / name, out / name)
@@ -150,7 +157,8 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
     (out / "requirements.txt").write_text("\n".join(pins + ["flask>=3.0", "gunicorn>=22.0", "pytest>=8.0"]) + "\n", encoding="utf-8")
     (out / "Dockerfile").write_text(
         "FROM python:3.12-slim\nWORKDIR /service\nCOPY requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\n"
-        "# the model, the code and the tests: no data file is copied\nCOPY model.pkl model.json scorer.py app.py ./\nCOPY vendor ./vendor\n"
+        "# the model, the code and the tests: no data file is copied\nCOPY model.pkl model.json scorer.py app.py ./\n"
+        + ("COPY monitoring.json ./\n" if meta.get("monitoring") else "") + "COPY vendor ./vendor\n"
         "COPY tests ./tests\n# the hashing key is given at run time: docker run -e DCLAB_SERVICE_KEY=... (it is not in the image)\n"
         "EXPOSE 8000\nCMD [\"gunicorn\", \"--bind\", \"0.0.0.0:8000\", \"--workers\", \"2\", \"app:app\"]\n", encoding="utf-8")
     (out / ".dockerignore").write_text("*.csv\n*.parquet\n*.xlsx\n*.json.gz\n__pycache__\n", encoding="utf-8")
@@ -172,6 +180,89 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
         "the service, who passes it as `DCLAB_SERVICE_KEY`.\n\n```bash\ndocker build -t dclab-service .\n"
         "docker run -e DCLAB_SERVICE_KEY=... -p 8000:8000 dclab-service\n```\n\n"
         "Endpoints: `GET /health`, `GET /model`, `POST /predict` (one row as an object, or a list), `POST /predict/csv` (form field `file`).\n\n"
-        f"{meta['batches'].capitalize()}. A score is evidence about the method, not production approval.\n", encoding="utf-8")
-    store.log(project_id, "service_exported", {"recipe": recipe_name, "model": family, "folder": out.name})
-    return {"folder": str(out), "meta": meta, "key": key}
+        f"{meta['batches'].capitalize()}. A score is evidence about the method, not production approval.\n"
+        + ("\nMonitoring: `Scorer().monitor(rows, scores)` reads a batch against the training rows' bins in `monitoring.json` "
+           "(each column's and the score's PSI, the share the rule flags); an alert says the inputs moved away from what the model "
+           "was trained on.\n" if meta.get("monitoring") else ""), encoding="utf-8")
+    try:
+        checked = _reload_check(out, key, bundle.X_test, fitted["predictions"], bundle.task_type)  # 30.15: saved, reloaded, predicted, matched
+    except ServiceRefused:
+        _forget(store, project_id, "service")  # the earlier export of this project is gone with its folder: it packages nothing
+        raise
+    store.log(project_id, "service_exported", {"recipe": recipe_name, "model": family, "folder": out.name, "checked": checked})
+    from . import graph
+
+    graph.capture(store, project_id, "human")  # WF-10: the export after the final stage, validated and logged as any move
+    project = store.get(project_id)
+    project["exports"] = {**(project.get("exports") or {}), "service": {"at": _now(), "folder": out.name, "final_run": (final_record.get("run") or {}).get("run"),
+                                                                        **checked}}
+    store.save(project)
+    return {"folder": str(out), "meta": meta, "key": key, "checked": checked}
+
+
+def _forget(store: Any, project_id: str, which: str) -> None:
+    project = store.get(project_id)
+    if (project.get("exports") or {}).pop(which, None) is not None:
+        store.save(project)
+
+
+def _hashed_plan(plan: dict[str, Any], key: str) -> dict[str, Any]:
+    """The monitoring plan as the service keeps it: each category level under the salted hash the scorer gives its inputs
+    (the bins' shares unchanged); a numeric column's edges are already midpoints between training values."""
+    import hashlib
+
+    from dclab_core.monitoring import MISSING, OTHER
+
+    def h(v: str) -> str:
+        return v if v in (OTHER, MISSING) else "h:" + hashlib.sha256(f"{key}|{v}".encode()).hexdigest()[:16]
+
+    out = json.loads(json.dumps(plan, default=str))
+    for column in out.get("columns") or []:
+        if column.get("kind") == "category":
+            column["categories"] = [h(str(v)) for v in column.get("categories") or []]
+    out["hashed_levels"] = True
+    return out
+
+
+def _now() -> str:
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _reload_check(out: Path, key: str, rows: Any, expected: Any, task_type: str) -> dict[str, Any]:
+    """30.15 (step 10): the exported folder loaded in a Python that cannot import the repository (only the folder and its
+    vendored code), the rows the engine's refit scored predicted again, and the scores matched; a mismatch refuses the
+    export and removes the folder. The rows go through a file outside the folder, deleted after."""
+    import subprocess
+    import sys
+    import tempfile
+
+    scratch = Path(tempfile.mkdtemp())
+    try:
+        rows_file = scratch / "rows.json"
+        rows.to_json(rows_file, orient="records", date_format="iso", double_precision=15)
+        field = "probabilities" if task_type == "multiclass" else ("score" if task_type in ("binary_imbalanced",) else "prediction")
+        import os
+
+        script = ("import json, sys; sys.path.insert(0, sys.argv[1]); from scorer import Scorer; s = Scorer(); "
+                  "rows = json.load(open(sys.argv[2])); out = s.predict(rows); "
+                  f"print(json.dumps([list(r['{field}'].values()) if isinstance(r.get('{field}'), dict) else r.get('{field}', r.get('score', r.get('prediction'))) for r in out]))")
+        try:  # the key by the environment, never on the command line (a process list shows it)
+            done = subprocess.run([sys.executable, "-I", "-c", script, str(out), str(rows_file)], cwd=str(scratch), capture_output=True, text=True,
+                                  timeout=900, env={**os.environ, "DCLAB_SERVICE_KEY": key})
+            got = np.asarray(json.loads(done.stdout.strip().splitlines()[-1]), dtype=float) if done.returncode == 0 else None
+        except (subprocess.TimeoutExpired, ValueError, IndexError) as error:
+            shutil.rmtree(out, ignore_errors=True)
+            raise ServiceRefused(f"The exported service could not be checked ({type(error).__name__}): not exported") from None
+        if got is None:
+            shutil.rmtree(out, ignore_errors=True)
+            raise ServiceRefused("The exported service did not load and predict on its own: " + done.stderr.strip()[-600:])
+        want = np.asarray(expected, dtype=float)
+        diff = float(np.max(np.abs(got - want))) if got.shape == want.shape and got.size else float("inf")
+        if not diff <= 1e-6:
+            shutil.rmtree(out, ignore_errors=True)
+            raise ServiceRefused(f"The exported service does not predict what the engine's refit did (largest difference {diff}): not exported")
+        return {"checked": True, "rows": int(len(want)), "max_abs_diff": diff, "how": "reloaded in an isolated Python, the refit's rows predicted again"}
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
