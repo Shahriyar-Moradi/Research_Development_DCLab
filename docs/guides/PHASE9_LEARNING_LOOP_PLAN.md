@@ -17,8 +17,9 @@ owner are its sources, read here against the repository at `07fa011`:
 **Status: a plan only; widened 2026-10-19.** The owner's order (2026-10-18): nothing of phase 9 is built while phases 6, 7
 and 8 are being finished, and the capture of everything keeps running meanwhile. On 2026-10-19 the owner added that every
 action and decision is recorded for training the three kinds of model, above all the workflow LLM, and that an agentic LLM,
-a model that solves a machine-learning problem by itself as the agent, is fine-tuned beside them (Part F2, 31.13 to 31.16). Phase 9 starts after them; the capture they finish is
-what it learns from.
+a model that solves a machine-learning problem by itself as the agent, is fine-tuned beside them (Part F2, 31.13 to 31.16);
+and that the loop's own seats record everything they read, do and produce (Part C, 31.17). Phase 9 starts after them; the
+capture they finish is what it learns from.
 
 **What it stands on.** The Learning Loop "uses the four phases and cards from *DCLab Framework: From Problem to Solution
 Workflow*, and the recipe parts from *DCLab Task Recipes*", and adds the part that was missing: how the system grows from
@@ -117,6 +118,33 @@ whole result, the state each decision read, the reason given, the verdict and wh
 before anything is cut for a contract field (the never-truncate rule), tagged by who produced it (a rule, a student, the
 local model, Claude, a person) and by its consent, and archived (`make archive`). An attempt that failed is kept as
 carefully as one that passed: the pair is what teaches (ExpeL), and the failure is the agentic LLM's lesson in recovery.
+
+### What every turn of the loop records, and where it is kept (the owner, 2026-10-19)
+
+The loop is itself a source of training data, as rich as the attempts it grades: each seat's inputs, outputs and every
+detail between are recorded, whole and before anything is cut, linked by ids, and kept permanently. One iteration of the
+loop (a pack, its attempt, the grade, the lesson, the delta, the next attempt's reads) can be replayed from its records
+alone, and every number on the scoreboard traces back to them.
+
+| Seat | What it records (inputs, outputs, every detail) | Kept as | What it trains |
+|---|---|---|---|
+| Challenge Pack | the pack's version and hash, the request text, the data or the replica's generator and seed, the rubric's version, the answer key's version and hash (the key itself stays outside the solver's reach), the source | the pack folder in the repository, its manifest in the lake | the answer key's decision points are gold labels for the decision models, kept apart from the solver until a variant retires |
+| Variant generator | every variant: its seed, each generator parameter and its value, the set it went to (learning, check, sealed), the reference solution's result on it, why a variant was refused (unsolvable, a copy of another) | one variant record each, the sets' manifests, the sealed partition sealed as the decision sets are | the curriculum: which variants were hard, which parameter made them hard |
+| Solver (the attempt) | every message the agent saw and wrote, its reasoning, every tool call with its arguments and its whole result, the state each decision read and the answer with its reason, the four cards and the gates, each store item it retrieved (case ids, bullet ids, skill versions) and whether it was used, every file it opened, each model request (model, prompt version, tokens, cost, time), errors and recoveries, what a person changed | the attempt trace (31.13's trajectory record), the ledger's decision records, the stages' run records, the experience events | the workflow LLM (each step's answer with its reasoning), the decision models (each decision point), the agentic LLM (the whole attempt, turn by turn) |
+| Grader | its inputs (the trace id, the key's and the rubric's versions, the grader's version), every output field, each decision point's comparison (the key's value, the attempt's, the stated reason, the weight), each hard-fail condition checked, the outcome score's baseline and target, the attacks it was tested on | one grade record an attempt, beside the trace | pass/fail labels and preferences (pass against fail on one pack), the reward of any later RL, never a model in the scoring path |
+| Reflector | what it read (the failed trace, the grader's diff, the passing trace when there is one), its prompt version, the whole model request and reply, its draft lessons including the ones refused and why, the gap type it chose, the first wrong step it found | one reflection record, the lesson drafts with their evidence | a reflector model in time (trace and diff to an accepted lesson), the agentic LLM's recovery from its own mistakes |
+| Curator | each delta: the store, the item before and after, the rule of ACE it applied (append, bump a counter, merge, retire), the check-set re-pass of a merge with its score, a person's approval or refusal with their words, the store's version after | an append-only delta log a store, every version of every store recoverable | what a good lesson is: each lesson beside its measured effect on the check variants |
+| The next attempt's reads | which cases, bullets and skills each later attempt retrieved, and its result: each item's helpful and harmful counts come from these records, not from a guess | the retrieval records in the attempt's trace | retrieval and the playbook's own measurement |
+| Promotions and the scoreboard | each promotion's evidence (the sealed variants read, once), who approved, when and why; every scoreboard row with the records it was computed from | the scoreboard rows beside `capability.json`, the approvals in the audit | the learning curve itself, the product's evidence |
+
+**How it is stored.** Every record carries the ids that join it to the others (pack, variant, attempt, trace, grade,
+lesson, delta, store version, and the run of the loop), the producer (a rule, a student, the local model, Claude, a
+person) and its consent. It is written where it happens, before any field is cut, and goes into the lake's bronze layer as
+it was, the silver and gold sets built from it by code (the per-point decision sets, the workflow set, the agentic
+trajectories, the preferences, the lessons with their effects), and into `training_records/` by `make archive`. The sealed
+variants' attempts are kept as carefully as the others, and marked as the exam's: they never enter a training set for
+their family while that family is still measured on them. A failed attempt, a refused lesson and a rolled-back delta are
+kept as surely as the successes: they are what the reflector and the agentic LLM learn from.
 
 ## Part D. Rules and guardrails
 
@@ -360,6 +388,7 @@ its development record, the gate, capture in its "Done when", gates fixed before
 | **4. RL** (optional; only if stage 3 plateaus; rented GPUs) | 31.11 RL from the grader | GRPO-style training on the grader's reward, the smallest decision model first | the sealed score rises, and a red team cannot raise the reward without raising the real score; the owner's approval |
 | outside | 31.12 The outside exam | 5 to 10 low-complexity MLE-bench competitions as a permanent sealed set | the owner's approval for the downloads; scored once a promotion of the whole loop |
 | **capture** (from day one, beside every stage) | 31.13 The whole trajectory record | `dclab_core.trajectory` v1: one run as turns (what the agent saw, its reasoning, the action, the tool's whole result), written by the harness for every agent and every loop attempt before anything is cut, tagged by producer and consent, archived | a test reads back every turn of an intern session, a team walk and a loop attempt, whole; nothing shortened before it was saved |
+| | 31.17 The loop's own record | `dclab_core.loop_record` v1: the variant, grade, reflection, delta and read records of Part C's table, joined by their ids, written by each seat where it acts, into the lake's bronze layer and the archive; the loop's datasets (decisions from answer keys, pass/fail preferences, lessons with their measured effect) built from them | a test replays one iteration of the loop from its records alone (pack, attempt, grade, lesson, delta, the next attempt's reads) and traces a scoreboard row to them; nothing shortened before it was saved; a sealed variant's attempt never reaches a training set of its family |
 | | 31.14 The agentic training set | the builder into the tool-calling chat format, a sealed partition by problem family, pass/fail pairs as preferences, Claude's trajectories apart under the owner's rule | the set's manifest; no sealed family in training; a whole trajectory replays through the registry's tools |
 | **agentic model** (after 31.10; the owner's runs) | 31.15 The agentic LLM, fine-tuned | LoRA SFT of the base model on 31.14 (the owner's run), then preferences | on sealed variants it solves more problems end to end than the base model in the same harness, with no move the validator would refuse |
 | | 31.16 The agentic LLM beside the agents | the tuned model in shadow beside the harness's agents, then through the routing levels on measured evidence | its shadow record on real sessions; served only where it measured better, retired in one change |
@@ -406,6 +435,20 @@ learned, and that each lesson is written where a person can read it.
 
 **وضعیت:** فقط برنامه. به دستور مالک، تا پایان فازهای ۶، ۷ و ۸ هیچ بخشی از فاز ۹ ساخته نمی‌شود و ثبت و ذخیرهٔ همهٔ داده‌ها
 ادامه دارد.
+
+**ثبت همه‌چیز در حلقه (مالک، ۲۰۲۶-۱۰-۱۹):** خودِ حلقه هم منبع دادهٔ آموزشی است. هر جزء آن ورودی‌ها، خروجی‌ها و همهٔ
+جزئیات را کامل و پیش از هر کوتاه‌سازی ثبت می‌کند:
+- **بستهٔ چالش:** نسخه، seed، معیار نمره و کلید پاسخ.
+- **مولد نسخه:** پارامترهای هر نسخه و مجموعه‌ای که در آن رفت.
+- **حل‌کننده:** هر پیام، استدلال، فراخوانی ابزار با نتیجهٔ کامل، هر تصمیم و چیزهایی که از انباره‌ها خواند.
+- **داور:** مقایسهٔ هر نقطهٔ تصمیم.
+- **بازتاب‌دهنده:** درخواست و پاسخ کامل مدل و درس‌های ردشده.
+- **گردآورنده:** هر تغییر کوچک با حالت قبل و بعد.
+- **تلاش بعدی:** اینکه کدام درس‌ها کمک کردند.
+
+همهٔ این سوابق با شناسه‌ها به هم وصل‌اند و برای همیشه نگه داشته می‌شوند. تلاش‌های شکست‌خورده و درس‌های ردشده هم نگه داشته
+می‌شوند. سوابقِ نسخه‌های مهروموم‌شده هرگز وارد مجموعهٔ آموزشیِ خانوادهٔ خودشان نمی‌شوند. بستهٔ 31.17 نشان می‌دهد که یک دور
+کامل حلقه فقط از روی سوابقش بازپخش می‌شود.
 
 **ترتیب درست:** اول یادگیری در متن، بعد در کد، در آخر در وزن‌های مدل. همهٔ سیستم‌هایی که بدون آموزش دوباره بهتر می‌شوند
 (ACE، GEPA، ExpeL و Voyager) سه جزء دارند: بستری که به تلاش نمره می‌دهد، گام بازتابی که از رِد اجرا و حکم داور یک درس

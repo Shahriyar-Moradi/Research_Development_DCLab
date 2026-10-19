@@ -793,6 +793,22 @@ product's agent asks the critic once its brief is confirmed and before it plans,
 question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
 whether to go on, recording the decision.
 
+## The Solution Brief and G3 (30.14, dclab-core 0.90.0)
+
+The library's: `SolutionBrief` v1 says what will be built and how it is judged before anything is trained: the approach
+level on the ladder (a rule, a template, classical ML, a small model, a frontier model) with why the simpler rungs fail,
+the recipe, the baselines, the validation, the success bar (an absolute target or a factor or margin against a named
+baseline, with guards), the decision rule, the features kept out, the risks and the alternatives. `fill` drafts one by
+rules, `problems` is G3 (no bar, no baseline or no alternative refuses it), `sign` freezes the bar at a person's signature
+(`fingerprint`: an edit unsigns it) and `judge` reads the holdout once against it: met, not met, or cannot be judged with
+why. Where it goes there: the main product's Objective has a metric and constraints but no bar, so nothing maps onto it
+yet (conformance: library output); its spec page should draft the brief after the spec is locked, show G3's problems,
+sign it with the spec (D3 here: a signed brief covers the holdout approval), store the verdict beside the experiment's
+holdout metrics, and never let a bar change after the read (a new bar needs a new holdout). The same version adds
+`coordinator.Facts.open_field` and the step `ask`: a host whose agent is a model sets it to its plan's next field never
+asked (while questions are left), and the machine asks it before the build; the main product's coordinator, if it adopts
+the machine, fills it from its own question list.
+
 ## Problem Card v2 and the fit verdict (30.13, dclab-core 0.89.0)
 
 The library's: `ProblemCard` v2 carries the owner's framework fields (the decision and who owns it, the error costs, the

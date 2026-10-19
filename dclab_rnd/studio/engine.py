@@ -98,6 +98,7 @@ class Prepared:
         self.noisy_rules: list[dict[str, Any]] = []  # 30.12: the rule behind each noisy source's labels (capacity.rule_columns)
         self.score_rows: pd.DataFrame | None = None  # 30.12: every unconfirmed row, scored for a capacity's queue, never judged on
         self.dated = False  # 30.12: whether the time column holds dates (a capacity's periods), set on every prepare
+        self.brief: dict[str, Any] | None = None  # 30.14: the project's Solution Brief, set on every prepare
 
     @property
     def task(self) -> str:
@@ -139,6 +140,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
            + _routed("column.semantic_role"))  # each changes what runs (22.9: a routed decision model too)
     if key in _BUNDLES:
         _BUNDLES[key].plan, _BUNDLES[key].label_info = project.get("plan"), project.get("labels")
+        _BUNDLES[key].brief = project.get("brief")  # 30.14: read again on every prepare (signed between stages)
         _BUNDLES[key].critic = _critic_advisor(project)
         return _BUNDLES[key]
     path = data_path(store, project)  # checked against the recorded SHA-256 (package 9.3)
@@ -279,6 +281,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
         prepared.score_rows = score_rows.reset_index(drop=True)
     prepared.dated = bool(datetime_time)  # 30.12: a capacity's periods need dates, never a counter
     prepared.plan, prepared.label_info = project.get("plan"), project.get("labels")
+    prepared.brief = project.get("brief")  # 30.14: the Solution Brief, its bar judged at the one holdout read
     prepared.critic = _critic_advisor(project)
     _BUNDLES.clear()
     _BUNDLES[key] = prepared
@@ -331,6 +334,26 @@ def _noisy_rules(frame: pd.DataFrame, solution: Solution, bundle: ds.TaskBundle,
             says = (bundle.X_train[rule["column"]] == rule["value"]).to_numpy()
             rule["agreement"] = capacity.agreement(says, bundle.y_train.to_numpy(dtype=float))
     return rules
+
+
+def _success_bar(p: Prepared, holdout: dict[str, Any], baselines: dict[str, Any]) -> dict[str, Any] | None:
+    """30.14: the holdout's metrics against the signed brief's bar (met, not met, or cannot be judged with why), with the
+    brief's fingerprint and who signed it: written at the one read, so the bar cannot move after it."""
+    if not getattr(p, "brief", None):
+        return None
+    from dclab_core.solution_brief import SolutionBrief, fingerprint, judge
+
+    try:
+        brief = SolutionBrief.read(p.brief)
+    except Exception as error:  # noqa: BLE001 - a brief that cannot be read is said, never judged
+        return {"verdict": "cannot_judge", "reason": f"the brief cannot be read ({type(error).__name__})"}
+    try:
+        verdict = judge(brief, holdout, baselines).model_dump(mode="json")
+    except Exception as error:  # noqa: BLE001 - the holdout was read: a verdict that cannot be made is said, the stage stands
+        verdict = {"verdict": "cannot_judge", "metric": brief.success.metric if brief.success else "", "reason": f"the bar could not be judged ({type(error).__name__})"}
+    approval = brief.approval
+    return {**verdict, "brief": fingerprint(brief), "signed_by": approval.by if approval else None, "signed_at": approval.at if approval else None,
+            "bar": brief.success.model_dump(mode="json") if brief.success else None}
 
 
 def _capacity(p: Prepared, final: dict[str, Any], predictions: np.ndarray) -> dict[str, Any] | None:
@@ -1201,6 +1224,7 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
                                                          groups=bundle.groups("test") if clustered else None)
     baselines = _baselines(p, predictions)
     capacity_block = _capacity(p, final, predictions)  # 30.12: the holdout period as a team of K a period works it
+    bar = _success_bar(p, holdout, baselines)  # 30.14: the one read against the brief's frozen bar
     importance = rn._importance(final["model"], final["names"])
     top_features = [{"feature": k, "normalized_importance": v} for k, v in sorted(importance.items(), key=lambda kv: -kv[1])[:20]
                     if not any(k.startswith(f"{name}=") for name in getattr(p, "personal", ()))]  # "diagnosis=flu" names a value of a sensitive column
@@ -1219,6 +1243,7 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
         "baselines": baselines, "top_final_features": top_features,
         "sampling": bundle.sampling, "production_approved": False,
         **({"capacity": capacity_block} if capacity_block else {}),
+        **({"success_bar": bar} if bar else {}),
         **({"label_sources": {"rows": p.labels_by_source, "judged_on": sorted(s.lower() for s in (p.solution.confirmed_sources or ()))
                               or "the confirmed sources (dclab_core.modifiers.CONFIRMED)", "noisy_rules": p.noisy_rules}} if p.labels_by_source else {}),
         "production_feature_rule": "Promote a feature only if it is decision-time available, stable across folds, obtainable in production and monitored for drift.",
@@ -1426,6 +1451,9 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
                 evidence["holdout_uses_in_this_project"] = project["holdout_uses"]
                 if reuse_reason:
                     evidence["holdout_reuse_reason"] = str(reuse_reason)[:500]
+                bar = _success_bar(p, evidence.get("holdout_metrics") or {}, evidence.get("baselines") or {})  # 30.14, as the tabular final
+                if bar:
+                    evidence["success_bar"] = bar
         elif stage == "data":
             evidence, claims, summary = stage_data(p, eid)
         elif stage == "leakage":

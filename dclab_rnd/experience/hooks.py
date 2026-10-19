@@ -63,6 +63,8 @@ def from_audit(row: dict[str, Any]) -> None:
         record("decision.accepted", actor, {"point": f"routing:{str(args.get('purpose') or '')[:60]}",
                                             "choice": {k: str(args.get(k))[:80] for k in ("setting", "from", "to") if args.get(k) is not None} or None,
                                             "by": actor}, **ids)
+    elif kind == "brief":  # 30.14: the person's brief, by its fingerprint (the words stay in the project)
+        record("decision.accepted", actor, {"point": "solution.brief", "choice": str(args.get("fingerprint") or "")[:16] or None, "by": actor}, **ids)
     elif kind == "lesson_review":
         accepted = str(args.get("action") or "").startswith("accept")
         if accepted:

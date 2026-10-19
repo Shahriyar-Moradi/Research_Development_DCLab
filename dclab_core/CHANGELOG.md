@@ -4,6 +4,31 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.90.0 (2026-10-19)
+
+Package 30.14: the Solution Brief and G3; and the coordinator's fix from the first live harness run.
+
+- `solution_brief` (new): `SolutionBrief` v1 (`dclab_core.solution_brief.v1`): the approach level on the ladder (`LADDER`:
+  rule, template, classical ML, a small model, a frontier model) with why the simpler rungs cannot meet the bar, the recipe,
+  the baselines (`Baseline`: today's process or the recipe's simple model), the validation, the success bar (`SuccessBar`: an
+  absolute target, or a factor or a margin against a named baseline, with `Guard`s that must hold beside it), the decision
+  rule, the features kept out, the risks with their checks, the alternatives with why each lost, and the `Approval`.
+- `problems` (G3): no bar, no target, a bar against a baseline the brief does not name, no baseline, no alternative.
+  `sign` refuses while G3 has problems; `signed` holds only while the `fingerprint` (everything but the approval) is the
+  one signed. `fill` writes a brief by rules (the honest least: better than the recipe's simple model).
+- `judge` and `BarVerdict`: the holdout's one read against the signed bar: met, not met (which guard failed is said),
+  or cannot be judged, with why; a simple model's metric under the engine's own name is read (`SIMPLE_METRIC_ALIASES`).
+- G3 also refuses a bar or a guard whose comparison goes against its metric's direction (`HIGHER`), a guard without a
+  target or against a baseline the brief does not name, a relative bar on a metric the engine's simple model does not
+  report (`REPORTS`), a bar against today's process with no number for it (`Baseline.value`), and two baselines of one
+  name. `judge` reads a guard's reference as the bar's (aliases, today's number), and says cannot be judged for a guard
+  it cannot read or a value that is not finite. `fill(simple=, budget=)`: a kind's own first baseline (none: the bar is
+  left to a person), and recall at the review budget against reviewing that share at random.
+- `report`: the results say the verdict against the signed bar (`final.evidence.success_bar`), and which guard failed.
+- `coordinator.Facts.open_field` and the step `ask` (live, 2026-10-19): a field of the host's plan never asked, while
+  questions are left, is asked before the build (a model's turns may end without it: a fraud walk was built without its
+  entity, its folds never grouped).
+
 ## 0.89.0 (2026-10-19)
 
 Package 30.13: Problem Card v2 and the fit verdict.

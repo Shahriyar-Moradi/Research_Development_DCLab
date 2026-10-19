@@ -189,6 +189,8 @@ class _Person:
         ("labels", r"\b(label|labelled|labeled|confirmed (cases|frauds?)|cases (you|we|they) (found|confirmed)|known cases|ground truth)"),
         ("action", r"\b(action|do with|happens (when|after|with|if)|cost|wrong|mistake|misrout|miss(ed|es)?\b|hurts more|consequence)"),
         ("entity", r"\b(who\b|which (customer|user|account|biker|rider|store|entity|person)|per (customer|user|account|store))"),
+        # the card's family question names a forecast among its options (live, HRN-022: read as the outcome, answered twice)
+        ("family", r"\bwhat should dclab give for each row\b|\ba yes or no, a class\b"),
         ("target", r"\b(predict|outcome|target|forecast|estimate|which column|what (exactly )?(do you|should we) (want|need) to know)"),
         ("data_plan", r"\b(data|table|file|upload|export|columns?|source)\b"),
         ("family", r"\b(kind of problem|type of problem|classif|regress)"),

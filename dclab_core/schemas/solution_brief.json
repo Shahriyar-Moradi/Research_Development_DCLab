@@ -1,0 +1,397 @@
+{
+  "$defs": {
+    "Alternative": {
+      "additionalProperties": false,
+      "properties": {
+        "choice": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "why_not": {
+          "maxLength": 4000,
+          "minLength": 3,
+          "title": "Why Not",
+          "type": "string"
+        }
+      },
+      "required": [
+        "choice",
+        "why_not"
+      ],
+      "title": "Alternative",
+      "type": "object"
+    },
+    "Approval": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "maxLength": 40,
+          "minLength": 10,
+          "title": "At",
+          "type": "string"
+        },
+        "by": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "By",
+          "type": "string"
+        },
+        "fingerprint": {
+          "pattern": "^[0-9a-f]{16}$",
+          "title": "Fingerprint",
+          "type": "string"
+        }
+      },
+      "required": [
+        "by",
+        "at",
+        "fingerprint"
+      ],
+      "title": "Approval",
+      "type": "object"
+    },
+    "Baseline": {
+      "additionalProperties": false,
+      "description": "A baseline to beat: today's process (the person's words) or the recipe's simple model (computed at the holdout).",
+      "properties": {
+        "description": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Description",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "today",
+            "simple_model"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Today's number on the bar's metric, when a person knows it: a relative bar against today needs it.",
+          "title": "Value"
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ],
+      "title": "Baseline",
+      "type": "object"
+    },
+    "Guard": {
+      "additionalProperties": false,
+      "description": "A metric that must not get worse than a baseline's (or than a value).",
+      "properties": {
+        "metric": {
+          "maxLength": 60,
+          "minLength": 1,
+          "title": "Metric",
+          "type": "string"
+        },
+        "op": {
+          "default": ">=",
+          "enum": [
+            ">=",
+            ">",
+            "<=",
+            "<"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "relative_to": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A baseline's name: no worse than it.",
+          "title": "Relative To"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "metric"
+      ],
+      "title": "Guard",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "Risk": {
+      "additionalProperties": false,
+      "properties": {
+        "check": {
+          "maxLength": 4000,
+          "title": "Check",
+          "type": "string"
+        },
+        "cites": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Cites",
+          "type": "array"
+        },
+        "statement": {
+          "maxLength": 4000,
+          "title": "Statement",
+          "type": "string"
+        }
+      },
+      "required": [
+        "statement",
+        "check"
+      ],
+      "title": "Risk",
+      "type": "object"
+    },
+    "SuccessBar": {
+      "additionalProperties": false,
+      "description": "The primary metric's target: an absolute value, or relative to a named baseline (a factor times it, or a margin\nbeyond it); guards that must hold beside it; the business number it stands for.",
+      "properties": {
+        "business": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Business"
+        },
+        "factor": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Relative: the target is the baseline's value times this.",
+          "title": "Factor"
+        },
+        "guards": {
+          "items": {
+            "$ref": "#/$defs/Guard"
+          },
+          "maxItems": 8,
+          "title": "Guards",
+          "type": "array"
+        },
+        "margin": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Relative: the target is the baseline's value plus this (minus for a lower-is-better metric).",
+          "title": "Margin"
+        },
+        "metric": {
+          "maxLength": 60,
+          "minLength": 1,
+          "title": "Metric",
+          "type": "string"
+        },
+        "op": {
+          "default": ">",
+          "enum": [
+            ">=",
+            ">",
+            "<=",
+            "<"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "relative_to": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The baseline it is measured against.",
+          "title": "Relative To"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "An absolute target.",
+          "title": "Value"
+        }
+      },
+      "required": [
+        "metric"
+      ],
+      "title": "SuccessBar",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.solution_brief.v1.json",
+  "additionalProperties": false,
+  "description": "What will be built, how it is judged and the bar it must meet; signed before training (G3).",
+  "properties": {
+    "alternatives": {
+      "items": {
+        "$ref": "#/$defs/Alternative"
+      },
+      "maxItems": 8,
+      "title": "Alternatives",
+      "type": "array"
+    },
+    "approach_level": {
+      "enum": [
+        "rule",
+        "template",
+        "classical_ml",
+        "small_model",
+        "frontier_llm"
+      ],
+      "title": "Approach Level",
+      "type": "string"
+    },
+    "approach_why": {
+      "description": "Why the simpler rungs cannot meet the bar.",
+      "maxLength": 4000,
+      "minLength": 3,
+      "title": "Approach Why",
+      "type": "string"
+    },
+    "approval": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Approval"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "baselines": {
+      "items": {
+        "$ref": "#/$defs/Baseline"
+      },
+      "maxItems": 8,
+      "title": "Baselines",
+      "type": "array"
+    },
+    "decision_rule": {
+      "default": "",
+      "maxLength": 4000,
+      "title": "Decision Rule",
+      "type": "string"
+    },
+    "features": {
+      "default": "",
+      "description": "The feature groups, and the columns kept out with why.",
+      "maxLength": 4000,
+      "title": "Features",
+      "type": "string"
+    },
+    "recipe": {
+      "description": "The kind's and the modifiers' parts, name@version.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 12,
+      "title": "Recipe",
+      "type": "array"
+    },
+    "risks": {
+      "items": {
+        "$ref": "#/$defs/Risk"
+      },
+      "maxItems": 12,
+      "title": "Risks",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.solution_brief.v1",
+      "default": "dclab_core.solution_brief.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "success": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SuccessBar"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "validation": {
+      "description": "The split, the folds, the holdout read once.",
+      "maxLength": 4000,
+      "minLength": 3,
+      "title": "Validation",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "approach_level",
+    "approach_why",
+    "validation"
+  ],
+  "title": "SolutionBrief",
+  "type": "object"
+}

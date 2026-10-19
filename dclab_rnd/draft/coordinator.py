@@ -67,7 +67,7 @@ class Coordinator:
         elsewhere = [] if cases else self._cases_elsewhere(draft_id)
         return machine.Facts(
             blocking_questions=[{"field": q.field, "text": q.text} for q in card.questions if q.blocks],
-            pending_question=(pending or {}).get("field") if pending else None,
+            pending_question=(pending or {}).get("field") if pending else None, open_field=None if pending or built else self._open_field(draft),
             files_ready=len(ready), files_pending=len(waiting), files_failed=sum(a.get("status") == "failed" for a in assets),
             cases_only=bool(cases) and label is None, offers=list(cases.get("tables") or []), labels_joined=joined,
             cases_elsewhere=elsewhere,
@@ -76,6 +76,16 @@ class Coordinator:
             workflow_problems=problems, workflow_ready=bool(workflow.get("nodes")), **problem_map.facts(draft),
             build_refusals=[] if built else [{"rule": r.rule, "message": str(r)} for r in build_blockers(self.drafts, draft_id)],
             built=built)
+
+    def _open_field(self, draft: dict[str, Any]) -> str | None:
+        """The plan's next field never asked, while questions are left (the rules ask every one before a build; a model
+        may end its turns without it)."""
+        from .chat import MAX_QUESTIONS
+
+        if len([q for q in draft.get("questions") or [] if not q.get("superseded")]) >= MAX_QUESTIONS:
+            return None
+        question = self.agent.next_question(draft)
+        return question[0] if question else None
 
     def _cases_elsewhere(self, draft_id: str) -> list[dict[str, Any]]:
         """Other drafts whose file of known cases labels this draft's table (21.3's offers, seen from the table's side)."""
@@ -147,6 +157,15 @@ class Coordinator:
             return self._bring(draft_id, now)
         if now.next == "analyse":
             return self._analyse(draft_id)
+        if now.next == "ask":
+            question = self.agent.next_question(self.drafts.get(draft_id))
+            if question is None or not self.agent.ask(draft_id, *question):
+                return {"stopped": f"The question about {now.blockers[0].field if now.blockers else 'the plan'} could not be asked."}
+            from ..ledger import capture
+
+            capture.next_question(self.drafts.get(draft_id), question)
+            self.agent.moved(draft_id, "ask_user", {"field": question[0]})
+            return {"asked": question[0]}
         if now.next == "plan_workflow":
             self.agent.refresh_workflow(draft_id)
             return {"workflow": bool((self.drafts.get(draft_id).get("workflow") or {}).get("nodes"))}

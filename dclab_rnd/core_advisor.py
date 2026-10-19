@@ -26,6 +26,7 @@ class GatewayAdvisor:
         self.models = dict(models or {})  # a model named per purpose (21.4: a measurement comparing models), else the routed one
         self._clients: dict[str, Any] = {}
         self.calls: dict[str, int] = {}  # requests sent, per purpose
+        self.failures = 0  # requests that failed (an error, a cut reply, no JSON): a run reports them beside its spend
         self.memo = memo  # a measurement turns it on (24.8): an identical question (same purpose, same evidence) is answered once by this advisor, so a cap is not spent twice on it
         self._answers: dict[tuple[str, str], Optional[Mapping[str, Any]]] = {}
         self.hits: dict[str, int] = {}  # questions answered from it, per purpose
@@ -82,6 +83,8 @@ class GatewayAdvisor:
             return answer
         finally:  # 21.1: a role's answer is a step of whatever asked it, recorded whether it answered or not
             from dclab_rnd.agents import harness
+
+            self.failures += verdict == "error"
 
             if purpose in harness.ROLES:
                 made = experience.last_model_request()

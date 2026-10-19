@@ -261,6 +261,27 @@ Designed in detail once Part E is built; each keeps DCLab's rules (the validator
   the verdict read. The dev journeys 15 of 15 with the new fields (JRN-026, and JRN-027 after the review). Left: the
   Home card showing the verdict and its accept button, G2 as a coordinator step (today the mismatch questions block as
   before), the main product's spec page.
+- **30.14 built (2026-10-19), the review's 12 findings fixed; Done when met.** `dclab_core.solution_brief` (dclab-core 0.90.0):
+  `SolutionBrief` v1 with the approach level on the ladder, the recipe, the baselines (today's process with its number when
+  known, the recipe's simple model), the validation, the success bar (absolute, or a factor or margin against a named
+  baseline, with guards), the decision rule, the features kept out, the risks and the alternatives. G3 (`problems`) refuses
+  a brief without a bar, a baseline or an alternative, and a bar that could never be judged or goes against its metric's
+  direction; `sign` freezes the bar on a fingerprint; `judge` reads the holdout once: met, not met (which guard failed is
+  said) or cannot be judged, with why. The studio drafts a brief by rules for every kind (a machine's metric and its own
+  first baseline; recall at the review budget against reviewing that share at random), saves it through the graph's
+  `set_brief` move (a person only, never while a stage runs, never after the holdout read), signs it with the solution gate
+  (never after the read), judges it in both final paths and writes the verdict into the report; D3: a signed brief covers
+  an agent's holdout approval while the brief and the solution are both signed and unchanged (never a programme's).
+  `GET`/`PUT /api/projects/{id}/brief`; the audit kind `brief` and the event `decision.accepted` (point `solution.brief`).
+  Harness on the rules 17 of 17 (HRN-023). Left: a brief exists only when a person saves one (the Solution page's editor,
+  sign-off on by default and a model drafting the words are the owner's), the main product's Objective has no bar yet.
+- **Live tests (2026-10-19, $20 budget; EUR 2.63 spent):** the product's model (Claude) through the harness suite for the
+  first time: 10 of 17 (HRN-022; the rules alone 17 of 17). Found and being fixed: a costs question asked again and again
+  and blocking the build; a fraud walk built without its entity (no grouped folds), the model reading "the day's orders" as
+  the entity and writing the card's unit itself; a question replied to left open behind the next one; the suite keeping no
+  records of its plays; the code gate reading a live measurement. Reruns with the first fixes: JD-05, JD-06, JD-08, JD-09
+  and RG-01 right; RG-02 and JD-01 still wrong. Next: the second review's fixes, a full live rerun, then the team arms,
+  the real problems (Telco, HyperAck) and the scripted judgment suite live.
 
 ---
 

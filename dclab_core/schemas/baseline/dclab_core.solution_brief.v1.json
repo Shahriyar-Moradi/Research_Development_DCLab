@@ -1,0 +1,337 @@
+{
+  "$defs": {
+    "Alternative": {
+      "additionalProperties": false,
+      "properties": {
+        "choice": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "why_not": {
+          "maxLength": 4000,
+          "minLength": 3,
+          "type": "string"
+        }
+      },
+      "required": [
+        "choice",
+        "why_not"
+      ],
+      "type": "object"
+    },
+    "Approval": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "maxLength": 40,
+          "minLength": 10,
+          "type": "string"
+        },
+        "by": {
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "fingerprint": {
+          "pattern": "^[0-9a-f]{16}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "by",
+        "at",
+        "fingerprint"
+      ],
+      "type": "object"
+    },
+    "Baseline": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "today",
+            "simple_model"
+          ],
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "Guard": {
+      "additionalProperties": false,
+      "properties": {
+        "metric": {
+          "maxLength": 60,
+          "minLength": 1,
+          "type": "string"
+        },
+        "op": {
+          "default": ">=",
+          "enum": [
+            ">=",
+            ">",
+            "<=",
+            "<"
+          ],
+          "type": "string"
+        },
+        "relative_to": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "metric"
+      ],
+      "type": "object"
+    },
+    "JsonValue": {},
+    "Risk": {
+      "additionalProperties": false,
+      "properties": {
+        "check": {
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "cites": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "statement": {
+          "maxLength": 4000,
+          "type": "string"
+        }
+      },
+      "required": [
+        "statement",
+        "check"
+      ],
+      "type": "object"
+    },
+    "SuccessBar": {
+      "additionalProperties": false,
+      "properties": {
+        "business": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "factor": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "guards": {
+          "items": {
+            "$ref": "#/$defs/Guard"
+          },
+          "maxItems": 8,
+          "type": "array"
+        },
+        "margin": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "metric": {
+          "maxLength": 60,
+          "minLength": 1,
+          "type": "string"
+        },
+        "op": {
+          "default": ">",
+          "enum": [
+            ">=",
+            ">",
+            "<=",
+            "<"
+          ],
+          "type": "string"
+        },
+        "relative_to": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "metric"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "alternatives": {
+      "items": {
+        "$ref": "#/$defs/Alternative"
+      },
+      "maxItems": 8,
+      "type": "array"
+    },
+    "approach_level": {
+      "enum": [
+        "rule",
+        "template",
+        "classical_ml",
+        "small_model",
+        "frontier_llm"
+      ],
+      "type": "string"
+    },
+    "approach_why": {
+      "maxLength": 4000,
+      "minLength": 3,
+      "type": "string"
+    },
+    "approval": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Approval"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "baselines": {
+      "items": {
+        "$ref": "#/$defs/Baseline"
+      },
+      "maxItems": 8,
+      "type": "array"
+    },
+    "decision_rule": {
+      "default": "",
+      "maxLength": 4000,
+      "type": "string"
+    },
+    "features": {
+      "default": "",
+      "maxLength": 4000,
+      "type": "string"
+    },
+    "recipe": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 12,
+      "type": "array"
+    },
+    "risks": {
+      "items": {
+        "$ref": "#/$defs/Risk"
+      },
+      "maxItems": 12,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.solution_brief.v1",
+      "default": "dclab_core.solution_brief.v1",
+      "type": "string"
+    },
+    "success": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SuccessBar"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "validation": {
+      "maxLength": 4000,
+      "minLength": 3,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "approach_level",
+    "approach_why",
+    "validation"
+  ],
+  "type": "object"
+}

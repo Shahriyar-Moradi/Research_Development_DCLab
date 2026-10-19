@@ -740,6 +740,39 @@ async def confirm_review(project_id: str, payload: AnyObject, s: Services = Depe
     return s.with_records(s.projects.get(project_id))
 
 
+@router.get("/api/projects/{project_id}/brief", response_model=Page)
+async def project_brief(project_id: str, s: Services = Depends(services)):
+    """30.14: the project's Solution Brief (the stored one, or a draft by rules), what G3 still asks before it can be
+    signed (a success bar, a baseline, an alternative) and whether it is signed; signing is the solution gate."""
+    from ...studio import brief as studio_brief
+
+    p = s.project(project_id)
+    try:
+        return await asyncio.to_thread(studio_brief.view, s.projects, p)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc))
+
+
+@router.put("/api/projects/{project_id}/brief", response_model=Page)
+async def save_project_brief(project_id: str, body: AnyObject, s: Services = Depends(services)):
+    """30.14: a person's Solution Brief saved (the graph's set_brief move: never while a stage runs, never after the holdout
+    read); an edit after signing unsigns it, and the solution gate signs it."""
+    from pydantic import ValidationError
+
+    from ...studio import brief as studio_brief
+
+    s.project(project_id)
+    doc = body.model_dump() if hasattr(body, "model_dump") else dict(body or {})
+    try:
+        return await asyncio.to_thread(studio_brief.save, s.projects, project_id, doc, approver())
+    except studio_graph.GraphBlocked as exc:
+        raise HTTPException(409, str(exc))
+    except ValidationError as exc:
+        raise HTTPException(422, "The brief is not well formed: " + "; ".join(e.get("msg", "") for e in exc.errors()[:3]))
+    except ValueError as exc:
+        raise HTTPException(409, str(exc))
+
+
 @router.post("/api/projects/{project_id}/approvals", response_model=Project)
 async def approve_gate(project_id: str, body: GateApproval, s: Services = Depends(services)):
     s.project(project_id)

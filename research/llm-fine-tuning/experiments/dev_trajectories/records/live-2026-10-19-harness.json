@@ -1,0 +1,295 @@
+{
+ "package": "live-2026-10-19-harness",
+ "title": "The product's model through the harness suite for the first time: what Claude as the Home agent got wrong, and the fixes",
+ "date": "2026-10-19",
+ "request": "The owner: a $20 budget to run the test cases live and see how the system's agents and agent teams work, find the bugs and fix them.",
+ "spec": "CLAUDE.md (make harness-eval, the live runs' rules), docs/guides/PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md status",
+ "plan": [
+  "Run every model path once, then the harness suite live with a cap, keeping every record.",
+  "Read each failure from its kept draft: the questions, the answers, the understanding, the built solution.",
+  "Fix the cause in the product where the product is wrong, in the written person where the harness is; test each first.",
+  "Rerun the failed cases live, then the whole suite live, within the budget."
+ ],
+ "decisions": [
+  {
+   "decision": "The code makes sure the plan's own questions are asked before a build, whatever the model does.",
+   "why": "Deterministic code owns what changes the split (rule 5); a model may choose the order and the words, never to skip who could commit a fraud."
+  },
+  {
+   "decision": "A field the meet check blocks on (the unit) and one that groups the folds (the entity) are never written by a model from its own reading.",
+   "why": "A model's paraphrase made an order the entity and a biker the unit: one grouped nothing, the other blocked the build."
+  },
+  {
+   "decision": "The harness's code gate reads the latest run on the rules; a live run is a measurement of a model.",
+   "why": "Whether a model may serve is already gated by passed_with; a live measurement failing must not stand for the code, nor a passing rules run for the model."
+  },
+  {
+   "decision": "The written person learns the card's family question; the expected questions and their order stay as written.",
+   "why": "The person was answering the outcome to a question about the family (a harness fault); the cases' expectations are never weakened to make a model pass."
+  }
+ ],
+ "change": "dclab_rnd.draft.chat (OPTIONAL, ANSWER_ONLY, RULES_READ, WORDS_KEPT, LEAVE_TO_BUILD, counted, replied_to, edited, close_optional; ask, record, model_turn and the guard); dclab_core.coordinator (Facts.open_field, the ask step) and its host; dclab_rnd.draft.api (_entity_column never a row's own key); the journeys' written person; the regression harness's --keep and latest(live=); real_problems' live wiring (notes off, a folder per paid run, spend and failures however it ends); GatewayAdvisor.failures; scripts/model_paths --keep.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A costs question was asked again and again and the build waited on it.",
+   "scenario": "JD-05, JD-06, JD-08, JD-09 (HRN-022): costs asked four times; 'A question to the person is open (costs)'.",
+   "cause": "costs is a field the ask tool takes but no plan settles, so it was never known and never refused.",
+   "fix": "An optional field is closed by the person's reply (their words kept only when they name a cost), never asked twice, and does not count against the question limit.",
+   "test": "test_a_costs_question_replied_to_is_closed_its_words_kept_only_when_they_name_a_cost_and_never_asked_again"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "A fraud walk was built without its entity, its folds not grouped by biker.",
+   "scenario": "RG-01, RG-02, JD-01: the model asked target, moment, labels, budget and offered to build.",
+   "cause": "Only the rules ask every field of the plan; a model's turn may end without one.",
+   "fix": "The coordinator asks a plan field never asked before the build (Facts.open_field, the step ask), and a model's turn that ends or offers to build with one open has it asked.",
+   "test": "test_the_coordinator_asks_every_plan_question_still_open_before_it_builds_the_entity_included"
+  },
+  {
+   "id": "M3",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "The model recorded the entity itself, as the row.",
+   "scenario": "'Order (identified by order_id)', from the person's words 'the day's orders'; the group column became the row's own key.",
+   "cause": "A quote from the person's words was enough to record any plan field.",
+   "fix": "The entity only as the answer to its own question or the person's edit; an entity naming a key unique on every row groups nothing and is logged.",
+   "test": "test_the_entity_is_the_persons_answer_never_a_models_reading_and_never_the_rows_own_key"
+  },
+  {
+   "id": "M4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The model wrote the card's unit and the build stopped at the meet check.",
+   "scenario": "JD-01: 'unit: biker' from the answer 'The biker': 'Each prediction is for biker, but one row of the table is ...'.",
+   "cause": "The record tool accepted the unit with no check.",
+   "fix": "The unit is read by the rules only.",
+   "test": "test_the_entity_is_the_persons_answer_never_a_models_reading_and_never_the_rows_own_key"
+  },
+  {
+   "id": "M5",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A question replied to stayed open behind the next one and was put to the person again.",
+   "scenario": "RG-02: the outcome question answered 'it is anomaly detection', the model asked about labels; the walk answered the outcome again.",
+   "cause": "pending() returns the first open question; nothing closed the one the person replied to.",
+   "fix": "A new question closes the one replied to; a plan field their words did not settle is superseded, so the plan asks it again.",
+   "test": "test_a_plan_question_replied_to_is_asked_again_by_the_plan_and_an_optional_one_is_closed"
+  },
+  {
+   "id": "M6",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The budget was recorded in the model's words and no review budget was read.",
+   "scenario": "RG-02: 'About 80 a day' became 'About 80 bikers reviewed per daily audit'; recall at the budget was never measured.",
+   "cause": "The record tool keeps the model's value for an answer.",
+   "fix": "A budget answer is kept in the person's words.",
+   "test": "test_a_budget_answer_is_kept_in_the_persons_words_not_the_models"
+  },
+  {
+   "id": "M7",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A question the person had answered was repeated word for word.",
+   "scenario": "RG-02 (run 5): 'A sample of the cases we found' answered the labels question; the model's turn ended in silence; the same question again (question_asked_again).",
+   "cause": "The silent-turn fallback re-said the open question whatever the person wrote.",
+   "fix": "A statement that answers the open question is taken as its answer; a question back still gets the plan and the question.",
+   "test": "test_a_statement_answering_the_open_question_is_its_answer_when_the_models_turn_ends_in_silence"
+  },
+  {
+   "id": "M8",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The harness kept no record of its live plays.",
+   "scenario": "HRN-022: only the summary; the drafts were in a temporary folder.",
+   "cause": "No keep folder passed to the plays.",
+   "fix": "--keep, by default a folder of its own per live run, each case's workspace, events and row kept.",
+   "test": "test_each_play_is_kept_in_its_own_folder"
+  },
+  {
+   "id": "M9",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The code gate read the failed live measurement.",
+   "scenario": "test_harness_gate failed on HRN-022 while the rules passed 17 of 17.",
+   "cause": "latest() was the newest run of any kind.",
+   "fix": "latest(live=False) for the gate and for stale().",
+   "test": "test_the_suite_ran_on_what_is_here_and_passed"
+  },
+  {
+   "id": "M10",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The written person answered the outcome to the card's family question.",
+   "scenario": "JD-06: 'What should DCLab give for each row: a yes or no, a class, a number, a forecast...' matched the outcome's pattern on 'forecast'.",
+   "cause": "The person's reading of a question's meaning missed this wording.",
+   "fix": "The family's wording read before the outcome's.",
+   "test": ""
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Closing a replied question left a plan field unknown and never asked again.",
+   "scenario": "The entity said, not recorded, the model asked the budget: built without grouped folds.",
+   "cause": "The closed question still counted as asked.",
+   "fix": "Superseded for a plan field: asked again by the plan, not counted.",
+   "test": "test_a_plan_question_replied_to_is_asked_again_by_the_plan_and_an_optional_one_is_closed"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The person's own edit of the entity was refused.",
+   "scenario": "edit(did, 'entity', 'Each biker') returned the guard's error.",
+   "cause": "The edit goes through the same guard as the model.",
+   "fix": "The guard lets through the person's last edit of that field with those words.",
+   "test": "test_the_entity_is_the_persons_answer_never_a_models_reading_and_never_the_rows_own_key"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A live real-problems run could spend outside its cap.",
+   "scenario": "Each stage's notes asked the installed gateway: no cap, not in the run's spend.",
+   "cause": "The team ran without the notes-off scope.",
+   "fix": "The walk and the team run inside notes_off.",
+   "test": ""
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Spend and failures were missing when a run stopped early, and failures counted the reader only.",
+   "scenario": "A paid run that stopped before the build recorded no spend.",
+   "cause": "The lines came after an early return.",
+   "fix": "_spent for every return, failures from the three advisors (GatewayAdvisor.failures).",
+   "test": "test_a_run_reports_its_spend_and_failures_however_it_ends"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A second live run the same day overwrote the first's records.",
+   "scenario": "The keep folder was per date only.",
+   "cause": "No time in its name.",
+   "fix": "A folder per run, with the time.",
+   "test": ""
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Code asked a second question over the model's own question that mentioned building.",
+   "scenario": "'Before I build anything: how many alerts...?' then the labels question at once.",
+   "cause": "Any 'build' read as leave to build.",
+   "fix": "Only when every question of the reply is leave to build (and a pattern of the module that shadowed it renamed).",
+   "test": "test_the_packs_questions_are_asked_when_a_model_ends_its_turn_and_never_over_its_own_question"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "close_optional kept words that answered something else.",
+   "scenario": "Costs and entity asked in one reply; 'Each biker' kept as the cost.",
+   "cause": "Any reply recorded; the entity's answer refused for the first open question.",
+   "fix": "Costs kept only when a cost is named; notes appended; never after a simulation or a build; a record answers any open question of its field the person replied to.",
+   "test": "test_the_entity_is_the_persons_answer_never_a_models_reading_and_never_the_rows_own_key"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The tests used a pack that does not exist.",
+   "scenario": "pack 'delivery' fell back to the base fields: entity never in the plan.",
+   "cause": "A wrong key.",
+   "fix": "The fraud pack imbalanced, the entity asserted asked and recorded.",
+   "test": "test_the_coordinator_asks_every_plan_question_still_open_before_it_builds_the_entity_included"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An optional question took the place of a pack's last field.",
+   "scenario": "Costs counted against five questions, the fraud pack has five.",
+   "cause": "Every question counted.",
+   "fix": "counted(): never a superseded or an optional field's question.",
+   "test": "test_a_costs_question_replied_to_is_closed_its_words_kept_only_when_they_name_a_cost_and_never_asked_again"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A rerun deleted the earlier paid run's folder, and a refused run left the logs installed.",
+   "scenario": "rmtree of the same-day folder; SystemExit after the logs were installed.",
+   "cause": "Old code reached by live runs now.",
+   "fix": "A paid run's folder is never deleted; the logs installed after the last refusal.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the model paths, live",
+   "gate": "every path answers once",
+   "fixed_before_run": true,
+   "result": "16 requests, 0 failed",
+   "verdict": "pass",
+   "cost_eur": 0.164,
+   "against_gate": "synthetic, chat, parse, evidence and the intern each answered",
+   "limits": [
+    "One request a path; made-up data."
+   ]
+  },
+  {
+   "name": "the harness suite, live (HRN-022)",
+   "gate": "21.5's suite: every case right on every step and part",
+   "fixed_before_run": true,
+   "result": "10 of 17",
+   "verdict": "fail",
+   "cost_eur": 1.2835,
+   "against_gate": "the owner's morning cases wrong, and the journeys where a costs question looped or the entity was skipped",
+   "limits": [
+    "The first live run; one seed; the written people."
+   ]
+  },
+  {
+   "name": "reruns of the failed cases, live",
+   "gate": "21.5: every case right on every step and part",
+   "fixed_before_run": true,
+   "result": "run 3: JD-05, JD-08, JD-09 right; run 4: RG-01, JD-06 right; run 5: JD-01 right, RG-01 and RG-02 right on every part, wrong on steps (RG-01 the questions in another order; RG-02 a question asked twice, fixed after)",
+   "verdict": "fail",
+   "cost_eur": 1.537,
+   "against_gate": "each rerun after a round of fixes",
+   "limits": [
+    "Live models vary between runs; one seed."
+   ]
+  },
+  {
+   "name": "the harness suite on the rules (HRN-023)",
+   "gate": "21.5: every case right on every step and part",
+   "fixed_before_run": true,
+   "result": "17 of 17",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "the fixes change nothing on the rules' path",
+   "limits": [
+    "Scripted people; no model asked."
+   ]
+  }
+ ],
+ "outcome": "The Home agent with the product's model now asks what changes the solution before a build, keeps the person's words where the rules read them, and never repeats a question the person answered; the suite keeps every live play.",
+ "lessons": [
+  "A rule that holds only because the rules' own path always does it must be written as a guard the moment a model can take that path.",
+  "Where a model paraphrases an answer, keep the person's words wherever code reads a number or a column from them.",
+  "Read a live failure from its kept records before changing anything: four of the seven failures had the same few causes."
+ ],
+ "risks": [
+  "RG-01 under a model asks the right questions in another order than the rules' exact expectation; the expectation stays as written.",
+  "Live results vary between runs; one seed and the written people."
+ ],
+ "commits": []
+}

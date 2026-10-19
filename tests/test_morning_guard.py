@@ -263,5 +263,162 @@ class TheModelMayAskAnyOpenFieldTest(unittest.TestCase):
         self.assertNotIn("How many alerts a day?", [q["text"] for q in store.get(d["id"])["questions"]])  # a fraud pack's field
 
 
+
+@unittest.skipIf(MISSING, MISSING)
+class LiveHarnessFindingsTest(unittest.TestCase):
+    """The first live harness run (2026-10-19, HRN-022): Claude asked about costs, the written person answered in other
+    words, and the costs question was asked again and again until the walk stopped with it open; and a fraud walk was
+    built without the entity, so its folds were not grouped by biker."""
+
+    def draft(self, problem, target):
+        store = DraftStore(Path(tempfile.mkdtemp()))
+        d = store.create(problem)
+        HomeAgent(store, None).start(d["id"])
+        store.update(d["id"], lambda x: x["questions"].clear() or x["messages"].clear())
+        HomeAgent(store, None).record(d["id"], "target", target)
+        return store, d["id"]
+
+    def test_a_costs_question_replied_to_is_closed_its_words_kept_only_when_they_name_a_cost_and_never_asked_again(self):
+        store, did = self.draft("Predict which customers cancel their subscription", "Customers who cancel within 30 days")
+        costs = {"field": "costs", "question": "Which mistake costs more: a missed canceller or a false alarm?", "why": "w", "options": ["a", "b"]}
+        HomeAgent(store, ScriptedClient([("ask_user", costs)])).reply(did, "hello")
+        self.assertEqual(HomeAgent(store, None).pending(store.get(did))["field"], "costs")
+        again = ScriptedClient([("record", {"field": "action", "value": "call them with an offer", "quote": "We call them with an offer"}),
+                                ("ask_user", {**costs, "question": "And which error is worse for you?"})])
+        HomeAgent(store, again).reply(did, "We call them with an offer.")
+        draft = store.get(did)
+        pending = HomeAgent(store, None).pending(draft)
+        self.assertTrue(pending is None or pending["field"] != "costs", pending)  # never open on words the person already gave
+        self.assertEqual([q["field"] for q in draft["questions"]].count("costs"), 1)
+        self.assertFalse(draft["understanding"].get("costs"))  # the action's words name no cost: not kept as one
+        HomeAgent(store, ScriptedClient([("ask_user", costs)])).reply(did, "ok")
+        self.assertEqual([q["field"] for q in store.get(did)["questions"]].count("costs"), 1)  # replied to once: not asked again
+        store, did = self.draft("Predict which customers cancel their subscription", "Customers who cancel within 30 days")
+        HomeAgent(store, ScriptedClient([("ask_user", costs)])).reply(did, "hello")
+        HomeAgent(store, ScriptedClient([])).reply(did, "A missed canceller costs more than a wasted call.")
+        self.assertEqual(store.get(did)["understanding"]["costs"], "A missed canceller costs more than a wasted call.")
+
+    def test_the_packs_questions_are_asked_when_a_model_ends_its_turn_and_never_over_its_own_question(self):
+        store, did = self.draft("Find fraudulent rides of bikers and customers", "is_fraud")
+        store.update(did, lambda x: x.update(pack={"key": "imbalanced", "source": "user"}))
+        ending = ScriptedClient([("record", {"field": "prediction_moment", "value": "after delivery", "quote": "after delivery"})])
+        HomeAgent(store, ending).reply(did, "We check rides after delivery, in a daily audit.")
+        pending = HomeAgent(store, None).pending(store.get(did))
+        self.assertIsNotNone(pending)  # the model said its piece; the plan's next open field is asked, as the rules would
+        self.assertIn(pending["field"], ("entity", "labels", "budget"))
+        for final in ("Before I build anything: how many alerts can your team review a day?", "Who could commit it, a biker or a customer?"):
+            store, did = self.draft("Find fraudulent rides of bikers and customers", "is_fraud")
+            store.update(did, lambda x: x.update(pack={"key": "imbalanced", "source": "user"}))
+            prose = Prose([("record", {"field": "prediction_moment", "value": "after delivery", "quote": "after delivery"})], final)
+            HomeAgent(store, prose).reply(did, "We check rides after delivery, in a daily audit.")
+            self.assertIsNone(HomeAgent(store, None).pending(store.get(did)), final)  # the model asked in its own words: nothing over it
+        store, did = self.draft("Find fraudulent rides of bikers and customers", "is_fraud")
+        store.update(did, lambda x: x.update(pack={"key": "imbalanced", "source": "user"}))
+        offer = Prose([("record", {"field": "prediction_moment", "value": "after delivery", "quote": "after delivery"})], "Noted. Shall I build it now?")
+        HomeAgent(store, offer).reply(did, "We check rides after delivery, in a daily audit.")
+        self.assertIsNotNone(HomeAgent(store, None).pending(store.get(did)))  # leave to build with the plan open: the plan asks first
+
+    def test_the_entity_is_the_persons_answer_never_a_models_reading_and_never_the_rows_own_key(self):
+        from dclab_rnd.draft.api import _entity_column
+
+        store, did = self.draft("Find fraudulent orders of bikers and customers", "is_fraud")
+        store.update(did, lambda x: x.update(pack={"key": "imbalanced", "source": "user"}))
+        guessing = ScriptedClient([("record", {"field": "entity", "value": "Order (identified by order_id)", "quote": "the day's orders"})])
+        HomeAgent(store, guessing).reply(did, "After delivery, in the daily audit of the day's orders")
+        self.assertFalse((store.get(did).get("understanding") or {}).get("entity"))  # who could commit it is the person's to say
+        HomeAgent(store, ScriptedClient([("record", {"field": "unit", "value": "biker", "quote": "biker"})])).reply(did, "Each biker could do it")
+        self.assertFalse((store.get(did).get("understanding") or {}).get("unit"))  # the meet check's unit: read by the rules only
+        self.assertNotIn("error", HomeAgent(store, None).edit(did, "entity", "Each biker"))  # the person's own correction stands
+        self.assertEqual(store.get(did)["understanding"]["entity"], "Each biker")
+        store, did = self.draft("Find fraudulent orders of bikers and customers", "is_fraud")
+        store.update(did, lambda x: x.update(pack={"key": "imbalanced", "source": "user"}))
+        two = ScriptedClient([("ask_user", {"field": "costs", "question": "Which mistake costs more?", "why": "w", "options": ["a", "b"]})])
+        HomeAgent(store, two).reply(did, "hello")
+        HomeAgent(store, None).ask(did, "entity", "Who could commit it?", ["biker_id", "No single entity"], "w")  # two open at once
+        answer = ScriptedClient([("record", {"field": "entity", "value": "Each biker", "quote": "Each biker"})])
+        HomeAgent(store, answer).reply(did, "Each biker")
+        draft = store.get(did)
+        self.assertEqual(draft["understanding"]["entity"], "Each biker")  # the second open question, answered first
+        self.assertFalse(draft["understanding"].get("costs"))  # and "Each biker" is never kept as a cost
+        columns = ["order_id", "biker_id", "customer_id", "fare"]
+        self.assertIsNone(_entity_column("Order (identified by order_id)", columns, keys={"order_id"}))  # one row a group: no grouping
+        self.assertEqual(_entity_column("Each biker", columns, keys={"order_id"}), "biker_id")
+        self.assertEqual(_entity_column("order_id", columns, keys=()), "order_id")  # without the profile's keys, as before
+
+    def test_the_coordinator_asks_every_plan_question_still_open_before_it_builds_the_entity_included(self):
+        from dclab_rnd.draft.coordinator import Coordinator
+
+        store, did = self.draft("Find fraudulent rides of bikers and customers", "is_fraud")
+        store.update(did, lambda x: x.update(pack={"key": "imbalanced", "source": "user"}))
+        agent = HomeAgent(store, None)
+        coordinator = Coordinator(store, None, agent)
+        answers = {"prediction_moment": "After delivery", "entity": "Each biker", "labels": "A sample of the cases we found",
+                   "budget": "About 80 a day", "data_plan": "Upload a sample"}
+        asked = []
+        for _ in range(8):  # a model that records each answer and ends its turn asking in its own words: only the coordinator asks
+            field = coordinator.facts(did).open_field
+            if field is None:
+                break
+            self.assertEqual(coordinator.act(did, machine_situation(open_field=field), None), {"asked": field})
+            asked.append(field)
+            model = Prose([("record", {"field": field, "value": answers[field]})], "Anything else you want to add?")
+            HomeAgent(store, model).reply(did, answers[field])
+        self.assertIn("entity", asked)
+        self.assertEqual(store.get(did)["understanding"]["entity"], "Each biker")
+
+    def test_a_statement_answering_the_open_question_is_its_answer_when_the_models_turn_ends_in_silence(self):
+        store, did = self.draft("Find fraudulent rides of bikers and customers", "is_fraud")
+        store.update(did, lambda x: x.update(pack={"key": "imbalanced", "source": "user"}))
+        HomeAgent(store, None).ask(did, "labels", "Are some cases already confirmed?", [], "w")
+        silent = Prose([("get_profile", {})], "")  # a step, then nothing said
+        HomeAgent(store, silent).reply(did, "A sample of the cases we found")
+        draft = store.get(did)
+        self.assertEqual(draft["understanding"]["labels"], "A sample of the cases we found")
+        texts = [m.get("text") for m in draft["messages"] if m.get("kind") == "question"]
+        self.assertEqual(texts.count("Are some cases already confirmed?"), 1)  # never put to them again, word for word
+
+    def test_a_budget_answer_is_kept_in_the_persons_words_not_the_models(self):
+        store, did = self.draft("Find fraudulent rides of bikers and customers", "is_fraud")
+        store.update(did, lambda x: x.update(pack={"key": "imbalanced", "source": "user"}))
+        HomeAgent(store, None).ask(did, "budget", "How many alerts can the team review, for example a day?", [], "w")
+        paraphrase = Prose([("record", {"field": "budget", "value": "About 80 bikers reviewed per daily audit"})], "Anything else?")
+        HomeAgent(store, paraphrase).reply(did, "About 80 a day")
+        self.assertEqual(store.get(did)["understanding"]["budget"], "About 80 a day")  # the words the budget's share is read from
+
+    def test_a_plan_question_replied_to_is_asked_again_by_the_plan_and_an_optional_one_is_closed(self):
+        store = DraftStore(Path(tempfile.mkdtemp()))
+        d = store.create(PROBLEM)
+        HomeAgent(store, None).start(d["id"])
+        first = HomeAgent(store, None).pending(store.get(d["id"]))
+        self.assertEqual(first["field"], "target")
+        labels = {"field": "labels", "question": "Are some cases already confirmed?", "why": "w", "options": ["a", "b"]}
+        HomeAgent(store, ScriptedClient([("ask_user", labels)])).reply(d["id"], "it is anomaly detection")
+        draft = store.get(d["id"])
+        replied = next(q for q in draft["questions"] if q["id"] == first["id"])
+        self.assertEqual((replied["answered"], replied.get("unsettled"), replied.get("superseded")), ("it is anomaly detection", True, True))
+        self.assertFalse((draft.get("understanding") or {}).get("target"))  # their words are not recorded as the outcome
+        self.assertEqual(HomeAgent(store, None).pending(draft)["field"], "labels")  # the question they see is the one open
+        HomeAgent(store, None).take_answer(d["id"], HomeAgent(store, None).pending(draft), "A sample of the cases we found")
+        self.assertEqual(HomeAgent(store, None).pending(store.get(d["id"]))["field"], "target")  # still unknown: the plan asks it again
+
+
+class Prose:
+    """A model that makes its tool calls, then ends its reply with its own words."""
+
+    def __init__(self, turns, final):
+        self.calls, self.final = ScriptedClient(turns), final
+
+    def complete(self, messages, tools=None, max_tokens=1800):
+        out = self.calls.complete(messages, tools, max_tokens)
+        if out["tool_calls"]:
+            return out
+        return {"content": self.final, "tool_calls": [], "assistant_message": {"role": "assistant", "content": self.final}}
+
+def machine_situation(**facts):
+    from dclab_core import coordinator as machine
+
+    return machine.situation(machine.Facts(files_ready=1, analysed=True, workflow_ready=True, **facts))
+
+
 if __name__ == "__main__":
     unittest.main()

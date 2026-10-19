@@ -42,6 +42,7 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "problem_card": LIBRARY + " (the understanding conversation's result)",
     "problem_data_check": LIBRARY + " (the problem set against its tables)",
     "fit_verdict": LIBRARY + " (G2: the problem card against the data card, 30.13)",
+    "solution_brief": LIBRARY + " (G3: signed before training, its bar judged at the holdout read, 30.14; the main product's Objective has no bar to map it onto yet)",
     "coordinator_situation": LIBRARY + " (where a conversation stands on the way to a build)",
     "solution_workflow": LIBRARY + " (the workflow drawn from the two cards)",
     "solution_report": LIBRARY + " (rendered from the records of a project)",

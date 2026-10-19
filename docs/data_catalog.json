@@ -15,7 +15,8 @@
   "deletion",
   "retention",
   "replay",
-  "data_export"
+  "data_export",
+  "brief"
  ],
  "classes": {
   "agent_text": {
@@ -246,6 +247,11 @@
    "version": "dclab_core.second_opinion.v1"
   },
   {
+   "contract": "solution_brief",
+   "reads": [],
+   "version": "dclab_core.solution_brief.v1"
+  },
+  {
    "contract": "solution_map",
    "reads": [],
    "version": "dclab_core.solution_map.v1"
@@ -358,7 +364,7 @@
    "what": "A team's walk, one row per hand-off: the board before the node, the node and what it did, the board after, with the walk's status and the models it asked; the person's words redacted, only lines written where training was allowed (28.9)."
   }
  ],
- "dclab_core": "0.89.0",
+ "dclab_core": "0.90.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",

@@ -1,0 +1,63 @@
+{
+ "package": "30.14",
+ "title": "The Solution Brief and G3: what will be built and the bar it must meet, signed before training and judged once at the holdout",
+ "date": "2026-10-19",
+ "request": "Phase 8 (the owner's framework, phase 3): a brief with the approach level, the recipe, the baselines, the validation, the success bar, the decision rule, the risks and the alternatives; refused without a bar, a baseline or an alternative; the bar frozen at a signature and the holdout's verdict against it in the report. Decision D3: a signed brief covers the holdout approval.",
+ "spec": "docs/guides/PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md, package 30.14",
+ "plan": [
+  "Write the contract in the library, with G3, a signature over a fingerprint and a judge that reads the holdout once.",
+  "Draft a brief by rules from what the engine prepares, never from holdout rows.",
+  "Sign it with the solution gate, let a signed brief stand for the agent's holdout approval, and judge the bar at the final stage.",
+  "Say the verdict in the report, from the record, and give the brief two routes."
+ ],
+ "decisions": [
+  {
+   "decision": "The default bar is better than the recipe's simple model on the primary metric; for recall at a review budget, better than reviewing that share at random.",
+   "why": "It is the honest least a model must clear, it can always be judged from the holdout's own baselines, and a person raises it before signing."
+  },
+  {
+   "decision": "A brief is saved through the graph's own move, set_brief: a person only, never while a stage runs, never after the holdout read.",
+   "why": "The bar must be fixed before the one read; a change under a running final or after it would be chosen on the holdout."
+  },
+  {
+   "decision": "D3 holds only while the brief and the solution are both signed and unchanged, and not for a programme.",
+   "why": "A signed brief over a changed solution says nothing about what is now run; a programme judges no bar."
+  },
+  {
+   "decision": "A brief is stored only when a person saves one; the solution gate does not draft and sign one unseen.",
+   "why": "A signature means the person agreed the bar; signing a rule's draft nobody read would also make D3 remove the holdout gate silently. Sign-off on by default is left to the owner."
+  },
+  {
+   "decision": "Metric directions and what the engine's simple models report are named in the library.",
+   "why": "G3 must refuse a bar that goes the wrong way or could never be judged, and the library never imports the studio."
+  }
+ ],
+ "change": "dclab_core.solution_brief (SolutionBrief v1, LADDER, Baseline with today's number, Guard, SuccessBar, Approval, HIGHER, REPORTS, fingerprint, problems, signed, sign, fill, BarVerdict, judge); dclab_core.report's verdict line; dclab_rnd.studio.brief (draft for tabular and machine kinds, view, save, verdict_of); the graph's set_brief move, brief_problems, brief_signed and the solution gate's signature; the engine's success_bar in both final paths; GET and PUT /api/projects/{id}/brief; the audit kind brief and its decision.accepted event; dclab-core 0.90.0.",
+ "findings": [
+  {"id": "T1", "source": "test", "severity": "behaviour", "defect": "The brief's save named an audit kind the trail does not have.", "scenario": "audit.record_for(store, 'brief', ...) with KINDS lacking it.", "cause": "A new kind used before it was declared.", "fix": "The kind brief declared, with its event (point solution.brief) and its filter on the Admin page.", "test": "test_the_routes_draft_save_and_refuse_a_malformed_brief"},
+  {"id": "R1", "source": "reviewer", "severity": "leakage", "defect": "A bar could be moved after the holdout read and then signed.", "scenario": "Sign, start the final, PUT a margin of -0.5, the final completes, approve the solution gate again: the moved bar signed, a rerun judged on it.", "cause": "The save checked only the count of holdout reads, written at the end of the final; the gate signed whatever brief was stored.", "fix": "The save is the graph's set_brief move (refused while a stage runs and after a read); the gate never signs a brief after a read.", "test": "test_a_brief_is_drafted_signed_with_the_solution_judged_once_and_closed_after"},
+  {"id": "R2", "source": "reviewer", "severity": "leakage", "defect": "D3 let an agent read the holdout after the solution changed.", "scenario": "Sign the solution and the brief, change the solution, require the holdout approval: the agent's final was allowed.", "cause": "brief_signed read only the brief's own fingerprint.", "fix": "brief_signed also needs the gate's brief hash and the solution signed; programmes keep their own holdout approval.", "test": "test_a_brief_is_drafted_signed_with_the_solution_judged_once_and_closed_after"},
+  {"id": "R3", "source": "reviewer", "severity": "behaviour", "defect": "Kinds with their own machine crashed the brief and were never judged.", "scenario": "GET the brief of an anomaly or forecasting project: AttributeError, 500; its final wrote no verdict.", "cause": "The draft read the tabular bundle's spec; only the tabular final judged the bar.", "fix": "A machine's metric, direction and own first baseline; its final judged against its own baselines.", "test": "test_a_kind_with_its_own_machine_is_drafted_and_judged_against_its_own_baseline"},
+  {"id": "R4", "source": "reviewer", "severity": "behaviour", "defect": "G3 passed bars that could never be judged.", "scenario": "Recall at the budget against the majority class; a bar against today's process with no number; a misspelt metric against a simple model.", "cause": "G3 checked only that a target and a named baseline existed.", "fix": "An absolute bar for recall at the budget, today's number on the baseline, a relative bar only on a metric the simple model reports.", "test": "test_g3_refuses_bars_that_could_never_be_judged_or_go_the_wrong_way"},
+  {"id": "R5", "source": "reviewer", "severity": "behaviour", "defect": "judge gave wrong verdicts on guards and on direction.", "scenario": "An mae above the baseline judged met under op '>'; an rmse guard with the default op failed when better; a guard with no target failed; a missing guard metric failed.", "cause": "No direction check, no alias for guards, a missing value read as failure.", "fix": "G3 refuses comparisons against a metric's direction and guards without a target or a named baseline; judge reads guards as the bar and says cannot be judged when a guard cannot be read.", "test": "test_g3_refuses_bars_that_could_never_be_judged_or_go_the_wrong_way"},
+  {"id": "R6", "source": "reviewer", "severity": "gap", "defect": "D3 and G3 apply only to a project whose brief a person saved.", "scenario": "No page saves a brief yet; the solution gate signs without one.", "cause": "Opt-in by design.", "fix": "Kept opt-in (decision above) and left to the owner with the Solution page's editor.", "test": ""},
+  {"id": "R7", "source": "reviewer", "severity": "latent", "defect": "Saving the brief bypassed the validator.", "scenario": "No graph check, no transition logged for a state change.", "cause": "A plain write.", "fix": "The set_brief move, checked and logged.", "test": "test_a_brief_is_drafted_signed_with_the_solution_judged_once_and_closed_after"},
+  {"id": "R8", "source": "reviewer", "severity": "behaviour", "defect": "The report could say a bar was not met without the reason.", "scenario": "The primary metric above its target and a guard failed.", "cause": "The guards were not written.", "fix": "The failed guards named, their numbers from the record.", "test": ""},
+  {"id": "R9", "source": "reviewer", "severity": "behaviour", "defect": "A value that is not finite crashed the final after the holdout was read.", "scenario": "NaN on the holdout.", "cause": "The verdict contract refuses NaN.", "fix": "Cannot be judged, and the stage stands.", "test": "test_the_holdout_is_judged_against_the_frozen_bar"},
+  {"id": "R10", "source": "reviewer", "severity": "gap", "defect": "The audit recorded a role, not the person.", "scenario": "The row said Owner, not who.", "cause": "The role used for the name.", "fix": "The approver's name, as the approvals route records it.", "test": "test_the_routes_draft_save_and_refuse_a_malformed_brief"},
+  {"id": "R11", "source": "reviewer", "severity": "gap", "defect": "The refusal promised a way out that does not exist.", "scenario": "A later period or new rows: the count never resets.", "cause": "The wording.", "fix": "A new bar needs a new holdout: a new project on later rows.", "test": ""},
+  {"id": "R12", "source": "reviewer", "severity": "gap", "defect": "The capture was not read back and several paths were untested.", "scenario": "No test of the audit row or the event; none for machines, budgets, guards, a sign after the read, a changed solution.", "cause": "Tests of the main path only.", "fix": "Each added.", "test": "test_the_routes_draft_save_and_refuse_a_malformed_brief"}
+ ],
+ "measurements": [
+  {"name": "the harness suite on the rules", "gate": "21.5: a change to the validator is on only after the suite passes", "fixed_before_run": true, "result": "HRN-023: 17 of 17", "verdict": "pass", "cost_eur": 0, "against_gate": "Every written case and dev journey right on every step and part.", "limits": ["Scripted people; no model asked."]}
+ ],
+ "outcome": "A brief says what will be built and the bar it must meet; it cannot be signed incomplete, cannot move after the one holdout read, and the report says whether the bar was met.",
+ "lessons": [
+  "A value frozen at a signature must be closed to edits by the validator, not by a check of a counter written at the end of the run it guards.",
+  "A shortcut that stands in for an approval must hold only while everything the approval covered is unchanged."
+ ],
+ "risks": [
+  "A brief exists only when a person saves one; the Solution page's editor, sign-off on by default, a model drafting the words and the main product's Objective are left."
+ ],
+ "commits": []
+}

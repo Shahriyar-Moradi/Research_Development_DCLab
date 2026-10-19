@@ -23,6 +23,7 @@ class MachinePrepared:
                                  else cls(kind, solution, frame, project))
         self.sampling = {"source_rows": int(len(frame)), "rows_used": int(len(frame)), "rule": "every row (the kind's machine reads the whole table)"}
         self.plan, self.label_info, self.critic, self.class_labels = project.get("plan"), project.get("labels"), None, None
+        self.brief = project.get("brief")  # 30.14: the Solution Brief, its bar judged at the one holdout read
 
     @property
     def task(self) -> str:

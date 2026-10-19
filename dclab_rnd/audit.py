@@ -9,6 +9,7 @@
     data_import     a table attached to a project, or a file brought into a draft, with its source and SHA-256
     lesson_review   a workspace lesson accepted or rejected
     memory_removed  a project memory note removed by a person
+    brief           a project's Solution Brief saved by a person (30.14; its signature is the solution gate's approval)
     sign_in, role_change   reserved for accounts (package 10.2)
 
 A row is ``{id, at, kind, actor, who, user_id, project_id, project_name, draft_id, move, status, detail}``. The
@@ -31,7 +32,7 @@ from pathlib import Path
 from typing import Any, Iterable, Protocol
 
 KINDS = ("move", "approval", "approval_used", "policy", "routing", "solution", "data_import", "lesson_review", "memory_removed",
-         "sign_in", "role_change", "deletion", "retention", "replay", "data_export")  # replay (20.8): a final stage rerun in a scratch copy
+         "sign_in", "role_change", "deletion", "retention", "replay", "data_export", "brief")  # replay (20.8): a final stage rerun in a scratch copy
 FILTERS = ("kind", "status", "actor", "project_id", "draft_id")
 
 

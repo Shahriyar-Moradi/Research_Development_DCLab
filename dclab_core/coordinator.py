@@ -43,6 +43,8 @@ class Facts(Contract):
     """What the host knows of one draft, gathered from its records (no table values)."""
     blocking_questions: list[dict[str, Any]] = Field(default_factory=list, description="The card's blocking questions: field, text.")
     pending_question: Optional[str] = Field(None, max_length=60, description="The field of the question the person has open.")
+    open_field: Optional[str] = Field(None, max_length=60, description=(
+        "A field of the host's own plan that changes the solution, never asked, with questions left: asked before the build."))
     files_ready: int = 0
     files_pending: int = 0
     files_failed: int = 0
@@ -167,6 +169,9 @@ def situation(facts: Facts) -> Situation:
     if facts.pending_question is not None:  # never a build with a question open (19.9's own failure signal)
         return at("build", "answer", f"A question to the person is open ({facts.pending_question}): its answer comes before the build.",
                   [Blocker(state="build", code="question_open", question="Answer the open question first.", field=facts.pending_question)])
+    if facts.open_field:  # a model's turns may end with the plan's own question unasked (live, 2026-10-19: the entity, so no grouped folds)
+        return at("build", "ask", f"The question about {facts.open_field} was never asked: it is asked before the build.",
+                  [Blocker(state="build", code="plan_open", question=f"Answer the question about {facts.open_field}.", field=facts.open_field)])
     if facts.build_refusals:
         r = facts.build_refusals[0]
         return at("build", "stop", f"Not built: {r.get('message')}",

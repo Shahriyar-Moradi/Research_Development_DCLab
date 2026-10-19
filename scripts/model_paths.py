@@ -225,7 +225,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cap-eur", type=float, default=2.0, help="with --configured: the spend cap for the run")
     parser.add_argument("--yes", action="store_true", help="with --configured: do not ask before sending")
     parser.add_argument("--only", choices=list(PATHS), action="append")
+    parser.add_argument("--keep", type=Path, default=None, help="copy the run's whole workspace here before it is removed (the default "
+                                                                "with --configured: agent_runs/live_tests/<date>_model_paths)")
     args = parser.parse_args(argv)
+    if args.configured and args.keep is None:  # a paid run's records are kept (the owner's rule: live records are never only temporary)
+        args.keep = ROOT / "agent_runs" / "live_tests" / f"{time.strftime('%Y-%m-%d')}_model_paths"
     if args.ollama:  # every tier on Ollama, whatever .env routes elsewhere (checked after start)
         from dclab_rnd.models.settings import ROUTABLE
 
@@ -269,6 +273,11 @@ def main(argv: list[str] | None = None) -> int:
             process.wait(10)
         except subprocess.TimeoutExpired:
             process.kill()
+        if args.keep is not None:  # every request, reply and record of the run, before the temporary workspace goes
+            import shutil
+
+            shutil.copytree(home.name, args.keep / time.strftime("%H%M%S"), dirs_exist_ok=True)
+            print(f"kept: {args.keep}")
         home.cleanup()
     return 1 if failed else 0
 

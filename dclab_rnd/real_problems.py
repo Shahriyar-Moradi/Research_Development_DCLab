@@ -163,23 +163,45 @@ def run(name: str, live: bool = False, cap_eur: Optional[float] = None) -> dict[
         raise SystemExit(f"{name} is private: no model may be asked about it (run it without --live)")
     started = datetime.now(timezone.utc).isoformat(timespec="seconds")
     folder = RUNS / f"{date.today().isoformat()}_{name}"
-    if folder.exists():
+    if folder.exists() and live:  # the review: a paid run's records are kept for good, never deleted by the next run
+        folder = RUNS / f"{date.today().isoformat()}_{name}_{datetime.now(timezone.utc).strftime('%H%M%S')}"
+    elif folder.exists():
         shutil.rmtree(folder)
     home = folder / "workspace"
     home.mkdir(parents=True)
-    log = experience.FileLog(home / "experience", f"real-{name}")
-    book = ledger.FileLedger(home / "ledger", f"real-{name}")
-    experience.install(log)
-    ledger.install(book)
     words, answers = _person(problem)
     person = Person(answers)
     out: dict[str, Any] = {"problem": name, "private": problem["private"], "words": words, "answers_written": sorted(answers), "started": started,
-                           "files": [Path(f).name for f in problem["files"]], "workspace": folder.relative_to(ROOT).as_posix()}
+                           "files": [Path(f).name for f in problem["files"]], "workspace": folder.relative_to(ROOT).as_posix(), "live": bool(live)}
+    read = critic = advisor = None
+    if live:  # the served model plays the roles, each a third of the cap, its requests in this run's own usage log
+        import os
+
+        from dotenv import load_dotenv
+
+        from dclab_rnd.core_advisor import GatewayAdvisor
+        from dclab_rnd.draft.reader import reader
+        from dclab_rnd.models.gateway import for_workspace
+
+        load_dotenv(ROOT / ".env", override=False)  # the provider and its key, as the server reads them
+        os.environ.pop("DCLAB_NO_LIVE_MODELS", None)
+        gateway = for_workspace(home)
+        read = reader(gateway, cap_eur=cap_eur / 3, force=True, prebuild=True)  # the conversation reader beside the Home agent's rules
+        critic = GatewayAdvisor(gateway, cap_eur=cap_eur / 3, max_tokens=1200)  # the understanding critic
+        advisor = GatewayAdvisor(gateway, cap_eur=cap_eur / 3)  # the solution team's roles
+        if read is None or critic._client("understanding_critic") is None:
+            raise SystemExit("No model serves conversation_reader or understanding_critic: set the provider's key (and leave DCLAB_NO_LIVE_MODELS unset).")
+    log = experience.FileLog(home / "experience", f"real-{name}")  # installed only once nothing can stop the run before its try
+    book = ledger.FileLedger(home / "ledger", f"real-{name}")
+    experience.install(log)
+    ledger.install(book)
     scope = private_scope(True) if problem["private"] or not live else contextlib.nullcontext()
+    from dclab_rnd.studio.agent import notes_off
+
     try:
-        with scope:
+        with scope, notes_off():  # the review: a stage's notes would ask the installed gateway, outside the run's caps and its spend
             drafts, projects = DraftStore(home / "drafts"), ProjectStore(home / "projects")
-            agent = HomeAgent(drafts, None)
+            agent = HomeAgent(drafts, None, reader=read)
             draft_id = drafts.create(words)["id"]
 
             def whole(d: dict[str, Any]) -> None:  # a real run reads the whole table (the product's quick pass reads 3,000 rows)
@@ -190,13 +212,13 @@ def run(name: str, live: bool = False, cap_eur: Optional[float] = None) -> dict[
             for f in problem["files"]:
                 _upload(drafts, agent, draft_id, Path(f).name, Path(f))
             with checkpoints.open_checkpointer(home, database_url="") as saver:
-                walked = drive(Walk(Coordinator(drafts, projects, agent), saver, home=home), draft_id, person)
+                walked = drive(Walk(Coordinator(drafts, projects, agent), saver, home=home, critic_advisor=critic), draft_id, person)
             out["understanding"] = {"next": walked.get("next"), "says": walked.get("says"), "state": walked.get("state"),
                                     "asked": person.inner.asked, "gates": list(person.gates)}
             built = walked.get("project_id")
             if not built:
                 out["result"] = "not built"
-                return _store(name, out)
+                return _store(name, _spent(out, live, read, critic, advisor, book, log))
             from dclab_rnd.intern.tools import Toolbox
 
             project = projects.get(built)
@@ -212,7 +234,7 @@ def run(name: str, live: bool = False, cap_eur: Optional[float] = None) -> dict[
             out["plan"] = (sp.view(projects.get(built)) if sp.plan_of(projects.get(built)) else {"solution": {k: (projects.get(built).get("solution") or {}).get(k)
                                                                                                             for k in ("target", "task", "time_column", "group_column", "metric")}})
             with checkpoints.open_checkpointer(home, database_url="") as saver:
-                solved = drive_team(SolutionTeam(projects, saver, home=home), built, person)
+                solved = drive_team(SolutionTeam(projects, saver, home=home, advisor=advisor), built, person)
             project = projects.get(built)
             out["solution"] = {"next": solved.get("next"), "says": solved.get("says"), "nodes": [s.get("action") for s in solved.get("steps") or []],
                                "gates": list(person.gates), "holdout_uses": int(project.get("holdout_uses") or 0),
@@ -222,9 +244,19 @@ def run(name: str, live: bool = False, cap_eur: Optional[float] = None) -> dict[
     finally:
         experience.install(None)
         ledger.install(None)
+    return _store(name, _spent(out, live, read, critic, advisor, book, log))
+
+
+def _spent(out: dict[str, Any], live: bool, read: Any, critic: Any, advisor: Any, book: Any, log: Any) -> dict[str, Any]:
+    """What the run spent and how many of its model requests failed, from its three capped advisors (and the reader's own
+    count), however the run ended; its decisions and events."""
+    if live:
+        advisors = [x for x in (getattr(read, "advisor", None), critic, advisor) if x is not None]
+        out["spent_eur"] = round(sum(float(x.spent_eur()) for x in advisors), 4)
+        out["failed_requests"] = int(getattr(read, "failures", 0) or 0) + sum(int(getattr(x, "failures", 0) or 0) for x in advisors)
     out["decisions"] = len(book.records())
     out["events"] = len(log.read(limit=10**7))
-    return _store(name, out)
+    return out
 
 
 def _store(name: str, out: dict[str, Any]) -> dict[str, Any]:
@@ -254,7 +286,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         print("refused: a live run needs --cap-eur above zero", file=sys.stderr)
         return 2
     doc = run(args.problem, args.live, args.cap_eur)
-    print(json.dumps({k: doc.get(k) for k in ("id", "problem", "result", "understanding", "solution", "number", "decisions", "path")}, indent=1, default=str)[:4000])
+    print(json.dumps({k: doc.get(k) for k in ("id", "problem", "result", "understanding", "solution", "number", "decisions", "spent_eur", "path")}, indent=1, default=str)[:4000])
     return 0
 
 

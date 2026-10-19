@@ -60,6 +60,8 @@ class MachineTest(unittest.TestCase):
         self.assertEqual((s.state, s.next, s.blockers[0].code), ("build", "answer", "question_open"))  # never with a question open
         s = machine.situation(machine.Facts(files_ready=1, analysed=True, workflow_ready=True))
         self.assertEqual((s.state, s.next), ("build", "build"))
+        s = machine.situation(machine.Facts(files_ready=1, analysed=True, workflow_ready=True, open_field="entity"))
+        self.assertEqual((s.state, s.next, s.blockers[0].code, s.blockers[0].field), ("build", "ask", "plan_open", "entity"))  # live, HRN-022
 
     def test_the_map_comes_after_the_problem_is_clear_and_before_the_data(self):
         self.assertEqual(machine.STATES[:3], ("problem", "map", "data"))

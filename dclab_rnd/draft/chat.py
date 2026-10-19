@@ -55,6 +55,18 @@ TOKEN_CHUNK = 48  # characters per streamed ``token`` event
 PROFILE_PAGE = 40  # columns the model sees at a time, in its state and from get_profile
 PROFILE_FIELDS = ("name", "kind", "missing_rate", "unique")  # what the model may know about a column: no values
 FIELDS = ("target", "prediction_moment", "action", "costs", "data_plan", "entity", "labels", "budget")  # the last three: a pack's (15.6)
+# the agent asking leave to build ("Shall I build it now?"), the one question a model may end its turn with while code asks the plan's next
+LEAVE_TO_BUILD = re.compile(r"\b(shall i|should i|do you want me to|want me to|may i|can i|ready to|okay to|ok to)\b.{0,40}\b(build|start|go ahead|proceed)", re.I)
+OPTIONAL = tuple(f for f in FIELDS if f not in plans.ALL_FIELDS)  # asked when useful, never blocking (30.13): no plan settles them
+ANSWER_ONLY = ("entity",)  # recorded by a model only as the answer to its own question: who could commit it groups the folds
+RULES_READ = ("unit",)  # what one prediction is for: the meet check blocks on it, so only the rules read it from the person's words
+WORDS_KEPT = ("budget",)  # an answer the rules read a number from (a share of rows): kept in the person's words, never a model's paraphrase
+
+
+def counted(draft: dict[str, Any]) -> list[dict[str, Any]]:
+    """The questions that count against MAX_QUESTIONS: never a superseded one, never an optional field's (asked once at
+    most: costs would otherwise take the place of a pack's last field)."""
+    return [q for q in draft.get("questions") or [] if not q.get("superseded") and q.get("field") not in OPTIONAL]  # what one prediction is for: the meet check blocks on it, so only the rules read it from the person's words
 BUILD_WORDS = re.compile(r"\b(let'?s build|build (it|the solution)|go ahead|start the project|ready to build)\b", re.I)
 # 25.13: a message that is an order to build now, read by its intent rather than an exact phrase (live, 2026-10-16: "build",
 # "build now", "Yes, build now" and "ye s build now" were all missed): agreeing or polite words, then a build verb, then only
@@ -196,17 +208,30 @@ class HomeAgent:
         """``source="critic"`` (28.4): the understanding critic sends a settled field back to the person (the card it read
         is wrong or unsure there); it is asked past the cap and over a settled field, still never twice while open."""
         draft = self.store.get(draft_id)
-        asked = [q for q in draft["questions"] if not q.get("superseded")]
+        asked = counted(draft)
         critic = source in ("critic", "second_opinion")  # 28.4, 28.6: a field the card settled is put to the person again
         over = len(asked) >= MAX_QUESTIONS and field not in self.CONTRADICTIONS.values() and not critic  # 21.5: the words and the data disagreeing
         if over or any(q.get("field") == field and not q.get("answered") for q in draft["questions"]):  # is asked past the cap, once
             return None
         if self.settled(draft, field) and field not in self.CONTRADICTIONS.values() and not critic:
             return None  # the person said it already, or the table is here: asking again is what they found unintelligent
+        if field in OPTIONAL and not critic and ((draft.get("understanding") or {}).get(field) or any(q.get("field") == field and q.get("answered") for q in draft["questions"])):
+            return None  # live (HRN-022): an optional field no plan settles was asked four times in one walk; answered once, it is known
         q = {"id": f"q{len(draft['questions']) + 1}", "field": field, "text": question, "options": (options or [])[:4], "why": why, "answered": None,
              **({"source": source} if source else {}), **(extra or {})}  # 28.6: the second opinion's verdict travels with its question
+        replied = None if critic else self.answerable(draft)
+        if replied is not None and (replied["field"] == field or replied.get("source") in ("critic", "second_opinion")):
+            replied = None
+        said = next((str(m.get("text") or "") for m in reversed(draft.get("messages") or []) if m.get("role") == "user"), "") if replied else ""
 
         def add(d):
+            if replied is not None:  # live (HRN-022): the question the person replied to stayed open behind the new one, and was
+                for item in d["questions"]:  # put to them again; replied to, it is closed, its field left as unsettled as it was
+                    if item["id"] == replied["id"] and not item.get("answered"):
+                        # a plan field their words did not settle is asked again by the plan (superseded: neither asked nor
+                        # counted), never left closed and unknown (the review: an entity said and never recorded was built without)
+                        item.update(answered=said.strip()[:400] or "(replied)", unsettled=True,
+                                    **({"superseded": True} if replied["field"] in plans.ALL_FIELDS else {}))
             d["questions"].append(q)
         self.store.update(draft_id, add)
         return self.say(draft_id, question, kind="question", question=q)
@@ -621,6 +646,26 @@ class HomeAgent:
         self.refresh_workflow(draft_id)
         self.next_turn(draft_id)
 
+    def close_optional(self, draft_id: str, q: dict[str, Any], value: str) -> None:
+        """A question about a field no plan settles, replied to in the person's words: closed. Their words are kept only
+        when they say it (costs: a miss or a false alarm named; a note: added to the notes, never over them)."""
+        from dclab_core.card import costs_said
+
+        field, value = q["field"], value.strip()
+        said = costs_said(value)
+        keep = (said.miss.value or said.false_alarm.value) if field == "costs" else bool(value)
+        if keep:
+            known = str((self.store.get(draft_id).get("understanding") or {}).get("notes") or "")
+            self.record(draft_id, field, (f"{known}; {value}" if field == "notes" and known else value))
+
+        def answered(d):
+            for item in d["questions"]:
+                if item["id"] == q["id"]:
+                    item.update(answered=value[:400] or "(replied)", **({} if keep else {"unsettled": True}))
+        self.store.update(draft_id, answered)
+        if keep:
+            self.read_card_answer(draft_id, field, value)
+
     READ_BY_MODEL = ("target", "outcome", "family", "labels")  # the answers a reader is asked about: they settle the card
     CARD_FIELDS = {"target": "outcome", "outcome": "outcome", "labels": "labels", "family": "family", "prediction_moment": "prediction_moment",
                    "labels_check": "labels", "target_check": "outcome"}
@@ -907,6 +952,23 @@ class HomeAgent:
                         ["Upload a sample", "Connect a source", "Simulate data", "No data yet, plan only"], plans.WHY["data_plan"])
         return None
 
+    def replied_to(self, draft: dict[str, Any], field: str) -> dict[str, Any] | None:
+        """An open question about ``field`` (not only the first open one) the person has written after."""
+        messages = draft.get("messages") or []
+        for q in draft.get("questions") or []:
+            if q.get("field") != field or q.get("answered"):
+                continue
+            at = next((i for i, m in enumerate(messages) if m.get("kind") == "question" and (m.get("question") or {}).get("id") == q["id"]), None)
+            if at is not None and any(m.get("role") == "user" for m in messages[at + 1:]):
+                return q
+        return None
+
+    @staticmethod
+    def edited(draft: dict[str, Any], field: str, value: Any) -> bool:
+        """The person's own correction on the page: their last message an edit of this field with these words."""
+        last = next((m for m in reversed(draft.get("messages") or []) if m.get("role") == "user"), None) or {}
+        return last.get("kind") == "edit" and last.get("field") == field and str(last.get("text") or "").strip() == str(value or "").strip()
+
     def answerable(self, draft: dict[str, Any]) -> dict[str, Any] | None:
         """The open question, if the user has written since it was asked (so a message can answer it). A question the
         model asked in this very reply has no answer yet, and recording one for it would put words in the user's mouth."""
@@ -945,7 +1007,7 @@ class HomeAgent:
             "problem": draft["problem"], "pack": draft.get("pack"), "understanding": draft.get("understanding") or {},
             "plan": {**{f: ((draft.get("plan") or {}).get(f) or {}).get("status", "unknown") for f in plans.fields_for(draft)}, "next": (draft.get("plan") or {}).get("next")},
             "questions_asked": [{k: q.get(k) for k in ("field", "text", "answered")} for q in draft["questions"]],
-            "questions_left": MAX_QUESTIONS - len(draft["questions"]),
+            "questions_left": MAX_QUESTIONS - len(counted(draft)),
             "data": {"summary": a.get("summary"), "columns": cols, "highlights": [h.get("title") for h in (a.get("highlights") or [])][:8],
                      "target_candidates": (a.get("profile") or {}).get("target_candidates")} if a else None,
             "assets": [{k: x.get(k) for k in ("name", "kind", "status", "synthetic")} for x in draft["assets"]],
@@ -988,16 +1050,43 @@ class HomeAgent:
             self.store.emit(draft_id, "token", {"id": model.live, "drop": True})  # tool calls written as text are not a reply
         self.store.update(draft_id, lambda d: d["agent"].update(mode="model", turns=d["agent"].get("turns", 0) + 1))
         after = self.store.get(draft_id)
+        still = self.pending(after)
+        acted = {step.tool for step in out.steps} & {"simulate_data", "build_solution"}  # their words were an order, not an answer
+        if text and open_question and still and still["id"] == open_question["id"] and open_question["field"] in (*OPTIONAL, "notes") \
+                and "?" not in text and not acted and open_question.get("source") not in ("critic", "second_opinion"):
+            # live (HRN-022): a question about a field no plan settles (costs, a note), answered in the person's own words
+            # the model did not record, stayed open and was put to them again and again, and the build waited on it: their
+            # words are its answer (the card reads them), and the conversation goes on
+            self.close_optional(draft_id, open_question, text)
+            after = self.store.get(draft_id)
         if out.steps and text and after["messages"] and after["messages"][-1].get("role") == "user":
             # Live (2026-10-16): the model re-asked the open question (a no-op) and the turn ended in silence, three
             # messages in a row. The person always gets a reply: the open question again, or the plan's next step.
             still_open = self.pending(after)
-            if still_open:
+            if still_open and "?" not in text and not acted and open_question and still_open["id"] == open_question["id"] \
+                    and still_open.get("source") not in ("critic", "second_opinion"):
+                # live (HRN-022, RG-02): "A sample of the cases we found" answered the labels question; the model's turn ended
+                # without recording it, the question was put to them again, word for word: their words are its answer
+                self.take_answer(draft_id, still_open, text)
+            elif still_open:
                 if "?" in text:  # the person asked something ("what is the plan?"): the plan so far first, then the question
                     self.summarize(draft_id)
                 self.say(draft_id, still_open["text"], kind="question", question=still_open)
             else:
                 self.next_turn(draft_id)
+            return
+        asks = re.findall(r"[^.?!]*\?", str(out.final or ""))
+        if out.steps and out.stopped == "answered" and not self.pending(after) and not after.get("project_id") and not acted \
+                and all(LEAVE_TO_BUILD.search(a) for a in asks):  # nothing asked in prose, or only leave to build
+            # live (HRN-022): the model ended its turn (or offered to build) with one of the plan's own fields still open, and
+            # a fraud walk was built without its entity, its folds never grouped: the plan's next open field is asked, as the
+            # rules ask it (the model chose the order and the words before; the questions that change the solution are asked)
+            question = self.next_question(after)
+            if question is not None and self.ask(draft_id, *question):
+                from ..ledger import capture
+
+                capture.next_question(self.store.get(draft_id), question)
+                self.moved(draft_id, "ask_user", {"field": question[0]})
             return
         if not out.steps and text:
             # A model that only talks (small models often never call a tool) must not stall the conversation:
@@ -1106,7 +1195,11 @@ def record(turn: Turn, /, **args: Any) -> dict[str, Any]:
     agent, draft_id = turn.agent, turn.draft_id
     field, value = str(args.get("field", "notes")), str(args.get("value", ""))
     pending = agent.answerable(agent.store.get(draft_id))
+    if not (pending and pending["field"] == field):  # the review: two questions asked in one reply, the second answered first
+        pending = agent.replied_to(agent.store.get(draft_id), field) or pending
     if pending and pending["field"] == field:  # the user's message answers the open question
+        if field in WORDS_KEPT:  # live (HRN-022): "About 80 a day" recorded as "About 80 bikers reviewed per daily audit": no budget read
+            value = next((str(m.get("text") or "") for m in reversed(agent.store.get(draft_id)["messages"]) if m.get("role") == "user"), "") or value
         if field in plans.ALL_FIELDS:
             agent.note(draft_id, field, value, "stated", "answer", value)
         else:
@@ -1286,6 +1379,14 @@ class DraftGuard:
 
     def refusal(self, tool: Tool, turn: Turn, arguments: dict[str, Any]) -> dict[str, Any] | None:
         agent, draft_id = turn.agent, turn.draft_id
+        if tool.move == "record" and arguments.get("field") in RULES_READ:  # live (HRN-022): "unit: biker", from the answer "The biker"
+            return {"error": f"{arguments['field']} is read by the rules from the person's own answers (an entity answered as \"one "
+                             "customer\"), never written by a model: record what they said under its own field."}
+        if tool.move == "record" and arguments.get("field") in ANSWER_ONLY:
+            draft = agent.store.get(draft_id)
+            if not (agent.replied_to(draft, arguments["field"]) or agent.edited(draft, arguments["field"], arguments.get("value"))):
+                return {"error": f"{arguments['field']} is the person's to say, in answer to its own question (it decides how the folds "
+                                 "are grouped): ask it with ask_user."}  # "the day's orders", grouped nothing
         if tool.move == "record" and arguments.get("field") in plans.FIELDS:
             draft = agent.store.get(draft_id)
             pending = agent.answerable(draft)

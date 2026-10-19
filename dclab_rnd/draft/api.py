@@ -1036,12 +1036,14 @@ def _coverage(answer: Any) -> str:
     return "complete" if re.search(r"\b(every|all) (the )?(cases?|frauds?|rows?)\b.*\b(labell?ed|known|found)\b|\bcomplete\b", text) else "partial"
 
 
-def _entity_column(answer: Any, columns: list[str]) -> str | None:
+def _entity_column(answer: Any, columns: list[str], keys: Any = ()) -> str | None:
     """The column an answer names as the entity: the column itself, or the one whose name shares a word with it
-    ("the biker" finds biker_id); none for "No single entity"."""
+    ("the biker" finds biker_id); none for "No single entity". ``keys``: the columns unique on every row, never an entity
+    (one row a group groups nothing: live, 2026-10-19, "Order (identified by order_id)")."""
     text = str(answer or "").strip()
     if not text or re.search(r"\bno (single )?entity\b", text, re.I):
         return None
+    columns = [c for c in columns if c not in set(keys or ())]
     if text in columns:
         return text
     words = {w[:5] for w in re.findall(r"[a-z]{4,}", text.lower())}
@@ -1188,7 +1190,7 @@ def _anomaly_solution(projects, project: dict[str, Any], u: dict[str, Any]) -> d
 
     frame = studio_data.load_table(studio_data.data_path(projects, project))
     columns = list(frame.columns)
-    entity = _entity_column(u.get("entity"), columns)
+    entity = _entity_column(u.get("entity"), columns, [c for c in columns if frame[c].nunique() == len(frame)])
     time = None
     for c in columns:
         days = anomaly._days(frame, c)
@@ -1247,9 +1249,13 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
     if asset is not None and project.get("data"):
         project["data"]["synthetic"] = bool(asset.get("synthetic"))
         suggestion = {**dict(asset.get("suggestion") or {}), **dict(project.get("suggestion") or {})}
-        entity = _entity_column(u.get("entity"), project["data"]["columns"])
+        keys = {c.get("name") for c in (project["data"].get("profile") or {}).get("columns") or [] if c.get("id_like")}
+        entity = _entity_column(u.get("entity"), project["data"]["columns"], keys)
         if entity:
             suggestion["group_column"] = entity
+        elif u.get("entity") and _entity_column(u.get("entity"), project["data"]["columns"]):  # it named the row's own key
+            projects.log(pid, "entity_is_row_key", {"answer": str(u["entity"])[:200],
+                                                    "why": "the entity named is unique on every row: it groups nothing; set the group column on the Solution page"})
         budget = _budget_share(u.get("budget"), projects, project)
         if budget:
             suggestion["alert_budget"] = budget

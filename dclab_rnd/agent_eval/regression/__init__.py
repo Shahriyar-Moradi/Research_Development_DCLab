@@ -142,8 +142,9 @@ def grade(case: dict[str, Any], row: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def run(home: Optional[Path] = None, seed: int = 0, workers: int = 4, live: Optional[dict[str, Any]] = None,
-        only: Optional[list[str]] = None) -> list[dict[str, Any]]:
-    """Every case and every dev journey played and graded; one row each."""
+        only: Optional[list[str]] = None, keep: Optional[Path] = None) -> list[dict[str, Any]]:
+    """Every case and every dev journey played and graded; one row each. ``keep``: a folder each play's whole record is
+    copied into (``<keep>/<case id>/``: its workspace, events and row), as a live run's records are kept for good."""
     from concurrent.futures import ProcessPoolExecutor
 
     from .. import journeys
@@ -152,19 +153,19 @@ def run(home: Optional[Path] = None, seed: int = 0, workers: int = 4, live: Opti
     cases += [{**j, "source": "journey"} for j in journeys.load("dev")]
     cases = [c for c in cases if not only or c["id"] in only]
     if live is not None or workers <= 1:  # a served model's client stays in this process
-        played = [_one((c, seed, live)) for c in cases]
+        played = [_one((c, seed, live, keep)) for c in cases]
     else:
         with ProcessPoolExecutor(max_workers=workers) as pool:
-            played = list(pool.map(_one, [(c, seed, None) for c in cases]))
+            played = list(pool.map(_one, [(c, seed, None, keep) for c in cases]))
     return played
 
 
-def _one(args: tuple[dict[str, Any], int, Optional[dict[str, Any]]]) -> dict[str, Any]:
+def _one(args: tuple[dict[str, Any], int, Optional[dict[str, Any]], Optional[Path]]) -> dict[str, Any]:
     from .. import journeys
 
-    case, seed, live = args
+    case, seed, live, keep = args
     try:
-        row = journeys.play(case, seed, None, live)
+        row = journeys.play(case, seed, None, live, keep=Path(keep) / str(case["id"]) if keep else None)
     except Exception as error:  # noqa: BLE001 - a case that breaks is wrong, with its reason
         row = {"id": case["id"], "kind": case.get("kind"), "right": False, "parts": {}, "why": [f"broke: {type(error).__name__}: {str(error)[:300]}"]}
     row["source"] = case["source"]
@@ -229,14 +230,16 @@ def runs() -> list[dict[str, Any]]:
     return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(RESULTS.glob("HRN-*.json"), key=_number)] if RESULTS.exists() else []
 
 
-def latest() -> Optional[dict[str, Any]]:
-    done = runs()
+def latest(live: Optional[bool] = None) -> Optional[dict[str, Any]]:
+    """The latest run; ``live=False``: the latest on the rules alone (the code's own gate), ``True``: with a served model
+    (a measurement of that model: whether it may serve is ``passed_with``'s)."""
+    done = [r for r in runs() if live is None or bool(r.get("live")) == live]
     return done[-1] if done else None
 
 
 def stale(run: Optional[dict[str, Any]] = None) -> list[str]:
     """What changed since the last run (or ``run``): the fingerprints that differ. Empty when it ran on what is here now."""
-    run = run if run is not None else latest()
+    run = run if run is not None else latest(live=False)
     if run is None:
         return ["no run of the suite"]
     now, then = fingerprints(), run.get("fingerprints") or {}

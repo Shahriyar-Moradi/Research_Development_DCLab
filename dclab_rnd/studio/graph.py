@@ -59,7 +59,7 @@ GATES = {"solution": "The owner signs the solution before WF-04.",
 DEFAULT_POLICY = {"require_solution_signoff": False, "require_holdout_approval": False}
 MOVES = ("run_stage", "set_solution", "approve_stage", "approve_gate", "capture",
          "create_project", "attach_data", "set_settings", "propose_solution", "attach_labels", "attach_table",
-         "run_programme", "drop_leaf", "forbid_columns")  # the last five: every other project write; run_programme (24.5) runs a problem of several parts and reads its holdout once; drop_leaf drops a blocked leaf of it
+         "run_programme", "drop_leaf", "forbid_columns", "set_brief")  # set_brief (30.14): a person's Solution Brief; the last five: every other project write; run_programme (24.5) runs a problem of several parts and reads its holdout once; drop_leaf drops a blocked leaf of it
 DONE = ("completed", "approved")
 
 
@@ -116,6 +116,30 @@ def solution_hash(solution: dict[str, Any] | None) -> str | None:
 def solution_signed(project: dict[str, Any]) -> bool:
     signoff = project.get("signoff") or {}
     return bool(project.get("solution")) and signoff.get("solution_hash") == solution_hash(project.get("solution"))
+
+
+def brief_problems(project: dict[str, Any]) -> list[str]:
+    """30.14: why the project's Solution Brief cannot be signed (G3), or why it cannot be read."""
+    from dclab_core.solution_brief import SolutionBrief, problems
+
+    try:
+        return problems(SolutionBrief.read(project["brief"]))
+    except Exception as error:  # noqa: BLE001 - a brief that cannot be read is never signed
+        return [f"the brief cannot be read ({type(error).__name__})"]
+
+
+def brief_signed(project: dict[str, Any]) -> bool:
+    """30.14 (D3): the project's brief signed with its solution, both unchanged since: the one checkpoint that also covers
+    the holdout read (a solution changed after the signature uncovers it, whatever the brief says)."""
+    if not project.get("brief") or not project.get("solution"):
+        return False  # a programme's plan does not judge a bar: its holdout keeps its own approval
+    from dclab_core.solution_brief import SolutionBrief, fingerprint, signed
+
+    try:
+        brief = SolutionBrief.read(project["brief"])
+    except Exception:  # noqa: BLE001
+        return False
+    return signed(brief) and (project.get("signoff") or {}).get("brief_hash") == fingerprint(brief) and solution_signed(project)
 
 
 def _stage_status(project: dict[str, Any], stage: str) -> str:
@@ -185,7 +209,7 @@ def check(project: dict[str, Any], move: str, actor: str = "human", **args: Any)
             "approve_gate": _approve_gate, "capture": _capture, "create_project": _create_project,
             "attach_data": _attach_data, "set_settings": _set_settings, "propose_solution": _propose_solution,
             "attach_labels": _attach_labels, "attach_table": _attach_table, "run_programme": _run_programme,
-            "drop_leaf": _drop_leaf, "forbid_columns": _forbid_columns}[move](project, actor, frm, clean)
+            "drop_leaf": _drop_leaf, "forbid_columns": _forbid_columns, "set_brief": _set_brief}[move](project, actor, frm, clean)
 
 
 def _verdict(move: str, actor: str, frm: str | None, to: str | None, checks: list[dict[str, Any]], rules: list[str],
@@ -242,8 +266,8 @@ def _run_stage(project: dict[str, Any], actor: str, frm: str | None, args: dict[
                 if reason:
                     side.append(f"Holdout use number {uses + 1}, recorded with the reason: {reason[:200]}")
         if pol["require_holdout_approval"] and actor == "agent":
-            approved = any(a.get("gate") == "holdout" and not a.get("used") for a in project.get("approvals", []))
-            checks.append(_check("Owner approval", approved, "The owner must approve opening the holdout (gate: holdout)."))
+            approved = any(a.get("gate") == "holdout" and not a.get("used") for a in project.get("approvals", [])) or brief_signed(project)  # D3: a signed brief covers the one read
+            checks.append(_check("Owner approval", approved, "The owner must approve opening the holdout (gate: holdout), or sign the Solution Brief."))
         side.append("Consumes the holdout once.")
     approval = ("Solution signed", "Owner approval") + (("Holdout reuse confirmed",) if actor == "human" else ())
     return _verdict("run_stage", actor, frm, to, checks, rules, evidence, side, args, approval)
@@ -292,6 +316,9 @@ def _approve_gate(project: dict[str, Any], actor: str, frm: str | None, args: di
               _check("A person approves", actor == "human", "Only a person can approve a gate; ask the owner.")]
     if gate == "solution":
         checks.append(_check("Solution", bool(project.get("solution")) or bool(project.get("programme_plan")), "There is no solution or plan to sign."))
+        if project.get("brief"):  # 30.14: G3: a brief is signed only with a success bar, a baseline and an alternative
+            missing = brief_problems(project)
+            checks.append(_check("Brief complete", not missing, "The Solution Brief cannot be signed yet: " + "; ".join(missing) + "."))
     to = "WF-01" if gate == "solution" else "WF-09" if gate == "holdout" else None
     return _verdict("approve_gate", actor, frm, to, checks, ["DCLAB-R01"] if gate == "solution" else ["DCLAB-R17"], [], [], args)
 
@@ -373,7 +400,7 @@ def _run_programme(project: dict[str, Any], actor: str, frm: str | None, args: d
             if reason:
                 side.append(f"A second programme on the same holdout, recorded with the reason: {reason[:200]}")
     if pol["require_holdout_approval"] and actor == "agent":
-        approved = any(a.get("gate") == "holdout" and not a.get("used") for a in project.get("approvals", []))
+        approved = any(a.get("gate") == "holdout" and not a.get("used") for a in project.get("approvals", []))  # a programme judges no bar: no D3
         checks.append(_check("Owner approval", approved, "The owner must approve opening the holdout (gate: holdout)."))
     approval = ("Solution signed", "Owner approval") + (("Holdout reuse confirmed",) if actor == "human" else ())
     return _verdict("run_programme", actor, frm, "WF-09", checks, list(NODE_BY_ID["WF-09"]["rules"]), evidence, side, args, approval)
@@ -405,6 +432,17 @@ def _forbid_columns(project: dict[str, Any], actor: str, frm: str | None, args: 
     if _programme_read_before(project) or int(project.get("holdout_uses", 0) or 0):
         side.append("The holdout stays used: a new estimate on it will need a reason.")
     return _verdict("forbid_columns", actor, frm, "WF-05", checks, ["DCLAB-R04", "DCLAB-R05"], ["PIT-006"], side, args)
+
+
+def _set_brief(project: dict[str, Any], actor: str, frm: str | None, args: dict[str, Any]) -> Verdict:
+    """30.14: a person writes the Solution Brief; never while a stage runs (the final reads it), never after the holdout was
+    read (a bar moved after the read would be chosen on it)."""
+    uses = int(project.get("holdout_uses", 0) or 0)
+    checks = [_check("A person writes it", actor == "human", "The Solution Brief is the owner's: an agent may draft one, a person saves it."),
+              _not_running(project),
+              _check("Holdout unused", not uses, f"The holdout was read {uses} time(s) against this brief: its bar cannot change now; a new "
+                                                 "bar needs a new holdout (a new project on later rows).")]
+    return _verdict("set_brief", actor, frm, None, checks, ["DCLAB-R01", "DCLAB-R17"], ["PIT-006"] if uses else [], [], args)
 
 
 def plan_fingerprint(project: dict[str, Any]) -> str | None:
@@ -450,6 +488,18 @@ def approve_gate(store: ProjectStore, project_id: str, gate: str, by: str = "own
         entry.update(user_id=person.user_id, role=person.role)
     if gate == "solution":
         entry["solution_hash"] = solution_hash(project["solution"]) if project.get("solution") else plan_fingerprint(project)  # a programme's plan is what is signed when no solution is
+        if project.get("brief") and not int(project.get("holdout_uses", 0) or 0):  # 30.14: the brief signed with the solution, its bar
+            from dclab_core.solution_brief import SolutionBrief, sign  # frozen at this signature; never signed after the holdout read
+
+            signed_brief = sign(SolutionBrief.read(project["brief"]), by=by or "owner", at=entry["at"])
+            project["brief"] = signed_brief.model_dump(mode="json")
+            entry["brief_hash"] = signed_brief.approval.fingerprint
+        elif project.get("brief"):
+            from dclab_core.solution_brief import SolutionBrief, fingerprint, signed
+
+            kept = SolutionBrief.read(project["brief"])
+            if signed(kept):
+                entry["brief_hash"] = fingerprint(kept)  # the bar the read was judged on, as it was signed
         project["signoff"] = entry
     project.setdefault("approvals", []).append(entry)
     from . import memory

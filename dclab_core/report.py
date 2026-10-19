@@ -750,6 +750,22 @@ def _results(w: _Writer, notes: list[str]) -> None:
                     known = METRIC_LABEL.get(metric_name) or w.key(f"{e}.baselines.{name}.{metric_name}")
                     parts.append(f"{known} {written}")
             w.line(f"- Baseline {w.key(f'{e}.baselines.{name}')} on the same holdout: " + ", ".join(parts) + "." if parts else None)
+        bar = _m(evidence.get("success_bar"))
+        if bar:  # 30.14: the one read against the Solution Brief's bar, frozen when the brief was signed
+            sb = f"{e}.success_bar"
+            verdict = _str(bar.get("verdict"))
+            if verdict in ("met", "not_met"):
+                got, target = w.n(f"{sb}.value"), w.n(f"{sb}.target")
+                base = w.q(f"{sb}.baseline", 80, code=True) if bar.get("baseline") else ""
+                broken = [f"{w.q(f'{sb}.guards.{i}.metric', 60, code=True)} {w.n(f'{sb}.guards.{i}.value')} against {w.n(f'{sb}.guards.{i}.target')}"
+                          for i, g in enumerate(bar.get("guards") or []) if isinstance(g, dict) and not g.get("held")]
+                w.line(f"Against the success bar signed in the Solution Brief before training: {w.q(f'{sb}.metric', 60, code=True)} {got} against a target of "
+                       f"{target}" + (f" set from {base} on the same holdout" if base else "")
+                       + (": the bar is met." if verdict == "met" else (f", but a guard did not hold ({'; '.join(broken)})" if broken else "")
+                          + ": the bar is not met, so the work goes back to the brief with a new holdout; nothing is retuned on this one.")
+                       if got and target else None)
+            else:
+                w.line(f"The success bar could not be judged: {w.q(f'{sb}.reason', 300)}.")
         task = _task_of(ctx)
         kind = "binary" if "binary" in task else ("multiclass" if task == "multiclass" else "regression")
         metrics = _m(evidence.get("holdout_metrics"))

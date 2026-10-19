@@ -325,6 +325,8 @@
     patchProject: ["PATCH", "/projects/{project_id}", ["project_id"], []],
     approveGate: ["POST", "/projects/{project_id}/approvals", ["project_id"], []],
     askAgent: ["POST", "/projects/{project_id}/ask", ["project_id"], []],
+    projectBrief: ["GET", "/projects/{project_id}/brief", ["project_id"], []],
+    saveProjectBrief: ["PUT", "/projects/{project_id}/brief", ["project_id"], []],
     uploadData: ["PUT", "/projects/{project_id}/data", ["project_id"], ["filename"]],
     useSample: ["POST", "/projects/{project_id}/data/sample", ["project_id"], []],
     projectDecisions: ["GET", "/projects/{project_id}/decisions", ["project_id"], []],
@@ -1062,6 +1064,19 @@
    *  @returns {Promise<Answer>} */
   client.askAgent = (...args) => call('askAgent', args);
   client.path.askAgent = (...args) => build('askAgent', args).path;
+  /** GET /api/projects/{project_id}/brief: Project Brief
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.projectBrief = (...args) => call('projectBrief', args);
+  client.path.projectBrief = (...args) => build('projectBrief', args).path;
+  client.href.projectBrief = (...args) => '/api' + build('projectBrief', args).path;
+  /** PUT /api/projects/{project_id}/brief: Save Project Brief
+   *  @param {string} project_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.saveProjectBrief = (...args) => call('saveProjectBrief', args);
+  client.path.saveProjectBrief = (...args) => build('saveProjectBrief', args).path;
   /** PUT /api/projects/{project_id}/data: Upload Data
    *  @param {string} project_id
    *  @param {{query?: {filename?: *}, body: Blob, headers?: Object}} [opts]
