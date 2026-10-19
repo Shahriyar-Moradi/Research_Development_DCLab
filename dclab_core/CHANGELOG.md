@@ -4,6 +4,22 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.88.0 (2026-10-19)
+
+Package 30.12: labels and capacity, and the first certification.
+
+- `capacity` (new): `queue` and `kth_threshold` (K a period; the K-th score of an average period), `precision_at_k` (on
+  confirmed labels, with its Wilson interval), `audit_recall` (recall estimated only from rows reviewed at random within
+  their stratum and period, weighted N/n; the interval the wider of a bootstrap over periods and a Wilson interval on the
+  weighted cases' effective count), `rule_columns` (the rule behind a noisy source's labels), `agreement`, `summary`.
+- `modifiers`: two parts, `noisy_labels` and `review_capacity`, with `Facts.label_sources`, `confirmed_rate`, `audit_rate`,
+  `capacity_k` and `capacity_period`; under noisy labels the rare-positives test reads the audit's rate (else the
+  confirmed rows'); review capacity is asked on every binary problem and applies when K is stated.
+- `recipes`: `CRITERIA` (the recipes document's five pass criteria), `run_passes` and `certify` (certified only on a trap
+  replica and two real datasets passing every criterion; a criterion not measured keeps a part experimental and is named).
+- `ledger`: points `modifier.noisy_labels` and `modifier.review_capacity`, 63 in all; `adapters.conformance` lists them
+  unmapped.
+
 ## 0.87.0 (2026-10-19)
 
 Packages 29.15 (real homework from public data), 29.16 (a committee) and the rest of 29.6 (the small processes' points).

@@ -222,6 +222,26 @@ Designed in detail once Part E is built; each keeps DCLab's rules (the validator
   names the modifier behind its split and metric; three ledger points record each against what the saved solution applies.
   Every kind's acceptance unchanged; the dev journeys 15 of 15 (JRN-020). Moved to 30.12: the certification on the retail replica
   and two real datasets, the replica as a kind's case and its journeys people (the replica needs the noisy labels to be solved).
+- **30.12 built (2026-10-19), the review's 10 findings fixed; Done when met, no part certified.** `dclab_core.capacity`
+  (dclab-core 0.88.0): a queue of K a period, precision at K on confirmed labels (each reviewed row weighed by its day's
+  and stratum's N/n), recall estimated only from the rows reviewed at random within their stratum and day (the interval
+  the wider of a bootstrap over days and a Wilson interval on the weighted cases' effective count), the rule behind a
+  noisy source and its agreement. Two modifiers, `noisy_labels` (a label-source column with a noisy source beside twenty
+  confirmed rows: a noisy source's rows neither trained nor judged on, the rare test reading the audit's rate) and
+  `review_capacity` (asked on every binary problem, applied when K is stated), with their ledger points (63 in all). The
+  Solution carries `label_source_column`, `confirmed_sources`, `capacity_k` and `capacity_period`; the proposal finds a
+  label source by its values and forbids it unless applied; Home's build and the wizard carry it. The retail replica is
+  the rare-event kind's second case (`rare_event.retail_case`, in `make kinds-check` only): on seeds 0 to 2 the trap is
+  caught (noisy labels applied, judged on confirmed labels only, `rule_flag` flagged as the rule behind the rule's labels
+  with an agreement of 0.17 to 0.18, the verdict and the whole-log statistic kept out), and the queue's recall from the
+  audit alone is 1.0 with intervals from 0.64 to 1.0, covering the true recall (0.88 to 1.0) on every seed.
+  **CRT-001** (`python -m dclab_rnd.certify`): the five modifiers judged on the recipes document's five criteria on the
+  replica's three seeds, Telco and HyperAck, detection judged on what the proposal read before any statement: no
+  criterion failed, every part stays experimental, the artifact (30.15) and a comparison with a model on pending; only runs
+  where a part applies count, so the new modifiers still need real datasets where they apply (the owner's fraud data, D6).
+  Left: noisy rows as weighted training labels, value times probability, precision at K as the selection metric inside
+  training, K stored from Home and the wizard, the operating threshold set on training rows (with the artifact), the
+  replica's journeys people and its sealed set.
 
 ---
 

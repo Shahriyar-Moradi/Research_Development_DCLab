@@ -68,6 +68,49 @@ class RareEvent(Binary):
                     "is scored.", {"group_column": "biker_id", "alert_budget": 0.005}, pack="imbalanced", labels=(replica.sample, "is_fraud"),
                     files=files, quick=False, facts={"budget": 0.005})
 
+    def retail_case(self, seed: int = 0) -> Any:
+        """30.12: the retail returns replica (staff return fraud, labels that grew from a late-evening rule to a team
+        checking five returns a day with a random part) as a person brings it: the returns, their label source, the
+        time each was made, the team's capacity, and the two columns a person knows are not usable (the verdict itself,
+        a cashier statistic over the whole log)."""
+        from dclab_core.replicas import retail_returns as rr
+
+        from .acceptance import Case
+
+        replica = rr.generate(seed=seed)
+        table = replica.returns.drop(columns=[c for c in replica.returns.columns if c.startswith("_")], errors="ignore")
+        forbidden = [{"column": "review_status", "reason": "the review's verdict: written after the return is checked"},
+                     {"column": "cashier_late_share", "reason": "a share over the whole log: it reads the returns after each one"}]
+        return Case(table, "label", "binary", "When a return is made, before the team's daily review; the review's verdict is not known then.",
+                    {"time_column": "returned_at", "label_source_column": "label_source", "capacity_k": rr.CAPACITY, "capacity_period": "day",
+                     "forbidden": forbidden, "identifiers": ["return_id", "bill_id"], "labels": "partial",
+                     "label_provenance": "a late-evening rule's flags, then a team checking five returns a day (the rule's hits and a random part)"},
+                    pack="imbalanced", quick=True, facts={**replica.facts, "seed": seed}), replica
+
+    def accept_retail(self, run: Any) -> list[dict[str, Any]]:
+        """30.12's trap, caught: noisy labels detected and applied, judged on confirmed labels only, the rule behind them
+        flagged, the verdict and the whole-log statistic kept out, and the queue's recall estimated from the random audit
+        with its interval."""
+        from .acceptance import check
+
+        final, recipe = run.evidence("final"), run.records["data"].get("evidence", {}).get("recipe") or {}
+        sources, cap = final.get("label_sources") or {}, final.get("capacity") or {}
+        rules = {(r.get("source"), r.get("column")) for r in sources.get("noisy_rules") or []}
+        recall = (cap.get("audit_recall") or {})
+        roles = run.records["data"].get("evidence", {}).get("column_roles") or {}
+        blocked = {c for c, role in roles.items() if role == "blocked"}
+        return [check("noisy labels are applied", "noisy_labels@1" in (recipe.get("modifiers") or []), str(recipe.get("modifiers"))),
+                check("the run is judged on confirmed labels only", final.get("holdout_rows") == cap.get("confirmed_rows") and bool(sources.get("rows")),
+                      f"{final.get('holdout_rows')} holdout rows, {cap.get('confirmed_rows')} confirmed"),
+                check("the late-evening rule behind the rule's labels is flagged", ("rule", "rule_flag") in rules, str(sorted(rules))),
+                check("the verdict and the whole-log statistic are kept out", {"review_status", "cashier_late_share"} <= blocked, str(sorted(blocked))),
+                check("precision at K is measured on confirmed labels", (cap.get("precision_at_k") or {}).get("precision") is not None,
+                      str((cap.get("precision_at_k") or {}).get("precision"))),
+                check("recall is estimated only from the random audit, with its interval", recall.get("recall") is not None and None not in (recall.get("recall_ci") or [None]),
+                      f"{recall.get('recall')} {recall.get('recall_ci')}"),
+                check("the holdout's K-th score of an average day is reported as a check", cap.get("kth_score_holdout") is not None,
+                      str(cap.get("kth_score_holdout")))]
+
     def accept(self, run: Any) -> list[dict[str, Any]]:
         from .acceptance import check
 

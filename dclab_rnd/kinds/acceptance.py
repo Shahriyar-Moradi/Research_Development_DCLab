@@ -154,6 +154,8 @@ def adopt(store: Any, project: dict[str, Any], proposal: dict[str, Any], target:
         stated["time_column"] = proposal["time_candidates"][0]
     if stated.get("time_column"):  # the time column orders the split: the person unticks it under Forbidden, as the form asks
         stated["forbidden"] = [f for f in stated["forbidden"] if f["column"] != stated["time_column"]]
+    if stated.get("label_source_column"):  # 30.12: the label source is kept out of the model on its own, never forbidden
+        stated["forbidden"] = [f for f in stated["forbidden"] if f["column"] != stated["label_source_column"]]
     stated["identifiers"] = [c for c in stated.get("identifiers") or [] if c not in {f["column"] for f in stated["forbidden"]}]
     from .binary import as_table_label, profile_booleans
 
@@ -211,6 +213,9 @@ def run(kind: Any, seed: int = 0) -> dict[str, Any]:
     computed = set((done.evidence("final").get("baselines") or {}).keys())
     checks.append(check("the baselines the kind declares are the ones the final stage computes", set(kind.baselines) <= computed,
                         f"declared {sorted(kind.baselines)}, computed {sorted(computed)}"))
+    if hasattr(kind, "retail_case"):  # 30.12: a second case of the kind (labels of unequal worth, a team's capacity), here only
+        retail, _ = kind.retail_case(seed)
+        checks += [{**c, "decision": f"retail returns: {c['decision']}"} for c in kind.accept_retail(engine_run(retail, "retail_returns"))]
     missing = [c["decision"] for c in checks if not c["ok"]]
     return {"kind": kind.key, "status": "supported" if checks and not missing else "partial", "checks": checks,
             "missing": missing, "seconds": round(time.perf_counter() - started, 1)}

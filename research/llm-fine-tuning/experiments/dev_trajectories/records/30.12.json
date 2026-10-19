@@ -1,0 +1,204 @@
+{
+ "package": "30.12",
+ "title": "Labels of unequal worth and a team's capacity: the retail replica's rule-label trap caught, recall estimated from the random audit, and a certification that says what it lacks",
+ "date": "2026-10-19",
+ "request": "Phase 8 (the owner's retail interview): noisy labels and review capacity as modifiers, a random audit sample, the retail replica as a kind's case, and the first certification of the modifiers on it and two real datasets.",
+ "spec": "docs/guides/PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md, package 30.12",
+ "plan": [
+  "Pure statistics first: a queue of K a period, precision at K on confirmed labels, recall from rows reviewed at random within their stratum and period, the rule behind a noisy source.",
+  "Two modifiers with their detection, ledger points and recipe parts; the rare test reading the audit's rate under noisy labels.",
+  "The engine keeps a noisy source's rows out of training and judging and scores the holdout period's unconfirmed rows for the queue.",
+  "The retail replica as the rare-event kind's second case, and a certification harness on it, Telco and HyperAck."
+ ],
+ "decisions": [
+  {
+   "decision": "A noisy source's rows are left out of training and judging, not weighted.",
+   "why": "Judging on confirmed labels only is the recipe's rule and needs no new path in the model fit; weights by agreement are left, said."
+  },
+  {
+   "decision": "The strata of the audit's estimate are the rule behind the noisy labels.",
+   "why": "On the replica the team reviews the rule's hits and a random part of the rest: the rule is the old queue, so each reviewed row stands for its own stratum's rows of the day."
+  },
+  {
+   "decision": "The interval is the wider of a bootstrap over days and a Wilson interval on the weighted cases' effective count.",
+   "why": "A short holdout with a few reviewed cases, all caught, gave every bootstrap draw 1.0."
+  },
+  {
+   "decision": "The retail case runs in the kinds check only.",
+   "why": "Journeys, self-play and the team call a kind's accept: a second engine run there would slow them and change their checks."
+  },
+  {
+   "decision": "No part is certified.",
+   "why": "The artifact check waits for 30.15 and no run is compared with a model on; the two real datasets show only the new modifiers' right absence."
+  }
+ ],
+ "change": "dclab_core/capacity.py (0.88.0); dclab_core.modifiers noisy_labels and review_capacity with their facts; dclab_core.recipes CRITERIA, run_passes, certify; ledger points modifier.noisy_labels and modifier.review_capacity; the Solution's label_source_column, confirmed_sources, capacity_k and capacity_period; the proposal's label-source detection; the engine's label sources, the rule behind each with its agreement, and the capacity block; rare_event.retail_case and accept_retail; dclab_rnd/certify.py and evidence/campaigns/certification_v1.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The recall's interval read as certain.",
+   "scenario": "Seed 0 through the engine: 8 reviewed cases, all caught: recall 1.0, interval 1.0 to 1.0, while the true recall was 0.879.",
+   "cause": "Every bootstrap draw of days held only caught cases.",
+   "fix": "The interval widened by a Wilson interval on the weighted cases' effective count; covered on every seed.",
+   "test": "test_the_trap_is_caught_and_the_audits_interval_covers_the_true_recall_on_every_seed"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "HyperAck's forward split was not credited to time order.",
+   "scenario": "The proposal's first time column was created_date, the person's first_created_at.",
+   "cause": "The recipe kept time order only for the detected column.",
+   "fix": "Kept for any time column the solution names, the reason naming the chosen one.",
+   "test": ""
+  },
+  {
+   "id": "T3",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A label source not applied became a feature.",
+   "scenario": "A table with ten confirmed labels: the noisy labels only ask and the audit did not flag the column.",
+   "cause": "Only an applied source was kept out; the earliest rows read held only the rule's labels, so the column was not even recognised.",
+   "fix": "A column of label-source words is recognised whichever appear, and forbidden unless applied as the source.",
+   "test": "test_with_too_few_confirmed_labels_the_source_stays_out_of_the_model"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The label source reached the model on Home's path.",
+   "scenario": "Home's build and the wizard never sent label_source_column, and the proposal had taken the column out of its forbidden list.",
+   "cause": "The column was skipped from forbidden whenever it was a candidate.",
+   "fix": "Skipped only when the proposal applies it as the source; Home's build, the wizard and the API body carry the field.",
+   "test": "test_adopted_with_nothing_declared_the_source_is_the_labels_source"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A table with a label source could not be built through adopt.",
+   "scenario": "The proposal's plan forbade label_source while the proposal named it the source: the solution refused itself.",
+   "cause": "The plan's forbidden items were merged after the proposal's.",
+   "fix": "The applied source is taken out of the plan's forbidden items and out of the adopted list.",
+   "test": "test_adopted_with_nothing_declared_the_source_is_the_labels_source"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Rare positives applied but nothing acted on it.",
+   "scenario": "The proposal's metric read 24% positives including the rule's labels and proposed roc_auc; the engine read 5.8% on rule-chosen confirmed rows.",
+   "cause": "Both read a rate other than the one the rare test read.",
+   "fix": "Both read the audit's rate under noisy labels.",
+   "test": ""
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The split's reason named a column the run did not split on.",
+   "scenario": "HyperAck: the reason said created_date orders the rows; the run used first_created_at.",
+   "cause": "The detected reason was reused.",
+   "fix": "The reason names the chosen column and the detected one.",
+   "test": ""
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The certification judged parts true by construction.",
+   "scenario": "Detection true because the case declared the modifier; the model-off criterion true without a comparison; a real run counted where the part never applied.",
+   "cause": "Criteria read the run's applied parts and constants.",
+   "fix": "Detection judged on the proposal's reading, the model-off criterion pending, and only runs where a part applies counted toward its level.",
+   "test": "test_detection_is_judged_on_what_the_proposal_read_never_on_what_the_case_stated"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The texts claimed parts not built.",
+   "scenario": "Weights, value times probability, precision at K as the selection metric, K stored from Home: none built; agreement promised but never computed.",
+   "cause": "Texts written from the plan.",
+   "fix": "Agreement computed per rule; the texts say what is left.",
+   "test": ""
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The queue's precision counted reviewed rows as if drawn at random within the queue.",
+   "scenario": "A rule-like queue: precision estimated 0.105 against a true 0.151.",
+   "cause": "The old rule and the audit chose which queued rows were reviewed.",
+   "fix": "Each reviewed row weighed by its period's and stratum's N/n, the raw counts beside it.",
+   "test": "test_the_queues_precision_weighs_each_reviewed_row_by_its_cell"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The operating threshold was read on the holdout.",
+   "scenario": "The K-th score recorded with the model came from the holdout period's scores.",
+   "cause": "One summary computed both.",
+   "fix": "Reported as the holdout's K-th score, a check; the operating threshold is set on training rows with the artifact.",
+   "test": ""
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Edge cases ran silently wrong.",
+   "scenario": "Sources that leave no confirmed rows; a counter as the time column; a kind's own machine credited with both modifiers.",
+   "cause": "No guard.",
+   "fix": "Refused below twenty confirmed labels with the sources found; capacity only with dates; a machine never credited.",
+   "test": ""
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Generated files were stale.",
+   "scenario": "The data catalog and the kinds' capability matrix.",
+   "cause": "Not rebuilt.",
+   "fix": "make catalog and make kinds-check.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the retail replica through the engine, seeds 0 to 2",
+   "gate": "the Done when: the rule-label trap caught; recall estimated from the audit sample with its interval",
+   "fixed_before_run": true,
+   "result": "every trap check passed on 3 seeds; recall from the audit 1.0 with intervals from 0.64 to 1.0, the true recall 0.88 to 1.0 inside on 3 of 3 seeds; the rule's agreement 0.17 to 0.18",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "Both parts of the Done when hold on all 3 seeds.",
+   "limits": [
+    "3 seeds of one replica.",
+    "The engine's quick mode.",
+    "A short holdout: few reviewed cases, so wide intervals."
+   ]
+  },
+  {
+   "name": "CRT-001, the first certification",
+   "gate": "recipes.certify: a trap replica and 2 real datasets where the part applies, every criterion passed",
+   "fixed_before_run": true,
+   "result": "5 runs, 5 parts: no criterion failed; artifact and model-on pending on every run; every part experimental",
+   "verdict": "not scored",
+   "cost_eur": 0,
+   "limits": [
+    "Telco and HyperAck show only the new modifiers' right absence."
+   ]
+  }
+ ],
+ "outcome": "The trap is caught and the audit's recall carries an honest interval; the modifiers stay experimental, and the certification names what each lacks.",
+ "lessons": [
+  "A check that passes because the case stated the answer measures the case, not the system: judge detection on what was read before any statement.",
+  "Reviewed rows are a design, not a sample of the queue: weigh them by how they were drawn."
+ ],
+ "risks": [
+  "Precision at K is the holdout queue's measure, not the selection metric inside training."
+ ],
+ "commits": []
+}

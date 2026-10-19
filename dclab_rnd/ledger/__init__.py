@@ -87,6 +87,8 @@ CAPTURED = {
     "modifier.rare_positives": "ledger/capture.py solution_saved: the proposal's rule against the saved metric (30.11)",
     "modifier.groups": "ledger/capture.py solution_saved: the proposal's rule against the saved group column (30.11)",
     "modifier.time_order": "ledger/capture.py solution_saved: the proposal's rule against the saved time column (30.11)",
+    "modifier.noisy_labels": "ledger/capture.py solution_saved: the proposal's rule against the saved label-source column (30.12)",
+    "modifier.review_capacity": "ledger/capture.py solution_saved: the proposal's rule against the saved capacity (30.12)",
     "critic.send_back": "orchestra/walk.py critic: each concern the critic weighed, sent back to the person or not (29.6); labelled measured when the person's answer changed the field",
     "workflow.revisit": "studio/graph.py: a completed stage run again",
     "image.near_copy": "kinds/embedded.py leakage (an image table): pairs of training images of different sources, by their pictures' cosine",

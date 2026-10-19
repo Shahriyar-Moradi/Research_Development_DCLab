@@ -138,7 +138,8 @@ def solution_saved(proposal: dict[str, Any] | None, profile: dict[str, Any] | No
             name = found.get("name")
             # what the saved solution applies (the review of 30.11): a group or time column of any name, the rare metric
             kept = {"rare_positives": solution.get("metric") == "average_precision" or (not solution.get("metric") and bool(found.get("applies"))),
-                    "groups": bool(solution.get("group_column")), "time_order": bool(solution.get("time_column"))}.get(name)
+                    "groups": bool(solution.get("group_column")), "time_order": bool(solution.get("time_column")),
+                    "noisy_labels": bool(solution.get("label_source_column")), "review_capacity": bool(solution.get("capacity_k"))}.get(name)  # 30.12
             if kept is None:
                 continue
             facts = own.get("modifier_facts") or {}

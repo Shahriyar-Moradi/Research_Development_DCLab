@@ -196,6 +196,8 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     _p("modifier.rare_positives", T, DP, "noul", "Are the positives rare enough to change the metric (under 5% of the training rows)?"),
     _p("modifier.groups", T, DP, "noul", "Do rows repeat an identifier whose values must each stay on one side of the split?"),
     _p("modifier.time_order", T, DP, "noul", "Do the rows' times order the split (the holdout the latest period)?"),
+    _p("modifier.noisy_labels", T, DP, "noul", "Do some labels come from a rule or a likeness, so the model is judged on the confirmed ones only?"),  # 30.12
+    _p("modifier.review_capacity", T, DP, "noul", "Does a team check K cases a period, so precision at K decides?"),  # 30.12
     # workflow: what steers solving (the second use)
     _p("problem.family", W, DP, "choice", "Which family of problem is it?", choices=FAMILIES),
     _p("problem.ready", W, DP, "noul", "Is the problem understood enough to build?"),

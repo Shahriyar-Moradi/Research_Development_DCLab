@@ -1,6 +1,6 @@
 {
  "generated_by": "make kinds-check",
- "at": "2026-10-17T04:56:51+00:00",
+ "at": "2026-10-19T04:42:02+00:00",
  "results": [
   {
    "kind": "rare_event",
@@ -50,6 +50,41 @@
      "decision": "the baselines the kind declares are the ones the final stage computes",
      "ok": true,
      "detail": "declared ['majority_class'], computed ['majority_class']"
+    },
+    {
+     "decision": "retail returns: noisy labels are applied",
+     "ok": true,
+     "detail": "['rare_positives@1', 'time_order@1', 'noisy_labels@1', 'review_capacity@1']"
+    },
+    {
+     "decision": "retail returns: the run is judged on confirmed labels only",
+     "ok": true,
+     "detail": "150 holdout rows, 150 confirmed"
+    },
+    {
+     "decision": "retail returns: the late-evening rule behind the rule's labels is flagged",
+     "ok": true,
+     "detail": "[('cluster', 'refund_method'), ('rule', 'rule_flag')]"
+    },
+    {
+     "decision": "retail returns: the verdict and the whole-log statistic are kept out",
+     "ok": true,
+     "detail": "['cashier_late_share', 'review_status']"
+    },
+    {
+     "decision": "retail returns: precision at K is measured on confirmed labels",
+     "ok": true,
+     "detail": "0.2221"
+    },
+    {
+     "decision": "retail returns: recall is estimated only from the random audit, with its interval",
+     "ok": true,
+     "detail": "1.0 [0.6719, 1.0]"
+    },
+    {
+     "decision": "retail returns: the holdout's K-th score of an average day is reported as a check",
+     "ok": true,
+     "detail": "0.001654"
     }
    ],
    "missing": []

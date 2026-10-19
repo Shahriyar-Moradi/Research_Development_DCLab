@@ -432,6 +432,7 @@ DC.view('new', {
         identifiers: $$('[data-ident]:checked', el).map(i => i.dataset.ident),
         time_column: ($('#wz-time', el) || {}).value || null, group_column: ($('#wz-group', el) || {}).value || null,
         text_columns: p.text_columns || [], metric: ($('#wz-metric', el) || {}).value || null, notes: '',
+        label_source_column: p.label_source_column || null,  // 30.12: where each label came from, never a feature
       };
       if (body.task !== 'binary') body.positive_label = null;
       if (body.prediction_moment.trim().length < 8) { toast('Write the prediction moment first: when is the prediction made, and what is known then?', { ok: false }); ($('#wz-moment', el) || {}).focus?.(); return; }

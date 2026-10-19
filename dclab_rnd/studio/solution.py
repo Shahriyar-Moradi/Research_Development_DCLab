@@ -102,6 +102,13 @@ class Solution(BaseModel):
     decision: Decision | None = None
     # package 16.10: a split by blocks of places, when nearby rows have alike targets
     spatial: SpatialSplit | None = None
+    # package 30.12: where each label came from (a noisy source's rows are kept out of training and judging; the column is
+    # never a feature), and how many cases a team checks a period (precision at K decides, the threshold is the K-th score
+    # of an average period, recall is estimated only from the random audit)
+    label_source_column: str | None = None
+    confirmed_sources: list[str] = Field(default_factory=list, max_length=20)
+    capacity_k: int | None = Field(default=None, ge=1, le=100000)
+    capacity_period: Literal["day", "week", "month"] | None = None
 
     @model_validator(mode="after")
     def coherent(self):
@@ -147,6 +154,15 @@ class Solution(BaseModel):
                              + " (a price, its reference and the value of an offer are known when the offer is made)")
         if self.metric == "recall_at_budget" and not self.alert_budget:
             raise ValueError("Recall at the review budget needs the budget: say how many rows the team can review")
+        if self.label_source_column and (self.label_source_column == self.target or self.label_source_column in names
+                                         or self.label_source_column in self.identifiers or self.label_source_column in self.text_columns):
+            raise ValueError("The label-source column says which rows a person confirmed: it is never the target, an identifier, text or "
+                             "forbidden (it is kept out of the model on its own)")
+        if self.capacity_k is not None:
+            if self.task != "binary":
+                raise ValueError("A team checking K cases a period screens a yes/no outcome: the task must be binary")
+            if not self.time_column or not self.capacity_period:
+                raise ValueError("K cases a period needs the period (a day, a week, a month) and the time column that dates each row")
         return self
 
     def problem_kind(self, pack: str | None = None):
@@ -160,7 +176,7 @@ class Solution(BaseModel):
         known = set(columns)
         for name in [*([self.target] if self.target else []), *(f.column for f in self.forbidden), *self.identifiers, *self.text_columns,
                      *( [self.time_column] if self.time_column else []), *([self.group_column] if self.group_column else []),
-                     *(self.decision.columns() if self.decision else []),
+                     *(self.decision.columns() if self.decision else []), *([self.label_source_column] if self.label_source_column else []),
                      *([self.spatial.lat_column, self.spatial.lon_column] if self.spatial else [])]:
             if name not in known:
                 raise ValueError(f"Column {name!r} is not in the data")
@@ -171,8 +187,25 @@ class Solution(BaseModel):
         return default_metric(self.task, positive_rate)
 
 
+def label_source_candidates(X: pd.DataFrame) -> list[str]:
+    """30.12: a column whose values name where each label came from: nearly all of them sources DCLab knows (a rule, a
+    cluster, an expert, an audit), whichever appear in the rows read (the earliest may hold only a rule's)."""
+    from dclab_core import modifiers as M
+
+    known, out = set(M.NOISY) | set(M.CONFIRMED), []
+    for c in X.columns:
+        if not (X[c].dtype == object or isinstance(X[c].dtype, pd.StringDtype)):
+            continue
+        v = X[c].dropna().astype(str).str.strip().str.lower()
+        v = v[v != ""]
+        if len(v) >= 20 and v.isin(known).mean() >= 0.9:
+            out.append(str(c))
+    return out
+
+
 def modifier_facts(X: pd.DataFrame, y: pd.Series, task: str, time_column: str | None, group_candidates: list[str],
-                   positive_rate: float | None, positive_label: Any = None) -> Any:
+                   positive_rate: float | None, positive_label: Any = None, label_source: str | None = None,
+                   capacity_k: int | None = None, capacity_period: str | None = None) -> Any:
     """30.11: what the modifiers' rules read, from the rows read (the provisional training rows): the minority share, how
     many rows each identifier-like value holds, and whether the target moves between the first and the last third in time."""
     from dclab_core import modifiers as M
@@ -210,9 +243,22 @@ def modifier_facts(X: pd.DataFrame, y: pd.Series, task: str, time_column: str | 
             v = pd.to_numeric(y, errors="coerce")
             sd = float(v.std())
             level = float((v[last].mean() - v[first].mean()) / sd) if sd and sd > 0 else None
+    sources, confirmed_rate, audit_rate = {}, None, None
+    if label_source and label_source in X:  # 30.12: where the labels came from, and the positive rate where a person looked
+        src = X[label_source].fillna("").astype(str).str.strip().str.lower()
+        sources = {str(k): int(v) for k, v in src.value_counts().items() if k}
+        if task == "binary" and positive_label is not None:
+            hits = y.astype(str) == str(positive_label)
+            for names, put in ((M.CONFIRMED, "confirmed"), (M.AUDIT, "audit")):
+                rows = src.isin(names)
+                if rows.sum() >= M.MIN_CONFIRMED:
+                    rate = float(hits[rows].mean())
+                    confirmed_rate, audit_rate = (rate, audit_rate) if put == "confirmed" else (confirmed_rate, rate)
     return M.Facts(task=task, minority_rate=minority, positive_rate=positive_rate if task == "binary" else None, keys=keys[:40],
                    time_column=str(time_column)[:200] if time_column else None,
-                   rate_change=change, class_shift=shift, level_shift=level if level is None or abs(level) < 1e6 else None)
+                   rate_change=change, class_shift=shift, level_shift=level if level is None or abs(level) < 1e6 else None,
+                   label_sources=sources, confirmed_rate=confirmed_rate, audit_rate=audit_rate, capacity_k=capacity_k,
+                   capacity_period=capacity_period)
 
 
 def default_metric(task: str, positive_rate: float | None = None) -> str:
@@ -254,6 +300,7 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
     identifiers = [name for name, c in columns.items() if name != target and (c["id_like"] or (c["name_id_like"] and c["unique_ratio"] > 0.5))]
     group_candidates = [name for name, c in columns.items() if name != target and c["name_id_like"] and 0.005 < c["unique_ratio"] < 0.5 and c["kind"] != "numeric"]
     forbidden = []
+    label_sources = label_source_candidates(X)  # 30.12: read with the modifiers below
     for row in audit["flagged"]:
         name = row["column"]
         if name in identifiers:
@@ -276,11 +323,24 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
 
     try:  # a modifier never stops a proposal (the review of 30.11): without its facts, the proposal goes on without modifiers
         facts = modifier_facts(X_read, y_read, task, time_candidates[0] if time_candidates else None, group_candidates, positive_rate,
-                               detected.get("positive_label"))
+                               detected.get("positive_label"), label_source=label_sources[0] if label_sources else None)
         found = M.detect(facts)
     except Exception:  # noqa: BLE001
         facts, found = None, []
     applied = {d.name: d for d in found if d.applies}
+    plan = _core_plan(X, y, target, task, time_candidates[0] if time_candidates else None, rows=X.index)
+    source_column = label_sources[0] if "noisy_labels" in applied and label_sources else None
+    if source_column:  # 30.12: the label source, applied, is kept out of the model on its own: never forbidden (it would be refused)
+        forbidden = [f for f in forbidden if f["column"] != source_column]
+    for name in label_sources:  # a label source not applied (its noisy labels only ask) is still never a feature: forbidden, with why
+        if name != source_column and name not in {f["column"] for f in forbidden}:
+            forbidden.append({"column": name, "reason": "it says how each label was written (a rule, a review): never a feature",
+                              "risk_score": 1.0, "proof": ["label source (30.12)"]})
+        for decision in plan or []:
+            if decision.get("decision") in ("features.forbidden", "features.to_confirm") and isinstance(decision.get("choice"), list):
+                decision["choice"] = [c for c in decision["choice"] if not (isinstance(c, dict) and c.get("column") == source_column)]
+    honest = (facts.audit_rate if facts is not None and facts.audit_rate is not None else facts.confirmed_rate if facts is not None else None)
+    metric_rate = honest if "noisy_labels" in applied and honest is not None else positive_rate  # the rate the rare test read
     return {
         "target": target, "task": task, "kind": kind.key, "kind_title": kind.title, "detected": detected,
         "positive_label": detected.get("positive_label"),
@@ -288,14 +348,15 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
         "group_candidates": group_candidates, "text_columns": text_columns,
         # the metric proposed stays the task's own, as before 16.1 (the wizard saves it): a pack's metric applies when the
         # person leaves the metric empty
-        "metric": default_metric(task, positive_rate), "metric_options": METRICS[task],
+        "metric": default_metric(task, metric_rate), "metric_options": METRICS[task],
         "prediction_moment_hint": _moment_hint(task, time_candidates, forbidden),
         "audit_note": audit["note"],
         "rows_read": rows_read_note(len(read), len(present), time_candidates[0] if time_candidates else None, by_time),
         "all_columns": audit["all_columns"],
-        "plan": _core_plan(X, y, target, task, time_candidates[0] if time_candidates else None, rows=X.index),
+        "plan": plan,
         "modifiers": [d.model_dump() for d in found], "modifier_facts": facts.model_dump() if facts is not None else None,
         **({"group_column": applied["groups"].value} if "groups" in applied else {}),  # shown with its reason on the Solution form
+        **({"label_source_column": source_column} if source_column else {}),  # 30.12: shown with its reason, carried by every save
         **({"decided_by_models": decided} if decided else {}),
     }
 

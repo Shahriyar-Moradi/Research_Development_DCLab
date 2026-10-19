@@ -1,0 +1,1165 @@
+{
+ "id": "CRT-001",
+ "experiment_id": "CRT-001",
+ "campaign_id": "certification_v1",
+ "kind": "certification",
+ "status": "completed",
+ "at": "2026-10-19T04:39:34+00:00",
+ "runs": [
+  {
+   "name": "retail_returns s0",
+   "source": "replica",
+   "applied": [
+    "noisy_labels",
+    "rare_positives",
+    "review_capacity",
+    "time_order"
+   ],
+   "expected": {
+    "rare_positives": true,
+    "groups": null,
+    "time_order": true,
+    "noisy_labels": true,
+    "review_capacity": "asks"
+   },
+   "detected": [
+    {
+     "name": "rare_positives",
+     "applies": true,
+     "asks_user": false,
+     "reason": "the positive class is 2.93% of the rows drawn at random for review (under 5%)"
+    },
+    {
+     "name": "groups",
+     "applies": false,
+     "asks_user": true,
+     "reason": "`store_id` repeats but recurs over time (100% of the latest rows' values were seen earlier): the forward split keeps the future out, and grouping too would leave almost nothing to test on; group by it only if the model will face new store_id values; other keys that repeat: `cashier_id`"
+    },
+    {
+     "name": "time_order",
+     "applies": true,
+     "asks_user": false,
+     "reason": "`returned_at` orders the rows: the holdout is the latest period; the positive rate changes 0.11 times from the first to the last third"
+    },
+    {
+     "name": "noisy_labels",
+     "applies": true,
+     "asks_user": false,
+     "reason": "19% of the labels come from cluster, rule, beside 536 confirmed rows: the model is judged on the confirmed rows only, and the rule behind each noisy source is flagged"
+    },
+    {
+     "name": "review_capacity",
+     "applies": false,
+     "asks_user": true,
+     "reason": "how many cases can the team check a day, a week or a month? (always asked on a screening problem)"
+    }
+   ],
+   "checks": [
+    {
+     "decision": "noisy labels are applied",
+     "ok": true,
+     "detail": "['rare_positives@1', 'time_order@1', 'noisy_labels@1', 'review_capacity@1']"
+    },
+    {
+     "decision": "the run is judged on confirmed labels only",
+     "ok": true,
+     "detail": "150 holdout rows, 150 confirmed"
+    },
+    {
+     "decision": "the late-evening rule behind the rule's labels is flagged",
+     "ok": true,
+     "detail": "[('cluster', 'refund_method'), ('rule', 'rule_flag')]"
+    },
+    {
+     "decision": "the verdict and the whole-log statistic are kept out",
+     "ok": true,
+     "detail": "['cashier_late_share', 'review_status']"
+    },
+    {
+     "decision": "precision at K is measured on confirmed labels",
+     "ok": true,
+     "detail": "0.2221"
+    },
+    {
+     "decision": "recall is estimated only from the random audit, with its interval",
+     "ok": true,
+     "detail": "1.0 [0.6719, 1.0]"
+    },
+    {
+     "decision": "the holdout's K-th score of an average day is reported as a check",
+     "ok": true,
+     "detail": "0.001654"
+    }
+   ],
+   "holdout_average_precision": 0.6103896103896104,
+   "random_ranking_average_precision": 0.05333333333333334,
+   "capacity": {
+    "k": 5,
+    "kth_score_holdout": 0.001654,
+    "precision_at_k": {
+     "k": 5,
+     "periods": 30,
+     "queued": 150,
+     "queued_confirmed": 43,
+     "hits": 8,
+     "precision": 0.2221,
+     "precision_ci": [
+      0.1176,
+      0.3796
+     ],
+     "unconfirmed_share": 0.7133,
+     "raw_precision": 0.186,
+     "raw_precision_ci": [
+      0.0974,
+      0.3262
+     ],
+     "effective_queued": 36.5,
+     "weighed": "each reviewed row by N/n of its period and stratum"
+    },
+    "audit_recall": {
+     "recall": 1.0,
+     "reviewed": 150,
+     "reviewed_cases": 8,
+     "estimated_cases": 36.5,
+     "unsampled_share": 0.0,
+     "interval": "a bootstrap drawing whole periods, 95%",
+     "effective_cases": 7.9,
+     "recall_ci": [
+      0.6719,
+      1.0
+     ]
+    },
+    "note": "Recall is estimated only from the rows reviewed at random within their stratum and period. The K-th score of the holdout's average period is a check, never the operating threshold (that is set on training rows).",
+    "period": "day",
+    "rows": 605,
+    "confirmed_rows": 150,
+    "unconfirmed_rows": 455,
+    "stratum": "`rule_flag` == 1 (the rule behind the rule labels)"
+   },
+   "label_sources": {
+    "rows": {
+     "expert_audit": 637,
+     "rule": 117,
+     "expert": 113,
+     "cluster": 21
+    },
+    "judged_on": "the confirmed sources (dclab_core.modifiers.CONFIRMED)",
+    "noisy_rules": [
+     {
+      "source": "cluster",
+      "column": "refund_method",
+      "value": "cash",
+      "share_elsewhere": 0.3059,
+      "agreement": {
+       "checked": 196,
+       "right": 34,
+       "agreement": 0.1735,
+       "agreement_ci": [
+        0.1269,
+        0.2326
+       ]
+      }
+     },
+     {
+      "source": "rule",
+      "column": "rule_flag",
+      "value": 1,
+      "share_elsewhere": 0.0232,
+      "agreement": {
+       "checked": 101,
+       "right": 18,
+       "agreement": 0.1782,
+       "agreement_ci": [
+        0.1158,
+        0.2642
+       ]
+      }
+     }
+    ]
+   },
+   "criteria": {
+    "rare_positives": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    },
+    "time_order": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    },
+    "noisy_labels": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    },
+    "review_capacity": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    }
+   },
+   "applies": {
+    "rare_positives": true,
+    "time_order": true,
+    "noisy_labels": true,
+    "review_capacity": true
+   },
+   "seconds": 4.2
+  },
+  {
+   "name": "retail_returns s1",
+   "source": "replica",
+   "applied": [
+    "noisy_labels",
+    "rare_positives",
+    "review_capacity",
+    "time_order"
+   ],
+   "expected": {
+    "rare_positives": true,
+    "groups": null,
+    "time_order": true,
+    "noisy_labels": true,
+    "review_capacity": "asks"
+   },
+   "detected": [
+    {
+     "name": "rare_positives",
+     "applies": true,
+     "asks_user": false,
+     "reason": "the positive class is 2.59% of the rows drawn at random for review (under 5%)"
+    },
+    {
+     "name": "groups",
+     "applies": false,
+     "asks_user": true,
+     "reason": "`store_id` repeats but recurs over time (100% of the latest rows' values were seen earlier): the forward split keeps the future out, and grouping too would leave almost nothing to test on; group by it only if the model will face new store_id values; other keys that repeat: `cashier_id`"
+    },
+    {
+     "name": "time_order",
+     "applies": true,
+     "asks_user": false,
+     "reason": "`returned_at` orders the rows: the holdout is the latest period; the positive rate changes 0.11 times from the first to the last third"
+    },
+    {
+     "name": "noisy_labels",
+     "applies": true,
+     "asks_user": false,
+     "reason": "22% of the labels come from cluster, rule, beside 528 confirmed rows: the model is judged on the confirmed rows only, and the rule behind each noisy source is flagged"
+    },
+    {
+     "name": "review_capacity",
+     "applies": false,
+     "asks_user": true,
+     "reason": "how many cases can the team check a day, a week or a month? (always asked on a screening problem)"
+    }
+   ],
+   "checks": [
+    {
+     "decision": "noisy labels are applied",
+     "ok": true,
+     "detail": "['rare_positives@1', 'time_order@1', 'noisy_labels@1', 'review_capacity@1']"
+    },
+    {
+     "decision": "the run is judged on confirmed labels only",
+     "ok": true,
+     "detail": "150 holdout rows, 150 confirmed"
+    },
+    {
+     "decision": "the late-evening rule behind the rule's labels is flagged",
+     "ok": true,
+     "detail": "[('cluster', 'refund_method'), ('rule', 'rule_flag')]"
+    },
+    {
+     "decision": "the verdict and the whole-log statistic are kept out",
+     "ok": true,
+     "detail": "['cashier_late_share', 'review_status']"
+    },
+    {
+     "decision": "precision at K is measured on confirmed labels",
+     "ok": true,
+     "detail": "0.2127"
+    },
+    {
+     "decision": "recall is estimated only from the random audit, with its interval",
+     "ok": true,
+     "detail": "1.0 [0.7118, 1.0]"
+    },
+    {
+     "decision": "the holdout's K-th score of an average day is reported as a check",
+     "ok": true,
+     "detail": "0.018021"
+    }
+   ],
+   "holdout_average_precision": 0.7158730158730159,
+   "random_ranking_average_precision": 0.06666666666666667,
+   "capacity": {
+    "k": 5,
+    "kth_score_holdout": 0.018021,
+    "precision_at_k": {
+     "k": 5,
+     "periods": 30,
+     "queued": 150,
+     "queued_confirmed": 54,
+     "hits": 10,
+     "precision": 0.2127,
+     "precision_ci": [
+      0.1169,
+      0.3555
+     ],
+     "unconfirmed_share": 0.64,
+     "raw_precision": 0.1852,
+     "raw_precision_ci": [
+      0.1038,
+      0.3084
+     ],
+     "effective_queued": 43.2,
+     "weighed": "each reviewed row by N/n of its period and stratum"
+    },
+    "audit_recall": {
+     "recall": 1.0,
+     "reviewed": 150,
+     "reviewed_cases": 10,
+     "estimated_cases": 39.8,
+     "unsampled_share": 0.0,
+     "interval": "a bootstrap drawing whole periods, 95%",
+     "effective_cases": 9.5,
+     "recall_ci": [
+      0.7118,
+      1.0
+     ]
+    },
+    "note": "Recall is estimated only from the rows reviewed at random within their stratum and period. The K-th score of the holdout's average period is a check, never the operating threshold (that is set on training rows).",
+    "period": "day",
+    "rows": 577,
+    "confirmed_rows": 150,
+    "unconfirmed_rows": 427,
+    "stratum": "`rule_flag` == 1 (the rule behind the rule labels)"
+   },
+   "label_sources": {
+    "rows": {
+     "expert_audit": 615,
+     "rule": 137,
+     "expert": 135,
+     "cluster": 22
+    },
+    "judged_on": "the confirmed sources (dclab_core.modifiers.CONFIRMED)",
+    "noisy_rules": [
+     {
+      "source": "cluster",
+      "column": "refund_method",
+      "value": "cash",
+      "share_elsewhere": 0.298,
+      "agreement": {
+       "checked": 170,
+       "right": 25,
+       "agreement": 0.1471,
+       "agreement_ci": [
+        0.1016,
+        0.2081
+       ]
+      }
+     },
+     {
+      "source": "rule",
+      "column": "rule_flag",
+      "value": 1,
+      "share_elsewhere": 0.0262,
+      "agreement": {
+       "checked": 114,
+       "right": 19,
+       "agreement": 0.1667,
+       "agreement_ci": [
+        0.1094,
+        0.2457
+       ]
+      }
+     }
+    ]
+   },
+   "criteria": {
+    "rare_positives": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    },
+    "time_order": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    },
+    "noisy_labels": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    },
+    "review_capacity": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    }
+   },
+   "applies": {
+    "rare_positives": true,
+    "time_order": true,
+    "noisy_labels": true,
+    "review_capacity": true
+   },
+   "seconds": 2.3
+  },
+  {
+   "name": "retail_returns s2",
+   "source": "replica",
+   "applied": [
+    "noisy_labels",
+    "rare_positives",
+    "review_capacity",
+    "time_order"
+   ],
+   "expected": {
+    "rare_positives": true,
+    "groups": null,
+    "time_order": true,
+    "noisy_labels": true,
+    "review_capacity": "asks"
+   },
+   "detected": [
+    {
+     "name": "rare_positives",
+     "applies": true,
+     "asks_user": false,
+     "reason": "the positive class is 1.19% of the rows drawn at random for review (under 5%)"
+    },
+    {
+     "name": "groups",
+     "applies": false,
+     "asks_user": true,
+     "reason": "`store_id` repeats but recurs over time (100% of the latest rows' values were seen earlier): the forward split keeps the future out, and grouping too would leave almost nothing to test on; group by it only if the model will face new store_id values; other keys that repeat: `cashier_id`"
+    },
+    {
+     "name": "time_order",
+     "applies": true,
+     "asks_user": false,
+     "reason": "`returned_at` orders the rows: the holdout is the latest period; the positive rate changes 0.09 times from the first to the last third"
+    },
+    {
+     "name": "noisy_labels",
+     "applies": true,
+     "asks_user": false,
+     "reason": "18% of the labels come from cluster, rule, beside 534 confirmed rows: the model is judged on the confirmed rows only, and the rule behind each noisy source is flagged"
+    },
+    {
+     "name": "review_capacity",
+     "applies": false,
+     "asks_user": true,
+     "reason": "how many cases can the team check a day, a week or a month? (always asked on a screening problem)"
+    }
+   ],
+   "checks": [
+    {
+     "decision": "noisy labels are applied",
+     "ok": true,
+     "detail": "['rare_positives@1', 'time_order@1', 'noisy_labels@1', 'review_capacity@1']"
+    },
+    {
+     "decision": "the run is judged on confirmed labels only",
+     "ok": true,
+     "detail": "150 holdout rows, 150 confirmed"
+    },
+    {
+     "decision": "the late-evening rule behind the rule's labels is flagged",
+     "ok": true,
+     "detail": "[('cluster', 'refund_method'), ('rule', 'rule_flag')]"
+    },
+    {
+     "decision": "the verdict and the whole-log statistic are kept out",
+     "ok": true,
+     "detail": "['cashier_late_share', 'review_status']"
+    },
+    {
+     "decision": "precision at K is measured on confirmed labels",
+     "ok": true,
+     "detail": "0.168"
+    },
+    {
+     "decision": "recall is estimated only from the random audit, with its interval",
+     "ok": true,
+     "detail": "1.0 [0.64, 1.0]"
+    },
+    {
+     "decision": "the holdout's K-th score of an average day is reported as a check",
+     "ok": true,
+     "detail": "0.011541"
+    }
+   ],
+   "holdout_average_precision": 0.739105339105339,
+   "random_ranking_average_precision": 0.04666666666666667,
+   "capacity": {
+    "k": 5,
+    "kth_score_holdout": 0.011541,
+    "precision_at_k": {
+     "k": 5,
+     "periods": 30,
+     "queued": 150,
+     "queued_confirmed": 52,
+     "hits": 7,
+     "precision": 0.168,
+     "precision_ci": [
+      0.0845,
+      0.3062
+     ],
+     "unconfirmed_share": 0.6533,
+     "raw_precision": 0.1346,
+     "raw_precision_ci": [
+      0.0668,
+      0.2527
+     ],
+     "effective_queued": 42.7,
+     "weighed": "each reviewed row by N/n of its period and stratum"
+    },
+    "audit_recall": {
+     "recall": 1.0,
+     "reviewed": 150,
+     "reviewed_cases": 7,
+     "estimated_cases": 28.9,
+     "unsampled_share": 0.0,
+     "interval": "a bootstrap drawing whole periods, 95%",
+     "effective_cases": 6.8,
+     "recall_ci": [
+      0.64,
+      1.0
+     ]
+    },
+    "note": "Recall is estimated only from the rows reviewed at random within their stratum and period. The K-th score of the holdout's average period is a check, never the operating threshold (that is set on training rows).",
+    "period": "day",
+    "rows": 570,
+    "confirmed_rows": 150,
+    "unconfirmed_rows": 420,
+    "stratum": "`rule_flag` == 1 (the rule behind the rule labels)"
+   },
+   "label_sources": {
+    "rows": {
+     "expert_audit": 610,
+     "expert": 140,
+     "rule": 102,
+     "cluster": 17
+    },
+    "judged_on": "the confirmed sources (dclab_core.modifiers.CONFIRMED)",
+    "noisy_rules": [
+     {
+      "source": "cluster",
+      "column": "refund_method",
+      "value": "cash",
+      "share_elsewhere": 0.2972,
+      "agreement": {
+       "checked": 193,
+       "right": 25,
+       "agreement": 0.1295,
+       "agreement_ci": [
+        0.0893,
+        0.1842
+       ]
+      }
+     },
+     {
+      "source": "rule",
+      "column": "rule_flag",
+      "value": 1,
+      "share_elsewhere": 0.0278,
+      "agreement": {
+       "checked": 122,
+       "right": 21,
+       "agreement": 0.1721,
+       "agreement_ci": [
+        0.1154,
+        0.2489
+       ]
+      }
+     }
+    ]
+   },
+   "criteria": {
+    "rare_positives": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    },
+    "time_order": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    },
+    "noisy_labels": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    },
+    "review_capacity": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    }
+   },
+   "applies": {
+    "rare_positives": true,
+    "time_order": true,
+    "noisy_labels": true,
+    "review_capacity": true
+   },
+   "seconds": 2.2
+  },
+  {
+   "name": "telco",
+   "source": "real",
+   "applied": [],
+   "expected": {
+    "rare_positives": false,
+    "groups": false,
+    "time_order": false,
+    "noisy_labels": false,
+    "review_capacity": "asks"
+   },
+   "detected": [
+    {
+     "name": "rare_positives",
+     "applies": false,
+     "asks_user": false,
+     "reason": "the positive class is 26.19% of the training rows (not under 5%)"
+    },
+    {
+     "name": "groups",
+     "applies": false,
+     "asks_user": false,
+     "reason": "no identifier repeats across rows with enough values to group by"
+    },
+    {
+     "name": "time_order",
+     "applies": false,
+     "asks_user": false,
+     "reason": "no column orders the rows in time"
+    },
+    {
+     "name": "noisy_labels",
+     "applies": false,
+     "asks_user": false,
+     "reason": "no noisy label source among the training rows"
+    },
+    {
+     "name": "review_capacity",
+     "applies": false,
+     "asks_user": true,
+     "reason": "how many cases can the team check a day, a week or a month? (always asked on a screening problem)"
+    }
+   ],
+   "checks": [
+    {
+     "decision": "`customerID` is never a feature",
+     "ok": true,
+     "detail": "identifier"
+    }
+   ],
+   "holdout_average_precision": 0.6775613047237719,
+   "random_ranking_average_precision": 0.265,
+   "capacity": null,
+   "label_sources": null,
+   "criteria": {
+    "rare_positives": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    },
+    "groups": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    },
+    "time_order": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    },
+    "noisy_labels": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    },
+    "review_capacity": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    }
+   },
+   "applies": {
+    "rare_positives": false,
+    "groups": false,
+    "time_order": false,
+    "noisy_labels": false,
+    "review_capacity": false
+   },
+   "seconds": 3.0
+  },
+  {
+   "name": "hyperack",
+   "source": "real",
+   "applied": [
+    "time_order"
+   ],
+   "expected": {
+    "rare_positives": false,
+    "groups": false,
+    "time_order": true,
+    "noisy_labels": false,
+    "review_capacity": "asks"
+   },
+   "detected": [
+    {
+     "name": "rare_positives",
+     "applies": false,
+     "asks_user": false,
+     "reason": "the positive class is 46.09% of the training rows (not under 5%)"
+    },
+    {
+     "name": "groups",
+     "applies": false,
+     "asks_user": false,
+     "reason": "no identifier repeats across rows with enough values to group by"
+    },
+    {
+     "name": "time_order",
+     "applies": true,
+     "asks_user": false,
+     "reason": "`created_date` orders the rows: the holdout is the latest period"
+    },
+    {
+     "name": "noisy_labels",
+     "applies": false,
+     "asks_user": false,
+     "reason": "no noisy label source among the training rows"
+    },
+    {
+     "name": "review_capacity",
+     "applies": false,
+     "asks_user": true,
+     "reason": "how many cases can the team check a day, a week or a month? (always asked on a screening problem)"
+    }
+   ],
+   "checks": [
+    {
+     "decision": "`final_customer_fare` is kept out",
+     "ok": true,
+     "detail": "blocked"
+    },
+    {
+     "decision": "`final_biker_fare` is kept out",
+     "ok": true,
+     "detail": "blocked"
+    }
+   ],
+   "holdout_average_precision": 0.93195135023927,
+   "random_ranking_average_precision": 0.4533333333333333,
+   "capacity": null,
+   "label_sources": null,
+   "criteria": {
+    "rare_positives": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    },
+    "groups": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    },
+    "time_order": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    },
+    "noisy_labels": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    },
+    "review_capacity": {
+     "detection": true,
+     "traps": true,
+     "baseline": true,
+     "artifact": null,
+     "llm_off": null
+    }
+   },
+   "applies": {
+    "rare_positives": false,
+    "groups": false,
+    "time_order": true,
+    "noisy_labels": false,
+    "review_capacity": false
+   },
+   "seconds": 10.6
+  }
+ ],
+ "parts": {
+  "rare_positives": {
+   "level": "experimental",
+   "runs": [
+    {
+     "name": "retail_returns s0",
+     "source": "replica",
+     "applies": true,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    },
+    {
+     "name": "retail_returns s1",
+     "source": "replica",
+     "applies": true,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    },
+    {
+     "name": "retail_returns s2",
+     "source": "replica",
+     "applies": true,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    },
+    {
+     "name": "telco",
+     "source": "real",
+     "applies": false,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    },
+    {
+     "name": "hyperack",
+     "source": "real",
+     "applies": false,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    }
+   ],
+   "missing": [
+    "a trap replica where the part applies, passing every criterion",
+    "2 more real dataset(s) where the part applies, passing every criterion"
+   ],
+   "pending": [
+    "artifact",
+    "llm_off"
+   ],
+   "failed": []
+  },
+  "groups": {
+   "level": "experimental",
+   "runs": [
+    {
+     "name": "telco",
+     "source": "real",
+     "applies": false,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    },
+    {
+     "name": "hyperack",
+     "source": "real",
+     "applies": false,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    }
+   ],
+   "missing": [
+    "a trap replica where the part applies, passing every criterion",
+    "2 more real dataset(s) where the part applies, passing every criterion"
+   ],
+   "pending": [
+    "artifact",
+    "llm_off"
+   ],
+   "failed": []
+  },
+  "time_order": {
+   "level": "experimental",
+   "runs": [
+    {
+     "name": "retail_returns s0",
+     "source": "replica",
+     "applies": true,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    },
+    {
+     "name": "retail_returns s1",
+     "source": "replica",
+     "applies": true,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    },
+    {
+     "name": "retail_returns s2",
+     "source": "replica",
+     "applies": true,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    },
+    {
+     "name": "telco",
+     "source": "real",
+     "applies": false,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    },
+    {
+     "name": "hyperack",
+     "source": "real",
+     "applies": true,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    }
+   ],
+   "missing": [
+    "a trap replica where the part applies, passing every criterion",
+    "2 more real dataset(s) where the part applies, passing every criterion"
+   ],
+   "pending": [
+    "artifact",
+    "llm_off"
+   ],
+   "failed": []
+  },
+  "noisy_labels": {
+   "level": "experimental",
+   "runs": [
+    {
+     "name": "retail_returns s0",
+     "source": "replica",
+     "applies": true,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    },
+    {
+     "name": "retail_returns s1",
+     "source": "replica",
+     "applies": true,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    },
+    {
+     "name": "retail_returns s2",
+     "source": "replica",
+     "applies": true,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    },
+    {
+     "name": "telco",
+     "source": "real",
+     "applies": false,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    },
+    {
+     "name": "hyperack",
+     "source": "real",
+     "applies": false,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    }
+   ],
+   "missing": [
+    "a trap replica where the part applies, passing every criterion",
+    "2 more real dataset(s) where the part applies, passing every criterion"
+   ],
+   "pending": [
+    "artifact",
+    "llm_off"
+   ],
+   "failed": []
+  },
+  "review_capacity": {
+   "level": "experimental",
+   "runs": [
+    {
+     "name": "retail_returns s0",
+     "source": "replica",
+     "applies": true,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    },
+    {
+     "name": "retail_returns s1",
+     "source": "replica",
+     "applies": true,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    },
+    {
+     "name": "retail_returns s2",
+     "source": "replica",
+     "applies": true,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    },
+    {
+     "name": "telco",
+     "source": "real",
+     "applies": false,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    },
+    {
+     "name": "hyperack",
+     "source": "real",
+     "applies": false,
+     "passed": false,
+     "failed": [],
+     "pending": [
+      "artifact",
+      "llm_off"
+     ]
+    }
+   ],
+   "missing": [
+    "a trap replica where the part applies, passing every criterion",
+    "2 more real dataset(s) where the part applies, passing every criterion"
+   ],
+   "pending": [
+    "artifact",
+    "llm_off"
+   ],
+   "failed": []
+  }
+ },
+ "limits": [
+  "Every run is the engine's quick mode with no model asked: the same result with a model on is not compared (pending).",
+  "The artifact criterion (save, reload, predict) is not built until 30.15: pending on every run.",
+  "The trap criterion is each run's own checks, the same for every part.",
+  "On Telco and HyperAck the noisy-labels, capacity and rare modifiers can only show their right absence; the owner's fraud data (D6) is the real dataset for them."
+ ],
+ "rule": "Each modifier judged on the recipes document's five criteria on the retail returns replica (three seeds), Telco and HyperAck, every run through the engine with no model asked; a part is certified only on a trap replica and two real datasets passing every criterion."
+}

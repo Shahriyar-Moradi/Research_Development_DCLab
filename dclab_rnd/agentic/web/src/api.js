@@ -188,6 +188,9 @@
    *  @property {*=} text_columns
    *  @property {*=} metric
    *  @property {*=} notes
+   *  @property {*=} label_source_column
+   *  @property {*=} capacity_k
+   *  @property {*=} capacity_period
    */
   /** @typedef {Object} StageApproval
    *  @property {*=} choice

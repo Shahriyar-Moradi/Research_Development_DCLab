@@ -133,8 +133,10 @@ class ProposalTests(unittest.TestCase):
                                                                           "modifiers", "modifier_facts")}},
                                project["data"]["profile"], solution, "human", project=project["id"])
         recs = {r.point: r for r in book.records(project=project["id"]) if r.point.startswith("modifier.")}
-        self.assertEqual(set(recs), {"modifier.rare_positives", "modifier.groups", "modifier.time_order"})
+        self.assertEqual(set(recs), {"modifier.rare_positives", "modifier.groups", "modifier.time_order", "modifier.noisy_labels",
+                                     "modifier.review_capacity"})  # 30.12: the two new ones recorded too
         self.assertEqual((recs["modifier.groups"].value_used, recs["modifier.time_order"].value_used), (True, True))  # what the saved solution applies
+        self.assertEqual((recs["modifier.noisy_labels"].value_used, recs["modifier.review_capacity"].value_used), (False, False))  # no source, no K
         rule = next(a for a in recs["modifier.groups"].answers if a.by == "rule")
         self.assertIs(rule.value, False)  # the rule asked (the shop recurs over time); the person grouped anyway
         self.assertEqual(book.labels(point="modifier.groups"), [])  # no page shows the rule's answer yet: never an exposed label
@@ -162,7 +164,7 @@ class EngineAttributionTests(unittest.TestCase):
         by = {c["field"]: c for c in recipe["choices"]}
         self.assertEqual(by["split"]["part"], "time_order@1")  # the replica's time column, found by the rows and kept
         self.assertIn("time_order@1", recipe["modifiers"])
-        self.assertEqual({d["name"] for d in recipe["detected"]}, {"rare_positives", "groups", "time_order"})
+        self.assertEqual({d["name"] for d in recipe["detected"]}, {"rare_positives", "groups", "time_order", "noisy_labels", "review_capacity"})  # 30.12: five
 
 
 if __name__ == "__main__":

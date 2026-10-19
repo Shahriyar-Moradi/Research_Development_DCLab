@@ -94,6 +94,10 @@ class Prepared:
         self.decided: list[Any] = []  # 22.9: the column decisions a routed decision model made here (ledger.use.Choice)
         self.recipe: dict[str, Any] | None = None  # 30.10: the resolved recipe (dclab_core.recipes), set on every prepare
         self.personal: set[str] = set()  # 23.7: the columns that hold a person's data (their levels are not named in a record)
+        self.labels_by_source: dict[str, int] = {}  # 30.12: rows per label source among the rows with an outcome
+        self.noisy_rules: list[dict[str, Any]] = []  # 30.12: the rule behind each noisy source's labels (capacity.rule_columns)
+        self.score_rows: pd.DataFrame | None = None  # 30.12: every unconfirmed row, scored for a capacity's queue, never judged on
+        self.dated = False  # 30.12: whether the time column holds dates (a capacity's periods), set on every prepare
 
     @property
     def task(self) -> str:
@@ -150,6 +154,8 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
         if column != solution.target and (pd.api.types.is_bool_dtype(frame[column]) or str(frame[column].dtype) == "boolean"):
             frame[column] = pd.to_numeric(frame[column].astype("object").map({True: 1.0, False: 0.0}), errors="coerce")
     source_rows = len(frame)
+    labeled_frame = frame.copy() if solution.label_source_column else None  # 30.12: every row with its source, for the rule behind a noisy one
+    labels_by_source, score_rows = _label_sources(frame, solution)  # 30.12: a noisy source's rows kept out of training and judging
     frame = frame[frame[solution.target].notna()].reset_index(drop=True)
     y, class_labels = kind.target(frame, solution)
     keep = y.notna()
@@ -158,6 +164,8 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
 
     roles: dict[str, str] = {}
     identifiers: dict[str, str] = {c: "declared identifier (never a feature)" for c in solution.identifiers if c in X}
+    if solution.label_source_column and solution.label_source_column in X:  # 30.12
+        identifiers[solution.label_source_column] = "label source: says which rows a person confirmed; never a feature"
     text_columns, excluded = kind.text_columns(solution, X)
     identifiers.update(excluded)
     task_type = kind.machine(solution, text_columns)
@@ -233,6 +241,12 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     # the class balance that picks a default metric and the rare-event screen is read from the training rows only:
     # the holdout's labels never shape a choice made before it is opened
     positive_rate = kind.positive_rate(bundle.y_train)
+    if labels_by_source and solution.label_source_column in bundle.X_train:  # 30.12: the confirmed rows a rule chose overstate the rate:
+        from dclab_core import modifiers as M  # the random audit's training rows say it (the rate the rare test reads)
+
+        audit = bundle.X_train[solution.label_source_column].fillna("").astype(str).str.strip().str.lower().isin(M.AUDIT).to_numpy()
+        if audit.sum() >= M.MIN_CONFIRMED:
+            positive_rate = kind.positive_rate(bundle.y_train[audit])
     metric = solution.metric or kind.default_metric(solution, positive_rate)  # a pack's defaults live in its kind (15.6, 16.1)
     spec = replace(spec, primary_metric=metric, positive_rate=positive_rate)
     bundle.spec = spec
@@ -255,6 +269,15 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     detected = (proposed.get("rule") or proposed).get("modifiers") if proposed.get("target") in (None, solution.target) else None
     prepared.recipe = recipe_registry.record_for(kind, solution, positive_rate, detected=detected)
     prepared.decided = decided
+    prepared.labels_by_source = labels_by_source
+    if labeled_frame is not None:  # the rule behind each noisy source, read on the training period only (never the holdout's rows)
+        prepared.noisy_rules = _noisy_rules(labeled_frame, solution, bundle, time_column)
+    if score_rows is not None and time_column and datetime_time:  # dated as the training rows are, so a period means the same on both
+        stamps = pd.to_datetime(score_rows[time_column], errors="coerce")
+        score_rows = score_rows[stamps.notna()].copy()
+        score_rows[time_column] = pd.to_datetime(score_rows[time_column], errors="coerce").dt.strftime("%Y-%m-%d %H:%M:%S")
+        prepared.score_rows = score_rows.reset_index(drop=True)
+    prepared.dated = bool(datetime_time)  # 30.12: a capacity's periods need dates, never a counter
     prepared.plan, prepared.label_info = project.get("plan"), project.get("labels")
     prepared.critic = _critic_advisor(project)
     _BUNDLES.clear()
@@ -263,6 +286,100 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
 
 
 SEMANTIC_ROLES = ["numeric", "categorical_code", "identifier", "datetime", "free_text", "other"]
+
+
+def _label_sources(frame: pd.DataFrame, solution: Solution) -> tuple[dict[str, int], pd.DataFrame | None]:
+    """30.12: with a label-source column, the rows per source among those with an outcome, and the labels a noisy
+    source wrote set aside in ``frame`` (its rows are neither trained nor judged on). With a capacity, every row left
+    without a confirmed label, to be scored for each period's queue."""
+    if not solution.label_source_column or solution.label_source_column not in frame:
+        return {}, None
+    from dclab_core import modifiers as M
+
+    source = frame[solution.label_source_column].fillna("").astype(str).str.strip().str.lower()
+    has = frame[solution.target].notna()
+    counts = {str(k): int(v) for k, v in source[has].value_counts().items()}
+    confirmed = {s.lower() for s in (solution.confirmed_sources or M.CONFIRMED)}
+    kept = int((has & source.isin(confirmed)).sum())
+    if kept < M.MIN_CONFIRMED:  # never a run judged on almost nothing: name what was found
+        raise ValueError(f"`{solution.label_source_column}` leaves {kept} confirmed labels (at least {M.MIN_CONFIRMED}): its sources are "
+                         + ", ".join(f"{k} ({v})" for k, v in sorted(counts.items())) + "; say which of them a person confirmed (confirmed_sources)")
+    frame.loc[has & ~source.isin(confirmed), solution.target] = np.nan
+    rest = None
+    if solution.capacity_k:
+        rest = frame[frame[solution.target].isna()].drop(columns=[solution.target]).reset_index(drop=True)
+    return counts, rest
+
+
+def _noisy_rules(frame: pd.DataFrame, solution: Solution, bundle: ds.TaskBundle, time_column: str | None) -> list[dict[str, Any]]:
+    """The rule behind each noisy source's labels (a column holding one value on every row it labelled, which a model
+    would learn back), read on the rows before the holdout's period when the split is in time."""
+    from dclab_core import capacity
+    from dclab_core import modifiers as M
+
+    if time_column and time_column in frame and len(bundle.X_test):
+        start = pd.to_datetime(str(bundle.X_test[time_column].min()), errors="coerce")
+        stamps = pd.to_datetime(frame[time_column], errors="coerce")
+        if pd.notna(start):
+            frame = frame[stamps < start]
+    source = frame[solution.label_source_column].fillna("").astype(str).str.strip().str.lower()
+    noisy = sorted(s for s in source.unique() if s in M.NOISY)
+    rules = capacity.rule_columns(frame.drop(columns=[solution.target]), source, noisy,
+                                  exclude=[solution.label_source_column, *(f.column for f in solution.forbidden)])
+    for rule in rules:  # how often the rule's positive is right on the training rows a person confirmed: the weight its labels deserve
+        if rule["column"] in bundle.X_train:
+            says = (bundle.X_train[rule["column"]] == rule["value"]).to_numpy()
+            rule["agreement"] = capacity.agreement(says, bundle.y_train.to_numpy(dtype=float))
+    return rules
+
+
+def _capacity(p: Prepared, final: dict[str, Any], predictions: np.ndarray) -> dict[str, Any] | None:
+    """30.12: the holdout period judged as a team works it: every row of each period (the confirmed holdout rows and the
+    unconfirmed ones of the same period, scored by the same fitted model) queued K a period; precision at K on the
+    confirmed labels; recall estimated only from the rows reviewed at random within their stratum (the rule behind the
+    noisy labels, the team's old queue) and period; the threshold the K-th score of an average period."""
+    found = _capacity_inputs(p, final, predictions)
+    if found is None:
+        return None
+    from dclab_core import capacity
+
+    rows, scores, periods, y, reviewed, stratum, about = found
+    out = dict(capacity.summary(scores, periods, p.solution.capacity_k, y, reviewed, stratum, draws=1000, seed=0))
+    out.update(about)
+    return out
+
+
+def _capacity_inputs(p: Prepared, final: dict[str, Any], predictions: np.ndarray) -> tuple[Any, ...] | None:
+    """The holdout period's rows, their scores, periods, confirmed labels, which were reviewed and their stratum."""
+    sol, bundle = p.solution, p.bundle
+    if not sol.capacity_k or not sol.time_column or not getattr(p, "dated", False) or p.task_type not in ("binary_imbalanced", "text_tabular_binary", "binary"):
+        return None
+    from dclab_core import modifiers as M
+
+    X_test, t = bundle.X_test, sol.time_column
+    rest = p.score_rows if p.score_rows is not None else X_test.iloc[0:0]
+    start = str(X_test[t].min()) if len(X_test) else None
+    rest = rest[rest[t].astype(str) >= start] if start is not None and len(rest) else rest.iloc[0:0]
+    extra = np.array([], dtype=float)
+    if len(rest):
+        matrix, _ = final["recipe"].transform(rest[X_test.columns])
+        extra = np.asarray(rn.predict_scores(final["model"], matrix, bundle.task_type, rn._n_classes(bundle)), dtype=float)
+        if bundle.spec.settings.get("fit_negative_fraction"):
+            extra = rn.prior_correct(extra, bundle.spec.settings["fit_negative_fraction"])
+    scores = np.concatenate([np.asarray(predictions, dtype=float), extra])
+    stamps = pd.to_datetime(pd.concat([X_test[t], rest[t]], ignore_index=True).astype(str), errors="coerce")
+    periods = stamps.dt.to_period({"day": "D", "week": "W", "month": "M"}[sol.capacity_period]).astype(str).to_numpy()
+    y = np.concatenate([bundle.y_test.to_numpy(dtype=float), np.full(len(rest), np.nan)])
+    src_col = sol.label_source_column
+    sources = pd.concat([(X_test[src_col] if src_col in X_test else pd.Series([""] * len(X_test))), 
+                         (rest[src_col] if src_col in rest else pd.Series([""] * len(rest)))], ignore_index=True).fillna("").astype(str).str.lower()
+    reviewed = sources.isin([s.lower() for s in (sol.confirmed_sources or M.CONFIRMED)]).to_numpy() & ~np.isnan(y)
+    rule = next((r for r in p.noisy_rules if r["source"] == "rule"), None) or (p.noisy_rules[0] if p.noisy_rules else None)
+    both = pd.concat([X_test, rest[X_test.columns]], ignore_index=True)
+    stratum = (both[rule["column"]] == rule["value"]).to_numpy() if rule is not None and rule["column"] in both else np.zeros(len(both), dtype=bool)
+    about = {"period": sol.capacity_period, "rows": int(len(scores)), "confirmed_rows": int(reviewed.sum()), "unconfirmed_rows": int(len(rest)),
+             "stratum": f"`{rule['column']}` == {rule['value']!r} (the rule behind the {rule['source']} labels)" if rule else "one stratum"}
+    return both, scores, periods, y, reviewed, stratum, about
 
 
 def _routed(point: str) -> str:
@@ -1083,6 +1200,7 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
         holdout["recall_at_budget_ci"] = rn.bootstrap_ci(y_test.to_numpy(), predictions, rn.budget_metric_fn(spec.settings["alert_budget"]),
                                                          groups=bundle.groups("test") if clustered else None)
     baselines = _baselines(p, predictions)
+    capacity_block = _capacity(p, final, predictions)  # 30.12: the holdout period as a team of K a period works it
     importance = rn._importance(final["model"], final["names"])
     top_features = [{"feature": k, "normalized_importance": v} for k, v in sorted(importance.items(), key=lambda kv: -kv[1])[:20]
                     if not any(k.startswith(f"{name}=") for name in getattr(p, "personal", ()))]  # "diagnosis=flu" names a value of a sensitive column
@@ -1100,6 +1218,9 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
         "cv_to_holdout_gap": rn.oriented_gain(holdout_value, cv_mean, higher) if holdout_value is not None else None,
         "baselines": baselines, "top_final_features": top_features,
         "sampling": bundle.sampling, "production_approved": False,
+        **({"capacity": capacity_block} if capacity_block else {}),
+        **({"label_sources": {"rows": p.labels_by_source, "judged_on": sorted(s.lower() for s in (p.solution.confirmed_sources or ()))
+                              or "the confirmed sources (dclab_core.modifiers.CONFIRMED)", "noisy_rules": p.noisy_rules}} if p.labels_by_source else {}),
         "production_feature_rule": "Promote a feature only if it is decision-time available, stable across folds, obtainable in production and monitored for drift.",
     }
     if task in ("binary_imbalanced", "text_tabular_binary"):

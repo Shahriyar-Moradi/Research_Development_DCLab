@@ -181,4 +181,39 @@ def resolve(kind: RecipePart, modifiers: list[RecipePart] | tuple = (), stated: 
     return ResolvedRecipe(kind=kind.ref, modifiers=[m.ref for m in mods], choices=choices, ask=[c.field for c in choices if c.part == "ask"])
 
 
-__all__ = ["Split", "LEVELS", "FORWARD", "Detection", "RecipePart", "Choice", "ResolvedRecipe", "resolve"]
+# ---------------------------------------------------------------------------------------------------- certification (30.12)
+
+#: the recipes document's five pass criteria: the detection is right, every planted trap is caught, it beats or matches the
+#: baseline (or says it does not), the artifact passes save, reload and predict, and the result is the same with the LLM off
+CRITERIA = ("detection", "traps", "baseline", "artifact", "llm_off")
+REAL_NEEDED = 2
+
+
+def run_passes(criteria: dict[str, Optional[bool]]) -> tuple[bool, list[str], list[str]]:
+    """A run passes when every criterion was measured and passed: (passed, the criteria failed, the criteria not measured)."""
+    failed = [c for c in CRITERIA if criteria.get(c) is False]
+    pending = [c for c in CRITERIA if criteria.get(c) is None]
+    return not failed and not pending, failed, pending
+
+
+def certify(runs: list[dict[str, Any]]) -> dict[str, Any]:
+    """A part's level from its certification runs (each ``{"name", "source": "replica"|"real", "applies": bool,
+    "criteria": {...}}``): certified when a trap replica and at least two real datasets where the part applies each pass
+    every criterion (a run where it rightly does not apply checks its absence, and never counts toward the level);
+    otherwise experimental, with what failed, what is not measured yet and what is missing. Product default needs more
+    than runs (no wrong detection on every R&D dataset, no regression in twin runs): never given here."""
+    judged = []
+    for r in runs:
+        passed, failed, pending = run_passes(dict(r.get("criteria") or {}))
+        judged.append({"name": str(r.get("name"))[:120], "source": r.get("source"), "applies": bool(r.get("applies", True)), "passed": passed,
+                       "failed": failed, "pending": pending})
+    replicas = [j for j in judged if j["source"] == "replica" and j["applies"] and j["passed"]]
+    real = [j for j in judged if j["source"] == "real" and j["applies"] and j["passed"]]
+    level = "certified" if replicas and len(real) >= REAL_NEEDED else "experimental"
+    missing = ([] if replicas else ["a trap replica where the part applies, passing every criterion"]) + \
+              ([] if len(real) >= REAL_NEEDED else [f"{REAL_NEEDED - len(real)} more real dataset(s) where the part applies, passing every criterion"])
+    return {"level": level, "runs": judged, "missing": missing,
+            "pending": sorted({c for j in judged for c in j["pending"]}), "failed": sorted({c for j in judged for c in j["failed"]})}
+
+
+__all__ = ["Split", "LEVELS", "FORWARD", "Detection", "RecipePart", "Choice", "ResolvedRecipe", "resolve", "CRITERIA", "run_passes", "certify"]

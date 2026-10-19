@@ -793,6 +793,17 @@ product's agent asks the critic once its brief is confirmed and before it plans,
 question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
 whether to go on, recording the decision.
 
+## Labels of unequal worth and a team's capacity (30.12, dclab-core 0.88.0)
+
+The library's: `dclab_core.capacity` judges a screening model as a team of K a period works it (the queue, the K-th score
+of an average period, precision at K on confirmed labels, recall estimated only from rows reviewed at random within their
+stratum and period) and finds the rule behind a noisy source's labels; `modifiers` gains `noisy_labels` and
+`review_capacity`; `recipes.certify` gives a part its level from its runs. Where it goes there: the main product's
+screening flows (a review queue, an alert budget) should read precision at K and the audit's recall from these functions,
+and its label provenance (a rule's flags, an analyst's verdict) should become a label-source column that `noisy_labels`
+reads; its R3 promotion of a model trained on such labels should judge it on confirmed labels only. Nothing there calls
+them today, and no part is certified yet (the artifact criterion waits for 30.15).
+
 ## A committee of answerers (29.16, dclab-core 0.87.0)
 
 The library's: `dclab_core.committee.Committee` answers a decision by a vote of answerers (a rule, a classifier, another

@@ -14,6 +14,19 @@ The owner's task recipes name them; this package builds the first three:
   evidence stronger and is said, but a time column alone already applies it, because a random split of ordered rows reads
   the future whether or not the rate moves.
 
+30.12 adds two, to finish the fraud case:
+
+* **noisy labels:** a label-source column holds a noisy source (a rule, a cluster of look-alikes) beside at least twenty
+  confirmed rows (a person's review, a random audit). A noisy source's rows are neither trained nor judged on (weighing
+  them by their agreement instead is left for later); the rule that built a noisy source's labels is flagged, since a
+  model would learn it back; each rule's agreement with the confirmed labels is reported. Under noisy labels the
+  rare-positives test reads the confirmed rows' rate, the audit's when there is one (a rule's labels make the positives
+  look common).
+* **review capacity:** a team checks K cases a period. Precision at K is the measure the holdout's queue is judged by
+  (selection inside training keeps the primary metric: selection by precision at K within folds is left), recall is
+  estimated only from the random audit, and the operating threshold is the K-th highest score of an average period. K is
+  asked on every screening (binary) problem, never guessed (storing it from Home and the wizard is left).
+
 ``detect(facts)`` reads aggregate facts about the training rows (never a row, never a value) and says, for each modifier,
 whether it applies, why, and how strong the evidence is. Rules decide; a model may only propose a modifier to a person.
 """
@@ -34,6 +47,11 @@ CLASS_SHIFT = 0.1       # the class mix's total variation distance between the f
 LEVEL_SHIFT = 0.3       # the target's level shift between the first and last third, in standard deviations
 MIN_GROUPS = 20         # a key with fewer distinct values cannot hold a group split's holdout
 RECURS = 0.85           # the share of the latest rows whose key was seen earlier from which a forward split cannot also group them
+MIN_CONFIRMED = 20      # confirmed rows below which noisy labels cannot be judged on confirmed ones alone
+CONFIRMED = ("expert", "expert_audit", "audit", "review", "reviewed", "confirmed", "person")  # a person looked: the labels judged on
+AUDIT = ("expert_audit", "audit")  # drawn at random: the only rows recall can be estimated from
+NOISY = ("rule", "cluster", "heuristic", "weak", "proxy", "model")  # labels a rule or a likeness wrote
+PERIODS = ("day", "week", "month")
 VERSION = "1"
 
 PARTS: dict[str, RecipePart] = {
@@ -55,6 +73,21 @@ PARTS: dict[str, RecipePart] = {
                                                          f"the level over {LEVEL_SHIFT:g} sd")],
         required_inputs=["time_column"], split="time", leakage_checks=["features only from data before each row's cutoff"],
         artifact_needs=["the cutoff rule for features", "the training date range"], report_items=["the holdout is the latest period"]),
+    "noisy_labels": RecipePart(
+        name="noisy_labels", part_type="modifier", version=VERSION, level="experimental",
+        detection=[Detection(signal="label_source", rule=f"a label-source column with a noisy source ({', '.join(NOISY)}) and at least "
+                                                         f"{MIN_CONFIRMED} confirmed rows")],
+        required_inputs=["label_source_column"],
+        leakage_checks=["the rule that built a noisy source's labels flagged: a model would learn it back",
+                        "cross-validation and the holdout judged on confirmed labels only"],
+        report_items=["each noisy source's rule and its agreement with the confirmed labels", "trained and evaluated on confirmed labels only"]),
+    "review_capacity": RecipePart(
+        name="review_capacity", part_type="modifier", version=VERSION, level="experimental",
+        detection=[Detection(signal="the person's words", rule="K cases a period, stated by the person", asks_user=True)],
+        required_inputs=["capacity_k", "capacity_period"], primary_metric="precision_at_k", guard_metrics=["audit_recall"],  # the holdout queue's measure
+        threshold_rule="the K-th highest score of an average period",
+        artifact_needs=["the threshold: the K-th score of an average period"],
+        report_items=["precision at K on confirmed labels", "recall estimated only from the random audit"]),
 }
 
 
@@ -77,6 +110,12 @@ class Facts(Contract):
     rate_change: Optional[float] = Field(default=None, ge=0, description="Last third's positive rate over the first third's.")
     class_shift: Optional[float] = Field(default=None, ge=0, le=1)
     level_shift: Optional[float] = Field(default=None, description="In standard deviations.")
+    # 30.12: where the labels came from, and how many cases a team can check
+    label_sources: dict[str, int] = Field(default_factory=dict, description="Rows per label source among the training rows with an outcome.")
+    confirmed_rate: Optional[float] = Field(default=None, ge=0, le=1, description="The positive rate on the confirmed rows.")
+    audit_rate: Optional[float] = Field(default=None, ge=0, le=1, description="The positive rate on the rows drawn at random for review.")
+    capacity_k: Optional[int] = Field(default=None, ge=1, description="The cases a team checks a period, as the person stated it.")
+    capacity_period: Optional[str] = Field(default=None, max_length=20)
 
 
 class Detected(Contract):
@@ -98,10 +137,43 @@ def _drift(f: Facts) -> Optional[str]:
     return None
 
 
+def _noisy(facts: Facts) -> Detected:
+    sources = {str(k).lower(): int(v) for k, v in (facts.label_sources or {}).items() if v}
+    noisy = sorted(s for s in sources if s in NOISY)
+    confirmed = sum(v for s, v in sources.items() if s in CONFIRMED)
+    if noisy and confirmed >= MIN_CONFIRMED:
+        share = sum(sources[s] for s in noisy) / max(1, sum(sources.values()))
+        return Detected(name="noisy_labels", applies=True, strength=round(min(1.0, share * 2), 3),
+                        reason=(f"{share:.0%} of the labels come from {', '.join(noisy)}, beside {confirmed} confirmed rows: the model is "
+                                "judged on the confirmed rows only, and the rule behind each noisy source is flagged")[:600])
+    if noisy:
+        return Detected(name="noisy_labels", applies=False, strength=0.0, asks_user=True,
+                        reason=f"the labels come from {', '.join(noisy)} with {confirmed} confirmed rows (fewer than {MIN_CONFIRMED}): which can be trusted?")
+    return Detected(name="noisy_labels", applies=False, strength=0.0, reason="no noisy label source among the training rows")
+
+
+def _capacity(facts: Facts) -> Detected:
+    if facts.task != "binary":
+        return Detected(name="review_capacity", applies=False, strength=0.0, reason="not a screening task: no queue of cases to check")
+    if facts.capacity_k:
+        period = facts.capacity_period or "period"
+        return Detected(name="review_capacity", applies=True, strength=1.0, asks_user=True, value=str(facts.capacity_k),
+                        reason=(f"the team checks {facts.capacity_k} cases a {period}: precision at {facts.capacity_k} decides, the threshold is "
+                                f"the {facts.capacity_k}-th score of an average {period}, and recall is estimated only from the random audit"))
+    return Detected(name="review_capacity", applies=False, strength=0.0, asks_user=True,
+                    reason="how many cases can the team check a day, a week or a month? (always asked on a screening problem)")
+
+
 def detect(facts: Facts) -> list[Detected]:
     """Each modifier with whether it applies, why, how strong the evidence is, and the column it applies with."""
     out = []
+    noisy = _noisy(facts)
     rate = facts.positive_rate if facts.task == "binary" and facts.positive_rate is not None else facts.minority_rate
+    honest = facts.audit_rate if facts.audit_rate is not None else facts.confirmed_rate
+    where = "of the training rows"
+    if noisy.applies and facts.task == "binary" and honest is not None:  # a rule's labels make the positives look common
+        rate = honest
+        where = "of the rows drawn at random for review" if facts.audit_rate is not None else "of the confirmed rows"
     if rate is not None and facts.task == "binary":
         if rate > 1 - RARE_BELOW:  # the positive class is the larger: the rare class is the other (the review of 30.11)
             out.append(Detected(name="rare_positives", applies=False, strength=0.0, asks_user=True,
@@ -109,7 +181,7 @@ def detect(facts: Facts) -> list[Detected]:
         else:
             rare = rate < RARE_BELOW
             out.append(Detected(name="rare_positives", applies=rare, strength=round(min(1.0, max(0.0, (RARE_BELOW - rate) / RARE_BELOW)), 3),
-                                reason=f"the positive class is {rate:.2%} of the training rows ({'under' if rare else 'not under'} {RARE_BELOW:.0%})"))
+                                reason=f"the positive class is {rate:.2%} {where} ({'under' if rare else 'not under'} {RARE_BELOW:.0%})"))
     elif rate is not None and facts.task == "multiclass":  # macro F1 already weighs a small class: no change to the metric
         out.append(Detected(name="rare_positives", applies=False, strength=0.0,
                             reason=f"the smallest class is {rate:.2%} of the training rows; macro F1 already weighs it"))
@@ -137,6 +209,7 @@ def detect(facts: Facts) -> list[Detected]:
                             reason=f"`{facts.time_column}` orders the rows: the holdout is the latest period" + (f"; {moved}" if moved else "")))
     else:
         out.append(Detected(name="time_order", applies=False, strength=0.0, reason="no column orders the rows in time"))
+    out += [noisy, _capacity(facts)]
     return out
 
 
@@ -145,5 +218,5 @@ def applied(found: list[Detected]) -> list[RecipePart]:
     return [PARTS[d.name] for d in found if d.applies and d.name in PARTS]
 
 
-__all__ = ["RARE_BELOW", "ROWS_PER_KEY", "DRIFT_RATIO", "CLASS_SHIFT", "LEVEL_SHIFT", "MIN_GROUPS", "RECURS", "PARTS", "KeyFact", "Facts",
-           "Detected", "detect", "applied"]
+__all__ = ["RARE_BELOW", "ROWS_PER_KEY", "DRIFT_RATIO", "CLASS_SHIFT", "LEVEL_SHIFT", "MIN_GROUPS", "RECURS", "MIN_CONFIRMED", "CONFIRMED",
+           "AUDIT", "NOISY", "PERIODS", "PARTS", "KeyFact", "Facts", "Detected", "detect", "applied"]

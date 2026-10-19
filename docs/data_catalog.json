@@ -350,7 +350,7 @@
    "what": "A team's walk, one row per hand-off: the board before the node, the node and what it did, the board after, with the walk's status and the models it asked; the person's words redacted, only lines written where training was allowed (28.9)."
   }
  ],
- "dclab_core": "0.87.0",
+ "dclab_core": "0.88.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -745,12 +745,36 @@
    ]
   },
   {
+   "about": "Do some labels come from a rule or a likeness, so the model is judged on the confirmed ones only?",
+   "answer": "noul",
+   "decided_in": "ledger/capture.py solution_saved: the proposal's rule against the saved label-source column (30.12)",
+   "kind": "technical",
+   "main_product": null,
+   "point": "modifier.noisy_labels",
+   "subjects": [
+    "draft",
+    "project"
+   ]
+  },
+  {
    "about": "Are the positives rare enough to change the metric (under 5% of the training rows)?",
    "answer": "noul",
    "decided_in": "ledger/capture.py solution_saved: the proposal's rule against the saved metric (30.11)",
    "kind": "technical",
    "main_product": null,
    "point": "modifier.rare_positives",
+   "subjects": [
+    "draft",
+    "project"
+   ]
+  },
+  {
+   "about": "Does a team check K cases a period, so precision at K decides?",
+   "answer": "noul",
+   "decided_in": "ledger/capture.py solution_saved: the proposal's rule against the saved capacity (30.12)",
+   "kind": "technical",
+   "main_product": null,
+   "point": "modifier.review_capacity",
    "subjects": [
     "draft",
     "project"

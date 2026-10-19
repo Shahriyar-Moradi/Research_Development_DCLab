@@ -904,6 +904,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                                   for f in proposal.get("forbidden") or []],
                     "identifiers": list(proposal.get("identifiers") or []), "time_column": (proposal.get("time_candidates") or [None])[0],
                     "group_column": proposal.get("group_column"), "text_columns": list(proposal.get("text_columns") or []), "metric": proposal.get("metric"),
+                    "label_source_column": proposal.get("label_source_column"),  # 30.12: the labels' source, never a feature
                     "notes": "Accepted as the audit proposed it, from “build it” on Home."}
             await save_solution(draft_id, body, "agent")
         if not get(draft_id).get("settings"):

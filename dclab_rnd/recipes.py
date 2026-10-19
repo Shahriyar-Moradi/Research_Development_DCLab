@@ -97,7 +97,22 @@ def resolve_for(kind: Any, solution: Any, positive_rate: Optional[float] = None,
     run_metric = stated_metric or (getattr(machine, "metric", None) if machine is not None else kind.default_metric(solution, positive_rate))
     kept = {n: d for n, d in found.items() if (n == "rare_positives" and run_metric == M.PARTS["rare_positives"].primary_metric)
             or (n == "groups" and d.get("value") == _value(solution, "group_column"))
-            or (n == "time_order" and d.get("value") == _value(solution, "time_column"))}  # what the run applies (the review of 30.11)
+            or (n == "time_order" and bool(_value(solution, "time_column")))  # 30.12: the person may choose which column orders the rows, as the ledger counts it
+            or (n == "noisy_labels" and _value(solution, "label_source_column"))
+            or (n == "review_capacity" and _value(solution, "capacity_k"))}  # what the run applies (the review of 30.11; 30.12)
+    chosen = _value(solution, "time_column")
+    if "time_order" in kept and kept["time_order"].get("value") != chosen:  # the person chose another column: the reason names it
+        kept["time_order"] = {**kept["time_order"], "value": chosen,
+                              "reason": f"`{chosen}` orders the rows, as the person chose (the rows' first time column was "
+                                        f"`{kept['time_order'].get('value')}`): the holdout is the latest period"}
+    if machine is not None:  # 30.12: a kind's own machine reads neither a label source nor a capacity
+        kept.pop("noisy_labels", None)
+        kept.pop("review_capacity", None)
+    elif _value(solution, "label_source_column") and "noisy_labels" not in kept:  # the person declared the column: the run applies it
+        kept["noisy_labels"] = {"name": "noisy_labels", "reason": f"the solution declares `{_value(solution, 'label_source_column')}` as the labels' source"}
+    if machine is None and _value(solution, "capacity_k") and "review_capacity" not in kept:
+        kept["review_capacity"] = {"name": "review_capacity", "reason": f"the solution declares {_value(solution, 'capacity_k')} cases a "
+                                                                       f"{_value(solution, 'capacity_period') or 'period'}"}
     machine_metric, machine_split = None, ""
     if machine is not None:  # a prepared machine (its metric, its holdout description) or the machine itself
         machine_metric = getattr(machine, "metric", None) or getattr(machine, "primary_metric", None)
@@ -141,8 +156,16 @@ def resolve_for(kind: Any, solution: Any, positive_rate: Optional[float] = None,
     primary = next(c.value for c in choices if c.field == "primary_metric")
     guards = [m for m, _ in kind.metrics if m != primary]
     choices.append(Choice(field="guard_metrics", value=guards, part=part.ref, reason="the kind's other metrics, beside the primary one"))
-    return ResolvedRecipe(kind=r.kind, modifiers=[M.PARTS[n].ref for n in ("rare_positives", "groups", "time_order") if n in kept],
-                          choices=choices, ask=r.ask)
+    if "noisy_labels" in kept:  # 30.12: what the run judges on, and why
+        choices.append(Choice(field="evaluation", value="confirmed labels only", part=M.PARTS["noisy_labels"].ref,
+                              reason=str(kept["noisy_labels"].get("reason") or "")[:600]))
+    if "review_capacity" in kept:  # the decision measure and the operating point; the selection inside training stays the primary metric
+        choices.append(Choice(field="decision_metric", value="precision_at_k", part=M.PARTS["review_capacity"].ref,
+                              reason=str(kept["review_capacity"].get("reason") or "")[:600]))
+        choices.append(Choice(field="threshold_rule", value=M.PARTS["review_capacity"].threshold_rule, part=M.PARTS["review_capacity"].ref,
+                              reason="the K-th score of an average period, recorded with the model"))
+    return ResolvedRecipe(kind=r.kind, modifiers=[M.PARTS[n].ref for n in ("rare_positives", "groups", "time_order", "noisy_labels", "review_capacity")
+                                                  if n in kept], choices=choices, ask=r.ask)
 
 
 def record_for(kind: Any, solution: Any, positive_rate: Optional[float] = None, machine: Any = None,
@@ -152,7 +175,7 @@ def record_for(kind: Any, solution: Any, positive_rate: Optional[float] = None, 
     try:
         out = resolve_for(kind, solution, positive_rate, machine, detected).model_dump(mode="json")
         if detected:
-            out["detected"] = [{k: d.get(k) for k in ("name", "applies", "reason", "strength", "value")} for d in detected][:12]
+            out["detected"] = [{k: d.get(k) for k in ("name", "applies", "reason", "strength", "value", "asks_user")} for d in detected][:12]
         return out
     except Exception as error:  # noqa: BLE001
         return {"error": f"{type(error).__name__}: {str(error)[:300]}"}

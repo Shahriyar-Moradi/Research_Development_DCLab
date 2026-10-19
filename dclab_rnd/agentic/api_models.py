@@ -100,6 +100,9 @@ class SolutionBody(Doc):
     text_columns: Any = None
     metric: Any = None
     notes: Any = None
+    label_source_column: Any = None  # 30.12
+    capacity_k: Any = None
+    capacity_period: Any = None
 
 
 class StageApproval(Doc):
