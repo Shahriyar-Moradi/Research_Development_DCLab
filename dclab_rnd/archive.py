@@ -37,7 +37,8 @@ DECISIONS = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions"
 SOURCES = {  # name: folders copied as they are (the workspace goes through storage.backup)
     "lake_bronze": [ROOT / "lake" / "bronze"],
     "openml_profiles": [ROOT / "data" / "downloads" / "openml"],
-    "decision_sets": [DECISIONS / "generated_v1", DECISIONS / "generated_images_v1", DECISIONS / "generated_v2", DECISIONS / "workflow_v1"],
+    "decision_sets": [DECISIONS / "generated_v1", DECISIONS / "generated_images_v1", DECISIONS / "generated_v2", DECISIONS / "workflow_v1",
+                      DECISIONS / "real_v1", DECISIONS / "generated_v1_committee"],  # 29.15: the real-table sets (OpenML); 29.16: the committee's fresh set
     # 29.18 (the owner: every judgment with all its details, permanently): the live runs whole, their requests, the full
     # replies (judgments/, answers/), the judge's ledgers; results are never edited, a re-run is a new folder
     "live_tests": [ROOT / "agent_runs" / "live_tests"],
@@ -53,7 +54,7 @@ snapshot per `make archive`, never deleted by a rebuild. Each snapshot is read-o
   decision (`answers/<answerer>/<point>/<split>.jsonl`), the inputs' hashes.
 - `snapshots/<time>/openml_profiles/`: public tables' profiles (bands only).
 - `snapshots/<time>/decision_sets/`: the generated decision sets (their sealed partitions included: never train or tune on
-  them) and the workflow decisions from journeys.
+  them), the workflow decisions from journeys and the real-table sets from public data (29.15).
 - `snapshots/<time>/MANIFEST.json`: every file with its size and SHA-256, counted by kind.
 - `INDEX.json`: every snapshot, its counts and its manifest's hash.
 

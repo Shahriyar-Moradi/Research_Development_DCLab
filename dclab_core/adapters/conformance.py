@@ -69,7 +69,8 @@ _NO_NAME = "the main product has no governed decision point of this name: it is 
 POINTS_NOT_MAPPED: dict[str, str] = {
     **{p: _NO_NAME.format(what="data preparation step") for p in (
         "column.category_code", "column.time", "column.group", "task.framing", "labels.situation", "labels.join_key", "data.cases_table",
-        "data.cleaning_step", "data.sampling", "split.folds")},
+        "data.cleaning_step", "data.sampling", "split.folds", "data.structure_format", "data.cleaning_keep", "data.synthetic_shape")},
+    **{p: _NO_NAME.format(what="evidence search (29.6)") for p in ("evidence.records",)},
     **{p: _NO_NAME.format(what="modelling choice") for p in (
         "features.recipe", "tuning.accept", "holdout.reuse", "experiment.next")},
     **{p: _NO_NAME.format(what="conversation and workflow point (the understanding agents, the coordinator)") for p in (

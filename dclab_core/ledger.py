@@ -48,6 +48,8 @@ NAME_CHARS = 200
 CODE_PATTERN = re.compile(r"^[a-z0-9_]+([.:-][a-z0-9_]+)*$")
 TOKEN_PATTERN = re.compile(r"^[a-z0-9]{1,40}$")
 
+STRUCTURE_FORMATS = ("csv", "tsv", "excel", "parquet", "json", "jsonl", "log", "log_or_text")  # 29.6: the structure reader's readers
+
 STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     # a column, as Jev sees it
     "column": (NAME, ()), "name_tokens": (TOKENS, ()), "dtype": (BAND, DTYPE_KINDS), "uniqueness": (BAND, RATIO_BANDS),
@@ -85,6 +87,11 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     # 30.11: the modifiers' evidence, as aggregates of the training rows
     "rows_per_key": (MEASURE, ()), "rate_change": (MEASURE, ()), "class_shift": (MEASURE, ()), "level_shift": (MEASURE, ()),
     "strength": (RATIO, ()),
+    # 29.6: the small processes' choices: what the structure reader looked at, a cleaning step, a synthetic table's design,
+    # an evidence search (codes, flags, counts and measures; never a cell, a line of the file or a person's words)
+    "suffix": (CODE, ()), "signature": (CODE, ()), "json_head": (FLAG, ()), "json_lines": (FLAG, ()), "delimiter": (CODE, ()),
+    "log_like": (FLAG, ()), "cleaning": (CODE, ()), "model_available": (FLAG, ()),
+    "hits": (COUNT, ()), "top_score": (MEASURE, ()), "method": (CODE, ()), "weak": (FLAG, ()),
 }
 Scalar = Union[str, int, float, bool, None]
 
@@ -159,6 +166,11 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     _p("labels.join_key", T, DP, "value", "Which key joins the label file to the table?"),
     _p("data.cases_table", T, "draft", "noul", "Is this table a list of known cases rather than the rows to score?"),
     _p("data.cleaning_step", T, "column", "choice", "Which cleaning step applies?"),
+    # 29.6: the small processes, each recorded where it is made
+    _p("data.structure_format", T, "draft", "choice", "Which reader turns an uploaded file into a table?", choices=STRUCTURE_FORMATS),
+    _p("data.cleaning_keep", T, "column", "noul", "Is this cleaning step, applied to this column, kept?"),
+    _p("data.synthetic_shape", T, "draft", "value", "Which design does a synthetic table follow: a template's, or one the model wrote?"),
+    _p("evidence.records", T, "conversation", "value", "Which evidence record answers the question best?"),
     # a code, not a closed choice: each host names its strategies (here random, group, time, time_group; the main
     # product group_disjoint, stratified_kfold, …)
     _p("split.strategy", T, DP, "value", "How are rows split for validation and the holdout?", "split.strategy", plan_key="split.strategy"),

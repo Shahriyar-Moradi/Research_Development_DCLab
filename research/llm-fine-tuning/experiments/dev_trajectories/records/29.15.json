@@ -1,0 +1,131 @@
+{
+ "package": "29.15",
+ "title": "Real homework from public tables: invented-only students fall below the rule on real tables, and real homework lifts them there",
+ "date": "2026-10-19",
+ "request": "Phase 7 (the owner): a student behind every choice; 29.15 gives three points a real-table set from OpenML's own declarations, beside the invented one, with its own sealed partition, and scores each student on both.",
+ "spec": "docs/guides/PHASE7_STUDENTS_PLAN.md, package 29.15",
+ "plan": [
+  "Read each profiled OpenML table once more to build its columns' states exactly as the invented sets build theirs, with DCLab's rule answers.",
+  "Truths from each dataset's declarations, through one library function; each table in the lake's own split.",
+  "Score the rule, the student and a student trained with real homework on both dev sets, beside the commonest label."
+ ],
+ "decisions": [
+  {
+   "decision": "Read the data files again rather than use the lake's cached states.",
+   "why": "The cache has no rule answers and no outcome's value count, and the task state needs it; the owner said yes to the OpenML download for the lake."
+  },
+  {
+   "decision": "Each table in the lake's split, not the sets' own hash.",
+   "why": "The lake's gold and the decisions export already file each OpenML table under the lake's split: one table must sit in one split everywhere."
+  },
+  {
+   "decision": "Identifier truths only from datasets that declare a row identifier.",
+   "why": "Most OpenML keys are left as features, undeclared: labelling them not identifiers would mark the rule wrong where it is right."
+  },
+  {
+   "decision": "The semantic role stands in for target.column as the third point.",
+   "why": "target.column has no invented set and no student to score on both."
+  },
+  {
+   "decision": "The students with real homework are not adopted.",
+   "why": "They are measured on dev rows only; a sealed exam on the real partitions is the owner's call."
+  }
+ ],
+ "change": "dclab_core/declared.py (0.87.0); dclab_rnd/real_homework.py (fetch, derive, build, score, the GLiNER answers matched by input); decisions/real_v1 (its manifest committed, rows and sealed files rebuilt by the command); models_real_v1 cards; evidence/campaigns/real_homework_v1/RHW-001; the register's real scores beside the rule's and the commonest label's; the archive keeps the real sets.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Students trained on invented tables fall below the rule on real ones.",
+   "scenario": "Real dev: the task student 0.748 against the rule's 0.971; the role student 0.803 against 0.822, near the commonest label's 0.783.",
+   "cause": "Invented outcomes and columns do not cover how real tables look.",
+   "fix": "A student trained with real homework too: 0.981 and 0.996 on real dev, 0.008 and 0.013 below on invented dev; reported, not adopted.",
+   "test": ""
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The real identifier set was nearly one class and partly wrongly labelled.",
+   "scenario": "29 identifiers in 26,350 columns: always answering no scored 0.998 on dev, above the rule.",
+   "cause": "Every dataset's columns were labelled, though most datasets declare no identifier.",
+   "fix": "Only datasets that declare one; every score beside the commonest label's, with recall.",
+   "test": "test_a_dataset_declaring_no_row_identifier_says_nothing_of_identifiers"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The real and invented label definitions differ, unsaid.",
+   "scenario": "A declared-numeric code is numeric, an entity key not an identifier, a few whole values regression; a string outcome counted as a disagreement.",
+   "cause": "The limits named only the uploader's word.",
+   "fix": "Each difference in the limits; a reason of its own for an outcome whose type names no task.",
+   "test": "test_a_dataset_declaring_no_row_identifier_says_nothing_of_identifiers"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The lake's gold and the real sets give one table different truths.",
+   "scenario": "The lake calls every numeric outcome regression and labels every dataset's columns.",
+   "cause": "The lake's OpenML samples keep 26.2's first reading.",
+   "fix": "Said in the module, the integration guide and the plan; aligning the lake left for later.",
+   "test": ""
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "GLiNER's answers were matched by sample id only.",
+   "scenario": "Columns whose state differs from the lake's would count an answer to another input.",
+   "cause": "No input check.",
+   "fix": "Matched by the input's fingerprint too.",
+   "test": "test_a_captured_answer_counts_only_for_the_input_it_was_asked"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The committed cards and manifests said wrong things.",
+   "scenario": "A card said it trained on generated tables only; the per-point policy said 20% sealed.",
+   "cause": "The defaults of the builders.",
+   "fix": "The card's limits and the manifest's policy say what was done.",
+   "test": "test_each_table_sits_in_its_lake_split_and_the_sealed_rows_in_their_own_file"
+  },
+  {
+   "id": "R15",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The limits understated what GLiNER did not answer.",
+   "scenario": "A fixed count of 66 differing states, while 853 role decisions had no matching answer.",
+   "cause": "A number written by hand.",
+   "fix": "Coverage beside each score (answered of); the differing states counted in the set's manifest.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "RHW-001, the three points on both dev sets",
+   "gate": "none: the Done when asks for the scores",
+   "fixed_before_run": false,
+   "result": "real dev: task rule 0.971, student 0.748, with real homework 0.981; role rule 0.822, student 0.803, with real homework 0.996; identifiers rule 1.0, student 0.989, with real homework 0.992 (commonest 0.983); real dev holds 6 identifier tables",
+   "verdict": "not scored",
+   "cost_eur": 0,
+   "limits": [
+    "Dev rows only; the real sealed partitions unread.",
+    "The role's real truths follow the stored type.",
+    "Identifiers: 6 tables in real dev."
+   ]
+  }
+ ],
+ "outcome": "Three points have real-table sets beside the invented ones and every student is scored on both: invented homework alone does not carry to real tables, and the students with real homework wait for a sealed exam.",
+ "lessons": [
+  "Score every answerer beside the commonest label: a set with a rare class makes any accuracy look good.",
+  "A real dataset's declarations are a convention: check how often they follow a column's storage before reading a high score as skill."
+ ],
+ "risks": [
+  "RHW-001 keeps the limit text written before the review's last fix (a fixed count of differing states)."
+ ],
+ "commits": []
+}

@@ -1,0 +1,105 @@
+{
+ "schema_version": "dclab_core.decision_model_card.v1",
+ "point": "column.is_identifier",
+ "name": "column.is_identifier.boosting",
+ "version": "c6a5c0de4916",
+ "family": "boosting",
+ "strength": 1.0,
+ "features": 608,
+ "fields": [
+  "cardinality",
+  "column",
+  "dtype",
+  "name_tokens",
+  "nulls",
+  "target",
+  "uniqueness",
+  "value_pattern"
+ ],
+ "excluded": [],
+ "trained_on": 5628,
+ "trained_set": "28919b88bcfda99e4d673c969ae591b4e2cf5574520c1ff11349faf48ea1c831",
+ "groups": 163,
+ "label_sources": {
+  "benchmark": 5628
+ },
+ "chosen_by": "out-of-fold accuracy over 5 folds grouped by table; best boosting:1.0",
+ "oof_accuracy": {
+  "logistic:0.1": 0.9819,
+  "logistic:1.0": 0.9893,
+  "logistic:10.0": 0.9888,
+  "boosting:0.1": 0.9897,
+  "boosting:1.0": 0.99,
+  "boosting:10.0": 0.989
+ },
+ "calibration": "Platt scaling on the same 5 table-grouped folds of the training rows",
+ "dev": {
+  "n": 355,
+  "accuracy": 0.9915,
+  "accuracy_ci": [
+   0.9755,
+   0.9971
+  ],
+  "precision": 0.8,
+  "precision_ci": [
+   0.3755,
+   0.9638
+  ],
+  "recall": 0.6667,
+  "recall_ci": [
+   0.3,
+   0.9032
+  ],
+  "intervals": "Wilson, 95%",
+  "answered": 355,
+  "per_class": {}
+ },
+ "rule_dev": {
+  "n": 355,
+  "accuracy": 1.0,
+  "accuracy_ci": [
+   0.9893,
+   1.0
+  ],
+  "precision": 1.0,
+  "precision_ci": [
+   0.6097,
+   1.0
+  ],
+  "recall": 1.0,
+  "recall_ci": [
+   0.6097,
+   1.0
+  ],
+  "intervals": "Wilson, 95%",
+  "answered": 355,
+  "per_class": {}
+ },
+ "dev_by_source": {
+  "benchmark": {
+   "n": 355,
+   "accuracy": 0.9915,
+   "accuracy_ci": [
+    0.9755,
+    0.9971
+   ],
+   "precision": 0.8,
+   "precision_ci": [
+    0.3755,
+    0.9638
+   ],
+   "recall": 0.6667,
+   "recall_ci": [
+    0.3,
+    0.9032
+   ],
+   "intervals": "Wilson, 95%",
+   "answered": 355,
+   "per_class": {}
+  }
+ },
+ "dev_calibration_error": 0.0057,
+ "limits": [
+  "Trained on invented tables (planted kinds) and real OpenML tables (their declared truths); measured here on the real tables' dev rows. The two sets' definitions differ in places (real_homework.LIMITS): not evidence about a project's data."
+ ]
+}

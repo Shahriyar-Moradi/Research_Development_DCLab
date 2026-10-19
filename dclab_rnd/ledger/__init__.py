@@ -62,6 +62,11 @@ CAPTURED = {
     "labels.join_key": "studio/labels.py review: the key that joins the label file",
     "data.cases_table": "draft/pipeline.py: a table read as a list of known cases",
     "data.cleaning_step": "draft/clean.py: each cleaning step applied",
+    # 29.6: the small processes, each with where its truth comes from
+    "data.structure_format": "draft/pipeline.py: the reader draft/structure.py chose for an uploaded file, with what it looked at (truth: the construction's, a file of known format)",
+    "data.cleaning_keep": "draft/pipeline.py: every cleaning step draft/clean.py applied, per column it changed, kept by the rules (truth: the construction's, a dirty table's planted traps; one answer until a step can be reverted)",
+    "data.synthetic_shape": "draft/work.py simulate: the template a person picked, the model's own design, or the rules' fallback (truth: the people's, whether the draft goes on with it)",
+    "evidence.records": "agentic/pages/evidence.py ask: the record the evidence search ranked first, with how many came back (truth: the people's, or the retrieval set's 60 questions)",
     "problem.family": "draft/api.py build: the card's family; draft/chat.py take_second_opinion: the second opinion's verdict and the person's choice (28.6)",
     "problem.ready": "draft/api.py build: whether the card is ready",
     "problem.pack": "draft/chat.py: the pack detected or chosen",

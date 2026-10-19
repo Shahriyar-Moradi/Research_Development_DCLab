@@ -70,13 +70,17 @@ class DraftWork:
 
         drafts, models = self.drafts, self.models
         draft = drafts.get(draft_id)
+        client = models.client("synthetic_schema", draft_id=draft_id)
         if template:  # the user picked a built-in template in the Synthetic tab
             drafts.emit(draft_id, "pipeline", {"step": "designing", "text": "Generating synthetic data from the template you chose"})
             spec, info = synthetic.from_template(template, rows)
         else:
             context = {"problem": draft["problem"], "understanding": draft.get("understanding") or {}, "pack": (draft.get("pack") or {}).get("key")}
             drafts.emit(draft_id, "pipeline", {"step": "designing", "text": "Designing a synthetic dataset from the conversation"})
-            spec, info = synthetic.spec_from_model(models.client("synthetic_schema", draft_id=draft_id), prompt or draft["problem"], context, rows)
+            spec, info = synthetic.spec_from_model(client, prompt or draft["problem"], context, rows)
+        from ..ledger import capture  # 29.6: the design the table follows, whose it is
+
+        capture.synthetic_shape(draft_id, info, spec.rows, model_available=client is not None)
         checkpoint()
         note = synthetic.template_note(spec, info)
         if note:  # never let template rows pass for a table designed from the user's description

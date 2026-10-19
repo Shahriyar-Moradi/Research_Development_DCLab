@@ -72,6 +72,13 @@ research/llm-fine-tuning/experiments/decisions/export_v2/*
 # 29.12: a curriculum's rows and fitted students are rebuilt by python -m dclab_rnd.curriculum; the manifests and cards are committed
 research/llm-fine-tuning/experiments/decisions/generated_v2_curriculum/*/rows.jsonl
 research/llm-fine-tuning/experiments/decisions/models_v2_curriculum/*/*.joblib
+# 29.15: the real-table sets and their students, rebuilt by python -m dclab_rnd.real_homework build|score; the manifest and cards are committed
+research/llm-fine-tuning/experiments/decisions/real_v1/*
+!research/llm-fine-tuning/experiments/decisions/real_v1/MANIFEST.json
+research/llm-fine-tuning/experiments/decisions/models_real_v1/*.joblib
+# 29.16: the fresh invented set the committee is examined on (decisions_gen.build(first=24)); only the manifest is committed
+research/llm-fine-tuning/experiments/decisions/generated_v1_committee/*
+!research/llm-fine-tuning/experiments/decisions/generated_v1_committee/MANIFEST.json
 !research/llm-fine-tuning/experiments/decisions/export_v2/README.md
 !research/llm-fine-tuning/experiments/decisions/export_v2/MANIFEST.json
 # 25.11: the owner's clone of the testers' records (their sessions and tables)

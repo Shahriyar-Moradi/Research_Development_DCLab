@@ -146,6 +146,21 @@ bands, its options), then a student.
   coordinator's situation's answer beside the node chosen) and `critic.send_back` (every concern the critic weighed, sent
   back or not, with why; labelled measured when the person's answer changed the card's field, or did not). Left: the
   structure reader, each cleaning step's acceptance, the synthetic schema's shape and the retrieval's records.
+- **Status: the rest built (2026-10-19); Done when not met for self-play.** Four more points, 61 in all, each recorded where it is made (`ledger/capture.py`):
+  `data.structure_format` (the reader `draft/structure.py` chose, with what `_detect` looks at as codes and flags:
+  `structure.evidence`, never a line; `info["reader"]` beside the `format` the reader then found), `data.cleaning_keep`
+  (every step `draft/clean.py` applied, per column it changed, the table-level ones and the second steps on a column
+  included, each by its raw name and bands after a rename; the rules keep each, so the point holds one answer until a
+  person can revert a step or homework marks one wrong), `data.synthetic_shape` (the template a person picked, the model's
+  own design at level 2, or the rules' fallback with the model's empty answer and why; the state only what was known
+  before: the rows asked, whether a model serves) and `evidence.records` (the record the evidence search ranked first,
+  each search its own subject id, never the question; options sorted). Each `CAPTURED` text names its truth source: the
+  construction's for the reader and cleaning, the people's for the design and the search. Their records come from the
+  test suite's drafts (the upload path and the synthetic route are tested for them) and the evidence page; self-play
+  reaches none of the four (it reads replicas through `studio.data.attach_data`, not the structure reader, cleaning, the
+  synthetic designer or the evidence page), so the Done when's "and self-play" is not met. Not recorded: the header row
+  (the reader never detects one: the first row is always the header) and each column's type (decided later, by cleaning
+  and the profile). Next: homework for the four (invented dirty files, the retrieval set's 60 questions).
 
 ### 29.7 The loop made continuous
 - **Delivers:** a scheduled job (the jobs table) that rebuilds the sets from new labels, retrains the students whose
@@ -287,11 +302,49 @@ bands, its options), then a student.
   partition.
 - **Done when:** at least three points have a real-table set beside the invented one, and each student is scored on both.
 
+- **Status: built and measured (2026-10-19); met, with a thin third point.** `dclab_core.declared` (0.87.0) reads a public
+  table's declarations as truths; `python -m dclab_rnd.real_homework fetch|build|score`: each of OpenML's 1,135 profiled
+  datasets (26.2, the owner's yes on the download) read once more, its columns' states built exactly as the invented sets
+  build theirs (`datacard.card_of`; 66 of 26,350 differ from the lake's own, in their value pattern only) with DCLab's
+  rule answers; `decisions/real_v1/` (1,122 tables; 13 failed to read): `column.is_identifier` (1,335 decisions, only the
+  29 tables that declare a row identifier), `column.semantic_role` (26,350) and `task.framing` (740), each table in the
+  lake's split (the same as in the lake's gold), the sealed rows in files of their own, unread. `target.column` stands
+  aside (no invented set, no student) and Kaggle's human choices wait for the owner's key: `column.semantic_role` is the
+  third point. **RHW-001** (dev rows only): trained on invented tables alone, the students fall below the rule on real
+  ones: the task 0.748 against the rule's 0.971 (103 tables), the role 0.803 against 0.822 (158 tables; the commonest
+  label alone 0.783); trained with real homework too, 0.981 and 0.996 on real dev, at 0.008 and 0.013 below on invented
+  dev. The role's real truths follow the stored type almost exactly (a nominal column is stored as a category), so 0.996
+  measures that convention as much as role reading. Identifiers: 6 tables and 6 identifiers in real dev (the commonest
+  label 0.983): the rule 1.0, the student 0.989 (3 of 6 found), with real homework 0.992 (4 of 6). GLiNER on real dev:
+  0.816 on identifiers (354 of 355 asked with this input), 0.395 on roles (2,891 of 3,744). The register and the Students
+  page show each student's real score beside the rule's and the commonest label's. Not adopted: the students with real
+  homework (`models_real_v1`) are unexamined; a sealed exam on the real partitions is the owner's call. Left: the lake's own
+  OpenML samples keep their first reading of the declarations (aligning them changes the lake's gold and its export).
+
 ### 29.16 A committee: the rule, the student, the other models
 - **Delivers:** a point may be answered by a vote of the rule, its student, GLiNER (26.9) and a model role, each weighted by
   its measured accuracy on that point; the committee is one more answerer in the register, examined like any student.
   Claude's answers vote only in evaluation, never as homework (the owner's rule).
 - **Done when:** the committee has a sealed verdict on at least the six table points, beside each member's.
+
+- **Status: built and examined (2026-10-19); met.** `dclab_core.committee` (0.87.0): each member votes with the log-odds of
+  its dev accuracy over chance (`weight`, 0 at chance), the heaviest option wins, a tie goes to the heaviest member, then the
+  rule; `Committee` is one more answerer, its version the fingerprint of its members and weights. `python -m dclab_rnd.committee
+  plan|exam|claude`: the weights from the v1 dev rows (written to `evidence/campaigns/committee_v1/manifest.json` with the gate
+  before any sealed row was read); the v1 sealed sets were spent by the students' exams, so the exam is a fresh set
+  (`generated_v1_committee`, twelve new seeds, `decisions_gen.build(first=24)`), GLiNER asked its sealed rows (the lake's
+  source `committee`). **CMT-001 to CMT-006** (3,720 sealed decisions): the committee passes decision_gate_v1 on two points
+  (semantic role 0.948, leakage 0.971), exactly where its student passes, and never beats its best member: equal to the
+  student on three points, 0.004 and 0.006 below the perfect rule on groups and identifiers, 0.031 below the student on time
+  (the rule and GLiNER wrong together outvote it). GLiNER's dev accuracy weights it near zero on codes and leaks and low on
+  roles (1.03 against the student's 4.29; the rule and GLiNER together fall 0.03 short of the student). **CMT-007**
+  (evaluation only, 360 sealed decisions, EUR 0.65 of the owner's $30; 6 requests failed, 4 identifiers and 2 roles,
+  counted wrong; the document itself records neither the cap nor the spend, written before the guards below): Claude behind
+  the student on five points; the committee with Claude lower on codes, roles and leaks, never higher. The register shows
+  each point's committee beside its student, only while it holds the student it was examined with. Not adopted: a vote by
+  accuracy adds nothing over the student when the members' errors are shared. After the review: the plan cannot be
+  rewritten once an exam exists, an exam is refused while a weighted member has not answered every sealed decision, and
+  Claude's arm runs only after its point's exam, once per point and seed; each new result names the plan's hash.
 
 ### 29.17 Claude and GLiNER beside every student (the owner's $30, 2026-10-17)
 - **The owner's decisions:** $30 "to use Claude to enhance the result, enhance everything"; Claude's answers are evaluation by

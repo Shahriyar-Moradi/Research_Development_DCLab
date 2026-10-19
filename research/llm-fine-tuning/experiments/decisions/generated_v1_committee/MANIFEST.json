@@ -1,0 +1,91 @@
+{
+ "version": "benchgen_v1",
+ "at": "2026-10-14T00:00:00+00:00",
+ "grouping": "base and seed; a table and its hidden-name twin share a group. The sealed partition holds new seeds of the same ten bases, not new tables: it measures reading planted kinds in tables like those trained on.",
+ "seeds": 12,
+ "rows": 1500,
+ "bases": [
+  "campaign_uplift",
+  "city_prices",
+  "delivery_time",
+  "product_reviews",
+  "ride_pricing",
+  "notes",
+  "store_demand",
+  "subscription_churn",
+  "subscription_lifetimes",
+  "ticket_routing"
+ ],
+ "first_seed": 24,
+ "tables": 240,
+ "decisions": 22320,
+ "sets": {
+  "column.category_code": {
+   "decisions": 2400,
+   "tables": 120,
+   "splits": {
+    "train": 1400,
+    "dev": 600,
+    "sealed": 400
+   },
+   "rule_right": 1924,
+   "sealed_fingerprint": "6a00e1d90e9963f1d71dd54f15822d483145882f22cdcb21ee85e169c7cae2af"
+  },
+  "column.group": {
+   "decisions": 4080,
+   "tables": 120,
+   "splits": {
+    "train": 2380,
+    "dev": 1020,
+    "sealed": 680
+   },
+   "rule_right": 4080,
+   "sealed_fingerprint": "d1341acccfa746cbfd47f5d92d2d2a1788a40754b382751fc4fb60355a573d8e"
+  },
+  "column.is_identifier": {
+   "decisions": 4080,
+   "tables": 120,
+   "splits": {
+    "train": 2380,
+    "dev": 1020,
+    "sealed": 680
+   },
+   "rule_right": 4080,
+   "sealed_fingerprint": "d2aaed39430a5f48b050cbf1c9be73534161f15339267aa0ea405b3e63af44a3"
+  },
+  "column.semantic_role": {
+   "decisions": 3600,
+   "tables": 120,
+   "splits": {
+    "train": 2100,
+    "dev": 900,
+    "sealed": 600
+   },
+   "rule_right": 3004,
+   "sealed_fingerprint": "0a0621961149e8309ceff8185e6ba6d875e03141c639168667f56517f101d73d"
+  },
+  "column.time": {
+   "decisions": 4080,
+   "tables": 120,
+   "splits": {
+    "train": 2380,
+    "dev": 1020,
+    "sealed": 680
+   },
+   "rule_right": 3840,
+   "sealed_fingerprint": "adcc0672d899d9d7f3dc1b384904eae354eecab12c9725d7a1cac66354023d70"
+  },
+  "feature.leakage_suspect": {
+   "decisions": 4080,
+   "tables": 120,
+   "splits": {
+    "train": 2380,
+    "dev": 1020,
+    "sealed": 680
+   },
+   "rule_right": 3738,
+   "sealed_fingerprint": "3a02a17779953203889b82f67ef44d8f7b8af4b5ee810e0a6e39be90756ff063"
+  }
+ },
+ "rule": "Invented tables with planted columns: labels are true by construction; scores on them say how a model reads these planted kinds, not real tables. The sealed partition is never used for tuning."
+}

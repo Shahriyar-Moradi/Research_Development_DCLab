@@ -1,0 +1,6 @@
+{
+ "campaign_id": "real_homework_v1",
+ "objective": "29.15: how do the students trained on invented tables, and students trained with real homework too, read real tables (OpenML's declared truths) beside the rule?",
+ "rule": "Three points (column.is_identifier, column.semantic_role, task.framing): the rule, the point's student and a student trained on invented and real train rows, scored on the dev rows of the invented set and of the real set beside the commonest label; the real sealed partitions unread.",
+ "command": "python -m dclab_rnd.real_homework fetch && python -m dclab_rnd.real_homework build && python -m dclab_rnd.real_homework score --write"
+}

@@ -1,0 +1,62 @@
+{
+ "version": "real_v1",
+ "at": "2026-10-19T00:00:00+00:00",
+ "source": "OpenML (26.2's profiled datasets, open licences), each table's data file read once more",
+ "grouping": "one group per OpenML dataset; its split from dclab_core.lake.split_of, the same as in the lake's gold",
+ "tables": 1122,
+ "failed": 13,
+ "decisions": 28425,
+ "left_out": {
+  "a column of a dataset that declares no row identifier (its identifier truth is not said)": 25015,
+  "an ignored column (its role is not said)": 50,
+  "an outcome whose declaration and data disagree": 25,
+  "not a declared feature": 172,
+  "an outcome whose declared type names no task": 9
+ },
+ "states_differing_from_the_lake": 66,
+ "sets": {
+  "column.is_identifier": {
+   "decisions": 1335,
+   "tables": 29,
+   "splits": {
+    "dev": 355,
+    "train": 732,
+    "sealed": 248
+   },
+   "rule_right": 1322,
+   "label_yes": 29,
+   "sealed_fingerprint": "fc152b475b033753d6cc3cad006e4bf8fcbddfd5260da686281f3b55a0aa24c9"
+  },
+  "column.semantic_role": {
+   "decisions": 26350,
+   "tables": 1122,
+   "splits": {
+    "train": 18021,
+    "sealed": 4585,
+    "dev": 3744
+   },
+   "rule_right": 21688,
+   "sealed_fingerprint": "25509b289f3434bc97f2f52fde6a99a6a6bed92da40dcaa38be25de66f84f527"
+  },
+  "task.framing": {
+   "decisions": 740,
+   "tables": 740,
+   "splits": {
+    "train": 519,
+    "sealed": 118,
+    "dev": 103
+   },
+   "rule_right": 715,
+   "sealed_fingerprint": "22c8f7633fccebb45a5f75fbee3d055240768fead35f736d320d0f1311de30e3"
+  }
+ },
+ "limits": [
+  "A dataset's declarations are its uploader's, not checked.",
+  "Identifiers: only datasets that declare a row identifier, few of them; an entity's key there is labelled not one, where the invented sets call it one.",
+  "Roles: a number the uploader declared numeric is numeric, a code among them too, where the invented sets plant codes as categorical_code; an undeclared key keeps its declared type.",
+  "Tasks: a numeric outcome of a few whole values (a rating, a count) is regression as declared; the invented sets plant integer codes as multiclass.",
+  "GLiNER's real scores cover only the decisions it was asked with exactly this input (answered and of, beside each score): not a random part of the rows; states differing from the lake's own are counted in the set's manifest.",
+  "Real names only: no hidden-name twin, as the invented sets have."
+ ],
+ "rule": "Real tables, each truth the dataset's own declaration: scores say how an answerer reads real columns as their uploaders declared them. The sealed partition is never used for tuning."
+}

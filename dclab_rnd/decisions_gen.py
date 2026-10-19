@@ -12,6 +12,7 @@ partition cannot move unseen).
 
     python -m dclab_rnd.decisions_gen [--seeds N] [--rows N] [--out DIR]
     python -m dclab_rnd.decisions_gen --images [--seeds N]   # 26.8: the image points, to generated_images_v1/
+    python -m dclab_rnd.decisions_gen --seeds 12 --first 24 --out research/llm-fine-tuning/experiments/decisions/generated_v1_committee   # 29.16
 """
 
 from __future__ import annotations
@@ -44,13 +45,15 @@ def bases() -> list[tuple[str, Any, str]]:
             ("ticket_routing", ticket_routing.generate(seed=0).tickets, "assigned_team")]
 
 
-def build(seeds: int = 24, rows: int = 1500, out: Path = OUT) -> dict[str, Any]:
+def build(seeds: int = 24, rows: int = 1500, out: Path = OUT, first: int = 0) -> dict[str, Any]:
+    """``first``: the first seed (29.16: a fresh set of new seeds, whose tables no earlier set holds, has a sealed
+    partition of its own)."""
     from dclab_core import benchgen as bg
     from dclab_core import datasets as builders
 
     records, labels, tables = [], [], []
     for name, base, target in bases():
-        for seed in range(seeds):
+        for seed in range(first, first + seeds):
             frame, planted = bg.plant(base, target, seed=seed * 7919 + len(name), rows=rows)
             for hidden in (False, True):
                 table = bg.table_id(name, seed, hidden)
@@ -82,7 +85,7 @@ def build(seeds: int = 24, rows: int = 1500, out: Path = OUT) -> dict[str, Any]:
     summary = {"version": "benchgen_v1", "at": AT, "grouping": "base and seed; a table and its hidden-name twin share a group. The "
                "sealed partition holds new seeds of the same ten bases, not new tables: it measures reading planted kinds "
                "in tables like those trained on.", "seeds": seeds, "rows": rows, "bases": [b[0] for b in bases()],
-               "tables": len(tables), "decisions": len(docs), "sets": sets,
+               **({"first_seed": first} if first else {}), "tables": len(tables), "decisions": len(docs), "sets": sets,
                "rule": "Invented tables with planted columns: labels are true by construction; scores on them say how a "
                        "model reads these planted kinds, not real tables. The sealed partition is never used for tuning."}
     (out / "MANIFEST.json").write_text(json.dumps(summary, indent=1) + "\n", encoding="utf-8")
@@ -270,9 +273,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--images", action="store_true", help="26.8: the image decision sets (generated_images_v1)")
     parser.add_argument("--v2", action="store_true", help="29.2: the table-level homework (generated_v2)")
+    parser.add_argument("--first", type=int, default=0, help="29.16: the first seed of the tables (the committee's fresh set: "
+                                                             "--seeds 12 --first 24 --out .../generated_v1_committee)")
     args = parser.parse_args(argv)
     done = (build_v2(args.seeds or 2400, args.out or V2) if args.v2 else
-            build_images(args.seeds or 40, args.out or IMAGES) if args.images else build(args.seeds or 24, args.rows, args.out or OUT))
+            build_images(args.seeds or 40, args.out or IMAGES) if args.images else build(args.seeds or 24, args.rows, args.out or OUT, first=args.first))
     print(f"{done['tables']} tables, {done['decisions']} decisions")
     for point, s in done["sets"].items():
         print(f"  {point:<26} {s['decisions']:>6} decisions on {s['tables']} tables; splits {s['splits']}; rules right {s['rule_right']}")

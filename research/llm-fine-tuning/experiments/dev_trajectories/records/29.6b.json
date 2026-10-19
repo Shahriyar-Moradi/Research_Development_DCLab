@@ -1,0 +1,43 @@
+{
+ "package": "29.6b",
+ "title": "The small processes' choices recorded where they are made: the reader chosen, every cleaning step kept, a synthetic table's design and an evidence search's first record",
+ "date": "2026-10-19",
+ "request": "Phase 7 (the owner): a student behind every choice; the rest of 29.6: points for the structure reader, each cleaning step accepted or not, the synthetic schema's shape and the retrieval's records, each recorded where it is made with its truth source named.",
+ "spec": "docs/guides/PHASE7_STUDENTS_PLAN.md, package 29.6",
+ "plan": [
+  "Map where each of the four choices is made and what reaches self-play.",
+  "Declare four points with states of codes, flags, counts and measures only, and their truth sources.",
+  "Record each where it is decided, inside a capture that never fails the product path, and test each record read back."
+ ],
+ "decisions": [
+  {"decision": "The structure point is the reader chosen, not a header or a type.", "why": "The reader never detects a header (the first row always is one) and types are decided later by cleaning and the profile: the reader's choice is the decision the structure reader makes."},
+  {"decision": "A cleaning point per step and column it changed, beside the first-step point.", "why": "The first-step point keeps one step per column; later steps on a column and the table-level steps had no record."},
+  {"decision": "A synthetic design's state holds only what was known before it.", "why": "Whether the rules fell back, or how many attempts the model took, is the decision's own outcome: a student would read the answer from it."},
+  {"decision": "Each evidence search is its own subject, never the question's hash.", "why": "A hash of a short question can be reversed by a dictionary, and the ledger never holds a person's words."},
+  {"decision": "The Done when is reported as not met for self-play.", "why": "Self-play reads replicas through studio.data.attach_data and reaches none of the four places."}
+ ],
+ "change": "dclab_core.ledger: STRUCTURE_FORMATS, points data.structure_format, data.cleaning_keep, data.synthetic_shape and evidence.records, thirteen state fields; adapters.conformance: the four unmapped with their reason; capture.structure_read, synthetic_shape, evidence_search and cleaning's per-step records; structure.evidence and info['reader']; clean's names step logs the renamed pairs; retrieval.search names bm25 on its keyword path; CAPTURED texts with their truth sources; the data catalog.",
+ "findings": [
+  {"id": "T1", "source": "test", "severity": "behaviour", "defect": "A JSON upload recorded nothing.", "scenario": "A JSON array file: the reader reported json_records, not one of the readers.", "cause": "The reader refines info['format'] after it reads.", "fix": "info['reader'] keeps the reader chosen; the point records it.", "test": "test_the_reader_chosen_is_recorded_with_what_it_looked_at"},
+  {"id": "T2", "source": "test", "severity": "behaviour", "defect": "A model's synthetic design was refused by the ledger.", "scenario": "used model_role at level 0.", "cause": "A model's answer is used only from level 2.", "fix": "Recorded at level 2: the design acts after the spec's check.", "test": "test_a_synthetic_design_is_recorded_as_whose_it_is"},
+  {"id": "R2", "source": "reviewer", "severity": "latent", "defect": "The synthetic state held its own verdict.", "scenario": "fell_back true always meant the rules' template; attempts without it always meant the model.", "cause": "Outcomes of the design written as its evidence.", "fix": "The state keeps the rows asked and whether a model serves; the model's empty answer and why are an answer.", "test": "test_a_synthetic_design_is_recorded_as_whose_it_is"},
+  {"id": "R3", "source": "reviewer", "severity": "latent", "defect": "An uploader's file name could reach a state.", "scenario": "report.acmecorp gave the suffix acmecorp.", "cause": "Any short alphanumeric suffix was kept.", "fix": "A closed list of the suffixes the reader knows; anything else is other.", "test": "test_the_reader_chosen_is_recorded_with_what_it_looked_at"},
+  {"id": "R4", "source": "reviewer", "severity": "behaviour", "defect": "A renamed column's records carried another column's bands, and a wrong first step.", "scenario": "'Total  Amount' (text with n/a) and 'Total Amount' (integers): after the names step the text column's steps were recorded with the integers' bands.", "cause": "The log names columns by their new names, the raw profile by the old.", "fix": "The names step logs the renamed pairs and the records map new names back to raw ones.", "test": "test_a_renamed_column_keeps_its_own_raw_bands"},
+  {"id": "R5", "source": "reviewer", "severity": "behaviour", "defect": "Every search was recorded with an unknown method.", "scenario": "The keyword path returned hits with no method.", "cause": "retrieval.search returned the index's hits as they were.", "fix": "Every hit on the keyword path names bm25.", "test": ""},
+  {"id": "R6", "source": "reviewer", "severity": "latent", "defect": "The structure evidence could fail an upload already read.", "scenario": "An error in evidence() raised outside the quiet capture.", "cause": "It was computed as an argument at the call site.", "fix": "The capture takes the path and computes it inside.", "test": ""},
+  {"id": "R7", "source": "reviewer", "severity": "latent", "defect": "The options said the answer.", "scenario": "The value was always the first option, in rank order.", "cause": "The options kept the search's order.", "fix": "Options sorted.", "test": "test_an_evidence_search_records_its_first_record_and_never_the_question"},
+  {"id": "R8", "source": "reviewer", "severity": "gap", "defect": "The texts claimed more than was built.", "scenario": "The status said the rest built without saying self-play reaches none; truth sources were in a comment, not in CAPTURED; the cleaning point holds one answer.", "cause": "Written before the review.", "fix": "The status says the Done when is not met for self-play, what is not recorded and why; each CAPTURED text names its truth.", "test": ""},
+  {"id": "R9", "source": "reviewer", "severity": "gap", "defect": "The evidence did not cover every check the reader makes.", "scenario": "A text file opening with a brace: JSON lines and one JSON document had the same state.", "cause": "evidence() omitted the JSON lines check.", "fix": "json_lines added; the whole-file JSON check (it reads the whole file) said not to be there.", "test": ""},
+  {"id": "R11", "source": "reviewer", "severity": "gap", "defect": "The synthetic route, an unknown reader and cleaning without a profile were untested.", "scenario": "Only the capture functions were called directly.", "cause": "Tests written for the captures alone.", "fix": "The synthetic route's two records, an unknown reader refused and the table-size-only states.", "test": "test_synthetic_templates_are_listed_chosen_and_explained"}
+ ],
+ "measurements": [],
+ "outcome": "Four more choices are decisions in the ledger, recorded from real drafts and the evidence page; without homework or self-play paths they wait for labels before any student.",
+ "lessons": [
+  "Before recording a step's columns, check what names the log uses against the profile the state is read from.",
+  "Anything a decision produced is its outcome, never its evidence: keep the state to what was known before."
+ ],
+ "risks": [
+  "data.cleaning_keep holds one answer until a person can revert a step or homework marks one wrong."
+ ],
+ "commits": []
+}

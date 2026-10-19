@@ -4,6 +4,22 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.87.0 (2026-10-19)
+
+Packages 29.15 (real homework from public data), 29.16 (a committee) and the rest of 29.6 (the small processes' points).
+
+- `declared` (new): a public table's declarations read as truths: `identifier` (only the declared row identifier),
+  `role` (the identifier, else the declared type) and `task` (the outcome's declared type with the values the data holds;
+  None where the two disagree), with the reasons a declaration gives no truth.
+- `committee` (new): `weight` (the log-odds of a member's measured accuracy over chance, 0 at chance or unmeasured),
+  `vote` (the heaviest option; a tie to the heaviest member, then the committee's order), `fingerprint` and `Committee`, an
+  answerer whose version is its members' and weights' fingerprint.
+- `ledger` (29.6): four points, 61 in all: `data.structure_format` (a choice among `STRUCTURE_FORMATS`, the structure
+  reader's readers), `data.cleaning_keep` (yes or no), `data.synthetic_shape` and `evidence.records` (values); state
+  fields `suffix`, `signature`, `delimiter`, `cleaning`, `method` (codes), `json_head`, `json_lines`, `log_like`,
+  `model_available`, `weak` (flags), `hits` (a count) and `top_score` (a measure). `adapters.conformance`: the four as this
+  studio's points, unmapped with their reason.
+
 ## 0.86.0 (2026-10-19)
 
 Package 29.12: harder homework where a student fails.

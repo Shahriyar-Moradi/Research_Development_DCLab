@@ -105,7 +105,7 @@ class HomeToReportTest(unittest.TestCase):
         self.assertFalse(set(ledger.CAPTURED) & set(ledger.NOT_DECIDED))
 
     def test_the_path_from_home_to_the_stages_leaves_its_decisions(self):
-        on_home = {"problem.pack", "workflow.template", "workflow.next_question", "data.cleaning_step", "target.column", "task.framing",
+        on_home = {"problem.pack", "workflow.template", "workflow.next_question", "data.cleaning_step", "data.structure_format", "target.column", "task.framing",
                    "column.is_identifier", "feature.leakage_suspect", "column.time", "problem.family", "problem.ready"}
         in_project = {"workflow.move", "split.strategy", "split.folds", "metric.primary", "data.sampling", "column.semantic_role",
                       "features.recipe", "model.family", "tuning.accept", "workflow.stage_approval"}

@@ -1,0 +1,144 @@
+{
+ "package": "29.16",
+ "title": "A committee of the rule, the student and GLiNER, weighted by dev accuracy and examined once on a fresh sealed set: it passes where its student passes and never beats its best member",
+ "date": "2026-10-19",
+ "request": "Phase 7 (the owner): a student behind every choice; 29.16 lets a point be answered by a vote of the rule, its student, GLiNER and a model role, each weighted by its measured accuracy, examined like any student, Claude voting only in evaluation.",
+ "spec": "docs/guides/PHASE7_STUDENTS_PLAN.md, package 29.16",
+ "plan": [
+  "A pure vote in dclab_core: a weight per member from its accuracy, the heaviest option, ties to the heaviest member; the committee an answerer with a versioned fingerprint.",
+  "Weights measured on the v1 dev rows and written with the gate before any sealed row is read.",
+  "A fresh invented set for the exam, since the v1 sealed sets were spent by the students' exams; GLiNER asked its sealed rows; one read per point, every answerer judged by the same gate.",
+  "Claude in a second committee, on a capped sample, for evaluation only."
+ ],
+ "decisions": [
+  {
+   "decision": "The weight is log((k-1)a/(1-a)), zero at chance, an accuracy of 1.0 read as 0.995.",
+   "why": "The weighted majority's weight when wrong options are equally likely: a member no better than chance never votes, and a member always right on finitely many rows is heavy but never infinite."
+  },
+  {
+   "decision": "A fresh set of twelve new seeds, not the v1 sealed rows.",
+   "why": "Each v1 sealed set was read once by its student's exam (DMG-001 to DMG-006): a sealed set is read once, under any gate."
+  },
+  {
+   "decision": "The committee's pass is decision_gate_v1's, the same as a student's; the difference from the best member is reported, not a criterion.",
+   "why": "Examined like any student, by a gate fixed before; a new criterion written now would be chosen knowing the members' dev scores."
+  },
+  {
+   "decision": "Claude only in a second committee, scored on a seeded sample.",
+   "why": "The owner's rule: Claude's answers evaluate and never become homework where the truth is known by construction."
+  },
+  {
+   "decision": "Not adopted.",
+   "why": "On the fresh sealed set the committee equals its student on three points and falls below the best member on three: the members' errors are shared, so a vote adds nothing."
+  }
+ ],
+ "change": "dclab_core/committee.py (weight, vote, fingerprint, Committee; 0.87.0); dclab_rnd/committee.py (plan, exam, the Claude arm, their guards); decisions_gen.build(first=) and --first; the lake answers' source committee; the fresh set generated_v1_committee (its manifest committed); evidence/campaigns/committee_v1 (manifest, CMT-001 to CMT-007); the register's committee per point and the Students page's line.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The committee never beat its best member.",
+   "scenario": "CMT-001 to CMT-006: equal to the student on codes, roles and leaks; 0.0044 and 0.0059 below the perfect rule on groups and identifiers; 0.0309 below the student on time.",
+   "cause": "The rule and GLiNER are wrong on the same time columns, and together they outweigh the student.",
+   "fix": "Reported as the result; the committee not adopted.",
+   "test": ""
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The register showed a committee verdict beside a student that did not sit it.",
+   "scenario": "A refit student would still show the examined committee's pass.",
+   "cause": "The register attached the committee by point without comparing the student version it held.",
+   "fix": "Shown only while the committee holds the registered student.",
+   "test": "test_a_committee_is_shown_only_beside_the_student_it_held"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Weights could be rewritten after a sealed read.",
+   "scenario": "The Claude arm printed every member's sealed accuracy on a sample, then plan --write could change the weights before exam.",
+   "cause": "write_plan overwrote the manifest at any time; the Claude arm had no spent check and could run first.",
+   "fix": "write_plan refused once any result exists; the Claude arm only after its point's exam and once per point and seed; each new result names the plan's hash.",
+   "test": "test_the_exam_reads_its_sealed_rows_once_and_judges_every_answerer_on_them"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "An exam could spend its set on a committee short of a member.",
+   "scenario": "exam before GLiNER answered the fresh sealed rows: a two-member committee examined, the set spent.",
+   "cause": "A missing captured answer was an abstention.",
+   "fix": "Refused, before anything is written, while a member with a weight lacks any sealed answer.",
+   "test": "test_the_exam_reads_its_sealed_rows_once_and_judges_every_answerer_on_them"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The texts said more than the numbers.",
+   "scenario": "GLiNER's role weight called near zero (1.03 against 4.29); the Claude arm's 6 failed requests and its spend were not said.",
+   "cause": "Written from a first reading.",
+   "fix": "The plan's status says both; the Claude document written before the guards records neither, and the plan says so.",
+   "test": ""
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The tie test was not a tie, and the Claude arm and the register were untested.",
+   "scenario": "1.0 against 1.001; nothing checked eval_only or a repeat.",
+   "cause": "Tests written for the vote only.",
+   "fix": "A real tie (2.0 each) going to the heaviest member; the Claude arm's eval_only answers, its order and its repeat refused; the register's version check.",
+   "test": "test_the_heaviest_option_wins_and_a_tie_goes_to_the_heaviest_member"
+  },
+  {
+   "id": "R16",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The Claude arm could pay twice for one sample.",
+   "scenario": "A later point's refusal, after an earlier point's answers were kept and before any result: a rerun asked and paid again.",
+   "cause": "Each point was checked inside the loop of requests, and the repeat guard read only result documents.",
+   "fix": "Every point checked and its sample drawn before the first request; kept answers with the same seed refuse a rerun.",
+   "test": "test_the_exam_reads_its_sealed_rows_once_and_judges_every_answerer_on_them"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "CMT-001 to CMT-006, the committee's sealed exams",
+   "gate": "committee_gate_v1: the committee passes decision_gate_v1 on a point as a student must; every member judged on the same decisions",
+   "fixed_before_run": true,
+   "result": "pass on column.semantic_role (0.9483) and feature.leakage_suspect (0.9706), as their students; fail on the other four",
+   "verdict": "not scored",
+   "cost_eur": 0,
+   "against_gate": "The gate judged each point: the committee passed on two of six; the Done when asks for the six verdicts, which exist.",
+   "limits": [
+    "Invented tables of the same ten bases as v1.",
+    "The weights from v1 dev rows; GLiNER's from the rows it answered."
+   ]
+  },
+  {
+   "name": "CMT-007, Claude on a fair sample",
+   "gate": "none: evaluation only",
+   "fixed_before_run": true,
+   "result": "360 sealed decisions, 60 a point, 6 requests failed: Claude 0.78 to 0.92 by point, the committee with Claude at or below the committee on every point",
+   "verdict": "not scored",
+   "cost_eur": 0.65,
+   "limits": [
+    "60 decisions a point.",
+    "6 failed requests counted wrong."
+   ]
+  }
+ ],
+ "outcome": "The committee is built, examined once and shown in the register; on these points it adds nothing over its student, so the students stay alone.",
+ "lessons": [
+  "A vote helps only where members fail on different cases: measure how often their errors coincide before weighting them.",
+  "Every artefact that can show a sealed score is a read: order and count those reads like the exam itself."
+ ],
+ "risks": [
+  "CMT-001 to CMT-007 were written before the plan's hash was recorded in each result."
+ ],
+ "commits": []
+}

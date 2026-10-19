@@ -279,12 +279,12 @@ def search(question: str, k: int = K, index: Any = None) -> list[dict[str, Any]]
         except ImportError:
             method = "bm25"
     if method == "bm25":
-        return index.search(question, k=k)
+        return [{**h, "method": "bm25"} for h in index.search(question, k=k)]  # 29.6: every hit names its method
     if embedder is not None:
         try:
             top = ranked(question, method, k, index=index, embedder=embedder)
         except Exception:  # noqa: BLE001 — a failed or refused embeddings request leaves keyword search, never an error on the page
-            return index.search(question, k=k)
+            return [{**h, "method": "bm25"} for h in index.search(question, k=k)]
         by_id = {r["record_id"]: r for r in index.records}
         keyword = {h["record_id"]: h.get("score", 0.0) for h in index.search(question, k=4 * k)}
         return [{**by_id[rid], "score": keyword.get(rid, 0.0), "method": method} for rid in top]

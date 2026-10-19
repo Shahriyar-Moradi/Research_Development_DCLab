@@ -1,0 +1,658 @@
+{
+ "id": "CMT-001",
+ "experiment_id": "CMT-001",
+ "campaign_id": "committee_v1",
+ "kind": "committee_exam",
+ "status": "completed",
+ "at": "2026-10-19T01:52:06+00:00",
+ "point": "column.category_code",
+ "committee": "committee@0070380ea2fc",
+ "weights": {
+  "rule": 1.403256,
+  "student": 2.427494,
+  "gliner": 0.080043
+ },
+ "versions": {
+  "rule": "recorded",
+  "student": "column.category_code.boosting@0c0163be0857",
+  "gliner": "gliner2.5-decide"
+ },
+ "gate": {
+  "version": "committee_gate_v1",
+  "fixed": "2026-10-19, before any fresh sealed row was read",
+  "members": [
+   "rule",
+   "student",
+   "gliner"
+  ],
+  "evaluation_only": [
+   "claude"
+  ],
+  "weights": "dclab_core.committee.weight of each member's accuracy on the v1 dev rows (log((k-1)a/(1-a)), 0 at chance; an accuracy of 1.0 read as 0.995)",
+  "exam": "each point's fresh sealed rows read once; every answerer judged by dclab_core.decision_gate (decision_gate_v1's thresholds) on the same decisions",
+  "pass": "the committee passes decision_gate_v1 on a point, as a student must",
+  "compared": "the committee's accuracy minus that of the member with the best dev accuracy, paired by decision, with a 95% interval from a bootstrap drawing whole tables (reported, not a criterion)"
+ },
+ "decision_gate": {
+  "version": "decision_gate_v1",
+  "thresholds": {
+   "scored_share_min": 1.0,
+   "accuracy_lower_min": 0.9,
+   "precision_lower_min": 0.8,
+   "recall_lower_min": 0.8,
+   "margin_lower_min": 0.0,
+   "class_min_rows": 30,
+   "class_recall_min": 0.7,
+   "turned_max": 0.02,
+   "draws": 2000
+  }
+ },
+ "sealed": {
+  "decisions": 400,
+  "tables": 20,
+  "fingerprint": "6a00e1d90e9963f1d71dd54f15822d483145882f22cdcb21ee85e169c7cae2af",
+  "set": "generated_v1_committee"
+ },
+ "gliner_answered": 400,
+ "verdicts": {
+  "rule": {
+   "gate": "decision_gate_v1",
+   "pass": false,
+   "criteria": [
+    {
+     "criterion": "every sealed decision scored",
+     "value": "400/400",
+     "need": "100%",
+     "pass": true
+    },
+    {
+     "criterion": "accuracy, 95% lower bound (by table group)",
+     "value": 0.8,
+     "need": ">= 0.9",
+     "pass": false
+    },
+    {
+     "criterion": "precision, 95% lower bound (by table group)",
+     "value": 0.5,
+     "need": ">= 0.8",
+     "pass": false
+    },
+    {
+     "criterion": "recall, 95% lower bound (by table group)",
+     "value": 0.5,
+     "need": ">= 0.8",
+     "pass": false
+    },
+    {
+     "criterion": "margin over the rule, 95% lower bound (by table group)",
+     "value": 0.0,
+     "need": "> 0.0",
+     "pass": false
+    },
+    {
+     "criterion": "no class it misses",
+     "value": [
+      "True (40/80)"
+     ],
+     "need": "no class with 30+ decisions below recall 0.7",
+     "pass": false
+    },
+    {
+     "criterion": "the rule's right decisions kept",
+     "value": 0.0,
+     "need": "<= 0.02 turned wrong",
+     "pass": true
+    }
+   ],
+   "bounds": {
+    "model": {
+     "accuracy": [
+      0.8,
+      0.8,
+      0.8
+     ],
+     "precision": [
+      0.5,
+      0.5,
+      0.5
+     ],
+     "recall": [
+      0.5,
+      0.5,
+      0.5
+     ]
+    },
+    "rule": {
+     "accuracy": [
+      0.8,
+      0.8,
+      0.8
+     ],
+     "precision": [
+      0.5,
+      0.5,
+      0.5
+     ],
+     "recall": [
+      0.5,
+      0.5,
+      0.5
+     ]
+    },
+    "note": "[value, 95% lower, 95% upper], bootstrap of whole table groups; the gate reads these"
+   },
+   "model": {
+    "n": 400,
+    "accuracy": 0.8,
+    "accuracy_ci": [
+     0.758,
+     0.8363
+    ],
+    "precision": 0.5,
+    "precision_ci": [
+     0.393,
+     0.607
+    ],
+    "recall": 0.5,
+    "recall_ci": [
+     0.393,
+     0.607
+    ],
+    "intervals": "Wilson, 95%",
+    "answered": 400,
+    "per_class": {}
+   },
+   "rule": {
+    "n": 400,
+    "accuracy": 0.8,
+    "accuracy_ci": [
+     0.758,
+     0.8363
+    ],
+    "precision": 0.5,
+    "precision_ci": [
+     0.393,
+     0.607
+    ],
+    "recall": 0.5,
+    "recall_ci": [
+     0.393,
+     0.607
+    ],
+    "intervals": "Wilson, 95%",
+    "answered": 400,
+    "per_class": {}
+   },
+   "margin": {
+    "difference": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+   },
+   "turned": [
+    0,
+    320
+   ],
+   "groups": 20,
+   "decisions": 400,
+   "not_yet": "Blind cases (the main product's R3 asks for them): the generated sets have benchmark labels only; decision_gate_v2 adds the blind labels of 22.4's disagreements.",
+   "demotion": {
+    "accuracy_lower_below": 0.85,
+    "margin_lower_below": -0.02,
+    "turned_above": 0.05
+   },
+   "scope": "Evidence about this model on these generated decisions, not a claim that it is ready for production."
+  },
+  "student": {
+   "gate": "decision_gate_v1",
+   "pass": false,
+   "criteria": [
+    {
+     "criterion": "every sealed decision scored",
+     "value": "400/400",
+     "need": "100%",
+     "pass": true
+    },
+    {
+     "criterion": "accuracy, 95% lower bound (by table group)",
+     "value": 0.9175,
+     "need": ">= 0.9",
+     "pass": true
+    },
+    {
+     "criterion": "precision, 95% lower bound (by table group)",
+     "value": 0.7802,
+     "need": ">= 0.8",
+     "pass": false
+    },
+    {
+     "criterion": "recall, 95% lower bound (by table group)",
+     "value": 0.7997,
+     "need": ">= 0.8",
+     "pass": false
+    },
+    {
+     "criterion": "margin over the rule, 95% lower bound (by table group)",
+     "value": 0.1175,
+     "need": "> 0.0",
+     "pass": true
+    },
+    {
+     "criterion": "no class it misses",
+     "value": "none",
+     "need": "no class with 30+ decisions below recall 0.7",
+     "pass": true
+    },
+    {
+     "criterion": "the rule's right decisions kept",
+     "value": 0.0063,
+     "need": "<= 0.02 turned wrong",
+     "pass": true
+    }
+   ],
+   "bounds": {
+    "model": {
+     "accuracy": [
+      0.93,
+      0.9175,
+      0.94
+     ],
+     "precision": [
+      0.7955,
+      0.7802,
+      0.8148
+     ],
+     "recall": [
+      0.875,
+      0.7997,
+      0.95
+     ]
+    },
+    "rule": {
+     "accuracy": [
+      0.8,
+      0.8,
+      0.8
+     ],
+     "precision": [
+      0.5,
+      0.5,
+      0.5
+     ],
+     "recall": [
+      0.5,
+      0.5,
+      0.5
+     ]
+    },
+    "note": "[value, 95% lower, 95% upper], bootstrap of whole table groups; the gate reads these"
+   },
+   "model": {
+    "n": 400,
+    "accuracy": 0.93,
+    "accuracy_ci": [
+     0.9007,
+     0.9511
+    ],
+    "precision": 0.7955,
+    "precision_ci": [
+     0.6997,
+     0.8665
+    ],
+    "recall": 0.875,
+    "recall_ci": [
+     0.785,
+     0.9307
+    ],
+    "intervals": "Wilson, 95%",
+    "answered": 400,
+    "per_class": {}
+   },
+   "rule": {
+    "n": 400,
+    "accuracy": 0.8,
+    "accuracy_ci": [
+     0.758,
+     0.8363
+    ],
+    "precision": 0.5,
+    "precision_ci": [
+     0.393,
+     0.607
+    ],
+    "recall": 0.5,
+    "recall_ci": [
+     0.393,
+     0.607
+    ],
+    "intervals": "Wilson, 95%",
+    "answered": 400,
+    "per_class": {}
+   },
+   "margin": {
+    "difference": 0.13,
+    "lower": 0.1175,
+    "upper": 0.14
+   },
+   "turned": [
+    2,
+    320
+   ],
+   "groups": 20,
+   "decisions": 400,
+   "not_yet": "Blind cases (the main product's R3 asks for them): the generated sets have benchmark labels only; decision_gate_v2 adds the blind labels of 22.4's disagreements.",
+   "demotion": {
+    "accuracy_lower_below": 0.85,
+    "margin_lower_below": -0.02,
+    "turned_above": 0.05
+   },
+   "scope": "Evidence about this model on these generated decisions, not a claim that it is ready for production."
+  },
+  "gliner": {
+   "gate": "decision_gate_v1",
+   "pass": false,
+   "criteria": [
+    {
+     "criterion": "every sealed decision scored",
+     "value": "400/400",
+     "need": "100%",
+     "pass": true
+    },
+    {
+     "criterion": "accuracy, 95% lower bound (by table group)",
+     "value": 0.53,
+     "need": ">= 0.9",
+     "pass": false
+    },
+    {
+     "criterion": "precision, 95% lower bound (by table group)",
+     "value": 0.046,
+     "need": ">= 0.8",
+     "pass": false
+    },
+    {
+     "criterion": "recall, 95% lower bound (by table group)",
+     "value": 0.05,
+     "need": ">= 0.8",
+     "pass": false
+    },
+    {
+     "criterion": "margin over the rule, 95% lower bound (by table group)",
+     "value": -0.27,
+     "need": "> 0.0",
+     "pass": false
+    },
+    {
+     "criterion": "no class it misses",
+     "value": [
+      "False (223/320)",
+      "True (10/80)"
+     ],
+     "need": "no class with 30+ decisions below recall 0.7",
+     "pass": false
+    },
+    {
+     "criterion": "the rule's right decisions kept",
+     "value": 0.4219,
+     "need": "<= 0.02 turned wrong",
+     "pass": false
+    }
+   ],
+   "bounds": {
+    "model": {
+     "accuracy": [
+      0.5825,
+      0.53,
+      0.6325
+     ],
+     "precision": [
+      0.0935,
+      0.046,
+      0.1458
+     ],
+     "recall": [
+      0.125,
+      0.05,
+      0.2
+     ]
+    },
+    "rule": {
+     "accuracy": [
+      0.8,
+      0.8,
+      0.8
+     ],
+     "precision": [
+      0.5,
+      0.5,
+      0.5
+     ],
+     "recall": [
+      0.5,
+      0.5,
+      0.5
+     ]
+    },
+    "note": "[value, 95% lower, 95% upper], bootstrap of whole table groups; the gate reads these"
+   },
+   "model": {
+    "n": 400,
+    "accuracy": 0.5825,
+    "accuracy_ci": [
+     0.5336,
+     0.6298
+    ],
+    "precision": 0.0935,
+    "precision_ci": [
+     0.0516,
+     0.1635
+    ],
+    "recall": 0.125,
+    "recall_ci": [
+     0.0693,
+     0.215
+    ],
+    "intervals": "Wilson, 95%",
+    "answered": 400,
+    "per_class": {}
+   },
+   "rule": {
+    "n": 400,
+    "accuracy": 0.8,
+    "accuracy_ci": [
+     0.758,
+     0.8363
+    ],
+    "precision": 0.5,
+    "precision_ci": [
+     0.393,
+     0.607
+    ],
+    "recall": 0.5,
+    "recall_ci": [
+     0.393,
+     0.607
+    ],
+    "intervals": "Wilson, 95%",
+    "answered": 400,
+    "per_class": {}
+   },
+   "margin": {
+    "difference": -0.2175,
+    "lower": -0.27,
+    "upper": -0.1675
+   },
+   "turned": [
+    135,
+    320
+   ],
+   "groups": 20,
+   "decisions": 400,
+   "not_yet": "Blind cases (the main product's R3 asks for them): the generated sets have benchmark labels only; decision_gate_v2 adds the blind labels of 22.4's disagreements.",
+   "demotion": {
+    "accuracy_lower_below": 0.85,
+    "margin_lower_below": -0.02,
+    "turned_above": 0.05
+   },
+   "scope": "Evidence about this model on these generated decisions, not a claim that it is ready for production."
+  },
+  "committee": {
+   "gate": "decision_gate_v1",
+   "pass": false,
+   "criteria": [
+    {
+     "criterion": "every sealed decision scored",
+     "value": "400/400",
+     "need": "100%",
+     "pass": true
+    },
+    {
+     "criterion": "accuracy, 95% lower bound (by table group)",
+     "value": 0.9175,
+     "need": ">= 0.9",
+     "pass": true
+    },
+    {
+     "criterion": "precision, 95% lower bound (by table group)",
+     "value": 0.7802,
+     "need": ">= 0.8",
+     "pass": false
+    },
+    {
+     "criterion": "recall, 95% lower bound (by table group)",
+     "value": 0.7997,
+     "need": ">= 0.8",
+     "pass": false
+    },
+    {
+     "criterion": "margin over the rule, 95% lower bound (by table group)",
+     "value": 0.1175,
+     "need": "> 0.0",
+     "pass": true
+    },
+    {
+     "criterion": "no class it misses",
+     "value": "none",
+     "need": "no class with 30+ decisions below recall 0.7",
+     "pass": true
+    },
+    {
+     "criterion": "the rule's right decisions kept",
+     "value": 0.0063,
+     "need": "<= 0.02 turned wrong",
+     "pass": true
+    }
+   ],
+   "bounds": {
+    "model": {
+     "accuracy": [
+      0.93,
+      0.9175,
+      0.94
+     ],
+     "precision": [
+      0.7955,
+      0.7802,
+      0.8148
+     ],
+     "recall": [
+      0.875,
+      0.7997,
+      0.95
+     ]
+    },
+    "rule": {
+     "accuracy": [
+      0.8,
+      0.8,
+      0.8
+     ],
+     "precision": [
+      0.5,
+      0.5,
+      0.5
+     ],
+     "recall": [
+      0.5,
+      0.5,
+      0.5
+     ]
+    },
+    "note": "[value, 95% lower, 95% upper], bootstrap of whole table groups; the gate reads these"
+   },
+   "model": {
+    "n": 400,
+    "accuracy": 0.93,
+    "accuracy_ci": [
+     0.9007,
+     0.9511
+    ],
+    "precision": 0.7955,
+    "precision_ci": [
+     0.6997,
+     0.8665
+    ],
+    "recall": 0.875,
+    "recall_ci": [
+     0.785,
+     0.9307
+    ],
+    "intervals": "Wilson, 95%",
+    "answered": 400,
+    "per_class": {}
+   },
+   "rule": {
+    "n": 400,
+    "accuracy": 0.8,
+    "accuracy_ci": [
+     0.758,
+     0.8363
+    ],
+    "precision": 0.5,
+    "precision_ci": [
+     0.393,
+     0.607
+    ],
+    "recall": 0.5,
+    "recall_ci": [
+     0.393,
+     0.607
+    ],
+    "intervals": "Wilson, 95%",
+    "answered": 400,
+    "per_class": {}
+   },
+   "margin": {
+    "difference": 0.13,
+    "lower": 0.1175,
+    "upper": 0.14
+   },
+   "turned": [
+    2,
+    320
+   ],
+   "groups": 20,
+   "decisions": 400,
+   "not_yet": "Blind cases (the main product's R3 asks for them): the generated sets have benchmark labels only; decision_gate_v2 adds the blind labels of 22.4's disagreements.",
+   "demotion": {
+    "accuracy_lower_below": 0.85,
+    "margin_lower_below": -0.02,
+    "turned_above": 0.05
+   },
+   "scope": "Evidence about this model on these generated decisions, not a claim that it is ready for production."
+  }
+ },
+ "accuracy": {
+  "rule": 0.8,
+  "student": 0.93,
+  "gliner": 0.5825,
+  "committee": 0.93
+ },
+ "against_best_member": {
+  "member": "student",
+  "difference": 0.0,
+  "lower": 0.0,
+  "upper": 0.0
+ },
+ "result": "fail",
+ "rule": "One read of a point's fresh sealed decisions (new seeds of invented tables): the rule, the student, GLiNER and their committee judged by a gate fixed before; evidence about planted kinds, not about real tables nor readiness."
+}

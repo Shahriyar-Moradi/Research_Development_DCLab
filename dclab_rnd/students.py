@@ -94,6 +94,45 @@ def verdicts() -> dict[str, dict[str, Any]]:
     return out
 
 
+def real() -> dict[str, dict[str, Any]]:
+    """29.15: per point, the latest scores on real tables (``real_homework``, OpenML's declared truths): the student that
+    was scored, its dev accuracy on the invented set and on the real one beside the rule's, and the student trained with
+    real homework, from ``evidence/campaigns/real_homework_v1``. Dev rows only: the real sealed partitions are unread."""
+    paths = sorted((CAMPAIGNS / "real_homework_v1" / "results").glob("RHW-*.json"))
+    doc = _json(paths[-1]) if paths else None
+    out: dict[str, dict[str, Any]] = {}
+    for point, e in ((doc or {}).get("points") or {}).items():
+        if not isinstance(e, dict) or e.get("skipped"):
+            continue
+        acc = lambda part, who: ((e.get(part) or {}).get(who) or {}).get("accuracy")  # noqa: E731
+        out[point] = {"id": doc.get("id"), "answerer": e.get("student"), "tables": (e.get("real") or {}).get("tables"),
+                      "invented_dev_accuracy": acc("invented", "student"), "real_dev_accuracy": acc("real", "student"),
+                      "rule_real_dev_accuracy": acc("real", "rule"), "with_real_homework": e.get("with_real_homework"),
+                      "with_real_homework_invented_dev": acc("invented", "with_real_homework"), "with_real_homework_real_dev": acc("real", "with_real_homework"),
+                      # every score beside always answering the commonest label, and a yes/no point's recall of yes
+                      "commonest_real_dev_accuracy": ((e.get("real") or {}).get("baseline") or {}).get("commonest_accuracy"),
+                      "real_dev_recall": (((e.get("real") or {}).get("student") or {}).get("recall"))}
+    return out
+
+
+def committees() -> dict[str, dict[str, Any]]:
+    """29.16: per point, its committee's sealed exam (``committee``: the rule, the student and GLiNER voting by their dev
+    accuracy), read from ``evidence/campaigns/committee_v1``: the committee, its verdict and its sealed accuracy beside
+    each member's on the same decisions."""
+    out: dict[str, dict[str, Any]] = {}
+    for path in sorted((CAMPAIGNS / "committee_v1" / "results").glob("CMT-*.json")):
+        doc = _json(path) or {}
+        if not doc.get("point"):
+            continue
+        v = (doc.get("verdicts") or {}).get("committee") or {}
+        failed = [c.get("criterion", "").split(",")[0] for c in v.get("criteria") or [] if not c.get("pass")]
+        out[doc["point"]] = {"id": doc.get("id"), "answerer": doc.get("committee"), "pass": doc.get("result") == "pass", "failed": failed,
+                             "student": (doc.get("versions") or {}).get("student"),  # the student version the committee held
+                             "sealed_decisions": (doc.get("sealed") or {}).get("decisions"), "accuracy": doc.get("accuracy"),
+                             "against_best_member": doc.get("against_best_member")}
+    return out
+
+
 def _ledger_counts(ledger: Any) -> tuple[Counter, dict[str, Counter]]:
     """Decisions per point, and labels per point by source, from a workspace's ledger (empty without one)."""
     from dclab_core.ledger import current_labels
@@ -168,7 +207,7 @@ def register(ledger: Any = None, routing_doc: Optional[dict[str, Any]] = None, m
     from .ledger import CAPTURED, NOT_DECIDED
     from .ledger.routing import MIN_LABELS, entry
 
-    hw, st, vd, mine = homework(), students(), verdicts(), own(home)
+    hw, st, vd, mine, tables, panels = homework(), students(), verdicts(), own(home), real(), committees()
     recorded, labelled = _ledger_counts(ledger)
     rows = []
     for key, point in POINTS.items():
@@ -190,7 +229,11 @@ def register(ledger: Any = None, routing_doc: Optional[dict[str, Any]] = None, m
                # 29.10: people's answers to the notes (they saw both answers): may demote a student, never count toward acting
                "people_disagreements": shadow.get("exposed_disagreements"), "people_say_student_wrong": shadow.get("exposed_student_wrong"),
                "needed_to_act": max(0, MIN_LABELS - int(shadow.get("labelled_disagreements") or 0)) if name else None,
-               "own": mine.get(key)}
+               "own": mine.get(key),
+               # 29.15: the student's scores on real tables, only when this version was the one scored
+               "real": tables[key] if key in tables and tables[key].get("answerer") == name and name else None,
+               # 29.16: one more answerer, examined like a student: only while it holds this student (a refit is another committee)
+               "committee": panels[key] if key in panels and panels[key].get("student") == name and name else None}
         row["status"] = status_of(row)
         rows.append(row)
     counts = Counter(r["status"].split(",")[0] for r in rows)
@@ -220,12 +263,12 @@ def read(ledger: Any = None, routing_doc: Optional[dict[str, Any]] = None, measu
 
 
 def table(reg: dict[str, Any]) -> str:
-    lines = [f"{'point':<28} {'kind':<9} {'recorded':>8} {'homework':>8} {'sealed':>6} {'student':<9} {'dev':>6} {'rule':>6} {'exam':<5} status"]
+    lines = [f"{'point':<28} {'kind':<9} {'recorded':>8} {'homework':>8} {'sealed':>6} {'student':<9} {'dev':>6} {'rule':>6} {'real':>6} {'exam':<5} status"]
     for r in reg["items"]:
         hw, s, v = r.get("homework") or {}, r.get("student") or {}, r.get("verdict") or {}
         acc = lambda x: "—" if x is None else f"{x:.3f}"  # noqa: E731
         lines.append(f"{r['point']:<28} {r['kind']:<9} {r['recorded']:>8} {hw.get('decisions', 0):>8} {hw.get('sealed', 0):>6} {s.get('family') or '—':<9} "
-                     f"{acc(s.get('dev_accuracy')):>6} {acc(s.get('rule_accuracy')):>6} {('pass' if v.get('pass') else 'fail') if v else '—':<5} {r['status']}")
+                     f"{acc(s.get('dev_accuracy')):>6} {acc(s.get('rule_accuracy')):>6} {acc((r.get('real') or {}).get('real_dev_accuracy')):>6} {('pass' if v.get('pass') else 'fail') if v else '—':<5} {r['status']}")
     c = reg["summary"]
     lines.append(f"{c['points']} points: {c['with_homework']} with homework, {c['with_student']} with a student, {c['passed']} passed their exam, "
                  f"{c['serving']} serving above whisper, {c['not_decided']} not decided")

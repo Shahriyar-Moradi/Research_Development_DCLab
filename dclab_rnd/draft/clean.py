@@ -56,7 +56,8 @@ def clean(frame: pd.DataFrame) -> tuple[pd.DataFrame, list[Entry]]:
         if entry and entry["changed"]:
             log.append({"step": entry["step"], "title": entry["title"], "detail": entry["detail"],
                         "columns": [str(c) for c in entry["columns"]], "rows_before": rows_before,
-                        "rows_after": int(len(out)), "changed": int(entry["changed"])})
+                        "rows_after": int(len(out)), "changed": int(entry["changed"]),
+                        **({"renamed": entry["renamed"]} if entry.get("renamed") else {})})  # 29.6: the names step's old and new names
     return out, log
 
 
@@ -102,6 +103,7 @@ def _step_names(frame: pd.DataFrame) -> tuple[pd.DataFrame, Entry | None]:
     frame.columns = new
     detail = "; ".join(f"{str(o)!r} → {n!r}" for o, n in changed[:5]) + (f"; and {len(changed) - 5} more" if len(changed) > 5 else "")
     return frame, {"step": "names", "title": "Tidied column names", "columns": [n for _, n in changed], "changed": len(changed),
+                   "renamed": [[str(o), n] for o, n in changed],  # 29.6: the raw name of each column renamed, for its records
                    "detail": f"Removed extra spaces and made names unique: {detail}."}
 
 

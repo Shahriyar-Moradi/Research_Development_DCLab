@@ -1,0 +1,221 @@
+{
+ "campaign_id": "committee_v1",
+ "objective": "29.16: does a vote of the rule, the student and GLiNER, each weighted by its dev accuracy, pass the students' sealed gate, and beat its best member, on the six table points?",
+ "rule": "Weights from the v1 dev rows, written with the gate before any fresh sealed row was read; one read of each point's fresh sealed set (generated_v1_committee, twelve new seeds); every answerer judged by decision_gate_v1 on the same decisions; Claude only in a second committee, on a seeded sample, for evaluation.",
+ "command": "python -m dclab_rnd.committee plan --write | exam --yes | claude --yes --cap-eur N",
+ "written": "2026-10-19T01:45:03+00:00",
+ "gate": {
+  "version": "committee_gate_v1",
+  "fixed": "2026-10-19, before any fresh sealed row was read",
+  "members": [
+   "rule",
+   "student",
+   "gliner"
+  ],
+  "evaluation_only": [
+   "claude"
+  ],
+  "weights": "dclab_core.committee.weight of each member's accuracy on the v1 dev rows (log((k-1)a/(1-a)), 0 at chance; an accuracy of 1.0 read as 0.995)",
+  "exam": "each point's fresh sealed rows read once; every answerer judged by dclab_core.decision_gate (decision_gate_v1's thresholds) on the same decisions",
+  "pass": "the committee passes decision_gate_v1 on a point, as a student must",
+  "compared": "the committee's accuracy minus that of the member with the best dev accuracy, paired by decision, with a 95% interval from a bootstrap drawing whole tables (reported, not a criterion)"
+ },
+ "points": {
+  "column.category_code": {
+   "dev_rows": 740,
+   "options": 2,
+   "dev_accuracy": {
+    "rule": 0.8027,
+    "student": 0.9189,
+    "gliner": 0.52
+   },
+   "weights": {
+    "rule": 1.403256,
+    "student": 2.427494,
+    "gliner": 0.080043
+   },
+   "versions": {
+    "rule": "recorded",
+    "student": "column.category_code.boosting@0c0163be0857",
+    "gliner": "gliner2.5-decide"
+   },
+   "gliner_answered": 425,
+   "committee": "committee@0070380ea2fc",
+   "committee_dev_accuracy": 0.9189,
+   "best_member": "student",
+   "claude_dev_accuracy_on_its_sample": 0.87,
+   "claude_sample": 300,
+   "weights_with_claude": {
+    "rule": 1.403256,
+    "student": 2.427494,
+    "gliner": 0.080043,
+    "claude": 1.900959
+   },
+   "committee_with_claude": "committee+claude@e2c6f380641b"
+  },
+  "column.group": {
+   "dev_rows": 1258,
+   "options": 2,
+   "dev_accuracy": {
+    "rule": 1.0,
+    "student": 0.9921,
+    "gliner": 0.9225
+   },
+   "weights": {
+    "rule": 5.293305,
+    "student": 4.832961,
+    "gliner": 2.476809
+   },
+   "versions": {
+    "rule": "recorded",
+    "student": "column.group.boosting@6059027e9cc1",
+    "gliner": "gliner2.5-decide"
+   },
+   "gliner_answered": 710,
+   "committee": "committee@2f24439d738c",
+   "committee_dev_accuracy": 0.9921,
+   "best_member": "rule",
+   "claude_dev_accuracy_on_its_sample": 0.85,
+   "claude_sample": 300,
+   "weights_with_claude": {
+    "rule": 5.293305,
+    "student": 4.832961,
+    "gliner": 2.476809,
+    "claude": 1.734601
+   },
+   "committee_with_claude": "committee+claude@2ad679943822"
+  },
+  "column.is_identifier": {
+   "dev_rows": 1258,
+   "options": 2,
+   "dev_accuracy": {
+    "rule": 1.0,
+    "student": 0.9905,
+    "gliner": 0.7958
+   },
+   "weights": {
+    "rule": 5.293305,
+    "student": 4.646918,
+    "gliner": 1.360248
+   },
+   "versions": {
+    "rule": "recorded",
+    "student": "column.is_identifier.boosting@28c44957214c",
+    "gliner": "gliner2.5-decide"
+   },
+   "gliner_answered": 710,
+   "committee": "committee@52e0d9f93dee",
+   "committee_dev_accuracy": 0.9913,
+   "best_member": "rule",
+   "claude_dev_accuracy_on_its_sample": 0.78,
+   "claude_sample": 300,
+   "weights_with_claude": {
+    "rule": 5.293305,
+    "student": 4.646918,
+    "gliner": 1.360248,
+    "claude": 1.265666
+   },
+   "committee_with_claude": "committee+claude@d23081cd3e16"
+  },
+  "column.semantic_role": {
+   "dev_rows": 1110,
+   "options": 6,
+   "dev_accuracy": {
+    "rule": 0.8351,
+    "student": 0.936,
+    "gliner": 0.3595
+   },
+   "weights": {
+    "rule": 3.23165,
+    "student": 4.29217,
+    "gliner": 1.031903
+   },
+   "versions": {
+    "rule": "recorded",
+    "student": "column.semantic_role.boosting@73710656cf1b",
+    "gliner": "gliner2.5-decide"
+   },
+   "gliner_answered": 637,
+   "committee": "committee@97a25d3760c6",
+   "committee_dev_accuracy": 0.936,
+   "best_member": "student",
+   "claude_dev_accuracy_on_its_sample": 0.7367,
+   "claude_sample": 300,
+   "weights_with_claude": {
+    "rule": 3.23165,
+    "student": 4.29217,
+    "gliner": 1.031903,
+    "claude": 2.638325
+   },
+   "committee_with_claude": "committee+claude@6175b9fceeb7"
+  },
+  "column.time": {
+   "dev_rows": 1258,
+   "options": 2,
+   "dev_accuracy": {
+    "rule": 0.9412,
+    "student": 0.973,
+    "gliner": 0.9497
+   },
+   "weights": {
+    "rule": 2.773014,
+    "student": 3.584547,
+    "gliner": 2.938141
+   },
+   "versions": {
+    "rule": "recorded",
+    "student": "column.time.boosting@1186fbf4bce4",
+    "gliner": "gliner2.5-decide"
+   },
+   "gliner_answered": 715,
+   "committee": "committee@00901b5681e1",
+   "committee_dev_accuracy": 0.9706,
+   "best_member": "student",
+   "claude_dev_accuracy_on_its_sample": 0.8311,
+   "claude_sample": 302,
+   "weights_with_claude": {
+    "rule": 2.773014,
+    "student": 3.584547,
+    "gliner": 2.938141,
+    "claude": 1.593443
+   },
+   "committee_with_claude": "committee+claude@47bf2625938e"
+  },
+  "feature.leakage_suspect": {
+   "dev_rows": 1258,
+   "options": 2,
+   "dev_accuracy": {
+    "rule": 0.9213,
+    "student": 0.9706,
+    "gliner": 0.3562
+   },
+   "weights": {
+    "rule": 2.460143,
+    "student": 3.49692,
+    "gliner": 0.0
+   },
+   "versions": {
+    "rule": "recorded",
+    "student": "feature.leakage_suspect.boosting@32e3693f7eda",
+    "gliner": "gliner2.5-decide"
+   },
+   "gliner_answered": 713,
+   "committee": "committee@a54c4adc8b9b",
+   "committee_dev_accuracy": 0.9706,
+   "best_member": "student",
+   "claude_dev_accuracy_on_its_sample": 0.7411,
+   "claude_sample": 309,
+   "weights_with_claude": {
+    "rule": 2.460143,
+    "student": 3.49692,
+    "gliner": 0.0,
+    "claude": 1.051694
+   },
+   "committee_with_claude": "committee+claude@55b7f42b5e0c"
+  }
+ },
+ "limits": [
+  "The committee's dev accuracy is measured on the rows its weights came from.",
+  "Claude's dev accuracy comes from 29.17's sample, chosen hard first: lower than its rate."
+ ]
+}

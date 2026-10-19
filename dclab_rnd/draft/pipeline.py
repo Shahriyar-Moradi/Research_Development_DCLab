@@ -136,6 +136,9 @@ def _run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=Non
         # DCLAB_MODEL_READS_SAMPLE_LINES=0: a file no built-in reader fits is read line by line and nothing is sent
         reader = client if os.environ.get("DCLAB_MODEL_READS_SAMPLE_LINES", "1") != "0" else None
         frame, info = structure.to_table(path, client=reader)
+        from ..ledger import capture  # 29.6: the reader chosen, with what it looked at
+
+        capture.structure_read(draft_id, path, info.get("reader"))
         set_asset(store, draft_id, asset_id, status="cleaning", format=info.get("format"), structure=info)
         store.emit(draft_id, "pipeline", {"asset": asset_id, "step": "structured", "text": _structured_text(info), "info": info})
 
@@ -144,9 +147,7 @@ def _run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=Non
 
         raw = profile_table(frame.sample(min(len(frame), 5000), random_state=0) if len(frame) > 5000 else frame)  # 29.2: the raw columns' bands
         frame, log = clean.clean(frame)
-        from ..ledger import capture  # 19.7: each cleaning step applied
-
-        capture.cleaning(draft_id, log, int(len(frame)), profile=raw)
+        capture.cleaning(draft_id, log, int(len(frame)), profile=raw)  # 19.7: each cleaning step applied; 29.6: each kept or not
         codes = clean.category_code_columns(frame)
         store.emit(draft_id, "pipeline", {"asset": asset_id, "step": "cleaned",
                                           "text": f"{len(log)} cleaning step{'s' if len(log) != 1 else ''} applied" if log else "No cleaning needed",

@@ -350,7 +350,7 @@
    "what": "A team's walk, one row per hand-off: the board before the node, the node and what it did, the board after, with the walk's status and the models it asked; the person's words redacted, only lines written where training was allowed (28.9)."
   }
  ],
- "dclab_core": "0.86.0",
+ "dclab_core": "0.87.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -464,6 +464,17 @@
    ]
   },
   {
+   "about": "Is this cleaning step, applied to this column, kept?",
+   "answer": "noul",
+   "decided_in": "draft/pipeline.py: every cleaning step draft/clean.py applied, per column it changed, kept by the rules (truth: the construction's, a dirty table's planted traps; one answer until a step can be reverted)",
+   "kind": "technical",
+   "main_product": null,
+   "point": "data.cleaning_keep",
+   "subjects": [
+    "column"
+   ]
+  },
+  {
    "about": "Which cleaning step applies?",
    "answer": "choice",
    "decided_in": "draft/clean.py: each cleaning step applied",
@@ -483,6 +494,39 @@
    "point": "data.sampling",
    "subjects": [
     "project"
+   ]
+  },
+  {
+   "about": "Which reader turns an uploaded file into a table?",
+   "answer": "choice",
+   "decided_in": "draft/pipeline.py: the reader draft/structure.py chose for an uploaded file, with what it looked at (truth: the construction's, a file of known format)",
+   "kind": "technical",
+   "main_product": null,
+   "point": "data.structure_format",
+   "subjects": [
+    "draft"
+   ]
+  },
+  {
+   "about": "Which design does a synthetic table follow: a template's, or one the model wrote?",
+   "answer": "value",
+   "decided_in": "draft/work.py simulate: the template a person picked, the model's own design, or the rules' fallback (truth: the people's, whether the draft goes on with it)",
+   "kind": "technical",
+   "main_product": null,
+   "point": "data.synthetic_shape",
+   "subjects": [
+    "draft"
+   ]
+  },
+  {
+   "about": "Which evidence record answers the question best?",
+   "answer": "value",
+   "decided_in": "agentic/pages/evidence.py ask: the record the evidence search ranked first, with how many came back (truth: the people's, or the retrieval set's 60 questions)",
+   "kind": "technical",
+   "main_product": null,
+   "point": "evidence.records",
+   "subjects": [
+    "conversation"
    ]
   },
   {

@@ -793,6 +793,25 @@ product's agent asks the critic once its brief is confirmed and before it plans,
 question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
 whether to go on, recording the decision.
 
+## A committee of answerers (29.16, dclab-core 0.87.0)
+
+The library's: `dclab_core.committee.Committee` answers a decision by a vote of answerers (a rule, a classifier, another
+model), each weighted by its measured accuracy on the point (`weight`), its version the fingerprint of its members and
+weights. Where it goes there: the main product's R3 could register a committee as one more `Answerer` through
+`adapters/main_product_r3.py` once a committee passes a sealed exam better than its best member; on the six table points
+here it did not (CMT-001 to CMT-006), so nothing there should route to one yet.
+
+## Truths from a public table's declarations (29.15, dclab-core 0.87.0)
+
+The library's: `dclab_core.declared` reads a public dataset's declarations as decision truths (the row identifier, only in
+a dataset that declares one; each column's role from its declared type; the outcome's task from its type and the values
+the data holds) and says where a declaration is no truth (an outcome declared numeric with two values, a type that names
+no task, an ignored column). Where it goes there: if the main product builds homework for its decision models from public
+catalogs, its labels should come from these functions; the states stay each repository's own (here `datacard.card_of`'s
+bands). Nothing there calls it today. Here, the real-table sets (`real_homework`) use it; the lake's own OpenML samples
+(26.2) still keep their first reading (every dataset's columns for identifiers, the declared levels for the task), so one
+table's truth can differ between the lake's gold and `real_v1` until the lake is rebuilt on these functions.
+
 ## Labels asked for, kept apart from estimates (29.11, dclab-core 0.85.0)
 
 The library's: `dclab_core.active.select_mixed` orders decisions for a person to label (the least sure and a random one in

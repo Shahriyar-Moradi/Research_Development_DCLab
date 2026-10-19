@@ -944,6 +944,10 @@ class ApiTests(unittest.TestCase):
         self.assertIn("as you chose", second["template_note"])
         notes = [e["data"]["note"] for e in self.client.app.state.drafts.events(d["id"]) if e["kind"] == "status" and e["data"].get("note")]
         self.assertEqual(sum("template" in n for n in notes), 2)
+        # 29.6: each design recorded where it was made, whose it is, with only what was known before it
+        shapes = self.client.app.state.services.ledger.records(point="data.synthetic_shape", draft=d["id"])
+        self.assertEqual(sorted((r.value_used, r.used) for r in shapes), [("churn", "rule"), ("fraud", "person")])
+        self.assertTrue(all(set(r.state) <= {"rows", "model_available"} and r.state["model_available"] is False for r in shapes))
 
     def test_synthetic_data_is_labelled(self):
         c = self.client

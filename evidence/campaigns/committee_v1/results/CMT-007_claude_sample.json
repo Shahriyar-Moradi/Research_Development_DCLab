@@ -1,0 +1,326 @@
+{
+ "id": "CMT-007",
+ "experiment_id": "CMT-007",
+ "campaign_id": "committee_v1",
+ "kind": "committee_claude_sample",
+ "status": "completed",
+ "at": "2026-10-19T01:55:05+00:00",
+ "model": "claude-sonnet-5-5",
+ "prompt": "f5b2a86d3563f712",
+ "per_point": 60,
+ "seed": 0,
+ "claude_errors": 6,
+ "points": {
+  "column.category_code": {
+   "decisions": 60,
+   "tables": 20,
+   "claude_abstained": 0,
+   "scores": {
+    "rule": {
+     "accuracy": 0.8,
+     "accuracy_ci": [
+      0.6822,
+      0.8817
+     ]
+    },
+    "student": {
+     "accuracy": 0.9333,
+     "accuracy_ci": [
+      0.8407,
+      0.9738
+     ]
+    },
+    "gliner": {
+     "accuracy": 0.4833,
+     "accuracy_ci": [
+      0.3617,
+      0.6069
+     ]
+    },
+    "claude": {
+     "accuracy": 0.8667,
+     "accuracy_ci": [
+      0.7583,
+      0.9309
+     ]
+    },
+    "committee": {
+     "accuracy": 0.9333,
+     "accuracy_ci": [
+      0.8407,
+      0.9738
+     ]
+    },
+    "committee_with_claude": {
+     "accuracy": 0.9167,
+     "accuracy_ci": [
+      0.8193,
+      0.9639
+     ]
+    }
+   }
+  },
+  "column.group": {
+   "decisions": 60,
+   "tables": 20,
+   "claude_abstained": 0,
+   "scores": {
+    "rule": {
+     "accuracy": 1.0,
+     "accuracy_ci": [
+      0.9398,
+      1.0
+     ]
+    },
+    "student": {
+     "accuracy": 1.0,
+     "accuracy_ci": [
+      0.9398,
+      1.0
+     ]
+    },
+    "gliner": {
+     "accuracy": 0.95,
+     "accuracy_ci": [
+      0.863,
+      0.9829
+     ]
+    },
+    "claude": {
+     "accuracy": 0.85,
+     "accuracy_ci": [
+      0.7389,
+      0.919
+     ]
+    },
+    "committee": {
+     "accuracy": 1.0,
+     "accuracy_ci": [
+      0.9398,
+      1.0
+     ]
+    },
+    "committee_with_claude": {
+     "accuracy": 1.0,
+     "accuracy_ci": [
+      0.9398,
+      1.0
+     ]
+    }
+   }
+  },
+  "column.is_identifier": {
+   "decisions": 60,
+   "tables": 20,
+   "claude_abstained": 4,
+   "scores": {
+    "rule": {
+     "accuracy": 1.0,
+     "accuracy_ci": [
+      0.9398,
+      1.0
+     ]
+    },
+    "student": {
+     "accuracy": 0.9833,
+     "accuracy_ci": [
+      0.9114,
+      0.9971
+     ]
+    },
+    "gliner": {
+     "accuracy": 0.85,
+     "accuracy_ci": [
+      0.7389,
+      0.919
+     ]
+    },
+    "claude": {
+     "accuracy": 0.7833,
+     "accuracy_ci": [
+      0.6638,
+      0.8688
+     ]
+    },
+    "committee": {
+     "accuracy": 0.9833,
+     "accuracy_ci": [
+      0.9114,
+      0.9971
+     ]
+    },
+    "committee_with_claude": {
+     "accuracy": 0.9833,
+     "accuracy_ci": [
+      0.9114,
+      0.9971
+     ]
+    }
+   }
+  },
+  "column.semantic_role": {
+   "decisions": 60,
+   "tables": 19,
+   "claude_abstained": 2,
+   "scores": {
+    "rule": {
+     "accuracy": 0.7667,
+     "accuracy_ci": [
+      0.6456,
+      0.8556
+     ]
+    },
+    "student": {
+     "accuracy": 0.9333,
+     "accuracy_ci": [
+      0.8407,
+      0.9738
+     ]
+    },
+    "gliner": {
+     "accuracy": 0.4,
+     "accuracy_ci": [
+      0.2857,
+      0.5263
+     ]
+    },
+    "claude": {
+     "accuracy": 0.8333,
+     "accuracy_ci": [
+      0.7197,
+      0.9069
+     ]
+    },
+    "committee": {
+     "accuracy": 0.9333,
+     "accuracy_ci": [
+      0.8407,
+      0.9738
+     ]
+    },
+    "committee_with_claude": {
+     "accuracy": 0.8667,
+     "accuracy_ci": [
+      0.7583,
+      0.9309
+     ]
+    }
+   }
+  },
+  "column.time": {
+   "decisions": 60,
+   "tables": 20,
+   "claude_abstained": 0,
+   "scores": {
+    "rule": {
+     "accuracy": 0.9,
+     "accuracy_ci": [
+      0.7985,
+      0.9534
+     ]
+    },
+    "student": {
+     "accuracy": 0.9,
+     "accuracy_ci": [
+      0.7985,
+      0.9534
+     ]
+    },
+    "gliner": {
+     "accuracy": 0.9,
+     "accuracy_ci": [
+      0.7985,
+      0.9534
+     ]
+    },
+    "claude": {
+     "accuracy": 0.9167,
+     "accuracy_ci": [
+      0.8193,
+      0.9639
+     ]
+    },
+    "committee": {
+     "accuracy": 0.9,
+     "accuracy_ci": [
+      0.7985,
+      0.9534
+     ]
+    },
+    "committee_with_claude": {
+     "accuracy": 0.9,
+     "accuracy_ci": [
+      0.7985,
+      0.9534
+     ]
+    }
+   }
+  },
+  "feature.leakage_suspect": {
+   "decisions": 60,
+   "tables": 20,
+   "claude_abstained": 0,
+   "scores": {
+    "rule": {
+     "accuracy": 0.95,
+     "accuracy_ci": [
+      0.863,
+      0.9829
+     ]
+    },
+    "student": {
+     "accuracy": 0.9667,
+     "accuracy_ci": [
+      0.8864,
+      0.9908
+     ]
+    },
+    "gliner": {
+     "accuracy": 0.3833,
+     "accuracy_ci": [
+      0.2709,
+      0.5098
+     ]
+    },
+    "claude": {
+     "accuracy": 0.8167,
+     "accuracy_ci": [
+      0.7008,
+      0.8944
+     ]
+    },
+    "committee": {
+     "accuracy": 0.9667,
+     "accuracy_ci": [
+      0.8864,
+      0.9908
+     ]
+    },
+    "committee_with_claude": {
+     "accuracy": 0.95,
+     "accuracy_ci": [
+      0.863,
+      0.9829
+     ]
+    }
+   }
+  }
+ },
+ "gate": {
+  "version": "committee_gate_v1",
+  "fixed": "2026-10-19, before any fresh sealed row was read",
+  "members": [
+   "rule",
+   "student",
+   "gliner"
+  ],
+  "evaluation_only": [
+   "claude"
+  ],
+  "weights": "dclab_core.committee.weight of each member's accuracy on the v1 dev rows (log((k-1)a/(1-a)), 0 at chance; an accuracy of 1.0 read as 0.995)",
+  "exam": "each point's fresh sealed rows read once; every answerer judged by dclab_core.decision_gate (decision_gate_v1's thresholds) on the same decisions",
+  "pass": "the committee passes decision_gate_v1 on a point, as a student must",
+  "compared": "the committee's accuracy minus that of the member with the best dev accuracy, paired by decision, with a 95% interval from a bootstrap drawing whole tables (reported, not a criterion)"
+ },
+ "rule": "Evaluation only: Claude asked a seeded sample of each point's fresh sealed decisions; every answerer, the committee and the committee with Claude scored on that sample. Claude's answers are never homework."
+}

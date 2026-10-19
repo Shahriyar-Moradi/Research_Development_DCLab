@@ -526,16 +526,18 @@ COLUMN_STEPS = ("missing_markers", "numbers", "dates", "booleans", "trim")  # th
 def cleaning(draft_id: str, log: list[dict[str, Any]], rows: int | None, profile: dict[str, Any] | None = None) -> int:
     """Each cleaning step the rules applied, per column it changed (the step's key; never a cell). With ``profile`` (the
     raw table's, 29.2): every column, its first column step or ``none``, with the raw column's bands, as the homework's."""
+    from .states import cleaning_state
+
     written = 0
+    # 29.6: the steps after "names" name the columns it renamed by their new names; the raw profile knows the old ones
+    raw_of = {str(new): str(old) for entry in log if entry.get("step") == "names" for old, new in entry.get("renamed") or []}
     with batch():
         if profile is not None:
-            from .states import cleaning_state
-
             first: dict[str, str] = {}
             for entry in log:
                 if entry.get("step") in COLUMN_STEPS:
                     for column in entry.get("columns") or []:
-                        first.setdefault(str(column), str(entry["step"]))
+                        first.setdefault(raw_of.get(str(column), str(column)), str(entry["step"]))
             for col in (profile.get("columns") or [])[:MAX_COLUMNS]:
                 name = str(col.get("name"))
                 step = first.get(name, "none")
@@ -543,13 +545,75 @@ def cleaning(draft_id: str, log: list[dict[str, Any]], rows: int | None, profile
                                      state=cleaning_state(profile, name), options=[*COLUMN_STEPS, "none"], draft=draft_id, conversation=draft_id))
         for entry in log[:50]:
             step = _code(entry.get("step"))
-            if profile is not None and step in COLUMN_STEPS:
-                continue  # recorded above, with every column
             for column in (entry.get("columns") or ["*"])[:20]:
-                if step:
-                    written += bool(_put("data.cleaning_step", ("column", str(column)[:200]), [answer("rule", "rule:clean", step)], step, "rule",
-                                         state={"rows": rows_band(rows)}, draft=draft_id, conversation=draft_id))
+                if not step:
+                    continue
+                # 29.6: every step applied to every column it changed (the rules keep each; until a person can revert a
+                # step or homework marks one wrong, the point holds one answer), the column by its raw name and bands
+                raw = raw_of.get(str(column), str(column))
+                bands = cleaning_state(profile, raw) if profile is not None and column != "*" else {"rows": rows_band(rows)}
+                written += bool(_put("data.cleaning_keep", ("column", raw[:200]), [answer("rule", "rule:clean", True)], True, "rule",
+                                     state={**bands, "cleaning": step}, options=["yes", "no"], draft=draft_id, conversation=draft_id))
+                if profile is not None and step in COLUMN_STEPS:
+                    continue  # its first step recorded above, with every column
+                written += bool(_put("data.cleaning_step", ("column", raw[:200]), [answer("rule", "rule:clean", step)], step, "rule",
+                                     state={"rows": rows_band(rows)}, draft=draft_id, conversation=draft_id))
     return written
+
+
+@_quiet
+def structure_read(draft_id: str, path: Any, fmt: str | None) -> Any:
+    """29.6: the reader the structure reader chose for an uploaded file (``info["reader"]``; ``format`` is what that
+    reader then found), with what it looked at (``structure.evidence``: codes and flags, never a line). The truth is the
+    construction's where a file's format is known (the tests' files)."""
+    from dclab_core.ledger import STRUCTURE_FORMATS
+
+    from ..draft.structure import evidence
+
+    value = _code(fmt)
+    if value not in STRUCTURE_FORMATS:
+        return None
+    seen = evidence(path)  # inside the quiet capture: a failure here never fails the upload that was read
+    return _put("data.structure_format", ("draft", draft_id), [answer("rule", "rule:structure", value)], value, "rule",
+                state={k: v for k, v in seen.items() if v is not None}, options=list(STRUCTURE_FORMATS), draft=draft_id, conversation=draft_id)
+
+
+@_quiet
+def synthetic_shape(draft_id: str, info: dict[str, Any], rows: int | None, model_available: bool) -> Any:
+    """29.6: the design a synthetic table follows: a template the person picked, the model's own design, or the template
+    the rules fell back to; never the person's words. The truth is the people's: whether the draft goes on with it."""
+    template, source = _code(info.get("template")), str(info.get("source") or "")
+    value = template if template else "model" if source == "model" else None
+    if value is None:
+        return None
+    by = "person" if info.get("chosen_by") == "user" else "model_role" if source == "model" else "rule"
+    who = {"person": "owner", "model_role": "synthetic_schema", "rule": "rule:template_for"}[by]
+    answers = [answer(by, who, value)]
+    if info.get("fallback_reason"):  # the model was asked and gave no valid design: its answer, none, with why (never in the state)
+        answers.insert(0, answer("model_role", "synthetic_schema", None, reason=str(info["fallback_reason"])[:600]))
+    state = {"rows": rows_band(rows) if rows else None, "model_available": bool(model_available)}  # what was known before the design
+    return _put("data.synthetic_shape", ("draft", draft_id), answers, value, by,
+                state={k: v for k, v in state.items() if v is not None}, level=2 if by == "model_role" else 0,  # the model's design acts after the spec's check
+                draft=draft_id, conversation=draft_id)
+
+
+@_quiet
+def evidence_search(question: str, hits: list[dict[str, Any]], weak: float) -> Any:
+    """29.6: the record the evidence search ranked first for a question (subject: an id of its own, never its words),
+    with how many came back, the best score and the method; the truth is the people's, or the retrieval set's 60 questions."""
+    import uuid
+
+    if not hits:
+        return None
+    top = max(float(h.get("score") or 0.0) for h in hits)
+    key = uuid.uuid4().hex[:16]  # each search its own subject: a hash of a short question could be reversed by a dictionary
+    value = str(hits[0].get("record_id") or "")[:200]
+    if not value:
+        return None
+    method = _code(hits[0].get("method")) or "unknown"
+    return _put("evidence.records", ("conversation", key), [answer("rule", f"retrieval:{method}", value)], value, "rule",
+                state={"hits": len(hits), "top_score": round(top, 4), "method": method, "weak": top < weak},
+                options=sorted(str(h.get("record_id"))[:200] for h in hits if h.get("record_id")), conversation=key)  # sorted: the order never says the answer
 
 
 @_quiet

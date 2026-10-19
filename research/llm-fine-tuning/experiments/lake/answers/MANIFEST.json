@@ -1,8 +1,82 @@
 {
  "what": "Other answerers' answers on every DCLab test, each kept whole in lake/bronze/answers/<answerer>/<source>/ (not committed; kept permanently by make archive): the text and schema asked, the raw output, the value, the confidence, the model's revision, the time; the true answers stay in the tests (lake/gold, lake/bronze/decisions).",
- "at": "2026-10-18T06:55:40+00:00",
+ "at": "2026-10-19T02:24:06+00:00",
  "answerers": {
   "claude": {
+   "committee": {
+    "column.category_code": {
+     "sealed": {
+      "answered": 60,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": "claude-sonnet-5-5",
+     "revision": null,
+     "render": null,
+     "use": "eval_only",
+     "licence": null
+    },
+    "column.group": {
+     "sealed": {
+      "answered": 60,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": "claude-sonnet-5-5",
+     "revision": null,
+     "render": null,
+     "use": "eval_only",
+     "licence": null
+    },
+    "column.is_identifier": {
+     "sealed": {
+      "answered": 60,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": "claude-sonnet-5-5",
+     "revision": null,
+     "render": null,
+     "use": "eval_only",
+     "licence": null
+    },
+    "column.semantic_role": {
+     "sealed": {
+      "answered": 60,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": "claude-sonnet-5-5",
+     "revision": null,
+     "render": null,
+     "use": "eval_only",
+     "licence": null
+    },
+    "column.time": {
+     "sealed": {
+      "answered": 60,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": "claude-sonnet-5-5",
+     "revision": null,
+     "render": null,
+     "use": "eval_only",
+     "licence": null
+    },
+    "feature.leakage_suspect": {
+     "sealed": {
+      "answered": 60,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": "claude-sonnet-5-5",
+     "revision": null,
+     "render": null,
+     "use": "eval_only",
+     "licence": null
+    }
+   },
    "lake": {
     "column.category_code": {
      "dev": {
@@ -98,7 +172,10 @@
      "dev": {
       "answered": 40,
       "confidence_mean": null,
-      "seconds_mean": 2.733
+      "seconds_mean": 2.733,
+      "agrees_with_label": 1.0,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 1.0
      },
      "model": "claude-sonnet-5-5",
      "revision": null,
@@ -122,7 +199,10 @@
      "dev": {
       "answered": 199,
       "confidence_mean": null,
-      "seconds_mean": 2.3946
+      "seconds_mean": 2.3946,
+      "agrees_with_label": 0.6923,
+      "agrees_with_rule": 0.9341,
+      "rule_agrees_with_label": 0.6703
      },
      "model": "claude-sonnet-5-5",
      "revision": null,
@@ -510,6 +590,80 @@
    }
   },
   "gliner2.5-decide": {
+   "committee": {
+    "column.category_code": {
+     "sealed": {
+      "answered": 400,
+      "confidence_mean": 0.5598,
+      "seconds_mean": 0.1367
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "column.group": {
+     "sealed": {
+      "answered": 680,
+      "confidence_mean": 0.7408,
+      "seconds_mean": 0.1997
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "column.is_identifier": {
+     "sealed": {
+      "answered": 680,
+      "confidence_mean": 0.5688,
+      "seconds_mean": 0.1822
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "column.semantic_role": {
+     "sealed": {
+      "answered": 600,
+      "confidence_mean": 0.454,
+      "seconds_mean": 0.2395
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "column.time": {
+     "sealed": {
+      "answered": 680,
+      "confidence_mean": 0.8617,
+      "seconds_mean": 0.1551
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    },
+    "feature.leakage_suspect": {
+     "sealed": {
+      "answered": 680,
+      "confidence_mean": 0.5866,
+      "seconds_mean": 0.1705
+     },
+     "model": "fastino/GLiNER2.5-Decide",
+     "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
+     "render": "render_v1",
+     "use": "train",
+     "licence": "Apache-2.0"
+    }
+   },
    "journeys": {
     "problem.family_from_words": {
      "train": {

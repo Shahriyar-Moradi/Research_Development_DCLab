@@ -51,11 +51,12 @@ from . import LAKE, ROOT, VERSION
 
 RENDER = "render_v1"
 SPLITS = ("train", "dev", "sealed")
-SOURCES = ("lake", "workflow", "journeys", "selfplay")
+SOURCES = ("lake", "workflow", "journeys", "selfplay", "committee")  # committee (29.16): the fresh invented set the committee is examined on
 MANIFEST = ROOT / "research" / "llm-fine-tuning" / "experiments" / "lake" / "answers" / "MANIFEST.json"
 EXPORT = ROOT / "training_records" / "datasets" / "gliner2"
 JOURNEYS = ROOT / "dclab_rnd" / "agent_eval" / "journeys"
 WORKFLOW = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "workflow_v1" / "decisions"
+COMMITTEE = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "generated_v1_committee" / "decisions"  # 29.16
 ANSWERERS: dict[str, dict[str, str]] = {
     "gliner2.5-decide": {"model": "fastino/GLiNER2.5-Decide", "licence": "Apache-2.0", "runs": "on this machine, open weights",
                          "use": "train", "why": "open weights under Apache 2.0, run locally: no service's terms restrict its answers"},
@@ -191,6 +192,24 @@ def _workflow(_: Path) -> Iterator[dict[str, Any]]:
                    "accepted": r["label"].get("accepted"), "rule_answer": r.get("value_used"), "label_origin": "journey_truth"}
 
 
+def _committee(_: Path) -> Iterator[dict[str, Any]]:
+    """29.16: the fresh invented set (new seeds of the six table points), every split, asked as the lake's own decisions
+    are; its sealed rows are the committee's exam, answered here and read there once."""
+    for point_dir in sorted(p for p in COMMITTEE.iterdir() if p.is_dir()) if COMMITTEE.is_dir() else []:
+        for file in ("rows.jsonl", "sealed.jsonl"):
+            path = point_dir / file
+            for line in path.read_text(encoding="utf-8").splitlines() if path.is_file() else []:
+                r = json.loads(line)
+                if not r.get("label"):
+                    continue
+                value = r["label"]["value"]
+                options = list(r.get("options") or [])
+                text, schema = render(point_dir.name, r.get("state") or {}, options)
+                yield {"sample_id": r["record"], "decision_point": point_dir.name, "split": r.get("split") or "train", "group": r.get("group"),
+                       "text": text, "schema": schema, "options": options, "label": ("yes" if value is True else "no" if value is False else value),
+                       "accepted": None, "rule_answer": r.get("value_used"), "label_origin": "construction"}
+
+
 def _journeys(_: Path) -> Iterator[dict[str, Any]]:
     families = _families()
     for path in sorted(JOURNEYS.glob("journeys_*.json")):
@@ -262,7 +281,7 @@ def _selfplay(lake: Path) -> Iterator[dict[str, Any]]:
                            "rule_answer": "yes" if c["column"] in rule_set else "no"}
 
 
-PROVIDERS = {"lake": _lake, "workflow": _workflow, "journeys": _journeys, "selfplay": _selfplay}
+PROVIDERS = {"lake": _lake, "workflow": _workflow, "journeys": _journeys, "selfplay": _selfplay, "committee": _committee}
 
 
 def tests(source: str, lake: Path = LAKE) -> Iterator[dict[str, Any]]:

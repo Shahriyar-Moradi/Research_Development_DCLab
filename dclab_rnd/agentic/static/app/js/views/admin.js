@@ -227,6 +227,11 @@ DC.view('admin', {
     const card = point => { const slip = (hist[point] || []).slice(-1)[0] || {};
       const trails = trailOf(point, 'dev_accuracy', '') + trailOf(point, 'own_dev_accuracy', 'own: ');
       return trails ? trails + (slip.slipped ? ' <span class="pill warn">slipping</span>' : '') : ''; };
+    // 29.15: the student on real tables (OpenML's declared truths, dev rows) beside the rule there
+    const realOf = x => x.real ? `<br><span class="small" title="${esc(n(x.real.tables))} public tables, truths as each dataset declares them (${esc(x.real.id || '')})">real tables: ${acc(x.real.real_dev_accuracy)} · ${acc(x.real.rule_real_dev_accuracy)} · commonest ${acc(x.real.commonest_real_dev_accuracy)}</span>` : '';
+    // 29.16: the point's committee (the rule, the student and GLiNER voting by their dev accuracy), examined once like a student
+    const panelOf = x => { const c = x.committee; if (!c) return '';
+      return `<br><span class="small" title="${esc(c.answerer || '')} · ${n(c.sealed_decisions)} fresh sealed decisions (${esc(c.id || '')})">committee: ${c.pass ? 'pass' : 'fail'} · ${acc((c.accuracy || {}).committee)}</span>`; };
     const ownOf = x => x.own ? `<br><span class="small" title="${esc(x.own.answerer || '')}">own: ${esc(x.own.family || '')} · ${n(x.own.trained_on)} rows · ${acc(x.own.dev_accuracy)} · ${acc(x.own.rule_accuracy)}${x.own.exam ? ' · ' + esc(x.own.exam) : ''}</span>` : '';
     const pill = s => s.startsWith('acts') ? 'ok' : s.startsWith('flags') ? 'accent' : s.startsWith('whisper, ready') || s.startsWith('whisper, may') ? 'ok' : s.startsWith('whisper') ? 'outline' : s === 'not decided' ? 'warn' : 'outline';
     $('#stu-body', el).innerHTML = items.map(x => { const hw = x.homework || {}, s = x.student || {}, v = x.verdict || null;
@@ -235,7 +240,7 @@ DC.view('admin', {
       const exam = v ? (v.pass ? '<span class="pill ok">pass</span>' : `<span class="pill warn" title="${esc((v.failed || []).join('; '))}">fail</span>`) : '—';
       const why = x.not_decided ? ` <span class="small" title="${esc(x.not_decided)}">(why)</span>` : '';
       return `<tr><td class="mono small" title="${esc(x.about || '')}">${esc(x.point)}</td><td class="mono small">${n(x.recorded)}</td><td class="mono small">${home}</td>`
-        + `<td class="small">${stu}${ownOf(x)}</td><td class="mono small">${acc(s.dev_accuracy)} · ${acc(s.rule_accuracy)}${card(x.point)}</td><td>${exam}</td>`
+        + `<td class="small">${stu}${ownOf(x)}</td><td class="mono small">${acc(s.dev_accuracy)} · ${acc(s.rule_accuracy)}${realOf(x)}${card(x.point)}</td><td>${exam}${panelOf(x)}</td>`
         + `<td><span class="pill ${pill(x.status)}">${esc(x.status)}</span>${why}</td></tr>`; }).join('');
   },
 

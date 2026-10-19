@@ -183,7 +183,7 @@ def to_table(path: Path, *, client: Any = None, max_rows: int = 500_000) -> tupl
     if not head.strip():
         raise StructureError("The file is empty. Check that the export finished and upload it again.")
     kind = _detect(path, head)
-    info: dict[str, Any] = {"format": kind, "parser": "builtin", "parse_rate": 1.0, "rows": 0, "columns": 0,
+    info: dict[str, Any] = {"format": kind, "reader": kind, "parser": "builtin", "parse_rate": 1.0, "rows": 0, "columns": 0,  # 29.6: the reader chosen; "format" is what it found
                             "notes": [], "sample_lines": []}
     reader = _READERS[kind]
     frame = reader(path, head, info, client, max_rows)
@@ -198,6 +198,28 @@ def to_table(path: Path, *, client: Any = None, max_rows: int = 500_000) -> tupl
     info["rows"], info["columns"] = int(len(frame)), int(frame.shape[1])
     info["parse_rate"] = round(float(info["parse_rate"]), 4)
     return frame, info
+
+
+def evidence(path: Path) -> dict[str, Any]:
+    """29.6: what ``_detect`` reads, as codes and flags (never a line of the file): the suffix (from a closed list), a
+    binary signature, whether the text opens as JSON and reads as JSON lines, the delimiter sniffed and whether the first
+    lines read as a log. Not here: whether a whole file parses as one JSON document (``_whole_file_is_json`` reads it all)."""
+    path = Path(path)
+    with path.open("rb") as handle:
+        head = handle.read(HEAD_BYTES)
+    suffix = path.suffix.lower().lstrip(".")
+    signature = ("parquet" if head.startswith(b"PAR1") else "zip" if head.startswith(b"PK\x03\x04") else "ole" if head.startswith(b"\xd0\xcf\x11\xe0")
+                 else "binary" if b"\x00" in head else "text")
+    known = ("csv", "tsv", "tab", "json", "jsonl", "ndjson", "log", "parquet", "xlsx", "xlsm", "xls", "txt")  # never the uploader's own word
+    out: dict[str, Any] = {"suffix": suffix if suffix in known else ("none" if not suffix else "other"), "signature": signature}
+    if signature == "text":
+        lines = _head_lines(head)
+        out["json_head"] = head.decode("utf-8-sig", errors="replace").lstrip()[:1] in ("{", "[")
+        out["json_lines"] = out["json_head"] and _looks_like_json_lines(lines)  # JSON lines or one JSON document
+        found = sniff_delimiter(lines)
+        out["delimiter"] = {",": "comma", "\t": "tab", ";": "semicolon", "|": "pipe"}.get(found, "other") if found else "none"
+        out["log_like"] = _best_structured(lines[:SAMPLE_LINES])[1] >= GOOD_PARSE
+    return out
 
 
 def _detect(path: Path, head: bytes) -> str:
