@@ -13,7 +13,7 @@ Answer with one JSON object, either a choice:
 
 or a refusal:
 
-  {"refused": true, "missing": ["<what the data would need>"], "reason": "<one sentence>"}
+  {"refused": true, "missing": ["<the name in not_held it asks about, else what the data would need>"], "reason": "<one sentence>"}
 
 Hard rules:
 - `template`, `metric`, each filter's dimension and value, `compare` and `direction` are written exactly as the menu gives them.

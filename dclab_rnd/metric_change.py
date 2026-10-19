@@ -130,15 +130,35 @@ def main(argv: Optional[list[str]] = None) -> int:
         if not (args.yes and args.cap_eur):
             print("not run: add --yes and --cap-eur to ask the model")
             return 1
-        from dclab_rnd.core_advisor import GatewayAdvisor
+        from dotenv import load_dotenv
 
-        advisor = GatewayAdvisor(cap_eur=args.cap_eur, max_tokens=400)
+        from dclab_rnd.core_advisor import GatewayAdvisor
+        from dclab_rnd.models import for_workspace
+
+        load_dotenv(ROOT / ".env", override=False)  # the provider and its key, as the server reads them
+        gateway = for_workspace()  # the workspace's usage log and routing, as the server's
+        if not gateway.available("metric_question"):
+            print("not run: no model serves the metric_question purpose here (the provider's key, or DCLAB_NO_LIVE_MODELS)")
+            return 1
+        advisor = GatewayAdvisor(gateway, cap_eur=args.cap_eur, max_tokens=400)
     doc = run(tuple(args.seeds), advisor)
     spend = {"eur": round(advisor.spent_eur(), 4), "requests": advisor.calls, "failures": advisor.failures, "model": advisor.report()} if advisor else None
     if spend:
         print(f"spent EUR {spend['eur']}, {spend['requests']} requests, {spend['failures']} failures")
+        if not sum(spend["requests"].values()):  # a model arm no model answered is no measurement: never written
+            print("not written: the model was asked nothing")
+            return 1
     if args.write:
-        print(write(doc, spend=spend))
+        path = write(doc, spend=spend)
+        print(path)
+        if advisor is not None:  # a live run is kept whole beside the other live tests too
+            import shutil
+
+            live = ROOT / "agent_runs" / "live_tests" / datetime.now(timezone.utc).strftime("%Y-%m-%d") / f"metric_change_{path.stem}"
+            live.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, live / path.name)
+            shutil.copy2(path.parent.parent / json.loads(path.read_text(encoding="utf-8"))["detail"], live)
+            print(live)
     return 0
 
 

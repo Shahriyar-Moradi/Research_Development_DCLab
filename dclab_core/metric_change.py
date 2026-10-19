@@ -717,8 +717,11 @@ def _validated(raw: Mapping[str, Any], data: Data, source: str) -> Choice:
     """A choice checked against the layer and the data: the template known, its parameters present and approved, every filter's value in the
     data, the period and its comparison inside the data. Raises ValueError (Unanswerable for what the data cannot answer) with what is wrong."""
     layer = data.layer
-    if raw.get("refused"):
-        return _refused(str(raw.get("reason") or ""), [str(x) for x in (raw.get("missing") or [])], source)
+    if raw.get("refused"):  # a concept the layer does not hold is named as the layer names it, whether the reply gave its name or its needs
+        missing = [str(x) for x in (raw.get("missing") or [])]
+        named_as = [next((nh.name for nh in layer.not_held if any(_find(_norm(x), w) is not None for w in [nh.name, *nh.synonyms])
+                          or _norm(x) == _norm(nh.needs)), x) for x in missing]
+        return _refused(str(raw.get("reason") or ""), list(dict.fromkeys(named_as)), source)
     template = raw.get("template")
     if template not in TEMPLATES:
         raise ValueError(f"no tested template is named {template!r}")

@@ -255,6 +255,9 @@ class MetricChangeTest(unittest.TestCase):
                                                        "compare": "last_year"}, "reason": "the visitors"}
         a, said = self.ask(truth["paraphrase"], advisor=Scripted(dict(reply)))
         self.assertEqual(said["model_raw"], reply)
+        a, said = self.ask(self.replicas[0].truth[-1]["paraphrase"], advisor=Scripted(
+            {"refused": True, "missing": ["the cost of the goods sold by brand and category"], "reason": "no cost table"}))
+        self.assertEqual((a.status, a.missing), ("refused", ["margin"]))  # the live run: a refusal naming the concept's needs is the concept
         r = self.replicas[0]
         wide = r.sales.assign(**{f"d{i}": [f"v{i}_{j % 60}" for j in range(len(r.sales))] for i in range(4)})
         layer = self.mc.SemanticLayer(**{**self.layer.model_dump(), "dimensions": self.layer.model_dump()["dimensions"]
