@@ -1,0 +1,59 @@
+{
+ "package": "30.23",
+ "title": "One data foundation: a catalog entry per table with its checks, one entity across four systems through the matching kind, and history read as it was",
+ "date": "2026-10-20",
+ "request": "Phase 8 Part G, the owner's pattern 10: tables with owners and checks, the same customer in four systems as one view, reads as of a date.",
+ "spec": "docs/guides/PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md, package 30.23",
+ "plan": [
+  "TableEntry v1 with checks run on the table.",
+  "resolve: the systems' records matched by the matching kind and linked into entities.",
+  "as_of: no row written after the date, the row valid on it for a history table.",
+  "A replica with one customer in four systems."
+ ],
+ "decisions": [
+  {
+   "decision": "Resolve through the matching kind, not a join on a key.",
+   "why": "Four systems never share a clean key; the matching kind measures its links on a holdout read once."
+  },
+  {
+   "decision": "as_of applies both the validity and the written date when both are given.",
+   "why": "A backdated correction written later was not known on the date."
+  }
+ ],
+ "change": "dclab_core.foundation (Check, TableEntry v1, entry, as_of, resolve); dclab_core.matching.link; dclab_core.replicas.four_systems; dclab_rnd.foundation (FND).",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A history row written after the date was returned when it was backdated.",
+   "scenario": "valid from January, written in July, read as of March: returned.",
+   "cause": "With valid_from given, the written date was ignored.",
+   "fix": "Both filters apply when both columns are given.",
+   "test": "test_an_entry_says_a_failed_check_and_as_of_never_returns_a_later_row"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "four systems resolved into one view (seed 0)",
+   "gate": "the systems' customers resolve with the pair F1 and its interval, beating the exact rule",
+   "fixed_before_run": true,
+   "result": "pair F1 0.9961 (0.9883 to 1.0), the single best field chosen, beats the exact rule",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "met",
+   "limits": [
+    "Invented customers: the e-mail is close to unique, so one field nearly decides; real systems are harder.",
+    "The known matches are every pair of the replica's truth."
+   ]
+  }
+ ],
+ "outcome": "A table set gets a catalog of entries with checks, a resolved view of one entity across systems with its measured accuracy, and reads as of a date that never see a later row.",
+ "lessons": [
+  "A point-in-time read needs both clocks: when a fact was valid and when it was written."
+ ],
+ "risks": [
+  "The replica's single near-unique field makes the matching easy; a harder replica is open."
+ ],
+ "commits": []
+}

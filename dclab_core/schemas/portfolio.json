@@ -1,0 +1,110 @@
+{
+  "$defs": {
+    "Score": {
+      "additionalProperties": false,
+      "properties": {
+        "effort": {
+          "title": "Effort",
+          "type": "integer"
+        },
+        "readiness": {
+          "title": "Readiness",
+          "type": "integer"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "request": {
+          "title": "Request",
+          "type": "string"
+        },
+        "risk": {
+          "title": "Risk",
+          "type": "integer"
+        },
+        "total": {
+          "title": "Total",
+          "type": "number"
+        },
+        "value": {
+          "title": "Value",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "request",
+        "value",
+        "readiness",
+        "effort",
+        "risk",
+        "total"
+      ],
+      "title": "Score",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.portfolio.v1.json",
+  "additionalProperties": false,
+  "description": "K chosen of N, why, and what they reuse (v1).",
+  "properties": {
+    "capacity": {
+      "title": "Capacity",
+      "type": "integer"
+    },
+    "chosen": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Chosen",
+      "type": "array"
+    },
+    "not_ready": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Not Ready",
+      "type": "array"
+    },
+    "reuse": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Reuse",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.portfolio.v1",
+      "default": "dclab_core.portfolio.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scores": {
+      "items": {
+        "$ref": "#/$defs/Score"
+      },
+      "title": "Scores",
+      "type": "array"
+    },
+    "waiting": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Waiting",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "capacity",
+    "chosen",
+    "waiting",
+    "scores"
+  ],
+  "title": "Portfolio",
+  "type": "object"
+}

@@ -44,6 +44,8 @@ SOURCES = {  # name: folders copied as they are (the workspace goes through stor
     "live_tests": [ROOT / "agent_runs" / "live_tests"],
     # the owner (2026-10-19): every test run and every gate, whole (tests/run_parallel.py and make check-commit keep them here)
     "test_runs": [ROOT / "training_records" / "test_runs"],
+    # 30.19: the real problems' kept workspaces and the private problems' records (the owner's fraud), kept out of the repository
+    "real_problems": [ROOT / "agent_runs" / "real_problems"],
 }
 README = """# DCLab's training records
 

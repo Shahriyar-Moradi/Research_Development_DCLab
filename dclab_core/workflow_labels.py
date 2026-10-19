@@ -46,6 +46,7 @@ NOT_LEARNED = {
     "critic.send_back": "labelled where it is decided, by whether the person's answer changed the card's field (29.6)",
     "command.intent_route": "not decided by the studio yet",
     "proposal.completeness": "not decided by the studio yet",
+    "department.proposal": "labelled where it is judged: a person's judgment of each proposal, not a journey (30.22)",
 }
 SAME = {"outcome": "target", "target_check": "target", "labels_check": "labels"}  # one question asked under two names
 ORDER = ("target", "prediction_moment", "action")  # the fields the card needs, in the order it asks for them

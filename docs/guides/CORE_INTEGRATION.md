@@ -793,6 +793,40 @@ product's agent asks the critic once its brief is confirmed and before it plans,
 question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
 whether to go on, recording the decision.
 
+## Ask the workspace (30.21, dclab-core 0.97.0)
+
+The library's: `dclab_core.workspace_chat`, a typed `Computation` run by pandas on one table, its result `masked` before a
+model reads it, and `ungrounded`, the answer's numbers no computation returned. Where it goes there: the main product's
+workspace chat (its BI assistant over a workspace's datasets) gives its model the tools to list tables, describe columns
+(kind, missing share, distinct count, never a value) and compute, runs the loop behind its LLM gateway with its per-person
+and per-workspace limits, refuses an answer whose numbers fail `ungrounded`, never offers a private project's table, and
+keeps every exchange whole in its audit trail. A personal column (its column sensitivity, 23.7) is never a group.
+
+## Department agents (30.22, dclab-core 0.97.0)
+
+The library's: `dclab_core.department_agent`, a `Policy` (typed actions, hard limits, the approval amount, the level), every
+proposal checked by `Agent.consider` before anything is applied, each `Step` logged with the value before and undone
+exactly, and levels earned from a `TrackRecord`. Where it goes there: an agent of the main product that would change a
+business value (a price, a limit) holds its policy beside its governed decision points; its level is the routing level of
+its point (shadow, flag, act with a check, act) and moves only by `level_for` on the person's judgments, recorded in its
+ledger; an applied step's undo is its rollback. Nothing acts on a real system from this library: the host applies.
+
+## One data foundation (30.23, dclab-core 0.97.0)
+
+The library's: `dclab_core.foundation`, a `TableEntry` per table (owner, keys, date column, checks run with their results),
+`as_of` (a table as it was on a date, never a later row) and `resolve` (the same entity across systems linked by the
+matching kind, with the pair F1 and its interval). Where it goes there: its data catalog (23.9) stores each dataset's
+entry and shows a failed check on it; a project built on several connected systems reads them `as_of` its cutoff, and a
+customer view across systems is a matching project whose links it stores with their measurement, never merged blindly.
+
+## Delivering many projects (30.24, dclab-core 0.97.0)
+
+The library's: `dclab_core.triage`, a `Request` scored on value, readiness, effort and risk with a reason each, `choose`
+(K of N, never one without its success number, what they reuse said) and `retire` (a project with no use for a period).
+Where it goes there: its portfolio page fills the requests from the problem cards and the workspace's tables, shows the
+chosen and why to the person who decides, and reads use from its outcomes (23.5) to flag a project to retire; the choice
+stays the person's.
+
 ## The knowledge the roles read (30.18, dclab-core 0.95.0)
 
 The library's: `examples=` on `mapping.draw`, `solutions.route_with` and `review.critique`, the closest business examples as

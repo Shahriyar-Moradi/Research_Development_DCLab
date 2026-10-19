@@ -42,6 +42,7 @@ AGENTS: dict[str, Agent] = {
     "home": Agent("dclab_rnd.draft.chat:HomeAgent.model_turn", "loop", ("home_agent",), "the Home agent with a model"),
     "home.script": Agent("dclab_rnd.draft.chat:HomeAgent.script_turn", "session", (), "the Home agent without a model, or when it fails"),
     "intern": Agent("dclab_rnd.intern.loop:Intern._llm_loop", "loop", ("intern",), "the intern with a model"),
+    "workspace_chat": Agent("dclab_rnd.workspace_chat:ask", "loop", ("workspace_chat",), "30.21: a question about the workspace's tables, every number computed"),
     "intern.standard": Agent("dclab_rnd.intern.loop:Intern._plan_run", "session", (), "the intern's standard plan, and its follow-ups"),
     "team": Agent("dclab_rnd.studio.team:run", "session", (), "the team of roles on a project"),
     "campaign": Agent("dclab_rnd.agentic.engine:run_research", "session", ("campaign",), "the research campaign's phases and experiments"),

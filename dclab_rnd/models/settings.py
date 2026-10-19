@@ -117,6 +117,10 @@ PURPOSES: dict[str, Purpose] = {
                                                 "the outcome column's name; for a project's or a workflow's decision, its id and aggregate measures such as a "
                                                 "cross-validated mean, a holdout value or an apparent lift, and codes such as the metric or the "
                                                 "split); never DCLab's answer, rows or cell values (blind labels by a model)", keeps_text=True),
+    "workspace_chat": Purpose("standard", 90, "a person's question about the workspace's own tables, and the results of the tools it calls: each "
+                                            "table's name, columns and rows, each column's kind, missing share and distinct count, and computed "
+                                            "aggregates (a count, a sum, a mean, by up to two groups, at most fifty each), personal values masked "
+                                            "(package 30.21); never a row", cell_values=2 * 50, keeps_text=True),
     "metric_question": Purpose("cheap", 60, "a business question about a number, as the person typed it, and the semantic layer's menu: the "
                                             "tested templates, the approved metrics' names and definitions, each dimension's values (at most fifty "
                                             "each: a mall's, a brand's or a category's name), what the data does not hold, and the data's first "

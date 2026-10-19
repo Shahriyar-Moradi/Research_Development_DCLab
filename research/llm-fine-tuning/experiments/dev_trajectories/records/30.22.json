@@ -1,0 +1,91 @@
+{
+ "package": "30.22",
+ "title": "Department agents: a policy in code, every proposal checked before it is applied, every step undoable, and levels earned on a track record in the ledger",
+ "date": "2026-10-20",
+ "request": "Phase 8 Part G, the owner's pattern 8: an agent that acts on company data safely; a pricing agent on a replica of 2,000 products as the example.",
+ "spec": "docs/guides/PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md, package 30.22",
+ "plan": [
+  "A Policy contract (typed actions, the largest change, a budget, an approval amount, the level).",
+  "Check every proposal before anything is applied; log each step with the value before.",
+  "Levels earned after a run of right calls, lost on a wrong one.",
+  "Two rule agents (careful, aggressive) on invented products, every step in the ledger and the audit."
+ ],
+ "decisions": [
+  {
+   "decision": "The host reckons a change's impact; a declared impact is never what the limits read.",
+   "why": "An agent that declares zero impact would pass the budget and the approval amount."
+  },
+  {
+   "decision": "A department proposal is a decision point of the ledger, labelled by the person's judgment.",
+   "why": "The track record that earns a level must be in the ledger, where the routing levels already live."
+  }
+ ],
+ "change": "dclab_core.department_agent (Policy v1, Proposal, Verdict, Step, TrackRecord, check, Agent with impact_of, undo in reverse order, judge, level_for returning the record to keep); the ledger point department.proposal and its state fields; ledger.capture.department_proposal; dclab_rnd.department (the pricing replica, every step in the ledger and the audit); the audit kind department.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Undoing an earlier step on a value changed again later left a wrong value.",
+   "scenario": "Two steps on one price, 10 to 9 then 9 to 8: undone first then second ended at 9.",
+   "cause": "Undo wrote the value before without checking the value was still the step's.",
+   "fix": "An undo is refused unless the value is still the step's after; undo in reverse order.",
+   "test": "test_two_steps_on_one_value_are_undone_in_reverse_order_back_to_the_start"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The budget and approval read the agent's own declared impact.",
+   "scenario": "A 20% cut declared with impact 0 was applied at act and skipped approval.",
+   "cause": "The proposal carried its impact.",
+   "fix": "The agent needs the host's impact_of when a policy has a budget or an approval amount; the computed impact replaces the declared one.",
+   "test": "test_a_declared_impact_is_never_what_the_limits_read"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A long run of right calls climbed several levels at once in another host.",
+   "scenario": "right_in_a_row 60: shadow to flag, then flag to act_with_check on the next call.",
+   "cause": "level_for did not reset the run on a change.",
+   "fix": "level_for returns the record to keep, its run started again on a new level.",
+   "test": "test_a_level_is_earned_by_a_run_of_right_calls_and_lost_on_a_wrong_one"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The steps and judgments were not in the ledger or the audit.",
+   "scenario": "The track record lived only in memory and the optional file.",
+   "cause": "No capture was wired.",
+   "fix": "Each step is a department.proposal record with the person's judgment as its label, and an audit row.",
+   "test": "test_every_step_is_in_the_ledger_with_the_persons_judgment_and_in_the_audit"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the pricing replica (2,000 invented products, promote after 50)",
+   "gate": "nothing past a limit or above the approval amount applied, the budget never passed; the careful agent earns its levels, the aggressive never",
+   "fixed_before_run": true,
+   "result": "careful: 1153 proposals, 206 applied, 837 refused, 0 refused applied, 0 approvals applied, spent 59999.03 of 60000, levels flag, act_with_check, act; aggressive: 1306 proposals, 0 applied, stays in shadow",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "met",
+   "limits": [
+    "Invented products and a written person: the guardrails hold, not that a discount is wise."
+   ]
+  }
+ ],
+ "outcome": "A department agent proposes; code checks every proposal against hard limits, applies only what its earned level allows, logs every step with how to undo it, and earns or loses its level on judgments kept in the ledger.",
+ "lessons": [
+  "Never let a proposer state the number its own limit reads.",
+  "An undo is only exact in reverse order: check the value is still the step's.",
+  "Return the state a rule changes, so no caller forgets to reset it."
+ ],
+ "risks": [
+  "The main product has no department agents yet: its governed point is added with them.",
+  "A real host's impact_of is its own reckoning, and only as good as it."
+ ],
+ "commits": []
+}

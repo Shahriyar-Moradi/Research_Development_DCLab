@@ -356,6 +356,24 @@ its development record. No package acts on a real system: every action is propos
   before the run, run once per arm: rules 3 of 10 (JPR-010), roles 5 of 10 (JPR-011, EUR 0.24): both fail, the roles stay
   off. Five of the seven misses stop at a card not ready (the conversation does not read the answer kind or the known
   cases in new words): the next fix, on a new independent dev set, never on sealed v2.
+- **30.19 built (2026-10-20), the review's findings fixed:** the `case_trajectories` lake family (a whole case per built
+  project, refused below ten projects; manifest v8); the owner's fraud run, rules only and private (`agent_runs`), stored
+  with its comparison: average precision 0.019 (0.0003 to 0.088), the same as RPB-007, beside the owner's own solution on
+  its own protocol (0.095), never ranked; binary certified on its replica and on Telco and HyperAck with their traps
+  (`certify.entries_for`, CRT-003). Left: the modifiers on the owner's fraud data, a case corpus once ten projects exist.
+- **Part G built (2026-10-20), the review's 16 findings fixed (dclab-core 0.97.0):**
+  - **30.21 Ask the workspace:** typed computations only. A personal column (by its values or its name) is never
+    computed on, filtered on or grouped by, and no value is shown over fewer than five rows. The question is redacted
+    before the model; an answer with a number no computation returned is refused. Every exchange is kept whole and
+    audited, whatever its status. Left: a live run.
+  - **30.22 Department agents:** a policy in code, with the impact reckoned by the host and never declared. Undo runs in
+    reverse order, and each level is earned on its own run of right calls. Every step is a `department.proposal` record
+    in the ledger, with the person's judgement as its label, and an audit row. On the pricing replica (DPA-001) the
+    careful agent earns act and the aggressive one stays in shadow; nothing past a limit is applied.
+  - **30.23 One data foundation:** entries with their checks, and four systems resolved through the matching kind
+    (FND-001, pair F1 0.996). `as_of` reads both clocks, so a backdated correction is never seen early.
+  - **30.24 Many projects:** five of fifteen chosen with their reasons and reuse. Each project's last use comes from the
+    workspace's records, and a new project is never flagged to retire.
 - **Test runs kept (2026-10-19, d502540):** every run of the suite and every gate, whole, in `training_records/test_runs/`
   (the owner's rule), snapshotted by `make archive`.
 - **Live tests (2026-10-19, $20 budget; EUR 4.02 spent):** the product's model (Claude) through the harness suite for the

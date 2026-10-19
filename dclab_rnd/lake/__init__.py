@@ -307,6 +307,17 @@ def session_examples(other: dict[str, list[dict[str, Any]]], run: Run) -> list[L
                             {"role": "assistant", "content": json.dumps(answer, ensure_ascii=False, sort_keys=True, default=str)}]
                 add("solution_design", messages, item, origin,
                     L.Verification(kind="executed", passed=bool(r.get("pipeline")), detail="the project ran its pipeline"), group)
+            elif builder == "case_trajectories" and r.get("problem_card") and r.get("workflow_run"):  # 30.19: the whole case, problem to report
+                origin = "human_exposed" if (r.get("brief") or {}).get("approval") else "rule_prod"
+                asked = {"question": "Solve this problem end to end: understand it, judge the data, write the brief, run the workflow and report.",
+                         "request": r.get("request"), "conversation": r.get("conversation"), "data_card": r.get("data_card")}
+                answer = {k: r.get(k) for k in ("problem_card", "fit_verdict", "brief", "recipe", "workflow_run", "gates", "report", "bar_verdict")}
+                messages = [{"role": "system", "content": selfplay.system()},
+                            {"role": "user", "content": json.dumps(asked, ensure_ascii=False, sort_keys=True, default=str)},
+                            {"role": "assistant", "content": json.dumps(answer, ensure_ascii=False, sort_keys=True, default=str)}]
+                add("solution_design", messages, item, origin,
+                    L.Verification(kind="executed", passed=bool((r.get("gates") or {}).get("g4", {}) and (r["gates"]["g4"] or {}).get("passed")),
+                                   detail="the case's Workflow Run and its G4"), group)
             elif builder == "team_walks" and r.get("after"):  # 28.9: a team's hand-off: what it knew, the node, what it knew after
                 models = r.get("models")
                 origin = None if models is None else _origin_of({m: m for m in models})  # Claude: a teacher's; another model: left out; none: DCLab's own

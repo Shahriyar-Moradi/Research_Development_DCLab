@@ -16,7 +16,9 @@
   "retention",
   "replay",
   "data_export",
-  "brief"
+  "brief",
+  "workspace_chat",
+  "department"
  ],
  "classes": {
   "agent_text": {
@@ -101,9 +103,10 @@
     "dclab_core.dataset_manifest.v3",
     "dclab_core.dataset_manifest.v4",
     "dclab_core.dataset_manifest.v5",
-    "dclab_core.dataset_manifest.v6"
+    "dclab_core.dataset_manifest.v6",
+    "dclab_core.dataset_manifest.v7"
    ],
-   "version": "dclab_core.dataset_manifest.v7"
+   "version": "dclab_core.dataset_manifest.v8"
   },
   {
    "contract": "debate",
@@ -141,6 +144,11 @@
    "contract": "decision_sample",
    "reads": [],
    "version": "dclab_core.decision_sample.v1"
+  },
+  {
+   "contract": "department_policy",
+   "reads": [],
+   "version": "dclab_core.department_policy.v1"
   },
   {
    "contract": "evaluation_board",
@@ -213,6 +221,11 @@
    "version": "dclab_core.pipeline.v1"
   },
   {
+   "contract": "portfolio",
+   "reads": [],
+   "version": "dclab_core.portfolio.v1"
+  },
+  {
    "contract": "problem_brief",
    "reads": [],
    "version": "dclab_core.problem_brief.v1"
@@ -238,6 +251,11 @@
    "contract": "programme",
    "reads": [],
    "version": "dclab_core.programme.v1"
+  },
+  {
+   "contract": "project_request",
+   "reads": [],
+   "version": "dclab_core.project_request.v1"
   },
   {
    "contract": "recipe_part",
@@ -300,6 +318,11 @@
    "contract": "solution_workflow",
    "reads": [],
    "version": "dclab_core.solution_workflow.v1"
+  },
+  {
+   "contract": "table_entry",
+   "reads": [],
+   "version": "dclab_core.table_entry.v1"
   },
   {
    "contract": "team_record",
@@ -397,9 +420,14 @@
    "builder": "team_walks",
    "needs": "train",
    "what": "A team's walk, one row per hand-off: the board before the node, the node and what it did, the board after, with the walk's status and the models it asked; the person's words redacted, only lines written where training was allowed (28.9)."
+  },
+  {
+   "builder": "case_trajectories",
+   "needs": "train",
+   "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.96.0",
+ "dclab_core": "0.97.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -576,6 +604,17 @@
    "point": "data.synthetic_shape",
    "subjects": [
     "draft"
+   ]
+  },
+  {
+   "about": "Is the department agent's proposal one the person would make?",
+   "answer": "noul",
+   "decided_in": "department.py: each proposal of a department agent (its claim yes, whether it was applied), labelled by the person's judgment (30.22)",
+   "kind": "workflow",
+   "main_product": null,
+   "point": "department.proposal",
+   "subjects": [
+    "proposal"
    ]
   },
   {

@@ -139,6 +139,46 @@ def _workflow_items(services: Any, allowed_projects: dict[str, dict[str, Any]]) 
     return items
 
 
+def _case_items(services: Any, allowed_projects: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    """30.19: a whole case per built project the consent allows: the request and the conversation (redacted), the problem card, the data card
+    (no row, its tables' names replaced) and its fit verdict, the brief, the resolved recipe, the Workflow Run's twelve steps and G4, the report
+    and its verdict against the bar. A part the project never made is None; a part that fails to read is None, never the whole case."""
+    from . import consent
+    from .draft.card import card_of
+    from .studio import brief as brief_mod
+
+    def safe(make: Any) -> Any:
+        try:
+            return make()
+        except Exception:  # noqa: BLE001 - one part that does not read leaves that part out, never the case
+            return None
+
+    items = []
+    store = services.projects
+    for draft in services.drafts.list(limit=100_000):
+        project_id = draft.get("project_id")
+        if not project_id or project_id not in allowed_projects:
+            continue
+        project = allowed_projects[project_id]
+        card = safe(lambda: consent._scrub(card_of(draft).model_dump(mode="json"), {}))
+        if card is None:
+            continue
+        records = safe(lambda: store.records(project_id)) or {}
+        run = safe(lambda: __import__("dclab_rnd.studio.workflow_run", fromlist=["build"]).build(store, project).model_dump(mode="json"))
+        report = safe(lambda: __import__("dclab_rnd.studio.solution_report", fromlist=["build"]).build(store, project_id).model_dump(mode="json"))
+        data_card = draft.get("data_card") or {}
+        items.append({
+            "draft": draft.get("id"), "project": project_id,
+            "request": consent._scrub(str(draft.get("problem") or ""), {}),
+            "conversation": [{"role": m.get("role"), "text": consent._scrub(str(m.get("text") or ""), {})} for m in draft.get("messages") or [] if m.get("text")],
+            "problem_card": card, "data_card": anonymous_card(data_card), "fit_verdict": safe(lambda: consent._scrub(data_card.get("fit"), {})),
+            "brief": safe(lambda: consent._scrub(project.get("brief"), {})),
+            "recipe": ((records.get("data") or {}).get("evidence") or {}).get("recipe"),
+            "workflow_run": run, "gates": {"g4": ((records.get("final") or {}).get("evidence") or {}).get("gate_g4")},
+            "report": consent._scrub(report, {}) if report else None, "bar_verdict": safe(lambda: brief_mod.verdict_of(project, store))})
+    return items
+
+
 def _clean_map(m: dict[str, Any] | None, aliases: dict[str, str]) -> dict[str, Any] | None:
     """A problem map as it may leave: the tables its needs name replaced by ``table_1``… (a file's name can be a person's), every string through the export's redaction, and
     the fingerprints put back (the redaction reads a 16-digit hex as an identifier, and a fingerprint is what ties a map to its edits)."""
@@ -416,6 +456,7 @@ def build(services: Any, root: Path | None = None) -> dict[str, Any]:
         keep("preferences", "corrections", lambda: builders.preferences(records, workspace=workspace, consent=basis, drafts=draft_map))
         keep("trajectories", "agent_runs", lambda: builders.trajectories(events, workspace=workspace, consent=basis, drafts=draft_map))
         keep("workflows", "problem_to_pipeline", lambda: builders.workflows(_workflow_items(services, allowed), workspace=workspace, consent=basis))
+        keep("case_trajectories", "problem_to_report", lambda: builders.case_trajectories(_case_items(services, allowed), workspace=workspace, consent=basis))
         keep("problem_maps", "brief_to_map", lambda: builders.problem_maps(_map_items(services, allowed), workspace=workspace, consent=basis))  # 24.7: assembled inside keep, so
         keep("routes", "sub_problem_to_approach", lambda: builders.routes(_map_items(services, allowed), workspace=workspace, consent=basis))  # a draft it cannot read costs these two sets only
         keep("team_walks", "boards", lambda: builders.team_walks(_team_items(home, switches, projects, all_drafts), workspace=workspace, consent=basis))  # 28.9

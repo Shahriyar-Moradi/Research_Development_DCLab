@@ -1,0 +1,157 @@
+{
+ "package": "30.21",
+ "title": "Ask the workspace: a chat over the workspace's tables where every number comes from a typed computation, no person's value reaches the model, and every exchange is kept and audited",
+ "date": "2026-10-20",
+ "request": "Phase 8 Part G, the owner's pattern 7: a chat over a workspace's own tables, every number from code run on them, personal data masked before any model, every question and answer audited and kept whole, an answer's numbers checked against the tools' results.",
+ "spec": "docs/guides/PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md, package 30.21",
+ "plan": [
+  "A typed computation (count, sum, mean, median, min, max, share, distinct; grouped; filtered by equality) in dclab_core, never free code.",
+  "Three read tools in a new scope 'workspace', run by one agent of the harness.",
+  "Mask every result, refuse an answer whose numbers no computation returned, keep every exchange whole and audit it.",
+  "Read the gateway's recorded prompts in a test for any personal value."
+ ],
+ "decisions": [
+  {
+   "decision": "Typed computations instead of the intern's code tools.",
+   "why": "A model that writes code can print a row; a model that fills a typed computation can only ask for an aggregate the code checks."
+  },
+  {
+   "decision": "No value over fewer than five rows.",
+   "why": "A minimum, a maximum or a median of one or two rows is one person's value, whatever the column."
+  },
+  {
+   "decision": "A personal column is never computed on, filtered on or grouped by, and a column is personal by its values or by its name.",
+   "why": "A filter on an e-mail returns one person's numbers; a first name passes the value scrubber."
+  }
+ ],
+ "change": "dclab_core.workspace_chat (Computation, compute with MIN_ROWS and a numeric filter, masked, numbers_in, ungrounded); dclab_rnd.workspace_chat (Session, list_tables, describe_table, compute, ask: the question redacted, a value cap per question, every status kept and audited); the prompt workspace_chat; the tool scope 'workspace' in the registry and the prompt gate; the harness agent workspace_chat; the gateway purpose workspace_chat; the audit kind workspace_chat.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "privacy",
+   "defect": "A computed mean equal to one row's value looked like a leaked cell.",
+   "scenario": "The data-limit test's marked spend values were evenly spaced, so a segment's mean was one of them.",
+   "cause": "The test computed a mean of evenly spaced values.",
+   "fix": "The test computes a sum, never equal to a row's value.",
+   "test": "test_the_workspace_chat_sees_aggregates_and_names_never_a_row"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Any number near a hundred times a result passed as grounded.",
+   "scenario": "Only a count of 40 returned: 'There are 4100 orders' was accepted.",
+   "cause": "The percent rule applied to every result.",
+   "fix": "A result times a hundred is read only for a share between 0 and 1, with the tight tolerance.",
+   "test": "test_the_grounding_reads_shares_as_percents_only_and_knows_the_filters_numbers"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The numbers a question filtered on were refused in its answer.",
+   "scenario": "where year 2026 and store 7: 'In 2026, store 7 had 1 order.' refused.",
+   "cause": "The grounding read only the results.",
+   "fix": "The filter's own numbers count as grounded.",
+   "test": "test_the_grounding_reads_shares_as_percents_only_and_knows_the_filters_numbers"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A filter on a float column matched nothing.",
+   "scenario": "A churn column with one missing value: where churn 1 compared the text 1.0 with 1 and counted 0.",
+   "cause": "Equality compared text.",
+   "fix": "A numeric column is compared as numbers.",
+   "test": "test_no_value_over_fewer_rows_than_the_minimum_and_a_numeric_filter_matches"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A personal column could be computed on or filtered by, giving one person's value.",
+   "scenario": "max of a phone column; max minutes where the e-mail is one person's.",
+   "cause": "Only the groups were checked against personal columns.",
+   "fix": "A personal column is refused as the column, a filter or a group; a filtered set under five rows is refused.",
+   "test": "test_the_question_is_redacted_and_a_personal_column_is_never_computed_or_filtered"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The person's question reached the model unredacted.",
+   "scenario": "How long did an e-mail address wait: the address in the recorded prompt.",
+   "cause": "The question was sent as typed.",
+   "fix": "The question is redacted before the model; the record keeps the words.",
+   "test": "test_the_question_is_redacted_and_a_personal_column_is_never_computed_or_filtered"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Groups that are people passed through.",
+   "scenario": "A first-name column, or a customer number with one row per group.",
+   "cause": "Only the value scrubber marked a column personal, and any group size was shown.",
+   "fix": "A column is personal by its name too; groups under five rows are left out; a question shows at most a hundred values.",
+   "test": "test_no_value_over_fewer_rows_than_the_minimum_and_a_numeric_filter_matches"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A run with no model or a failed run was not in the audit.",
+   "scenario": "After a failed run the audit held only the earlier answered row.",
+   "cause": "The audit was written only on the answered and refused path.",
+   "fix": "The audit is written where the exchange is kept, for every status.",
+   "test": "test_every_status_is_in_the_audit_trail"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The new tool scope was outside the prompt gate.",
+   "scenario": "A change of the compute tool's schema would never trip the gate.",
+   "cause": "The prompt gate listed four scopes.",
+   "fix": "The scope 'workspace' is in the gate, and the suites were run on the new prompt.",
+   "test": "test_prompt_gate"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the harness suite after the new prompt and scope",
+   "gate": "17 of 17 right on every step and part",
+   "fixed_before_run": true,
+   "result": "17 of 17 (HRN-030), EUR 0",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "met",
+   "limits": [
+    "Scripted journeys; the workspace chat is not one of them."
+   ]
+  },
+  {
+   "name": "the scripted judgment suite after the new prompt and scope",
+   "gate": "its stored hashes current",
+   "fixed_before_run": true,
+   "result": "AEV-041 stored with the new hashes",
+   "verdict": "not scored",
+   "cost_eur": 0,
+   "against_gate": "recorded",
+   "limits": [
+    "The suite's policies do not use the workspace chat."
+   ]
+  }
+ ],
+ "outcome": "A person can ask the workspace's tables a question and get an answer whose every number a computation returned, over at least five rows, with no person's value sent to the model; every exchange is kept and audited.",
+ "lessons": [
+  "Check a privacy rule against the filter and the computed column, not only the group.",
+  "A test's planted values must not be reachable by the aggregate it allows: evenly spaced values have a mean among them.",
+  "Write the audit where the record is kept, so no status path skips it."
+ ],
+ "risks": [
+  "No live run yet: the model's choice of computations is unmeasured.",
+  "A column personal by neither its values nor its name still passes; the five-row minimum is the last guard."
+ ],
+ "commits": []
+}

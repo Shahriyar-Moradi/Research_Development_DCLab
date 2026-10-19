@@ -4,6 +4,26 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.97.0 (2026-10-20)
+
+Packages 30.19 and Part G (30.21 to 30.24).
+
+- `datasets`: the `case_trajectories` builder (a solved project from its problem to its report: the card, the map, the
+  routes, the stages and the report's kept sentences, never a row), refused below `CASE_MIN_PROJECTS` projects;
+  `DatasetManifest` v8 (reads v1 to v7).
+- `workspace_chat` (30.21): `Computation`, a typed computation (count, sum, mean, median, min, max, share, distinct;
+  grouped by up to two columns, filtered by equality) run by pandas; `masked`, a result's personal-looking text replaced
+  before a model reads it; `ungrounded`, an answer's numbers no computation returned.
+- `department_agent` (30.22): `Policy` v1 (typed actions, the largest change, a budget, an approval amount, the level),
+  `Agent.consider` checking every proposal before anything happens, `Step` with the value before, `undo`, `TrackRecord`
+  and `level_for` (up one level after its count of right calls in a row, down one on a wrong one).
+- `foundation` (30.23): `TableEntry` v1 (owner, keys, date column, checks run), `entry`, `as_of` (no row written after the
+  date; for a history table the row valid on it) and `resolve` (one entity across systems through the matching kind).
+  `matching.link`: the chosen model's links over every record.
+- `triage` (30.24): `Request` v1 and `Portfolio` v1, `score` (value, readiness, effort, risk, each with its reason),
+  `choose` (K of N, never one without a success number, the reuse said) and `retire`.
+- The replica `four_systems`: one customer in four systems.
+
 ## 0.96.0 (2026-10-20)
 
 Package 30.6: bigger and more problems, from what the sealed programme journeys missed.

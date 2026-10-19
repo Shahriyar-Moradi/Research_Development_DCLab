@@ -1,0 +1,79 @@
+{
+ "package": "30.19",
+ "title": "Case trajectories in the lake, the owner's fraud run against its earlier run and solution, and binary certified on Telco and HyperAck",
+ "date": "2026-10-20",
+ "request": "Phase 8: the case_trajectories lake family; the owner's fraud (private, rules only) with its resolved recipe against RPB-007 and the owner's own solution; Telco and HyperAck certifying binary and the modifiers.",
+ "spec": "docs/guides/PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md, package 30.19",
+ "plan": [
+  "A case_trajectories builder: a whole case per built project, refused below its minimum.",
+  "A real run's comparison against its previous run and the owner's earlier solution, with its limits, stored privately.",
+  "Binary certified on its replica and the two real datasets with their traps."
+ ],
+ "decisions": [
+  {
+   "decision": "The fraud run is stored under agent_runs, never in evidence.",
+   "why": "The data is the owner's and private (D6): only the owner's machine keeps its numbers."
+  },
+  {
+   "decision": "The earlier solution is set beside, never ranked.",
+   "why": "It was measured on its own protocol and split, not DCLab's."
+  }
+ ],
+ "change": "dclab_core.datasets (case_trajectories, manifest v8 reading v1 to v7); dclab_rnd.datasets._case_items; the lake's solution_design mapping; dclab_rnd.real_problems (PRIVATE_RESULTS, previous, comparison, the recipe in the number); dclab_rnd.certify (REAL_FOR, FAMILY_OF, entries_for, run_kind for engine kinds); the data catalog's builder note.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A v7 manifest no longer read.",
+   "scenario": "The lake's test read an older manifest after v8.",
+   "cause": "The upgrade validator stopped at v7.",
+   "fix": "v7 upgrades to v8.",
+   "test": "test_the_manifest_names_the_scrubber_and_reads_the_older_versions"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "No run's comparison was stored and the binary path had no test.",
+   "scenario": "The real runs and the binary certification were not run.",
+   "cause": "The package's code was built before its runs.",
+   "fix": "The fraud run stored with its comparison (private); entries_for tested; the binary certification run as CRT-003.",
+   "test": "test_binary_is_certified_on_its_replica_and_both_real_datasets_with_their_traps"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "A test patched a minimum the function never re-read.",
+   "scenario": "CASE_MIN_PROJECTS patched to 10, the default bound at definition.",
+   "cause": "A default argument is bound once.",
+   "fix": "The patch is gone; the test reads the default.",
+   "test": "test_below_the_minimum_nothing_is_written_and_the_manifest_says_why"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the owner's fraud, rules only, against RPB-007 and the earlier solution (private)",
+   "gate": "stored with its comparison and its limits",
+   "fixed_before_run": true,
+   "result": "average precision 0.019 (cluster bootstrap 0.0003 to 0.088 over 692 groups), the same as RPB-007 (difference 0.0); the earlier solution's own protocol: random forest 0.095, PU bagging 0.081",
+   "verdict": "not scored",
+   "cost_eur": 0,
+   "against_gate": "recorded",
+   "limits": [
+    "Each number is one holdout of its own protocol: a difference inside the intervals is not a difference.",
+    "The earlier solution was measured on its own split: set beside, never ranked."
+   ]
+  }
+ ],
+ "outcome": "The lake gets a family of whole cases once ten projects exist; the owner's fraud is carried by the rules to a number far below the owner's own model, said with its interval; binary is certified on two real tables.",
+ "lessons": [
+  "Store a comparison with the protocol of each side, or the numbers will be read as a ranking.",
+  "A default argument cannot be patched: read the module constant at call time or pass it."
+ ],
+ "risks": [
+  "The rules' fraud number is low: the review list and the rings are not in this run."
+ ],
+ "commits": []
+}

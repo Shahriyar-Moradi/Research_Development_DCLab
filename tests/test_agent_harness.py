@@ -39,6 +39,7 @@ PROBES = {
     "orchestra.walk": "tests/test_orchestra_walk.py::test_the_walk_is_a_session_of_the_orchestra_walk_agent",
     "orchestra.solution": "tests/test_orchestra_solution.py::test_the_team_is_a_session_of_the_orchestra_solution_agent",
     "twin": "tests/test_twin_runs.py::test_the_run_is_a_session_of_the_twin_agent",
+    "workspace_chat": "tests/test_workspace_chat.py::test_the_chat_is_a_run_of_the_workspace_chat_agent",
 }
 
 # The only functions that call a registered tool, each recording the call as a step (the loop, the standard plan, the

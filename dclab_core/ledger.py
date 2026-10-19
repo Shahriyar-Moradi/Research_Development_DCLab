@@ -96,6 +96,8 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "calibrated": (CODE, ()),
     "noisy": (FLAG, ()),  # 30.13: whether the data card found noisy labels (G2's reading)
     "hits": (COUNT, ()), "top_score": (MEASURE, ()), "method": (CODE, ()), "weak": (FLAG, ()),
+    # 30.22: a department agent's proposal, as its relative change and the policy's verdict (never the value itself)
+    "change": (RATIO, ()), "allowed": (FLAG, ()), "needs_approval": (FLAG, ()), "applied": (FLAG, ()), "agent_level": (CODE, ()),
 }
 Scalar = Union[str, int, float, bool, None]
 
@@ -232,6 +234,8 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     _p("ops.retrain", W, "project", "noul", "Is the model retrained now?", "ops.retrain"),
     _p("ops.release", W, "project", "noul", "Is the new model released?", "ops.release"),
     _p("ops.rollback", W, "project", "noul", "Is the release rolled back?", "ops.rollback"),
+    # 30.22: a department agent's proposal (a price, a limit), judged by a person; the agent's level is earned on these labels
+    _p("department.proposal", W, "proposal", "noul", "Is the department agent's proposal one the person would make?"),
     _p("proposal.completeness", W, "proposal", "score", "How complete is the proposal for a reviewer?",
        "proposal.completeness", "proposal.completeness"),
 )}

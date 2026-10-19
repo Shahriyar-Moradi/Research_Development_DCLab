@@ -1,0 +1,109 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.project_request.v1.json",
+  "additionalProperties": false,
+  "description": "One requested project, as the person described it (v1).",
+  "properties": {
+    "acts_on_its_own": {
+      "default": false,
+      "title": "Acts On Its Own",
+      "type": "boolean"
+    },
+    "id": {
+      "maxLength": 60,
+      "title": "Id",
+      "type": "string"
+    },
+    "kind": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Kind"
+    },
+    "labelled": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Labelled"
+    },
+    "new_kind": {
+      "default": false,
+      "title": "New Kind",
+      "type": "boolean"
+    },
+    "personal_data": {
+      "default": false,
+      "title": "Personal Data",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "dclab_core.project_request.v1",
+      "default": "dclab_core.project_request.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "success": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Success"
+    },
+    "tables": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 30,
+      "title": "Tables",
+      "type": "array"
+    },
+    "tables_exist": {
+      "default": false,
+      "title": "Tables Exist",
+      "type": "boolean"
+    },
+    "title": {
+      "maxLength": 200,
+      "title": "Title",
+      "type": "string"
+    },
+    "value_eur_month": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Value Eur Month"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "title"
+  ],
+  "title": "Request",
+  "type": "object"
+}

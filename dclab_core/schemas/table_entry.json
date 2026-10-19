@@ -1,0 +1,93 @@
+{
+  "$defs": {
+    "Check": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
+          "default": "",
+          "title": "Detail",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "passed"
+      ],
+      "title": "Check",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.table_entry.v1.json",
+  "additionalProperties": false,
+  "description": "One table of the foundation (v1).",
+  "properties": {
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/Check"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "date_column": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Date Column"
+    },
+    "keys": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Keys",
+      "type": "array"
+    },
+    "name": {
+      "maxLength": 120,
+      "title": "Name",
+      "type": "string"
+    },
+    "owner": {
+      "maxLength": 120,
+      "title": "Owner",
+      "type": "string"
+    },
+    "rows": {
+      "default": 0,
+      "title": "Rows",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.table_entry.v1",
+      "default": "dclab_core.table_entry.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "system": {
+      "maxLength": 120,
+      "title": "System",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "system",
+    "owner"
+  ],
+  "title": "TableEntry",
+  "type": "object"
+}

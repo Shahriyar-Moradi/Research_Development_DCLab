@@ -40,7 +40,7 @@ from dclab_core.contracts import CONTRACTS, Contract, Versioned, _version
 
 VERSION = "1"
 Builder = Literal["decisions", "conversations", "preferences", "trajectories", "workflows", "failures", "development", "outcomes", "episodes",
-                  "model_calls", "problem_maps", "routes", "twin", "team_walks"]  # outcomes: 23.5; episodes and model_calls: 23.10; problem_maps and routes: 24.7; twin: 25.7; team_walks: 28.9
+                  "model_calls", "problem_maps", "routes", "twin", "team_walks", "case_trajectories"]  # outcomes: 23.5; episodes and model_calls: 23.10; problem_maps and routes: 24.7; twin: 25.7; team_walks: 28.9; case_trajectories: 30.19
 SourceKind = Literal["decision", "label", "event", "visit", "conversation", "run", "project", "draft", "package", "flag", "step"]
 SPLITS = (("sealed", 0.2), ("dev", 0.4))  # a group's hash below 0.2: sealed; below 0.4: dev; the rest train
 SALT = "dclab-datasets-v1"  # one salt for every set: a project is sealed (or not) everywhere at once
@@ -55,9 +55,10 @@ class Source(Contract):
 class DatasetManifest(Versioned):
     """What a dataset holds and where every row came from."""
 
-    schema_version: Literal["dclab_core.dataset_manifest.v7"] = _version("dataset_manifest", 7)  # v7 (28.9): the builder team_walks
+    schema_version: Literal["dclab_core.dataset_manifest.v8"] = _version("dataset_manifest", 8)  # v8 (30.19): the builder case_trajectories
     READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.dataset_manifest.v1", "dclab_core.dataset_manifest.v2", "dclab_core.dataset_manifest.v3",
-                                                 "dclab_core.dataset_manifest.v4", "dclab_core.dataset_manifest.v5", "dclab_core.dataset_manifest.v6"})  # v2 added levels; v3 the outcomes builder; v4 the scrubber and the commit; v5 the problem_maps and routes builders; v6 the twin builder and the step source; v7 the team_walks builder
+                                                 "dclab_core.dataset_manifest.v4", "dclab_core.dataset_manifest.v5", "dclab_core.dataset_manifest.v6",
+                                                 "dclab_core.dataset_manifest.v7"})  # v2 added levels; v3 the outcomes builder; v4 the scrubber and the commit; v5 the problem_maps and routes builders; v6 the twin builder and the step source; v7 the team_walks builder
     builder: Builder
     name: str = Field(min_length=1, max_length=120)
     version: str = Field(min_length=1, max_length=20)
@@ -81,8 +82,8 @@ class DatasetManifest(Versioned):
     def _read_v1(cls, data: Any) -> Any:
         if isinstance(data, dict) and data.get("schema_version") in ("dclab_core.dataset_manifest.v1", "dclab_core.dataset_manifest.v2", "dclab_core.dataset_manifest.v3",
                                                                     "dclab_core.dataset_manifest.v4", "dclab_core.dataset_manifest.v5",
-                                                                    "dclab_core.dataset_manifest.v6"):
-            data = {**data, "schema_version": "dclab_core.dataset_manifest.v7"}
+                                                                    "dclab_core.dataset_manifest.v6", "dclab_core.dataset_manifest.v7"):
+            data = {**data, "schema_version": "dclab_core.dataset_manifest.v8"}
         return data
 
 
@@ -573,6 +574,38 @@ def workflows(items: Iterable[dict[str, Any]], *, workspace: Optional[str] = Non
     return rows, manifest("workflows", "workflows.problem_to_pipeline", rows, sources_of(rows), use="train", consent=consent, workspace=workspace,
                           policy="One example per built project; grouped by the project, split as every set.",
                           limits=["The code of a pipeline is not in it yet: the stages and their choices are."])
+
+
+# ------------------------------------------------------------------------------------------------ case trajectories (30.19)
+
+CASE_MIN_PROJECTS = 10  # the corpus builder refuses below it: a few cases teach the cases, not the method
+CASE_PARTS = ("request", "conversation", "problem_card", "data_card", "fit_verdict", "brief", "recipe", "workflow_run", "gates", "report", "bar_verdict")
+
+
+def case_trajectories(items: Iterable[dict[str, Any]], *, workspace: Optional[str] = None, consent: str = "train",
+                      minimum: int = CASE_MIN_PROJECTS) -> tuple[list[dict[str, Any]], DatasetManifest]:
+    """A whole case per built project (Part D of the Phase 8 plan): the request, the questions and answers, the problem card, the data card
+    and its fit verdict, the brief with its reasons and alternatives, the resolved recipe, the twelve steps of the Workflow Run with their
+    checks, the gates, the report and its verdict against the bar. ``items`` as the host assembles them (``draft``, ``project`` and the
+    parts above). Whole projects are held out (grouped by the project, split as every set). Below ``minimum`` projects no row is written:
+    the manifest says so and why."""
+    rows = []
+    for item in items:
+        if not item.get("problem_card") or not item.get("workflow_run"):
+            continue
+        group = group_of(item.get("project"), item.get("draft"), None, None, "case")
+        rows.append({"draft": item.get("draft"), "project": item.get("project"), **{k: item.get(k) for k in CASE_PARTS},
+                     "complete": [k for k in CASE_PARTS if item.get(k) not in (None, [], {})],
+                     "group": group, "split": split_of(group), "sources": [("draft", item.get("draft")), ("project", item.get("project"))]})
+    projects = len({r["project"] for r in rows})
+    refused = projects < minimum
+    kept = [] if refused else rows
+    return kept, manifest("case_trajectories", "cases.problem_to_report", kept, sources_of(kept), use="train", consent=consent, workspace=workspace,
+                          counts={"projects": {"found": projects, "minimum": minimum}, "refused": {"yes" if refused else "no": 1},
+                                  "complete": dict(Counter(str(len(r["complete"])) for r in rows))},
+                          policy=f"One case per built project, whole projects held out; nothing is written below {minimum} projects.",
+                          limits=([f"Refused: {projects} project(s), below the minimum of {minimum}: a few cases teach those cases, not the method."] if refused else [])
+                          + ["The words are the person's, redacted as every exported text; never a table's row."])
 
 
 # ------------------------------------------------------------------------------------------------ (g) problem maps and routes (24.7)

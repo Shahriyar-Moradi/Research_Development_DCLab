@@ -46,6 +46,10 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "monitoring_plan": LIBRARY + " (step 12: the training rows' bins and the alert lines, carried in the artifact, 30.15)",
     "monitor_report": LIBRARY + " (what monitor() says of new rows; the main product's deployment reads it, 30.15)",
     "gate_result": LIBRARY + " (a gate's verdict with the phase it sends the work back to, 30.15)",
+    "table_entry": LIBRARY + " (a table's catalog entry with its owner and checks, 30.23; the main product's data catalog keeps its own entries)",
+    "project_request": LIBRARY + " (a requested project scored, 30.24; the main product's intake keeps its own requests and scores them through it)",
+    "portfolio": LIBRARY + " (the projects chosen of the requested and what they reuse, 30.24)",
+    "department_policy": LIBRARY + " (a department agent's policy and limits, 30.22; the main product's agents keep theirs beside their tools)",
     "semantic_layer": LIBRARY + " (a workspace's approved metric definitions, 30.20; the main product's analytics keep their own layer and pass it as is)",
     "metric_answer": LIBRARY + " (the answer to why a number changed, with its queries, 30.20; stored by the host beside the question)",
     "workflow_run": LIBRARY + " (the twelve steps read from a run's records, 30.15; the main product's pipeline runs map onto it field by field later)",
@@ -76,6 +80,7 @@ FROM_ROWS = frozenset({"experience_event", "run_record", "decision_record", "dec
 
 _NO_NAME = "the main product has no governed decision point of this name: it is this studio's {what}; its decisions of the kind are project_decision_records of other types, read as decision events"
 POINTS_NOT_MAPPED: dict[str, str] = {
+    "department.proposal": "the main product has no department agents yet: its governed point is added with them (30.22)",
     **{p: _NO_NAME.format(what="data preparation step") for p in (
         "column.category_code", "column.time", "column.group", "task.framing", "labels.situation", "labels.join_key", "data.cases_table",
         "data.cleaning_step", "data.sampling", "split.folds", "data.structure_format", "data.cleaning_keep", "data.synthetic_shape",

@@ -19,7 +19,7 @@ from .traces import FileTraces, PgTraces, Tracer, open_traces, replay
 # Where each group of tools is registered. The campaign group imports no table library, so the campaign's own
 # environment (.venv-agent, no pandas) builds a registry of that group alone.
 GROUPS = {"project": "dclab_rnd.intern.tools", "draft": "dclab_rnd.draft.chat", "session": "dclab_rnd.intern.loop",
-          "campaign": "dclab_rnd.agentic.campaign_tools"}
+          "campaign": "dclab_rnd.agentic.campaign_tools", "workspace": "dclab_rnd.workspace_chat"}  # workspace: 30.21's chat over the workspace's tables
 
 
 def build_registry(groups: tuple[str, ...] = tuple(GROUPS)) -> Registry:

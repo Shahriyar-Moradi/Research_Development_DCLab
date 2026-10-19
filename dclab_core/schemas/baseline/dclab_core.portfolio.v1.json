@@ -1,0 +1,92 @@
+{
+  "$defs": {
+    "Score": {
+      "additionalProperties": false,
+      "properties": {
+        "effort": {
+          "type": "integer"
+        },
+        "readiness": {
+          "type": "integer"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "request": {
+          "type": "string"
+        },
+        "risk": {
+          "type": "integer"
+        },
+        "total": {
+          "type": "number"
+        },
+        "value": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "request",
+        "value",
+        "readiness",
+        "effort",
+        "risk",
+        "total"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "capacity": {
+      "type": "integer"
+    },
+    "chosen": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "not_ready": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "reuse": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.portfolio.v1",
+      "default": "dclab_core.portfolio.v1",
+      "type": "string"
+    },
+    "scores": {
+      "items": {
+        "$ref": "#/$defs/Score"
+      },
+      "type": "array"
+    },
+    "waiting": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "capacity",
+    "chosen",
+    "waiting",
+    "scores"
+  ],
+  "type": "object"
+}

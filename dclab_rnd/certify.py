@@ -33,6 +33,8 @@ CAMPAIGN = ROOT / "evidence" / "campaigns" / "certification_v1"
 PARTS = ("rare_positives", "groups", "time_order", "noisy_labels", "review_capacity")
 TELCO = ROOT / "data" / "project" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
 HYPERACK = ROOT / "data" / "project" / "hyperack" / "hyper_ackt-dataset.csv"
+REAL_FOR = {"binary": ("telco", "hyperack")}  # 30.19: the recipes' two real datasets (D6), for a kind certified on them
+FAMILY_OF = {"binary": "classification", "multiclass": "classification", "regression": "regression"}  # a kind's problem family, for detection
 
 
 def cases(seeds: tuple[int, ...] = (0, 1, 2)) -> list[dict[str, Any]]:
@@ -123,6 +125,18 @@ def run(seeds: tuple[int, ...] = (0, 1, 2), log=print) -> dict[str, Any]:
                        "fraud data (D6) is the real dataset for them."]}
 
 
+def entries_for(key: str, seeds: tuple[int, ...] = (0, 1, 2)) -> list[tuple[str, str, Any, Any]]:
+    """What a kind is certified on: its replica's seeds, the real cases its module names, and (30.19) for a kind the engine runs without
+    a machine of its own (binary) the real datasets of ``REAL_FOR``, each with its own traps."""
+    from . import kinds
+
+    kind = kinds.get(key)
+    entries = [(f"{key} replica s{seed}", "replica", kind.case(seed), None) for seed in seeds]
+    entries += [(f"{key} {case.facts.get('source')}", "real", case, None) for case in getattr(kind, "real_cases", lambda: [])()]
+    entries += [(f"{key} {e['name']}", "real", e["case"], e) for e in cases(seeds=()) if e["name"] in REAL_FOR.get(key, ())]
+    return entries
+
+
 def run_kind(key: str, seeds: tuple[int, ...] = (0, 1, 2), log=print) -> dict[str, Any]:
     """30.16: a kind certified as a part, on its trap replica (``case(seed)``) and the real datasets it names
     (``real_cases()``), every run through the engine with no model asked: detection (the declared kind is the one that
@@ -140,17 +154,23 @@ def run_kind(key: str, seeds: tuple[int, ...] = (0, 1, 2), log=print) -> dict[st
     from .studio import code, engine
 
     kind = kinds.get(key)
-    entries = [(f"{key} replica s{seed}", "replica", kind.case(seed)) for seed in seeds]
-    entries += [(f"{key} {case.facts.get('source')}", "real", case) for case in getattr(kind, "real_cases", lambda: [])()]
+    entries = entries_for(key, seeds)
     judged = []
-    for name, source, case in entries:
+    for name, source, case, entry in entries:
         started = time.perf_counter()
-        checks = kind.accept(kind.solve(case)) if source == "replica" else []
+        own = kind.solve(case) if source == "replica" else None
+        checks = kind.accept(own) if own is not None else []
         store, pid = acceptance.build(case, Path(tempfile.mkdtemp()))
         with runner.fast_profile(), private_scope(True), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None):
             engine.run_all(store, pid)
         records = store.records(pid)
-        checks += kind.accept_engine(acceptance.Run(case, store.get(pid)["solution"], records))
+        run_ = acceptance.Run(case, store.get(pid)["solution"], records)
+        if own is not None or kind.own_machine() is not None:
+            checks += kind.accept_engine(run_)
+        elif source == "replica":
+            checks += kind.accept(run_)  # an engine kind: its acceptance reads the engine's run
+        if entry is not None:
+            checks += _trap_checks(entry, run_)  # the real dataset's own traps (an identifier, the fares paid after the order)
         final = records["final"]["evidence"]
         exported = code.export(store, pid, Path(tempfile.mkdtemp()) / "code", check=True)["checked"]
         beats = final.get("beats")
@@ -162,20 +182,23 @@ def run_kind(key: str, seeds: tuple[int, ...] = (0, 1, 2), log=print) -> dict[st
         judged.append({"name": name, "source": source, "applies": True, "criteria": criteria, "checks": checks,
                        "holdout_metrics": final.get("holdout_metrics"), "baselines": final.get("baselines"), "g4": (final.get("gate_g4") or {}).get("passed"),
                        "seconds": round(time.perf_counter() - started, 1)})
-        log(f"{name}: {criteria}; F1 {(final.get('holdout_metrics') or {}).get(kind.metrics[0][0])} against {final.get('baselines')}")
+        log(f"{name}: {criteria}; {metric} {(final.get('holdout_metrics') or {}).get(metric)} against {final.get('baselines')}")
     replicas = [j for j in judged if j["source"] == "replica"]
     whole = all(all(v is not False for v in j["criteria"].values()) for j in replicas)
     counted = [j for j in judged if j["source"] != "replica"]
     if replicas:  # the review: one seed passing is not the trap passed; the replica counts once, and only when every seed passes
         counted.append({"name": f"{key} replica, {len(replicas)} seeds", "source": "replica", "applies": True,
                         "criteria": {c: all(j["criteria"][c] for j in replicas) for c in replicas[0]["criteria"]}})
-    return {"runs": judged, "parts": {key: certify(counted)}, "replica_every_seed": whole,
-            "limits": ["Every run is the engine's quick mode with no model asked; the kind has no model in its path (the fields compared and the "
-                       "blocking are the person's), so the LLM-off criterion holds by construction, said rather than measured.",
-                       "Detection is the router's choice on each case's own data card for the problem's family; the replica counts once, "
-                       "only when every seed passes every criterion.",
-                       "The replica's known matches are every copy (the truth); a business knows only the copies it confirmed.",
-                       "The real datasets are public benchmarks the owner chose to download (2026-10-19): two catalogues each, labelled in full."]}
+    limits = ["Every run is the engine's quick mode with no model asked, so the LLM-off criterion holds by construction, said rather than measured.",
+              "Detection is the router's choice on each case's own data card for the problem's family; the replica counts once, "
+              "only when every seed passes every criterion."]
+    if key == "matching":
+        limits += ["The replica's known matches are every copy (the truth); a business knows only the copies it confirmed.",
+                   "The real datasets are public benchmarks the owner chose to download (2026-10-19): two catalogues each, labelled in full."]
+    if REAL_FOR.get(key):
+        limits += ["Telco and HyperAck are the recipes' two real datasets (D6): one public churn table and the owner's delivery table; a pass says "
+                   "the kind holds on them under these protocols, not on any other table."]
+    return {"runs": judged, "parts": {key: certify(counted)}, "replica_every_seed": whole, "limits": limits}
 
 
 def _routed(kind: Any, case: Any) -> bool:
@@ -188,7 +211,8 @@ def _routed(kind: Any, case: Any) -> bool:
     tables, roles = {"table": case.table}, {}
     for name, frame in (case.tables or {}).items():
         tables[name], roles[name] = frame, "related"
-    sub = pm.SubProblem(id="sp1", part="part1", title="The problem", family=case.facts.get("family", "rare_event"), labels=case.facts.get("labels", "column"))
+    sub = pm.SubProblem(id="sp1", part="part1", title="The problem", family=case.facts.get("family", FAMILY_OF.get(kind.key, "rare_event")),
+                        labels=case.facts.get("labels", "column"))
     m = pm.ProblemMap(size="single", parts=[pm.Part(id="part1", title="The problem")], sub_problems=[sub])
     return sol.route(sub, dc.card_of(tables, name=kind.key, roles=roles), m).chosen == kind.key
 

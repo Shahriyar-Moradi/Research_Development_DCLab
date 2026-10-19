@@ -24,6 +24,7 @@ from typing import Any, Optional
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "evidence" / "campaigns" / "real_problems_v1" / "results"
+PRIVATE_RESULTS = ROOT / "agent_runs" / "real_problems" / "results"  # 30.19: a private problem's record (the owner's fraud) never sits in the evidence folder
 RUNS = ROOT / "agent_runs" / "real_problems"
 SNAP = ROOT.parent / "Snap_fruad"
 
@@ -134,7 +135,8 @@ def _number(project: dict[str, Any], projects: Any) -> dict[str, Any]:
                 "leaves": [{"block": l.block, "approach": l.approach, "status": l.status, "chosen": l.chosen} for l in p.leaves]}
     final = projects.read_stage(project["id"], "final") or {}
     ev = final.get("evidence") or {}
-    return {"kind": "stages", "metric": final.get("primary_metric"), "holdout": ev.get("holdout_metrics"), "interval": ev.get("holdout_primary_metric_ci"),
+    recipe = ((projects.read_stage(project["id"], "data") or {}).get("evidence") or {}).get("recipe")  # 30.19: the resolved recipe behind the number
+    return {"kind": "stages", "metric": final.get("primary_metric"), "recipe": recipe, "holdout": ev.get("holdout_metrics"), "interval": ev.get("holdout_primary_metric_ci"),
             "model": ev.get("model"), "feature_recipe": ev.get("feature_recipe"), "holdout_rows": ev.get("holdout_rows"), "train_rows": ev.get("train_rows"),
             "holdout_split": ev.get("holdout_split"), "cv_to_holdout_gap": ev.get("cv_to_holdout_gap"), "baselines": ev.get("baselines")}
 
@@ -259,18 +261,49 @@ def _spent(out: dict[str, Any], live: bool, read: Any, critic: Any, advisor: Any
     return out
 
 
+def previous(name: str) -> Optional[dict[str, Any]]:
+    """The last stored run of the same problem, wherever its kind keeps it (a private problem's outside the evidence folder)."""
+    found = sorted([*RESULTS.glob(f"RPB-*_{name}.json"), *PRIVATE_RESULTS.glob(f"RPB-*_{name}.json")], key=lambda p: int(p.name.split("_")[0].split("-")[1]))
+    return json.loads(found[-1].read_text(encoding="utf-8")) if found else None
+
+
+def comparison(number: Optional[dict[str, Any]], earlier_run: Optional[dict[str, Any]], earlier: dict[str, Any]) -> dict[str, Any]:
+    """30.19: this run beside its previous run of the same problem and the earlier solution, each with its protocol, and the limits that
+    keep a difference from being read as one."""
+    def headline(n: Optional[dict[str, Any]]) -> dict[str, Any]:
+        n = n or {}
+        if n.get("kind") == "programme":
+            return {"metric": n.get("metric"), "value": n.get("composed"), "interval": n.get("interval"), "what": "the composition's holdout value"}
+        metric = n.get("metric")
+        return {"metric": metric, "value": (n.get("holdout") or {}).get(metric), "interval": n.get("interval"), "what": "the final stage's holdout value"}
+
+    now = headline(number)
+    rows = [{"against": "this run", **now, "recipe": (number or {}).get("recipe")}]
+    if earlier_run is not None:
+        before = headline(earlier_run.get("number"))
+        rows.append({"against": earlier_run.get("id"), **before, "recipe": (earlier_run.get("number") or {}).get("recipe"),
+                     "difference": (round(now["value"] - before["value"], 4) if isinstance(now["value"], (int, float)) and isinstance(before["value"], (int, float))
+                                    and now["metric"] == before["metric"] else None)})
+    rows.append({"against": "the earlier solution", "source": earlier.get("source"), "numbers": earlier.get("numbers"), "protocol": earlier.get("protocol")})
+    return {"rows": rows, "limits": ["Each number is one holdout of its own split and protocol: a difference inside the intervals is not a difference.",
+                                     "The earlier solution was measured on its own protocol (its README's), not DCLab's split: set beside, never ranked.",
+                                     "A run played with written answers is how DCLab carried the problem, not how a person would have."]}
+
+
 def _store(name: str, out: dict[str, Any]) -> dict[str, Any]:
     problem = PROBLEMS[name]
-    RESULTS.mkdir(parents=True, exist_ok=True)
-    n = 1 + max([int(p.name.split("_")[0].split("-")[1]) for p in RESULTS.glob("RPB-*.json")] or [0])
+    where = PRIVATE_RESULTS if problem["private"] else RESULTS
+    where.mkdir(parents=True, exist_ok=True)
+    n = 1 + max([int(p.name.split("_")[0].split("-")[1]) for p in [*RESULTS.glob("RPB-*.json"), *PRIVATE_RESULTS.glob("RPB-*.json")]] or [0])
     ident = f"RPB-{n:03d}"
     doc = {"id": ident, "experiment_id": ident, "campaign_id": "real_problems_v1", "kind": "real_problem", "status": "completed",
            "at": datetime.now(timezone.utc).isoformat(timespec="seconds"), **out, "earlier": problem["earlier"],
+           "comparison": comparison(out.get("number"), previous(name), problem["earlier"]),
            "rule": "One run on the problem's own data, played with written answers; its number is one holdout of DCLab's own split, set "
                    "beside an earlier solution measured on another protocol: evidence about this run, not production readiness."}
-    path = RESULTS / f"{ident}_{name}.json"
+    path = where / f"{ident}_{name}.json"
     path.write_text(json.dumps(doc, indent=2, default=str) + "\n", encoding="utf-8")
-    doc["path"] = path.relative_to(ROOT).as_posix()
+    doc["path"] = path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else str(path)
     return doc
 
 

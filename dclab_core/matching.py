@@ -456,6 +456,33 @@ def score(ctx: dict[str, Any], chosen: str, threshold: Optional[float] = None, s
             "holdout_true_pairs": total, "beats": beats, "beats_exact": beats.get("exact", False), "beats_single_field": beats.get("single_field", False)}
 
 
+def link(ctx: dict[str, Any], chosen: str, threshold: Optional[float] = None, single: Optional[Mapping[str, Any]] = None) -> list[tuple[str, str, float]]:
+    """30.23: the pairs the chosen model links over every record (each part's records against what they may see), each with its score:
+    what a data foundation resolves into one entity. Fitted on the training pairs and thresholded as ``validate`` chose; the holdout is
+    scored here as everywhere else, never read for a choice."""
+    tr = candidates(ctx, "train")
+    Xt, _, _ = features(ctx, tr)
+    model = _models(ctx, tr, Xt).get(chosen) if chosen in ("logistic", "boosting") else None
+    seen: dict[tuple[str, str], float] = {}
+    for part in PARTS:
+        c = tr if part == "train" else candidates(ctx, part)
+        X, _, exact = features(ctx, c)
+        if model is not None and len(X):
+            s = model.predict_proba(X)[:, 1]
+            keep = s >= float(threshold if threshold is not None else 0.5)
+        elif chosen == "single_field" and single and single.get("threshold") is not None and X.shape[1]:
+            s = single["sign"] * X[:, single["column"]]
+            keep = s >= single["threshold"]
+        else:
+            s, keep = exact.astype(float), exact.astype(bool)
+        a, b = c["L"]["__key"].to_numpy()[c["li"]], c["R"]["__key"].to_numpy()[c["ri"]]
+        for x, y, score_, k in zip(a, b, s, keep):
+            if k and x != y:
+                pair = tuple(sorted((str(x), str(y))))
+                seen[pair] = max(seen.get(pair, 0.0), float(score_))
+    return [(x, y, round(v, 6)) for (x, y), v in sorted(seen.items())]
+
+
 def evaluate(left: pd.DataFrame, right: Optional[pd.DataFrame] = None, **kw: Any) -> dict[str, Any]:
     """setup, validate and score in one call (a kind's own check of the library)."""
     ctx = setup(left, right, **kw)
@@ -464,4 +491,4 @@ def evaluate(left: pd.DataFrame, right: Optional[pd.DataFrame] = None, **kw: Any
     return {"split": ctx["split"], "validation": picked, "holdout": score(ctx, picked["chosen"], threshold, picked["scores"]["single_field"])}
 
 
-__all__ = ["PARTS", "SEES", "MODELS", "normal", "setup", "candidates", "features", "validate", "score", "evaluate"]
+__all__ = ["link", "PARTS", "SEES", "MODELS", "normal", "setup", "candidates", "features", "validate", "score", "evaluate"]

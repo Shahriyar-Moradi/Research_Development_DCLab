@@ -1,0 +1,82 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "actions": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "type": "array"
+    },
+    "approval_above": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "budget": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "field": {
+      "maxLength": 80,
+      "type": "string"
+    },
+    "level": {
+      "default": "shadow",
+      "enum": [
+        "shadow",
+        "flag",
+        "act_with_check",
+        "act"
+      ],
+      "type": "string"
+    },
+    "max_change": {
+      "exclusiveMinimum": 0,
+      "maximum": 1,
+      "type": "number"
+    },
+    "name": {
+      "maxLength": 120,
+      "type": "string"
+    },
+    "promote_after": {
+      "default": 50,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "read_only": {
+      "default": false,
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "dclab_core.department_policy.v1",
+      "default": "dclab_core.department_policy.v1",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "actions",
+    "field",
+    "max_change"
+  ],
+  "type": "object"
+}

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 import sys
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from dclab_core.bands import ratio_band
 
@@ -852,3 +852,21 @@ def critic_weighed(draft_id: str, field: str, source: str, sent: bool, reason: s
     state = {"field": _code(field) or "field", "concern_source": _code(source) or "rules", "rounds": int(rounds)}
     return _put("critic.send_back", ("draft", draft_id), [answer("rule", f"rule:critic.{_code(source) or 'rules'}", bool(sent), reason=(reason or None) and reason[:600])],
                 bool(sent), "rule", state=state, options=["yes", "no"], draft=draft_id, conversation=draft_id)
+
+
+# ---------------------------------------------------------------------- a department agent's proposal (30.22)
+
+@_quiet
+def department_proposal(agent: str, step: Any, right: Optional[bool] = None, person: str = "person") -> Any:
+    """One proposal of a department agent: its claim (yes, it is one to make), whether the policy let it through and it was applied, at
+    which level; with the person's judgment as an exposed label (the person saw the proposal). The agent's track record is these labels."""
+    p = step.proposal
+    change = min(1.0, abs(p.after - p.before) / abs(p.before)) if p.before else 1.0
+    state = {"move": _code(p.action) or "action", "change": round(change, 4), "allowed": bool(step.verdict.allowed),
+             "needs_approval": bool(step.verdict.needs_approval), "applied": bool(step.applied), "agent_level": _code(step.level) or "shadow"}
+    record = _put("department.proposal", ("proposal", f"{_code(agent) or 'agent'}:{step.id}"),
+                  [answer("rule", f"agent:{_code(agent) or 'agent'}", True, reason=(p.reason or None) and p.reason[:600])], bool(step.applied), "rule",
+                  state=state, options=["yes", "no"])
+    if record is not None and right is not None:
+        label(record, bool(right), "user_decision_exposed", person)
+    return record

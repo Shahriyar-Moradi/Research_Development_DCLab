@@ -454,11 +454,32 @@ class DataLimitTests(unittest.TestCase):
         days = {m for m in seen if m in {str(d.date()) for d in table["signup"]}}
         self.assertLessEqual(days, {str(table["signup"].min().date()), str(table["signup"].max().date())})  # the data's first and last day only
 
+    def test_the_workspace_chat_sees_aggregates_and_names_never_a_row(self):  # 30.21
+        from fastapi.testclient import TestClient
+
+        from dclab_rnd import workspace_chat
+        from dclab_rnd.agentic.server import create_app
+        from dclab_rnd.studio import data as sd
+
+        client = TestClient(create_app(Path(tempfile.mkdtemp())))
+        s = client.app.state.services
+        h = {"X-DCLab-Token": client.get("/api/config").json()["csrf"]}
+        pid = client.post("/api/projects", json={"name": "t", "goal": "g"}, headers=h).json()["id"]
+        marked_table().to_csv(s.projects.data_dir(pid) / "t.csv", index=False)
+        sd.attach_data(s.projects, pid, "t.csv")
+        args = {"table": f"{pid}:t", "op": "sum", "column": "spend", "group_by": ["segment"]}  # a sum, never equal to one row's value (a mean of evenly spaced values is one)
+        gw = gateway({"workspace_chat": [tool_call("list_tables", {}, 1), tool_call("describe_table", {"table": f"{pid}:t"}, 2), tool_call("compute", args, 3),
+                                         {"content": "Means by segment as computed.", "tool_calls": [], "usage": {}}]})
+        workspace_chat.ask(s, "Mean spend by segment?", gateway=gw)
+        seen = self.assertWithinLimit("workspace_chat")
+        self.assertFalse({m for m in seen if m.startswith(("Q7Kxnote", "Q7Kxcity"))})  # a column neither grouped nor shown: never a value of it
+        self.assertFalse({m for m in seen if m in {f"{v:.4f}" for v in marked_table()["spend"]}})  # never a row's number, only the means
+
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
                   "decision_answer", "decision_labeler", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first", "solver_answer",
-                  "understanding_critic", "solution_challenger", "debate_judge", "metric_question"}
+                  "understanding_critic", "solution_challenger", "debate_judge", "metric_question", "workspace_chat"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

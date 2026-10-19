@@ -1,0 +1,90 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "acts_on_its_own": {
+      "default": false,
+      "type": "boolean"
+    },
+    "id": {
+      "maxLength": 60,
+      "type": "string"
+    },
+    "kind": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "labelled": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "new_kind": {
+      "default": false,
+      "type": "boolean"
+    },
+    "personal_data": {
+      "default": false,
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "dclab_core.project_request.v1",
+      "default": "dclab_core.project_request.v1",
+      "type": "string"
+    },
+    "success": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "tables": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 30,
+      "type": "array"
+    },
+    "tables_exist": {
+      "default": false,
+      "type": "boolean"
+    },
+    "value_eur_month": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "title"
+  ],
+  "type": "object"
+}

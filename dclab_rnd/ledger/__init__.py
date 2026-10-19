@@ -40,6 +40,7 @@ _BATCH: "contextvars.ContextVar[Optional[list]]" = None  # set below: the record
 
 # where each point is decided in this studio (19.7); the test runs a project from Home to its report and checks them
 CAPTURED = {
+    "department.proposal": "department.py: each proposal of a department agent (its claim yes, whether it was applied), labelled by the person's judgment (30.22)",
     "column.is_identifier": "studio/solution.py and draft/api.py: a saved solution, the proposal's identifiers against the person's",
     "feature.leakage_suspect": "the same save: the audit's flags against the columns the person forbade",
     "target.column": "the same save: the proposed outcome against the saved one",

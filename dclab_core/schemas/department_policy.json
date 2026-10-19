@@ -1,0 +1,95 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.department_policy.v1.json",
+  "additionalProperties": false,
+  "description": "What an agent may do, its hard limits, and the level it acts at (v1).",
+  "properties": {
+    "actions": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "title": "Actions",
+      "type": "array"
+    },
+    "approval_above": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Approval Above"
+    },
+    "budget": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Budget"
+    },
+    "field": {
+      "maxLength": 80,
+      "title": "Field",
+      "type": "string"
+    },
+    "level": {
+      "default": "shadow",
+      "enum": [
+        "shadow",
+        "flag",
+        "act_with_check",
+        "act"
+      ],
+      "title": "Level",
+      "type": "string"
+    },
+    "max_change": {
+      "exclusiveMinimum": 0,
+      "maximum": 1,
+      "title": "Max Change",
+      "type": "number"
+    },
+    "name": {
+      "maxLength": 120,
+      "title": "Name",
+      "type": "string"
+    },
+    "promote_after": {
+      "default": 50,
+      "minimum": 1,
+      "title": "Promote After",
+      "type": "integer"
+    },
+    "read_only": {
+      "default": false,
+      "title": "Read Only",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "dclab_core.department_policy.v1",
+      "default": "dclab_core.department_policy.v1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "actions",
+    "field",
+    "max_change"
+  ],
+  "title": "Policy",
+  "type": "object"
+}

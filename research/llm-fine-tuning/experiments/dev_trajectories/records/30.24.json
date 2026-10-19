@@ -1,0 +1,77 @@
+{
+ "package": "30.24",
+ "title": "Delivering many projects: requests scored with reasons, K chosen of N with their reuse, and projects nobody uses flagged from the workspace's records",
+ "date": "2026-10-20",
+ "request": "Phase 8 Part G, the owner's pattern 11: fifteen requests and capacity for five; the success number agreed before building; a project nobody used flagged to retire.",
+ "spec": "docs/guides/PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md, package 30.24",
+ "plan": [
+  "Request and Portfolio contracts; a score on value, readiness, effort and risk, each with its reason.",
+  "choose: K of N, never one without its success number, the reuse said.",
+  "retire: no use for a period, from the workspace's own records."
+ ],
+ "decisions": [
+  {
+   "decision": "A project's use is its newest event in the experience log or its own last change.",
+   "why": "An outcome observed, a stage run or a chat are each a use, and all are events already."
+  },
+  {
+   "decision": "A never-used project is flagged only once it is older than the period.",
+   "why": "A project made yesterday has had no time to be used."
+  }
+ ],
+ "change": "dclab_core.triage (Request v1, Score, Portfolio v1, score, choose, retire with created); dclab_rnd.triage (last_use, unused, python -m dclab_rnd.triage).",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A project made yesterday was flagged to retire.",
+   "scenario": "A never-used project with no age check.",
+   "cause": "retire flagged every never-used project.",
+   "fix": "A never-used project is flagged only when made before the cut; with no date it is not.",
+   "test": "test_a_project_nobody_uses_is_flagged_and_one_in_use_never"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Nothing in the studio read a project's use.",
+   "scenario": "retire took a hand-made mapping.",
+   "cause": "No host wiring.",
+   "fix": "dclab_rnd.triage reads each project's last use from the experience log and the project.",
+   "test": "test_the_studio_reads_each_projects_last_use_from_its_records"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The test did not pin which five were chosen.",
+   "scenario": "A change of weights would pass unseen.",
+   "cause": "The test checked only the order of scores.",
+   "fix": "The five chosen are pinned.",
+   "test": "test_five_are_chosen_of_fifteen_by_their_scores_with_reasons_and_reuse"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "fifteen written requests, capacity five",
+   "gate": "five chosen with reasons, none without a success number, reuse said",
+   "fixed_before_run": true,
+   "result": "five chosen, the same five the test pins; two requests not ready (no success number), never chosen; reuse found among the chosen",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "met",
+   "limits": [
+    "Fifteen requests written for the test; the weights are a first choice, not measured."
+   ]
+  }
+ ],
+ "outcome": "The owner can see which requests to build first and why, what they share, and which projects nobody uses, with the choice left to a person.",
+ "lessons": [
+  "Pin a choice the test exists for; an ordering check alone lets a regression through."
+ ],
+ "risks": [
+  "The weights are a first choice, unmeasured against real outcomes."
+ ],
+ "commits": []
+}
