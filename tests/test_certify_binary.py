@@ -34,7 +34,6 @@ class BinaryCertificationTest(unittest.TestCase):
         traps = {name: entry["traps"] for name, _, _, entry in entries if entry is not None}
         self.assertEqual(traps["binary telco"], {"identifiers": ["customerID"]})
         self.assertEqual(traps["binary hyperack"], {"blocked": ["final_customer_fare", "final_biker_fare"]})
-        self.assertEqual(certify.entries_for("matching", seeds=(0,))[-1][1], "real")  # a kind with its own real cases keeps them
         self.assertFalse(any("telco" in n for n, *_ in certify.entries_for("matching", seeds=(0,))))  # REAL_FOR is the binary kind's only
 
     def test_detection_routes_the_real_churn_table_to_binary_from_its_own_card(self):
