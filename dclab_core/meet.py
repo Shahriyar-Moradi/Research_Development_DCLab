@@ -28,6 +28,7 @@ that records the outcome).
 
 from __future__ import annotations
 
+import sys
 from typing import Any, Literal, Optional
 
 from pydantic import Field
@@ -255,5 +256,9 @@ def fit(card: Any, data: Any, checked: Optional[ProblemDataCheck] = None, joined
     return FitVerdict(verdict=verdict, edits=edits[:12], missing=list(dict.fromkeys(missing))[:12], reasons=reasons[:20],
                       back_to="data" if missing else "problem" if edits else None)
 
+
+_cards = sys.modules.get("dclab_core.datacard")  # the data card names the verdict: complete its type if it loaded first (30.13)
+if _cards is not None and hasattr(_cards, "_resolve_fit"):
+    _cards._resolve_fit()
 
 __all__ = ["check", "fit", "Mismatch", "ProblemDataCheck", "CardEdit", "FitVerdict"]

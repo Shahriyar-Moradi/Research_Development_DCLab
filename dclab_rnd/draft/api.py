@@ -753,6 +753,10 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         from ..ledger import capture  # the person's decision, beside the rule's verdict (the point's truth)
 
         capture.fit_verdict(get(draft_id), verdict, checked, card, accepted=True)
+        from .. import experience
+
+        experience.record("decision.accepted", "person", {"point": "data.fit_verdict", "choice": {"fields": changed}, "by": "person"},
+                          conversation=draft_id)
         drafts.emit(draft_id, "fit", {"accepted": changed, "verdict": after.verdict if after is not None else None})
         return {"accepted": changed, "fit": after.model_dump(mode="json") if after is not None else None}
 

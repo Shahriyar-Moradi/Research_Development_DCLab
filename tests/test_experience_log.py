@@ -54,6 +54,7 @@ WRITE_ROUTES = {
     "PUT /api/team/settings": (EVENTS, ["decision.accepted"]),  # 28.8: the team's switch and budgets, audited as a policy
     "POST /api/drafts/{draft_id}/twin/messages": (EVENTS, ["chat.person"]),  # 25.4: a message to Claude alone (surface twin); Claude's lane is the twin folder
     "POST /api/drafts/{draft_id}/twin/pick": (EVENTS, ["decision.accepted"]),  # 25.5: the person's pick between the two answers (point twin.pick)
+    "POST /api/drafts/{draft_id}/fit/accept": (EVENTS, ["decision.accepted"]),  # 30.13: the person accepts G2's card edits (point data.fit_verdict)
     "POST /api/drafts/{draft_id}/understanding": (EVENTS, ["chat.person"]),  # 25.5: a correction in the person's words, a message of the conversation
     "POST /api/drafts/{draft_id}/twin/budget": (EVENTS, ["decision.accepted"]),  # 25.10: a draft's Claude budget raised, audited
     "PUT /api/workspace/budgets/{user_id}": (EVENTS, ["decision.accepted"]),  # 25.10: one person's monthly limit set by the owner, audited

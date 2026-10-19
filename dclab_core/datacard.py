@@ -30,8 +30,9 @@ from __future__ import annotations
 import json
 import math
 import re
+import sys
 from collections.abc import Mapping
-from typing import Any, ClassVar, Literal, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Optional
 
 import numpy as np
 import pandas as pd
@@ -39,8 +40,10 @@ from pydantic import Field
 
 from dclab_core import sensitivity
 from dclab_core.contracts import CONTRACTS, Contract, Versioned, _version
-from dclab_core.meet import FitVerdict
 from dclab_core.bands import CARDINALITY_BANDS, DTYPE_KINDS, RATIO_BANDS, VALUE_PATTERNS, cardinality_band, name_tokens, ratio_band
+
+if TYPE_CHECKING:  # the fit verdict is defined beside the check that makes it; the two modules resolve it between them (30.13)
+    from dclab_core.meet import FitVerdict
 
 MIN_ROWS = 20                 # a column with fewer values keeps no quantiles and no shares
 MAX_CATEGORIES = 50           # the shares kept; the rest are one share for "others"
@@ -190,6 +193,17 @@ class DataCard(Versioned):
 
 
 CONTRACTS["data_card"] = DataCard
+
+
+def _resolve_fit() -> None:
+    """``DataCard.fit`` names ``meet.FitVerdict``, and ``meet`` reads data cards: whichever module loads last completes
+    the card's type (both are loaded by ``dclab_core.contracts``), so neither imports the other at load."""
+    meet = sys.modules.get("dclab_core.meet")
+    if meet is not None and hasattr(meet, "FitVerdict"):
+        DataCard.model_rebuild(_types_namespace={"FitVerdict": meet.FitVerdict})
+
+
+_resolve_fit()
 
 
 # ------------------------------------------------------------------------------------------------ reading a column
