@@ -131,12 +131,29 @@ def audit_recall(caught: Sequence[bool], y: Sequence[float], reviewed: Sequence[
     effective = float(wy.sum() ** 2 / (wy ** 2).sum()) if (wy ** 2).sum() > 0 else 0.0  # Kish's effective count of the weighted cases
     out["effective_cases"] = round(effective, 1)
     band = _wilson(point, effective) if point is not None and effective > 0 else None
-    if boot is None and band is None:
+    missed = _missed_bound(float((w * yy * cc).sum()), caught, y, reviewed)  # 30.17: what the uncaught rows' audit allows, beside the bootstrap
+    if boot is None and band is None and missed is None:
         out["recall_ci"] = [None, None]
     else:
-        lows, highs = [x[0] for x in (boot, band) if x], [x[1] for x in (boot, band) if x]
+        lows, highs = [x[0] for x in (boot, band, missed) if x], [x[1] for x in (boot, band, missed) if x]
         out["recall_ci"] = [round(min(lows), 4), round(max(highs), 4)]
     return out
+
+
+def _missed_bound(found: float, caught: np.ndarray, y: np.ndarray, reviewed: np.ndarray) -> Optional[tuple[float, float]]:
+    """Recall's interval from the cases the uncaught rows may hold (the review of 30.17: an audit that finds no case among
+    the rows a queue left does not say they hold none). ``found``: the caught cases, weighted as the point estimate weighs
+    them; the uncaught rows' share of cases is bounded by Wilson's interval on the audited uncaught rows (a random draw
+    among them), times how many uncaught rows there are."""
+    yy = np.nan_to_num(y.astype(float))
+    left = ~caught
+    audited_left = left & reviewed
+    if found <= 0 or not audited_left.any():
+        return None
+    n = int(audited_left.sum())
+    low, high = _wilson(float(yy[audited_left].sum()) / n, n)
+    rows_left = float(left.sum())
+    return (float(found / (found + rows_left * high)), float(found / (found + rows_left * low)))
 
 
 def _wilson(p: float, n: float, z: float = 1.96) -> tuple[float, float]:

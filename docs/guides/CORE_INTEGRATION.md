@@ -793,6 +793,17 @@ product's agent asks the critic once its brief is confirmed and before it plans,
 question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
 whether to go on, recording the decision.
 
+## The screening cascade (30.17, dclab-core 0.93.0)
+
+The library's: `dclab_core.cascade.run`, a day's rows screened by a wide net (rules, link checks, the anomaly detector),
+a queue of the team's capacity with a random audit sample, the confirmed labels fed back into a supervised model, and
+recall per stage estimated from the audit (`capacity.audit_recall`, its interval now bounding what the unreviewed rows may
+hold). Where it goes there: the main product's review queue for a rare-event project (its alerts and the people who
+confirm them) calls `run` with its own `review` (the confirmations as they arrive), its capacity and audit size, and its
+case summary through its LLM gateway as `summarize` (advisory, off for a project marked private, kept whole in its
+audit trail); it stores the stages' recall estimates and each queued case's risk and reasons with the run, never a
+table's row. Its ProblemSpec's review capacity is the K here.
+
 ## The matching kind (30.16, dclab-core 0.92.0)
 
 The library's: `dclab_core.matching`, records matched pair by pair with a record and every record it matches on one side

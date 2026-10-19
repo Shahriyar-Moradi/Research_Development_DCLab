@@ -4,6 +4,22 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.93.0 (2026-10-19)
+
+Package 30.17: the screening cascade.
+
+- `cascade` (new): `run` screens the rows day by day as a team of capacity K would: a wide net (a rule, a link check, the
+  day's most unusual `NET_SHARE` of rows by a robust z-score fitted on the days before, or, once learned, the model's
+  highest), a queue of the K minus `audit` highest by one fused risk plus a random audit sample of the other rows, the
+  reviewers' confirmations (`review`, asked about one reviewed row at a time) and a supervised model refitted on them
+  every `retrain_days`; recall per stage on the latest period from a replica's truth (`measure`, after the run) and always
+  the audit's estimate for the net and the queue; a column named in `keep_out` is refused as anything read; the case
+  summary (`summarize`, a model's words) is shown only what screening reads, never asked for a `private` project, never
+  changes a rank or a label, and is kept whole with why it was written, its source and any error, beside each queued
+  row's risk, learned score and anomaly score.
+- `capacity.audit_recall`: the interval also bounds the cases the uncaught rows may hold (Wilson's interval on the audited
+  uncaught rows, times their number), so an audit that found no case among them no longer reads as recall one.
+
 ## 0.92.0 (2026-10-19)
 
 Package 30.16: the matching kind.
