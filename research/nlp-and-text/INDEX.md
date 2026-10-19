@@ -21,7 +21,7 @@ No experiments in this folder yet.
 **Related evidence campaigns** (shared across tracks, in `evidence/campaigns/`):
 
 - [expansion_v1](../../evidence/campaigns/expansion_v1): 20 result files · [CAMPAIGN_REPORT.md](../../evidence/campaigns/expansion_v1/CAMPAIGN_REPORT.md)
-- [kinds_v1](../../evidence/campaigns/kinds_v1): 20 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+- [kinds_v1](../../evidence/campaigns/kinds_v1): 21 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
 - [pitfalls_by_kind_v1](../../evidence/campaigns/pitfalls_by_kind_v1): 5 result files · [README.md](../../evidence/campaigns/pitfalls_by_kind_v1/README.md)
 - [benchmark_v4](../../evidence/campaigns/benchmark_v4): 2 result files · [README.md](../../evidence/campaigns/benchmark_v4/README.md)
 

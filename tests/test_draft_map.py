@@ -359,7 +359,8 @@ class RoutesOnHomeTest(unittest.TestCase):
         out = adapter.problem_specs(m, routes)
         here = out["problem_specs"]["sp2"]["fields"]["constraints"][adapter.KEY]
         self.assertEqual(here["route"]["chosen"], "rare_event")
-        self.assertEqual([c["approach"] for c in here["route"]["candidates"]], ["rare_event", "anomaly"])
+        self.assertEqual([c["approach"] for c in here["route"]["candidates"]], ["rare_event", "anomaly", "matching"])
+        self.assertEqual(here["route"]["candidates"][-1]["blocked_by"], ["pairs_table"])  # 30.16: no table of known pairs, so matching is refuted, last
         self.assertIn("proposal", out["problem_specs"]["sp2"]["notes"]["route"])
 
     def test_a_decision_is_recorded_only_for_a_part_whose_approach_is_new_or_changed(self):

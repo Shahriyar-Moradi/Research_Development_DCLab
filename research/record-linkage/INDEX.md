@@ -12,7 +12,9 @@ No champion yet. The first measured result recorded in this track becomes the ba
 
 ## Experiments
 
-No experiments in this folder yet.
+| Experiment | Result files | Notebooks | Scripts | Entry point |
+|---|---:|---:|---:|---|
+| [.gitkeep](experiments/.gitkeep) | 0 | 0 | 0 | [.gitkeep](experiments/.gitkeep) |
 
 ## Notebooks
 
@@ -20,7 +22,7 @@ No notebooks yet.
 
 ## Evaluation
 
-No evaluation artifacts yet.
+- [.gitkeep](evaluation/.gitkeep)
 
 ## Reports and research notes
 
