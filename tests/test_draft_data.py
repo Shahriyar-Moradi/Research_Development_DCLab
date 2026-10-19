@@ -455,9 +455,11 @@ class CleanTest(unittest.TestCase):
         self.assertEqual([e["changed"] for e in log], [1, 3, 1, 3, 3, 3, 2, 1])
         self.assertEqual(list(out.columns), ["Fee", "when", "ok"])
         self.assertEqual(len(out), 2)
-        for item in log:
-            self.assertEqual(set(item), {"step", "title", "detail", "columns", "rows_before", "rows_after", "changed"})
+        for item in log:  # 29.6: the names step also keeps each renamed column's raw name, for its records
+            self.assertEqual(set(item), {"step", "title", "detail", "columns", "rows_before", "rows_after", "changed"}
+                             | ({"renamed"} if item["step"] == "names" else set()))
             self.assertGreater(item["changed"], 0)
+        self.assertEqual(log[0]["renamed"], [[" Fee ", "Fee"]])
         tidy = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
         self.assertEqual(cl.clean(tidy)[1], [])
 

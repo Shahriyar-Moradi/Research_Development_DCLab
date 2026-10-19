@@ -46,7 +46,8 @@ def clean(frame: pd.DataFrame) -> tuple[pd.DataFrame, list[Entry]]:
     """A cleaned copy of ``frame`` and the log of the steps that changed something.
 
     Each log entry: ``step`` (machine key), ``title``, ``detail``, ``columns``,
-    ``rows_before``, ``rows_after``, ``changed`` (names, cells, or dropped rows and columns).
+    ``rows_before``, ``rows_after``, ``changed`` (names, cells, or dropped rows and columns); the names step also
+    ``renamed``, each column's raw name beside its new one (29.6: its records read the raw profile).
     """
     out = frame.copy(deep=True)
     log: list[Entry] = []
