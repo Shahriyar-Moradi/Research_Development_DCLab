@@ -97,9 +97,22 @@
     "Six people.",
     "The roles' own misses (the review part) dominate both arms."
    ]
+  },
+  {
+   "name": "the roles with examples on the fresh sealed set v2 (JPR-012, live)",
+   "gate": "the examples arm right on more journeys than the roles arm without them and at least as many as the rules, every request answered, within the cap, on a sealed set run once (fixed 2026-10-19)",
+   "fixed_before_run": true,
+   "result": "roles with examples 4 of 10 (0.168 to 0.687), EUR 0.3012; roles without them 5 of 10; rules 3 of 10",
+   "verdict": "fail",
+   "cost_eur": 0.3012,
+   "against_gate": "not better than the roles without examples: the switch stays off",
+   "limits": [
+    "Ten people, one run.",
+    "Five people stop at the card before any role reads an example."
+   ]
   }
  ],
- "outcome": "DCLab's roles can read the closest business examples, but do not until a sealed arm shows they do better; on dev they did not, and the switch stays off.",
+ "outcome": "DCLab's roles can read the closest business examples, but do not: on dev (2 of 6 against 3 of 6) and on the fresh sealed set (4 of 10 against 5 of 10) they did no better, and the switch stays off.",
  "lessons": [
   "Measure what a role misses before giving it more to read: the examples could not supply a part the role never draws.",
   "A weak search measured honestly is worth more than a strong one measured on its author's words."

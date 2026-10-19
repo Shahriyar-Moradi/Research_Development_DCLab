@@ -186,6 +186,18 @@ Designed in detail once Part E is built; each keeps DCLab's rules (the validator
 | 10. One data foundation | a catalog of tables with owners and quality checks, shared keys, entities resolved across systems (the matching kind), history kept as it was at each date so models never train on the future | the data cards, connectors, `entities.py` (cutoffs), the matching kind (30.16) |
 | 11. Delivering many projects | request triage on Home: value, data readiness, effort and risk scored; the success number agreed before building (the brief's bar); projects nobody uses retired | the Home agent, the Solution Brief (30.14), outcomes (`dclab_core/outcomes.py`) |
 
+### Part G in detail (designed 2026-10-20, after Part E was built)
+
+Each package: its contract and rule in `dclab_core`, its wiring in `dclab_rnd`, its capture read back by a test, the reviewer,
+its development record. No package acts on a real system: every action is proposed, checked, logged and undoable.
+
+| # | Package | Delivers | Done when |
+|---|---|---|---|
+| 30.21 | Ask the workspace (pattern 7) | a chat over a workspace's own tables and files where every number comes from code run on them (the intern's code tools, sandboxed), personal data masked before any model (`dclab_core.redact`), the cost per person and per workspace (the limits), every question and answer audited and kept whole; an answer's numbers checked against the tool results (`cited.py`'s rule) | a test reads the gateway's recorded prompts and finds no personal value; an answer with a number no tool returned is refused; every exchange is in the audit trail |
+| 30.22 | Department agents (pattern 8) | `dclab_core.department_agent`: a policy (read-only first, typed tools, hard limits in code: the largest change, a budget, an approval above an amount), proposals checked against it, every step logged with how to undo it, the routing levels (shadow, flag, act with a check, act) earned by a track record in the ledger; a pricing agent on a replica (2,000 products) as the example | a proposal past a limit is never applied; an applied step is undone exactly; a level is earned only after its count of right calls and lost on a wrong one |
+| 30.23 | One data foundation (pattern 10) | `dclab_core.foundation`: a catalog entry per table (owner, keys, quality checks run and their results), the same entity across systems resolved by the matching kind into one view, and reads as of a date (no row written after it); a replica with one customer in four systems | the four systems' customers resolve into one view with its pair F1; an as-of read never returns a later row; a quality check that fails is said on the entry |
+| 30.24 | Delivering many projects (pattern 11) | `dclab_core.triage`: a request scored on value, data readiness, effort and risk, each with its reason; K chosen of N with what they reuse (the same tables, the same kind); the success number agreed before building (the brief's bar); a project nobody used for a period flagged to retire (from `outcomes`) | on a written set of fifteen requests, the five chosen and why, the reuse found; a project with no use for the period is flagged, one in use is not |
+
 ## Status
 
 - **Design (2026-10-18):** written and decided with the owner (D1 to D7).
@@ -334,7 +346,16 @@ Designed in detail once Part E is built; each keeps DCLab's rules (the validator
   measurement asks); a test reads the gateway's recorded prompts and finds no private example (30.7's open check). The
   search on an independent writer's wording of the practice questions: 16 of 30 (10 of 10 in the author's own). Dev,
   live: roles 3 of 6, roles with examples 2 of 6 (EUR 0.56): not better, the switch stays off; both arms miss the same
-  review-budget part, which goes to 30.6. Left: the sealed arm on 30.6's fresh set, the Home agent's tool, a better search.
+  review-budget part, which goes to 30.6. Sealed (30.6's fresh set v2, run once, JPR-012, EUR 0.30): roles with examples 4
+  of 10 against the roles' 5: not better, the switch stays off. Left: the Home agent's tool, a better search.
+- **30.6 built (2026-10-20):** the spent sealed programme people read as dev material: the label words with their
+  negation near the cases, fraud said by its deeds, the parts drawn only where the words support them (a review list
+  only where the checks are limited), the unusual rows inferred when nothing is labelled, the accounts brought to a
+  single problem, and the replica two and a half times larger. The rules: 9 of 10 on the spent set (from 2), 6 of 6 on
+  dev. A fresh sealed set of ten by a separate agent that read nothing of the repository, gate v2 fixed and hash-pinned
+  before the run, run once per arm: rules 3 of 10 (JPR-010), roles 5 of 10 (JPR-011, EUR 0.24): both fail, the roles stay
+  off. Five of the seven misses stop at a card not ready (the conversation does not read the answer kind or the known
+  cases in new words): the next fix, on a new independent dev set, never on sealed v2.
 - **Test runs kept (2026-10-19, d502540):** every run of the suite and every gate, whole, in `training_records/test_runs/`
   (the owner's rule), snapshotted by `make archive`.
 - **Live tests (2026-10-19, $20 budget; EUR 4.02 spent):** the product's model (Claude) through the harness suite for the

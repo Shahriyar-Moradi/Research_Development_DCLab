@@ -1,0 +1,620 @@
+{
+  "id": "JPR-012",
+  "campaign_id": "journeys_programme_v1",
+  "kind": "programme_journeys",
+  "split": "sealed_v2",
+  "arm": "roles_examples",
+  "journeys": "5af89942889294507d2f2481a1beb1401610611b62158aedf8a8019d8d599083",
+  "at": "2026-10-19T20:34:59+00:00",
+  "gate": {
+    "version": "journeys_programme_gate_v2",
+    "split": "sealed_v2",
+    "journey": "right on the card (the size, and for one problem its family), the workflow (every part the expert expects is drawn with the expert's approach, at most one part beyond them, no graph move refused), the pipeline, and the holdout (a person who goes on and has the confirmed cases gets a composed result never worse than its best leaf, above it with the interval when all three leaves ran, read once; a person who stops at a blocked part, or who has no confirmed case, leaves it closed with the reason said); a part that does not apply is not scored",
+    "suite": "at least 85% of the sealed journeys right, the lower end of their 95% Wilson interval at least 0.55, no graph move refused, no holdout read twice",
+    "roles": "the roles arm (the decomposer, the map reviewer, the data-need agent and the solution router served by the model) is right on at least as many journeys as the rules arm and on at least as many of each part, every request answered, no graph move refused, within the cap; a role serves the product only then",
+    "examples": "30.18 (fixed on 2026-10-19, before any run of it): the roles arm reading the closest business examples (the decomposer's and the router's evidence) is right on more journeys than the roles arm without them and on at least as many as the rules arm, every request answered, no graph move refused, within the cap, on a sealed set run once; the examples serve the product only then",
+    "seed": 7,
+    "author": "a separate agent given only the three files' columns, the journeys' format and the vocabulary of families and approaches; it read no file, no rule, no dev person, no earlier sealed person and no code; its set was checked for its format only before it was run",
+    "replica": "fraud_programme with SIZE (200,000 orders, 750 bikers, 35 rings, 70 markers; 30.6's bigger tables)"
+  },
+  "seed": 7,
+  "size": {
+    "n_orders": 200000,
+    "n_accounts": 12000,
+    "n_bikers": 750,
+    "n_rings": 35,
+    "n_markers": 70
+  },
+  "spent_eur": 0.3012,
+  "rows": [
+    {
+      "id": "JT-01",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "accounts",
+        "cases"
+      ],
+      "parts": {
+        "card": false,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "card: read as None ([]), the expert's 'complex' ['rare_event', 'entity_tables', 'ranking']",
+        "not built: stopped at problem: The problem card is not ready: What should DCLab give for each row: a yes or no, a class, a number, a forecast, or the unusual rows?"
+      ],
+      "asked": [
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget",
+        "family"
+      ],
+      "questions": 5,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "answer"
+      ],
+      "state": "problem",
+      "said": "The problem card is not ready: What should DCLab give for each row: a yes or no, a class, a number, a forecast, or the unusual rows?",
+      "got": {
+        "size": null,
+        "family": null,
+        "families": []
+      },
+      "seconds": 21.3,
+      "right": false
+    },
+    {
+      "id": "JT-02",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides"
+      ],
+      "parts": {
+        "card": false,
+        "workflow": false,
+        "pipeline": null,
+        "holdout": null
+      },
+      "why": [
+        "card: read as None ([]), the expert's 'single' ['anomaly']",
+        "not built: stopped at problem: The problem card is not ready: What should DCLab give for each row: a yes or no, a class, a number, a forecast, or the unusual rows?"
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "family"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer"
+      ],
+      "state": "problem",
+      "said": "The problem card is not ready: What should DCLab give for each row: a yes or no, a class, a number, a forecast, or the unusual rows?",
+      "got": {
+        "size": null,
+        "family": null,
+        "families": []
+      },
+      "seconds": 16.3,
+      "right": false
+    },
+    {
+      "id": "JT-03",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "cases"
+      ],
+      "parts": {
+        "card": false,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "card: read as None ([]), the expert's 'complex' ['rare_event', 'entity_tables', 'ranking']",
+        "not built: stopped at problem: The problem card is not ready: What should DCLab give for each row: a yes or no, a class, a number, a forecast, or the unusual rows?"
+      ],
+      "asked": [
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget",
+        "family"
+      ],
+      "questions": 5,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "answer"
+      ],
+      "state": "problem",
+      "said": "The problem card is not ready: What should DCLab give for each row: a yes or no, a class, a number, a forecast, or the unusual rows?",
+      "got": {
+        "size": null,
+        "family": null,
+        "families": []
+      },
+      "seconds": 20.9,
+      "right": false
+    },
+    {
+      "id": "JT-04",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "cases"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": false,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [
+        "workflow: parts expected but not drawn with that approach: [('entity_tables', None), ('rare_event', 'rare_event')]; drawn [('classification', 'binary'), ('segmentation', 'segmentation')]; refused moves []"
+      ],
+      "asked": [
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget",
+        "family"
+      ],
+      "questions": 5,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "analyse",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "complex",
+        "family": "classification",
+        "families": [
+          "classification",
+          "segmentation"
+        ],
+        "approaches": [
+          "binary",
+          "segmentation"
+        ]
+      },
+      "refused_moves": 0,
+      "holdout_uses": 0,
+      "seconds": 128.0,
+      "right": false
+    },
+    {
+      "id": "JT-05",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "accounts"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": null,
+        "holdout": null
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "draw_map",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "single",
+        "family": "entity_tables",
+        "families": [
+          "entity_tables"
+        ],
+        "approaches": [
+          "entity_tables"
+        ]
+      },
+      "refused_moves": 0,
+      "seconds": 37.0,
+      "right": true
+    },
+    {
+      "id": "JT-06",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "accounts",
+        "cases"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": false,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [
+        "workflow: parts expected but not drawn with that approach: [('entity_tables', 'entity_tables'), ('rare_event', 'rare_event')]; drawn [('ranking', 'review_budgeted'), ('rare_event', 'anomaly'), ('segmentation', 'segmentation')]; refused moves []"
+      ],
+      "asked": [
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget",
+        "family"
+      ],
+      "questions": 5,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "analyse",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "complex",
+        "family": "classification",
+        "families": [
+          "rare_event",
+          "segmentation",
+          "ranking"
+        ],
+        "approaches": [
+          "anomaly",
+          "segmentation",
+          "review_budgeted"
+        ]
+      },
+      "refused_moves": 0,
+      "holdout_uses": 1,
+      "holdout": {
+        "composed": 0.3971,
+        "best_leaf": 0.3971,
+        "difference": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "leaves": 1,
+        "chosen": "blk1"
+      },
+      "seconds": 130.1,
+      "right": false
+    },
+    {
+      "id": "JT-07",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "accounts"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "complex",
+        "family": "entity_tables",
+        "families": [
+          "anomaly",
+          "entity_tables",
+          "ranking"
+        ],
+        "approaches": [
+          "anomaly",
+          "entity_tables",
+          "review_budgeted"
+        ]
+      },
+      "refused_moves": 0,
+      "holdout_uses": 0,
+      "seconds": 113.4,
+      "right": true
+    },
+    {
+      "id": "JT-08",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "cases"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget",
+        "family"
+      ],
+      "questions": 5,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "analyse",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "complex",
+        "family": "classification",
+        "families": [
+          "rare_event",
+          "ranking"
+        ],
+        "approaches": [
+          "rare_event",
+          "review_budgeted"
+        ]
+      },
+      "refused_moves": 0,
+      "holdout_uses": 1,
+      "holdout": {
+        "composed": 0.375,
+        "best_leaf": 0.375,
+        "difference": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "leaves": 1,
+        "chosen": "blk1"
+      },
+      "seconds": 87.7,
+      "right": true
+    },
+    {
+      "id": "JT-09",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides",
+        "accounts",
+        "cases"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "asked": [
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "draw_map",
+        "confirm_map",
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "size": "complex",
+        "family": "rare_event",
+        "families": [
+          "anomaly",
+          "rare_event",
+          "entity_tables"
+        ],
+        "approaches": [
+          "anomaly",
+          "rare_event",
+          "entity_tables"
+        ]
+      },
+      "refused_moves": 0,
+      "holdout_uses": 1,
+      "holdout": {
+        "composed": 0.3153,
+        "best_leaf": 0.148,
+        "difference": 0.1673,
+        "low": 0.0968,
+        "high": 0.2285,
+        "leaves": 3,
+        "chosen": "rank_max"
+      },
+      "seconds": 120.9,
+      "right": true
+    },
+    {
+      "id": "JT-10",
+      "programme": "fraud_programme",
+      "brings": [
+        "rides"
+      ],
+      "parts": {
+        "card": false,
+        "workflow": false,
+        "pipeline": false,
+        "holdout": false
+      },
+      "why": [
+        "card: read as None ([]), the expert's 'complex' ['anomaly', 'entity_tables', 'ranking']",
+        "not built: stopped at problem: The problem card is not ready: Which column holds the outcome, or which file lists the known cases?"
+      ],
+      "asked": [
+        "target",
+        "labels",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer"
+      ],
+      "state": "problem",
+      "said": "The problem card is not ready: Which column holds the outcome, or which file lists the known cases?",
+      "got": {
+        "size": null,
+        "family": "rare_event",
+        "families": []
+      },
+      "seconds": 14.7,
+      "right": false
+    }
+  ],
+  "summary": {
+    "journeys": 10,
+    "right": 4,
+    "by_part": {
+      "card": {
+        "right": 6,
+        "applies": 10
+      },
+      "workflow": {
+        "right": 4,
+        "applies": 10
+      },
+      "pipeline": {
+        "right": 5,
+        "applies": 8
+      },
+      "holdout": {
+        "right": 5,
+        "applies": 8
+      }
+    }
+  },
+  "verdict": "fail: 4 of 10 journeys right (95% interval 0.168 to 0.687), 0 moves refused by the validator, 0 holdouts read twice",
+  "status": "completed",
+  "experiment_id": "JPR-012",
+  "completed_at": "2026-10-19T20:34:59+00:00",
+  "roles_against_rules": {
+    "rules_right": 3,
+    "roles_right": 4,
+    "parts": {
+      "rules": {
+        "card": {
+          "right": 4,
+          "applies": 10
+        },
+        "workflow": {
+          "right": 3,
+          "applies": 10
+        },
+        "pipeline": {
+          "right": 3,
+          "applies": 8
+        },
+        "holdout": {
+          "right": 3,
+          "applies": 8
+        }
+      },
+      "roles": {
+        "card": {
+          "right": 6,
+          "applies": 10
+        },
+        "workflow": {
+          "right": 4,
+          "applies": 10
+        },
+        "pipeline": {
+          "right": 5,
+          "applies": 8
+        },
+        "holdout": {
+          "right": 5,
+          "applies": 8
+        }
+      }
+    },
+    "changed": [
+      {
+        "id": "JT-07",
+        "rules": false,
+        "roles": true
+      }
+    ],
+    "request_failures": 0,
+    "roles_refused_moves": 0,
+    "roles_verdict": "fail: 4 of 10 journeys right (95% interval 0.168 to 0.687), 0 moves refused by the validator, 0 holdouts read twice",
+    "passed": false,
+    "rule": "the roles arm (the decomposer, the map reviewer, the data-need agent and the solution router served by the model) is right on at least as many journeys as the rules arm and on at least as many of each part, every request answered, no graph move refused, within the cap; a role serves the product only then"
+  },
+  "asks": 78,
+  "sent": {
+    "decomposer": 6,
+    "data_need": 6,
+    "map_reviewer": 6,
+    "solution_router": 26
+  },
+  "examples": true,
+  "rule": "Scores on 10 written journeys over a seeded replica say how DCLab carries these people from their first sentence to a holdout number, or stops them with the reason; they are not a claim about any other problem or about production readiness."
+}

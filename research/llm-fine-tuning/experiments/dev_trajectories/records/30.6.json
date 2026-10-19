@@ -1,0 +1,157 @@
+{
+ "package": "30.6",
+ "title": "The programme journeys read as their people said them, the parts drawn only where the words support them, and a fresh sealed set judged once",
+ "date": "2026-10-20",
+ "request": "Phase 8: read the spent sealed programme people as dev material, fix what they showed, make the replica large enough to prove a composition, and judge the rules and the roles once on a fresh sealed set written by an independent author.",
+ "spec": "docs/guides/PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md, package 30.6",
+ "plan": [
+  "Read the ten spent sealed people's misses one by one as dev material.",
+  "Fix the label words, the fraud deeds and the parts each sentence supports.",
+  "Enlarge the replica so a composition above its best leaf can be shown with its interval.",
+  "Have a separate agent write ten fresh people, pin them by hash with gate v2 fixed before any run, and run each arm once."
+ ],
+ "decisions": [
+  {
+   "decision": "Draw only the parts the person's words support, not four parts for every fraud sentence.",
+   "why": "The independent people and the owner's own morning asked for one or two parts; the old design, pinned by tests, drew linked accounts and a review list whatever was said."
+  },
+  {
+   "decision": "A review list is its own part only where the team's checks are limited.",
+   "why": "A ranking part with no stated limit on review is a part beyond what the expert expects."
+  },
+  {
+   "decision": "The replica is two and a half times larger (200,000 orders, 750 bikers, 35 rings).",
+   "why": "About forty confirmed cases in the holdout could not show a composition 0.17 above its best leaf with its interval."
+  },
+  {
+   "decision": "A fresh sealed set by a separate agent that read no file of the repository, gate v2 fixed and hash-pinned before the run; run once per arm, an armless record blocking every arm.",
+   "why": "The first sealed set was spent by reading it; a fix measured on it cannot be judged by it."
+  }
+ ],
+ "change": "dclab_core.card (label words; the unusual rows inferred when nothing is labelled), conversation._file_named, problem_map (fraud deeds, ride-level, rings, limited review; parts selected from what was said), the decomposer prompt, programme journeys (SIZE, accounts uploaded first, a single problem routed again on its project's tables, sealed_v2 with SEALED_HASHES, GATE_V2, a per-arm run-once guard), the regression case RG-01's steps; dclab-core 0.96.0.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Answers saying no case was ever confirmed were read as a file of cases.",
+   "scenario": "A spent sealed person: 'nobody ever confirmed anything', 'there is no list'.",
+   "cause": "The label words matched 'confirmed' and 'list' without their negation near the cases.",
+   "fix": "_labels_in denies only near the cases' words.",
+   "test": "test_bigger_problems"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Fraud said by its deeds never set the fraud programme off.",
+   "scenario": "'closing jobs with no movement', 'accounts set up together to feed fares'.",
+   "cause": "FRAUD matched the word fraud and a few synonyms only.",
+   "fix": "FRAUD_DEEDS, RIDE_LEVEL and RINGS patterns.",
+   "test": "test_problem_map"
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Every fraud sentence got the linked accounts and a review list whatever it said.",
+   "scenario": "A person asking only about rings got four parts, one beyond the expert's at least twice.",
+   "cause": "_fraud returned a fixed set of parts.",
+   "fix": "_fraud selects the parts the words support; linked accounts alone and the rides alone are one problem each.",
+   "test": "test_problem_map, test_mapping"
+  },
+  {
+   "id": "F4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A card with nothing labelled and no kind of answer stopped the walk.",
+   "scenario": "A person who says nothing is labelled and asks for the odd ones.",
+   "cause": "The family was never inferred without labels.",
+   "fix": "The anomaly or segmentation family is inferred when the labels are none.",
+   "test": "test_bigger_problems"
+  },
+  {
+   "id": "F5",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The journey harness never brought the accounts to a single problem's draft.",
+   "scenario": "A single-problem person whose rings need the accounts table.",
+   "cause": "The accounts were uploaded only for a programme.",
+   "fix": "The accounts are uploaded first, and a single problem is routed again on plan_card after attaching them.",
+   "test": "test_programme_journey"
+  },
+  {
+   "id": "F6",
+   "source": "test",
+   "severity": "latent",
+   "defect": "The run-once guard read an armless record as no arm's.",
+   "scenario": "An old record without an arm field: every arm could run the sealed set again.",
+   "cause": "The guard compared arms with a missing value.",
+   "fix": "An armless record blocks every arm; tests patch measure to fail if it is called.",
+   "test": "test_programme_journey"
+  },
+  {
+   "id": "F7",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "On the fresh sealed set five of ten people stop at a card not ready, in both arms.",
+   "scenario": "Sealed v2, independent author: the conversation asks what to give each row, or which column holds the outcome, and the person's words never answer it in the form the card reads.",
+   "cause": "The understanding conversation's reading of the answer kind and of the known cases generalised poorly from the spent set to new wording; the fixes in F1 to F4 were made on one author's people.",
+   "fix": "Not fixed here: the sealed set is spent; the conversation's reading goes to the next package with a new independent dev set, never tuned on sealed v2.",
+   "test": "recorded in JPR-010 and JPR-011"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "programme journeys, rules, spent sealed set read as dev",
+   "gate": "none: dev material",
+   "fixed_before_run": true,
+   "result": "9 of 10 (from 2 of 10 before the fixes); dev 6 of 6",
+   "verdict": "not scored",
+   "cost_eur": 0,
+   "against_gate": "recorded",
+   "limits": [
+    "Tuned on these people; not a measurement of generalisation."
+   ]
+  },
+  {
+   "name": "programme journeys sealed v2, rules (JPR-010)",
+   "gate": "journeys_programme_gate_v2: at least 85% right, Wilson lower end at least 0.55, no move refused, no holdout read twice",
+   "fixed_before_run": true,
+   "result": "3 of 10 (95% interval 0.108 to 0.603); 0 moves refused; 0 holdouts read twice",
+   "verdict": "fail",
+   "cost_eur": 0,
+   "against_gate": "below the bar",
+   "limits": [
+    "Ten people by one independent author.",
+    "Most misses stop at a card not ready."
+   ]
+  },
+  {
+   "name": "programme journeys sealed v2, roles (JPR-011, live)",
+   "gate": "the roles right on at least as many journeys as the rules and on at least as many of each part, every request answered, within the cap",
+   "fixed_before_run": true,
+   "result": "5 of 10 (0.237 to 0.763), EUR 0.2361; the suite gate failed",
+   "verdict": "fail",
+   "cost_eur": 0.2361,
+   "against_gate": "better than the rules but below the suite's bar: the roles stay off",
+   "limits": [
+    "One run per arm.",
+    "The same five card stops as the rules: the roles never see those people."
+   ]
+  }
+ ],
+ "outcome": "The rules read the people they were fixed on (9 of 10) but only 3 of 10 fresh people; the roles reach 5 of 10. Both stay below the bar, the roles stay off, and the conversation's reading of new wording is the next thing to fix on a new dev set.",
+ "lessons": [
+  "A fix measured on the set it was made from says nothing about new people: the spent set went from 2 to 9 and the fresh one stayed at 3.",
+  "Most misses were upstream of the parts being fixed: read the stage where a journey stops before fixing the stage after it.",
+  "Seal a fresh set before running it, and let an armless record block every arm."
+ ],
+ "risks": [
+  "Sealed v2 is spent; the next sealed set needs another independent author.",
+  "The conversation's card questions are worded for the rules' reading, not the person's."
+ ],
+ "commits": [
+  "ad51564"
+ ]
+}
