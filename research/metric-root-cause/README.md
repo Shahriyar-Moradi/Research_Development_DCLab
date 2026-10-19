@@ -76,5 +76,8 @@ Results that follow the five standard stages can live under `evidence/campaigns/
 
 ## Conclusions
 
-Measured on invented data only (the mall sales replica): the rules reach every planted cause in the question's own words
-and in the template's, and few of them in other words; whether a model's reading closes that gap is the MCH records'.
+Measured on invented data only (the mall sales replica). The rules reach 477 of 480 planted answers over sixty seeds
+(every planted cause but one footfall location found and ranked first; the steady brand names a move twice, within the
+10% budget). In other words, the rules read 2 of 8 questions and the product's model, choosing and filling a tested
+template, 24 of 24 on three seeds (MCH-003, EUR 0.10); the paraphrases are one author's, so an independent writer's set
+is the next measurement.

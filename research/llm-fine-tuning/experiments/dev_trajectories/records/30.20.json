@@ -1,0 +1,347 @@
+{
+ "package": "30.20",
+ "title": "Why did this number change: a question about a business number answered from approved definitions and tested queries, with the factor that moved it, where, and the query under the answer",
+ "date": "2026-10-19",
+ "request": "Phase 8 (the owner's pattern 6): a metric_change kind with a semantic layer, the change decomposed into its factors in logs with a bootstrap over days, drilled down by dimension into mix against rate, a model that chooses tested templates and fills them, the query, source and dates under every answer, an action, and a replica with planted causes including a data gap.",
+ "spec": "docs/guides/PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md, package 30.20",
+ "plan": [
+  "Write the replica first: two tables (door counts, tills by category), each planted cause on brands and stores of its own, the questions and what a careful analyst finds.",
+  "Write the library: the semantic layer contract, the templates as query plans, coverage, the decomposition and its intervals, the drill-down, the choice of template by name, model or rules.",
+  "Wire it: a library-only kind, the studio's SQLite runner, the campaign with a capped model arm, the gateway purpose and its data limit.",
+  "Measure on many seeds before any claim; review; fix; record."
+ ],
+ "decisions": [
+  {
+   "decision": "A why is decomposed in logs: the factors' log changes add up to the metric's exactly.",
+   "why": "Shares of a product's change are only additive in logs; percentages of each factor do not add up."
+  },
+  {
+   "decision": "A factor moves only when its interval over days, one for all the factors searched (Bonferroni), excludes zero; segments likewise over every segment searched.",
+   "why": "Three factors at 90% each named a move in about one steady question in four; with the family interval it was one in thirty."
+  },
+  {
+   "decision": "A gap is a day a ratio's denominator is missing or zero while its numerator is positive.",
+   "why": "A closed day has no rows anywhere; a counter that failed while the tills sold breaks conversion, and summing the visitors there reads as a footfall fall."
+  },
+  {
+   "decision": "The core never reaches a database: each query is one plan, rendered as SQL with bound parameters and as its pandas computation; the host runs the SQL.",
+   "why": "The core's boundary denies sqlite3 (17.1); a test runs both renderings and compares them, so the SQL shown is the computation made."
+  },
+  {
+   "decision": "The person's direction (down or up) is a parameter, read from the words or named.",
+   "why": "A named template lost the question's 'down', and a move within the variation needs a direction to look for its segment."
+  },
+  {
+   "decision": "metric_change is a registry kind that runs only as a library; the router's catalogue covers the engine's kinds.",
+   "why": "It has no outcome to train on; Home refuses to build it with its reason (FAMILY_NOT_RUN) rather than making a model of some column."
+  }
+ ],
+ "change": "dclab_core.metric_change (SemanticLayer v1, MetricAnswer v1, Plan, Data, ask/answer/choose/rules/named, drill, coverage); dclab_core.replicas.mall_sales; dclab_core/prompts/metric_question.md; dclab_rnd.kinds.metric_change; dclab_rnd.metric_change (sqlite_runner, the campaign MCH-*); the gateway purpose metric_question; research/metric-root-cause; dclab-core 0.94.0; pattern 6 built.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A steady brand was said to have a factor that moved.",
+   "scenario": "Seeds 14 and 18 of 20: conversion +2.4% with its 90% interval above zero while sales moved within their variation.",
+   "cause": "Each of three factors had its own 90% interval: about one false move in four questions with nothing planted.",
+   "fix": "One interval for all the factors searched (Bonferroni) and for all the segments searched.",
+   "test": "test_every_planted_cause_is_found_and_ranked_first_on_every_seed"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A planted cause's question was read by another cause.",
+   "scenario": "The failed counter's mall held the conversion brand's stores: its question would have been refused for a gap that was not its own.",
+   "cause": "Planted causes chose malls and brands independently.",
+   "fix": "Each cause on brands and stores of its own; the gap on one store; the steady brand kept out of the mall whose footfall fell.",
+   "test": "test_every_planted_cause_is_found_and_ranked_first_on_every_seed"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "A footfall question alone at the failed store read a false fall.",
+   "scenario": "metric_change on footfall at the store whose counter failed: -40%, answered.",
+   "cause": "Coverage checked only the ratios of the metric asked.",
+   "fix": "Every ratio whose denominator the answer reads is checked through its numerator.",
+   "test": "test_a_data_gap_is_refused_with_what_is_missing_where_summing_says_footfall_fell"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The core imported sqlite3.",
+   "scenario": "test_core_contracts' boundary test refused dclab_core/metric_change.py.",
+   "cause": "The first version ran the SQL itself.",
+   "fix": "The plan's two renderings; the studio's SQLite runner in dclab_rnd.",
+   "test": "test_the_studios_sqlite_runner_and_the_cores_computation_give_the_same_answer"
+  },
+  {
+   "id": "T3",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The router's catalogue test asked every kind to be a route.",
+   "scenario": "test_solutions: metric_change is not in the catalogue.",
+   "cause": "The test iterated every kind though its name says the engine's kinds.",
+   "fix": "Scoped to the kinds the engine runs, with metric_change named as the one library kind.",
+   "test": "test_every_kind_of_the_engine_is_in_the_catalogue_so_a_detection_is_never_silently_replaced"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A store's gap hid under the brand's other stores.",
+   "scenario": "'Why is footfall down for Hollis?' was answered: footfall -10.7%, led by the mall whose counter had failed, with an action.",
+   "cause": "Coverage summed each table over the filters before looking for missing days.",
+   "fix": "Each ratio's two tables checked at the grain they share (the day and every dimension both hold), in every template.",
+   "test": "test_the_reviews_gaps_are_refused_wherever_they_hide"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A segment whose denominator was zero for a whole period crashed the drill-down.",
+   "scenario": "A store's footfall gone for a month: nan_to_num made an infinite rate finite, the contribution overflowed, the contract refused NaN.",
+   "cause": "No guard on a zero denominator inside the drill.",
+   "fix": "The drill gives no drill for a positive numerator over a zero denominator, or any number not finite; coverage refuses first.",
+   "test": "test_the_reviews_gaps_are_refused_wherever_they_hide"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A gap in the numerator's table was never a gap.",
+   "scenario": "Ten days of a store's tills deleted: conversion 'moved most', with an action about stock.",
+   "cause": "Only the denominator's missing days were checked.",
+   "fix": "A positive denominator with no numerator row is a gap too.",
+   "test": "test_the_reviews_gaps_are_refused_wherever_they_hide"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Periods outside the data were answered or crashed.",
+   "scenario": "A period running past the data's end answered -45%; October 2026 raised out of ask.",
+   "cause": "Only a period wholly outside was refused, the comparison never; the rules' errors were not caught.",
+   "fix": "The period and its comparison must lie in the data; an unanswerable choice is a refusal with what is missing.",
+   "test": "test_periods_outside_the_data_and_unknown_keys_are_refused_never_crashing"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Periods of unequal length were compared as totals.",
+   "scenario": "March against February: +19% for a brand with nothing planted, 10.7 points of it the three extra days.",
+   "cause": "Sums were compared as totals.",
+   "fix": "A sum is compared per calendar day, in the point and the bootstrap; the note says so.",
+   "test": "test_the_words_are_read_as_a_careful_analyst_would"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A factor that moved could be dropped.",
+   "scenario": "Footfall within its variation ranked first, basket moved: the words said no factor moved.",
+   "cause": "Only the first ranked factor was tested.",
+   "fix": "The first factor that moved the way the metric did.",
+   "test": "test_every_planted_cause_is_found_and_ranked_first_on_every_seed"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The planted segment could go unnamed.",
+   "scenario": "Seed 31: a mall up 3% within its variation led by size; the planted mall's fall was never tested.",
+   "cause": "The lead was the largest absolute contribution.",
+   "fix": "The lead is the segment that moved the factor most the way it moved.",
+   "test": "test_every_planted_cause_is_found_and_ranked_first_on_every_seed"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Only the denominator's table held the dimension: wrong numbers.",
+   "scenario": "Visitors by door, tills without one: the contributions summed to 92.9 against a change of 27.9.",
+   "cause": "The first segment's denominator was read as the total.",
+   "fix": "No drill when the numerator's table lacks the dimension.",
+   "test": "test_mix_and_rate_add_up_to_the_change"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "SQLite and pandas differed on empty values.",
+   "scenario": "A blanked category became the segment 'None' in SQL, dropped in pandas.",
+   "cause": "SQL grouped NULL as a value.",
+   "fix": "A key column's empty value is never a segment, in both renderings.",
+   "test": "test_an_empty_segment_is_never_a_segment_on_either_path"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The words were misread.",
+   "scenario": "A month without a year read September; 'last month' read July when the data ended on the 1st; a side remark about prices refused the question.",
+   "cause": "No rule for a month alone; the last whole month was computed from MonthBegin; any not-held word refused.",
+   "fix": "The latest whole occurrence of a month, said; the last whole month from the first of the last month; a not-held concept refuses only when asked about as a cause or when no metric is named, else it is said beside the answer.",
+   "test": "test_the_words_are_read_as_a_careful_analyst_would"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The named path dropped unknown keys.",
+   "scenario": "'brnad=Fenn' answered for the whole group.",
+   "cause": "Keys that were not dimensions were ignored.",
+   "fix": "An unknown key is refused.",
+   "test": "test_periods_outside_the_data_and_unknown_keys_are_refused_never_crashing"
+  },
+  {
+   "id": "R12",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The menu could exceed the purpose's limit or crash.",
+   "scenario": "Four dimensions of fifty values sent 200 against the limit of 150; thirteen raised EvidenceError out of ask.",
+   "cause": "Fifty values per dimension, no total; the evidence error was not caught.",
+   "fix": "At most 150 values in all, shared; an evidence error leaves the rules' reading.",
+   "test": "test_the_models_reply_is_kept_whole_and_a_big_menu_never_crosses_its_limit"
+  },
+  {
+   "id": "R13",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Contract limits crashed valid input.",
+   "scenario": "A 2001-character question, or many metrics in a refusal's reason, raised a ValidationError.",
+   "cause": "Tight maxima on text that is kept whole.",
+   "fix": "The question kept whole (100,000), reasons list at most twelve names.",
+   "test": "test_periods_outside_the_data_and_unknown_keys_are_refused_never_crashing"
+  },
+  {
+   "id": "R14",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A store that does not exist answered 0.",
+   "scenario": "Arlo's sales in a mall it has no store in: 'Sales: 0'.",
+   "cause": "An empty result summed to zero.",
+   "fix": "No rows is no number: refused.",
+   "test": "test_the_words_are_read_as_a_careful_analyst_would"
+  },
+  {
+   "id": "R15",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The model's raw reply was lost.",
+   "scenario": "Only the validated choice or an error string was kept.",
+   "cause": "Capture after validation only.",
+   "fix": "The reply is kept whole before it is checked.",
+   "test": "test_the_models_reply_is_kept_whole_and_a_big_menu_never_crosses_its_limit"
+  },
+  {
+   "id": "R16",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Detection took over other problems.",
+   "scenario": "'Forecast next week's sales; why are sales down in winter?' became metric_change; a churn question with a why became metric_change.",
+   "cause": "Its specificity ranked it above the engine's kinds.",
+   "fix": "It steps aside when another specific kind's words match or the sentence reads as a task.",
+   "test": "test_a_why_inside_another_problem_keeps_that_problems_kind"
+  },
+  {
+   "id": "R17",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The gate's generated files were behind.",
+   "scenario": "No kinds_v1 record, the harness gate stale, the capability matrix not rebuilt, conclusions written before records.",
+   "cause": "The close-out had not run.",
+   "fix": "KND-022, the rebuilds, agent-eval and harness-eval, conclusions from the MCH records.",
+   "test": "make rd-gates"
+  },
+  {
+   "id": "L1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The first live arm ran with no model.",
+   "scenario": "MCH-002's first attempt: no requests, no spend, and the record said 'model'.",
+   "cause": "The CLI did not load the provider's .env, and nothing refused an arm no model answered.",
+   "fix": "The CLI loads .env, uses the workspace's gateway, refuses to run when nothing serves the purpose and to write an arm that asked nothing; the empty record was never kept.",
+   "test": "python -m dclab_rnd.metric_change --model --yes --cap-eur 0.3 --write"
+  },
+  {
+   "id": "L2",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "Right refusals were judged wrong.",
+   "scenario": "MCH-002: the competitor and margin paraphrases refused correctly, naming what the data would need.",
+   "cause": "The prompt asked for what the data would need; the judge reads the concept's name.",
+   "fix": "The prompt asks for the concept's name, and a refusal naming its needs is read as the concept.",
+   "test": "test_the_models_reply_is_kept_whole_and_a_big_menu_never_crosses_its_limit"
+  },
+  {
+   "id": "M3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Factors and segments each spent a 10% error budget.",
+   "scenario": "After the review's fixes the steady brand named a move in 4 of 30 seeds.",
+   "cause": "Two families, each at 10%.",
+   "fix": "One 10% budget, half to the factors and half to the segments.",
+   "test": "test_every_planted_cause_is_found_and_ranked_first_on_every_seed"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the rules on the mall sales replica's planted questions, sixty seeds",
+   "gate": "every planted cause found and ranked first; refusals with what is missing",
+   "fixed_before_run": true,
+   "result": "477 of 480: 60 of 60 for the footfall drop, the conversion drop, the mix, the data gap, the competitor and the margin; 59 of 60 for the footfall's mall; 58 of 60 for the steady brand",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "met on every planted cause but the designed false-move rate",
+   "limits": [
+    "Invented data.",
+    "The steady brand may name a move at the family's error rate."
+   ]
+  },
+  {
+   "name": "the kind's acceptance (KND-022) and the rules campaign (MCH-001)",
+   "gate": "the kind's decisions on three seeds",
+   "fixed_before_run": true,
+   "result": "27 of 27 checks on three seeds; the rules reach 8 of 8 questions in their words and 6 of 6 named, and 2 of 8 paraphrases",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "met",
+   "limits": [
+    "The rules read only the words they were written for."
+   ]
+  },
+  {
+   "name": "the product's model choosing the template on the paraphrases (MCH-003, live)",
+   "gate": "the model's choice is validated and its answer judged as the rules' is",
+   "fixed_before_run": true,
+   "result": "24 of 24 paraphrases on three seeds against the rules' 6 of 24, 24 requests, no failure, EUR 0.0999",
+   "verdict": "pass",
+   "cost_eur": 0.0999,
+   "against_gate": "the model reads the other words; nothing is served until it is switched on",
+   "limits": [
+    "The paraphrases were written by the same author as the questions.",
+    "Three seeds of one replica."
+   ]
+  }
+ ],
+ "outcome": "DCLab answers why a business number moved from approved definitions and tested queries: the factor, where, by how much, with the SQL that made the numbers, or a refusal that says what is missing; a model reads other words into a tested template.",
+ "lessons": [
+  "Planted causes must not share their units: a cause one question did not ask about can still change its answer.",
+  "Several intervals at 90% each are a much weaker claim than one: say how many were searched.",
+  "A gap must be checked at the grain where it happens: a total hides a store.",
+  "A live arm that asks nothing must refuse to be written: a fallback reads as a measurement.",
+  "A judge and a prompt must ask for the same thing before a model's miss is called a miss.",
+  "Build generated files with another package's untracked files held aside: the knowledge base committed with 30.17 already held 30.20's track."
+ ],
+ "risks": [
+  "The paraphrases are one author's; an independent writer's set is the next measurement.",
+  "The kind runs as a library: no project, no Home path beyond the refusal.",
+  "Coverage reads only the ratios of the layer; a gap in a sum no ratio divides is unseen."
+ ],
+ "commits": []
+}

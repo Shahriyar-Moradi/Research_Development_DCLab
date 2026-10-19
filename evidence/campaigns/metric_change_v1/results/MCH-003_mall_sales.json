@@ -1,0 +1,1245 @@
+{
+ "id": "MCH-003",
+ "experiment_id": "MCH-003",
+ "campaign_id": "metric_change_v1",
+ "kind": "metric_change",
+ "status": "completed",
+ "at": "2026-10-19T16:29:25+00:00",
+ "seeds": [
+  0,
+  1,
+  2
+ ],
+ "by_arm": {
+  "words_rules": {
+   "reached": 24,
+   "asked": 24
+  },
+  "named": {
+   "reached": 18,
+   "asked": 18
+  },
+  "paraphrase_rules": {
+   "reached": 6,
+   "asked": 24
+  },
+  "paraphrase_model": {
+   "reached": 24,
+   "asked": 24
+  }
+ },
+ "rows": [
+  {
+   "seed": 0,
+   "case": "footfall_drop",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "answered",
+   "source": "rules",
+   "first_factor": "footfall",
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 0,
+   "case": "footfall_drop",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 0,
+   "case": "footfall_drop",
+   "arm": "named",
+   "reached": true,
+   "status": "answered",
+   "source": "named",
+   "first_factor": "footfall",
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 0,
+   "case": "footfall_drop",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "answered",
+   "source": "model",
+   "first_factor": "footfall",
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 0,
+   "case": "footfall_where",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "answered",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": {
+    "dimension": "mall",
+    "value": "Harbour",
+    "effect": "level"
+   },
+   "missing": []
+  },
+  {
+   "seed": 0,
+   "case": "footfall_where",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 0,
+   "case": "footfall_where",
+   "arm": "named",
+   "reached": true,
+   "status": "answered",
+   "source": "named",
+   "first_factor": null,
+   "first_segment": {
+    "dimension": "mall",
+    "value": "Harbour",
+    "effect": "level"
+   },
+   "missing": []
+  },
+  {
+   "seed": 0,
+   "case": "footfall_where",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "answered",
+   "source": "model",
+   "first_factor": null,
+   "first_segment": {
+    "dimension": "mall",
+    "value": "Harbour",
+    "effect": "level"
+   },
+   "missing": []
+  },
+  {
+   "seed": 0,
+   "case": "conversion_drop",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "answered",
+   "source": "rules",
+   "first_factor": "conversion",
+   "first_segment": {
+    "dimension": "category",
+    "value": "clothing",
+    "effect": "rate"
+   },
+   "missing": []
+  },
+  {
+   "seed": 0,
+   "case": "conversion_drop",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 0,
+   "case": "conversion_drop",
+   "arm": "named",
+   "reached": true,
+   "status": "answered",
+   "source": "named",
+   "first_factor": "conversion",
+   "first_segment": {
+    "dimension": "category",
+    "value": "clothing",
+    "effect": "rate"
+   },
+   "missing": []
+  },
+  {
+   "seed": 0,
+   "case": "conversion_drop",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "answered",
+   "source": "model",
+   "first_factor": "conversion",
+   "first_segment": {
+    "dimension": "category",
+    "value": "clothing",
+    "effect": "rate"
+   },
+   "missing": []
+  },
+  {
+   "seed": 0,
+   "case": "mix_basket",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "answered",
+   "source": "rules",
+   "first_factor": "basket",
+   "first_segment": {
+    "dimension": "category",
+    "value": "accessories",
+    "effect": "mix"
+   },
+   "missing": []
+  },
+  {
+   "seed": 0,
+   "case": "mix_basket",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 0,
+   "case": "mix_basket",
+   "arm": "named",
+   "reached": true,
+   "status": "answered",
+   "source": "named",
+   "first_factor": "basket",
+   "first_segment": {
+    "dimension": "category",
+    "value": "accessories",
+    "effect": "mix"
+   },
+   "missing": []
+  },
+  {
+   "seed": 0,
+   "case": "mix_basket",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "answered",
+   "source": "model",
+   "first_factor": "basket",
+   "first_segment": {
+    "dimension": "category",
+    "value": "accessories",
+    "effect": "mix"
+   },
+   "missing": []
+  },
+  {
+   "seed": 0,
+   "case": "no_change",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "answered",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 0,
+   "case": "no_change",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 0,
+   "case": "no_change",
+   "arm": "named",
+   "reached": true,
+   "status": "answered",
+   "source": "named",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 0,
+   "case": "no_change",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "answered",
+   "source": "model",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 0,
+   "case": "data_gap",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "footfall"
+   ]
+  },
+  {
+   "seed": 0,
+   "case": "data_gap",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 0,
+   "case": "data_gap",
+   "arm": "named",
+   "reached": true,
+   "status": "refused",
+   "source": "named",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "footfall"
+   ]
+  },
+  {
+   "seed": 0,
+   "case": "data_gap",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "refused",
+   "source": "model",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "footfall"
+   ]
+  },
+  {
+   "seed": 0,
+   "case": "competitor",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "competitor"
+   ]
+  },
+  {
+   "seed": 0,
+   "case": "competitor",
+   "arm": "paraphrase_rules",
+   "reached": true,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "competitor"
+   ]
+  },
+  {
+   "seed": 0,
+   "case": "competitor",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "refused",
+   "source": "model",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "competitor"
+   ]
+  },
+  {
+   "seed": 0,
+   "case": "margin",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "margin"
+   ]
+  },
+  {
+   "seed": 0,
+   "case": "margin",
+   "arm": "paraphrase_rules",
+   "reached": true,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "margin"
+   ]
+  },
+  {
+   "seed": 0,
+   "case": "margin",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "refused",
+   "source": "model",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "margin"
+   ]
+  },
+  {
+   "seed": 1,
+   "case": "footfall_drop",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "answered",
+   "source": "rules",
+   "first_factor": "footfall",
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 1,
+   "case": "footfall_drop",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 1,
+   "case": "footfall_drop",
+   "arm": "named",
+   "reached": true,
+   "status": "answered",
+   "source": "named",
+   "first_factor": "footfall",
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 1,
+   "case": "footfall_drop",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "answered",
+   "source": "model",
+   "first_factor": "footfall",
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 1,
+   "case": "footfall_where",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "answered",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": {
+    "dimension": "mall",
+    "value": "Old Town",
+    "effect": "level"
+   },
+   "missing": []
+  },
+  {
+   "seed": 1,
+   "case": "footfall_where",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 1,
+   "case": "footfall_where",
+   "arm": "named",
+   "reached": true,
+   "status": "answered",
+   "source": "named",
+   "first_factor": null,
+   "first_segment": {
+    "dimension": "mall",
+    "value": "Old Town",
+    "effect": "level"
+   },
+   "missing": []
+  },
+  {
+   "seed": 1,
+   "case": "footfall_where",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "answered",
+   "source": "model",
+   "first_factor": null,
+   "first_segment": {
+    "dimension": "mall",
+    "value": "Old Town",
+    "effect": "level"
+   },
+   "missing": []
+  },
+  {
+   "seed": 1,
+   "case": "conversion_drop",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "answered",
+   "source": "rules",
+   "first_factor": "conversion",
+   "first_segment": {
+    "dimension": "category",
+    "value": "clothing",
+    "effect": "rate"
+   },
+   "missing": []
+  },
+  {
+   "seed": 1,
+   "case": "conversion_drop",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 1,
+   "case": "conversion_drop",
+   "arm": "named",
+   "reached": true,
+   "status": "answered",
+   "source": "named",
+   "first_factor": "conversion",
+   "first_segment": {
+    "dimension": "category",
+    "value": "clothing",
+    "effect": "rate"
+   },
+   "missing": []
+  },
+  {
+   "seed": 1,
+   "case": "conversion_drop",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "answered",
+   "source": "model",
+   "first_factor": "conversion",
+   "first_segment": {
+    "dimension": "category",
+    "value": "clothing",
+    "effect": "rate"
+   },
+   "missing": []
+  },
+  {
+   "seed": 1,
+   "case": "mix_basket",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "answered",
+   "source": "rules",
+   "first_factor": "basket",
+   "first_segment": {
+    "dimension": "category",
+    "value": "accessories",
+    "effect": "mix"
+   },
+   "missing": []
+  },
+  {
+   "seed": 1,
+   "case": "mix_basket",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 1,
+   "case": "mix_basket",
+   "arm": "named",
+   "reached": true,
+   "status": "answered",
+   "source": "named",
+   "first_factor": "basket",
+   "first_segment": {
+    "dimension": "category",
+    "value": "accessories",
+    "effect": "mix"
+   },
+   "missing": []
+  },
+  {
+   "seed": 1,
+   "case": "mix_basket",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "answered",
+   "source": "model",
+   "first_factor": "basket",
+   "first_segment": {
+    "dimension": "category",
+    "value": "accessories",
+    "effect": "mix"
+   },
+   "missing": []
+  },
+  {
+   "seed": 1,
+   "case": "no_change",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "answered",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 1,
+   "case": "no_change",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 1,
+   "case": "no_change",
+   "arm": "named",
+   "reached": true,
+   "status": "answered",
+   "source": "named",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 1,
+   "case": "no_change",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "answered",
+   "source": "model",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 1,
+   "case": "data_gap",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "footfall"
+   ]
+  },
+  {
+   "seed": 1,
+   "case": "data_gap",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 1,
+   "case": "data_gap",
+   "arm": "named",
+   "reached": true,
+   "status": "refused",
+   "source": "named",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "footfall"
+   ]
+  },
+  {
+   "seed": 1,
+   "case": "data_gap",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "refused",
+   "source": "model",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "footfall"
+   ]
+  },
+  {
+   "seed": 1,
+   "case": "competitor",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "competitor"
+   ]
+  },
+  {
+   "seed": 1,
+   "case": "competitor",
+   "arm": "paraphrase_rules",
+   "reached": true,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "competitor"
+   ]
+  },
+  {
+   "seed": 1,
+   "case": "competitor",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "refused",
+   "source": "model",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "competitor"
+   ]
+  },
+  {
+   "seed": 1,
+   "case": "margin",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "margin"
+   ]
+  },
+  {
+   "seed": 1,
+   "case": "margin",
+   "arm": "paraphrase_rules",
+   "reached": true,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "margin"
+   ]
+  },
+  {
+   "seed": 1,
+   "case": "margin",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "refused",
+   "source": "model",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "margin"
+   ]
+  },
+  {
+   "seed": 2,
+   "case": "footfall_drop",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "answered",
+   "source": "rules",
+   "first_factor": "footfall",
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 2,
+   "case": "footfall_drop",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 2,
+   "case": "footfall_drop",
+   "arm": "named",
+   "reached": true,
+   "status": "answered",
+   "source": "named",
+   "first_factor": "footfall",
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 2,
+   "case": "footfall_drop",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "answered",
+   "source": "model",
+   "first_factor": "footfall",
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 2,
+   "case": "footfall_where",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "answered",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": {
+    "dimension": "mall",
+    "value": "Old Town",
+    "effect": "level"
+   },
+   "missing": []
+  },
+  {
+   "seed": 2,
+   "case": "footfall_where",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 2,
+   "case": "footfall_where",
+   "arm": "named",
+   "reached": true,
+   "status": "answered",
+   "source": "named",
+   "first_factor": null,
+   "first_segment": {
+    "dimension": "mall",
+    "value": "Old Town",
+    "effect": "level"
+   },
+   "missing": []
+  },
+  {
+   "seed": 2,
+   "case": "footfall_where",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "answered",
+   "source": "model",
+   "first_factor": null,
+   "first_segment": {
+    "dimension": "mall",
+    "value": "Old Town",
+    "effect": "level"
+   },
+   "missing": []
+  },
+  {
+   "seed": 2,
+   "case": "conversion_drop",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "answered",
+   "source": "rules",
+   "first_factor": "conversion",
+   "first_segment": {
+    "dimension": "category",
+    "value": "clothing",
+    "effect": "rate"
+   },
+   "missing": []
+  },
+  {
+   "seed": 2,
+   "case": "conversion_drop",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 2,
+   "case": "conversion_drop",
+   "arm": "named",
+   "reached": true,
+   "status": "answered",
+   "source": "named",
+   "first_factor": "conversion",
+   "first_segment": {
+    "dimension": "category",
+    "value": "clothing",
+    "effect": "rate"
+   },
+   "missing": []
+  },
+  {
+   "seed": 2,
+   "case": "conversion_drop",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "answered",
+   "source": "model",
+   "first_factor": "conversion",
+   "first_segment": {
+    "dimension": "category",
+    "value": "clothing",
+    "effect": "rate"
+   },
+   "missing": []
+  },
+  {
+   "seed": 2,
+   "case": "mix_basket",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "answered",
+   "source": "rules",
+   "first_factor": "basket",
+   "first_segment": {
+    "dimension": "category",
+    "value": "accessories",
+    "effect": "mix"
+   },
+   "missing": []
+  },
+  {
+   "seed": 2,
+   "case": "mix_basket",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 2,
+   "case": "mix_basket",
+   "arm": "named",
+   "reached": true,
+   "status": "answered",
+   "source": "named",
+   "first_factor": "basket",
+   "first_segment": {
+    "dimension": "category",
+    "value": "accessories",
+    "effect": "mix"
+   },
+   "missing": []
+  },
+  {
+   "seed": 2,
+   "case": "mix_basket",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "answered",
+   "source": "model",
+   "first_factor": "basket",
+   "first_segment": {
+    "dimension": "category",
+    "value": "accessories",
+    "effect": "mix"
+   },
+   "missing": []
+  },
+  {
+   "seed": 2,
+   "case": "no_change",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "answered",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 2,
+   "case": "no_change",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 2,
+   "case": "no_change",
+   "arm": "named",
+   "reached": true,
+   "status": "answered",
+   "source": "named",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 2,
+   "case": "no_change",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "answered",
+   "source": "model",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": []
+  },
+  {
+   "seed": 2,
+   "case": "data_gap",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "footfall"
+   ]
+  },
+  {
+   "seed": 2,
+   "case": "data_gap",
+   "arm": "paraphrase_rules",
+   "reached": false,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "metric"
+   ]
+  },
+  {
+   "seed": 2,
+   "case": "data_gap",
+   "arm": "named",
+   "reached": true,
+   "status": "refused",
+   "source": "named",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "footfall"
+   ]
+  },
+  {
+   "seed": 2,
+   "case": "data_gap",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "refused",
+   "source": "model",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "footfall"
+   ]
+  },
+  {
+   "seed": 2,
+   "case": "competitor",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "competitor"
+   ]
+  },
+  {
+   "seed": 2,
+   "case": "competitor",
+   "arm": "paraphrase_rules",
+   "reached": true,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "competitor"
+   ]
+  },
+  {
+   "seed": 2,
+   "case": "competitor",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "refused",
+   "source": "model",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "competitor"
+   ]
+  },
+  {
+   "seed": 2,
+   "case": "margin",
+   "arm": "words_rules",
+   "reached": true,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "margin"
+   ]
+  },
+  {
+   "seed": 2,
+   "case": "margin",
+   "arm": "paraphrase_rules",
+   "reached": true,
+   "status": "refused",
+   "source": "rules",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "margin"
+   ]
+  },
+  {
+   "seed": 2,
+   "case": "margin",
+   "arm": "paraphrase_model",
+   "reached": true,
+   "status": "refused",
+   "source": "model",
+   "first_factor": null,
+   "first_segment": null,
+   "missing": [
+    "margin"
+   ]
+  }
+ ],
+ "limits": [
+  "Invented data with planted causes: a found cause says the analysis is sound on these traps, never why a real number moved.",
+  "The paraphrases were written by the same author as the questions; real people word their questions in more ways.",
+  "A factor is said to move when its interval over days, one for all the factors (Bonferroni, 90%), excludes zero: about one question in ten with nothing planted may still name one."
+ ],
+ "spend": {
+  "eur": 0.0999,
+  "requests": {
+   "metric_question": 24
+  },
+  "failures": 0,
+  "model": [
+   {
+    "role": "metric_question",
+    "model": "claude-sonnet-5-5",
+    "tier": "cheap",
+    "prompt": "64ff53b6efd7938a",
+    "requests": 24,
+    "cost_eur": 0.09987
+   }
+  ]
+ },
+ "detail": "runs/MCH-003_answers.jsonl.gz",
+ "rule": "Each planted question of the mall sales replica asked in its words, by its template and in other words; an answer counts when it reaches what the planted cause says (the factor first, the segment where, the refusal with what is missing): evidence about the method on invented data."
+}

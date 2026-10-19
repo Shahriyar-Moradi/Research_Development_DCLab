@@ -1,0 +1,417 @@
+{
+ "schema_version": 1,
+ "campaign_id": "kinds_v1",
+ "experiment_id": "KND-022",
+ "kind": "kind_acceptance",
+ "problem_kind": "metric_change",
+ "title": "Why a number changed",
+ "description": "Which factor moved a business number (footfall, conversion, basket), where, by how much, with the query under the answer.",
+ "metrics": [
+  "Planted causes found and ranked first"
+ ],
+ "baselines": [
+  "the metric's change alone (no decomposition)"
+ ],
+ "reliability": [
+  "every factor's interval over days",
+  "coverage: a gap refuses the why",
+  "the query under every answer"
+ ],
+ "track": "metric-root-cause",
+ "runs_in_engine": false,
+ "question": "Which decisions does DCLab reach on a why a number changed problem (Which factor moved a business number (footfall, conversion, basket), where, by how much, with the query under the answer), and do they hold?",
+ "hypothesis": "Each decision a careful data scientist reaches on this kind of problem holds on every seed of the kind's replica.",
+ "setup_summary": "The why a number changed kind's replica on seeds 0, 1, 2, brought as a person would; its own machine in dclab_core solve it, and each decision is checked on the finished run. No model is called.",
+ "evidence": {
+  "decisions": [
+   {
+    "decision": "a footfall drop in one mall: footfall is the factor ranked first",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the brand's footfall change is placed in the mall it happened in",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "a conversion drop in one category: conversion first, that category's rate where",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "a basket drop from the mix: the basket first, the cheap category's mix where (not its rate)",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "a number that moved only within its variation: no factor is said to have moved",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "a store whose door counter failed: the why is refused with footfall missing",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "a question about a competitor: refused, with what the data would need",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "a question about a margin with no cost table: refused, with what the data would need",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "a question naming its template gets the same finding as the question in words (the model-off path)",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   }
+  ],
+  "rate": {
+   "held": 27,
+   "of": 27,
+   "share": 1.0,
+   "ci95_checks": [
+    0.875,
+    1.0
+   ],
+   "seeds_all_held": 3,
+   "seeds": 3,
+   "ci95": [
+    0.439,
+    1.0
+   ]
+  },
+  "seeds": [
+   {
+    "seed": 0,
+    "status": "partial",
+    "checks": [
+     {
+      "decision": "a footfall drop in one mall: footfall is the factor ranked first",
+      "ok": true,
+      "detail": "Sales changed -18.6% (90% interval -25.8% to -10.7%). Footfall moved most (-19.3%); Conversion -0.1%, Average basket +1.0%."
+     },
+     {
+      "decision": "the brand's footfall change is placed in the mall it happened in",
+      "ok": true,
+      "detail": "Footfall changed -2.8% (90% interval -10.0% to +5.8%): no factor moved beyond its day-to-day variation; mall Harbour moved Footfall most."
+     },
+     {
+      "decision": "a conversion drop in one category: conversion first, that category's rate where",
+      "ok": true,
+      "detail": "Sales changed -14.4% (90% interval -21.5% to -6.9%). Conversion moved most (-15.6%), led by category clothing (rate); Average basket -3.1%, Footfall +4.6%."
+     },
+     {
+      "decision": "a basket drop from the mix: the basket first, the cheap category's mix where (not its rate)",
+      "ok": true,
+      "detail": "Average basket changed -19.0% (90% interval -19.6% to -18.3%). Average basket moved most (-19.0%), led by category accessories (mix)."
+     },
+     {
+      "decision": "a number that moved only within its variation: no factor is said to have moved",
+      "ok": true,
+      "detail": "Sales changed +0.6% (90% interval -7.5% to +9.7%): no factor moved beyond its day-to-day variation."
+     },
+     {
+      "decision": "a store whose door counter failed: the why is refused with footfall missing",
+      "ok": true,
+      "detail": "Not answered: footfall is missing on some days, so the change cannot be split. Sales changed +3.0% (90% interval -6.8% to +14.1%), from tables without gaps."
+     },
+     {
+      "decision": "a question about a competitor: refused, with what the data would need",
+      "ok": true,
+      "detail": "The data does not hold competitor: it would need a table of competitors' openings and promotions by mall and date."
+     },
+     {
+      "decision": "a question about a margin with no cost table: refused, with what the data would need",
+      "ok": true,
+      "detail": "The data does not hold margin: it would need the cost of the goods sold by brand and category."
+     },
+     {
+      "decision": "a question naming its template gets the same finding as the question in words (the model-off path)",
+      "ok": true,
+      "detail": "6 named"
+     }
+    ],
+    "missing": [
+     "the engine does not run it yet: it runs as a library (dclab_core) only"
+    ]
+   },
+   {
+    "seed": 1,
+    "status": "partial",
+    "checks": [
+     {
+      "decision": "a footfall drop in one mall: footfall is the factor ranked first",
+      "ok": true,
+      "detail": "Sales changed -18.0% (90% interval -25.8% to -9.7%). Footfall moved most (-18.0%); Average basket -0.6%, Conversion +0.6%."
+     },
+     {
+      "decision": "the brand's footfall change is placed in the mall it happened in",
+      "ok": true,
+      "detail": "Footfall changed +0.3% (90% interval -7.5% to +8.7%): no factor moved beyond its day-to-day variation; mall Old Town moved Footfall most."
+     },
+     {
+      "decision": "a conversion drop in one category: conversion first, that category's rate where",
+      "ok": true,
+      "detail": "Sales changed -14.5% (90% interval -21.8% to -6.7%). Conversion moved most (-14.2%), led by category clothing (rate); Average basket -3.9%, Footfall +3.7%."
+     },
+     {
+      "decision": "a basket drop from the mix: the basket first, the cheap category's mix where (not its rate)",
+      "ok": true,
+      "detail": "Average basket changed -19.8% (90% interval -20.7% to -18.9%). Average basket moved most (-19.8%), led by category accessories (mix)."
+     },
+     {
+      "decision": "a number that moved only within its variation: no factor is said to have moved",
+      "ok": true,
+      "detail": "Sales changed +1.3% (90% interval -7.2% to +10.7%): no factor moved beyond its day-to-day variation."
+     },
+     {
+      "decision": "a store whose door counter failed: the why is refused with footfall missing",
+      "ok": true,
+      "detail": "Not answered: footfall is missing on some days, so the change cannot be split. Sales changed -0.1% (90% interval -8.8% to +9.1%), from tables without gaps."
+     },
+     {
+      "decision": "a question about a competitor: refused, with what the data would need",
+      "ok": true,
+      "detail": "The data does not hold competitor: it would need a table of competitors' openings and promotions by mall and date."
+     },
+     {
+      "decision": "a question about a margin with no cost table: refused, with what the data would need",
+      "ok": true,
+      "detail": "The data does not hold margin: it would need the cost of the goods sold by brand and category."
+     },
+     {
+      "decision": "a question naming its template gets the same finding as the question in words (the model-off path)",
+      "ok": true,
+      "detail": "6 named"
+     }
+    ],
+    "missing": [
+     "the engine does not run it yet: it runs as a library (dclab_core) only"
+    ]
+   },
+   {
+    "seed": 2,
+    "status": "partial",
+    "checks": [
+     {
+      "decision": "a footfall drop in one mall: footfall is the factor ranked first",
+      "ok": true,
+      "detail": "Sales changed -17.9% (90% interval -24.8% to -9.9%). Footfall moved most (-17.2%); Average basket -1.1%, Conversion +0.3%."
+     },
+     {
+      "decision": "the brand's footfall change is placed in the mall it happened in",
+      "ok": true,
+      "detail": "Footfall changed -1.7% (90% interval -8.9% to +6.7%): no factor moved beyond its day-to-day variation; mall Old Town moved Footfall most."
+     },
+     {
+      "decision": "a conversion drop in one category: conversion first, that category's rate where",
+      "ok": true,
+      "detail": "Sales changed -16.8% (90% interval -24.1% to -8.4%). Conversion moved most (-13.4%), led by category clothing (rate); Average basket -2.8%, Footfall -1.1%."
+     },
+     {
+      "decision": "a basket drop from the mix: the basket first, the cheap category's mix where (not its rate)",
+      "ok": true,
+      "detail": "Average basket changed -19.8% (90% interval -20.7% to -18.9%). Average basket moved most (-19.8%), led by category accessories (mix)."
+     },
+     {
+      "decision": "a number that moved only within its variation: no factor is said to have moved",
+      "ok": true,
+      "detail": "Sales changed +4.9% (90% interval -4.7% to +14.9%): no factor moved beyond its day-to-day variation."
+     },
+     {
+      "decision": "a store whose door counter failed: the why is refused with footfall missing",
+      "ok": true,
+      "detail": "Not answered: footfall is missing on some days, so the change cannot be split. Sales changed +0.6% (90% interval -7.9% to +10.0%), from tables without gaps."
+     },
+     {
+      "decision": "a question about a competitor: refused, with what the data would need",
+      "ok": true,
+      "detail": "The data does not hold competitor: it would need a table of competitors' openings and promotions by mall and date."
+     },
+     {
+      "decision": "a question about a margin with no cost table: refused, with what the data would need",
+      "ok": true,
+      "detail": "The data does not hold margin: it would need the cost of the goods sold by brand and category."
+     },
+     {
+      "decision": "a question naming its template gets the same finding as the question in words (the model-off path)",
+      "ok": true,
+      "detail": "6 named"
+     }
+    ],
+    "missing": [
+     "the engine does not run it yet: it runs as a library (dclab_core) only"
+    ]
+   }
+  ]
+ },
+ "claims": [
+  {
+   "claim_id": "KND-022-C1",
+   "kind": "fact",
+   "statement": "Why a number changed: on 3 of 3 seeds every decision held (95% interval over seeds [0.439, 1.0]); 27 of 27 decision checks held.",
+   "evidence": [
+    "evidence.decisions",
+    "evidence.rate"
+   ],
+   "limitations": [
+    "Invented replicas with planted traps, three seeds: what the kind decides, not how well it does on real data.",
+    "Checks on one seed share its data, so they are not independent: the interval over seeds is the honest one.",
+    "The engine does not run this kind yet: it runs as a library (dclab_core)."
+   ]
+  },
+  {
+   "claim_id": "KND-022-C2",
+   "kind": "recommendation",
+   "statement": "On a why a number changed problem: a footfall drop in one mall: footfall is the factor ranked first.",
+   "evidence": [
+    "evidence.decisions.0"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-022-C3",
+   "kind": "recommendation",
+   "statement": "On a why a number changed problem: the brand's footfall change is placed in the mall it happened in.",
+   "evidence": [
+    "evidence.decisions.1"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-022-C4",
+   "kind": "recommendation",
+   "statement": "On a why a number changed problem: a conversion drop in one category: conversion first, that category's rate where.",
+   "evidence": [
+    "evidence.decisions.2"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-022-C5",
+   "kind": "recommendation",
+   "statement": "On a why a number changed problem: a basket drop from the mix: the basket first, the cheap category's mix where (not its rate).",
+   "evidence": [
+    "evidence.decisions.3"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-022-C6",
+   "kind": "recommendation",
+   "statement": "On a why a number changed problem: a number that moved only within its variation: no factor is said to have moved.",
+   "evidence": [
+    "evidence.decisions.4"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-022-C7",
+   "kind": "recommendation",
+   "statement": "On a why a number changed problem: a store whose door counter failed: the why is refused with footfall missing.",
+   "evidence": [
+    "evidence.decisions.5"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-022-C8",
+   "kind": "recommendation",
+   "statement": "On a why a number changed problem: a question about a competitor: refused, with what the data would need.",
+   "evidence": [
+    "evidence.decisions.6"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-022-C9",
+   "kind": "recommendation",
+   "statement": "On a why a number changed problem: a question about a margin with no cost table: refused, with what the data would need.",
+   "evidence": [
+    "evidence.decisions.7"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-022-C10",
+   "kind": "recommendation",
+   "statement": "On a why a number changed problem: a question naming its template gets the same finding as the question in words (the model-off path).",
+   "evidence": [
+    "evidence.decisions.8"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  }
+ ],
+ "status": "completed",
+ "started_at": "2026-10-19T16:23:28+00:00",
+ "completed_at": "2026-10-19T16:23:31+00:00",
+ "elapsed_seconds": 2.9,
+ "provenance": {
+  "git_commit": "c3c485a0ce9019e37ccff558fc6628bc4574aabf",
+  "git_dirty": true,
+  "python": "3.10.19",
+  "python_implementation": "CPython",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+  "random_state": null,
+  "packages": {
+   "numpy": "2.2.6",
+   "pandas": "2.3.3",
+   "scikit-learn": "1.7.2",
+   "lightgbm": "4.7.0",
+   "xgboost": "3.2.0",
+   "catboost": "1.2.10",
+   "optuna": "5.0.0",
+   "torch": "2.12.1"
+  },
+  "data_sha256": {},
+  "code_committed": true,
+  "command": "python -m dclab_rnd.kinds.campaign",
+  "seeds": [
+   0,
+   1,
+   2
+  ]
+ }
+}

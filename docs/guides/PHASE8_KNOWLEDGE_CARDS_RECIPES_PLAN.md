@@ -317,6 +317,19 @@ Designed in detail once Part E is built; each keeps DCLab's rules (the validator
   covers the truth. Left: the cascade as a programme template the studio runs on a project (with the anomaly review
   loop as one path), a model's case summary through the gateway (no purpose yet), a replica whose team reviews a smaller
   share.
+- **30.20 built (2026-10-19), the review's 17 findings fixed:** `dclab_core.metric_change` (dclab-core 0.94.0; `SemanticLayer`
+  v1, `MetricAnswer` v1): a question about a number answered from approved definitions through four tested templates, each
+  query one plan rendered as bound SQL and as its pandas computation (the core never reaches a database; the studio runs
+  the SQL on SQLite); a why split in logs into footfall x conversion x basket with intervals over days, drilled down into
+  mix against rate, with an action; gaps checked at the grain both tables share and refused with what is missing; sums
+  compared per day; one 10% false-move budget for factors and segments. A model only chooses and fills a template
+  (purpose `metric_question`, validated, its reply kept whole); a question naming its template is answered with no model.
+  The kind `metric_change` runs as a library (Home refuses to build it), certified by its acceptance (KND-022, 27 of 27 on
+  three seeds); the replica `mall_sales`. Measured: the rules reach 477 of 480 planted answers over sixty seeds; the
+  model reads 24 of 24 paraphrases against the rules' 6 (MCH-003, live, EUR 0.10). Left: an independent writer's
+  paraphrases, a project path (a layer kept per workspace, the agent tool).
+- **Test runs kept (2026-10-19, d502540):** every run of the suite and every gate, whole, in `training_records/test_runs/`
+  (the owner's rule), snapshotted by `make archive`.
 - **Live tests (2026-10-19, $20 budget; EUR 4.02 spent):** the product's model (Claude) through the harness suite for the
   first time: 10 of 17 (HRN-022; the rules alone 17 of 17). Fixed: a costs question asked again and again and blocking the
   build; a fraud walk built without its entity (no grouped folds); the model reading "the day's orders" as the entity and

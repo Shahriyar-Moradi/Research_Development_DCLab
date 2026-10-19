@@ -1,6 +1,6 @@
 {
  "generated_by": "make kinds-check",
- "at": "2026-10-19T14:22:12+00:00",
+ "at": "2026-10-19T16:32:14+00:00",
  "results": [
   {
    "kind": "rare_event",
@@ -88,6 +88,60 @@
     }
    ],
    "missing": []
+  },
+  {
+   "kind": "metric_change",
+   "status": "partial",
+   "checks": [
+    {
+     "decision": "a footfall drop in one mall: footfall is the factor ranked first",
+     "ok": true,
+     "detail": "Sales changed -18.6% (90% interval -25.8% to -10.7%). Footfall moved most (-19.3%); Conversion -0.1%, Average basket +1.0%."
+    },
+    {
+     "decision": "the brand's footfall change is placed in the mall it happened in",
+     "ok": true,
+     "detail": "Footfall changed -2.8% (90% interval -10.0% to +5.8%): no factor moved beyond its day-to-day variation; mall Harbour moved Footfall most."
+    },
+    {
+     "decision": "a conversion drop in one category: conversion first, that category's rate where",
+     "ok": true,
+     "detail": "Sales changed -14.4% (90% interval -21.5% to -6.9%). Conversion moved most (-15.6%), led by category clothing (rate); Average basket -3.1%, Footfall +4.6%."
+    },
+    {
+     "decision": "a basket drop from the mix: the basket first, the cheap category's mix where (not its rate)",
+     "ok": true,
+     "detail": "Average basket changed -19.0% (90% interval -19.6% to -18.3%). Average basket moved most (-19.0%), led by category accessories (mix)."
+    },
+    {
+     "decision": "a number that moved only within its variation: no factor is said to have moved",
+     "ok": true,
+     "detail": "Sales changed +0.6% (90% interval -7.5% to +9.7%): no factor moved beyond its day-to-day variation."
+    },
+    {
+     "decision": "a store whose door counter failed: the why is refused with footfall missing",
+     "ok": true,
+     "detail": "Not answered: footfall is missing on some days, so the change cannot be split. Sales changed +3.0% (90% interval -6.8% to +14.1%), from tables without gaps."
+    },
+    {
+     "decision": "a question about a competitor: refused, with what the data would need",
+     "ok": true,
+     "detail": "The data does not hold competitor: it would need a table of competitors' openings and promotions by mall and date."
+    },
+    {
+     "decision": "a question about a margin with no cost table: refused, with what the data would need",
+     "ok": true,
+     "detail": "The data does not hold margin: it would need the cost of the goods sold by brand and category."
+    },
+    {
+     "decision": "a question naming its template gets the same finding as the question in words (the model-off path)",
+     "ok": true,
+     "detail": "6 named"
+    }
+   ],
+   "missing": [
+    "the engine does not run it yet: it runs as a library (dclab_core) only"
+   ]
   },
   {
    "kind": "entity_tables",

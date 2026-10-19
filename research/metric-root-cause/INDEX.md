@@ -12,7 +12,9 @@ No champion yet. The first measured result recorded in this track becomes the ba
 
 ## Experiments
 
-No experiments in this folder yet.
+| Experiment | Result files | Notebooks | Scripts | Entry point |
+|---|---:|---:|---:|---|
+| [.gitkeep](experiments/.gitkeep) | 0 | 0 | 0 | [.gitkeep](experiments/.gitkeep) |
 
 ## Notebooks
 
@@ -20,7 +22,7 @@ No notebooks yet.
 
 ## Evaluation
 
-No evaluation artifacts yet.
+- [.gitkeep](evaluation/.gitkeep)
 
 ## Reports and research notes
 
@@ -36,5 +38,6 @@ Which factor moved a business number (footfall, conversion, basket), where, by h
 
 Also called: root cause analysis, metric decomposition, why did sales drop, ask your data, conversational BI.
 
+- **Acceptance on its replica**: every decision held on 3 of 3 seeds (95% interval [0.439, 1.0]), [KND-022](../../evidence/campaigns/kinds_v1/results/KND-022_metric_change.json).
 - **Benchmark**: not judged by the benchmark's scripted policies (one yes or no or numeric outcome column): see its acceptance.
 
