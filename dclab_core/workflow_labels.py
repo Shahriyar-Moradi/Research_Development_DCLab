@@ -38,6 +38,7 @@ NOT_LEARNED = {
     "workflow.revisit": "a person's or an agent's request to run a stage again: no journey asks for one",
     "workflow.stage_approval": "the written person approves every gate: the labels would carry no information",
     "workflow.stop": "no agent with a model runs in a journey; its labels come from recorded sessions' outcomes (27.2)",
+    "workflow.g4": "G4 is a rule on the run's facts; its truth is where people take the work next, from recorded projects (30.15)",
     "agent.tool_choice": "no agent with a model runs in a journey; its labels come from recorded sessions' outcomes (27.2)",
     "experiment.next": "the engine's own improvement loop: labelled by its measured results, not by a journey",
     "solution.compose": "labelled where it is decided, by the holdout's measured comparison (24.7)",
