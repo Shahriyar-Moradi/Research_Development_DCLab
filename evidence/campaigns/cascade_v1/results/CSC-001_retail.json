@@ -1,0 +1,468 @@
+{
+ "id": "CSC-001",
+ "experiment_id": "CSC-001",
+ "campaign_id": "cascade_v1",
+ "kind": "screening_cascade",
+ "status": "completed",
+ "at": "2026-10-19T15:16:55+00:00",
+ "runs": [
+  {
+   "seed": 0,
+   "stages": {
+    "net": {
+     "recall": 0.908,
+     "rows": 927,
+     "share_of_rows": 0.5066,
+     "estimated_recall": {
+      "recall": 1.0,
+      "reviewed": 450,
+      "reviewed_cases": 67,
+      "estimated_cases": 84.0,
+      "unsampled_share": 0.0,
+      "interval": "a bootstrap drawing whole periods, 95%",
+      "effective_cases": 18.1,
+      "recall_ci": [
+       0.5792,
+       1.0
+      ]
+     }
+    },
+    "queue": {
+     "recall": 0.7586,
+     "rows": 360,
+     "precision": 0.1833
+    },
+    "audit": {
+     "rows": 90,
+     "estimated_recall": {
+      "recall": 0.7857,
+      "reviewed": 450,
+      "reviewed_cases": 67,
+      "estimated_cases": 84.0,
+      "unsampled_share": 0.0,
+      "interval": "a bootstrap drawing whole periods, 95%",
+      "effective_cases": 18.1,
+      "recall_ci": [
+       0.4269,
+       1.0
+      ]
+     }
+    }
+   },
+   "without_learning": {
+    "net": {
+     "recall": 0.8736,
+     "rows": 881,
+     "share_of_rows": 0.4814,
+     "estimated_recall": {
+      "recall": 1.0,
+      "reviewed": 450,
+      "reviewed_cases": 64,
+      "estimated_cases": 81.0,
+      "unsampled_share": 0.0,
+      "interval": "a bootstrap drawing whole periods, 95%",
+      "effective_cases": 17.0,
+      "recall_ci": [
+       0.5666,
+       1.0
+      ]
+     }
+    },
+    "queue": {
+     "recall": 0.7241,
+     "rows": 360,
+     "precision": 0.175
+    },
+    "audit": {
+     "rows": 90,
+     "estimated_recall": {
+      "recall": 0.7778,
+      "reviewed": 450,
+      "reviewed_cases": 64,
+      "estimated_cases": 81.0,
+      "unsampled_share": 0.0,
+      "interval": "a bootstrap drawing whole periods, 95%",
+      "effective_cases": 17.0,
+      "recall_ci": [
+       0.4155,
+       1.0
+      ]
+     }
+    }
+   },
+   "holdout": {
+    "from": "2026-07-03",
+    "to": "2026-09-30",
+    "rows": 1830,
+    "cases": 87,
+    "reviewed_share": 0.2459
+   },
+   "rounds": [
+    {
+     "day": "2026-02-04",
+     "confirmed": 125,
+     "positives": 13,
+     "model": false
+    },
+    {
+     "day": "2026-03-06",
+     "confirmed": 275,
+     "positives": 20,
+     "model": true
+    },
+    {
+     "day": "2026-04-05",
+     "confirmed": 425,
+     "positives": 36,
+     "model": true
+    },
+    {
+     "day": "2026-05-05",
+     "confirmed": 574,
+     "positives": 46,
+     "model": true
+    },
+    {
+     "day": "2026-06-04",
+     "confirmed": 724,
+     "positives": 56,
+     "model": true
+    },
+    {
+     "day": "2026-07-04",
+     "confirmed": 874,
+     "positives": 67,
+     "model": true
+    },
+    {
+     "day": "2026-08-03",
+     "confirmed": 1024,
+     "positives": 91,
+     "model": true
+    },
+    {
+     "day": "2026-09-02",
+     "confirmed": 1174,
+     "positives": 111,
+     "model": true
+    }
+   ],
+   "labels": {
+    "confirmed": 1319,
+    "cases_confirmed": 133
+   },
+   "learned": true,
+   "trained_on": 1174,
+   "k": 5,
+   "audit": 1
+  },
+  {
+   "seed": 1,
+   "stages": {
+    "net": {
+     "recall": 0.9505,
+     "rows": 896,
+     "share_of_rows": 0.5054,
+     "estimated_recall": {
+      "recall": 1.0,
+      "reviewed": 448,
+      "reviewed_cases": 87,
+      "estimated_cases": 87.0,
+      "unsampled_share": 0.0,
+      "interval": "a bootstrap drawing whole periods, 95%",
+      "effective_cases": 87.0,
+      "recall_ci": [
+       0.6366,
+       1.0
+      ]
+     }
+    },
+    "queue": {
+     "recall": 0.8614,
+     "rows": 358,
+     "precision": 0.243
+    },
+    "audit": {
+     "rows": 90,
+     "estimated_recall": {
+      "recall": 1.0,
+      "reviewed": 448,
+      "reviewed_cases": 87,
+      "estimated_cases": 87.0,
+      "unsampled_share": 0.0,
+      "interval": "a bootstrap drawing whole periods, 95%",
+      "effective_cases": 87.0,
+      "recall_ci": [
+       0.6003,
+       1.0
+      ]
+     }
+    }
+   },
+   "without_learning": {
+    "net": {
+     "recall": 0.9505,
+     "rows": 856,
+     "share_of_rows": 0.4828,
+     "estimated_recall": {
+      "recall": 0.8469,
+      "reviewed": 448,
+      "reviewed_cases": 84,
+      "estimated_cases": 98.0,
+      "unsampled_share": 0.0,
+      "interval": "a bootstrap drawing whole periods, 95%",
+      "effective_cases": 31.2,
+      "recall_ci": [
+       0.5206,
+       1.0
+      ]
+     }
+    },
+    "queue": {
+     "recall": 0.8218,
+     "rows": 358,
+     "precision": 0.2318
+    },
+    "audit": {
+     "rows": 90,
+     "estimated_recall": {
+      "recall": 0.8469,
+      "reviewed": 448,
+      "reviewed_cases": 84,
+      "estimated_cases": 98.0,
+      "unsampled_share": 0.0,
+      "interval": "a bootstrap drawing whole periods, 95%",
+      "effective_cases": 31.2,
+      "recall_ci": [
+       0.4932,
+       1.0
+      ]
+     }
+    }
+   },
+   "holdout": {
+    "from": "2026-07-03",
+    "to": "2026-09-30",
+    "rows": 1773,
+    "cases": 101,
+    "reviewed_share": 0.2527
+   },
+   "rounds": [
+    {
+     "day": "2026-02-04",
+     "confirmed": 128,
+     "positives": 14,
+     "model": false
+    },
+    {
+     "day": "2026-03-06",
+     "confirmed": 278,
+     "positives": 31,
+     "model": true
+    },
+    {
+     "day": "2026-04-05",
+     "confirmed": 428,
+     "positives": 46,
+     "model": true
+    },
+    {
+     "day": "2026-05-05",
+     "confirmed": 578,
+     "positives": 53,
+     "model": true
+    },
+    {
+     "day": "2026-06-04",
+     "confirmed": 728,
+     "positives": 61,
+     "model": true
+    },
+    {
+     "day": "2026-07-04",
+     "confirmed": 878,
+     "positives": 74,
+     "model": true
+    },
+    {
+     "day": "2026-08-03",
+     "confirmed": 1028,
+     "positives": 103,
+     "model": true
+    },
+    {
+     "day": "2026-09-02",
+     "confirmed": 1176,
+     "positives": 136,
+     "model": true
+    }
+   ],
+   "labels": {
+    "confirmed": 1321,
+    "cases_confirmed": 160
+   },
+   "learned": true,
+   "trained_on": 1176,
+   "k": 5,
+   "audit": 1
+  },
+  {
+   "seed": 2,
+   "stages": {
+    "net": {
+     "recall": 0.9897,
+     "rows": 930,
+     "share_of_rows": 0.5272,
+     "estimated_recall": {
+      "recall": 1.0,
+      "reviewed": 449,
+      "reviewed_cases": 88,
+      "estimated_cases": 88.0,
+      "unsampled_share": 0.0,
+      "interval": "a bootstrap drawing whole periods, 95%",
+      "effective_cases": 88.0,
+      "recall_ci": [
+       0.601,
+       1.0
+      ]
+     }
+    },
+    "queue": {
+     "recall": 0.9072,
+     "rows": 359,
+     "precision": 0.2451
+    },
+    "audit": {
+     "rows": 90,
+     "estimated_recall": {
+      "recall": 1.0,
+      "reviewed": 449,
+      "reviewed_cases": 88,
+      "estimated_cases": 88.0,
+      "unsampled_share": 0.0,
+      "interval": "a bootstrap drawing whole periods, 95%",
+      "effective_cases": 88.0,
+      "recall_ci": [
+       0.6047,
+       1.0
+      ]
+     }
+    }
+   },
+   "without_learning": {
+    "net": {
+     "recall": 0.9691,
+     "rows": 883,
+     "share_of_rows": 0.5006,
+     "estimated_recall": {
+      "recall": 1.0,
+      "reviewed": 448,
+      "reviewed_cases": 78,
+      "estimated_cases": 78.0,
+      "unsampled_share": 0.0,
+      "interval": "a bootstrap drawing whole periods, 95%",
+      "effective_cases": 78.0,
+      "recall_ci": [
+       0.5797,
+       1.0
+      ]
+     }
+    },
+    "queue": {
+     "recall": 0.8041,
+     "rows": 358,
+     "precision": 0.2179
+    },
+    "audit": {
+     "rows": 90,
+     "estimated_recall": {
+      "recall": 1.0,
+      "reviewed": 448,
+      "reviewed_cases": 78,
+      "estimated_cases": 78.0,
+      "unsampled_share": 0.0,
+      "interval": "a bootstrap drawing whole periods, 95%",
+      "effective_cases": 78.0,
+      "recall_ci": [
+       0.5754,
+       1.0
+      ]
+     }
+    }
+   },
+   "holdout": {
+    "from": "2026-07-03",
+    "to": "2026-09-30",
+    "rows": 1764,
+    "cases": 97,
+    "reviewed_share": 0.2545
+   },
+   "rounds": [
+    {
+     "day": "2026-02-05",
+     "confirmed": 130,
+     "positives": 7,
+     "model": false
+    },
+    {
+     "day": "2026-03-07",
+     "confirmed": 280,
+     "positives": 22,
+     "model": true
+    },
+    {
+     "day": "2026-04-06",
+     "confirmed": 430,
+     "positives": 34,
+     "model": true
+    },
+    {
+     "day": "2026-05-06",
+     "confirmed": 580,
+     "positives": 53,
+     "model": true
+    },
+    {
+     "day": "2026-06-05",
+     "confirmed": 728,
+     "positives": 63,
+     "model": true
+    },
+    {
+     "day": "2026-07-05",
+     "confirmed": 878,
+     "positives": 76,
+     "model": true
+    },
+    {
+     "day": "2026-08-04",
+     "confirmed": 1028,
+     "positives": 106,
+     "model": true
+    },
+    {
+     "day": "2026-09-03",
+     "confirmed": 1178,
+     "positives": 143,
+     "model": true
+    }
+   ],
+   "labels": {
+    "confirmed": 1317,
+    "cases_confirmed": 163
+   },
+   "learned": true,
+   "trained_on": 1178,
+   "k": 5,
+   "audit": 1
+  }
+ ],
+ "limits": [
+  "Invented data: the replica's truth stands for the reviewers, who confirm every reviewed row correctly.",
+  "The team reviews five returns of about nineteen a day: 25% to 25% of the holdout's rows are reviewed, far more than a real team of five among thousands; the queue's recall here says the method works, not how much a real queue would catch.",
+  "The audit is one row a day: its estimates are wide (their intervals are in each run).",
+  "The summaries are the template's words: no model was asked."
+ ],
+ "detail": "runs/CSC-001_detail.jsonl.gz",
+ "rule": "The screening cascade run day by day on the retail returns replica (three seeds), recall measured per stage on the last ninety days with the learning on and off: evidence about the method on invented data, not about any real team's returns."
+}

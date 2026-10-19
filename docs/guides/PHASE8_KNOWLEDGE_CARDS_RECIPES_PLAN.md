@@ -305,6 +305,18 @@ Designed in detail once Part E is built; each keeps DCLab's rules (the validator
   return by the cashier who sold the bill), pair F1 0.76, 0.70 and 0.78 on three seeds (the exact rule about 0.01);
   DBLP-ACM 0.983 (one field 0.921); Abt-Buy 0.610 (one field 0.550); every seed and dataset passes every criterion, each
   win's 90% interval above zero. Left: the kind's own dev and sealed journeys, a service export.
+- **30.17 built (2026-10-19), the review's 8 findings fixed:** `dclab_core.cascade` (dclab-core 0.93.0) screens a stream of
+  cases day by day as a team of capacity K would, every stage fitted on the days before: a wide net (a rule, the link checks
+  the matching kind names, the day's most unusual 15% of rows, and once learned the model's highest 15%), a queue of K with
+  a random audit sample, the confirmed labels refitting a model every thirty days; recall per stage from the audit (the
+  net's and the queue's) and, on a replica, from its truth after the run. `capacity.audit_recall` now bounds what the
+  unreviewed rows may hold (an audit with no case among the rows left had read as recall one). A column known only later
+  is refused as anything read; the case summary sees only what screening reads, is never asked for a private project,
+  never changes a rank or a label, and is kept whole with why. CSC-001 (three seeds): the net keeps half the rows and 0.91
+  to 0.99 of the cases; the queue catches 0.76, 0.86, 0.91 (0.72, 0.82, 0.80 with the learning off); every audit interval
+  covers the truth. Left: the cascade as a programme template the studio runs on a project (with the anomaly review
+  loop as one path), a model's case summary through the gateway (no purpose yet), a replica whose team reviews a smaller
+  share.
 - **Live tests (2026-10-19, $20 budget; EUR 4.02 spent):** the product's model (Claude) through the harness suite for the
   first time: 10 of 17 (HRN-022; the rules alone 17 of 17). Fixed: a costs question asked again and again and blocking the
   build; a fraud walk built without its entity (no grouped folds); the model reading "the day's orders" as the entity and

@@ -1,0 +1,145 @@
+{
+ "package": "30.17",
+ "title": "The screening cascade: a wide net, a queue of the team's capacity with an audit, confirmed labels back into a model, recall per stage",
+ "date": "2026-10-19",
+ "request": "Phase 8 (the owner's pattern 3): two-stage screening, high recall first and then precision; a case summary for reviewers that is advisory and off for private projects; a review queue sized by capacity K with a random audit sample; confirmed labels back into a supervised leaf; recall measured per stage.",
+ "spec": "docs/guides/PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md, package 30.17",
+ "plan": [
+  "Read the retail returns replica (capacity five a day, the late-evening rule, copied bills, drift) and the capacity module of 30.12.",
+  "Write the cascade as a day-by-day simulation in dclab_core: the net, the queue and its audit, the labels back, the summaries.",
+  "Run it on the replica's three seeds with the learning on and off; keep every run whole beside its record.",
+  "Review it adversarially, fix what it finds, and measure again."
+ ],
+ "decisions": [
+  {
+   "decision": "The cascade is simulated day by day, each day's rows screened when the day is known.",
+   "why": "Recall per stage is only honest if no stage reads a later day: the anomaly medians, the links and the model are fitted on what came before."
+  },
+  {
+   "decision": "The reviewers are a mapping asked about one reviewed row at a time; a replica's truth for measuring is a separate argument read after the run.",
+   "why": "Nothing may read a row's outcome before a reviewer confirms it; the test's reviewers refuse every other way of reading."
+  },
+  {
+   "decision": "The net's anomaly part is a share of the day's rows (0.15), measured: about half the rows and nine cases in ten.",
+   "why": "A fixed multiple of K took every row of the replica's small days, so the net was no stage at all."
+  },
+  {
+   "decision": "The audit's interval also bounds what the rows left by a stage may hold.",
+   "why": "An audit that finds no case among the rows a queue left says little when it saw a few dozen of over a thousand."
+  },
+  {
+   "decision": "The programme template (the cascade as a Programme the studio runs on a project) is left for a later package.",
+   "why": "The Programme's protocol is fit, validation and one holdout read; the cascade's is days with labels fed back: making them one path is a design of its own."
+  }
+ ],
+ "change": "dclab_core.cascade (run, NET_SHARE, MIN_POSITIVES, STAGES); dclab_core.capacity.audit_recall's bound on missed cases; dclab_rnd.cascade (links_of, replica_run, run, write, detail, the CLI); tests/test_cascade.py; dclab-core 0.93.0; pattern 3 built.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A link read future returns.",
+   "scenario": "A bill's first return was flagged as returned twice on its own day because the same bill came back later: half the flagged rows on every seed.",
+   "cause": "returned_twice was a duplicated() count over the whole log.",
+   "fix": "Counted over the returns of the bill on that day or earlier.",
+   "test": "test_a_link_is_what_was_known_on_the_day"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The wide net was not a stage.",
+   "scenario": "The anomaly part took the top twenty rows of a day with nineteen: the net held 98.6% of the holdout's rows and recall one by construction.",
+   "cause": "The net's size was a multiple of K, larger than most days.",
+   "fix": "A share of the day's rows, measured on three seeds: about half the rows, recall 0.91 to 0.99; the net's share of rows reported.",
+   "test": "test_recall_is_measured_per_stage_and_the_learning_adds_to_the_queue"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The audit's interval left out the true recall.",
+   "scenario": "Seed 1: estimate 1.0, interval 0.959 to 1.0, true queue recall 0.891.",
+   "cause": "With no audited case among the rows the queue left, every bootstrap draw read one, and Kish's count saw only the queue's own cases.",
+   "fix": "capacity.audit_recall bounds the uncaught rows' cases by Wilson's interval on the audited ones times their number, and takes the wider interval.",
+   "test": "test_the_audits_interval_covers_the_true_recall_where_no_audited_left_row_is_a_case"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The case summary received the label and the review's verdict.",
+   "scenario": "A recorded call to summarize held label, label_source, review_status and a rule computed with the future.",
+   "cause": "Every column of the frame was passed, and the replica's frame kept the outcome columns.",
+   "fix": "A summary sees only what screening reads; the replica drops the label and its kept-out columns; a column in keep_out is refused as anything read; a private project is never summarised by a model.",
+   "test": "test_a_summary_sees_what_screening_reads_and_never_the_outcome"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Summaries were cut to 600 characters before they were kept.",
+   "scenario": "A 1000-character summary was stored as 600; a failing summary left no trace; why was lost when a model's words replaced the template.",
+   "cause": "A display cut applied before capture.",
+   "fix": "Each queued case kept whole: its summary, source, why, error, risk, learned and anomaly scores and day.",
+   "test": "test_every_summary_is_kept_whole_with_why_and_what_went_wrong"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Every summary said the learned model ranked the row high.",
+   "scenario": "836 of 1064 summaries on seed 0 carried the reason, whatever the row's learned rank.",
+   "cause": "The reason was attached whenever a model existed.",
+   "fix": "Said only of a row among the model's highest of the day.",
+   "test": "test_every_summary_is_kept_whole_with_why_and_what_went_wrong"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The anomaly medians were fitted on all days before the holdout.",
+   "scenario": "An early day was scored with medians that held later days.",
+   "cause": "One fit before the loop.",
+   "fix": "Refitted every round on the days before; the first day on its own batch, known at screening.",
+   "test": "test_recall_is_measured_per_stage_and_the_learning_adds_to_the_queue"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The test of reads watched only one way of reading the outcomes.",
+   "scenario": "A read through review[k], in or items() would have passed, and adding the label to the features passed every test.",
+   "cause": "The test's reviewers overrode get only; nothing refused a kept-out column.",
+   "fix": "The test's reviewers refuse every other access; run refuses keep_out columns.",
+   "test": "test_an_outcome_is_read_only_for_a_reviewed_row_and_a_later_column_never"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the screening cascade on the retail returns replica (CSC-001, from committed code)",
+   "gate": "the plan's Done when: recall per stage measured on the latest period, the learning against no learning on the same seeds, the audit's interval covering the true recall, the summary never changing a label",
+   "fixed_before_run": true,
+   "result": "net recall 0.908, 0.950, 0.990 on seeds 0 to 2 with 0.507 to 0.527 of the rows; queue recall 0.759, 0.861, 0.907 against 0.724, 0.822, 0.804 with the learning off; queue precision 0.183 to 0.245; the audit's intervals from about 0.43 to 0.60 up to 1.0, each covering the truth",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "met",
+   "limits": [
+    "Invented data: the replica's truth stands for reviewers who are always right.",
+    "The replica's team reviews far more of the holdout's rows than a real team would.",
+    "One audit row a day: the intervals are wide."
+   ]
+  }
+ ],
+ "outcome": "DCLab screens a stream of cases as a team of K would, says what each stage catches with an interval that covers the truth, learns from what the team confirms, and keeps each case's summary whole and advisory.",
+ "lessons": [
+  "A stage sized by a constant can swallow a small day whole: size it by the day and report what it keeps.",
+  "An interval tested only where its estimator is easy hides where it is wrong: check it against a truth on every seed."
+ ],
+ "risks": [
+  "The cascade is not yet a Programme the studio runs on a project; the anomaly review loop and it are two paths.",
+  "The replica's team reviews a quarter of the rows, far more than a real team: its recall says the method works, not what a real queue catches.",
+  "No model wrote a summary yet: no gateway purpose serves it."
+ ],
+ "commits": []
+}
