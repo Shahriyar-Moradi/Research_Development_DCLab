@@ -71,7 +71,7 @@ class FraudTest(unittest.TestCase):
 
     def test_the_unit_is_what_the_words_name_not_always_a_ride(self):
         m = pm.decompose("Find fraudulent insurance claims. We have some confirmed cases and the team can review 40 a day.")
-        self.assertEqual({p.unit for p in m.parts}, {"claim", "account"})
+        self.assertEqual({p.unit for p in m.parts}, {"claim"})  # 30.6: no linked accounts are said, so none are drawn
         self.assertEqual(m.sub_problems[0].title, "Unusual claims")
         self.assertNotIn("ride", m.model_dump_json().lower())
         self.assertEqual(pm.validate(m), [])
@@ -79,7 +79,7 @@ class FraudTest(unittest.TestCase):
         self.assertEqual(pm.decompose("Find fraud among our drivers.").sub_problems[0].unit, "driver")
 
     def test_a_problem_on_accounts_needs_no_key(self):
-        m = pm.decompose("Find the fraud in our accounts.")
+        m = pm.decompose("Find the fraud in our accounts; the team can review 30 a day.")
         self.assertEqual(pm.validate(m), [])
         self.assertIsNone(m.composition.steps[0].joins)
 
@@ -94,10 +94,14 @@ class FraudTest(unittest.TestCase):
             budget = pm.decompose(f"Find the fake rides our bikers make. {words}").composition.budget
             self.assertTrue((budget or "").endswith(shown), (words, budget))
 
-    def test_no_budget_in_the_words_is_none_and_still_a_budget_step(self):
-        m = pm.decompose("Find the fake rides our bikers make.")
+    def test_no_limit_in_the_words_draws_no_review_list(self):
+        # 30.6: the earlier rule drew a review list for every fraud sentence and asked its budget; the independent sealed people and the
+        # owner's own morning both read a review list only where the words limit what the team can check
+        m = pm.decompose("Find the fake rides our bikers make and the customer accounts that work with them.")
         self.assertIsNone(m.composition.budget)
-        self.assertEqual(m.composition.steps[-1].kind, "budget")
+        self.assertEqual([s.family for s in m.sub_problems], ["anomaly", "rare_event", "entity_tables"])
+        self.assertEqual(m.composition.steps[-1].kind, "fusion")
+        self.assertEqual(pm.validate(m), [])
 
     def test_an_absurd_budget_phrase_is_clipped_not_a_crash(self):
         for words in ["review " + "9" * 700, "top" + "9" * 700, "the team can review " + "x" * 700 + " hundred"]:
@@ -108,20 +112,26 @@ class FraudTest(unittest.TestCase):
     def test_confirmed_cases_that_exist_make_a_classifier_and_a_denial_does_not(self):
         yes = ["We have a few confirmed cases, nothing else is labelled.", "Some cases are known."]
         no = ["None of them were confirmed.", "We have not confirmed any yet.", "There are no known cases.", "Nothing has ever been confirmed."]
+        programme = "Find the fake rides our bikers make and the customer accounts that work with them; the team can review 50 a day."
         for words in yes:
-            m = pm.decompose(f"Find the fake rides our bikers make. {words}")
+            m = pm.decompose(f"{programme} {words}")
             self.assertEqual([s.labels for s in m.sub_problems][:2], ["none", "file"], words)
         for words in no:
-            m = pm.decompose(f"Find the fake rides our bikers make. {words}")
+            m = pm.decompose(f"{programme} {words}")
             self.assertEqual([s.family for s in m.sub_problems], ["anomaly", "entity_tables", "ranking"], words)
             self.assertEqual(pm.validate(m), [], words)
             self.assertIn("no case was confirmed", " ".join(m.notes))
 
     def test_when_the_words_do_not_say_the_classifier_stays_with_its_labels_unknown(self):
-        m = pm.decompose("Find the fake rides our bikers make.")
+        m = pm.decompose("Find the fake rides our bikers make and the customer accounts that work with them; the team can review 50 a day.")
         self.assertEqual([s.family for s in m.sub_problems], ["anomaly", "rare_event", "entity_tables", "ranking"])
         self.assertEqual(m.sub_problems[1].labels, "unknown")
         self.assertIn("question", " ".join(m.notes))
+        one = pm.decompose("Find the fake rides our bikers make.")  # 30.6: only the rides are said: one problem, its labels a question
+        self.assertEqual((one.size, [s.family for s in one.sub_problems], one.sub_problems[0].labels), ("single", ["rare_event"], "unknown"))
+        self.assertIn("question", " ".join(one.notes))
+        rings = pm.decompose("Find the groups of customer accounts that were opened together to feed fares to one biker.")
+        self.assertEqual((rings.size, [s.family for s in rings.sub_problems]), ("single", ["entity_tables"]))
 
     def test_a_sentence_that_only_shares_words_with_fraud_is_not_given_the_template(self):
         for words in ["Detect abusive comments in orders' reviews", "Predict hospital claims cost; abuse of the first-aid rule",

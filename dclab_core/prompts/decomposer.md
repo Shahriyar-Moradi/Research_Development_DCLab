@@ -32,6 +32,9 @@ Hard rules:
   the two work on different units, say the key in `via`.
 - Steps are in order and use only sub-problems and earlier outputs. Every sub-problem nobody reads feeds a step. A fusion or a gate
   combines at least two. Say the key (`joins`) when the inputs work on different units.
+- When the words say a team can check only so many (a number a day, a share, "a few", "a shortlist"), the list the team reviews is its
+  own part and sub-problem (family `ranking`), and a `budget` step cuts it: its inputs are the combined score (or the one score) and
+  that sub-problem. Never fold the review list into another part.
 - One problem is one part, one sub-problem and no steps. Do not split a problem that only shares words with a complex one.
 - If the words say no case was confirmed, there is nothing for a classifier to learn from.
 - `similar_problems`, when present, are the closest business examples (how such problems are solved, what goes wrong): advice for

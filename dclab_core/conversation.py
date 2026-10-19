@@ -67,6 +67,15 @@ def _named(text: str, columns: Optional[list[str]]) -> list[str]:
     return sorted(found, key=found.get)
 
 
+def _file_named(text: str) -> bool:
+    """A file or a list named and not denied in its own clause ("there is no list" is no file; 30.6: "I have no list of bad ones" was read as one)."""
+    for m in re.finditer(r"\b(file|list)\b", text, re.I):
+        start = max(text.rfind(c, 0, m.start()) for c in ",.;:") + 1
+        if not re.search(r"\b(no|not|never|without|nothing|none)\b", text[start:m.start()], re.I):
+            return True
+    return False
+
+
 def read_answer(field: str, text: str, columns: Optional[list[str]] = None) -> dict[str, str]:
     """What an answer says, by rules, as card fields (``family``, ``labels``, ``target_column``, ``target_definition``,
     ``prediction_moment``, ``unit``, ``action``). Empty when it says nothing the rules can read. The kind of answer is
@@ -89,7 +98,7 @@ def read_answer(field: str, text: str, columns: Optional[list[str]] = None) -> d
             out["labels"] = "column"
         else:
             said = label_said(text)
-            out.update({"labels": said} if said else {"labels": "file"} if re.search(r"\b(file|list)\b", text, re.I) else {})
+            out.update({"labels": said} if said else {"labels": "file"} if _file_named(text) else {})
     elif field in ("family", "outcome"):
         said = label_said(text)
         if said:

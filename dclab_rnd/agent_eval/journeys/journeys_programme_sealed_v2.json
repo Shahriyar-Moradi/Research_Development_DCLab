@@ -1,0 +1,252 @@
+[
+  {
+    "id": "JT-01",
+    "programme": "fraud_programme",
+    "words": "Hi! So we run a bike delivery service in three cities and lately it feels like we're bleeding money. Some of our bikers are logging rides that never really happened, and on the customer side people keep opening account after account to farm our welcome promos. My ops team is four people and honestly they can only dig into about 40 cases a day, so I need help knowing where to look first.",
+    "answers": {
+      "prediction_moment": "For rides, right after the ride is marked finished, before we pay the biker out at night. For the accounts, I'd say once a day is fine.",
+      "entity": "Two things really: the single ride for the bikers' fake trips, and the customer account, or the bunch of accounts that belong to the same person.",
+      "labels": "Yes, our investigators keep a cases file, every confirmed one with the order and the reason. It's not complete, they only write down what they actually closed.",
+      "budget": "About 40 a day across the whole team, that's the hard limit.",
+      "target": "Whether a ride was fake, and whether an account is part of a group of linked accounts abusing promos.",
+      "family": "No clue what you'd call it, you're the expert!",
+      "action": "The team opens the list each morning, checks from the top down, blocks the biker's payout or freezes the accounts if it's real.",
+      "data_plan": "I'm sending all three: the rides, the accounts with phone and device, and the cases file. If something didn't work I'd rather skip that bit than wait."
+    },
+    "brings": ["rides", "accounts", "cases"],
+    "when_blocked": "drop",
+    "expect": {
+      "size": "complex",
+      "families": ["rare_event", "entity_tables", "ranking"],
+      "approaches": ["rare_event", "entity_tables", "review_budgeted"],
+      "composes": true,
+      "why": "Two kinds of abuse (bikers' fake rides learned from the confirmed cases, linked customer accounts built from the accounts file) feed one list cut to 40 a day; confirmed cases exist and every file is there, so the pieces can be combined and judged on held-out cases."
+    },
+    "note": "A chatty, friendly founder with all three files and a fixed team capacity."
+  },
+  {
+    "id": "JT-02",
+    "programme": "fraud_programme",
+    "words": "Some riders are faking trips. Find them.",
+    "answers": {
+      "prediction_moment": "After the trip ends.",
+      "entity": "The trip.",
+      "labels": "None. Never investigated anything.",
+      "budget": "No limit. Show me what's weird.",
+      "target": "Fake trip or not.",
+      "family": "Don't care.",
+      "action": "I look at them myself.",
+      "data_plan": "Rides table only. That's all I have."
+    },
+    "brings": ["rides"],
+    "when_blocked": "stop",
+    "expect": {
+      "size": "single",
+      "families": ["anomaly"],
+      "approaches": ["anomaly"],
+      "composes": false,
+      "why": "One part only, the riders' fake trips; with no confirmed cases it can only be found as unusual rides without labels, and with no labels and nothing to combine there is no held-out judgement."
+    },
+    "note": "A blunt owner of a small fleet with only the rides table and no investigations."
+  },
+  {
+    "id": "JT-03",
+    "programme": "fraud_programme",
+    "words": "Hello, I am manager of courier company. We have two problem: drivers make false orders for get bonus, and also customers make many accounts, same person, for discount codes. Our checking team is small, they can check maybe ten percent of what system flag.",
+    "answers": {
+      "prediction_moment": "When order is completed, before the weekly payment to drivers.",
+      "entity": "For drivers it is the order. For customers it is the person behind many accounts.",
+      "labels": "Yes we have file of cases that investigation confirmed, with order id and reason. Not all, only some.",
+      "budget": "Maybe ten percent of flagged ones, not more.",
+      "target": "Order is false or real; and accounts are same person or not.",
+      "family": "I don't know this word, sorry.",
+      "action": "Team check the list, then stop bonus for driver or close the accounts.",
+      "data_plan": "I have rides file and cases file. Accounts file is in other system, IT department cannot give it now. If this part is not possible, please continue without it, do the drivers part."
+    },
+    "brings": ["rides", "cases"],
+    "when_blocked": "drop",
+    "expect": {
+      "size": "complex",
+      "families": ["rare_event", "entity_tables", "ranking"],
+      "approaches": ["rare_event", null, "review_budgeted"],
+      "composes": true,
+      "why": "The drivers' false orders are learned from the confirmed cases and cut to a 10% review share; the linked customer accounts cannot be solved without the accounts file, and the manager chose to drop that part and go on, so the remaining pieces are still judged on held-out cases."
+    },
+    "note": "A non-native English courier manager missing the accounts file who drops that part."
+  },
+  {
+    "id": "JT-04",
+    "programme": "fraud_programme",
+    "words": "We're a ride-hailing operator. I want to catch two things: bikers who invent rides to collect incentives, and rings of passenger accounts that are clearly run by the same people. We review every alert, so no cap on volume.",
+    "answers": {
+      "prediction_moment": "Rides scored at completion; account rings checked weekly.",
+      "entity": "Ride for the first, a ring of accounts for the second.",
+      "labels": "We do have confirmed cases from our investigations unit, order level, partial.",
+      "budget": "None, we review everything that is flagged.",
+      "target": "Invented ride yes/no, and whether an account belongs to a ring.",
+      "family": "Probably classification for the rides; the rings I'm not sure.",
+      "action": "Withhold incentives, suspend the ring's accounts.",
+      "data_plan": "I can give you rides and the cases. The accounts table isn't exported yet. The rings are the reason I'm here, so if you can't do them without accounts I'll stop and come back when I have that table."
+    },
+    "brings": ["rides", "cases"],
+    "when_blocked": "stop",
+    "expect": {
+      "size": "complex",
+      "families": ["rare_event", "entity_tables"],
+      "approaches": ["rare_event", null],
+      "composes": false,
+      "why": "The invented rides could be learned from the cases, but the account rings need the accounts file, which is missing, and this person stops rather than go on without them, so nothing is combined or judged; no review cap means no budgeted list."
+    },
+    "note": "A decisive operations lead who stops when the file for the part he cares about is missing."
+  },
+  {
+    "id": "JT-05",
+    "programme": "fraud_programme",
+    "words": "I think a handful of people are running lots of customer accounts on our app, same phones, same devices, to keep grabbing the first-order discount. I just want to see which accounts belong together. Nothing about the drivers, they're fine.",
+    "answers": {
+      "prediction_moment": "Whenever I run it, say once a week.",
+      "entity": "The customer account, and really the group of accounts one person controls.",
+      "labels": "Nobody has confirmed anything officially, it's just my hunch from looking at a few orders.",
+      "budget": "Haven't thought about it, I'll go through the results myself.",
+      "target": "Which accounts are linked to each other and how suspicious the group is.",
+      "family": "Whatever fits, I don't know the terms.",
+      "action": "Turn off the discount for those groups.",
+      "data_plan": "Rides and the accounts table with signup, phone, device and city. No investigation file, we never had one."
+    },
+    "brings": ["rides", "accounts"],
+    "when_blocked": "drop",
+    "expect": {
+      "size": "single",
+      "families": ["entity_tables"],
+      "approaches": ["entity_tables"],
+      "composes": false,
+      "why": "Only the linked customer accounts are asked for, scored per group of accounts from the accounts file and their rides; there are no confirmed cases and only one part, so nothing is combined or judged on held-out cases."
+    },
+    "note": "A small-app owner with a single, focused worry about duplicate customer accounts and no labels."
+  },
+  {
+    "id": "JT-06",
+    "programme": "fraud_programme",
+    "words": "I'm the analyst on our trust and safety team. We see two patterns: couriers fabricating short trips near their own location to hit incentive thresholds, and clusters of customer accounts sharing devices and phones that we suspect are coordinated. Investigators can work through roughly the top 2% of each day's orders.",
+    "answers": {
+      "prediction_moment": "Score each order at status=completed, using only fields known at that moment; accounts as of the order's created_at, not later.",
+      "entity": "Order for the courier fabrication; account cluster for the coordinated accounts, with every order inheriting its cluster's score.",
+      "labels": "We have a cases table, order_id, reason, confirmed_at. It's partial and biased toward what investigators chose to look at, so treat negatives as unlabelled rather than clean.",
+      "budget": "Top 2% of daily order volume.",
+      "target": "Confirmed fabricated order; and a cluster-level risk score.",
+      "family": "Rare-event classification plus an entity-level score, then a ranked queue.",
+      "action": "Investigators work the queue top-down daily; confirmed ones go back into the cases table.",
+      "data_plan": "All three tables. If one piece fails I'd drop it and keep the rest, but I don't expect that."
+    },
+    "brings": ["rides", "accounts", "cases"],
+    "when_blocked": "drop",
+    "expect": {
+      "size": "complex",
+      "families": ["rare_event", "entity_tables", "ranking"],
+      "approaches": ["rare_event", "entity_tables", "review_budgeted"],
+      "composes": true,
+      "why": "Courier fabrication from the confirmed cases, coordinated account clusters from the accounts file, and a queue cut to 2% of daily orders; all files and partial confirmed cases are present, so the combination can be judged on held-out cases (by confirmed_at, without using later information)."
+    },
+    "note": "A precise trust-and-safety analyst who states the prediction contract and label caveats herself."
+  },
+  {
+    "id": "JT-07",
+    "programme": "fraud_programme",
+    "words": "Honestly I just know money is disappearing somewhere. Some of the guys on bikes are probably gaming the trips, and I've heard customers make extra accounts to keep getting free deliveries. Me and my partner can look at a few a day, that's it.",
+    "answers": {
+      "prediction_moment": "End of each day is fine.",
+      "entity": "Hmm, the trips I guess, and the customers who have too many accounts.",
+      "labels": "We never really checked anything properly, so no, nothing confirmed.",
+      "budget": "A few a day, like I said. Two of us, other jobs too.",
+      "target": "Which trips are dodgy and which customers are cheating with extra accounts.",
+      "family": "No idea.",
+      "action": "Call the biker or block the customer.",
+      "data_plan": "I've got the rides export and the customer accounts list. Nothing about investigations because we never did any."
+    },
+    "brings": ["rides", "accounts"],
+    "when_blocked": "drop",
+    "expect": {
+      "size": "complex",
+      "families": ["anomaly", "entity_tables", "ranking"],
+      "approaches": ["anomaly", "entity_tables", "review_budgeted"],
+      "composes": false,
+      "why": "The bikers' gamed trips can only be found as unusual rides since nothing is confirmed, the extra customer accounts are scored per entity from the accounts file, and both go into a short daily list for two people; with no confirmed cases nothing can be judged on held-out cases."
+    },
+    "note": "A vague small-business owner with no investigations and a tiny review capacity."
+  },
+  {
+    "id": "JT-08",
+    "programme": "fraud_programme",
+    "words": "Our problem is riders padding the system with ghost deliveries, purely on the courier side, customers are not the issue. Our audit team confirmed a few hundred of these over the past year. They can audit 25 deliveries a day and I want those 25 to be the best bets.",
+    "answers": {
+      "prediction_moment": "Once the delivery is closed, before the courier's payout run at midnight.",
+      "entity": "Each delivery.",
+      "labels": "Yes, the audit file: order id, reason, confirmed date. A few hundred confirmed, but they didn't audit everything.",
+      "budget": "Exactly 25 per day.",
+      "target": "Was this a ghost delivery.",
+      "family": "Classification, I suppose, but the positives are rare.",
+      "action": "Audit the top 25 each morning and hold payouts on the confirmed ones.",
+      "data_plan": "Rides and the audit cases. I don't see why you'd need accounts for this, so I'm not sending them."
+    },
+    "brings": ["rides", "cases"],
+    "when_blocked": "drop",
+    "expect": {
+      "size": "complex",
+      "families": ["rare_event", "ranking"],
+      "approaches": ["rare_event", "review_budgeted"],
+      "composes": true,
+      "why": "Only the couriers' ghost deliveries are asked for, learned from a few hundred confirmed cases, then cut to 25 a day; no account part is asked for, so the missing accounts file blocks nothing and the pieces are judged on held-out confirmed cases."
+    },
+    "note": "A practical head of operations with one kind of abuse, confirmed audits and an exact daily limit."
+  },
+  {
+    "id": "JT-09",
+    "programme": "fraud_programme",
+    "words": "Okay so, long story, we've had a couple of scams hit us this year. Drivers faking rides with their friends' phones, we caught a bunch of those, and these networks of customer accounts that all share a device and order to the same places. But what scares me most is the stuff we haven't seen yet, so I'd also love something that just flags weird rides we wouldn't think to look for.",
+    "answers": {
+      "prediction_moment": "As soon as a ride is done, before money moves.",
+      "entity": "The ride for the faked ones and the weird ones; for the networks, the group of accounts.",
+      "labels": "We have the confirmed cases from our investigations, mostly the drivers' fake rides, some of the account networks. Partial, definitely.",
+      "budget": "We don't really have a cap, the security guy looks at everything flagged.",
+      "target": "Faked ride, account in a network, and anything just strange.",
+      "family": "Is there a name for 'things I haven't seen yet'? Ha.",
+      "action": "Freeze payout, block the network, and for the weird ones just have a human look.",
+      "data_plan": "I'll send all three files. If something can't be done, skip it, I'd take what works."
+    },
+    "brings": ["rides", "accounts", "cases"],
+    "when_blocked": "drop",
+    "expect": {
+      "size": "complex",
+      "families": ["rare_event", "entity_tables", "anomaly"],
+      "approaches": ["rare_event", "entity_tables", "anomaly"],
+      "composes": true,
+      "why": "Three parts are asked for: the known fake rides learned from the confirmed cases, the account networks built from the accounts file, and unseen patterns found as unusual rides without labels; there is no review cap so no budgeted list, and with confirmed cases and every file the pieces can be combined and judged on held-out cases."
+    },
+    "note": "A worried, talkative founder who wants both the known patterns and a net for unknown ones."
+  },
+  {
+    "id": "JT-10",
+    "programme": "fraud_programme",
+    "words": "Hi, our company do food delivery by motorbike. We think some bikers do fake orders to take money, and some customers open more accounts, same person, to abuse coupon. We can check 15 per day.",
+    "answers": {
+      "prediction_moment": "End of day, before we pay bikers next morning.",
+      "entity": "Order for bikers, and customer who has many accounts.",
+      "labels": "We never confirm any case, we only suspect.",
+      "budget": "15 every day.",
+      "target": "Fake order or no; customer with many accounts or no.",
+      "family": "I don't know.",
+      "action": "Check the 15, stop payment, close account.",
+      "data_plan": "Only rides file. Accounts file I cannot get, it is with our app developer. The customer part is important for us, if you cannot do it then I wait until I have the file, I stop now."
+    },
+    "brings": ["rides"],
+    "when_blocked": "stop",
+    "expect": {
+      "size": "complex",
+      "families": ["anomaly", "entity_tables", "ranking"],
+      "approaches": ["anomaly", null, "review_budgeted"],
+      "composes": false,
+      "why": "The bikers' fake orders would be unusual rides (nothing is confirmed) cut to 15 a day, but the coupon accounts need the accounts file, which is missing, and this person stops rather than continue; with no confirmed cases and a stop, nothing is combined or judged."
+    },
+    "note": "A non-native English food-delivery owner with only rides, no confirmed cases, who stops for the missing accounts file."
+  }
+]

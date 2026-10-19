@@ -36,10 +36,16 @@ from typing import Any, Optional
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 RESULTS = ROOT / "evidence" / "campaigns" / "journeys_programme_v1" / "results"
-SPLITS = {"dev": HERE / "journeys_programme_dev.json", "sealed": HERE / "journeys_programme_sealed.json"}
+SPLITS = {"dev": HERE / "journeys_programme_dev.json", "sealed": HERE / "journeys_programme_sealed.json",
+          "sealed_v2": HERE / "journeys_programme_sealed_v2.json"}  # 30.6: a fresh set after the fixes, by another independent author
 SEALED_HASH = HERE / "sealed_programme.sha256"
+SEALED_HASHES = {"sealed": SEALED_HASH, "sealed_v2": HERE / "sealed_programme_v2.sha256"}
+LATEST_SEALED = "sealed_v2"  # the set the switches read (roles_passed, examples_passed)
 PARTS = ("card", "workflow", "pipeline", "holdout")
 REPLICAS = {"fraud_programme": "dclab_core.replicas.fraud_programme"}
+#: 30.6 (bigger tables): the replica's size for every journey; the default (80,000 orders, 14 rings, about 40 confirmed cases in the
+#: holdout) left a composition 0.17 above its best leaf unprovable, its interval from -0.09 to 0.51
+SIZE: dict[str, Any] = {"n_orders": 200_000, "n_accounts": 12_000, "n_bikers": 750, "n_rings": 35, "n_markers": 70}  # about 530 confirmed cases
 ARMS = ("rules", "roles")
 EXTRA_PARTS = 1  # parts drawn beyond the expert's that still count as right
 DROP_REASON = "the files I have cannot do this part"
@@ -61,6 +67,14 @@ GATE = {
     "author": "an agent given only the three files' columns, the journeys' format and the vocabulary of families and approaches; it never read the rules, the dev people or any code",
 }
 MIN_SHARE, MIN_LOW = 0.85, 0.55
+GATE_V2 = {**GATE,
+           "version": "journeys_programme_gate_v2",  # fixed on 2026-10-19 with 30.6's fixes, before the fresh set was run (and before anyone read it)
+           "split": "sealed_v2",
+           "seed": 7,  # not the dev seed (0), the first sealed set's (5) or the calibration seeds (10 to 15)
+           "replica": "fraud_programme with SIZE (200,000 orders, 750 bikers, 35 rings, 70 markers; 30.6's bigger tables)",
+           "author": "a separate agent given only the three files' columns, the journeys' format and the vocabulary of families and approaches; it read "
+                     "no file, no rule, no dev person, no earlier sealed person and no code; its set was checked for its format only before it was run"}
+GATES = {"sealed": GATE, "sealed_v2": GATE_V2}
 
 
 def fingerprint(path: Path) -> str:
@@ -70,13 +84,13 @@ def fingerprint(path: Path) -> str:
 def load(split: str = "dev") -> list[dict[str, Any]]:
     if split not in SPLITS:
         raise ValueError(f"no programme journeys named {split!r}: one of {', '.join(SPLITS)}")
-    if split == "sealed" and fingerprint(SPLITS[split]) != SEALED_HASH.read_text(encoding="utf-8").strip():
+    if split in SEALED_HASHES and fingerprint(SPLITS[split]) != SEALED_HASHES[split].read_text(encoding="utf-8").strip():
         raise ValueError("the sealed programme journeys changed after they were sealed: a sealed set is never edited")
     return json.loads(SPLITS[split].read_text(encoding="utf-8"))
 
 
-def sealed_runs() -> list[Path]:
-    return sorted(RESULTS.glob("JPR-*_sealed.json")) if RESULTS.exists() else []
+def sealed_runs(split: str = "sealed") -> list[Path]:
+    return sorted(RESULTS.glob(f"JPR-*_{split}.json")) if RESULTS.exists() else []
 
 
 # ---------------------------------------------------------------------------------------------------------------- one person
@@ -115,7 +129,7 @@ def play(journey: dict[str, Any], seed: int = 0, stores: Any = None, live: Optio
     started = time.perf_counter()
     advisor = (live or {}).get("map_advisor")
     replica_module = importlib.import_module(REPLICAS[journey["programme"]])
-    replica = replica_module.generate(seed=seed)
+    replica = replica_module.generate(seed=seed, **SIZE)
     expect = journey["expect"]
     brings = list(journey.get("brings") or ["rides", "accounts", "cases"])
     when_blocked = journey.get("when_blocked", "stop")
@@ -129,7 +143,10 @@ def play(journey: dict[str, Any], seed: int = 0, stores: Any = None, live: Optio
         agent = HomeAgent(drafts, None)
         draft_id = drafts.create(journey["words"])["id"]
         agent.start(draft_id)
-        for name, key in ((replica_module.RIDE_FILE, "rides"), (replica_module.CASE_FILE, "cases")):  # the table and the cases, as a person brings them
+        uploads = [(replica_module.RIDE_FILE, "rides"), (replica_module.CASE_FILE, "cases")]
+        if getattr(replica_module, "ACCOUNT_FILE", None):  # 30.6: a person who brings the accounts brings them to the draft too (never decided by the expert's answer),
+            uploads.insert(0, (replica_module.ACCOUNT_FILE, "accounts"))  # before the rides: the table the problem is about is the last one brought, as a person does
+        for name, key in uploads:  # the table and the cases (and, for one problem, the accounts), as a person brings them
             if key in brings:
                 _upload(drafts, agent, draft_id, name, mine / name)
         person = _Person(journey["answers"])
@@ -159,6 +176,15 @@ def play(journey: dict[str, Any], seed: int = 0, stores: Any = None, live: Optio
             routes = ((held.get("routes") or {}).get("routes") or {})
             families = [s.get("family") for s in drawn_map.get("sub_problems") or []]
             approaches = [(routes.get(s.get("id")) or {}).get("chosen") for s in drawn_map.get("sub_problems") or []]
+            if "accounts" in brings and any(a is None for a in approaches):  # 30.6: a draft holds one table; the related ones are attached to the project,
+                # as the person does, and a part the draft's single table refuted is routed again on the project's tables (refresh_plan does the same for several parts)
+                from dclab_core import problem_map as pm_mod, solutions as sol_mod
+
+                replica.accounts.to_csv(projects.data_dir(built) / "accounts.csv", index=False)
+                sd.attach_table(projects, built, "accounts.csv", "accounts")
+                card_now = programme.plan_card(projects, projects.get(built))
+                m_now = pm_mod.ProblemMap.model_validate(drawn_map)
+                approaches = [a if a is not None else sol_mod.route(s, card_now, m_now).chosen for a, s in zip(approaches, m_now.sub_problems)]
             ok, why = _workflow_ok(expect, families, approaches)
             refused_moves = refused(projects, built)
             row["refused_moves"] = len(refused_moves)
@@ -355,7 +381,7 @@ def store(rows: list[dict[str, Any]], split: str, arm: str, seed: int, spent_eur
     n = 1 + max([int(p.name.split("_")[0].split("-")[1]) for p in RESULTS.glob("JPR-*.json")] or [0])
     ident = f"JPR-{n:03d}"
     doc = {"id": ident, "campaign_id": "journeys_programme_v1", "kind": "programme_journeys", "split": split, "arm": arm, "journeys": fingerprint(SPLITS[split]),
-           "at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "gate": GATE, "seed": seed, "spent_eur": spent_eur, "rows": rows,
+           "at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "gate": GATES.get(split, GATE), "seed": seed, "size": dict(SIZE), "spent_eur": spent_eur, "rows": rows,
            "summary": {"journeys": len(rows), "right": sum(bool(r["right"]) for r in rows), "by_part": by_part(rows)}, "verdict": verdict(rows), "status": "completed",
            "experiment_id": ident, "completed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), **(extra or {}),
            "rule": f"Scores on {len(rows)} written journeys over a seeded replica say how DCLab carries these people from their first sentence to a holdout number, or stops them with "
@@ -366,19 +392,20 @@ def store(rows: list[dict[str, Any]], split: str, arm: str, seed: int, spent_eur
 
 
 def roles_passed() -> bool:
-    """Whether the map roles passed their sealed measurement on the programme journeys: the stored roles arm's own comparison with the rules arm."""
-    for path in sealed_runs():
+    """Whether the map roles passed their sealed measurement on the programme journeys: the stored roles arm's own comparison with the rules arm,
+    on the latest sealed set."""
+    for path in sealed_runs(LATEST_SEALED):
         doc = json.loads(path.read_text(encoding="utf-8"))
-        if doc.get("arm") == "roles" and doc.get("journeys") == fingerprint(SPLITS["sealed"]):
+        if doc.get("arm") == "roles" and doc.get("journeys") == fingerprint(SPLITS[LATEST_SEALED]):
             return bool((doc.get("roles_against_rules") or {}).get("passed"))
     return False
 
 
 def examples_passed() -> bool:
-    """30.18: whether the roles reading examples passed their sealed measurement: the stored roles_examples arm on the sealed set passed its
-    comparison with the rules arm and was right on more journeys than the roles arm on the same people (``GATE["examples"]``)."""
-    fp = fingerprint(SPLITS["sealed"])
-    docs = [json.loads(p.read_text(encoding="utf-8")) for p in sealed_runs()]
+    """30.18: whether the roles reading examples passed their sealed measurement: the stored roles_examples arm on the latest sealed set passed
+    its comparison with the rules arm and was right on more journeys than the roles arm on the same people (``GATE["examples"]``)."""
+    fp = fingerprint(SPLITS[LATEST_SEALED])
+    docs = [json.loads(p.read_text(encoding="utf-8")) for p in sealed_runs(LATEST_SEALED)]
     ex = next((d for d in docs if d.get("arm") == "roles_examples" and d.get("journeys") == fp), None)
     roles = next((d for d in docs if d.get("arm") == "roles" and d.get("journeys") == fp), None)
     if ex is None or roles is None:
@@ -451,7 +478,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--shadow-router", metavar="MODEL", default=None,
                         help="28.10: with --team, a local model (Ollama) routes beside the router in shadow, never used; scored on the evaluation board")
     args = parser.parse_args(argv)
-    sealed = args.split == "sealed"
+    sealed = args.split in SEALED_HASHES
+    gate = GATES.get(args.split, GATE)
     if args.team:
         if sealed or args.yes:
             print("refused: the team arm is measured on dev, with the rules (28.7 measures it with models)", file=sys.stderr)
@@ -466,16 +494,19 @@ def main(argv: Optional[list[str]] = None) -> int:
         if not args.no_store:
             print(store(rows, args.split, "rules_team", 0 if args.seed is None else args.seed, extra={"walk": "solution_team"}))
         return 0
-    if sealed and sealed_runs():
-        print(f"refused: the sealed programme journeys were run ({sealed_runs()[0].name}); a sealed set is run once", file=sys.stderr)
+    arm_now = "roles_examples" if args.examples else "roles"  # a sealed set is run once per arm (30.6: the examples arm after the rules and the roles)
+    ran = [p for p in sealed_runs(args.split) if json.loads(p.read_text(encoding="utf-8")).get("arm") in (arm_now, None)] if sealed else []  # a record naming no arm blocks every arm
+    if ran or (sealed and args.examples and not any(json.loads(p.read_text(encoding="utf-8")).get("arm") == "roles" for p in sealed_runs(args.split))):
+        print(f"refused: {'the ' + arm_now + ' arm was run on ' + args.split + ' (' + ran[0].name + '); a sealed set is run once' if ran else 'the examples arm runs after the rules and roles arms'}",
+              file=sys.stderr)
         return 2
     if sealed and (args.only or args.no_store):
         print("refused: the sealed journeys are run whole and stored, once", file=sys.stderr)
         return 2
-    if sealed and args.seed not in (None, GATE["seed"]):
-        print(f"refused: the sealed journeys run on the gate's seed, {GATE['seed']}", file=sys.stderr)
+    if sealed and args.seed not in (None, gate["seed"]):
+        print(f"refused: the sealed journeys run on the gate's seed, {gate['seed']}", file=sys.stderr)
         return 2
-    seed = GATE["seed"] if sealed else (0 if args.seed is None else args.seed)
+    seed = gate["seed"] if sealed else (0 if args.seed is None else args.seed)
     people = [j for j in load(args.split) if not args.only or j["id"] in args.only]
     if sealed and not args.yes:
         print(f"Plan: {len(people)} people, both arms, once, on seed {seed}. The roles arm sends the map roles' requests (the decomposer, the map reviewer, the data-need agent and "
@@ -543,7 +574,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     return 0
 
 
-__all__ = ["GATE", "PARTS", "ARMS", "load", "play", "measure", "verdict", "compare", "store", "sealed_runs", "roles_passed", "examples_passed", "wilson"]
+__all__ = ["GATE", "GATE_V2", "GATES", "SIZE", "PARTS", "ARMS", "load", "play", "measure", "verdict", "compare", "store", "sealed_runs", "roles_passed", "examples_passed", "wilson"]
 
 
 if __name__ == "__main__":

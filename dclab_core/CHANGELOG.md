@@ -4,6 +4,20 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.96.0 (2026-10-20)
+
+Package 30.6: bigger and more problems, from what the sealed programme journeys missed.
+
+- `card`: more ways of saying nothing was confirmed ("nobody ever confirmed", "never ran an investigation", "only
+  suspicions", "not marked any") and that some were ("have marked some"); a card with nothing labelled and no kind of
+  answer said is the unusual rows (or the groups), inferred and said so. `conversation`: a file or a list denied in its
+  own clause ("there is no list") is no file.
+- `problem_map`: fraud said by its deeds ("closing jobs with no movement", "accounts set up together to feed fares")
+  sets the fraud programme off; it draws the parts the words support from everything said: linked accounts alone are one
+  problem (`fraud_rings`), the rides alone are one problem (`fraud_rides`), a review list only where the team's checks are
+  limited (a number, a share, "a few", "a shortlist"); the confirmed cases are denied only by words near them.
+- Prompt `decomposer`: a team's limited review list is its own part, cut by a budget step.
+
 ## 0.95.0 (2026-10-19)
 
 Package 30.18: the knowledge the roles read.

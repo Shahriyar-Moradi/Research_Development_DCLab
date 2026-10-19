@@ -277,7 +277,25 @@ def _composition_issues(m: ProblemMap, parts: dict[str, Part], subs: dict[str, S
 # ---------------------------------------------------------------------------------------------------------------- the rule decomposer
 
 #: a fraud problem: the words name fraud (not abuse of a rule, not an abusive comment) among things people do
-FRAUD = re.compile(r"\b(fraud\w*|fake\w*|scam\w*|cheat\w*|suspicious|misuse\w*)\b", re.I)
+FRAUD = re.compile(r"\b(fraud\w*|fake\w*|scam\w*|cheat\w*|suspicious|misuse\w*|collu\w*|ghost\w*|bogus|phony|sham|staged)\b", re.I)
+#: 30.6: fraud said by what people do, not by its name ("closing jobs with no movement", "accounts set up together to feed fares")
+FRAUD_DEEDS = re.compile(r"\b(never (drove|made|delivered|happened)|no movement|without moving|(do|did|does) not move|not (really |actually )?(done|real|made|delivered)|"
+                         r"false (orders?|rides?|deliveries)|(feed|collect|take|farm)\w* (the )?fares?|(set|opened) up together|(opened|created) together|"
+                         r"finish\w* (the )?deliver\w* (very )?(quickly|without)|abuse of the fare)\b", re.I)
+#: the rider-level fraud: the rides or deliveries themselves are not what they say
+RIDE_LEVEL = re.compile(r"\b(fake (rides?|deliver\w*|trips?)|(rides?|deliver\w*|jobs?|trips?) (they |he |she |that )?(never|not)|never (drove|made|delivered)|"
+                        r"no movement|without moving|(do|did|does) not move|ghost deliver\w*|close\w* (rides?|deliver\w*|jobs?)|finish\w* (the )?deliver\w*|"
+                        r"deliveries that are not real|not really done|(rides?|deliver\w*) (that )?(look|seem)\w* (wrong|odd|off|strange)|losing money on|"
+                        r"(bikers?|riders?|couriers?|drivers?) (are )?(cheat\w*|scam\w*|fak\w*|steal\w*))\b", re.I)
+#: linked accounts: customers or accounts acting together with riders
+RINGS = re.compile(r"\b(accounts?|customers?)\b[^.;]{0,80}\b(together|team up|teaming|work\w* with|collu\w*|groups?|connected|ring|set up|opened|share|feed\w*|fake orders?|false orders?|same few)\b|"
+                   r"\b(collu\w*|groups? of (customer )?accounts|linked accounts|fake orders?|false orders?|(weird|strange|odd|suspicious) (customer )?(orders?|accounts?))\b", re.I)
+#: a limit on what a team can check, said without a number too ("only part of the rides every day", "one ride in fifty", "not many")
+LIMITED = re.compile(r"\b(can (only )?(check|review|look at|investigate|read|handle) (only )?(a limited number|a few|part|some|only part|roughly|about|around|maybe)|"
+                     r"(check|review|look at) only (a |part|some|a few)|limited number of|ordered shortlist|shortlist|one (ride|case|order|delivery) in \w+|"
+                     r"not many|only look at a few|few each day|a few (a|per|each) (day|week)|a small (slice|share|fraction|number|part) of|"
+                     r"(which|what) (orders|rides|deliveries|ones|cases) to (look at|check|review)|(one )?prioriti[sz]ed list|ranked list|"
+                     r"\d[\d,]*\s+(a|per|each|every)\s+(day|week|shift))\b", re.I)
 FRAUD_SETTING = re.compile(r"\b(ride\w*|trip\w*|order\w*|deliver\w*|biker\w*|courier\w*|driver\w*|payment\w*|transaction\w*|account\w*|claim\w*)\b", re.I)
 BUDGET = re.compile(r"\b(review budget|budget(ed)? (of|for)|(reviewers?|analysts?|investigators?|team|we|they) (can|could|only can) (check|review|look at|investigate|handle) (about |around |only |just )?(\d+(?:[.,]\d+)?\s?%?|a few|\w+ hundred)|"
                     r"(only|just) (\d+|a few) (can|could) be (checked|reviewed)|top[- ]?\d+|(\d+|a few) (cases|rides|orders|alerts) (a|per|each) (day|week|shift)|per (day|week) (we )?can (check|review))(?!\w)", re.I)
@@ -311,24 +329,25 @@ def _clip(text: Any, n: int = MAX_TEXT) -> str:
 
 
 def _single(words: str, card_family: Optional[str] = None, *, template: str = "single", notes: Optional[list[str]] = None,
-            needs: Optional[list[Need]] = None) -> ProblemMap:
+            needs: Optional[list[Need]] = None, unit: Optional[str] = None) -> ProblemMap:
     family, found = _family_of(words)
     family = card_family or family or "classification"
     quote = _clip(words) or None
     return ProblemMap(size="single", parts=[Part(id="part1", title="The problem", question=(quote or ""), quote=quote)],
-                      sub_problems=[SubProblem(id="sp1", part="part1", title="The problem", family=family, question=(quote or ""), needs=needs or [],
+                      sub_problems=[SubProblem(id="sp1", part="part1", title="The problem", family=family, question=(quote or ""), needs=needs or [], unit=unit,
                                                labels=found if found in LABEL_SITUATIONS else "unknown", quote=quote, why="One question, one family: a single problem.")],
                       template=template, notes=notes if notes is not None else ["The words name one problem; the router (24.3) records why it needs no more."])
 
 
 def decompose(words: str, *, parts: Optional[list[Any]] = None) -> ProblemMap:
-    """A problem map from the person's words by rules. ``parts``: the brief's parts, when it has them (challenge mode's ``read_brief``)."""
+    """A problem map from the person's words by rules. ``parts``: the brief's parts, when it has them (challenge mode's ``read_brief``).
+    Every word said counts (the owner's own morning named fraud and its budget only in its answers)."""
     words = (words or "").strip()
     brief = [p for p in (parts or []) if isinstance(p, dict)]
     if len(brief) >= 2:
         return _from_brief(brief)
     family, _ = _family_of(words) if words else (None, "unknown")
-    if FRAUD.search(words) and FRAUD_SETTING.search(words) and family in (None, "rare_event", "anomaly") and not STATED_LABEL.search(words):
+    if (FRAUD.search(words) or FRAUD_DEEDS.search(words)) and FRAUD_SETTING.search(words) and family in (None, "rare_event", "anomaly") and not STATED_LABEL.search(words):
         return _fraud(words)
     if _two_step_routing(words):
         return _routing(words)
@@ -374,9 +393,11 @@ def _labels_in(words: str) -> str:
     denies them, ``unknown`` when they say nothing (unknown wins when in doubt)."""
     positive = negative = False
     for clause in re.split(r"[.;,!?]|\bbut\b|\band\b", words, flags=re.I):
-        if not CONFIRMED.search(clause):
+        found = CONFIRMED.search(clause)
+        if not found:
             continue
-        if NEGATION.search(clause):
+        before = " ".join(clause[:found.start()].split()[-4:])  # 30.6: the denial is said of the cases, near them ("no movement" later denies nothing)
+        if NEGATION.search(before) or re.search(r"\b(no|not|none|never|nothing|nobody)\b", clause[found.end():found.end() + 12], re.I) and not re.search(r"\bcases\b", clause[found.end():found.end() + 8], re.I):
             negative = True
         else:
             positive = True
@@ -418,9 +439,23 @@ def _assemble(pieces: list[dict[str, Any]], steps: list[dict[str, Any]], *, quot
 
 
 def _fraud(words: str) -> ProblemMap:
-    found = BUDGET.search(words)
+    found = BUDGET.search(words) or LIMITED.search(words)
     budget = _clip(found.group(0), MAX_BUDGET) if found else None
     labels = _labels_in(words)
+    u = _unit_of_words(words)
+    rides, rings_said, limited = bool(RIDE_LEVEL.search(words) or FRAUD.search(words) and not RINGS.search(words)), bool(RINGS.search(words)), bool(found)
+    if not (rides or rings_said):
+        rides = True  # fraud named with nothing more said: the rides themselves are what is screened
+    # 30.6: the parts the person's words support, and only those (the independent sealed people and the owner's own morning agree; the
+    # earlier rule drew the linked accounts and a review list for every fraud sentence, whatever it said)
+    if rings_said and not rides and not limited:
+        return _single(words, "entity_tables", template="fraud_rings", unit="account",
+                       notes=["The words ask only for the linked accounts: one problem, not the whole fraud programme."])
+    if rides and not rings_said and not limited:
+        family = "anomaly" if labels == "none" else "rare_event"
+        return _single(words, family, template="fraud_rides", unit=u, notes=["The words ask only about the rides themselves, with no linked accounts and no review limit: "
+                                                                      "one problem" + (", learned from the confirmed cases." if family == "rare_event" else ", screened without labels.")
+                                                                      + (" Whether any case was confirmed is the question to ask." if labels == "unknown" else "")])
     quote = _clip(words) or None
     u = _unit_of_words(words)
     us = _plural(u)
@@ -455,14 +490,18 @@ def _fraud(words: str) -> ProblemMap:
                            why="A team can only check so many: the list is cut to the budget in the words." if budget else "A team can only check so many: the size of the list is the question to ask."),
               "sub": dict(title="The review list", family="ranking", kind="ranking", predict_rank=2, known_rank=3, labels="unknown",
                           needs=[Need(why="How many cases the team can check in a day, and what makes a case worth checking first.")])}
-    with_classifier = labels != "none"
-    pieces = [screen] + ([classifier] if with_classifier else []) + [rings, review]
-    scores = ["screen"] + (["classifier"] if with_classifier else []) + ["rings"]
-    steps = [dict(kind="fusion", inputs=scores, output="risk", joins=via, note=f"One risk score per {u} from {', '.join(scores)}."),
-             dict(kind="budget", inputs=["risk", "review"], output="review_list", note=(budget or "A review budget: how many a team can check") + ".")]
+    with_classifier = labels != "none" and rides
+    pieces = ([screen] if rides else []) + ([classifier] if with_classifier else []) + ([rings] if rings_said else []) + ([review] if limited else [])
+    scores = (["screen"] if rides else []) + (["classifier"] if with_classifier else []) + (["rings"] if rings_said else [])
+    steps = ([dict(kind="fusion", inputs=scores, output="risk", joins=via if rings_said else None, note=f"One risk score per {u} from {', '.join(scores)}.")]
+             if len(scores) > 1 else [])  # the screen and the classifier are on the same unit: a key joins them to the accounts only
+    if limited:
+        steps.append(dict(kind="budget", inputs=[("risk" if len(scores) > 1 else scores[0]), "review"], output="review_list",
+                          note=(budget or "A review budget: how many a team can check") + "."))
     notes = ["The confirmed cases are partial: the classifier learns from them, the screen does not need them, and the holdout is read once, at the end of the composition."
              if with_classifier else "The words say no case was confirmed: there is no classifier to train, and the screen and the rings stand in its place.",
-             "Linked accounts are always a part of a fraud problem here: whether the data has what finds them is the question to ask."]
+             ("Linked accounts are said: whether the data has what finds them is the question to ask." if rings_said
+              else f"No linked accounts are said: the {us} are judged on their own.")]
     if labels == "unknown":
         notes.append("The words do not say whether any case was confirmed: the classifier stays, and whether its labels exist is the question to ask.")
     return _assemble(pieces, steps, quote=quote, why=why, method="mixed", budget=budget, template="fraud", notes=notes)

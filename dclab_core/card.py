@@ -85,10 +85,16 @@ FORECAST_SAID = re.compile(r"\b(forecast\w*|demand (per|for|each)|time series|pe
 LABEL_WORDS = (  # what a person says about labels, in the order tried (a "no" first: "no file of known cases" is none)
     ("none", re.compile(r"\b(nothing is labell?ed|no labell?s?\b|not labell?ed|none (are|is) (labell?ed|confirmed)|no (known|confirmed) cases|"
                         r"no (history|record|list|file|log) of (any )?(confirmed|known|labell?ed|past|caught) |without (any )?(confirmed|known|labell?ed) (cases|frauds?)|"
-                        r"(have|has) (not|never) (yet )?(confirmed|labell?ed|caught) (any|a single)|"
-                        r"unlabell?ed|don'?t have (any )?(labell?s?|confirmed|known)|do not have (any )?(labell?s?|confirmed|known))|^\s*(no|none|nope)\b", re.I)),
+                        r"(have|has) (not|never) (yet )?(confirmed|labell?ed|caught|marked|flagged|checked|investigated|reviewed|verified) (any|a single)|"
+                        r"unlabell?ed|don'?t have (any )?(labell?s?|confirmed|known)|do not have (any )?(labell?s?|confirmed|known)|"
+                        # 30.6: the ways the sealed people said it that no rule read ("nobody ever confirmed anything", "we never ran an investigation")
+                        r"nobody (has |had )?(ever )?(confirmed|checked|investigated|labell?ed|marked|verified)|"
+                        r"nothing (has been |was |is |has )?(ever )?(confirmed|checked|investigated|labell?ed|marked|verified)|no(thing| one)? (is |was )?confirmed|"
+                        r"(never|not) (yet )?(run|ran|done|did|had|made|carried out) (an? |any )?(investigations?|reviews?|checks?)|"
+                        r"(only|just) (have )?suspicions|no (list|file|record) of (bad|fraud\w*|confirmed|known|real)|there is no (list|file))|^\s*(no|none|nope)\b", re.I)),
     ("file", re.compile(r"\b(a (file|list|sample) of (the )?(known|confirmed|found)|known (frauds?|cases)|confirmed (frauds?|cases)|"
-                        r"a file lists (the )?(known|confirmed|cases|frauds?)|some are confirmed)", re.I)),
+                        r"a file lists (the )?(known|confirmed|cases|frauds?)|some are confirmed|"
+                        r"(have|has|had) (marked|flagged|confirmed|labell?ed) (some|a few|several|many|a number of))", re.I)),  # 30.6: "investigators have marked some deliveries as fraud"
     ("column", re.compile(r"\b(a column (marks|says|holds)|label column|is[_ ]?(fraud|case)\b column|the outcome is (the )?\w+ column)", re.I)),
     ("file", re.compile(r"\b(the )?(cases|frauds?|ones) (we|they|the team) (found|caught|confirmed|flagged)\b", re.I)),  # 21.5, after a column
 )
@@ -375,6 +381,12 @@ def problem_card(brief: ProblemBrief, *, words: str = "", data: Optional[Mapping
         raise ValueError(f"unknown family {family!r}: one of {', '.join(FAMILIES)}")
     stated_family = family
     family, in_play = _family(brief, words, labels, stated_family, bool(data.get("text_only")))
+    if stated_family is None and family.value is None and not in_play and labels.value == "none":
+        # 30.6: nothing was ever confirmed, so no outcome can be learned: the rows that stand out are all that can be found (the
+        # sealed people who said "nobody ever confirmed anything" and could not name a kind of answer were stopped here)
+        grouped = bool(re.search(r"\b(segment\w*|cluster\w*|group (them|our|the))\b", words or "", re.I))
+        family = FamilyFact(value="segmentation" if grouped else "anomaly", status="inferred", source="rule",
+                            reason="nothing is labelled, so no outcome can be learned: the rows that stand out (or the groups) are what can be found")
     if (stated_family is None and family.value in (None, "classification") and not in_play and (data.get("tables") or 0) >= 2 and not brief.target_column.value
             and brief.target_definition.value and not WORDS["streams"].search(words or "")):
         # 20.10 v2: several tables, and an outcome said in words, not a column ("no order in the next 30 days"): a yes or no

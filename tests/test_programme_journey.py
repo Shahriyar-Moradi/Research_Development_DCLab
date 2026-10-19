@@ -146,10 +146,11 @@ class SealedTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             hashed = Path(tmp) / "sealed.sha256"
             hashed.write_text("0" * 64)
-            with mock.patch.object(journeys, "SEALED_HASH", hashed):
-                with self.assertRaises(ValueError) as cm:
-                    journeys.load("sealed")
-        self.assertIn("never edited", str(cm.exception))
+            for split in journeys.SEALED_HASHES:  # 30.6: every sealed set, the fresh one too
+                with mock.patch.dict(journeys.SEALED_HASHES, {split: hashed}):
+                    with self.assertRaises(ValueError) as cm:
+                        journeys.load(split)
+                self.assertIn("never edited", str(cm.exception))
 
     def test_the_gate_was_fixed_in_code_with_the_thresholds_the_verdict_uses(self):
         self.assertEqual((journeys.MIN_SHARE, journeys.MIN_LOW), (0.85, 0.55))
@@ -157,10 +158,13 @@ class SealedTest(unittest.TestCase):
         self.assertIn("0.55", journeys.GATE["suite"])
 
     def test_a_second_sealed_run_is_refused_and_the_sealed_set_is_run_whole_with_both_arms(self):
+        def never(*a, **k):
+            raise AssertionError("a refused sealed run played its people")
+
         with tempfile.TemporaryDirectory() as tmp:
             results = Path(tmp)
             (results / "JPR-001_sealed.json").write_text("{}")
-            with mock.patch.object(journeys, "RESULTS", results):
+            with mock.patch.object(journeys, "RESULTS", results), mock.patch.object(journeys, "measure", never):
                 self.assertEqual(journeys.main(["--split", "sealed", "--yes", "--cap-eur", "0.5"]), 2)
         with tempfile.TemporaryDirectory() as tmp:
             with mock.patch.object(journeys, "RESULTS", Path(tmp)):
@@ -219,12 +223,16 @@ class SealedTest(unittest.TestCase):
             results = Path(tmp)
             with mock.patch.object(journeys, "RESULTS", results):
                 self.assertFalse(journeys.roles_passed())
-                good = {"arm": "roles", "journeys": journeys.fingerprint(journeys.SPLITS["sealed"]), "roles_against_rules": {"passed": True}}
-                (results / "JPR-002_sealed.json").write_text(json.dumps(good))
+                # 30.6: the switch reads the latest sealed set; a pass on the first set says nothing of the fresh one
+                old_set = {"arm": "roles", "journeys": journeys.fingerprint(journeys.SPLITS["sealed"]), "roles_against_rules": {"passed": True}}
+                (results / "JPR-001_sealed.json").write_text(json.dumps(old_set))
+                self.assertFalse(journeys.roles_passed())
+                good = {"arm": "roles", "journeys": journeys.fingerprint(journeys.SPLITS[journeys.LATEST_SEALED]), "roles_against_rules": {"passed": True}}
+                (results / ("JPR-002_" + journeys.LATEST_SEALED + ".json")).write_text(json.dumps(good))
                 self.assertTrue(journeys.roles_passed())
-                (results / "JPR-002_sealed.json").write_text(json.dumps({**good, "journeys": "0" * 64}))
+                (results / ("JPR-002_" + journeys.LATEST_SEALED + ".json")).write_text(json.dumps({**good, "journeys": "0" * 64}))
                 self.assertFalse(journeys.roles_passed(), "measured on another set of people")
-                (results / "JPR-002_sealed.json").write_text(json.dumps({**good, "roles_against_rules": {"passed": False}}))
+                (results / ("JPR-002_" + journeys.LATEST_SEALED + ".json")).write_text(json.dumps({**good, "roles_against_rules": {"passed": False}}))
                 self.assertFalse(journeys.roles_passed())
 
 

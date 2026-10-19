@@ -59,9 +59,10 @@ class ReviewRulesTest(unittest.TestCase):
         got = codes(mp.review_rules(pm.decompose(FRAUD)))
         self.assertIn(("unmarked_is_unknown", "sp2"), got)  # only some cases were found: the rest is unknown, not clean
         self.assertNotIn("budget_missing", [c for c, _ in got])  # the words gave one
-        m = pm.decompose("Find the fake rides our bikers make.")
-        self.assertIn(("budget_missing", None), codes(mp.review_rules(m)))
+        m = pm.decompose("Find the fake rides our bikers make and the customer accounts working with them; the team can check 40 a day.")
         self.assertIn(("labels_unknown", "sp2"), codes(mp.review_rules(m)))
+        unsaid = m.model_copy(update={"composition": m.composition.model_copy(update={"budget": None})})  # a model's map with a budget step and no budget
+        self.assertIn(("budget_missing", None), codes(mp.review_rules(unsaid)))
 
     def test_a_brief_of_parts_is_asked_each_parts_unit_moment_and_labels(self):
         m = pm.decompose("", parts=[{"title": "Part 1: churn", "text": "Which customers will cancel next month?"}, {"title": "Part 2: demand", "text": "Forecast weekly units per store."}])
