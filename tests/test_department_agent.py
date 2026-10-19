@@ -149,7 +149,7 @@ class PricingReplicaTest(unittest.TestCase):
         from dclab_rnd import audit, department, ledger
 
         with tempfile.TemporaryDirectory() as tmp:
-            book = ledger.open_ledger(Path(tmp), "wtest")
+            book = ledger.FileLedger(Path(tmp) / "ledger", "wtest")  # the file ledger: the capture, not the database, is under test
             ledger.install(book)
             self.addCleanup(ledger.install, None)
             log = audit.open_audit(Path(tmp))
