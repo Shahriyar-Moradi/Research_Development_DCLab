@@ -95,12 +95,12 @@ class CardTest(unittest.TestCase):
         for value in ("Q7Kxmail", "415 555", "4111", "Q7Kxdx", "10001"):
             self.assertNotIn(value, blob)
         self.assertIsNotNone(by["spend"].quantiles)  # a column that is none keeps its bands
-        self.assertEqual(card.model_dump(mode="json")["schema_version"], "dclab_core.data_card.v3")
+        self.assertEqual(card.model_dump(mode="json")["schema_version"], "dclab_core.data_card.v4")  # 30.13: the card the library writes now
         again = dc.DataCard.read(card.model_dump_json())
         self.assertEqual(again, card)
         old = json.loads(card.model_dump_json())
         old["schema_version"] = "dclab_core.data_card.v2"
-        self.assertEqual(dc.DataCard.read(old).schema_version, "dclab_core.data_card.v3")
+        self.assertEqual(dc.DataCard.read(old).schema_version, "dclab_core.data_card.v4")  # 30.13: every stored card is read as the latest
 
     def test_a_synthetic_table_drawn_from_the_card_has_no_person_in_it(self):
         card = dc.card_of({"customers": customers()})
@@ -205,7 +205,7 @@ class ReviewTest(unittest.TestCase):
         got = s.upgrade_card(card)["tables"][0]["columns"]
         self.assertEqual([(c["sensitivity"], "categories" in c, "quantiles" in c) for c in got], [("pii", False, False), ("none", True, True)])
         v2 = {"schema_version": "dclab_core.data_card.v2", "name": "t", "tables": [{"name": "t", "rows": 5, "columns": []}]}
-        self.assertEqual(dc.DataCard.read(v2).schema_version, "dclab_core.data_card.v3")
+        self.assertEqual(dc.DataCard.read(v2).schema_version, "dclab_core.data_card.v4")  # 30.13: every stored card is read as the latest
 
     def test_describe_data_and_an_exported_card_clean_what_was_stored_earlier(self):
         from dclab_rnd import datasets

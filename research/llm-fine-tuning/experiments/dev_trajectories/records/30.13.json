@@ -1,0 +1,207 @@
+{
+ "package": "30.13",
+ "title": "Problem Card v2 and the fit verdict: the framework's fields filled or owned, never blocking, and G2's three verdicts with the card edits a person accepts",
+ "date": "2026-10-19",
+ "request": "Phase 8 (the owner's retail interview): the problem card's missing fields, G1 on what changes the solution, a data card with its detected modifiers and a three-way fit verdict, and G2.",
+ "spec": "docs/guides/PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md, package 30.13",
+ "plan": [
+  "Read the framework's card and gate definitions, and map what blocks a build today.",
+  "Add the fields to the problem card as filled or owned, never blocking, so Home and the journeys behave as before.",
+  "Give the data card each column's availability and the modifiers its rows show; turn the meet check into three verdicts.",
+  "Let a person accept a verdict's edits as their answers, and record the verdict at a build."
+ ],
+ "decisions": [
+  {
+   "decision": "The new fields never block; their open questions are kept apart from the card's questions.",
+   "why": "Only what changes the solution blocks G1, and the written people of the journeys cannot answer an owner or a baseline: a blocking field would stop them."
+  },
+  {
+   "decision": "G2 is a verdict beside the existing mismatch questions, not a new coordinator step.",
+   "why": "A new step changes every walk and the harness's graded sequences; the mismatches already block a build where the verdict would."
+  },
+  {
+   "decision": "The data card's modifiers are read on exactly the rows the proposal may read.",
+   "why": "The rows a later holdout takes must never shape a card that proposes edits; one reading in the library serves both."
+  },
+  {
+   "decision": "The modifiers' facts moved into the library.",
+   "why": "A data card reads them too, and the library never imports the studio."
+  }
+ ],
+ "change": "dclab_core.card ProblemCard v2 (ErrorCosts, Capacity, Success, OpenField, capacity_said, costs_said); dclab_core.datacard DataCard v4 (known_at_prediction, DetectedModifier, detected_modifiers, fit); dclab_core.meet FitVerdict v1 and fit; dclab_core.modifiers facts_of, label_source_columns and provisional_reading; the ledger point data.fit_verdict; the adapter's card_v2; the draft's card reading Home's answers, meeting with the verdict, accept_fit and its route; dclab-core 0.89.0.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Importing the modifiers first failed.",
+   "scenario": "from dclab_core import modifiers: the contracts loaded the data card, which asked the half-loaded modifiers for Detected.",
+   "cause": "The data card imported the modifiers at module level.",
+   "fix": "The data card keeps its own DetectedModifier contract.",
+   "test": "test_noisy_labels_ask_to_be_judged_on_the_confirmed_ones_and_a_v3_card_reads"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Realistic capacity answers crashed the draft's card.",
+   "scenario": "'15,000,000 transactions a month and can review 300 a day' raised; '40,000 orders a day; two analysts check 150 a day' read 40000; 'since 2019' read 2019 a day.",
+   "cause": "The first number before a period was taken, unbounded, and a parse error raised.",
+   "fix": "Every candidate read, the one beside a word of acting first, years and out-of-range numbers skipped, a thousands suffix read; a reading that fails leaves the field open.",
+   "test": "test_a_capacity_is_the_number_a_team_acts_on_and_never_a_year_or_out_of_range"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The anomaly-with-cases edit looped.",
+   "scenario": "Accepting labels=column left the stated family anomaly, so the same edit came back.",
+   "cause": "The edit changed the labels, not the family the mismatch reads.",
+   "fix": "The edit is the family: a rare event.",
+   "test": "test_each_edit_accepted_clears_its_mismatch"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A refused outcome always read as does not fit.",
+   "scenario": "customer_id named while churned is in the table: missing an outcome column.",
+   "cause": "The data card keeps no candidate once a named outcome is refused.",
+   "fix": "Other outcome-like columns proposed; missing only when there are none.",
+   "test": "test_each_edit_accepted_clears_its_mismatch"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The unit edit could be nonsense and clear a real mismatch.",
+   "scenario": "'one row per no column or set of three tells the rows apart'.",
+   "cause": "The table's grain sentence was copied as a unit.",
+   "fix": "One row by the table's key, or one row of the table, said as predicting per row.",
+   "test": "test_the_unit_edit_names_the_tables_key_and_predicting_per_row_clears_the_mismatch"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "An accepted edit could be ignored after a wizard save.",
+   "scenario": "The saved solution's target and kind are read before the answers.",
+   "cause": "card_of's precedence.",
+   "fix": "An edit the saved solution owns is refused with where to change it; an edit that would come back is undone.",
+   "test": "test_the_accept_route_says_why_it_refuses_and_writes_what_it_accepts"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The card's modifiers read rows a holdout takes.",
+   "scenario": "The earliest 80% by time, against the repository's 75% rule for time to event.",
+   "cause": "A new cut instead of the existing one.",
+   "fix": "The proposal's own provisional reading, moved into the library and used by both.",
+   "test": ""
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Every time column was marked known at prediction time.",
+   "scenario": "A chargeback date written after the outcome read as known.",
+   "cause": "Time columns mapped to yes.",
+   "fix": "A time is unknown until a person names it; a label source is never known.",
+   "test": "test_a_date_written_after_the_outcome_is_never_marked_known_and_a_label_source_is_not"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The new point's state gave away its answer.",
+   "scenario": "The counts of edits and missing data decide the verdict exactly.",
+   "cause": "The verdict's outputs were written as its evidence.",
+   "fix": "The state holds what the verdict read: the mismatches, the family, the labels, a time column, noisy labels.",
+   "test": "test_the_verdict_is_recorded_from_what_it_read_and_the_persons_acceptance_beside_it"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The point's truth was never recorded.",
+   "scenario": "Accepting wrote nothing to the ledger, no event.",
+   "cause": "The route only changed the draft.",
+   "fix": "The person's decision recorded beside the rule's, and an event Home redraws on.",
+   "test": "test_the_accept_route_says_why_it_refuses_and_writes_what_it_accepts"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The accept route was untested and one message false.",
+   "scenario": "A draft with no table was told the data fits; a string of fields became letters.",
+   "cause": "No validation, no test.",
+   "fix": "No table said; fields validated as a list; HTTP tests.",
+   "test": "test_the_accept_route_says_why_it_refuses_and_writes_what_it_accepts"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Error costs were misread.",
+   "scenario": "An action without costs read as a stated miss cost; plural false alarms missed; 'less than' read the wrong way.",
+   "cause": "An action fallback and a one-way comparison.",
+   "fix": "No fallback; plurals; the comparison's direction read.",
+   "test": "test_which_mistake_is_worse_is_read_from_the_comparison_itself"
+  },
+  {
+   "id": "R12",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The main product's size limit could be passed.",
+   "scenario": "The capacity added after the constraints were checked.",
+   "cause": "Added after the check.",
+   "fix": "Checked again with it, left out with a note when over.",
+   "test": ""
+  },
+  {
+   "id": "R13",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The data card's verdict field was never filled.",
+   "scenario": "No host set it.",
+   "cause": "Only the route returned it.",
+   "fix": "A build stores its verdict in the draft's card, which the project copies.",
+   "test": ""
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The page never heard the new fit event.",
+   "scenario": "test_the_page_listens_to_every_kind_of_event_a_draft_emits listed fit as emitted and unheard.",
+   "cause": "The page's stream lists its event kinds by hand.",
+   "fix": "fit listened to; Home redraws its understanding on it.",
+   "test": "test_the_page_listens_to_every_kind_of_event_a_draft_emits"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the dev journeys with the new fields",
+   "gate": "the Done when: the dev journeys pass",
+   "fixed_before_run": true,
+   "result": "JRN-026: 15 of 15 journeys right, 0 moves refused; JRN-027 after the review's fixes: 15 of 15",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "against_gate": "Every dev journey passes with the v2 card and the v4 data card.",
+   "limits": [
+    "Scripted people; no model asked."
+   ]
+  }
+ ],
+ "outcome": "The card holds the framework's fields without stopping anyone, and the data now says whether it fits the problem, with the edits a person accepts.",
+ "lessons": [
+  "A new field on a card the agents read must say who can answer it before it may ask anyone.",
+  "Move a contract's version only with a reader for every stored version, and write the new baseline once, after the shape settles."
+ ],
+ "risks": [
+  "G2 is not a coordinator step yet: a verdict's edits are proposed, accepted through the route, and nothing waits for them."
+ ],
+ "commits": []
+}

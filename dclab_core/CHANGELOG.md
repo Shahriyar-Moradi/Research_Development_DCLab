@@ -4,6 +4,25 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.89.0 (2026-10-19)
+
+Package 30.13: Problem Card v2 and the fit verdict.
+
+- `card.ProblemCard` v2 (`dclab_core.problem_card.v2`, v1 read as v2 with its new fields unfilled): `decision`,
+  `decision_owner`, `error_costs` (`ErrorCosts`: a false alarm's cost, a miss's, which is worse), `capacity` (`Capacity`: K a
+  period), `success` (`Success`: the business number and the model's metric), `baseline_today`, `horizon`, `open_fields`
+  (`OpenField`: a field nobody filled, with who can answer it; never blocking) and `complete` (G1). `problem_card(...,
+  answers=)` fills them; `capacity_said` and `costs_said` read the person's words.
+- `datacard.DataCard` v4 (v1 to v3 read as v4): `ColumnCard.known_at_prediction`, `detected_modifiers` (the recipe
+  modifiers the rows show, read on the earlier rows when a column orders them) and `fit`.
+- `meet.fit` and `FitVerdict` v1 (`dclab_core.fit_verdict.v1`, `CardEdit`): G2's three verdicts, fits, fits with changes (each
+  change a card edit with why) or does not fit (the missing data named).
+- `modifiers.facts_of`, `label_source_columns` and `provisional_reading`: the facts the modifiers read and the rows
+  they may be read on, now in the library.
+- `ledger`: the state field `noisy`.
+- `ledger`: the point `data.fit_verdict`, 64 in all. `adapters.main_product.problem_card` carries the v2 fields beside the
+  spec (`card_v2`) and the capacity as `constraints.review_capacity`.
+
 ## 0.88.0 (2026-10-19)
 
 Package 30.12: labels and capacity, and the first certification.

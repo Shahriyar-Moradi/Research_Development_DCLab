@@ -77,9 +77,10 @@
    "contract": "data_card",
    "reads": [
     "dclab_core.data_card.v1",
-    "dclab_core.data_card.v2"
+    "dclab_core.data_card.v2",
+    "dclab_core.data_card.v3"
    ],
-   "version": "dclab_core.data_card.v3"
+   "version": "dclab_core.data_card.v4"
   },
   {
    "contract": "data_findings",
@@ -156,6 +157,11 @@
    "version": "dclab_core.expert_trace.v1"
   },
   {
+   "contract": "fit_verdict",
+   "reads": [],
+   "version": "dclab_core.fit_verdict.v1"
+  },
+  {
    "contract": "gold_manifest",
    "reads": [],
    "version": "dclab_core.gold_manifest.v1"
@@ -187,8 +193,10 @@
   },
   {
    "contract": "problem_card",
-   "reads": [],
-   "version": "dclab_core.problem_card.v1"
+   "reads": [
+    "dclab_core.problem_card.v1"
+   ],
+   "version": "dclab_core.problem_card.v2"
   },
   {
    "contract": "problem_data_check",
@@ -350,7 +358,7 @@
    "what": "A team's walk, one row per hand-off: the board before the node, the node and what it did, the board after, with the walk's status and the models it asked; the person's words redacted, only lines written where training was allowed (28.9)."
   }
  ],
- "dclab_core": "0.88.0",
+ "dclab_core": "0.89.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -483,6 +491,17 @@
    "point": "data.cleaning_step",
    "subjects": [
     "column"
+   ]
+  },
+  {
+   "about": "Does the data fit the problem: as it is, with changes to the card, or not at all?",
+   "answer": "choice",
+   "decided_in": "draft/api.py build_blockers: G2's verdict against the data, at a build (truth: the people's, whether they accept its edits) (30.13)",
+   "kind": "technical",
+   "main_product": null,
+   "point": "data.fit_verdict",
+   "subjects": [
+    "draft"
    ]
   },
   {

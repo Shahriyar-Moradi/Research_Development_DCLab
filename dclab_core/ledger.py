@@ -91,6 +91,7 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     # an evidence search (codes, flags, counts and measures; never a cell, a line of the file or a person's words)
     "suffix": (CODE, ()), "signature": (CODE, ()), "json_head": (FLAG, ()), "json_lines": (FLAG, ()), "delimiter": (CODE, ()),
     "log_like": (FLAG, ()), "cleaning": (CODE, ()), "model_available": (FLAG, ()),
+    "noisy": (FLAG, ()),  # 30.13: whether the data card found noisy labels (G2's reading)
     "hits": (COUNT, ()), "top_score": (MEASURE, ()), "method": (CODE, ()), "weak": (FLAG, ()),
 }
 Scalar = Union[str, int, float, bool, None]
@@ -171,6 +172,8 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     _p("data.cleaning_keep", T, "column", "noul", "Is this cleaning step, applied to this column, kept?"),
     _p("data.synthetic_shape", T, "draft", "value", "Which design does a synthetic table follow: a template's, or one the model wrote?"),
     _p("evidence.records", T, "conversation", "value", "Which evidence record answers the question best?"),
+    _p("data.fit_verdict", T, "draft", "choice", "Does the data fit the problem: as it is, with changes to the card, or not at all?",
+       choices=("fits", "fits_with_changes", "does_not_fit")),  # 30.13: the framework's gate G2
     # a code, not a closed choice: each host names its strategies (here random, group, time, time_group; the main
     # product group_disjoint, stratified_kfold, …)
     _p("split.strategy", T, DP, "value", "How are rows split for validation and the holdout?", "split.strategy", plan_key="split.strategy"),

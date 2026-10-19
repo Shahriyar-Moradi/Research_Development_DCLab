@@ -712,8 +712,49 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
         draft = get(draft_id)
         card = await asyncio.to_thread(card_of, draft)
-        met = await asyncio.to_thread(meeting, draft, drafts)  # 20.4: what the problem and the data disagree on
-        return {**card.model_dump(mode="json"), "meets_data": met.model_dump(mode="json") if met is not None else None}
+        met, verdict = await asyncio.to_thread(meeting, draft, drafts, True)  # 20.4: what the problem and the data disagree on; 30.13: G2
+        return {**card.model_dump(mode="json"), "meets_data": met.model_dump(mode="json") if met is not None else None,
+                "fit": verdict.model_dump(mode="json") if verdict is not None else None}
+
+    @router.post("/api/drafts/{draft_id}/fit/accept", response_model=Doc)
+    async def draft_fit_accept(draft_id: str, payload: AnyObject):
+        """30.13: the person accepts the fit verdict's edits (all, or those named by field): each is written as their
+        answer, the card is built again from it, and the new verdict is returned."""
+        from .card import accept_fit, meeting
+
+        from .card import card_of
+
+        draft = get(draft_id)
+        checked, verdict = await asyncio.to_thread(meeting, draft, drafts, True)
+        if verdict is None:
+            raise HTTPException(409, "There is no table yet: the problem cannot be checked against data.")
+        if not verdict.edits:
+            raise HTTPException(409, "The data fits the problem as it is: there is nothing to accept.")
+        fields = (dump(payload) or {}).get("fields")
+        if fields is not None and not (isinstance(fields, list) and all(isinstance(f, str) for f in fields)):
+            raise HTTPException(422, "fields is a list of the card fields to accept, for example [\"unit\"].")
+        named = set(fields or [])
+        edits = [e.model_dump() for e in verdict.edits if not named or e.field in named]
+        if not edits:
+            raise HTTPException(422, "None of the fields named is an edit the verdict proposes.")
+        owned = {"target_column", "family", "time_column"} & {e["field"] for e in edits}
+        if draft.get("solution") and owned:  # the wizard's saved solution is read first: an answer here would change nothing
+            raise HTTPException(409, f"The solution is saved in the wizard: change {', '.join(sorted(owned))} there.")
+        before, accepted_before = dict(draft.get("understanding") or {}), list(draft.get("fit_accepted") or [])
+        card = await asyncio.to_thread(card_of, draft)
+        changed: list[str] = []
+        drafts.update(draft_id, lambda d: changed.extend(accept_fit(d, edits)))
+        _, after = await asyncio.to_thread(meeting, get(draft_id), drafts, True)
+        again = {(e.field, e.value) for e in (after.edits if after is not None else [])} & {(e["field"], e["value"]) for e in edits}
+        if again:  # the edit came back: it changes nothing the check reads, so it is undone rather than kept as an answer
+            drafts.update(draft_id, lambda d: d.update(understanding=before, fit_accepted=accepted_before))
+            raise HTTPException(409, "Accepting " + ", ".join(sorted(f for f, _ in again)) + " does not change what the check reads: "
+                                     "answer it in the chat instead.")
+        from ..ledger import capture  # the person's decision, beside the rule's verdict (the point's truth)
+
+        capture.fit_verdict(get(draft_id), verdict, checked, card, accepted=True)
+        drafts.emit(draft_id, "fit", {"accepted": changed, "verdict": after.verdict if after is not None else None})
+        return {"accepted": changed, "fit": after.model_dump(mode="json") if after is not None else None}
 
     def asset_frame(draft_id: str, asset_id: str):
         """A ready table of the draft, as cleaned (what the project would get)."""
@@ -1071,7 +1112,13 @@ def build_blockers(drafts: DraftStore, draft_id: str, capture_card: bool = False
     if has_data:  # 20.4: the problem meets the data; a mismatch that would answer another problem waits for the person
         from .card import meeting
 
-        met = meeting(draft, drafts)
+        met, verdict = meeting(draft, drafts, with_fit=True)
+        if capture_card and verdict is not None:
+            from ..ledger import capture  # 30.13: G2's verdict, at the moment a build is asked for
+
+            capture.fit_verdict(draft, verdict, met, card)
+            if draft.get("data_card"):  # the stored card carries the verdict it met the problem with (the project copies it)
+                drafts.update(draft_id, lambda d: d["data_card"].__setitem__("fit", verdict.model_dump(mode="json")) if d.get("data_card") else None)
         blocking = [m.question for m in (met.mismatches if met is not None else []) if m.blocking]
         if blocking:
             out.append(BuildRefused("Not yet: " + " ".join(blocking[:2]), "problem and data disagree"))

@@ -793,6 +793,17 @@ product's agent asks the critic once its brief is confirmed and before it plans,
 question (one at a time, a field never twice, at most `ROUNDS` rounds) and, when concerns stand after them, asks the person
 whether to go on, recording the decision.
 
+## Problem Card v2 and the fit verdict (30.13, dclab-core 0.89.0)
+
+The library's: `ProblemCard` v2 carries the owner's framework fields (the decision and who owns it, the error costs, the
+capacity as K a period, the success numbers, today's baseline, the horizon), each filled or an open field with who can
+answer it, never blocking; `DataCard` v4 adds each column's "known at prediction time" and the modifiers the rows show;
+`meet.fit` gives G2's three verdicts, with card edits a person accepts or the missing data named. Where it goes there: the
+main product's ProblemSpec has no field for most v2 fields, so `adapters/main_product.problem_card` returns them beside
+the spec (`card_v2`) and the capacity as a free-form `constraints.review_capacity`; its spec page should show the open
+fields with their owners, and its "lock the spec" step should read the fit verdict (lock only on fits, or on fits with
+changes once a person accepted them). A stored v1 card and a v3 data card read as the new versions.
+
 ## Labels of unequal worth and a team's capacity (30.12, dclab-core 0.88.0)
 
 The library's: `dclab_core.capacity` judges a screening model as a team of K a period works it (the queue, the K-th score

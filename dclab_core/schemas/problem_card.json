@@ -1,5 +1,48 @@
 {
   "$defs": {
+    "Capacity": {
+      "additionalProperties": false,
+      "description": "How many cases a team can act on a period, as a number when the words give one.",
+      "properties": {
+        "k": {
+          "anyOf": [
+            {
+              "maximum": 10000000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "K"
+        },
+        "period": {
+          "anyOf": [
+            {
+              "enum": [
+                "day",
+                "week",
+                "month"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Period"
+        },
+        "said": {
+          "$ref": "#/$defs/TextFact",
+          "description": "The person's words, kept whole."
+        }
+      },
+      "title": "Capacity",
+      "type": "object"
+    },
     "CardQuestion": {
       "additionalProperties": false,
       "description": "A question still open on the card: the field it settles, why it matters, and whether a build waits for it.",
@@ -312,6 +355,39 @@
         "name"
       ],
       "title": "Deliverable",
+      "type": "object"
+    },
+    "ErrorCosts": {
+      "additionalProperties": false,
+      "description": "30.12-30.13: what each mistake costs, in the person's words, and which is worse when they say so.",
+      "properties": {
+        "false_alarm": {
+          "$ref": "#/$defs/TextFact",
+          "description": "What a false alarm costs: a wasted review, an annoyed customer."
+        },
+        "miss": {
+          "$ref": "#/$defs/TextFact",
+          "description": "What a missed case costs."
+        },
+        "worse": {
+          "anyOf": [
+            {
+              "enum": [
+                "false_alarm",
+                "miss",
+                "equal"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Worse"
+        }
+      },
+      "title": "ErrorCosts",
       "type": "object"
     },
     "FamilyFact": {
@@ -870,6 +946,41 @@
       "title": "NamesFact",
       "type": "object"
     },
+    "OpenField": {
+      "additionalProperties": false,
+      "description": "A field of the card nobody has filled yet, and who can answer it: never blocking (only what changes the solution\nblocks the build).",
+      "properties": {
+        "field": {
+          "maxLength": 60,
+          "title": "Field",
+          "type": "string"
+        },
+        "owner": {
+          "description": "Who can answer it: the business owner, the team doing the work today, the data owner.",
+          "maxLength": 120,
+          "title": "Owner",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 1000,
+          "title": "Text",
+          "type": "string"
+        },
+        "why": {
+          "maxLength": 600,
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "text",
+        "why",
+        "owner"
+      ],
+      "title": "OpenField",
+      "type": "object"
+    },
     "ProblemBrief": {
       "additionalProperties": false,
       "description": "The problem as understood from its description, before any data is analysed.",
@@ -1019,6 +1130,21 @@
         "impact"
       ],
       "title": "Question",
+      "type": "object"
+    },
+    "Success": {
+      "additionalProperties": false,
+      "properties": {
+        "business": {
+          "$ref": "#/$defs/TextFact",
+          "description": "The business number that says the work helped."
+        },
+        "ml_metric": {
+          "$ref": "#/$defs/TextFact",
+          "description": "The model's metric that stands in for it."
+        }
+      },
+      "title": "Success",
       "type": "object"
     },
     "TaskFact": {
@@ -1293,10 +1419,14 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.problem_card.v1.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.problem_card.v2.json",
   "additionalProperties": false,
-  "description": "What problem this is, and whether a project can be built from it yet.",
+  "description": "What problem this is, and whether a project can be built from it yet.\n\nv2 (30.13) adds the fields the owner's framework asks of a problem (the decision and who owns it, what each mistake\ncosts, how many cases a team can act on a period, the success numbers, how the work is done today, the horizon), each\nfilled from the person's answers or left an open field with the person who can answer it. Only the questions that\nchange the solution block (``blocking``, as in v1): ``complete`` says every field is filled or owned (G1).",
   "properties": {
+    "baseline_today": {
+      "$ref": "#/$defs/TextFact",
+      "description": "How the work is done today, and how well."
+    },
     "blocking": {
       "description": "Why a project cannot be built yet, in plain words.",
       "items": {
@@ -1309,8 +1439,32 @@
     "brief": {
       "$ref": "#/$defs/ProblemBrief"
     },
+    "capacity": {
+      "$ref": "#/$defs/Capacity"
+    },
+    "complete": {
+      "default": false,
+      "description": "G1: nothing blocks, and every field is filled or an open field with its owner.",
+      "title": "Complete",
+      "type": "boolean"
+    },
+    "decision": {
+      "$ref": "#/$defs/TextFact",
+      "description": "The decision each prediction feeds."
+    },
+    "decision_owner": {
+      "$ref": "#/$defs/TextFact",
+      "description": "Who owns that decision."
+    },
+    "error_costs": {
+      "$ref": "#/$defs/ErrorCosts"
+    },
     "family": {
       "$ref": "#/$defs/FamilyFact"
+    },
+    "horizon": {
+      "$ref": "#/$defs/TextFact",
+      "description": "How far ahead each prediction looks (the brief's)."
     },
     "in_play": {
       "description": "The families the words still leave open.",
@@ -1336,6 +1490,14 @@
     },
     "labels": {
       "$ref": "#/$defs/LabelsFact"
+    },
+    "open_fields": {
+      "items": {
+        "$ref": "#/$defs/OpenField"
+      },
+      "maxItems": 20,
+      "title": "Open Fields",
+      "type": "array"
     },
     "outcome": {
       "anyOf": [
@@ -1364,10 +1526,13 @@
       "type": "boolean"
     },
     "schema_version": {
-      "const": "dclab_core.problem_card.v1",
-      "default": "dclab_core.problem_card.v1",
+      "const": "dclab_core.problem_card.v2",
+      "default": "dclab_core.problem_card.v2",
       "title": "Schema Version",
       "type": "string"
+    },
+    "success": {
+      "$ref": "#/$defs/Success"
     }
   },
   "required": [

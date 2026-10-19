@@ -927,8 +927,26 @@ def problem_card(card: Any) -> dict[str, Any]:
               "target.column": {"proposal": spec["fields"].get("target_column"),
                                 "reason": card.outcome or "no outcome named yet"}}
     known = set(recorded()["decision_points"]["points"])
+    if card.capacity.k is not None:  # 30.13: v2's capacity, a number a period, kept as a free-form key as the brief's constraints are
+        constraints = dict(spec["fields"].get("constraints") or {})
+        constraints["review_capacity"] = {"k": card.capacity.k, "period": card.capacity.period}
+        if _size(constraints) <= recorded()["contracts"]["ProblemSpec"]["json_max_bytes"]:  # the main product's limit, checked again
+            spec["fields"]["constraints"] = constraints
+            spec["notes"]["constraints"] = (spec["notes"].get("constraints", "") + " review_capacity: the card's K a period (30.13), "
+                                            "a free-form key the main product keeps as it is").strip()
+        else:
+            spec["notes"]["constraints"] = (spec["notes"].get("constraints", "") + " review_capacity left out: with it the constraints "
+                                            "exceed the main product's limit").strip()
+    v2 = {"decision": card.decision.value, "decision_owner": card.decision_owner.value,
+          "error_costs": {"false_alarm": card.error_costs.false_alarm.value, "miss": card.error_costs.miss.value, "worse": card.error_costs.worse},
+          "success": {"business": card.success.business.value, "ml_metric": card.success.ml_metric.value},
+          "baseline_today": card.baseline_today.value, "horizon": card.horizon.value,
+          "open_fields": [{"field": f.field, "owner": f.owner} for f in card.open_fields]}
     return {"contract": "ProblemCard", "ProblemSpec": spec, "decision_points": {k: v for k, v in points.items() if k in known},
-            "lock": card.ready, "blocking": list(card.blocking)}
+            "lock": card.ready, "blocking": list(card.blocking),
+            "card_v2": v2,  # 30.13: no ProblemSpec field holds these; the main product's spec page shows them beside it
+            "card_v2_note": "the decision, its owner, the error costs, the success numbers and today's baseline have no ProblemSpec field: "
+                            "kept beside the spec for a person, never written into it"}
 
 
 def proposals(brief: Any = None, findings: Any = None, plan: Any = None) -> dict[str, Any]:

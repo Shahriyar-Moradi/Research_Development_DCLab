@@ -1,0 +1,107 @@
+{
+  "$defs": {
+    "CardEdit": {
+      "additionalProperties": false,
+      "description": "One change the data asks of the problem card: the field, its new value, why, and the check that found it.",
+      "properties": {
+        "code": {
+          "maxLength": 40,
+          "title": "Code",
+          "type": "string"
+        },
+        "field": {
+          "maxLength": 60,
+          "title": "Field",
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 600,
+          "title": "Value",
+          "type": "string"
+        },
+        "why": {
+          "maxLength": 600,
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "value",
+        "why",
+        "code"
+      ],
+      "title": "CardEdit",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.fit_verdict.v1.json",
+  "additionalProperties": false,
+  "description": "G2: whether the data fits the problem, as one of three verdicts, with the edits a person accepts or the data that\nis missing.",
+  "properties": {
+    "back_to": {
+      "anyOf": [
+        {
+          "enum": [
+            "problem",
+            "data"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Where the work goes back: the problem (edits) or the data (missing).",
+      "title": "Back To"
+    },
+    "edits": {
+      "items": {
+        "$ref": "#/$defs/CardEdit"
+      },
+      "maxItems": 12,
+      "title": "Edits",
+      "type": "array"
+    },
+    "missing": {
+      "description": "The data that is missing, in plain words.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 12,
+      "title": "Missing",
+      "type": "array"
+    },
+    "reasons": {
+      "description": "Every mismatch and modifier behind the verdict.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Reasons",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.fit_verdict.v1",
+      "default": "dclab_core.fit_verdict.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "verdict": {
+      "enum": [
+        "fits",
+        "fits_with_changes",
+        "does_not_fit"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "verdict"
+  ],
+  "title": "FitVerdict",
+  "type": "object"
+}

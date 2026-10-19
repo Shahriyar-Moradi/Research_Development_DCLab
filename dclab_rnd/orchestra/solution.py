@@ -214,7 +214,7 @@ class SolutionTeam:
         project = self.projects.get(state["project_id"])
         m, _ = programme.maps(project)
         sub = next(s for s in m.sub_problems if s.id == state["sub"])
-        card = DataCard.model_validate(state["card"])
+        card = DataCard.read(state["card"])
         route, source = solutions.route_with(sub, card, m, None, self.advisor)
         shadow = None
         if self.shadow is not None:  # 28.10: the shadow's own route, from its model alone (no rules fallback is its answer)

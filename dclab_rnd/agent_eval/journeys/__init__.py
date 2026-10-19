@@ -508,7 +508,7 @@ def _from_card(card: dict[str, Any], seed: int) -> Any:
 
     from dclab_core.datacard import DataCard, synthesize
 
-    model = DataCard.model_validate(card)
+    model = DataCard.read(card)
     frames = synthesize(model, seed=seed)
     main = next((t.name for t in model.tables if t.role == "main"), model.tables[0].name)
     labels = next((t.name for t in model.tables if t.role == "labels"), None)  # the file of known cases, in its own draft as it came
@@ -541,7 +541,7 @@ def _solution_workflow(card: Any, project: dict[str, Any]) -> list[str]:
 
     try:
         data_card = (project.get("data") or {}).get("card")
-        flow = sw.solution_workflow(card, DataCard.model_validate(data_card) if data_card else None)
+        flow = sw.solution_workflow(card, DataCard.read(data_card) if data_card else None)
     except Exception as error:  # noqa: BLE001 - no workflow for this card is the journey's failure, said
         return [f"no solution workflow: {str(error)[:200]}"]
     return [f"solution workflow: {p}" for p in sw.validate(flow)]

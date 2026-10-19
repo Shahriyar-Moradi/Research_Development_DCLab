@@ -618,6 +618,26 @@ def evidence_search(question: str, hits: list[dict[str, Any]], weak: float) -> A
 
 
 @_quiet
+def fit_verdict(draft: dict[str, Any], verdict: Any, checked: Any = None, card: Any = None, accepted: bool = False) -> Any:
+    """30.13: G2's verdict (fits, fits with changes, does not fit), with what it was read from: the mismatches, blocking
+    and not, the family, the labels, whether a time column exists and whether noisy labels were found (never the verdict's
+    own edits or missing data). At a build the rule's answer; when a person accepts the edits, theirs beside it (the truth
+    the point is labelled by)."""
+    mismatches = list(getattr(checked, "mismatches", None) or [])
+    labels = getattr(getattr(card, "labels", None), "value", None)
+    state = {"blocking": sum(m.blocking for m in mismatches), "open_questions": sum(not m.blocking for m in mismatches),
+             "family": getattr(getattr(card, "family", None), "value", None), "labels": labels if labels in ("column", "file", "none") else "unknown",
+             "has_time": not any(m.code == "time_absent" for m in mismatches),
+             "noisy": any(str(r).startswith("noisy_labels") for r in verdict.reasons)}
+    answers = [answer("rule", "meet:fit", verdict.verdict, reason="; ".join(verdict.reasons)[:600] or None)]
+    if accepted:  # the person saw the verdict and its edits, and accepted them
+        answers.append(answer("person", "owner", verdict.verdict))
+    return _put("data.fit_verdict", ("draft", draft["id"]), answers, verdict.verdict, "person" if accepted else "rule",
+                state={k: v for k, v in state.items() if v is not None}, options=["fits", "fits_with_changes", "does_not_fit"],
+                exposed=accepted, draft=draft["id"], conversation=draft["id"])
+
+
+@_quiet
 def cases_table(draft_id: str, name: str, cases: dict[str, Any] | None, profile: dict[str, Any]) -> int:
     """Whether a table is a list of known cases (the labels of another table) rather than rows to score."""
     from .states import cases_state  # 29.2: the fields the homework's students read, built one way

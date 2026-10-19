@@ -20,13 +20,14 @@ family and the readiness are proposals at its ``spec.objective`` and ``target.co
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Mapping
-from typing import Any, Literal, Optional
+from typing import Any, ClassVar, Literal, Optional
 
 from pydantic import Field
 
-from dclab_core.contracts import CONTRACTS, MAX_TEXT, Contract, Fact, ProblemBrief, Versioned, _version
+from dclab_core.contracts import CONTRACTS, MAX_TEXT, Contract, Fact, ProblemBrief, TextFact, Versioned, _version
 
 Family = Literal["classification", "regression", "rare_event", "anomaly", "forecasting", "time_to_event", "ranking",
                  "segmentation", "uplift", "entity_tables", "streams", "text_or_images"]
@@ -114,10 +115,51 @@ class CardQuestion(Contract):
     options: list[str] = Field(default_factory=list, max_length=8)
 
 
-class ProblemCard(Versioned):
-    """What problem this is, and whether a project can be built from it yet."""
+Period = Literal["day", "week", "month"]
+WORSE = ("false_alarm", "miss", "equal")
 
-    schema_version: Literal["dclab_core.problem_card.v1"] = _version("problem_card")
+
+class ErrorCosts(Contract):
+    """30.12-30.13: what each mistake costs, in the person's words, and which is worse when they say so."""
+
+    false_alarm: TextFact = Field(default_factory=TextFact, description="What a false alarm costs: a wasted review, an annoyed customer.")
+    miss: TextFact = Field(default_factory=TextFact, description="What a missed case costs.")
+    worse: Optional[Literal["false_alarm", "miss", "equal"]] = None
+
+
+class Capacity(Contract):
+    """How many cases a team can act on a period, as a number when the words give one."""
+
+    k: Optional[int] = Field(default=None, ge=1, le=10_000_000)
+    period: Optional[Period] = None
+    said: TextFact = Field(default_factory=TextFact, description="The person's words, kept whole.")
+
+
+class Success(Contract):
+    business: TextFact = Field(default_factory=TextFact, description="The business number that says the work helped.")
+    ml_metric: TextFact = Field(default_factory=TextFact, description="The model's metric that stands in for it.")
+
+
+class OpenField(Contract):
+    """A field of the card nobody has filled yet, and who can answer it: never blocking (only what changes the solution
+    blocks the build)."""
+
+    field: str = Field(max_length=60)
+    text: str = Field(max_length=1000)
+    why: str = Field(max_length=600)
+    owner: str = Field(max_length=120, description="Who can answer it: the business owner, the team doing the work today, the data owner.")
+
+
+class ProblemCard(Versioned):
+    """What problem this is, and whether a project can be built from it yet.
+
+    v2 (30.13) adds the fields the owner's framework asks of a problem (the decision and who owns it, what each mistake
+    costs, how many cases a team can act on a period, the success numbers, how the work is done today, the horizon), each
+    filled from the person's answers or left an open field with the person who can answer it. Only the questions that
+    change the solution block (``blocking``, as in v1): ``complete`` says every field is filled or owned (G1)."""
+
+    schema_version: Literal["dclab_core.problem_card.v2"] = _version("problem_card", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.problem_card.v1"})  # v1 only lacked the v2 fields: read as unfilled
     brief: ProblemBrief
     family: FamilyFact
     in_play: list[Family] = Field(default_factory=list, description="The families the words still leave open.")
@@ -126,6 +168,22 @@ class ProblemCard(Versioned):
     questions: list[CardQuestion] = Field(default_factory=list, max_length=20)
     ready: bool
     blocking: list[str] = Field(default_factory=list, max_length=20, description="Why a project cannot be built yet, in plain words.")
+    decision: TextFact = Field(default_factory=TextFact, description="The decision each prediction feeds.")
+    decision_owner: TextFact = Field(default_factory=TextFact, description="Who owns that decision.")
+    error_costs: ErrorCosts = Field(default_factory=ErrorCosts)
+    capacity: Capacity = Field(default_factory=Capacity)
+    success: Success = Field(default_factory=Success)
+    baseline_today: TextFact = Field(default_factory=TextFact, description="How the work is done today, and how well.")
+    horizon: TextFact = Field(default_factory=TextFact, description="How far ahead each prediction looks (the brief's).")
+    open_fields: list[OpenField] = Field(default_factory=list, max_length=20)
+    complete: bool = Field(default=False, description="G1: nothing blocks, and every field is filled or an open field with its owner.")
+
+    @classmethod
+    def read(cls, document):
+        data = json.loads(document) if isinstance(document, (str, bytes)) else dict(document)
+        if data.get("schema_version") == "dclab_core.problem_card.v1":
+            data = {**data, "schema_version": cls.model_fields["schema_version"].default}
+        return super().read(data)
 
 
 def _said(brief: ProblemBrief, words: str) -> str:
@@ -226,14 +284,91 @@ def label_said(text: str) -> Optional[str]:
     return value
 
 
+NUMBER = r"(\d[\d,]*(?:\.\d+)?)\s*(k\b|thousand\b)?"
+CAPACITY_WORDS = re.compile(NUMBER + r"\s*(?:[a-z]+\s+){0,3}?(?:a|an|per|each|every)\s+(day|week|month)\b", re.I)
+DAILY = {"daily": "day", "weekly": "week", "monthly": "month"}
+ACTING = re.compile(r"\b(review|check|call|investigat|handle|look at|act on|examine|audit|inspect|contact)\w*", re.I)
+MAX_K = 10_000_000
+MISS = re.compile(r"\b(miss(ed|es|ing)?|let through|not caught|goes? unnoticed|lost)\b", re.I)
+FALSE_ALARM = re.compile(r"\b(false alarms?|wrong (alerts?|ones?|flags?)|wasted|annoy\w*|bother\w*|for nothing|needless)\b", re.I)
+MORE = re.compile(r"\b(more|worse|higher|bigger|greater)\s+than\b", re.I)
+LESS = re.compile(r"\b(less|lower|smaller|cheaper|fewer)\s+than\b", re.I)
+QUEUE_FAMILIES = frozenset({"classification", "rare_event", "anomaly", "ranking", "uplift"})  # where a team acts on a list
+
+
+def _amount(number: str, suffix: Optional[str]) -> Optional[int]:
+    try:
+        value = float(number.replace(",", "")) * (1000 if suffix else 1)
+    except ValueError:
+        return None
+    k = int(value)
+    return k if 1 <= k <= MAX_K else None
+
+
+def capacity_said(text: Optional[str]) -> Capacity:
+    """How many cases a period the words give: "about 80 a day" is 80 a day; among several numbers, the one beside a word
+    of acting (review, check, call) first ("40,000 orders a day; two analysts check 150 a day" is 150); a year or a
+    number out of range is never a capacity; words without a usable number are kept as said."""
+    if not text or not str(text).strip():
+        return Capacity()
+    text = str(text)
+    said = TextFact(value=text[:MAX_TEXT], status="stated", quote=text[:MAX_TEXT], source="person")
+    found: list[tuple[bool, int, str]] = []
+    for m in CAPACITY_WORDS.finditer(text):
+        k = _amount(m.group(1), m.group(2))
+        if k is not None:
+            found.append((bool(ACTING.search(text[max(0, m.start() - 60):m.end()])), k, m.group(3).lower()))
+    for word, period in DAILY.items():
+        for m in re.finditer(NUMBER + rf"(?:\s+\w+){{0,4}}?\s+{word}\b", text, re.I):
+            k = _amount(m.group(1), m.group(2))
+            if k is not None and not (1900 <= k <= 2100 and not m.group(2)):  # "since 2019 we check some daily" is a year
+                found.append((bool(ACTING.search(text[max(0, m.start() - 60):m.end()])), k, period))
+    if found:
+        acting, k, period = next((f for f in found if f[0]), found[0])
+        return Capacity(k=k, period=period, said=said)
+    return Capacity(said=said)
+
+
+def costs_said(text: Optional[str]) -> ErrorCosts:
+    """What each mistake costs, from the person's words: the sentence that speaks of a miss, the one that speaks of a false
+    alarm, and which is worse only when one sentence compares them ("a missed fraud costs more than a wasted review":
+    the miss; "a miss costs less than a false alarm": the false alarm)."""
+    if not text or not str(text).strip():
+        return ErrorCosts()
+    parts = [p.strip() for p in re.split(r"[.;\n]", str(text)) if p.strip()]
+    fact = lambda p: TextFact(value=p[:MAX_TEXT], status="stated", quote=p[:MAX_TEXT], source="person")  # noqa: E731
+    miss = next((p for p in parts if MISS.search(p)), None)
+    alarm = next((p for p in parts if FALSE_ALARM.search(p)), None)
+    worse = None
+    for p in parts:
+        m, a = MISS.search(p), FALSE_ALARM.search(p)
+        if not (m and a):
+            continue
+        more, less = MORE.search(p), LESS.search(p)
+        pivot = more or less
+        if pivot is not None:
+            first = "miss" if m.start() < a.start() else "false_alarm"
+            second = "false_alarm" if first == "miss" else "miss"
+            if min(m.start(), a.start()) < pivot.start() < max(m.start(), a.start()):
+                worse = first if more is not None and pivot is more else second
+        elif re.search(r"\b(the same|equal|as much as)\b", p, re.I):
+            worse = "equal"
+    return ErrorCosts(false_alarm=fact(alarm) if alarm else TextFact(), miss=fact(miss) if miss else TextFact(), worse=worse)
+
+
+def _filled(fact: Any) -> bool:
+    return bool(getattr(fact, "known", False))
+
+
 def problem_card(brief: ProblemBrief, *, words: str = "", data: Optional[Mapping[str, Any]] = None,
-                 family: Optional[str] = None) -> ProblemCard:
+                 family: Optional[str] = None, answers: Optional[Mapping[str, Any]] = None) -> ProblemCard:
     """The card of a brief. ``words``: what the person wrote (the problem and their answers), read for the family.
     ``data``: what the files say, when there are files: ``label_file`` (a file of known cases joins the table),
     ``cases_only`` (the only table is a list of known cases), ``tables`` (how many tables), ``columns`` (the table's
     columns are known: an outcome is then a column, or for entity tables and streams the words), ``text_only`` (the table's
     only input is a long text: read through an encoder). ``family``: one the person
-    stated (a host's chosen problem kind), which no word overrides."""
+    stated (a host's chosen problem kind), which no word overrides. ``answers`` (30.13): what the person said of the v2
+    fields (``decision``, ``decision_owner``, ``costs``, ``capacity``, ``baseline``, ``success``), each kept as stated."""
     data = dict(data or {})
     labels = _labels(brief, data, words)
     if family is not None and family not in FAMILIES:
@@ -292,8 +427,62 @@ def problem_card(brief: ProblemBrief, *, words: str = "", data: Optional[Mapping
         ask("action", "What happens with each prediction: reviewed, blocked, contacted, or only reported?",
             "The action sets the cost of each mistake and the operating point.", False)
     blocking = [f"{q.text} ({q.why})" for q in questions if q.blocks]
+    v2 = _v2_fields(brief, dict(answers or {}), fam)
     return ProblemCard(brief=brief, family=family, in_play=in_play, labels=labels, outcome=outcome, questions=questions,
-                       ready=not blocking, blocking=blocking)
+                       ready=not blocking, blocking=blocking, **v2, complete=not blocking)
+
+
+def _v2_fields(brief: ProblemBrief, answers: dict[str, Any], fam: Optional[str]) -> dict[str, Any]:
+    """30.13: the framework's fields, each filled from the person's answers (stated) or the brief (inferred), or left an
+    open field with the person who can answer it. None of them blocks."""
+    def stated(key: str) -> TextFact:
+        value = str(answers.get(key) or "").strip()
+        return TextFact(value=value[:MAX_TEXT], status="stated", quote=value[:MAX_TEXT], source="person") if value else TextFact()
+
+    decision = stated("decision")
+    if not _filled(decision) and brief.action.known:
+        decision = TextFact(value=str(brief.action.value)[:MAX_TEXT], status="inferred", source="rule",
+                            reason="the action each prediction feeds, as the person described it")
+    try:  # the person's words never stop a card: a reading that fails leaves its field open
+        costs = costs_said(answers.get("costs"))
+    except Exception:  # noqa: BLE001
+        costs = ErrorCosts()
+    try:
+        capacity = capacity_said(answers.get("capacity"))
+        if capacity.k is None and not _filled(capacity.said):
+            said = next((c.text for c in brief.constraints if c.kind == "review_capacity"), None)
+            capacity = capacity_said(said) if said else capacity
+    except Exception:  # noqa: BLE001
+        capacity = Capacity()
+    business = stated("success")
+    success = Success(business=business if _filled(business) else (brief.success_criteria[0] if brief.success_criteria else TextFact()),
+                      ml_metric=brief.primary_metric if brief.primary_metric.known else TextFact())
+    fields = {"decision": decision, "decision_owner": stated("decision_owner"), "error_costs": costs, "capacity": capacity,
+              "success": success, "baseline_today": stated("baseline"), "horizon": brief.horizon}
+    open_fields: list[OpenField] = []
+
+    def own(field: str, text: str, why: str, owner: str) -> None:
+        open_fields.append(OpenField(field=field, text=text, why=why, owner=owner))
+
+    if not _filled(decision):
+        own("decision", "Which decision does each prediction feed?", "The decision sets what a good prediction is worth.", "the business owner")
+    if not _filled(fields["decision_owner"]):
+        own("decision_owner", "Who owns that decision?", "The owner says what each mistake costs and signs off the success bar.", "the person")
+    if not (_filled(costs.miss) or _filled(costs.false_alarm)):
+        own("error_costs", "What does a false alarm cost, what does a miss cost, and which is worse?",
+            "The costs choose the operating point.", "the business owner")
+    if fam in QUEUE_FAMILIES and capacity.k is None:
+        own("capacity", "How many cases can the team act on a day, a week or a month?",
+            "A team of K a period is judged by precision at K, and its threshold is the K-th score.", "the team that acts on the cases")
+    if not (_filled(success.business) or _filled(success.ml_metric)):
+        own("success", "Which business number says the work helped, and which model metric stands in for it?",
+            "The success bar is agreed before building.", "the business owner")
+    if not _filled(fields["baseline_today"]):
+        own("baseline_today", "How is it done today, and how well does that work?", "A model is worth building only if it beats today's way.",
+            "the team doing the work today")
+    if not _filled(brief.horizon):
+        own("horizon", "How far ahead does each prediction look?", "The horizon decides which rows are history and which are future.", "the person")
+    return {**fields, "open_fields": open_fields[:20]}
 
 
 CONTRACTS["problem_card"] = ProblemCard  # its schema is published with the others

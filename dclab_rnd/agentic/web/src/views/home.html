@@ -491,6 +491,9 @@ DC.view('home', {
       else if (kind === 'status') onStatus(data);
       else if (kind === 'plan') { if (S.draft) { S.draft.plan = data.plan; S.draft.understanding = data.understanding; } drawUnderstanding(S.draft); }
       else if (kind === 'twin') onTwin(data);
+      else if (kind === 'fit' && S.draft) {  // 30.13: a fit edit accepted: the person's answers changed, the panel shows them
+        DC.client.readDraft(S.draft.id).then(d => { S.draft = d; drawUnderstanding(S.draft); }).catch(() => {});
+      }
     }
 
     /* ---------- 25.5: what DCLab understood, editable ---------- */

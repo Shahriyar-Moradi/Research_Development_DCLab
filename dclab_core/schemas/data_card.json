@@ -1,5 +1,39 @@
 {
   "$defs": {
+    "CardEdit": {
+      "additionalProperties": false,
+      "description": "One change the data asks of the problem card: the field, its new value, why, and the check that found it.",
+      "properties": {
+        "code": {
+          "maxLength": 40,
+          "title": "Code",
+          "type": "string"
+        },
+        "field": {
+          "maxLength": 60,
+          "title": "Field",
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 600,
+          "title": "Value",
+          "type": "string"
+        },
+        "why": {
+          "maxLength": 600,
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "value",
+        "why",
+        "code"
+      ],
+      "title": "CardEdit",
+      "type": "object"
+    },
     "ColumnCard": {
       "additionalProperties": false,
       "description": "One column: what it is, in bands, and what it takes to draw it again.",
@@ -98,6 +132,24 @@
           "default": false,
           "title": "Integer",
           "type": "boolean"
+        },
+        "known_at_prediction": {
+          "anyOf": [
+            {
+              "enum": [
+                "yes",
+                "no",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "v4 (30.13): whether it is known when a prediction is made: no for a leak suspect, yes for a time or a key, else unknown until a person says",
+          "title": "Known At Prediction"
         },
         "length": {
           "anyOf": [
@@ -394,6 +446,128 @@
         "distinct"
       ],
       "title": "ColumnCard",
+      "type": "object"
+    },
+    "DetectedModifier": {
+      "additionalProperties": false,
+      "description": "v4 (30.13): a recipe modifier the rows show, as ``dclab_core.modifiers.detect`` says it (kept here so the card never\nimports the modifiers, which read cards' facts).",
+      "properties": {
+        "applies": {
+          "title": "Applies",
+          "type": "boolean"
+        },
+        "asks_user": {
+          "default": false,
+          "title": "Asks User",
+          "type": "boolean"
+        },
+        "name": {
+          "maxLength": 60,
+          "title": "Name",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 600,
+          "title": "Reason",
+          "type": "string"
+        },
+        "strength": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Strength",
+          "type": "number"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "name",
+        "applies",
+        "reason",
+        "strength"
+      ],
+      "title": "DetectedModifier",
+      "type": "object"
+    },
+    "FitVerdict": {
+      "additionalProperties": false,
+      "description": "G2: whether the data fits the problem, as one of three verdicts, with the edits a person accepts or the data that\nis missing.",
+      "properties": {
+        "back_to": {
+          "anyOf": [
+            {
+              "enum": [
+                "problem",
+                "data"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where the work goes back: the problem (edits) or the data (missing).",
+          "title": "Back To"
+        },
+        "edits": {
+          "items": {
+            "$ref": "#/$defs/CardEdit"
+          },
+          "maxItems": 12,
+          "title": "Edits",
+          "type": "array"
+        },
+        "missing": {
+          "description": "The data that is missing, in plain words.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Missing",
+          "type": "array"
+        },
+        "reasons": {
+          "description": "Every mismatch and modifier behind the verdict.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Reasons",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "dclab_core.fit_verdict.v1",
+          "default": "dclab_core.fit_verdict.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "fits",
+            "fits_with_changes",
+            "does_not_fit"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "verdict"
+      ],
+      "title": "FitVerdict",
       "type": "object"
     },
     "Problem": {
@@ -715,10 +889,31 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.data_card.v3.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.data_card.v4.json",
   "additionalProperties": false,
   "description": "The tables of one problem without their rows: columns in bands, relations, problems.",
   "properties": {
+    "detected_modifiers": {
+      "description": "v4 (30.13): the recipe modifiers the rows show, each with its reason (dclab_core.modifiers), read on the earlier rows when a column orders them.",
+      "items": {
+        "$ref": "#/$defs/DetectedModifier"
+      },
+      "maxItems": 12,
+      "title": "Detected Modifiers",
+      "type": "array"
+    },
+    "fit": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FitVerdict"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "v4: G2's verdict against a problem card, filled by a host that has one (meet.fit)."
+    },
     "limits": {
       "items": {
         "type": "string"
@@ -750,8 +945,8 @@
       "type": "array"
     },
     "schema_version": {
-      "const": "dclab_core.data_card.v3",
-      "default": "dclab_core.data_card.v3",
+      "const": "dclab_core.data_card.v4",
+      "default": "dclab_core.data_card.v4",
       "title": "Schema Version",
       "type": "string"
     },

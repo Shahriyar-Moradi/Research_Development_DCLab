@@ -41,6 +41,7 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "dataset_manifest": LIBRARY + " (written by the builders over adapted events and records)",
     "problem_card": LIBRARY + " (the understanding conversation's result)",
     "problem_data_check": LIBRARY + " (the problem set against its tables)",
+    "fit_verdict": LIBRARY + " (G2: the problem card against the data card, 30.13)",
     "coordinator_situation": LIBRARY + " (where a conversation stands on the way to a build)",
     "solution_workflow": LIBRARY + " (the workflow drawn from the two cards)",
     "solution_report": LIBRARY + " (rendered from the records of a project)",
@@ -69,7 +70,8 @@ _NO_NAME = "the main product has no governed decision point of this name: it is 
 POINTS_NOT_MAPPED: dict[str, str] = {
     **{p: _NO_NAME.format(what="data preparation step") for p in (
         "column.category_code", "column.time", "column.group", "task.framing", "labels.situation", "labels.join_key", "data.cases_table",
-        "data.cleaning_step", "data.sampling", "split.folds", "data.structure_format", "data.cleaning_keep", "data.synthetic_shape")},
+        "data.cleaning_step", "data.sampling", "split.folds", "data.structure_format", "data.cleaning_keep", "data.synthetic_shape",
+        "data.fit_verdict")},
     **{p: _NO_NAME.format(what="evidence search (29.6)") for p in ("evidence.records",)},
     **{p: _NO_NAME.format(what="modelling choice") for p in (
         "features.recipe", "tuning.accept", "holdout.reuse", "experiment.next")},

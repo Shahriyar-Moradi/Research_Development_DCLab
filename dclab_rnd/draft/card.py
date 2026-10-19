@@ -53,6 +53,12 @@ def _text_only(data_card: dict[str, Any], target: Any) -> bool:
     return bool(inputs) and all(c.get("purpose") == "text" for c in inputs)
 
 
+def _answers(u: dict[str, Any]) -> dict[str, Any]:
+    """30.13: what the person said of the card's v2 fields on Home (the budget answer is the team's capacity)."""
+    return {"decision": u.get("decision"), "decision_owner": u.get("decision_owner"), "costs": u.get("costs"),
+            "capacity": u.get("capacity") or u.get("budget"), "baseline": u.get("baseline"), "success": u.get("success")}
+
+
 def card_of(draft: dict[str, Any]) -> ProblemCard:
     u = draft.get("understanding") or {}
     solution = draft.get("solution") or {}
@@ -84,6 +90,10 @@ def card_of(draft: dict[str, Any]) -> ProblemCard:
         update["unit"] = _stated(str(u["entity"]))  # "One customer"; "One biker can fake many rides" names a group, not the unit
     if solution.get("time_column") and solution["time_column"] in columns:
         update["time_column"] = _stated(str(solution["time_column"]))  # 20.4: the time the split follows, checked against the table
+    elif u.get("time_column") and u["time_column"] in columns:
+        update["time_column"] = _stated(str(u["time_column"]))  # 30.13: a fit edit the person accepted
+    if u.get("judged_on"):  # 30.13: the fit's edit for noisy labels, accepted: judged on the confirmed labels only
+        update["target_definition"] = _stated(str(u["judged_on"]))
     labels = str(u.get("labels") or "")
     if labels:
         said = label_said(labels)  # "no" is read first, a file said apart from it wins
@@ -109,20 +119,20 @@ def card_of(draft: dict[str, Any]) -> ProblemCard:
     if stated == said and said in SHAPED_AS and u.get("family_shape_only") == "yes":
         # 20.10 v4: an answer that gave only an output's shape is evidence, not a statement: the card is inferred without it
         # (the words, the data: a table of long text alone), and kept when it is a family of that shape; else the shape stands
-        inferred = problem_card(brief, words=words, data=data)
+        inferred = problem_card(brief, words=words, data=data, answers=_answers(u))
         if inferred.family.value in (said, *SHAPED_AS[said]) and not inferred.in_play:
             return inferred
     if stated == said and u.get("family_by") == "reader":
         # 20.10 v4: the reader's family is the model's reading of the person, not their statement: what the card infers from
         # what the person stated and the data (a label file: rare events) comes first; the reader's family names what the
         # inference left open or gave only as a shape
-        inferred = problem_card(brief, words=words, data=data)
+        inferred = problem_card(brief, words=words, data=data, answers=_answers(u))
         if inferred.family.value is not None and not inferred.in_play and inferred.family.value not in SHAPED_AS:
             return inferred
-    return problem_card(brief, words=words, data=data, family=stated)
+    return problem_card(brief, words=words, data=data, family=stated, answers=_answers(u))
 
 
-def meeting(draft: dict[str, Any], store: Any) -> Any:
+def meeting(draft: dict[str, Any], store: Any, with_fit: bool = False) -> Any:
     """The problem card against the data card of the draft's tables (20.4), the card built again now with the outcome
     the draft names today (it may have been named after the data was analysed); the label file counts as joined when
     the draft's own label review found its key. None with no table. When the check itself fails, a blocking
@@ -133,7 +143,7 @@ def meeting(draft: dict[str, Any], store: Any) -> Any:
 
     active = next((a for a in draft.get("assets") or [] if a.get("id") == draft.get("active_asset") and a.get("status") == "ready"), None)
     if active is None or not active.get("clean_file"):
-        return None
+        return (None, None) if with_fit else None
     try:
         import pandas as pd
 
@@ -151,10 +161,37 @@ def meeting(draft: dict[str, Any], store: Any) -> Any:
         main = next(iter(tables.values()))
         file = label_asset(draft)
         joined = bool(((file or {}).get("label_review") or {}).get("key")) if file is not None else None
-        return check(problem, data_card_of(tables, target=target if target in main.columns else None), joined=joined)
+        data = data_card_of(tables, target=target if target in main.columns else None)
+        checked = check(problem, data, joined=joined)
+        if with_fit:  # 30.13: G2's three-way verdict, from the same two cards
+            from dclab_core.meet import fit
+
+            return checked, fit(problem, data, checked)
+        return checked
     except Exception as exc:  # noqa: BLE001
         print(f"meeting: not checked: {type(exc).__name__}", file=sys.stderr, flush=True)
-        return ProblemDataCheck(mismatches=[Mismatch(code="not_checked", blocking=True,
-                                                     question="DCLab could not check the problem against the data. Try the build again; "
-                                                              "if it fails again, the draft's table needs a look.",
-                                                     evidence={"error": type(exc).__name__})], ready=False)
+        failed = ProblemDataCheck(mismatches=[Mismatch(code="not_checked", blocking=True,
+                                                       question="DCLab could not check the problem against the data. Try the build again; "
+                                                                "if it fails again, the draft's table needs a look.",
+                                                       evidence={"error": type(exc).__name__})], ready=False)
+        return (failed, None) if with_fit else failed
+
+
+EDIT_FIELDS = {"target_column": "target", "unit": "unit", "family": "family", "time_column": "time_column", "labels": "labels",
+               "target_definition": "judged_on"}  # a fit edit's card field, as Home keeps the person's answer
+
+
+def accept_fit(draft: dict[str, Any], edits: list[dict[str, Any]]) -> list[str]:
+    """30.13: the fit's edits a person accepted, written as their answers (the card is built again from them): the
+    fields changed."""
+    u = draft.setdefault("understanding", {})
+    changed = []
+    for e in edits:
+        key = EDIT_FIELDS.get(str(e.get("field")))
+        if key and e.get("value"):
+            u[key] = str(e["value"])[:600]
+            if key == "family":
+                u["family_by"] = "person"
+            changed.append(str(e["field"]))
+    draft.setdefault("fit_accepted", []).extend({"field": e.get("field"), "code": e.get("code")} for e in edits if EDIT_FIELDS.get(str(e.get("field"))))
+    return changed

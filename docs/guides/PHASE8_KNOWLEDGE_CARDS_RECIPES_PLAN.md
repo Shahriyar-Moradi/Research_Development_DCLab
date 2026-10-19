@@ -242,6 +242,25 @@ Designed in detail once Part E is built; each keeps DCLab's rules (the validator
   Left: noisy rows as weighted training labels, value times probability, precision at K as the selection metric inside
   training, K stored from Home and the wizard, the operating threshold set on training rows (with the artifact), the
   replica's journeys people and its sealed set.
+- **30.13 built (2026-10-19), the review's 13 findings fixed; Done when met.** `dclab_core.card.ProblemCard` v2 (dclab-core 0.89.0, v1 read as v2): the
+  decision and its owner, the error costs (`costs_said`: a miss's cost, a false alarm's, which is worse when one sentence
+  compares them), the capacity (`capacity_said`: "about 80 a day" is 80 a day), the success numbers, today's baseline and the
+  horizon, each from the person's answers (Home's budget answer is the capacity: among several numbers the one beside a
+  word of acting, never a year or one out of range; a reading that fails leaves the field open) or an open field with who
+  can answer it; none blocks, so G1 is the card's own blocking set (`complete`). `DataCard` v4 (v1 to v3 read as v4): each
+  column's known at prediction time (no for a leak suspect or a label source, yes for a key, else unknown, a time
+  included) and the recipe modifiers the rows show, read on exactly the rows the proposal may read
+  (`modifiers.provisional_reading` and `facts_of`, moved into the library); a build stores its verdict in the card.
+  `meet.fit` and `FitVerdict` v1: G2's three verdicts, fits, fits with changes (each change a card edit with why: the
+  outcome another column (another outcome-like column when a named one is refused), the unit one row by the table's key,
+  the family the column's, a rare event when known cases are here, the time column, judged on confirmed labels for noisy
+  labels) or does not fit (the file of known cases, a column of dates, a column that records the outcome named).
+  `GET /api/drafts/{id}/card` returns it; `POST /api/drafts/{id}/fit/accept` writes the accepted edits as the person's
+  answers (refusing an edit the wizard's saved solution owns, and undoing one that would come back), records the person's
+  decision beside the rule's and emits an event Home redraws on; a build records `data.fit_verdict` (64 points) from what
+  the verdict read. The dev journeys 15 of 15 with the new fields (JRN-026, and JRN-027 after the review). Left: the
+  Home card showing the verdict and its accept button, G2 as a coordinator step (today the mismatch questions block as
+  before), the main product's spec page.
 
 ---
 

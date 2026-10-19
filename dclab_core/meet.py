@@ -18,6 +18,12 @@ with its evidence (column names and counts, never a value), blocking when buildi
   the person said anomaly detection while known cases are here (a joined file, a named outcome column).
 
 A pair that agrees raises nothing. The rules are code; a host may ask a model to phrase the questions, never to decide them.
+
+:func:`fit` (30.13, the owner's framework's gate G2) turns the check into one of three verdicts: **fits** (go on),
+**fits with changes** (each change a proposed edit of the problem card, with why, for a person to accept: the outcome is
+another column, the unit is the table's grain, the family is the column's, the model is judged on confirmed labels
+only), **does not fit** (stop, and name the data that is missing: the file of known cases, a column of dates, a column
+that records the outcome).
 """
 
 from __future__ import annotations
@@ -163,4 +169,91 @@ def check(card: Any, data: Any, joined: Optional[bool] = None) -> ProblemDataChe
     return ProblemDataCheck(mismatches=out[:20], ready=not any(m.blocking for m in out))
 
 
-__all__ = ["check", "Mismatch", "ProblemDataCheck"]
+Verdict = Literal["fits", "fits_with_changes", "does_not_fit"]
+
+
+class CardEdit(Contract):
+    """One change the data asks of the problem card: the field, its new value, why, and the check that found it."""
+
+    field: str = Field(max_length=60)
+    value: str = Field(max_length=600)
+    why: str = Field(max_length=600)
+    code: str = Field(max_length=40)
+
+
+class FitVerdict(Versioned):
+    """G2: whether the data fits the problem, as one of three verdicts, with the edits a person accepts or the data that
+    is missing."""
+
+    schema_version: Literal["dclab_core.fit_verdict.v1"] = _version("fit_verdict")
+    verdict: Verdict
+    edits: list[CardEdit] = Field(default_factory=list, max_length=12)
+    missing: list[str] = Field(default_factory=list, max_length=12, description="The data that is missing, in plain words.")
+    reasons: list[str] = Field(default_factory=list, max_length=20, description="Every mismatch and modifier behind the verdict.")
+    back_to: Optional[Literal["problem", "data"]] = Field(None, description="Where the work goes back: the problem (edits) or the data (missing).")
+
+
+CONTRACTS["fit_verdict"] = FitVerdict
+FLIP = {"classification": "regression", "rare_event": "regression", "regression": "classification", "forecasting": "classification",
+        "time_to_event": "classification"}
+
+
+def _outcomes(table: Any, named: Any) -> list[str]:
+    """The table's columns that could record an outcome, when the data card kept none as a candidate (a named outcome
+    that was refused leaves the card without candidates): a yes or no, or a name that says an outcome."""
+    from dclab_core.datacard import outcome_named
+
+    return [c.name for c in table.columns if c.name != named and c.purpose in (None, "feature", "target_candidate")
+            and (c.cardinality == "binary" or outcome_named(c.name))][:5]
+
+
+def fit(card: Any, data: Any, checked: Optional[ProblemDataCheck] = None, joined: Optional[bool] = None) -> FitVerdict:
+    """The three-way verdict of a problem card against the data card of its tables (G2): every blocking mismatch is an
+    edit when the data says what the card should become, missing data when it cannot; a modifier the data card detected
+    may ask its own edit (noisy labels: judge on the confirmed labels only)."""
+    checked = checked or check(card, data, joined)
+    edits: list[CardEdit] = []
+    missing: list[str] = []
+    reasons: list[str] = []
+
+    def edit(field: str, value: str, why: str, code: str) -> None:
+        edits.append(CardEdit(field=field, value=value[:600], why=why[:600], code=code))
+
+    table = _main(data)
+    for m in checked.mismatches:
+        reasons.append(f"{m.code}: {m.question}"[:600])
+        if not m.blocking:
+            continue  # a question for the person, not a change the verdict waits for
+        ev = m.evidence
+        if m.code in ("target_absent", "target_refused"):
+            near = list(ev.get("candidates") or []) or _outcomes(table, ev.get("named") or ev.get("column"))
+            if near:
+                edit("target_column", str(near[0]), m.question, m.code)
+            else:
+                missing.append("a column that records the outcome")
+        elif m.code == "target_family" and ev.get("family") in FLIP:
+            edit("family", FLIP[ev["family"]], m.question, m.code)
+        elif m.code == "unit_grain":  # predict per row: the unit becomes what one row is, by its key when it has one
+            key = [str(k) for k in ev.get("key") or []]
+            edit("unit", ("one row per " + " and ".join(key)) if key else "one row of the table",
+                 m.question + " (accepted: predict per row)", m.code)
+        elif m.code == "time_absent":
+            if ev.get("times"):
+                edit("time_column", str(ev["times"][0]), m.question, m.code)
+            else:
+                missing.append("a column that says when each row happened")
+        elif m.code == "labels_not_joined":
+            missing.append("the file of known cases, with the table it belongs to")
+        elif m.code == "labels_contradict" and ev.get("family") == "anomaly":  # known cases are here: learn from them
+            edit("family", "rare_event", m.question, m.code)
+    said = str(card.brief.target_definition.value or "").lower()
+    for d in getattr(data, "detected_modifiers", None) or []:
+        if d.name == "noisy_labels" and d.applies and "confirmed" not in said:  # the retail interview's example: the rule's labels are not the outcome
+            edit("target_definition", "judged on the confirmed labels only (a person's review, the random audit)", d.reason, "noisy_labels")
+            reasons.append(f"noisy_labels: {d.reason}"[:600])
+    verdict = "does_not_fit" if missing else "fits_with_changes" if edits else "fits"
+    return FitVerdict(verdict=verdict, edits=edits[:12], missing=list(dict.fromkeys(missing))[:12], reasons=reasons[:20],
+                      back_to="data" if missing else "problem" if edits else None)
+
+
+__all__ = ["check", "fit", "Mismatch", "ProblemDataCheck", "CardEdit", "FitVerdict"]

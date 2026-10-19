@@ -39,6 +39,7 @@ from pydantic import Field
 
 from dclab_core import sensitivity
 from dclab_core.contracts import CONTRACTS, Contract, Versioned, _version
+from dclab_core.meet import FitVerdict
 from dclab_core.bands import CARDINALITY_BANDS, DTYPE_KINDS, RATIO_BANDS, VALUE_PATTERNS, cardinality_band, name_tokens, ratio_band
 
 MIN_ROWS = 20                 # a column with fewer values keeps no quantiles and no shares
@@ -100,6 +101,8 @@ class ColumnCard(Contract):
     sensitivity: Optional[Literal["restricted", "pii", "sensitive", "none"]] = Field(None, description="v3 (23.7): what the name and the shape of "
                                                                                          "the values say the column holds; not none: it reaches a model by name only.")
     sensitivity_why: Optional[str] = Field(None, max_length=80, description="v3: the rule in words, never a value.")
+    known_at_prediction: Optional[Literal["yes", "no", "unknown"]] = Field(None, description="v4 (30.13): whether it is known when a "
+                                                                          "prediction is made: no for a leak suspect, yes for a time or a key, else unknown until a person says")
 
 
 class TableCard(Contract):
@@ -142,11 +145,23 @@ class Problem(Contract):
     numbers: dict[str, float] = Field(default_factory=dict)
 
 
+class DetectedModifier(Contract):
+    """v4 (30.13): a recipe modifier the rows show, as ``dclab_core.modifiers.detect`` says it (kept here so the card never
+    imports the modifiers, which read cards' facts)."""
+
+    name: str = Field(max_length=60)
+    applies: bool
+    reason: str = Field(max_length=600)
+    strength: float = Field(ge=0, le=1)
+    value: Optional[str] = Field(default=None, max_length=200)
+    asks_user: bool = False
+
+
 class DataCard(Versioned):
     """The tables of one problem without their rows: columns in bands, relations, problems."""
 
-    schema_version: Literal["dclab_core.data_card.v3"] = _version("data_card", 3)
-    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.data_card.v1", "dclab_core.data_card.v2"})  # a stored v1 or v2 card stays readable
+    schema_version: Literal["dclab_core.data_card.v4"] = _version("data_card", 4)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.data_card.v1", "dclab_core.data_card.v2", "dclab_core.data_card.v3"})  # every stored card stays readable
     name: str = Field(min_length=1, max_length=200)
     synthetic: bool = Field(False, description="Built from a synthetic table (a replica, or drawn from another card).")
     tables: list[TableCard] = Field(min_length=1, max_length=20)
@@ -155,17 +170,22 @@ class DataCard(Versioned):
     limits: list[str] = Field(default_factory=list, max_length=20)
 
     target: Optional[str] = Field(None, max_length=200, description="v2: the outcome the problem names, when it names one.")
+    detected_modifiers: list[DetectedModifier] = Field(default_factory=list, max_length=12, description="v4 (30.13): the recipe modifiers the "
+                                               "rows show, each with its reason (dclab_core.modifiers), read on the earlier rows when a column orders them.")
+    fit: Optional[FitVerdict] = Field(None, description="v4: G2's verdict against a problem card, filled by a host that has one (meet.fit).")
 
     def table(self, name: str) -> TableCard:
         return next(t for t in self.tables if t.name == name)
 
     @classmethod
     def read(cls, document):
-        """A card as stored; a v1 or v2 card is read as v3: each only added fields, all optional."""
+        """A card as stored; a v1, v2 or v3 card is read as v4: each only added fields, all optional."""
         data = json.loads(document) if isinstance(document, (str, bytes)) else dict(document)
         if data.get("schema_version") in ("dclab_core.data_card.v1", "dclab_core.data_card.v2"):
             data = sensitivity.upgrade_card(data)  # a card from before 23.7 may hold category names and ranges of a personal column
             data["schema_version"] = cls.model_fields["schema_version"].default
+        elif data.get("schema_version") == "dclab_core.data_card.v3":
+            data = {**data, "schema_version": cls.model_fields["schema_version"].default}
         return super().read(data)
 
 
@@ -705,6 +725,46 @@ def _candidates(cards: dict[str, ColumnCard], purpose: dict[str, tuple[str, str]
     return sorted(allowed, key=lambda c: (c != target, not outcome_named(c), cards[c].cardinality != "binary", c))[:20]
 
 
+KNOWN = {"leak_suspect": "no", "identifier": "yes", "entity": "yes", "constant": "yes"}  # v4: known at prediction time; a time may be
+# written after the outcome (a chargeback date): unknown until the person names the one that orders the rows
+
+
+def _modifiers(frame: pd.DataFrame, table: "TableCard", target: Optional[str]) -> list[DetectedModifier]:
+    """v4: the recipe modifiers the main table's rows show for the named outcome, read on the rows the proposal may read
+    (``modifiers.provisional_reading``: the earliest 75% by distinct times, or a seeded 75%), never the rows a later
+    holdout takes."""
+    from dclab_core import modifiers as M
+
+    if not target or target not in frame.columns:
+        return []
+    rows = frame[frame[target].notna()]
+    if len(rows) < MIN_ROWS:
+        return []
+    times = [c.name for c in table.columns if c.purpose == "time"]
+    time_column = times[0] if times else None
+    read, _ = M.provisional_reading(rows.index, rows[time_column] if time_column else None)
+    rows = rows.loc[read]
+    if len(rows) < MIN_ROWS:
+        return []
+    y = rows[target]
+    values = y.dropna().unique()
+    numeric = pd.api.types.is_numeric_dtype(y)
+    task = "binary" if len(values) == 2 else "regression" if numeric and len(values) > 20 else "multiclass"
+    positive = rate = None
+    if task == "binary":
+        counts = y.astype(str).value_counts()
+        positive = counts.index[-1]  # the rarer class: the event a screen is asked to catch
+        rate = float(counts.iloc[-1] / counts.sum())
+    X = rows.drop(columns=[target])
+    keys = [c.name for c in table.columns if c.purpose == "entity" and c.name in X]
+    sources = M.label_source_columns(X)
+    try:
+        facts = M.facts_of(X, y, task, time_column, keys, rate, positive, label_source=sources[0] if sources else None)
+        return [DetectedModifier(**d.model_dump()) for d in M.detect(facts)]
+    except Exception:  # noqa: BLE001 - a card is never refused for its modifiers
+        return []
+
+
 def card_of(tables: Mapping[str, pd.DataFrame], name: str = "tables", roles: Optional[Mapping[str, str]] = None,
             keep_categories: bool = False, synthetic: bool = False, planted: Optional[list[Problem]] = None,
             target: Optional[str] = None) -> DataCard:
@@ -720,7 +780,13 @@ def card_of(tables: Mapping[str, pd.DataFrame], name: str = "tables", roles: Opt
     for i, t in enumerate(names):
         aim = target if t == main_name else None
         purpose = purposes(_sample(tables[t]), columns[t], aim, full=tables[t])
-        cols = [c.model_copy(update={"purpose": purpose[c.name][0], "why": purpose[c.name][1][:300], "unit": _unit(c.name)}) for c in columns[t].values()]
+        from dclab_core.modifiers import label_source_columns
+
+        sources = set(label_source_columns(tables[t]))  # where each label came from: never known when a prediction is made
+        cols = [c.model_copy(update={"purpose": purpose[c.name][0], "why": purpose[c.name][1][:300], "unit": _unit(c.name),
+                                     "known_at_prediction": None if c.name == aim else "no" if c.name in sources
+                                     else KNOWN.get(purpose[c.name][0], "unknown")})
+                for c in columns[t].values()]
         columns[t] = {c.name: c for c in cols}
         grain, key, duplicates = _grain(tables[t], columns[t], purpose)
         if aim and aim in purpose and purpose[aim][0] in NOT_A_TARGET:
@@ -740,7 +806,9 @@ def card_of(tables: Mapping[str, pd.DataFrame], name: str = "tables", roles: Opt
     keys = {r.table: list(r.columns) for r in relations if r.kind == "key"}
     cards = [c.model_copy(update={"joins_on": keys.get(c.name, [])[:4]}) for c in cards]
     found = refused + _problems(cards, relations)
+    detected = _modifiers(tables[main_name], next(c for c in cards if c.name == str(main_name)[:200]), target)
     return DataCard(name=name[:200], synthetic=synthetic, tables=cards, relations=relations[:500], target=(target or None) and str(target)[:200],
+                    detected_modifiers=detected,
                     problems=(found + [p.model_copy(update={"source": "planted"}) for p in planted or []])[:100],
                     limits=["Relations are measured on at most 100,000 rows of each table.",
                             "A relation not listed here (a behaviour across rows, a formula between numbers) is not drawn again."])

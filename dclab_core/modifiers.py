@@ -33,7 +33,7 @@ whether it applies, why, and how strong the evidence is. Rules decide; a model m
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import Field
 
@@ -213,10 +213,115 @@ def detect(facts: Facts) -> list[Detected]:
     return out
 
 
+# ------------------------------------------------------------------------------------------- the facts, from rows (30.13)
+
+PROVISIONAL_SHARE = 0.75  # at most 1 - the largest holdout an engine split takes (20 % tabular, 25 % time to event)
+MIN_TIMED_ROWS = 30  # fewer rows with a valid time than this: the rows cannot be ordered, a seeded share is read
+
+
+def provisional_reading(index: "pd.Index", times: Any = None) -> tuple[Any, bool]:
+    """75 % of the rows: what may be read before the engine locks its holdout (the rest stays unseen), and whether they
+    were chosen by time. With ``times`` (the rows' time column), the earliest 75 % of the rows with a valid time and no
+    row past the earliest 75 % of its distinct times, so a later holdout (the latest 20 % of a tabular split, the latest
+    25 % of starts, a forecast's last dates) is never read; a row without a valid time is never read (the engine drops it,
+    or orders it last). Otherwise a seeded random 75 %, which a random holdout drawn later overlaps (``rows_read_note``
+    says so). Pass the rows that have a target."""
+    import numpy as np
+    import pandas as pd
+
+    if times is not None:
+        stamps = pd.Series(list(times), index=index)
+        stamps = pd.to_numeric(stamps, errors="coerce") if pd.api.types.is_numeric_dtype(stamps) else pd.to_datetime(stamps, errors="coerce")
+        valid = stamps.dropna()
+        if len(valid) >= MIN_TIMED_ROWS:
+            distinct = np.sort(valid.unique())
+            cutoff = distinct[max(int(PROVISIONAL_SHARE * len(distinct)) - 1, 0)]
+            keep = (valid.rank(method="first") <= int(PROVISIONAL_SHARE * len(valid))) & (valid <= cutoff)
+            return valid.index[keep.to_numpy()], True
+    keep = np.random.default_rng(42).random(len(index)) < PROVISIONAL_SHARE
+    return index[keep], False
+
+
+
+def label_source_columns(X: pd.DataFrame) -> list[str]:
+    """30.12: a column whose values name where each label came from: nearly all of them sources DCLab knows (a rule, a
+    cluster, an expert, an audit), whichever appear in the rows read (the earliest may hold only a rule's)."""
+    import pandas as pd
+
+    known, out = set(NOISY) | set(CONFIRMED), []
+    for c in X.columns:
+        if not (X[c].dtype == object or isinstance(X[c].dtype, pd.StringDtype)):
+            continue
+        v = X[c].dropna().astype(str).str.strip().str.lower()
+        v = v[v != ""]
+        if len(v) >= 20 and v.isin(known).mean() >= 0.9:
+            out.append(str(c))
+    return out
+
+
+def facts_of(X: pd.DataFrame, y: pd.Series, task: str, time_column: Optional[str], group_candidates: list[str],
+             positive_rate: Optional[float], positive_label: Any = None, label_source: Optional[str] = None,
+             capacity_k: Optional[int] = None, capacity_period: Optional[str] = None) -> "Facts":
+    """30.11: what the modifiers' rules read, from the rows read (the provisional training rows): the minority share, how
+    many rows each identifier-like value holds, and whether the target moves between the first and the last third in time."""
+    import pandas as pd
+
+    minority = None
+    if task == "binary" and positive_rate is not None:
+        minority = min(positive_rate, 1 - positive_rate)
+    elif task == "multiclass" and len(y):
+        minority = float(y.astype(str).value_counts(normalize=True).min())
+    t = pd.to_datetime(X[time_column], errors="coerce") if time_column and time_column in X else None
+    ordered = t is not None and len(X) >= 60 and t.notna().mean() >= 0.8
+    order = t.rank(method="first") if ordered else None
+    keys = []
+    for c in group_candidates:
+        if c not in X or not X[c].notna().any():
+            continue
+        values = X[c].astype(str)
+        recurring = None
+        if ordered:  # the latest third's rows whose key appeared in the earlier rows: a key that recurs cannot also split forward
+            last_rows = order > 2 * len(order) / 3
+            recurring = float(values[last_rows].isin(set(values[~last_rows])).mean()) if last_rows.any() else None
+        keys.append(KeyFact(column=str(c)[:200], rows_per_key=float(values.value_counts().median()), groups=int(values.nunique()),
+                              recurring=recurring))
+    change = shift = level = None
+    if ordered:
+        first, last = order <= len(order) / 3, order > 2 * len(order) / 3
+        if task == "binary" and positive_label is not None:  # the positive class's rate, first third against last
+            hits = y.astype(str) == str(positive_label)
+            a, b = float(hits[first].mean()), float(hits[last].mean())
+            change = (b / a) if a > 0 else (2.0 if b > 0 else None)
+        elif task == "multiclass":
+            pa, pb = y[first].astype(str).value_counts(normalize=True), y[last].astype(str).value_counts(normalize=True)
+            shift = min(1.0, 0.5 * float(pa.subtract(pb, fill_value=0).abs().sum()))  # rounding can pass 1 (the review of 30.11)
+        elif task == "regression":
+            v = pd.to_numeric(y, errors="coerce")
+            sd = float(v.std())
+            level = float((v[last].mean() - v[first].mean()) / sd) if sd and sd > 0 else None
+    sources, confirmed_rate, audit_rate = {}, None, None
+    if label_source and label_source in X:  # 30.12: where the labels came from, and the positive rate where a person looked
+        src = X[label_source].fillna("").astype(str).str.strip().str.lower()
+        sources = {str(k): int(v) for k, v in src.value_counts().items() if k}
+        if task == "binary" and positive_label is not None:
+            hits = y.astype(str) == str(positive_label)
+            for names, put in ((CONFIRMED, "confirmed"), (AUDIT, "audit")):
+                rows = src.isin(names)
+                if rows.sum() >= MIN_CONFIRMED:
+                    rate = float(hits[rows].mean())
+                    confirmed_rate, audit_rate = (rate, audit_rate) if put == "confirmed" else (confirmed_rate, rate)
+    return Facts(task=task, minority_rate=minority, positive_rate=positive_rate if task == "binary" else None, keys=keys[:40],
+                   time_column=str(time_column)[:200] if time_column else None,
+                   rate_change=change, class_shift=shift, level_shift=level if level is None or abs(level) < 1e6 else None,
+                   label_sources=sources, confirmed_rate=confirmed_rate, audit_rate=audit_rate, capacity_k=capacity_k,
+                   capacity_period=capacity_period)
+
+
 def applied(found: list[Detected]) -> list[RecipePart]:
     """The parts of the modifiers that apply."""
     return [PARTS[d.name] for d in found if d.applies and d.name in PARTS]
 
 
 __all__ = ["RARE_BELOW", "ROWS_PER_KEY", "DRIFT_RATIO", "CLASS_SHIFT", "LEVEL_SHIFT", "MIN_GROUPS", "RECURS", "MIN_CONFIRMED", "CONFIRMED",
-           "AUDIT", "NOISY", "PERIODS", "PARTS", "KeyFact", "Facts", "Detected", "detect", "applied"]
+           "AUDIT", "NOISY", "PERIODS", "PARTS", "KeyFact", "Facts", "Detected", "detect", "applied", "label_source_columns", "facts_of",
+           "PROVISIONAL_SHARE", "MIN_TIMED_ROWS", "provisional_reading"]
