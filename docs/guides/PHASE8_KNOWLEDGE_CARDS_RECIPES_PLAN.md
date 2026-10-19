@@ -328,6 +328,13 @@ Designed in detail once Part E is built; each keeps DCLab's rules (the validator
   three seeds); the replica `mall_sales`. Measured: the rules reach 477 of 480 planted answers over sixty seeds; the
   model reads 24 of 24 paraphrases against the rules' 6 (MCH-003, live, EUR 0.10). Left: an independent writer's
   paraphrases, a project path (a layer kept per workspace, the agent tool).
+- **30.18 built (2026-10-19):** `find_examples` for the intern and /mcp (examples a model may read, never the owner's
+  solution); the decomposer, the router and the engine's critic read the closest examples' lines as advice only when the
+  host gives them (`DCLAB_EXAMPLES` on and the `roles_examples` arm passed its sealed journeys, gate fixed before; or a
+  measurement asks); a test reads the gateway's recorded prompts and finds no private example (30.7's open check). The
+  search on an independent writer's wording of the practice questions: 16 of 30 (10 of 10 in the author's own). Dev,
+  live: roles 3 of 6, roles with examples 2 of 6 (EUR 0.56): not better, the switch stays off; both arms miss the same
+  review-budget part, which goes to 30.6. Left: the sealed arm on 30.6's fresh set, the Home agent's tool, a better search.
 - **Test runs kept (2026-10-19, d502540):** every run of the suite and every gate, whole, in `training_records/test_runs/`
   (the owner's rule), snapshotted by `make archive`.
 - **Live tests (2026-10-19, $20 budget; EUR 4.02 spent):** the product's model (Claude) through the harness suite for the

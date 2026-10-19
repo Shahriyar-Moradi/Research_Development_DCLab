@@ -1,0 +1,114 @@
+{
+ "package": "30.18",
+ "title": "The knowledge the roles read: one tool for the closest business examples, the examples in the decomposer's, router's and critic's evidence behind a measured switch",
+ "date": "2026-10-19",
+ "request": "Phase 8: find_examples for the roles, the closest examples' pitfalls in the critic's and router's evidence, retrieval questions v2; an arm of the journeys measured on dev, then one fresh sealed set; served only if better.",
+ "spec": "docs/guides/PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md, package 30.18",
+ "plan": [
+  "Have an independent writer reword the ten practice questions, seeing nothing else, and measure the search on them.",
+  "Add find_examples for the intern and /mcp, model-visible examples only.",
+  "Give the decomposer, the router and the critic the closest examples' lines only when the host gives them; the host gives them only behind a switch and a passed sealed arm, or when a measurement asks.",
+  "Read the gateway's recorded prompts for any private example.",
+  "Measure the roles with and without examples on the dev programme people, live and capped; the sealed run comes with 30.6's fresh set."
+ ],
+ "decisions": [
+  {
+   "decision": "The decomposer reads the examples too, not only the router and the critic.",
+   "why": "The roles' misses on the programme journeys are parts the map leaves out; only the decomposer draws parts."
+  },
+  {
+   "decision": "The examples arm's gate was fixed before it ran: more journeys right than the roles arm without examples and at least as many as the rules, on a sealed set run once.",
+   "why": "Served only if better, as the plan says, judged on people no one tuned on."
+  },
+  {
+   "decision": "The independent paraphrases are an evaluation set, never indexed and never tuned on.",
+   "why": "16 of 30 is the honest weak spot; tuning the search on them would make the number meaningless."
+  },
+  {
+   "decision": "With dev saying the examples do not help, the switch stays off; the sealed arm is run with 30.6's fresh set for the record.",
+   "why": "A dev loss is a reason not to serve, not a reason to skip the measurement the plan asks for."
+  }
+ ],
+ "change": "dclab_rnd.tools.find_examples (project scope); dclab_rnd.business_examples (for_role, paraphrase_recall, switched_on, serve; the manifest's practice measurements); dclab_core.mapping.draw, solutions.route_with and review.critique take examples; their prompts; dclab_rnd.draft.map.examples_for; the engine's critic examples; programme journeys --examples and examples_passed; dclab-core 0.95.0.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The search finds few practice questions in other words.",
+   "scenario": "An independent writer's thirty versions: 16 found in the first three (other industry 5 of 10, plain words 4 of 10, a short query 7 of 10), against 10 of 10 in the author's own.",
+   "cause": "A keyword search over the examples' own vocabulary.",
+   "fix": "Measured and kept in the manifest; not tuned on. A better search is open.",
+   "test": "test_the_search_is_measured_on_an_independent_writers_wording"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The examples did not help the roles on dev.",
+   "scenario": "Programme dev people: roles 3 of 6 (JPR-008), roles with examples 2 of 6 (JPR-009); every miss in both the review-budget part never drawn.",
+   "cause": "The roles' own failure to draw the review part; the examples do not change it.",
+   "fix": "The switch stays off; the review part's loss goes to 30.6.",
+   "test": "python -m dclab_rnd.agent_eval.journeys.programme --split dev --examples --yes --cap-eur 0.6"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "privacy",
+   "defect": "30.7's open check: nothing read the gateway's recorded prompts for a private example.",
+   "scenario": "With examples on, the decomposer's prompt could have carried the owner's solution.",
+   "cause": "No role read examples until this package.",
+   "fix": "A test reads the prompts the gateway sent with examples on and finds no rules_only example's id or title.",
+   "test": "test_no_private_example_reaches_a_models_prompt"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The capture test's fake database URL read as a committed password.",
+   "scenario": "The gate's secret scan flagged tests/test_run_capture.py.",
+   "cause": "A literal user:password URL in a fixture.",
+   "fix": "The URL is built from parts.",
+   "test": "test_no_secret_is_committed"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the example search on an independent writer's wording",
+   "gate": "measured, never tuned on",
+   "fixed_before_run": true,
+   "result": "16 of 30 found in the first three (5 of 10, 4 of 10, 7 of 10 by kind), against 10 of 10 in the author's own words",
+   "verdict": "not scored",
+   "cost_eur": 0,
+   "against_gate": "recorded",
+   "limits": [
+    "Thirty versions by one writer."
+   ]
+  },
+  {
+   "name": "the roles with and without examples on the programme dev people (live)",
+   "gate": "more journeys right with examples than without, and at least as many as the rules, before a sealed run decides",
+   "fixed_before_run": true,
+   "result": "rules 6 of 6; roles 3 of 6 (EUR 0.249); roles with examples 2 of 6 (EUR 0.3137)",
+   "verdict": "fail",
+   "cost_eur": 0.5627,
+   "against_gate": "not better",
+   "limits": [
+    "Six people.",
+    "The roles' own misses (the review part) dominate both arms."
+   ]
+  }
+ ],
+ "outcome": "DCLab's roles can read the closest business examples, but do not until a sealed arm shows they do better; on dev they did not, and the switch stays off.",
+ "lessons": [
+  "Measure what a role misses before giving it more to read: the examples could not supply a part the role never draws.",
+  "A weak search measured honestly is worth more than a strong one measured on its author's words."
+ ],
+ "risks": [
+  "The Home agent does not have find_examples yet; it comes after an arm passes.",
+  "The search's weakness on plain words limits what any role could read."
+ ],
+ "commits": [
+  "f37ede8"
+ ]
+}
