@@ -1,0 +1,361 @@
+{
+ "id": "CRT-003",
+ "experiment_id": "CRT-003",
+ "campaign_id": "certification_v1",
+ "kind": "certification",
+ "status": "completed",
+ "at": "2026-10-19T21:13:33+00:00",
+ "runs": [
+  {
+   "name": "binary replica s0",
+   "source": "replica",
+   "applies": true,
+   "criteria": {
+    "detection": true,
+    "traps": true,
+    "baseline": true,
+    "artifact": true,
+    "llm_off": true
+   },
+   "checks": [
+    {
+     "decision": "`final_refund_amount` is kept out of the model (paid only after a cancellation)",
+     "ok": true,
+     "detail": "its role: blocked"
+    },
+    {
+     "decision": "`subscriber_id` is kept out of the model (an identifier)",
+     "ok": true,
+     "detail": "its role: identifier"
+    },
+    {
+     "decision": "the holdout is the latest signups",
+     "ok": true,
+     "detail": "last 600 of 3000 rows by `signup_time`"
+    },
+    {
+     "decision": "scored by ROC-AUC (cancellations are not rare)",
+     "ok": true,
+     "detail": "roc_auc"
+    },
+    {
+     "decision": "the leakage audit measures how much the refund would have inflated the score (by more than 0.1)",
+     "ok": true,
+     "detail": "apparent lift 0.34356039289356244"
+    },
+    {
+     "decision": "the holdout ROC-AUC is at least 0.65 and 0.1 above chance",
+     "ok": true,
+     "detail": "0.7463216641298832 against 0.5"
+    }
+   ],
+   "holdout_metrics": {
+    "roc_auc": 0.7463216641298832,
+    "average_precision": 0.5398731707182224,
+    "recall_at_precision_target": 0.030864197530864196,
+    "precision_target": 0.9,
+    "precision_at_k_positives": 0.5246913580246914,
+    "accuracy": 0.745,
+    "majority_baseline_accuracy": 0.73,
+    "precision": 0.7142857142857143,
+    "recall": 0.09259259259259259,
+    "f1": 0.16393442622950818,
+    "brier": 0.17465386033842212,
+    "log_loss": 0.52837404016736,
+    "positive_rate": 0.27,
+    "threshold": 0.5,
+    "ap_lift": 1.999530261919342,
+    "fit_seconds": 0.0164885000049253
+   },
+   "baselines": {
+    "majority_class": {
+     "accuracy": 0.73,
+     "roc_auc": 0.5,
+     "average_precision_random_ranking": 0.27
+    }
+   },
+   "g4": true,
+   "seconds": 5.4
+  },
+  {
+   "name": "binary replica s1",
+   "source": "replica",
+   "applies": true,
+   "criteria": {
+    "detection": true,
+    "traps": true,
+    "baseline": true,
+    "artifact": true,
+    "llm_off": true
+   },
+   "checks": [
+    {
+     "decision": "`final_refund_amount` is kept out of the model (paid only after a cancellation)",
+     "ok": true,
+     "detail": "its role: blocked"
+    },
+    {
+     "decision": "`subscriber_id` is kept out of the model (an identifier)",
+     "ok": true,
+     "detail": "its role: identifier"
+    },
+    {
+     "decision": "the holdout is the latest signups",
+     "ok": true,
+     "detail": "last 600 of 3000 rows by `signup_time`"
+    },
+    {
+     "decision": "scored by ROC-AUC (cancellations are not rare)",
+     "ok": true,
+     "detail": "roc_auc"
+    },
+    {
+     "decision": "the leakage audit measures how much the refund would have inflated the score (by more than 0.1)",
+     "ok": true,
+     "detail": "apparent lift 0.3118883673151426"
+    },
+    {
+     "decision": "the holdout ROC-AUC is at least 0.65 and 0.1 above chance",
+     "ok": true,
+     "detail": "0.7220755468369741 against 0.5"
+    }
+   ],
+   "holdout_metrics": {
+    "roc_auc": 0.7220755468369741,
+    "average_precision": 0.49891976055003645,
+    "recall_at_precision_target": 0.033112582781456956,
+    "precision_target": 0.9,
+    "precision_at_k_positives": 0.4768211920529801,
+    "accuracy": 0.7633333333333333,
+    "majority_baseline_accuracy": 0.7483333333333333,
+    "precision": 0.6956521739130435,
+    "recall": 0.10596026490066225,
+    "f1": 0.1839080459770115,
+    "brier": 0.1670599056639447,
+    "log_loss": 0.5122878024619472,
+    "positive_rate": 0.25166666666666665,
+    "threshold": 0.5,
+    "ap_lift": 1.9824626247021317,
+    "fit_seconds": 0.015237459003401455
+   },
+   "baselines": {
+    "majority_class": {
+     "accuracy": 0.7483333333333333,
+     "roc_auc": 0.5,
+     "average_precision_random_ranking": 0.25166666666666665
+    }
+   },
+   "g4": true,
+   "seconds": 2.7
+  },
+  {
+   "name": "binary replica s2",
+   "source": "replica",
+   "applies": true,
+   "criteria": {
+    "detection": true,
+    "traps": true,
+    "baseline": true,
+    "artifact": true,
+    "llm_off": true
+   },
+   "checks": [
+    {
+     "decision": "`final_refund_amount` is kept out of the model (paid only after a cancellation)",
+     "ok": true,
+     "detail": "its role: blocked"
+    },
+    {
+     "decision": "`subscriber_id` is kept out of the model (an identifier)",
+     "ok": true,
+     "detail": "its role: identifier"
+    },
+    {
+     "decision": "the holdout is the latest signups",
+     "ok": true,
+     "detail": "last 600 of 3000 rows by `signup_time`"
+    },
+    {
+     "decision": "scored by ROC-AUC (cancellations are not rare)",
+     "ok": true,
+     "detail": "roc_auc"
+    },
+    {
+     "decision": "the leakage audit measures how much the refund would have inflated the score (by more than 0.1)",
+     "ok": true,
+     "detail": "apparent lift 0.3313248927244391"
+    },
+    {
+     "decision": "the holdout ROC-AUC is at least 0.65 and 0.1 above chance",
+     "ok": true,
+     "detail": "0.6929824561403509 against 0.5"
+    }
+   ],
+   "holdout_metrics": {
+    "roc_auc": 0.6929824561403509,
+    "average_precision": 0.4233771496826627,
+    "recall_at_precision_target": 0.013888888888888888,
+    "precision_target": 0.9,
+    "precision_at_k_positives": 0.4444444444444444,
+    "accuracy": 0.7616666666666667,
+    "majority_baseline_accuracy": 0.76,
+    "precision": 0.5294117647058824,
+    "recall": 0.0625,
+    "f1": 0.11180124223602485,
+    "brier": 0.1679639077602517,
+    "log_loss": 0.5148356165033815,
+    "positive_rate": 0.24,
+    "threshold": 0.5,
+    "ap_lift": 1.7640714570110947,
+    "fit_seconds": 0.012988665999728255
+   },
+   "baselines": {
+    "majority_class": {
+     "accuracy": 0.76,
+     "roc_auc": 0.5,
+     "average_precision_random_ranking": 0.24
+    }
+   },
+   "g4": true,
+   "seconds": 2.7
+  },
+  {
+   "name": "binary telco",
+   "source": "real",
+   "applies": true,
+   "criteria": {
+    "detection": true,
+    "traps": true,
+    "baseline": true,
+    "artifact": true,
+    "llm_off": true
+   },
+   "checks": [
+    {
+     "decision": "`customerID` is never a feature",
+     "ok": true,
+     "detail": "identifier"
+    }
+   ],
+   "holdout_metrics": {
+    "roc_auc": 0.8480440394187024,
+    "average_precision": 0.6775613047237719,
+    "recall_at_precision_target": 0.11320754716981132,
+    "precision_target": 0.9,
+    "precision_at_k_positives": 0.6540880503144654,
+    "accuracy": 0.82,
+    "majority_baseline_accuracy": 0.735,
+    "precision": 0.6888888888888889,
+    "recall": 0.5849056603773585,
+    "f1": 0.6326530612244898,
+    "brier": 0.13103379780343252,
+    "log_loss": 0.4135534583097316,
+    "positive_rate": 0.265,
+    "threshold": 0.5,
+    "ap_lift": 2.5568351121651767,
+    "fit_seconds": 0.04610899999534013
+   },
+   "baselines": {
+    "majority_class": {
+     "accuracy": 0.735,
+     "roc_auc": 0.5,
+     "average_precision_random_ranking": 0.265
+    }
+   },
+   "g4": true,
+   "seconds": 5.2
+  },
+  {
+   "name": "binary hyperack",
+   "source": "real",
+   "applies": true,
+   "criteria": {
+    "detection": true,
+    "traps": true,
+    "baseline": true,
+    "artifact": true,
+    "llm_off": true
+   },
+   "checks": [
+    {
+     "decision": "`final_customer_fare` is kept out",
+     "ok": true,
+     "detail": "blocked"
+    },
+    {
+     "decision": "`final_biker_fare` is kept out",
+     "ok": true,
+     "detail": "blocked"
+    }
+   ],
+   "holdout_metrics": {
+    "roc_auc": 0.9345520982783356,
+    "average_precision": 0.93195135023927,
+    "recall_at_precision_target": 0.8125,
+    "precision_target": 0.9,
+    "precision_at_k_positives": 0.8529411764705882,
+    "accuracy": 0.8783333333333333,
+    "majority_baseline_accuracy": 0.5466666666666666,
+    "precision": 0.9383259911894273,
+    "recall": 0.7830882352941176,
+    "f1": 0.8537074148296593,
+    "brier": 0.10693134168294437,
+    "log_loss": 0.3747617045868578,
+    "positive_rate": 0.4533333333333333,
+    "threshold": 0.5,
+    "ap_lift": 2.0557750372925074,
+    "fit_seconds": 0.0228502909958479
+   },
+   "baselines": {
+    "majority_class": {
+     "accuracy": 0.5466666666666666,
+     "roc_auc": 0.5,
+     "average_precision_random_ranking": 0.4533333333333333
+    }
+   },
+   "g4": true,
+   "seconds": 18.4
+  }
+ ],
+ "parts": {
+  "binary": {
+   "level": "certified",
+   "runs": [
+    {
+     "name": "binary telco",
+     "source": "real",
+     "applies": true,
+     "passed": true,
+     "failed": [],
+     "pending": []
+    },
+    {
+     "name": "binary hyperack",
+     "source": "real",
+     "applies": true,
+     "passed": true,
+     "failed": [],
+     "pending": []
+    },
+    {
+     "name": "binary replica, 3 seeds",
+     "source": "replica",
+     "applies": true,
+     "passed": true,
+     "failed": [],
+     "pending": []
+    }
+   ],
+   "missing": [],
+   "pending": [],
+   "failed": []
+  }
+ },
+ "replica_every_seed": true,
+ "limits": [
+  "Every run is the engine's quick mode with no model asked, so the LLM-off criterion holds by construction, said rather than measured.",
+  "Detection is the router's choice on each case's own data card for the problem's family; the replica counts once, only when every seed passes every criterion.",
+  "Telco and HyperAck are the recipes' two real datasets (D6): one public churn table and the owner's delivery table; a pass says the kind holds on them under these protocols, not on any other table."
+ ],
+ "rule": "The binary kind judged as a part on the recipes document's five criteria on its trap replica (three seeds) and the real datasets it names, every run through the engine with no model asked; certified only on a trap replica and two real datasets passing every criterion."
+}

@@ -1,0 +1,162 @@
+{
+ "id": "FND-001",
+ "experiment_id": "FND-001",
+ "campaign_id": "foundation_v1",
+ "kind": "data_foundation",
+ "status": "completed",
+ "at": "2026-10-19T21:12:10+00:00",
+ "seed": 0,
+ "entries": [
+  {
+   "schema_version": "dclab_core.table_entry.v1",
+   "name": "crm_customers",
+   "system": "crm",
+   "owner": "sales operations",
+   "keys": [
+    "id"
+   ],
+   "date_column": "since",
+   "rows": 712,
+   "checks": [
+    {
+     "name": "id never empty",
+     "passed": true,
+     "detail": "0 empty"
+    },
+    {
+     "name": "id unique",
+     "passed": true,
+     "detail": "0 repeated"
+    },
+    {
+     "name": "since readable",
+     "passed": true,
+     "detail": "0 unreadable; the newest 2025-08-20"
+    },
+    {
+     "name": "rows",
+     "passed": true,
+     "detail": "712 rows"
+    }
+   ]
+  },
+  {
+   "schema_version": "dclab_core.table_entry.v1",
+   "name": "billing_customers",
+   "system": "billing",
+   "owner": "finance",
+   "keys": [
+    "id"
+   ],
+   "date_column": "since",
+   "rows": 702,
+   "checks": [
+    {
+     "name": "id never empty",
+     "passed": true,
+     "detail": "0 empty"
+    },
+    {
+     "name": "id unique",
+     "passed": true,
+     "detail": "0 repeated"
+    },
+    {
+     "name": "since readable",
+     "passed": true,
+     "detail": "0 unreadable; the newest 2025-08-21"
+    },
+    {
+     "name": "rows",
+     "passed": true,
+     "detail": "702 rows"
+    }
+   ]
+  },
+  {
+   "schema_version": "dclab_core.table_entry.v1",
+   "name": "support_customers",
+   "system": "support",
+   "owner": "customer care",
+   "keys": [
+    "id"
+   ],
+   "date_column": "since",
+   "rows": 717,
+   "checks": [
+    {
+     "name": "id never empty",
+     "passed": true,
+     "detail": "0 empty"
+    },
+    {
+     "name": "id unique",
+     "passed": true,
+     "detail": "0 repeated"
+    },
+    {
+     "name": "since readable",
+     "passed": true,
+     "detail": "0 unreadable; the newest 2025-08-21"
+    },
+    {
+     "name": "rows",
+     "passed": true,
+     "detail": "717 rows"
+    }
+   ]
+  },
+  {
+   "schema_version": "dclab_core.table_entry.v1",
+   "name": "web_customers",
+   "system": "web",
+   "owner": "e-commerce",
+   "keys": [
+    "id"
+   ],
+   "date_column": "since",
+   "rows": 749,
+   "checks": [
+    {
+     "name": "id never empty",
+     "passed": true,
+     "detail": "0 empty"
+    },
+    {
+     "name": "id unique",
+     "passed": true,
+     "detail": "0 repeated"
+    },
+    {
+     "name": "since readable",
+     "passed": true,
+     "detail": "0 unreadable; the newest 2025-08-22"
+    },
+    {
+     "name": "rows",
+     "passed": true,
+     "detail": "749 rows"
+    }
+   ]
+  }
+ ],
+ "records": 2880,
+ "entities": 1202,
+ "people": 1200,
+ "entities_mixing_people": 0,
+ "split_people": 2,
+ "pair_f1": 0.9961,
+ "pair_f1_ci95": [
+  0.9883,
+  1.0
+ ],
+ "chosen": "single_field",
+ "beats": {
+  "exact": true
+ },
+ "limits": [
+  "Invented customers: the e-mail is close to unique, so one field nearly decides; real systems are harder.",
+  "The known matches are every pair of the replica's truth; a company knows only the pairs it confirmed."
+ ],
+ "detail": "runs/FND-001_entities.jsonl.gz"
+}

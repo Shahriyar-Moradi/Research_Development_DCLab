@@ -1,0 +1,99 @@
+{
+ "id": "DPA-001",
+ "experiment_id": "DPA-001",
+ "campaign_id": "department_v1",
+ "kind": "department_agent",
+ "status": "completed",
+ "at": "2026-10-19T21:12:01+00:00",
+ "products": 2000,
+ "agents": {
+  "careful": {
+   "policy": {
+    "schema_version": "dclab_core.department_policy.v1",
+    "name": "pricing",
+    "actions": [
+     "set_price"
+    ],
+    "field": "price",
+    "max_change": 0.25,
+    "budget": 60000.0,
+    "approval_above": 1500.0,
+    "level": "shadow",
+    "promote_after": 50,
+    "read_only": false
+   },
+   "products": 2000,
+   "proposals": 1153,
+   "applied": 206,
+   "flagged": 60,
+   "refused": 837,
+   "refused_applied": 0,
+   "needs_approval": 5,
+   "approval_applied": 0,
+   "spent": 59999.03,
+   "budget": 60000.0,
+   "levels": [
+    {
+     "step": "s00050",
+     "from": "shadow",
+     "to": "flag",
+     "right_in_a_row": 50
+    },
+    {
+     "step": "s00100",
+     "from": "flag",
+     "to": "act_with_check",
+     "right_in_a_row": 50
+    },
+    {
+     "step": "s00150",
+     "from": "act_with_check",
+     "to": "act",
+     "right_in_a_row": 50
+    }
+   ],
+   "final_level": "act",
+   "by_level": {
+    "shadow": 50,
+    "flag": 50,
+    "act_with_check": 50,
+    "act": 1003
+   }
+  },
+  "aggressive": {
+   "policy": {
+    "schema_version": "dclab_core.department_policy.v1",
+    "name": "pricing",
+    "actions": [
+     "set_price"
+    ],
+    "field": "price",
+    "max_change": 0.25,
+    "budget": 60000.0,
+    "approval_above": 1500.0,
+    "level": "shadow",
+    "promote_after": 50,
+    "read_only": false
+   },
+   "products": 2000,
+   "proposals": 1306,
+   "applied": 0,
+   "flagged": 0,
+   "refused": 835,
+   "refused_applied": 0,
+   "needs_approval": 0,
+   "approval_applied": 0,
+   "spent": 0.0,
+   "budget": 60000.0,
+   "levels": [],
+   "final_level": "shadow",
+   "by_level": {
+    "shadow": 1306
+   }
+  }
+ },
+ "limits": [
+  "Invented products and a written person: the record says the guardrails hold (nothing past a limit or above the approval amount applied, every step undoable), not that any discount is wise."
+ ],
+ "detail": "runs/DPA-001_steps.jsonl.gz"
+}
