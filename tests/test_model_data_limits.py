@@ -171,8 +171,9 @@ class DataLimitTests(unittest.TestCase):
         drafts.update(did, lambda d: d.update(status="built", project_id=pid))
         home = HomeAgent(drafts, None)
         services = type("S", (), {"projects": store, "gateway": gw, "store": type("H", (), {"home": Path(tempfile.mkdtemp())})()})()
-        for _ in range(0, len(names), 4):
-            home.reply_built(did, "show me everything about the models, the data and the leakage", orchestrator.Orchestrator(services, home), pid)
+        with mock.patch.dict(os.environ, {"DCLAB_BUILT_CHAT_SERVE": "model"}):  # the model's prompts are what this test reads
+            for _ in range(0, len(names), 4):
+                home.reply_built(did, "show me everything about the models, the data and the leakage", orchestrator.Orchestrator(services, home), pid)
         shown = {m["card"]["title"] for m in drafts.get(did)["messages"] if m["kind"] == "project_card"}
         self.assertGreaterEqual(len(shown), len(names) - 2, shown)  # every read tool's card (the notebook's and the improvement run's lists are empty here)
         self.assertEqual(self.assertWithinLimit("home_orchestrator"), set())

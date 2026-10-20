@@ -450,6 +450,22 @@ CHANGE_FIELDS = {"outcome": "the outcome column", "prediction_moment": "the pred
                  "unit": "what one prediction is for", "family": "the kind of problem", "time_column": "the column that orders the rows"}
 
 
+def _model_serves() -> bool:
+    """The built-chat journeys' serve rule (dclab_rnd.agent_eval.journeys.built.model_serves). ``DCLAB_BUILT_CHAT_SERVE``: "model" or
+    "rules" overrides it (tests, a measurement's own runs); unset, the measurement decides. A rule that cannot be read: the rules serve."""
+    import os
+
+    forced = os.environ.get("DCLAB_BUILT_CHAT_SERVE", "").strip().lower()
+    if forced in ("model", "rules"):
+        return forced == "model"
+    try:
+        from ..agent_eval.journeys.built import model_serves
+
+        return model_serves()
+    except Exception:  # noqa: BLE001 - fail closed (the review of step 3)
+        return False
+
+
 def _draft(t: Turn) -> dict[str, Any]:
     return t.agent.store.get(t.draft_id)
 
@@ -1153,7 +1169,18 @@ class Orchestrator:
         self._refresh_boards(draft_id)
         record: dict[str, Any] = {"at": now(), "draft": draft_id, "project": project_id, "text": text}
         client = self.gateway.client(PURPOSE, project_id=project_id) if self.gateway is not None else None
+        if client is not None and not _model_serves():  # step 3: the model serves only while the built-chat journeys say it should
+            record["served_by"] = "rules: the model did not pass the built chat's sealed journeys"
+            client = None
         reply, path = None, "rules"
+        shadow = None
+        if client is not None:  # step 3: the rules' reading of this turn, recorded beside the model's, never used (agreement, training labels)
+            try:
+                data = _data_card(t)
+                shadow = [n for n, _ in plan(text, t.offered, [c.name for tbl in (data.tables if data is not None else []) for c in tbl.columns],
+                                             _latest_version(t) is not None)]
+            except Exception:  # noqa: BLE001 - a shadow never stops a turn
+                shadow = None
         if client is not None:
             try:
                 reply = self.model_turn(t, client, record)
@@ -1169,6 +1196,8 @@ class Orchestrator:
             self.agent.store.update(draft_id, lambda d: (d.get("problem_change") or {}).update(status="expired", expired_at=now())
                                     if (d.get("problem_change") or {}).get("status") == "proposed" and (d.get("problem_change") or {}).get("id") == offered_id else None)
         record.update(path=path, reply=reply, tasks=t.tasks, cards=[c.get("title") for c in t.shown.values()])
+        if path == "model" and shadow is not None:
+            record["rules_shadow"] = shadow
         self._finish(t, reply, path)
         self._keep(record)
         return record
@@ -1193,8 +1222,11 @@ class Orchestrator:
             messages = [{"role": "system", "content": policy.system}, *past]
         else:
             messages = [{"role": "system", "content": policy.system}, *past, {"role": "user", "content": now_said}]
-        out = run_policy(policy, client, registry, messages, context=t, contexts={"home": t}, trace=tracer(AGENT))
-        record["steps"] = [{"n": s.n, "tool": s.tool, "arguments": s.arguments, "ok": s.ok, "result": s.result, "seconds": round(s.seconds, 3)} for s in out.steps]
+        record["steps"] = []
+
+        def kept(s: Any) -> None:  # each step kept as it runs: a model that fails after a tool still shows what it did (the review of step 3)
+            record["steps"].append({"n": s.n, "tool": s.tool, "arguments": s.arguments, "ok": s.ok, "result": s.result, "seconds": round(s.seconds, 3)})
+        out = run_policy(policy, client, registry, messages, context=t, contexts={"home": t}, trace=tracer(AGENT), on_step=kept)
         record["usage"], record["stopped"] = out.usage, out.stopped
         record["spent_eur"] = round(float(getattr(client, "spent_eur", 0.0) or 0.0), 6)
         said = (out.final or "").strip()
@@ -1225,6 +1257,8 @@ class Orchestrator:
                      _latest_version(t) is not None)  # only explicit build words reach the planner (VERSION_BUILD), which says why a version cannot be built
         t.change_unclear = problem_change(t.text, ()) == {} and steps == [("show_problem", {})]
         record["plan"] = [{"tool": n, "arguments": a} for n, a in steps]
+        if record.get("steps"):  # the model ran tools before it failed: kept apart, the rules' steps are their own
+            record["model_steps"] = record["steps"]
         with harness.session(RULES_AGENT) as s:
             for name, args in steps:
                 with s.timed(name, args) as out:

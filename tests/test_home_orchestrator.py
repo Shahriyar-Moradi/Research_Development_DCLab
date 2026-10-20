@@ -138,7 +138,8 @@ def gateway(replies):
     return Gateway(FileUsage(Path(tempfile.mkdtemp()) / "u.jsonl"), transport=lambda tier, purpose: script)
 
 
-CLEAN = {k: "" for k in ("OPENAI_BASE_URL", "OPENAI_MODEL", "DCLAB_LLM_BASE_URL", "DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "DCLAB_NO_LIVE_MODELS")} | {"OPENAI_API_KEY": "k"}
+CLEAN = {k: "" for k in ("OPENAI_BASE_URL", "OPENAI_MODEL", "DCLAB_LLM_BASE_URL", "DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "DCLAB_NO_LIVE_MODELS")} | \
+    {"OPENAI_API_KEY": "k", "DCLAB_BUILT_CHAT_SERVE": "model"}  # the model serves here, whatever a stored sealed result says (the review of step 3)
 
 
 class Chat:
@@ -557,6 +558,16 @@ class ModelTests(unittest.TestCase):
         chat.say("yes")
         self.assertEqual(chat.store.get(chat.draft)["problem_change"]["status"], "confirmed")
         self.assertIn("table_columns", Seen.prompts[0])  # the model sees the table's column names to name an outcome exactly
+
+    def test_the_rules_reading_is_recorded_beside_the_model_and_the_switch_can_hand_the_chat_to_the_rules(self):  # step 3
+        chat = Chat(self, gateway([call("show_models", {}, 1), answer("Logistic regression leads.")]))
+        chat.say("which model is the best?")
+        rows = [json.loads(l) for f in (chat.services.home / "home_orchestrator").glob("*.jsonl") for l in f.read_text().splitlines()]
+        self.assertEqual(rows[-1]["path"], "model")
+        self.assertEqual(rows[-1]["rules_shadow"], ["show_models"])  # the rules' own reading, never used
+        with mock.patch.object(orch, "_model_serves", return_value=False):
+            new = chat.since("show the models")
+        self.assertEqual(new[-1]["path"], "rules")
 
     def test_a_failing_model_leaves_the_turn_to_the_rules(self):
         chat = Chat(self, gateway([]))  # the script is empty: the first request fails
