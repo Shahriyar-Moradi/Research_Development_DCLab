@@ -241,6 +241,11 @@ def feedback(body: dict[str, Any], book: Any) -> dict[str, Any]:
             raise HTTPException(404, "No such decision")
     event = experience.record("feedback.given", "person", {**payload, "version": message_version(on, ref, conversation)},
                               conversation=conversation, project=ids.get("project"))
+    from ... import agent_metrics
+
+    if rating in ("helpful", "unhelpful", "wrong"):  # the agents' ledger: a person's rating of a reply, by the role that wrote it
+        agent_name = "home_agent" if on in ("message", "reply", "") else (record.point if record is not None else on)  # a chat reply is the Home agent's
+        agent_metrics.emit(agent_name, "feedback_helpful", 1.0 if rating == "helpful" else 0.0, ref=ref or None)
     labelled = None
     point = POINTS.get(record.point) if record is not None and rating == "wrong" else None
     if point is not None and point.answer == "noul" and isinstance(record.value_used, bool) and (allows(role, "write") or allows(role, "review")):

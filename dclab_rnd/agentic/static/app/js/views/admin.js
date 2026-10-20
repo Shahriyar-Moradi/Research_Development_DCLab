@@ -189,7 +189,7 @@ DC.view('admin', {
     if (intern.status === 'fulfilled') this.paintModels(el, intern.value, gw.status === 'fulfilled' ? gw.value : null);
     this.paintStats(el, pol.value, lim.status === 'fulfilled' ? lim.value : null, intern.status === 'fulfilled' ? intern.value : null);
     this.S.offset = 0;
-    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadDatasets(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el), this.loadTeamSettings(el)]);
+    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadDatasets(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el), this.loadTeamSettings(el), this.loadAgents(el)]);
   },
 
   // 28.8: every walk of the teams, for the trace view
@@ -210,6 +210,26 @@ DC.view('admin', {
   },
 
   // 29.1: the students' register: a decision model behind every choice, and how far each is trusted
+  // the agents' scorecard: the metrics ledger, per agent and per suite
+  async loadAgents(el) {
+    const { $, esc } = DC;
+    let r;
+    try { r = await DC.client.agentScorecard({ quiet: true }); } catch (e) { DC.states.failed($('#ag-body', el), e, { retry: () => this.loadAgents(el), cols: 10 }); return; }
+    const n = v => Number(v || 0).toLocaleString('en-US');
+    const rate = m => (m ? `${(m.rate * 100).toFixed(m.rate < 0.1 || m.rate > 0.9 ? 1 : 0)}% <span class="muted xs">${n(m.n)} · ${(m.interval[0] * 100).toFixed(0)}–${(m.interval[1] * 100).toFixed(0)}</span>` : '—');
+    const agents = r.agents || [], suites = r.suites || [];
+    $('#ag-stats', el).innerHTML = [[agents.length, 'agents with measurements'], [n(agents.reduce((a, x) => a + x.requests, 0)), 'model requests recorded'],
+      [suites.length, 'evaluation suites'], [n(r.rows), 'measurements in the ledger']].map(([v, l]) => `<div class="stat"><span class="v">${esc(String(v))}</span><span class="l">${esc(l)}</span></div>`).join('');
+    $('#ag-body', el).innerHTML = agents.length ? agents.map(a => `<tr><td><b>${esc(a.agent)}</b><div class="cell-sub">${esc(Object.keys(a.models).join(', ') || '')}</div></td><td class="num mono">${n(a.requests)}</td>`
+      + `<td class="num">${rate(a.rates.request_ok)}</td><td class="num">${rate(a.rates.output_check)}</td><td class="num">${rate(a.rates.step_ok)}</td><td class="num">${rate(a.rates.proposal_accepted)}</td><td class="num">${rate(a.rates.feedback_helpful)}</td>`
+      + `<td class="num mono">${a.p50_seconds == null ? '—' : a.p50_seconds + ' · ' + a.p95_seconds}</td><td class="num mono">${a.eur}</td>`
+      + `<td class="mono xs">${Object.entries(a.prompts).map(([h, c]) => `${esc(h.slice(0, 8))}×${n(c)}`).join(' ') || '—'}</td></tr>`).join('')
+      : '<tr><td colspan="10"><div class="empty">Nothing measured yet: agents write here as they work (requests, steps, checks, proposals, ratings).</div></td></tr>';
+    $('#ag-note', el).textContent = r.note || '';
+    $('#ag-suites', el).innerHTML = suites.length ? suites.map(s => `<tr><td><b>${esc(s.suite)}</b></td><td class="num mono">${n(s.runs)}</td><td class="num mono">${n(s.passed)}</td><td class="mono">${esc(s.latest.ref)}</td><td class="mono xs">${esc(String(s.latest.at || '').slice(0, 10))}</td>`
+      + `<td><span class="pill ${s.latest.pass === true ? 'ok' : s.latest.pass === false ? 'bad' : 'outline'}">${s.latest.pass === true ? 'pass' : s.latest.pass === false ? 'not passed' : 'no verdict'}</span></td><td class="num mono">${s.latest.spent_eur == null ? '—' : s.latest.spent_eur}</td></tr>`).join('')
+      : '<tr><td colspan="7"><div class="empty">No evaluation result files found.</div></td></tr>';
+  },
   async loadStudents(el) {
     const { $, esc } = DC;
     let r;

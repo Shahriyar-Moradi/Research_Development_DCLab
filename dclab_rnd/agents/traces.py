@@ -222,6 +222,10 @@ class Tracer:
                 self.store.record(row)
             except Exception:  # noqa: BLE001 — losing a trace row must not lose the user's work
                 pass
+        from .. import agent_metrics  # the agents' ledger: a step that worked, or an error, a refusal, an approval wanted
+
+        agent_metrics.emit(str(self.agent), "step_ok", 1.0 if row["verdict"] in ("ok", "answered") else 0.0, run=self.run_id, ref=tool,
+                           extra={"verdict": row["verdict"], "seconds": row["seconds"]})
         from ..experience import hooks  # 19.3: the step and its tool call in the session's record too
 
         # the model's own words, and the request a step names (a campaign phase's): in the session's record, not the trace row

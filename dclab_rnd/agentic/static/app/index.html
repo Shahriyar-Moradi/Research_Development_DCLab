@@ -2113,6 +2113,18 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
       <div class="panel-foot bar" id="audit-foot" hidden><span id="audit-range"></span><span data-style="flex:1"></span><button type="button" class="btn sm" id="audit-newer">Newer</button><button type="button" class="btn sm" id="audit-older">Older</button></div>
     </div>
   </div>
+  <div class="pane" data-pane="agents" data-label="Agents">
+    <div class="stats" id="ag-stats"></div>
+    <div class="panel" data-f="admin.agents">
+      <div class="panel-head"><div class="panel-title"><h2>How each agent is doing</h2><span class="sub">Every model request, tool step, output check, proposal and rating, kept per agent and prompt version in the workspace's metrics ledger; rates carry their 95% interval.</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Agent</th><th class="num">Requests</th><th class="num">Answered</th><th class="num">Output checks passed</th><th class="num">Steps that worked</th><th class="num">Proposals accepted</th><th class="num">Rated helpful</th><th class="num">p50 · p95 s</th><th class="num">EUR</th><th>Prompt versions</th></tr></thead><tbody id="ag-body"></tbody></table></div>
+      <div class="panel-body small muted" id="ag-note"></div>
+    </div>
+    <div class="panel" data-f="admin.agents.suites">
+      <div class="panel-head"><div class="panel-title"><h2>The evaluation suites</h2><span class="sub">The latest result of each suite in evidence/campaigns, with how many runs passed. Evidence about what ran; the gates, not this table, switch a role on or off.</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Suite</th><th class="num">Runs</th><th class="num">Passed</th><th>Latest</th><th>When</th><th>Verdict</th><th class="num">EUR</th></tr></thead><tbody id="ag-suites"></tbody></table></div>
+    </div>
+  </div>
   <div class="pane" data-pane="students" data-label="Students">
     <div class="stats" id="stu-stats">
       <div class="stat"><span class="v">—</span><span class="l">choices DCLab makes</span></div>

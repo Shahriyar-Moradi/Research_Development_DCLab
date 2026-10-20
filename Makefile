@@ -337,6 +337,10 @@ roles-judged:  ## the agentic layer judged (18.9): every role and the team from 
 kinds-check:  ## every problem kind's acceptance on its replica (16.2): writes dclab_rnd/kinds/capability.json, which the capability matrix reads (no model is called)
 	$(TEST_TMP) DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.kinds $(ARGS)
 
+agent-metrics:  ## the agents' metrics ledger: the evaluation results read in, then the scorecard (ARGS="--home DIR" for another workspace)
+	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_metrics sync $(ARGS)
+	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_metrics show $(ARGS)
+
 agent-eval:  ## the scripted judgment suite (A4.1): planted traps, the standard plan and two reference policies; writes a new AEV result
 	@n=$$(ls evidence/campaigns/agent_eval_v1/results/AEV-*.json 2>/dev/null | wc -l | tr -d ' '); \
 	$(TEST_TMP) DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_eval --output evidence/campaigns/agent_eval_v1/results/AEV-$$(printf '%03d' $$((n + 1)))_judgment_v1_scripted.json

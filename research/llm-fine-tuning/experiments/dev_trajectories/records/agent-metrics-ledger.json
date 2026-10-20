@@ -1,0 +1,60 @@
+{
+ "package": "agent-metrics-ledger",
+ "title": "One metrics ledger under the hood for every agent, a scorecard route and an Admin Agents tab",
+ "date": "2026-10-20",
+ "request": "After finishing: how can we measure our agents' performance? I want to keep track of all their metrics somewhere under the hood.",
+ "spec": "Measurements existed in many places (eval result files per suite, the model request log, step traces, corrections, feedback, the shadow and tutor registers) and nothing joined them or kept them over time per prompt version.",
+ "plan": [
+  "Map what already measures",
+  "An append-only ledger per workspace, one line per measurement with the agent, metric, value, n, source, prompt version and model",
+  "Write it where each measurement is made: the gateway, output checks, the tracer, corrections, feedback",
+  "Read the evaluation result files in once each",
+  "One scorecard route and one Admin tab"
+ ],
+ "decisions": [
+  {
+   "decision": "Live measurements are hooked where they happen; the twelve evaluation writers are not hooked one by one: their result files are read in generically, once each.",
+   "why": "One reader covers every suite, present and past, and a new suite needs no change."
+  },
+  {
+   "decision": "The ledger is evidence only: it never switches an agent on or off.",
+   "why": "The gates and roles_judged.json decide that, from the evaluations; a live rate is not a test."
+  },
+  {
+   "decision": "Every row carries the prompt version (its content hash).",
+   "why": "A score is never read across prompts; a regression after a prompt change is visible."
+  }
+ ],
+ "change": "dclab_rnd/agent_metrics.py (new), models/gateway.py (record, check), corrections.py, agents/traces.py, agentic/pages/ledger.py (feedback), agentic/routers/core.py (GET /api/models/scorecard), admin.html (Agents tab), Makefile (agent-metrics), tests/test_agent_metrics.py.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "owner",
+   "severity": "gap",
+   "defect": "No place held an agent's metrics together or over time.",
+   "scenario": "To know how the notebook agent or the intern was doing, a person had to read result files, the usage log and the corrections by hand, and a prompt change left no trace in any score.",
+   "cause": "Each measurement was written for its own reader.",
+   "fix": "The ledger, the hooks, the scorecard and the tab.",
+   "test": "tests/test_agent_metrics.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The evaluation results read into the ledger",
+   "gate": "each result file once, numbers only",
+   "result": "23 suites and 434 measurements read from the repository's results; a second read added none",
+   "verdict": "pass",
+   "limits": [
+    "live rows start from now: only evaluation rows exist for the past"
+   ]
+  }
+ ],
+ "outcome": "Every agent's requests, steps, checks, proposals and ratings are kept per prompt version and shown with intervals beside the evaluation suites.",
+ "lessons": [
+  "Read result files generically instead of hooking every writer: it covers the past and the next suite."
+ ],
+ "risks": [
+  "Live rows only exist from now on; the eval writers are not hooked, so a result shows once the scorecard or make agent-metrics reads it."
+ ],
+ "commits": []
+}

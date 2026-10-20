@@ -140,6 +140,18 @@
       <div class="panel-foot bar" id="audit-foot" hidden><span id="audit-range"></span><span data-style="flex:1"></span><button type="button" class="btn sm" id="audit-newer">Newer</button><button type="button" class="btn sm" id="audit-older">Older</button></div>
     </div>
   </div>
+  <div class="pane" data-pane="agents" data-label="Agents">
+    <div class="stats" id="ag-stats"></div>
+    <div class="panel" data-f="admin.agents">
+      <div class="panel-head"><div class="panel-title"><h2>How each agent is doing</h2><span class="sub">Every model request, tool step, output check, proposal and rating, kept per agent and prompt version in the workspace's metrics ledger; rates carry their 95% interval.</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Agent</th><th class="num">Requests</th><th class="num">Answered</th><th class="num">Output checks passed</th><th class="num">Steps that worked</th><th class="num">Proposals accepted</th><th class="num">Rated helpful</th><th class="num">p50 · p95 s</th><th class="num">EUR</th><th>Prompt versions</th></tr></thead><tbody id="ag-body"></tbody></table></div>
+      <div class="panel-body small muted" id="ag-note"></div>
+    </div>
+    <div class="panel" data-f="admin.agents.suites">
+      <div class="panel-head"><div class="panel-title"><h2>The evaluation suites</h2><span class="sub">The latest result of each suite in evidence/campaigns, with how many runs passed. Evidence about what ran; the gates, not this table, switch a role on or off.</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Suite</th><th class="num">Runs</th><th class="num">Passed</th><th>Latest</th><th>When</th><th>Verdict</th><th class="num">EUR</th></tr></thead><tbody id="ag-suites"></tbody></table></div>
+    </div>
+  </div>
   <div class="pane" data-pane="students" data-label="Students">
     <div class="stats" id="stu-stats">
       <div class="stat"><span class="v">—</span><span class="l">choices DCLab makes</span></div>
@@ -462,7 +474,7 @@ DC.view('admin', {
     if (intern.status === 'fulfilled') this.paintModels(el, intern.value, gw.status === 'fulfilled' ? gw.value : null);
     this.paintStats(el, pol.value, lim.status === 'fulfilled' ? lim.value : null, intern.status === 'fulfilled' ? intern.value : null);
     this.S.offset = 0;
-    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadDatasets(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el), this.loadTeamSettings(el)]);
+    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadDatasets(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el), this.loadTeamSettings(el), this.loadAgents(el)]);
   },
 
   // 28.8: every walk of the teams, for the trace view
@@ -483,6 +495,26 @@ DC.view('admin', {
   },
 
   // 29.1: the students' register: a decision model behind every choice, and how far each is trusted
+  // the agents' scorecard: the metrics ledger, per agent and per suite
+  async loadAgents(el) {
+    const { $, esc } = DC;
+    let r;
+    try { r = await DC.client.agentScorecard({ quiet: true }); } catch (e) { DC.states.failed($('#ag-body', el), e, { retry: () => this.loadAgents(el), cols: 10 }); return; }
+    const n = v => Number(v || 0).toLocaleString('en-US');
+    const rate = m => (m ? `${(m.rate * 100).toFixed(m.rate < 0.1 || m.rate > 0.9 ? 1 : 0)}% <span class="muted xs">${n(m.n)} · ${(m.interval[0] * 100).toFixed(0)}–${(m.interval[1] * 100).toFixed(0)}</span>` : '—');
+    const agents = r.agents || [], suites = r.suites || [];
+    $('#ag-stats', el).innerHTML = [[agents.length, 'agents with measurements'], [n(agents.reduce((a, x) => a + x.requests, 0)), 'model requests recorded'],
+      [suites.length, 'evaluation suites'], [n(r.rows), 'measurements in the ledger']].map(([v, l]) => `<div class="stat"><span class="v">${esc(String(v))}</span><span class="l">${esc(l)}</span></div>`).join('');
+    $('#ag-body', el).innerHTML = agents.length ? agents.map(a => `<tr><td><b>${esc(a.agent)}</b><div class="cell-sub">${esc(Object.keys(a.models).join(', ') || '')}</div></td><td class="num mono">${n(a.requests)}</td>`
+      + `<td class="num">${rate(a.rates.request_ok)}</td><td class="num">${rate(a.rates.output_check)}</td><td class="num">${rate(a.rates.step_ok)}</td><td class="num">${rate(a.rates.proposal_accepted)}</td><td class="num">${rate(a.rates.feedback_helpful)}</td>`
+      + `<td class="num mono">${a.p50_seconds == null ? '—' : a.p50_seconds + ' · ' + a.p95_seconds}</td><td class="num mono">${a.eur}</td>`
+      + `<td class="mono xs">${Object.entries(a.prompts).map(([h, c]) => `${esc(h.slice(0, 8))}×${n(c)}`).join(' ') || '—'}</td></tr>`).join('')
+      : '<tr><td colspan="10"><div class="empty">Nothing measured yet: agents write here as they work (requests, steps, checks, proposals, ratings).</div></td></tr>';
+    $('#ag-note', el).textContent = r.note || '';
+    $('#ag-suites', el).innerHTML = suites.length ? suites.map(s => `<tr><td><b>${esc(s.suite)}</b></td><td class="num mono">${n(s.runs)}</td><td class="num mono">${n(s.passed)}</td><td class="mono">${esc(s.latest.ref)}</td><td class="mono xs">${esc(String(s.latest.at || '').slice(0, 10))}</td>`
+      + `<td><span class="pill ${s.latest.pass === true ? 'ok' : s.latest.pass === false ? 'bad' : 'outline'}">${s.latest.pass === true ? 'pass' : s.latest.pass === false ? 'not passed' : 'no verdict'}</span></td><td class="num mono">${s.latest.spent_eur == null ? '—' : s.latest.spent_eur}</td></tr>`).join('')
+      : '<tr><td colspan="7"><div class="empty">No evaluation result files found.</div></td></tr>';
+  },
   async loadStudents(el) {
     const { $, esc } = DC;
     let r;

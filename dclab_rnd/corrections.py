@@ -42,6 +42,13 @@ def record(what: str, before: Any, after: Any, *, reason: Optional[str] = None, 
         folder.mkdir(parents=True, exist_ok=True)
         with open(folder / f"{now:%d}.jsonl", "a", encoding="utf-8") as fh:
             fh.write(json.dumps(doc, ensure_ascii=False, default=str) + "\n")
+        from . import agent_metrics  # the agents' ledger: what a person did with what was proposed
+
+        answer = after.get("answer") if isinstance(after, dict) else None
+        if what == "notebook_cell" and answer in ("accepted", "rejected"):
+            agent_metrics.emit("notebook_cell", "proposal_accepted", 1.0 if answer == "accepted" else 0.0, ref=project, home=home)
+        else:
+            agent_metrics.emit(what, "correction", 1.0, ref=project or draft, home=home)
         return doc
     except Exception:  # noqa: BLE001 - a record of the change, never a reason for it to fail
         return None

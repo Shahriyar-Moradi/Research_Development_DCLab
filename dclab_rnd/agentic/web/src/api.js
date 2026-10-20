@@ -310,6 +310,7 @@
     modelOverview: ["GET", "/models", [], []],
     modelRoles: ["GET", "/models/roles", [], []],
     changeRouting: ["POST", "/models/routing", [], []],
+    agentScorecard: ["GET", "/models/scorecard", [], []],
     opsEvidenceRecent: ["GET", "/ops/evidence-recent", [], ["limit"]],
     opsJobs: ["GET", "/ops/jobs", [], ["limit"]],
     opsJob: ["GET", "/ops/jobs/{job_id}", ["job_id"], []],
@@ -981,6 +982,12 @@
    *  @returns {Promise<ModelsSummary>} */
   client.changeRouting = (...args) => call('changeRouting', args);
   client.path.changeRouting = (...args) => build('changeRouting', args).path;
+  /** GET /api/models/scorecard: Agent Scorecard
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.agentScorecard = (...args) => call('agentScorecard', args);
+  client.path.agentScorecard = (...args) => build('agentScorecard', args).path;
+  client.href.agentScorecard = (...args) => '/api' + build('agentScorecard', args).path;
   /** GET /api/ops/evidence-recent: Ops Evidence Recent
    *  @param {{query?: {limit?: *}, headers?: Object}} [opts]
    *  @returns {Promise<Page>} */

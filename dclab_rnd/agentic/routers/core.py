@@ -135,6 +135,23 @@ async def model_roles(s: Services = Depends(services)):
     return {"roles": await asyncio.to_thread(overview.roles, s.gateway)}
 
 
+@router.get("/api/models/scorecard", response_model=Doc)
+async def agent_scorecard(s: Services = Depends(services)):
+    """The agents' scorecard: per agent the rates of what is measured live (requests answered, outputs that passed their check,
+    steps that worked, proposals accepted, replies rated helpful) with Wilson intervals, latency, cost, the prompt versions and
+    models seen, and the latest result of every evaluation suite. Read from the workspace's metrics ledger
+    (``dclab_rnd.agent_metrics``); evidence about what ran, never a switch for any agent."""
+    from ... import agent_metrics
+
+    home = s.store.home
+
+    def card() -> dict[str, Any]:
+        agent_metrics.sync_eval(home)  # the evaluation results not yet in the ledger, each once
+        return agent_metrics.scorecard(home)
+
+    return await asyncio.to_thread(card)
+
+
 @router.post("/api/models/routing", response_model=ModelsSummary)
 async def change_routing(body: RoutingChange, request: Request, s: Services = Depends(services)):
     """Set a purpose's shadow (a local model that answers beside it, never used) or move the purpose to another

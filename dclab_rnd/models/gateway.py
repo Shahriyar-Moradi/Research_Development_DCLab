@@ -254,6 +254,11 @@ class Gateway:
                                      cache_write_1h=int((usage or {}).get("cache_write_1h_tokens") or 0))
         except ValueError:  # a broken price file: the answer is kept and the request counted in tokens
             eur, basis = None, "no price"
+        from .. import agent_metrics  # the agents' ledger: one line per request, whatever the usage log is
+
+        agent_metrics.emit(purpose, "request_ok", 1.0 if outcome == "ok" else 0.0, model=model, run=draft_id or project_id,
+                           extra={"seconds": round(seconds, 2), "cost_eur": eur, "tokens_in": tokens_in, "tokens_out": tokens_out, "attempts": attempts,
+                                  "outcome": outcome}, home=getattr(self, "home", None))
         if self.usage is None:
             return eur
         try:
@@ -271,6 +276,9 @@ class Gateway:
 
     def check(self, purpose: str, model: str, passed: bool, reason: str = "", tier: str | None = None) -> None:
         """Record whether a model's output passed the code that checks it (never the output itself)."""
+        from .. import agent_metrics
+
+        agent_metrics.emit(purpose, "output_check", 1.0 if passed else 0.0, model=model, ref=(reason or "")[:120] or None, home=getattr(self, "home", None))
         if self.usage is None:
             return
         try:
