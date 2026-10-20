@@ -64,14 +64,19 @@ class DraftWork:
     def process(self, draft_id: str, asset_id: str) -> dict[str, Any]:
         return pipeline.run(self.drafts, draft_id, asset_id, self.agent(draft_id), self.models.client("parse_pattern", draft_id=draft_id))
 
-    def simulate(self, draft_id: str, prompt: str, rows: int, template: str | None = None, actor: str = "human") -> dict[str, Any]:
+    def simulate(self, draft_id: str, prompt: str, rows: int, template: str | None = None, actor: str = "human", proposal: str | None = None) -> dict[str, Any]:
         from ..jobs import TEXT, Stopped, checkpoint
-        from . import synthetic
+        from . import synthetic, synthetic_design
 
         drafts, models = self.drafts, self.models
         draft = drafts.get(draft_id)
         client = models.client("synthetic_schema", draft_id=draft_id)
-        if template:  # the user picked a built-in template in the Synthetic tab
+        if proposal:  # the person approved a design shown in the chat: the table is made from it as it was shown
+            from . import synthetic_design
+
+            drafts.emit(draft_id, "pipeline", {"step": "designing", "text": "Creating the table you approved"})
+            spec, info = synthetic_design.stored(drafts, draft_id, proposal)
+        elif template:  # the user picked a built-in template in the Synthetic tab
             drafts.emit(draft_id, "pipeline", {"step": "designing", "text": "Generating synthetic data from the template you chose"})
             spec, info = synthetic.from_template(template, rows)
         else:
@@ -87,6 +92,8 @@ class DraftWork:
             drafts.emit(draft_id, "status", {"note": note})
         frame = synthetic.generate(spec)
         saved = synthetic.save(frame, spec, drafts.data_dir(draft_id))
+        if proposal:
+            synthetic_design.close(drafts, draft_id)
         asset = pipeline.new_asset(drafts, draft_id, "synthetic", f"Synthetic · {spec.name}", Path(saved["path"]).name, actor=actor,
                                    synthetic=True, spec_source=info.get("source"), spec_file=Path(saved["spec_path"]).name,
                                    **({"suggestion": {"target": spec.target.name}} if spec.target else {}),  # the generator knows its outcome column

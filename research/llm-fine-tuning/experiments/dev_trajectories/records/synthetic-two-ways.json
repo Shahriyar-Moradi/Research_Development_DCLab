@@ -1,0 +1,68 @@
+{
+ "package": "synthetic-two-ways",
+ "title": "Asking for synthetic data asks how: build it with AI, or describe it, see the design and approve it",
+ "date": "2026-10-20",
+ "request": "For generating synthetic data for simulation, ask: 1 build it by AI, or 2 describe the data and continue the chat, get approval for creating, and then create the data.",
+ "spec": "Every agent path that heard 'simulate' started the table at once (the script, the answer to the data plan, the model's fallback and the simulate_data tool); the Synthetic tab had one way.",
+ "plan": [
+  "An offer message with the two ways wherever the agent heard simulate; nothing starts unasked",
+  "A design route: description to design to a message the person approves or changes; a table made only from the approved design",
+  "The Synthetic tab and the chat in the page: two ways, a describe mode with a banner, a design card with approve, change and drop"
+ ],
+ "decisions": [
+  {
+   "decision": "The AI way and the tab's own Build button are unchanged; only the agent's automatic start became a question.",
+   "why": "The owner asked to be asked; a person who clicks Build has already chosen."
+  },
+  {
+   "decision": "The describe way is run by code, not by the model: the page routes messages to the design while the mode is on.",
+   "why": "No prompt or tool schema changed, so the judgment gates stay valid, and the design is the same validated spec the model path uses."
+  },
+  {
+   "decision": "A change adds to what was said; only the current design's id can be approved; the table is made from the stored spec, never designed again.",
+   "why": "What the person approved is exactly what is created."
+  }
+ ],
+ "change": "draft/synthetic_design.py (new), draft/chat.py (offer_synthetic at four places, the tool's stop), draft/work.py and jobs/handlers.py (simulate from a proposal), draft/api.py (design route, proposal on the synthetic route), views/home.html (two ways, describe mode, cards), tests/test_synthetic_design.py, tests/test_draft_flow.py.",
+ "findings": [
+  {
+   "id": "Y1",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "Saying simulate started a synthetic table at once, with no choice about how.",
+   "scenario": "A person answered the data question with Simulate data: the table was designed by the model or a template and made, labelled synthetic, before they could describe what they wanted.",
+   "cause": "Four agent paths called the simulate request directly.",
+   "fix": "Each now offers the two ways; the table starts from a button or an approval.",
+   "test": "tests/test_synthetic_design.py::DesignTests::test_asking_for_simulated_data_asks_how_and_starts_nothing"
+  },
+  {
+   "id": "Y2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The page called a client method that did not exist, so a message in the describe mode vanished without a word.",
+   "scenario": "A description sent in the describe mode: no design, no toast.",
+   "cause": "The generated client names a method after the route function (synthetic_design_route gave syntheticDesignRoute).",
+   "fix": "The route function is design_synthetic, so the method is designSynthetic; found by driving the page.",
+   "test": "driven in the browser: description, design card, typed approve, table ready"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The two ways in the browser",
+   "gate": "describe, see the design, approve by typing, and the table is created",
+   "result": "a new chat, the Synthetic tab's second way, one description: a design card with 10 columns; typing approve created Synthetic · Telco customer churn, ready, synthetic",
+   "verdict": "pass",
+   "limits": [
+    "no model in the scratch workspace: the design came from a built-in template and said so"
+   ]
+  }
+ ],
+ "outcome": "A person is asked how to make synthetic data, and the describe way creates nothing until they approve the design.",
+ "lessons": [
+  "Drive a new page flow once in a browser: a method name the generator made up differently is a silent failure no unit test sees."
+ ],
+ "risks": [
+  "With a model configured the design comes from the model; its quality was not measured here."
+ ],
+ "commits": []
+}

@@ -542,12 +542,41 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         template = body.get("template") or None
         if template is not None and template not in synthetic.TEMPLATES:
             raise HTTPException(422, "Unknown template")
-        payload = {"draft_id": draft_id, "prompt": str(body.get("prompt", "")), "rows": rows, "template": template}
+        proposal = str(body.get("proposal") or "") or None  # the design the person approved in the chat
+        if proposal:
+            from . import synthetic_design
+
+            try:
+                spec, _ = synthetic_design.stored(drafts, draft_id, proposal)
+            except KeyError as exc:
+                raise HTTPException(409, exc.args[0]) from None
+            rows, template = spec.rows, None
+        payload = {"draft_id": draft_id, "prompt": str(body.get("prompt", "")), "rows": rows, "template": template, "proposal": proposal}
         if services is None:
-            background(f"{draft_id}:synthetic", work_now().simulate, draft_id, payload["prompt"], rows, template)
+            background(f"{draft_id}:synthetic", work_now().simulate, draft_id, payload["prompt"], rows, template, "human", proposal)
         else:
             services.submit("synthetic", f"{draft_id}:synthetic", payload, busy="Synthetic data is already being generated for this draft")
         return {"accepted": True, "rows": rows, "template": template}
+
+    @router.post("/api/drafts/{draft_id}/data/synthetic/design", response_model=Doc)
+    async def design_synthetic(draft_id: str, payload: AnyObject):
+        """The second way to simulate data: describe the table in the chat, see its design as a message, approve it (POST
+        /data/synthetic with its id) or describe a change (this again). ``{cancel: true}`` drops the design. Nothing is
+        created here."""
+        get(draft_id)
+        body = dump(payload)
+        from . import synthetic_design
+
+        if body.get("cancel"):
+            await asyncio.to_thread(synthetic_design.close, drafts, draft_id)
+            return {"cancelled": True}
+        rows = max(100, min(int(body.get("rows") or 5000), 200_000))
+        client = models.client("synthetic_schema", draft_id=draft_id)
+        try:
+            proposal = await asyncio.to_thread(synthetic_design.propose, drafts, work_now().agent(draft_id), client, draft_id, str(body.get("description") or ""), rows)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+        return {"proposal": proposal["id"], "summary": proposal["summary"]}
 
     @router.get("/api/synthetic/templates", response_model=Page)
     async def synthetic_templates():

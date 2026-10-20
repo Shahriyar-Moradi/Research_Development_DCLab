@@ -252,6 +252,7 @@
     dataKaggle: ["POST", "/drafts/{draft_id}/data/kaggle", ["draft_id"], []],
     sample: ["POST", "/drafts/{draft_id}/data/sample", ["draft_id"], []],
     syntheticData: ["POST", "/drafts/{draft_id}/data/synthetic", ["draft_id"], []],
+    designSynthetic: ["POST", "/drafts/{draft_id}/data/synthetic/design", ["draft_id"], []],
     events: ["GET", "/drafts/{draft_id}/events", ["draft_id"], ["after", "wait"]],
     draftFitAccept: ["POST", "/drafts/{draft_id}/fit/accept", ["draft_id"], []],
     draftMap: ["GET", "/drafts/{draft_id}/map", ["draft_id"], []],
@@ -628,6 +629,12 @@
    *  @returns {Promise<Doc>} */
   client.syntheticData = (...args) => call('syntheticData', args);
   client.path.syntheticData = (...args) => build('syntheticData', args).path;
+  /** POST /api/drafts/{draft_id}/data/synthetic/design: Design Synthetic
+   *  @param {string} draft_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.designSynthetic = (...args) => call('designSynthetic', args);
+  client.path.designSynthetic = (...args) => build('designSynthetic', args).path;
   /** GET /api/drafts/{draft_id}/events: Events
    *  @param {string} draft_id
    *  @param {{query?: {after?: *, wait?: *}, headers?: Object}} [opts]

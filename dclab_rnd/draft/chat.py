@@ -203,6 +203,18 @@ class HomeAgent:
         self.store.emit(draft_id, "chat", msg)
         return msg
 
+    def offer_synthetic(self, draft_id: str, prompt: str = "", rows: int = SIM_ROWS) -> dict[str, Any] | None:
+        """Someone asked for simulated data: ask how (the owner, 2026-10-20), never start it unasked. One way is AI building the
+        table from the conversation, the other is describing it in the chat and approving its design before it is created.
+        The offer carries what the AI way would use; the page makes the choice a button (Home's Synthetic tab has both)."""
+        last = (self.store.get(draft_id).get("messages") or [None])[-1]
+        if last and last.get("kind") == "synthetic_way":
+            return None  # asked already, and not answered: never twice in a row
+        return self.say(draft_id, "How should I make the synthetic data? I can build the table with AI from this conversation, or you describe it "
+                                  "here, see its design, and approve it before I create anything. It will be labelled synthetic everywhere.",
+                        kind="synthetic_way", offer={"prompt": (prompt or "")[:2500], "rows": max(100, min(int(rows or SIM_ROWS), SIM_ROWS))},
+                        actions=["simulate_ai", "simulate_describe"])
+
     def ask(self, draft_id: str, field: str, question: str, options: list[str] | None = None, why: str = "",
             source: str | None = None, extra: dict[str, Any] | None = None) -> dict[str, Any] | None:
         """``source="critic"`` (28.4): the understanding critic sends a settled field back to the person (the card it read
@@ -638,7 +650,7 @@ class HomeAgent:
                 self.note(draft_id, field, quote, "stated", "answer", quote)
         self.update_plan(draft_id)
         if q["field"] == "data_plan" and SIMULATE_WORDS.search(value):
-            self.on_request(draft_id, "simulate", {"prompt": draft["problem"]})
+            self.offer_synthetic(draft_id, draft["problem"])
         self.refresh_workflow(draft_id)
         if then_next:
             self.next_turn(draft_id)
@@ -862,9 +874,8 @@ class HomeAgent:
             self.take_answer(draft_id, q, text)
             return
         if SIMULATE_WORDS.search(text):
-            self.say(draft_id, "I'll simulate a dataset from this conversation. It will be labelled synthetic everywhere.")
-            self.moved(draft_id, "simulate", {}, {"simulating": True})
-            self.on_request(draft_id, "simulate", {"prompt": draft["problem"] + " " + text})
+            self.moved(draft_id, "simulate", {}, {"asked_how": True})
+            self.offer_synthetic(draft_id, draft["problem"] + " " + text)
             return
         if BUILD_WORDS.search(text):
             self.moved(draft_id, "summarize", {})
@@ -1038,7 +1049,7 @@ class HomeAgent:
         """The Home agent as a policy on the runtime: a few model replies per user message; a question waits for the
         user and a simulation ends the turn too (the data pipeline speaks next)."""
         return Policy("home", POLICY, tuple(self.registry.names("draft")), max_steps=MODEL_STEPS, max_seconds=MODEL_SECONDS,
-                      stop_after=("ask_user", "build_solution"), stop_when=lambda step: isinstance(step.result, dict) and bool(step.result.get("simulating")),
+                      stop_after=("ask_user", "build_solution"), stop_when=lambda step: isinstance(step.result, dict) and bool(step.result.get("simulating") or step.result.get("asked_how")),
                       max_replies=max_replies)
 
     def tracer(self, draft_id: str) -> Tracer | None:
@@ -1123,7 +1134,7 @@ class HomeAgent:
             if open_question and still_open and still_open["id"] == open_question["id"]:
                 self.take_answer(draft_id, open_question, text)
             elif SIMULATE_WORDS.search(text) and not self.store.get(draft_id)["assets"]:
-                self.on_request(draft_id, "simulate", {"prompt": draft["problem"] + " " + text})
+                self.offer_synthetic(draft_id, draft["problem"] + " " + text)
             else:
                 self.next_turn(draft_id)
 
@@ -1369,13 +1380,12 @@ def build_solution(turn: Turn, /, **args: Any) -> dict[str, Any]:
 def simulate_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
     agent, draft_id = turn.agent, turn.draft_id
     draft = agent.store.get(draft_id)
-    agent.say(draft_id, "I'll simulate a dataset from this conversation. It will be labelled synthetic everywhere.")
     try:
         rows = max(100, min(int(args.get("rows") or SIM_ROWS), SIM_ROWS))
     except (TypeError, ValueError):
         rows = SIM_ROWS
-    agent.on_request(draft_id, "simulate", {"prompt": (draft["problem"] + " " + str(args.get("description", ""))[:2000]).strip(), "rows": rows})
-    return {"simulating": True, "rows": rows}
+    agent.offer_synthetic(draft_id, (draft["problem"] + " " + str(args.get("description", ""))[:2000]).strip(), rows)
+    return {"asked_how": "with AI, or described by the person and approved first", "rows": rows}  # the person chooses; nothing was started
 
 
 # What each Home write does to a draft. The draft guard checks set_pack, propose_workflow and simulate; the others

@@ -175,7 +175,11 @@ class AgentTests(unittest.TestCase):
         d = self.store.get(d["id"])
         self.assertLessEqual(len(d["questions"]), MAX_QUESTIONS)
         self.assertEqual(d["understanding"]["prediction_moment"], "At a fixed snapshot each month")
-        self.assertEqual(requests, ["simulate"])
+        self.assertEqual(requests, [])  # asking for simulated data asks how first: nothing is started unasked
+        offers = [m for m in d["messages"] if m.get("kind") == "synthetic_way"]
+        self.assertEqual(len(offers), 1)
+        self.assertEqual(offers[0]["actions"], ["simulate_ai", "simulate_describe"])
+        self.assertIn("Predict which customers cancel", offers[0]["offer"]["prompt"])
         self.assertEqual(d["workflow"]["nodes"][0]["state"], "done")
         self.assertEqual(d["messages"][-1]["kind"], "summary")
         kinds = [e["kind"] for e in self.store.events(d["id"])]
@@ -486,10 +490,13 @@ class AgentTests(unittest.TestCase):
         client = ScriptedClient([("simulate_data", {"description": "5,000 subscribers with tenure and plan; 20% cancel", "rows": 999999}),
                                  ("ask_user", {"field": "action", "question": "never reached"})])
         HomeAgent(self.store, client, on_request=lambda did, what, args: asked.append((what, args))).reply(d["id"], "Please simulate the data")
-        self.assertEqual([(w, a["rows"]) for w, a in asked], [("simulate", 10000)])  # capped at 10,000 (the owner, 2026-10-16)
-        self.assertIn("20% cancel", asked[0][1]["prompt"])
+        self.assertEqual(asked, [])  # the tool asks how first (the owner, 2026-10-20); the page's button starts it
+        offer = self.store.get(d["id"])["messages"][-1]
+        self.assertEqual(offer["kind"], "synthetic_way")
+        self.assertEqual(offer["offer"]["rows"], 10000)  # capped at 10,000 (the owner, 2026-10-16)
+        self.assertIn("20% cancel", offer["offer"]["prompt"])
         self.assertEqual(client.i, 1)  # the second scripted call was never requested
-        self.assertIn("labelled synthetic", self.store.get(d["id"])["messages"][-1]["text"])
+        self.assertIn("labelled synthetic", offer["text"])
 
     def test_streaming_client_sends_token_chunks_then_the_message_replaces_them(self):
         class Streaming:

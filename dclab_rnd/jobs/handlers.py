@@ -76,7 +76,7 @@ def _pipeline_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str
 
 def _synthetic_run(s: Any, payload: dict[str, Any]) -> None:
     s.draft_work.simulate(payload["draft_id"], payload.get("prompt") or "", int(payload.get("rows") or 5000), payload.get("template"),
-                          actor="agent" if payload.get("by") == "agent" else "human")
+                          actor="agent" if payload.get("by") == "agent" else "human", proposal=payload.get("proposal") or None)
 
 
 def _synthetic_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
