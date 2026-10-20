@@ -143,14 +143,25 @@ print(best_depth, *(round(f(y_test, p), 4) for f in (roc_auc_score, average_prec
     function renderAgent() {
       const box = $('#agent-out', el); if (!box) return;
       const status = { proposed: 'warn', accepted: 'ok', refused: 'bad' };
-      box.innerHTML = AGENT.map(c => `<div class="stack tight reveal" data-agent="${esc(c.id)}">
-        <div class="row small"><span class="pill ${status[c.status] || 'outline'}">${c.author === 'person' ? 'your cell' : esc(c.status)}</span><span class="muted">${c.author === 'person' ? '' : esc(c.request)}</span></div>
-        ${c.code ? codeBlock(c.code) : ''}
-        ${c.explanation ? `<div class="small muted">${esc(c.explanation)}</div>` : ''}
-        ${(c.problems || []).map(x => `<div class="callout bad small">${esc(x)}</div>`).join('')}
-        ${c.status === 'proposed' ? `<div class="row"><button type="button" class="btn sm primary" data-agent-answer="${esc(c.id)}" data-ok="1">Accept</button><button type="button" class="btn sm" data-agent-answer="${esc(c.id)}" data-ok="0">Reject</button><span class="small muted">Only an accepted cell runs.</span></div>` : ''}
-        ${c.status === 'accepted' ? `<div class="row"><button type="button" class="btn sm primary" data-run-cell="${esc(c.id)}" ${RUNNING != null ? 'disabled' : ''}>${RUNNING === c.id ? 'Running…' : RUN[c.id] ? 'Run again' : 'Run'}</button><span class="small muted">in this project's kernel · training rows only</span></div>` : ''}
-        ${RUN[c.id] ? runOutput(RUN[c.id]) : ''}</div>`).join('');
+      const id = c => esc(c.id);
+      box.innerHTML = AGENT.map((c, i) => {
+        const own = c.author === 'person', ran = RUN[c.id], n = ran && ran.execution_count ? ran.execution_count : null;
+        const actions = c.status === 'proposed'
+          ? `<button type="button" class="btn sm primary" data-agent-answer="${id(c)}" data-ok="1">Accept</button><button type="button" class="btn sm" data-agent-answer="${id(c)}" data-ok="0">Reject</button><span class="small muted">Only an accepted cell runs.</span>`
+          : c.status === 'accepted'
+            ? `<button type="button" class="btn sm primary" data-run-cell="${id(c)}" ${RUNNING != null ? 'disabled' : ''}>${RUNNING === c.id ? 'Running…' : ran ? 'Run again' : 'Run'}</button><span class="small muted">in this project's kernel · training rows only</span>` : '';
+        return `<article class="ag-cell ${own ? 'own' : ''} ${esc(c.status)} reveal" data-agent="${id(c)}" aria-label="Cell ${i + 1}">
+          <div class="ag-head"><span class="ag-in" title="The run's number in this kernel">In [${n == null ? ' ' : n}]</span>
+            <span class="pill ${own ? 'outline' : (status[c.status] || 'outline')}">${own ? 'your cell' : esc(c.status)}</span>
+            <span class="ag-title muted">${own ? 'written by you' : esc(c.request)}</span>
+            <button type="button" class="link-btn xs ag-del" data-agent-delete="${id(c)}" title="Remove this cell from the notebook (its runs stay recorded)">Delete</button></div>
+          ${c.code ? `<div class="ag-code">${codeBlock(c.code)}</div>` : ''}
+          ${c.explanation ? `<div class="small muted ag-note">${esc(c.explanation)}</div>` : ''}
+          ${(c.problems || []).map(x => `<div class="callout bad small">${esc(x)}</div>`).join('')}
+          ${actions ? `<div class="row ag-actions">${actions}</div>` : ''}
+          ${ran ? `<div class="ag-out"><div class="ag-out-label">Out [${n == null ? ' ' : n}]</div>${runOutput(ran)}</div>` : ''}
+        </article>`;
+      }).join('');
     }
     /* An agent's cell: on a kernel that has run nothing (new, restarted, idle too long) the server runs the notebook's
        cells up to the holdout first, which make the variables the cell reads. */
@@ -244,6 +255,13 @@ print(best_depth, *(round(f(y_test, p), 4) for f in (roc_auc_score, average_prec
     el.addEventListener('click', async e => {
       const b = e.target.closest('[data-run-cell]');
       if (b) { const v = b.dataset.runCell; if (/^\d+$/.test(v)) runCell(Number(v)); else runAgentCell(v); return; }
+      const del = e.target.closest('[data-agent-delete]');
+      if (del && real) {
+        del.disabled = true;
+        try { await DC.client.deleteNotebookCell(real.p.id, del.dataset.agentDelete); AGENT = AGENT.filter(c => c.id !== del.dataset.agentDelete); delete RUN[del.dataset.agentDelete]; renderAgent(); DC.hydrate(el); }
+        catch (err) { del.disabled = false; toast(err.message, { ok: false }); }
+        return;
+      }
       const a = e.target.closest('[data-agent-answer]');
       if (a && real) {
         a.disabled = true;

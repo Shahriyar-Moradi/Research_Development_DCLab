@@ -540,3 +540,18 @@ ul.plain { margin: 0; padding-left: var(--ts-space-6); display: grid; gap: var(-
 .signin-secret input { width: 100%; padding-right: 64px; }
 .signin-secret .link-btn { position: absolute; right: var(--ts-space-4); }
 @media (max-width: 760px) { .signin-wrap { grid-template-columns: minmax(0, 1fr); } .signin-hero { display: none; } .signin-wrap .signin-card { padding: var(--ts-space-7); } }
+
+/* ---- the notebook's added cells: each its own card, with a gutter, a header, its code, its actions and its output ---- */
+#agent-out { display: grid; gap: var(--ts-space-5); }
+.ag-cell { background: var(--ts-surface); border: 1px solid var(--ts-border-strong); border-left: 4px solid var(--ts-success-solid); border-radius: var(--ts-radius-card); padding: var(--ts-space-5); display: grid; gap: var(--ts-space-4); box-shadow: var(--ts-shadow-card); }
+.ag-cell.own { border-left-color: var(--ts-brand-deep); }
+.ag-cell.proposed { border-left-color: var(--ts-warning-solid); border-style: dashed; border-left-style: solid; }
+.ag-cell.refused { border-left-color: var(--ts-danger-solid); }
+.ag-head { display: flex; align-items: center; gap: var(--ts-space-3); flex-wrap: wrap; }
+.ag-in, .ag-out-label { font-family: var(--ts-font-mono); font-size: var(--ts-text-sm); color: var(--ts-brand-deep); font-weight: var(--ts-weight-semibold); }
+.ag-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-del { margin-left: auto; color: var(--ts-text-muted); }
+.ag-actions { padding-top: var(--ts-space-2); }
+.ag-out { border-top: 1px dashed var(--ts-border-strong); padding-top: var(--ts-space-4); display: grid; gap: var(--ts-space-3); }
+.ag-out-label { color: var(--ts-text-muted); }
+.ag-code .code, .ag-code pre { margin: 0; }

@@ -990,6 +990,27 @@ async def add_own_cell(project_id: str, payload: AnyObject, s: Services = Depend
     return cell
 
 
+@router.delete("/api/projects/{project_id}/notebook/cells/{cell_id}", status_code=204, response_class=Response)
+async def delete_notebook_cell(project_id: str, cell_id: str, s: Services = Depends(services)):
+    """Take a cell the agent wrote or the person added out of the notebook. Its runs stay recorded (the workspace's code runs)."""
+    from ...studio import notebook_agent
+
+    s.project(project_id)
+
+    def drop() -> bool:
+        with notebook_agent.lock(project_id):
+            cells = list(s.project(project_id).get("notebook_agent_cells") or [])
+            kept = [c for c in cells if c.get("id") != cell_id]
+            if len(kept) == len(cells):
+                return False
+            s.projects.update(project_id, notebook_agent_cells=kept)
+            return True
+
+    if not await asyncio.to_thread(drop):
+        raise HTTPException(404, "No such cell")
+    return Response(status_code=204)
+
+
 @router.post("/api/projects/{project_id}/notebook/cells/{cell_id}/answer", response_model=Page)
 async def answer_notebook_cell(project_id: str, cell_id: str, payload: AnyObject, s: Services = Depends(services)):
     """The person accepts or rejects a proposed cell; only an accepted one runs. The answer is kept beside the proposal."""

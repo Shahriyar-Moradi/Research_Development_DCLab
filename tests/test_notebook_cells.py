@@ -335,6 +335,10 @@ class NotebookCellsTest(unittest.TestCase):
         self.assertIn("mine 42", "".join(o.get("text", "") for o in ran["outputs"]))
         kept = [c["id"] for c in self.client.get(f"/api/projects/{self.pid}/review").json()["agent_cells"]]
         self.assertIn(cell["id"], kept)
+        gone = self.client.delete(f"{url}/cells/{cell['id']}", headers=self.headers)  # take it out of the notebook
+        self.assertEqual(gone.status_code, 204)
+        self.assertNotIn(cell["id"], [c["id"] for c in self.client.get(f"/api/projects/{self.pid}/review").json()["agent_cells"]])
+        self.assertEqual(self.client.delete(f"{url}/cells/{cell['id']}", headers=self.headers).status_code, 404)
 
     def test_the_kernel_never_gets_a_key_or_a_database_address(self):
         from dclab_rnd.studio import kernels
