@@ -91,7 +91,7 @@ class Anomaly(ProblemKind):
 
         delivery_fraud = optional("dclab_core.replicas.delivery_fraud")  # the full edition's replica
         if delivery_fraud is None:
-            return None
+            return self._programme_case(seed)
 
         replica = delivery_fraud.generate(seed)
         rides = replica.rides[replica.rides["status"] == "DELIVERED"].reset_index(drop=True)
@@ -101,6 +101,24 @@ class Anomaly(ProblemKind):
         return Case(rides, None, "binary", "After delivery, in the daily audit of the day's rides; nothing is labelled yet.",
                     solution={"kind": "anomaly", "labels": "none", "time_column": None,
                               "kind_fields": {"entity_column": "biker_id", "time_column": "created_date", "key_column": "order_id"}},
+                    facts=facts)
+
+    def _programme_case(self, seed: int = 0) -> Any:
+        """The same morning on the fraud programme replica (shipped in both editions): fake delivery marks show in the
+        ride itself (the screen must find them), ring orders show only in the accounts table (the screen must not claim
+        them). They stand for the fake trips and the self-deliveries of the delivery fraud case."""
+        from dclab_core.replicas import fraud_programme as fp
+
+        from .acceptance import Case
+
+        replica = fp.generate(seed=seed)
+        rides = replica.rides[replica.rides["status"] == "DELIVERED"].reset_index(drop=True)
+        truth = replica.truth
+        facts = {"fake_trip": sorted(truth.loc[truth["kind"].isin([fp.MARK, fp.BOTH]), "order_id"].astype(str)),
+                 "self_delivery": sorted(truth.loc[truth["kind"] == fp.RING, "order_id"].astype(str))}
+        return Case(rides, None, "binary", "After delivery, in the daily audit of the day's rides; nothing is labelled yet.",
+                    solution={"kind": "anomaly", "labels": "none", "time_column": None,
+                              "kind_fields": {"entity_column": "biker_id", "time_column": "created_at", "key_column": "order_id"}},
                     facts=facts)
 
     def solve(self, case: Any) -> Any:

@@ -110,11 +110,10 @@ TESTS = {
     },
 }
 
-# Kinds whose acceptance case (an invented replica) is not exported: the open tree's capability matrix says "partial"
-# for them, without the checks (their details describe that replica).
-# A kind with a second, exported case keeps only that case's checks (prefix), judged as the open tree would judge them.
-KINDS_WITHOUT_CASE = {"rare_event": {"keep": "retail returns: "},
-                      "anomaly": "its acceptance replica is not part of the open edition yet"}
+# Kinds whose first acceptance case (an invented replica) is not exported: the export runs their acceptance inside the
+# open tree, on the cases it has (rare_event: the retail returns replica; anomaly: the fraud programme replica), and the
+# open capability matrix holds those results, never the private run's.
+KINDS_RERUN = ["rare_event", "anomaly"]
 
 # The knowledge the open tree ships (the owner's decision, 2026-10-21: rules and pitfalls only), filtered from the evidence
 # index and packaged where evidence_index.packaged_records() reads it. Citations keep only paths that exist in the open tree.

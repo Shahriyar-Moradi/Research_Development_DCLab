@@ -298,23 +298,21 @@ def import_closure(out: Path, m) -> list[dict]:
     return list(found.values())
 
 
-def adjust_capability(out: Path, m) -> list[str]:
-    """The capability matrix as the open tree can stand behind it: a kind without its exported acceptance case is partial."""
-    path = out / m.PUBLIC_NAME / "kinds" / "capability.json"
-    without = getattr(m, "KINDS_WITHOUT_CASE", {})
-    if not path.is_file() or not without:
-        return []
-    doc = json.loads(path.read_text(encoding="utf-8"))
-    for row in doc.get("results", []):
-        rule = without.get(row.get("kind"))
-        if isinstance(rule, dict):  # the checks of the kind's exported second case stand alone (kinds/acceptance.py does the same)
-            kept = [c for c in row.get("checks") or [] if str(c.get("decision", "")).startswith(rule["keep"])]
-            missing = [c["decision"] for c in kept if not c.get("ok")]
-            row.update(status="supported" if kept and not missing else "partial", checks=kept, missing=missing)
-        elif rule:
-            row.update(status="partial", checks=[], missing=[rule])
-    path.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
-    return sorted(without)
+def rerun_kinds(out: Path, m) -> dict:
+    """The acceptance of the kinds whose first case is not exported, run inside the open tree on the cases it has: the
+    open capability matrix then says what the open code does. A run that fails is a finding."""
+    kinds = getattr(m, "KINDS_RERUN", [])
+    if not kinds:
+        return {}
+    with tempfile.TemporaryDirectory(prefix="export-kinds-") as tmp:
+        done = subprocess.run([sys.executable, "-I", "-B", "-c", "import sys, runpy; sys.path.insert(0, '.'); "
+                               f"sys.argv = ['kinds', *{kinds!r}]; runpy.run_module('{m.PUBLIC_NAME}.kinds', run_name='__main__')"],
+                              cwd=out, capture_output=True, text=True,
+                              env={"PATH": "/usr/bin:/bin", "HOME": tmp, "TMPDIR": tmp, "DCLAB_NO_LIVE_MODELS": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+    if done.returncode != 0:
+        return {"findings": [{"check": "kinds acceptance", "path": f"{m.PUBLIC_NAME}/kinds", "detail": done.stderr.strip()[-400:]}]}
+    rows = json.loads((out / m.PUBLIC_NAME / "kinds" / "capability.json").read_text(encoding="utf-8"))["results"]
+    return {r["kind"]: f"{r['status']} ({sum(c['ok'] for c in r['checks'])} of {len(r['checks'])})" for r in rows if r["kind"] in kinds}
 
 
 def build_knowledge(out: Path, m) -> dict:
@@ -361,15 +359,16 @@ def main(argv: list[str] | None = None) -> int:
     m = manifest()
     report = build(out, m)
     report["knowledge"] = build_knowledge(out, m)
-    report["capability_partial"] = adjust_capability(out, m)
+    report["kinds_rerun"] = rerun_kinds(out, m)
     report["ui"] = build_ui(out, m)
-    findings = scan_words(out, m) + scan_secrets(out) + import_closure(out, m) + report["ui"].get("findings", [])
+    findings = scan_words(out, m) + scan_secrets(out) + import_closure(out, m) + report["ui"].get("findings", []) \
+        + report["kinds_rerun"].pop("findings", [])
     report["findings"] = findings
     by = {}
     for f in findings:
         by[f["check"]] = by.get(f["check"], 0) + 1
     report["summary"] = {"files": len(report["files"]), "bytes": sum(f["bytes"] for f in report["files"]), "closed_blocks": report["closed_blocks"],
-                         "knowledge_records": report["knowledge"]["records"],
+                         "knowledge_records": report["knowledge"]["records"], "kinds_rerun": report["kinds_rerun"],
                          "tests": {"kept": len(report["tests"]["kept"]), "left_out": len(report["tests"]["left_out"])}, "findings": by}
     (out.parent / f"{out.name}.EXPORT_REPORT.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
     print(json.dumps(report["summary"], indent=1))
