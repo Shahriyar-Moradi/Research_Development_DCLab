@@ -8,6 +8,7 @@ cannot sign anyone in. Passwords are hashed with argon2 (``passwords``).
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import secrets
 import time
@@ -17,8 +18,17 @@ import sqlalchemy as sa
 
 from .roles import ROLES
 
-SESSION_HOURS = 12        # a session not used for this long ends
-SESSION_MAX_DAYS = 7      # and none lasts longer than this
+def _number(name: str, default: float) -> float:
+    try:
+        return max(1.0, float(os.environ.get(name) or default))
+    except ValueError:
+        return default
+
+
+# DCLAB_SESSION_HOURS / DCLAB_SESSION_DAYS: how long a session may sit unused, and the longest it may last. The defaults are for a
+# shared server; on one's own machine (make login) both are set so large that a person stays signed in until they sign out.
+SESSION_HOURS = _number("DCLAB_SESSION_HOURS", 12)        # a session not used for this long ends
+SESSION_MAX_DAYS = _number("DCLAB_SESSION_DAYS", 7)       # and none lasts longer than this
 TOKEN_PREFIX = "dclab_"
 
 

@@ -91,6 +91,26 @@ class SafetyTests(unittest.TestCase):
             os.environ.pop("DCLAB_AUTH", None)
             self.assertEqual(dev.dev_settings(env)["DCLAB_AUTH"], "password")
 
+    def test_make_login_keeps_a_person_signed_in_until_they_sign_out(self):
+        import importlib
+        import tempfile
+
+        from dclab_rnd.accounts import store
+
+        env = Path(tempfile.mkdtemp()) / ".env.dev"
+        self.assertTrue(dev.enable_login(env))
+        written = dict(line.split("=", 1) for line in env.read_text().splitlines() if "=" in line and not line.startswith("#"))
+        self.assertEqual((written["DCLAB_SESSION_HOURS"], written["DCLAB_SESSION_DAYS"]), ("87600", "3650"))  # ten years: until they sign out
+        try:
+            with mock.patch.dict(os.environ, written):
+                importlib.reload(store)
+                self.assertEqual((store.SESSION_HOURS, store.SESSION_MAX_DAYS), (87600.0, 3650.0))
+            with mock.patch.dict(os.environ, {"DCLAB_SESSION_HOURS": "", "DCLAB_SESSION_DAYS": ""}):
+                importlib.reload(store)
+                self.assertEqual((store.SESSION_HOURS, store.SESSION_MAX_DAYS), (12.0, 7.0))  # a shared server keeps its defaults
+        finally:
+            importlib.reload(store)
+
     def test_serve_runs_one_reloading_worker_on_the_checked_database(self):
         with mock.patch.object(dev, "ensure_database", return_value="already at 0008") as ensured, \
              mock.patch.object(dev, "build_frontend"), mock.patch.object(dev, "watch_frontend"), \

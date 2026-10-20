@@ -289,6 +289,8 @@ def serve(url: str, port: int, remote: bool = False) -> int:
         supervisor.join(timeout=15)
 
 
+STAY_SIGNED_IN = ("# On this machine a person stays signed in until they sign out (a server shared by a team keeps the defaults: 12 hours unused, 7 days)\n"
+                  "DCLAB_SESSION_HOURS=87600\nDCLAB_SESSION_DAYS=3650\n")
 DEV_ENV = ROOT / ".env.dev"  # make dev's own settings (sign-in): never read by make notebook, the tests or the flows
 SIGN_IN = re.compile(r"^[ \t]*DCLAB_AUTH[ \t]*=[ \t]*[\"']?(password|oidc)\b", re.M)
 
@@ -299,7 +301,8 @@ def enable_login(env_file: Path) -> bool:
     if SIGN_IN.search(text):
         return False
     env_file.write_text(text + ("" if not text or text.endswith("\n") else "\n") +
-                        "# Sign-in (make login): read by make dev only; add friends on the Admin page, Members\nDCLAB_AUTH=password\n")
+                        "# Sign-in (make login): read by make dev only; add friends on the Admin page, Members\nDCLAB_AUTH=password\n"
+                        + STAY_SIGNED_IN)
     return True
 
 
