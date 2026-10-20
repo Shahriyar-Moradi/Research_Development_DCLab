@@ -1,0 +1,60 @@
+name: ci
+on:
+  push: {branches: [main]}
+  pull_request:
+permissions: {contents: read}
+jobs:
+  tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ["3.10", "3.11", "3.12", "3.13"]
+        include:
+          - {os: macos-latest, python: "3.12"}
+    services:
+      postgres:
+        image: ${{ matrix.os == 'ubuntu-latest' && 'postgres:16' || '' }}
+        env: {POSTGRES_USER: dclab, POSTGRES_PASSWORD: dclab, POSTGRES_DB: dclab_test}
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U dclab" --health-interval 5s --health-retries 20
+    env:
+      DCLAB_TEST_DATABASE_URL: ${{ matrix.os == 'ubuntu-latest' && 'postgresql+psycopg://dclab:dclab@localhost:5432/dclab_test' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv venv --python ${{ matrix.python }} && uv pip install ".[all]"
+      - run: .venv/bin/python scripts/run_tests.py --jobs 4
+  flows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv venv --python 3.12 && uv pip install ".[notebook]"
+      - name: the product's flows on the installed package, with no model
+        run: |
+          (.venv/bin/dclab start --no-browser --port 8765 > server.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8765/healthz && break; sleep 2; done
+          .venv/bin/python scripts/product_e2e.py --base http://127.0.0.1:8765
+      - if: failure()
+        run: cat server.log
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv build
+      - name: the wheel in a clean environment
+        run: |
+          uv venv --python 3.12 /tmp/clean && uv pip install --python /tmp/clean/bin/python dist/*.whl
+          cd /tmp && /tmp/clean/bin/dclab version && /tmp/clean/bin/dclab doctor
+      - run: docker build -t dclabai:ci .
+      - run: node --check packages/npm/bin/dclabai.js
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: gitleaks/gitleaks-action@v2
+        env: {GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"}

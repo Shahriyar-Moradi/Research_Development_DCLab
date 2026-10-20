@@ -33,7 +33,8 @@ DENIED_STDLIB = {"sqlite3", "dbm", "shelve", "socket", "ssl", "http", "urllib", 
 # what importing the four dependencies loads on its own (checked in a subprocess)
 DEPENDENCY_TREE = ALLOWED_THIRD_PARTY | {"annotated_types", "typing_inspection", "dateutil", "pytz", "tzdata", "six",
                                          "scipy", "joblib", "threadpoolctl", "dclab_core", "_distutils_hack", "sitecustomize",
-                                         "_virtualenv", "pyarrow", "numexpr", "bottleneck", "packaging"}
+                                         "_virtualenv", "pyarrow", "numexpr", "bottleneck", "packaging",
+                                         "cloudpickle"}  # joblib loads it with scikit-learn 1.9 (found on a fresh install, 2026-10-21)
 
 
 def _sources() -> list[Path]:

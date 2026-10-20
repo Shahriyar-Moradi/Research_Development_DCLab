@@ -137,7 +137,11 @@ DC.view('packs', {
   },
   async enter() {
     DC.markSample(false);
-    const [packs, usage] = await Promise.all([DC.client.listPacks().catch(() => null), DC.client.learnPacks().catch(() => null)]);
+    let learned = Promise.resolve(null);  // how each pack was used (the learning pages: the full edition's)
+    // dclab:closed-begin
+    learned = DC.client.learnPacks().catch(() => null);
+    // dclab:closed-end
+    const [packs, usage] = await Promise.all([DC.client.listPacks().catch(() => null), learned]);
     if (packs) this.S.packs = packs.concat(this.PAGE_ONLY.filter(x => !packs.some(p => p.key === x.key)));
     this.S.usage = usage;
     if (!packs) { DC.$('#pack-cards', DC.$('#view-packs')).innerHTML = '<div class="empty">Could not load the packs from the server.</div>'; return; }

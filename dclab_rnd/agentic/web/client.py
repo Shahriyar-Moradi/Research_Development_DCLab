@@ -166,5 +166,11 @@ def generate(spec: dict[str, Any] | None = None) -> str:
         lines.append(f"  client.path.{name} = (...args) => build('{name}', args).path;")
         if method == "GET":
             lines.append(f"  client.href.{name} = (...args) => '/api' + build('{name}', args).path;")
-    lines += ["", "  window.DC.client = client;", "})();", ""]
+    lines += ["",
+              "  // A route this server does not have (the open edition leaves some out) answers like a 404, a rejected promise the",
+              "  // page's DC.states shows, never a TypeError thrown before the page can catch it.",
+              "  const missing = name => Object.assign(new Error('This part of DCLab is not in this edition'), { status: 404, missing: name });",
+              "  window.DC.client = new Proxy(client, { get: (target, name) => (name in target || typeof name !== 'string')",
+              "    ? target[name] : () => Promise.reject(missing(name)) });",
+              "})();", ""]
     return "\n".join(lines)

@@ -620,10 +620,12 @@ DC.view('home', {
       const spent = v.session ? v.session.spent_eur || 0 : 0;
       const cap = v.cap_eur != null ? v.cap_eur : v.settings.session_eur;
       $('#home-twin-spent', el).textContent = `€${spent.toFixed(2)} of €${Number(cap).toFixed(2)}`;
+      // dclab:closed-begin  (the person's month of the twin: the full edition's)
       DC.client.myBudget({ quiet: true }).then(b => {
         const btn = $('#home-twin-budget', el);
         btn.title = b.on ? `Your month: €${Number(b.spent_eur).toFixed(2)} of €${Number(b.monthly_eur).toFixed(2)} used; €${Number(b.left_eur).toFixed(2)} left` : 'Add to this draft\'s Claude budget';
       }).catch(() => {});
+      // dclab:closed-end
       const thread = $('#home-twin-thread', el);
       thread.innerHTML = (v.conversation || []).length ? v.conversation.map(m => m.role === 'claude'
         ? `<div class="msg"><span class="avatar b">C</span><div class="msg-body"><div class="who">Claude</div><p>${esc(m.text)}</p></div></div>`

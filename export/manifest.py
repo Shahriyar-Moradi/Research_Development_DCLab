@@ -20,6 +20,9 @@ INCLUDE = [
 ]
 
 EXCLUDE = [
+    "dclab_rnd/agentic/web/src/views/lab.html", "dclab_rnd/agentic/web/src/views/benchmark.html",
+    "dclab_rnd/agentic/web/src/views/policy.html",  # the research pages (their routes are the full edition's)
+    "dclab_rnd/agentic/web/src/views/blueprint.html", "dclab_rnd/agentic/web/src/features.js",  # the planning page (overlay: an empty registry)
     # caches and generated output (the UI is rebuilt inside the export)
     "**/__pycache__/**", "**/*.pyc", "dclab_rnd/agentic/static/app/**",
     # training and capture machinery
@@ -85,6 +88,28 @@ REPLACE = [
 ]
 
 OVERLAY = "export/overlay"  # files only the open tree has (README, LICENSE, pyproject, docs, CI, the npm launcher)
+
+# The tests the open tree ships: every test file whose in-house imports are all exported and that names none of the
+# private folders (chosen by scripts/export_open.py, each left-out file with its reason in the report), plus helpers.
+TESTS = {
+    "candidates": "tests/test_*.py",
+    "helpers": ["tests/pgtest.py", "tests/fixtures/**"],
+    "private_paths": ["data/project", "data/public", "data/downloads", "evidence/", "research/", "training_records", "agent_runs/",
+                      "docs/guides", "docs/product-demo", "/sft/", "decisions/", "dev_trajectories", "make rd-check"],
+    "exclude": {  # a test file left out by hand, with why (each found by running the selection in a fresh install)
+        "tests/test_config.py": "reads the repository with git and scripts/scan_secrets.py; back when the open repository's CI runs it",
+        "tests/test_core_wheel.py": "checks dclab_core's own wheel and changelog, which stay in the private repository",
+        "tests/test_core_contracts.py": "checks every contract against the schema baselines, which stay in the private repository",
+        "tests/test_dev_script.py": "tests scripts/dev.py (the private repository's development runner)",
+        "tests/test_deploy.py": "tests the cloud code in deploy/, which is not exported",
+        "tests/test_staging_check.py": "tests a Makefile target of the private repository",
+    },
+}
+
+# Kinds whose acceptance case (an invented replica) is not exported: the open tree's capability matrix says "partial"
+# for them, without the checks (their details describe that replica).
+KINDS_WITHOUT_CASE = {"rare_event": "its acceptance replica is not part of the open edition yet",
+                      "anomaly": "its acceptance replica is not part of the open edition yet"}
 
 # The knowledge the open tree ships (the owner's decision, 2026-10-21: rules and pitfalls only), filtered from the evidence
 # index and packaged where evidence_index.packaged_records() reads it. Citations keep only paths that exist in the open tree.

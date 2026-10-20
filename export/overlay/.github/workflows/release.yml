@@ -1,0 +1,36 @@
+# A tag vX.Y.Z publishes the release: PyPI and npm through trusted publishing, the image to GHCR.
+name: release
+on:
+  push: {tags: ["v*"]}
+jobs:
+  pypi:
+    runs-on: ubuntu-latest
+    environment: release
+    permissions: {id-token: write, contents: read}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv build
+      - uses: pypa/gh-action-pypi-publish@release/v1
+  npm:
+    runs-on: ubuntu-latest
+    environment: release
+    permissions: {id-token: write, contents: read}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, registry-url: "https://registry.npmjs.org"}
+      - run: npm publish --provenance --access public
+        working-directory: packages/npm
+        env: {NODE_AUTH_TOKEN: "${{ secrets.NPM_TOKEN }}"}
+  image:
+    runs-on: ubuntu-latest
+    permissions: {packages: write, contents: read}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with: {registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}"}
+      - uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ github.ref_name }},ghcr.io/${{ github.repository }}:latest

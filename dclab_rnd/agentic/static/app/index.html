@@ -2063,6 +2063,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
   </div>
 
   <div class="pane" data-pane="budgets" data-label="Budgets & data">
+    <!-- dclab:closed-begin -->
     <div class="panel" data-f="admin.twin">
       <div class="panel-head"><div class="panel-title"><h3>Claude beside DCLab</h3><span class="sub">Claude, as an AI-first machine-learning expert, answers every Home step beside DCLab's own system; both are kept in the twin folder and compared on the Evaluation tab. The owner's switch.</span></div></div>
       <div class="panel-body grid g2 small" id="twin-settings">
@@ -2073,6 +2074,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
         <div class="row"><button type="button" class="btn sm primary" id="twin-save">Save</button><span class="muted xs" id="twin-note"></span></div>
       </div>
     </div>
+    <!-- dclab:closed-end -->
     <div class="panel" data-f="admin.limits">
       <div class="panel-head"><div class="panel-title"><h3>Limits</h3><span class="sub" id="limits-sub">So that one person cannot starve the rest</span></div></div>
       <div class="table-wrap"><table class="data compact" id="limits-table"><thead><tr><th>Limit</th><th class="num">You</th><th class="num">This workspace</th></tr></thead><tbody><tr><td colspan="3"><div class="empty">Loading…</div></td></tr></tbody></table></div>
@@ -2131,6 +2133,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
       <div class="table-wrap"><table class="data compact"><thead><tr><th>Suite</th><th class="num">Runs</th><th class="num">Passed</th><th>Latest</th><th>When</th><th>Verdict</th><th class="num">EUR</th></tr></thead><tbody id="ag-suites"></tbody></table></div>
     </div>
   </div>
+  <!-- dclab:closed-begin -->
   <div class="pane" data-pane="students" data-label="Students">
     <div class="stats" id="stu-stats">
       <div class="stat"><span class="v">—</span><span class="l">choices DCLab makes</span></div>
@@ -2166,6 +2169,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
       <div class="table-wrap"><table class="data compact"><thead><tr><th>Team</th><th>Thread</th><th>Status</th><th>Nodes</th><th>Hand-offs</th><th>Pauses</th><th>Cost</th><th>Models</th><th>Started</th></tr></thead><tbody id="team-body"></tbody></table></div>
     </div>
   </div>
+  <!-- dclab:closed-end -->
   <div class="pane" data-pane="decisions" data-label="Decisions">
     <div class="stats" id="dec-stats">
       <div class="stat"><span class="v">—</span><span class="l">decisions recorded</span></div>
@@ -2193,6 +2197,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
     </div>
   </div>
 
+  <!-- dclab:closed-begin -->
   <div class="pane" data-pane="evaluation" data-label="Evaluation">
     <div class="stats" id="ev-stats">
       <div class="stat"><span class="v">—</span><span class="l">answerers scored</span></div>
@@ -2210,7 +2215,9 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
       <div class="table-wrap"><table class="data compact"><thead><tr><th>Answerer</th><th>Point</th><th>Truth</th><th class="num">n</th><th class="num">Accuracy</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">F1</th><th class="num">Answered</th></tr></thead><tbody id="ev-models"></tbody></table></div>
     </div>
   </div>
+  <!-- dclab:closed-end -->
 
+  <!-- dclab:closed-begin -->
   <div class="pane" data-pane="datasets" data-label="Datasets">
     <div class="stats" id="ds-stats">
       <div class="stat"><span class="v">—</span><span class="l">datasets</span></div>
@@ -2222,6 +2229,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
       <div class="panel-body" id="ds-lineage" hidden></div>
     </div>
   </div>
+  <!-- dclab:closed-end -->
 
   <div class="pane" data-pane="sessions" data-label="Sessions">
     <div class="stats" id="sess-stats">

@@ -480,8 +480,18 @@ def time_group_feasible(times: Any, groups: Any) -> tuple[bool, int, int]:
     return _enough_unseen(unseen, len(later)), unseen, len(later)
 
 
+def downloads_dir(root: Path) -> Path:
+    """Where downloaded tables are kept: ``data/downloads`` of a checkout (or of the root a caller gives), but for an
+    installed package (its root is site-packages) the workspace's own ``downloads`` folder: never inside site-packages."""
+    from ..settings import ROOT as PACKAGE_ROOT, default_home
+
+    if Path(root).resolve() == PACKAGE_ROOT.resolve() and not ((PACKAGE_ROOT / ".git").exists() or (PACKAGE_ROOT / "data").is_dir()):
+        return Path(os.environ.get("DCLAB_AGENT_HOME") or default_home()) / "downloads"
+    return Path(root) / "data" / "downloads"
+
+
 def raw_path(root: Path, spec: DatasetSpec) -> Path:
-    return root / "data" / "downloads" / spec.key / spec.filename
+    return downloads_dir(root) / spec.key / spec.filename
 
 
 def _download(url: str, destination: Path) -> None:

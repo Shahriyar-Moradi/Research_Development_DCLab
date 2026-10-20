@@ -189,9 +189,14 @@ DC.view('admin', {
     if (intern.status === 'fulfilled') this.paintModels(el, intern.value, gw.status === 'fulfilled' ? gw.value : null);
     this.paintStats(el, pol.value, lim.status === 'fulfilled' ? lim.value : null, intern.status === 'fulfilled' ? intern.value : null);
     this.S.offset = 0;
-    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadDatasets(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el), this.loadTeamSettings(el), this.loadAgents(el)]);
+    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadAgents(el),
+      // dclab:closed-begin  (the twin, the students, the teams, the datasets and the evaluation board: the full edition's)
+      this.loadDatasets(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el), this.loadTeamSettings(el),
+      // dclab:closed-end
+    ]);
   },
 
+  // dclab:closed-begin
   // 28.8: every walk of the teams, for the trace view
   async loadTeams(el) {
     const { $, esc } = DC;
@@ -208,6 +213,7 @@ DC.view('admin', {
       <td class="small">${(w.nodes || []).map(x => esc(x.node) + ' ×' + esc(String(x.steps))).join(', ')}</td><td>${esc(String(w.handoffs ?? '—'))}</td><td>${esc(String(w.interrupts ?? '—'))}</td>
       <td>${w.spent_eur == null ? '—' : '€' + Number(w.spent_eur).toFixed(3)}</td><td class="small">${(w.models || []).map(esc).join(', ') || (w.models ? 'none' : '—')}</td><td class="small">${esc(w.started || '')}</td></tr>`).join('');
   },
+  // dclab:closed-end
 
   // 29.1: the students' register: a decision model behind every choice, and how far each is trusted
   // the agents' scorecard: the metrics ledger, per agent and per suite
@@ -230,6 +236,7 @@ DC.view('admin', {
       + `<td><span class="pill ${s.latest.pass === true ? 'ok' : s.latest.pass === false ? 'bad' : 'outline'}">${s.latest.pass === true ? 'pass' : s.latest.pass === false ? 'not passed' : 'no verdict'}</span></td><td class="num mono">${s.latest.spent_eur == null ? '—' : s.latest.spent_eur}</td></tr>`).join('')
       : '<tr><td colspan="7"><div class="empty">No evaluation result files found.</div></td></tr>';
   },
+  // dclab:closed-begin
   async loadStudents(el) {
     const { $, esc } = DC;
     let r;
@@ -269,6 +276,7 @@ DC.view('admin', {
         + `<td class="small">${stu}${ownOf(x)}</td><td class="mono small">${acc(s.dev_accuracy)} · ${acc(s.rule_accuracy)}${realOf(x)}${card(x.point)}</td><td>${exam}${panelOf(x)}</td>`
         + `<td><span class="pill ${pill(x.status)}">${esc(x.status)}</span>${why}</td></tr>`; }).join('');
   },
+  // dclab:closed-end
 
   // 19.13: the catalog of the datasets, and the sessions each came from
   async loadRoles(el) {
@@ -292,6 +300,7 @@ DC.view('admin', {
       : '<div class="empty">No roles.</div>';
   },
 
+  // dclab:closed-begin
   async loadDatasets(el) {
     const { $, esc } = DC;
     let r;
@@ -383,6 +392,7 @@ DC.view('admin', {
     const f = $('#ev-filter', el);
     if (f && !f.dataset.bound) { f.dataset.bound = '1'; f.addEventListener('input', () => draw(f.value)); }
   },
+  // dclab:closed-end
 
   async loadDecisions(el) {
     const { $, esc } = DC;

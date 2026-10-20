@@ -75,6 +75,13 @@ class DataAndContractTests(unittest.TestCase):
         self.assertIn("final_customer_fare", catalog["hyperack"]["blocked"])
         self.assertIn("duration", catalog["bank_marketing"]["blocked"])
 
+    def test_a_tree_without_the_repository_tables_never_offers_them(self):
+        catalog = sd.sample_catalog(Path(tempfile.mkdtemp()))  # the open edition ships no table
+        self.assertFalse([s["key"] for s in catalog if s["source"] == "repository"])
+        self.assertTrue(all(s["available"] for s in catalog))
+        with self.assertRaises(KeyError):  # asked for by name all the same (a model, a client): unknown, never a missing-file error
+            sd.load_sample("telco_churn", Path(tempfile.mkdtemp()))
+
 
 class EngineTests(unittest.TestCase):
     @classmethod

@@ -20,6 +20,7 @@ The tests, the wheel, the fresh-venv install and the end-to-end flows run on the
 from __future__ import annotations
 
 import argparse
+import os
 import ast
 import fnmatch
 import importlib.util
@@ -33,7 +34,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CLOSED_BEGIN, CLOSED_END = "# dclab:closed-begin", "# dclab:closed-end"
-TEXT_SUFFIXES = {".py", ".md", ".txt", ".toml", ".cfg", ".ini", ".json", ".jsonl", ".yml", ".yaml", ".html", ".js", ".css", ".sh", ".mako", ".ipynb", ""}
+TEXT_SUFFIXES = {".py", ".md", ".txt", ".log", ".csv", ".toml", ".cfg", ".ini", ".json", ".jsonl", ".yml", ".yaml", ".html", ".js", ".css", ".sh", ".mako", ".ipynb", ""}
 
 
 def manifest():
@@ -52,6 +53,75 @@ def selected(m) -> list[str]:
     return sorted(p for p in tracked if p and _match(p, m.INCLUDE) and not _match(p, m.EXCLUDE) and (ROOT / p).is_file())
 
 
+def _module_name(rel: str) -> str:
+    parts = list(Path(rel).with_suffix("").parts)
+    return ".".join(parts[:-1] if parts[-1] == "__init__" else parts)
+
+
+def selected_tests(m, files: list[str]) -> tuple[list[str], dict[str, str]]:
+    """The test files the open tree can run, and every other one with why it is left out: a test is kept when each in-house
+    module it imports (anywhere in the file) is exported and its text names none of the private folders."""
+    spec = getattr(m, "TESTS", None)
+    if not spec:
+        return [], {}
+    exported = {_module_name(f) for f in files if f.endswith(".py")}
+    packages = {mod.rsplit(".", i)[0] for mod in exported for i in range(1, mod.count(".") + 1)} | exported
+    roots = tuple(m.RENAME) + ("dclab_core",)
+    tracked = subprocess.run(["git", "ls-files", "-z"], cwd=ROOT, capture_output=True, check=True).stdout.decode().split("\0")
+    kept, left = [], {}
+    for rel in sorted(p for p in tracked if fnmatch.fnmatch(p, spec["candidates"]) and (ROOT / p).is_file()):
+        if rel in spec["exclude"]:
+            left[rel] = spec["exclude"][rel]
+            continue
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        private = next((w for w in spec["private_paths"] if w in text), None)
+        if private:
+            left[rel] = f"names {private}"
+            continue
+        missing = None
+        for node in ast.walk(ast.parse(text)):
+            if isinstance(node, ast.Import):
+                targets = [a.name for a in node.names]
+            elif isinstance(node, ast.ImportFrom) and not node.level and node.module:
+                targets = [node.module] + [f"{node.module}.{a.name}" for a in node.names if f"{node.module}.{a.name}" not in packages
+                                           and _looks_like_module(node.module, a.name)]
+            else:
+                continue
+            missing = next((t for t in targets if t.startswith(roots) and t not in packages), None)
+            if missing:
+                break
+        if missing:
+            left[rel] = f"imports {missing}, which the open tree leaves out"
+            continue
+        kept.append(rel)
+    stems = {Path(t).stem for t in kept}
+    changed = True
+    while changed:  # a test that imports another test module (its fakes) stands only when that one is kept
+        changed = False
+        for rel in list(kept):
+            tree = ast.parse((ROOT / rel).read_text(encoding="utf-8"))
+            used = {a.name.split(".")[-1] for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names} | \
+                   {(n.module or "").split(".")[-1] for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)}
+            gone = sorted(u for u in used if u.startswith("test_") and u not in stems and (ROOT / "tests" / f"{u}.py").is_file())
+            if gone:
+                kept.remove(rel)
+                stems.discard(Path(rel).stem)
+                left[rel] = f"imports the test module {gone[0]}, which the open tree leaves out"
+                changed = True
+    helpers = [p for p in tracked if _match(p, spec["helpers"]) and (ROOT / p).is_file()]
+    return kept + sorted(helpers), left
+
+
+def _looks_like_module(package: str, name: str) -> bool:
+    """`from dclab_rnd.store import keepers` names a module when the private tree has that file (else it is an attribute)."""
+    base = ROOT / Path(*package.split("."))
+    try:
+        entries = set(os.listdir(base))  # exact names: a case-insensitive disk finds gateway.py for "Gateway"
+    except OSError:
+        return False
+    return f"{name}.py" in entries or (name in entries and (base / name / "__init__.py").is_file())
+
+
 def _renamed_path(path: str, m) -> str:
     for old, new in m.RENAME.items():
         if path == old or path.startswith(old + "/"):
@@ -67,13 +137,17 @@ def _rewrite(text: str, m) -> str:
     return text
 
 
+MARKER = re.compile(r"^\s*(?:#|//|<!--|/\*)\s*dclab:closed-(begin|end)\b")  # in Python, JavaScript, HTML or CSS comments
+
+
 def _strip_closed(text: str) -> tuple[str, int]:
     out, inside, blocks = [], False, 0
     for line in text.splitlines(keepends=True):
-        if line.strip().startswith(CLOSED_BEGIN):
+        found = MARKER.match(line)
+        if found and found.group(1) == "begin":
             inside, blocks = True, blocks + 1
             continue
-        if line.strip().startswith(CLOSED_END):
+        if found:
             inside = False
             continue
         if not inside:
@@ -83,7 +157,10 @@ def _strip_closed(text: str) -> tuple[str, int]:
 
 def build(out: Path, m) -> dict:
     files = selected(m)
-    report = {"files": [], "closed_blocks": 0, "findings": []}
+    tests, left_tests = selected_tests(m, files)
+    files = files + tests
+    report = {"files": [], "closed_blocks": 0, "findings": [], "tests": {"kept": [t for t in tests if fnmatch.fnmatch(t, "tests/test_*.py")],
+                                                                         "left_out": left_tests}}
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
@@ -136,7 +213,7 @@ def scan_words(out: Path, m) -> list[dict]:
             for p in patterns:
                 if p.search(line):
                     found.append({"check": "private word", "path": rel, "line": n, "detail": p.pattern})
-            if CLOSED_BEGIN in line or CLOSED_END in line:
+            if "dclab:closed-begin" in line or "dclab:closed-end" in line:
                 found.append({"check": "closed marker", "path": rel, "line": n, "detail": "left after stripping"})
     return found
 
@@ -221,6 +298,20 @@ def import_closure(out: Path, m) -> list[dict]:
     return list(found.values())
 
 
+def adjust_capability(out: Path, m) -> list[str]:
+    """The capability matrix as the open tree can stand behind it: a kind without its exported acceptance case is partial."""
+    path = out / m.PUBLIC_NAME / "kinds" / "capability.json"
+    without = getattr(m, "KINDS_WITHOUT_CASE", {})
+    if not path.is_file() or not without:
+        return []
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    for row in doc.get("results", []):
+        if row.get("kind") in without:
+            row.update(status="partial", checks=[], missing=[without[row["kind"]]])
+    path.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    return sorted(without)
+
+
 def build_knowledge(out: Path, m) -> dict:
     """The packaged knowledge: only the record types the manifest names, with citations cut to the open tree's own paths."""
     spec = m.KNOWLEDGE
@@ -265,6 +356,7 @@ def main(argv: list[str] | None = None) -> int:
     m = manifest()
     report = build(out, m)
     report["knowledge"] = build_knowledge(out, m)
+    report["capability_partial"] = adjust_capability(out, m)
     report["ui"] = build_ui(out, m)
     findings = scan_words(out, m) + scan_secrets(out) + import_closure(out, m) + report["ui"].get("findings", [])
     report["findings"] = findings
@@ -272,7 +364,8 @@ def main(argv: list[str] | None = None) -> int:
     for f in findings:
         by[f["check"]] = by.get(f["check"], 0) + 1
     report["summary"] = {"files": len(report["files"]), "bytes": sum(f["bytes"] for f in report["files"]), "closed_blocks": report["closed_blocks"],
-                         "knowledge_records": report["knowledge"]["records"], "findings": by}
+                         "knowledge_records": report["knowledge"]["records"],
+                         "tests": {"kept": len(report["tests"]["kept"]), "left_out": len(report["tests"]["left_out"])}, "findings": by}
     (out.parent / f"{out.name}.EXPORT_REPORT.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
     print(json.dumps(report["summary"], indent=1))
     return 1 if findings else 0

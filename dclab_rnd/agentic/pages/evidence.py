@@ -67,13 +67,23 @@ def _load(path: str, _mtime: float) -> tuple[tuple[dict[str, Any], ...], Evidenc
     return tuple(raw), EvidenceIndex(raw)
 
 
+PACKAGED_INDEX = Path(__file__).resolve().parents[2] / "knowledge" / "records.jsonl"  # the open edition's rules and pitfalls (the export writes it)
+
+
+def _source(path: Path) -> Path:
+    """The repository's index, or (where it is absent, as in the open edition) the records shipped inside the package."""
+    return PACKAGED_INDEX if path == INDEX and not path.is_file() and PACKAGED_INDEX.is_file() else path
+
+
 def _index(path: Path = INDEX) -> tuple[tuple[dict[str, Any], ...], EvidenceIndex] | None:
+    path = _source(path)
     if not path.is_file():
         return None
     return _load(str(path), path.stat().st_mtime)
 
 
 def library(path: Path = INDEX) -> dict[str, Any]:
+    path = _source(path)
     loaded = _index(path)
     raw = loaded[0] if loaded else ()
     accepted = lessons.offered()  # A5.3: the workspace's accepted lessons, labelled; never written into the index file

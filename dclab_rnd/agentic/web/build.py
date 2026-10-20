@@ -27,6 +27,7 @@ SRC = HERE / "src"
 OUT = HERE.parent / "static" / "app"
 VIEWS = ["home", "new", "project", "solution", "notebook", "audit", "models", "evaluation", "reliability", "brief",
          "intern", "compute", "evidence", "lab", "benchmark", "policy", "packs", "integrations", "admin", "blueprint"]
+VIEWS = [v for v in VIEWS if (SRC / "views" / f"{v}.html").is_file()]  # the open edition leaves some pages out
 DATA = [("records.js", "DEMO_RECORDS", "records.json"), ("review.js", "DEMO_REVIEW", "copilot_review.json"),
         ("sft.js", "DEMO_SFT", "sft.json")]
 HEAD = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'

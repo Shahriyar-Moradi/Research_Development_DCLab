@@ -30,7 +30,7 @@ def people(n=600, seed=0):
     """A table of people with planted duplicates (a typo in the name, the same city, a birth year one off or the same)."""
     rng = np.random.default_rng(seed)
     first = ["anna", "omid", "sara", "leila", "reza", "maria", "john", "nina", "pedro", "yuki", "amir", "zara"]
-    last = ["moradi", "smith", "garcia", "tanaka", "rossi", "karimi", "novak", "silva", "ahmadi", "kim"]
+    last = ["rahimi", "smith", "garcia", "tanaka", "rossi", "karimi", "novak", "silva", "ahmadi", "kim"]
     rows = [{"id": f"p{i}", "name": f"{rng.choice(first)} {rng.choice(last)} {i % 97}", "city": str(rng.choice(["tehran", "paris", "lima", "osaka"])),
              "born": int(rng.integers(1950, 2005))} for i in range(n)]
     pairs = []

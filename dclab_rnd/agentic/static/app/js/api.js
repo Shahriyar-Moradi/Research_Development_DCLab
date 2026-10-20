@@ -1575,5 +1575,9 @@
   client.changeMember = (...args) => call('changeMember', args);
   client.path.changeMember = (...args) => build('changeMember', args).path;
 
-  window.DC.client = client;
+  // A route this server does not have (the open edition leaves some out) answers like a 404, a rejected promise the
+  // page's DC.states shows, never a TypeError thrown before the page can catch it.
+  const missing = name => Object.assign(new Error('This part of DCLab is not in this edition'), { status: 404, missing: name });
+  window.DC.client = new Proxy(client, { get: (target, name) => (name in target || typeof name !== 'string')
+    ? target[name] : () => Promise.reject(missing(name)) });
 })();

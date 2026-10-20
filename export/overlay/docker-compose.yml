@@ -1,0 +1,28 @@
+# The studio with PostgreSQL and accounts (sign-in on). Start: docker compose up -d; the first owner:
+#   docker compose exec app dclab users add --username you --role owner
+# Without this file, `docker run -p 127.0.0.1:8765:8765 ghcr.io/dclabai/dclabai` runs it on files, without sign-in.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: dclab
+      POSTGRES_USER: dclab
+      POSTGRES_PASSWORD: ${DCLAB_DB_PASSWORD:?set DCLAB_DB_PASSWORD in .env}
+    volumes: [db:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dclab -d dclab"]
+      interval: 5s
+      retries: 20
+  app:
+    build: .
+    image: ghcr.io/dclabai/dclabai:latest
+    depends_on: {db: {condition: service_healthy}}
+    env_file: [.env]
+    environment:
+      DCLAB_DATABASE_URL: postgresql+psycopg://dclab:${DCLAB_DB_PASSWORD}@db:5432/dclab
+      DCLAB_AUTH: password
+    ports: ["127.0.0.1:8765:8765"]
+    volumes: [workspace:/workspace]
+volumes:
+  db:
+  workspace:

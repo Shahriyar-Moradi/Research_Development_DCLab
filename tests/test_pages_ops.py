@@ -3,7 +3,6 @@ pipelines and legacy research runs), /api/ops/jobs/{id} and /api/ops/evidence-re
 into the stores, so nothing trains and nothing calls a model."""
 import json
 import os
-import sqlite3
 import sys
 import tempfile
 import unittest
@@ -87,7 +86,7 @@ def make_fixtures(home: Path) -> dict:
            "usage": {"input_tokens": 1200, "output_tokens": 300}, "active_seconds": 250.0,
            "config": {"project": "general", "goal": "Compare two model families on bank marketing", "datasets": ["bank_marketing"], "model": "gpt-x",
                       "max_experiments": 2, "max_rows": 2000, "repeats": 1, "max_minutes": 5}}
-    with sqlite3.connect(store.path) as db:
+    with store.connect() as db:  # the store makes its tables on first use
         db.execute("INSERT INTO runs VALUES (?, ?)", (run["id"], json.dumps(run)))
         for kind, payload in [("phase", {"name": "Research planner"}), ("llm_request", {"messages": []}), ("trial", {"status": "completed", "plan": {"title": "Logistic baseline"}})]:
             db.execute("INSERT INTO events(run_id,kind,created,payload) VALUES (?,?,?,?)", (run["id"], kind, t(300), json.dumps(payload)))

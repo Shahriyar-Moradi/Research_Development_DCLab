@@ -286,6 +286,15 @@ def _expansion_specs():
     return expansion
 
 
+def _sample_source(key: str, root: Path) -> Path:
+    """Where a repository sample's table lives (the project tables, else a public parquet)."""
+    if key == "hyperack":
+        return root / "data/project/hyperack/hyper_ackt-dataset.csv"
+    if key == "telco_churn":
+        return root / "data/project/telco/WA_Fn-UseC_-Telco-Customer-Churn.csv"
+    return root / "data/public" / key / "X.parquet"
+
+
 def sample_catalog(root: Path = ROOT) -> list[dict[str, Any]]:
     """Datasets the R&D already studied, each with the solution it wrote for them.
 
@@ -297,15 +306,15 @@ def sample_catalog(root: Path = ROOT) -> list[dict[str, Any]]:
     for key, policy in DATASETS.items():
         if key in SAMPLE_META:
             meta = SAMPLE_META[key]
-            source = root / ("data/project/hyperack/hyper_ackt-dataset.csv" if key == "hyperack" else "data/project/telco/WA_Fn-UseC_-Telco-Customer-Churn.csv")
-            available = source.exists()
+            available = _sample_source(key, root).exists()
             name = "HyperAck delivery acceptance" if key == "hyperack" else "Telco customer churn"
             goal, industry = meta["goal"], meta["industry"]
         else:
-            source = root / "data/public" / key / "X.parquet"
-            available = source.exists()
+            available = _sample_source(key, root).exists()
             name = key.replace("_", " ").capitalize()
             goal, industry = PUBLIC_GOALS.get(key, ""), "general"
+        if not available:
+            continue  # a table this tree does not ship (the open edition ships none): never offered
         out.append({"key": key, "name": name, "goal": goal, "industry": industry, "available": available, "source": "repository",
                     "blocked": policy["blocked"], "decision": policy["decision"], "task": "binary", "rows": None})
     expansion = _expansion_specs()
@@ -323,8 +332,8 @@ def load_sample(key: str, root: Path = ROOT) -> tuple[pd.DataFrame, dict[str, An
     expansion = _expansion_specs()
     if key in expansion.SPECS:
         return _load_expansion_sample(expansion, key, root)
-    if key not in DATASETS:
-        raise KeyError(key)
+    if key not in DATASETS or not _sample_source(key, root).exists():
+        raise KeyError(key)  # unknown, or a table this tree does not ship (the open edition ships none): as in sample_catalog
     policy = DATASETS[key]
     if key == "hyperack":
         frame = pd.read_csv(root / "data/project/hyperack/hyper_ackt-dataset.csv")

@@ -241,6 +241,7 @@ def backtest(frame: pd.DataFrame, *, series: str, time: str, target: str, horizo
         model = None
         if len(train) > 50:
             X = train.drop(columns=[target])
+            X = X.loc[:, X.notna().any()]  # a lag the gap hides is empty in every row: scikit-learn 1.9 cannot bin a column with no value
             model = HistGradientBoostingRegressor(max_iter=200, learning_rate=0.08, random_state=0).fit(X, train[target])
             columns = list(X.columns)
         for key, past, feats, actual in forecasts:

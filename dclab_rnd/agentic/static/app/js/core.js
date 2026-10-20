@@ -122,15 +122,19 @@
     ] },
     { group: 'Knowledge', items: [
       { id: 'evidence', label: 'Evidence library', icon: 'book', count: String(RECORDS.length || 133) },
+      // dclab:closed-begin  (the research pages: the full edition's)
       { id: 'lab', label: 'Research lab', icon: 'flask' },
       { id: 'benchmark', label: 'Benchmark', icon: 'target' },
       { id: 'policy', label: 'Policy model', icon: 'brain' },
+      // dclab:closed-end
     ] },
     { group: 'Platform', items: [
       { id: 'packs', label: 'Domain packs', icon: 'layers' },
       { id: 'integrations', label: 'Integrations', icon: 'plug' },
       { id: 'admin', label: 'Admin', icon: 'gear' },
+      // dclab:closed-begin  (the planning page: the full edition's)
       { id: 'blueprint', label: 'Blueprint & roadmap', icon: 'map', count: '' },
+      // dclab:closed-end
     ] },
   ];
 
