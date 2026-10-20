@@ -144,6 +144,15 @@ class ShapersTest(unittest.TestCase):
         shapers.shape(self.layout)
         self.assertFalse(stray.exists())  # rebuilt beside the old and swapped in: nothing stale survives
 
+    def test_the_agents_metrics_ledger_is_kept_as_actions_of_type_metric_and_says_whose_it_is(self):
+        from dclab_rnd.store import shapers
+        from dclab_rnd.store.keepers import standard
+
+        self.assertEqual(standard.classify("metrics/agent_metrics.jsonl"), ("actions", "metrics/"))  # kept for the judges, not left in "other"
+        self.assertEqual(shapers._type("actions", "metrics/agent_metrics.jsonl", {}), "metric")
+        body = shapers._body({"agent": "notebook_cell", "metric": "proposal_accepted", "value": 1.0, "user_id": "u1"}, "actions", "metrics/agent_metrics.jsonl")
+        self.assertEqual(body["user"], "u1")
+
 
 if __name__ == "__main__":
     unittest.main()

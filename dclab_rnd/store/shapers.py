@@ -169,6 +169,8 @@ def _type(kind: str, source: str, doc: dict[str, Any]) -> str:
         return "intern_session" if "/versions/" in source or name.startswith("intern_session") else \
             "turn" if source.startswith(("workspace_chat/", "drafts/", "db/draft_event")) and name.endswith(".jsonl") else \
             "mcp_call" if source.startswith("mcp/") else "snapshot"
+    if kind == "actions" and source.startswith("metrics/"):  # the agents' metrics ledger: a measurement of an agent
+        return "metric"
     if kind == "sessions" and source.startswith("people/"):  # 32.32: a person's record, or a session of an account
         return "session" if name.startswith("session") else "person"
     return {"sessions": "event", "actions": "step", "audit": "row", "model_requests": "request", "tasks": "job_state", "teachers": "answer",
