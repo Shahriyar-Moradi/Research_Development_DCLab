@@ -110,7 +110,7 @@
       { id: 'intern', label: 'Intern', icon: 'intern', count: '1' },
       { id: 'compute', label: 'Compute & jobs', icon: 'cpu', count: '2' },
     ] },
-    { group: 'Project · Term deposits', items: [
+    { group: 'Project', items: [
       { id: 'project', label: 'Workflow', icon: 'graph' },
       { id: 'solution', label: 'Solution & data', icon: 'solution' },
       { id: 'notebook', label: 'Notebook', icon: 'notebook', count: '10' },
@@ -1309,6 +1309,11 @@
       ws.dataset.toast = 'Sign-in is off on this server. To turn it on, run make login once in the terminal, then restart make dev.';
       avatar.textContent = 'OW';
       avatar.title = 'Owner · this server has no sign-in';
+      const home = $('#view-home'), hour = new Date().getHours();
+      if (home) {  // no sign-in: nobody's name, the greeting of the hour
+        $('.vh h1', home).textContent = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+        $('.vh .eyebrow', home).textContent = 'Workspace · this machine';
+      }
       return;
     }
     const here = (auth.workspaces || []).find(w => w.id === auth.workspace_id) || {};
