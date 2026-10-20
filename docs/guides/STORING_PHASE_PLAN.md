@@ -1031,6 +1031,12 @@ gate. Model spend:
     record's notes, limits and interval, and the feedback given.
   - **The research campaigns' experiments (32.20):** the 14 model-selection results on public datasets are M3 experiment
     records, split by dataset. The engine's experiments are now read per workspace and project, train consent only.
+  - **The store in its repository (2026-10-20).**
+    - **In Git LFS:** every kept source (`raw/**/*.gz`) and each set's sealed split.
+    - **Plain files:** the indexes, the catalog and the schemas, the service records, the runs, and each set's manifest
+      and card.
+    - **Kept out:** `records/`, the train, dev and pending splits, and the curators' running state. They are rebuilt
+      from `raw/` on every run, so pushing them would fill the LFS quota with copies.
   - **The MLE-bench list checked** against openai/mle-bench: the Lite split matched (22 of 22), and the rest of its 75
     competitions and its development task were added (76 names).
 

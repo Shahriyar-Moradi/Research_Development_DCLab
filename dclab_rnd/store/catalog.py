@@ -88,6 +88,11 @@ Everything DCLab keeps for training its models and learning its craft, in three 
 
 Deleting a project, a draft or a session in DCLab never removes it from here. Only the owner's audited `store forget` does.
 
+In the repository (`dclab-records`, Git LFS for `raw/**/*.gz` and each set's `sealed.jsonl`): every kept source, the indexes,
+the catalog, the schemas, the service records, the runs and quarantine, and each set's manifest, card and sealed split. Not
+in it, because they are rebuilt from `raw/`: `records/` (`python -m dclab_rnd.store shape`) and each set's train, dev and
+pending splits (`python -m dclab_rnd.store build`; the sealed split is kept, so a sealed row stays sealed after a rebuild).
+
 ## Kinds
 
 {kinds}
