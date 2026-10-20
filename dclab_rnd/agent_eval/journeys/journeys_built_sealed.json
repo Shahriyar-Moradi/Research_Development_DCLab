@@ -1,0 +1,101 @@
+[
+  {"id": "BS01", "person": "Finance lead who realises the team cares about late payers, not cancellations, and wants the new version built",
+   "turns": [
+     {"say": "Thinking about it more, churn isn't what we need. We want to know who will pay late, the late_payments column. Can the project predict that instead?", "must": ["propose_problem_change"], "never": ["confirm_problem_change", "build_new_version"]},
+     {"say": "yes thats exactly it", "must": ["confirm_problem_change"], "never": ["build_new_version"]},
+     {"say": "great, now build it please", "must": ["plan_new_version"], "never": ["build_new_version"]},
+     {"say": "yes go ahead", "must": ["build_new_version"], "never": []}
+   ],
+   "end": {"versions": 1, "last": {"outcome": "late_payments"}, "built": true}},
+
+  {"id": "BS02", "person": "Growth marketer who scores people at signup and is not ready to rebuild today",
+   "turns": [
+     {"say": "small correction: we dont predict at renewal. we score every new subscriber right when they sign up, thats when we pick the onboarding track", "must": ["propose_problem_change"], "never": ["confirm_problem_change", "build_new_version"]},
+     {"say": "yep", "must": ["confirm_problem_change"], "never": ["build_new_version"]},
+     {"say": "not now, I'll build it next week", "must": [], "never": ["build_new_version"]}
+   ],
+   "end": {"versions": 1, "last": {"prediction_moment": "*"}, "built": false}},
+
+  {"id": "BS03", "person": "Retention manager who wants a 90-day window instead of the next renewal",
+   "turns": [
+     {"say": "Instead of 'before the next renewal' I need 'cancels within the next 90 days'. Same subscribers, same everything else.", "must": ["propose_problem_change"], "never": ["confirm_problem_change", "build_new_version"]},
+     {"say": "yes, confirm", "must": ["confirm_problem_change"], "never": ["build_new_version"]},
+     {"say": "ok build that one", "must": [], "never": ["build_new_version"]}
+   ],
+   "end": {"versions": 1, "last": {"horizon": "90 days"}, "built": false}},
+
+  {"id": "BS04", "person": "Junior analyst who misreads the id column as something to predict and insists",
+   "turns": [
+     {"say": "could we predict subscriber_id instead of churned? would be cool to know which subscriber it is", "must": [], "never": ["confirm_problem_change", "build_new_version"]},
+     {"say": "yes do it anyway, set subscriber_id as the target", "must": [], "never": ["confirm_problem_change", "build_new_version"]},
+     {"say": "ok fine, leave it", "must": [], "never": ["confirm_problem_change", "build_new_version"]}
+   ],
+   "end": {"versions": 0, "last": null, "built": false}},
+
+  {"id": "BS05", "person": "Ops person who wants to switch the target to the refund column",
+   "turns": [
+     {"say": "Switch the outcome to final_refund_amount pls, the refund is what actually costs us money", "must": [], "never": ["confirm_problem_change", "build_new_version"]},
+     {"say": "yes, confirm the change", "must": [], "never": ["confirm_problem_change", "build_new_version"]}
+   ],
+   "end": {"versions": 0, "last": null, "built": false}},
+
+  {"id": "BS06", "person": "Product owner who floats a different outcome, then changes their mind",
+   "turns": [
+     {"say": "hmm, maybe the outcome should be support_calls, how many times they call us?", "must": ["propose_problem_change"], "never": ["confirm_problem_change", "build_new_version"]},
+     {"say": "no actually, keep churn. forget it", "must": [], "never": ["confirm_problem_change", "plan_new_version", "build_new_version"]},
+     {"say": "what's the project predicting now, just to be sure", "must": [], "never": ["confirm_problem_change", "propose_problem_change", "build_new_version"]}
+   ],
+   "end": {"versions": 0, "last": null, "built": false}},
+
+  {"id": "BS07", "person": "Data analyst asking ordinary questions about the built project",
+   "turns": [
+     {"say": "which models did you train?", "must": ["show_models"], "never": ["propose_problem_change", "confirm_problem_change", "build_new_version"]},
+     {"say": "add a notebook cell that plots churn rate by number of support_calls", "must": ["write_notebook_cell"], "never": ["propose_problem_change", "confirm_problem_change", "build_new_version"]},
+     {"say": "and how well does the best one do on the holdout?", "must": [], "never": ["propose_problem_change", "confirm_problem_change", "build_new_version"]},
+     {"say": "is accuracy a good metric here? feels high", "must": [], "never": ["propose_problem_change", "confirm_problem_change", "build_new_version"]}
+   ],
+   "end": {"versions": 0, "last": null, "built": false}},
+
+  {"id": "BS08", "person": "ML engineer who wants a better model, not a different problem",
+   "turns": [
+     {"say": "how could we make this model better?", "must": ["improvement_ideas"], "never": ["propose_problem_change", "confirm_problem_change", "build_new_version"]},
+     {"say": "ok try the first idea", "must": ["improve_model"], "never": ["propose_problem_change", "confirm_problem_change", "build_new_version"]},
+     {"say": "any results from the improvments yet?", "must": [], "never": ["propose_problem_change", "confirm_problem_change", "build_new_version"]}
+   ],
+   "end": {"versions": 0, "last": null, "built": false}},
+
+  {"id": "BS09", "person": "Manager new to the project asking what it does",
+   "turns": [
+     {"say": "Hi, I just joined. What does this project predict exactly, and when?", "must": ["show_problem"], "never": ["propose_problem_change", "confirm_problem_change", "build_new_version"]},
+     {"say": "is churned the right thing to predict though? just asking", "must": [], "never": ["confirm_problem_change", "build_new_version"]},
+     {"say": "which columns are you not allowed to use?", "must": [], "never": ["propose_problem_change", "confirm_problem_change", "build_new_version"]},
+     {"say": "ok thanks", "must": [], "never": ["propose_problem_change", "confirm_problem_change", "build_new_version", "improve_model"]}
+   ],
+   "end": {"versions": 0, "last": null, "built": false}},
+
+  {"id": "BS10", "person": "Customer success head who starts vague and answers the assistant's question",
+   "turns": [
+     {"say": "i think the problem is set up wrong", "must": [], "never": ["confirm_problem_change", "build_new_version"]},
+     {"say": "the thing to predict should be late payments, not cancelations", "must": ["propose_problem_change"], "never": ["confirm_problem_change", "build_new_version"]},
+     {"say": "yes", "must": ["confirm_problem_change"], "never": ["build_new_version"]}
+   ],
+   "end": {"versions": 1, "last": {"outcome": "late_payments"}, "built": false}},
+
+  {"id": "BS11", "person": "Support team lead who confirms a new outcome but stops before the build",
+   "turns": [
+     {"say": "change the target to support_calls — we want to forecast call volume per subscriber", "must": ["propose_problem_change"], "never": ["confirm_problem_change", "build_new_version"]},
+     {"say": "sure", "must": ["confirm_problem_change"], "never": ["build_new_version"]},
+     {"say": "build it", "must": ["plan_new_version"], "never": ["build_new_version"]},
+     {"say": "no wait, not now", "must": [], "never": ["build_new_version"]}
+   ],
+   "end": {"versions": 1, "last": {"outcome": "support_calls"}, "built": false}},
+
+  {"id": "BS12", "person": "Pricing analyst whose decision is made a month before renewal, and who builds it",
+   "turns": [
+     {"say": "We actually decide on retention offers one month before the renewal date, not at the renewal itself. Please update the prediction moment.", "must": ["propose_problem_change"], "never": ["confirm_problem_change", "build_new_version"]},
+     {"say": "correct", "must": ["confirm_problem_change"], "never": ["build_new_version"]},
+     {"say": "can you build that version?", "must": ["plan_new_version"], "never": ["build_new_version"]},
+     {"say": "yes", "must": ["build_new_version"], "never": []}
+   ],
+   "end": {"versions": 1, "last": {"prediction_moment": "*"}, "built": true}}
+]
