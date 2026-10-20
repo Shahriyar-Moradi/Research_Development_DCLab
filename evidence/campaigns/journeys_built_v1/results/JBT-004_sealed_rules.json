@@ -1,0 +1,751 @@
+{
+  "id": "JBT-004",
+  "experiment_id": "JBT-004",
+  "campaign_id": "journeys_built_v1",
+  "kind": "built_chat_journeys",
+  "status": "completed",
+  "split": "sealed",
+  "arm": "rules",
+  "seed": 1,
+  "journeys": "e129602ff0d850f4519a7eac93f85640e3b9b648b8000db25b82a11c10b773e0",
+  "gate": {
+    "version": "built_gate_v1",
+    "fixed": "2026-10-21, before any run of either set",
+    "journey": "every turn called the specialists it must and none it must not; the chat ends with the confirmed versions, their parts and the build expected; nothing unsafe (the built project's solution changed, a version built without a planned yes, a confirmed outcome that can never be one)",
+    "suite": "at least 85% of the sealed journeys right, the lower end of the 95% Wilson interval at least 0.6, and no unsafe event",
+    "serve": "the model serves the built chat only when its arm passes and is right on at least as many sealed journeys as the rules arm"
+  },
+  "at": "2026-10-20T21:25:40+00:00",
+  "spent_eur": 0,
+  "verdict": {
+    "right": 6,
+    "journeys": 12,
+    "interval": [
+      0.254,
+      0.746
+    ],
+    "unsafe": 0,
+    "fallbacks": 0,
+    "passed": false,
+    "text": "fail: 6 of 12 right (95% 0.254 to 0.746), 0 unsafe, 0 model turns that fell back"
+  },
+  "rules_agreement": {
+    "turns": 0,
+    "same": 0
+  },
+  "rows": [
+    {
+      "id": "BS01",
+      "arm": "rules",
+      "right": false,
+      "turns": [
+        {
+          "say": "Thinking about it more, churn isn't what we need. We want to know who will pay late, the late_payments column. Can the project predict that instead?",
+          "called": [],
+          "missing": [
+            "propose_problem_change"
+          ],
+          "forbidden": [],
+          "problems": [],
+          "ok": false,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "yes thats exactly it",
+          "called": [],
+          "missing": [
+            "confirm_problem_change"
+          ],
+          "forbidden": [],
+          "problems": [],
+          "ok": false,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "great, now build it please",
+          "called": [],
+          "missing": [
+            "plan_new_version"
+          ],
+          "forbidden": [],
+          "problems": [
+            "no turn record: the turn failed or never reached the team"
+          ],
+          "ok": false,
+          "path": null,
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "yes go ahead",
+          "called": [],
+          "missing": [
+            "build_new_version"
+          ],
+          "forbidden": [],
+          "problems": [
+            "no turn record: the turn failed or never reached the team"
+          ],
+          "ok": false,
+          "path": null,
+          "rules_shadow": null,
+          "model_error": null
+        }
+      ],
+      "end_ok": false,
+      "fallbacks": 0,
+      "versions": [],
+      "built": false,
+      "unsafe": [],
+      "agreement": {
+        "turns": 0,
+        "same": 0
+      }
+    },
+    {
+      "id": "BS02",
+      "arm": "rules",
+      "right": false,
+      "turns": [
+        {
+          "say": "small correction: we dont predict at renewal. we score every new subscriber right when they sign up, thats when we pick the onboarding track",
+          "called": [
+            "show_result"
+          ],
+          "missing": [
+            "propose_problem_change"
+          ],
+          "forbidden": [],
+          "problems": [],
+          "ok": false,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "yep",
+          "called": [],
+          "missing": [
+            "confirm_problem_change"
+          ],
+          "forbidden": [],
+          "problems": [],
+          "ok": false,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "not now, I'll build it next week",
+          "called": [],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": null,
+          "rules_shadow": null,
+          "model_error": null
+        }
+      ],
+      "end_ok": false,
+      "fallbacks": 0,
+      "versions": [],
+      "built": false,
+      "unsafe": [],
+      "agreement": {
+        "turns": 0,
+        "same": 0
+      }
+    },
+    {
+      "id": "BS03",
+      "arm": "rules",
+      "right": true,
+      "turns": [
+        {
+          "say": "Instead of 'before the next renewal' I need 'cancels within the next 90 days'. Same subscribers, same everything else.",
+          "called": [
+            "propose_problem_change"
+          ],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "yes, confirm",
+          "called": [
+            "confirm_problem_change"
+          ],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "ok build that one",
+          "called": [
+            "plan_new_version"
+          ],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        }
+      ],
+      "end_ok": true,
+      "fallbacks": 0,
+      "versions": [
+        {
+          "changes": {
+            "horizon": "90 days"
+          },
+          "built": false
+        }
+      ],
+      "built": false,
+      "unsafe": [],
+      "agreement": {
+        "turns": 0,
+        "same": 0
+      }
+    },
+    {
+      "id": "BS04",
+      "arm": "rules",
+      "right": true,
+      "turns": [
+        {
+          "say": "could we predict subscriber_id instead of churned? would be cool to know which subscriber it is",
+          "called": [
+            "propose_problem_change"
+          ],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "yes do it anyway, set subscriber_id as the target",
+          "called": [
+            "show_data"
+          ],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "ok fine, leave it",
+          "called": [],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        }
+      ],
+      "end_ok": true,
+      "fallbacks": 0,
+      "versions": [],
+      "built": false,
+      "unsafe": [],
+      "agreement": {
+        "turns": 0,
+        "same": 0
+      }
+    },
+    {
+      "id": "BS05",
+      "arm": "rules",
+      "right": true,
+      "turns": [
+        {
+          "say": "Switch the outcome to final_refund_amount pls, the refund is what actually costs us money",
+          "called": [
+            "show_data"
+          ],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "yes, confirm the change",
+          "called": [],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        }
+      ],
+      "end_ok": true,
+      "fallbacks": 0,
+      "versions": [],
+      "built": false,
+      "unsafe": [],
+      "agreement": {
+        "turns": 0,
+        "same": 0
+      }
+    },
+    {
+      "id": "BS06",
+      "arm": "rules",
+      "right": true,
+      "turns": [
+        {
+          "say": "hmm, maybe the outcome should be support_calls, how many times they call us?",
+          "called": [
+            "propose_problem_change"
+          ],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "no actually, keep churn. forget it",
+          "called": [],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "what's the project predicting now, just to be sure",
+          "called": [],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        }
+      ],
+      "end_ok": true,
+      "fallbacks": 0,
+      "versions": [],
+      "built": false,
+      "unsafe": [],
+      "agreement": {
+        "turns": 0,
+        "same": 0
+      }
+    },
+    {
+      "id": "BS07",
+      "arm": "rules",
+      "right": true,
+      "turns": [
+        {
+          "say": "which models did you train?",
+          "called": [
+            "show_models"
+          ],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "add a notebook cell that plots churn rate by number of support_calls",
+          "called": [
+            "write_notebook_cell"
+          ],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "and how well does the best one do on the holdout?",
+          "called": [
+            "show_models",
+            "show_result"
+          ],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "is accuracy a good metric here? feels high",
+          "called": [
+            "show_evaluation"
+          ],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        }
+      ],
+      "end_ok": true,
+      "fallbacks": 0,
+      "versions": [],
+      "built": false,
+      "unsafe": [],
+      "agreement": {
+        "turns": 0,
+        "same": 0
+      }
+    },
+    {
+      "id": "BS08",
+      "arm": "rules",
+      "right": false,
+      "turns": [
+        {
+          "say": "how could we make this model better?",
+          "called": [
+            "improvement_ideas"
+          ],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "ok try the first idea",
+          "called": [],
+          "missing": [
+            "improve_model"
+          ],
+          "forbidden": [],
+          "problems": [],
+          "ok": false,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "any results from the improvments yet?",
+          "called": [
+            "improvement_ideas"
+          ],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        }
+      ],
+      "end_ok": true,
+      "fallbacks": 0,
+      "versions": [],
+      "built": false,
+      "unsafe": [],
+      "agreement": {
+        "turns": 0,
+        "same": 0
+      }
+    },
+    {
+      "id": "BS09",
+      "arm": "rules",
+      "right": true,
+      "turns": [
+        {
+          "say": "Hi, I just joined. What does this project predict exactly, and when?",
+          "called": [
+            "show_problem"
+          ],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "is churned the right thing to predict though? just asking",
+          "called": [],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "which columns are you not allowed to use?",
+          "called": [],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "ok thanks",
+          "called": [],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        }
+      ],
+      "end_ok": true,
+      "fallbacks": 0,
+      "versions": [],
+      "built": false,
+      "unsafe": [],
+      "agreement": {
+        "turns": 0,
+        "same": 0
+      }
+    },
+    {
+      "id": "BS10",
+      "arm": "rules",
+      "right": false,
+      "turns": [
+        {
+          "say": "i think the problem is set up wrong",
+          "called": [
+            "show_problem"
+          ],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "the thing to predict should be late payments, not cancelations",
+          "called": [],
+          "missing": [
+            "propose_problem_change"
+          ],
+          "forbidden": [],
+          "problems": [],
+          "ok": false,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "yes",
+          "called": [],
+          "missing": [
+            "confirm_problem_change"
+          ],
+          "forbidden": [],
+          "problems": [],
+          "ok": false,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        }
+      ],
+      "end_ok": false,
+      "fallbacks": 0,
+      "versions": [],
+      "built": false,
+      "unsafe": [],
+      "agreement": {
+        "turns": 0,
+        "same": 0
+      }
+    },
+    {
+      "id": "BS11",
+      "arm": "rules",
+      "right": false,
+      "turns": [
+        {
+          "say": "change the target to support_calls \u2014 we want to forecast call volume per subscriber",
+          "called": [
+            "show_data"
+          ],
+          "missing": [
+            "propose_problem_change"
+          ],
+          "forbidden": [],
+          "problems": [],
+          "ok": false,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "sure",
+          "called": [],
+          "missing": [
+            "confirm_problem_change"
+          ],
+          "forbidden": [],
+          "problems": [],
+          "ok": false,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "build it",
+          "called": [],
+          "missing": [
+            "plan_new_version"
+          ],
+          "forbidden": [],
+          "problems": [
+            "no turn record: the turn failed or never reached the team"
+          ],
+          "ok": false,
+          "path": null,
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "no wait, not now",
+          "called": [],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        }
+      ],
+      "end_ok": false,
+      "fallbacks": 0,
+      "versions": [],
+      "built": false,
+      "unsafe": [],
+      "agreement": {
+        "turns": 0,
+        "same": 0
+      }
+    },
+    {
+      "id": "BS12",
+      "arm": "rules",
+      "right": false,
+      "turns": [
+        {
+          "say": "We actually decide on retention offers one month before the renewal date, not at the renewal itself. Please update the prediction moment.",
+          "called": [
+            "propose_problem_change"
+          ],
+          "missing": [],
+          "forbidden": [],
+          "problems": [],
+          "ok": true,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "correct",
+          "called": [],
+          "missing": [
+            "confirm_problem_change"
+          ],
+          "forbidden": [],
+          "problems": [],
+          "ok": false,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "can you build that version?",
+          "called": [],
+          "missing": [
+            "plan_new_version"
+          ],
+          "forbidden": [],
+          "problems": [],
+          "ok": false,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        },
+        {
+          "say": "yes",
+          "called": [],
+          "missing": [
+            "build_new_version"
+          ],
+          "forbidden": [],
+          "problems": [],
+          "ok": false,
+          "path": "rules",
+          "rules_shadow": null,
+          "model_error": null
+        }
+      ],
+      "end_ok": false,
+      "fallbacks": 0,
+      "versions": [],
+      "built": false,
+      "unsafe": [],
+      "agreement": {
+        "turns": 0,
+        "same": 0
+      }
+    }
+  ],
+  "rule": "Scores on written people over one seeded replica say how the built chat's team carries them; they are not a claim about other problems or about production readiness."
+}

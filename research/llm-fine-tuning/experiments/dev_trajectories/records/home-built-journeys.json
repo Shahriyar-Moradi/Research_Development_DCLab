@@ -1,0 +1,28 @@
+{
+  "package": "home-built-journeys",
+  "title": "The built chat's team measured on journeys, a sealed set run once per arm, the rules recorded in shadow, a serve rule from the result",
+  "date": "2026-10-21",
+  "request": "Go on with step 3: measure the built chat's team (problem analyst, solution planner) before trusting the model with it; push after the sealed runs.",
+  "spec": "The Home orchestrator's model served the built chat whenever one was configured, never measured on people changing a built project's problem.",
+  "plan": ["Journeys on a built churn replica, through the product's own path, scored per turn, on the end state and on unsafe events", "A gate fixed before any run", "A sealed set written by an independent agent, pinned, run once per arm", "The rules' reading recorded beside every model turn", "A serve rule read from the sealed results, failing closed"],
+  "decisions": [
+    {"decision": "The serve rule was fixed before the runs: the model serves only when it passes and is right on as many sealed journeys as the rules.", "why": "A switch decided after seeing the numbers would be tuned on the sealed set."},
+    {"decision": "The harness was reviewed and fixed before the sealed runs.", "why": "A sealed set runs once: a scoring bug found after would leave no fair measurement."}
+  ],
+  "change": "dclab_rnd/agent_eval/journeys/built.py, journeys_built_dev.json, journeys_built_sealed.json and sealed_built.sha256 (independent), dclab_rnd/draft/orchestrator.py (rules_shadow, the serve switch, steps kept as they run), tests/test_journeys_built.py, tests/test_home_orchestrator.py, tests/test_model_data_limits.py.",
+  "findings": [
+    {"id": "J1", "source": "reviewer", "severity": "behaviour", "defect": "A model turn that fell back to the rules was scored as the model's.", "scenario": "An outage or a cap refusal on the first request.", "cause": "The harness read the turn's tools without its path.", "fix": "A turn not served by the model is not right in the model arm; steps are kept as they run.", "test": "tests/test_journeys_built.py"},
+    {"id": "J2", "source": "reviewer", "severity": "flaky", "defect": "The tests would depend on the stored sealed result.", "scenario": "A failing sealed model result committed.", "cause": "The orchestrator read the serve rule in tests too.", "fix": "DCLAB_BUILT_CHAT_SERVE forces who serves in the tests; the harness forces each arm.", "test": "tests/test_home_orchestrator.py"},
+    {"id": "J3", "source": "reviewer", "severity": "behaviour", "defect": "The run-once rule could be bypassed.", "scenario": "--no-store on sealed; a crash midway; a partial run stopped by the cap.", "cause": "Only a stored result locked an arm.", "fix": "A start marker locks the arm; sealed is always stored; journeys not played count as wrong.", "test": "test_a_sealed_arm_runs_once"},
+    {"id": "J4", "source": "reviewer", "severity": "latent", "defect": "The serve rule failed open.", "scenario": "A malformed record; a failed result on an older sealed set.", "cause": "Errors returned True; only the current fingerprint was read.", "fix": "The latest sealed model run on any set decides; unreadable or unfinished means the rules serve.", "test": "test_the_model_serves_only_after_passing_its_sealed_arm_and_not_worse_than_the_rules"},
+    {"id": "J5", "source": "reviewer", "severity": "behaviour", "defect": "A turn could be scored on another turn's record.", "scenario": "Two identical messages in a row; a turn with no record.", "cause": "The last record with the same text was taken.", "fix": "Each turn reads only the records written during it; none is not ok unless the chat said it is built.", "test": "test_each_turn_is_scored_on_its_own_record"}
+  ],
+  "measurements": [
+    {"name": "Dev journeys (8)", "gate": "at least 85% right, Wilson low 0.6, nothing unsafe", "result": "rules 8/8, model 8/8 (EUR 0.13), nothing unsafe, no fallback", "verdict": "pass", "limits": ["written by the builder"]},
+    {"name": "Sealed journeys (12, independent), run once per arm", "gate": "at least 85% right, Wilson low 0.6, nothing unsafe", "result": "rules 6/12 (0.254 to 0.746), model 10/12 (0.552 to 0.953, EUR 0.25), nothing unsafe in either; the model's two misses were attempts to confirm an identifier and a leak column as the outcome after the person insisted, refused by the rules", "verdict": "fail", "limits": ["one replica, twelve people", "by the rule fixed before the runs neither arm passes, so the rules serve the built chat although the model was right on more"]}
+  ],
+  "outcome": "The built chat's team is measured: neither arm passed the fixed gate; the serve rule hands the built chat to the rules until a measured model passes, and the owner decides whether to override it.",
+  "lessons": ["Review a harness before its sealed run: five of its scoring paths were wrong and a sealed set cannot be run twice.", "A serve rule needs a stance on 'both fail': fixing it in advance may hand the chat to the weaker arm."],
+  "risks": ["The rules now serve the built chat by the fixed rule, and they were right on 6 of 12 sealed people."],
+  "commits": []
+}
