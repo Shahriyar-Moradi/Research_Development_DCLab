@@ -80,10 +80,11 @@ def _tables() -> list[dict[str, Any]]:
 
 
 # modules that read or list kinds rather than write them: the library (the contract, the adapters, the queries), the finders,
-# the retention sweep, the catalog, the Admin page that shows them
+# the retention sweep, the catalog, the Admin page that shows them, and the store (it keeps and reads every kind, writes none)
 READERS = ("dclab_core/", "dclab_rnd/data_catalog.py", "dclab_rnd/experience/__init__.py", "dclab_rnd/experience/finder.py", "dclab_rnd/experience/queries.py",
            "dclab_rnd/experience/retention.py", "dclab_rnd/experience/catalog.py", "dclab_rnd/experience/__main__.py", "dclab_rnd/datasets.py",
-           "dclab_rnd/consent.py", "dclab_rnd/agentic/pages/sessions.py", "dclab_rnd/agentic/web/src/views/admin.html", "dclab_rnd/agentic/web/src/views/sessions.html")
+           "dclab_rnd/consent.py", "dclab_rnd/agentic/pages/sessions.py", "dclab_rnd/agentic/web/src/views/admin.html", "dclab_rnd/agentic/web/src/views/sessions.html",
+           "dclab_rnd/store/")
 
 
 def _owners(kinds: list[str]) -> dict[str, list[str]]:
