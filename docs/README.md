@@ -9,6 +9,7 @@
 | [`guides/AGENT_KNOWLEDGE_ARCHITECTURE.md`](guides/AGENT_KNOWLEDGE_ARCHITECTURE.md) | Agent builders. Retrieval vs fine-tuning vs tools, record design, usage patterns |
 | [`guides/NOTEBOOK_COPILOT.md`](guides/NOTEBOOK_COPILOT.md) | Data scientists. What the copilot flags, why, and with what proof |
 | [`guides/SFT_DATA_GUIDE.md`](guides/SFT_DATA_GUIDE.md) | ML engineers. Paired instructions, formats, training and evaluation |
+| [`guides/ADDING_CAPABILITY.md`](guides/ADDING_CAPABILITY.md) | Anyone extending DCLab. How a problem becomes a recipe (kind + modifiers), and how to add a kind, a modifier or a business pattern card |
 
 ## Product context
 
