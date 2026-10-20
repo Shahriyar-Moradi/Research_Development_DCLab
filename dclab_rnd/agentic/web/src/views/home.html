@@ -361,8 +361,12 @@ DC.view('home', {
       if (!on) { $('#home-twin', el).hidden = true; $('#home-lanes', el).className = 'stack'; }
     }
     const CHATS = ['open', 'built'];  // a built project's chat stays open: the person reads it and goes on
-    async function ensureDraft() {
-      if (S.draft && CHATS.includes(S.draft.status)) return S.draft;
+    async function ensureDraft(opts = {}) {
+      if (S.draft && (S.draft.status === 'open' || (S.draft.status === 'built' && !opts.data))) return S.draft;
+      if (S.draft && S.draft.status === 'built' && opts.data) {  // a built project took its table when it was built: new data is a new chat
+        toast('This chat\'s project is built, so new data starts a new chat with the same problem. To change the project\'s data, use its Solution & data page.', { ms: 6000 });
+        S.draft = null; remember(null);
+      }
       const problem = $('#home-task', el).value.trim();
       if (problem.length < 8) { toast('Describe the problem in one sentence first.', { ok: false }); $('#home-task', el).focus(); throw new Error('no problem'); }
       S.draft = await DC.client.createDraft({ body: { problem, pack: S.pack } }); S.fresh = false;
@@ -375,7 +379,7 @@ DC.view('home', {
       $('#home-thread', el).innerHTML = '';
       $('#home-task', el).value = draft.problem;
       $('#home-chat-sub', el).textContent = draft.project_id
-        ? 'The chat this project was built from. Go on asking or adding here; the project changes only when you build again or change it on its own pages.'
+        ? 'The chat this project was built from: read it and go on asking. It does not change the project: change the project on its own pages (Solution & data), or start a new project for new data.'
         : 'A few questions to understand the problem, and the data as it gets ready.';
       showDraftPanels(true);
       creating(false);
@@ -985,7 +989,7 @@ DC.view('home', {
       if (c) {
         const kind = c.dataset.connect, X = DC.connectors;
         if (kind === 'kaggle') { X.kaggleSearch($('#home-kaggle-q', el).value, $('#home-kaggle-list', el)); return; }
-        try { await ensureDraft(); } catch (err) { return; }
+        try { await ensureDraft({ data: true }); } catch (err) { return; }
         const started = () => $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' });
         if (kind === 'hf') X.importHF(S.draft.id, { dataset: $('#home-hf-id', el).value.trim(), revision: $('#home-hf-rev', el).value.trim(), split: $('#home-hf-split', el).value.trim(), config: $('#home-hf-cfg', el).value.trim() }).then(started).catch(err => { if (err.message !== 'no dataset') toast(err.message, { ok: false }); });
         if (kind === 'database') X.database(S.draft.id, started);
@@ -994,13 +998,13 @@ DC.view('home', {
       }
       const k = e.target.closest('[data-kaggle-ref]');
       if (k) {
-        try { await ensureDraft(); await DC.connectors.importKaggle(S.draft.id, k.dataset.kaggleRef); k.disabled = true; k.textContent = 'Importing…'; $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+        try { await ensureDraft({ data: true }); await DC.connectors.importKaggle(S.draft.id, k.dataset.kaggleRef); k.disabled = true; k.textContent = 'Importing…'; $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
         catch (err) { if (err.message !== 'no problem') toast(err.message, { ok: false }); }
       }
     });
     async function uploadFile(file) {
       if (!file) return;
-      try { await ensureDraft(); } catch (e) { return; }
+      try { await ensureDraft({ data: true }); } catch (e) { return; }
       const t0 = Date.now();
       DC.ui.note('ui.upload_started', { view: 'home', file_kind: (file.name.split('.').pop() || 'file').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) || 'file', bytes: file.size });
       try {
@@ -1025,13 +1029,13 @@ DC.view('home', {
     $('[data-tabs="hsrc"]', el).addEventListener('tabchange', e => { if (e.detail === 'samples') loadSamples(); });
     $('#home-samples', el).addEventListener('click', async e => {
       const tr = e.target.closest('tr[data-sample]'); if (!tr || e.target.closest('[data-record]')) return;
-      try { await ensureDraft(); } catch (err) { return; }
+      try { await ensureDraft({ data: true }); } catch (err) { return; }
       try { await DC.client.sample(S.draft.id, { body: { key: tr.dataset.sample } }); $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
       catch (err) { toast(err.message, { ok: false }); }
     });
     DC.synthetic.setup($('#home-syn-template-field', el));
     $('#home-syn-go', el).addEventListener('click', async () => {
-      try { await ensureDraft(); } catch (e) { return; }
+      try { await ensureDraft({ data: true }); } catch (e) { return; }
       try {
         await DC.client.syntheticData(S.draft.id, { body: { prompt: $('#home-syn-prompt', el).value || S.draft.problem, rows: Number($('#home-syn-rows', el).value), template: DC.synthetic.chosen($('#home-syn-template-field', el)) } });
         $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1141,12 +1145,11 @@ DC.view('home', {
     /* The chat of the project the person is on (chosen on another page), shown on Home to read and go on with. */
     this.projectChat = async () => {
       const key = DC.state.project;
-      if (S.fresh || typeof key !== 'string' || !key.startsWith('p:')) return false;
+      if (S.fresh || S.draft || typeof key !== 'string' || !key.startsWith('p:')) return false;  // a chat on screen is never replaced
       try {
         const project = await DC.currentProject.get();
         const draft = project && (project.draft || {}).id;
-        if (!draft) return false;
-        if (S.draft && S.draft.id === draft) return true;
+        if (!draft || S.draft || S.fresh) return false;  // the person started a chat while the project was read
         return await resume(draft);
       } catch (e) { return false; }
     };

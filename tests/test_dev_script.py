@@ -70,10 +70,10 @@ class SafetyTests(unittest.TestCase):
             dev.ensure_database("postgresql+psycopg://u@127.0.0.1:1/dclab_unreachable")
         self.assertIn("brew services start postgresql", str(caught.exception))
 
-    def test_make_login_turns_sign_in_on_once_and_keeps_the_rest_of_env(self):
+    def test_make_login_turns_sign_in_on_once_in_make_devs_own_file(self):
         import tempfile
 
-        env = Path(tempfile.mkdtemp()) / ".env"
+        env = Path(tempfile.mkdtemp()) / ".env.dev"
         env.write_text("DCLAB_PORT=8765")  # no newline at its end
         self.assertTrue(dev.enable_login(env))
         self.assertFalse(dev.enable_login(env))  # already on: written once
@@ -83,6 +83,13 @@ class SafetyTests(unittest.TestCase):
         env.write_text("DCLAB_AUTH=oidc\n")
         self.assertFalse(dev.enable_login(env))  # a sign-in already chosen is never changed
         self.assertEqual(env.read_text(), "DCLAB_AUTH=oidc\n")
+        for off in ("DCLAB_AUTH=none\n", "DCLAB_AUTH=\nOTHER=1\n"):  # off, or empty: sign-in is turned on
+            env.write_text(off)
+            self.assertTrue(dev.enable_login(env), off)
+        self.assertEqual(dev.DEV_ENV.name, ".env.dev")  # never the shared .env, which make notebook, the tests and the flows read
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("DCLAB_AUTH", None)
+            self.assertEqual(dev.dev_settings(env)["DCLAB_AUTH"], "password")
 
     def test_serve_runs_one_reloading_worker_on_the_checked_database(self):
         with mock.patch.object(dev, "ensure_database", return_value="already at 0008") as ensured, \
@@ -102,6 +109,28 @@ class SafetyTests(unittest.TestCase):
         self.assertEqual(command[command.index("--workers") + 1], "1")
         self.assertEqual(env["DCLAB_DATABASE_URL"], "postgresql+psycopg://u@/dclab_dev")
         ensured.assert_called_once()
+
+    def test_ending_the_worker_ends_the_store_run_it_started(self):
+        import subprocess
+
+        # a worker in its own session that starts a long child, as the store job does
+        worker = subprocess.Popen([sys.executable, "-c", "import subprocess, sys, time; "
+                                   "c = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)']); print(c.pid, flush=True); time.sleep(60)"],
+                                  stdout=subprocess.PIPE, text=True, start_new_session=True)
+        child = int(worker.stdout.readline())
+        dev._end(worker, wait=5)
+        for _ in range(50):
+            try:
+                os.kill(child, 0)
+            except ProcessLookupError:
+                break
+            try:
+                os.waitpid(child, os.WNOHANG)
+            except ChildProcessError:
+                pass
+            time.sleep(0.1)
+        else:
+            self.fail("the store run outlived its worker")
 
     def test_a_worker_that_ends_is_said_loudly_and_started_again_and_a_code_change_restarts_it(self):
         folder = Path(tempfile.mkdtemp())

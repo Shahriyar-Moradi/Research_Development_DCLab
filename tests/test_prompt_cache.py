@@ -94,6 +94,15 @@ class UsageAndPriceTest(unittest.TestCase):
         worst = prices.cost("claude-sonnet-5-5", False, chars // 3, out, cache_write=chars // 3, cache_write_1h=chars // 3)[0]
         self.assertGreaterEqual(bound, worst)
 
+    def test_a_price_without_a_cache_rate_still_charges_the_write_premium_and_bounds_the_estimate(self):
+        # a prices file written before caching: its entry has no cache read rate, yet the request was cached
+        table = {"claude-old": prices.Price(input=2, output=10, as_of="2026-01-01", source="an old prices file")}
+        with mock.patch.object(prices, "load", return_value=table), mock.patch.dict(os.environ, {"DCLAB_PROMPT_CACHE_TTL": "1h"}):
+            eur = prices.cost("claude-old", False, 1000, 0, cache_write=1000, cache_write_1h=1000)[0]
+            self.assertEqual(eur, round(1000 * 2 * 2.0 / 1_000_000, 6))  # an hour's write at twice the input price
+            self.assertEqual(prices.cost("claude-old", False, 1000, 0, cache_read=1000)[0], round(1000 * 2 / 1_000_000, 6))  # reads never below
+            self.assertGreaterEqual(prices.estimate("claude-old", False, 3000, 0), eur)
+
     def test_the_usage_log_keeps_the_cached_tokens(self):
         from dclab_rnd.models import Gateway
         from dclab_rnd.models.usage import FileUsage

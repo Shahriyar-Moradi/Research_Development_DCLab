@@ -157,7 +157,16 @@ print(best_depth, *(round(f(y_test, p), 4) for f in (roc_auc_score, average_prec
       await runCell(id);
       const r = RUN[id];
       if (r && r.prepared) toast(`The kernel was new, so the notebook's ${r.prepared} cells ran first (training rows only), then yours.`);
+      nextAsk();
     }
+    /* After a cell: the box for the next request, under it, ready to type in. */
+    function nextAsk() {
+      const box = $('#agent-prompt', el);
+      box.placeholder = 'Ask for the next cell, for example: show the confusion matrix on the validation folds';
+      $('#agent-ask', el).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      box.focus({ preventScroll: true });
+    }
+    $('#agent-prompt', el).addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('#agent-go', el).click(); } });
     function applyFix(i) { fixed.add(Number(i)); render(); toast(`Fix applied to cell ${i}. The original stays in the cell history.`); }
     el.addEventListener('click', e => {
       const wf = e.target.closest('[data-write-fixes]');
@@ -236,6 +245,7 @@ print(best_depth, *(round(f(y_test, p), 4) for f in (roc_auc_score, average_prec
           const cell = await DC.client.writeNotebookCell(real.p.id, { body: { request } });
           if (real !== mine) return;
           AGENT = AGENT.concat([cell]); renderAgent(); DC.hydrate(el);
+          if (cell.status !== 'refused') $('#agent-prompt', el).value = '';
           if (cell.status === 'refused') toast('The model\'s cell did not pass the checks, so it is not offered. Try saying it another way.', { ok: false });
         } catch (err) { toast(err.message, { ok: false }); }
         finally { WRITING = false; go.disabled = false; go.textContent = 'Write cell'; }
@@ -432,11 +442,11 @@ result.roc_auc, result.interval                  # 0.7718, (0.7126, 0.8290)`, ['
     const s = this.s, tok = ++s.tok;
     let p = null;
     try { p = await DC.currentProject.get(); } catch (e) { p = null; }
-    if (!p) {  // the notebook runs on a real project: a sample chosen elsewhere gives way to the latest project, its solution saved first
-      try {
+    if (!p) {  // the notebook runs on a real project: with a sample chosen elsewhere, this page opens the latest project, its
+      try {    // solution saved first, for itself only (the other pages keep the choice)
         const list = (await DC.client.workspace()).projects || [];
         const pick = list.find(x => x.has_solution) || list[0];
-        if (pick) { DC.state.project = 'p:' + pick.id; DC.state.projectId = null; DC.currentProject.clear(); p = await DC.currentProject.get(); }
+        if (pick) p = await DC.client.getProject(pick.id);
       } catch (e) { p = null; }
     }
     if (tok !== s.tok) return;

@@ -225,6 +225,8 @@ def sweep_due(services: Any) -> Optional[dict[str, Any]]:
     """The job ``store``, queued when a run is due (one at a time: a queued or running one holds its key)."""
     from ..jobs import ActiveJob
 
+    if getattr(services, "primary", True) is False:  # one run covers every workspace: only the server's own queues it, never each account's
+        return None
     if not due():
         return None
     try:

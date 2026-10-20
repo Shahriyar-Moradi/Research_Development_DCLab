@@ -284,6 +284,15 @@ class AccountsTests(unittest.TestCase):
         self.assertNotIn(made, {p["id"] for p in owner.get("/api/projects").json()})  # their projects stay apart
         self.assertEqual(self.accounts.role_of(self.users["owner1"]["id"], body["workspace_id"]), "owner")  # the inviter can open it
 
+    def test_an_existing_account_is_never_placed_in_a_workspace_of_its_own_by_someone_else(self):
+        owner = self.clients["owner1"]
+        victim = self.accounts.create_user(f"existing-{os.getpid()}@example.com", "Existing", password=PASSWORD)
+        before = {w["id"] for w in self.accounts.workspaces_of(victim["id"])} if hasattr(self.accounts, "workspaces_of") else None
+        refused = owner.post("/api/workspace/members", json={"email": victim["email"], "name": "AAA", "role": "viewer", "own_workspace": True})
+        self.assertEqual(refused.status_code, 409, refused.text)
+        if before is not None:
+            self.assertEqual({w["id"] for w in self.accounts.workspaces_of(victim["id"])}, before)  # no lab was made around them
+
     def test_a_member_of_two_workspaces_switches_between_them(self):
         user = self.accounts.create_user(f"both-{os.getpid()}@example.com", "Both", password=PASSWORD)
         self.accounts.set_member(self.w1, user["id"], "viewer")

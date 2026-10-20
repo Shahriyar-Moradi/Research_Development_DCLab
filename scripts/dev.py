@@ -3,7 +3,7 @@
     make dev                   # PostgreSQL checked, dclab_dev created and migrated, the API and the job worker with reload, the frontend rebuilt on change
     make db-reset CONFIRM=yes  # a clean dclab_dev: dropped, created, migrated (asks for CONFIRM: it deletes the database)
     make test-db               # the database the tests use (dclab_test), created and migrated
-    make login                 # sign-in on: DCLAB_AUTH=password written to .env and your owner account made (once; then make dev)
+    make login                 # sign-in on for make dev: DCLAB_AUTH=password in .env.dev (read by make dev only) and your owner account (once)
 
 No containers: the developer's own PostgreSQL (``brew services start postgresql@15`` on a Mac). The database is
 ``DCLAB_DATABASE_URL`` (from the shell or ``.env``, as the server reads it), else ``postgresql+psycopg://$USER@/dclab_dev``.
@@ -196,12 +196,36 @@ def _exit_reason(code: int) -> str:
 
 
 def _end(process, wait: float = 10) -> None:
-    if process.poll() is None:
-        process.terminate()
+    """End a process and everything it started (the worker's store run is its child): its whole process group when it
+    leads one, so no child outlives it holding the store's locks."""
+    import signal
+
+    if process.poll() is not None:
+        return
+    group = None
+    try:
+        if isinstance(process.pid, int) and os.getpgid(process.pid) == process.pid:
+            group = process.pid
+    except OSError:
+        group = None
+
+    def signal_all(sig) -> None:
+        if group is None:  # a process that leads no group of its own: itself only
+            process.terminate() if sig == signal.SIGTERM else process.kill()
+            return
+        try:
+            os.killpg(group, sig)
+        except (ProcessLookupError, PermissionError):
+            pass
+    signal_all(signal.SIGTERM)
+    try:
+        process.wait(timeout=wait)
+    except subprocess.TimeoutExpired:
+        signal_all(signal.SIGKILL)
         try:
             process.wait(timeout=wait)
         except subprocess.TimeoutExpired:
-            process.kill()
+            pass
 
 
 def supervise_worker(start, stop: threading.Event, every: float = 1.0, folder: Path = ROOT / "dclab_rnd", backoff: float = 2.0,
@@ -242,7 +266,7 @@ def supervise_worker(start, stop: threading.Event, every: float = 1.0, folder: P
 
 def serve(url: str, port: int, remote: bool = False) -> int:
     # The worker runs on its own (package 10.3), as in production: the API only queues jobs.
-    env = {**os.environ, "DCLAB_DATABASE_URL": url, "DCLAB_WORKER": "external"}
+    env = {**os.environ, **dev_settings(), "DCLAB_DATABASE_URL": url, "DCLAB_WORKER": "external"}
     print(f"database {database_name(url)}: {ensure_database(url, remote=remote)}", flush=True)
     build_frontend()
     stop = threading.Event()
@@ -251,7 +275,7 @@ def serve(url: str, port: int, remote: bool = False) -> int:
     command = [sys.executable, "-m", "uvicorn", "dclab_rnd.agentic.server:app", "--host", "127.0.0.1", "--port", str(port),
                "--reload", "--reload-dir", "dclab_rnd", "--workers", "1"]
     print(f"API on http://127.0.0.1:{port} and a job worker (both reload on code changes, and the worker is restarted if it ends; the frontend rebuilds when {WEB_SRC.relative_to(ROOT)} changes). Ctrl-C stops.", flush=True)
-    supervisor = threading.Thread(target=supervise_worker, args=(lambda: subprocess.Popen(worker_command(), cwd=ROOT, env=env), stop),
+    supervisor = threading.Thread(target=supervise_worker, args=(lambda: subprocess.Popen(worker_command(), cwd=ROOT, env=env, start_new_session=True), stop),
                                   name="dclab-dev-worker", daemon=True)
     supervisor.start()
     process = subprocess.Popen(command, cwd=ROOT, env=env)
@@ -265,21 +289,34 @@ def serve(url: str, port: int, remote: bool = False) -> int:
         supervisor.join(timeout=15)
 
 
+DEV_ENV = ROOT / ".env.dev"  # make dev's own settings (sign-in): never read by make notebook, the tests or the flows
+SIGN_IN = re.compile(r"^[ \t]*DCLAB_AUTH[ \t]*=[ \t]*[\"']?(password|oidc)\b", re.M)
+
+
 def enable_login(env_file: Path) -> bool:
-    """``DCLAB_AUTH=password`` in ``env_file``, unless it already names a sign-in; True when it was written."""
+    """``DCLAB_AUTH=password`` in ``env_file`` (make dev's own file), unless it already names a sign-in; True when it was written."""
     text = env_file.read_text() if env_file.exists() else ""
-    if re.search(r"^\s*DCLAB_AUTH\s*=\s*\S", text, re.M):
+    if SIGN_IN.search(text):
         return False
     env_file.write_text(text + ("" if not text or text.endswith("\n") else "\n") +
-                        "# Sign-in (make login): accounts on this machine's dclab_dev; add friends on the Admin page, Members\nDCLAB_AUTH=password\n")
+                        "# Sign-in (make login): read by make dev only; add friends on the Admin page, Members\nDCLAB_AUTH=password\n")
     return True
+
+
+def dev_settings(env_file: Path = DEV_ENV) -> dict[str, str]:
+    """make dev's own settings: the sign-in that make login turned on (a value in the shell wins)."""
+    if not env_file.exists():
+        return {}
+    from dotenv import dotenv_values
+
+    return {k: v for k, v in dotenv_values(env_file).items() if v is not None and k not in os.environ}
 
 
 def login(url: str, remote: bool = False) -> int:
     """Sign-in for local development in one step: the database ready, DCLAB_AUTH=password in .env, the first owner made
     (the password is asked for, never an argument). Friends are added afterwards on the Admin page."""
     print(f"database {database_name(url)}: {ensure_database(url, remote=remote)}", flush=True)
-    print("sign-in: " + ("DCLAB_AUTH=password written to .env" if enable_login(ROOT / ".env") else "already set in .env"), flush=True)
+    print("sign-in: " + ("DCLAB_AUTH=password written to .env.dev (make dev reads it)" if enable_login(DEV_ENV) else "already on in .env.dev"), flush=True)
     email = os.environ.get("DCLAB_OWNER_EMAIL") or input("Your email (you sign in with it): ").strip()
     name = os.environ.get("DCLAB_OWNER_NAME") or input("Your name (optional): ").strip()
     command = [sys.executable, "-m", "dclab_rnd.accounts", "add", "--email", email, "--role", "owner"] + (["--name", name] if name else [])

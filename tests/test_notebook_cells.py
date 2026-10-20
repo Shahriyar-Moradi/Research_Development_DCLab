@@ -74,7 +74,7 @@ class NotebookCellsTest(unittest.TestCase):
         prepared = engine.prepare(services.projects, project)
         table, name = kernels.training_rows(services.projects, project)
         self.assertEqual(len(table), len(prepared.bundle.train_idx))  # the training rows, and only them
-        written = studio_data.load_table(services.kernels.folder(self.pid) / name)
+        written = studio_data.load_table(services.kernels.folder(services.projects, self.pid) / name)
         self.assertEqual(len(written), len(prepared.bundle.train_idx))
         whole = studio_data.load_table(studio_data.data_path(services.projects, project))
         holdout = whole.iloc[sorted(int(i) for i in prepared.source_rows[prepared.bundle.test_idx])]
@@ -250,6 +250,29 @@ class NotebookCellsTest(unittest.TestCase):
         mine = [r for r in self.notebook_runs()[before:] if r.get("cell") == long["id"]]
         self.assertEqual(len(mine), 1)
         self.assertIn("x" * 30000, mine[0]["stdout"])  # the record keeps it whole
+
+    def test_the_kernel_lives_in_the_project_and_goes_with_it(self):
+        services = self.client.app.state.services
+        store, pid = self._time_project()
+        kernel = services.kernels._kernel(store, store.get(pid))
+        folder = services.kernels.folder(store, pid)
+        self.assertTrue(folder.is_dir())
+        self.assertEqual(folder.parent.parent, Path(store.data_dir(pid)).parent)  # inside the project's own folder, under data/
+        self.assertEqual(folder.name, "data")
+        self.assertEqual(self.client.delete(f"/api/projects/{pid}", headers=self.headers).status_code, 204)
+        self.assertFalse(folder.exists())
+        self.assertFalse(kernel.manager.is_alive())
+
+    def test_the_store_keeps_a_cells_run_without_its_printed_rows_or_pictures(self):
+        from dclab_rnd.store.keepers import standard
+
+        line = {"kind": "notebook_cell", "code": "frame.head()", "stdout": "   a  b\n0  1  2\n1  3  4\n", "pictures": ["iVBORw0KGgo="]}
+        other = {"kind": "pipeline", "code": "x", "stdout": "ok"}
+        kept = [json.loads(x) for x in standard.code_runs((json.dumps(line) + "\n" + json.dumps(other) + "\n").encode()).decode().splitlines()]
+        self.assertEqual(kept[0]["pictures"], 1)
+        self.assertNotIn("iVBORw0KGgo=", json.dumps(kept))
+        self.assertEqual(kept[0]["code"], "frame.head()")
+        self.assertEqual(kept[1], other)
 
     def test_the_kernel_never_gets_a_key_or_a_database_address(self):
         from dclab_rnd.studio import kernels

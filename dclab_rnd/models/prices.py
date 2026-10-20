@@ -100,7 +100,7 @@ def estimate(model: str, local: bool, prompt_chars: int, max_tokens: int | None)
     if price is None:
         return None
     out = max_tokens if max_tokens is not None else DEFAULT_OUTPUT_ESTIMATE
-    ttl = caching() if price.cache_read is not None else None
+    ttl = caching()  # whatever the price table says: a request marks its prefix for the cache whenever caching is on
     write = CACHE_WRITE[ttl] if ttl else 1.0  # with the cache on, every input token might be written to it: the bound counts that
     return ((prompt_chars / 3) * price.input * write + out * price.output) / 1_000_000
 
@@ -116,9 +116,12 @@ def cost(model: str, local: bool, input_tokens: int, output_tokens: int, cache_r
     if price is None:
         return None, "no price"
     read, write, write_1h = max(0, cache_read or 0), max(0, cache_write or 0), max(0, cache_write_1h or 0)
-    if price.cache_read is None or not (read or write):  # no cache here: every input token at the input price
+    if not (read or write):  # no cache used: every input token at the input price
         return round((input_tokens * price.input + output_tokens * price.output) / 1_000_000, 6), "price"
     write_1h = min(write_1h, write)
     fresh = max(0, input_tokens - read - write)
-    inputs = (fresh + read * price.cache_read + (write - write_1h) * CACHE_WRITE["5m"] + write_1h * CACHE_WRITE["1h"]) * price.input
+    # a price without its cache read rate (a prices file written before caching): reads at the full input price, never
+    # below what was charged; writes always carry their premium, which the reply's counts show was paid
+    read_rate = price.cache_read if price.cache_read is not None else 1.0
+    inputs = (fresh + read * read_rate + (write - write_1h) * CACHE_WRITE["5m"] + write_1h * CACHE_WRITE["1h"]) * price.input
     return round((inputs + output_tokens * price.output) / 1_000_000, 6), "price"

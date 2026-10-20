@@ -1,7 +1,8 @@
 """Running the project's notebook cells on the Notebook page (the owner, 2026-10-20).
 
 One Jupyter kernel per project, started on the first run of a cell and shut down when it has been idle for
-:data:`IDLE_SECONDS`. The kernel works in its own folder, ``<workspace>/kernels/<project>/``, holding a copy of the
+:data:`IDLE_SECONDS`. The kernel works in its own folder inside the project's, ``<project>/kernel/data/`` (deleted with
+the project, and counted as a table by the store, never kept as its content), holding a copy of the
 project's table with **the training rows only** (the engine's split, read back to the table's own rows), under the file
 name the notebook reads: the notebook's cells run as they are, and the holdout is never in the kernel. The cell that
 scores the holdout (``role: holdout`` in the exported notebook) is refused: the holdout is read once, by the workflow
@@ -67,8 +68,14 @@ def training_rows(store: Any, project: dict[str, Any]) -> tuple[Any, str]:
 
 def fingerprint(project: dict[str, Any]) -> str:
     """What the kernel's rows depend on: the table, the solution and the settings. A kernel started on another is restarted."""
+    from . import engine
+
+    try:
+        pack = engine.pack_of(project)  # the pack picks the kind, and so the strata of the split
+    except Exception:  # noqa: BLE001
+        pack = None
     basis = {"sha256": (project.get("data") or {}).get("sha256"), "solution": project.get("solution"), "settings": project.get("settings"),
-             "labels": project.get("labels")}
+             "labels": project.get("labels"), "pack": str(pack)}
     return hashlib.sha256(json.dumps(basis, sort_keys=True, default=str).encode()).hexdigest()
 
 
@@ -185,10 +192,12 @@ class Kernels:
         self._kernels: dict[str, Kernel] = {}
         self._lock = threading.Lock()
 
-    def folder(self, project_id: str) -> Path:
+    @staticmethod
+    def folder(store: Any, project_id: str) -> Path:
+        """The kernel's folder, inside the project's own: its delete removes it, and the store reads a table there as one."""
         if not re.fullmatch(r"[0-9a-f]{12}", project_id or ""):
             raise CellRefused("not a project")
-        return self.home / "kernels" / project_id
+        return Path(store.data_dir(project_id)).parent / "kernel" / "data"
 
     def _kernel(self, store: Any, project: dict[str, Any]) -> Kernel:
         pid, now = project["id"], fingerprint(project)
@@ -200,7 +209,7 @@ class Kernels:
             if kernel is not None:  # the table, the solution or the settings changed: its rows are not the training rows any more
                 kernel.shutdown()
                 self._kernels.pop(pid, None)
-            folder = self.folder(pid)
+            folder = self.folder(store, pid)
             folder.mkdir(parents=True, exist_ok=True)
             frame, name = training_rows(store, project)
             for old in folder.iterdir():  # what a previous kernel left: the table is written again from the current split

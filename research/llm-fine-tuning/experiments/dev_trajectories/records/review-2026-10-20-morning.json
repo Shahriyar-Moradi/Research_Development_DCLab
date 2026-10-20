@@ -1,0 +1,179 @@
+{
+ "package": "review-2026-10-20-morning",
+ "title": "Review every change of the morning, and fix what it found",
+ "date": "2026-10-20",
+ "request": "Review all fixes and changes I asked you to do in the last three hours.",
+ "spec": "The owner's bug-finder rules: high-severity only, a concrete trigger for each, a minimal fix and a test.",
+ "plan": [
+  "Four reviewers in parallel: the restyle, login and Home chat; prompt caching; the worker, the store job and own workspaces; the notebook cells again",
+  "Fix every finding with a test, then one gate"
+ ],
+ "decisions": [
+  {
+   "decision": "Sign-in for make dev lives in .env.dev, read by make dev only.",
+   "why": "The shared .env is read by make notebook, the flows and the tests, which refuse to start with sign-in and no database."
+  },
+  {
+   "decision": "A whole store run is queued only by the server's own workspace.",
+   "why": "One run covers every workspace; each account's worker queuing its own multiplied the memory the worker died of."
+  },
+  {
+   "decision": "New data on a built project's chat starts a new chat; messages continue the old one.",
+   "why": "A built project took its table at the build: data added to its chat could never reach it."
+  }
+ ],
+ "change": "scripts/dev.py, .gitignore, Makefile, accounts/api.py, agentic/services.py, store/conductor.py, store/keepers/standard.py, models/prices.py, studio/kernels.py, routers/projects.py, the Home and Notebook pages, tests.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "make login broke make notebook, the flows and serial tests.",
+   "scenario": "After make login the shared .env held DCLAB_AUTH=password and no database: every server but make dev's refused to start.",
+   "cause": "Sign-in was written to the file every entry point reads.",
+   "fix": "make dev's own file, .env.dev, read only by make dev.",
+   "test": "tests/test_dev_script.py::SafetyTests::test_make_login_turns_sign_in_on_once_in_make_devs_own_file"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "make login took an empty or off sign-in as already on.",
+   "scenario": "A .env.dev with DCLAB_AUTH=none or DCLAB_AUTH= kept sign-in off while the command said it was on.",
+   "cause": "The check matched any value, and its whitespace ran past the line's end.",
+   "fix": "Only password or oidc counts; spaces within the line.",
+   "test": "tests/test_dev_script.py::SafetyTests::test_make_login_turns_sign_in_on_once_in_make_devs_own_file"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A workspace owner could place an existing account in a workspace they co-own.",
+   "scenario": "A friend who owns their lab added another user's email with their own workspace ticked: a lab was made around the victim with the friend as owner, and the victim's next sign-in landed there.",
+   "cause": "An existing account was used as found.",
+   "fix": "A workspace of their own is refused for an email that has an account (409).",
+   "test": "tests/test_accounts.py::AccountsTests::test_an_existing_account_is_never_placed_in_a_workspace_of_its_own_by_someone_else"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A store run outlived its worker, with no timeout and the store's locks held.",
+   "scenario": "A code change restarted make dev's worker during a store job: the worker ended, its store process went on alone.",
+   "cause": "The worker was ended by its process only.",
+   "fix": "The worker runs in its own session and is ended with its whole group.",
+   "test": "tests/test_dev_script.py::SafetyTests::test_ending_the_worker_ends_the_store_run_it_started"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Each account's workspace queued a whole store run every hour.",
+   "scenario": "With N friends' labs, N store processes started in the same minute on the 8 GB machine.",
+   "cause": "The sweep ran in every workspace's worker, against one global schedule.",
+   "fix": "Only the server's own workspace queues it.",
+   "test": "tests/test_store_conductor.py (suite)"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Cache writes were charged at the plain rate when a price had no cache rate.",
+   "scenario": "A prices file written before caching: an hour's cache write recorded at half its cost, and the caps' estimate too low.",
+   "cause": "The write premium applied only to prices with a cache read rate.",
+   "fix": "Writes always carry their premium; reads without a rate at the full price.",
+   "test": "tests/test_prompt_cache.py::UsageAndPriceTest::test_a_price_without_a_cache_rate_still_charges_the_write_premium_and_bounds_the_estimate"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Coming back to Home replaced a chat in progress with the project's old chat.",
+   "scenario": "A new chat on Home, a visit to a project page, back to Home: the new chat was replaced and half-typed text would post into the built project's chat.",
+   "cause": "Home opened the current project's chat whenever it differed from the one on screen.",
+   "fix": "Home opens it only when no chat is on screen, checked again after the read.",
+   "test": "browser check"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Data added to a built project's chat went nowhere while the page said the project would change.",
+   "scenario": "Upload on a reopened built chat, then build: the old project opened, without the table.",
+   "cause": "A built project takes its table at the build.",
+   "fix": "New data on a built chat starts a new chat with the same problem, said in a toast; the note says how to change the project.",
+   "test": "browser check"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The kernel's copy of the training rows sat outside the project, kept by the store as content and left after a delete.",
+   "scenario": "A JSON table: the kernel's copy was not counted as a table, and deleting the project left it and its kernel.",
+   "cause": "The kernel's folder was under the workspace, not the project.",
+   "fix": "The folder is the project's kernel/data; delete stops the kernel and removes it.",
+   "test": "tests/test_notebook_cells.py::NotebookCellsTest::test_the_kernel_lives_in_the_project_and_goes_with_it"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A cell's printed rows and plots reached the store unshaped.",
+   "scenario": "An accepted cell printing frame.head(): its rows and its pictures were kept whole in the store.",
+   "cause": "Code runs were kept as they are, while notebooks' outputs are shaped.",
+   "fix": "The store keeps a cell's run as a notebook: printed tables out, pictures counted; the workspace's own file stays whole.",
+   "test": "tests/test_notebook_cells.py::NotebookCellsTest::test_the_store_keeps_a_cells_run_without_its_printed_rows_or_pictures"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The Notebook page changed the project every page showed.",
+   "scenario": "A sample chosen on purpose elsewhere was replaced by the latest project on every page after one visit to Notebook.",
+   "cause": "The page wrote its choice into the shared state.",
+   "fix": "The page opens the latest project for itself only.",
+   "test": "browser check"
+  },
+  {
+   "id": "R12",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The kernel's fingerprint missed the pack.",
+   "scenario": "A pack changed without a new solution would keep the old strata's rows.",
+   "cause": "The pack picks the kind, and so the split.",
+   "fix": "The pack is part of the fingerprint.",
+   "test": "tests/test_notebook_cells.py (suite)"
+  },
+  {
+   "id": "R13",
+   "source": "test",
+   "severity": "gap",
+   "defect": "My overwrite of an existing module, caught before commit.",
+   "scenario": "A new module written over dclab_core/evaluation.py, Phase 3's evaluation of answerers.",
+   "cause": "The name was not checked before writing.",
+   "fix": "The file restored from git; the new module is model_evaluation.py.",
+   "test": "git status clean on the restored file"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Four reviews",
+   "gate": "no high-severity finding left",
+   "result": "13 findings across the morning's changes, each fixed with a test or a browser check",
+   "verdict": "pass",
+   "limits": [
+    "the reviewers read the code; the browser checks cover one project"
+   ]
+  }
+ ],
+ "outcome": "The morning's changes reviewed and their findings fixed.",
+ "lessons": [
+  "A setting written to the shared .env reaches every entry point that reads it, not only the one it was meant for.",
+  "A child process must die with its parent: start the parent in its own group and end the group.",
+  "Check a file name before writing a new module."
+ ],
+ "risks": [
+  "Any signed-in member still runs code as the server's user until the sandbox step."
+ ],
+ "commits": []
+}

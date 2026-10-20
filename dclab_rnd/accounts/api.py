@@ -131,6 +131,8 @@ async def add_member(payload: AnyObject, request: Request):
 
     def add():
         found = accounts.by_email(email)
+        if own and found is not None:  # a workspace of their own is for a new person: an existing account is never placed in one by someone else
+            raise HTTPException(409, "This email already has an account: add them to this workspace instead, or they make their own")
         user = found or accounts.create_user(email, str(body.get("name") or ""), password=body.get("password") or None)
         if own:
             label = str(body.get("name") or "").strip() or email.split("@")[0]

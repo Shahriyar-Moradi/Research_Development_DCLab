@@ -748,8 +748,8 @@
         <div data-style="padding:0 12px 12px" class="stack tight" id="nb-agent">
           <div class="agent-cell" data-f="nb.agentcells">
             <div class="row"><span class="pack-ic" data-style="width:26px;height:26px">${icon:spark}</span><b>Ask the agent to write the next cell</b><span class="pill outline">you accept or reject</span></div>
-            <div class="row"><label class="sr-only" for="agent-prompt">Instruction</label><input id="agent-prompt" type="text" value="Calibrate the forest's probabilities on the training folds and show the Brier score" data-style="flex:1;min-width:200px"><button type="button" class="btn sm primary" id="agent-go">Write cell</button></div>
             <div id="agent-out"></div>
+            <div class="row" id="agent-ask"><label class="sr-only" for="agent-prompt">Instruction</label><input id="agent-prompt" type="text" value="Calibrate the forest's probabilities on the training folds and show the Brier score" data-style="flex:1;min-width:200px"><button type="button" class="btn sm primary" id="agent-go">Write cell</button></div>
           </div>
         </div>
       </div>

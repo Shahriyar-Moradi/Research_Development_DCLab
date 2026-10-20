@@ -32,6 +32,7 @@ BUSY = {"stage": "This project is already running a stage", "intern": "This sess
 
 class Services:
     def __init__(self, settings: Settings, primary: bool = True):
+        self.primary = primary  # the server's own workspace; one the Pool opened for an account is not
         from ..models.routing import open_routing
         from ..models.shadow import open_shadows
 

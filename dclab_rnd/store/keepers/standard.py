@@ -205,6 +205,26 @@ def _gz_secrets(raw: bytes) -> bytes:
     return buf.getvalue()
 
 
+def code_runs(raw: bytes) -> bytes:
+    """The workspace's code runs, a notebook cell's as a notebook is kept: what it printed without a printed table, its
+    pictures (a plot of the rows) counted, not kept. The workspace's own file stays whole."""
+    from ..shapers import _tables_out
+
+    out = []
+    for line in raw.decode("utf-8", errors="replace").splitlines(keepends=True):
+        try:
+            doc = json.loads(line)
+        except ValueError:
+            out.append(line)
+            continue
+        if isinstance(doc, dict) and doc.get("kind") == "notebook_cell":
+            doc["stdout"] = _tables_out(str(doc.get("stdout") or ""))
+            pictures = doc.get("pictures")
+            doc["pictures"] = len(pictures) if isinstance(pictures, list) else pictures
+        out.append(json.dumps(doc, ensure_ascii=False) + "\n")
+    return "".join(out).encode()
+
+
 def _for_kind(kind: str) -> Any:
     def sources(env: Any) -> Iterator[Source]:
         counts: dict[tuple[str, str], list[Item]] = {}
@@ -218,6 +238,9 @@ def _for_kind(kind: str) -> Any:
             if item.rel.endswith(".ipynb"):
                 yield Source(item.ws.name, item.rel, item.path, consent=item.ws.consent, transform=lambda raw: _secrets(notebook(raw)),
                              note="its cells' outputs removed (a printed table is a table's rows); its code and text kept")
+            elif item.rel.startswith("code_runs/"):
+                yield Source(item.ws.name, item.rel, item.path, consent=item.ws.consent, log=log, transform=lambda raw: _secrets(code_runs(raw)),
+                             note="a notebook cell's printed tables removed and its pictures counted, as a notebook's outputs")
             elif _scrubbed(item.rel):
                 yield Source(item.ws.name, item.rel, item.path, consent=item.ws.consent, log=log, transform=lambda raw, r=item.rel: _secrets(scrub(r, raw)),
                              note="scrubbed: the keys that quote a table's cells removed (testers.QUOTES_CELLS)")

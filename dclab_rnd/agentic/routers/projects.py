@@ -165,6 +165,7 @@ async def delete_project(project_id: str, s: Services = Depends(services)):
     except Exception:  # noqa: BLE001 — a project is always deletable; its file records then stay (they point at nothing)
         files = prefix = None
     data = project.get("data") or {}
+    s.kernels.restart(project_id)  # its kernel stops; its folder, inside the project's, goes with it
     projects.delete(project_id)
     forgotten: list[str] = []
     if files is not None:
