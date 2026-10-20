@@ -525,3 +525,18 @@ ul.plain { margin: 0; padding-left: var(--ts-space-6); display: grid; gap: var(-
 .cell-chart { padding: var(--ts-space-4); background: var(--ts-surface); border-radius: var(--ts-radius-sm); border: 1px solid var(--ts-border); }
 .cell-chart-title { margin: 0 0 var(--ts-space-3); font-size: var(--ts-text-lg); font-weight: var(--ts-weight-semibold); }
 .code-input { width: 100%; font-family: var(--ts-font-mono); font-size: var(--ts-text-base); line-height: 1.5; tab-size: 4; resize: vertical; }
+
+/* ---- the sign-in page: the product's name and its three promises beside the form ---- */
+.signin-wrap { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); width: min(980px, 100%); border-radius: var(--ts-radius-modal); overflow: hidden; box-shadow: var(--ts-shadow-drawer); background: var(--ts-surface); }
+.signin-wrap .signin-card { width: 100%; border: 0; border-radius: 0; box-shadow: none; justify-content: center; padding: var(--ts-space-9); }
+.signin-hero { display: flex; flex-direction: column; justify-content: center; gap: var(--ts-space-6); padding: var(--ts-space-9); background: var(--ts-ink); color: var(--ts-text-inverse); }
+.signin-hero h2 { margin: 0; font-family: var(--ts-font-display); font-size: var(--ts-text-3xl); line-height: 1.15; font-weight: var(--ts-weight-semibold); letter-spacing: var(--ts-tracking-tight); color: var(--ts-text-inverse); }
+.signin-hero .brand-name { color: var(--ts-text-inverse); }
+.signin-points { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--ts-space-4); }
+.signin-points li { padding-left: var(--ts-space-7); position: relative; opacity: .92; }
+.signin-points li::before { content: "✓"; position: absolute; left: 0; color: var(--ts-toast-mark-success); font-weight: var(--ts-weight-semibold); }
+.signin-hero .xs { opacity: .7; }
+.signin-secret { position: relative; display: flex; align-items: center; }
+.signin-secret input { width: 100%; padding-right: 64px; }
+.signin-secret .link-btn { position: absolute; right: var(--ts-space-4); }
+@media (max-width: 760px) { .signin-wrap { grid-template-columns: minmax(0, 1fr); } .signin-hero { display: none; } .signin-wrap .signin-card { padding: var(--ts-space-7); } }

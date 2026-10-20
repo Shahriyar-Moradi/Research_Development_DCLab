@@ -2350,17 +2350,30 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
 
 <!-- Sign-in (package 10.2, part C): shown instead of the app when this server has accounts and nobody is signed in -->
 <section class="signin" id="signin" hidden aria-labelledby="signin-title">
-  <div class="panel signin-card">
-    <div class="brand"><span class="brand-mark" aria-hidden="true">DC</span><span class="brand-name">DCLab</span></div>
-    <h1 id="signin-title">Sign in</h1>
-    <p class="muted small" id="signin-lede">Sign in to reach your team's workspace.</p>
-    <form class="stack" id="signin-password" hidden>
-      <div class="field"><label for="signin-email">Email</label><input id="signin-email" type="email" autocomplete="username" required></div>
-      <div class="field"><label for="signin-secret">Password</label><input id="signin-secret" type="password" autocomplete="current-password" required></div>
-      <button type="submit" class="btn primary">Sign in</button>
-    </form>
-    <a class="btn primary" id="signin-oidc" href="/api/auth/oidc/start" hidden>Sign in with your company account</a>
-    <div class="callout warn small" id="signin-error" hidden></div>
+  <div class="signin-wrap">
+    <aside class="signin-hero">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">DC</span><span class="brand-name">DCLab</span></div>
+      <h2>Models that are right, not just models.</h2>
+      <ul class="signin-points">
+        <li>Leakage is checked before anything is trained.</li>
+        <li>The holdout is read once, and every score shows its uncertainty.</li>
+        <li>Every number traces to the record it came from.</li>
+      </ul>
+      <p class="xs">Private to your team. Sign in with the account your owner made for you.</p>
+    </aside>
+    <div class="panel signin-card">
+      <h1 id="signin-title">Sign in</h1>
+      <p class="muted small" id="signin-lede">Welcome back. Sign in to reach your team's workspace.</p>
+      <form class="stack" id="signin-password" hidden>
+        <div class="field"><label for="signin-email">Email</label><input id="signin-email" type="email" autocomplete="username" required></div>
+        <div class="field"><label for="signin-secret">Password</label>
+          <div class="signin-secret"><input id="signin-secret" type="password" autocomplete="current-password" required><button type="button" class="link-btn small" id="signin-show" aria-pressed="false" aria-controls="signin-secret">Show</button></div></div>
+        <button type="submit" class="btn primary" id="signin-go">Sign in</button>
+      </form>
+      <a class="btn primary" id="signin-oidc" href="/api/auth/oidc/start" hidden>Sign in with your company account</a>
+      <div class="callout warn small" id="signin-error" role="alert" hidden></div>
+      <p class="xs muted">No account yet? Ask the owner to add you (Admin, Members).</p>
+    </div>
   </div>
 </section>
 

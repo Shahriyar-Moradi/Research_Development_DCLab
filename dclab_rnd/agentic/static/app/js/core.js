@@ -1264,17 +1264,32 @@
     if (mode === 'password') setTimeout(() => $('#signin-email').focus(), 0);
   }
   function wireSignIn() {
+    try { const saved = localStorage.getItem('dclab-email'); if (saved) $('#signin-email').value = saved; } catch (e) { /* storage blocked */ }  // the email, never the password
+    $('#signin-show').addEventListener('click', () => {
+      const input = $('#signin-secret'), on = input.type === 'password';
+      input.type = on ? 'text' : 'password';
+      $('#signin-show').textContent = on ? 'Hide' : 'Show';
+      $('#signin-show').setAttribute('aria-pressed', String(on));
+    });
     $('#signin-password').addEventListener('submit', async e => {
       e.preventDefault();
-      const err = $('#signin-error');
+      const err = $('#signin-error'), go = $('#signin-go');
       err.hidden = true;
-      const cfg = await fetch('/api/config', { headers: { Accept: 'application/json' } }).then(r => r.json());
-      const res = await fetch('/api/auth/password', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-DCLab-Token': cfg.csrf },
-        body: JSON.stringify({ email: $('#signin-email').value, password: $('#signin-secret').value }) });
-      if (res.ok) { location.reload(); return; }
-      const data = await res.json().catch(() => ({}));
-      err.textContent = typeof data.detail === 'string' ? data.detail : 'Sign-in failed.';
-      err.hidden = false;
+      go.disabled = true; go.textContent = 'Signing in…';
+      try {
+        const cfg = await fetch('/api/config', { headers: { Accept: 'application/json' } }).then(r => r.json());
+        const res = await fetch('/api/auth/password', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-DCLab-Token': cfg.csrf },
+          body: JSON.stringify({ email: $('#signin-email').value, password: $('#signin-secret').value }) });
+        if (res.ok) {
+          try { localStorage.setItem('dclab-email', $('#signin-email').value.trim()); } catch (e2) { /* storage blocked */ }
+          location.reload(); return;
+        }
+        const data = await res.json().catch(() => ({}));
+        err.textContent = typeof data.detail === 'string' ? data.detail : 'Sign-in failed.';
+        err.hidden = false;
+        $('#signin-secret').focus(); $('#signin-secret').select();
+      } catch (e3) { err.textContent = 'The server did not answer. Is it running?'; err.hidden = false; }
+      finally { go.disabled = false; go.textContent = 'Sign in'; }
     });
   }
   function initials(text) {
