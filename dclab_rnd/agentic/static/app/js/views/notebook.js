@@ -144,7 +144,7 @@ print(best_depth, *(round(f(y_test, p), 4) for f in (roc_auc_score, average_prec
       const box = $('#agent-out', el); if (!box) return;
       const status = { proposed: 'warn', accepted: 'ok', refused: 'bad' };
       box.innerHTML = AGENT.map(c => `<div class="stack tight reveal" data-agent="${esc(c.id)}">
-        <div class="row small"><span class="pill ${status[c.status] || 'outline'}">${esc(c.status)}</span><span class="muted">${esc(c.request)}</span></div>
+        <div class="row small"><span class="pill ${status[c.status] || 'outline'}">${c.author === 'person' ? 'your cell' : esc(c.status)}</span><span class="muted">${c.author === 'person' ? '' : esc(c.request)}</span></div>
         ${c.code ? codeBlock(c.code) : ''}
         ${c.explanation ? `<div class="small muted">${esc(c.explanation)}</div>` : ''}
         ${(c.problems || []).map(x => `<div class="callout bad small">${esc(x)}</div>`).join('')}
@@ -167,6 +167,26 @@ print(best_depth, *(round(f(y_test, p), 4) for f in (roc_auc_score, average_prec
       $('#agent-ask', el).scrollIntoView({ behavior: 'smooth', block: 'center' });
       box.focus({ preventScroll: true });
     }
+    /* a cell the person writes: kept on the project, then run like any accepted cell */
+    $('#agent-add', el).addEventListener('click', () => { const panel = $('#own-cell', el); panel.hidden = !panel.hidden; if (!panel.hidden) { panel.scrollIntoView({ behavior: 'smooth', block: 'center' }); $('#own-code', el).focus({ preventScroll: true }); } });
+    $('#own-cancel', el).addEventListener('click', () => { $('#own-cell', el).hidden = true; });
+    async function addOwn() {
+      if (!real || RUNNING != null) return;
+      const code = $('#own-code', el).value;
+      if (!code.trim()) { toast('Write some code first.', { ok: false }); return; }
+      const run = $('#own-run', el); run.disabled = true;
+      try {
+        const cell = await DC.client.addOwnCell(real.p.id, { body: { code } });
+        AGENT = AGENT.concat([cell]); $('#own-code', el).value = ''; $('#own-cell', el).hidden = true; renderAgent(); DC.hydrate(el);
+        await runAgentCell(cell.id);
+      } catch (err) { toast(err.message, { ok: false, ms: 6000 }); }
+      finally { run.disabled = false; }
+    }
+    $('#own-run', el).addEventListener('click', addOwn);
+    $('#own-code', el).addEventListener('keydown', e => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addOwn(); return; }
+      if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); const t = e.target, a = t.selectionStart; t.value = t.value.slice(0, a) + '    ' + t.value.slice(t.selectionEnd); t.selectionStart = t.selectionEnd = a + 4; }
+    });
     $('#agent-prompt', el).addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('#agent-go', el).click(); } });
     function applyFix(i) { fixed.add(Number(i)); render(); toast(`Fix applied to cell ${i}. The original stays in the cell history.`); }
     el.addEventListener('click', e => {
@@ -376,7 +396,9 @@ result.roc_auc, result.interval                  # 0.7718, (0.7126, 0.8290)`, ['
       set('nb-file', esc(file));
       RUN = {}; RUNNING = null;
       AGENT = (review.agent_cells || []).slice(); $('#agent-out', el).innerHTML = '';
-      $('#nb-agent', el).hidden = !review.writes_cells;
+      $('#nb-agent', el).hidden = false;  // your own cells need no model; asking the agent does
+      $('#agent-add', el).hidden = false; $('#own-cell', el).hidden = true;
+      ['#agent-prompt', '#agent-go'].forEach(sel => { $(sel, el).hidden = !review.writes_cells; });
       const prompt = $('#agent-prompt', el); prompt.value = ''; prompt.placeholder = 'For example: plot the accuracy of each cross-validation fold';
       set('nb-kernel', `<span class="dot"></span>kernel starts on the first cell · training rows only`);
       set('nb-comp-sub', `Real copilot output for ${esc(file)}`);
@@ -427,7 +449,7 @@ result.roc_auc, result.interval                  # 0.7718, (0.7126, 0.8290)`, ['
     }
     function showError(p, msg) {
       real = { p, review: { cells: [], findings: [], summary: {} } }; R = real.review;
-      AGENT = []; $('#nb-agent', el).hidden = true;
+      AGENT = []; $('#nb-agent', el).hidden = true; $('#own-cell', el).hidden = true;
       set('nb-eyebrow', `${esc(p.name)} · notebook`);
       realOnly(true);
       $('#nb-export-real', el).hidden = !p.solution;

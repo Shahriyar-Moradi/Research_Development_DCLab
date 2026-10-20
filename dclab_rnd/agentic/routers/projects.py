@@ -963,6 +963,33 @@ async def write_notebook_cell(project_id: str, payload: AnyObject, s: Services =
     return cell
 
 
+@router.post("/api/projects/{project_id}/notebook/cells", response_model=Page)
+async def add_own_cell(project_id: str, payload: AnyObject, s: Services = Depends(services)):
+    """A cell the person wrote themselves (the owner, 2026-10-20: "an option of adding a cell to continue"): checked as an agent's
+    cell is (it parses, it never touches X_test or y_test), kept on the project as an accepted cell, and run by its id like the
+    others. The person's own words need no accepting: they wrote it."""
+    from ...studio import notebook_agent
+
+    project = s.project(project_id)
+    if not project.get("solution"):
+        raise HTTPException(409, "Save the solution first: the notebook is generated from it")
+    code = str((payload.model_dump() if hasattr(payload, "model_dump") else dict(payload or {})).get("code") or "").strip()[:notebook_agent.MAX_OWN_CODE]
+    if not code:
+        raise HTTPException(422, "Write some code first")
+    found = notebook_agent.problems(code)
+    if found:
+        raise HTTPException(422, "; ".join(found))
+    cell = notebook_agent.own_cell(code)
+
+    def add() -> None:
+        with notebook_agent.lock(project_id):
+            now = s.project(project_id).get("notebook_agent_cells") or []
+            s.projects.update(project_id, notebook_agent_cells=notebook_agent.keep(list(now) + [cell]))
+
+    await asyncio.to_thread(add)
+    return cell
+
+
 @router.post("/api/projects/{project_id}/notebook/cells/{cell_id}/answer", response_model=Page)
 async def answer_notebook_cell(project_id: str, cell_id: str, payload: AnyObject, s: Services = Depends(services)):
     """The person accepts or rejects a proposed cell; only an accepted one runs. The answer is kept beside the proposal."""

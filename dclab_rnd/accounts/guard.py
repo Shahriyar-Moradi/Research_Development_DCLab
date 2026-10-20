@@ -36,6 +36,7 @@ SPECIAL = {
     ("POST", "/api/projects/{project_id}/notebook/run"): "read",
     ("POST", "/api/projects/{project_id}/notebook/restart"): "read",
     ("POST", "/api/projects/{project_id}/notebook/write"): "read",
+    ("POST", "/api/projects/{project_id}/notebook/cells"): "read",
     ("POST", "/api/projects/{project_id}/notebook/cells/{cell_id}/answer"): "read",
     ("POST", "/api/evidence/ask"): "read",
     # signed in, any role: switching workspace, one's own API tokens

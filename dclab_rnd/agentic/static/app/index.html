@@ -760,7 +760,12 @@
           <div class="agent-cell" data-f="nb.agentcells">
             <div class="row"><span class="pack-ic" data-style="width:26px;height:26px">${icon:spark}</span><b>Ask the agent to write the next cell</b><span class="pill outline">you accept or reject</span></div>
             <div id="agent-out"></div>
-            <div class="row" id="agent-ask"><label class="sr-only" for="agent-prompt">Instruction</label><input id="agent-prompt" type="text" value="Calibrate the forest's probabilities on the training folds and show the Brier score" data-style="flex:1;min-width:200px"><button type="button" class="btn sm primary" id="agent-go">Write cell</button></div>
+            <div class="row" id="agent-ask"><label class="sr-only" for="agent-prompt">Instruction</label><input id="agent-prompt" type="text" value="Calibrate the forest's probabilities on the training folds and show the Brier score" data-style="flex:1;min-width:200px"><button type="button" class="btn sm primary" id="agent-go">Write cell</button><button type="button" class="btn sm" id="agent-add" hidden>+ Add code cell</button></div>
+            <div class="stack tight" id="own-cell" hidden>
+              <label class="small strong" for="own-code">Your cell: Python, run in this project's kernel on the training rows (X_train, y_train, cv, pipeline are there once the notebook ran)</label>
+              <textarea id="own-code" class="code-input" rows="8" spellcheck="false" placeholder="# for example\nprint(X_train.shape)"></textarea>
+              <div class="row"><button type="button" class="btn sm primary" id="own-run">Add and run</button><button type="button" class="btn sm ghost" id="own-cancel">Cancel</button><span class="small muted">Ctrl or ⌘ + Enter runs it. It never reads X_test or y_test: the holdout is read once, by the workflow.</span></div>
+            </div>
           </div>
         </div>
       </div>

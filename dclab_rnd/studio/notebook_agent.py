@@ -23,6 +23,7 @@ from .. import prompts
 
 HOLDOUT = re.compile(r"\b(X_test|y_test)\b")
 MAX_REQUEST = 600
+MAX_OWN_CODE = 20_000  # characters of a cell the person writes
 MAX_CELLS = 40  # cells kept on a project; refused and rejected ones go first, an accepted one never
 _LOCKS: dict[str, threading.Lock] = {}
 _LOCKS_LOCK = threading.Lock()
@@ -32,6 +33,12 @@ def lock(project_id: str) -> threading.Lock:
     """One lock per project around reading and writing its agent cells, so two requests never lose each other's change."""
     with _LOCKS_LOCK:
         return _LOCKS.setdefault(project_id, threading.Lock())
+
+
+def own_cell(code: str) -> dict[str, Any]:
+    """A cell the person wrote: accepted from the start (nobody else proposed it), and marked as theirs."""
+    return {"id": "a" + secrets.token_hex(5), "request": "written by you", "code": code, "explanation": "", "problems": [], "status": "accepted",
+            "author": "person", "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
 
 
 def keep(cells: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -112,4 +119,4 @@ def answer(cell: dict[str, Any], accepted: bool, by: Optional[str], project_id: 
     return cell
 
 
-__all__ = ["write", "answer", "problems", "keep", "lock", "HOLDOUT"]
+__all__ = ["write", "answer", "problems", "own_cell", "keep", "lock", "HOLDOUT", "MAX_OWN_CODE"]

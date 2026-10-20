@@ -345,6 +345,7 @@
     projectLessons: ["POST", "/projects/{project_id}/lessons", ["project_id"], []],
     projectLineage: ["GET", "/projects/{project_id}/lineage", ["project_id"], ["path"]],
     removeMemoryNote: ["DELETE", "/projects/{project_id}/memory/{note_id}", ["project_id", "note_id"], []],
+    addOwnCell: ["POST", "/projects/{project_id}/notebook/cells", ["project_id"], []],
     answerNotebookCell: ["POST", "/projects/{project_id}/notebook/cells/{cell_id}/answer", ["project_id", "cell_id"], []],
     notebookKernel: ["GET", "/projects/{project_id}/notebook/kernel", ["project_id"], []],
     restartNotebookKernel: ["POST", "/projects/{project_id}/notebook/restart", ["project_id"], []],
@@ -1206,6 +1207,12 @@
    *  @returns {Promise<Project>} */
   client.removeMemoryNote = (...args) => call('removeMemoryNote', args);
   client.path.removeMemoryNote = (...args) => build('removeMemoryNote', args).path;
+  /** POST /api/projects/{project_id}/notebook/cells: Add Own Cell
+   *  @param {string} project_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.addOwnCell = (...args) => call('addOwnCell', args);
+  client.path.addOwnCell = (...args) => build('addOwnCell', args).path;
   /** POST /api/projects/{project_id}/notebook/cells/{cell_id}/answer: Answer Notebook Cell
    *  @param {string} project_id
    *  @param {string} cell_id

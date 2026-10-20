@@ -317,6 +317,25 @@ class NotebookCellsTest(unittest.TestCase):
         self.assertTrue(any("could not draw" in o.get("text", "") or "cannot draw" in o.get("text", "") for o in ran["outputs"] if o["type"] == "text"))  # the bad one said so
         self.assertEqual(services.kernels.status(self.pid)["count"] > 0, True)
 
+    def test_a_cell_the_person_writes_is_checked_kept_and_run(self):
+        url = f"/api/projects/{self.pid}/notebook"
+        empty = self.client.post(f"{url}/cells", json={"code": "  "}, headers=self.headers)
+        self.assertEqual(empty.status_code, 422)
+        holdout = self.client.post(f"{url}/cells", json={"code": "print(y_test.mean())"}, headers=self.headers)
+        self.assertEqual(holdout.status_code, 422)
+        self.assertIn("X_test or y_test", holdout.json()["detail"])  # the holdout is read once, by the workflow
+        broken = self.client.post(f"{url}/cells", json={"code": "x = ("}, headers=self.headers)
+        self.assertEqual(broken.status_code, 422)
+        made = self.client.post(f"{url}/cells", json={"code": "print('mine', 6 * 7)"}, headers=self.headers)
+        self.assertEqual(made.status_code, 200, made.text)
+        cell = made.json()
+        self.assertEqual((cell["status"], cell["author"]), ("accepted", "person"))  # no one else proposed it: nothing to accept
+        ran = self.client.post(f"{url}/run", json={"cell": cell["id"]}, headers=self.headers).json()
+        self.assertEqual(ran["status"], "ok", json.dumps(ran)[:1500])
+        self.assertIn("mine 42", "".join(o.get("text", "") for o in ran["outputs"]))
+        kept = [c["id"] for c in self.client.get(f"/api/projects/{self.pid}/review").json()["agent_cells"]]
+        self.assertIn(cell["id"], kept)
+
     def test_the_kernel_never_gets_a_key_or_a_database_address(self):
         from dclab_rnd.studio import kernels
 
