@@ -49,7 +49,7 @@ DC.view('home', {
             <td><span class="wf-mini" aria-label="${esc(p.current || 'done')}">${p.state.split('').map(c => `<i class="${segClass[c] || ''}"></i>`).join('')}</span><div class="cell-sub">${esc(p.current || 'all steps done')}</div></td>
             <td><div class="score">${p.stages && p.stages.final === 'completed' ? 'holdout scored' : '—'}</div><div class="cell-sub">${p.holdout_uses ? 'holdout opened ' + p.holdout_uses + '×' : 'holdout sealed'}</div></td>
             <td class="num">—</td>
-            <td><span class="pill ${p.running ? 'accent' : p.has_solution ? 'outline' : 'warn'}">${p.running ? 'running' : p.has_solution ? 'in progress' : 'solution draft'}</span><div class="cell-sub">${esc((p.updated || '').slice(0, 10))}</div></td>
+            <td><span class="pill ${p.running ? 'accent' : p.has_solution ? 'outline' : 'warn'}">${p.running ? 'running' : p.has_solution ? 'in progress' : 'solution draft'}</span><div class="cell-sub">${esc((p.updated || '').slice(0, 10))} · <button type="button" class="link-btn small" data-project-chat="${esc(p.id)}">Open its chat</button></div></td>
           </tr>`).join('');
         const tab = $(`.ptab[data-ptab="projects"] .n`, el);
         if (tab) tab.textContent = ws.projects.length;
@@ -57,9 +57,27 @@ DC.view('home', {
       }
     }
     $('#home-projects tbody', el).addEventListener('click', e => {
+      const chat = e.target.closest('[data-project-chat]');
+      if (chat) {  // the project's Home chat (its draft), shown again to read and go on with
+        e.stopPropagation(); e.preventDefault();
+        openProjectChat(chat.dataset.projectChat, chat);
+        return;
+      }
       const real = e.target.closest('tr[data-real]');
       if (real) { e.stopPropagation(); DC.state.projectId = real.dataset.real; location.hash = 'project'; return; }
     }, true);
+
+    async function openProjectChat(id, button) {
+      button.disabled = true;
+      try {
+        const project = await DC.client.getProject(id);
+        const draft = (project.draft || {}).id;
+        if (!draft) { toast('This project was not started from a Home chat, so it has none to open. Ask about it in the Intern.', { ok: false }); return; }
+        if (await resume(draft)) { DC.selectPane(el, 'overview'); $('#home-chat', el).scrollIntoView({ behavior: 'smooth' }); }
+        else toast('This project\'s chat could not be opened.', { ok: false });
+      } catch (err) { toast(err.message, { ok: false }); }
+      finally { button.disabled = false; }
+    }
 
     /* ---------- domain packs (optional) ---------- */
     function packCard(p, on, detected) {
@@ -99,8 +117,9 @@ DC.view('home', {
       $('#home-team', el).hidden = !on;
       if (!on) { $('#home-twin', el).hidden = true; $('#home-lanes', el).className = 'stack'; }
     }
+    const CHATS = ['open', 'built'];  // a built project's chat stays open: the person reads it and goes on
     async function ensureDraft() {
-      if (S.draft && S.draft.status === 'open') return S.draft;
+      if (S.draft && CHATS.includes(S.draft.status)) return S.draft;
       const problem = $('#home-task', el).value.trim();
       if (problem.length < 8) { toast('Describe the problem in one sentence first.', { ok: false }); $('#home-task', el).focus(); throw new Error('no problem'); }
       S.draft = await DC.client.createDraft({ body: { problem, pack: S.pack } });
@@ -112,6 +131,9 @@ DC.view('home', {
       S.draft = draft; S.analysis = {}; S.assets = {};
       $('#home-thread', el).innerHTML = '';
       $('#home-task', el).value = draft.problem;
+      $('#home-chat-sub', el).textContent = draft.project_id
+        ? 'The chat this project was built from. Go on asking or adding here; the project changes only when you build again or change it on its own pages.'
+        : 'A few questions to understand the problem, and the data as it gets ready.';
       showDraftPanels(true);
       creating(false);
       DC.client.internStatus().then(i => { const m = $('#home-chat-mode', el); m.textContent = i.mode === 'llm' ? 'model · ' + i.model : 'standard questions'; m.hidden = false; }).catch(() => {});
@@ -174,12 +196,12 @@ DC.view('home', {
       catch (e) { DC.states.failed(box, e, { lead: 'The team could not go on: ', retry: loadTeam }); }
     }
     async function resume(id) {
-      try { const d = await DC.client.readDraft(id, { quiet: true }); if (d.status === 'open') { openDraft(d); return true; } }
+      try { const d = await DC.client.readDraft(id, { quiet: true }); if (CHATS.includes(d.status)) { remember(d.id); openDraft(d); return true; } }
       catch (e) { if (e.status !== 404) return false; }  // a slow or failed read keeps the draft remembered; only a draft that is gone is forgotten
       remember(null); return false;
     }
     $('#home-start', el).addEventListener('click', async () => {
-      if (S.draft && S.draft.status === 'open' && $('#home-task', el).value.trim() !== S.draft.problem) { S.draft = null; remember(null); }
+      if (S.draft && CHATS.includes(S.draft.status) && $('#home-task', el).value.trim() !== S.draft.problem) { S.draft = null; remember(null); }
       try { await ensureDraft(); $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { if (e.message !== 'no problem') toast(e.message, { ok: false }); }
     });
     el.addEventListener('click', async e => {

@@ -1,0 +1,54 @@
+{
+ "package": "fix-home-project-chat",
+ "title": "Open a built project's Home chat again and go on with it",
+ "date": "2026-10-20",
+ "request": "When I come to a project in Home I cannot see the previous chat; maybe I want to continue and add something to the chat. Fix it.",
+ "spec": "The project keeps its draft (project.draft.id) and the draft keeps its messages after the build; the server takes new messages on it.",
+ "plan": [
+  "Find why Home hides the chat",
+  "Reopen a built draft's chat from the projects list and on return",
+  "Say in the chat that the project changes only when built again"
+ ],
+ "decisions": [
+  {
+   "decision": "The fix is in the page only: the server already keeps the chat and takes new messages.",
+   "why": "The smallest change, and the owner's running server was not restarted again."
+  },
+  {
+   "decision": "A message added after the build stays on the chat; the project changes when built again or on its own pages.",
+   "why": "A chat must not change a project's solution behind its validator."
+  }
+ ],
+ "change": "dclab_rnd/agentic/web/src/views/home.html: resume and ensureDraft take a built draft; an Open its chat link on each project row; the chat's subtitle for a built project.",
+ "findings": [
+  {
+   "id": "H1",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "A built project's chat could not be seen or continued on Home.",
+   "scenario": "The person built a project from the Home chat, came back to Home and found no conversation to read or add to.",
+   "cause": "Home reopened only drafts whose status was open and forgot a built one; no project row linked to its draft.",
+   "fix": "Home reopens open and built drafts; each project row has Open its chat, which reads the project's draft id.",
+   "test": "browser check on the owner's project: the chat opened with its 16 messages and the reply box enabled"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The owner's project in the browser",
+   "gate": "the project's chat opens with its messages and takes a reply",
+   "result": "16 messages shown, the reply box enabled, the subtitle says the chat is the project's",
+   "verdict": "pass",
+   "limits": [
+    "one project"
+   ]
+  }
+ ],
+ "outcome": "A person can read a project's Home chat again and go on with it.",
+ "lessons": [
+  "A state filter on the page (only open drafts) can hide data the server keeps whole."
+ ],
+ "risks": [
+  "What is settled in the chat after the build does not change the project until it is built again."
+ ],
+ "commits": []
+}
