@@ -69,6 +69,16 @@
    "cause": "The kit's header comment shows the Google Fonts link.",
    "fix": "The kit's comments are left out of app.css; the files stay unchanged.",
    "test": "tests/test_web_build.py"
+  },
+  {
+   "id": "U5",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The browser test's ui check failed before and after the change.",
+   "scenario": "make browser-test: ui timed out; the same check on the commit before the UI change failed the same way.",
+   "cause": "It waited for a #learn page the frontend never had, and read the sessions route's old key (sessions, now items).",
+   "fix": "It opens the Evidence library and reads items; its assertions (page views and actions in the visit's record) are unchanged.",
+   "test": "scripts/browser_e2e.py: all six checks pass (flow, team, stats, 19 pages, ui, 19 pages at 375 px)"
   }
  ],
  "measurements": [
@@ -78,8 +88,14 @@
    "result": "page title Outfit 38 weight 600; figure 32; header buttons 46; nav row 44 radius 14; panel radius 22, padding 20; canvas radius 30; body Plus Jakarta Sans 13.5",
    "verdict": "pass",
    "limits": [
-    "the browser test (make browser-test) was not run: Playwright's Chromium is not installed here"
+    "checked in one browser engine (Chromium)"
    ]
+  },
+  {
+   "name": "make browser-test on the restyled frontend",
+   "gate": "every check passes: the flow, the team, the stats against the API, 19 pages without an error, the ui record, 19 pages at 375 px",
+   "result": "six of six pass after the ui check's two stale lines were fixed",
+   "verdict": "pass"
   }
  ],
  "outcome": "Every page of the product now has the TripsSource look in blue and light green, light and dark, with its words, routes and tests unchanged.",

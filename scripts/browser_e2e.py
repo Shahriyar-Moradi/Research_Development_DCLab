@@ -289,16 +289,16 @@ def check_pages(b: Browser) -> str:
 def check_ui_events(b: Browser) -> str:
     """23.2: the page views and the actions the browser made are in the record, under the browser's own visit."""
     b.view("home")
-    b.page.evaluate("() => { const a = document.querySelector('a[href=\"#learn\"]') || document.querySelector('a[href^=\"#\"]'); if (a) a.click(); }")
-    b.view("learn")
+    b.page.evaluate("() => { const a = document.querySelector('a[href=\"#evidence\"]'); if (a) a.click(); }")  # the Evidence library (there is no #learn page)
+    b.view("evidence")
     b.view("new")  # the wizard
     b.page.evaluate("() => DC.ui.flush()")
     time.sleep(1.0)
-    latest = b.api("/experience/sessions")["sessions"]
+    latest = b.api("/experience/sessions")["items"]  # the latest visits, newest first
     check(bool(latest), "no session in the record")
     visit = latest[0]["visit"]
     text = json.dumps(b.api(f"/experience/sessions/{visit}"))
-    check('"ui.page_viewed"' in text and '"learn"' in text and '"new"' in text, "the browser's page views are not in its visit's timeline")
+    check('"ui.page_viewed"' in text and '"evidence"' in text and '"new"' in text, "the browser's page views are not in its visit's timeline")
     check('"ui.action"' in text, "the click on the page is not in its visit's timeline")
     return f"page views and actions of visit {visit} are in the record"
 
