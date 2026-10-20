@@ -1,6 +1,7 @@
 """Accounts from the command line (package 10.2): the first owner, before anyone can sign in to add members.
 
     python -m dclab_rnd.accounts add --username you [--email you@example.com] --role owner [--name "Your Name"] [--workspace ID]
+    python -m dclab_rnd.accounts passwd --username you     a new password for a person (asked for twice, never an argument)
     python -m dclab_rnd.accounts list [--workspace ID]
     python -m dclab_rnd.accounts workspaces
 
@@ -27,6 +28,9 @@ def main(argv: list[str] | None = None) -> int:
     add.add_argument("--name", default="")
     add.add_argument("--workspace", default=None)
     add.add_argument("--no-password", action="store_true", help="a user who signs in through the identity provider only")
+    pw = sub.add_parser("passwd", help="set a new password for a person (asked for twice; DCLAB_NEW_PASSWORD skips the questions)")
+    pw.add_argument("--username", default=None)
+    pw.add_argument("--email", default=None)
     show = sub.add_parser("list", help="the members of a workspace")
     show.add_argument("--workspace", default=None)
     sub.add_parser("workspaces", help="every workspace")
@@ -61,6 +65,23 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "list":
         for m in accounts.members(workspace):
             print(f"{(m['username'] or m['email'] or ''):<40} {m['role']:<15} {'password' if m['password'] else ''}{' sso' if m['single_sign_on'] else ''}")
+        return 0
+    if args.command == "passwd":
+        who = (args.username or args.email or "").strip()
+        found = accounts.by_username(args.username) if args.username else accounts.by_email(args.email) if args.email else None
+        if found is None:
+            print("No such person: name them with --username or --email.", file=sys.stderr)
+            return 2
+        new = os.environ.get("DCLAB_NEW_PASSWORD") or getpass.getpass(f"New password for {who} (10 characters or more): ")
+        if not os.environ.get("DCLAB_NEW_PASSWORD") and new != getpass.getpass("Again: "):
+            print("The two passwords differ: nothing changed.", file=sys.stderr)
+            return 2
+        try:
+            accounts.update_user(found["id"], password=new)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        print(f"{who}: the password is changed. Sessions already signed in stay until they end.")
         return 0
     password = None
     who = (args.username or args.email or "").strip()

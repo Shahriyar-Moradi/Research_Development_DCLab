@@ -318,6 +318,13 @@ class AccountsTests(unittest.TestCase):
         stranger = self.TestClient(self.app)  # a fresh browser: no session yet
         bad = stranger.post("/api/auth/password", json={"login": handle, "password": "wrong"}, headers={"X-DCLab-Token": stranger.get("/api/config").json()["csrf"]})
         self.assertEqual(bad.status_code, 401)
+        from dclab_rnd.accounts.__main__ import main as accounts_cli
+
+        with mock.patch.dict(os.environ, {"DCLAB_NEW_PASSWORD": "a-brand-new-pass-77"}):
+            self.assertEqual(accounts_cli(["passwd", "--username", handle]), 0)  # the command that changes a password
+            self.assertEqual(accounts_cli(["passwd", "--username", "nobody-here"]), 2)
+        self.assertIsNone(self.accounts.check_password(handle, PASSWORD))
+        self.assertTrue(self.accounts.check_password(handle, "a-brand-new-pass-77"))
         mail = self.accounts.by_email(self.users["view1"]["email"])
         self.assertEqual(self.accounts.check_password(self.users["view1"]["email"], PASSWORD)["id"], mail["id"])  # an email still signs in
 
