@@ -332,6 +332,7 @@
     projectDecisions: ["GET", "/projects/{project_id}/decisions", ["project_id"], []],
     projectDisagreements: ["GET", "/projects/{project_id}/disagreements", ["project_id"], []],
     projectDisagreementAnswer: ["POST", "/projects/{project_id}/disagreements/{record_id}", ["project_id", "record_id"], []],
+    projectEvaluation: ["GET", "/projects/{project_id}/evaluation", ["project_id"], []],
     exportCode: ["GET", "/projects/{project_id}/export/code", ["project_id"], ["check"]],
     exportNotebook: ["GET", "/projects/{project_id}/export/notebook", ["project_id"], []],
     exportReport: ["GET", "/projects/{project_id}/export/report", ["project_id"], []],
@@ -1116,6 +1117,13 @@
    *  @returns {Promise<Page>} */
   client.projectDisagreementAnswer = (...args) => call('projectDisagreementAnswer', args);
   client.path.projectDisagreementAnswer = (...args) => build('projectDisagreementAnswer', args).path;
+  /** GET /api/projects/{project_id}/evaluation: Project Evaluation
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.projectEvaluation = (...args) => call('projectEvaluation', args);
+  client.path.projectEvaluation = (...args) => build('projectEvaluation', args).path;
+  client.href.projectEvaluation = (...args) => '/api' + build('projectEvaluation', args).path;
   /** GET /api/projects/{project_id}/export/code: Export Code
    *  @param {string} project_id
    *  @param {{query?: {check?: *}, headers?: Object}} [opts]

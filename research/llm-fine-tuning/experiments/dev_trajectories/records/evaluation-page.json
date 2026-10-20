@@ -1,0 +1,78 @@
+{
+ "package": "evaluation-page",
+ "title": "An Evaluation page and Models tab: measures, confusion matrix with a cutoff slider, and curves",
+ "date": "2026-10-20",
+ "request": "There is no evaluation part in Models or the sidebar: all the evaluation of the model, precision, recall, F1 and the other important things, and a confusion matrix; plot like the report's charts.",
+ "spec": "The final stage recorded the holdout metrics, six cutoffs and calibration bins, but kept no scores, so no ROC, precision-recall or confusion matrix could be drawn; the holdout is read once.",
+ "plan": [
+  "A core module that turns scores and answers into measures, confusion counts at 51 cutoffs and curves (counts only)",
+  "The final stage keeps it for the holdout read it makes and for the validation folds",
+  "For older projects, give back exactly what their record allows: the confusion counts from the recorded cases, alerts and true positives",
+  "One panel builder for a sidebar page and a Models tab, legends outside the charts"
+ ],
+ "decisions": [
+  {
+   "decision": "Older projects are not scored again: their page is read back from the record, says so, and has no ROC or gains.",
+   "why": "The holdout is read once; a second read would break the rule the whole product stands on."
+  },
+  {
+   "decision": "The page is built in the app's own chart kit, with the legend beside each chart, never inside it.",
+   "why": "The report the owner showed had labels lying over lines and a per-class chart drawn as a line over class numbers."
+  },
+  {
+   "decision": "The cutoff the person moves changes the matrix and the measures; the model is never refitted.",
+   "why": "A cutoff is a decision about use, not about training."
+  }
+ ],
+ "change": "dclab_core/model_evaluation.py (new), studio/engine.py (_evaluation, evidence.evaluation), routers/projects.py (GET evaluation), web/src/evaluation.js (new), views/evaluation.html (new), views/models.html (Evaluation tab), core.js (nav, icon), look.css (matrix), features.js, build.py, scripts/browser_e2e.py (20 pages), tests/test_model_evaluation.py.",
+ "findings": [
+  {
+   "id": "E1",
+   "source": "owner",
+   "severity": "gap",
+   "defect": "No evaluation part: no precision, recall, F1 or confusion matrix anywhere in the app.",
+   "scenario": "The person opened Models and found a ranking of families and a holdout number; nothing said what the model gets right and wrong.",
+   "cause": "The final stage kept a few numbers and six cutoffs, and no scores.",
+   "fix": "The stage keeps the evaluation; the page and tab show it; an older record gives back its exact counts.",
+   "test": "tests/test_model_evaluation.py::ModelEvaluationTest::test_the_final_stage_keeps_the_holdouts_and_the_validation_folds_evaluation"
+  },
+  {
+   "id": "E2",
+   "source": "test",
+   "severity": "latent",
+   "defect": "A text in the matrix's wrong-answer cells was unreadable on the darkest red.",
+   "scenario": "A false-negative cell with a large share: its small labels were grey on red.",
+   "cause": "The heat classes set a background only.",
+   "fix": "The cells from the third step on use the text colour.",
+   "test": "checked in the browser"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Evaluation on the owner's real project",
+   "gate": "the confusion counts add up to the rows and match the recorded precision and recall",
+   "result": "1,600 rows: 1,470 true negatives, 7 false positives, 117 false negatives, 6 true positives, from the record alone",
+   "verdict": "pass",
+   "limits": [
+    "one project; no ROC, gains or histogram for a record made before the scores were kept"
+   ]
+  },
+  {
+   "name": "Three new projects, binary, multiclass and regression, in the browser",
+   "gate": "each kind's panels draw and the slider moves the matrix",
+   "result": "the binary page has 12 measures, 7 charts and a comparison with the validation folds; the cutoff 0.20 changed the matrix from 10 to 42 false positives; the multiclass page has its matrix and class table; the regression page its two charts",
+   "verdict": "pass",
+   "limits": [
+    "small invented tables with five stages in quick mode"
+   ]
+  }
+ ],
+ "outcome": "A person sees what the model gets right and wrong, on the held-back cases and the validation folds, and moves the cutoff to see the trade.",
+ "lessons": [
+  "A number recorded with the cases and the alerts can give its confusion matrix back exactly: record counts, not only rates."
+ ],
+ "risks": [
+  "A project made before this change shows the measures and counts, not the curves, until a new final stage runs for it."
+ ],
+ "commits": []
+}

@@ -43,6 +43,7 @@
     play: '<path d="M7 4v16l13-8z"/>',
     check: '<path d="m5 12 5 5L20 7"/>',
     chevron: '<path d="m6 9 6 6 6-6"/>',
+    matrix: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
     folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
     alert: '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
@@ -79,7 +80,7 @@
   const icon = (name, cls = '') => `<svg viewBox="0 0 24 24" class="${cls}" aria-hidden="true">${IC[name] || ''}</svg>`;
 
   /* ---------------- navigation model ---------------- */
-  const PROJECT_VIEWS = ['project', 'solution', 'notebook', 'audit', 'models', 'reliability', 'brief'];
+  const PROJECT_VIEWS = ['project', 'solution', 'notebook', 'audit', 'models', 'evaluation', 'reliability', 'brief'];
   const VIEW_META = {
     home: { label: 'Home', crumbs: ['Workspace'] },
     new: { label: 'New project', crumbs: ['Workspace'] },
@@ -88,6 +89,7 @@
     notebook: { label: 'Notebook', crumbs: ['Term-deposit calls'] },
     audit: { label: 'Leakage & features', crumbs: ['Term-deposit calls'] },
     models: { label: 'Models', crumbs: ['Term-deposit calls'] },
+    evaluation: { label: 'Evaluation', crumbs: ['Term-deposit calls'] },
     reliability: { label: 'Reliability & holdout', crumbs: ['Term-deposit calls'] },
     brief: { label: 'Decision brief', crumbs: ['Term-deposit calls'] },
     intern: { label: 'Intern', crumbs: ['Workspace'] },
@@ -114,6 +116,7 @@
       { id: 'notebook', label: 'Notebook', icon: 'notebook', count: '10' },
       { id: 'audit', label: 'Leakage & features', icon: 'shield' },
       { id: 'models', label: 'Models', icon: 'models' },
+      { id: 'evaluation', label: 'Evaluation', icon: 'matrix' },
       { id: 'reliability', label: 'Reliability', icon: 'pulse' },
       { id: 'brief', label: 'Decision brief', icon: 'brief' },
     ] },

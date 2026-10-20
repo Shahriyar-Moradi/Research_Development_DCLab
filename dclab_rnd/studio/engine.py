@@ -1208,6 +1208,31 @@ def _task_assessment(p: Prepared, task: str, selected: dict[str, Any], y_test: p
         return None
 
 
+def _evaluation(p: Prepared, selected: dict[str, Any], y_test: pd.Series, predictions: np.ndarray, holdout: dict[str, Any]) -> dict[str, Any] | None:
+    """The Evaluation page's numbers (dclab_core.model_evaluation): the holdout's, from the predictions the one read made, and the
+    validation folds' (the training rows' out-of-fold predictions). Counts, rates and bin edges only, never a row. None, logged,
+    when they cannot be made: the stage stands without them."""
+    try:
+        from dclab_core import model_evaluation as me
+
+        kind = p.kind.base_task
+        labels = None
+        if kind == "multiclass" and p.class_labels:
+            labels = list(p.class_labels) if isinstance(p.class_labels, (list, tuple)) else [p.class_labels[i] for i in sorted(p.class_labels)]
+        cut = holdout.get("threshold")
+        cutoff = float(cut) if isinstance(cut, (int, float)) else 0.5
+        out = {"holdout": me.evaluate(kind, y_test.to_numpy(), np.asarray(predictions), rows="holdout", cutoff=cutoff, labels=labels).model_dump(mode="json")}
+        if "_oof_pred" in selected and "_oof_index" in selected:
+            oof_y = p.bundle.y_train.to_numpy()[selected["_oof_index"]]
+            out["validation"] = me.evaluate(kind, oof_y, np.asarray(selected["_oof_pred"]), rows="validation", cutoff=cutoff, labels=labels).model_dump(mode="json")
+        return out
+    except Exception as exc:  # noqa: BLE001 - an evaluation the data does not allow leaves the stage as it was
+        from ..observe import log
+
+        log.warning("evaluation unavailable: %s", type(exc).__name__)
+        return None
+
+
 def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[str, Any] | None = None) -> tuple[dict, list, str]:
     """``reviewed``: the change the models stage's review kept (17.6), applied when the family is the one it was kept for."""
     bundle, spec, task = p.bundle, p.bundle.spec, p.bundle.task_type
@@ -1298,6 +1323,9 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
         limits.append(f"{info['not_found']} label rows are not in the table: they could not be scored, and say the table may miss cases.")
     if limits:
         evidence["limits"] = limits
+    scored = _evaluation(p, selected, y_test, predictions, holdout)
+    if scored:
+        evidence["evaluation"] = scored  # 32.x: the measures, confusion counts and curves of the holdout read made above, and of the validation folds
     assessment = _task_assessment(p, task, selected, y_test, predictions)
     if assessment is not None:
         evidence["task_assessment"] = assessment  # 17.5: thresholds and intervals chosen out of fold, read on the holdout

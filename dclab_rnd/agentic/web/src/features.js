@@ -93,6 +93,11 @@ window.FEATURES = [
   { id: 'models.override', view: 'models', name: 'Override the pick with a logged reason', status: 'built', phase: 'Now', where: 'studio/engine.py approve(choice)', note: 'Choose another family through the graph; the later stages are cleared.' },
   { id: 'models.foundation', view: 'models', name: 'Tabular foundation models (TabPFN) in the screen', status: 'research', phase: 'P3', where: 'research/tabular-foundation-models', note: 'Needs a leakage-safe rerun on HyperAck first.' },
 
+  // ---- evaluation
+  { id: 'eval.measures', view: 'evaluation', name: 'Precision, recall, F1, accuracy, MCC, AUC and the other measures', status: 'built', phase: 'Now', where: 'dclab_core/model_evaluation.py · stage_final evidence.evaluation', note: 'Held-back cases and validation folds, binary, multiclass and regression; an older project gets what its record kept.' },
+  { id: 'eval.matrix', view: 'evaluation', name: 'Confusion matrix with a cutoff the person moves', status: 'built', phase: 'Now', where: 'web/src/evaluation.js', note: 'Counts at 51 cutoffs; an older project: the exact counts at the cutoffs it recorded.' },
+  { id: 'eval.curves', view: 'evaluation', name: 'ROC, precision-recall, gains, lift, calibration, score histogram', status: 'built', phase: 'Now', where: 'dclab_core/model_evaluation.py', note: 'Kept from the next final run on: the holdout is read once, so older projects keep the numbers they recorded.' },
+
   // ---- reliability
   { id: 'rel.holdout', view: 'reliability', name: 'Holdout used once, with a bootstrap interval', status: 'built', phase: 'Now', where: 'studio/engine.py stage_final · bootstrap_ci', note: '' },
   { id: 'rel.seal', view: 'reliability', name: 'Holdout seal: who opened it, when, under which checklist', status: 'built', phase: 'Now', where: '', note: 'Date and who opened it, from the transition log.' },

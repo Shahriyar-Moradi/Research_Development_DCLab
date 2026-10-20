@@ -503,3 +503,22 @@ pre.term { border-radius: var(--ts-radius-sm); }
 .ps-opt-check svg { width: 18px; height: 18px; stroke: var(--ts-success-fg); fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; display: block; }
 .ps-empty { padding: var(--ts-space-4); color: var(--ts-text-secondary); }
 @media (max-width: 640px) { .ps-wrap { width: 100%; } .btn.proj-switch { width: 100%; justify-content: flex-start; } .ps-menu { min-width: 0; width: 100%; } .proj-switch .ps-chev { margin-left: auto; } }
+
+/* ---- the Evaluation panels: the confusion matrix and its heat (shares of the row, in six steps) ---- */
+.cm { width: 100%; border-collapse: separate; border-spacing: var(--ts-space-2); table-layout: fixed; }
+.cm th { text-align: left; font-weight: var(--ts-weight-medium); font-size: var(--ts-text-sm); color: var(--ts-text-secondary); vertical-align: middle; }
+.cm th small, .cm-c small { display: block; font-size: var(--ts-text-xs); color: var(--ts-text-muted); font-weight: var(--ts-weight-regular); }
+.cm-c { text-align: center; padding: var(--ts-space-5) var(--ts-space-3); border: 1px solid var(--ts-border); border-radius: var(--ts-radius-sm); background: var(--ts-surface-sunken); }
+.cm-c b { display: block; font-family: var(--ts-font-display); font-size: var(--ts-text-2xl); font-weight: var(--ts-weight-semibold); color: var(--ts-text); }
+.cm-c span { display: block; font-size: var(--ts-text-sm); font-weight: var(--ts-weight-semibold); color: var(--ts-text-secondary); }
+.cm-c.ok.lv1 { background: color-mix(in srgb, var(--ts-success-solid) 10%, var(--ts-surface)); } .cm-c.ok.lv2 { background: color-mix(in srgb, var(--ts-success-solid) 18%, var(--ts-surface)); }
+.cm-c.ok.lv3 { background: color-mix(in srgb, var(--ts-success-solid) 28%, var(--ts-surface)); } .cm-c.ok.lv4 { background: color-mix(in srgb, var(--ts-success-solid) 40%, var(--ts-surface)); }
+.cm-c.ok.lv5 { background: color-mix(in srgb, var(--ts-success-solid) 52%, var(--ts-surface)); }
+.cm-c.bad.lv1 { background: color-mix(in srgb, var(--ts-danger-solid) 10%, var(--ts-surface)); } .cm-c.bad.lv2 { background: color-mix(in srgb, var(--ts-danger-solid) 18%, var(--ts-surface)); }
+.cm-c.bad.lv3 { background: color-mix(in srgb, var(--ts-danger-solid) 28%, var(--ts-surface)); } .cm-c.bad.lv4 { background: color-mix(in srgb, var(--ts-danger-solid) 40%, var(--ts-surface)); }
+.cm-c.bad.lv5 { background: color-mix(in srgb, var(--ts-danger-solid) 52%, var(--ts-surface)); }
+.cm-wide { table-layout: auto; min-width: 480px; } .cm-wide .cm-c { padding: var(--ts-space-3); } .cm-wide .cm-c b { font-size: var(--ts-text-lg); }
+.ev .legend i.sq { width: 10px; height: 10px; border-radius: 2px; }
+.ev .span-all { grid-column: 1 / -1; }
+ul.plain { margin: 0; padding-left: var(--ts-space-6); display: grid; gap: var(--ts-space-2); }
+.cm-c.lv3 b, .cm-c.lv3 span, .cm-c.lv3 small, .cm-c.lv4 b, .cm-c.lv4 span, .cm-c.lv4 small, .cm-c.lv5 b, .cm-c.lv5 span, .cm-c.lv5 small { color: var(--ts-text); }

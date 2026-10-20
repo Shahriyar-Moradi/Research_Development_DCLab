@@ -941,6 +941,11 @@
     </div>
   </div>
 
+  <div class="pane" data-pane="evaluation" data-label="Evaluation">
+    <div class="row spread"><p class="small muted">Precision, recall, F1, the confusion matrix and the curves of the chosen model.</p><a class="btn sm" href="#evaluation">Open the full page</a></div>
+    <div id="mo-eval"></div>
+  </div>
+
   <div class="pane" data-pane="tuning" data-label="Tuning">
     <div class="panel" data-f="models.tuning">
       <div class="panel-head"><div class="panel-title"><h2>Conservative tuning · WF-08</h2><span class="sub" id="mo-tune-sub" data-slot>Three explicit candidates for extra_trees on the training folds. A candidate replaces the baseline only if it gains more than the declared margin.</span></div><span class="ev-list" id="mo-tune-ev" data-slot>${chip:EXP-010}</span></div>
@@ -987,6 +992,19 @@
       <div class="panel dashed"><div class="panel-body small stack tight" data-style="padding-top:20px"><div class="eyebrow">Rules on this page</div><div>${chip:DCLAB-R13} No universal best algorithm; screen several families.</div><div>${chip:DCLAB-R14} Judge by mean, stability, probabilities and runtime, not ROC-AUC alone.</div><div>${chip:DCLAB-R15} Tune only after data, features, metric and family are locked.</div></div></div>
     </div>
   </div>
+</section>
+<section class="view" id="view-evaluation" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow" id="ev-eyebrow">Project · evaluation</div>
+      <h1>Evaluation</h1>
+      <p class="lede">How well the model works: precision, recall, F1 and the other measures, the confusion matrix, and the curves, on the held-back cases and on the validation folds.</p>
+    </div>
+    <div class="vh-actions">
+      <a class="btn" href="#reliability">Reliability &amp; holdout</a>
+    </div>
+  </header>
+  <div id="ev-box"></div>
 </section>
 <section class="view" id="view-reliability" hidden>
   <header class="vh">
@@ -2354,6 +2372,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
 <script src="/static/app/js/features.js"></script>
 <script src="/static/app/js/core.js"></script>
 <script src="/static/app/js/api.js"></script>
+<script src="/static/app/js/evaluation.js"></script>
 <script src="/static/app/js/views/home.js"></script>
 <script src="/static/app/js/views/new.js"></script>
 <script src="/static/app/js/views/project.js"></script>
@@ -2361,6 +2380,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
 <script src="/static/app/js/views/notebook.js"></script>
 <script src="/static/app/js/views/audit.js"></script>
 <script src="/static/app/js/views/models.js"></script>
+<script src="/static/app/js/views/evaluation.js"></script>
 <script src="/static/app/js/views/reliability.js"></script>
 <script src="/static/app/js/views/brief.js"></script>
 <script src="/static/app/js/views/intern.js"></script>

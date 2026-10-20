@@ -25,7 +25,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 SRC = HERE / "src"
 OUT = HERE.parent / "static" / "app"
-VIEWS = ["home", "new", "project", "solution", "notebook", "audit", "models", "reliability", "brief",
+VIEWS = ["home", "new", "project", "solution", "notebook", "audit", "models", "evaluation", "reliability", "brief",
          "intern", "compute", "evidence", "lab", "benchmark", "policy", "packs", "integrations", "admin", "blueprint"]
 DATA = [("records.js", "DEMO_RECORDS", "records.json"), ("review.js", "DEMO_REVIEW", "copilot_review.json"),
         ("sft.js", "DEMO_SFT", "sft.json")]
@@ -67,12 +67,13 @@ def assemble() -> dict[str, str]:
     files["js/data.js"] = (SRC / "data.js").read_text(encoding="utf-8")
     files["js/features.js"] = (SRC / "features.js").read_text(encoding="utf-8")
     files["js/core.js"] = (SRC / "core.js").read_text(encoding="utf-8")
+    files["js/evaluation.js"] = (SRC / "evaluation.js").read_text(encoding="utf-8")
     files["js/api.js"] = (SRC / "api.js").read_text(encoding="utf-8") if (SRC / "api.js").exists() else ""
     files["app.css"] = "\n".join(f"/* ===== {name} ===== */\n" + css_of(name) for name in CSS)
 
     shell = (SRC / "shell.html").read_text(encoding="utf-8")
     shell = re.sub(r"<style>\s*/\*STYLES\*/\s*</style>", '<link rel="stylesheet" href="/static/app/app.css">', shell)
-    order = [f"js/{d[0]}" for d in DATA] + ["js/data.js", "js/features.js", "js/core.js", "js/api.js"] + view_scripts
+    order = [f"js/{d[0]}" for d in DATA] + ["js/data.js", "js/features.js", "js/core.js", "js/api.js", "js/evaluation.js"] + view_scripts
     tags = "\n".join(f'<script src="/static/app/{path}"></script>' for path in order)
     page = shell.replace("<!--VIEWS-->", "\n".join(markup)).replace("<!--SCRIPTS-->", tags)
     cut = page.index('<div class="app">')

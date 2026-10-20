@@ -259,11 +259,23 @@ DC.view('models', {
     }
     this.renderReal = p => { real = build(p); paint(real); };
   },
+  /* the Evaluation tab: the same panels as the Evaluation page, for the open project (its final stage's record) */
+  async loadEvaluation(el, p) {
+    const box = DC.$('#mo-eval', el);
+    if (!box) return;
+    if (!p) { DC.states.empty(box, 'No project is open, so there is no model to evaluate. Start one on Home.', { href: '#home', action: 'Go to Home' }); return; }
+    if (!(p.records || {}).final) { DC.states.empty(box, 'The final stage has not run yet: the held-back cases are scored once, there, and the evaluation is read from that record.', { href: '#project', action: 'Open the workflow' }); return; }
+    let data;
+    try { data = await DC.client.projectEvaluation(p.id); }
+    catch (e) { DC.states.failed(box, e, { lead: 'Could not read the evaluation: ', retry: () => this.loadEvaluation(el, p) }); return; }
+    DC.evaluation.render(box, data);
+  },
   async enter(el) {
     let p = null;
     try { p = await DC.currentProject.get(); } catch (e) { p = null; }
     DC.markSample(!p);
     if (p) this.renderReal(p); else this.restoreSample();
+    this.loadEvaluation(el, p);
     clearTimeout(this.timer);
     if (p && p.running) this.timer = setTimeout(() => { if (DC.state.view === 'models') { DC.currentProject.clear(); this.enter(el); } }, 3000);
   },

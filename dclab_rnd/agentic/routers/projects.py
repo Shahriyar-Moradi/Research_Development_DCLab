@@ -912,6 +912,27 @@ async def run_notebook_cell(project_id: str, payload: AnyObject, s: Services = D
         raise HTTPException(409, f"The project's table cannot be read: {exc}") from None
 
 
+@router.get("/api/projects/{project_id}/evaluation", response_model=Page)
+async def project_evaluation(project_id: str, s: Services = Depends(services)):
+    """The Evaluation page: the holdout's measures, confusion counts and curves, and the validation folds' (a project whose
+    final stage ran before they were kept gets what its numbers give back, said so). Read from the final stage's record: the
+    holdout is never read again, and no row of a table is in it."""
+    from dclab_core import model_evaluation as me
+
+    s.project(project_id)
+    final = s.projects.read_stage(project_id, "final")
+    if not final:
+        raise HTTPException(409, "The final stage has not run yet: the evaluation is read from its record, and the holdout is read once, there.")
+    evidence = final.get("evidence") or {}
+    holdout = me.from_record(evidence)
+    kept = evidence.get("evaluation") or {}
+    return {"holdout": holdout.model_dump(mode="json") if holdout else None, "validation": kept.get("validation"),
+            "model": evidence.get("model"), "primary_metric": final.get("primary_metric"), "primary_metric_ci": evidence.get("holdout_primary_metric_ci"),
+            "cv_selected_metric_mean": evidence.get("cv_selected_metric_mean"), "holdout_split": evidence.get("holdout_split"),
+            "holdout_rows": evidence.get("holdout_rows"), "train_rows": evidence.get("train_rows"), "baselines": evidence.get("baselines"),
+            "success_bar": evidence.get("success_bar"), "production_approved": False}
+
+
 @router.post("/api/projects/{project_id}/notebook/write", response_model=Page)
 async def write_notebook_cell(project_id: str, payload: AnyObject, s: Services = Depends(services)):
     """The next cell for the person's request, written by a model (``notebook_cell``) from the notebook's code and the
