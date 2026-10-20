@@ -124,14 +124,42 @@ class _Folder:
         self.experience = open_log(home) if (home / "experience").is_dir() else None
 
 
+class _Database(_Folder):
+    """A PostgreSQL workspace's stores opened by its home (the store's own process, apart from the server)."""
+
+    def __init__(self, home: Any):  # noqa: D107 - the parent's folder logic does not apply
+        from pathlib import Path
+
+        from ..experience import open_log
+        from ..ledger import open_ledger
+        from ..storage import db, open_stores
+
+        home = Path(home)
+        workspace = db.workspace_for(home)
+        self.store = type("Home", (), {"home": home})()
+        self.projects, self.drafts, _ = open_stores(home)
+        self.ledger = open_ledger(home, workspace)
+        self.experience = open_log(home, workspace)
+
+
 def _folder_sources(env: dict[str, Any]) -> Iterator[Any]:
     """Without a running server: every file workspace under ``agent_runs`` whose consent keeps content, its walks read from its
-    folder (a PostgreSQL workspace's walks are kept by its server's own run)."""
+    folder; on PostgreSQL, the server's workspace, its stores opened by its home."""
     from ..storage import db
     from .keepers import Source
     from .keepers.workspaces import AGENT_RUNS, discover
 
-    if db.database_url(required=False):
+    if db.database_url(required=False):  # the server's workspace on PostgreSQL: its stores opened here
+        from pathlib import Path
+
+        from .keepers.workspaces import of
+
+        home = Path(env.get("agent_runs") or AGENT_RUNS)
+        ws = _safe(lambda: of(home))
+        services = _safe(lambda: _Database(home)) if ws is not None and ws.consent != "operate" else None
+        for record in (_safe(lambda: list(walks(services)), []) or []) if services is not None else []:
+            yield Source(ws.name, f"walks/{(record.draft or record.project)}.json", json.dumps(record.model_dump(mode="json"), indent=1).encode(),
+                         consent=ws.consent)
         return
     for ws in discover(env.get("agent_runs") or AGENT_RUNS):
         folder = ws.root  # a workspace's own folder, never a store path

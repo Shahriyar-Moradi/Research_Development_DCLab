@@ -189,13 +189,28 @@ def _students_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str
     students_loop.failed(Path(s.store.home))  # the next run waits an hour
 
 
+STORE_RUN_SECONDS = 3 * 3600  # a whole run of a large workspace takes about twenty minutes; three hours means it is stuck
+
+
 def _store_run(s: Any, payload: dict[str, Any]) -> None:
-    """32.2: one run of the store's conductor (the keepers, then the later tiers), under the hood."""
+    """32.2: one run of the store's conductor (the keepers, then the later tiers), under the hood. It runs in a process of
+    its own at a lower priority: in the worker's own interpreter its twenty minutes of Python would slow every stage run
+    and intern turn the worker runs beside it (2026-10-20: a models stage crawled while a store run held the worker)."""
+    import json
+    import os
+    import subprocess
+    import sys
     from pathlib import Path
 
-    from ..store import conductor
+    from ..settings import ROOT
 
-    conductor.conduct({"agent_runs": Path(s.store.home), "services": s})
+    command = [sys.executable, "-m", "dclab_rnd.store", "run", "--agent-runs", str(Path(s.store.home))]
+    done = subprocess.run(command, cwd=ROOT, env=dict(os.environ), capture_output=True, text=True, timeout=STORE_RUN_SECONDS,
+                          preexec_fn=(lambda: os.nice(10)) if hasattr(os, "nice") else None)
+    try:
+        json.loads(done.stdout[done.stdout.index("{"):])  # the run's record: a run whose keepers partly failed still ran
+    except ValueError:
+        raise RuntimeError(f"the store's run ended without its record (exit {done.returncode}): {done.stderr.strip()[-500:]}") from None
 
 
 def _store_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:

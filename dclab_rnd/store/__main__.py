@@ -30,6 +30,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("command", choices=["run", "shape", "curate", "build", "reason", "status", "catalog", "fixes", "accept", "service", "knowledge", "know-accept", "guides", "curate-shadow"])
     parser.add_argument("fix", nargs="?", help="accept: the fix's id (from the fixes command); know-accept: the item's id")
     parser.add_argument("--root", default=None, help="the store's root (DCLAB_STORE, else training_records/store)")
+    parser.add_argument("--agent-runs", default=None, help="run: the workspaces' folder (default agent_runs; the worker's job names the server's)")
     parser.add_argument("--by", default=None, help="accept: who accepts it")
     parser.add_argument("--note", default="", help="accept: why")
     parser.add_argument("--cap-eur", type=float, default=None, help="reason, curate-shadow: the most the model may spend in this run")
@@ -38,7 +39,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parser.parse_args(argv)
     layout = Layout(args.root)
     if args.command == "run":
-        record = conductor.conduct(None, layout)
+        from pathlib import Path
+
+        record = conductor.conduct({"agent_runs": Path(args.agent_runs)} if args.agent_runs else None, layout)
         print(json.dumps({k: record[k] for k in ("id", "started", "ended", "failed", "source_errors")} |
                          {"steps": [{k: s[k] for k in ("name", "read", "kept", "unchanged", "error")} | {"errors": len(s["errors"])} for s in record["steps"]]},
                          indent=1))

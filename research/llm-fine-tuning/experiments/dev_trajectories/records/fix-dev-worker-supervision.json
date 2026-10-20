@@ -31,6 +31,16 @@
    "cause": "The worker ran under watchfiles, which restarts only on a file change; dev.py waited on watchfiles, not the worker, so its warning never fired. Why the worker ended is not in any record left (likely memory pressure while a test gate ran on the 8 GB machine).",
    "fix": "dev.py runs and supervises the worker: an end is said with its exit code or the signal (SIGKILL named as the system short of memory) and the worker is started again; a code change restarts it.",
    "test": "tests/test_dev_script.py::test_a_worker_that_ends_is_said_loudly_and_started_again_and_a_code_change_restarts_it"
+  },
+  {
+   "id": "W2",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "The intern's models stage crawled once the worker was back.",
+   "scenario": "The store's hourly job (a whole store run, about twenty minutes of Python) ran in the same worker process as the owner's stage and intern turn.",
+   "cause": "Threads of one interpreter share its lock: a long pure-Python run slows every job beside it.",
+   "fix": "The store job runs python -m dclab_rnd.store run --agent-runs <home> in its own process at nice 10; a run without its record fails the job; the walks keeper opens a PostgreSQL workspace's stores itself.",
+   "test": "tests/test_store_job.py"
   }
  ],
  "measurements": [
