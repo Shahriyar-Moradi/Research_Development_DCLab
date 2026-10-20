@@ -1,0 +1,63 @@
+{
+ "package": "storing-32-32-people",
+ "title": "Keep each person, their sessions and the whose-it-is of every record, for training, without anything that identifies or lets in",
+ "date": "2026-10-20",
+ "request": "In the storing phase, store each user and their sessions tied to the account, and their actions, decisions and logs: everything capturable, for training and fine-tuning.",
+ "spec": "With accounts on, events carry ids.user, but the store kept no account table (those tables were never exported) and its records said nothing about whose they were beyond events.",
+ "plan": [
+  "A people keeper over the account tables by named columns, kind sessions, prefix people/",
+  "The shapers lift the user onto every record and provenance.by",
+  "service/people.json: one row per person per workspace, aggregates beside",
+  "Plants for the secrets the tables hold, run against PostgreSQL"
+ ],
+ "decisions": [
+  {
+   "decision": "The email is kept only as a salted hash, and the salt lives beside the store (store.people/state.json), never in it.",
+   "why": "The store is pushed to GitHub: an unsalted hash of an email can be matched against a list of emails."
+  },
+  {
+   "decision": "A person who leaves stays in the log as a removed event; nothing is rewritten.",
+   "why": "The owner's rule: the store keeps what was kept; only the audited forget removes."
+  },
+  {
+   "decision": "An existing kind (sessions, prefix people/) rather than a new one.",
+   "why": "A new kind needs the core contract, the schemas and every set's filters changed; the type (person, session) separates them."
+  },
+  {
+   "decision": "A workspace without improve or train consent keeps counts only.",
+   "why": "As the database keeper: consent governs, a friend's own workspace is governed by their own."
+  }
+ ],
+ "change": "store/keepers/people.py (new), keepers/standard.py, keepers/database.py (docstring), shapers.py (LIFT, RENAME, _type, provenance.by, shapers-4), service.py (people, write), catalog.py, tests/test_store_people.py, the plan.",
+ "findings": [
+  {
+   "id": "P1",
+   "source": "test",
+   "severity": "privacy",
+   "defect": "The account tables hold six kinds of secret and personal value that must never reach the pushed store.",
+   "scenario": "A keeper that exported app_user, user_session and api_token rows would push password hashes, session digests, token hashes, emails, names and SSO subjects.",
+   "cause": "The tables were excluded by not being listed, with nothing else enforcing it.",
+   "fix": "A keeper that selects named columns only (existence of a password or subject as a boolean), hashes the email and the session id with a salt kept off the store, and drops names and token names.",
+   "test": "tests/test_store_people.py::PeopleTests::test_people_and_sessions_are_kept_and_nothing_that_identifies_or_lets_in"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Plants against PostgreSQL",
+   "gate": "none of 12 planted values is in raw or records",
+   "result": "the password, cookie, request token, digest, API token, token hash, password hash, email, name, subject, a token's name and an SSO user's name: none present; people and sessions present by pseudonymous id",
+   "verdict": "pass",
+   "limits": [
+    "make store-check has no database, so the plants run in the PostgreSQL test only"
+   ]
+  }
+ ],
+ "outcome": "Each person and session is kept by pseudonymous id and joined to their records; no secret reaches the store.",
+ "lessons": [
+  "A table kept out by omission is not kept out: name the columns that go in."
+ ],
+ "risks": [
+  "A per-person aggregate of where they stalled needs the engagements to carry the user."
+ ],
+ "commits": []
+}

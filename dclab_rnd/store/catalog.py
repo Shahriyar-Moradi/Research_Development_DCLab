@@ -81,7 +81,8 @@ Everything DCLab keeps for training its models and learning its craft, in three 
   split is never read to tune anything).
 - `quarantine/<reason>/`: records kept out of a set, with the check they failed. They are still whole in `raw/`.
 - `service/`: the knowledge of building models for businesses and of giving the service: every build with its verdict,
-  the learning curves, the catalog of kinds (aggregates only), the engagements and the playbook.
+  the learning curves, the catalog of kinds (aggregates only), the engagements, the playbook and `people.json` (each person's
+  sessions and work under a pseudonymous id: never an email, name, password or token).
 - `runs/`: every conductor, shaper, curator, builder and tutor run.
 - `schemas/`: the JSON Schema of every record and set shape.
 - `forgotten/`: the owner's tombstones, never the data.

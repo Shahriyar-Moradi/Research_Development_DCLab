@@ -872,6 +872,12 @@ keeps no account table today (`keepers/database.NEVER`).
 - **Splits.** Training sets keep splitting by project, so one person's work never crosses train and sealed.
 - **Consent.** A workspace's consent governs, as for every record. A friend given their own workspace (Admin, Members,
   "their own workspace") is governed by their own consent.
+- **Built (2026-10-20):** `store/keepers/people.py` (kind `sessions`, prefix `people/`: `person.jsonl` a log of joined, changed and
+  removed, `session.jsonl` the sessions as of the run; the email hash is salted with a salt kept beside the store, never in it),
+  the shapers lift `ids.user` onto `body.user` and `provenance.by` (shapers-4), `service/people.json`. The plants (a password,
+  a session cookie and its digest, a request token, an API token and its hash, an email, a name, an SSO subject) are in
+  `tests/test_store_people.py` (PostgreSQL; `make store-check` has no database, so it cannot run them). Left: a per-person
+  aggregate that says where they stalled (the engagements carry no user yet).
 - **Done when:**
   - a signed-in person's session and actions are kept and joined to them;
   - no password, token, digest or email is in `raw/` or `records/` (the store check gains these plants);

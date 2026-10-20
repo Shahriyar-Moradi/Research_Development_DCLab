@@ -713,6 +713,63 @@ def playbook(layout: Optional[Layout] = None, rows: Optional[list[ServiceEngagem
     return out
 
 
+PEOPLE_KINDS = ("sessions", "actions", "decisions", "conversations", "model_requests", "workflows", "audit")
+
+
+def people(layout: Layout) -> dict[str, Any]:
+    """Each person's account, sessions and work (32.32), from the records that say whose they are (``body.user``, the
+    pseudonymous user id): their role and how they sign in, their sessions, actions, decisions and corrections, the projects
+    they worked on, model spend, errors shown to them. A row per person per workspace, under the id alone (never an email, a
+    name or a token: the keeper never kept one). Aggregates across people stand beside the rows, with whether there are enough
+    of them to say anything."""
+    rows: dict[tuple[str, str], dict[str, Any]] = {}
+
+    def row(ws: str, user: str) -> dict[str, Any]:
+        return rows.setdefault((ws, user), {"user": user, "workspace": ws, "role": None, "signs_in": None, "active": None, "removed": False, "joined": None,
+                                            "sessions": set(), "first_seen": None, "last_seen": None, "records": Counter(), "projects": set(), "eur": 0.0,
+                                            "errors": 0})
+
+    for kind in PEOPLE_KINDS:
+        for r in _current(layout, kind):
+            b = r.body
+            user = b.get("user")
+            if not isinstance(user, str) or not user:
+                continue
+            p = row(r.provenance.workspace, user)
+            if kind == "sessions" and r.type == "person":
+                p.update(role=b.get("role"), signs_in=b.get("signs_in"), active=b.get("active"), joined=b.get("joined") or p["joined"],
+                         removed=b.get("event") == "removed")
+                continue
+            if kind == "sessions" and r.type == "session":
+                p["sessions"].add(str(b.get("session")))
+                p["first_seen"] = min(filter(None, (p["first_seen"], b.get("started"))), default=p["first_seen"])
+                p["last_seen"] = max(filter(None, (p["last_seen"], b.get("last_seen"))), default=p["last_seen"])
+                continue
+            p["records"][f"{kind}.{r.type}"] += 1
+            if isinstance(b.get("project"), str):
+                p["projects"].add(b["project"])
+            if kind == "model_requests" and isinstance(b.get("cost_eur"), (int, float)):
+                p["eur"] += float(b["cost_eur"])
+            if kind == "sessions" and str(b.get("kind") or "") in ("ui.error_shown", "model.failed", "run.failed"):
+                p["errors"] += 1
+            at = r.at
+            p["first_seen"] = min(filter(None, (p["first_seen"], at)), default=at)
+            p["last_seen"] = max(filter(None, (p["last_seen"], at)), default=at)
+    people_rows = [{**{k: v for k, v in p.items() if k not in ("sessions", "records", "projects", "eur")}, "sessions": len(p["sessions"]),
+                    "records": dict(sorted(p["records"].items())), "projects": len(p["projects"]), "eur": round(p["eur"], 4)}
+                   for _, p in sorted(rows.items())]
+    total = Counter()
+    for p in people_rows:
+        for k, n in p["records"].items():
+            total[k] += n
+    workspaces = {p["workspace"] for p in people_rows}
+    return {"people": people_rows, "count": len(people_rows), "workspaces": len(workspaces), "records": dict(sorted(total.items())),
+            "sessions": sum(p["sessions"] for p in people_rows), "eur": round(sum(p["eur"] for p in people_rows), 4),
+            "enough": len(people_rows) >= MIN_WORKSPACES and len(workspaces) >= 1,
+            "note": "One row per person per workspace, under a pseudonymous id: no email, name, password or token is ever kept. "
+                    "A removed person stays (removed true) until the owner's audited forget."}
+
+
 def write(layout: Optional[Layout] = None) -> dict[str, Any]:
     """Every service record of the store into ``service/`` (``layout.service``), the store read once."""
     layout = layout or Layout()
@@ -724,9 +781,11 @@ def write(layout: Optional[Layout] = None) -> dict[str, Any]:
     write_json(layout.service("catalog"), service_catalog(layout, judged))
     write_json(layout.service("engagements"), [json.loads(e.model_dump_json()) for e in rows])
     write_json(layout.service("playbook"), [json.loads(p.model_dump_json()) for p in playbook(layout, rows)])
-    return {"builds": len(judged), "correct": sum(v.verdict == "correct" for _, v in judged), "incorrect": sum(v.verdict == "incorrect" for _, v in judged),
+    kept_people = people(layout)
+    write_json(layout.service("people"), kept_people)
+    return {"people": kept_people["count"], "builds": len(judged), "correct": sum(v.verdict == "correct" for _, v in judged), "incorrect": sum(v.verdict == "incorrect" for _, v in judged),
             "engagements": len(rows)}
 
 
-__all__ = ["builds", "curves", "service_catalog", "knowledge", "accept", "external", "tested", "copies", "guides", "engagements", "playbook", "write",
+__all__ = ["builds", "curves", "service_catalog", "knowledge", "accept", "external", "tested", "copies", "guides", "engagements", "playbook", "people", "write",
            "MIN_BUILDS", "MIN_WORKSPACES"]

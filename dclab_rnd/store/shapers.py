@@ -44,15 +44,15 @@ RETRY = ("OSError", "MemoryError", "PermissionError", "TimeoutError")  # failure
 ALWAYS = ("decisions", "teachers")
 TEXT_KEYS = {"text", "content", "reason", "question", "answer", "prompt", "reply", "thinking", "note", "notes", "problem", "goal", "said", "words",
              "message", "summary", "why", "query", "detail", "error", "title", "description", "stdout", "stderr", "command", "output", "result"}
-LIFT = ("project", "draft", "run", "conversation", "visit", "job", "request", "session")
-RENAME = {"project_id": "project", "draft_id": "draft", "record_id": "record", "sessionId": "session", "timestamp": "at"}
+LIFT = ("project", "draft", "run", "conversation", "visit", "job", "request", "session", "user")  # 32.32: whose it is
+RENAME = {"project_id": "project", "draft_id": "draft", "record_id": "record", "sessionId": "session", "timestamp": "at", "user_id": "user"}
 BINARY = (".joblib", ".pkl", ".pickle", ".npy", ".npz", ".sqlite3", ".parquet", ".bin", ".onnx", ".pt")
 
 
 def _version() -> str:
     from dclab_core import redact, store_rules
 
-    return f"shapers-3:{redact.VERSION}:{store_rules.VERSION}"  # 3: one group for every kind; tables printed with spaces
+    return f"shapers-4:{redact.VERSION}:{store_rules.VERSION}"  # 3: one group for every kind; tables printed with spaces; 4: whose it is (body.user, provenance.by)
 
 
 def _id_key(key: Optional[str]) -> bool:
@@ -169,6 +169,8 @@ def _type(kind: str, source: str, doc: dict[str, Any]) -> str:
         return "intern_session" if "/versions/" in source or name.startswith("intern_session") else \
             "turn" if source.startswith(("workspace_chat/", "drafts/", "db/draft_event")) and name.endswith(".jsonl") else \
             "mcp_call" if source.startswith("mcp/") else "snapshot"
+    if kind == "sessions" and source.startswith("people/"):  # 32.32: a person's record, or a session of an account
+        return "session" if name.startswith("session") else "person"
     return {"sessions": "event", "actions": "step", "audit": "row", "model_requests": "request", "tasks": "job_state", "teachers": "answer",
             "students": "version", "deletions": "deletion", "fixes": "fix", "agents": "transcript_line", "tests": "test_run"}.get(kind, "snapshot")
 
@@ -310,7 +312,8 @@ def _record(entry: Any, n: int, doc: Any, ctx: Context) -> StoreRecord:
                       commit=(run_context.get("commit") or None) and str(run_context["commit"])[:64],
                       project=body.get("project") if isinstance(body.get("project"), str) and len(body["project"]) <= 120 else None,
                       draft=body.get("draft") if isinstance(body.get("draft"), str) and len(body["draft"]) <= 120 else None,
-                      deleted=bool(ids & ctx.deleted), rule=f"{store_rules.VERSION}:{rule.task}" if rule else None)
+                      deleted=bool(ids & ctx.deleted), rule=f"{store_rules.VERSION}:{rule.task}" if rule else None,
+                      by=body.get("user") if isinstance(body.get("user"), str) and len(body["user"]) <= 120 else None)  # whose it is: the pseudonymous user id
     return StoreRecord(id=f"{entry.id}#{n}", kind=kind, type=type_, at=at, body=body, provenance=prov,
                        split=split_of(str(key)) if key not in (None, "") else None, flags=flags)
 

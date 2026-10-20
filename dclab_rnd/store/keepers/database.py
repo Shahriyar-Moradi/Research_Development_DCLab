@@ -5,7 +5,8 @@ the file keepers would miss them. This keeper exports each workspace's rows of e
   the store keeps only the rows added since the last run (``Store.keep_log``); a row order that changed is kept whole again;
 - a table whose rows change (projects, drafts, intern sessions, jobs ...) as a whole snapshot, a new version when it changed.
 
-Sign-ins, tokens, users and counters are never exported (credentials, contacts, and nothing to learn from). The workspace's
+Sign-ins, tokens, users and counters are never exported as rows (credentials, contacts): the people keeper (``people.py``, 32.32) keeps
+each person and session by pseudonymous id and hashes, named columns only; the counters hold nothing to learn from. The workspace's
 name in the store is its folder's (the same one the file keepers use) when its folder is known, else a hash of its id.
 """
 
