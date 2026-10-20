@@ -73,8 +73,9 @@ class SafetyTests(unittest.TestCase):
     def test_serve_runs_one_reloading_worker_on_the_checked_database(self):
         with mock.patch.object(dev, "ensure_database", return_value="already at 0008") as ensured, \
              mock.patch.object(dev, "build_frontend"), mock.patch.object(dev, "watch_frontend"), \
-             mock.patch.object(dev, "watch_worker"), mock.patch.object(dev.subprocess, "Popen") as popen:
+             mock.patch.object(dev.subprocess, "Popen") as popen:
             popen.return_value.wait.return_value = 0
+            popen.return_value.poll.return_value = None
             self.assertEqual(dev.serve("postgresql+psycopg://u@/dclab_dev", 8799), 0)
         calls = {" ".join(c.args[0]): c for c in popen.call_args_list}
         api = next(c for k, c in calls.items() if "uvicorn" in k)
@@ -88,15 +89,34 @@ class SafetyTests(unittest.TestCase):
         self.assertEqual(env["DCLAB_DATABASE_URL"], "postgresql+psycopg://u@/dclab_dev")
         ensured.assert_called_once()
 
-    def test_the_worker_runs_without_reload_when_watchfiles_is_missing(self):
-        import importlib.util
-
-        with mock.patch.object(importlib.util, "find_spec", return_value=None):
-            self.assertEqual(dev.worker_command(), [sys.executable, "-m", "dclab_rnd.worker"])
-        process = mock.Mock(wait=mock.Mock(return_value=1))
+    def test_a_worker_that_ends_is_said_loudly_and_started_again_and_a_code_change_restarts_it(self):
+        folder = Path(tempfile.mkdtemp())
+        (folder / "a.py").write_text("x = 1")
+        dead = mock.Mock(poll=mock.Mock(return_value=-9))  # killed, as the system does when memory runs short
+        alive = mock.Mock(poll=mock.Mock(return_value=None))
+        fresh = mock.Mock(poll=mock.Mock(return_value=None))
+        started = iter([dead, alive, fresh])
+        stop = threading.Event()
         with mock.patch("sys.stderr") as err:
-            dev.watch_worker(process, threading.Event())  # the API still runs: say so loudly
-        self.assertIn("THE JOB WORKER STOPPED", "".join(c.args[0] for c in err.write.call_args_list))
+            runner = threading.Thread(target=dev.supervise_worker, args=(lambda: next(started), stop, 0.05, folder, 0.05), daemon=True)
+            runner.start()
+            deadline = time.time() + 10
+            while time.time() < deadline and alive.poll.call_count == 0:
+                time.sleep(0.02)
+            said = "".join(c.args[0] for c in err.write.call_args_list)
+        self.assertIn("THE JOB WORKER STOPPED (killed by SIGKILL", said)
+        self.assertGreater(alive.poll.call_count, 0)  # started again
+        later = time.time() + 5
+        (folder / "a.py").write_text("x = 2")
+        os.utime(folder / "a.py", (later, later))
+        deadline = time.time() + 10
+        while time.time() < deadline and fresh.poll.call_count == 0:
+            time.sleep(0.02)
+        self.assertTrue(alive.terminate.called)  # the code changed: the running worker ends and a new one starts
+        self.assertGreater(fresh.poll.call_count, 0)
+        stop.set()
+        runner.join(timeout=5)
+        self.assertTrue(fresh.terminate.called)  # make dev stopping ends the worker
 
     def test_the_frontend_is_rebuilt_when_a_source_changes(self):
         folder = Path(tempfile.mkdtemp())

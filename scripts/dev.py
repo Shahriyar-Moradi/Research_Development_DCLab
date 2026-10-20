@@ -167,21 +167,76 @@ def build_frontend() -> None:
 
 
 def worker_command() -> list[str]:
-    """The job worker, restarted when its code changes when ``watchfiles`` is installed; without it, run once."""
-    import importlib.util
-
-    if importlib.util.find_spec("watchfiles") is None:
-        print("watchfiles is not installed: the job worker runs without reload (restart make dev after changing its code)", flush=True)
-        return [sys.executable, "-m", "dclab_rnd.worker"]
-    return [sys.executable, "-m", "watchfiles", "--filter", "python", f"{sys.executable} -m dclab_rnd.worker", "dclab_rnd"]
+    """The job worker itself (``supervise_worker`` restarts it when it ends or when its code changes)."""
+    return [sys.executable, "-m", "dclab_rnd.worker"]
 
 
-def watch_worker(worker, stop: threading.Event) -> None:
-    """Say so loudly when the worker ends while the API still runs: queued jobs would wait for ever."""
-    code = worker.wait()
-    if not stop.is_set():
-        print(f"\nTHE JOB WORKER STOPPED (exit {code}): stage runs, data pipelines and intern turns stay queued. "
-              "Restart make dev, or run python -m dclab_rnd.worker in another terminal.", file=sys.stderr, flush=True)
+def python_changed_since(folder: Path, last: float) -> float | None:
+    """The newest modification time of a Python file under ``folder`` when it is newer than ``last``, else None."""
+    newest = 0.0
+    for path in folder.rglob("*.py"):
+        try:
+            newest = max(newest, path.stat().st_mtime)
+        except OSError:  # a file removed while it is read
+            continue
+    return newest if newest > last else None
+
+
+def _exit_reason(code: int) -> str:
+    if code < 0:
+        import signal
+
+        try:
+            name = signal.Signals(-code).name
+        except ValueError:
+            name = f"signal {-code}"
+        return f"killed by {name}" + (" (often the system, short of memory)" if name == "SIGKILL" else "")
+    return f"exit {code}"
+
+
+def _end(process, wait: float = 10) -> None:
+    if process.poll() is None:
+        process.terminate()
+        try:
+            process.wait(timeout=wait)
+        except subprocess.TimeoutExpired:
+            process.kill()
+
+
+def supervise_worker(start, stop: threading.Event, every: float = 1.0, folder: Path = ROOT / "dclab_rnd", backoff: float = 2.0,
+                     max_backoff: float = 30.0, settled: float = 60.0) -> None:
+    """Run the job worker and keep it running while the API runs: when it ends, say so loudly (with its exit code, or the
+    signal that killed it) and start it again after a short wait that grows while it keeps failing; when a Python file
+    under ``folder`` changes, restart it on the new code. Queued stage runs, pipelines and intern turns never wait for a
+    worker that is gone (2026-10-20: a worker died under memory pressure and the reload wrapper never noticed)."""
+    process, started, wait = start(), time.time(), backoff
+    try:
+        last = python_changed_since(folder, 0.0) or time.time()
+    except Exception:  # noqa: BLE001 — the first scan failed: start from now
+        last = time.time()
+    try:
+        while not stop.wait(every):
+            try:
+                newer = python_changed_since(folder, last)
+            except Exception:  # noqa: BLE001 — a failed scan is tried again next tick
+                newer = None
+            if newer is not None:
+                last = newer
+                print("code changed: the job worker restarts", flush=True)
+                _end(process)
+                process, started, wait = start(), time.time(), backoff
+                continue
+            code = process.poll()
+            if code is None:
+                continue
+            print(f"\nTHE JOB WORKER STOPPED ({_exit_reason(code)}): stage runs, data pipelines and intern turns would stay queued. "
+                  f"Starting it again in {wait:.0f} s.", file=sys.stderr, flush=True)
+            if stop.wait(wait):
+                break
+            wait = backoff if time.time() - started > settled else min(wait * 2, max_backoff)  # a worker that keeps failing waits longer
+            process, started = start(), time.time()
+    finally:
+        _end(process)
 
 
 def serve(url: str, port: int, remote: bool = False) -> int:
@@ -194,9 +249,10 @@ def serve(url: str, port: int, remote: bool = False) -> int:
     watcher.start()
     command = [sys.executable, "-m", "uvicorn", "dclab_rnd.agentic.server:app", "--host", "127.0.0.1", "--port", str(port),
                "--reload", "--reload-dir", "dclab_rnd", "--workers", "1"]
-    print(f"API on http://127.0.0.1:{port} and a job worker (both reload on code changes; the frontend rebuilds when {WEB_SRC.relative_to(ROOT)} changes). Ctrl-C stops.", flush=True)
-    worker = subprocess.Popen(worker_command(), cwd=ROOT, env=env)
-    threading.Thread(target=watch_worker, args=(worker, stop), daemon=True).start()
+    print(f"API on http://127.0.0.1:{port} and a job worker (both reload on code changes, and the worker is restarted if it ends; the frontend rebuilds when {WEB_SRC.relative_to(ROOT)} changes). Ctrl-C stops.", flush=True)
+    supervisor = threading.Thread(target=supervise_worker, args=(lambda: subprocess.Popen(worker_command(), cwd=ROOT, env=env), stop),
+                                  name="dclab-dev-worker", daemon=True)
+    supervisor.start()
     process = subprocess.Popen(command, cwd=ROOT, env=env)
     try:
         return process.wait()
@@ -204,12 +260,8 @@ def serve(url: str, port: int, remote: bool = False) -> int:
         process.terminate()
         return process.wait()
     finally:
-        stop.set()
-        worker.terminate()
-        try:
-            worker.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            worker.kill()
+        stop.set()  # the supervisor ends the worker (its running jobs stop at their next checkpoint)
+        supervisor.join(timeout=15)
 
 
 def main(argv: list[str] | None = None) -> int:

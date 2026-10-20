@@ -1,0 +1,52 @@
+{
+ "package": "fix-dev-worker-supervision",
+ "title": "make dev keeps its job worker running: a worker that ends is said loudly and started again",
+ "date": "2026-10-20",
+ "request": "The owner defined a problem on Home, said build, and nothing ran: the Workflow page stayed on Running data and the Intern on Queued.",
+ "spec": "scripts/dev.py (package 12.0) and the job table (package 10.3)",
+ "plan": [
+  "Read the job table: what is queued and since when.",
+  "Find the worker process.",
+  "Start a worker to unblock the owner's jobs.",
+  "Make make dev supervise the worker itself."
+ ],
+ "decisions": [
+  {
+   "decision": "dev.py supervises the worker process itself instead of running it under the watchfiles command.",
+   "why": "The watchfiles wrapper never ends, so dev.py's warning waited on it and a worker that died was never noticed or restarted."
+  },
+  {
+   "decision": "A worker that keeps failing waits longer before the next start (2 s doubling to 30 s), reset once it has run a minute.",
+   "why": "A worker broken by a code error must not restart in a tight loop."
+  }
+ ],
+ "change": "scripts/dev.py: supervise_worker (restart when the worker ends, with its exit code or signal; restart when a Python file under dclab_rnd changes), python_changed_since; tests/test_dev_script.py.",
+ "findings": [
+  {
+   "id": "W1",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "Stage runs and intern turns stayed queued after a build.",
+   "scenario": "make dev on PostgreSQL (DCLAB_WORKER=external): the worker ended about 90 seconds after start; four jobs queued for half an hour, the pages kept polling.",
+   "cause": "The worker ran under watchfiles, which restarts only on a file change; dev.py waited on watchfiles, not the worker, so its warning never fired. Why the worker ended is not in any record left (likely memory pressure while a test gate ran on the 8 GB machine).",
+   "fix": "dev.py runs and supervises the worker: an end is said with its exit code or the signal (SIGKILL named as the system short of memory) and the worker is started again; a code change restarts it.",
+   "test": "tests/test_dev_script.py::test_a_worker_that_ends_is_said_loudly_and_started_again_and_a_code_change_restarts_it"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the owner's queued jobs after a worker started",
+   "gate": "every queued job is claimed and the project's stages move",
+   "result": "the four queued jobs were claimed within seconds; the data stage completed; the intern turn ran",
+   "verdict": "pass"
+  }
+ ],
+ "outcome": "A make dev session can no longer leave jobs waiting for a worker that is gone.",
+ "lessons": [
+  "Supervise the process that does the work, not a wrapper around it."
+ ],
+ "risks": [
+  "A worker that dies for memory will die again under the same pressure; the restart only says it and tries again."
+ ],
+ "commits": []
+}
