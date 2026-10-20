@@ -20,6 +20,7 @@ from dclab_core.recipes import Choice, Detection, RecipePart, ResolvedRecipe, re
 from dclab_core import modifiers as M
 
 CAPABILITY = Path(__file__).resolve().parent / "kinds" / "capability.json"
+CERTIFICATION = Path(__file__).resolve().parents[1] / "evidence" / "campaigns" / "certification_v1" / "results"
 
 
 def _value(solution: Any, key: str) -> Any:
@@ -52,6 +53,39 @@ def _evidence() -> dict[str, list[str]]:
     return out
 
 
+def verdicts(folder: Path = CERTIFICATION) -> dict[str, dict[str, Any]]:
+    """Each part's latest certification verdict, read from the records ``python -m dclab_rnd.certify --write`` keeps (a later
+    record wins): its level, the record, and the part's version it was judged on (records before 2026-10-20 did not keep it)."""
+    out: dict[str, dict[str, Any]] = {}
+    numbered = []
+    for path in Path(folder).glob("CRT-*.json"):
+        try:
+            numbered.append((int(path.name.split("_")[0].split("-")[1]), path))
+        except (IndexError, ValueError):
+            continue
+    for _, path in sorted(numbered):
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        for name, verdict in (doc.get("parts") or {}).items():
+            if isinstance(verdict, dict):
+                out[name] = {"level": verdict.get("level"), "record": doc.get("id") or path.stem, "version": (doc.get("versions") or {}).get(name)}
+    return out
+
+
+def level_of(name: str, version: str, found: Optional[dict[str, dict[str, Any]]] = None) -> tuple[str, Optional[str]]:
+    """The level a part holds now and the words behind it. A record's level holds only for the version it judged: a part changed
+    since is experimental again until it is certified again. A record that kept no version (before 2026-10-20) is trusted and said
+    so. ``product_default`` is never read from a record: certification never grants it."""
+    verdict = (verdicts() if found is None else found).get(name)
+    if not verdict or verdict.get("level") not in ("certified", "experimental"):
+        return "experimental", None
+    if verdict.get("version") and verdict["version"] != version:
+        return "experimental", f"{verdict['level']} in {verdict['record']} at version {verdict['version']}; changed since: certify it again"
+    return verdict["level"], f"{verdict['level']} ({verdict['record']}{'' if verdict.get('version') else ', the version it judged was not recorded'})"
+
+
 def _part_split(kind: Any) -> Optional[str]:
     """The split the kind itself takes when the solution declares no time or group column: None for a kind whose own machine
     splits (its record says how), spatial blocks for places, strata when the kind stratifies, else a plain random split."""
@@ -62,8 +96,9 @@ def _part_split(kind: Any) -> Optional[str]:
     return "stratified" if kind.stratify else "random"
 
 
-def part_of(kind: Any, evidence: Optional[dict[str, list[str]]] = None) -> RecipePart:
-    """A problem kind as a recipe part: its nine fields read from the kind's own attributes and defaults."""
+def part_of(kind: Any, evidence: Optional[dict[str, list[str]]] = None, found: Optional[dict[str, dict[str, Any]]] = None) -> RecipePart:
+    """A problem kind as a recipe part: its nine fields read from the kind's own attributes and defaults, and its level from its
+    certification record (``level_of``)."""
     metrics = [m for m, _ in kind.metrics]
     primary = kind.default_metric({"task": kind.base_task}, None) if metrics else None
     detection = [Detection(signal="words", rule=str(kind.words)[:300])] if kind.words else []
@@ -75,14 +110,38 @@ def part_of(kind: Any, evidence: Optional[dict[str, list[str]]] = None) -> Recip
                   leakage_checks=list(kind.checks)[:20], artifact_needs=[k for k, v in kind.export.items() if v is True][:20],
                   report_items=list(kind.reliability)[:20], certification=(evidence or {}).get(kind.key, [])[:20])
     draft = RecipePart(**fields)
-    return RecipePart(**{**fields, "version": _fingerprint(draft, kind)})
+    version = _fingerprint(draft, kind)
+    level, why = level_of(kind.key, version, found)
+    return RecipePart(**{**fields, "version": version, "level": level, "certification": ([f"certification: {why}"] if why else []) + fields["certification"][:19]})
 
 
 def kind_parts() -> list[RecipePart]:
     from . import kinds
 
-    evidence = _evidence()
-    return [part_of(k, evidence) for k in kinds.all_kinds()]
+    evidence, found = _evidence(), verdicts()
+    return [part_of(k, evidence, found) for k in kinds.all_kinds()]
+
+
+def modifier_parts() -> list[RecipePart]:
+    """The modifiers with the level their certification records give them (their version is ``dclab_core.modifiers.VERSION``)."""
+    found = verdicts()
+    out = []
+    for part in M.PARTS.values():
+        level, why = level_of(part.name, part.version, found)
+        out.append(part.model_copy(update={"level": level, "certification": ([f"certification: {why}"] if why else []) + list(part.certification)[:19]}))
+    return out
+
+
+# 30.10's review, then the owner (2026-10-20): what makes a run apply a detected modifier, one rule per modifier. A modifier in
+# dclab_core.modifiers.PARTS without a rule here would be detected and then dropped from the run's recipe without a word:
+# tests/test_recipes.py fails until it has one.
+KEEP: dict[str, Any] = {
+    "rare_positives": lambda d, solution, metric: metric == M.PARTS["rare_positives"].primary_metric,
+    "groups": lambda d, solution, metric: d.get("value") == _value(solution, "group_column"),
+    "time_order": lambda d, solution, metric: bool(_value(solution, "time_column")),  # 30.12: the person may choose which column orders the rows
+    "noisy_labels": lambda d, solution, metric: bool(_value(solution, "label_source_column")),
+    "review_capacity": lambda d, solution, metric: bool(_value(solution, "capacity_k")),
+}
 
 
 def resolve_for(kind: Any, solution: Any, positive_rate: Optional[float] = None, machine: Any = None,
@@ -95,11 +154,7 @@ def resolve_for(kind: Any, solution: Any, positive_rate: Optional[float] = None,
     stated_metric = _value(solution, "metric")
     found = {d.get("name"): d for d in detected or [] if d.get("applies") and d.get("name") in M.PARTS}  # 30.11: what the proposal applied
     run_metric = stated_metric or (getattr(machine, "metric", None) if machine is not None else kind.default_metric(solution, positive_rate))
-    kept = {n: d for n, d in found.items() if (n == "rare_positives" and run_metric == M.PARTS["rare_positives"].primary_metric)
-            or (n == "groups" and d.get("value") == _value(solution, "group_column"))
-            or (n == "time_order" and bool(_value(solution, "time_column")))  # 30.12: the person may choose which column orders the rows, as the ledger counts it
-            or (n == "noisy_labels" and _value(solution, "label_source_column"))
-            or (n == "review_capacity" and _value(solution, "capacity_k"))}  # what the run applies (the review of 30.11; 30.12)
+    kept = {n: d for n, d in found.items() if n in KEEP and KEEP[n](d, solution, run_metric)}  # what the run applies (the review of 30.11; 30.12)
     chosen = _value(solution, "time_column")
     if "time_order" in kept and kept["time_order"].get("value") != chosen:  # the person chose another column: the reason names it
         kept["time_order"] = {**kept["time_order"], "value": chosen,
@@ -182,8 +237,8 @@ def record_for(kind: Any, solution: Any, positive_rate: Optional[float] = None, 
 
 
 def main(argv: Optional[list[str]] = None) -> int:
-    for p in kind_parts():
-        print(f"{p.ref:28} {p.level:13} split {p.split or '-':11} metric {p.primary_metric or '-':22} {'; '.join(p.certification)}")
+    for p in [*kind_parts(), *modifier_parts()]:
+        print(f"{p.ref:28} {p.part_type:9} {p.level:13} split {p.split or '-':11} metric {p.primary_metric or '-':22} {'; '.join(p.certification)}")
     return 0
 
 

@@ -103,6 +103,7 @@ def judge(entry: dict[str, Any], run: Any) -> dict[str, Any]:
 
 
 def run(seeds: tuple[int, ...] = (0, 1, 2), log=print) -> dict[str, Any]:
+    from dclab_core import modifiers as M
     from dclab_core.recipes import certify
 
     from .kinds.acceptance import engine_run
@@ -117,7 +118,7 @@ def run(seeds: tuple[int, ...] = (0, 1, 2), log=print) -> dict[str, Any]:
             f"against {done['random_ranking_average_precision']}")
     parts = {part: certify([{"name": j["name"], "source": j["source"], "applies": j["applies"][part], "criteria": j["criteria"][part]}
                             for j in judged if part in j["criteria"]]) for part in PARTS}
-    return {"runs": judged, "parts": parts,
+    return {"runs": judged, "parts": parts, "versions": {name: M.PARTS[name].version for name in parts if name in M.PARTS},  # the version each verdict judged
             "limits": ["Every run is the engine's quick mode with no model asked: the same result with a model on is not compared (pending).",
                        "The artifact criterion (save, reload, predict) is not built until 30.15: pending on every run.",
                        "The trap criterion is each run's own checks, the same for every part.",
@@ -198,7 +199,10 @@ def run_kind(key: str, seeds: tuple[int, ...] = (0, 1, 2), log=print) -> dict[st
     if REAL_FOR.get(key):
         limits += ["Telco and HyperAck are the recipes' two real datasets (D6): one public churn table and the owner's delivery table; a pass says "
                    "the kind holds on them under these protocols, not on any other table."]
-    return {"runs": judged, "parts": {key: certify(counted)}, "replica_every_seed": whole, "limits": limits}
+    from .recipes import part_of
+
+    return {"runs": judged, "parts": {key: certify(counted)}, "versions": {key: part_of(kinds.get(key)).version},  # the version the verdict judged
+            "replica_every_seed": whole, "limits": limits}
 
 
 def _routed(kind: Any, case: Any) -> bool:

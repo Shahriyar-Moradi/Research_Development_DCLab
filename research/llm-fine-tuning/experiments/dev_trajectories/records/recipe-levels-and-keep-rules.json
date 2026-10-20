@@ -1,0 +1,26 @@
+{
+  "package": "recipe-levels-and-keep-rules",
+  "title": "The recipe registry reads its levels from the certification records, and every modifier has the rule that keeps it in a run",
+  "date": "2026-10-20",
+  "request": "Fix both gaps the adding-capability guide found, then push.",
+  "spec": "The registry printed every kind as experimental although binary and matching were certified in their records; resolve_for kept a detected modifier through a hand-written condition per name, so a new modifier would be detected and dropped without a word.",
+  "plan": ["Read each part's latest certification verdict; hold it only for the version it judged", "Store the judged version in new records", "One table of keep rules, and a test that every modifier has one"],
+  "decisions": [
+    {"decision": "A record's level holds only for the version it judged; a changed part is experimental again.", "why": "A kind's version is a fingerprint of its code: a certification earned by older code says nothing about the new one."},
+    {"decision": "Old records without a version are trusted and said so; nothing under results/ is edited.", "why": "The repository never edits results files; the next certify run writes the version."},
+    {"decision": "Product default is never read from a record.", "why": "Certification cannot grant it: it needs more than runs."},
+    {"decision": "A missing keep rule fails a test rather than defaulting to keep.", "why": "Defaulting to keep would claim a modifier the engine may not apply; a failing test makes the builder decide."}
+  ],
+  "change": "dclab_rnd/recipes.py (verdicts, level_of, modifier_parts, KEEP, the printout), dclab_rnd/certify.py (versions in new records), tests/test_recipes.py, docs/guides/ADDING_CAPABILITY.md.",
+  "findings": [
+    {"id": "L1", "source": "measurement", "severity": "behaviour", "defect": "The registry showed binary and matching as experimental.", "scenario": "python -m dclab_rnd.recipes after CRT-002 and CRT-003 certified them.", "cause": "part_of always set level experimental and never read the records.", "fix": "level_of reads the latest record per part, gated on the judged version.", "test": "test_the_level_comes_from_the_certification_record_and_holds_only_for_its_version"},
+    {"id": "L2", "source": "measurement", "severity": "latent", "defect": "A new modifier would be detected and then dropped from the run's recipe.", "scenario": "A sixth modifier added to PARTS without editing resolve_for.", "cause": "The kept filter named the five modifiers by hand.", "fix": "One KEEP table; a test fails until every modifier has its rule.", "test": "test_every_modifier_has_the_rule_that_keeps_it_in_a_run"}
+  ],
+  "measurements": [
+    {"name": "The registry printout", "gate": "certified kinds show certified, modifiers show their recorded level", "result": "binary and matching certified (version not recorded), the five modifiers experimental (CRT-001)", "verdict": "pass", "limits": ["old records kept no version: their level is trusted until the next certify run"]}
+  ],
+  "outcome": "The registry tells the truth about each part's level, and a new modifier cannot be silently dropped.",
+  "lessons": ["A list that must name every member by hand needs a test that compares it with the source of the members."],
+  "risks": ["resolve_for now reads the certification folder on every run: a few small files."],
+  "commits": []
+}

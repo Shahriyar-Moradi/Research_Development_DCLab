@@ -101,7 +101,8 @@ class KindsAsPartsTests(unittest.TestCase):
         self.assertEqual(set(parts), {k.key for k in kinds.all_kinds()})
         for kind in kinds.all_kinds():
             p = parts[kind.key]
-            self.assertEqual((p.part_type, p.level), ("kind", "experimental"))
+            self.assertEqual(p.part_type, "kind")
+            self.assertIn(p.level, ("experimental", "certified"), kind.key)  # from its certification record (level_of)
             self.assertEqual(p.primary_metric, kind.default_metric({"task": kind.base_task}, None), kind.key)
             self.assertNotIn(p.primary_metric, p.guard_metrics, kind.key)
             self.assertTrue(all(kind.export.get(n) is True for n in p.artifact_needs), kind.key)
@@ -109,6 +110,35 @@ class KindsAsPartsTests(unittest.TestCase):
                 self.assertIsNone(p.split, kind.key)  # its machine splits; the part does not pretend
         self.assertEqual((parts["regression"].split, parts["places"].split, parts["binary"].split), ("random", "spatial", "stratified"))
         self.assertEqual({p.name: p.version for p in recipes.kind_parts()}, {n: p.version for n, p in parts.items()})  # stable
+
+    def test_the_level_comes_from_the_certification_record_and_holds_only_for_its_version(self):  # the owner, 2026-10-20
+        import json
+        import tempfile
+        from pathlib import Path
+
+        from dclab_rnd import kinds, recipes
+
+        folder = Path(tempfile.mkdtemp())
+        current = recipes.part_of(kinds.get("binary"), found={}).version
+        (folder / "CRT-001_binary.json").write_text(json.dumps({"id": "CRT-001", "parts": {"binary": {"level": "certified"}}}))
+        found = recipes.verdicts(folder)
+        self.assertEqual(recipes.part_of(kinds.get("binary"), found=found).level, "certified")  # an old record kept no version: trusted, said so
+        self.assertIn("not recorded", recipes.part_of(kinds.get("binary"), found=found).certification[0])
+        (folder / "CRT-002_binary.json").write_text(json.dumps({"id": "CRT-002", "parts": {"binary": {"level": "certified"}}, "versions": {"binary": "0000000000"}}))
+        changed = recipes.part_of(kinds.get("binary"), found=recipes.verdicts(folder))
+        self.assertEqual(changed.level, "experimental")  # the kind changed since the record judged it
+        self.assertIn("certify it again", changed.certification[0])
+        (folder / "CRT-003_binary.json").write_text(json.dumps({"id": "CRT-003", "parts": {"binary": {"level": "certified"}}, "versions": {"binary": current}}))
+        self.assertEqual(recipes.part_of(kinds.get("binary"), found=recipes.verdicts(folder)).level, "certified")
+        (folder / "CRT-004_binary.json").write_text(json.dumps({"id": "CRT-004", "parts": {"binary": {"level": "product_default"}}, "versions": {"binary": current}}))
+        self.assertEqual(recipes.part_of(kinds.get("binary"), found=recipes.verdicts(folder)).level, "experimental")  # never granted by a record
+        self.assertEqual({p.name for p in recipes.modifier_parts()}, set(__import__("dclab_core.modifiers", fromlist=["PARTS"]).PARTS))
+
+    def test_every_modifier_has_the_rule_that_keeps_it_in_a_run(self):  # a modifier without one would be dropped without a word
+        from dclab_core import modifiers as M
+        from dclab_rnd import recipes
+
+        self.assertEqual(set(recipes.KEEP), set(M.PARTS))
 
     def test_a_kind_whose_behaviour_changes_gets_a_new_version(self):
         from dclab_rnd import kinds, recipes

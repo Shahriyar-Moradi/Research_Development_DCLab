@@ -111,9 +111,11 @@ but never counts toward the level.
 
 Where things stand (2026-10-20): 17 kinds, 15 supported in the capability matrix (`metric_change` and `embedded` partial).
 `binary` and `matching` are certified (`CRT-003_binary.json`, `CRT-002_matching.json`). The five modifiers are experimental:
-their artifact and LLM-off criteria are not measured yet (`CRT-001_modifiers.json`). The registry printed by
-`python -m dclab_rnd.recipes` does not read these records yet and still shows every kind as experimental: the certification
-record under `evidence/campaigns/certification_v1/results/` is the one to trust.
+their artifact and LLM-off criteria are not measured yet (`CRT-001_modifiers.json`).
+
+The registry (`python -m dclab_rnd.recipes`, `dclab_rnd/recipes.py::level_of`) reads each part's level from its latest
+certification record. A record holds only for the version it judged: a part changed since is experimental again until it is
+certified again (`certify --write` stores the version; records written before 2026-10-20 did not, and the registry says so).
 
 "Supported" and "certified" are different. **Supported** (`make kinds-check`) means the kind's replica passes its
 acceptance. **Certified** (`python -m dclab_rnd.certify`) also needs real datasets and all five criteria.
@@ -268,8 +270,9 @@ The steps, using a "seasonality" modifier as the example:
 5. **Its precedence**, if it sets a single value (the primary metric, calibration, a threshold rule): place it in
    `SPECIFIC` in `dclab_core/recipes.py`. If it only adds to lists or sets a split, the existing rules already merge it.
 6. **Keep it in the run's recipe.** `resolve_for()` in `dclab_rnd/recipes.py` keeps a detected modifier only when the run
-   really applies it. Its `kept` filter **names every modifier by hand today**: add a line for yours, or it is detected
-   and then silently dropped.
+   really applies it, by its rule in `KEEP` (for example groups: the solution's group column is the detected one). Add a
+   rule for yours; `tests/test_recipes.py` fails until every modifier in `PARTS` has one, so a modifier is never detected
+   and then dropped without a word.
 7. **Certify it.** Add it to `PARTS` in `dclab_rnd/certify.py`, give the replica cases an `expect` for it (where it must
    apply, and where it must not), and run `python -m dclab_rnd.certify [--write]`.
 8. **Tests** in `tests/test_modifiers.py` (detected on the trap replica, not detected where it should not be) and
@@ -319,7 +322,7 @@ clearer words.
 | Way | Done when |
 |---|---|
 | A. Kind | its module, replica and acceptance; `make kinds-check ARGS=<key>` shows it supported; its tests pass; a certification record with its level, or the list of what is missing |
-| B. Modifier | its part, fact, detection, precedence and `resolve_for` line; detected on its trap replica and not where it should not be; its tests pass; a certification record |
+| B. Modifier | its part, fact, detection, precedence and `KEEP` rule; detected on its trap replica and not where it should not be; its tests pass; a certification record |
 | C. Knowledge | its source entry; `make business-examples` builds it; `--practice` finds it; its visibility is right |
 
 For every way:
@@ -349,7 +352,8 @@ make kinds-check ARGS=<kind_key>
 make business-examples ARGS=--practice
 ```
 
-The first prints the registry (each part's version, level, split, metric and certification). `--kind` certifies one
+The first prints the registry: every kind and modifier with its version, level (from its certification record), split,
+metric and evidence. `--kind` certifies one
 kind; without it, the command certifies the modifiers.
 
 ## Further reading
@@ -391,7 +395,7 @@ kind; without it, the command certifies the modifiers.
 ۳. یک فیلد در `Facts` (فقط اعداد تجمعی، هرگز یک ردیف).
 ۴. تابع تشخیص در `detect`.
 ۵. جایش در `SPECIFIC`.
-۶. **یک خط در فیلتر `kept` در `resolve_for`.** فراموشش نکنید، وگرنه اصلاح‌گر تشخیص داده می‌شود و بی‌صدا کنار می‌رود.
+۶. **یک قاعده در `KEEP` در `dclab_rnd/recipes.py`** که می‌گوید اجرا کِی آن را به کار می‌برد؛ تا این قاعده نباشد، تست `tests/test_recipes.py` رد می‌شود.
 ۷. افزودن به `certify.PARTS`.
 ۸. تست‌ها.
 
