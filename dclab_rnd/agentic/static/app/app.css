@@ -6320,7 +6320,9 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 0; }
 .g-chat { grid-template-columns: minmax(0, 3.4fr) minmax(240px, 1fr); align-items: start; }
 .g-chat > #home-twin { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
 #home-chat .thread { min-height: 56vh; gap: 18px; }
-#home-chat .msg-body { font-size: 14.5px; }
+#home-chat .msg-body { font-size: 15px; line-height: 1.65; }  /* the conversation: both sides in the page's own ink, larger (the owner, 2026-10-20) */
+#home-chat .ask-card .q { font-size: 15px; }
+#home-chat .ask-option { font-size: 14px; }
 #home-chat .composer textarea { min-height: 150px; font-size: 16px; line-height: 1.5; }
 .span-2 { grid-column: span 2; }
 .span-all { grid-column: 1 / -1; }
@@ -6631,7 +6633,7 @@ pre.term .t-dim { color: #7f9a95; } pre.term .t-ok { color: #6fd39b; } pre.term 
 /* ---------- chat / intern ---------- */
 .thread { display: flex; flex-direction: column; gap: 14px; }
 .msg { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; }
-.msg-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 13.5px; line-height: 1.55; color: var(--ink-2); }
+.msg-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 14px; line-height: 1.6; color: var(--ink); }
 .msg-body .who { font-size: 12px; font-weight: 600; color: var(--ink); }
 .msg-body .who span { color: var(--faint); font-weight: 400; margin-left: 6px; }
 .msg.user .bubble { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; color: var(--ink); }
@@ -6648,7 +6650,7 @@ pre.term .t-dim { color: #7f9a95; } pre.term .t-ok { color: #6fd39b; } pre.term 
 .ask-card { border: 1.5px solid var(--warn); background: var(--warn-soft); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
 .ask-card .q { font-weight: 600; color: var(--ink); font-size: 14px; }
 .ask-options { display: flex; flex-direction: column; gap: 6px; }
-.ask-option { display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--panel); font-size: 13px; color: var(--ink-2); }
+.ask-option { display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--panel); font-size: 13px; color: var(--ink); }
 .ask-option:hover { border-color: var(--accent); }
 .ask-option[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
 .ask-option b { color: var(--ink); }
