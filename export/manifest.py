@@ -83,7 +83,11 @@ REPLACE = [
     (r"/Users/[A-Za-z0-9._-]+/[^\s'\"]*", "/home/user/project"),
 ]
 
-OVERLAY = "export/overlay"  # files only the open tree has (none yet: day 6 onwards)
+OVERLAY = "export/overlay"  # files only the open tree has (README, LICENSE, pyproject, docs, CI, the npm launcher)
+
+# The knowledge the open tree ships (the owner's decision, 2026-10-21: rules and pitfalls only), filtered from the evidence
+# index and packaged where evidence_index.packaged_records() reads it. Citations keep only paths that exist in the open tree.
+KNOWLEDGE = {"source": "evidence/knowledge/rag/records.jsonl", "types": ["rule", "pitfall"], "out": "knowledge/records.jsonl"}
 
 MAX_FILE_BYTES = 1_000_000
 BINARY_ALLOWED = (".woff2", ".woff", ".ttf", ".png", ".svg", ".ico")

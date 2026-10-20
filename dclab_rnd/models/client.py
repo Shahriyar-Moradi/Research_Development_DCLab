@@ -61,7 +61,7 @@ def resume() -> None:
 
 def settings() -> dict[str, Any]:
     base_url = os.environ.get("DCLAB_LLM_BASE_URL") or os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
-    model = os.environ.get("DCLAB_INTERN_MODEL") or os.environ.get("OPENAI_MODEL") or DEFAULT_MODEL
+    model = os.environ.get("DCLAB_INTERN_MODEL") or os.environ.get("OPENAI_MODEL") or (DEFAULT_MODEL if urlparse(base_url).hostname == "api.openai.com" else "")
     key = os.environ.get("OPENAI_API_KEY") or ("ollama" if "11434" in base_url else "")
     try:
         import openai  # noqa: F401
@@ -69,7 +69,7 @@ def settings() -> dict[str, Any]:
         sdk = True
     except ImportError:
         sdk = False
-    return {"available": bool(key) and sdk, "model": model, "endpoint": urlparse(base_url).netloc or base_url,
+    return {"available": bool(key) and sdk and bool(model), "model": model, "endpoint": urlparse(base_url).netloc or base_url,
             "sdk_installed": sdk, "key_configured": bool(key)}
 
 

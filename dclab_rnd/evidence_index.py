@@ -821,6 +821,23 @@ def _finding_records(root: Path) -> list[Record]:
     return out
 
 
+PACKAGED = "knowledge/records.jsonl"
+
+
+def packaged_records() -> list[dict[str, Any]] | None:
+    """The records shipped inside an installed package (the open edition's rules and pitfalls, written by the export),
+    or None in a checkout, where the index is built from the repository."""
+    from importlib import resources
+
+    try:
+        ref = resources.files(__name__.rsplit(".", 1)[0]).joinpath(PACKAGED)
+        if not ref.is_file():
+            return None
+        return [json.loads(line) for line in ref.read_text(encoding="utf-8").splitlines() if line.strip()]
+    except (FileNotFoundError, ModuleNotFoundError, OSError):
+        return None
+
+
 def build_records(root: Path = ROOT) -> list[dict[str, Any]]:
     root = root.resolve()
     cards = dataset_cards(root)
@@ -887,8 +904,10 @@ class EvidenceIndex:
     @classmethod
     def load(cls, root: Path = ROOT) -> "EvidenceIndex":
         path = root / INDEX_PATH
-        records = _read_jsonl(path) if path.exists() else build_records(root)
-        return cls(records)
+        if path.exists():
+            return cls(_read_jsonl(path))
+        packaged = packaged_records()
+        return cls(packaged if packaged is not None else build_records(root))
 
     def get(self, record_id: str) -> dict[str, Any] | None:
         return next((r for r in self.records if r["record_id"] == record_id), None)

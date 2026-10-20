@@ -180,6 +180,12 @@ def provider(base_url: str) -> str:
     return "anthropic" if (parsed.hostname or "") == ANTHROPIC_HOST and parsed.path.strip("/") == "" else "openai"
 
 
+def default_model(base_url: str) -> str:
+    """OpenAI's own endpoint keeps its default model; any other endpoint (Ollama, vLLM, a gateway) has no default, since
+    a vendor's model name sent there fails in a way that is hard to read: the tier is then unavailable until a model is named."""
+    return DEFAULT_MODEL if _host(base_url) == "api.openai.com" else ""
+
+
 def _claude_model() -> str:
     from .anthropic_client import DEFAULT_MODEL as CLAUDE
 
@@ -215,7 +221,7 @@ def tier(name: str) -> dict[str, Any]:
     elif name == "standard":
         base_url = _env(name, "BASE_URL") or os.environ.get("DCLAB_LLM_BASE_URL") or os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
         model = _env(name, "MODEL") or (_claude_model() if provider(base_url) == "anthropic" else
-                                         os.environ.get("DCLAB_INTERN_MODEL") or os.environ.get("OPENAI_MODEL") or DEFAULT_MODEL)
+                                         os.environ.get("DCLAB_INTERN_MODEL") or os.environ.get("OPENAI_MODEL") or default_model(base_url))
         key = _env(name, "API_KEY") or (os.environ.get("ANTHROPIC_API_KEY", "").strip() if provider(base_url) == "anthropic"
                                          else os.environ.get("OPENAI_API_KEY") or "")
     else:
@@ -245,7 +251,7 @@ def public(name: str) -> dict[str, Any]:
         sdk = False
     return {"name": name, "endpoint": _host(t["base_url"]) if t["base_url"] else "not set", "model": t["model"], "sdk_installed": sdk,
             "provider": t["provider"],
-            "key_configured": bool(t["api_key"]), "available": bool(t["api_key"]) and sdk,
+            "key_configured": bool(t["api_key"]), "model_configured": bool(t["model"]), "available": bool(t["api_key"]) and sdk and bool(t["model"]),
             "local": bool(t["base_url"]) and is_local(t["base_url"], name)}
 
 
