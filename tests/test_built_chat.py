@@ -58,6 +58,26 @@ class BuiltChatTests(unittest.TestCase):
         self.assertTrue(answer["lines"] and "0.7235" in answer["lines"][0])
         self.assertIn("already built", messages[-1]["text"])
 
+    def test_asked_to_improve_the_model_for_me_it_does_so_and_asked_how_it_only_advises(self):
+        store = DraftStore(Path(tempfile.mkdtemp()))
+        draft = store.create("Which leads convert this month?")["id"]
+        store.update(draft, lambda d: d.update(status="built", project_id="p1"))
+        agent = HomeAgent(store, None)
+        started = []
+        answer = lambda q: studio_agent.answer(q, {"id": "p1"}, RECORDS, "binary_imbalanced")  # noqa: E731
+        for text in ("ok improve the model for me", "please improve it", "improve it now"):
+            agent.reply_built(draft, text, answer, lambda: started.append(1) or {"job": {"id": "j1"}})
+        self.assertEqual(len(started), 3)  # it does the work
+        for text in ("how can we improve it", "what should we improve?", "which aspects can improve"):
+            agent.reply_built(draft, text, answer, lambda: started.append(1) or {"job": {"id": "j1"}})
+        self.assertEqual(len(started), 3)  # a question gets advice, not a run
+        last = store.get(draft)["messages"][-1]
+        self.assertEqual(last["kind"], "project_answer")
+        self.assertIn("improve the model for me", last["lines"][-1])  # and says how to ask for the doing
+        busy = lambda: (_ for _ in ()).throw(ValueError("Something is running in this project: wait for it, or stop it."))  # noqa: E731
+        agent.reply_built(draft, "improve the model for me", answer, busy)
+        self.assertIn("Something is running", store.get(draft)["messages"][-1]["text"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -529,6 +529,43 @@ async def rerun_pipeline_step(project_id: str, step: str, wait: bool = True, s: 
     return {**result, "job": {"id": job["id"], "status": done.get("status")}}
 
 
+@router.post("/api/projects/{project_id}/improve", response_model=Page)
+async def improve_project(project_id: str, s: Services = Depends(services)):
+    """Try ways to improve the model, as a job (Stop, the limits on jobs at once): other settings, other families, other features and a
+    blend, each cross-validated on the training folds only, the same folds as the current model. The held-back cases are never touched.
+    The report is the project's ``improvements`` record and a message in its Home chat."""
+    project = s.project(project_id)
+    if not all(s.projects.read_stage(project_id, k) for k in ("features", "models", "final")):
+        raise HTTPException(409, "Run the project's stages up to the final one first: there is no model to improve yet.")
+    if project.get("running"):
+        raise HTTPException(409, "Something is running in this project: wait for it, or stop it")
+    job = s.submit("improve", f"{project_id}:improve", {"project_id": project_id}, here=False)
+    return {"job": job}
+
+
+@router.get("/api/projects/{project_id}/improvements", response_model=Page)
+async def get_improvements(project_id: str, s: Services = Depends(services)):
+    """The last improvement run's record (the ways, their paired gains on the folds, what cleared), or ``{}``."""
+    return s.project(project_id).get("improvements") or {}
+
+
+@router.post("/api/projects/{project_id}/improve/adopt", response_model=Page)
+async def adopt_improvement(project_id: str, payload: AnyObject, s: Services = Depends(services)):
+    """Adopt a way that cleared: its parameters are kept for the next final run. That run reads the held-back cases a second time and needs
+    its written reason (the final stage's usual rule); nothing is re-run here."""
+    from ...studio import improve as studio_improve
+
+    s.project(project_id)
+    candidate = str((payload.model_dump() if hasattr(payload, "model_dump") else dict(payload or {})).get("candidate") or "")
+    try:
+        adopted = await asyncio.to_thread(studio_improve.adopt_candidate, s.projects, project_id, candidate)
+    except KeyError as exc:
+        raise HTTPException(404, exc.args[0]) from None
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from None
+    return {**adopted, "next": "Run the final stage again with a written reason: it scores the held-back cases a second time, so that estimate is no longer a fresh one."}
+
+
 @router.get("/api/projects/{project_id}/programme", response_model=Page)
 async def get_programme(project_id: str, s: Services = Depends(services)):
     """The programme of a problem with several parts (24.5): its state, what blocks it, a section per leaf, the composition and the holdout read once. ``available``

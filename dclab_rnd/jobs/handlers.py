@@ -220,6 +220,49 @@ def _store_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, A
     conductor.failed(why=reason)
 
 
+# ---------------------------------------------------------------------- improving a finished model, on the training folds only
+
+def _improve_run(s: Any, payload: dict[str, Any]) -> None:
+    from ..studio import improve
+
+    pid = payload["project_id"]
+    checkpoint()
+    p = s.projects.get(pid)
+    p["running"] = "improve"
+    s.projects.save(p)
+    draft_id = (p.get("draft") or {}).get("id")
+    try:
+        record = improve.run(s.projects, pid)
+    except ValueError as exc:  # a project that cannot be improved here: said in its chat, not a failed job
+        if draft_id:
+            s.draft_work.agent(draft_id).say(draft_id, str(exc))
+        return
+    finally:
+        done = s.projects.get(pid)
+        if done.get("running") == "improve":
+            done["running"] = None
+            s.projects.save(done)
+    if draft_id:
+        tried, clear = len(record["candidates"]), sum(1 for c in record["candidates"] if c["clears"])
+        best = next((c for c in record["candidates"] if c["id"] == record["best"]), None)
+        text = (f"I tried {tried} ways to improve the model, on the training folds only. "
+                + (f"{clear} cleared the margin; the best is {best['label']}, {record['metric']} {best['mean']:.4f} against {record['current']['mean']:.4f} "
+                   f"({best['folds_better']} of {record['folds']} folds better). Adopt it to use it in the next final run." if best else
+                   (f"{clear} cleared the margin, but none can be adopted here (another family, other features or a blend: choose it on the Models page)." if clear else
+                    "None beat the current model by more than the noise of the folds, so the honest answer is that this model is about as good as these ways can make it: "
+                    "more cases, a new column known at the prediction moment, or a cleaner label would be the next step.")))
+        s.draft_work.agent(draft_id).say(draft_id, text, kind="improvement_report", report={"project": pid, **{k: record[k] for k in ("metric", "higher_is_better", "folds", "current", "aspects", "best", "skipped", "note", "adopted")},
+                                                                                             "candidates": [{k: c[k] for k in ("id", "aspect", "label", "mean", "gain", "folds_better", "clears", "adoptable", "why")} for c in record["candidates"]]})
+
+
+def _improve_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
+    p = s.projects.get(payload["project_id"])
+    if p.get("running") == "improve":  # the worker died or was stopped mid-run: the project is free again
+        p["running"] = None
+        s.projects.save(p)
+    s.projects.log(payload["project_id"], "improve_run", {"job": job["id"], "state": "not_finished", "why": TEXT.get(reason, "The improvement ended before it finished")})
+
+
 def register() -> None:
     handler("stage", _stage_run, _stage_settle)
     handler("pipeline", _pipeline_run, _pipeline_settle)
@@ -227,6 +270,7 @@ def register() -> None:
     handler("intern", _intern_run, _intern_settle)
     handler("rerun", _rerun_run, _rerun_settle)
     handler("programme", _programme_run, _programme_settle)
+    handler("improve", _improve_run, _improve_settle)
     handler("twin", _twin_run, _twin_settle)
     handler("students", _students_run, _students_settle)
     handler("store", _store_run, _store_settle)

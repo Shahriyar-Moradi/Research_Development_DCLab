@@ -755,6 +755,17 @@ DC.view('home', {
           + `<div class="table-wrap"><table class="data"><thead><tr><th>Column</th><th>Kind</th><th></th></tr></thead><tbody>${cols}</tbody></table></div>`
           + (pr.note ? `<div class="callout warn small"><span>${esc(pr.note)}</span></div>` : '') + '</div>'
           + `<div class="row"><button type="button" class="btn primary sm" data-syn-approve="${esc(pr.id)}">Approve and create the data</button><button type="button" class="btn sm" data-syn-change="${esc(pr.id)}">Change it</button><button type="button" class="btn sm ghost" data-syn-drop="${esc(pr.id)}">Not now</button></div>`;
+      } else if (m.kind === 'improvement_report' && m.report) {
+        const r = m.report, cur = r.current || {}, sign = v => (v == null ? '—' : (v > 0 ? '+' : '') + Number(v).toFixed(4));
+        const rows = (r.candidates || []).map(c => `<tr><td><b>${esc(c.label)}</b><div class="cell-sub">${esc(c.aspect)}</div></td><td class="num mono">${Number(c.mean).toFixed(4)}</td><td class="num mono">${sign(c.gain)}</td>`
+          + `<td class="num mono">${c.folds_better == null ? '—' : c.folds_better + ' / ' + r.folds}</td><td>${c.clears ? '<span class="pill ok">clears the margin</span>' : '<span class="pill outline">within the noise</span>'}</td>`
+          + `<td>${c.id === r.adopted ? '<span class="pill ok">adopted</span>' : c.clears && c.adoptable && !r.adopted ? `<button type="button" class="btn sm primary" data-improve-adopt="${esc(c.id)}" data-improve-project="${esc(r.project)}">Adopt</button>` : ''}</td></tr>`).join('');
+        const aspects = (r.aspects || []).map(a => `<li><b>${esc(a.aspect)}</b>: ${a.tried} tried, ${a.clear} cleared the margin${a.best_gain == null ? '' : ', best ' + sign(a.best_gain)}</li>`).join('');
+        body = `<p>${esc(m.text)}</p><div class="inset stack tight"><div class="eyebrow">Improvement run · ${esc(r.metric)}</div>`
+          + `<p class="small">Current model: <b>${esc(cur.family)}</b> on the <code>${esc(cur.recipe)}</code> features, ${Number(cur.mean).toFixed(4)} ± ${Number(cur.std).toFixed(4)} on ${r.folds} training folds.</p>`
+          + `<ul class="plain">${aspects}</ul>`
+          + `<div class="table-wrap"><table class="data compact"><thead><tr><th>Way</th><th class="num">Score on the folds</th><th class="num">Gain</th><th class="num">Folds better</th><th>Verdict</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+          + ((r.skipped || []).length ? `<div class="small muted">Not run: ${esc(r.skipped.join('; '))}</div>` : '') + `<div class="small muted">${esc(r.note || '')}</div></div>`;
       } else if (m.kind === 'project_answer') {
         body = `<p>${esc(m.text)}</p>${(m.lines || []).length ? `<ul class="plain">${m.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>` : ''}`
           + ((m.proof || []).length ? `<div class="row small"><span class="pill proof">cites</span>${DC.chips(m.proof)}</div>` : '');
@@ -1047,6 +1058,13 @@ DC.view('home', {
     $('#home-thread', el).addEventListener('click', async e => {
       const ok = e.target.closest('[data-syn-approve]');
       if (ok) { ok.disabled = true; await approveSynthetic(ok.dataset.synApprove); return; }
+      const adopt = e.target.closest('[data-improve-adopt]');
+      if (adopt) {
+        adopt.disabled = true;
+        try { const got = await DC.client.adoptImprovement(adopt.dataset.improveProject, { body: { candidate: adopt.dataset.improveAdopt } }); adopt.textContent = 'Adopted'; toast(got.next, { ms: 9000 }); }
+        catch (err) { adopt.disabled = false; toast(err.message, { ok: false, ms: 7000 }); }
+        return;
+      }
       const ai = e.target.closest('[data-syn-ai]');
       if (ai) {
         ai.disabled = true;

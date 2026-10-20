@@ -1,0 +1,65 @@
+{
+ "package": "improve-the-model",
+ "title": "Improve the model for me: ways tried on the training folds, a report in the chat, and adopting a winner",
+ "date": "2026-10-20",
+ "request": "I asked the chat to build and improve the model; it only suggested. Show the ways of improvement, in which aspects, and do the improvement practically.",
+ "spec": "A built project's chat gave advice read from its records, and tried nothing.",
+ "plan": [
+  "An improvement run on the training folds only: other settings, the next families, another feature recipe, a blend, each paired with the current model on the same folds",
+  "A job, a route and a report in the project's chat with the aspects and each way's verdict",
+  "Adopting a way that cleared, for the next final run, which reads the held-back cases a second time and says so",
+  "The chat starts it when asked to do it, and only advises when asked how"
+ ],
+ "decisions": [
+  {
+   "decision": "The run never touches the held-back cases; its gains are called optimistic in the report.",
+   "why": "The ways are chosen on the folds that score them; only the final stage may read the holdout, and a second read is marked."
+  },
+  {
+   "decision": "A way counts as a gain only by dclab_core.review.adopt: the paired gain beats the margin set in advance and the one-sided 90% bound of the fold differences.",
+   "why": "The same rule the models review already uses: a change that does nothing is not kept."
+  },
+  {
+   "decision": "Adopting is for a way of the same family and features; another family or a blend is chosen on the Models page.",
+   "why": "The final stage fits one family with one recipe; the Models override already re-runs what follows it."
+  },
+  {
+   "decision": "Asked how, the chat advises; asked to do it, it runs.",
+   "why": "The owner asked for both, and a question must not start a long job."
+  }
+ ],
+ "change": "studio/improve.py (new), jobs/handlers.py (improve job), agentic/routers/projects.py (improve, improvements, improve/adopt), studio/engine.py (the adopted way reaches the final stage), draft/chat.py and draft/api.py (the chat), views/home.html (the report), tests.",
+ "findings": [
+  {
+   "id": "I1",
+   "source": "owner",
+   "severity": "gap",
+   "defect": "Asked to improve the model, the chat suggested ideas and tried none.",
+   "scenario": "The person said ok improve the model for me and got a list of advice.",
+   "cause": "There was no way to run experiments on a finished project from the chat.",
+   "fix": "An improvement job, its report in the chat, and an Adopt that the final stage uses.",
+   "test": "tests/test_improve.py and tests/test_built_chat.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "An improvement run on a small invented project",
+   "gate": "ways paired on the same folds, the holdout uses unchanged, the report in the chat",
+   "result": "the ways ran on the training folds, every way scored on the same folds as the current model, holdout_uses unchanged, the job posted its report",
+   "verdict": "pass",
+   "limits": [
+    "a 700-row invented table; the gains it found were not examined as evidence about the method",
+    "adopting then running the final stage again was not run"
+   ]
+  }
+ ],
+ "outcome": "A person can ask the chat to improve a built model and gets measured ways, what cleared, and an Adopt.",
+ "lessons": [
+  "An answer that only suggests is not an answer to do it: run the experiments and report them."
+ ],
+ "risks": [
+  "A way chosen on the folds is optimistic; a second holdout read is marked but still a second look.",
+  "A blend cannot be adopted yet (the final stage fits one family)."
+ ],
+ "commits": []
+}

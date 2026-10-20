@@ -342,6 +342,9 @@
     exportSolutionReport: ["GET", "/projects/{project_id}/export/solution-report", ["project_id"], []],
     projectGraph: ["GET", "/projects/{project_id}/graph", ["project_id"], []],
     checkMove: ["POST", "/projects/{project_id}/graph/check", ["project_id"], []],
+    improveProject: ["POST", "/projects/{project_id}/improve", ["project_id"], []],
+    adoptImprovement: ["POST", "/projects/{project_id}/improve/adopt", ["project_id"], []],
+    getImprovements: ["GET", "/projects/{project_id}/improvements", ["project_id"], []],
     projectLessons: ["POST", "/projects/{project_id}/lessons", ["project_id"], []],
     projectLineage: ["GET", "/projects/{project_id}/lineage", ["project_id"], ["path"]],
     removeMemoryNote: ["DELETE", "/projects/{project_id}/memory/{note_id}", ["project_id", "note_id"], []],
@@ -1188,6 +1191,25 @@
    *  @returns {Promise<Verdict>} */
   client.checkMove = (...args) => call('checkMove', args);
   client.path.checkMove = (...args) => build('checkMove', args).path;
+  /** POST /api/projects/{project_id}/improve: Improve Project
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.improveProject = (...args) => call('improveProject', args);
+  client.path.improveProject = (...args) => build('improveProject', args).path;
+  /** POST /api/projects/{project_id}/improve/adopt: Adopt Improvement
+   *  @param {string} project_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.adoptImprovement = (...args) => call('adoptImprovement', args);
+  client.path.adoptImprovement = (...args) => build('adoptImprovement', args).path;
+  /** GET /api/projects/{project_id}/improvements: Get Improvements
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.getImprovements = (...args) => call('getImprovements', args);
+  client.path.getImprovements = (...args) => build('getImprovements', args).path;
+  client.href.getImprovements = (...args) => '/api' + build('getImprovements', args).path;
   /** POST /api/projects/{project_id}/lessons: Project Lessons
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]

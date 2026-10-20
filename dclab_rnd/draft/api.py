@@ -378,7 +378,13 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
                 records = projects.records(built)
                 return studio_agent.answer(question, projects.get(built), records, next((r["task_type"] for r in records.values()), None))
-            background(draft_id + ":agent", lambda: agent(draft_id).reply_built(draft_id, text, about_project))
+            def start_improving() -> dict[str, Any]:
+                if not all(projects.read_stage(built, k) for k in ("features", "models", "final")):
+                    raise ValueError("Run the project's stages up to the final one first: there is no model to improve yet.")
+                if projects.get(built).get("running"):
+                    raise ValueError("Something is running in this project: wait for it, or stop it.")
+                return {"job": services.submit("improve", f"{built}:improve", {"project_id": built}, here=False)} if services is not None else {}
+            background(draft_id + ":agent", lambda: agent(draft_id).reply_built(draft_id, text, about_project, start_improving))
             return {"accepted": True}
         background(draft_id + ":agent", lambda: (agent(draft_id).reply(draft_id, text), twin_after(draft_id, "reply", text)))
         return {"accepted": True}

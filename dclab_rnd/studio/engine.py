@@ -1617,6 +1617,9 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
             family = chosen(models, "selected_model")
             review = ((models or {}).get("evidence") or {}).get("review") or {}
             reviewed = review.get("adopted_params") if review.get("family") == family else None  # kept for this family only
+            adopted = project.get("adopted_improvement") or {}  # a way the person adopted from an improvement run (studio/improve.py): its family's only
+            if adopted.get("family") == family and adopted.get("recipe") == recipe and isinstance(adopted.get("params"), dict):
+                reviewed = {**(reviewed or {}), **adopted["params"]}
             params = {"recipe": recipe, "model": family, "holdout_reuse": bool(reuse_reason), "reviewed": reviewed or {}}
             project["holdout_uses"] = int(project.get("holdout_uses", 0)) + 1
             evidence, claims, summary = stage_final(p, eid, recipe, family, reviewed)
