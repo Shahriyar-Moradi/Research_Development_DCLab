@@ -196,14 +196,13 @@ def _value_for(kind: str, v: Any) -> Any:
     return v
 
 
+# dclab:closed-begin  (the twin lane's board: the full edition's)
 def from_twin_steps(steps: Iterable[Any], source: str = "twin steps") -> EvaluationBoard:
     """Each arm of each judged twin step, field by field: the system and the AI-first agent scored on the same cases.
     A flag field (``home.ready:ready``) is scored as a flag; the answerer is the arm's name and who answered it. The
     system's answer to one step of one session counts once, however many AI answers were set beside it (a twin run's
     lane and its expert record). A person's pick is left out: it is the chosen side by construction."""
-    import importlib
-
-    twin = importlib.import_module("dclab_core.twin")  # the twin lane is the full edition's; this board is only built from its steps
+    from dclab_core import twin  # the twin lane is the full edition's; this board is only built from its steps
 
     cases: dict[tuple[str, str, str, str, str], list[tuple[Any, Any]]] = defaultdict(list)
     kinds: dict[tuple[str, str, str, str, str], str] = {}
@@ -239,6 +238,7 @@ def from_twin_steps(steps: Iterable[Any], source: str = "twin steps") -> Evaluat
         scores.append(score(answerer, point, kind, truth_source, pairs, by=arm,
                             same=lambda a, t, c=compare, s=step: twin.right(c, a, t, tolerance.get(s, 0.05))))
     return EvaluationBoard(source=source[:300], scores=scores, totals={"cases": len(distinct), "scores": len(scores)})
+# dclab:closed-end
 
 
 NUMERIC_POINTS = frozenset({"threshold.operating_point", "split.folds"})
@@ -296,4 +296,7 @@ def merge(boards: Iterable[EvaluationBoard], source: str) -> EvaluationBoard:
 
 CONTRACTS["evaluation_board"] = EvaluationBoard
 
-__all__ = ["Score", "ClassScore", "EvaluationBoard", "score", "from_twin_steps", "from_ledger", "merge", "wilson"]
+__all__ = ["Score", "ClassScore", "EvaluationBoard", "score", "from_ledger", "merge", "wilson"]
+# dclab:closed-begin
+__all__ += ["from_twin_steps"]
+# dclab:closed-end

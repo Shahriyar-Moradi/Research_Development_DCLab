@@ -114,9 +114,10 @@ def reachable(url: str | None = None) -> str | None:
 MARKER = ".dclab_workspace"  # in the workspace folder: which workspace it is, wherever the folder goes (package 9.3)
 
 
-def workspace_key(home: Path) -> str:
+def workspace_key(home: Path, mark: bool = True) -> str:
     """The key of the workspace that lives in ``home``. It was the folder's path; it is now written into the folder
-    the first time (the same path, so an existing workspace keeps its id), so a moved folder is still the same workspace."""
+    the first time (the same path, so an existing workspace keeps its id), so a moved folder is still the same workspace.
+    ``mark=False`` only reads (a reader such as the store's keepers must never write into the folder it keeps)."""
     home = Path(home)
     marker = home / MARKER
     try:
@@ -126,6 +127,8 @@ def workspace_key(home: Path) -> str:
     except OSError:
         pass
     key = str(home.resolve())
+    if not mark:
+        return key
     try:
         home.mkdir(parents=True, exist_ok=True)
         temporary = marker.with_suffix(".tmp")
@@ -136,9 +139,9 @@ def workspace_key(home: Path) -> str:
     return key
 
 
-def workspace_for(home: Path, url: str | None = None) -> str:
+def workspace_for(home: Path, url: str | None = None, mark: bool = True) -> str:
     """The id of the workspace in ``home`` (its marker, else its path), created on first use."""
-    return workspace(workspace_key(home), Path(home).name, url)
+    return workspace(workspace_key(home, mark), Path(home).name, url)
 
 
 def workspace(key: str, name: str | None = None, url: str | None = None) -> str:

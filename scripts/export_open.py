@@ -10,7 +10,8 @@ What it does, in order (nothing is published, nothing in this repository changes
    strings, docs) to `dclabai`; strips `# dclab:closed-begin` … `# dclab:closed-end` blocks; lays export/overlay/ on top.
 3. Checks, each blocking: the private words (export/forbidden.txt), secrets (scripts/scan_secrets.py's patterns), file sizes and
    binaries, a leftover closed marker, and the import closure (every `dclabai.*` / `dclab_core.*` module an exported file imports
-   must exist in the tree, unless it is named inside `optional(...)` and listed in the manifest's CLOSED).
+   must exist in the tree, unless it is named inside `optional(...)` and listed in the manifest's CLOSED, or imported inside
+   `try: ... except ModuleNotFoundError`).
 4. Writes EXPORT_REPORT.json beside the tree (files, sizes, every finding) and prints a summary; exits 1 when a check failed.
 
 The tests, the wheel, the fresh-venv install and the end-to-end flows run on the exported tree in later steps of the plan.
@@ -153,6 +154,11 @@ def _module_of(path: Path, out: Path) -> str:
     return ".".join(parts[:-1] if parts[-1] == "__init__" else parts)
 
 
+def _catches_missing(handler) -> bool:
+    kinds = handler.elts if isinstance(handler, ast.Tuple) else [handler]
+    return any(getattr(k, "id", "") in ("ModuleNotFoundError", "ImportError") for k in kinds)
+
+
 def import_closure(out: Path, m) -> list[dict]:
     """Every in-house module an exported file imports must be in the tree; a closed one only by name inside optional(...)."""
     roots = (m.PUBLIC_NAME, "dclab_core")
@@ -181,7 +187,13 @@ def import_closure(out: Path, m) -> list[dict]:
         optional_args = {a.value for node in ast.walk(tree) if isinstance(node, ast.Call)
                          and getattr(node.func, "id", getattr(node.func, "attr", "")) == "optional"
                          for a in node.args if isinstance(a, ast.Constant) and isinstance(a.value, str)}
+        guarded = set()  # an import inside `try: ... except ModuleNotFoundError` is optional by construction
         for node in ast.walk(tree):
+            if isinstance(node, ast.Try) and any(_catches_missing(h.type) for h in node.handlers):
+                guarded |= {id(n) for stmt in node.body for n in ast.walk(stmt) if isinstance(n, (ast.Import, ast.ImportFrom))}
+        for node in ast.walk(tree):
+            if id(node) in guarded:
+                continue
             modules, names = [], []
             if isinstance(node, ast.Import):
                 modules = [a.name for a in node.names]
@@ -209,6 +221,25 @@ def import_closure(out: Path, m) -> list[dict]:
     return list(found.values())
 
 
+def build_knowledge(out: Path, m) -> dict:
+    """The packaged knowledge: only the record types the manifest names, with citations cut to the open tree's own paths."""
+    spec = m.KNOWLEDGE
+    kept = []
+    for line in (ROOT / spec["source"]).read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        if record.get("type") not in spec["types"]:
+            continue
+        own = [c for c in record.get("citations") or [] if c.split("/", 1)[0] in m.RENAME]
+        record["citations"] = [_renamed_path(c, m) for c in own] or [f"{m.PUBLIC_NAME}/{spec['out']}"]
+        kept.append(json.dumps(record, ensure_ascii=False, sort_keys=True))
+    dst = out / m.PUBLIC_NAME / spec["out"]
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst.write_text(_rewrite("\n".join(kept) + "\n", m), encoding="utf-8")
+    return {"path": str(dst.relative_to(out)), "records": len(kept), "bytes": dst.stat().st_size}
+
+
 def build_ui(out: Path, m) -> dict:
     """The studio's UI built inside the open tree, from its own sources and the open theme (the built files are never copied
     from this repository). A build that fails is a finding."""
@@ -233,6 +264,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     m = manifest()
     report = build(out, m)
+    report["knowledge"] = build_knowledge(out, m)
     report["ui"] = build_ui(out, m)
     findings = scan_words(out, m) + scan_secrets(out) + import_closure(out, m) + report["ui"].get("findings", [])
     report["findings"] = findings
@@ -240,7 +272,7 @@ def main(argv: list[str] | None = None) -> int:
     for f in findings:
         by[f["check"]] = by.get(f["check"], 0) + 1
     report["summary"] = {"files": len(report["files"]), "bytes": sum(f["bytes"] for f in report["files"]), "closed_blocks": report["closed_blocks"],
-                         "findings": by}
+                         "knowledge_records": report["knowledge"]["records"], "findings": by}
     (out.parent / f"{out.name}.EXPORT_REPORT.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
     print(json.dumps(report["summary"], indent=1))
     return 1 if findings else 0

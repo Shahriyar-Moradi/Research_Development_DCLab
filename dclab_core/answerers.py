@@ -212,11 +212,11 @@ class ModelAnswerer:
     def answer(self, point: str, state: Mapping[str, Any], options: list[Any]) -> Optional[Answer]:
         from dclab_core.ledger import POINTS
 
-        import importlib
-
         try:  # the decision sets' export: the full edition's (the open-source edition has no tuned decision model to ask)
-            request = importlib.import_module("dclab_core.decision_export").request
-        except ModuleNotFoundError:
+            from dclab_core.decision_export import request
+        except ModuleNotFoundError as exc:
+            if exc.name != "dclab_core.decision_export":
+                raise
             return None
 
         if point not in self.points:

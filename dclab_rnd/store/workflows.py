@@ -132,12 +132,13 @@ class _Database(_Folder):
 
         from ..experience import open_log
         from ..ledger import open_ledger
-        from ..storage import db, open_stores
+        from ..storage import db
+        from ..storage.postgres import PgDrafts, PgProjects
 
         home = Path(home)
-        workspace = db.workspace_for(home)
+        workspace = db.workspace_for(home, mark=False)  # the keeper reads the folder; it never writes into it (no marker)
         self.store = type("Home", (), {"home": home})()
-        self.projects, self.drafts, _ = open_stores(home)
+        self.projects, self.drafts = PgProjects(workspace, home), PgDrafts(workspace, home)
         self.ledger = open_ledger(home, workspace)
         self.experience = open_log(home, workspace)
 
