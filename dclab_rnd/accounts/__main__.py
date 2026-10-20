@@ -1,6 +1,6 @@
 """Accounts from the command line (package 10.2): the first owner, before anyone can sign in to add members.
 
-    python -m dclab_rnd.accounts add --email you@example.com --role owner [--name "Your Name"] [--workspace ID]
+    python -m dclab_rnd.accounts add --username you [--email you@example.com] --role owner [--name "Your Name"] [--workspace ID]
     python -m dclab_rnd.accounts list [--workspace ID]
     python -m dclab_rnd.accounts workspaces
 
@@ -20,8 +20,9 @@ from pathlib import Path
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.accounts", description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
-    add = sub.add_parser("add", help="add a member (creates the user when the email is new)")
-    add.add_argument("--email", required=True)
+    add = sub.add_parser("add", help="add a member (creates the user when the username or email is new)")
+    add.add_argument("--username", default=None, help="the handle that signs the person in (3 to 32 letters, digits, dot, dash, underscore)")
+    add.add_argument("--email", default=None, help="optional when there is a username")
     add.add_argument("--role", required=True, choices=("owner", "data_scientist", "reviewer", "viewer"))
     add.add_argument("--name", default="")
     add.add_argument("--workspace", default=None)
@@ -59,19 +60,23 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "list":
         for m in accounts.members(workspace):
-            print(f"{m['email']:<40} {m['role']:<15} {'password' if m['password'] else ''}{' sso' if m['single_sign_on'] else ''}")
+            print(f"{(m['username'] or m['email'] or ''):<40} {m['role']:<15} {'password' if m['password'] else ''}{' sso' if m['single_sign_on'] else ''}")
         return 0
     password = None
-    found = accounts.by_email(args.email)
+    who = (args.username or args.email or "").strip()
+    if not who:
+        print("A username or an email is needed (--username, --email).", file=sys.stderr)
+        return 2
+    found = accounts.by_username(args.username) if args.username else accounts.by_email(args.email)
     if found is None and not args.no_password:
-        password = os.environ.get("DCLAB_NEW_PASSWORD") or getpass.getpass(f"Password for {args.email} (10 characters or more): ")
+        password = os.environ.get("DCLAB_NEW_PASSWORD") or getpass.getpass(f"Password for {who} (10 characters or more): ")
     try:
-        user = found or accounts.create_user(args.email, args.name, password=password)
+        user = found or accounts.create_user(args.email, args.name, password=password, username=args.username)
         accounts.set_member(workspace, user["id"], args.role)
     except (AccountError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
-    print(f"{user['email']} is {args.role} of workspace {workspace}{'' if found is None else ' (an existing user)'}")
+    print(f"{user.get('username') or user['email']} is {args.role} of workspace {workspace}{'' if found is None else ' (an existing user)'}")
     return 0
 
 

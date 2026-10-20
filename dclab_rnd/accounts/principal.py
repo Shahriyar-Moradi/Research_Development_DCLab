@@ -20,6 +20,7 @@ class Principal:
     workspace_id: str | None = None  # the workspace this request acts in
     user_id: str | None = None       # None for the local owner (no accounts) and when signed out
     email: str = ""
+    username: str = ""
     name: str = ""
     via: str = "local"               # local, session, token, or anonymous
     session_id: str | None = None
@@ -35,10 +36,10 @@ class Principal:
         """How the audit and the approvals name this person."""
         if self.user_id is None:
             return "Owner" if self.role == "owner" else "Person"
-        return self.name or self.email or label(self.role)
+        return self.name or self.username or self.email or label(self.role)
 
     def public(self) -> dict:
-        return {"signed_in": self.signed_in, "user_id": self.user_id, "email": self.email, "name": self.name, "role": self.role,
+        return {"signed_in": self.signed_in, "user_id": self.user_id, "email": self.email, "username": self.username, "name": self.name, "role": self.role,
                 "role_label": label(self.role) if self.role else None, "workspace_id": self.workspace_id, "via": self.via,
                 "workspaces": [{"id": w, "name": n, "role": r, "role_label": label(r)} for w, n, r in self.workspaces]}
 

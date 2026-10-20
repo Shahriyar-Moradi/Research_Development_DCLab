@@ -1,0 +1,59 @@
+{
+ "package": "username-login",
+ "title": "A username signs a person in, the email is optional, and the owner's account is made",
+ "date": "2026-10-20",
+ "request": "Add a username also and make the email optional; create the user shahriar and give me the password.",
+ "spec": "An account needed an email, and the sign-in asked for one.",
+ "plan": [
+  "A username column (unique, lower-case), an email that may be empty",
+  "Sign in with a username or an email in one field",
+  "Members, the CLI, make login and the people keeper follow",
+  "Make the owner's account and hand over the password without putting it in the chat"
+ ],
+ "decisions": [
+  {
+   "decision": "The password was written to a private file in the home folder (mode 600), not stated in the chat.",
+   "why": "The chat and its transcripts are kept by the store for training and pushed to a private repository: a password in them would be kept too."
+  },
+  {
+   "decision": "The username is hashed in the store like the email.",
+   "why": "A handle identifies a person as an email does."
+  },
+  {
+   "decision": "One login field: an email when it has an @, else a username.",
+   "why": "The person types what they remember."
+  }
+ ],
+ "change": "storage/models.py and migration 0021, accounts/store.py, principal.py, guard.py, api.py, __main__.py, scripts/dev.py, keepers/people.py, the sign-in form, the Admin members form, tests.",
+ "findings": [
+  {
+   "id": "U1",
+   "source": "owner",
+   "severity": "gap",
+   "defect": "An account could not exist without an email, and a person could only sign in by one.",
+   "scenario": "The owner wanted a username like shahriar and no email.",
+   "cause": "The email was the one key of a user.",
+   "fix": "A username column and an optional email; sign-in by either.",
+   "test": "tests/test_accounts.py::AccountsTests::test_a_username_signs_a_person_in_and_the_email_is_optional"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The owner's account",
+   "gate": "it signs in by username and by email, wrong password refused, owner of the dev workspace",
+   "result": "checked against the dev database",
+   "verdict": "pass",
+   "limits": [
+    "not signed in through the page itself"
+   ]
+  }
+ ],
+ "outcome": "A person signs in with a username or an email; the owner account shahriar exists.",
+ "lessons": [
+  "A password handed to its owner goes in a private file, not in a transcript that is kept."
+ ],
+ "risks": [
+  "The password file stays on disk until the owner deletes it."
+ ],
+ "commits": []
+}

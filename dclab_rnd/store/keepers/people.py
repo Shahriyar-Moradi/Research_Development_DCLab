@@ -4,13 +4,13 @@ so every record can be joined to whose it is (``ids.user``), for training and fi
 What is kept, per workspace (the same names the other keepers use), from the account tables by named columns only:
 
 - ``people/person.jsonl``: a log of what happened to each person (joined, changed, removed): the user id (already a
-  pseudonym), a hash of the email (to recognise the same person, never the email), how they sign in (password or single
+  pseudonym), a hash of the email and of the username (to recognise the same person, never either), how they sign in (password or single
   sign-on, never the secret), their role, whether they are active, when they joined, and how many API tokens they hold;
 - ``people/session.jsonl``: the workspace's sessions as of this run: a hash of the session id, the user, and the start,
   last-seen and expiry times.
 
 Never kept, and never read into memory beyond the hashing: a password or its hash, a session cookie or its digest, a request
-token, an API token, its digest or prefix or name, a name, an email, the identity provider's subject. A removed person's
+token, an API token, its digest or prefix or name, a name, an email, a username, the identity provider's subject. A removed person's
 last record stays in the log as ``removed`` (nothing is rewritten: only the owner's audited forget removes from the store).
 A workspace whose consent is not ``improve`` or ``train`` keeps counts only, as the database keeper does.
 
@@ -82,12 +82,13 @@ def _people(conn: Any, models: Any, workspace_id: str, salt: str) -> dict[str, d
     user, member, token = models.app_user, models.membership, models.api_token
     tokens = {r.user_id: r.n for r in conn.execute(sa.select(token.c.user_id, sa.func.count().label("n")).where(token.c.workspace_id == workspace_id,
                                                                                                                  token.c.revoked.is_(False)).group_by(token.c.user_id))}
-    rows = conn.execute(sa.select(user.c.id, user.c.email, user.c.active, user.c.created, member.c.role,
+    rows = conn.execute(sa.select(user.c.id, user.c.email, user.c.username, user.c.active, user.c.created, member.c.role,
                                   user.c.password_hash.isnot(None).label("has_password"), user.c.subject.isnot(None).label("has_subject"))
                         .join(member, member.c.user_id == user.c.id).where(member.c.workspace_id == workspace_id).order_by(user.c.id))
     out: dict[str, dict[str, Any]] = {}
     for r in rows:
-        out[r.id] = {"user": r.id, "email_hash": mask(salt, "email", str(r.email or "").strip().lower()), "role": r.role, "active": bool(r.active),
+        out[r.id] = {"user": r.id, "email_hash": mask(salt, "email", str(r.email or "").strip().lower()) if r.email else None,
+                     "username_hash": mask(salt, "username", str(r.username).strip().lower()) if r.username else None, "role": r.role, "active": bool(r.active),
                      "signs_in": "password" if r.has_password else "sso" if r.has_subject else "none", "joined": str(r.created) if r.created else None,
                      "api_tokens": int(tokens.get(r.id, 0))}
     return out

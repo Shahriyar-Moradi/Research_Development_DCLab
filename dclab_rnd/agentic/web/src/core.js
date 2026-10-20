@@ -1264,7 +1264,7 @@
     if (mode === 'password') setTimeout(() => $('#signin-email').focus(), 0);
   }
   function wireSignIn() {
-    try { const saved = localStorage.getItem('dclab-email'); if (saved) $('#signin-email').value = saved; } catch (e) { /* storage blocked */ }  // the email, never the password
+    try { const saved = localStorage.getItem('dclab-login'); if (saved) $('#signin-email').value = saved; } catch (e) { /* storage blocked */ }  // the email, never the password
     $('#signin-show').addEventListener('click', () => {
       const input = $('#signin-secret'), on = input.type === 'password';
       input.type = on ? 'text' : 'password';
@@ -1279,9 +1279,9 @@
       try {
         const cfg = await fetch('/api/config', { headers: { Accept: 'application/json' } }).then(r => r.json());
         const res = await fetch('/api/auth/password', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-DCLab-Token': cfg.csrf },
-          body: JSON.stringify({ email: $('#signin-email').value, password: $('#signin-secret').value }) });
+          body: JSON.stringify({ login: $('#signin-email').value.trim(), password: $('#signin-secret').value }) });
         if (res.ok) {
-          try { localStorage.setItem('dclab-email', $('#signin-email').value.trim()); } catch (e2) { /* storage blocked */ }
+          try { localStorage.setItem('dclab-login', $('#signin-email').value.trim()); } catch (e2) { /* storage blocked */ }
           location.reload(); return;
         }
         const data = await res.json().catch(() => ({}));
@@ -1309,7 +1309,7 @@
     }
     const here = (auth.workspaces || []).find(w => w.id === auth.workspace_id) || {};
     $('.ws-name', ws).textContent = here.name || 'Workspace';
-    const hour = new Date().getHours(), first = String(auth.name || auth.email || '').split(/[\s@]/)[0];
+    const hour = new Date().getHours(), first = String(auth.name || auth.username || auth.email || '').split(/[\s@]/)[0];
     const home = $('#view-home');
     if (home) {  // the signed-in person and their workspace, not the demo's owner
       $('.vh h1', home).textContent = `${hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'}${first ? ', ' + first : ''}`;
@@ -1317,11 +1317,11 @@
     }
     $('.ws-sub', ws).innerHTML = `${esc(auth.role_label || '')} · ${(auth.workspaces || []).length} workspace${(auth.workspaces || []).length === 1 ? '' : 's'} <span aria-hidden="true">⌄</span>`;
     delete ws.dataset.toast;
-    avatar.textContent = initials(auth.name || auth.email);
-    avatar.title = `${auth.name || auth.email} · ${auth.role_label || ''}`;
+    avatar.textContent = initials(auth.name || auth.username || auth.email);
+    avatar.title = `${auth.name || auth.username || auth.email} · ${auth.role_label || ''}`;
     ws.addEventListener('click', () => {
       modal.open({
-        eyebrow: '<span class="eyebrow">Workspaces</span>', title: auth.name || auth.email, hideConfirm: true, cancel: 'Close',
+        eyebrow: '<span class="eyebrow">Workspaces</span>', title: auth.name || auth.username || auth.email, hideConfirm: true, cancel: 'Close',
         html: `<div class="list">${(auth.workspaces || []).map(w => `<button type="button" class="list-item" data-switch-ws="${esc(w.id)}" ${w.id === auth.workspace_id ? 'disabled' : ''}><div class="li-main"><span class="li-title">${esc(w.name)}</span><span class="li-sub">${esc(w.role_label)}${w.id === auth.workspace_id ? ' · open now' : ''}</span></div></button>`).join('')}</div>`
           + '<div class="row" data-style="margin-top:12px"><button type="button" class="btn sm" data-sign-out>Sign out</button></div>',
       });

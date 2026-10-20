@@ -2018,7 +2018,8 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
       <div class="panel-head"><div class="panel-title"><h2>Members</h2><span class="sub" id="members-sub">Who belongs to this workspace, and in which role</span></div></div>
       <div class="table-wrap"><table class="data compact" id="members-table"><thead><tr><th>Member</th><th>Role</th><th>Signs in with</th><th>Model budget a month</th><th></th></tr></thead><tbody><tr><td colspan="5"><div class="empty">Loading…</div></td></tr></tbody></table></div>
       <form class="panel-body row" id="member-add" hidden>
-        <label class="sr-only" for="member-email">Email</label><input id="member-email" type="email" placeholder="name@company.com" required data-style="flex:2;min-width:180px">
+        <label class="sr-only" for="member-username">Username</label><input id="member-username" type="text" placeholder="Username (3 to 32 letters, digits . - _)" autocomplete="off" data-style="flex:2;min-width:180px">
+        <label class="sr-only" for="member-email">Email</label><input id="member-email" type="email" placeholder="Email (optional)" data-style="flex:2;min-width:180px">
         <label class="sr-only" for="member-name">Name</label><input id="member-name" type="text" placeholder="Name (optional)" data-style="flex:1;min-width:120px">
         <label class="sr-only" for="member-role">Role</label><select id="member-role" data-style="width:auto"></select>
         <label class="sr-only" for="member-secret">First password</label><input id="member-secret" type="password" placeholder="First password (10+ characters)" autocomplete="new-password" data-style="flex:1;min-width:160px" hidden>
@@ -2365,7 +2366,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
       <h1 id="signin-title">Sign in</h1>
       <p class="muted small" id="signin-lede">Welcome back. Sign in to reach your team's workspace.</p>
       <form class="stack" id="signin-password" hidden>
-        <div class="field"><label for="signin-email">Email</label><input id="signin-email" type="email" autocomplete="username" required></div>
+        <div class="field"><label for="signin-email">Username or email</label><input id="signin-email" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
         <div class="field"><label for="signin-secret">Password</label>
           <div class="signin-secret"><input id="signin-secret" type="password" autocomplete="current-password" required><button type="button" class="link-btn small" id="signin-show" aria-pressed="false" aria-controls="signin-secret">Show</button></div></div>
         <button type="submit" class="btn primary" id="signin-go">Sign in</button>

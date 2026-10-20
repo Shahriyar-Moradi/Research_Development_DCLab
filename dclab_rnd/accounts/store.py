@@ -8,6 +8,7 @@ cannot sign anyone in. Passwords are hashed with argon2 (``passwords``).
 from __future__ import annotations
 
 import hashlib
+import re
 import secrets
 import time
 from typing import Any
@@ -25,6 +26,9 @@ def digest(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+USERNAME = re.compile(r"[a-z0-9][a-z0-9._-]{2,31}")
+
+
 class AccountError(ValueError):
     pass
 
@@ -36,28 +40,36 @@ class Accounts:
         self.engine = db.engine(url)
 
     # ------------------------------------------------------------------ users
-    def create_user(self, email: str, name: str = "", password: str | None = None, subject: str | None = None) -> dict[str, Any]:
+    def create_user(self, email: str | None = None, name: str = "", password: str | None = None, subject: str | None = None,
+                    username: str | None = None) -> dict[str, Any]:
+        """A user with a username, an email, or both (one is needed): the email is optional, the username is the handle that signs
+        a person in. Both are kept lower-case."""
         from ..storage.models import app_user
         from . import passwords
 
-        email = email.strip().lower()
-        if "@" not in email or len(email) > 320:
-            raise AccountError("an email address is needed")
+        email = (email or "").strip().lower() or None
+        username = (username or "").strip().lower() or None
+        if email is not None and ("@" not in email or len(email) > 320):
+            raise AccountError("that is not an email address")
+        if username is not None and not USERNAME.fullmatch(username):
+            raise AccountError("a username is 3 to 32 characters: letters, digits, dot, dash or underscore, starting with a letter or digit")
+        if email is None and username is None:
+            raise AccountError("a username or an email address is needed")
         uid = "u" + secrets.token_hex(7)
-        values = {"id": uid, "email": email, "name": name.strip()[:200], "subject": subject,
+        values = {"id": uid, "email": email, "username": username, "name": name.strip()[:200], "subject": subject,
                   "password_hash": passwords.hash_password(password) if password else None}
         try:
             with self.engine.begin() as c:
                 c.execute(sa.insert(app_user).values(**values))
         except sa.exc.IntegrityError:
-            raise AccountError("a user with this email exists") from None
+            raise AccountError("a user with this username or email exists") from None
         return self.user(uid)
 
     def user(self, user_id: str) -> dict[str, Any]:
         from ..storage.models import app_user as t
 
         with self.engine.connect() as c:
-            row = c.execute(sa.select(t.c.id, t.c.email, t.c.name, t.c.subject, t.c.active).where(t.c.id == user_id)).first()
+            row = c.execute(sa.select(t.c.id, t.c.email, t.c.username, t.c.name, t.c.subject, t.c.active).where(t.c.id == user_id)).first()
         if row is None:
             raise KeyError(user_id)
         return dict(row._mapping)
@@ -65,16 +77,32 @@ class Accounts:
     def by_email(self, email: str) -> dict[str, Any] | None:
         from ..storage.models import app_user as t
 
+        if not (email or "").strip():
+            return None
         with self.engine.connect() as c:
-            row = c.execute(sa.select(t.c.id, t.c.email, t.c.name, t.c.subject, t.c.active, t.c.password_hash)
+            row = c.execute(sa.select(t.c.id, t.c.email, t.c.username, t.c.name, t.c.subject, t.c.active, t.c.password_hash)
                             .where(t.c.email == email.strip().lower())).first()
         return dict(row._mapping) if row else None
+
+    def by_username(self, username: str) -> dict[str, Any] | None:
+        from ..storage.models import app_user as t
+
+        if not (username or "").strip():
+            return None
+        with self.engine.connect() as c:
+            row = c.execute(sa.select(t.c.id, t.c.email, t.c.username, t.c.name, t.c.subject, t.c.active, t.c.password_hash)
+                            .where(t.c.username == username.strip().lower())).first()
+        return dict(row._mapping) if row else None
+
+    def by_login(self, login: str) -> dict[str, Any] | None:
+        """The user a person typed to sign in: an email when it has an @, else a username."""
+        return self.by_email(login) if "@" in (login or "") else self.by_username(login)
 
     def by_subject(self, subject: str) -> dict[str, Any] | None:
         from ..storage.models import app_user as t
 
         with self.engine.connect() as c:
-            row = c.execute(sa.select(t.c.id, t.c.email, t.c.name, t.c.subject, t.c.active).where(t.c.subject == subject)).first()
+            row = c.execute(sa.select(t.c.id, t.c.email, t.c.username, t.c.name, t.c.subject, t.c.active).where(t.c.subject == subject)).first()
         return dict(row._mapping) if row else None
 
     def update_user(self, user_id: str, **values: Any) -> None:
@@ -86,16 +114,16 @@ class Accounts:
         with self.engine.begin() as c:
             c.execute(sa.update(t).where(t.c.id == user_id).values(**values))
 
-    def check_password(self, email: str, password: str) -> dict[str, Any] | None:
-        """The user when the password is theirs and the account is active; None otherwise (the same answer for a
-        wrong password and an unknown email, after the same work)."""
+    def check_password(self, login: str, password: str) -> dict[str, Any] | None:
+        """The user when the password is theirs and the account is active; None otherwise (the same answer for a wrong
+        password and an unknown username or email, after the same work). ``login`` is a username or an email."""
         from . import passwords
 
-        found = self.by_email(email)
+        found = self.by_login(login)
         ok = passwords.verify(found["password_hash"] if found and found.get("password_hash") else None, password)
         if not (found and ok and found["active"]):
             return None
-        return {k: found[k] for k in ("id", "email", "name", "subject", "active")}
+        return {k: found[k] for k in ("id", "email", "username", "name", "subject", "active")}
 
     # ------------------------------------------------------------------ workspaces and members
     def create_workspace(self, name: str) -> str:
@@ -167,9 +195,9 @@ class Accounts:
         from ..storage.models import app_user as u, membership as m
 
         with self.engine.connect() as c:
-            rows = c.execute(sa.select(u.c.id, u.c.email, u.c.name, u.c.active, m.c.role, (u.c.password_hash.isnot(None)).label("password"),
+            rows = c.execute(sa.select(u.c.id, u.c.email, u.c.username, u.c.name, u.c.active, m.c.role, (u.c.password_hash.isnot(None)).label("password"),
                                        (u.c.subject.isnot(None)).label("single_sign_on"))
-                             .join(m, m.c.user_id == u.c.id).where(m.c.workspace_id == workspace_id).order_by(u.c.email))
+                             .join(m, m.c.user_id == u.c.id).where(m.c.workspace_id == workspace_id).order_by(sa.func.coalesce(u.c.username, u.c.email)))
             return [dict(r._mapping) for r in rows]
 
     def workspaces_of(self, user_id: str) -> list[tuple[str, str, str]]:

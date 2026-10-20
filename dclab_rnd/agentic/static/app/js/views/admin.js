@@ -126,7 +126,7 @@ DC.view('admin', {
     $('#member-add', el).addEventListener('submit', async e => {
       e.preventDefault();
       const own = $('#member-own', el).checked;
-      const body = { email: $('#member-email', el).value, name: $('#member-name', el).value, role: $('#member-role', el).value, own_workspace: own };
+      const body = { username: $('#member-username', el).value, email: $('#member-email', el).value, name: $('#member-name', el).value, role: $('#member-role', el).value, own_workspace: own };
       if (!$('#member-secret', el).hidden && $('#member-secret', el).value) body.password = $('#member-secret', el).value;
       try {
         const added = await DC.client.addMember({ body });
@@ -714,7 +714,7 @@ DC.view('admin', {
     const auth = cfg.auth || {};
     const body = $('#members-table tbody', el);
     if (auth.mode === 'none' || !auth.signed_in) {
-      body.innerHTML = '<tr><td colspan="5"><div class="empty">Sign-in is off: this server is one owner on this machine. To turn it on, run <code>make login</code> once in the terminal (it asks for your email and a password), then restart <code>make dev</code>. You can then add friends here.</div></td></tr>';
+      body.innerHTML = '<tr><td colspan="5"><div class="empty">Sign-in is off: this server is one owner on this machine. To turn it on, run <code>make login</code> once in the terminal (it asks for a username and a password), then restart <code>make dev</code>. You can then add friends here.</div></td></tr>';
       $('#tokens-list', el).innerHTML = '<div class="empty">API tokens come with accounts. Without them, MCP clients on this machine use /mcp as the owner.</div>';
       return;
     }
@@ -725,10 +725,10 @@ DC.view('admin', {
     let budgets = { users: {}, default: 15 };
     if (owner) { try { budgets = await DC.client.memberBudgets({ quiet: true }); } catch (err) { /* shown as the default */ } }
     $('#members-sub', el).textContent = `${members.length} member${members.length === 1 ? '' : 's'} · ${owner ? 'you manage them as the owner' : 'the owner manages them'}`;
-    body.innerHTML = members.map(m => `<tr><td><div class="cell-main">${esc(m.name || m.email)}</div><div class="cell-sub">${esc(m.email)}${m.id === auth.user_id ? ' · you' : ''}</div></td>
-      <td>${owner ? `<select data-member-role="${esc(m.id)}" aria-label="Role of ${esc(m.email)}">${roles.map(([k, l]) => `<option value="${k}" ${k === m.role ? 'selected' : ''}>${l}</option>`).join('')}</select>` : esc(m.role_label)}</td>
+    body.innerHTML = members.map(m => `<tr><td><div class="cell-main">${esc(m.name || m.username || m.email)}</div><div class="cell-sub">${esc([m.username, m.email].filter(Boolean).join(' · '))}${m.id === auth.user_id ? ' · you' : ''}</div></td>
+      <td>${owner ? `<select data-member-role="${esc(m.id)}" aria-label="Role of ${esc(m.username || m.email)}">${roles.map(([k, l]) => `<option value="${k}" ${k === m.role ? 'selected' : ''}>${l}</option>`).join('')}</select>` : esc(m.role_label)}</td>
       <td class="small">${m.single_sign_on ? 'company account' : m.password ? 'password' : '—'}</td>
-      <td>${owner ? `<span class="row"><label class="sr-only" for="budget-${esc(m.id)}">Monthly model budget of ${esc(m.email)}</label><input id="budget-${esc(m.id)}" type="number" min="0.01" step="0.5" value="${esc(String((budgets.users || {})[m.id] ?? budgets.default ?? 15))}" data-style="width:80px" data-member-budget="${esc(m.id)}"><button type="button" class="btn sm" data-member-budget-save="${esc(m.id)}">Save</button></span>` : '—'}</td>
+      <td>${owner ? `<span class="row"><label class="sr-only" for="budget-${esc(m.id)}">Monthly model budget of ${esc(m.username || m.email)}</label><input id="budget-${esc(m.id)}" type="number" min="0.01" step="0.5" value="${esc(String((budgets.users || {})[m.id] ?? budgets.default ?? 15))}" data-style="width:80px" data-member-budget="${esc(m.id)}"><button type="button" class="btn sm" data-member-budget-save="${esc(m.id)}">Save</button></span>` : '—'}</td>
       <td>${owner && m.id !== auth.user_id ? `<button type="button" class="btn sm" data-member-remove="${esc(m.id)}">Remove</button>` : ''}</td></tr>`).join('');
     const add = $('#member-add', el);
     add.hidden = !owner;

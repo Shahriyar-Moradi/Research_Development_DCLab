@@ -1,11 +1,11 @@
 """Sign-in, sessions, workspaces, members and API tokens over HTTP (package 10.2).
 
-    POST   /api/auth/password {email, password}      sign in; sets the session cookie (HttpOnly, SameSite=Lax)
+    POST   /api/auth/password {login, password}      sign in with a username or an email; sets the session cookie (HttpOnly, SameSite=Lax)
     POST   /api/auth/signout                         ends the session
     GET    /api/auth/me                              who is signed in, their workspaces and role
     POST   /api/auth/workspace {workspace_id}        act in another workspace one belongs to
     GET    /api/workspace/members                    the workspace's members (every role)
-    POST   /api/workspace/members {email, role, name?, password?}   add a member (the owner)
+    POST   /api/workspace/members {username?, email?, role, name?, password?}   add a member (the owner): a username, an email, or both
     PATCH  /api/workspace/members/{user_id} {role}   change a role (the owner)
     DELETE /api/workspace/members/{user_id}          remove a member (the owner)
     GET    /api/auth/tokens                          one's own API tokens (never the tokens themselves)
@@ -59,11 +59,12 @@ async def sign_in(payload: AnyObject, request: Request):
     if _settings(request).auth != "password":
         raise HTTPException(404, "This server signs in through the company's identity provider")
     body = _body(payload)
-    user = await asyncio.to_thread(accounts.check_password, str(body.get("email") or ""), str(body.get("password") or ""))
+    login = str(body.get("login") or body.get("username") or body.get("email") or "")  # a username, or an email
+    user = await asyncio.to_thread(accounts.check_password, login, str(body.get("password") or ""))
     if user is None:
         await asyncio.sleep(0.3)  # a wrong password costs the guesser time
         _auth_event(getattr(context.services(), "workspace_id", None), "auth.sign_in_failed", {"reason": "bad_credentials", "via": "password"}, request=request)
-        raise HTTPException(401, "The email or the password is not right")
+        raise HTTPException(401, "The username (or email) or the password is not right")
     spaces = await asyncio.to_thread(accounts.workspaces_of, user["id"])
     if not spaces:
         _auth_event(getattr(context.services(), "workspace_id", None), "auth.sign_in_failed", {"reason": "no_workspace", "via": "password"}, user["id"], request)
@@ -126,24 +127,25 @@ async def add_member(payload: AnyObject, request: Request):
     if role not in ROLES:
         raise HTTPException(422, f"role is one of {', '.join(ROLES)}")
     email = str(body.get("email") or "").strip().lower()
+    username = str(body.get("username") or "").strip().lower()
 
     own = bool(body.get("own_workspace"))  # the person gets a workspace of their own: their projects stay apart from everyone's
 
     def add():
-        found = accounts.by_email(email)
+        found = accounts.by_username(username) if username else accounts.by_email(email)
         if own and found is not None:  # a workspace of their own is for a new person: an existing account is never placed in one by someone else
-            raise HTTPException(409, "This email already has an account: add them to this workspace instead, or they make their own")
-        user = found or accounts.create_user(email, str(body.get("name") or ""), password=body.get("password") or None)
+            raise HTTPException(409, "This username or email already has an account: add them to this workspace instead, or they make their own")
+        user = found or accounts.create_user(email or None, str(body.get("name") or ""), password=body.get("password") or None, username=username or None)
         if own:
-            label = str(body.get("name") or "").strip() or email.split("@")[0]
+            label = str(body.get("name") or "").strip() or username or email.split("@")[0]
             workspace_id = accounts.create_workspace(f"{label}'s lab")
             accounts.set_member(workspace_id, user["id"], "owner")  # they own their space
             if who.user_id:
                 accounts.set_member(workspace_id, who.user_id, "owner")  # and the inviter can open it from the switcher
-            return {"id": user["id"], "email": user["email"], "role": "owner", "role_label": LABELS["owner"], "created": found is None,
+            return {"id": user["id"], "email": user["email"], "username": user.get("username"), "role": "owner", "role_label": LABELS["owner"], "created": found is None,
                     "workspace_id": workspace_id, "workspace": f"{label}'s lab"}
         accounts.set_member(who.workspace_id, user["id"], role)
-        return {"id": user["id"], "email": user["email"], "role": role, "role_label": LABELS[role], "created": found is None}
+        return {"id": user["id"], "email": user["email"], "username": user.get("username"), "role": role, "role_label": LABELS[role], "created": found is None}
     try:
         added = await asyncio.to_thread(add)
     except (AccountError, ValueError) as exc:
@@ -238,7 +240,7 @@ def _audit_account(workspace_id: str, kind: str, move: str, user: dict[str, Any]
     """A sign-in, or a role the provider's groups set, in that workspace's audit (no request principal exists yet)."""
     from .. import audit
 
-    audit.record(audit.PgAudit(workspace_id), kind, "human", user.get("name") or user.get("email"), move=move, status="allowed",
+    audit.record(audit.PgAudit(workspace_id), kind, "human", user.get("name") or user.get("username") or user.get("email"), move=move, status="allowed",
                  user_id=user["id"], args={**args, "member": user["id"]})
 
 

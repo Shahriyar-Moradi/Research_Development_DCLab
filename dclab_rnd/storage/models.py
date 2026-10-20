@@ -35,13 +35,15 @@ workspace = sa.Table(
 
 app_user = sa.Table(
     "app_user", metadata, _id(),
-    sa.Column("email", sa.Text, nullable=False),
+    sa.Column("email", sa.Text),  # optional: a person may sign in by username alone (0021)
+    sa.Column("username", sa.Text),  # a lower-case handle that signs a person in; unique (0021)
     sa.Column("name", sa.Text, nullable=False, server_default=""),
     sa.Column("password_hash", sa.Text),  # null for single-sign-on users
     sa.Column("subject", sa.Text),  # the identity provider's id for the user
     sa.Column("active", sa.Boolean, nullable=False, server_default=sa.true()),
     sa.Column("created", TIME, nullable=False, server_default=NOW),
     sa.UniqueConstraint("email", name="uq_app_user_email"),
+    sa.UniqueConstraint("username", name="uq_app_user_username"),
     # one account per identity at the provider (package 10.2, part B): a second account can never take the same subject
     sa.Index("uq_app_user_subject", "subject", unique=True, postgresql_where=sa.text("subject is not null")))
 

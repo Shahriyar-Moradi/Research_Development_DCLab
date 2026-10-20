@@ -32,6 +32,7 @@ PASSWORD = "Plant-Password-9F3kq-XYZ"
 EMAIL = "plant.person.check@example.org"
 NAME = "Plantname Checkperson"
 SUBJECT = "idp|plant-subject-7731"
+USERNAME = "plant-username-4471"
 
 
 class PeopleTests(unittest.TestCase):
@@ -51,7 +52,7 @@ class PeopleTests(unittest.TestCase):
         self.addCleanup(patch.stop)
         self.accounts = Accounts(self.url)
         self.workspace = db.workspace_for(self.base / "day")
-        self.user = self.accounts.create_user(EMAIL, NAME, password=PASSWORD)
+        self.user = self.accounts.create_user(EMAIL, NAME, password=PASSWORD, username=USERNAME)
         self.accounts.set_member(self.workspace, self.user["id"], "owner")
         self.cookie, self.csrf = self.accounts.start_session(self.user["id"], self.workspace)
         self.api, _ = self.accounts.create_token(self.user["id"], self.workspace, "my laptop plant")
@@ -81,7 +82,7 @@ class PeopleTests(unittest.TestCase):
         self.assertFalse(record["failed"], record["failed"])
         raw, records = self.texts()
         everything = raw + records
-        for plant in (PASSWORD, self.cookie, self.csrf, self.digest, self.api, self.token_hash, self.password_hash, EMAIL, NAME, SUBJECT, "my laptop plant", "Sso Person"):
+        for plant in (PASSWORD, self.cookie, self.csrf, self.digest, self.api, self.token_hash, self.password_hash, EMAIL, USERNAME, NAME, SUBJECT, "my laptop plant", "Sso Person"):
             self.assertNotIn(str(plant).encode(), everything, plant)
         entries = {e.source for e in Store(self.layout).entries("sessions")}
         self.assertIn("people/person.jsonl", entries)
@@ -93,7 +94,7 @@ class PeopleTests(unittest.TestCase):
         self.assertEqual((mine["signs_in"], mine["role"], mine["event"], mine["active"], mine["api_tokens"]), ("password", "owner", "joined", True, 1))
         self.assertEqual(by[self.sso["id"]].body["signs_in"], "sso")
         self.assertEqual(by[self.user["id"]].provenance.by, self.user["id"])  # whose it is
-        self.assertEqual(len(mine["email_hash"]), 16)
+        self.assertEqual((len(mine["email_hash"]), len(mine["username_hash"])), (16, 16))
         sessions = [r for r in shapers.records(self.layout, "sessions") if r.type == "session"]
         self.assertEqual([r.body["user"] for r in sessions], [self.user["id"]])
         self.assertNotEqual(sessions[0].body["session"], self.digest)  # hashed again, salted

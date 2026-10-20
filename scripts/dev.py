@@ -317,9 +317,11 @@ def login(url: str, remote: bool = False) -> int:
     (the password is asked for, never an argument). Friends are added afterwards on the Admin page."""
     print(f"database {database_name(url)}: {ensure_database(url, remote=remote)}", flush=True)
     print("sign-in: " + ("DCLAB_AUTH=password written to .env.dev (make dev reads it)" if enable_login(DEV_ENV) else "already on in .env.dev"), flush=True)
-    email = os.environ.get("DCLAB_OWNER_EMAIL") or input("Your email (you sign in with it): ").strip()
+    username = os.environ.get("DCLAB_OWNER_USERNAME") or input("Your username (you sign in with it; 3 to 32 letters, digits, . - _): ").strip()
+    email = os.environ.get("DCLAB_OWNER_EMAIL") or input("Your email (optional, press Enter to skip): ").strip()
     name = os.environ.get("DCLAB_OWNER_NAME") or input("Your name (optional): ").strip()
-    command = [sys.executable, "-m", "dclab_rnd.accounts", "add", "--email", email, "--role", "owner"] + (["--name", name] if name else [])
+    command = ([sys.executable, "-m", "dclab_rnd.accounts", "add", "--role", "owner"] + (["--username", username] if username else [])
+               + (["--email", email] if email else []) + (["--name", name] if name else []))
     done = subprocess.call(command, cwd=ROOT, env={**os.environ, "DCLAB_DATABASE_URL": url})
     if done == 0:
         print("Done. Restart make dev and open the page: it asks you to sign in. Add friends on Admin → Members "

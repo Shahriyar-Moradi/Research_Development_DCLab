@@ -163,5 +163,5 @@ def _principal(accounts: Any, user_id: str, workspace_id: str, **extra: Any) -> 
         return ANONYMOUS
     spaces = tuple(accounts.workspaces_of(user_id))
     role = next((r for w, _, r in spaces if w == workspace_id), None)  # removed from the workspace: no role there now
-    return Principal(role=role, workspace_id=workspace_id, user_id=user_id, email=user["email"], name=user["name"],
+    return Principal(role=role, workspace_id=workspace_id, user_id=user_id, email=user["email"] or "", username=user.get("username") or "", name=user["name"],
                      workspaces=spaces, **extra)

@@ -293,6 +293,34 @@ class AccountsTests(unittest.TestCase):
         if before is not None:
             self.assertEqual({w["id"] for w in self.accounts.workspaces_of(victim["id"])}, before)  # no lab was made around them
 
+    def test_a_username_signs_a_person_in_and_the_email_is_optional(self):
+        from dclab_rnd.accounts.store import AccountError
+
+        handle = f"handle-{os.getpid()}"
+        user = self.accounts.create_user(None, "Handle Person", password=PASSWORD, username=handle.upper())  # no email: a username alone
+        self.assertEqual((user["username"], user["email"]), (handle, None))  # kept lower-case
+        self.accounts.set_member(self.w1, user["id"], "viewer")
+        self.assertEqual(self.accounts.check_password(handle.title(), PASSWORD)["id"], user["id"])  # by username, in any case
+        self.assertIsNone(self.accounts.check_password(handle, "not the password"))
+        with self.assertRaises(AccountError):
+            self.accounts.create_user(None, "Same", password=PASSWORD, username=handle)  # a username is unique
+        for bad in ("ab", "has space", "-leading", "x" * 40):
+            with self.assertRaises(AccountError):
+                self.accounts.create_user(None, "Bad", password=PASSWORD, username=bad)
+        with self.assertRaises(AccountError):
+            self.accounts.create_user(None, "Neither", password=PASSWORD)  # one of the two is needed
+        signed = self.TestClient(self.app)
+        csrf = signed.get("/api/config").json()["csrf"]
+        ok = signed.post("/api/auth/password", json={"login": handle, "password": PASSWORD}, headers={"X-DCLab-Token": csrf})
+        self.assertEqual(ok.status_code, 200, ok.text)  # the page's one field: a username
+        me = signed.get("/api/auth/me").json()
+        self.assertEqual((me["username"], me["email"]), (handle, ""))
+        stranger = self.TestClient(self.app)  # a fresh browser: no session yet
+        bad = stranger.post("/api/auth/password", json={"login": handle, "password": "wrong"}, headers={"X-DCLab-Token": stranger.get("/api/config").json()["csrf"]})
+        self.assertEqual(bad.status_code, 401)
+        mail = self.accounts.by_email(self.users["view1"]["email"])
+        self.assertEqual(self.accounts.check_password(self.users["view1"]["email"], PASSWORD)["id"], mail["id"])  # an email still signs in
+
     def test_a_member_of_two_workspaces_switches_between_them(self):
         user = self.accounts.create_user(f"both-{os.getpid()}@example.com", "Both", password=PASSWORD)
         self.accounts.set_member(self.w1, user["id"], "viewer")
