@@ -75,6 +75,7 @@ WRITE_ROUTES = {
     "POST /api/projects/{project_id}/notebook/restart": (NONE, "a kernel restart changes no project data: the next run of a cell is a code run, and the person's click is a ui.action of the visit"),
     "POST /api/projects/{project_id}/notebook/write": (NONE, "the model's request and reply are the gateway's model.request (the purpose notebook_cell); the proposal is kept on the project with the person's answer"),
     "POST /api/projects/{project_id}/notebook/cells/{cell_id}/answer": (NONE, "a person's accept or reject of the agent's cell is a correction in the ledger (what notebook_cell, the proposal before, the answer after)"),
+    "POST /api/drafts/{draft_id}/data/synthetic/design": (EVENTS, ["chat.person", "chat.agent"]),  # 2026-10-20: the person's description and the design shown, as chat messages; nothing is created
     "POST /api/drafts/{draft_id}/pack": (NONE, "the pack is in the draft and in the next solution.proposed's kind; no kind of its own yet"),
     "POST /api/drafts/{draft_id}/solution/proposal": (EVENTS, ["solution.proposed"]),
     "PUT /api/drafts/{draft_id}/solution": (EVENTS, ["solution.saved"]),
