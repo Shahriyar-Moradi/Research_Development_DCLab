@@ -112,7 +112,8 @@ TESTS = {
 
 # Kinds whose acceptance case (an invented replica) is not exported: the open tree's capability matrix says "partial"
 # for them, without the checks (their details describe that replica).
-KINDS_WITHOUT_CASE = {"rare_event": "its acceptance replica is not part of the open edition yet",
+# A kind with a second, exported case keeps only that case's checks (prefix), judged as the open tree would judge them.
+KINDS_WITHOUT_CASE = {"rare_event": {"keep": "retail returns: "},
                       "anomaly": "its acceptance replica is not part of the open edition yet"}
 
 # The knowledge the open tree ships (the owner's decision, 2026-10-21: rules and pitfalls only), filtered from the evidence

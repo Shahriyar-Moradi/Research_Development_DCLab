@@ -306,8 +306,13 @@ def adjust_capability(out: Path, m) -> list[str]:
         return []
     doc = json.loads(path.read_text(encoding="utf-8"))
     for row in doc.get("results", []):
-        if row.get("kind") in without:
-            row.update(status="partial", checks=[], missing=[without[row["kind"]]])
+        rule = without.get(row.get("kind"))
+        if isinstance(rule, dict):  # the checks of the kind's exported second case stand alone (kinds/acceptance.py does the same)
+            kept = [c for c in row.get("checks") or [] if str(c.get("decision", "")).startswith(rule["keep"])]
+            missing = [c["decision"] for c in kept if not c.get("ok")]
+            row.update(status="supported" if kept and not missing else "partial", checks=kept, missing=missing)
+        elif rule:
+            row.update(status="partial", checks=[], missing=[rule])
     path.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     return sorted(without)
 

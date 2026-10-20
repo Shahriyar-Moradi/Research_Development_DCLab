@@ -196,6 +196,13 @@ def engine_run(case: Case, replica: str | None = None) -> Run:
 def run(kind: Any, seed: int = 0) -> dict[str, Any]:
     """One kind's acceptance: {"kind", "status", "checks", "missing", "seconds"}."""
     case = kind.case(seed)
+    if case is None and hasattr(kind, "retail_case"):  # the open edition has no main case for it: its shipped second case stands alone
+        started = time.perf_counter()
+        retail, _ = kind.retail_case(seed)
+        checks = [{**c, "decision": f"retail returns: {c['decision']}"} for c in kind.accept_retail(engine_run(retail, "retail_returns"))]
+        missing = [c["decision"] for c in checks if not c["ok"]]
+        return {"kind": kind.key, "status": "supported" if checks and not missing else "partial", "checks": checks,
+                "missing": missing, "seconds": round(time.perf_counter() - started, 1)}
     if case is None:
         return {"kind": kind.key, "status": "partial", "checks": [], "missing": ["a replica case and its acceptance decisions"],
                 "seconds": 0.0}
