@@ -578,6 +578,7 @@ class HomeAgent:
             self.say(draft_id, f"I could not work on this project just now ({type(exc).__name__}). Open its pages (Models, Evaluation) or ask again.",
                      kind="text", severity="warning")
 
+    @turn  # one turn at a time: a message waits for a data-ready turn instead of landing in its gap (lost on 2026-10-20, found by the gate)
     def reply(self, draft_id: str, text: str) -> None:
         """A user message: store it, then let the model (or the script) answer."""
         text = text.strip()[:2000]

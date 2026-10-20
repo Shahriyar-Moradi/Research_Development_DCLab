@@ -860,6 +860,8 @@ WHO = {"plan_new_version": "planner", "build_new_version": "planner", "show_prob
        "improve_model": "experimenter", "adopt_improvement": "experimenter", "write_notebook_cell": "coder"}
 
 
+HOME_MOVES = ("plan_version", "build_version", "propose_problem_change", "confirm_problem_change", "improve", "adopt_improvement",
+              "notebook_cell")  # every write the built chat's team may make (its guard checks each; the tests check each tool declares one)
 PROJECT_MOVES = ("improve", "adopt_improvement", "notebook_cell")  # the writes that change the project (the analyst's change the chat only)
 
 
