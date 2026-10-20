@@ -42,6 +42,8 @@
     bell: '<path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>',
     play: '<path d="M7 4v16l13-8z"/>',
     check: '<path d="m5 12 5 5L20 7"/>',
+    chevron: '<path d="m6 9 6 6 6-6"/>',
+    folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
     alert: '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
     lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
@@ -633,6 +635,7 @@
     const el = $('#view-' + name);
     const def = VIEWS[name];
     if (el) buildPaneTabs(el);
+    if (el) projectSwitch.mount(name, el);
     if (def && el) {
       if (!def.inited) { def.inited = true; try { def.init && def.init(el); } catch (e) { console.error('init ' + name, e); } buildPaneTabs(el); hydrate(el); }
       enterView(name, def, el);
@@ -991,7 +994,13 @@
       const key = state.project;
       if (typeof key === 'string' && key.startsWith('p:')) return key.slice(2);
       if (key) return null;  // a sample was chosen on purpose
-      try { const ws = await DC.client.workspace(); if (ws.projects.length) { state.project = 'p:' + ws.projects[0].id; return ws.projects[0].id; } } catch (e) { /* offline */ }
+      try {
+        const ws = await DC.client.workspace();
+        let saved = null;
+        try { saved = localStorage.getItem('dclab-project'); } catch (e) { saved = null; }  // the project the person chose, kept across a reload
+        const pick = ws.projects.find(p => p.id === saved) || ws.projects[0];
+        if (pick) { state.project = 'p:' + pick.id; return pick.id; }
+      } catch (e) { /* offline */ }
       return null;
     },
     /* The project with its stage records, transitions and graph; cached for two seconds across pages. */
@@ -1007,6 +1016,95 @@
     },
     clear() { this._cache = null; },
   };
+  /* ---------------- the project switcher ----------------
+     A green button naming the project the person is on, with the list of the others. It sits first in the header's actions
+     of Home and of every project page. Choosing a project makes it the one every page reads (the sidebar's Project label,
+     Notebook, Models, Reliability…), keeps the choice across a reload and opens the page again for it. */
+  const projectSwitch = {
+    list: [], loaded: false, menu: null,
+    async load(force) {
+      if (this.loaded && !force) return this.list;
+      try { this.list = (await DC.client.workspace({ quiet: true })).projects || []; this.loaded = true; } catch (e) { /* keep the last list */ }
+      return this.list;
+    },
+    html() {
+      return `<button type="button" class="btn proj-switch" aria-haspopup="listbox" aria-expanded="false" title="The project every page shows: choose another"><span class="ps-ic">${icon('folder')}</span><span class="ps-label">Project</span><span class="ps-name">…</span><span class="ps-chev">${icon('chevron')}</span></button>`;
+    },
+    /* Every header of Home and of a project page gets the switcher first in its actions. */
+    mount(name, el) {
+      if (name !== 'home' && !PROJECT_VIEWS.includes(name)) return;
+      const actions = $('.vh-actions', el);
+      if (!actions || $('.ps-wrap', actions)) return;
+      actions.insertAdjacentHTML('afterbegin', `<span class="ps-wrap" hidden>${this.html()}</span>`);
+      this.paint();
+    },
+    async paint() {
+      const list = await this.load(), id = await currentProject.id();
+      const here = list.find(p => p.id === id);
+      if (here) { try { localStorage.setItem('dclab-project', here.id); } catch (e) { /* storage blocked */ } setProjectLabel(here.name); }
+      $$('.ps-wrap').forEach(w => {
+        w.hidden = !list.length;  // no project yet: nothing to switch
+        const name = $('.ps-name', w);
+        if (name) { name.textContent = here ? here.name : 'Choose a project'; name.title = here ? here.name : ''; }
+      });
+    },
+    options(id) {
+      return this.list.map(p => `<button type="button" class="ps-opt" role="option" aria-selected="${p.id === id ? 'true' : 'false'}" data-ps-id="${esc(p.id)}">`
+        + `<span class="ps-opt-main"><span class="ps-opt-name">${esc(p.name)}</span>`
+        + `<span class="ps-opt-sub">${esc(p.current || 'all steps done')}${p.data && p.data.synthetic ? ' · synthetic' : ''}${p.running ? ' · running' : ''}</span></span>`
+        + `<span class="ps-opt-check">${p.id === id ? icon('check') : ''}</span></button>`).join('');
+    },
+    close() {
+      if (!this.menu) return;
+      const { menu, wrap } = this.menu;
+      menu.remove(); this.menu = null;
+      const b = $('.proj-switch', wrap); if (b) b.setAttribute('aria-expanded', 'false');
+    },
+    async open(wrap) {
+      this.close();
+      await this.load(true);  // the list as it is now: a project made a minute ago is in it
+      const id = await currentProject.id();
+      const menu = document.createElement('div');
+      menu.className = 'ps-menu'; menu.setAttribute('role', 'listbox'); menu.setAttribute('aria-label', 'Projects');
+      menu.innerHTML = this.list.length ? this.options(id) : '<div class="ps-empty">No project yet. Start one from a sentence on Home.</div>';
+      wrap.appendChild(menu);
+      this.menu = { menu, wrap };
+      $('.proj-switch', wrap).setAttribute('aria-expanded', 'true');
+      const first = $('[aria-selected="true"]', menu) || $('.ps-opt', menu);
+      if (first) first.focus();
+    },
+    select(id) {
+      const p = this.list.find(x => x.id === id);
+      this.close();
+      if (!p || state.project === 'p:' + id) return;
+      state.project = 'p:' + id; state.projectId = null; currentProject.clear();
+      try { localStorage.setItem('dclab-project', id); } catch (e) { /* storage blocked */ }
+      setProjectLabel(p.name);
+      this.paint();
+      document.dispatchEvent(new CustomEvent('dclab:project', { detail: { id, name: p.name } }));  // a page that keeps its own state lets go of the last project's
+      const def = VIEWS[state.view], el = $('#view-' + state.view);
+      if (def && el) enterView(state.view, def, el);
+      toast(`Now on ${p.name}: every project page follows it.`);
+    },
+    wire() {
+      document.addEventListener('click', e => {
+        const toggle = e.target.closest('.proj-switch');
+        if (toggle) { const wrap = toggle.closest('.ps-wrap'); if (this.menu && this.menu.wrap === wrap) this.close(); else this.open(wrap); return; }
+        const opt = e.target.closest('.ps-opt');
+        if (opt) { this.select(opt.dataset.psId); return; }
+        if (this.menu && !e.target.closest('.ps-menu')) this.close();
+      });
+      document.addEventListener('keydown', e => {
+        if (!this.menu) return;
+        const opts = $$('.ps-opt', this.menu.menu), at = opts.indexOf(document.activeElement);
+        if (e.key === 'Escape') { const b = $('.proj-switch', this.menu.wrap); this.close(); if (b) b.focus(); }
+        else if (e.key === 'ArrowDown') { e.preventDefault(); (opts[at + 1] || opts[0]).focus(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); (opts[at - 1] || opts[opts.length - 1]).focus(); }
+        else if (e.key === 'Tab') this.close();
+      });
+    },
+  };
+
   /* Shows or hides the "Sample data" pill in the top bar and a page's own sample note. */
   function markSample(isSample) {
     const pill = $('.demo-pill');
@@ -1143,6 +1241,7 @@
     try { bpOn = localStorage.getItem('dclab-demo-bp') === '1'; } catch (e) { /* ignore */ }
     setRole('developer');
     window.addEventListener('hashchange', () => { const h = parseHash(); show(h.view, h.pane); });
+    projectSwitch.wire();
     const h0 = parseHash();
     show(h0.view, h0.pane);
     if (bpOn) setBlueprint(true);
@@ -1216,7 +1315,7 @@
     });
   }
 
-  window.DC = { ui, states, loading, showSignIn, explanation, synthetic, loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
+  window.DC = { ui, states, projectSwitch, loading, showSignIn, explanation, synthetic, loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
   const start = () => config().catch(() => null).then(boot);  // the server says first whether someone must sign in
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else setTimeout(start, 0);
 })();

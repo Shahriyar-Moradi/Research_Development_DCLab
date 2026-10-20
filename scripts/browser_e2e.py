@@ -244,11 +244,24 @@ def check_stats(b: Browser) -> str:
     b.view("home", settle=2)
     ws = b.api("/workspace")
     cards = page.locator("#view-home .stats[data-f='home.kpis'] .stat .v")
-    for i, key in ((0, "forbidden"), (1, "holdouts_once"), (2, "blocked_moves"), (3, "drafts")):
-        shown = number(cards.nth(i).text_content())
-        check(shown == ws["stats"][key], f"Home card {i + 1} shows {shown}, the API's {key} is {ws['stats'][key]}")
-    holdouts = re.findall(r"\d+", cards.nth(1).text_content())
-    check(len(holdouts) >= 2 and int(holdouts[1]) == ws["stats"]["holdout_projects"], f"Home's holdout card shows {holdouts}, the API's projects with a holdout {ws['stats']['holdout_projects']}")
+    if ws["projects"]:  # with a project, Home shows the one the green button names (not the workspace's sum)
+        here = page.evaluate("() => DC.currentProject.id()")
+        doc = b.api(f"/projects/{here}")
+        moves = doc.get("transitions") or []
+        stages = [k for k in ("data", "leakage", "features", "models", "final") if (doc.get("stages") or {}).get(k, {}) and doc["stages"][k].get("status") in ("completed", "approved")]
+        want = {0: len((doc.get("solution") or {}).get("forbidden") or []), 2: sum(1 for m in moves if m.get("status") == "blocked"), 3: len(stages)}
+        for i, value in want.items():
+            shown = number(cards.nth(i).text_content())
+            check(shown == value, f"Home card {i + 1} shows {shown}, the selected project's is {value}")
+        uses = int(doc.get("holdout_uses") or 0)
+        shown = (cards.nth(1).text_content() or "").strip()
+        check(shown == (f"{uses}×" if uses else "sealed"), f"Home's holdout card shows {shown!r}, the selected project's holdout was used {uses} time(s)")
+    else:
+        for i, key in ((0, "forbidden"), (1, "holdouts_once"), (2, "blocked_moves"), (3, "drafts")):
+            shown = number(cards.nth(i).text_content())
+            check(shown == ws["stats"][key], f"Home card {i + 1} shows {shown}, the API's {key} is {ws['stats'][key]}")
+        holdouts = re.findall(r"\d+", cards.nth(1).text_content())
+        check(len(holdouts) >= 2 and int(holdouts[1]) == ws["stats"]["holdout_projects"], f"Home's holdout card shows {holdouts}, the API's projects with a holdout {ws['stats']['holdout_projects']}")
     check(number(page.text_content(".ptab[data-ptab='projects'] .n")) == len(ws["projects"]), "Home's project count")
 
     b.view("compute", settle=2)
@@ -267,6 +280,41 @@ def check_stats(b: Browser) -> str:
     packs = [p for p in b.api("/packs") if not p.get("page_only")]
     check(number(page.text_content("#pk-n")) == len(packs), "Packs' count")
     return f"Home, Compute, Integrations and Packs match the API ({len(ws['projects'])} project(s), {ops['totals']['total']} job(s))"
+
+
+def check_switch(b: Browser) -> str:
+    """The green project switcher: Home names the project every page follows, lists the others, and the sidebar's Project
+    label and the project pages follow the choice."""
+    page = b.page
+    b.view("home", settle=2)
+    ws = b.api("/workspace")
+    if not ws["projects"]:
+        check(page.locator("#view-home .ps-wrap").is_hidden(), "the project switcher shows with no project to switch")
+        return "no project: the switcher stays hidden"
+    page.wait_for_selector("#view-home .proj-switch", state="visible", timeout=15_000)
+    name = page.inner_text("#view-home .proj-switch .ps-name").strip()
+    check(name and name != "…", "the green button does not name the project")
+    check((page.text_content("#nav .nav-label >> nth=1") or "").strip() == "Project · " + name, "the sidebar's Project label is not the button's project")
+    page.click("#view-home .proj-switch")
+    page.wait_for_selector("#view-home .ps-opt", timeout=15_000)  # the list is read when the button opens it
+    options = page.locator("#view-home .ps-opt")
+    check(options.count() == len(ws["projects"]), f"the list shows {options.count()} projects, the workspace has {len(ws['projects'])}")
+    check(page.locator("#view-home .ps-opt[aria-selected='true']").count() == 1, "exactly one project is marked as the one in use")
+    page.keyboard.press("Escape")
+    check(page.locator("#view-home .ps-menu").count() == 0, "Escape did not close the list")
+    other = [p for p in ws["projects"] if p["name"] != name]
+    if other:
+        page.click("#view-home .proj-switch")
+        page.click(f"#view-home .ps-opt:has-text('{other[0]['name']}')")
+        page.wait_for_function("n => document.querySelector('#view-home .ps-name').textContent === n", arg=other[0]["name"], timeout=15_000)
+        check((page.text_content("#nav .nav-label >> nth=1") or "").strip() == "Project · " + other[0]["name"], "the sidebar did not follow the chosen project")
+        b.view("models", settle=2)
+        check(other[0]["name"].lower() in (page.text_content("#view-models .eyebrow") or "").lower(), "the Models page did not follow the chosen project")
+        b.view("home", settle=1)
+        page.click("#view-home .proj-switch")  # back to the first, so the next checks read what they did
+        page.click(f"#view-home .ps-opt:has-text('{name}')")
+        page.wait_for_function("n => document.querySelector('#view-home .ps-name').textContent === n", arg=name, timeout=15_000)
+    return f"the green button, its list of {len(ws['projects'])}, the sidebar and Models follow the chosen project"
 
 
 def check_pages(b: Browser) -> str:
@@ -322,7 +370,7 @@ CULPRIT = """() => { const w = document.documentElement.clientWidth;
   return el ? el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\\s+/).join('.') : '') + ' "' + (el.textContent || '').trim().slice(0, 40) + '"' : '?'; }"""
 
 
-CHECKS = {"flow": (check_flow, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "ui": (check_ui_events, 1280), "mobile": (check_mobile, 375)}
+CHECKS = {"flow": (check_flow, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "switch": (check_switch, 1280), "ui": (check_ui_events, 1280), "mobile": (check_mobile, 375)}
 
 
 def main(argv: list[str] | None = None) -> int:

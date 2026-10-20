@@ -1,0 +1,69 @@
+{
+ "package": "project-switcher",
+ "title": "A green project button on Home, with a list of the others; every page follows the chosen project",
+ "date": "2026-10-20",
+ "request": "Beside New project from chat, on its left, a green button that shows the project we are in, with a drop-down of the other projects; all tabs and all details, and the sidebar, must be the selected project's.",
+ "spec": "Home read the workspace's sum; the project pages read DC.state.project or the first project; there was no way to choose from Home.",
+ "plan": [
+  "A reusable switcher in the core, mounted first in the header actions of Home and of every project page",
+  "Home's cards, needs, jobs and project list scoped to the selected project, with a way to show all",
+  "The choice kept across a reload; the sidebar's Project label and the project pages follow it",
+  "A browser check"
+ ],
+ "decisions": [
+  {
+   "decision": "The Projects tab shows the selected project and offers Show all N projects.",
+   "why": "The owner asked for every tab to show only the selected project; the full list stays one click away and in the green button's list."
+  },
+  {
+   "decision": "The choice is kept in the browser (dclab-project) and restored when no project is chosen.",
+   "why": "After a reload the person returns to the project they were on, not the first one."
+  },
+  {
+   "decision": "The Evidence tab and the evidence library stay the workspace's.",
+   "why": "They are the shared library, not a project's data."
+  }
+ ],
+ "change": "web/src/core.js (projectSwitch, currentProject.id restore, icons), look.css (the green button and its list, tokens only), views/home.html (scoped cards, needs, jobs, projects tab, a project change lets go of the last chat), scripts/browser_e2e.py (a switch check; the stats check follows the project).",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "There was no way to see or choose the project every page follows.",
+   "scenario": "On Home the person saw the workspace's numbers and a list; the sidebar named a project chosen by an earlier click or the first one.",
+   "cause": "The choice lived in DC.state.project, set only by links on other pages.",
+   "fix": "A green switcher in each header, kept across a reload.",
+   "test": "scripts/browser_e2e.py check switch"
+  },
+  {
+   "id": "S2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The browser test compared Home's cards to the workspace's sums.",
+   "scenario": "With Home scoped to a project the stats check would have failed on a workspace with a project.",
+   "cause": "The cards' meaning changed.",
+   "fix": "The check compares them to the selected project's own numbers.",
+   "test": "scripts/browser_e2e.py check stats"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The switcher on the owner's workspace",
+   "gate": "the button, its list, the sidebar and Models follow the choice, at 1280 and 375 px",
+   "result": "switch, stats, pages and mobile checks pass on a workspace of 3 projects",
+   "verdict": "pass",
+   "limits": [
+    "one workspace of three projects"
+   ]
+  }
+ ],
+ "outcome": "The person sees which project they are in, picks another from Home or a project page, and Home, the sidebar and the project pages follow it.",
+ "lessons": [
+  "A choice that every page reads must have one visible control and one place that keeps it."
+ ],
+ "risks": [
+  "The Intern, Compute and Lab pages are the workspace's and do not follow the choice."
+ ],
+ "commits": []
+}

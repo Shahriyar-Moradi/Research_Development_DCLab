@@ -21,29 +21,53 @@ DC.view('home', {
       let ws;
       try { ws = await DC.client.workspace(); } catch (e) { return; }
       const st = ws.stats, stats = $$('.stats .stat', el);
-      if (stats.length >= 4) {
+      // the project the person is on (the green button): Home shows that project, not the workspace's sum
+      const hereId = ws.projects.length ? await DC.currentProject.id() : null;
+      const here = ws.projects.find(p => p.id === hereId) || null;
+      let doc = null;
+      if (here) { try { doc = await DC.currentProject.get(); } catch (e) { doc = null; } }
+      S.here = here;
+      if (stats.length >= 4 && here && doc) {
+        const sol = doc.solution || {}, moves = doc.transitions || [], blocked = moves.filter(m => m.status === 'blocked').length;
+        const keys = ['data', 'leakage', 'features', 'models', 'final'], done = keys.filter(k => ['completed', 'approved'].includes((doc.stages || {})[k] && (doc.stages || {})[k].status || (here.stages || {})[k])).length;
+        const uses = Number(doc.holdout_uses || 0);
+        stats[0].innerHTML = `<span class="v">${fmtN((sol.forbidden || []).length)}</span><span class="l">columns forbidden at the prediction moment in ${esc(here.name)}</span>`;
+        stats[1].innerHTML = `<span class="v ${uses === 1 ? 'ok' : ''}">${uses ? fmtN(uses) + '×' : 'sealed'}</span><span class="l">${uses === 1 ? 'the holdout was opened exactly once · no reuse for selection' : uses ? 'the holdout was opened more than once: its number is no longer a fresh one' : 'the holdout is still sealed: nothing has read it yet'}</span>`;
+        stats[2].innerHTML = `<span class="v">${fmtN(blocked)}</span><span class="l">unsafe moves stopped by the workflow graph in this project, each logged with its rule</span>`;
+        stats[3].innerHTML = `<span class="v">${done} <small>/ ${keys.length}</small></span><span class="l">stages done · ${esc(here.current || 'all steps done')}</span>`;
+      } else if (stats.length >= 4) {
         stats[0].innerHTML = `<span class="v">${fmtN(st.forbidden)}</span><span class="l">columns forbidden at the prediction moment, across ${fmtN(st.projects)} project${st.projects === 1 ? '' : 's'}</span>`;
         stats[1].innerHTML = `<span class="v ok">${fmtN(st.holdouts_once)} <small>/ ${fmtN(st.holdout_projects)}</small></span><span class="l">holdouts opened exactly once · no reuse for selection</span>`;
         stats[2].innerHTML = `<span class="v">${fmtN(st.blocked_moves)}</span><span class="l">unsafe moves stopped by the workflow graph, each logged with its rule</span>`;
         stats[3].innerHTML = `<span class="v">${fmtN(st.drafts)}</span><span class="l">open draft${st.drafts === 1 ? '' : 's'} on Home · ${fmtN(st.projects)} project${st.projects === 1 ? '' : 's'}</span>`;
       }
+      const hereDraft = doc && (doc.draft || {}).id;  // the chat this project was built from
+      S.hereDraft = hereDraft || null;
       const inbox = $('[data-f="home.inbox"]', el);
       if (inbox) {
         let off = false;
         try { off = localStorage.getItem('dclab-notes-off') === '1'; } catch (e) { off = false; }
-        const needs = ws.needs.filter(n => !(off && n.kind === 'disagreements'));  // 29.10: a person who turned the notes off
+        const mine = n => !here || (n.project ? n.project === here.id : n.draft ? n.draft === hereDraft : false);  // only what waits on the selected project
+        const needs = ws.needs.filter(n => !(off && n.kind === 'disagreements') && mine(n));  // 29.10: a person who turned the notes off
         $('.pill', inbox).textContent = needs.length;
         const label = { question: 'Question', solution: 'Solution', disagreements: 'Which is right?' };
         $('.list', inbox).innerHTML = needs.length ? needs.map(n => `<a class="list-item" href="${n.draft ? '#home' : n.kind === 'disagreements' ? '#solution' : '#project'}" ${n.draft ? `data-resume="${esc(n.draft)}"` : n.kind === 'disagreements' ? `data-open-notes="${esc(n.project)}"` : `data-open-project="${esc(n.project)}"`}>
             <span class="avatar ai">AI</span>
             <div class="li-main"><span class="li-title">${esc(n.title)}</span><span class="li-sub">${esc(n.sub || '')}</span><span class="row"><span class="pill warn">${esc(label[n.kind] || 'Solution')}</span><span class="tag">${esc(n.tag)}</span></span></div></a>`).join('')
-          : '<div class="empty">Nothing waits for you. Start from one sentence above.</div>';
+          : `<div class="empty">${here ? 'Nothing waits for you in ' + esc(here.name) + '.' : 'Nothing waits for you.'} Start from one sentence above.</div>`;
       }
       const count = $(`.ptab[data-ptab="projects"] .n`, el);
       if (count) count.textContent = ws.projects.length;  // the sample's count goes, also when there is no project yet
       if (ws.projects.length) {
         const pane = $('[data-pane="projects"]', el);
-        $('#home-projects tbody', el).innerHTML = ws.projects.map(p => `
+        S.projects = ws.projects;
+        const shown = here && !S.allProjects ? ws.projects.filter(p => p.id === here.id) : ws.projects;
+        let note = $('#home-projects-note', pane);
+        if (!note) { note = document.createElement('div'); note.id = 'home-projects-note'; note.className = 'small muted'; note.setAttribute('data-style', 'padding:8px 16px'); $('.panel-head', pane).after(note); }
+        note.hidden = !here || ws.projects.length < 2;
+        note.innerHTML = S.allProjects ? `All ${fmtN(ws.projects.length)} projects. <button type="button" class="link-btn small" data-projects-all="0">Only ${esc((here || {}).name || 'this one')}</button>`
+          : `Only ${esc((here || {}).name || '')}, the project you are on. <button type="button" class="link-btn small" data-projects-all="1">Show all ${fmtN(ws.projects.length)} projects</button>`;
+        $('#home-projects tbody', el).innerHTML = shown.map(p => `
           <tr data-real="${esc(p.id)}">
             <td><div class="cell-main">${esc(p.name)}${p.data && p.data.synthetic ? ' <span class="pill warn">synthetic</span>' : ''}</div><div class="cell-sub">${esc(p.data ? p.data.filename + ' · ' + fmtN(p.data.rows) + ' rows' : 'no data yet')}${p.pack ? ' · ' + esc(p.pack) : ''}</div></td>
             <td><span class="wf-mini" aria-label="${esc(p.current || 'done')}">${p.state.split('').map(c => `<i class="${segClass[c] || ''}"></i>`).join('')}</span><div class="cell-sub">${esc(p.current || 'all steps done')}</div></td>
@@ -56,6 +80,10 @@ DC.view('home', {
         $('.panel-foot', pane).innerHTML = '<span class="dot ok"></span>done <span class="dot accent"></span>current <span class="dot warn"></span>waiting on a person <span class="muted">· Click a project to open its workflow.</span>';
       }
     }
+    el.addEventListener('click', e => {
+      const all = e.target.closest('[data-projects-all]');
+      if (all) { S.allProjects = all.dataset.projectsAll === '1'; loadWorkspace(); }
+    });
     $('#home-projects tbody', el).addEventListener('click', e => {
       const chat = e.target.closest('[data-project-chat]');
       if (chat) {  // the project's Home chat (its draft), shown again to read and go on with
@@ -855,7 +883,9 @@ DC.view('home', {
     async function loadLive() {
       let d;
       try { d = await DC.client.opsJobs({ quiet: true }); } catch (e) { DC.states.failed($('#home-live', el), e, { lead: 'Could not read the jobs: ', retry: loadLive }); return false; }
-      const live = d.jobs.filter(j => j.status === 'running' || j.status === 'queued');
+      const here = S.here, hereDraft = S.hereDraft;
+      const live = d.jobs.filter(j => (j.status === 'running' || j.status === 'queued')
+        && (!here || j.project_id === here.id || (hereDraft && j.draft_id === hereDraft)));  // the selected project's work only
       $('#home-live', el).innerHTML = live.length ? live.slice(0, 6).map(liveItem).join('')
         : `<div class="empty">Nothing is running. Stage runs, intern sessions and data pipelines show here while they work; ${fmtN(d.totals.total)} job${d.totals.total === 1 ? '' : 's'} ran on this machine so far.</div>`;
       DC.setNavCount('compute', d.totals.running || '');
@@ -899,6 +929,15 @@ DC.view('home', {
 
     this.loadWorkspace = loadWorkspace;
     this.resume = resume;
+    document.addEventListener('dclab:project', () => {  // the person chose another project: its chat, its numbers
+      if (DC.state.view !== 'home') return;
+      S.fresh = false; S.draft = null; S.here = null; S.hereDraft = null;
+      if (S.close) { S.close(); S.close = null; }
+      $('#home-thread', el).innerHTML = '';
+      $('#home-reply', el).value = '';
+      showDraftPanels(false);
+      creating(false);
+    });
     /* The chat of the project the person is on (chosen on another page), shown on Home to read and go on with. */
     this.projectChat = async () => {
       const key = DC.state.project;
@@ -920,6 +959,6 @@ DC.view('home', {
       if (shown) return;
       try { const id = localStorage.getItem('dclab-home-draft'); if (id && !(document.querySelector('#home-thread') || {}).childElementCount) this.resume(id); } catch (e) { /* storage blocked */ }
     });
-    return Promise.all([this.loadWorkspace(), this.loadActivity()]);  // the page's own load: Loading… and a failed read are shown (13.1)
+    return this.loadWorkspace().then(() => this.loadActivity());  // the page's own load, the project first (the jobs are its own): Loading… and a failed read are shown (13.1)
   },
 });
