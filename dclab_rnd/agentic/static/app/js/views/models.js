@@ -53,6 +53,11 @@ DC.view('models', {
     const LABEL = { roc_auc: 'ROC-AUC', average_precision: 'average precision', macro_f1: 'macro-F1', mae: 'MAE', rmse: 'RMSE', r2: 'R²', accuracy: 'accuracy', balanced_accuracy: 'balanced accuracy', log_loss: 'log loss', brier: 'Brier score' };
     const LOWER = new Set(['mae', 'rmse', 'mape', 'log_loss', 'brier']);
     const UNIT = new Set(['roc_auc', 'average_precision', 'macro_f1', 'accuracy', 'balanced_accuracy', 'f1', 'precision', 'recall']);
+    // the other metrics every fold already measured, shown beside the one the rule ranks by (the owner, 2026-10-20); a binary
+    // model's precision, recall and F1 are read at the 0.5 cut: the operating threshold is chosen later, in the final stage
+    const EXTRA = { binary: [['precision', 'Precision @0.5'], ['recall', 'Recall @0.5'], ['f1', 'F1 @0.5'], ['average_precision', 'Avg precision'], ['roc_auc', 'ROC-AUC']],
+                    multiclass: [['macro_f1', 'Macro-F1'], ['balanced_accuracy', 'Balanced acc.'], ['accuracy', 'Accuracy']],
+                    regression: [['mae', 'MAE'], ['rmse', 'RMSE'], ['r2', 'R²']] };
     const WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
     const words = n => WORDS[n] || String(n);
     const ok = v => v != null && isFinite(v);
@@ -92,11 +97,15 @@ DC.view('models', {
       const rule = (ev && ev.selection_rule) || '';
       const km = rule.match(/([0-9]*\.?[0-9]+)\s*×\s*fold std/);
       const results = (ev && ev.model_results) || [];
+      const measured = Object.assign({}, ...results.map(x => x.metrics || {}));
+      const task = 'f1' in measured && 'precision' in measured ? 'binary' : 'macro_f1' in measured ? 'multiclass' : 'mae' in measured ? 'regression' : '';
+      const cols = (EXTRA[task] || []).filter(([k]) => k !== metric && k in measured).slice(0, 4);
       const rows = ((ev && ev.ranking) || []).map(r => {
         const mr = results.find(x => x.model === r.model) || {};
         const fit = mr.metrics && mr.metrics.fit_seconds;
         return { name: r.model, mean: r.mean, sd: r.std, t: r.elapsed_seconds, adjusted: r.adjusted_score, feats: r.feature_count_mean,
-          folds: (mr.fold_metrics || []).map(x => x[metric]).filter(ok), fit: fit ? fit.mean : null };
+          folds: (mr.fold_metrics || []).map(x => x[metric]).filter(ok), fit: fit ? fit.mean : null,
+          extra: Object.fromEntries(cols.map(([k]) => [k, mr.metrics && mr.metrics[k] ? mr.metrics[k].mean : null])) };
       });
       const dec = (m && m.decision) || {};
       const selected = (ev && ev.selected_model) || dec.selected || (rows[0] || {}).name;
@@ -104,7 +113,7 @@ DC.view('models', {
       const cv = (ev && ev.cv_protocol) || (fx && fx.evidence && fx.evidence.cv_protocol) || (d && d.evidence && d.evidence.cv_protocol) || '';
       const nf = (results[0] && results[0].folds) || Number((cv.match(/\((\d+)/) || [])[1]) || null;
       const kind = /Group/.test(cv) ? 'group' : /TimeSeries|time/i.test(cv) ? 'time-ordered' : /Stratified/.test(cv) ? 'stratified' : '';
-      return { p, m, f, ev, fe, metric, label: LABEL[metric] || metric, unit: UNIT.has(metric), rule,
+      return { p, m, f, ev, fe, metric, label: LABEL[metric] || metric, unit: UNIT.has(metric), rule, cols, task,
         k: km ? Number(km[1]) : 0.25, higher: rule ? !/lower is better/i.test(rule) : !LOWER.has(metric),
         rows, selected, chosen, overridden: !!chosen && chosen !== selected, nf, kind, recipe: (ev && ev.feature_recipe) || (fe && fe.feature_recipe) || (fx && ((fx.decision || {}).chosen || (fx.evidence || {}).selected_recipe)) || '',
         trainRows: (d && d.evidence && d.evidence.train_rows) || (fe && fe.train_rows) || null };
@@ -139,8 +148,13 @@ DC.view('models', {
       const feats = V.rows.length ? Math.round(V.rows[0].feats) : null;
       $('#mo-screen-title', el).innerHTML = `<h2>Screen on the ${esc(V.recipe || 'chosen')} recipe</h2><span class="sub">${ev ? `${V.nf} ${V.kind} folds · ${feats != null ? feats + ' features · ' : ''}ranked by mean ${V.higher ? '−' : '+'} ${V.k} × fold spread, then runtime` : `${V.nf ? V.nf + ' ' + V.kind + ' folds · ' : ''}ranked by a rule declared when the models stage runs`}</span>`;
       $('#mo-screen-ev', el).innerHTML = evChips(V.m);
-      $('#mo-fit-th', el).textContent = `Fit time (${V.nf || 'all'} folds)`;
-      $('#mo-adj-th', el).textContent = `Mean ${V.higher ? '−' : '+'} k×spread`;
+      $('#mo-screen-head', el).innerHTML = `<tr><th>Family</th><th class="num">Mean ${esc(V.label)}</th><th class="num">Fold spread</th>`
+        + `<th class="num" id="mo-adj-th">Mean ${V.higher ? '−' : '+'} k×spread</th>${V.cols.map(([, l]) => `<th class="num">${esc(l)}</th>`).join('')}`
+        + `<th class="num" id="mo-fit-th">Fit time (${V.nf || 'all'} folds)</th><th>Rank</th></tr>`;
+      const note = $('#mo-screen-note', el);
+      note.hidden = !(ev && V.cols.length);
+      note.textContent = !V.cols.length ? '' : `The other columns are each family's mean over the same folds; the rank uses ${V.label} alone.`
+        + (V.task === 'binary' ? ' Precision, recall and F1 count a score of 0.5 or more as a case: the operating threshold is chosen later, on the training rows (the final stage), so they can look low for a rare outcome.' : '');
       $('#kpen', el).value = String(V.k); $('#kpen', el).disabled = !ev;
       $('#override-btn', el).disabled = !ev; $('#override-btn', el).title = ev ? '' : 'Run the models stage first';
       $('#mo-rule-sub', el).textContent = ev ? `Declared in the protocol before the screen ran: ${V.rule}` : 'The rule is declared when the models stage runs.';
@@ -166,13 +180,13 @@ DC.view('models', {
       const k = Number($('#kpen', el).value);
       $('#kpen-val', el).textContent = k.toFixed(2);
       if (!V.ev) {
-        $('#screen-table tbody', el).innerHTML = `<tr><td colspan="6">${empty(stageNote(V.p, 'models'))}</td></tr>`;
+        $('#screen-table tbody', el).innerHTML = `<tr><td colspan="${6 + V.cols.length}">${empty(stageNote(V.p, 'models'))}</td></tr>`;
         $('#screen-chart', el).innerHTML = '';
         $('#rule-out', el).innerHTML = empty(stageNote(V.p, 'models', 'how the rule ranks the families'));
         return;
       }
       const r = rankK(V, k), top = r[0], sign = V.higher ? '−' : '+';
-      $('#screen-table tbody', el).innerHTML = r.map((f, i) => `<tr class="${i === 0 ? 'selected' : ''}"><td><span class="cell-main">${esc(f.name)}</span>${i === 0 ? ' <span class="pill accent">selected</span>' : ''}${V.overridden && f.name === V.chosen ? ' <span class="pill warn">chosen by you</span>' : ''}</td><td class="num mono">${num(f.mean)}</td><td class="num mono">±${num(f.sd)}</td><td class="num mono">${num(f.score)}</td><td class="num mono">${secs(f.t)}</td><td>${i + 1}</td></tr>`).join('');
+      $('#screen-table tbody', el).innerHTML = r.map((f, i) => `<tr class="${i === 0 ? 'selected' : ''}"><td><span class="cell-main">${esc(f.name)}</span>${i === 0 ? ' <span class="pill accent">selected</span>' : ''}${V.overridden && f.name === V.chosen ? ' <span class="pill warn">chosen by you</span>' : ''}</td><td class="num mono">${num(f.mean)}</td><td class="num mono">±${num(f.sd)}</td><td class="num mono">${num(f.score)}</td>${V.cols.map(([k]) => `<td class="num mono">${num(f.extra[k])}</td>`).join('')}<td class="num mono">${secs(f.t)}</td><td>${i + 1}</td></tr>`).join('');
       const sc = scale(V.rows.flatMap(f => [f.mean - f.sd, f.mean + f.sd]), V.unit);
       $('#screen-chart', el).innerHTML = charts.barsH(V.rows.map(f => ({ label: f.name, value: f.mean, lo: f.mean - f.sd, hi: f.mean + f.sd, valueText: `${num(f.mean)} ± ${num(f.sd)}`, cls: f.name === top.name ? '' : 'soft', strong: f.name === top.name })),
         { width: 640, labelW: 160, valW: 128, min: sc.min, max: sc.max, rowH: 30, ticks: sc.ticks, tickFmt: sc.fmt, aria: `Mean ${V.label} with fold spread` });

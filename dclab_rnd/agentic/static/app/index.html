@@ -943,8 +943,8 @@
 
     <div class="panel" data-f="models.screen" data-tour="screen">
       <div class="panel-head"><div class="panel-title" id="mo-screen-title" data-slot><h2>Screen on the ratios recipe</h2><span class="sub">3 stratified folds · 38 features · ranked by mean − 0.25 × fold spread, then runtime</span></div><span class="ev-list" id="mo-screen-ev" data-slot>${chip:EXP-009}</span></div>
-      <div class="table-wrap"><table class="data" id="screen-table"><thead><tr><th>Family</th><th class="num">Mean</th><th class="num">Fold spread</th><th class="num" id="mo-adj-th" data-slot>Mean − k×spread</th><th class="num" id="mo-fit-th" data-slot>Fit time (3 folds)</th><th>Rank</th></tr></thead><tbody></tbody></table></div>
-      <div class="panel-body"><div id="screen-chart"></div></div>
+      <div class="table-wrap"><table class="data" id="screen-table"><thead id="mo-screen-head" data-slot><tr><th>Family</th><th class="num">Mean</th><th class="num">Fold spread</th><th class="num" id="mo-adj-th">Mean − k×spread</th><th class="num" id="mo-fit-th">Fit time (3 folds)</th><th>Rank</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel-body"><p class="small muted" id="mo-screen-note" data-slot hidden></p><div id="screen-chart"></div></div>
     </div>
   </div>
 
