@@ -25,6 +25,11 @@ def clean_env(**extra):
     return mock.patch.dict(os.environ, {**keep, **extra}, clear=True)
 
 
+
+def system_text(system):
+    """The system prompt as sent: a string, or blocks (each carrying its prompt-cache mark) joined."""
+    return system if isinstance(system, str) else "".join(b.get("text", "") for b in system)
+
 class FakeMessages:
     def __init__(self, reply=None, error=None, chunks=("Hel", "lo")):
         self.reply, self.error, self.chunks, self.sent = reply, error, chunks, []
@@ -162,14 +167,14 @@ class TranslationTest(unittest.TestCase):
             tools=[{"type": "function", "function": {"name": "profile", "description": "d", "parameters": {"type": "object", "properties": {"column": {"type": "string"}}}}}],
             max_tokens=None)
         sent = fake.sent[0]
-        self.assertEqual(sent["system"], "Be careful.")
+        self.assertEqual(system_text(sent["system"]), "Be careful.")  # a block with its prompt-cache mark (test_prompt_cache)
         self.assertEqual(sent["max_tokens"], anthropic_client.DEFAULT_MAX_TOKENS)
         self.assertEqual([t["role"] for t in sent["messages"]], ["user", "assistant", "user"])  # the tool result and the next words: one turn
         self.assertEqual(sent["messages"][1]["content"][0], {"type": "tool_use", "id": "tu_0", "name": "list", "input": {}})
         self.assertEqual(sent["messages"][2]["content"][0]["type"], "tool_result")
         self.assertEqual(sent["tools"][0]["input_schema"]["properties"]["column"]["type"], "string")
         self.assertEqual(out["tool_calls"], [{"id": "tu_1", "name": "profile", "arguments": {"column": "x"}}])
-        self.assertEqual((out["finish_reason"], out["usage"]), ("tool_calls", {"input_tokens": 11, "output_tokens": 7}))
+        self.assertEqual((out["finish_reason"], out["usage"]), ("tool_calls", {"input_tokens": 11, "output_tokens": 7, "cache_read_tokens": 0, "cache_write_tokens": 0, "cache_write_1h_tokens": 0}))
         self.assertEqual(out["assistant_message"]["tool_calls"][0]["function"]["name"], "profile")
 
     def test_json_requests_use_structured_outputs_or_ask_in_the_system_prompt(self):
@@ -180,7 +185,7 @@ class TranslationTest(unittest.TestCase):
         self.assertEqual(fake.sent[0]["extra_body"]["output_config"]["format"]["schema"], schema)
         self.assertEqual(fake.sent[0]["temperature"], 0)
         c.complete([{"role": "user", "content": "q"}], response_format={"type": "json_object"})
-        self.assertIn(anthropic_client.JSON_ONLY, fake.sent[1]["system"])
+        self.assertIn(anthropic_client.JSON_ONLY, system_text(fake.sent[1]["system"]))
         self.assertNotIn("response_format", fake.sent[1])
 
     def test_a_stream_is_heard_as_it_is_written(self):

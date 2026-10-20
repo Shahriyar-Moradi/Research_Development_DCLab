@@ -4,6 +4,13 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.100.0 (2026-10-20)
+
+Prompt caching on Anthropic's Messages API.
+
+- `experience` v12 (`dclab_core.experience_event.v12`, v11 read as v12): `model.request` gains `cache_read_tokens` and
+  `cache_write_tokens` (counts): of a request's input tokens, those read from the prompt cache and those written to it.
+
 ## 0.99.0 (2026-10-20)
 
 Packages 32.12 to 32.31 of the storing phase.

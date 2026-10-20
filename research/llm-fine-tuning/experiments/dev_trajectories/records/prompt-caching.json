@@ -1,0 +1,74 @@
+{
+ "package": "prompt-caching",
+ "title": "Prompt caching on Anthropic's Messages API: the stable prefix cached, a conversation under way at its end, every cached token priced and kept",
+ "date": "2026-10-20",
+ "request": "After the UI, implement prompt caching using platform.claude.com/docs/en/build-with-claude/prompt-caching.",
+ "spec": "platform.claude.com/docs/en/build-with-claude/prompt-caching (read 2026-10-20)",
+ "plan": [
+  "Mark the last tool and the system prompt for the cache on every request.",
+  "Add the automatic breakpoint only to a conversation under way.",
+  "Read the reply's cache reads and writes, price them at their own rates, keep them in the usage log and the request's event.",
+  "Keep the estimate before sending an upper bound; one switch and one time to live for the process."
+ ],
+ "decisions": [
+  {
+   "decision": "The moving (automatic) breakpoint only when the conversation has an assistant turn.",
+   "why": "A single request with a new question would pay 1.25 to 2 times the input price to write text no request reads again."
+  },
+  {
+   "decision": "Five minutes by default, an hour by DCLAB_PROMPT_CACHE_TTL; a misspelt TTL is refused.",
+   "why": "The hour costs 2 times to write; a silent fallback would change every request's cost."
+  },
+  {
+   "decision": "input_tokens keeps counting every input token; the cache's share is said apart.",
+   "why": "The caps, totals and pages read input_tokens; the price applies each share's rate."
+  },
+  {
+   "decision": "The estimate multiplies the input by the write rate when the cache is on.",
+   "why": "The reservation before sending must stay an upper bound, or a cap could be passed."
+  }
+ ],
+ "change": "models/anthropic_client.py (breakpoints, usage), models/prices.py (cache_read rate per model, CACHE_WRITE, caching(), cost and estimate), models/gateway.py and usage.py (cache tokens priced and kept), storage migration 0020 (model_request.cache_read_tokens, cache_write_tokens), dclab_core experience_event v12 (model.request's cache tokens; dclab-core 0.100.0).",
+ "findings": [
+  {
+   "id": "C1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The transport's tests read the system prompt as a string.",
+   "scenario": "test_anthropic_transport after the change.",
+   "cause": "The system prompt is now a block carrying its cache mark.",
+   "fix": "The tests read its text from the block; the mark is tested in test_prompt_cache.",
+   "test": "tests/test_anthropic_transport.py"
+  },
+  {
+   "id": "C2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The event vocabulary changed shape under the same version.",
+   "scenario": "test_no_contract_changes_shape_under_the_same_version.",
+   "cause": "model.request gained two fields.",
+   "fix": "experience_event v12, v11 read as v12.",
+   "test": "tests/test_core_contracts.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "prompt caching live with Sonnet 5.5",
+   "gate": "a second request with the same prefix reads it from the cache and costs less than the first",
+   "result": "the first wrote 2,185 tokens (EUR 0.00606); the second read 2,185 (EUR 0.00079, about 87 percent less); a conversation under way read 2,185 and wrote 35 at its end; EUR 0.008 in all",
+   "verdict": "pass",
+   "cost_eur": 0.008,
+   "limits": [
+    "three requests from one workspace; the saving on real traffic depends on how often a purpose repeats within five minutes"
+   ]
+  }
+ ],
+ "outcome": "Every Anthropic request caches its stable prefix and every cached token is priced and recorded; a repeated prompt costs about a seventh.",
+ "lessons": [
+  "Check a provider feature live once: the tests prove the request's shape, only the API proves it caches."
+ ],
+ "risks": [
+  "A prompt below 512 tokens (Sonnet 5.5) is not cached and costs as before."
+ ],
+ "commits": []
+}

@@ -13,6 +13,14 @@ client's ``thinking`` attribute) asks for Claude's extended thinking; the reply'
 ``thinking_blocks``, which ``to_messages`` sends back first in that assistant turn, as the API requires during tool use.
 A temperature is not sent with thinking (the API refuses the two together).
 
+Prompt caching (platform.claude.com/docs/en/build-with-claude/prompt-caching): every request marks its stable prefix for
+the cache, the last tool (so every tool definition) and the system prompt; a conversation already under way (an
+assistant turn in it, so it will be sent again with more) also gets the API's automatic breakpoint, which moves to its
+end. A single request with a new question gets none there, so it never pays the write premium on text no request will
+read again. ``prices.caching()`` gives the time to live (DCLAB_PROMPT_CACHE_TTL, five minutes or an hour) or turns it
+off (DCLAB_PROMPT_CACHE=off); a prompt below the model's minimum (512 tokens for Sonnet 5.5) is simply not cached. The
+reply's usage keeps every input token in ``input_tokens`` and says how many were read from the cache and written to it.
+
 Set it with ``DCLAB_LLM_PROVIDER=anthropic`` and ``ANTHROPIC_API_KEY`` in ``.env`` (models/settings.py).
 """
 
@@ -21,6 +29,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from . import prices
 from .client import ChatClient
 
 BASE_URL = "https://api.anthropic.com"
@@ -159,9 +168,7 @@ def from_message(message: Any) -> dict[str, Any]:
     stop = getattr(message, "stop_reason", None)
     out = {
         "content": content, "tool_calls": calls, "finish_reason": FINISH.get(stop, stop),
-        "usage": {"input_tokens": (getattr(usage, "input_tokens", 0) or 0) + (getattr(usage, "cache_read_input_tokens", 0) or 0)
-                                  + (getattr(usage, "cache_creation_input_tokens", 0) or 0),
-                  "output_tokens": getattr(usage, "output_tokens", 0) or 0},
+        "usage": _usage(usage),
         "assistant_message": {"role": "assistant", "content": content,
                               **({"tool_calls": [{"id": c["id"], "type": "function", "function": {"name": c["name"], "arguments": json.dumps(c["arguments"])}}
                                                  for c in calls]} if calls else {}),
@@ -171,6 +178,20 @@ def from_message(message: Any) -> dict[str, Any]:
         out["thinking"] = thought
         out["redacted_thinking"] = redacted
     return out
+
+
+def _usage(usage: Any) -> dict[str, int]:
+    """The reply's tokens: ``input_tokens`` counts every input token (read from the cache, written to it, or neither), and
+    the cache's share is said apart, the hour-long writes within the writes."""
+    read = int(getattr(usage, "cache_read_input_tokens", 0) or 0)
+    write = int(getattr(usage, "cache_creation_input_tokens", 0) or 0)
+    write_1h = int(getattr(getattr(usage, "cache_creation", None), "ephemeral_1h_input_tokens", 0) or 0)
+    return {"input_tokens": int(getattr(usage, "input_tokens", 0) or 0) + read + write, "output_tokens": int(getattr(usage, "output_tokens", 0) or 0),
+            "cache_read_tokens": read, "cache_write_tokens": write, "cache_write_1h_tokens": min(write_1h, write)}
+
+
+def _cache_mark(ttl: str) -> dict[str, str]:
+    return {"type": "ephemeral", **({"ttl": "1h"} if ttl == "1h" else {})}  # five minutes is the API's default
 
 
 class AnthropicClient(ChatClient):
@@ -213,10 +234,16 @@ class AnthropicClient(ChatClient):
         extra, system = _options(options, system)
         limit = self.effective_max_tokens(max_tokens, options)
         kwargs: dict[str, Any] = {"model": self.model, "messages": turns, "max_tokens": limit, **extra}
+        ttl = prices.caching()
         if system:
-            kwargs["system"] = system
+            kwargs["system"] = [{"type": "text", "text": system, "cache_control": _cache_mark(ttl)}] if ttl else system
         if tools:
-            kwargs.update(tools=to_tools(tools), tool_choice={"type": "auto"})
+            listed = to_tools(tools)
+            if ttl:
+                listed[-1] = {**listed[-1], "cache_control": _cache_mark(ttl)}  # the last tool's mark caches every tool before it
+            kwargs.update(tools=listed, tool_choice={"type": "auto"})
+        if ttl and any(t["role"] == "assistant" for t in turns):  # a conversation under way: the automatic breakpoint follows its end
+            kwargs["extra_body"] = {**(kwargs.get("extra_body") or {}), "cache_control": _cache_mark(ttl)}
         return kwargs
 
     def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int | None = 1800, **options: Any) -> dict[str, Any]:

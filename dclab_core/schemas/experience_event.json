@@ -178,7 +178,7 @@
     },
     "JsonValue": {}
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v11.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v12.json",
   "additionalProperties": false,
   "allOf": [
     {
@@ -6668,6 +6668,86 @@
               "properties": {
                 "payload": {
                   "required": [
+                    "cache_read_tokens"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "cache_read_tokens"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "cache_read_tokens"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "cache_read_tokens"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "cache_write_tokens"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "cache_write_tokens"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "cache_write_tokens"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "cache_write_tokens"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
                     "cost"
                   ]
                 }
@@ -7107,6 +7187,12 @@
         "properties": {
           "classes": {
             "properties": {
+              "cache_read_tokens": {
+                "const": "count"
+              },
+              "cache_write_tokens": {
+                "const": "count"
+              },
               "cost": {
                 "const": "count"
               },
@@ -7143,6 +7229,8 @@
             },
             "propertyNames": {
               "enum": [
+                "cache_read_tokens",
+                "cache_write_tokens",
                 "cost",
                 "currency",
                 "input_tokens",
@@ -7160,6 +7248,8 @@
           "payload": {
             "propertyNames": {
               "enum": [
+                "cache_read_tokens",
+                "cache_write_tokens",
                 "cost",
                 "currency",
                 "input_tokens",
@@ -15555,8 +15645,8 @@
       "type": "array"
     },
     "schema_version": {
-      "const": "dclab_core.experience_event.v11",
-      "default": "dclab_core.experience_event.v11",
+      "const": "dclab_core.experience_event.v12",
+      "default": "dclab_core.experience_event.v12",
       "title": "Schema Version",
       "type": "string"
     },

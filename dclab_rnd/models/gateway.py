@@ -248,8 +248,10 @@ class Gateway:
         if base_url:  # a client the gateway does not send for (NOOA) names where its request went
             public = {**public, "endpoint": settings._host(base_url), "local": settings.is_local(base_url)}
         tokens_in, tokens_out = int((usage or {}).get("input_tokens") or 0), int((usage or {}).get("output_tokens") or 0)
+        read, write = int((usage or {}).get("cache_read_tokens") or 0), int((usage or {}).get("cache_write_tokens") or 0)
         try:
-            eur, basis = prices.cost(model, public["local"], tokens_in, tokens_out)
+            eur, basis = prices.cost(model, public["local"], tokens_in, tokens_out, cache_read=read, cache_write=write,
+                                     cache_write_1h=int((usage or {}).get("cache_write_1h_tokens") or 0))
         except ValueError:  # a broken price file: the answer is kept and the request counted in tokens
             eur, basis = None, "no price"
         if self.usage is None:
@@ -258,7 +260,8 @@ class Gateway:
             self.usage.record({"at": now(), "purpose": purpose, "tier": tier, "model": model, "endpoint": public["endpoint"],
                                "project_id": project_id, "draft_id": draft_id, "input_tokens": tokens_in, "output_tokens": tokens_out,
                                "seconds": round(seconds, 2), "attempts": attempts, "outcome": outcome,
-                               "prompt": prompt if os.environ.get("DCLAB_LOG_PROMPTS") == "1" else None, "cost_eur": eur, "cost_basis": basis})
+                               "prompt": prompt if os.environ.get("DCLAB_LOG_PROMPTS") == "1" else None, "cost_eur": eur, "cost_basis": basis,
+                               "cache_read_tokens": read or None, "cache_write_tokens": write or None})
             from .. import observe
 
             observe.observe_model(purpose, str(tier), outcome, tokens_in or 0, tokens_out or 0, eur)  # 12.4: model usage counters
@@ -501,6 +504,7 @@ class Bound:
         hooks.from_model_request({"id": request_id, "purpose": self.purpose, "tier": self.tier.get("name"), "model": self.model,
                                   "project_id": self.project_id,
                                   "draft_id": self.draft_id, "input_tokens": usage.get("input_tokens"), "output_tokens": usage.get("output_tokens"),
+                                  "cache_read_tokens": usage.get("cache_read_tokens"), "cache_write_tokens": usage.get("cache_write_tokens"),
                                   "cost_eur": eur, "seconds": round(seconds, 3), "outcome": outcome},
                                  messages, (out or {}).get("content") if isinstance((out or {}).get("content"), str) else None)
 

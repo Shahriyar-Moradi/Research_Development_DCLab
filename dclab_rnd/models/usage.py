@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 FIELDS = ("at", "purpose", "tier", "model", "endpoint", "project_id", "draft_id", "input_tokens", "output_tokens",
-          "seconds", "attempts", "outcome", "prompt", "cost_eur", "cost_basis", "user_id")
+          "seconds", "attempts", "outcome", "prompt", "cost_eur", "cost_basis", "user_id", "cache_read_tokens", "cache_write_tokens")
 
 
 def _person(entry: dict[str, Any]) -> dict[str, Any]:

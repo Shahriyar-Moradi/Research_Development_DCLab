@@ -190,7 +190,7 @@
   {
    "contract": "experience_event",
    "reads": [],
-   "version": "dclab_core.experience_event.v11"
+   "version": "dclab_core.experience_event.v12"
   },
   {
    "contract": "experience_session",
@@ -529,7 +529,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.99.0",
+ "dclab_core": "0.100.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1839,6 +1839,8 @@
    "example": "python -m dclab_rnd.experience search --kind model.request",
    "family": "model",
    "fields": {
+    "cache_read_tokens": "count",
+    "cache_write_tokens": "count",
     "cost": "count",
     "currency": "meta",
     "input_tokens": "count",
@@ -2685,7 +2687,9 @@
     "prompt",
     "cost_eur",
     "cost_basis",
-    "user_id"
+    "user_id",
+    "cache_read_tokens",
+    "cache_write_tokens"
    ],
    "files": "model_requests.jsonl",
    "table": "model_request",

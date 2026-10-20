@@ -57,7 +57,8 @@ SHAREABLE = frozenset({"meta", "count"})  # what any export may keep
 READ_AS_CURRENT = frozenset({"dclab_core.experience_event.v1", "dclab_core.experience_event.v2", "dclab_core.experience_event.v3",
                              "dclab_core.experience_event.v4", "dclab_core.experience_event.v5",
                              "dclab_core.experience_event.v6", "dclab_core.experience_event.v7", "dclab_core.experience_event.v8",
-                             "dclab_core.experience_event.v9", "dclab_core.experience_event.v10"})  # v11 (28.4) added chat.agent's question_source (the understanding critic's questions); v10 is read as v11  # v10 (28.2) added team.handoff, team.interrupt and team.recorded; v9 is read as v10  # read as v9: v9 added the problem.*, solution.* and programme.* kinds of a problem of several parts; read as v8: each a subset (v3 added consent; v4 the ui.* and auth.* kinds; v5 the error fingerprint; v6 outcome.observed; v7 feedback kinds, column sensitivity and the pipeline steps; v8 trace, span and parent_span in the ids)
+                             "dclab_core.experience_event.v9", "dclab_core.experience_event.v10",
+                             "dclab_core.experience_event.v11"})  # v12: model.request's prompt-cache tokens (cache_read_tokens, cache_write_tokens); v11 is read as v12  # v11 (28.4) added chat.agent's question_source (the understanding critic's questions); v10 is read as v11  # v10 (28.2) added team.handoff, team.interrupt and team.recorded; v9 is read as v10  # read as v9: v9 added the problem.*, solution.* and programme.* kinds of a problem of several parts; read as v8: each a subset (v3 added consent; v4 the ui.* and auth.* kinds; v5 the error fingerprint; v6 outcome.observed; v7 feedback kinds, column sensitivity and the pipeline steps; v8 trace, span and parent_span in the ids)
 FINAL_STAGES = frozenset({"final", "terminal"})  # the last stage: this studio's, and the main product's
 
 M, C, P, A, X, V = "meta", "count", "person_text", "agent_text", "model_text", "cell_values"
@@ -113,7 +114,8 @@ KINDS: dict[str, dict[str, str]] = {
     # a tool's arguments and result can hold a table's values: they are cell values; their names and a code are meta
     "tool.call": {"tool": M, "scope": M, "argument_names": M, "arguments": V, "verdict": M, "code": M, "result": V},
     "model.checked": {"purpose": M, "tier": M, "model": M, "passed": M, "reason": A},  # 23.10: the code that checks a reply, and its verdict
-    "model.request": {"purpose": M, "tier": M, "model": M, "input_tokens": C, "output_tokens": C, "cost": C, "currency": M,
+    "model.request": {"purpose": M, "tier": M, "model": M, "input_tokens": C, "output_tokens": C, "cache_read_tokens": C, "cache_write_tokens": C,
+                      "cost": C, "currency": M,
                       "seconds": C, "outcome": M, "prompt": X, "reply": X},
     # decisions: proposed by an agent or a rule, accepted, overridden or refused by a person or a check
     "decision.proposed": {"point": M, "by": M, "choice": M, "why": A},
@@ -199,7 +201,7 @@ class ExperienceEvent(Versioned):
 
     model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False, json_schema_extra=_vocabulary)
 
-    schema_version: Literal["dclab_core.experience_event.v11"] = _version("experience_event", 11)
+    schema_version: Literal["dclab_core.experience_event.v12"] = _version("experience_event", 12)
     id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{6,80}$")
     at: str = Field(description="ISO 8601 with microseconds, UTC.")
     seq: int = Field(default=0, ge=0)

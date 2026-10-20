@@ -196,6 +196,7 @@ def from_model_request(entry: dict[str, Any], messages: list[dict[str, Any]] | N
     prompt = "\n\n".join(f"{m.get('role')}: {m.get('content')}" for m in messages or [] if isinstance(m.get("content"), str)) if keep else None
     record("model.request", "model", {"purpose": entry.get("purpose"), "tier": entry.get("tier"), "model": entry.get("model"),
                                       "input_tokens": entry.get("input_tokens"), "output_tokens": entry.get("output_tokens"),
+                                      "cache_read_tokens": entry.get("cache_read_tokens") or None, "cache_write_tokens": entry.get("cache_write_tokens") or None,
                                       "cost": entry.get("cost_eur"), "currency": "EUR" if entry.get("cost_eur") is not None else None,
                                       "seconds": entry.get("seconds"), "outcome": entry.get("outcome"),
                                       "prompt": prompt[:20000] if prompt else None, "reply": (reply or None) if keep else None},

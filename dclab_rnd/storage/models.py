@@ -137,6 +137,8 @@ model_request = sa.Table(  # the model gateway's usage log (dclab_rnd/models/usa
     sa.Column("cost_eur", sa.Float),  # null when the model has no configured price
     sa.Column("cost_basis", sa.Text),  # "price", "local" or "no price" (dclab_rnd/models/prices.py)
     sa.Column("user_id", sa.String(64)),  # the signed-in person the request was for (package 10.6: a monthly limit per user)
+    sa.Column("cache_read_tokens", sa.Integer),   # of input_tokens, those read from the prompt cache (Anthropic); null before 0020
+    sa.Column("cache_write_tokens", sa.Integer),  # of input_tokens, those written to it
     sa.Index("ix_model_request_workspace_at", "workspace_id", "at"),
     sa.Index("ix_model_request_project_id", "project_id"))
 
