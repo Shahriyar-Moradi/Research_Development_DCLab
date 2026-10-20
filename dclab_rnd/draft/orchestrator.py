@@ -45,6 +45,10 @@ SHOWN_SENTENCES = 4  # a reply beside a table: at most this many sentences (the 
 WATCH_SECONDS = 3 * 3600  # how long a job is followed on the board
 
 
+class ModelUnhelpful(RuntimeError):
+    """The model's turn ran nothing and said nothing grounded: the rules answer instead."""
+
+
 def now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -1194,7 +1198,7 @@ class Orchestrator:
                 path = "model"
             except Exception as exc:  # noqa: BLE001 - the model failed or its cap was reached: the rules carry this turn
                 record["model_error"] = f"{type(exc).__name__}: {str(exc)[:300]}"
-                if t.tasks or t.shown:  # tools already ran this turn: say what they did; planning again would run a write twice
+                if t.shown or any(x["status"] != "failed" for x in t.tasks):  # tools ran this turn: say what they did; planning again would run a write twice
                     reply, path = self._rules_words(t), "model"
         if reply is None:
             reply = self.rules_turn(t, record)
@@ -1243,6 +1247,13 @@ class Orchestrator:
             elif isinstance(s.result, dict) and s.result.get("error"):
                 t.results.append(s.result)  # an error's words may be repeated
                 t.task(s.tool, TEAM[WHO.get(s.tool, "reader")], s.tool.replace("_", " "), "failed", detail=str(s.result["error"])[:200])
+        worked = [s for s in out.steps if s.ok and not (isinstance(s.result, dict) and s.result.get("error"))]
+        if not worked and not t.shown and not grounded(said, [t.results, self.situation(t)])[0]:
+            # every call refused and nothing grounded said (a small local model): nothing ran, so the rules carry the turn
+            # and the refusals stay in the record, never in the reply
+            t.tasks[:] = [x for x in t.tasks if x["status"] != "failed"]
+            t.results[:] = [r for r in t.results if not (isinstance(r, dict) and r.get("error"))]
+            raise ModelUnhelpful(f"{len(out.steps)} tool call(s), none accepted, and no grounded words")
         kept, dropped = grounded(said, [t.results, self.situation(t)])
         if t.shown:  # the owner, 2026-10-20: "bring the table instead of the texts": a list that repeats a shown table is dropped
             kept, listed = without_lists(kept)

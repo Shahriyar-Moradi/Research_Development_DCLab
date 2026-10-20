@@ -569,6 +569,15 @@ class ModelTests(unittest.TestCase):
             new = chat.since("show the models")
         self.assertEqual(new[-1]["path"], "rules")
 
+    def test_a_model_whose_every_tool_call_is_refused_leaves_the_turn_to_the_rules(self):  # found on a small local model (2026-10-21)
+        chat = Chat(self, gateway([call("show_problem", {"answer": 5}, n) for n in range(1, 7)] + [answer("")]))
+        new = chat.since("show me the models")
+        self.assertTrue(any(m["kind"] == "project_card" for m in new))  # the rules' table, not the model's refusals
+        self.assertEqual(new[-1]["path"], "rules")
+        self.assertNotIn("Unknown argument", json.dumps(new))
+        rows = [json.loads(l) for f in (chat.services.home / "home_orchestrator").glob("*.jsonl") for l in f.read_text().splitlines()]
+        self.assertTrue(rows[-1]["model_steps"] and "model_error" in rows[-1])  # what the model tried is kept
+
     def test_a_failing_model_leaves_the_turn_to_the_rules(self):
         chat = Chat(self, gateway([]))  # the script is empty: the first request fails
         new = chat.since("show me the models")
