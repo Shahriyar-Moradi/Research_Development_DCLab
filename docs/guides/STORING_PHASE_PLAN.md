@@ -1002,6 +1002,19 @@ gate. Model spend:
     - the research agent that finds outside findings (needs the owner's yes and a cap);
     - an engagement's request, feedback and explanation, read from the draft and the report;
     - labelled rows counted apart from rows.
+  - **The backfill (2026-10-20).**
+    - **What it kept:** every workspace (800), Claude Code session, test run and commit, in 21 minutes with no error:
+      about 15,500 sources, 771 MB compressed (6 GB of disk left).
+    - **What came out of it:** 476,539 records; 384,191 curators' choices; the sets of every model type; 874 walks.
+    - **What the real records showed:**
+      - the engine writes the holdout interval as a dict, so it is now read that way;
+      - walks need a server, so without one they are now read from each workspace's folder, with nothing written there.
+    - **Verdicts on 715 real builds:**
+      - 116 are incorrect, every one because its interval does not clear the best baseline (a forecast against seasonal
+        naive, uplift against the response model, anomaly recall against its own change);
+      - 599 are unknown: no build has a signed bar or a checked export in these development workspaces.
+    - **Engagements:** 159 of 874 stopped in the draft.
+    - **The tutor refitted no student:** no point's dev split has 5 confirmed labels yet (the rule's labels are not confirmed).
   - **The MLE-bench list checked** against openai/mle-bench: the Lite split matched (22 of 22), and the rest of its 75
     competitions and its development task were added (76 names).
 

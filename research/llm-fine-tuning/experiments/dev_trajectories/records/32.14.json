@@ -48,7 +48,17 @@
    "test": "test_a_point_with_enough_rows_gets_a_student_kept_whole_and_never_promoted"
   }
  ],
- "measurements": [],
+ "measurements": [
+  {
+   "name": "the tutor on the backfilled store",
+   "gate": "a student is refitted only with 20 training labels, 5 confirmed dev labels and 2 groups",
+   "result": "no point refitted: every point's dev split holds fewer than 5 confirmed labels (the rule's own labels are not confirmed)",
+   "verdict": "not scored",
+   "limits": [
+    "confirmed labels come from people's corrections and the replicas' declared traps; more testers' work fills them"
+   ]
+  }
+ ],
  "outcome": "Every point with enough confirmed labels gets a measured student kept whole and listed in shadow, never promoted.",
  "lessons": [
   "Make the group the example's own field: rebuilding it later loses tables."

@@ -89,12 +89,71 @@ def walks(services: Any) -> Iterator[WorkflowRecord]:
             yield walk(services, None, _safe(lambda: services.projects.get(pid)))
 
 
+class _Nothing:
+    """A store a folder does not have: it lists nothing and holds nothing."""
+
+    def list(self, *a: Any, **k: Any) -> list[Any]:
+        return []
+
+    def get(self, *a: Any, **k: Any) -> None:
+        return None
+
+    events = transitions = list
+
+    def records(self, *a: Any, **k: Any) -> dict[str, Any]:
+        return {}
+
+
+class _Folder:
+    """A file workspace's stores read from its folder alone, opening only the folders it has (so reading never adds one): what
+    ``walks`` needs when no server runs (a command-line or backfill run of the conductor)."""
+
+    def __init__(self, home: Any):
+        from pathlib import Path
+
+        from ..draft.store import DraftStore
+        from ..experience import open_log
+        from ..ledger import open_ledger
+        from ..studio.store import ProjectStore
+
+        home = Path(home)
+        self.store = type("Home", (), {"home": home})()
+        self.projects = ProjectStore(home / "projects") if (home / "projects").is_dir() else _Nothing()
+        self.drafts = DraftStore(home / "drafts") if (home / "drafts").is_dir() else _Nothing()
+        self.ledger = open_ledger(home) if (home / "ledger").is_dir() else None
+        self.experience = open_log(home) if (home / "experience").is_dir() else None
+
+
+def _folder_sources(env: dict[str, Any]) -> Iterator[Any]:
+    """Without a running server: every file workspace under ``agent_runs`` whose consent keeps content, its walks read from its
+    folder (a PostgreSQL workspace's walks are kept by its server's own run)."""
+    from ..storage import db
+    from .keepers import Source
+    from .keepers.workspaces import AGENT_RUNS, discover
+
+    if db.database_url(required=False):
+        return
+    for ws in discover(env.get("agent_runs") or AGENT_RUNS):
+        folder = ws.root  # a workspace's own folder, never a store path
+        if ws.consent == "operate" or not ((folder / "projects").is_dir() or (folder / "drafts").is_dir()):
+            continue
+        services = _safe(lambda: _Folder(folder))
+        if services is None:
+            continue
+        for record in _safe(lambda: list(walks(services)), []) or []:
+            yield Source(ws.name, f"walks/{(record.draft or record.project)}.json", json.dumps(record.model_dump(mode="json"), indent=1).encode(),
+                         consent=ws.consent)
+
+
 def keeper_sources(env: Any) -> Iterator[Any]:
-    """The keeper's sources: each walk of the services' workspace as ``walks/<id>.json`` (a new version when the walk moved on)."""
+    """The keeper's sources: each walk of the services' workspace as ``walks/<id>.json`` (a new version when the walk moved on);
+    without services, each file workspace's walks read from its folder."""
     from .keepers import Source
 
     services = env.get("services") if isinstance(env, dict) else env
     if services is None or not hasattr(services, "drafts"):
+        if isinstance(env, dict):
+            yield from _folder_sources(env)
         return
     from .keepers.workspaces import of
 

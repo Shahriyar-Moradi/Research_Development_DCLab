@@ -80,13 +80,24 @@
    "cause": "Point estimate; a substring list; solution.metric is optional.",
    "fix": "The interval's bound on the metric's side, the direction from solution_brief.HIGHER (unknown when absent), the final record's primary_metric.",
    "test": "tests/test_store_service.py::test_the_interval_must_clear_the_baseline_on_the_metrics_own_side"
+  },
+  {
+   "id": "B1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "On the real store, 693 of 715 builds were judged incorrect on uncertainty_said.",
+   "scenario": "The backfill's first service run.",
+   "cause": "The engine writes the holdout interval as {low, high, method, draws}; the fixture (and the code) read a pair.",
+   "fix": "_interval reads the engine's dict (a bootstrap with 0 draws is no interval) or a pair; a record that says why it has none is unknown, not failed.",
+   "test": "tests/test_store_service.py (the fixture now writes the engine's dict)"
   }
  ],
  "measurements": [],
  "outcome": "Each build has a verdict with each check's status and why.",
  "lessons": [
   "Unknown is a verdict of its own: it keeps a missing record from reading as a pass.",
-  "Write fixtures from the code that writes the records (a stage record copied from the engine), never from memory: invented shapes made every test pass while every real build was judged wrong."
+  "Write fixtures from the code that writes the records (a stage record copied from the engine), never from memory: invented shapes made every test pass while every real build was judged wrong.",
+  "Run a new builder on the real store before trusting its tests: the second fixture mistake was found only there."
  ],
  "risks": [],
  "commits": []

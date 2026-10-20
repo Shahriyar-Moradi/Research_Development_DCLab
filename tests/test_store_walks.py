@@ -105,6 +105,22 @@ class WalksTest(unittest.TestCase):
         conductor.conduct(self.s, self.layout, keepers)
         self.assertEqual(len([e for e in store.entries("workflows") if e.source == f"walks/{draft_id}.json"]), 2)
 
+    def test_without_a_server_the_walks_are_read_from_each_workspaces_folder_and_nothing_is_written_there(self):
+        from dclab_rnd.store import Layout, Store, conductor
+        from dclab_rnd.store.keepers import standard
+
+        draft_id, pid = self.scripted_walk()
+        before = sorted(str(p.relative_to(self.home)) for p in self.home.rglob("*") if p.is_dir())
+        layout = Layout(Path(tempfile.mkdtemp()) / "store")
+        keepers = {k: v for k, v in standard.install({}).items() if k == "walks"}
+        conductor.conduct({"agent_runs": self.home, "test_runs": None, "claude_projects": None}, layout, keepers)  # a command-line run
+        kept = [e for e in Store(layout).entries("workflows") if e.source == f"walks/{draft_id}.json"]
+        self.assertEqual(len(kept), 1)
+        walk = json.loads(Store(layout).read(kept[0]))
+        self.assertEqual(walk["project"], pid)
+        self.assertIn("refused", [s["kind"] for s in walk["steps"]])
+        self.assertEqual(sorted(str(p.relative_to(self.home)) for p in self.home.rglob("*") if p.is_dir()), before)
+
 
 if __name__ == "__main__":
     unittest.main()

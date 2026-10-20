@@ -44,7 +44,7 @@ def _records(pid, *, holdout_uses=1, bar="met", moment="At order time, before di
         "leakage": stage("leakage", "2026-10-20T10:06:00+00:00", {"declared_leakage_features": ["final_fare"],
                                                                    "heuristic_review_candidates": [{"feature": "final_fare", "reasons": ["declared_post_outcome_or_contested"]}]}),
         "models": stage("models", "2026-10-20T10:07:00+00:00", {"cv_protocol": "TimeSeriesSplit(5) on training rows"}),
-        "final": stage("final", "2026-10-20T10:08:00+00:00", {"holdout_metrics": {metric: value}, "holdout_primary_metric_ci": list(ci),
+        "final": stage("final", "2026-10-20T10:08:00+00:00", {"holdout_metrics": {metric: value}, "holdout_primary_metric_ci": {"point": value, "low": ci[0], "median": value, "high": ci[1], "draws": 40, "method": "iid row bootstrap"},
                                                                "holdout_uses_in_this_project": holdout_uses, "baselines": {"majority_class": {metric: baseline}},
                                                                "success_bar": {"verdict": bar, "bar": {"metric": metric}}}, run={"run": f"run-{pid}"}),
     }

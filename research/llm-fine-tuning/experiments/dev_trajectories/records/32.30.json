@@ -20,6 +20,16 @@
    "cause": "Walk versions were not deduplicated.",
    "fix": "The current chain only: a snapshot's newest version.",
    "test": "tests/test_store_service.py::test_a_walk_kept_twice_is_one_engagement_and_the_playbook_counts_what_it_rests_on"
+  },
+  {
+   "id": "B2",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The backfill kept no walks, so no engagement was built.",
+   "scenario": "python -m dclab_rnd.store run over 800 workspaces: walks read 0.",
+   "cause": "The walks keeper read only a running server's services.",
+   "fix": "Without a server, each file workspace's walks are read from its folder (its project, draft, ledger and event stores, opened only where the folder exists, nothing written).",
+   "test": "tests/test_store_walks.py::test_without_a_server_the_walks_are_read_from_each_workspaces_folder_and_nothing_is_written_there"
   }
  ],
  "measurements": [],

@@ -151,6 +151,19 @@ def _higher(metric: Optional[str]) -> Optional[bool]:
     return HIGHER.get(str(metric)) if metric else None
 
 
+def _interval(ci: Any) -> tuple[Optional[float], Optional[float], str]:
+    """(low, high, how) of a holdout interval as the engine writes it (``{low, high, method, draws}``, a bootstrap that drew
+    nothing has 0 draws), or a pair; (None, None, why) when it is not an interval."""
+    if isinstance(ci, dict):
+        low, high = ci.get("low"), ci.get("high")
+        if isinstance(low, (int, float)) and isinstance(high, (int, float)) and ci.get("draws") != 0:
+            return float(low), float(high), str(ci.get("method") or "")
+        return None, None, str(ci.get("method") or "no interval drawn")
+    if isinstance(ci, (list, tuple)) and len(ci) == 2 and all(isinstance(x, (int, float)) for x in ci):
+        return float(min(ci)), float(max(ci)), ""
+    return None, None, "no interval recorded"
+
+
 def _facts(project: dict[str, Any], stages: dict[str, dict[str, Any]], moves: list[dict[str, Any]], metric: Optional[str]) -> dict[str, Any]:
     """The verdict's facts from the records alone; a fact its records cannot say is None, with why."""
     solution = project.get("solution") or {}
@@ -208,16 +221,23 @@ def _facts(project: dict[str, Any], stages: dict[str, dict[str, Any]], moves: li
             facts["holdout_read_once_why"] = "no count of the holdout's reads in its records"
         holdout = (evidence.get("holdout_metrics") or {}).get(metric) if metric else None
         baselines = {k: v.get(metric) for k, v in (evidence.get("baselines") or {}).items() if isinstance(v, dict) and isinstance(v.get(metric), (int, float))}
-        ci = evidence.get("holdout_primary_metric_ci")
+        low, high, how = _interval(evidence.get("holdout_primary_metric_ci"))
         higher = _higher(metric)
-        bounded = isinstance(ci, (list, tuple)) and len(ci) == 2 and all(isinstance(x, (int, float)) for x in ci)
+        bounded = low is not None
         if isinstance(holdout, (int, float)) and baselines and bounded and higher is not None:
-            bound = min(ci) if higher else max(ci)  # the interval's side that must clear every baseline
+            bound = low if higher else high  # the interval's side that must clear every baseline
             facts["beats_baselines_with_interval"] = all((bound > b) if higher else (bound < b) for b in baselines.values())
-            facts["beats_baselines_with_interval_why"] = f"{metric} interval {list(ci)} against {baselines}"
+            facts["beats_baselines_with_interval_why"] = f"{metric} interval [{low}, {high}] against {baselines}"
         else:
             facts["beats_baselines_with_interval_why"] = "its holdout metric, its direction, a baseline on the same metric, or the interval is missing"
-        facts["uncertainty_said"] = bounded
+        if bounded:
+            facts["uncertainty_said"] = True
+            facts["uncertainty_said_why"] = how or "an interval is recorded"
+        elif "holdout_primary_metric_ci" in evidence or evidence.get("limits"):
+            facts["uncertainty_said_why"] = f"no interval, but the record says why: {how}"  # said, not measured: neither passed nor failed
+        else:
+            facts["uncertainty_said"] = False
+            facts["uncertainty_said_why"] = "neither an interval nor a reason for none"
         bar = evidence.get("success_bar") or {}
         if bar.get("verdict") in ("met", "not_met"):
             facts["bar_met"] = bar["verdict"] == "met"
@@ -260,7 +280,7 @@ def _project_build(key: tuple[str, str], p: dict[str, Any]) -> tuple[ModelBuild,
     unknown["questions"] = "the questions asked are not told apart from other turns in the walk; chat_turns counts the turns"
     bar = evidence.get("success_bar") or {}
     result = {"metric": metric, "holdout": (evidence.get("holdout_metrics") or {}).get(metric) if metric else None,
-              "interval": evidence.get("holdout_primary_metric_ci"), "bar": bar.get("bar"), "met": {"met": True, "not_met": False}.get(str(bar.get("verdict")))}
+              "interval": [x for x in _interval(evidence.get("holdout_primary_metric_ci"))[:2]] if _interval(evidence.get("holdout_primary_metric_ci"))[0] is not None else None, "bar": bar.get("bar"), "met": {"met": True, "not_met": False}.get(str(bar.get("verdict")))}
     if final.get("status") not in DONE:
         unknown["result"] = f"its final stage is {final.get('status') or 'not run'}"
     elif result["met"] is None:
