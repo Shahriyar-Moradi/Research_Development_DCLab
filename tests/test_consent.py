@@ -258,7 +258,7 @@ class DeletionTest(unittest.TestCase):
         events(self.log, project="p1", visit="v1", at=old)
         events(self.log, project="p1", visit="v2")
         out = retention.sweep_events(self.log, text_days=365)
-        self.assertEqual(out, {"events_deleted": 0, "texts_removed": 1})
+        self.assertEqual(out, {"events_deleted": 0, "texts_removed": 1, "exchanges_texts_removed": 0})
         request = next(e for e in self.log.read(visit="v1") if e.kind == "model.request")
         self.assertNotIn("prompt", request.payload)
         self.assertIn("prompt:model_text", request.redacted)
@@ -267,7 +267,7 @@ class DeletionTest(unittest.TestCase):
         out = retention.sweep_events(self.log, event_days=400)
         self.assertEqual(out["events_deleted"], 4)
         self.assertEqual({e.ids.visit for e in self.log.read()}, {"v2"})
-        self.assertEqual(retention.sweep_events(self.log), {"events_deleted": 0, "texts_removed": 0})  # off unless set
+        self.assertEqual(retention.sweep_events(self.log), {"events_deleted": 0, "texts_removed": 0, "exchanges_texts_removed": 0})  # off unless set
 
 
 @unittest.skipIf(MISSING, MISSING)

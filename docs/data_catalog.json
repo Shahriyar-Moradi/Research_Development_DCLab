@@ -65,6 +65,11 @@
    "version": "dclab_core.audit_verdict.v1"
   },
   {
+   "contract": "build_verdict",
+   "reads": [],
+   "version": "dclab_core.build_verdict.v1"
+  },
+  {
    "contract": "business_example",
    "reads": [
     "dclab_core.business_example.v1"
@@ -135,8 +140,10 @@
   },
   {
    "contract": "decision_example",
-   "reads": [],
-   "version": "dclab_core.decision_example.v1"
+   "reads": [
+    "dclab_core.decision_example.v1"
+   ],
+   "version": "dclab_core.decision_example.v2"
   },
   {
    "contract": "decision_label",
@@ -191,6 +198,11 @@
    "version": "dclab_core.experience_session.v1"
   },
   {
+   "contract": "experiment_record",
+   "reads": [],
+   "version": "dclab_core.experiment_record.v1"
+  },
+  {
    "contract": "expert_trace",
    "reads": [],
    "version": "dclab_core.expert_trace.v1"
@@ -216,6 +228,16 @@
    "version": "dclab_core.judged_example.v1"
   },
   {
+   "contract": "knowledge_item",
+   "reads": [],
+   "version": "dclab_core.knowledge_item.v1"
+  },
+  {
+   "contract": "learning_curve",
+   "reads": [],
+   "version": "dclab_core.learning_curve.v1"
+  },
+  {
    "contract": "map_review",
    "reads": [],
    "version": "dclab_core.map_review.v1"
@@ -224,6 +246,11 @@
    "contract": "metric_answer",
    "reads": [],
    "version": "dclab_core.metric_answer.v1"
+  },
+  {
+   "contract": "model_build",
+   "reads": [],
+   "version": "dclab_core.model_build.v1"
   },
   {
    "contract": "monitor_report",
@@ -249,6 +276,11 @@
    "contract": "pipeline",
    "reads": [],
    "version": "dclab_core.pipeline.v1"
+  },
+  {
+   "contract": "playbook_item",
+   "reads": [],
+   "version": "dclab_core.playbook_item.v1"
   },
   {
    "contract": "portfolio",
@@ -333,6 +365,11 @@
    "contract": "semantic_layer",
    "reads": [],
    "version": "dclab_core.semantic_layer.v1"
+  },
+  {
+   "contract": "service_engagement",
+   "reads": [],
+   "version": "dclab_core.service_engagement.v1"
   },
   {
    "contract": "set_manifest",
@@ -492,7 +529,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.98.0",
+ "dclab_core": "0.99.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1824,7 +1861,8 @@
   },
   {
    "emitted_by": [
-    "dclab_rnd/ledger/outcomes.py"
+    "dclab_rnd/ledger/outcomes.py",
+    "dclab_rnd/store/service.py"
    ],
    "example": "python -m dclab_rnd.experience search --kind outcome.observed",
    "family": "outcome",
