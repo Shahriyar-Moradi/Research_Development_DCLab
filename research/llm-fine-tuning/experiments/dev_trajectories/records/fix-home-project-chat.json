@@ -19,7 +19,7 @@
    "why": "A chat must not change a project's solution behind its validator."
   }
  ],
- "change": "dclab_rnd/agentic/web/src/views/home.html: resume and ensureDraft take a built draft; an Open its chat link on each project row; the chat's subtitle for a built project.",
+ "change": "dclab_rnd/agentic/web/src/views/home.html: resume and ensureDraft take a built draft; an Open its chat link on each project row; the chat's subtitle for a built project. Home's entry opens the current project's chat first.",
  "findings": [
   {
    "id": "H1",
@@ -30,6 +30,16 @@
    "cause": "Home reopened only drafts whose status was open and forgot a built one; no project row linked to its draft.",
    "fix": "Home reopens open and built drafts; each project row has Open its chat, which reads the project's draft id.",
    "test": "browser check on the owner's project: the chat opened with its 16 messages and the reply box enabled"
+  },
+  {
+   "id": "H2",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "Coming to Home from a project still showed no chat.",
+   "scenario": "The person opened their project on another page, then Home: Home showed the chat last left open there, or none.",
+   "cause": "The first fix reopened a built chat only from a project row's link or the chat remembered on Home; the project the person was on was not read.",
+   "fix": "Home opens the current project's chat first, unless the person just started a new problem on purpose.",
+   "test": "browser check: from Models on the owner's project to Home, the chat opened with its 16 messages"
   }
  ],
  "measurements": [

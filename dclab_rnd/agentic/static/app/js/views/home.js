@@ -122,7 +122,7 @@ DC.view('home', {
       if (S.draft && CHATS.includes(S.draft.status)) return S.draft;
       const problem = $('#home-task', el).value.trim();
       if (problem.length < 8) { toast('Describe the problem in one sentence first.', { ok: false }); $('#home-task', el).focus(); throw new Error('no problem'); }
-      S.draft = await DC.client.createDraft({ body: { problem, pack: S.pack } });
+      S.draft = await DC.client.createDraft({ body: { problem, pack: S.pack } }); S.fresh = false;
       remember(S.draft.id);
       openDraft(S.draft);
       return S.draft;
@@ -816,6 +816,7 @@ DC.view('home', {
        conversation is put away (it stays in Projects and Needs you, to resume from there), the box is cleared and focused,
        and the page says what comes next */
     function newChat() {
+      S.fresh = true;  // a new problem on purpose: Home does not reopen the current project's chat until a draft starts
       if (S.close) { S.close(); S.close = null; }
       S.draft = null; S.analysis = {}; S.assets = {};
       remember(null);
@@ -894,13 +895,28 @@ DC.view('home', {
 
     this.loadWorkspace = loadWorkspace;
     this.resume = resume;
+    /* The chat of the project the person is on (chosen on another page), shown on Home to read and go on with. */
+    this.projectChat = async () => {
+      const key = DC.state.project;
+      if (S.fresh || typeof key !== 'string' || !key.startsWith('p:')) return false;
+      try {
+        const project = await DC.currentProject.get();
+        const draft = project && (project.draft || {}).id;
+        if (!draft) return false;
+        if (S.draft && S.draft.id === draft) return true;
+        return await resume(draft);
+      } catch (e) { return false; }
+    };
     loadPacks();
   },
   enter(el) {
     DC.markSample(false);
     const asked = DC.state.resumeDraft;  // a draft opened from another page (Admin · Sessions)
     if (asked) { DC.state.resumeDraft = null; this.resume(asked); }
-    else try { const id = localStorage.getItem('dclab-home-draft'); if (id && !(document.querySelector('#home-thread') || {}).childElementCount) this.resume(id); } catch (e) { /* storage blocked */ }
+    else this.projectChat().then(shown => {  // the open project's chat first, else the chat last left open here
+      if (shown) return;
+      try { const id = localStorage.getItem('dclab-home-draft'); if (id && !(document.querySelector('#home-thread') || {}).childElementCount) this.resume(id); } catch (e) { /* storage blocked */ }
+    });
     return Promise.all([this.loadWorkspace(), this.loadActivity()]);  // the page's own load: Loading… and a failed read are shown (13.1)
   },
 });
