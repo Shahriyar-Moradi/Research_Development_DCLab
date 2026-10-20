@@ -342,9 +342,11 @@
     projectLessons: ["POST", "/projects/{project_id}/lessons", ["project_id"], []],
     projectLineage: ["GET", "/projects/{project_id}/lineage", ["project_id"], ["path"]],
     removeMemoryNote: ["DELETE", "/projects/{project_id}/memory/{note_id}", ["project_id", "note_id"], []],
+    answerNotebookCell: ["POST", "/projects/{project_id}/notebook/cells/{cell_id}/answer", ["project_id", "cell_id"], []],
     notebookKernel: ["GET", "/projects/{project_id}/notebook/kernel", ["project_id"], []],
     restartNotebookKernel: ["POST", "/projects/{project_id}/notebook/restart", ["project_id"], []],
     runNotebookCell: ["POST", "/projects/{project_id}/notebook/run", ["project_id"], []],
+    writeNotebookCell: ["POST", "/projects/{project_id}/notebook/write", ["project_id"], []],
     recordOutcome: ["POST", "/projects/{project_id}/outcome", ["project_id"], []],
     projectPipeline: ["GET", "/projects/{project_id}/pipeline", ["project_id"], ["path"]],
     rerunPipelineStep: ["POST", "/projects/{project_id}/pipeline/rerun", ["project_id"], ["step", "wait"]],
@@ -1182,6 +1184,13 @@
    *  @returns {Promise<Project>} */
   client.removeMemoryNote = (...args) => call('removeMemoryNote', args);
   client.path.removeMemoryNote = (...args) => build('removeMemoryNote', args).path;
+  /** POST /api/projects/{project_id}/notebook/cells/{cell_id}/answer: Answer Notebook Cell
+   *  @param {string} project_id
+   *  @param {string} cell_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.answerNotebookCell = (...args) => call('answerNotebookCell', args);
+  client.path.answerNotebookCell = (...args) => build('answerNotebookCell', args).path;
   /** GET /api/projects/{project_id}/notebook/kernel: Notebook Kernel
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]
@@ -1201,6 +1210,12 @@
    *  @returns {Promise<Page>} */
   client.runNotebookCell = (...args) => call('runNotebookCell', args);
   client.path.runNotebookCell = (...args) => build('runNotebookCell', args).path;
+  /** POST /api/projects/{project_id}/notebook/write: Write Notebook Cell
+   *  @param {string} project_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.writeNotebookCell = (...args) => call('writeNotebookCell', args);
+  client.path.writeNotebookCell = (...args) => build('writeNotebookCell', args).path;
   /** POST /api/projects/{project_id}/outcome: Record Outcome
    *  @param {string} project_id
    *  @param {{body: AnyObject, headers?: Object}} [opts]

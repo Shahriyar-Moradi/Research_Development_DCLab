@@ -267,7 +267,8 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     code_rule = "declared in the R&D dataset catalog for this sample" if declared is not None else HEURISTIC_RULE
     recipes = _register_recipes(bundle.spec, X, roles, datetime_time, project.get("feature_programs"), kind)
     prepared = Prepared(frame, solution, bundle, roles, class_labels, recipes, sampling, code_rule)
-    prepared.source_rows = positions
+    row_order = (getattr(bundle, "extras", None) or {}).get("row_order")  # a time split sorted the rows: follow it
+    prepared.source_rows = positions[np.asarray(row_order)] if row_order is not None and len(row_order) == len(positions) else positions
     from dclab_core import sensitivity
 
     prepared.personal = {c["name"] for c in ((project.get("data") or {}).get("profile") or {}).get("columns", [])

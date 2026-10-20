@@ -15,7 +15,10 @@ machine of their own until a container sandbox exists (``docs/guides/ROADMAP.md`
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
+import queue
 import re
 import threading
 import time
@@ -24,7 +27,8 @@ from typing import Any, Optional
 
 IDLE_SECONDS = 30 * 60
 TIMEOUT_SECONDS = float(os.environ.get("DCLAB_CELL_TIMEOUT", "300") or 300)
-MAX_TEXT = 20_000  # characters of one output kept for the page (the code run keeps it whole)
+MAX_TEXT = 20_000  # characters of one output sent to the page (the code run keeps it whole)
+MAX_TRACEBACK = 30  # lines of a traceback sent to the page
 SECRET_ENV = re.compile(r"(KEY|TOKEN|SECRET|PASSWORD|DATABASE_URL|CREDENTIAL|AUTH)", re.I)
 ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 TABLES = (".csv", ".parquet", ".xlsx", ".json")
@@ -54,11 +58,30 @@ def training_rows(store: Any, project: dict[str, Any]) -> tuple[Any, str]:
         raise CellRefused(f"Cells here read a CSV, Parquet, Excel or JSON table; this project's is {Path(name).suffix or 'unknown'}.")
     prepared = engine.prepare(store, project)
     positions = getattr(prepared, "source_rows", None)
-    if positions is None:
+    if positions is None or len(positions) != len(prepared.bundle.X):  # rows built from the table (entities, windows) are not its rows
         raise CellRefused("This kind of project runs its own machine; its notebook runs in your own Jupyter.")
     frame = studio_data.load_table(studio_data.data_path(store, project))
     rows = sorted(int(i) for i in positions[prepared.bundle.train_idx])
     return frame.iloc[rows].reset_index(drop=True), name
+
+
+def fingerprint(project: dict[str, Any]) -> str:
+    """What the kernel's rows depend on: the table, the solution and the settings. A kernel started on another is restarted."""
+    basis = {"sha256": (project.get("data") or {}).get("sha256"), "solution": project.get("solution"), "settings": project.get("settings"),
+             "labels": project.get("labels")}
+    return hashlib.sha256(json.dumps(basis, sort_keys=True, default=str).encode()).hexdigest()
+
+
+def _for_page(out: dict[str, Any]) -> dict[str, Any]:
+    """The run as the page draws it: long text and tracebacks cut (the code run keeps them whole)."""
+    cut = []
+    for o in out["outputs"]:
+        if o["type"] == "text":
+            o = {**o, "text": o["text"][:MAX_TEXT]}
+        elif o["type"] == "error":
+            o = {**o, "traceback": (o.get("traceback") or [])[-MAX_TRACEBACK:]}
+        cut.append(o)
+    return {**out, "outputs": cut}
 
 
 def _write(frame: Any, path: Path) -> None:
@@ -74,7 +97,7 @@ def _write(frame: Any, path: Path) -> None:
 
 
 class Kernel:
-    def __init__(self, project_id: str, folder: Path):
+    def __init__(self, project_id: str, folder: Path, fingerprint: str = ""):
         import sys
 
         from jupyter_client.kernelspec import KernelSpec, KernelSpecManager
@@ -85,7 +108,7 @@ class Kernel:
                 return KernelSpec(argv=[sys.executable, "-m", "ipykernel_launcher", "-f", "{connection_file}"], display_name="DCLab",
                                   language="python")
 
-        self.project_id, self.folder = project_id, folder
+        self.project_id, self.folder, self.fingerprint = project_id, folder, fingerprint
         self.manager = KernelManager(kernel_name="dclab", kernel_spec_manager=_ThisPython())
         self.manager.start_kernel(cwd=str(folder), env=_env())
         self.client = self.manager.client()
@@ -103,30 +126,42 @@ class Kernel:
             while True:
                 left = timeout - (time.time() - started)
                 if left <= 0:
-                    self.manager.interrupt_kernel()
+                    try:
+                        self.manager.interrupt_kernel()
+                    except Exception:  # noqa: BLE001 - a kernel already gone
+                        pass
                     outputs.append({"type": "error", "ename": "Timeout", "evalue": f"stopped after {int(timeout)} s", "traceback": []})
                     status = "error"
                     break
                 try:
                     msg = self.client.get_iopub_msg(timeout=min(left, 5))
-                except Exception:  # noqa: BLE001 - no message yet: wait again until the time is up
-                    continue
+                except queue.Empty:  # no message yet: wait again, unless the kernel is gone
+                    if self.manager.is_alive():
+                        continue
+                    msg = None
+                except Exception:  # noqa: BLE001 - the channels were stopped (a restart)
+                    msg = None
+                if msg is None:
+                    outputs.append({"type": "error", "ename": "KernelStopped", "evalue": "the kernel stopped (restarted, or it ran out of memory); run the cells again",
+                                    "traceback": []})
+                    status = "error"
+                    break
                 if msg.get("parent_header", {}).get("msg_id") != msg_id:
                     continue
                 kind, content = msg["msg_type"], msg["content"]
                 if kind == "stream":
-                    outputs.append({"type": "text", "name": content.get("name"), "text": content.get("text", "")[:MAX_TEXT]})
+                    outputs.append({"type": "text", "name": content.get("name"), "text": content.get("text", "")})
                 elif kind in ("execute_result", "display_data"):
                     bundle = content.get("data") or {}
                     if "image/png" in bundle:
                         outputs.append({"type": "image", "png": bundle["image/png"]})
                     elif "text/plain" in bundle:
-                        outputs.append({"type": "text", "name": "result", "text": str(bundle["text/plain"])[:MAX_TEXT]})
+                        outputs.append({"type": "text", "name": "result", "text": str(bundle["text/plain"])})
                     count = content.get("execution_count", count)
                 elif kind == "error":
                     status = "error"
                     outputs.append({"type": "error", "ename": content.get("ename"), "evalue": content.get("evalue"),
-                                    "traceback": [ANSI.sub("", line) for line in content.get("traceback") or []][-30:]})
+                                    "traceback": [ANSI.sub("", line) for line in content.get("traceback") or []]})
                 elif kind == "execute_input":
                     count = content.get("execution_count", count)
                 elif kind == "status" and content.get("execution_state") == "idle":
@@ -156,12 +191,15 @@ class Kernels:
         return self.home / "kernels" / project_id
 
     def _kernel(self, store: Any, project: dict[str, Any]) -> Kernel:
-        pid = project["id"]
+        pid, now = project["id"], fingerprint(project)
         with self._lock:
             self._sweep()
             kernel = self._kernels.get(pid)
-            if kernel is not None and kernel.manager.is_alive():
+            if kernel is not None and kernel.manager.is_alive() and kernel.fingerprint == now:
                 return kernel
+            if kernel is not None:  # the table, the solution or the settings changed: its rows are not the training rows any more
+                kernel.shutdown()
+                self._kernels.pop(pid, None)
             folder = self.folder(pid)
             folder.mkdir(parents=True, exist_ok=True)
             frame, name = training_rows(store, project)
@@ -169,7 +207,7 @@ class Kernels:
                 if old.is_file():
                     old.unlink()
             _write(frame, folder / name)
-            kernel = self._kernels[pid] = Kernel(pid, folder)
+            kernel = self._kernels[pid] = Kernel(pid, folder, now)
             return kernel
 
     def _sweep(self) -> None:
@@ -178,27 +216,63 @@ class Kernels:
                 kernel.shutdown()
                 self._kernels.pop(pid, None)
 
-    def run(self, store: Any, project: dict[str, Any], records: dict[str, Any], index: int, by: Optional[str] = None) -> dict[str, Any]:
-        """Run the notebook's code cell ``index`` (as the server generates it) in the project's kernel."""
-        from .. import code_runs
-        from . import export
+    @staticmethod
+    def _source(project: dict[str, Any], cells: list[dict[str, Any]], index: Any) -> str:
+        from . import notebook_agent
 
-        cells = export.notebook(project, records)["cells"]
+        if isinstance(index, str):  # an agent's cell the person accepted
+            found = next((c for c in project.get("notebook_agent_cells") or [] if c.get("id") == index), None)
+            if found is None or found.get("status") != "accepted":
+                raise CellRefused("only a cell you accepted runs")
+            refused = notebook_agent.problems(found["code"])
+            if refused:
+                raise CellRefused("; ".join(refused))
+            return found["code"]
         if not 0 <= index < len(cells) or cells[index]["cell_type"] != "code":
             raise CellRefused("not a code cell of this notebook")
         cell = cells[index]
         if (cell.get("metadata") or {}).get("dclab", {}).get("role") == "holdout":
             raise CellRefused("The holdout is read once, by the workflow (WF-09), so this cell does not run here. The kernel has the "
                               "training rows only; the reliability stage scores the holdout and records it.")
-        source = cell["source"] if isinstance(cell["source"], str) else "".join(cell["source"])
-        out = self._kernel(store, project).execute(source)
+        return cell["source"] if isinstance(cell["source"], str) else "".join(cell["source"])
+
+    def _record(self, project: dict[str, Any], index: Any, source: str, out: dict[str, Any], by: Optional[str]) -> None:
+        from .. import code_runs
+
         stdout = "".join(o["text"] for o in out["outputs"] if o["type"] == "text")
         error = "\n".join(f"{o['ename']}: {o['evalue']}\n" + "\n".join(o.get("traceback") or []) for o in out["outputs"] if o["type"] == "error")
         code_runs.record(f"notebook:{project['id']}:cell{index}", source, stdout, error, 0 if out["status"] == "ok" else 1, kind="notebook_cell",
                          project=project["id"], home=self.home, extra={"cell": index, "execution_count": out["execution_count"],
                                                                        "seconds": out["seconds"], "by": by,
-                                                                       "pictures": sum(1 for o in out["outputs"] if o["type"] == "image")})
-        return {"cell": index, **out}
+                                                                       "pictures": [o["png"] for o in out["outputs"] if o["type"] == "image"]})
+
+    def run(self, store: Any, project: dict[str, Any], records: dict[str, Any], index: Any, by: Optional[str] = None) -> dict[str, Any]:
+        """Run the notebook's code cell ``index`` (as the server generates it), or an agent's cell the person accepted (its id,
+        ``a…``), in the project's kernel. An agent's cell on a kernel that has run nothing (new, restarted, swept when idle)
+        runs after the notebook's cells up to the holdout, which make the variables it reads. Every run is kept whole."""
+        from . import export
+
+        cells = export.notebook(project, records)["cells"]
+        source = self._source(project, cells, index)
+        kernel = self._kernel(store, project)
+        prepared = 0
+        if isinstance(index, str) and kernel.count == 0:
+            for i, cell in enumerate(cells):
+                if cell["cell_type"] != "code":
+                    continue
+                if ((cell.get("metadata") or {}).get("dclab") or {}).get("role") == "holdout":
+                    break
+                code = self._source(project, cells, i)
+                first = kernel.execute(code)
+                self._record(project, i, code, first, by)
+                prepared += 1
+                if first["status"] != "ok":
+                    return {"cell": index, "prepared": prepared, **_for_page(first), "status": "error",
+                            "outputs": [{"type": "error", "ename": "NotebookCellFailed", "evalue": f"the notebook's cell {i} failed before yours could run",
+                                         "traceback": []}] + _for_page(first)["outputs"]}
+        out = kernel.execute(source)
+        self._record(project, index, source, out, by)
+        return {"cell": index, "prepared": prepared, **_for_page(out)}
 
     def restart(self, project_id: str) -> dict[str, Any]:
         with self._lock:
@@ -220,4 +294,4 @@ class Kernels:
             self._kernels.clear()
 
 
-__all__ = ["Kernels", "Kernel", "CellRefused", "training_rows", "IDLE_SECONDS", "TIMEOUT_SECONDS"]
+__all__ = ["Kernels", "Kernel", "CellRefused", "training_rows", "fingerprint", "IDLE_SECONDS", "TIMEOUT_SECONDS"]

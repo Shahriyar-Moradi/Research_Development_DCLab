@@ -116,7 +116,8 @@ DC.view('notebook', {
     const SAMPLE_R = window.DEMO_REVIEW || { cells: [], findings: [], summary: {} };
     let R = SAMPLE_R;
     let real = null;  // {p, review} when a real project is open
-    let RUN = {}, RUNNING = null;  // the kernel's outputs by cell index, and the cell running now (real projects only)
+    let RUN = {}, RUNNING = null;  // the kernel's outputs by cell index (or an agent cell's id), and the cell running now (real projects only)
+    let AGENT = [], WRITING = false;  // the agent's cells for a real project: proposed (accept or reject) and accepted (run)
     const FIX = {
       3: `# duration is known only after the call ends: forbidden by solution v2
 features = ["age", "balance", "campaign", "pdays", "previous", "job", "month"]
@@ -245,7 +246,28 @@ print(best_depth, *(round(f(y_test, p), 4) for f in (roc_auc_score, average_prec
       else $('#nb-vars', el).innerHTML = fixed.has(5)
         ? '<dt>df</dt><dd>45,211 × 17</dd><dt>X_train</dt><dd>36,168 × 7</dd><dt>X_test</dt><dd>9,043 × 7 · untouched</dd><dt>prep</dt><dd>ColumnTransformer</dd>'
         : '<dt>df</dt><dd>45,211 × 18</dd><dt>df_bal</dt><dd>79,844 × 18 <span class="pill bad">copies</span></dd><dt>X_all</dt><dd>79,844 × 9</dd><dt>features</dt><dd>9 incl. duration</dd>';
+      if (real) renderAgent();
       DC.hydrate(el);
+    }
+    /* The agent's cells on a real project: a proposal with the check's findings, Accept and Reject; an accepted cell with Run and its output. */
+    function renderAgent() {
+      const box = $('#agent-out', el); if (!box) return;
+      const status = { proposed: 'warn', accepted: 'ok', refused: 'bad' };
+      box.innerHTML = AGENT.map(c => `<div class="stack tight reveal" data-agent="${esc(c.id)}">
+        <div class="row small"><span class="pill ${status[c.status] || 'outline'}">${esc(c.status)}</span><span class="muted">${esc(c.request)}</span></div>
+        ${c.code ? codeBlock(c.code) : ''}
+        ${c.explanation ? `<div class="small muted">${esc(c.explanation)}</div>` : ''}
+        ${(c.problems || []).map(x => `<div class="callout bad small">${esc(x)}</div>`).join('')}
+        ${c.status === 'proposed' ? `<div class="row"><button type="button" class="btn sm primary" data-agent-answer="${esc(c.id)}" data-ok="1">Accept</button><button type="button" class="btn sm" data-agent-answer="${esc(c.id)}" data-ok="0">Reject</button><span class="small muted">Only an accepted cell runs.</span></div>` : ''}
+        ${c.status === 'accepted' ? `<div class="row"><button type="button" class="btn sm primary" data-run-cell="${esc(c.id)}" ${RUNNING != null ? 'disabled' : ''}>${RUNNING === c.id ? 'Running…' : RUN[c.id] ? 'Run again' : 'Run'}</button><span class="small muted">in this project's kernel · training rows only</span></div>` : ''}
+        ${RUN[c.id] ? runOutput(RUN[c.id]) : ''}</div>`).join('');
+    }
+    /* An agent's cell: on a kernel that has run nothing (new, restarted, idle too long) the server runs the notebook's
+       cells up to the holdout first, which make the variables the cell reads. */
+    async function runAgentCell(id) {
+      await runCell(id);
+      const r = RUN[id];
+      if (r && r.prepared) toast(`The kernel was new, so the notebook's ${r.prepared} cells ran first (training rows only), then yours.`);
     }
     function applyFix(i) { fixed.add(Number(i)); render(); toast(`Fix applied to cell ${i}. The original stays in the cell history.`); }
     el.addEventListener('click', e => {
@@ -300,15 +322,43 @@ print(best_depth, *(round(f(y_test, p), 4) for f in (roc_auc_score, average_prec
       try { await DC.client.restartNotebookKernel(real.p.id); RUN = {}; render(); set('nb-kernel', '<span class="dot"></span>kernel restarted · the next cell starts a fresh one'); toast('Kernel restarted.'); }
       catch (err) { toast(err.message, { ok: false }); }
     });
-    el.addEventListener('click', e => { const b = e.target.closest('[data-run-cell]'); if (b) runCell(Number(b.dataset.runCell)); });
-    $('#agent-go', el).addEventListener('click', () => {
-      $('#agent-out', el).innerHTML = `<div class="stack tight reveal">${codeBlock(`from sklearn.calibration import CalibratedClassifierCV
+    el.addEventListener('click', async e => {
+      const b = e.target.closest('[data-run-cell]');
+      if (b) { const v = b.dataset.runCell; if (/^\d+$/.test(v)) runCell(Number(v)); else runAgentCell(v); return; }
+      const a = e.target.closest('[data-agent-answer]');
+      if (a && real) {
+        a.disabled = true;
+        try {
+          const got = await DC.client.answerNotebookCell(real.p.id, a.dataset.agentAnswer, { body: { accepted: a.dataset.ok === '1' } });
+          AGENT = got.status === 'rejected' ? AGENT.filter(c => c.id !== got.id) : AGENT.map(c => c.id === got.id ? got : c);
+          renderAgent(); DC.hydrate(el);
+          toast(got.status === 'accepted' ? 'Accepted. Press Run to run it in the kernel.' : 'Rejected. Your answer is kept as feedback for the agent.');
+        } catch (err) { a.disabled = false; toast(err.message, { ok: false }); }
+      }
+    });
+    $('#agent-go', el).addEventListener('click', async () => {
+      if (real) {
+        const request = $('#agent-prompt', el).value.trim();
+        if (!request) { toast('Say what the cell should do, for example: plot the accuracy of each fold.', { ok: false }); return; }
+        if (WRITING) return;
+        WRITING = true; const go = $('#agent-go', el); go.disabled = true; go.textContent = 'Writing…';
+        const mine = real;
+        try {
+          const cell = await DC.client.writeNotebookCell(real.p.id, { body: { request } });
+          if (real !== mine) return;
+          AGENT = AGENT.concat([cell]); renderAgent(); DC.hydrate(el);
+          if (cell.status === 'refused') toast('The model\'s cell did not pass the checks, so it is not offered. Try saying it another way.', { ok: false });
+        } catch (err) { toast(err.message, { ok: false }); }
+        finally { WRITING = false; go.disabled = false; go.textContent = 'Write cell'; }
+        return;
+      }
+      $('#agent-out', el).innerHTML = `<div class="callout info small">This is the sample notebook: the cell below is a written example, whatever you ask, and nothing runs here. Open a project and save its solution: on its notebook the agent writes the cell you ask for, and an accepted cell runs.</div><div class="stack tight reveal">${codeBlock(`from sklearn.calibration import CalibratedClassifierCV
 calibrated = CalibratedClassifierCV(forest(best_depth), method="isotonic", cv=cv)
 calibrated.fit(X_train, y_train)  # calibration is learned on training folds only
 print("Brier before", brier_score_loss(y_test, p))
 print("Brier after ", brier_score_loss(y_test, calibrated.predict_proba(X_test)[:, 1]))`, { ok: [3] })}
         <div class="row small"><span class="pill proof">cites</span>${chips(['DCLAB-R18', 'DCLAB-R03'])}<span class="muted">This reads the test set a second time; the companion marks it as a report-only check, not a selection step.</span></div>
-        <div class="row"><button type="button" class="btn sm primary" data-toast="Cell accepted and added below cell 6.">Accept</button><button type="button" class="btn sm" data-toast="Rejected. The reason is kept as feedback for the agent.">Reject</button></div></div>`;
+        <div class="row"><button type="button" class="btn sm primary" data-toast="Sample notebook: nothing is added or run. Open a project to accept and run a real cell.">Accept</button><button type="button" class="btn sm" data-toast="Sample notebook: nothing is kept here.">Reject</button></div></div>`;
       DC.hydrate(el);
     });
 
@@ -345,13 +395,15 @@ result.roc_auc, result.interval                  # 0.7718, (0.7126, 0.8290)`, ['
     KEEP.forEach(id => { const n = $('#' + id, el); SAMPLE[id] = { html: n.innerHTML, cls: n.className }; });
     const set = (id, html, cls) => { const n = $('#' + id, el); n.innerHTML = html; if (cls != null) n.className = cls; };
     const precCount = n => { const b = $('.ptab[data-ptab="precedents"] .n', el); if (b) b.textContent = String(n); };
-    const realOnly = on => { ['nb-fixall', 'nb-reset', 'nb-agent', 'nb-export-sample'].forEach(id => { $('#' + id, el).hidden = on; }); $('#nb-export-real', el).hidden = !on; $('#nb-restart', el).hidden = !on; };
+    const realOnly = on => { ['nb-fixall', 'nb-reset', 'nb-export-sample'].forEach(id => { $('#' + id, el).hidden = on; }); $('#nb-export-real', el).hidden = !on; $('#nb-restart', el).hidden = !on; };
 
     function showSample() {
       real = null; R = SAMPLE_R; fixed = new Set();
       KEEP.forEach(id => set(id, SAMPLE[id].html, SAMPLE[id].cls));
       realOnly(false); precCount(4);
-      $('#nb-answer', el).innerHTML = ''; $('#agent-out', el).innerHTML = '';
+      $('#nb-answer', el).innerHTML = ''; $('#nb-agent', el).hidden = false;
+      $('#agent-out', el).innerHTML = '<div class="callout info small">No project yet, so this is the sample notebook: nothing here runs. Start one on Home; once its solution is saved, its notebook opens here, its cells run and the agent writes the cells you ask for.</div>';
+      AGENT = []; $('#agent-prompt', el).value = 'Calibrate the forest\'s probabilities on the training folds and show the Brier score';
       render(); samplePipe(); DC.hydrate(el);
     }
 
@@ -423,6 +475,9 @@ result.roc_auc, result.interval                  # 0.7718, (0.7126, 0.8290)`, ['
         <div class="stat"><span class="v proof">${S.code_cells || 0} <small>code cells</small></span><span class="l">generated from the project's workflow · run them here (training rows only) or download it</span></div>`);
       set('nb-file', esc(file));
       RUN = {}; RUNNING = null;
+      AGENT = (review.agent_cells || []).slice(); $('#agent-out', el).innerHTML = '';
+      $('#nb-agent', el).hidden = !review.writes_cells;
+      const prompt = $('#agent-prompt', el); prompt.value = ''; prompt.placeholder = 'For example: plot the accuracy of each cross-validation fold';
       set('nb-kernel', `<span class="dot"></span>kernel starts on the first cell · training rows only`);
       set('nb-comp-sub', `Real copilot output for ${esc(file)}`);
       set('nb-ask-chips', '<button type="button" class="chip" data-rq="Which model was chosen and why?">Why this model?</button><button type="button" class="chip" data-rq="Is the holdout score honest, and can I trust it?">Is the score honest?</button><button type="button" class="chip" data-rq="Which columns are forbidden or could leak?">What was left out?</button>');
@@ -472,6 +527,7 @@ result.roc_auc, result.interval                  # 0.7718, (0.7126, 0.8290)`, ['
     }
     function showError(p, msg) {
       real = { p, review: { cells: [], findings: [], summary: {} } }; R = real.review;
+      AGENT = []; $('#nb-agent', el).hidden = true;
       set('nb-eyebrow', `${esc(p.name)} · notebook`);
       realOnly(true);
       $('#nb-export-real', el).hidden = !p.solution;
@@ -487,6 +543,13 @@ result.roc_auc, result.interval                  # 0.7718, (0.7126, 0.8290)`, ['
     const s = this.s, tok = ++s.tok;
     let p = null;
     try { p = await DC.currentProject.get(); } catch (e) { p = null; }
+    if (!p) {  // the notebook runs on a real project: a sample chosen elsewhere gives way to the latest project, its solution saved first
+      try {
+        const list = (await DC.client.workspace()).projects || [];
+        const pick = list.find(x => x.has_solution) || list[0];
+        if (pick) { DC.state.project = 'p:' + pick.id; DC.state.projectId = null; DC.currentProject.clear(); p = await DC.currentProject.get(); }
+      } catch (e) { p = null; }
+    }
     if (tok !== s.tok) return;
     DC.markSample(!p);
     if (!p) { s.showSample(); return; }

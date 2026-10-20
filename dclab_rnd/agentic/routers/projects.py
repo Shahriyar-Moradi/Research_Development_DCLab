@@ -873,6 +873,8 @@ async def review_project_notebook(project_id: str, s: Services = Depends(service
         roles = [((c.get("metadata") or {}).get("dclab") or {}).get("role") for c in exported] if len(exported) == len(report["cells"]) else []
         return {"summary": report["summary"], "cells": [{"type": c["type"], "source": c["source"], **({"role": roles[i]} if roles and roles[i] else {})}
                                                         for i, c in enumerate(report["cells"])],
+                "agent_cells": [c for c in s.project(project_id).get("notebook_agent_cells") or [] if c.get("status") in ("proposed", "accepted")],
+                "writes_cells": s.gateway.available("notebook_cell"),
                 "findings": [{**{k: f.get(k) for k in keys}, "proof": [r["record_id"] for r in f.get("proof", [])]} for f in report["findings"]],
                 "limitations": report.get("limitations", []), "fixes_available": s.gateway.available("notebook_review")}
     return await asyncio.to_thread(review)
@@ -889,10 +891,14 @@ async def run_notebook_cell(project_id: str, payload: AnyObject, s: Services = D
     project = s.project(project_id)
     if not project.get("solution"):
         raise HTTPException(409, "Save the solution first: the notebook is generated from it")
-    try:
-        cell = int((payload.model_dump() if hasattr(payload, "model_dump") else dict(payload or {})).get("cell"))
-    except (TypeError, ValueError):
-        raise HTTPException(422, "cell is the index of a code cell") from None
+    raw = (payload.model_dump() if hasattr(payload, "model_dump") else dict(payload or {})).get("cell")
+    if isinstance(raw, str) and raw.startswith("a"):
+        cell: Any = raw  # an agent's cell the person accepted
+    else:
+        try:
+            cell = int(raw)
+        except (TypeError, ValueError):
+            raise HTTPException(422, "cell is the index of a code cell, or the id of a cell you accepted") from None
     who = current()
 
     def run():
@@ -903,6 +909,60 @@ async def run_notebook_cell(project_id: str, payload: AnyObject, s: Services = D
         raise HTTPException(409, str(exc)) from None
     except studio_data.DataError as exc:
         raise HTTPException(409, f"The project's table cannot be read: {exc}") from None
+
+
+@router.post("/api/projects/{project_id}/notebook/write", response_model=Page)
+async def write_notebook_cell(project_id: str, payload: AnyObject, s: Services = Depends(services)):
+    """The next cell for the person's request, written by a model (``notebook_cell``) from the notebook's code and the
+    columns, never a row; checked (it parses, it never touches X_test or y_test) and kept as a proposal to accept or reject."""
+    from ...studio import notebook_agent
+
+    project = s.project(project_id)
+    if not project.get("solution"):
+        raise HTTPException(409, "Save the solution first: the notebook is generated from it")
+    request = str((payload.model_dump() if hasattr(payload, "model_dump") else dict(payload or {})).get("request") or "").strip()
+    if not request:
+        raise HTTPException(422, "Say what the cell should do")
+    client = s.gateway.client("notebook_cell", project_id=project_id)
+    if client is None:
+        raise HTTPException(409, "No model is configured to write cells")
+    try:
+        cell = await asyncio.to_thread(notebook_agent.write, project, s.projects.records(project_id), request, client)
+    except studio_export.ExportUnsupported as exc:
+        raise HTTPException(409, str(exc)) from None
+    except Exception as exc:  # noqa: BLE001 - a model that failed or was refused (a cap): said, nothing kept
+        raise HTTPException(502, f"The model could not write the cell ({type(exc).__name__})") from None
+    def add() -> None:  # the list as it is now (another request may have changed it while the model wrote), under the project's lock
+        with notebook_agent.lock(project_id):
+            now = s.project(project_id).get("notebook_agent_cells") or []
+            s.projects.update(project_id, notebook_agent_cells=notebook_agent.keep(list(now) + [cell]))
+
+    await asyncio.to_thread(add)
+    return cell
+
+
+@router.post("/api/projects/{project_id}/notebook/cells/{cell_id}/answer", response_model=Page)
+async def answer_notebook_cell(project_id: str, cell_id: str, payload: AnyObject, s: Services = Depends(services)):
+    """The person accepts or rejects a proposed cell; only an accepted one runs. The answer is kept beside the proposal."""
+    from ...accounts.principal import current
+    from ...studio import notebook_agent
+
+    accepted = bool((payload.model_dump() if hasattr(payload, "model_dump") else dict(payload or {})).get("accepted"))
+    who = getattr(current(), "user_id", None)
+
+    def settle() -> dict[str, Any]:
+        with notebook_agent.lock(project_id):  # read, check and write under the lock: a write running meanwhile keeps this answer
+            cells = [dict(c) for c in s.project(project_id).get("notebook_agent_cells") or []]
+            found = next((c for c in cells if c.get("id") == cell_id), None)
+            if found is None:
+                raise HTTPException(404, "No such proposed cell")
+            if found.get("status") != "proposed":
+                raise HTTPException(409, f"This cell was already {found.get('status')}")
+            answered = notebook_agent.answer(found, accepted, who, project_id)
+            s.projects.update(project_id, notebook_agent_cells=[answered if c.get("id") == cell_id else c for c in cells])
+            return answered
+
+    return await asyncio.to_thread(settle)
 
 
 @router.post("/api/projects/{project_id}/notebook/restart", response_model=Page)

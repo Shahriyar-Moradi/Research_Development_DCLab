@@ -1,0 +1,43 @@
+{
+ "package": "fix-login-one-command",
+ "title": "Turn sign-in on for make dev with one command",
+ "date": "2026-10-20",
+ "request": "I got this error again: sign-in, members and several workspaces come on with DCLAB_AUTH. Fix it simply, to have login in the R&D project.",
+ "spec": "Accounts need PostgreSQL and DCLAB_AUTH; the first owner is made from the command line, the password never an argument.",
+ "plan": [
+  "One command that gets dclab_dev ready, writes DCLAB_AUTH=password to .env once and makes the first owner",
+  "Point the page's messages at it"
+ ],
+ "decisions": [
+  {
+   "decision": "make login asks for the email and the password itself.",
+   "why": "A password typed by the owner never reaches a shell history or a session."
+  },
+  {
+   "decision": "A sign-in already set in .env is never changed.",
+   "why": "The owner may use the identity provider instead."
+  }
+ ],
+ "change": "scripts/dev.py (login, enable_login), Makefile (login), the workspace switcher's and the Admin members page's messages, tests/test_dev_script.py.",
+ "findings": [
+  {
+   "id": "L1",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "Turning sign-in on took several steps the page did not name.",
+   "scenario": "The owner clicked the workspace switcher and read that sign-in comes on with DCLAB_AUTH, with no command to run.",
+   "cause": "The setting, the database and the first owner were three separate steps documented only in .env.example.",
+   "fix": "make login does all three; the messages name it.",
+   "test": "tests/test_dev_script.py::SafetyTests::test_make_login_turns_sign_in_on_once_and_keeps_the_rest_of_env"
+  }
+ ],
+ "measurements": [],
+ "outcome": "One command turns sign-in on; friends are added on the Admin page.",
+ "lessons": [
+  "A message that names a setting should name the command that sets it."
+ ],
+ "risks": [],
+ "commits": [
+  "8495604"
+ ]
+}

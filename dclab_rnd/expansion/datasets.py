@@ -356,8 +356,10 @@ def prepare_bundle(
     X = X.reset_index(drop=True)
     y = y.reset_index(drop=True)
     n = len(X)
+    row_order = np.arange(n)  # each bundle row's place in the X given (a time split sorts the rows)
     if spec.split_strategy == "time":
         order = np.argsort(_time_key(X[spec.time_column]), kind="stable")
+        row_order = np.asarray(order)
         X = X.iloc[order].reset_index(drop=True)
         y = y.iloc[order].reset_index(drop=True)
         n_test = int(round(HOLDOUT_FRACTION * n))
@@ -369,6 +371,7 @@ def prepare_bundle(
         holdout_description = f"last {n_test} of {n} rows by `{spec.time_column}`"
     elif spec.split_strategy == "time_group":
         order = np.argsort(_time_key(X[spec.time_column]), kind="stable")
+        row_order = np.asarray(order)
         X = X.iloc[order].reset_index(drop=True)
         y = y.iloc[order].reset_index(drop=True)
         groups = X[spec.group_column].astype(str).to_numpy()
@@ -443,6 +446,7 @@ def prepare_bundle(
         source_rows=int(source_rows if source_rows is not None else n),
         sampling=dict(sampling or {}),
         class_labels=class_labels,
+        extras={"row_order": row_order},
     )
 
 

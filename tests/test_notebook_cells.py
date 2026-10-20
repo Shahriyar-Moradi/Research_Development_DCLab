@@ -46,6 +46,10 @@ class NotebookCellsTest(unittest.TestCase):
     def tearDownClass(cls):
         cls.client.app.state.services.kernels.shutdown_all()
 
+    def notebook_runs(self):
+        runs = [json.loads(line) for p in sorted((self.home / "code_runs").rglob("*.jsonl")) for line in p.read_text().splitlines()]
+        return sorted((r for r in runs if r.get("kind") == "notebook_cell"), key=lambda r: str(r.get("at") or r.get("started") or ""))
+
     def run_cell(self, index):
         return self.client.post(f"/api/projects/{self.pid}/notebook/run", json={"cell": index}, headers=self.headers)
 
@@ -54,6 +58,7 @@ class NotebookCellsTest(unittest.TestCase):
         self.assertIn("holdout", roles)
         self.assertIn("split", roles)
         code = [i for i, c in enumerate(self.cells) if c["type"] == "code" and i < roles["holdout"]]
+        before = len(self.notebook_runs())  # another test of this class may have run cells in the same workspace
         for i in code:
             r = self.run_cell(i)
             self.assertEqual(r.status_code, 200, r.text)
@@ -75,8 +80,7 @@ class NotebookCellsTest(unittest.TestCase):
         holdout = whole.iloc[sorted(int(i) for i in prepared.source_rows[prepared.bundle.test_idx])]
         self.assertEqual(len(written.merge(holdout.drop_duplicates(), how="inner")), 0)  # no holdout row reached the kernel
 
-        runs = [json.loads(line) for p in (self.home / "code_runs").rglob("*.jsonl") for line in p.read_text().splitlines()]
-        kept = [r for r in runs if r.get("kind") == "notebook_cell"]
+        kept = self.notebook_runs()[before:]
         self.assertEqual(len(kept), len(code))  # every run kept whole
         self.assertTrue(all(r["project"] == self.pid and r["code"] for r in kept))
         status = self.client.get(f"/api/projects/{self.pid}/notebook/kernel").json()
@@ -89,6 +93,163 @@ class NotebookCellsTest(unittest.TestCase):
         self.assertEqual(self.run_cell(markdown).status_code, 409)
         self.assertEqual(self.run_cell(10_000).status_code, 409)
         self.assertEqual(self.client.post(f"/api/projects/{self.pid}/notebook/run", json={"cell": "x"}, headers=self.headers).status_code, 422)
+
+    def test_the_agent_writes_a_cell_it_is_checked_accepted_and_run_with_its_plot(self):
+        from dclab_rnd.models.gateway import Gateway
+        from dclab_rnd.models.usage import FileUsage
+
+        def reply(code):
+            return {"content": json.dumps({"code": code, "explanation": "the folds"}), "tool_calls": [], "usage": {}}
+
+        holdout = "print(pipeline.fit(X_train, y_train).score(X_test, y_test))"
+        plot = ("from sklearn.model_selection import cross_val_score\nimport matplotlib.pyplot as plt\n"
+                "s = cross_val_score(pipeline, X_train, y_train, cv=cv, scoring='accuracy')\n"
+                "plt.plot(range(1, len(s) + 1), s, marker='o'); plt.title('Accuracy per fold'); plt.xlabel('fold'); plt.ylabel('accuracy')\nplt.show()")
+        replies = [reply(holdout), reply(holdout), reply("x = (") , reply(plot)]
+
+        class Scripted:
+            def complete(self, messages, tools=None, max_tokens=1800, **options):
+                return replies.pop(0)
+
+        services = self.client.app.state.services
+        kept = services.gateway
+        services.gateway = Gateway(FileUsage(Path(tempfile.mkdtemp()) / "u.jsonl"), transport=lambda tier, purpose: Scripted())
+        self.addCleanup(setattr, services, "gateway", kept)
+        url = f"/api/projects/{self.pid}/notebook"
+        self.assertTrue(self.client.get(f"/api/projects/{self.pid}/review").json()["writes_cells"])
+
+        refused = self.client.post(f"{url}/write", json={"request": "score it on the test set"}, headers=self.headers).json()
+        self.assertEqual(refused["status"], "refused")  # twice the holdout: never offered
+        self.assertTrue(any("X_test" in x for x in refused["problems"]))
+        self.assertEqual(self.client.post(f"{url}/cells/{refused['id']}/answer", json={"accepted": True}, headers=self.headers).status_code, 409)
+
+        cell = self.client.post(f"{url}/write", json={"request": "show accuracy plot"}, headers=self.headers).json()
+        self.assertEqual(cell["status"], "proposed", cell)  # a cell that did not parse, then a good one
+        self.assertEqual(self.client.post(f"{url}/run", json={"cell": cell["id"]}, headers=self.headers).status_code, 409)  # not accepted yet
+        accepted = self.client.post(f"{url}/cells/{cell['id']}/answer", json={"accepted": True}, headers=self.headers).json()
+        self.assertEqual(accepted["status"], "accepted")
+        self.assertIn(cell["id"], [c["id"] for c in self.client.get(f"/api/projects/{self.pid}/review").json()["agent_cells"]])
+        self.assertNotIn(refused["id"], [c["id"] for c in self.client.get(f"/api/projects/{self.pid}/review").json()["agent_cells"]])
+
+        for i, c in enumerate(self.cells):  # the notebook's cells first, as the page does on a fresh kernel
+            if c["type"] != "code" or c.get("role") == "holdout":
+                if c.get("role") == "holdout":
+                    break
+                continue
+            self.assertEqual(self.run_cell(i).json()["status"], "ok")
+        ran = self.client.post(f"{url}/run", json={"cell": cell["id"]}, headers=self.headers).json()
+        self.assertEqual(ran["status"], "ok", json.dumps(ran)[:2000])
+        self.assertTrue(any(o["type"] == "image" for o in ran["outputs"]))  # the plot comes back as a picture
+
+        tampered = [dict(c, code=holdout) if c["id"] == cell["id"] else c for c in services.projects.get(self.pid)["notebook_agent_cells"]]
+        services.projects.update(self.pid, notebook_agent_cells=tampered)
+        self.assertEqual(self.client.post(f"{url}/run", json={"cell": cell["id"]}, headers=self.headers).status_code, 409)  # checked again before it runs
+
+    def _time_project(self, newest_first=True):
+        import numpy as np
+        import pandas as pd
+
+        from dclab_rnd.studio import data as studio_data
+
+        store = self.client.app.state.services.projects
+        pid = store.create("Days", "general", "Predict the outcome")["id"]
+        days = np.arange(600)[::-1] if newest_first else np.arange(600)
+        rng = np.random.default_rng(0)
+        frame = pd.DataFrame({"day": days, "x": rng.normal(size=600), "outcome": rng.integers(0, 2, 600)})
+        frame.to_csv(store.data_dir(pid) / "days.csv", index=False)
+        studio_data.attach_data(store, pid, "days.csv")
+        p = store.get(pid)
+        p["solution"] = {**SOLUTION, "target": "outcome", "positive_label": "1", "time_column": "day"}
+        store.save(p)
+        return store, pid
+
+    def test_a_time_split_keeps_the_latest_rows_out_of_the_kernel_whatever_the_file_order(self):
+        from dclab_rnd.studio import kernels
+
+        for newest_first in (True, False):
+            store, pid = self._time_project(newest_first)
+            table, _ = kernels.training_rows(store, store.get(pid))
+            self.assertEqual(len(table), 480)
+            self.assertEqual(sorted(table["day"]), list(range(480)), "the kernel holds the earliest 80% by day, never a later one")
+
+    def test_a_kernel_on_an_old_solution_is_restarted_with_the_new_rows(self):
+        from dclab_rnd.studio import kernels
+
+        services = self.client.app.state.services
+        store, pid = self._time_project()
+        project = store.get(pid)
+        k = services.kernels._kernel(store, project)
+        project["solution"] = {**project["solution"], "time_column": None}  # a random split now: other rows train
+        store.save(project)
+        k2 = services.kernels._kernel(store, store.get(pid))
+        self.assertIsNot(k, k2)
+        self.assertFalse(k.manager.is_alive())
+        self.assertNotEqual(kernels.fingerprint(project), k.fingerprint)
+        services.kernels.restart(pid)
+
+    def test_a_restart_during_a_run_ends_the_run_at_once(self):
+        import threading
+        import time as clock
+
+        services = self.client.app.state.services
+        store, pid = self._time_project()
+        kernel = services.kernels._kernel(store, store.get(pid))
+        got = {}
+        t = threading.Thread(target=lambda: got.update(kernel.execute("import time\ntime.sleep(60)", timeout=120)))
+        t.start()
+        clock.sleep(2)
+        started = clock.time()
+        services.kernels.restart(pid)
+        t.join(30)
+        self.assertFalse(t.is_alive(), "the run kept waiting after its kernel stopped")
+        self.assertLess(clock.time() - started, 30)
+        self.assertEqual(got["status"], "error")
+        self.assertEqual(got["outputs"][-1]["ename"], "KernelStopped")
+
+    def test_overlapping_requests_keep_every_answer_and_accepted_cells_are_never_dropped(self):
+        from dclab_rnd.models.gateway import Gateway
+        from dclab_rnd.models.usage import FileUsage
+        from dclab_rnd.studio import notebook_agent
+
+        services = self.client.app.state.services
+        store, pid = self._time_project()
+        first = {"id": "a0000000001", "request": "r", "code": "print(1)", "explanation": "", "problems": [], "status": "proposed", "at": "t"}
+        store.update(pid, notebook_agent_cells=[first])
+
+        class AcceptsMeanwhile:  # while the model writes, the person accepts the first cell
+            def complete(self, messages, tools=None, max_tokens=1800, **options):
+                r = self_client.post(f"/api/projects/{pid}/notebook/cells/{first['id']}/answer", json={"accepted": True}, headers=headers)
+                assert r.status_code == 200, r.text
+                return {"content": json.dumps({"code": "print(2)", "explanation": "two"}), "tool_calls": [], "usage": {}}
+
+        self_client, headers = self.client, self.headers
+        kept = services.gateway
+        services.gateway = Gateway(FileUsage(Path(tempfile.mkdtemp()) / "u.jsonl"), transport=lambda tier, purpose: AcceptsMeanwhile())
+        self.addCleanup(setattr, services, "gateway", kept)
+        self.client.post(f"/api/projects/{pid}/notebook/write", json={"request": "two"}, headers=self.headers)
+        cells = store.get(pid)["notebook_agent_cells"]
+        self.assertEqual([c["status"] for c in cells], ["accepted", "proposed"])  # the answer given meanwhile is kept
+
+        many = [dict(first, id=f"a{i:010d}", status="refused") for i in range(60)]
+        trimmed = notebook_agent.keep([dict(first, status="accepted")] + many)
+        self.assertEqual(len(trimmed), notebook_agent.MAX_CELLS)
+        self.assertEqual(trimmed[0]["status"], "accepted")
+
+    def test_an_agent_cell_on_a_fresh_kernel_runs_after_the_notebook_and_is_kept_whole(self):
+        services = self.client.app.state.services
+        services.kernels.restart(self.pid)
+        long = {"id": "a00000000ff", "request": "long", "code": "print(len(X_train)); print('x' * 30000)", "explanation": "", "problems": [],
+                "status": "accepted", "at": "t"}
+        project = services.projects.get(self.pid)
+        services.projects.update(self.pid, notebook_agent_cells=list(project.get("notebook_agent_cells") or []) + [long])
+        before = len(self.notebook_runs())
+        ran = self.client.post(f"/api/projects/{self.pid}/notebook/run", json={"cell": long["id"]}, headers=self.headers).json()
+        self.assertEqual(ran["status"], "ok", json.dumps(ran)[:1500])  # X_train exists: the notebook's cells ran first
+        self.assertGreater(ran["prepared"], 0)
+        self.assertLessEqual(max(len(o["text"]) for o in ran["outputs"] if o["type"] == "text"), 20_000)  # the page gets it cut
+        mine = [r for r in self.notebook_runs()[before:] if r.get("cell") == long["id"]]
+        self.assertEqual(len(mine), 1)
+        self.assertIn("x" * 30000, mine[0]["stdout"])  # the record keeps it whole
 
     def test_the_kernel_never_gets_a_key_or_a_database_address(self):
         from dclab_rnd.studio import kernels

@@ -1,0 +1,154 @@
+{
+ "package": "notebook-agent-cells",
+ "title": "The agent writes the next notebook cell for the person's request; an accepted cell runs in the kernel",
+ "date": "2026-10-20",
+ "request": "I asked show accuracy plot but nothing happened; again I asked show accuracy plot, nothing when I clicked Accept; the sample notebook must connect to the real project; fix all bugs in this area.",
+ "spec": "The owner's bug-finder rules for the hunt: high-severity only, a concrete trigger for each, a minimal fix and a test.",
+ "plan": [
+  "A notebook_cell purpose and prompt: the request, the notebook's code cells and the column names with kinds, never a row",
+  "Check every proposal before it is shown: it parses, it never touches X_test or y_test; one retry told what failed",
+  "Routes to write, accept or reject; an accepted cell runs by its id after the check again",
+  "The page: real proposals with Accept and Reject, Run with outputs and plots; the Notebook page opens the latest real project",
+  "A bug hunt over the area with the reviewer, then fix every finding with a test"
+ ],
+ "decisions": [
+  {
+   "decision": "Only an accepted cell runs, and it is checked again right before it runs.",
+   "why": "The person decides what code runs; a stored cell changed after the answer is refused."
+  },
+  {
+   "decision": "The Notebook page opens the latest real project, its solution saved first, whatever sample was chosen elsewhere.",
+   "why": "The owner: the sample notebook must connect to the real project; the sample shows only when no project exists."
+  },
+  {
+   "decision": "The server runs the notebook's cells up to the holdout before an agent's cell on a kernel that has run nothing.",
+   "why": "The page cannot know when the server swept, restarted or replaced the kernel."
+  },
+  {
+   "decision": "Who may run agent cells stays the owner's choice (any signed-in member) and is reported as the open risk.",
+   "why": "The owner chose it knowingly; the sandbox step in the roadmap is the real boundary, a role check is not one for a friend who owns a workspace."
+  }
+ ],
+ "change": "studio/notebook_agent.py (new), prompts/notebook_cell.md (new), models/settings.py (notebook_cell), agents/harness.py, studio/kernels.py, expansion/datasets.py (row_order), studio/engine.py, routers/projects.py (write, answer, run by id, review fields), accounts/guard.py, the Notebook page, tests.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "Ask the agent to write the next cell did nothing real.",
+   "scenario": "The person asked for an accuracy plot on the Notebook page; a fixed example cell appeared, and Accept only showed a message.",
+   "cause": "The box was the demo's: a written example in sample mode and hidden on a real project.",
+   "fix": "A model writes the cell from the notebook and the columns; Accept and Run work on a real project; the sample says it is a sample.",
+   "test": "tests/test_notebook_cells.py::NotebookCellsTest::test_the_agent_writes_a_cell_it_is_checked_accepted_and_run_with_its_plot"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A time split put the holdout rows into the kernel.",
+   "scenario": "A table with its newest rows first and a time column: the kernel's table held the latest rows, which the holdout scores.",
+   "cause": "The time split sorts the rows by time and counts its train rows in that order; the row positions kept the file's order.",
+   "fix": "The bundle keeps its row order and the engine maps the positions through it; a table of other rows (entities) is refused.",
+   "test": "tests/test_notebook_cells.py::NotebookCellsTest::test_a_time_split_keeps_the_latest_rows_out_of_the_kernel_whatever_the_file_order"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A live kernel kept the old training rows after the solution changed.",
+   "scenario": "Cells run on a random split, then a time column is saved: the kernel still read the old rows, most of the new holdout among them.",
+   "cause": "A live kernel was reused whatever the table, solution or settings were now.",
+   "fix": "Each kernel keeps a fingerprint of the table, the solution and the settings; a different one restarts it with the new rows.",
+   "test": "tests/test_notebook_cells.py::NotebookCellsTest::test_a_kernel_on_an_old_solution_is_restarted_with_the_new_rows"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A restart during a run spun the processor and ended in a server error.",
+   "scenario": "Restart pressed while a long cell ran: the run looped on a closed channel until its timeout, then the interrupt raised.",
+   "cause": "Every exception while waiting for a message was taken as no message yet; the interrupt was not guarded.",
+   "fix": "Only an empty queue waits again, and only while the kernel lives; a stopped kernel ends the run with its reason.",
+   "test": "tests/test_notebook_cells.py::NotebookCellsTest::test_a_restart_during_a_run_ends_the_run_at_once"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Two overlapping requests lost an answer or a proposal.",
+   "scenario": "The person accepted a cell while another was being written: the write saved the list it read before, so the cell showed accepted and Run refused it.",
+   "cause": "Both routes read the list, waited, and wrote the whole list back.",
+   "fix": "A lock per project around reading and writing the list, read again right before the write.",
+   "test": "tests/test_notebook_cells.py::NotebookCellsTest::test_overlapping_requests_keep_every_answer_and_accepted_cells_are_never_dropped"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An agent's cell failed with a missing name on a kernel the page did not start.",
+   "scenario": "After the idle sweep or a restart by someone else, Run again on an accepted cell: X_train was not defined.",
+   "cause": "The page decided whether the kernel was new from its own memory.",
+   "fix": "The server runs the notebook's cells first on a kernel that has run nothing and says how many.",
+   "test": "tests/test_notebook_cells.py::NotebookCellsTest::test_an_agent_cell_on_a_fresh_kernel_runs_after_the_notebook_and_is_kept_whole"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Code runs were cut before they were saved.",
+   "scenario": "A cell printing a long text or a long traceback: the record kept only the cut text and counted the pictures.",
+   "cause": "The text was cut where the outputs were collected, before the record.",
+   "fix": "The record keeps every output whole with its pictures; only the page's copy is cut.",
+   "test": "tests/test_notebook_cells.py::NotebookCellsTest::test_an_agent_cell_on_a_fresh_kernel_runs_after_the_notebook_and_is_kept_whole"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Accepted cells could be dropped from the kept list.",
+   "scenario": "Many refused writes pushed the oldest cells out, an accepted one among them.",
+   "cause": "The list was cut to its last entries whatever their state.",
+   "fix": "Refused and rejected cells go first, then old proposals; an accepted cell stays.",
+   "test": "tests/test_notebook_cells.py::NotebookCellsTest::test_overlapping_requests_keep_every_answer_and_accepted_cells_are_never_dropped"
+  },
+  {
+   "id": "F9",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "My code edits reloaded the owner's development server while the owner was using the page.",
+   "scenario": "Edits to the package one by one restarted the server and its kernel in the middle of the owner's try.",
+   "cause": "make dev reloads on every change under dclab_rnd.",
+   "fix": "Batch the edits to the package and tell the owner before and after; the owner's cell stayed proposed for them to accept.",
+   "test": "none: a working practice"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Live cell for show accuracy plot",
+   "gate": "the cell parses, never reads the holdout, runs and draws a plot",
+   "result": "Sonnet wrote a fold-accuracy plot with a majority-class baseline from the training folds; it ran and returned a picture; 1,963 input and 508 output tokens",
+   "verdict": "pass",
+   "limits": [
+    "one request on a sample table; accuracy equals the majority-class baseline there, so the plot says little about the model"
+   ]
+  },
+  {
+   "name": "The owner's project in the browser",
+   "gate": "write, accept and run on a real project draw the plot",
+   "result": "the cell for show accuracy plot was accepted and ran on the owner's project; the plot showed accuracy per time-ordered fold against the baseline",
+   "verdict": "pass",
+   "limits": [
+    "one project"
+   ]
+  }
+ ],
+ "outcome": "The agent writes the cell the person asks for on a real project, it is checked, accepted and run, and the time split, a changed solution, a restart and overlapping requests no longer break it.",
+ "lessons": [
+  "A demo control that looks real must say it is a sample when clicked, or the person thinks the product is broken.",
+  "Row positions must follow every reordering of the rows, or the training rows the kernel gets are not the training rows."
+ ],
+ "risks": [
+  "Any signed-in member can run code as the server's user until the sandbox step: they can read files the server can read."
+ ],
+ "commits": []
+}

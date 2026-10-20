@@ -72,6 +72,7 @@ MODEL_USES: dict[str, str] = {  # purpose -> why it is not an agent: one complet
     "lesson_proposal": "a lesson proposed from a finished project",
     "project_answer": "an answer about one project",
     "notebook_review": "a notebook's methodology review",
+    "notebook_cell": "the next notebook cell for a person's request, checked before it is shown and run only once accepted",
     "leakage_review": "a second reading of leakage suspects",
     "campaign_review": "the review of a finished research campaign",
     "decision_answer": "one decision answered from its state, beside the rule (22.5)",
