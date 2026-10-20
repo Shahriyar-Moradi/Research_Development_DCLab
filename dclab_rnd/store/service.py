@@ -602,12 +602,35 @@ def guides(layout: Optional[Layout] = None, root: Path = ROOT, folder: Optional[
 
 
 # ------------------------------------------------------------------------------------------- 32.30, 32.31 engagements, playbook
-def engagements(layout: Optional[Layout] = None, judged: Optional[list[tuple[ModelBuild, BuildVerdict]]] = None) -> list[ServiceEngagement]:
-    """Each walk (its newest version) as an engagement: what was agreed, delivered and handed over, linked to its build; where
-    it stopped when it did. What its records cannot say is listed in ``unknown``."""
+def _conversation(layout: Layout) -> tuple[dict[tuple[str, str], dict[str, Any]], dict[tuple[str, str], list[dict[str, Any]]]]:
+    """Per (workspace, draft): the draft's own record (the person's first words, its questions, its brief); and per (workspace,
+    draft or project): the people's feedback on what DCLab said (``feedback.given``: what it was on, the rating, the kind)."""
+    drafts: dict[tuple[str, str], dict[str, Any]] = {}
+    for r in _current(layout, "conversations"):
+        if r.provenance.source.startswith("drafts/") and r.provenance.source.endswith("/draft.json") and r.body.get("id"):
+            drafts[(r.provenance.workspace, str(r.body["id"]))] = r.body
+    feedback: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for r in _current(layout, "sessions"):
+        if r.body.get("kind") != "feedback.given":
+            continue
+        payload = r.body.get("payload") if isinstance(r.body.get("payload"), dict) else {}
+        item = {k: payload.get(k) for k in ("on", "rating", "kind", "role", "score") if payload.get(k) is not None} | {"at": r.body.get("at")}
+        for key in (r.body.get("conversation"), r.body.get("draft"), r.body.get("project")):
+            if key:
+                feedback[(r.provenance.workspace, str(key))].append(item)
+    return drafts, feedback
+
+
+def engagements(layout: Optional[Layout] = None, judged: Optional[list[tuple[ModelBuild, BuildVerdict]]] = None,
+                latest: Optional[dict[tuple[str, str], dict[str, Any]]] = None) -> list[ServiceEngagement]:
+    """Each walk (its newest version) as an engagement: the person's first words, the questions asked and answered, the brief
+    agreed, what was delivered and how its result was explained (the final record's notes and limits), the feedback, whether
+    it was used; where it stopped when it did. What its records cannot say is listed in ``unknown``."""
     layout = layout or Layout()
     judged = builds(layout) if judged is None else judged
+    latest = _latest(layout) if latest is None else latest
     built = {b.id: b for b, _ in judged}
+    drafts, feedback = _conversation(layout)
     out = []
     for r in _current(layout, "workflows"):
         if r.type != "walk":
@@ -618,9 +641,30 @@ def engagements(layout: Optional[Layout] = None, judged: Optional[list[tuple[Mod
             continue
         ws = r.provenance.workspace
         build = built.get(f"build:{ws}:{pid}") if pid else None
+        draft = drafts.get((ws, str(did))) if did else None
+        final = (((latest.get((ws, str(pid))) or {}).get("stages") or {}).get("final") or {}) if pid else {}
         steps = b.get("steps") or []
-        unknown = {"request": "the first words are in the draft's conversation, not the walk", "expected": "no expectation recorded",
-                   "explanation": "what was said of the result is in the report, not read here", "feedback": "no feedback recorded"}
+        unknown: dict[str, str] = {}
+        request = str(draft.get("problem"))[:2000] if draft and draft.get("problem") else None
+        if request is None:
+            unknown["request"] = "no draft with the person's first words" if did else "a project started without a draft"
+        questions = [{"field": q.get("field"), "answered": bool(q.get("answered")), **({"superseded": True} if q.get("superseded") else {})}
+                     for q in (draft or {}).get("questions") or [] if isinstance(q, dict)][:100]
+        if not questions:
+            questions = [{"step": s.get("ref")} for s in steps if s.get("kind") == "draft_event" and (s.get("detail") or {}).get("kind") == "chat"][:100]
+        brief = (draft or {}).get("brief") if isinstance((draft or {}).get("brief"), dict) else {}
+        expected = {k: brief.get(k) for k in ("primary_metric", "success_criteria", "horizon", "deliverables") if brief.get(k) not in (None, "", [])}
+        if not expected:
+            unknown["expected"] = "no brief with a metric, success criteria or deliverables"
+        evidence = final.get("evidence") or {}
+        explanation = {"notes_for_person": len(evidence.get("notes_for_person") or []) if isinstance(evidence.get("notes_for_person"), list) else bool(evidence.get("notes_for_person")),
+                       "limits": len(evidence.get("limits") or []) if isinstance(evidence.get("limits"), list) else bool(evidence.get("limits")),
+                       "interval": evidence.get("holdout_primary_metric_ci") is not None} if evidence else {}
+        if not explanation:
+            unknown["explanation"] = "no final record, so nothing was explained of a result"
+        said = feedback.get((ws, str(did)), []) + feedback.get((ws, str(pid)), [])
+        if not said:
+            unknown["feedback"] = "no feedback given on what DCLab said"
         stopped = None
         if not pid:
             last = steps[-1] if steps else {}
@@ -628,12 +672,12 @@ def engagements(layout: Optional[Layout] = None, judged: Optional[list[tuple[Mod
             unknown["delivered"] = "it stopped in the draft"
         elif build is None:
             unknown["delivered"] = "its project's records are not in the store"
-        out.append(ServiceEngagement(id=f"engagement:{ws}:{did or pid}", workspace=ws, context=build.context if build else {},
-                                     questions=[{"step": s.get("ref")} for s in steps if s.get("kind") == "draft_event" and (s.get("detail") or {}).get("kind") == "chat"][:100],
-                                     agreement={"bar": build.result.get("bar") if build else None},
+        out.append(ServiceEngagement(id=f"engagement:{ws}:{did or pid}", workspace=ws, context=build.context if build else {}, request=request,
+                                     questions=questions, agreement={"bar": build.result.get("bar") if build else None, "brief": bool(brief)}, expected=expected,
                                      delivered={"result": build.result if build else None, "eur": build.spent.get("eur") if build else None,
                                                 "minutes": build.spent.get("people_minutes") if build else None, "outcome": b.get("outcome")},
-                                     handover={"used": build.used if build else None}, stopped=stopped, unknown=unknown, at=now()))
+                                     explanation=explanation, handover={"used": build.used if build else None}, feedback=said[:100], stopped=stopped,
+                                     unknown=unknown, at=now()))
     return out
 
 
@@ -664,8 +708,9 @@ def playbook(layout: Optional[Layout] = None, rows: Optional[list[ServiceEngagem
 def write(layout: Optional[Layout] = None) -> dict[str, Any]:
     """Every service record of the store into ``service/`` (``layout.service``), the store read once."""
     layout = layout or Layout()
-    judged = builds(layout)
-    rows = engagements(layout, judged)
+    latest = _latest(layout)
+    judged = [_project_build(k, p) for k, p in sorted(latest.items())] + _student_builds(layout)
+    rows = engagements(layout, judged, latest)
     write_json(layout.service("builds"), [{"build": json.loads(b.model_dump_json()), "verdict": json.loads(v.model_dump_json())} for b, v in judged])
     write_json(layout.service("curves"), [json.loads(c.model_dump_json()) for c in curves(layout, judged)])
     write_json(layout.service("catalog"), service_catalog(layout, judged))

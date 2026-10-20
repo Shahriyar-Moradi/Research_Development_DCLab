@@ -280,6 +280,29 @@ class ServiceTest(unittest.TestCase):
         self.assertEqual(written["engagements"], 3)
         self.assertTrue(self.layout.service("catalog").exists())
 
+    def test_an_engagement_reads_the_persons_words_the_questions_the_brief_the_explanation_and_the_feedback(self):
+        from dclab_rnd.store import service
+
+        _keep_files(self.store, "a")
+        draft = {"id": "d1", "problem": "Which orders will arrive late?", "project_id": "a",
+                 "questions": [{"id": "q1", "field": "prediction_moment", "text": "When?", "answered": True, "options": [], "why": "w"},
+                               {"id": "q2", "field": "horizon", "text": "How far?", "answered": False, "options": [], "why": "w"}],
+                 "brief": {"primary_metric": "roc_auc", "success_criteria": "beat the dispatcher", "deliverables": ["a ranked list"]}}
+        self.store.keep("conversations", "day", "drafts/d1/draft.json", json.dumps(draft).encode(), consent="train")
+        walk = {"id": "walk:d1", "draft": "d1", "project": "a", "steps": [{"at": AT, "kind": "draft_event", "ref": "d1:1"}], "outcome": "reported"}
+        self.store.keep("workflows", "day", "walks/d1.json", json.dumps(walk).encode(), consent="train")
+        event = {"kind": "feedback.given", "at": AT, "actor": "person", "ids": {"conversation": "d1"}, "payload": {"on": "message", "rating": "up", "kind": "helpful"}}
+        self.store.keep_log("sessions", "day", "experience/events.jsonl", (json.dumps(event) + "\n").encode(), consent="train")
+        self._judged()
+        e = {x.id: x for x in service.engagements(self.layout)}["engagement:day:d1"]
+        self.assertEqual(e.request, "Which orders will arrive late?")
+        self.assertEqual([q["answered"] for q in e.questions], [True, False])
+        self.assertEqual(e.expected["primary_metric"], "roc_auc")
+        self.assertTrue(e.explanation["interval"])
+        self.assertEqual(e.feedback[0]["rating"], "up")
+        self.assertNotIn("feedback", e.unknown)
+        self.assertNotIn("request", e.unknown)
+
     def test_the_verdict_is_correct_only_when_every_check_passed(self):
         from dclab_core.service import CHECKS, ModelBuild, verdict
 

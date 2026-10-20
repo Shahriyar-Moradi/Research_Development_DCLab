@@ -30,6 +30,16 @@
    "cause": "The walks keeper read only a running server's services.",
    "fix": "Without a server, each file workspace's walks are read from its folder (its project, draft, ledger and event stores, opened only where the folder exists, nothing written).",
    "test": "tests/test_store_walks.py::test_without_a_server_the_walks_are_read_from_each_workspaces_folder_and_nothing_is_written_there"
+  },
+  {
+   "id": "E3",
+   "source": "self",
+   "severity": "gap",
+   "defect": "An engagement's request, expectation, explanation and feedback were always unknown.",
+   "scenario": "874 engagements, each with four parts unknown.",
+   "cause": "Only the walk was read.",
+   "fix": "The draft's own record (the person's first words, its questions answered or not, its brief), the final record's notes, limits and interval, and feedback.given events by draft or project.",
+   "test": "tests/test_store_service.py::ServiceTest::test_an_engagement_reads_the_persons_words_the_questions_the_brief_the_explanation_and_the_feedback"
   }
  ],
  "measurements": [],
@@ -37,8 +47,6 @@
  "lessons": [
   "Write fixtures from the code that writes the records (a stage record copied from the engine), never from memory: invented shapes made every test pass while every real build was judged wrong."
  ],
- "risks": [
-  "Feedback and explanations are not yet read from the records."
- ],
+ "risks": [],
  "commits": []
 }

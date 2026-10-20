@@ -1000,7 +1000,6 @@ gate. Model spend:
       service|knowledge|know-accept|guides`).
   - **Left open:**
     - the research agent that finds outside findings (needs the owner's yes and a cap);
-    - an engagement's request, feedback and explanation, read from the draft and the report;
     - labelled rows counted apart from rows.
   - **The backfill (2026-10-20).**
     - **What it kept:** every workspace (800), Claude Code session, test run and commit, in 21 minutes with no error:
@@ -1024,6 +1023,8 @@ gate. Model spend:
       has room for its whole reply.
     - **The teacher had nothing to do:** no whole exchange without thinking is kept yet. `DCLAB_LOG_PROMPTS=1` keeps
       them from now on.
+  - **Engagements read whole (32.30):** the person's first words, the questions asked and answered, the brief, the final
+    record's notes, limits and interval, and the feedback given.
   - **The research campaigns' experiments (32.20):** the 14 model-selection results on public datasets are M3 experiment
     records, split by dataset. The engine's experiments are now read per workspace and project, train consent only.
   - **The MLE-bench list checked** against openai/mle-bench: the Lite split matched (22 of 22), and the rest of its 75
