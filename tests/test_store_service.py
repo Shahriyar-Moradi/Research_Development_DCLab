@@ -45,7 +45,7 @@ def _records(pid, *, holdout_uses=1, bar="met", moment="At order time, before di
                                                                    "heuristic_review_candidates": [{"feature": "final_fare", "reasons": ["declared_post_outcome_or_contested"]}]}),
         "models": stage("models", "2026-10-20T10:07:00+00:00", {"cv_protocol": "TimeSeriesSplit(5) on training rows"}),
         "final": stage("final", "2026-10-20T10:08:00+00:00", {"holdout_metrics": {metric: value}, "holdout_primary_metric_ci": {"point": value, "low": ci[0], "median": value, "high": ci[1], "draws": 40, "method": "iid row bootstrap"},
-                                                               "holdout_uses_in_this_project": holdout_uses, "baselines": {"majority_class": {metric: baseline}},
+                                                               "holdout_uses_in_this_project": holdout_uses, "train_rows": 6400, "holdout_rows": 1600, "baselines": {"majority_class": {metric: baseline}},
                                                                "success_bar": {"verdict": bar, "bar": {"metric": metric}}}, run={"run": f"run-{pid}"}),
     }
     moves = [{"at": "2026-10-20T10:01:00+00:00", "move": "set_solution", "status": "allowed", "from": "WF-01", "to": "WF-02"},
@@ -107,6 +107,7 @@ class ServiceTest(unittest.TestCase):
         self.assertEqual(verdict.verdict, "correct")
         self.assertEqual(build.context["size"], "medium")
         self.assertEqual(build.data["columns"], 9)
+        self.assertEqual(build.data["labelled"], "small")  # 8,000 labelled of 12,000 rows
         self.assertEqual(build.recipe[0]["field"], "split")
         self.assertEqual(build.spent["people_minutes"], 40.0)  # 10 minutes, then a day capped at 30
         self.assertEqual(build.spent["chat_turns"], 1)

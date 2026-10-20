@@ -8,7 +8,7 @@ whether correctly, what they take, how the service was given, and the knowledge 
 - ``verdicts`` (32.26): each build judged by code against DCLab's rules (``dclab_core.service.verdict``); a fact its records
   cannot say is None, never assumed passed.
 - ``curves`` and ``service_catalog`` (32.25): learning curves (each student point by its training rows, each problem kind by
-  its rows band) and, per problem kind, what was built, how often it met its bar (with an interval), its median cost and
+  its labelled rows' band) and, per problem kind, what was built, how often it met its bar (with an interval), its median cost and
   time, its common failures. Only aggregates across workspaces: a kind with fewer than :data:`MIN_BUILDS` builds or
   :data:`MIN_WORKSPACES` workspaces says so instead of a figure (one business's figures are never shown alone).
 - ``knowledge`` (32.27): every rule, pitfall, finding and precedent of the evidence index, CLAUDE.md's rules and the outside
@@ -287,6 +287,11 @@ def _project_build(key: tuple[str, str], p: dict[str, Any]) -> tuple[ModelBuild,
         unknown["result"] = f"its final stage is {final.get('status') or 'not run'}"
     elif result["met"] is None:
         unknown["result.met"] = bar.get("reason") or "no signed brief with a bar"
+    labelled = None  # the rows the engine kept with a label: its training and holdout rows (an unlabelled row is not one)
+    if isinstance(evidence.get("train_rows"), int) and isinstance(evidence.get("holdout_rows"), int):
+        labelled = evidence["train_rows"] + evidence["holdout_rows"]
+    elif final.get("status") in DONE:
+        unknown["data.labelled"] = "its final record does not count its training and holdout rows"
     columns = data.get("column_count") or (len(data["columns"]) if isinstance(data.get("columns"), list) else None)
     if columns is None:
         unknown["data.columns"] = "no column count in its data record"
@@ -301,7 +306,8 @@ def _project_build(key: tuple[str, str], p: dict[str, Any]) -> tuple[ModelBuild,
     build = ModelBuild(id=f"build:{ws}:{pid}", model_type="business_model", workspace=ws,
                        context={"industry": industry, "size": _band(data.get("rows")), "problem_kind": kind, "task": solution.get("task"),
                                 "deleted_in_product": bool(p.get("deleted"))},
-                       data={"rows": _band(data.get("rows")), "columns": columns, "label": "column" if solution.get("target") else "none"},
+                       data={"rows": _band(data.get("rows")), "columns": columns, "label": "column" if solution.get("target") else "none",
+                             "labelled": _band(labelled) if labelled is not None else "unknown"},
                        recipe=recipe[:40],
                        spent={"people_minutes": minutes, "chat_turns": sum(1 for s in steps if s.get("kind") == "draft_event" and (s.get("detail") or {}).get("kind") == "chat"),
                               "compute_seconds": round(sum(float(v.get("elapsed_seconds") or 0) for v in stages.values()), 1), "eur": round(p["eur"], 6)},
@@ -394,8 +400,8 @@ def curves(layout: Optional[Layout] = None, judged: Optional[list[tuple[ModelBui
     order = ("tiny", "small", "medium", "large", "very_large")
     by_kind: dict[tuple[str, str], dict[str, list[ModelBuild]]] = defaultdict(lambda: defaultdict(list))
     for b, _ in judged:
-        if b.model_type == "business_model" and isinstance(b.result.get("holdout"), (int, float)) and b.data.get("rows") in order:
-            by_kind[(str(b.context.get("problem_kind")), str(b.result.get("metric")))][b.data["rows"]].append(b)
+        if b.model_type == "business_model" and isinstance(b.result.get("holdout"), (int, float)) and b.data.get("labelled") in order:
+            by_kind[(str(b.context.get("problem_kind")), str(b.result.get("metric")))][b.data["labelled"]].append(b)
     for (kind, metric), bands in sorted(by_kind.items()):
         points = []
         for i, band in enumerate(order):
@@ -405,7 +411,7 @@ def curves(layout: Optional[Layout] = None, judged: Optional[list[tuple[ModelBui
                 points.append(CurvePoint(labels=i, score=round(statistics.median(scores), 4), low=min(scores), high=max(scores), metric=metric))
         n = sum(len(v) for v in bands.values())
         out.append(LearningCurve(subject=f"{kind}:{metric}", kind="problem_kind", points=points, builds=n, enough=len(points) >= 2,
-                                 why="labels: the rows band's index (tiny 0 to very large 4)" + ("" if len(points) >= 2 else
+                                 why="labels: the labelled rows' band's index (tiny 0 to very large 4)" + ("" if len(points) >= 2 else
                                      f"; {len(points)} bands with {MIN_WORKSPACES} workspaces: a curve needs 2")))
     return out
 
@@ -434,7 +440,9 @@ def service_catalog(layout: Optional[Layout] = None, judged: Optional[list[tuple
                      "median_eur": statistics.median(eur) if eur else None, "median_people_minutes": statistics.median(minutes) if minutes else None,
                      "correct_share": round(sum(v.verdict == "correct" for _, v in items) / len(items), 3),
                      "common_failures": failures.most_common(5), "rows": Counter(b.data.get("rows") for b, _ in items).most_common(),
-                     "labels_needed": "the rows bands it met its bar on are in the kind's curve (curves.json); labelled rows are not counted apart yet"}
+                     "labelled_rows": Counter(b.data.get("labelled") for b, _ in items).most_common(),
+                     "labelled_rows_when_met": Counter(b.data.get("labelled") for b, _ in items if b.result.get("met")).most_common(),
+                     "labels_needed": "labelled_rows_when_met: the labelled rows' bands of the builds that met their bar; the kind's curve (curves.json) by band"}
     return out
 
 

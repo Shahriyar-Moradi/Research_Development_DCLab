@@ -999,7 +999,6 @@ gate. Model spend:
       service|knowledge|know-accept|guides`).
   - **Left open:**
     - the research agent that finds outside findings (needs the owner's yes and a cap);
-    - labelled rows counted apart from rows.
   - **The backfill (2026-10-20).**
     - **What it kept:** every workspace (800), Claude Code session, test run and commit, in 21 minutes with no error:
       about 15,500 sources, 771 MB compressed (6 GB of disk left).
@@ -1022,6 +1021,8 @@ gate. Model spend:
       has room for its whole reply.
     - **The teacher had nothing to do:** no whole exchange without thinking is kept yet. `DCLAB_LOG_PROMPTS=1` keeps
       them from now on.
+  - **Labelled rows counted apart (32.25):** a build's labelled rows are its final record's training and holdout rows. The
+    kind's curve is drawn by them, and the catalog gives their bands where the bar was met.
   - **Stage and team-walk episodes (32.13):**
     - **New episodes:** a project's stages in the order they ran, and a team's walk node by node.
     - **Read from current records:** M6, M7 and M8 now use them, per workspace (a walk kept twice is one episode, and

@@ -26,6 +26,16 @@
    "cause": "Only the build count was gated.",
    "fix": "A figure needs three builds in three workspaces.",
    "test": "tests/test_store_service.py::test_the_catalog_shows_a_figure_only_from_three_builds_in_three_workspaces"
+  },
+  {
+   "id": "E6",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The catalog could not say how many labels a kind needs.",
+   "scenario": "labels_needed said labelled rows were not counted apart.",
+   "cause": "Only the table's rows were read.",
+   "fix": "A build's labelled rows: its final record's training and holdout rows, in bands; the kind's curve by that band and the bands of the builds that met their bar.",
+   "test": "tests/test_store_service.py::ServiceTest::test_a_clean_build_is_correct_and_its_parts_are_read_from_the_studios_records"
   }
  ],
  "measurements": [],
