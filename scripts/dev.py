@@ -3,6 +3,7 @@
     make dev                   # PostgreSQL checked, dclab_dev created and migrated, the API and the job worker with reload, the frontend rebuilt on change
     make db-reset CONFIRM=yes  # a clean dclab_dev: dropped, created, migrated (asks for CONFIRM: it deletes the database)
     make test-db               # the database the tests use (dclab_test), created and migrated
+    make login                 # sign-in on: DCLAB_AUTH=password written to .env and your owner account made (once; then make dev)
 
 No containers: the developer's own PostgreSQL (``brew services start postgresql@15`` on a Mac). The database is
 ``DCLAB_DATABASE_URL`` (from the shell or ``.env``, as the server reads it), else ``postgresql+psycopg://$USER@/dclab_dev``.
@@ -264,9 +265,34 @@ def serve(url: str, port: int, remote: bool = False) -> int:
         supervisor.join(timeout=15)
 
 
+def enable_login(env_file: Path) -> bool:
+    """``DCLAB_AUTH=password`` in ``env_file``, unless it already names a sign-in; True when it was written."""
+    text = env_file.read_text() if env_file.exists() else ""
+    if re.search(r"^\s*DCLAB_AUTH\s*=\s*\S", text, re.M):
+        return False
+    env_file.write_text(text + ("" if not text or text.endswith("\n") else "\n") +
+                        "# Sign-in (make login): accounts on this machine's dclab_dev; add friends on the Admin page, Members\nDCLAB_AUTH=password\n")
+    return True
+
+
+def login(url: str, remote: bool = False) -> int:
+    """Sign-in for local development in one step: the database ready, DCLAB_AUTH=password in .env, the first owner made
+    (the password is asked for, never an argument). Friends are added afterwards on the Admin page."""
+    print(f"database {database_name(url)}: {ensure_database(url, remote=remote)}", flush=True)
+    print("sign-in: " + ("DCLAB_AUTH=password written to .env" if enable_login(ROOT / ".env") else "already set in .env"), flush=True)
+    email = os.environ.get("DCLAB_OWNER_EMAIL") or input("Your email (you sign in with it): ").strip()
+    name = os.environ.get("DCLAB_OWNER_NAME") or input("Your name (optional): ").strip()
+    command = [sys.executable, "-m", "dclab_rnd.accounts", "add", "--email", email, "--role", "owner"] + (["--name", name] if name else [])
+    done = subprocess.call(command, cwd=ROOT, env={**os.environ, "DCLAB_DATABASE_URL": url})
+    if done == 0:
+        print("Done. Restart make dev and open the page: it asks you to sign in. Add friends on Admin → Members "
+              "(tick 'own workspace' to give each one projects of their own).")
+    return done
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python scripts/dev.py", description=__doc__.split("\n")[0])
-    parser.add_argument("command", choices=["serve", "db-reset", "test-db"])
+    parser.add_argument("command", choices=["serve", "db-reset", "test-db", "login"])
     parser.add_argument("--yes", action="store_true", help="db-reset: yes, delete the development database")
     parser.add_argument("--port", type=int, default=None)
     parser.add_argument("--remote", action="store_true", help="allow a database on another host (it is never the default)")
@@ -290,6 +316,8 @@ def main(argv: list[str] | None = None) -> int:
                 raise DevError(f"this deletes every project, draft and session in {database_name(url)}: run make db-reset CONFIRM=yes")
             print(f"database {database_name(url)}: {ensure_database(url, reset=True, remote=args.remote)}")
             return 0
+        if args.command == "login":
+            return login(url, args.remote)
         return serve(url, args.port, args.remote)
     except DevError as exc:
         print(exc.code if isinstance(exc.code, str) else exc, file=sys.stderr)

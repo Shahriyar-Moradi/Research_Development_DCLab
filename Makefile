@@ -91,6 +91,9 @@ scan-secrets:  ## look for committed secrets: the tracked files and every line i
 dev:  ## local development on PostgreSQL: checks the server, creates and migrates dclab_dev, runs the API with reload and rebuilds the frontend on change
 	$(PYTHON) scripts/dev.py serve
 
+login:  ## sign-in for make dev in one step: DCLAB_AUTH=password in .env and your owner account (asks for email and password); then restart make dev
+	$(PYTHON) scripts/dev.py login
+
 sessions:  ## the latest visits in the development workspace's record (19.2), as make dev's database: ARGS="--limit 50" or "--json"
 	DCLAB_DATABASE_URL=$${DCLAB_DATABASE_URL:-postgresql+psycopg://$$USER@/dclab_dev} $(PYTHON) -m dclab_rnd.experience sessions $(ARGS)
 

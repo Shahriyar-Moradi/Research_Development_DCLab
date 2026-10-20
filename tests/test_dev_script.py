@@ -70,6 +70,20 @@ class SafetyTests(unittest.TestCase):
             dev.ensure_database("postgresql+psycopg://u@127.0.0.1:1/dclab_unreachable")
         self.assertIn("brew services start postgresql", str(caught.exception))
 
+    def test_make_login_turns_sign_in_on_once_and_keeps_the_rest_of_env(self):
+        import tempfile
+
+        env = Path(tempfile.mkdtemp()) / ".env"
+        env.write_text("DCLAB_PORT=8765")  # no newline at its end
+        self.assertTrue(dev.enable_login(env))
+        self.assertFalse(dev.enable_login(env))  # already on: written once
+        lines = env.read_text().splitlines()
+        self.assertEqual(lines[0], "DCLAB_PORT=8765")
+        self.assertEqual([l for l in lines if l.startswith("DCLAB_AUTH")], ["DCLAB_AUTH=password"])
+        env.write_text("DCLAB_AUTH=oidc\n")
+        self.assertFalse(dev.enable_login(env))  # a sign-in already chosen is never changed
+        self.assertEqual(env.read_text(), "DCLAB_AUTH=oidc\n")
+
     def test_serve_runs_one_reloading_worker_on_the_checked_database(self):
         with mock.patch.object(dev, "ensure_database", return_value="already at 0008") as ensured, \
              mock.patch.object(dev, "build_frontend"), mock.patch.object(dev, "watch_frontend"), \

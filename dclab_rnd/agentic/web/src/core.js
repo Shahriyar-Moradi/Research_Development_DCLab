@@ -1185,7 +1185,7 @@
     if (auth.mode === 'none') {
       $('.ws-name', ws).textContent = 'This machine';
       $('.ws-sub', ws).innerHTML = 'One owner · no sign-in <span aria-hidden="true">⌄</span>';
-      ws.dataset.toast = 'Sign-in, members and several workspaces come on with DCLAB_AUTH (password, or your company\'s identity provider).';
+      ws.dataset.toast = 'Sign-in is off on this server. To turn it on, run make login once in the terminal, then restart make dev.';
       avatar.textContent = 'OW';
       avatar.title = 'Owner · this server has no sign-in';
       return;
