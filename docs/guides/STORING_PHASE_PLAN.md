@@ -962,7 +962,6 @@ gate. Model spend:
     - The tutor folds on the true table group (`DecisionExample` v2).
     - Consent and the curators' refusals hold in every builder.
   - **Left open:**
-    - stage and team-walk episodes;
     - the experiments of the kinds with their own machine (their candidates are in their own shapes);
     - CPU time per step;
     - a workspace reading the store's shadow students;
@@ -1023,6 +1022,10 @@ gate. Model spend:
       has room for its whole reply.
     - **The teacher had nothing to do:** no whole exchange without thinking is kept yet. `DCLAB_LOG_PROMPTS=1` keeps
       them from now on.
+  - **Stage and team-walk episodes (32.13):**
+    - **New episodes:** a project's stages in the order they ran, and a team's walk node by node.
+    - **Read from current records:** M6, M7 and M8 now use them, per workspace (a walk kept twice is one episode, and
+      PostgreSQL moves are read).
   - **Engagements read whole (32.30):** the person's first words, the questions asked and answered, the brief, the final
     record's notes, limits and interval, and the feedback given.
   - **The research campaigns' experiments (32.20):** the 14 model-selection results on public datasets are M3 experiment

@@ -61,6 +61,40 @@ class OtherSetsTest(unittest.TestCase):
         search = others.retrievals(self.layout)[0]
         self.assertEqual((search.query, search.offered, search.corpus), ("duration leakage", ["LEAK-duration", "EXP-1"], "evidence"))
 
+    def test_a_walk_kept_twice_is_one_episode_and_stages_teams_and_postgresql_moves_are_episodes(self):
+        from dclab_rnd.store import Store, shapers
+        from dclab_rnd.store.sets import others
+
+        s = Store(self.layout)
+        walk = {"id": "walk:d1", "draft": "d1", "project": None, "steps": [{"at": "2026-10-20T10:00:00+00:00", "kind": "draft_event", "ref": "d1:1"}]}
+        s.keep("workflows", "dev", "walks/d1.json", json.dumps(walk).encode(), consent="train")
+        s.keep("workflows", "dev", "walks/d1.json", json.dumps({**walk, "project": "p1"}).encode(), consent="train")  # the walk moved on
+        stage = lambda name, at, **ev: {"stage": name, "status": "completed", "started_at": at, "evidence": ev}
+        s.keep("workflows", "dev", "projects/p1/project.json", json.dumps({"id": "p1", "solution": {"task": "binary"}}).encode(), consent="train")
+        for name, at, ev in (("data", "2026-10-20T11:00:00+00:00", {}), ("models", "2026-10-20T11:02:00+00:00", {"selected_model": "logistic_regression"}),
+                             ("final", "2026-10-20T11:04:00+00:00", {})):
+            s.keep("workflows", "dev", f"projects/p1/stages/{name}.json", json.dumps(stage(name, at, **ev)).encode(), consent="train")
+        boards = [{"at": f"2026-10-20T12:00:0{i}+00:00", "team": "orchestra", "node": node, "what": node, "walk": "w1",
+                   "board": {"thread": "draft:d1", "state": state, "open_questions": ["outcome"] if i == 0 else [], "blockers": []}}
+                  for i, (node, state) in enumerate([("answer", "problem"), ("map", "map")])]
+        s.keep_log("workflows", "dev", "orchestra/boards.jsonl", "".join(json.dumps(b) + "\n" for b in boards).encode(), consent="train")
+        rows = [{"id": i, "project_id": "p9", "at": f"2026-10-20T13:00:0{i}+00:00", "move": m, "status": "allowed",
+                 "entry": {"at": f"2026-10-20T13:00:0{i}+00:00", "move": m, "from": "WF-01", "to": "WF-02", "status": "allowed"}} for i, m in enumerate(["set_solution", "approve_gate"])]
+        s.keep_log("workflows", "pg", "db/transition.jsonl", "".join(json.dumps(r) + "\n" for r in rows).encode(), consent="train")
+        shapers.shape(self.layout)
+        eps = others.episodes(self.layout)
+        walks = [e for e in eps if e.process == "walk"]
+        self.assertEqual(len(walks), 1)
+        stages = next(e for e in eps if e.process == "stages")
+        self.assertEqual([st.action for st in stages.steps], ["data", "models:logistic_regression", "final"])
+        self.assertEqual(stages.outcome, "completed")
+        team = next(e for e in eps if e.process == "team/orchestra")
+        self.assertEqual([st.action for st in team.steps], ["answer:answer", "map:map"])
+        self.assertIn("open 1", team.steps[0].outcome)
+        pg = next(e for e in eps if e.id == "m6:graph:pg:p9")
+        self.assertEqual([st.action.split(":")[0] for st in pg.steps], ["set_solution", "approve_gate"])
+        self.assertTrue(any(e.id == "m6:graph:dev:p1" for e in eps))
+
 
 if __name__ == "__main__":
     unittest.main()

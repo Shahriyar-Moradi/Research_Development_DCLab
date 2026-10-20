@@ -45,48 +45,87 @@ def _episode(eid: str, process: str, steps: list[tuple[str, str, Optional[str]]]
 
 
 def episodes(layout: Layout, choices: Optional[dict] = None) -> list[Episode]:
-    from .. import shapers
+    """M6: each process decided step by step, from each source's current records (a walk kept again is one episode, a rewritten
+    log read once), per workspace: every walk; every project's graph moves (file or PostgreSQL rows) and its stage runs in the
+    order they started; every team's walk node by node (its board's state, open questions and blockers); every job's states."""
+    from ..service import DONE, _current, _latest
     from . import allowed, standing
 
     MODEL, choices = "m6_stepwise_decisions", choices if choices is not None else standing(layout)
 
     out: list[Episode] = []
-    moves: dict[str, list[StoreRecord]] = defaultdict(list)
-    for r in (x for x in shapers.records(layout, "workflows") if allowed(x, MODEL, choices)):
+    moves: dict[tuple[str, str], list[tuple[StoreRecord, dict[str, Any]]]] = defaultdict(list)
+    boards: dict[tuple[str, str], list[StoreRecord]] = defaultdict(list)
+    for r in (x for x in _current(layout, "workflows") if allowed(x, MODEL, choices)):
+        ws = r.provenance.workspace
         if r.type == "walk" and isinstance(r.body.get("steps"), list):
             steps = [(str(s.get("at")), f"{s.get('kind')}:{s.get('ref')}", (s.get("detail") or {}).get("status")) for s in r.body["steps"] if isinstance(s, dict)]
             ep = _episode(f"m6:walk:{r.id}", "walk", sorted(steps), r, [], r.body.get("outcome"), str(r.body.get("project") or r.body.get("draft") or r.id))
             if ep:
                 out.append(ep)
-        elif r.type == "graph_move" and r.body.get("project"):
-            moves[str(r.body["project"])].append(r)
-    for project, rs in sorted(moves.items()):
-        rs.sort(key=lambda r: (r.at, r.id))
-        steps = [(r.at, f"{r.body.get('move')}:{r.body.get('from')}>{r.body.get('to')}", r.body.get("status")) for r in rs]
-        ep = _episode(f"m6:graph:{project}", "graph", steps, rs[0], rs[1:], rs[-1].body.get("to"), f"project:{project}")
+        elif r.type == "graph_move":
+            move = r.body.get("entry") if isinstance(r.body.get("entry"), dict) else r.body  # a PostgreSQL row holds it in ``entry``
+            parts = r.provenance.source.split("/")
+            pid = r.body.get("project") or (parts[1] if parts[0] == "projects" and len(parts) > 1 else None)
+            if pid:
+                moves[(ws, str(pid))].append((r, move))
+        elif r.provenance.source.endswith("orchestra/boards.jsonl") and r.body.get("walk"):
+            boards[(ws, str(r.body["walk"]))].append(r)
+    for (ws, project), rs in sorted(moves.items()):
+        rs.sort(key=lambda x: (str(x[1].get("at") or x[0].at), x[0].id))
+        steps = [(str(m.get("at") or r.at), f"{m.get('move')}:{m.get('from')}>{m.get('to')}", m.get("status")) for r, m in rs]
+        ep = _episode(f"m6:graph:{ws}:{project}", "graph", steps, rs[0][0], [r for r, _ in rs[1:]], rs[-1][1].get("to"), f"project:{project}")
         if ep:
             out.append(ep)
-    jobs: dict[str, list[StoreRecord]] = defaultdict(list)
-    for r in (x for x in shapers.records(layout, "tasks") if allowed(x, MODEL, choices)):
+    for (ws, pid), p in sorted(_latest(layout).items()):  # a project's stages in the order they ran, each with its status
+        records = p.get("records") or {}
+        ran = sorted((str(b.get("started_at") or b.get("started") or ""), stage) for stage, b in p["stages"].items() if b.get("status"))
+        ran = [(at, stage) for at, stage in ran if at and stage in records and allowed(records[stage], MODEL, choices)]
+        if not ran:
+            continue
+        steps = []
+        for at, stage in ran:
+            b = p["stages"][stage]
+            chosen = (b.get("evidence") or {}).get("selected_model") if stage == "models" else None
+            steps.append((at, f"{stage}:{_code(chosen)}" if chosen else stage, b.get("status")))
+        last = p["stages"][ran[-1][1]]
+        ep = _episode(f"m6:stages:{ws}:{pid}", "stages", steps, records[ran[0][1]], [records[s] for _, s in ran[1:]],
+                      "completed" if all(p["stages"][s].get("status") in DONE for _, s in ran) else last.get("status"), f"project:{pid}")
+        if ep:
+            out.append(ep)
+    for (ws, walk), rs in sorted(boards.items()):  # a team's walk node by node
+        rs.sort(key=lambda r: (r.at, r.id))
+        steps = []
+        for r in rs:
+            board = r.body.get("board") if isinstance(r.body.get("board"), dict) else {}
+            steps.append((r.at, f"{r.body.get('node')}:{r.body.get('what')}", f"{board.get('state')}; open {len(board.get('open_questions') or [])}; "
+                                                                            f"blockers {len(board.get('blockers') or [])}"))
+        thread = str(((rs[0].body.get("board") or {}).get("thread")) or walk)
+        ep = _episode(f"m6:team:{ws}:{walk}", f"team/{_code(rs[0].body.get('team'))}", steps, rs[0], rs[1:],
+                      str((rs[-1].body.get("board") or {}).get("state") or ""), thread)
+        if ep:
+            out.append(ep)
+    jobs: dict[tuple[str, str], list[StoreRecord]] = defaultdict(list)
+    for r in (x for x in _current(layout, "tasks") if allowed(x, MODEL, choices)):
         if r.type == "job_state" and r.body.get("job"):
-            jobs[str(r.body["job"])].append(r)
-    for job, rs in sorted(jobs.items()):
+            jobs[(r.provenance.workspace, str(r.body["job"]))].append(r)
+    for (ws, job), rs in sorted(jobs.items()):
         rs.sort(key=lambda r: (r.at, r.id))
         steps = [(r.at, f"{(r.body.get('state') or {}).get('status')}:{r.body.get('kind')}", (r.body.get("state") or {}).get("error")) for r in rs]
-        ep = _episode(f"m6:job:{job}", "job", steps, rs[0], rs[1:], (rs[-1].body.get("state") or {}).get("status"), f"job:{job}")
+        ep = _episode(f"m6:job:{ws}:{job}", "job", steps, rs[0], rs[1:], (rs[-1].body.get("state") or {}).get("status"), f"job:{job}")
         if ep:
             out.append(ep)
     return out
 
 
 def judged(layout: Layout, choices: Optional[dict] = None) -> list[JudgedExample]:
-    from .. import shapers
+    from ..service import _current
     from . import allowed, standing
 
     MODEL, choices = "m7_judges", choices if choices is not None else standing(layout)
 
     out: list[JudgedExample] = []
-    for r in (x for x in shapers.records(layout, "decisions") if allowed(x, MODEL, choices)):
+    for r in (x for x in _current(layout, "decisions") if allowed(x, MODEL, choices)):
         b = r.body
         if r.type == "correction" and b.get("before") is not None and b.get("after") is not None:
             out.append(JudgedExample(id=f"m7:correction:{r.id}", model_type="m7_judges", split=r.split or split_of(str(b.get("group") or r.id)),
@@ -96,14 +135,14 @@ def judged(layout: Layout, choices: Optional[dict] = None) -> list[JudgedExample
             out.append(JudgedExample(id=f"m7:g4:{r.id}", model_type="m7_judges", split=r.split or split_of(str(b.get("group") or r.id)), provenance=r.provenance,
                                      judged="result", candidate=b.get("state"), score=1.0 if b.get("value_used") in (True, "passed", "pass") else 0.0,
                                      candidate_by="dclab", judge="g4", evidence="measured"))
-    for r in (x for x in shapers.records(layout, "workflows") if allowed(x, MODEL, choices)):  # 32.19: a move the validator refused is a failure, judged; an allowed one passed
-        b = r.body
+    for r in (x for x in _current(layout, "workflows") if allowed(x, MODEL, choices)):  # 32.19: a move the validator refused is a failure, judged; an allowed one passed
+        b = r.body.get("entry") if isinstance(r.body.get("entry"), dict) else r.body  # a PostgreSQL row holds the move in ``entry``
         if r.type == "graph_move" and b.get("status") in ("allowed", "blocked", "refused"):
-            out.append(JudgedExample(id=f"m7:move:{r.id}", model_type="m7_judges", split=r.split or split_of(f"project:{b.get('project') or r.id}"),
+            out.append(JudgedExample(id=f"m7:move:{r.id}", model_type="m7_judges", split=r.split or split_of(f"project:{r.body.get('project') or r.id}"),
                                      provenance=r.provenance, judged="step", candidate={"move": b.get("move"), "from": b.get("from"), "to": b.get("to")},
                                      score=1.0 if b.get("status") == "allowed" else 0.0, candidate_by=str(b.get("actor") or "agent"), judge="validator",
                                      evidence="verdict"))
-    for r in (x for x in shapers.records(layout, "fixes") if allowed(x, MODEL, choices)):
+    for r in (x for x in _current(layout, "fixes") if allowed(x, MODEL, choices)):
         b = r.body
         if b.get("status") in ("proposed", "accepted") and b.get("passing_run"):
             out.append(JudgedExample(id=f"m7:fix:{r.id}", model_type="m7_judges", split=r.split or split_of(str(b.get("test") or r.id)), provenance=r.provenance,
@@ -115,13 +154,13 @@ def judged(layout: Layout, choices: Optional[dict] = None) -> list[JudgedExample
 
 def preferences(layout: Layout, choices: Optional[dict] = None) -> list[PreferencePair]:
     """32.19: each correction as a preference pair: what the person made it (chosen) over what DCLab proposed (rejected)."""
-    from .. import shapers
+    from ..service import _current
     from . import allowed, standing
 
     MODEL, choices = "m7_judges", choices if choices is not None else standing(layout)
 
     out = []
-    for r in (x for x in shapers.records(layout, "decisions") if allowed(x, MODEL, choices)):
+    for r in (x for x in _current(layout, "decisions") if allowed(x, MODEL, choices)):
         b = r.body
         if r.type != "correction" or b.get("before") is None or b.get("after") is None:
             continue
@@ -137,13 +176,13 @@ def preferences(layout: Layout, choices: Optional[dict] = None) -> list[Preferen
 
 
 def retrievals(layout: Layout, choices: Optional[dict] = None) -> list[RetrievalExample]:
-    from .. import shapers
+    from ..service import _current
     from . import allowed, standing
 
     MODEL, choices = "m8_retrieval", choices if choices is not None else standing(layout)
 
     out: list[RetrievalExample] = []
-    kept = [x for x in shapers.records(layout, "actions") if allowed(x, MODEL, choices)]
+    kept = [x for x in _current(layout, "actions") if allowed(x, MODEL, choices)]
     by_run: dict[str, list[StoreRecord]] = defaultdict(list)  # 32.23: each search with the answer that followed it in its run
     for r in kept:
         if r.provenance.source.startswith("searches/") and r.body.get("what") in ("search", "answer"):

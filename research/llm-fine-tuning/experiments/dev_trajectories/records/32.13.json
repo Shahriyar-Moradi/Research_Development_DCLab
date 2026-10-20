@@ -26,6 +26,26 @@
    "cause": "The tool's ok was read as the answer's verdict.",
    "fix": "Passed only when the answer's check is recorded.",
    "test": "test_a_search_and_the_answer_citing_it_are_one_retrieval_example"
+  },
+  {
+   "id": "E4",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Every kept version of a walk was its own episode, graph moves merged across workspaces, PostgreSQL moves were missed and a rewritten log was read twice.",
+   "scenario": "The weaknesses the reviewer found in the service (32.24), in the M6 and M7 builders.",
+   "cause": "Each builder read every shaped record.",
+   "fix": "M6, M7 and M8 read each source's current records (service._current), per workspace, a PostgreSQL move from its entry.",
+   "test": "tests/test_store_sets_others.py::OtherSetsTest::test_a_walk_kept_twice_is_one_episode_and_stages_teams_and_postgresql_moves_are_episodes"
+  },
+  {
+   "id": "E5",
+   "source": "self",
+   "severity": "gap",
+   "defect": "Stage runs and team walks were not episodes.",
+   "scenario": "Left open in 32.13.",
+   "cause": "Only walks, moves and jobs were read.",
+   "fix": "A project's stages in the order they ran (the models stage with its chosen model), and a team's walk node by node with its board's state, open questions and blockers.",
+   "test": "tests/test_store_sets_others.py::OtherSetsTest::test_a_walk_kept_twice_is_one_episode_and_stages_teams_and_postgresql_moves_are_episodes"
   }
  ],
  "measurements": [],
