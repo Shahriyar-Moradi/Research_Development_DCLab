@@ -19,6 +19,7 @@ from dclab_core.store import StoreRecord
 PURPOSE = "store_curator"
 PROMPT = Path(__file__).resolve().parents[2] / "prompts" / "store_curator.md"
 CODE = re.compile(r"^[a-z0-9_.:\-]{1,40}$")
+MAX_TOKENS = 6000  # about 150 tokens a placement, two placements a record, a batch of 10 to 20
 
 
 def shape_of(record: StoreRecord) -> dict[str, Any]:
@@ -35,17 +36,19 @@ def shape_of(record: StoreRecord) -> dict[str, Any]:
             "point": record.body.get("point") if isinstance(record.body.get("point"), str) else None, "fields": fields}
 
 
-def ask(records: list[StoreRecord], gateway: Any = None) -> list[dict[str, Any]]:
-    """The model's placements of the batch, or [] when no model serves the purpose here."""
-    from ...models import installed
+def ask(records: list[StoreRecord], gateway: Any = None, client: Any = None) -> list[dict[str, Any]]:
+    """The model's placements of the batch, or [] when no model serves the purpose here. ``client``: one client for a whole run,
+    so its ``run_limit_eur`` caps every batch together."""
+    from ...models import for_tools
 
-    gateway = gateway or installed()
-    client = gateway.client(PURPOSE) if gateway is not None else None
+    if client is None:
+        gateway = gateway or for_tools()
+        client = gateway.client(PURPOSE) if gateway is not None else None
     if client is None:
         return []
     messages = [{"role": "system", "content": PROMPT.read_text(encoding="utf-8")},
                 {"role": "user", "content": json.dumps([shape_of(r) for r in records], ensure_ascii=False)}]
-    reply = client.complete(messages)
+    reply = client.complete(messages, max_tokens=MAX_TOKENS)  # a placement or more per record: room for the whole batch
     text = reply.get("content") if isinstance(reply, dict) else str(reply)
     try:
         found = json.loads(re.search(r"\[.*\]", text or "", re.S).group(0))

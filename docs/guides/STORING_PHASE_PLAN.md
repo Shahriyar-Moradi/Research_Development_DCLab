@@ -1015,6 +1015,15 @@ gate. Model spend:
       - 599 are unknown: no build has a signed bar or a checked export in these development workspaces.
     - **Engagements:** 159 of 874 stopped in the draft.
     - **The tutor refitted no student:** no point's dev split has 5 confirmed labels yet (the rule's labels are not confirmed).
+  - **The model curator, live in shadow (2026-10-20, EUR 0.26 of the $15).**
+    - **Result:** on 40 records the rules placed, it named one of the rules' model types on 26 of 34 answers, agreed on
+      quality 2 times in 26, left out 21 of the rules' 47 placements, and gave no answer for 6 records. It stays in
+      shadow.
+    - **Next:** a person reviews the disagreements.
+    - **Fixed on the way:** a command-line tool's requests now reach the usage log (`models.for_tools`), and a batch
+      has room for its whole reply.
+    - **The teacher had nothing to do:** no whole exchange without thinking is kept yet. `DCLAB_LOG_PROMPTS=1` keeps
+      them from now on.
   - **The MLE-bench list checked** against openai/mle-bench: the Lite split matched (22 of 22), and the rest of its 75
     competitions and its development task were added (76 names).
 

@@ -542,6 +542,15 @@ def installed() -> Gateway:
     return current or _INSTALLED or Gateway()
 
 
+def for_tools() -> Gateway:
+    """The gateway a tool should use: the one of the request, job or server running here; else (a command-line tool outside the
+    server) one that logs every request to the workspace's usage log, so no request goes unrecorded (32.10)."""
+    from .. import context
+
+    current = getattr(context.services(), "gateway", None)
+    return current or _INSTALLED or for_workspace()
+
+
 def for_workspace(home=None) -> Gateway:
     """A gateway that logs to the workspace's usage log, for command-line tools that run outside the server."""
     from pathlib import Path

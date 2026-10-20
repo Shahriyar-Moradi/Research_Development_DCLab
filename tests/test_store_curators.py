@@ -107,6 +107,33 @@ class CuratorsTest(unittest.TestCase):
         self.assertFalse(any("@" in json.dumps(s) for s in seen))
         self.assertTrue(all(set(s) == {"record", "kind", "type", "flags", "point", "fields"} for s in seen))
 
+    def test_a_shadow_sample_spends_nothing_without_yes_and_keeps_its_answers_unused_and_compared(self):
+        from dclab_rnd.store import curators
+
+        self.assertEqual(curators.shadow_sample(self.layout, n=6, cap_eur=0.5, log=lambda *_: None)["sent"], 0)
+
+        class Client:
+            spent_eur, run_limit_eur, calls = 0.01, None, 0
+
+            def complete(self, messages, max_tokens=None, **options):
+                Client.calls += 1
+                assert max_tokens and max_tokens >= 4000  # room for the whole batch's placements
+                sent = json.loads(messages[-1]["content"])
+                return {"content": json.dumps([{"record": r["record"], "model_type": "m1_students", "folder": "column.is_identifier",
+                                                "quality": "keep", "weight": 1.0, "reason": "a ledger decision"} for r in sent])}
+
+        client = Client()
+        gateway = type("G", (), {"client": lambda self, purpose: client})()
+        report = curators.shadow_sample(self.layout, n=6, batch=2, cap_eur=0.5, yes=True, gateway=gateway)
+        self.assertEqual(client.run_limit_eur, 0.5)  # one cap for the whole run
+        self.assertGreater(report["asked"], 0)
+        self.assertEqual(Client.calls, -(-report["asked"] // 2))
+        self.assertEqual(report["compared"], report["asked"])
+        self.assertGreaterEqual(report["same_model_type"], 1)
+        shadow = [d for d in self.decisions() if d.get("curator") == "model:store_curator"]
+        self.assertTrue(shadow)
+        self.assertTrue(all(d["used"] is False for d in shadow))
+
 
 if __name__ == "__main__":
     unittest.main()

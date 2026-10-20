@@ -9,7 +9,8 @@
 - ``reason --cap-eur X [--yes]``: teacher reasoning for the exchanges with none, within one cap for the run;
 - ``service``: the builds with their verdicts, the curves, the catalog, the engagements and the playbook (32.24 to 32.31);
 - ``knowledge``: the proposed knowledge items and who accepted each; ``know-accept ITEM --by NAME`` a person's yes to one;
-- ``guides``: a guide per problem kind from the accepted items and the judged builds, printed.
+- ``guides``: a guide per problem kind from the accepted items and the judged builds, printed;
+- ``curate-shadow --cap-eur X [--yes]``: the model curator in shadow over a sample the rules already placed, compared with them.
 """
 
 from __future__ import annotations
@@ -26,14 +27,14 @@ def main(argv: Optional[list[str]] = None) -> int:
     from .store import Store
 
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.store", description=__doc__.split("\n")[0])
-    parser.add_argument("command", choices=["run", "shape", "curate", "build", "reason", "status", "catalog", "fixes", "accept", "service", "knowledge", "know-accept", "guides"])
+    parser.add_argument("command", choices=["run", "shape", "curate", "build", "reason", "status", "catalog", "fixes", "accept", "service", "knowledge", "know-accept", "guides", "curate-shadow"])
     parser.add_argument("fix", nargs="?", help="accept: the fix's id (from the fixes command); know-accept: the item's id")
     parser.add_argument("--root", default=None, help="the store's root (DCLAB_STORE, else training_records/store)")
     parser.add_argument("--by", default=None, help="accept: who accepts it")
     parser.add_argument("--note", default="", help="accept: why")
-    parser.add_argument("--cap-eur", type=float, default=None, help="reason: the most the teacher may spend in this run")
-    parser.add_argument("--limit", type=int, default=100, help="reason: at most this many records")
-    parser.add_argument("--yes", action="store_true", help="reason: send (without it, the plan only)")
+    parser.add_argument("--cap-eur", type=float, default=None, help="reason, curate-shadow: the most the model may spend in this run")
+    parser.add_argument("--limit", type=int, default=100, help="reason, curate-shadow: at most this many records")
+    parser.add_argument("--yes", action="store_true", help="reason, curate-shadow: send (without it, the plan only)")
     args = parser.parse_args(argv)
     layout = Layout(args.root)
     if args.command == "run":
@@ -53,6 +54,13 @@ def main(argv: Optional[list[str]] = None) -> int:
         if args.cap_eur is None:
             parser.error("reason needs --cap-eur: the teacher never spends without a cap")
         print(json.dumps(reasoning.run(layout, cap_eur=args.cap_eur, limit=args.limit, yes=args.yes), indent=1))
+        return 0
+    if args.command == "curate-shadow":
+        from . import curators
+
+        if args.cap_eur is None:
+            parser.error("curate-shadow needs --cap-eur: the model curator never spends without a cap")
+        print(json.dumps(curators.shadow_sample(layout, n=args.limit, cap_eur=args.cap_eur, yes=args.yes), indent=1, default=str))
         return 0
     if args.command == "curate":
         from . import curators

@@ -68,9 +68,9 @@ class Teacher:
     does not allow training are never sent; the record's words are redacted again before they leave."""
 
     def __init__(self, gateway: Any = None, cap_eur: Optional[float] = None):
-        from ..models import installed
+        from ..models import for_tools
 
-        gateway = gateway or installed()
+        gateway = gateway or for_tools()
         self.client = gateway.client(PURPOSE) if gateway is not None else None
         if self.client is not None and cap_eur is not None:
             self.client.run_limit_eur = cap_eur

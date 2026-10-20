@@ -193,4 +193,94 @@ def curate(layout: Optional[Layout] = None, run: Optional[str] = None, model: Op
             "quarantined": {r: len(v) for r, v in quarantine.items()}}
 
 
-__all__ = ["place", "librarian", "curate", "write"]
+def _shadow_lines(run: str, layout: Layout, records: list[StoreRecord], answers: list[Any]) -> tuple[list[str], int]:
+    """The model's answers as curation lines (never used): each checked by the write guard, a refused one kept with why."""
+    by_id = {r.id: r for r in records}
+    lines, kept = [], 0
+    for a in answers:
+        record = by_id.get(str(a.get("record"))) if isinstance(a, dict) else None
+        if record is None:  # a reply that names no record we sent, or that failed: kept as a failed answer
+            lines.append(json.dumps({"id": f"{run}:shadow:failed:{len(lines)}", "curator": "model:store_curator", "used": False,
+                                     "refused": "the model's answer names no record of the batch, or the model failed", "answer": a},
+                                    ensure_ascii=False, default=str) + "\n")
+            continue
+        decision = {"id": f"{run}:{record.id}:{a.get('model_type')}:shadow", "record": record.id, "curator": "model:store_curator", "at": now(),
+                    "used": False, **{k: a.get(k) for k in ("model_type", "folder", "quality", "weight", "reason") if a.get(k) is not None}}
+        made, why = write.check(layout, decision, record)
+        lines.append((made.model_copy(update={"used": False}).model_dump_json() if made is not None else
+                      json.dumps({"id": decision["id"], "record": record.id, "curator": "model:store_curator", "refused": why, "answer": a})) + "\n")
+        kept += 1
+    return lines, kept
+
+
+def shadow_sample(layout: Optional[Layout] = None, *, n: int = 40, batch: int = 10, cap_eur: float, yes: bool = False, gateway: Any = None,
+                  log: Callable[[str], Any] = print) -> dict[str, Any]:
+    """The model curator in shadow over a sample of records the rules already placed (a hash-spread sample across kinds, never
+    the first files alone), within one cap for the run. Its answers are kept as curation lines with ``used`` false and compared
+    with the rules' placements of the same records: how often it names a model type the rules placed it in, the same quality
+    there, and how many of the rules' placements it left out. Without
+    ``yes`` it says what it would send and spends nothing."""
+    from .. import shapers
+    from ...models import for_tools
+    from . import model as model_curator
+
+    layout = layout or Layout()
+    import heapq
+
+    quota = max(2, n // 6)
+    pool: list[StoreRecord] = []
+    per_kind: Counter = Counter()
+    for kind in sorted(KINDS):
+        smallest: list[tuple[int, str, StoreRecord]] = []  # each kind's records with the smallest hashes: spread, and the same every run
+        for record in shapers.records(layout, kind):
+            if record.provenance.consent != "train" or not any(place(mt, record) for mt in librarian(record)):
+                continue  # only records the rules placed somewhere: the comparison is with their placements
+            key = -int(hashlib.sha1(record.id.encode()).hexdigest()[:12], 16)
+            if len(smallest) < quota:
+                heapq.heappush(smallest, (key, record.id, record))
+            elif key > smallest[0][0]:
+                heapq.heapreplace(smallest, (key, record.id, record))
+        pool += [r for _, _, r in sorted(smallest, reverse=True)]
+        per_kind[kind] = len(smallest)
+    per_kind = Counter({k: v for k, v in per_kind.items() if v})
+    pool = pool[:n]
+    rules = {r.id: {mt: placed["quality"] for mt in librarian(r) if (placed := place(mt, r))} for r in pool}  # the rules' placements only
+    if not yes:
+        log(f"would ask the model curator about {len(pool)} records ({dict(per_kind)}) in {-(-len(pool) // batch)} requests, capped at EUR {cap_eur}; "
+            "nothing sent (add --yes)")
+        return {"planned": len(pool), "by_kind": dict(per_kind), "cap_eur": cap_eur, "sent": 0}
+    gateway = gateway or for_tools()
+    client = gateway.client(model_curator.PURPOSE) if gateway is not None else None
+    if client is None:
+        return {"planned": len(pool), "sent": 0, "why": "no model serves the store_curator purpose here"}
+    client.run_limit_eur = cap_eur
+    run = f"curation-shadow-{now().replace(':', '').replace('-', '')}"
+    answers: list[Any] = []
+    for i in range(0, len(pool), batch):
+        try:
+            answers += model_curator.ask(pool[i:i + batch], client=client)
+        except Exception as exc:  # noqa: BLE001 - the cap reached or a failed request: what was answered stands
+            answers.append({"error": f"{type(exc).__name__}: {str(exc)[:300]}"})
+            break
+    lines, kept = _shadow_lines(run, layout, pool, answers)
+    if lines:
+        Store(layout).keep("curation", "rnd", f"curation/{run}.jsonl", "".join(lines).encode(), consent="train",
+                           note="the model curator in shadow over a sample already placed by the rules (used false)")
+    same_type = same_quality = compared = 0
+    for a in answers:
+        if not isinstance(a, dict) or str(a.get("record")) not in rules:
+            continue
+        compared += 1
+        theirs = rules[str(a["record"])]
+        if a.get("model_type") in theirs:
+            same_type += 1
+            same_quality += int(a.get("quality") == theirs[a["model_type"]])
+    missed = sum(len(set(theirs) - {a.get("model_type") for a in answers if isinstance(a, dict) and str(a.get("record")) == rid})
+                 for rid, theirs in rules.items())
+    return {"run": run, "asked": len(pool), "answers": len(answers), "kept": kept, "compared": compared,
+            "same_model_type": same_type, "same_quality_there": same_quality, "rules_placements": sum(len(v) for v in rules.values()),
+            "rules_placements_missed": missed, "eur": round(float(getattr(client, "spent_eur", 0.0) or 0.0), 4),
+            "cap_eur": cap_eur, "errors": [a["error"] for a in answers if isinstance(a, dict) and a.get("error")]}
+
+
+__all__ = ["place", "librarian", "curate", "shadow_sample", "write"]

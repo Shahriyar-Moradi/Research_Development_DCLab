@@ -51,9 +51,52 @@
    "cause": "Only the path's syntax was checked.",
    "fix": "Each model type's own folders; a failed answer kept.",
    "test": "test_a_models_answers_stay_in_shadow_and_a_bad_path_is_refused_and_kept"
+  },
+  {
+   "id": "L1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "A command-line tool's model requests were not logged.",
+   "scenario": "The first live curator run: two requests, none in the usage log.",
+   "cause": "installed() falls back to a Gateway without a usage log outside the server.",
+   "fix": "models.for_tools(): the server's gateway, else one logging to the workspace's usage log; the curator and the teacher use it.",
+   "test": "tests/test_store_curators.py"
+  },
+  {
+   "id": "L2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The model curator's replies were cut short.",
+   "scenario": "A batch of 20: a 515-character reply, then an empty one.",
+   "cause": "The default reply limit (1800 tokens) is too small for a batch's placements.",
+   "fix": "6000 tokens and batches of 10.",
+   "test": "tests/test_store_curators.py::test_a_shadow_sample_spends_nothing_without_yes_and_keeps_its_answers_unused_and_compared"
+  },
+  {
+   "id": "L3",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The shadow comparison counted candidate model types, not the rules' placements.",
+   "scenario": "Same quality 0 of 36.",
+   "cause": "librarian() lists candidates; place() returns None where a record does not belong.",
+   "fix": "Sample records the rules placed; compare with their placements; count what the model left out.",
+   "test": "tests/test_store_curators.py"
   }
  ],
- "measurements": [],
+ "measurements": [
+  {
+   "name": "the model curator in shadow, live",
+   "gate": "promoted only when it agrees with the rules' placements and measures better on a person's review; until then shadow",
+   "result": "40 records the rules placed: a rules' model type named 26 of 34 answers, the same quality 2 of 26, 21 of 47 rules' placements left out, 6 records unanswered",
+   "verdict": "fail",
+   "cost_eur": 0.26,
+   "next": "a person reviews a sample of the disagreements: whether the rules or the model place better",
+   "limits": [
+    "one sample of 40 from development workspaces",
+    "the rules are not the truth: a person's review is"
+   ]
+  }
+ ],
  "outcome": "Every record is placed for the models it can teach, with its quality and reason, each placement checked; Claude's answers wait in shadow.",
  "lessons": [
   "Show a model the shape of a record, not its content, when the shape decides."
