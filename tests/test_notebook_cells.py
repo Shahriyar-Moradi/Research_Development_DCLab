@@ -291,6 +291,32 @@ class NotebookCellsTest(unittest.TestCase):
         self.assertEqual(kept[0]["code"], "frame.head()")
         self.assertEqual(kept[1], other)
 
+    def test_a_cell_shows_a_chart_as_data_the_page_draws_and_a_bad_one_is_dropped(self):
+        from dclab_rnd.studio import kernels
+
+        good = {"kind": "line", "title": "T", "series": [{"name": "a", "pts": [[1, 0.5], [2, 0.7]]}], "xlabel": "x", "ylabel": "y", "diag": True}
+        self.assertEqual(kernels.clean_chart(good)["series"][0]["pts"], [[1.0, 0.5], [2.0, 0.7]])
+        for bad in ({"kind": "script", "series": []}, {"kind": "line", "series": [{"name": "a", "pts": [[1, float("nan")]]}]},
+                    {"kind": "line", "series": [{"name": "a", "pts": [[1, 2]] * (kernels.MAX_POINTS + 1)}]}, {"kind": "bars", "labels": ["a"], "values": [1, 2]}, "chart", None):
+            self.assertIsNone(kernels.clean_chart(bad), bad)
+        self.assertEqual(kernels.clean_chart({"kind": "bars", "labels": ["a", "b"], "values": [1, 2.5], "title": "x" * 500})["title"], "x" * 80)
+
+        services = self.client.app.state.services
+        services.kernels.restart(self.pid)
+        code = ("chart_line({'acc': [(1, 0.9), (2, 0.92), (3, 0.91)]}, title='Accuracy per fold', xlabel='fold', ylabel='accuracy')\n"
+                "chart_bars(['a', 'b'], [1, 2], title='Bars')\n"
+                "from IPython.display import display\n"
+                "display({'application/vnd.dclab.chart+json': {'kind': 'line', 'series': [{'pts': [[0, 'x']]}]}}, raw=True)")
+        cell = {"id": "a00000000cc", "request": "chart", "code": code, "explanation": "", "problems": [], "status": "accepted", "at": "t"}
+        project = services.projects.get(self.pid)
+        services.projects.update(self.pid, notebook_agent_cells=list(project.get("notebook_agent_cells") or []) + [cell])
+        ran = self.client.post(f"/api/projects/{self.pid}/notebook/run", json={"cell": cell["id"]}, headers=self.headers).json()
+        self.assertEqual(ran["status"], "ok", json.dumps(ran)[:1500])
+        charts = [o for o in ran["outputs"] if o["type"] == "chart"]
+        self.assertEqual([c["spec"]["kind"] for c in charts], ["line", "bars"])
+        self.assertTrue(any("could not draw" in o.get("text", "") or "cannot draw" in o.get("text", "") for o in ran["outputs"] if o["type"] == "text"))  # the bad one said so
+        self.assertEqual(services.kernels.status(self.pid)["count"] > 0, True)
+
     def test_the_kernel_never_gets_a_key_or_a_database_address(self):
         from dclab_rnd.studio import kernels
 

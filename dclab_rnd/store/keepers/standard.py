@@ -221,6 +221,8 @@ def code_runs(raw: bytes) -> bytes:
             doc["stdout"] = _tables_out(str(doc.get("stdout") or ""))
             pictures = doc.get("pictures")
             doc["pictures"] = len(pictures) if isinstance(pictures, list) else pictures
+            charts = doc.get("charts")  # a chart's points may be a column's own values: counted, not kept
+            doc["charts"] = len(charts) if isinstance(charts, list) else charts
         out.append(json.dumps(doc, ensure_ascii=False) + "\n")
     return "".join(out).encode()
 

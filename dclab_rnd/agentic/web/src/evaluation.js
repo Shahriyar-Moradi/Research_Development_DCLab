@@ -247,5 +247,37 @@ DC.evaluation = (function () {
     box.addEventListener('segchange', e => { if (e.target.closest('[data-seg="ev-rows"]') && sets[e.detail]) { which = e.detail; paint(); } });
     paint();
   }
-  return { render, atCutoff };
+  /* The panels for a project in a box, with the page's usual states: no project, no final stage yet, a failed read. */
+  async function mount(box, p) {
+    if (!box) return;
+    if (!p) { DC.states.empty(box, 'No project is open, so there is no model to evaluate. Start one on Home.', { href: '#home', action: 'Go to Home' }); return; }
+    if (!(p.records || {}).final) { DC.states.empty(box, 'The final stage has not run yet: the held-back cases are scored once, there, and the evaluation is read from that record.', { href: '#project', action: 'Open the workflow' }); return; }
+    DC.states.loading(box, { text: 'Reading the evaluation…' });
+    let data;
+    try { data = await DC.client.projectEvaluation(p.id); }
+    catch (e) { DC.states.failed(box, e, { lead: 'Could not read the evaluation: ', retry: () => mount(box, p) }); return; }
+    render(box, data);
+  }
+  /* A chart a notebook cell showed as data (chart_line, chart_bars; the server has already checked it): drawn in the app's own style. */
+  const SERIES = ['', 's2', 's3', 's4', 'bad', 'ok'];
+  function drawChart(spec) {
+    const title = spec.title ? `<h3 class="cell-chart-title">${esc(spec.title)}</h3>` : '';
+    if (spec.kind === 'bars') {
+      const items = spec.labels.map((l, i) => ({ label: l, value: spec.values[i], valueText: f(spec.values[i], 4) }));
+      const lo = Math.min(0, ...spec.values), hi = Math.max(0.0001, ...spec.values) * 1.08;
+      return title + charts.barsH(items, { width: 620, labelW: 130, valW: 90, min: lo, max: hi, rowH: 26, tickFmt: v => (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2)), aria: spec.title || 'bar chart' })
+        + (spec.ylabel ? `<p class="xs muted">${esc(spec.ylabel)}</p>` : '');
+    }
+    const named = spec.series.filter(se => se.name);
+    const all = spec.series.flatMap(se => se.pts);
+    const xs = all.map(p => p[0]), ys = all.map(p => p[1]);
+    const pad = (a, b) => (a === b ? 1 : (b - a) * 0.06);
+    const opts = { width: 560, height: 260, xMin: Math.min(...xs), xMax: Math.max(...xs), yMin: Math.min(...ys) - pad(Math.min(...ys), Math.max(...ys)),
+      yMax: Math.max(...ys) + pad(Math.min(...ys), Math.max(...ys)), xLabel: spec.xlabel, yLabel: spec.ylabel, diag: spec.diag, aria: spec.title || 'line chart',
+      xFmt: v => (Math.abs(v) >= 100 ? v.toFixed(0) : +v.toPrecision(3)), yFmt: v => (Math.abs(v) >= 100 ? v.toFixed(0) : +v.toPrecision(3)) };
+    if (opts.xMin === opts.xMax) { opts.xMin -= 1; opts.xMax += 1; }
+    return title + (named.length > 1 || (named.length === 1 && spec.series.length > 1) ? legend(spec.series.map((se, i) => [SERIES[i % SERIES.length], se.name || 'series ' + (i + 1)])) : '')
+      + charts.line(spec.series.map((se, i) => ({ pts: se.pts, cls: SERIES[i % SERIES.length], dots: spec.dots || se.pts.length <= 12 })), opts);
+  }
+  return { render, mount, drawChart, atCutoff };
 })();

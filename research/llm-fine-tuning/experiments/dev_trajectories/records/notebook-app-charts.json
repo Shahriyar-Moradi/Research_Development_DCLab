@@ -1,0 +1,58 @@
+{
+ "package": "notebook-app-charts",
+ "title": "Evaluation tabs on Reliability and the Notebook, and notebook plots drawn in the app's own chart style",
+ "date": "2026-10-20",
+ "request": "I want to plot everywhere in the app like this (the report's charts).",
+ "spec": "A cell's plot came back as a matplotlib picture; Reliability and the Notebook had no evaluation.",
+ "plan": [
+  "The same Evaluation panels as a tab on Reliability and the Notebook, one mount helper for every place",
+  "A cell shows a chart as data (chart_line, chart_bars), checked by the server and drawn by the page",
+  "The prompt tells the agent to use them; matplotlib stays for what they cannot draw"
+ ],
+ "decisions": [
+  {
+   "decision": "A chart is data (kind, numbers, short texts), cleaned by the server, never markup.",
+   "why": "The page draws only what it knows how to draw; a cell's output cannot inject anything."
+  },
+  {
+   "decision": "The store keeps a count of a cell's charts, not the points.",
+   "why": "A chart's points can be a column's own values; the workspace's own record keeps them whole."
+  },
+  {
+   "decision": "The Research lab does not get the panels.",
+   "why": "It is the repository's research across projects, not one model's results."
+  }
+ ],
+ "change": "studio/kernels.py (HELPERS, clean_chart, chart outputs), store/keepers/standard.py (charts counted), prompts/notebook_cell.md, web/src/evaluation.js (mount, drawChart), views/models.html, reliability.html, notebook.html, evaluation.html, look.css, tests/test_notebook_cells.py.",
+ "findings": [
+  {
+   "id": "C1",
+   "source": "owner",
+   "severity": "gap",
+   "defect": "A notebook plot did not look like the app's charts and could not be read as data.",
+   "scenario": "The person asked for an accuracy plot: a matplotlib picture with a legend over the bars.",
+   "cause": "The only way to plot in the kernel was a picture.",
+   "fix": "Two helpers in every kernel show a chart as data; the page draws it with the app's chart kit and the legend beside it.",
+   "test": "tests/test_notebook_cells.py::NotebookCellsTest::test_a_cell_shows_a_chart_as_data_the_page_draws_and_a_bad_one_is_dropped"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "A cell's chart in the browser",
+   "gate": "the line chart draws with its legend outside the plot",
+   "result": "two series over three folds drew with dots, ticks and a legend above; a bad spec said it was dropped",
+   "verdict": "pass",
+   "limits": [
+    "drawn from a spec put on the page; a live agent cell was not asked for it (no model key in the scratch workspace)"
+   ]
+  }
+ ],
+ "outcome": "Evaluation is a tab on Models, Reliability and the Notebook beside its page; a notebook cell can plot in the app's style.",
+ "lessons": [
+  "Show output as data the page draws, not as a picture: it can match the app, be checked and be read by the store."
+ ],
+ "risks": [
+  "The prompt changed: make agent-eval and make harness-eval must run before the gate."
+ ],
+ "commits": []
+}

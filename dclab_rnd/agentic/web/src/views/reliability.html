@@ -29,6 +29,11 @@
     </div>
   </div>
 
+  <div class="pane" data-pane="evaluation" data-label="Evaluation">
+    <div class="row spread"><p class="small muted">Precision, recall, F1, the confusion matrix and the curves of the model this holdout scored.</p><a class="btn sm" href="#evaluation">Open the full page</a></div>
+    <div id="rel-eval"></div>
+  </div>
+
   <div class="pane" data-pane="points" data-label="Operating points">
     <div class="panel" data-f="rel.threshold">
       <div class="panel-head"><div class="panel-title"><h2>Operating points</h2><span class="sub" id="rl-points-sub" data-slot>What calling the top share of clients would mean. One real point from the holdout, the rest from the holdout's ranking quality.</span></div></div>
@@ -370,6 +375,7 @@ DC.view('reliability', {
     try { p = await DC.currentProject.get(); } catch (e) { p = null; }
     DC.markSample(!p);
     if (p) this.renderReal(p); else this.restoreSample();
+    DC.evaluation.mount(DC.$('#rel-eval', el), p);
     clearTimeout(this.timer);
     if (p && p.running) this.timer = setTimeout(() => { if (DC.state.view === 'reliability') { DC.currentProject.clear(); this.enter(el); } }, 3000);
   },

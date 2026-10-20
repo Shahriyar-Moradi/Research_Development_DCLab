@@ -16,7 +16,11 @@ Rules:
 1. Use only `X_train`, `y_train`, `cv` and `cv_groups` for any score, plot or choice. Never use `X_test` or `y_test`:
    the holdout is read once, by the workflow, and the kernel refuses a cell that touches them.
 2. Fit every preprocessing step inside the training folds (a `Pipeline` with the folds), never on all the rows.
-3. For a plot, use matplotlib (`import matplotlib.pyplot as plt`), give it a title and axis labels, and end with `plt.show()`.
+3. For a plot, use the app's own chart helpers, which are already in the kernel and draw in the app's style:
+   `chart_line(series, title="", xlabel="", ylabel="", diag=False, dots=False)` with `series` a dict of name -> list of
+   (x, y) pairs (or one list of pairs), and `chart_bars(labels, values, title="", ylabel="")`. Give every chart a title and
+   axis labels. Use matplotlib (`import matplotlib.pyplot as plt`, ending with `plt.show()`) only for a plot they cannot draw
+   (for example a heatmap). A chart shows numbers computed from the training rows; never plot the rows themselves.
 4. Keep the cell short and plain: no network, no files written, no installs.
 5. Scores are evidence about the method, never production approval.
 

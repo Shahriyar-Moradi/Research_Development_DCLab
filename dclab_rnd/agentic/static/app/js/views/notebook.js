@@ -64,6 +64,7 @@ print(best_depth, *(round(f(y_test, p), 4) for f in (roc_auc_score, average_prec
     function runOutput(r) {
       return (r.outputs || []).map(o => o.type === 'image'
         ? `<div class="cell-out"><img class="cell-img" alt="Output of cell ${esc(String(r.cell))}" src="data:image/png;base64,${esc(o.png)}"></div>`
+        : o.type === 'chart' ? `<div class="cell-out cell-chart">${DC.evaluation.drawChart(o.spec)}</div>`
         : o.type === 'error'
           ? `<div class="cell-out cell-err">${esc(`${o.ename}: ${o.evalue}`)}${(o.traceback || []).length ? '\n' + esc(o.traceback.join('\n')) : ''}</div>`
           : `<div class="cell-out">${esc(o.text)}</div>`).join('') || '<div class="cell-out faint">ran · no output</div>';
@@ -451,7 +452,7 @@ result.roc_auc, result.interval                  # 0.7718, (0.7126, 0.8290)`, ['
     }
     if (tok !== s.tok) return;
     DC.markSample(!p);
-    if (!p) { s.showSample(); return; }
+    if (!p) { s.showSample(); DC.evaluation.mount(DC.$('#nb-eval', el), null); return; }
     if (!p.solution) { s.showError(p, 'This project has no saved solution yet, so there is no notebook to export or review. Save the solution first.'); return; }
     const key = p.id + ':' + p.updated + ':' + Object.keys(p.records || {}).join(',');
     let review = s.cache[key];
@@ -461,5 +462,6 @@ result.roc_auc, result.interval                  # 0.7718, (0.7126, 0.8290)`, ['
     }
     if (tok !== s.tok) return;
     try { s.showReal(p, review); } catch (e) { console.error('notebook', e); }
+    DC.evaluation.mount(DC.$('#nb-eval', el), p);
   },
 });

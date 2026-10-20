@@ -269,6 +269,7 @@ DC.view('reliability', {
     try { p = await DC.currentProject.get(); } catch (e) { p = null; }
     DC.markSample(!p);
     if (p) this.renderReal(p); else this.restoreSample();
+    DC.evaluation.mount(DC.$('#rel-eval', el), p);
     clearTimeout(this.timer);
     if (p && p.running) this.timer = setTimeout(() => { if (DC.state.view === 'reliability') { DC.currentProject.clear(); this.enter(el); } }, 3000);
   },
