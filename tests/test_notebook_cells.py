@@ -21,6 +21,17 @@ SOLUTION = {"task": "binary", "positive_label": None, "prediction_moment": "Righ
             "forbidden": [], "identifiers": [], "time_column": None, "group_column": None, "text_columns": [], "metric": None, "notes": ""}
 
 
+def model_env():
+    """A scripted model needs a tier with a key and nothing live: what the other tests of a purpose's data do (the .env's own
+    key is blanked by the runner, so a test must bring its own)."""
+    from dclab_rnd.models import settings
+
+    blank = ("OPENAI_BASE_URL", "OPENAI_MODEL", "DCLAB_LLM_BASE_URL", "DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "DCLAB_LOG_PROMPTS",
+             "DCLAB_INTERN_MODEL", "DCLAB_NO_LIVE_MODELS")
+    return {**{k: "" for k in blank}, **{f"DCLAB_TIER_{t.upper()}_{n}": "" for t in settings.TIERS for n in ("BASE_URL", "MODEL", "API_KEY", "LOCAL")},
+            "OPENAI_API_KEY": "k"}
+
+
 class NotebookCellsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -111,6 +122,9 @@ class NotebookCellsTest(unittest.TestCase):
             def complete(self, messages, tools=None, max_tokens=1800, **options):
                 return replies.pop(0)
 
+        env = mock.patch.dict(os.environ, model_env())
+        env.start()
+        self.addCleanup(env.stop)
         services = self.client.app.state.services
         kept = services.gateway
         services.gateway = Gateway(FileUsage(Path(tempfile.mkdtemp()) / "u.jsonl"), transport=lambda tier, purpose: Scripted())
@@ -223,6 +237,9 @@ class NotebookCellsTest(unittest.TestCase):
                 return {"content": json.dumps({"code": "print(2)", "explanation": "two"}), "tool_calls": [], "usage": {}}
 
         self_client, headers = self.client, self.headers
+        env = mock.patch.dict(os.environ, model_env())
+        env.start()
+        self.addCleanup(env.stop)
         kept = services.gateway
         services.gateway = Gateway(FileUsage(Path(tempfile.mkdtemp()) / "u.jsonl"), transport=lambda tier, purpose: AcceptsMeanwhile())
         self.addCleanup(setattr, services, "gateway", kept)
