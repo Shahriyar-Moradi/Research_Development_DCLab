@@ -24,7 +24,7 @@ from typing import Any, Callable, Protocol
 
 import jsonschema
 
-SCOPES = ("project", "draft", "session", "campaign", "workspace")  # workspace: 30.21, the chat over the workspace's tables
+SCOPES = ("project", "draft", "session", "campaign", "workspace", "home")  # workspace: 30.21, the chat over the workspace's tables; home: the Home orchestrator's team on a built project
 EFFECTS = ("read", "write")
 
 

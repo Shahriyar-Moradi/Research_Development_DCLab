@@ -40,6 +40,9 @@ class Agent:
 
 AGENTS: dict[str, Agent] = {
     "home": Agent("dclab_rnd.draft.chat:HomeAgent.model_turn", "loop", ("home_agent",), "the Home agent with a model"),
+    "home.project": Agent("dclab_rnd.draft.orchestrator:Orchestrator.model_turn", "loop", ("home_orchestrator",),
+                          "the Home orchestrator on a built project's chat: plans the turn and hands it to its specialists"),
+    "home.project.rules": Agent("dclab_rnd.draft.orchestrator:Orchestrator.rules_turn", "session", (), "the Home orchestrator's rules, without a model or when it fails"),
     "home.script": Agent("dclab_rnd.draft.chat:HomeAgent.script_turn", "session", (), "the Home agent without a model, or when it fails"),
     "intern": Agent("dclab_rnd.intern.loop:Intern._llm_loop", "loop", ("intern",), "the intern with a model"),
     "workspace_chat": Agent("dclab_rnd.workspace_chat:ask", "loop", ("workspace_chat",), "30.21: a question about the workspace's tables, every number computed"),

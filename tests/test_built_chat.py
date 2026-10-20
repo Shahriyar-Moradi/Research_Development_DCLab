@@ -2,15 +2,12 @@
 again. Now the answer is the project's own records read into advice, each suggestion from a number in them."""
 
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from dclab_rnd.draft.chat import HomeAgent  # noqa: E402
-from dclab_rnd.draft.store import DraftStore  # noqa: E402
 from dclab_rnd.studio import agent as studio_agent  # noqa: E402
 
 RECORDS = {
@@ -44,39 +41,7 @@ class BuiltChatTests(unittest.TestCase):
         steps, _ = studio_agent.improvements({"final": {"primary_metric": "roc_auc", "evidence": {"holdout_metrics": {"roc_auc": 0.9}}}})
         self.assertEqual(len(steps), 1)  # only where it stands
 
-    def test_a_message_on_a_built_chat_is_answered_about_the_project_not_by_the_plan(self):
-        store = DraftStore(Path(tempfile.mkdtemp()))
-        draft = store.create("Which leads convert this month?")["id"]
-        store.update(draft, lambda d: d.update(status="built", project_id="p1"))
-        agent = HomeAgent(store, None)
-        agent.reply_built(draft, "how can we improve it", lambda q: studio_agent.answer(q, {"id": "p1"}, RECORDS, "binary_imbalanced"))
-        agent.reply_built(draft, "build it", lambda q: self.fail("a word to build asks nothing of the project"))
-        messages = store.get(draft)["messages"]
-        kinds = [(m["role"], m["kind"]) for m in messages[-4:]]
-        self.assertEqual(kinds, [("user", "text"), ("agent", "project_answer"), ("user", "text"), ("agent", "text")])
-        answer = messages[-3]
-        self.assertTrue(answer["lines"] and "0.7235" in answer["lines"][0])
-        self.assertIn("already built", messages[-1]["text"])
-
-    def test_asked_to_improve_the_model_for_me_it_does_so_and_asked_how_it_only_advises(self):
-        store = DraftStore(Path(tempfile.mkdtemp()))
-        draft = store.create("Which leads convert this month?")["id"]
-        store.update(draft, lambda d: d.update(status="built", project_id="p1"))
-        agent = HomeAgent(store, None)
-        started = []
-        answer = lambda q: studio_agent.answer(q, {"id": "p1"}, RECORDS, "binary_imbalanced")  # noqa: E731
-        for text in ("ok improve the model for me", "please improve it", "improve it now"):
-            agent.reply_built(draft, text, answer, lambda: started.append(1) or {"job": {"id": "j1"}})
-        self.assertEqual(len(started), 3)  # it does the work
-        for text in ("how can we improve it", "what should we improve?", "which aspects can improve"):
-            agent.reply_built(draft, text, answer, lambda: started.append(1) or {"job": {"id": "j1"}})
-        self.assertEqual(len(started), 3)  # a question gets advice, not a run
-        last = store.get(draft)["messages"][-1]
-        self.assertEqual(last["kind"], "project_answer")
-        self.assertIn("improve the model for me", last["lines"][-1])  # and says how to ask for the doing
-        busy = lambda: (_ for _ in ()).throw(ValueError("Something is running in this project: wait for it, or stop it."))  # noqa: E731
-        agent.reply_built(draft, "improve the model for me", answer, busy)
-        self.assertIn("Something is running", store.get(draft)["messages"][-1]["text"])
+    # a message on a built chat (the orchestrator, its follow-ups and its jobs): tests/test_home_orchestrator.py
 
 
 if __name__ == "__main__":

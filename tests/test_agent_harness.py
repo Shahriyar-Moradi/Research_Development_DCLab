@@ -29,6 +29,8 @@ else:
 PROBES = {
     "home": "test_home_with_a_model",
     "home.script": "test_home_without_a_model",
+    "home.project": "tests/test_home_orchestrator.py::test_the_model_plans_the_turn_and_a_number_it_made_up_is_dropped",
+    "home.project.rules": "tests/test_home_orchestrator.py::test_the_rules_turn_is_a_session_of_its_agent",
     "intern": "test_intern_with_a_model",
     "intern.standard": "test_intern_standard_plan",
     "mcp": "test_an_mcp_clients_calls",
@@ -49,7 +51,8 @@ PROBES = {
 # reference counts (``asyncio.to_thread(toolbox.call, ...)``), whatever the receiver is named.
 TOOL_CALLERS = {("dclab_rnd/agents/runtime.py", "_run"), ("dclab_rnd/agents/registry.py", "Registry.acall"),
                 ("dclab_rnd/intern/loop.py", "Intern._step"), ("dclab_rnd/intern/tools.py", "Toolbox.call"),
-                ("dclab_rnd/draft/chat.py", "HomeAgent.run_tool"), ("dclab_rnd/mcp_server.py", "build_server.call_tool"),
+                ("dclab_rnd/draft/chat.py", "HomeAgent.run_tool"),
+                ("dclab_rnd/draft/orchestrator.py", "Orchestrator.rules_turn"), ("dclab_rnd/mcp_server.py", "build_server.call_tool"),
                 ("dclab_rnd/agentic/engine.py", "build_graph.execute"),
                 ("dclab_rnd/orchestra/solution.py", "SolutionTeam.compose"), ("dclab_rnd/orchestra/solution.py", "SolutionTeam.stage"),
                 ("dclab_rnd/orchestra/solution.py", "SolutionTeam._compose_single")}  # 28.5, 30.1: the team's steps record the tool calls they make

@@ -248,7 +248,7 @@ DC.view('home', {
       }
       const rw = e.target.closest('[data-rows]'); if (rw) { showRows(rw.dataset.rows, Number(rw.dataset.offset || 0)); return; }
       const op = e.target.closest('[data-open-project]');
-      if (op) { DC.state.projectId = op.dataset.openProject; }
+      if (op) { DC.state.projectId = op.dataset.openProject; if (op.dataset.openView) { location.hash = '#' + op.dataset.openView; return; } }
       const bringing = e.target.closest('[data-bring]');
       if (bringing && S.draft) {
         bringing.disabled = true;
@@ -302,6 +302,7 @@ DC.view('home', {
       else if (kind === 'status') onStatus(data);
       else if (kind === 'plan') { if (S.draft) { S.draft.plan = data.plan; S.draft.understanding = data.understanding; } drawUnderstanding(S.draft); }
       else if (kind === 'twin') onTwin(data);
+      else if (kind === 'board') renderBoard(data);
       else if (kind === 'fit' && S.draft) {  // 30.13: a fit edit accepted: the person's answers changed, the panel shows them
         DC.client.readDraft(S.draft.id).then(d => { S.draft = d; drawUnderstanding(S.draft); }).catch(() => {});
       }
@@ -513,8 +514,16 @@ DC.view('home', {
           + `<div class="table-wrap"><table class="data compact"><thead><tr><th>Way</th><th class="num">Score on the folds</th><th class="num">Gain</th><th class="num">Folds better</th><th>Verdict</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
           + ((r.skipped || []).length ? `<div class="small muted">Not run: ${esc(r.skipped.join('; '))}</div>` : '') + `<div class="small muted">${esc(r.note || '')}</div></div>`;
       } else if (m.kind === 'project_answer') {
-        body = `<p>${esc(m.text)}</p>${(m.lines || []).length ? `<ul class="plain">${m.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>` : ''}`
-          + ((m.proof || []).length ? `<div class="row small"><span class="pill proof">cites</span>${DC.chips(m.proof)}</div>` : '');
+        body = `${mdLite(m.text)}${(m.lines || []).length ? `<ul class="plain">${m.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>` : ''}`
+          + ((m.proof || []).length ? `<div class="row small"><span class="pill proof">cites</span>${DC.chips(m.proof)}</div>` : '')
+          + ((m.team || []).length ? `<div class="row xs muted team-line">${m.team.map(a => `<span class="pill outline">${esc(a)}</span>`).join('')}</div>` : '')
+          + chipsRow(m.chips);
+      } else if (m.kind === 'project_card' && m.card) {
+        body = projectCard(m.card);
+      } else if (m.kind === 'task_board') {
+        body = `<div class="inset stack tight" data-board="${esc(m.id)}">${boardHtml(m.tasks)}</div>`;
+      } else if (m.kind === 'notebook_cell' && m.cell) {
+        body = notebookCellCard(m.cell, m.project);
       } else {
         body = `<p>${esc(m.text)}</p>${(m.actions || []).length ? `<div class="row">${m.actions.includes('upload') ? '<button type="button" class="btn sm" data-open-bring="upload">Upload a sample</button>' : ''}${m.actions.includes('connect') ? '<button type="button" class="btn sm" data-open-bring="kaggle">Connect a source</button>' : ''}${m.actions.includes('simulate') ? '<button type="button" class="btn sm" data-open-bring="synthetic">Simulate data</button>' : ''}${m.actions.includes('confirm_map') ? '<button type="button" class="btn primary sm" data-map-build="1">Confirm the map and build</button>' : ''}</div>${m.actions.includes('show_map') ? '<div class="stack tight" data-map-box="1"></div>' : ''}` : ''}`;
       }
@@ -525,6 +534,85 @@ DC.view('home', {
       const mapBox = (m.kind === 'summary' || (m.actions || []).includes('show_map')) && thread.querySelector('.msg:last-child [data-map-box]');
       if (mapBox && S.draft) loadMap(mapBox);
       scrollThread();
+    }
+
+    /* ---------- the Home orchestrator's team on a built project: tables, the task board, a notebook cell, suggestions ---------- */
+    const numText = (v, digits) => (typeof v === 'number' ? (Number.isInteger(v) && digits == null ? v.toLocaleString('en-US') : v.toFixed(digits != null ? digits : Math.abs(v) >= 100 ? 1 : 4)) : v == null ? '—' : String(v));
+    /* A reply's light Markdown, escaped first: paragraphs, "- " and "1. " lists, **bold** and `code`; nothing else becomes HTML. */
+    function mdLite(text) {
+      const inline = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
+      const out = []; let list = null;
+      const close = () => { if (list) { out.push(`<${list.tag} class="plain-list">${list.items.join('')}</${list.tag}>`); list = null; } };
+      String(text || '').split('\n').forEach(line => {
+        const bullet = line.match(/^\s*[-*•]\s+(.*)$/), numbered = line.match(/^\s*\d+[.)]\s+(.*)$/);
+        const item = bullet || numbered;
+        if (item) {
+          const tag = numbered ? 'ol' : 'ul';
+          if (!list || list.tag !== tag) { close(); list = { tag, items: [] }; }
+          list.items.push(`<li>${inline(item[1])}</li>`);
+        } else { close(); if (line.trim()) out.push(`<p>${inline(line)}</p>`); }
+      });
+      close();
+      return out.join('') || '<p></p>';
+    }
+    const PAGES = { models: 'Models', audit: 'Audit', reliability: 'Reliability', evaluation: 'Evaluation', project: 'Project', notebook: 'Notebook' };
+    function chipsRow(chips) {
+      return (chips || []).length ? `<div class="row chips-row">${chips.map(c => `<button type="button" class="btn sm ghost" data-say="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : '';
+    }
+    function projectCard(c) {
+      const kv = list => `<dl class="kv small">${list.map(f => `<dt>${esc(f[0])}</dt><dd>${esc(numText(f[1]))}</dd>`).join('')}</dl>`;
+      const facts = ((c.facts || []).length ? kv(c.facts) : '') + ((c.more || []).length ? `<details class="small"><summary>More measures (${c.more.length})</summary>${kv(c.more)}</details>` : '');
+      const cols = c.columns || [];
+      const table = cols.length && (c.rows || []).length ? `<div class="table-wrap"><table class="data compact"><thead><tr>${cols.map(k => `<th${k.num ? ' class="num"' : ''}>${esc(k.label)}</th>`).join('')}</tr></thead><tbody>`
+        + c.rows.map(r => `<tr${c.mark && r[c.mark] ? ' class="row-chosen"' : ''}>${cols.map((k, i) => `<td${k.num ? ' class="num mono"' : ''}>${i === 0 && c.mark && r[c.mark] ? `<b>${esc(numText(r[k.key], k.digits))}</b> <span class="pill ok">chosen</span>` : esc(numText(r[k.key], k.digits))}</td>`).join('')}</tr>`).join('')
+        + '</tbody></table></div>' : '';
+      let matrix = '';
+      if (c.matrix && (c.matrix.matrix || []).length) {
+        const L = c.matrix.labels || [];
+        matrix = `<div class="table-wrap"><table class="data compact matrix-mini"><thead><tr><th>actual \\ predicted</th>${L.map(l => `<th class="num">${esc(l)}</th>`).join('')}</tr></thead><tbody>`
+          + c.matrix.matrix.map((row, i) => `<tr><th>${esc(L[i] || '')}</th>${row.map(v => `<td class="num mono">${esc(numText(v))}</td>`).join('')}</tr>`).join('') + '</tbody></table></div>';
+      }
+      const lines = (c.lines || []).length ? `<ul class="plain">${c.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>` : '';
+      const proof = (c.proof || []).length ? `<div class="row small"><span class="pill proof">cites</span>${DC.chips(c.proof)}</div>` : '';
+      const notes = (c.notes || []).map(n => `<div class="small muted">${esc(n)}</div>`).join('') + (c.note ? `<div class="small muted">${esc(c.note)}</div>` : '');
+      const open = c.page && c.project ? `<button type="button" class="btn sm" data-open-project="${esc(c.project)}" data-open-view="${esc(c.page)}">Open ${esc(PAGES[c.page] || c.page)}</button>` : '';
+      return `<div class="inset stack tight project-card"><div class="row between"><div><div class="eyebrow">${esc(c.agent || '')}</div><b>${esc(c.title || '')}</b>${c.subtitle ? `<div class="small muted">${esc(c.subtitle)}</div>` : ''}</div>${open}</div>`
+        + facts + table + matrix + lines + proof + notes + (c.offer ? `<div class="small">${esc(c.offer)}</div>` : '') + '</div>';
+    }
+    function boardHtml(tasks) {
+      const pill = st => st === 'done' ? '<span class="pill ok">done</span>' : st === 'failed' ? '<span class="pill bad">failed</span>' : '<span class="pill info"><span class="dot live"></span> running</span>';
+      return '<div class="eyebrow">The team on this request</div>' + (tasks || []).map(t => `<div class="row between board-task"><div><b>${esc(t.agent)}</b> · ${esc(t.title)}${t.detail ? `<div class="small muted">${esc(t.detail)}</div>` : ''}</div>${pill(t.status)}</div>`).join('');
+    }
+    function renderBoard(d) {
+      const box = $(`[data-board="${d.id}"]`, el);
+      if (box) box.innerHTML = boardHtml(d.tasks);
+    }
+    function notebookCellCard(c, project) {
+      const ok = c.status === 'proposed' || c.status === 'accepted';
+      return `<div class="inset stack tight" data-nb-cell="${esc(c.id)}"><div><div class="eyebrow">Notebook coder</div><b>A cell for: ${esc(c.request || '')}</b></div>`
+        + (c.explanation ? `<p class="small">${esc(c.explanation)}</p>` : '')
+        + (c.code ? `<pre class="code">${esc(c.code)}</pre>` : '')
+        + ((c.problems || []).length ? `<div class="callout warn small">${esc(c.problems.join('; '))}</div>` : '')
+        + (ok ? `<div class="row"><button type="button" class="btn primary sm" data-nb-run="${esc(c.id)}" data-nb-project="${esc(project || '')}" data-nb-status="${esc(c.status)}">Run it (training rows only)</button><button type="button" class="btn sm" data-open-project="${esc(project || '')}" data-open-view="notebook">Open in the notebook</button></div>` : '')
+        + '<div data-nb-out></div></div>';
+    }
+    function cellOutput(r) {
+      return (r.outputs || []).map(o => o.type === 'image'
+        ? `<div class="cell-out"><img class="cell-img" alt="Output of the cell" src="data:image/png;base64,${esc(o.png)}"></div>`
+        : o.type === 'chart' ? `<div class="cell-out cell-chart">${DC.evaluation.drawChart(o.spec)}</div>`
+        : o.type === 'error' ? `<div class="cell-out cell-err">${esc(`${o.ename}: ${o.evalue}`)}</div>`
+        : `<div class="cell-out">${esc(o.text)}</div>`).join('') || '<div class="cell-out faint">ran · no output</div>';
+    }
+    async function runChatCell(btn) {
+      const card = btn.closest('[data-nb-cell]'), out = $('[data-nb-out]', card), pid = btn.dataset.nbProject, id = btn.dataset.nbRun;
+      btn.disabled = true; btn.textContent = 'Running…';
+      try {
+        if (btn.dataset.nbStatus !== 'accepted') { await DC.client.answerNotebookCell(pid, id, { body: { accepted: true } }); btn.dataset.nbStatus = 'accepted'; }
+        const r = await DC.client.runNotebookCell(pid, { body: { cell: id } });
+        out.innerHTML = cellOutput(r);
+        btn.textContent = 'Run again';
+      } catch (err) { out.innerHTML = `<div class="callout warn small">${esc(err.message)}</div>`; btn.textContent = 'Run it (training rows only)'; }
+      finally { btn.disabled = false; scrollThread(); }
     }
 
     /* ---------- the map of the problem (24.2): one problem, or parts that depend on each other; the person edits and confirms it ---------- */
@@ -804,6 +892,10 @@ DC.view('home', {
     $('#home-thread', el).addEventListener('click', async e => {
       const ok = e.target.closest('[data-syn-approve]');
       if (ok) { ok.disabled = true; await approveSynthetic(ok.dataset.synApprove); return; }
+      const chip = e.target.closest('[data-say]');
+      if (chip) { send(chip.dataset.say); return; }
+      const nbRun = e.target.closest('[data-nb-run]');
+      if (nbRun) { await runChatCell(nbRun); return; }
       const adopt = e.target.closest('[data-improve-adopt]');
       if (adopt) {
         adopt.disabled = true;

@@ -372,19 +372,11 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         if busy or ((draft_id + ":agent") in jobs and not jobs[draft_id + ":agent"].done()):
             raise HTTPException(409, "The agent is still answering")
         built = get(draft_id).get("project_id")
-        if built and projects is not None:  # a built project's chat: the person asks about the project, which answers from its records
-            def about_project(question: str) -> dict[str, Any]:
-                from ..studio import agent as studio_agent
+        if built and projects is not None and services is not None:  # a built project's chat: the Home orchestrator and its team answer
+            from .orchestrator import Orchestrator
 
-                records = projects.records(built)
-                return studio_agent.answer(question, projects.get(built), records, next((r["task_type"] for r in records.values()), None))
-            def start_improving() -> dict[str, Any]:
-                if not all(projects.read_stage(built, k) for k in ("features", "models", "final")):
-                    raise ValueError("Run the project's stages up to the final one first: there is no model to improve yet.")
-                if projects.get(built).get("running"):
-                    raise ValueError("Something is running in this project: wait for it, or stop it.")
-                return {"job": services.submit("improve", f"{built}:improve", {"project_id": built}, here=False)} if services is not None else {}
-            background(draft_id + ":agent", lambda: agent(draft_id).reply_built(draft_id, text, about_project, start_improving))
+            home = agent(draft_id)
+            background(draft_id + ":agent", lambda: home.reply_built(draft_id, text, Orchestrator(services, home), built))
             return {"accepted": True}
         background(draft_id + ":agent", lambda: (agent(draft_id).reply(draft_id, text), twin_after(draft_id, "reply", text)))
         return {"accepted": True}

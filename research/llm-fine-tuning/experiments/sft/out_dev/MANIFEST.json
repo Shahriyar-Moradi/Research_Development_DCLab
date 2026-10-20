@@ -347,6 +347,7 @@
     "fix-dev-worker-supervision",
     "fix-home-project-chat",
     "fix-login-one-command",
+    "home-orchestrator",
     "improve-the-model",
     "live-2026-10-19-harness",
     "notebook-agent-cells",
@@ -362,15 +363,15 @@
     "ui-tripssource-kit",
     "username-login"
   ],
-  "total": 3647,
-  "train": 2883,
+  "total": 3667,
+  "train": 2903,
   "val": 764,
   "by_task": {
-    "fix_finding": 2374,
-    "judge_measurement": 350,
-    "plan_package": 352,
-    "retrospective": 343,
-    "review_change": 228
+    "fix_finding": 2387,
+    "judge_measurement": 354,
+    "plan_package": 353,
+    "retrospective": 344,
+    "review_change": 229
   },
   "val_packages": [
     "0.1",
@@ -448,12 +449,6 @@
     "notebook-agent-cells",
     "owner-2026-10-15"
   ],
-  "refused": [
-    {
-      "package": "improve-the-model",
-      "task": "judge_measurement",
-      "why": "a number the prompt does not give"
-    }
-  ],
+  "refused": [],
   "validation_policy": "whole packages held out by the hash of their id (about 20%)"
 }

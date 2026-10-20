@@ -67,9 +67,6 @@ def counted(draft: dict[str, Any]) -> list[dict[str, Any]]:
     """The questions that count against MAX_QUESTIONS: never a superseded one, never an optional field's (asked once at
     most: costs would otherwise take the place of a pack's last field)."""
     return [q for q in draft.get("questions") or [] if not q.get("superseded") and q.get("field") not in OPTIONAL]  # what one prediction is for: the meet check blocks on it, so only the rules read it from the person's words
-DO_IMPROVE = re.compile(r"\b(improve|enhance|boost|upgrade)\b", re.I)  # with a word that asks for the doing, and no question word: "improve the model for me"
-DO_WORDS = re.compile(r"\b(for me|do it|go ahead|please|practically|actually|try|now|just|ok improve|okay improve)\b|^\s*(ok|okay)?\s*improve", re.I)
-ASKING = re.compile(r"\b(how|what|which|where|why|can we|could we|should)\b|\?", re.I)
 BUILD_WORDS = re.compile(r"\b(let'?s build|build (it|the solution)|go ahead|start the project|ready to build)\b", re.I)
 # 25.13: a message that is an order to build now, read by its intent rather than an exact phrase (live, 2026-10-16: "build",
 # "build now", "Yes, build now" and "ye s build now" were all missed): agreeing or polite words, then a build verb, then only
@@ -556,41 +553,28 @@ class HomeAgent:
         self.refresh_workflow(draft_id)
 
     @turn
-    def reply_built(self, draft_id: str, text: str, answerer: Any, improver: Any = None) -> None:
-        """A message on the chat of a project that is built (the owner, 2026-10-20: asked how to improve the model, the chat
-        summarised the plan again). The conversation that built the project is over; the person is now asking about the project,
-        so the answer comes from the project's own records (``answerer(question)``: dclab_rnd.studio.agent.answer), never from
-        the plan-building turn. A word to build again is answered by saying it is built."""
+    def reply_built(self, draft_id: str, text: str, orchestrator: Any, project_id: str) -> None:
+        """A message on the chat of a project that is built (the owner, 2026-10-20: "ok do it" and "ok" got nonsense, "build improvements"
+        got advice again). The conversation that built the project is over; the person now asks about the project or asks for work on
+        it, and the Home orchestrator answers (``draft.orchestrator``): it reads the conversation and the project's state, and its
+        specialists show the project's records as tables, improve the model, or write a notebook cell. A word to build again, with
+        nothing offered, is answered by saying it is built."""
+        from . import orchestrator as orch
+
         text = text.strip()[:2000]
         msg = {"id": "u" + secrets.token_hex(5), "role": "user", "kind": "text", "text": text, "at": now()}
         self.store.update(draft_id, lambda d: d["messages"].append(msg))
         self.store.emit(draft_id, "chat", msg)
-        if BUILD_WORDS.search(text):
-            self.say(draft_id, "This chat's project is already built. Open it from Projects, or start a new project from a new chat.")
-            return
-        if improver is not None and DO_IMPROVE.search(text) and DO_WORDS.search(text) and not ASKING.search(text):  # "improve the model for me": do it
-            try:
-                started = improver()
-            except Exception as exc:  # noqa: BLE001 - busy, or nothing to improve yet: said as it is
-                self.say(draft_id, str(getattr(exc, "detail", None) or exc))
-                return
-            self.say(draft_id, "I'm trying ways to improve the model now, on the training folds only (the held-back cases stay untouched): other model settings "
-                               "(class weights), the next model families with their own settings, another feature recipe, and a blend of the best. Each is compared with the "
-                               "current model on the same folds and counts as a gain only if it beats the margin set in advance and the noise of the folds. "
-                               "The report appears here when it is done.", kind="text", job=(started or {}).get("job", {}).get("id") if isinstance(started, dict) else None)
+        offered = ((self.store.get(draft_id).get("agent") or {}).get("offer"))
+        if BUILD_WORDS.search(text) and not offered and not orch.IMPROVE.search(text):
+            self.say(draft_id, "This chat's project is already built. Ask about it here (its models, its evaluation, how to improve it), "
+                               "open it from Projects, or start a new project from a new chat.", kind="project_answer", chips=orch.CHIPS[None])
             return
         try:
-            result = answerer(text)
-        except Exception:  # noqa: BLE001 - the project could not be read just now: said, never a silence
-            result = None
-        if not result:
-            self.say(draft_id, "I could not read this project's records just now. Open the project's pages (Models, Evaluation, Reliability) or ask in the Intern.")
-            return
-        lines = [str(x) for x in (result.get("steps") or [])][:12]
-        if lines and improver is not None:
-            lines.append("Say “improve the model for me” and I will try these on the training folds, compare each with the current model and report what really helped.")
-        body = str(result.get("llm_answer") or (result.get("answer") if not lines else "How this project can be improved, from its own records:") or "")
-        self.say(draft_id, body, kind="project_answer", lines=lines, proof=[str(x) for x in (result.get("proof") or [])][:8])
+            orchestrator.turn(draft_id, project_id, text)
+        except Exception as exc:  # noqa: BLE001 - the project could not be read just now: said, never a silence
+            self.say(draft_id, f"I could not work on this project just now ({type(exc).__name__}). Open its pages (Models, Evaluation) or ask again.",
+                     kind="text", severity="warning")
 
     def reply(self, draft_id: str, text: str) -> None:
         """A user message: store it, then let the model (or the script) answer."""

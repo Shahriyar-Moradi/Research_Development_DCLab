@@ -7508,3 +7508,15 @@ ul.plain { margin: 0; padding-left: var(--ts-space-6); display: grid; gap: var(-
 .ag-out { border-top: 1px dashed var(--ts-border-strong); padding-top: var(--ts-space-4); display: grid; gap: var(--ts-space-3); }
 .ag-out-label { color: var(--ts-text-muted); }
 .ag-code .code, .ag-code pre { margin: 0; }
+
+/* ---- the Home orchestrator's team on a built project: its tables, the task board, its suggestions ---- */
+.project-card { border-left: 4px solid var(--ts-brand-deep); }
+.project-card .table-wrap { max-height: 360px; overflow: auto; }
+.project-card tr.row-chosen td { background: var(--ts-success-chip); }
+.project-card .matrix-mini { width: auto; }
+.board-task { padding: var(--ts-space-3) 0; border-top: 1px dashed var(--ts-border-strong); gap: var(--ts-space-4); }
+.board-task:first-of-type { border-top: 0; }
+.chips-row { flex-wrap: wrap; gap: var(--ts-space-3); margin-top: var(--ts-space-3); }
+.team-line { gap: var(--ts-space-2); margin-top: var(--ts-space-2); }
+.msg-body ol.plain-list, .msg-body ul.plain-list { margin: var(--ts-space-2) 0; padding-left: var(--ts-space-7); display: grid; gap: var(--ts-space-2); }
+.msg-body > p + p { margin-top: var(--ts-space-3); }

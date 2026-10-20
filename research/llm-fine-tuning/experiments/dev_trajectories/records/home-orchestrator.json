@@ -1,0 +1,211 @@
+{
+  "package": "home-orchestrator",
+  "title": "Home as an orchestrator on a built project's chat: a team of specialists, follow-ups that act, tables from the app, a task board",
+  "date": "2026-10-20",
+  "request": "Not really helpful: the home agent must be more intelligent and have other agents to do multiple tasks, an orchestrator with a multi-agent team. Start with the fixes and the orchestrator, then the task board and specialists, and use the budget to test it in a real situation. It must reach every part of the app: asked about the best model it should bring the models table.",
+  "spec": "A built project's chat matched keywords: 'ok do it' and 'ok' got a stage-explain answer with no facts, 'build improvements' got the advice again, and the improvement job had failed with no word in the chat.",
+  "plan": [
+    "Step 0: follow-ups carry out the pending offer, 'improvements' is understood, a failed job is said, no answer from empty facts",
+    "Step 1: an orchestrator that reads the conversation and the project's state, planned by the model (home_orchestrator) with the rules as fallback",
+    "Step 2: specialists as tools of a new registry scope 'home' (Records reader, Evaluator, Experimenter, Notebook coder), cards with tables in the chat, a task board that follows a job",
+    "Live test on a scratch copy of the owner's real project, the screenshot's conversation first, capped spend"
+  ],
+  "decisions": [
+    {
+      "decision": "Specialists are registry tools of one scope, not separate model agents.",
+      "why": "One harness, one guard and one capture for every move; the model plans, deterministic code reads the records and runs the jobs."
+    },
+    {
+      "decision": "A reply's sentence with a number no tool returned is dropped.",
+      "why": "The model never computes a score; a table card is the truth and the text may only cite it."
+    },
+    {
+      "decision": "An offer answers the next message only.",
+      "why": "The review found a 'thanks' two turns later started an improvement run."
+    },
+    {
+      "decision": "The live test runs on a file-workspace copy of the project with jobs recorded, not run.",
+      "why": "A real situation without changing the owner's project; the full job path was then checked separately with a scratch worker."
+    },
+    {
+      "decision": "Writes are refused while the project runs something.",
+      "why": "A job saves the project as it runs; a write then can lose its update or leave it marked running."
+    }
+  ],
+  "change": "draft/orchestrator.py (new: Turn, 12 read tools and 3 write tools in scope 'home', HomeGuard, rules plan, grounded(), Orchestrator with model and rules turns, task board, watcher, kept turns), prompts/home_orchestrator.md (new), draft/chat.py (reply_built delegates), draft/api.py, agents/{__init__,harness,registry}.py and prompts/__init__.py (the scope and the agents home.project, home.project.rules), models/settings.py (purpose home_orchestrator), web: views/home.html (project cards, task board, notebook cell with Run, chips, light Markdown), core.js (board events), look.css; tests/test_home_orchestrator.py (new), test_agent_harness.py, test_model_data_limits.py, test_built_chat.py; scripts/home_orchestrator_live.py (new).",
+  "findings": [
+    {
+      "id": "H1",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "'ok do it' and 'ok' got nonsense; 'build improvements' got advice again.",
+      "scenario": "After 'improve the model for me' the person said ok.",
+      "cause": "Keyword regexes with no memory of the chat's offer; the fallback asked a stage-explain prompt with no facts; 'improve' did not match 'improvements'.",
+      "fix": "The orchestrator reads the conversation (model) or the pending offer (rules); IMPROVE matches every form of the word.",
+      "test": "tests/test_home_orchestrator.py RulesTests and ModelTests"
+    },
+    {
+      "id": "H2",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "The improvement job failed with 'no handler for jobs of kind improve' and nothing was said.",
+      "scenario": "The owner's improve request on the dev app.",
+      "cause": "An orphan worker from the morning, on old code, claimed the job; the chat had no follow-up of jobs.",
+      "fix": "The orphan was stopped; a task board follows each job and says a failure with its reason and a hint to restart.",
+      "test": "test_a_failed_job_is_said_on_the_board_and_in_the_chat"
+    },
+    {
+      "id": "H3",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "Live run 1: the model started a second improvement run on 'ok'.",
+      "scenario": "'ok do it' then 'ok'.",
+      "cause": "The state shown to the model did not say a run was queued.",
+      "fix": "working_now in the state; improve_model refuses while a run is queued or running.",
+      "test": "test_how_to_improve_offers_the_ways_and_ok_do_it_starts_them_once"
+    },
+    {
+      "id": "H4",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "Correct sentences about the confusion counts were dropped.",
+      "scenario": "'It flagged 13, 6 were right' on the evaluation.",
+      "cause": "The totals were not in the card.",
+      "fix": "Flagged, actual positives and actual negatives added to the evaluation card.",
+      "test": "live run 2"
+    },
+    {
+      "id": "H5",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "Replies lost their lines and showed **bold** as text; fit times shown with 4 decimals.",
+      "scenario": "The models answer in the browser.",
+      "cause": "grounded() rejoined sentences with spaces; no Markdown on the page; one number format.",
+      "fix": "Lines kept; mdLite (escaped first); per-column digits.",
+      "test": "browser check"
+    },
+    {
+      "id": "H6",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "The board stayed 'running' on the page after the job ended.",
+      "scenario": "A real improvement job on the scratch copy.",
+      "cause": "The page's event stream listened to a fixed list of kinds without 'board'.",
+      "fix": "'board' added to the stream's kinds.",
+      "test": "browser check: running to done live"
+    },
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A stale offer started an improvement run.",
+      "scenario": "'How can it improve?', 'show the evaluation', 'great, thanks'.",
+      "cause": "The offer was cleared only by improve_model or a no.",
+      "fix": "The offer is read once at a turn's start and cleared; a tool offering again sets it again.",
+      "test": "test_an_offer_answers_the_next_message_only"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "'What did you try to improve?' gave the ideas and set an offer.",
+      "scenario": "After adding three tools at the head of WORDS.",
+      "cause": "WORDS[:1] pointed at the wrong entry.",
+      "fix": "The guard names show_improvements.",
+      "test": "test_what_was_tried_is_the_last_run_not_the_ideas"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A model failure after a write ran the write again and flipped the job's task to failed.",
+      "scenario": "The second request hits the cap after improve_model ran.",
+      "cause": "The rules replanned the same text; Turn.task overwrote the job's task.",
+      "fix": "After tools ran, the reply says what they did; a later failure is its own task.",
+      "test": "test_a_model_failing_after_a_write_does_not_run_it_again"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "The watcher thread read the default workspace's job store.",
+      "scenario": "A chat in a second workspace.",
+      "cause": "The services proxy reads a ContextVar that threads do not copy.",
+      "fix": "The thread runs in a copy of the request's context.",
+      "test": "none (code review)"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "Adopt ran while an improvement job ran.",
+      "scenario": "'adopt the best' during a run.",
+      "cause": "The guard did not check the project's running state.",
+      "fix": "HomeGuard refuses writes while the project runs something, and adopt while a run is queued.",
+      "test": "test_no_write_while_the_project_runs_something"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "An error's text and free-text activity payloads could reach the model.",
+      "scenario": "A provider error echoing the request; a person's words in an activity payload.",
+      "cause": "str(exc) and joined payload values.",
+      "fix": "Only the error's type; activity shows known keys only.",
+      "test": "test_the_home_orchestrator_sees_the_records_never_a_value"
+    },
+    {
+      "id": "H7",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "The reply listed the models as text instead of a table.",
+      "scenario": "Asked which models were trained, the chat wrote a numbered list of families and scores.",
+      "cause": "The old answer had no cards; the model also repeated a shown table as a list.",
+      "fix": "The models come as a table card; beside a card, list lines are dropped and the words are capped at four sentences (the whole reply kept in the record).",
+      "test": "test_a_list_repeating_the_table_is_taken_out; live run 4: 9/9, no lists"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Live conversation on a copy of the owner's project (Claude Sonnet 5.5)",
+      "gate": "each turn calls the tools it must and none it must not",
+      "result": "run 1: 8/9 (EUR 0.103); run 2 after fixes: 9/9 (EUR 0.086); run 3 after the review: 9/9 (EUR 0.105); run 4 after the table-first change: 9/9 (EUR 0.069), no list in any reply",
+      "verdict": "pass",
+      "limits": [
+        "nine turns written by the builder, one project",
+        "jobs recorded, not run, in these runs"
+      ]
+    },
+    {
+      "name": "Rules only, same conversation",
+      "gate": "each turn calls the tools it must and none it must not",
+      "result": "9/9 after one word added",
+      "verdict": "pass",
+      "limits": [
+        "the notebook cell needs a model"
+      ]
+    },
+    {
+      "name": "Full path in the browser on the copy",
+      "gate": "a plot from the chat; a real improvement job followed on the board to done; its report in the chat",
+      "result": "fold accuracy plot shown; 7 ways tried, none cleared the margin; board running then done live",
+      "verdict": "pass",
+      "limits": [
+        "one project",
+        "make agent-eval and make harness-eval not run yet for the new prompt and scope (they wait for the owner's nightly gate)"
+      ]
+    }
+  ],
+  "outcome": "On a built project's chat, Home understands follow-ups, shows the app's records as tables, improves the model, writes and runs notebook cells, and follows long jobs on a board that says how they ended.",
+  "lessons": [
+    "Two workers on one queue: the stale one fails jobs it does not know. Check the processes before blaming the code.",
+    "A pending offer must expire: an acceptance word much later is not an acceptance.",
+    "A test that scripts a model per client restarts its script each turn: share one script, or the test passes for the wrong reason.",
+    "An event the page does not subscribe to never arrives: a new event kind needs its listener."
+  ],
+  "risks": [
+    "The understanding agents (problem analyst, solution planner) are not yet in the built chat; a changed problem is not detected.",
+    "The prompt-hash check fails until make agent-eval and make harness-eval run for the new prompt and scope."
+  ],
+  "commits": []
+}

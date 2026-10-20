@@ -55,6 +55,11 @@ PURPOSES: dict[str, Purpose] = {
                                                "the model, the recipe and the tuning decision); no rows"),
     "project_answer": Purpose("standard", 60, "the question, facts computed from the project's stage records, and evidence records (with this "
                                            "workspace's accepted lessons: other projects' aggregate results and scope); no rows"),
+    "home_orchestrator": Purpose("standard", 90, "a built project's chat: the person's words (redacted) and the conversation's texts, the project's state (stage "
+                                                 "statuses, the chosen model, its metric and held-back score) and what its specialists' tools return from the "
+                                                 "project's records (model families and their fold scores, recipes, column names flagged by the data and "
+                                                 "leakage stages, evaluation measures and confusion counts, an improvement run's ways and gains); never rows or "
+                                                 "cell values", keeps_text=True),
     "notebook_review": Purpose("standard", 60, "the notebook copilot's findings (title, message and suggestion, which name columns, variables and functions of the "
                                                "notebook; a path, a string selector or a line of code is replaced before the request) and the text of the rule and "
                                                "pitfall records they cite; never the notebook's code or any data"),

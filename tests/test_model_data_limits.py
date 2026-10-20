@@ -150,6 +150,33 @@ class DataLimitTests(unittest.TestCase):
         for purpose in ("stage_notes", "project_answer", "lesson_proposal"):
             self.assertEqual(self.assertWithinLimit(purpose), set(), purpose)
 
+    def test_the_home_orchestrator_sees_the_records_never_a_value(self):
+        from dclab_rnd.draft import orchestrator
+        from dclab_rnd.draft.chat import HomeAgent
+        from dclab_rnd.draft.store import DraftStore
+        from dclab_rnd.studio import engine
+        store, pid = self._project()
+        models.install(gateway())
+        self.addCleanup(models.install, None)
+        for stage in ("data", "leakage", "features", "models", "final"):
+            engine.execute(store, pid, stage, "human")
+        names, script = list(orchestrator.READS), []
+        for start in range(0, len(names), 4):  # a turn makes at most a few calls (five replies): every read tool over a few turns
+            script += [tool_call(n, {}, i) for i, n in enumerate(names[start:start + 4], 1)] + [{"content": "Here they are.", "tool_calls": [], "usage": {}}]
+        shared = Capture("home_orchestrator", script)  # one script across the turns, so every read tool is called once
+        gw = Gateway(FileUsage(Path(tempfile.mkdtemp()) / "u.jsonl"),
+                     transport=lambda tier, purpose: shared if purpose is settings.PURPOSES["home_orchestrator"] else Capture("other", []))
+        drafts = DraftStore(Path(tempfile.mkdtemp()))
+        did = drafts.create("Predict churn")["id"]
+        drafts.update(did, lambda d: d.update(status="built", project_id=pid))
+        home = HomeAgent(drafts, None)
+        services = type("S", (), {"projects": store, "gateway": gw, "store": type("H", (), {"home": Path(tempfile.mkdtemp())})()})()
+        for _ in range(0, len(names), 4):
+            home.reply_built(did, "show me everything about the models, the data and the leakage", orchestrator.Orchestrator(services, home), pid)
+        shown = {m["card"]["title"] for m in drafts.get(did)["messages"] if m["kind"] == "project_card"}
+        self.assertGreaterEqual(len(shown), len(names) - 2, shown)  # every read tool's card (the notebook's and the improvement run's lists are empty here)
+        self.assertEqual(self.assertWithinLimit("home_orchestrator"), set())
+
     def test_the_notebook_cell_writer_sees_the_code_and_column_names_never_values(self):
         from dclab_rnd.studio import notebook_agent
         store, pid = self._project()
@@ -520,7 +547,8 @@ class DataLimitTests(unittest.TestCase):
         tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
                   "decision_answer", "decision_labeler", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first", "solver_answer",
-                  "understanding_critic", "solution_challenger", "debate_judge", "metric_question", "workspace_chat", "store_curator", "reasoning_teacher", "notebook_cell"}
+                  "understanding_critic", "solution_challenger", "debate_judge", "metric_question", "workspace_chat", "store_curator", "reasoning_teacher", "notebook_cell",
+                  "home_orchestrator"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))
