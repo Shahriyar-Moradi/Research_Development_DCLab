@@ -1,0 +1,31 @@
+{
+  "package": "build-flagged-time-column",
+  "title": "Build it from the chat when the audit flagged the time column",
+  "date": "2026-10-20",
+  "request": "The owner said build it, ok and yes on Home; nothing was built, and messages sent while it answered were refused with 409.",
+  "spec": "The leakage audit flagged signup_date (it alone separated the classes) and the same proposal chose it as the time column; the solution refuses a time column that is also forbidden.",
+  "plan": ["Resolve the contradiction where the chat builds: the plan the chat gave orders the split by the column, so it stays the time column, leaves the forbidden list, and its flag is kept in the notes"],
+  "decisions": [
+    {"decision": "The time column stays; it leaves the forbidden list with its flag written in the notes.", "why": "The chat had told the person the split follows this column and they agreed; a time column is never a feature, so the leak the flag fears cannot reach the model."}
+  ],
+  "change": "draft/api.py (the build's solution from the proposal), tests/test_draft_flow.py.",
+  "findings": [
+    {"id": "B1", "source": "owner", "severity": "behaviour", "defect": "Build it was refused on every yes, with an instruction to untick a box the chat does not show.",
+     "scenario": "A synthetic table where signup_date separated the classes; the chat planned a time split on it; the person said build it, ok, yes.",
+     "cause": "The proposal put signup_date both first among the time candidates and on the forbidden list; the solution's check refuses that pair.",
+     "fix": "The chat's build drops the time column from the forbidden list and notes why it was flagged.",
+     "test": "tests/test_draft_flow.py::test_build_it_builds_when_the_audit_flagged_the_time_column"},
+    {"id": "B2", "source": "owner", "severity": "behaviour", "defect": "Messages were refused with 409 Conflict.",
+     "scenario": "The person sent ok and yes again while a model turn was still answering.",
+     "cause": "One turn at a time per draft: a second message waits for the first. It looked like a failure because the build never came.",
+     "fix": "None needed beyond B1: the page already says to send again in a moment.",
+     "test": "none (by design)"}
+  ],
+  "measurements": [
+    {"name": "The chat's build with a flagged time column", "gate": "a project is built with the column as its time column, not forbidden, the flag in the notes", "result": "built: time column set, not forbidden, the note says why", "verdict": "pass", "limits": ["the wizard's sheet still shows both ticks for the person to resolve"]}
+  ],
+  "outcome": "Build it works when the audit's time column is also flagged; the flag is kept for the person to check.",
+  "lessons": ["An agent must not ask the person to resolve a contradiction it created in a place the person cannot see."],
+  "risks": ["A time column recorded after the outcome would still order the split; the note asks the person to check it."],
+  "commits": []
+}

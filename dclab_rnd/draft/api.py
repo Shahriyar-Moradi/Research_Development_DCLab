@@ -986,14 +986,23 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             if len(moment) < 8:
                 raise HTTPException(409, "When is the prediction made, and what is known at that moment? Tell me in a sentence, then say build again.")
             task = proposal.get("task")
+            time_column = (proposal.get("time_candidates") or [None])[0]
+            # the owner, 2026-10-20: the audit flagged the time column (signup_date alone separated the classes) and the build was refused
+            # on every "yes", the chat telling the person to untick a box it does not show. The plan the chat gave orders the split by
+            # this column; as the time column it is never a feature, so it leaves the forbidden list and its flag is kept in the notes.
+            flagged = next((f for f in proposal.get("forbidden") or [] if f["column"] == time_column), None) if time_column else None
+            note = "Accepted as the audit proposed it, from “build it” on Home."
+            if flagged is not None:
+                note += (f" `{time_column}` orders the time split and is never a feature; the audit flagged it ({str(flagged.get('reason') or 'a leak signal')[:300]}): "
+                         "check that it is known before the prediction moment.")
             body = {"target": target, "task": task, "prediction_moment": moment,
                     "positive_label": str(proposal["positive_label"]) if task == "binary" and proposal.get("positive_label") is not None else None,
                     "forbidden": [{"column": f["column"], "reason": f.get("reason") or "declared unavailable at the prediction moment"}
-                                  for f in proposal.get("forbidden") or []],
-                    "identifiers": list(proposal.get("identifiers") or []), "time_column": (proposal.get("time_candidates") or [None])[0],
+                                  for f in proposal.get("forbidden") or [] if f["column"] != time_column],
+                    "identifiers": list(proposal.get("identifiers") or []), "time_column": time_column,
                     "group_column": proposal.get("group_column"), "text_columns": list(proposal.get("text_columns") or []), "metric": proposal.get("metric"),
                     "label_source_column": proposal.get("label_source_column"),  # 30.12: the labels' source, never a feature
-                    "notes": "Accepted as the audit proposed it, from “build it” on Home."}
+                    "notes": note}
             await save_solution(draft_id, body, "agent")
         if not get(draft_id).get("settings"):
             rows = int(asset.get("rows") or ((get(draft_id).get("analysis") or {}).get("summary") or {}).get("rows") or 20000)

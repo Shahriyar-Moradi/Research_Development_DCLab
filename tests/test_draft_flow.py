@@ -763,6 +763,32 @@ class ApiTests(unittest.TestCase):
         self.assertIn("Build and evaluate", session["task"])
         self.assertEqual(self.draft(d["id"])["project_id"], built["project_id"])
 
+    def test_build_it_builds_when_the_audit_flagged_the_time_column(self):
+        """The owner, 2026-10-20: the audit flagged signup_date and the proposal also chose it as the time column; "build it", "ok"
+        and "yes" were refused each time ("untick it under Forbidden"). The chat's build keeps it as the time column, never a feature."""
+        from dclab_rnd.studio import solution as studio_solution
+
+        real = studio_solution.propose
+
+        def flagged_time(frame, profile, target, *a, **k):
+            out = real(frame, profile, target, *a, **k)
+            out["time_candidates"] = ["age"] + [c for c in out["time_candidates"] if c != "age"]
+            out["forbidden"] = [{"column": "age", "reason": "single column separates the classes (AUC 0.816)", "risk_score": 1.0, "proof": ["DCLAB-R04"]}] + \
+                [f for f in out["forbidden"] if f["column"] != "age"]
+            return out
+        c = self.client
+        d = c.post("/api/drafts", json={"problem": "Rank clients for the term-deposit call campaign"}, headers=self.h).json()
+        wait(lambda: self.draft(d["id"])["questions"])
+        c.post(f"/api/drafts/{d['id']}/data/sample", json={"key": "bank_marketing"}, headers=self.h)
+        wait(lambda: next((a for a in self.draft(d["id"])["assets"] if a["status"] == "ready"), None))
+        with mock.patch.object(studio_solution, "propose", flagged_time):
+            out = c.post(f"/api/drafts/{d['id']}/build/run", headers=self.h)
+        self.assertEqual(out.status_code, 201, out.text)
+        project = c.get(f"/api/projects/{out.json()['project_id']}").json()
+        self.assertEqual(project["solution"]["time_column"], "age")
+        self.assertNotIn("age", {f["column"] for f in project["solution"]["forbidden"]})
+        self.assertIn("never a feature", project["solution"]["notes"])
+
     def test_the_build_route_says_what_is_missing_and_a_full_job_queue_keeps_the_project(self):
         """25.13 review: a refusal is a 409 with its rule; when the agent cannot start (the job limit), the project stands and the chat says so."""
         c = self.client
