@@ -1,162 +1,103 @@
-/* DCLab product demo — design system.
-   Layout: a calm workspace. A left rail groups the pages (workspace, project, knowledge, platform),
-   a slim top bar carries breadcrumbs and search, and each page opens on an Overview tab with a few
-   large numbers and one main card; details live in the other tabs. Green is the action colour,
-   blue-teal draws data series, indigo marks evidence and proof, and the semantic colours
-   (ok / warn / bad / info) only ever describe state. Labels and status pills use the mono face. */
+/* DCLab product: the product's design system on the TripsSource design kit (kit/, blue and light green).
+   Layout: the kit's frame. The sidebar sits on the page ground, the top bar above a rounded canvas, and each page opens
+   on an Overview tab with a few large numbers and one main card; details live in the other tabs. Every colour, size and
+   radius comes from a --ts-* token: the variables below are the product's names for them, and look.css draws the
+   product's components the kit's way. Deep blue is the action colour, light green only marks (the current row, the
+   selected tab, the focus ring), violet marks evidence and proof, and the status tones only ever describe state. */
 /* Fonts are served from this app (fonts/, SIL Open Font License; see fonts/README.md): the page makes no request to a font host.
    Variable fonts, so one file covers every weight. Names match the --font-* variables below. */
 @font-face { font-family: "Inter"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("fonts/inter-latin-ext.woff2") format("woff2");
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
 @font-face { font-family: "Inter"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("fonts/inter-latin.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Outfit"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("fonts/outfit-variable.woff2") format("woff2"); }
+@font-face { font-family: "Plus Jakarta Sans"; font-style: normal; font-weight: 200 800; font-display: swap; src: url("fonts/plus-jakarta-sans-variable.woff2") format("woff2"); }
 @font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 100 800; font-display: swap; src: url("fonts/jetbrains-mono-latin.woff2") format("woff2"); }
 @font-face { font-family: "Vazirmatn"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("fonts/vazirmatn-arabic.woff2") format("woff2");
   unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC; }
 @font-face { font-family: "Vazirmatn"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("fonts/vazirmatn-latin.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 
-:root {
-  --bg: #f3f6f8;
-  --bg-2: #eaf0f3;
-  --panel: #ffffff;
-  --panel-2: #f8fafb;
-  --sunken: #eff3f5;
-  --ink: #101a20;
-  --ink-2: #3a4952;
-  --muted: #687882;
-  --faint: #97a3aa;
-  --line: #e5ebee;
-  --line-2: #d2dbe0;
-  --accent: #1f8f4e;
-  --accent-2: #167040;
-  --accent-soft: #e4f4ea;
-  --on-accent: #ffffff;
-  --series: #2a86ad;
-  --series-soft: #e2eff6;
-  --proof: #4c55c8;
-  --proof-soft: #ebecfb;
-  --ok: #1f8f4e;
-  --ok-soft: #e4f4ea;
-  --warn: #a8680c;
-  --warn-soft: #fcf1dc;
-  --bad: #c03a2b;
-  --bad-soft: #fcebe8;
-  --info: #2a6fb0;
-  --info-soft: #e5eef8;
-  --bp-built: #1f8f4e;
-  --bp-partial: #a8680c;
-  --bp-todo: #7440bd;
-  --bp-research: #56676f;
-  --code-bg: #f6f8fa;
+:root,
+[data-ts-theme] {
+  /* The product's names, driven by the TripsSource kit's tokens (kit/: blue and light green, light and dark). The kit's
+     stylesheets come first in app.css; the theme switch sets data-theme and data-ts-theme together (core.js). */
+  --bg: var(--ts-ground);
+  --bg-2: var(--ts-surface-muted);
+  --panel: var(--ts-surface);
+  --panel-2: var(--ts-surface-sunken);
+  --sunken: var(--ts-surface-muted);
+  --ink: var(--ts-text);
+  --ink-2: var(--ts-text-secondary);
+  --muted: var(--ts-text-muted);
+  --faint: var(--ts-text-faint);
+  --line: var(--ts-border);
+  --line-2: var(--ts-border-strong);
+  --accent: var(--ts-brand-deep);       /* actions and links use the deep brand; the light-green accent only marks (look.css) */
+  --accent-2: var(--ts-brand-deep-hover);
+  --accent-soft: color-mix(in oklab, var(--ts-brand) 11%, var(--ts-surface));
+  --on-accent: var(--ts-on-brand);
+  --series: var(--ts-chart-1);
+  --series-soft: color-mix(in oklab, var(--ts-chart-1) 14%, var(--ts-surface));
+  --proof: var(--ts-violet-fg);         /* evidence and proof: the kit's violet, as the AI colour of the DCLab product */
+  --proof-soft: var(--ts-violet-chip);
+  --ok: var(--ts-success-fg);
+  --ok-soft: var(--ts-success-bg);
+  --warn: var(--ts-warning-fg);
+  --warn-soft: var(--ts-warning-bg);
+  --bad: var(--ts-danger-fg);
+  --bad-soft: var(--ts-danger-bg);
+  --info: var(--ts-info-fg);
+  --info-soft: var(--ts-info-bg);
+  --bp-built: var(--ts-success-solid);
+  --bp-partial: var(--ts-warning-solid);
+  --bp-todo: var(--ts-violet-fg);
+  --bp-research: var(--ts-text-muted);
+  --code-bg: var(--ts-surface-sunken);
+  --shade: color-mix(in srgb, var(--ts-text) 7%, transparent);
+  --scrim: var(--ts-scrim-modal);
+  --font-ui: var(--ts-font-body);
+  --font-display: var(--ts-font-display);
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-fa: "Vazirmatn", "IBM Plex Sans Arabic", Tahoma, sans-serif;
+  --ts-font-display: "Outfit", "Inter", system-ui, sans-serif;
+  --ts-font-body: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+  --ts-font-mono: var(--font-mono);
+  --t-xs: var(--ts-text-xs);
+  --t-sm: var(--ts-text-sm);
+  --t-base: var(--ts-text-base);
+  --t-md: var(--ts-text-md);
+  --t-lg: var(--ts-text-xl);
+  --t-xl: var(--ts-text-2xl);
+  --t-2xl: var(--ts-text-28);
+  --r-sm: var(--ts-radius-xs);
+  --r: var(--ts-radius-card);
+  --r-lg: var(--ts-radius-modal);
+  --side-w: var(--ts-sidebar-width);
+  --top-h: 0px;                         /* the top bar scrolls with the page (the kit's frame): sticky tabs stick to the top */
+  /* code colours: the product's own, light here and dark below */
   --syn-kw: #8a3db5;
   --syn-str: #1b7c43;
   --syn-num: #a8560f;
   --syn-com: #7b898f;
   --syn-fn: #2a62a6;
-  --shade: rgba(16, 26, 32, .06);
-  --scrim: rgba(12, 20, 24, .38);
-  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --font-display: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-fa: "Vazirmatn", "IBM Plex Sans Arabic", Tahoma, sans-serif;
-  --t-xs: 11.5px;
-  --t-sm: 12.5px;
-  --t-base: 14px;
-  --t-md: 15px;
-  --t-lg: 18px;
-  --t-xl: 22px;
-  --t-2xl: 28px;
-  --r-sm: 8px;
-  --r: 14px;
-  --r-lg: 16px;
-  --side-w: 264px;
-  --top-h: 64px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0b1114;
-    --bg-2: #0e161a;
-    --panel: #131b20;
-    --panel-2: #172126;
-    --sunken: #10181c;
-    --ink: #e4ecef;
-    --ink-2: #b8c6cc;
-    --muted: #8b9ba3;
-    --faint: #6a7a82;
-    --line: #222f35;
-    --line-2: #2e3d44;
-    --accent: #3cc178;
-    --accent-2: #74d9a0;
-    --accent-soft: #12301f;
-    --on-accent: #04210f;
-    --series: #5fb4d9;
-    --series-soft: #12293a;
-    --proof: #959dff;
-    --proof-soft: #1d2142;
-    --ok: #4cc27c;
-    --ok-soft: #11301e;
-    --warn: #e2a74a;
-    --warn-soft: #33270f;
-    --bad: #f27c70;
-    --bad-soft: #3a1714;
-    --info: #6ba8f1;
-    --info-soft: #132a45;
-    --bp-built: #4cc27c;
-    --bp-partial: #e2a74a;
-    --bp-todo: #b48cff;
-    --bp-research: #92a3ab;
-    --code-bg: #10171b;
     --syn-kw: #c99bff;
     --syn-str: #7fd69a;
     --syn-num: #f1b06f;
     --syn-com: #6f8087;
     --syn-fn: #80b7f6;
-    --shade: rgba(0, 0, 0, .35);
-    --scrim: rgba(0, 0, 0, .55);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0b1114;
-  --bg-2: #0e161a;
-  --panel: #131b20;
-  --panel-2: #172126;
-  --sunken: #10181c;
-  --ink: #e4ecef;
-  --ink-2: #b8c6cc;
-  --muted: #8b9ba3;
-  --faint: #6a7a82;
-  --line: #222f35;
-  --line-2: #2e3d44;
-  --accent: #3cc178;
-  --accent-2: #74d9a0;
-  --accent-soft: #12301f;
-  --on-accent: #04210f;
-  --series: #5fb4d9;
-  --series-soft: #12293a;
-  --proof: #959dff;
-  --proof-soft: #1d2142;
-  --ok: #4cc27c;
-  --ok-soft: #11301e;
-  --warn: #e2a74a;
-  --warn-soft: #33270f;
-  --bad: #f27c70;
-  --bad-soft: #3a1714;
-  --info: #6ba8f1;
-  --info-soft: #132a45;
-  --bp-built: #4cc27c;
-  --bp-partial: #e2a74a;
-  --bp-todo: #b48cff;
-  --bp-research: #92a3ab;
-  --code-bg: #10171b;
   --syn-kw: #c99bff;
   --syn-str: #7fd69a;
   --syn-num: #f1b06f;
   --syn-com: #6f8087;
   --syn-fn: #80b7f6;
-  --shade: rgba(0, 0, 0, .35);
-  --scrim: rgba(0, 0, 0, .55);
   color-scheme: dark;
 }
 

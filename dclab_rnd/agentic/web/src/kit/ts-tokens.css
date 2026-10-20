@@ -1,0 +1,413 @@
+/*
+ * TripsSource design tokens, light and dark, exactly as the TripsSource admin ships them.
+ * Load the fonts first:
+ *   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ *   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+ * Theme: light by default; <html data-ts-theme="dark"> forces dark; with no attribute the system setting decides
+ * (data-ts-theme="light" forces light). Put data-ts-reset on <html> to get the base typography in ts-components.css.
+ * For blue + light green instead of green, load ts-theme-blue.css after this file.
+ */
+
+:root,
+[data-ts-theme] {
+  /* Fonts: Outfit for titles and figures, Plus Jakarta Sans for everything else */
+  --ts-font-display: "Outfit", system-ui, sans-serif;
+  --ts-font-body: "Plus Jakarta Sans", system-ui, sans-serif;
+  --ts-font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Surfaces: the page ground, cards, wells, hover and input fills, scrims */
+  --ts-ground: #e7e8e3;
+  --ts-surface: #fff;
+  --ts-surface-sunken: #f6f7f3;
+  --ts-surface-muted: #f1f3ed;
+  --ts-surface-hover: #edefe8;
+  --ts-surface-input: #f8f9f5;
+  --ts-surface-row-hover: #f8f9f5;
+  --ts-scrim-modal: #1a24185c;
+  --ts-scrim-drawer: #1a241852;
+  --ts-scrollbar-thumb: #d3d7ce;
+
+  /* Text */
+  --ts-text: #1a2418;
+  --ts-text-secondary: #48524a;
+  --ts-text-muted: #7c8a7f;
+  --ts-text-faint: #9aa79d;
+  --ts-text-inverse: #fff;
+
+  /* On dark (ink, hero) surfaces, and toast marks */
+  --ts-on-ink-chip: #ffffff29;
+  --ts-on-ink-muted: #b5c5b2;
+  --ts-on-hero-tile: #ffffff29;
+  --ts-on-ink-tile: #ffffff12;
+  --ts-on-ink-border: #ffffff1f;
+  --ts-toast-mark-success: #a8dc63;
+  --ts-toast-mark-danger: #f09a85;
+  --ts-toast-mark-warning: #f2c558;
+  --ts-toast-mark-info: #7fb2fa;
+  --ts-toast-dismiss-hover: #ffffff29;
+  --ts-on-deep-disc: #ffffff2e;
+
+  /* Brand and accent */
+  --ts-brand: #3f7a16;
+  --ts-brand-deep: #24541c;
+  --ts-accent: #8cc63f;
+  --ts-accent-hover: #7cb531;
+  --ts-brand-deep-hover: #3e6837;
+  --ts-accent-soft: #dceebb;
+  --ts-accent-ink: #152109;
+  --ts-ink: #1a2418;
+  --ts-on-brand: #fff;
+  --ts-on-accent: #152109;
+  --ts-ink-gradient: linear-gradient(150deg, #1e2a16 0%, #14162a 100%);
+  --ts-hero-green: linear-gradient(150deg, #3f7a16 0%, #24541c 100%);
+  --ts-hero-red: linear-gradient(150deg, #c4381f 0%, #8e2413 100%);
+  --ts-hero-teal: linear-gradient(150deg, #1e5f52 0%, #14332c 100%);
+  --ts-hero-charcoal: linear-gradient(150deg, #3c4238 0%, #1a2418 100%);
+  --ts-hatch: repeating-linear-gradient(135deg, #e7e9e2 0 6px, #f3f4ef 6px 12px);
+  --ts-auth-gradient: linear-gradient(155deg, #24541c 0%, #14162a 100%);
+  --ts-auth-panel-start: #24541c;
+  --ts-hero-red-start: #c4381f;
+  --ts-hero-teal-start: #1e5f52;
+  --ts-hero-charcoal-start: #3c4238;
+  --ts-auth-kicker: #b9e06f;
+  --ts-auth-kicker-bg: #8cc63f24;
+  --ts-auth-kicker-border: #8cc63f52;
+  --ts-auth-glow: #8cc63f4d;
+  --ts-radius-auth: 26px;
+  --ts-auth-card-width: 472px;
+  --ts-auth-card-padding: 34px;
+  --ts-shadow-auth-card: 0 24px 60px -40px #1a241859;
+
+  /* Status tones: solid fill / text on tint / tint / border / chip */
+  --ts-danger-solid: #a72e18;
+  --ts-danger-fg: #8c2413;
+  --ts-danger-bg: #fdf1ee;
+  --ts-danger-border: #f3cdc3;
+  --ts-danger-chip: #fbe2dc;
+  --ts-danger-deep: #8c2413;
+  --ts-warning-solid: #b07a16;
+  --ts-warning-fg: #8a5f10;
+  --ts-warning-bg: #fef8ec;
+  --ts-warning-border: #eedcb4;
+  --ts-warning-chip: #fdf0da;
+  --ts-warning-deep: #8a5f10;
+  --ts-success-solid: #3f7a16;
+  --ts-success-fg: #2c5a10;
+  --ts-success-bg: #f4faea;
+  --ts-success-border: #d8e9be;
+  --ts-success-chip: #edf7de;
+  --ts-info-solid: #2d7ff9;
+  --ts-info-fg: #1f5fbf;
+  --ts-info-bg: #f2f7fe;
+  --ts-info-border: #cfe0fa;
+  --ts-info-chip: #e4eefb;
+  --ts-info-deep: #1f5fbf;
+  --ts-neutral-fg: #48524a;
+  --ts-neutral-chip: #f1f3ed;
+  --ts-violet-chip: #f1e7fb;
+  --ts-violet-fg: #6b3fa0;
+
+  /* Lines */
+  --ts-border: #edeee8;
+  --ts-border-strong: #e3e7dc;
+  --ts-nav-guide-width: 2px;
+
+  /* Charts (in this order) */
+  --ts-chart-1: #3f7a16;
+  --ts-chart-2: #1f5fbf;
+  --ts-chart-3: #9a6510;
+  --ts-chart-4: #6b3fa0;
+  --ts-chart-5: #147a74;
+  --ts-chart-6: #a72e18;
+  --ts-chart-7: #b8407a;
+  --ts-chart-8: #5d6b5f;
+
+  /* Radii */
+  --ts-radius-pill: 99px;
+  --ts-radius-xl: 30px;
+  --ts-radius-lg: 24px;
+  --ts-radius-md: 22px;
+  --ts-radius-20: 20px;
+  --ts-radius-18: 18px;
+  --ts-radius-16: 16px;
+  --ts-radius-sm: 14px;
+  --ts-radius-12: 12px;
+  --ts-radius-10: 10px;
+  --ts-radius-xs: 8px;
+  --ts-radius-card: 22px;
+  --ts-radius-modal: 26px;
+  --ts-radius-drawer: 26px;
+  --ts-radius-nav: 14px;
+
+  /* Spacing and layout sizes */
+  --ts-space-1: 4px;
+  --ts-space-2: 8px;
+  --ts-space-3: 10px;
+  --ts-space-4: 12px;
+  --ts-space-5: 14px;
+  --ts-space-6: 18px;
+  --ts-space-7: 22px;
+  --ts-space-8: 26px;
+  --ts-space-9: 32px;
+  --ts-page-inset: 16px;
+  --ts-sidebar-padding-block: 20px;
+  --ts-sidebar-width: 246px;
+  --ts-modal-width-sm: 400px;
+  --ts-modal-width-md: 520px;
+  --ts-modal-width-lg: 720px;
+  --ts-modal-width-xl: 1200px;
+  --ts-popover-width: 320px;
+  --ts-card-padding: 20px;
+  --ts-modal-padding: 24px;
+  --ts-drawer-width: 450px;
+  --ts-toast-padding-block: 13px;
+  --ts-toast-padding-inline: 20px;
+
+  /* Type scale (px), weights, tracking */
+  --ts-text-2xs: 10.5px;
+  --ts-text-11: 11px;
+  --ts-text-xs: 11.5px;
+  --ts-text-12: 12px;
+  --ts-text-sm: 12.5px;
+  --ts-text-13: 13px;
+  --ts-text-base: 13.5px;
+  --ts-text-md: 14px;
+  --ts-text-15: 15px;
+  --ts-text-lg: 15.5px;
+  --ts-text-17: 17px;
+  --ts-text-xl: 18px;
+  --ts-text-19: 19px;
+  --ts-text-20: 20px;
+  --ts-text-2xl: 21px;
+  --ts-text-24: 24px;
+  --ts-text-3xl: 26px;
+  --ts-text-28: 28px;
+  --ts-text-4xl: 32px;
+  --ts-text-34: 34px;
+  --ts-text-5xl: 38px;
+  --ts-text-42: 42px;
+  --ts-weight-regular: 400;
+  --ts-weight-medium: 500;
+  --ts-weight-semibold: 600;
+  --ts-weight-bold: 700;
+  --ts-tracking-tight: -.025em;
+  --ts-tracking-caps: .12em;
+  --ts-tracking-micro: .06em;
+
+  /* Control heights */
+  --ts-control-xs: 30px;
+  --ts-control-sm: 34px;
+  --ts-control: 42px;
+  --ts-control-lg: 46px;
+  --ts-control-tab: 38px;
+  --ts-nav-row: 44px;
+  --ts-nav-row-child: 36px;
+
+  /* Shadows */
+  --ts-shadow-toast: 0 18px 40px -22px #1a2418b3;
+  --ts-shadow-card: 0 1px 2px #1a24180a;
+  --ts-shadow-modal: 0 24px 70px #1a24184d;
+  --ts-shadow-drawer: 0 20px 60px #1a24183d;
+  --ts-shadow-toast-v3: 0 16px 40px #1a241847;
+  --ts-shadow-nav-active: 0 2px 8px #1a24180f;
+  --ts-shadow-segment-active: 0 2px 6px #1a241814;
+  --ts-shadow-dock: 0 -4px 20px #0000001a;
+
+  /* Layers */
+  --ts-z-modal-backdrop: 1100;
+  --ts-z-modal: 1110;
+  --ts-z-menu: 1120;
+  --ts-z-tooltip: 1130;
+  --ts-z-toast: 1140;
+  --ts-z-blocking: 100000;
+
+  /* Focus */
+  --ts-focus-ring: 2px solid var(--ts-accent);
+  --ts-focus-offset: 2px;
+  --ts-focus-contour: 0 0 0 6px var(--ts-brand-deep);
+  --ts-focus-contour-inset: inset 0 0 0 6px var(--ts-brand-deep);
+}
+
+[data-ts-theme="dark"] {
+  color-scheme: dark;
+
+  /* Surfaces: the page ground, cards, wells, hover and input fills, scrims */
+  --ts-ground: #12111f;
+  --ts-surface: #1b1a2b;
+  --ts-surface-sunken: #161526;
+  --ts-surface-muted: #222136;
+  --ts-surface-hover: #28273d;
+  --ts-surface-input: #1e1d30;
+  --ts-surface-row-hover: #201f32;
+  --ts-scrim-modal: #0000009e;
+  --ts-scrim-drawer: #0000008c;
+  --ts-scrollbar-thumb: #3e3d58;
+
+  /* Text */
+  --ts-text: #ececf4;
+  --ts-text-secondary: #bab9ce;
+  --ts-text-muted: #9796ae;
+  --ts-text-faint: #77768f;
+  --ts-text-inverse: #fff;
+
+  /* Brand and accent */
+  --ts-brand: #8cc63f;
+  --ts-brand-deep: #a9d879;
+  --ts-accent: #8cc63f;
+  --ts-accent-hover: #9ed255;
+  --ts-brand-deep-hover: #bde395;
+  --ts-accent-soft: #23301f;
+  --ts-accent-ink: #c2e595;
+  --ts-ink: #2c2b43;
+  --ts-on-brand: #0f1a0a;
+  --ts-on-accent: #152109;
+  --ts-hatch: repeating-linear-gradient(135deg, #222136 0 6px, #28273d 6px 12px);
+  --ts-shadow-auth-card: 0 24px 60px -40px #000c;
+
+  /* Status tones: solid fill / text on tint / tint / border / chip */
+  --ts-danger-solid: #c4432b;
+  --ts-danger-fg: #f4a08c;
+  --ts-danger-bg: #2a1520;
+  --ts-danger-border: #52242f;
+  --ts-danger-chip: #3a1a26;
+  --ts-warning-solid: #b07a16;
+  --ts-warning-fg: #ebc167;
+  --ts-warning-bg: #28200f;
+  --ts-warning-border: #4d3d1c;
+  --ts-warning-chip: #352b12;
+  --ts-success-solid: #3f7a16;
+  --ts-success-fg: #a9d879;
+  --ts-success-bg: #172116;
+  --ts-success-border: #2f4421;
+  --ts-success-chip: #1f2d1b;
+  --ts-info-solid: #2d7ff9;
+  --ts-info-fg: #9dc2f8;
+  --ts-info-bg: #141c33;
+  --ts-info-border: #273b66;
+  --ts-info-chip: #1b2748;
+  --ts-neutral-fg: #bab9ce;
+  --ts-neutral-chip: #26253b;
+  --ts-violet-chip: #2c2142;
+  --ts-violet-fg: #c9aaf0;
+
+  /* Lines */
+  --ts-border: #2a2940;
+  --ts-border-strong: #34334c;
+
+  /* Charts (in this order) */
+  --ts-chart-1: #8cc63f;
+  --ts-chart-2: #6aa2f2;
+  --ts-chart-3: #e0a93e;
+  --ts-chart-4: #b48be6;
+  --ts-chart-5: #3fbfb3;
+  --ts-chart-6: #ee7a62;
+  --ts-chart-7: #e57fb0;
+  --ts-chart-8: #a2a1b8;
+
+  /* Shadows */
+  --ts-shadow-toast: 0 18px 40px -22px #000000e6;
+  --ts-shadow-card: 0 1px 2px #0006;
+  --ts-shadow-modal: 0 24px 70px #0009;
+  --ts-shadow-drawer: 0 20px 60px #0000008c;
+  --ts-shadow-toast-v3: 0 16px 40px #0000008c;
+  --ts-shadow-nav-active: 0 2px 8px #00000059;
+  --ts-shadow-segment-active: 0 2px 6px #0006;
+  --ts-shadow-dock: 0 -4px 20px #00000073;
+
+  /* Focus */
+  --ts-focus-contour: 0 0 0 6px #12111f;
+  --ts-focus-contour-inset: inset 0 0 0 6px #12111f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-ts-theme="light"]) {
+    color-scheme: dark;
+
+    /* Surfaces: the page ground, cards, wells, hover and input fills, scrims */
+    --ts-ground: #12111f;
+    --ts-surface: #1b1a2b;
+    --ts-surface-sunken: #161526;
+    --ts-surface-muted: #222136;
+    --ts-surface-hover: #28273d;
+    --ts-surface-input: #1e1d30;
+    --ts-surface-row-hover: #201f32;
+    --ts-scrim-modal: #0000009e;
+    --ts-scrim-drawer: #0000008c;
+    --ts-scrollbar-thumb: #3e3d58;
+
+    /* Text */
+    --ts-text: #ececf4;
+    --ts-text-secondary: #bab9ce;
+    --ts-text-muted: #9796ae;
+    --ts-text-faint: #77768f;
+    --ts-text-inverse: #fff;
+
+    /* Brand and accent */
+    --ts-brand: #8cc63f;
+    --ts-brand-deep: #a9d879;
+    --ts-accent: #8cc63f;
+    --ts-accent-hover: #9ed255;
+    --ts-brand-deep-hover: #bde395;
+    --ts-accent-soft: #23301f;
+    --ts-accent-ink: #c2e595;
+    --ts-ink: #2c2b43;
+    --ts-on-brand: #0f1a0a;
+    --ts-on-accent: #152109;
+    --ts-hatch: repeating-linear-gradient(135deg, #222136 0 6px, #28273d 6px 12px);
+    --ts-shadow-auth-card: 0 24px 60px -40px #000c;
+
+    /* Status tones: solid fill / text on tint / tint / border / chip */
+    --ts-danger-solid: #c4432b;
+    --ts-danger-fg: #f4a08c;
+    --ts-danger-bg: #2a1520;
+    --ts-danger-border: #52242f;
+    --ts-danger-chip: #3a1a26;
+    --ts-warning-solid: #b07a16;
+    --ts-warning-fg: #ebc167;
+    --ts-warning-bg: #28200f;
+    --ts-warning-border: #4d3d1c;
+    --ts-warning-chip: #352b12;
+    --ts-success-solid: #3f7a16;
+    --ts-success-fg: #a9d879;
+    --ts-success-bg: #172116;
+    --ts-success-border: #2f4421;
+    --ts-success-chip: #1f2d1b;
+    --ts-info-solid: #2d7ff9;
+    --ts-info-fg: #9dc2f8;
+    --ts-info-bg: #141c33;
+    --ts-info-border: #273b66;
+    --ts-info-chip: #1b2748;
+    --ts-neutral-fg: #bab9ce;
+    --ts-neutral-chip: #26253b;
+    --ts-violet-chip: #2c2142;
+    --ts-violet-fg: #c9aaf0;
+
+    /* Lines */
+    --ts-border: #2a2940;
+    --ts-border-strong: #34334c;
+
+    /* Charts (in this order) */
+    --ts-chart-1: #8cc63f;
+    --ts-chart-2: #6aa2f2;
+    --ts-chart-3: #e0a93e;
+    --ts-chart-4: #b48be6;
+    --ts-chart-5: #3fbfb3;
+    --ts-chart-6: #ee7a62;
+    --ts-chart-7: #e57fb0;
+    --ts-chart-8: #a2a1b8;
+
+    /* Shadows */
+    --ts-shadow-toast: 0 18px 40px -22px #000000e6;
+    --ts-shadow-card: 0 1px 2px #0006;
+    --ts-shadow-modal: 0 24px 70px #0009;
+    --ts-shadow-drawer: 0 20px 60px #0000008c;
+    --ts-shadow-toast-v3: 0 16px 40px #0000008c;
+    --ts-shadow-nav-active: 0 2px 8px #00000059;
+    --ts-shadow-segment-active: 0 2px 6px #0006;
+    --ts-shadow-dock: 0 -4px 20px #00000073;
+
+    /* Focus */
+    --ts-focus-contour: 0 0 0 6px #12111f;
+    --ts-focus-contour-inset: inset 0 0 0 6px #12111f;
+  }
+}

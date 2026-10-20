@@ -1,0 +1,199 @@
+/*
+ * Blue + light green: the TripsSource system with blue as the main colour and light green as the accent.
+ * Load after ts-tokens.css. Only colours change: every size, radius, font, shadow shape and rule stays the same.
+ *
+ * Where each colour shows (same roles as the original):
+ *   brand / brand-deep   blue: primary buttons, links, the active nav icon, current page in pagination, switches on
+ *   accent               light green: the pill bar beside the current nav row, the selected tab's underline,
+ *                        focus rings, progress fills, the accent button, hover border of link cards
+ *   accent-soft          pale green: the current child nav row, selected table rows, the "brand" icon chip
+ *   ink                  deep navy: the open nav group, pill tabs when selected, toasts, tooltips, the save bar
+ *   neutrals             cool slate instead of TripsSource's green-grey
+ * Status colours (danger, warning, success, info, violet) are TripsSource's, so they read the same everywhere.
+ */
+
+:root,
+[data-ts-theme] {
+  /* Surfaces: cool slate */
+  --ts-ground: #e8ecf2;
+  --ts-surface: #fff;
+  --ts-surface-sunken: #f5f7fa;
+  --ts-surface-muted: #eff2f6;
+  --ts-surface-hover: #e9eef5;
+  --ts-surface-input: #f8fafc;
+  --ts-surface-row-hover: #f8fafc;
+  --ts-scrim-modal: #0f1a2e5c;
+  --ts-scrim-drawer: #0f1a2e52;
+  --ts-scrollbar-thumb: #cdd5e0;
+
+  /* Text */
+  --ts-text: #0f1a2e;
+  --ts-text-secondary: #46526a;
+  --ts-text-muted: #75819a;
+  --ts-text-faint: #98a2b6;
+
+  /* Lines */
+  --ts-border: #e9edf3;
+  --ts-border-strong: #dde3ec;
+
+  /* Brand: blue */
+  --ts-brand: #2563eb;
+  --ts-brand-deep: #1d4ed8;
+  --ts-brand-deep-hover: #1e40af;
+  --ts-on-brand: #fff;
+
+  /* Accent: light green */
+  --ts-accent: #8bd346;
+  --ts-accent-hover: #78c22f;
+  --ts-accent-soft: #e4f5d2;
+  --ts-accent-ink: #1f3a0a;
+  --ts-on-accent: #16290a;
+
+  /* Ink: deep navy */
+  --ts-ink: #0f1a2e;
+  --ts-on-ink-muted: #b0bdd6;
+
+  /* Gradients and hero fills */
+  --ts-ink-gradient: linear-gradient(150deg, #13213d 0%, #0b1222 100%);
+  --ts-hero-green: linear-gradient(150deg, #2563eb 0%, #1e3a8a 100%);
+  --ts-hero-blue: linear-gradient(150deg, #2563eb 0%, #1e3a8a 100%);
+  --ts-hero-lime: linear-gradient(150deg, #65a30d 0%, #3f6212 100%);
+  --ts-hero-teal: linear-gradient(150deg, #0f6e7a 0%, #0b3a45 100%);
+  --ts-hero-charcoal: linear-gradient(150deg, #36415a 0%, #0f1a2e 100%);
+  --ts-hatch: repeating-linear-gradient(135deg, #e6eaf0 0 6px, #f2f4f8 6px 12px);
+  --ts-auth-gradient: linear-gradient(155deg, #1d4ed8 0%, #0b1222 100%);
+  --ts-auth-panel-start: #1d4ed8;
+  --ts-auth-kicker: #bef08a;
+  --ts-auth-kicker-bg: #8bd34624;
+  --ts-auth-kicker-border: #8bd34652;
+  --ts-auth-glow: #8bd3464d;
+  --ts-toast-mark-success: #a7e26d;
+
+  /* Charts: blue and green lead */
+  --ts-chart-1: #2563eb;
+  --ts-chart-2: #65a30d;
+  --ts-chart-3: #9a6510;
+  --ts-chart-4: #6b3fa0;
+  --ts-chart-5: #147a74;
+  --ts-chart-6: #a72e18;
+  --ts-chart-7: #b8407a;
+  --ts-chart-8: #5d6b82;
+
+  /* Shadows: the same shapes, tinted navy */
+  --ts-shadow-toast: 0 18px 40px -22px #0f1a2eb3;
+  --ts-shadow-card: 0 1px 2px #0f1a2e0a;
+  --ts-shadow-modal: 0 24px 70px #0f1a2e4d;
+  --ts-shadow-drawer: 0 20px 60px #0f1a2e3d;
+  --ts-shadow-auth-card: 0 24px 60px -40px #0f1a2e59;
+  --ts-shadow-toast-v3: 0 16px 40px #0f1a2e47;
+  --ts-shadow-nav-active: 0 2px 8px #0f1a2e0f;
+  --ts-shadow-segment-active: 0 2px 6px #0f1a2e14;
+
+  /* Focus: a light-green ring around a blue contour */
+  --ts-focus-ring: 2px solid var(--ts-accent);
+  --ts-focus-contour: 0 0 0 6px var(--ts-brand-deep);
+  --ts-focus-contour-inset: inset 0 0 0 6px var(--ts-brand-deep);
+}
+
+[data-ts-theme="dark"] {
+  /* every colour the light block changes, restated for dark so the light block never leaks into dark */
+  --ts-ground: #0b1120;
+  --ts-surface: #131b2e;
+  --ts-surface-sunken: #0f1626;
+  --ts-surface-muted: #1a2338;
+  --ts-surface-hover: #212b42;
+  --ts-surface-input: #161f33;
+  --ts-surface-row-hover: #182136;
+  --ts-scrim-modal: #0000009e;
+  --ts-scrim-drawer: #0000008c;
+  --ts-scrollbar-thumb: #3a4664;
+  --ts-text: #e8edf7;
+  --ts-text-secondary: #b4bfd4;
+  --ts-text-muted: #8f9bb3;
+  --ts-text-faint: #6c7891;
+  --ts-border: #222c43;
+  --ts-border-strong: #2c3752;
+  --ts-brand: #5b9bff;
+  --ts-brand-deep: #8ab8ff;
+  --ts-brand-deep-hover: #b0d0ff;
+  --ts-on-brand: #0a1530;
+  --ts-accent: #a3e635;
+  --ts-accent-hover: #b5ee5a;
+  --ts-accent-soft: #1d2c19;
+  --ts-accent-ink: #c8f08a;
+  --ts-on-accent: #16290a;
+  --ts-ink: #26324d;
+  --ts-hatch: repeating-linear-gradient(135deg, #1a2338 0 6px, #212b42 6px 12px);
+  --ts-chart-1: #6aa2f2;
+  --ts-chart-2: #a3e635;
+  --ts-chart-3: #e0a93e;
+  --ts-chart-4: #b48be6;
+  --ts-chart-5: #3fbfb3;
+  --ts-chart-6: #ee7a62;
+  --ts-chart-7: #e57fb0;
+  --ts-chart-8: #a0abc2;
+  --ts-shadow-toast: 0 18px 40px -22px #000000e6;
+  --ts-shadow-card: 0 1px 2px #0006;
+  --ts-shadow-modal: 0 24px 70px #0009;
+  --ts-shadow-drawer: 0 20px 60px #0000008c;
+  --ts-shadow-auth-card: 0 24px 60px -40px #000c;
+  --ts-shadow-toast-v3: 0 16px 40px #0000008c;
+  --ts-shadow-nav-active: 0 2px 8px #00000059;
+  --ts-shadow-segment-active: 0 2px 6px #0006;
+  --ts-focus-contour: 0 0 0 6px #0b1120;
+  --ts-focus-contour-inset: inset 0 0 0 6px #0b1120;
+  --ts-neutral-fg: #b4bfd4;
+  --ts-neutral-chip: #1e2840;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-ts-theme="light"]) {
+    --ts-ground: #0b1120;
+    --ts-surface: #131b2e;
+    --ts-surface-sunken: #0f1626;
+    --ts-surface-muted: #1a2338;
+    --ts-surface-hover: #212b42;
+    --ts-surface-input: #161f33;
+    --ts-surface-row-hover: #182136;
+    --ts-scrim-modal: #0000009e;
+    --ts-scrim-drawer: #0000008c;
+    --ts-scrollbar-thumb: #3a4664;
+    --ts-text: #e8edf7;
+    --ts-text-secondary: #b4bfd4;
+    --ts-text-muted: #8f9bb3;
+    --ts-text-faint: #6c7891;
+    --ts-border: #222c43;
+    --ts-border-strong: #2c3752;
+    --ts-brand: #5b9bff;
+    --ts-brand-deep: #8ab8ff;
+    --ts-brand-deep-hover: #b0d0ff;
+    --ts-on-brand: #0a1530;
+    --ts-accent: #a3e635;
+    --ts-accent-hover: #b5ee5a;
+    --ts-accent-soft: #1d2c19;
+    --ts-accent-ink: #c8f08a;
+    --ts-on-accent: #16290a;
+    --ts-ink: #26324d;
+    --ts-hatch: repeating-linear-gradient(135deg, #1a2338 0 6px, #212b42 6px 12px);
+    --ts-chart-1: #6aa2f2;
+    --ts-chart-2: #a3e635;
+    --ts-chart-3: #e0a93e;
+    --ts-chart-4: #b48be6;
+    --ts-chart-5: #3fbfb3;
+    --ts-chart-6: #ee7a62;
+    --ts-chart-7: #e57fb0;
+    --ts-chart-8: #a0abc2;
+    --ts-shadow-toast: 0 18px 40px -22px #000000e6;
+    --ts-shadow-card: 0 1px 2px #0006;
+    --ts-shadow-modal: 0 24px 70px #0009;
+    --ts-shadow-drawer: 0 20px 60px #0000008c;
+    --ts-shadow-auth-card: 0 24px 60px -40px #000c;
+    --ts-shadow-toast-v3: 0 16px 40px #0000008c;
+    --ts-shadow-nav-active: 0 2px 8px #00000059;
+    --ts-shadow-segment-active: 0 2px 6px #0006;
+    --ts-focus-contour: 0 0 0 6px #0b1120;
+    --ts-focus-contour-inset: inset 0 0 0 6px #0b1120;
+    --ts-neutral-fg: #b4bfd4;
+    --ts-neutral-chip: #1e2840;
+  }
+}

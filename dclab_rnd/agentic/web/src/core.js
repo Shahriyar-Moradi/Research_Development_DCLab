@@ -1120,6 +1120,7 @@
       const root = document.documentElement;
       const dark = root.dataset.theme ? root.dataset.theme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
       root.dataset.theme = dark ? 'light' : 'dark';
+      root.dataset.tsTheme = root.dataset.theme;  // the design kit's tokens (kit/) follow the same switch
       $('#theme-btn').innerHTML = icon(dark ? 'moon' : 'sun');
     });
     $('#theme-btn').innerHTML = icon(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'sun' : 'moon');

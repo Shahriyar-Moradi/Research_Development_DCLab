@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en" data-ts-reset>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TripsSource Kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="ts-tokens.css">
+<link rel="stylesheet" href="ts-theme-blue.css" id="blue">
+<link rel="stylesheet" href="ts-components.css">
+<style>
+  /* only for this page: section spacing and a few demo helpers */
+  body { margin: 0; background: var(--ts-ground); }
+  .demo-section { display: grid; gap: var(--ts-space-5); }
+  .demo-h { margin: 0; font-family: var(--ts-font-display); font-size: var(--ts-text-3xl); font-weight: var(--ts-weight-semibold); letter-spacing: var(--ts-tracking-tight); }
+  .demo-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ts-space-3); }
+  .demo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: var(--ts-space-5); }
+  .demo-note { margin: 0; color: var(--ts-text-secondary); font-size: var(--ts-text-sm); }
+  .demo-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: var(--ts-space-3); }
+  .demo-swatch { display: grid; gap: var(--ts-space-1); font-size: var(--ts-text-12); color: var(--ts-text-secondary); }
+  .demo-swatch i { display: block; height: 46px; border-radius: var(--ts-radius-sm); border: 1px solid var(--ts-border); }
+  .demo-swatch b { color: var(--ts-text); font-weight: var(--ts-weight-semibold); }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .demo-chart { display: flex; align-items: flex-end; gap: 8px; height: 140px; padding-top: 8px; }
+  .demo-chart span { flex: 1; border-radius: 8px 8px 4px 4px; background: var(--ts-chart-1); }
+  .demo-chart span:nth-child(even) { background: var(--ts-chart-2); }
+  [data-ic]:not([class]) { display: inline-flex; }
+  .ts-checkbox__glyph { inline-size: 100%; block-size: 100%; }
+  .ts-tooltip { max-width: 100%; }
+  .ts-toast-holder { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: var(--ts-z-toast); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6h-6v6H4z"/></symbol>
+    <symbol id="i-runs" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></symbol>
+    <symbol id="i-agents" viewBox="0 0 24 24"><path d="M12 3v3M7 9h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2zM9.5 14h.01M14.5 14h.01"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 9.5C8 19 5 15.5 5 11V6zM9 12l2 2 4-4"/></symbol>
+    <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M4 12h3l2-5 3 10 2-5h6"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4zM9 8h5M9 12h5"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><path d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM19 12l2-1-1-3-2 .2-1.3-1.3.2-2-3-1-1 2h-1.8l-1-2-3 1 .2 2L6 7.2 4 7l-1 3 2 1v1.8l-2 1 1 3 2-.2 1.3 1.3-.2 2 3 1 1-2h1.8l1 2 3-1-.2-2 1.3-1.3 2 .2 1-3-2-1z"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3zM12 10v4M12 17h.01"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 11v5M12 8h.01"/></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><path d="M6 12h.01M12 12h.01M18 12h.01"/></symbol>
+    <symbol id="i-sort" viewBox="0 0 24 24"><path d="M8 10l4-4 4 4M8 14l4 4 4-4"/></symbol>
+    <symbol id="i-db" viewBox="0 0 24 24"><path d="M5 6c0-1.7 3-3 7-3s7 1.3 7 3-3 3-7 3-7-1.3-7-3zM5 6v12c0 1.7 3 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3 3 7 3s7-1.3 7-3"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M4 13l3-8h10l3 8v6H4zM4 13h5l1 2h4l1-2h5"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+  </defs>
+</svg>
+<script>
+  // icon helper used by the markup below
+  function ic(id, size) { return '<svg width="' + (size || 18) + '" height="' + (size || 18) + '" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-' + id + '"/></svg>'; }
+</script>
+
+<div class="ts-app" id="app" data-drawer="closed">
+  <!-- ============================================================ sidebar -->
+  <aside class="ts-app__sidebar" aria-label="Sidebar">
+    <a class="ts-sidebar__brand" href="#">
+      <svg class="ts-sidebar__brand-mark" viewBox="0 0 38 38" aria-hidden="true"><rect width="38" height="38" rx="12" fill="var(--ts-brand-deep)"/><path d="M9 22h5l3-9 4 13 3-7h5" stroke="var(--ts-accent)" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="ts-sidebar__brand-name">DCLab R&amp;D</span>
+    </a>
+    <nav class="ts-sidebar__nav" aria-label="Main">
+      <div class="ts-sidebar__nav-section">
+        <span class="ts-sidebar__nav-group-label">Menu</span>
+        <ul class="ts-sidebar__nav-list">
+          <li class="ts-sidebar__nav-direct-item"><a class="ts-sidebar__nav-row ts-sidebar__nav-row-active" aria-current="page" href="#"><span class="ts-sidebar__nav-row-icon" data-ic="home"></span><span class="ts-sidebar__nav-row-label">Dashboard</span></a></li>
+          <li class="ts-sidebar__nav-group-item">
+            <button class="ts-sidebar__nav-row ts-sidebar__nav-row-group" aria-expanded="true" data-group><span class="ts-sidebar__nav-row-icon" data-ic="runs"></span><span class="ts-sidebar__nav-row-label">Runs</span><span class="ts-sidebar__nav-chevron ts-sidebar__nav-chevron-open" data-ic="chev"></span></button>
+            <ul class="ts-sidebar__nav-children">
+              <li class="ts-sidebar__nav-child-item"><a class="ts-sidebar__nav-row ts-sidebar__nav-row-child ts-sidebar__nav-row-current" href="#">All runs</a></li>
+              <li class="ts-sidebar__nav-child-item"><a class="ts-sidebar__nav-row ts-sidebar__nav-row-child" href="#">Compare</a></li>
+              <li class="ts-sidebar__nav-child-item"><a class="ts-sidebar__nav-row ts-sidebar__nav-row-child" href="#">Data journeys</a></li>
+            </ul>
+          </li>
+          <li class="ts-sidebar__nav-group-item">
+            <button class="ts-sidebar__nav-row ts-sidebar__nav-row-group" aria-expanded="false" data-group><span class="ts-sidebar__nav-row-icon" data-ic="agents"></span><span class="ts-sidebar__nav-row-label">Agents</span><span class="ts-sidebar__nav-chevron" data-ic="chev"></span></button>
+            <ul class="ts-sidebar__nav-children" hidden>
+              <li class="ts-sidebar__nav-child-item"><a class="ts-sidebar__nav-row ts-sidebar__nav-row-child" href="#">Atlas</a></li>
+              <li class="ts-sidebar__nav-child-item"><a class="ts-sidebar__nav-row ts-sidebar__nav-row-child" href="#">Playground</a></li>
+            </ul>
+          </li>
+          <li class="ts-sidebar__nav-direct-item"><a class="ts-sidebar__nav-row" href="#"><span class="ts-sidebar__nav-row-icon" data-ic="shield"></span><span class="ts-sidebar__nav-row-label">Quality</span></a></li>
+          <li class="ts-sidebar__nav-direct-item"><a class="ts-sidebar__nav-row" href="#"><span class="ts-sidebar__nav-row-icon" data-ic="pulse"></span><span class="ts-sidebar__nav-row-label">Simulator</span></a></li>
+        </ul>
+      </div>
+      <div class="ts-sidebar__nav-section">
+        <span class="ts-sidebar__nav-group-label">General</span>
+        <ul class="ts-sidebar__nav-list">
+          <li class="ts-sidebar__nav-direct-item"><a class="ts-sidebar__nav-row" href="#"><span class="ts-sidebar__nav-row-icon" data-ic="book"></span><span class="ts-sidebar__nav-row-label">Guide</span></a></li>
+          <li class="ts-sidebar__nav-direct-item"><a class="ts-sidebar__nav-row" href="#"><span class="ts-sidebar__nav-row-icon" data-ic="gear"></span><span class="ts-sidebar__nav-row-label">Settings</span></a></li>
+        </ul>
+      </div>
+    </nav>
+    <p class="ts-app__sidebar-foot">Example data. Every part of this page is a kit class.</p>
+  </aside>
+  <div class="ts-app__scrim" data-close-drawer></div>
+
+  <div class="ts-app__main">
+    <!-- ============================================================ top bar -->
+    <header class="ts-topbar">
+      <button class="ts-icon-button ts-topbar__menu" data-size="lg" aria-label="Open the menu" data-open-drawer><span data-ic="menu"></span></button>
+      <button class="ts-topbar__search" type="button"><span data-ic="search"></span><span>Search runs, agents, columns…</span><kbd class="ts-kbd">⌘K</kbd></button>
+      <div class="ts-topbar__end">
+        <button class="ts-icon-button" data-size="lg" aria-label="Switch light and dark" data-toggle-dark><span data-ic="moon"></span></button>
+        <button class="ts-icon-button ts-topbar__dot" data-size="lg" aria-label="Alerts"><span data-ic="bell"></span></button>
+        <button class="ts-user-chip" type="button"><span class="ts-avatar" data-size="sm"><span class="ts-avatar__initials">SM</span></span><span class="ts-user-chip__text"><span class="ts-user-chip__name">Shahriar</span><span class="ts-user-chip__role">Owner</span></span></button>
+      </div>
+    </header>
+
+    <main class="ts-app__canvas">
+      <!-- ============================================================ page header -->
+      <header class="ts-page-header">
+        <nav class="ts-page-header__breadcrumbs" aria-label="Breadcrumb"><ol class="ts-page-header__crumbs">
+          <li class="ts-page-header__crumb"><a class="ts-page-header__crumb-link" href="#">DCLab</a></li>
+          <li class="ts-page-header__crumb"><a class="ts-page-header__crumb-link ts-page-header__current" aria-current="page">Dashboard</a></li>
+        </ol></nav>
+        <div class="ts-page-header__lead">
+          <h1 class="ts-page-header__title">R&amp;D overview</h1>
+          <p class="ts-page-header__subtitle">The runs, the models and what needs a look, at a glance. Every tile leads to its detail.</p>
+        </div>
+        <div class="ts-page-header__actions">
+          <button class="ts-button" data-variant="secondary" data-size="md">Export</button>
+          <button class="ts-button" data-variant="primary" data-size="md"><span class="ts-button__content"><span class="ts-button__icon" data-slot="icon"><span data-ic="plus" data-size="16"></span></span><span class="ts-button__label">New run</span></span></button>
+        </div>
+      </header>
+
+      <div class="demo-row">
+        <div class="ts-segmented-control__group" role="radiogroup" aria-label="Palette">
+          <label class="ts-segmented-control__segment"><input class="ts-segmented-control__input" type="radio" name="palette" value="blue" checked>Blue + light green</label>
+          <label class="ts-segmented-control__segment"><input class="ts-segmented-control__input" type="radio" name="palette" value="green">TripsSource green</label>
+        </div>
+        <div class="ts-segmented-control__group" role="radiogroup" aria-label="Mode">
+          <label class="ts-segmented-control__segment"><input class="ts-segmented-control__input" type="radio" name="mode" value="system" checked>System</label>
+          <label class="ts-segmented-control__segment"><input class="ts-segmented-control__input" type="radio" name="mode" value="light">Light</label>
+          <label class="ts-segmented-control__segment"><input class="ts-segmented-control__input" type="radio" name="mode" value="dark">Dark</label>
+        </div>
+      </div>
+
+      <!-- ============================================================ stat tiles -->
+      <section class="ts-stat-grid" aria-label="Key figures">
+        <article class="ts-stat-tile">
+          <div class="ts-stat-tile__head"><div class="ts-stat-tile__lead"><p class="ts-stat-tile__label">Runs</p><p class="ts-stat-tile__figure">128</p></div><span class="ts-stat-tile__icon-chip" data-icon-tone="brand"><span data-ic="runs"></span></span></div>
+          <p class="ts-stat-tile__change" data-tone="positive"><span class="ts-stat-tile__change-value"><span data-ic="up" data-size="13"></span>12%</span><span class="ts-stat-tile__change-caption">vs last week</span></p>
+        </article>
+        <article class="ts-stat-tile">
+          <div class="ts-stat-tile__head"><div class="ts-stat-tile__lead"><p class="ts-stat-tile__label">Models trained</p><p class="ts-stat-tile__figure">41</p></div><span class="ts-stat-tile__icon-chip" data-icon-tone="info"><span data-ic="db"></span></span></div>
+          <p class="ts-stat-tile__change"><span class="ts-stat-tile__change-value">0%</span><span class="ts-stat-tile__change-caption">no change</span></p>
+        </article>
+        <article class="ts-stat-tile">
+          <div class="ts-stat-tile__head"><div class="ts-stat-tile__lead"><p class="ts-stat-tile__label">Rule overrides</p><p class="ts-stat-tile__figure">7</p></div><span class="ts-stat-tile__icon-chip" data-icon-tone="warning"><span data-ic="shield"></span></span></div>
+          <p class="ts-stat-tile__change" data-tone="negative"><span class="ts-stat-tile__change-value"><span data-ic="up" data-size="13"></span>3</span><span class="ts-stat-tile__change-caption">since yesterday</span></p>
+        </article>
+        <article class="ts-stat-tile">
+          <div class="ts-stat-tile__head"><div class="ts-stat-tile__lead"><p class="ts-stat-tile__label">Agent spend</p><p class="ts-stat-tile__figure">$18.40</p></div><span class="ts-stat-tile__icon-chip" data-icon-tone="violet"><span data-ic="agents"></span></span></div>
+          <p class="ts-stat-tile__change" data-tone="positive"><span class="ts-stat-tile__change-value"><span data-ic="down" data-size="13"></span>8%</span><span class="ts-stat-tile__change-caption">this month</span></p>
+        </article>
+      </section>
+
+      <!-- ============================================================ needs attention -->
+      <section class="demo-section">
+        <div class="ts-overview__segment-header"><h2 class="ts-overview__segment-title">Needs attention</h2><p class="ts-overview__segment-subtitle">Things that went wrong or are waiting for a person.</p></div>
+        <div class="ts-attention-grid">
+          <a class="ts-attention" data-tone="danger" href="#"><span class="ts-attention__label">Failed runs</span><span class="ts-attention__count">2</span><p class="ts-attention__text">Both stopped at feature selection.</p></a>
+          <a class="ts-attention" data-tone="warning" href="#"><span class="ts-attention__label">Waiting for review</span><span class="ts-attention__count">5</span><p class="ts-attention__text">Column decisions a rule could not settle.</p></a>
+          <a class="ts-attention" data-tone="info" href="#"><span class="ts-attention__label">Stale prompts</span><span class="ts-attention__count">3</span><p class="ts-attention__text">Not used by any run in 30 days.</p></a>
+        </div>
+      </section>
+
+      <!-- ============================================================ main + rail -->
+      <div class="ts-view"><div class="ts-view__layout">
+        <div class="ts-view__main">
+          <section class="ts-panel">
+            <div class="ts-panel__header">
+              <div class="ts-panel__heading"><h2 class="ts-panel__title">Recent runs</h2><p class="ts-panel__subtitle">Every run read from DCLab R&amp;D, newest first</p></div>
+              <div class="ts-panel__actions"><button class="ts-button" data-variant="ghost" data-size="sm">View all</button></div>
+            </div>
+            <div class="ts-panel__body ts-list-page__stack">
+              <div class="ts-tabs">
+                <div class="ts-tabs__list" data-variant="underline" role="tablist" aria-label="Run status">
+                  <button class="ts-tabs__tab" role="tab" aria-selected="true">All <span class="ts-tabs__count">128</span></button>
+                  <button class="ts-tabs__tab" role="tab" aria-selected="false">Completed <span class="ts-tabs__count">119</span></button>
+                  <button class="ts-tabs__tab" role="tab" aria-selected="false">Failed <span class="ts-tabs__count">2</span></button>
+                  <button class="ts-tabs__tab" role="tab" aria-selected="false">Running <span class="ts-tabs__count">7</span></button>
+                </div>
+              </div>
+              <div class="ts-filter-bar" data-labels="hidden">
+                <div class="ts-filter-bar__controls">
+                  <div class="ts-search-field__field" data-size="md" data-state="rest">
+                    <label class="ts-search-field__label ts-search-field__label-hidden" for="q" data-ts-field-label>Search runs</label>
+                    <div class="ts-search-field__control"><span class="ts-search-field__adornment"><span data-ic="search"></span></span><input class="ts-search-field__input" id="q" type="search" placeholder="Search runs"></div>
+                  </div>
+                  <div class="ts-select__field" data-size="md" data-state="rest">
+                    <label class="ts-select__label ts-select__label-hidden" for="area" data-ts-field-label>Area</label>
+                    <div class="ts-select__control"><select class="ts-select" id="area"><option>All areas</option><option>Real problems</option><option>Samples</option></select><span class="ts-select__caret"><span data-ic="chev" data-size="16"></span></span></div>
+                  </div>
+                </div>
+                <div class="ts-filter-bar__meta">
+                  <ul class="ts-filter-bar__chips"><li class="ts-filter-bar__chip-item"><span class="ts-chip"><span class="ts-chip__label">Model: gradient boosting</span><button class="ts-chip__remove-button" aria-label="Remove filter"><span data-ic="x" data-size="14"></span></button></span></li></ul>
+                  <button class="ts-text-button ts-filter-bar__clear-all" data-size="sm">Clear all</button>
+                  <p class="ts-filter-bar__count">4 of 128 runs</p>
+                </div>
+              </div>
+              <div class="ts-data-table"><div class="ts-data-table__frame"><div class="ts-data-table__scroller">
+                <table class="ts-data-table__table">
+                  <thead><tr>
+                    <th class="ts-data-table__header-cell ts-data-table__header-selection"><span class="sr-only">Select</span></th>
+                    <th class="ts-data-table__header-cell" aria-sort="descending"><button class="ts-data-table__sort-button">Started <span class="ts-data-table__sort-icon" data-ic="sort" data-size="14"></span></button></th>
+                    <th class="ts-data-table__header-cell">Run</th>
+                    <th class="ts-data-table__header-cell">Model</th>
+                    <th class="ts-data-table__header-cell">Score</th>
+                    <th class="ts-data-table__header-cell">Status</th>
+                    <th class="ts-data-table__header-cell ts-data-table__header-actions"><span class="sr-only">Actions</span></th>
+                  </tr></thead>
+                  <tbody class="ts-data-table__body" id="rows"></tbody>
+                </table>
+              </div></div></div>
+              <div class="ts-table-footer">
+                <p class="ts-table-footer__selection-status">1 selected</p>
+                <nav class="ts-table-footer__pagination-nav" aria-label="Pages">
+                  <span class="ts-table-footer__page-status">Page 1 of 32</span>
+                  <span class="ts-table-footer__pages">
+                    <button class="ts-table-footer__page-number" aria-current="page">1</button>
+                    <button class="ts-table-footer__page-number">2</button>
+                    <button class="ts-table-footer__page-number">3</button>
+                    <span class="ts-table-footer__page-gap">…</span>
+                    <button class="ts-table-footer__page-number">32</button>
+                  </span>
+                </nav>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="ts-view__rail">
+          <section class="ts-view__card">
+            <div class="ts-view__card-head"><div class="ts-view__heading"><h2 class="ts-view__card-title">Runs per day</h2><p class="ts-view__text">Completed and failed, last two weeks</p></div>
+              <div class="ts-tabs__list" data-variant="pill" role="tablist" aria-label="Range"><button class="ts-tabs__tab" role="tab" aria-selected="true">14d</button><button class="ts-tabs__tab" role="tab" aria-selected="false">90d</button></div></div>
+            <div class="demo-chart" aria-hidden="true"><span style="height:40%"></span><span style="height:62%"></span><span style="height:48%"></span><span style="height:80%"></span><span style="height:66%"></span><span style="height:92%"></span><span style="height:55%"></span><span style="height:70%"></span></div>
+          </section>
+          <section class="ts-view__card">
+            <div class="ts-view__card-head"><h2 class="ts-view__card-title">Last sync</h2><span class="ts-badge" data-tone="success" data-caps>Healthy</span></div>
+            <ul class="ts-view__tiles">
+              <li class="ts-view__tile"><span class="ts-view__label">Read</span><p class="ts-view__tile-value">2 min ago</p></li>
+              <li class="ts-view__tile"><span class="ts-view__label">Records</span><p class="ts-view__tile-value">14,208</p></li>
+            </ul>
+            <ul class="ts-view__rows">
+              <li class="ts-view__row"><span class="ts-stat-tile__icon-chip" data-icon-tone="brand"><span data-ic="db"></span></span><div class="ts-view__row-text"><span class="ts-view__row-title">runs.jsonl</span><span class="ts-view__row-sub">128 runs, read only</span></div></li>
+              <li class="ts-view__row"><span class="ts-stat-tile__icon-chip" data-icon-tone="info"><span data-ic="agents"></span></span><div class="ts-view__row-text"><span class="ts-view__row-title">agent traces</span><span class="ts-view__row-sub">3,904 requests</span></div></li>
+            </ul>
+          </section>
+          <div class="ts-alert ts-alert__banner" data-tone="warning" role="status">
+            <span class="ts-alert__mark" data-ic="warn"></span>
+            <div class="ts-alert__content"><div class="ts-alert__title-row"><p class="ts-alert__title">Two runs need a look</p></div><p class="ts-alert__body">They stopped before a model was chosen.</p><div class="ts-alert__actions"><button class="ts-button" data-variant="secondary" data-size="sm">Open them</button></div></div>
+            <button class="ts-alert__dismiss-button" aria-label="Dismiss"><span data-ic="x" data-size="16"></span></button>
+          </div>
+        </aside>
+      </div></div>
+
+      <!-- ============================================================ component gallery -->
+      <section class="demo-section" id="components">
+        <h2 class="demo-h">Every component</h2>
+        <p class="demo-note">Each block below is one component from <code>ts-components.css</code>, in its variants, sizes and states.</p>
+
+        <section class="ts-panel"><div class="ts-panel__header"><div class="ts-panel__heading"><h3 class="ts-panel__title">Colours</h3><p class="ts-panel__subtitle">Switch the palette and the mode above: these follow.</p></div></div>
+          <div class="ts-panel__body demo-swatches" id="swatches"></div></section>
+
+        <div class="demo-grid">
+          <section class="ts-panel"><div class="ts-panel__header"><h3 class="ts-panel__title">Buttons</h3></div><div class="ts-panel__body ts-list-page__stack">
+            <div class="demo-row"><button class="ts-button" data-variant="primary" data-size="md">Primary</button><button class="ts-button" data-variant="accent" data-size="md">Accent</button><button class="ts-button" data-variant="secondary" data-size="md">Secondary</button><button class="ts-button" data-variant="danger" data-size="md">Danger</button><button class="ts-button" data-variant="ghost" data-size="md">Ghost</button></div>
+            <div class="demo-row"><button class="ts-button" data-variant="primary" data-size="sm">Small 34</button><button class="ts-button" data-variant="primary" data-size="md">Medium 42</button><button class="ts-button" data-variant="primary" data-size="lg">Large 46</button></div>
+            <div class="demo-row"><button class="ts-button" data-variant="primary" data-size="md" disabled>Disabled</button>
+              <button class="ts-button" data-variant="primary" data-size="md" data-state="loading"><span class="ts-button__content"><span class="ts-button__label">Saving</span></span><span class="ts-button__spinner"><span class="ts-loader"><span class="ts-loader__ring"></span></span></span></button>
+              <button class="ts-icon-button" data-size="sm" aria-label="More"><span data-ic="dots"></span></button><button class="ts-icon-button" data-size="md" aria-label="Settings"><span data-ic="gear"></span></button><button class="ts-icon-button" data-size="lg" aria-label="Alerts"><span data-ic="bell"></span></button>
+              <button class="ts-text-button" data-size="md">Text button</button><a class="ts-link" href="#">A link</a></div>
+          </div></section>
+
+          <section class="ts-panel"><div class="ts-panel__header"><h3 class="ts-panel__title">Badges, chips, avatars</h3></div><div class="ts-panel__body ts-list-page__stack">
+            <div class="demo-row"><span class="ts-badge" data-tone="success">Completed</span><span class="ts-badge" data-tone="info">Running</span><span class="ts-badge" data-tone="warning">Review</span><span class="ts-badge" data-tone="danger">Failed</span><span class="ts-badge" data-tone="neutral">Draft</span><span class="ts-badge" data-tone="violet">Agent</span></div>
+            <div class="demo-row"><span class="ts-badge" data-tone="success" data-caps>Paid</span><span class="ts-badge" data-tone="warning" data-caps>Pending</span><span class="ts-badge" data-tone="danger" data-caps>Overdue</span><span class="ts-badge" data-tone="success" data-solid>Live</span><span class="ts-badge" data-tone="danger" data-solid>Blocked</span></div>
+            <div class="demo-row"><span class="ts-chip"><span class="ts-chip__label">Area: samples</span><button class="ts-chip__remove-button" aria-label="Remove"><span data-ic="x" data-size="14"></span></button></span><span class="ts-chip"><span class="ts-chip__label">Score ≥ 0.8</span></span></div>
+            <div class="demo-row"><span class="ts-avatar" data-size="sm"><span class="ts-avatar__initials">SM</span></span><span class="ts-avatar" data-size="md"><span class="ts-avatar__initials">DC</span></span><span class="ts-avatar" data-size="lg"><span class="ts-avatar__initials">RD</span></span></div>
+          </div></section>
+
+          <section class="ts-panel"><div class="ts-panel__header"><h3 class="ts-panel__title">Tabs and segments</h3></div><div class="ts-panel__body ts-list-page__stack">
+            <div class="ts-tabs__list" data-variant="underline" role="tablist"><button class="ts-tabs__tab" role="tab" aria-selected="true">Overview</button><button class="ts-tabs__tab" role="tab" aria-selected="false">Columns <span class="ts-tabs__count">24</span></button><button class="ts-tabs__tab" role="tab" aria-selected="false">Journey</button></div>
+            <div class="ts-tabs__list" data-variant="pill" role="tablist"><button class="ts-tabs__tab" role="tab" aria-selected="true">Active <span class="ts-tabs__count">12</span></button><button class="ts-tabs__tab" role="tab" aria-selected="false">Archived</button><button class="ts-tabs__tab" role="tab" aria-selected="false">All</button></div>
+            <div class="ts-segmented-control__group" role="radiogroup" aria-label="View"><label class="ts-segmented-control__segment"><input class="ts-segmented-control__input" type="radio" name="v" checked>Day</label><label class="ts-segmented-control__segment"><input class="ts-segmented-control__input" type="radio" name="v">Week</label><label class="ts-segmented-control__segment"><input class="ts-segmented-control__input" type="radio" name="v">Month <span class="ts-segmented-control__count">3</span></label></div>
+            <div class="ts-colour-mode__choice"><span class="ts-colour-mode__choice-label">Theme</span><div class="ts-colour-mode__segments"><button class="ts-colour-mode__segment" aria-pressed="false">Light</button><button class="ts-colour-mode__segment" aria-pressed="false">Dark</button><button class="ts-colour-mode__segment" aria-pressed="true">System</button></div></div>
+          </div></section>
+
+          <section class="ts-panel"><div class="ts-panel__header"><h3 class="ts-panel__title">Fields</h3></div><div class="ts-panel__body ts-form-page__fields" style="display:grid;gap:var(--ts-space-5)">
+            <div class="ts-input__field" data-size="md" data-state="rest"><label class="ts-input__label" for="n">Run name</label><p class="ts-input__hint">Shown in the run list.</p><div class="ts-input__control"><input class="ts-input" id="n" value="churn-q3"></div></div>
+            <div class="ts-input__field" data-size="md" data-state="rest" data-invalid><label class="ts-input__label" for="e">Owner email</label><div class="ts-input__control"><input class="ts-input" id="e" value="owner@" aria-invalid="true"></div><div class="ts-input__meta"><p class="ts-input__error"><span class="ts-input__error-icon" data-ic="warn" data-size="16"></span>Enter a full email address</p></div></div>
+            <div class="ts-input__field" data-size="md" data-state="disabled"><label class="ts-input__label" for="d">Run id</label><div class="ts-input__control"><input class="ts-input" id="d" value="run_8f2c" disabled></div></div>
+            <div class="ts-select__field" data-size="md" data-state="rest"><label class="ts-select__label" for="m">Model</label><div class="ts-select__control"><select class="ts-select" id="m"><option>Gradient boosting</option><option>Logistic regression</option></select><span class="ts-select__caret"><span data-ic="chev" data-size="16"></span></span></div></div>
+            <div class="ts-textarea__field" data-size="md" data-state="rest"><label class="ts-textarea__label" for="t">Note</label><div class="ts-textarea__control"><textarea class="ts-textarea" id="t" rows="3" placeholder="What changed in this run?"></textarea></div></div>
+          </div></section>
+
+          <section class="ts-panel"><div class="ts-panel__header"><h3 class="ts-panel__title">Choices</h3></div><div class="ts-panel__body ts-list-page__stack">
+            <label class="ts-checkbox__checkable" data-size="md"><span class="ts-checkbox__row"><input class="ts-checkbox__input" type="checkbox" checked><span class="ts-checkbox__box"><span class="ts-checkbox__glyph ts-checkbox__glyph-check" data-ic="check"></span><span class="ts-checkbox__glyph ts-checkbox__glyph-minus" data-ic="minus"></span></span><span class="ts-checkbox__label-text">Include sample runs</span></span></label>
+            <label class="ts-checkbox__checkable" data-size="md"><span class="ts-checkbox__row"><input class="ts-checkbox__input" type="checkbox" data-indeterminate><span class="ts-checkbox__box"><span class="ts-checkbox__glyph ts-checkbox__glyph-check" data-ic="check"></span><span class="ts-checkbox__glyph ts-checkbox__glyph-minus" data-ic="minus"></span></span><span class="ts-checkbox__label-text">Some columns selected</span></span></label>
+            <fieldset class="ts-radio__group"><legend class="ts-radio__legend">Split</legend><div class="ts-radio__options" data-orientation="horizontal">
+              <label class="ts-radio__choice" data-size="md"><span class="ts-radio__row"><input class="ts-radio__input" type="radio" name="split" checked><span class="ts-radio__circle"><span class="ts-radio__dot"></span></span><span class="ts-radio__label-text">Random</span></span></label>
+              <label class="ts-radio__choice" data-size="md"><span class="ts-radio__row"><input class="ts-radio__input" type="radio" name="split"><span class="ts-radio__circle"><span class="ts-radio__dot"></span></span><span class="ts-radio__label-text">By time</span></span></label></div></fieldset>
+            <label class="ts-switch__checkable" data-size="md"><span class="ts-switch__row"><input class="ts-switch__input" type="checkbox" role="switch" checked><span class="ts-switch__track"><span class="ts-switch__thumb"></span></span><span class="ts-switch__label-text">Email me when a run fails</span></span></label>
+            <label class="ts-switch__checkable" data-size="md" data-tone="danger"><span class="ts-switch__row"><input class="ts-switch__input" type="checkbox" role="switch"><span class="ts-switch__track"><span class="ts-switch__thumb"></span></span><span class="ts-switch__label-text">Delete runs after 90 days</span></span></label>
+          </div></section>
+
+          <section class="ts-panel"><div class="ts-panel__header"><h3 class="ts-panel__title">Alerts</h3></div><div class="ts-panel__body ts-list-page__stack">
+            <div class="ts-alert ts-alert__banner" data-tone="success"><span class="ts-alert__mark" data-ic="check"></span><div class="ts-alert__content"><p class="ts-alert__title">Sync finished</p><p class="ts-alert__body">128 runs read.</p></div></div>
+            <div class="ts-alert ts-alert__banner" data-tone="info"><span class="ts-alert__mark" data-ic="info"></span><div class="ts-alert__content"><p class="ts-alert__title">Read only</p><p class="ts-alert__body">Nothing in R&amp;D is ever written.</p></div></div>
+            <div class="ts-alert ts-alert__banner" data-tone="danger"><span class="ts-alert__mark" data-ic="warn"></span><div class="ts-alert__content"><p class="ts-alert__title">The helper is not running</p><p class="ts-alert__body">Start it with npm run helper.</p></div></div>
+            <div class="ts-alert ts-alert__note" data-tone="warning"><span class="ts-alert__note-mark" data-ic="warn" data-size="16"></span><p class="ts-alert__note-text">A compact note for inside a form.</p></div>
+          </div></section>
+
+          <section class="ts-panel"><div class="ts-panel__header"><h3 class="ts-panel__title">Overlays</h3><div class="ts-panel__actions"><button class="ts-button" data-variant="secondary" data-size="sm" data-open-modal>Open modal</button><button class="ts-button" data-variant="secondary" data-size="sm" data-toast>Show toast</button></div></div><div class="ts-panel__body ts-list-page__stack">
+            <div class="ts-menu-button" data-presentation><div class="ts-menu-button__menu" data-presentation role="menu">
+              <button class="ts-menu-button__item" role="menuitem"><span data-ic="runs"></span>Open run</button>
+              <button class="ts-menu-button__item" role="menuitem"><span data-ic="arrow"></span>Compare</button>
+              <button class="ts-menu-button__item" role="menuitem" data-tone="danger"><span class="ts-menu-button__danger-icon" data-ic="x"></span>Delete</button>
+            </div></div>
+            <span class="ts-tooltip" style="position:static;display:inline-block">A tooltip: ink, 12.5px, 8px radius</span>
+            <div class="ts-popover__panel" data-presentation><p class="ts-popover__title">A popover</p><p class="demo-note">320px wide, 20px padding, 14px radius, hairline border.</p></div>
+            <div class="demo-row"><span class="ts-loader"><span class="ts-loader__ring"></span></span><span class="demo-note">Loading ring</span></div>
+          </div></section>
+
+          <section class="ts-panel"><div class="ts-panel__header"><h3 class="ts-panel__title">Empty state</h3></div><div class="ts-panel__body">
+            <div class="ts-empty-state"><span class="ts-empty-state__glyph-chip"><span data-ic="inbox"></span></span><p class="ts-empty-state__title">No runs yet</p><p class="ts-empty-state__body">Sync with DCLab R&amp;D to read its runs.</p><div class="ts-empty-state__action"><button class="ts-button" data-variant="primary" data-size="md">Sync now</button></div></div>
+          </div></section>
+        </div>
+
+        <section class="demo-section">
+          <h3 class="ts-overview__segment-title">Dashboard link cards</h3>
+          <ul class="ts-admin-dashboard__links">
+            <li><a class="ts-admin-dashboard__link-card" href="#"><div class="ts-admin-dashboard__link-head"><span class="ts-admin-dashboard__link-icon"><span data-ic="runs"></span></span></div><p class="ts-admin-dashboard__link-title">Runs</p><p class="ts-admin-dashboard__link-description">Every run, its data and its model.</p><span class="ts-admin-dashboard__link-view">View <span data-ic="arrow" data-size="14"></span></span></a></li>
+            <li><a class="ts-admin-dashboard__link-card" href="#"><div class="ts-admin-dashboard__link-head"><span class="ts-admin-dashboard__link-icon"><span data-ic="agents"></span></span></div><p class="ts-admin-dashboard__link-title">Agents</p><p class="ts-admin-dashboard__link-description">Who does what, and how they work together.</p><span class="ts-admin-dashboard__link-view">View <span data-ic="arrow" data-size="14"></span></span></a></li>
+            <li><a class="ts-admin-dashboard__link-card" href="#"><div class="ts-admin-dashboard__link-head"><span class="ts-admin-dashboard__link-icon"><span data-ic="shield"></span></span></div><p class="ts-admin-dashboard__link-title">Quality</p><p class="ts-admin-dashboard__link-description">Rule health and the monitor's alerts.</p><span class="ts-admin-dashboard__link-view">View <span data-ic="arrow" data-size="14"></span></span></a></li>
+          </ul>
+        </section>
+
+        <section class="ts-panel"><div class="ts-panel__header"><h3 class="ts-panel__title">Detail page: facts and a list</h3></div><div class="ts-panel__body ts-detail-page">
+          <dl class="ts-detail-page__facts">
+            <div class="ts-detail-page__fact"><dt class="ts-detail-page__fact-label">Rows</dt><dd class="ts-detail-page__fact-value">48,210</dd></div>
+            <div class="ts-detail-page__fact"><dt class="ts-detail-page__fact-label">Columns</dt><dd class="ts-detail-page__fact-value">24</dd></div>
+            <div class="ts-detail-page__fact"><dt class="ts-detail-page__fact-label">Held-back score</dt><dd class="ts-detail-page__fact-value">0.871</dd></div>
+            <div class="ts-detail-page__fact"><dt class="ts-detail-page__fact-label">Duration</dt><dd class="ts-detail-page__fact-value">6 min</dd></div>
+          </dl>
+          <dl class="ts-detail-page__list">
+            <div class="ts-detail-page__list-row"><dt class="ts-detail-page__list-label">Problem</dt><dd class="ts-detail-page__list-value">Predict which customers leave next quarter</dd></div>
+            <div class="ts-detail-page__list-row"><dt class="ts-detail-page__list-label">Target</dt><dd class="ts-detail-page__list-value">churned</dd></div>
+            <div class="ts-detail-page__list-row"><dt class="ts-detail-page__list-label">Chosen by</dt><dd class="ts-detail-page__list-value">The analyst agent, approved by a person</dd></div>
+          </dl>
+        </div></section>
+
+        <div class="ts-save-bar"><span class="ts-save-bar__icon" data-ic="save" data-size="16"></span><p class="ts-save-bar__message">You have unsaved changes</p><div class="ts-save-bar__actions"><button class="ts-button" data-variant="ghost" data-size="sm" style="color:var(--ts-on-ink-muted)">Discard</button><button class="ts-button" data-variant="accent" data-size="sm">Save changes</button></div></div>
+
+        <div class="ts-pure-pagination__pager"><button class="ts-pure-pagination__button ts-pure-pagination__nav ts-pure-pagination__disabled">Prev</button><button class="ts-pure-pagination__button ts-pure-pagination__page ts-pure-pagination__active">1</button><button class="ts-pure-pagination__button ts-pure-pagination__page">2</button><button class="ts-pure-pagination__button ts-pure-pagination__ellipsis">…</button><button class="ts-pure-pagination__button ts-pure-pagination__page">9</button><button class="ts-pure-pagination__button ts-pure-pagination__nav">Next</button></div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- modal -->
+<div id="modal" hidden>
+  <div class="ts-modal__backdrop" data-close-modal></div>
+  <div class="ts-modal__position">
+    <div class="ts-modal__panel" data-size="md" data-closable role="dialog" aria-modal="true" aria-labelledby="mt">
+      <h2 class="ts-modal__title" id="mt">Run again on a copy?</h2>
+      <button class="ts-icon-button ts-modal__close-button" data-size="md" aria-label="Close" data-close-modal><span data-ic="x"></span></button>
+      <div class="ts-modal__body"><p style="margin:0">The run is repeated in Flowscope's own folder with the same data. Nothing in DCLab R&amp;D is written.</p></div>
+      <div class="ts-modal__footer"><button class="ts-button" data-variant="secondary" data-size="md" data-close-modal>Cancel</button><button class="ts-button" data-variant="primary" data-size="md" data-close-modal>Run again</button></div>
+    </div>
+  </div>
+</div>
+<div class="ts-toast-holder" id="toasts"></div>
+
+<script>
+  // icons
+  document.querySelectorAll('[data-ic]').forEach(function (el) { el.innerHTML = ic(el.dataset.ic, el.dataset.size); });
+
+  // table rows
+  var runs = [
+    ['19 Oct', 'churn-q3', 'Gradient boosting', '0.871', ['success', 'Completed'], true],
+    ['19 Oct', 'house-prices', 'Ridge regression', '0.912', ['success', 'Completed']],
+    ['18 Oct', 'fraud-cards', '—', '—', ['danger', 'Failed']],
+    ['18 Oct', 'demand-week', 'Random forest', '0.804', ['info', 'Running']],
+    ['17 Oct', 'support-tickets', 'Logistic regression', '0.768', ['warning', 'Review']]
+  ];
+  document.getElementById('rows').innerHTML = runs.map(function (r) {
+    return '<tr' + (r[5] ? ' data-selected' : '') + '>' +
+      '<td class="ts-data-table__cell ts-data-table__cell-selection"><label class="ts-checkbox__checkable" data-size="sm"><span class="ts-checkbox__row"><input class="ts-checkbox__input" type="checkbox"' + (r[5] ? ' checked' : '') + ' aria-label="Select ' + r[1] + '"><span class="ts-checkbox__box"><span class="ts-checkbox__glyph ts-checkbox__glyph-check">' + ic('check') + '</span></span></span></label></td>' +
+      '<td class="ts-data-table__cell ts-numeric">' + r[0] + '</td>' +
+      '<td class="ts-data-table__cell"><b>' + r[1] + '</b></td>' +
+      '<td class="ts-data-table__cell">' + r[2] + '</td>' +
+      '<td class="ts-data-table__cell ts-numeric">' + r[3] + '</td>' +
+      '<td class="ts-data-table__cell"><span class="ts-badge" data-tone="' + r[4][0] + '">' + r[4][1] + '</span></td>' +
+      '<td class="ts-data-table__cell ts-data-table__cell-actions"><span class="ts-row-actions"><button class="ts-icon-button" data-size="sm" aria-label="More for ' + r[1] + '">' + ic('dots') + '</button></span></td></tr>';
+  }).join('');
+
+  // indeterminate checkbox
+  document.querySelectorAll('[data-indeterminate]').forEach(function (i) { i.indeterminate = true; });
+
+  // colour swatches
+  var sw = ['ground', 'surface', 'surface-sunken', 'surface-muted', 'brand', 'brand-deep', 'accent', 'accent-soft', 'ink', 'text', 'text-secondary', 'border-strong', 'success-solid', 'warning-solid', 'danger-solid', 'info-solid'];
+  document.getElementById('swatches').innerHTML = sw.map(function (n) { return '<div class="demo-swatch"><i style="background:var(--ts-' + n + ')"></i><b>--ts-' + n + '</b><span data-v="' + n + '"></span></div>'; }).join('');
+  function paintValues() { var cs = getComputedStyle(document.documentElement); document.querySelectorAll('[data-v]').forEach(function (s) { s.textContent = cs.getPropertyValue('--ts-' + s.dataset.v).trim(); }); }
+
+  // palette and mode
+  var root = document.documentElement, blue = document.getElementById('blue');
+  function setPalette(v) { blue.disabled = v !== 'blue'; paintValues(); }
+  function setMode(v) { if (v === 'system') root.removeAttribute('data-ts-theme'); else root.setAttribute('data-ts-theme', v); paintValues(); document.querySelectorAll('input[name=mode]').forEach(function (i) { i.checked = i.value === v; }); }
+  document.querySelectorAll('input[name=palette]').forEach(function (i) { i.addEventListener('change', function () { setPalette(i.value); }); });
+  document.querySelectorAll('input[name=mode]').forEach(function (i) { i.addEventListener('change', function () { setMode(i.value); }); });
+  document.querySelector('[data-toggle-dark]').addEventListener('click', function () {
+    var dark = root.getAttribute('data-ts-theme') === 'dark' || (!root.hasAttribute('data-ts-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+    setMode(dark ? 'light' : 'dark');
+  });
+  paintValues();
+
+  // tabs: one selected per list
+  document.querySelectorAll('.ts-tabs__list').forEach(function (list) {
+    list.addEventListener('click', function (e) { var t = e.target.closest('.ts-tabs__tab'); if (!t) return; list.querySelectorAll('.ts-tabs__tab').forEach(function (x) { x.setAttribute('aria-selected', x === t ? 'true' : 'false'); }); });
+  });
+  // colour-mode segments
+  document.querySelectorAll('.ts-colour-mode__segments').forEach(function (g) {
+    g.addEventListener('click', function (e) { var b = e.target.closest('.ts-colour-mode__segment'); if (!b) return; g.querySelectorAll('.ts-colour-mode__segment').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); }); setMode(b.textContent.trim().toLowerCase()); });
+  });
+
+  // sidebar groups
+  document.querySelectorAll('[data-group]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var open = b.getAttribute('aria-expanded') !== 'true';
+      b.setAttribute('aria-expanded', String(open));
+      b.querySelector('.ts-sidebar__nav-chevron').classList.toggle('ts-sidebar__nav-chevron-open', open);
+      b.nextElementSibling.hidden = !open;
+    });
+  });
+
+  // drawer
+  var app = document.getElementById('app');
+  document.querySelector('[data-open-drawer]').addEventListener('click', function () { app.dataset.drawer = 'open'; });
+  document.querySelector('[data-close-drawer]').addEventListener('click', function () { app.dataset.drawer = 'closed'; });
+
+  // modal
+  var modal = document.getElementById('modal');
+  document.querySelector('[data-open-modal]').addEventListener('click', function () { modal.hidden = false; modal.querySelector('.ts-modal__panel button').focus(); });
+  modal.addEventListener('click', function (e) { if (e.target.closest('[data-close-modal]')) modal.hidden = true; });
+  addEventListener('keydown', function (e) { if (e.key === 'Escape') { modal.hidden = true; app.dataset.drawer = 'closed'; } });
+
+  // toast
+  document.querySelector('[data-toast]').addEventListener('click', function () {
+    var t = document.createElement('div');
+    t.className = 'ts-toast'; t.dataset.tone = 'success'; t.setAttribute('role', 'status');
+    t.innerHTML = '<span class="ts-toast__mark">' + ic('check') + '</span><span class="ts-toast__content">Run copied. It starts in a moment.</span><button class="ts-toast__dismiss-button" aria-label="Dismiss">' + ic('x', 16) + '</button>';
+    t.querySelector('button').onclick = function () { t.remove(); };
+    var h = document.getElementById('toasts'); h.innerHTML = ''; h.appendChild(t);
+    setTimeout(function () { t.remove(); }, 4000);
+  });
+</script>
+</body>
+</html>

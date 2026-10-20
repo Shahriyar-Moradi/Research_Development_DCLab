@@ -5,7 +5,8 @@
     python -m dclab_rnd.agentic.web.build --check   # exit 1 if static/app/ is stale
 
 Sources live in dclab_rnd/agentic/web/src/, copied from demo v1 (docs/product-demo/src, frozen):
-shell.html (layout), styles.css (design system), core.js (router, page tabs, server API, charts), api.js (the API
+shell.html (layout), kit/ (the TripsSource design kit, unchanged), styles.css (the design system on the kit's tokens),
+look.css (the product's components the kit's way), core.js (router, page tabs, server API, charts), api.js (the API
 client, generated from the server's OpenAPI schema by client.py: never edited),
 data.js and features.js (sample data and the blueprint registry), data/*.json (records extracted from
 the repository), fonts/ (copied as they are) and views/*.html (one per page). Unlike the demo build, nothing is inlined: the page
@@ -31,6 +32,9 @@ DATA = [("records.js", "DEMO_RECORDS", "records.json"), ("review.js", "DEMO_REVI
 HEAD = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'
         '<meta name="color-scheme" content="light dark">\n')
+# app.css, in this order: the TripsSource design kit (kit/, copied unchanged), the product's design system on its tokens
+# (styles.css), then the product's components drawn the kit's way (look.css)
+CSS = ("kit/ts-tokens.css", "kit/ts-theme-blue.css", "kit/ts-components.css", "styles.css", "look.css")
 INLINE_STYLE = re.compile(r'(?<![-\w])style\s*=\s*["\']', re.I)
 
 
@@ -38,6 +42,13 @@ def js_data(global_name: str, json_name: str) -> str:
     path = SRC / "data" / json_name
     data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
     return f"window.{global_name} = " + json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/") + ";\n"
+
+
+def css_of(name: str) -> str:
+    """One stylesheet as it goes into app.css. The kit's files are copied unchanged, but their comments are left out of the
+    page: one shows how to link a font host, and the app must name no other host (its fonts are served from fonts/)."""
+    text = (SRC / name).read_text(encoding="utf-8")
+    return re.sub(r"/\*.*?\*/\n?", "", text, flags=re.S) if name.startswith("kit/") else text
 
 
 def assemble() -> dict[str, str]:
@@ -57,7 +68,7 @@ def assemble() -> dict[str, str]:
     files["js/features.js"] = (SRC / "features.js").read_text(encoding="utf-8")
     files["js/core.js"] = (SRC / "core.js").read_text(encoding="utf-8")
     files["js/api.js"] = (SRC / "api.js").read_text(encoding="utf-8") if (SRC / "api.js").exists() else ""
-    files["app.css"] = (SRC / "styles.css").read_text(encoding="utf-8")
+    files["app.css"] = "\n".join(f"/* ===== {name} ===== */\n" + css_of(name) for name in CSS)
 
     shell = (SRC / "shell.html").read_text(encoding="utf-8")
     shell = re.sub(r"<style>\s*/\*STYLES\*/\s*</style>", '<link rel="stylesheet" href="/static/app/app.css">', shell)
