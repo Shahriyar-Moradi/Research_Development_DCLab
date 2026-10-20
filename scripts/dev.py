@@ -273,7 +273,7 @@ def serve(url: str, port: int, remote: bool = False) -> int:
     watcher = threading.Thread(target=watch_frontend, args=(build_frontend, stop), daemon=True)
     watcher.start()
     command = [sys.executable, "-m", "uvicorn", "dclab_rnd.agentic.server:app", "--host", "127.0.0.1", "--port", str(port),
-               "--reload", "--reload-dir", "dclab_rnd", "--workers", "1"]
+               "--reload", "--reload-dir", "dclab_rnd", "--workers", "1", "--timeout-graceful-shutdown", "3"]  # a reload never waits on the browser's open chat streams
     print(f"API on http://127.0.0.1:{port} and a job worker (both reload on code changes, and the worker is restarted if it ends; the frontend rebuilds when {WEB_SRC.relative_to(ROOT)} changes). Ctrl-C stops.", flush=True)
     supervisor = threading.Thread(target=supervise_worker, args=(lambda: subprocess.Popen(worker_command(), cwd=ROOT, env=env, start_new_session=True), stop),
                                   name="dclab-dev-worker", daemon=True)

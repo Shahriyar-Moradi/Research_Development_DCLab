@@ -107,6 +107,7 @@ class SafetyTests(unittest.TestCase):
         self.assertEqual(command[command.index("--port") + 1], "8799")
         self.assertIn("--reload", command)
         self.assertEqual(command[command.index("--workers") + 1], "1")
+        self.assertEqual(command[command.index("--timeout-graceful-shutdown") + 1], "3")  # a reload never waits on the browser's open streams
         self.assertEqual(env["DCLAB_DATABASE_URL"], "postgresql+psycopg://u@/dclab_dev")
         ensured.assert_called_once()
 
