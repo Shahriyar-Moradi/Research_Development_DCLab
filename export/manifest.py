@@ -16,6 +16,7 @@ RENAME = {"dclab_rnd": PUBLIC_NAME}
 INCLUDE = [
     "dclab_rnd/**",
     "dclab_core/**",
+    "scripts/product_e2e.py",  # the product's flows, against a running server (--base) or one it starts from a checkout
 ]
 
 EXCLUDE = [

@@ -19,15 +19,18 @@ class Store:
         # DCLAB_RESEARCH_DB: on a shared network folder (a cloud's workspace), SQLite's WAL is not safe; the cloud keeps
         # this file on each instance's own disk (12.6). It holds the legacy research campaign's runs only.
         self.path = Path(os.environ["DCLAB_RESEARCH_DB"]) if os.environ.get("DCLAB_RESEARCH_DB") else home / "research.sqlite3"
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.connect() as db:
-            db.executescript("""
-              PRAGMA journal_mode=WAL;
-              CREATE TABLE IF NOT EXISTS runs (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
-              CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT NOT NULL, kind TEXT NOT NULL, created TEXT NOT NULL, payload TEXT NOT NULL);
-            """)
+        self._ready = False  # the file is made on first use: a workspace that never runs a research campaign has none
 
     def connect(self):
+        if not self._ready:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            with sqlite3.connect(self.path, timeout=20) as db:
+                db.executescript("""
+                  PRAGMA journal_mode=WAL;
+                  CREATE TABLE IF NOT EXISTS runs (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+                  CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT NOT NULL, kind TEXT NOT NULL, created TEXT NOT NULL, payload TEXT NOT NULL);
+                """)
+            self._ready = True
         return sqlite3.connect(self.path, timeout=20)
 
     def create(self, run_id, config):
@@ -63,6 +66,8 @@ class Store:
         return run
 
     def list(self):
+        if not self._ready and not self.path.exists():
+            return []  # no campaign ever ran here: reading it never makes the file
         with self.connect() as db:
             return [json.loads(r[0]) for r in db.execute("SELECT payload FROM runs ORDER BY rowid DESC")]
 

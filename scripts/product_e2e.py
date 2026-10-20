@@ -6,7 +6,9 @@
 
 Flows (the plan's verification list, docs/guides/PRODUCT_BUILD_PLAYBOOK.md package 7.1):
 
-  upload      one sentence, the Telco CSV uploaded, three answers, the solution, 5 folds, build, five stages, exports
+  upload      one sentence, a churn CSV uploaded (the Telco file when it is there, else an invented one with the same traps),
+              three answers, the solution, 5 folds, build, five stages, exports
+  upload-team the same through the understanding team (skipped where the team is not part of the edition)
   no-data     one sentence and answers only: the agent asks for a sample; the project is built as a plan without data
   synthetic   a built-in template, a regression split by time with 5 folds, five stages; exports say "synthetic"
   log-file    a web-server access log becomes a table and is described
@@ -74,6 +76,16 @@ class Api:
         elif status >= 400:
             raise Failed(f"{method} {path} answered {status}: {text[:200]}")
         return json.loads(text) if text[:1] in "[{" else text
+
+    def exists(self, path: str) -> bool:
+        """The route is part of this server (the open edition leaves some out: they answer 404)."""
+        try:
+            self.call("GET", path)
+            return True
+        except Failed as error:
+            if "answered 404" in str(error):
+                return False
+            raise
 
     def wait(self, path: str, done, seconds: float = 600, what: str = ""):
         deadline, value = time.time() + seconds, None
@@ -163,14 +175,37 @@ def solution_from(proposal: dict, moment: str, time_column: str | None = None) -
             "metric": proposal["metric"], "notes": ""}
 
 
+def churn_table(rows: int = 3000, seed: int = 7) -> tuple[bytes, int]:
+    """The churn table the upload flows send: the Telco file when this checkout has it, else an invented table with the same
+    shape and traps (an identifier, blank charges for new customers that need cleaning, a Yes/No outcome with a real signal)."""
+    if TELCO.is_file():
+        return TELCO.read_bytes(), 7043
+    import math
+
+    rng = random.Random(seed)
+    lines = ["customerID,gender,SeniorCitizen,Partner,tenure,Contract,PaperlessBilling,PaymentMethod,MonthlyCharges,TotalCharges,Churn"]
+    for i in range(rows):
+        tenure = 0 if rng.random() < 0.01 else rng.randint(1, 72)
+        contract = rng.choices(["Month-to-month", "One year", "Two year"], [0.55, 0.25, 0.2])[0]
+        monthly = round(rng.uniform(18, 118), 2)
+        paperless = rng.choice(["Yes", "No"])
+        payment = rng.choice(["Electronic check", "Mailed check", "Bank transfer (automatic)", "Credit card (automatic)"])
+        z = -1.2 - 0.045 * tenure + 0.02 * (monthly - 65) + (1.3 if contract == "Month-to-month" else -0.6) + (0.4 if payment == "Electronic check" else 0)
+        churn = "Yes" if rng.random() < 1 / (1 + math.exp(-z)) else "No"
+        total = " " if tenure == 0 else f"{monthly * tenure * rng.uniform(0.95, 1.05):.2f}"
+        lines.append(f"{1000 + i}-{''.join(rng.choice('ABCDEFGHJKLMNPQRSTUVWXYZ') for _ in range(5))},{rng.choice(['Female', 'Male'])},"
+                     f"{int(rng.random() < 0.16)},{rng.choice(['Yes', 'No'])},{tenure},{contract},{paperless},{payment},{monthly},{total},{churn}")
+    return ("\n".join(lines) + "\n").encode(), rows
+
+
 # ------------------------------------------------------------------------------------------------ flows
 def flow_upload(api: Api) -> str:
-    check(TELCO.is_file(), f"{TELCO.relative_to(ROOT)} is missing")
+    table, rows = churn_table()
     draft_id = api.draft("Rank telecom customers by their risk of leaving next month so the retention team can call them.")
-    api.call("PUT", f"/drafts/{draft_id}/data?filename=telco.csv", raw=TELCO.read_bytes())
+    api.call("PUT", f"/drafts/{draft_id}/data?filename=telco.csv", raw=table)
     draft = api.asset_ready(draft_id)
     asset = draft["assets"][-1]
-    check(asset["rows"] == 7043 and not asset.get("synthetic"), f"unexpected table: {asset.get('rows')} rows")
+    check(asset["rows"] == rows and not asset.get("synthetic"), f"unexpected table: {asset.get('rows')} rows")
     check(draft["cleaning_log"], "the cleaning log is empty for a file that needs cleaning")
     check((draft["pack"] or {}).get("key") == "tabular", f"a churn problem was put in the {draft['pack']} pack")
     draft = api.answer(draft_id, ["Churn", "At the start of each month, before the retention call.", "A call costs 5 euro; a lost customer costs 300."])
@@ -180,7 +215,7 @@ def flow_upload(api: Api) -> str:
     proposal = api.call("POST", f"/drafts/{draft_id}/solution/proposal")  # the target comes from the chat
     check(proposal["target"] == "Churn" and "customerID" in proposal["identifiers"], "the proposal missed the target or the identifier")
     api.call("PUT", f"/drafts/{draft_id}/solution", solution_from(proposal, understood["prediction_moment"]))
-    settings = api.call("PUT", f"/drafts/{draft_id}/settings", {"split": "time", "quick": True, "max_rows": 7043, "folds": 5, "budget": {"calls": 24, "minutes": 20, "eur": 5}})["settings"]
+    settings = api.call("PUT", f"/drafts/{draft_id}/settings", {"split": "time", "quick": True, "max_rows": rows, "folds": 5, "budget": {"calls": 24, "minutes": 20, "eur": 5}})["settings"]
     check(settings["split"] == "stratified", "the stored split is not what the solution implies (no time column)")
     project = api.call("POST", f"/drafts/{draft_id}/build")
     check(project["settings"]["folds"] == 5 and project["data"]["synthetic"] is False, "folds or the data label did not reach the project")
@@ -191,17 +226,19 @@ def flow_upload(api: Api) -> str:
     check("pd.read_parquet(" in notebook and "n_splits=5" in notebook, "the exported notebook does not read the data file or the folds as run")
     check("Synthetic data." not in notebook, "real data was labelled synthetic")
     check(all(m["status"] == "allowed" for m in project["transitions"]), "the validator refused a move on the standard path")
-    return f"7,043 rows, 5 folds, five stages; holdout {holdout(project)}"
+    return f"{rows:,} rows, 5 folds, five stages; holdout {holdout(project)}"
 
 
 def flow_upload_team(api: Api) -> str:
     """28.8: the upload flow with the team's switch on: the chat's answers, then Build goes through the understanding team's walk
     (the build being its approval); what the walk asks first is answered through its own API; the project it builds runs every
     stage."""
-    check(TELCO.is_file(), f"{TELCO.relative_to(ROOT)} is missing")
+    if not api.exists("/team/settings"):
+        return "skipped: the understanding team is not part of this edition"
+    table, _ = churn_table()
     check(api.call("PUT", "/team/settings", {"on": True})["settings"]["on"] is True, "the team's switch did not turn on")
     draft_id = api.draft("Rank telecom customers by their risk of leaving next month so the retention team can call them.")
-    api.call("PUT", f"/drafts/{draft_id}/data?filename=telco.csv", raw=TELCO.read_bytes())
+    api.call("PUT", f"/drafts/{draft_id}/data?filename=telco.csv", raw=table)
     api.asset_ready(draft_id)
     draft = api.answer(draft_id, ["Churn", "At the start of each month, before the retention call.", "A call costs 5 euro; a lost customer costs 300."])
     answers = {"target": "Churn", "outcome": "Churn", "prediction_moment": "At the start of each month, before the retention call.",
