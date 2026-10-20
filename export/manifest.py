@@ -73,6 +73,7 @@ CLOSED = [
 # Words replaced in every exported text file, in this order (after the package rename): the owner's real dataset and the mock
 # user become invented names, private working files become the public ones. The scanner then checks nothing private is left.
 REPLACE = [
+    (r"make kinds-check ARGS=", "python -m dclabai.kinds "), (r"make kinds-check", "python -m dclabai.kinds"),
     (r"hyper_ackt-dataset\.csv", "ride_fares.csv"),
     (r"hyper_ackt", "ride_fares"),
     (r"hyper_ack\b", "accepted"),
@@ -103,6 +104,9 @@ TESTS = {
         "tests/test_dev_script.py": "tests scripts/dev.py (the private repository's development runner)",
         "tests/test_deploy.py": "tests the cloud code in deploy/, which is not exported",
         "tests/test_staging_check.py": "tests a Makefile target of the private repository",
+        "tests/test_decision_routing.py": "routes measured classifiers: needs the sealed gate results in evidence/ and the agent_eval suites",
+        "tests/test_kind_acceptance_rare.py": "the acceptance of the delivery_fraud replica, which is not part of the open edition yet",
+        "tests/test_code.py": "built around the anomaly kind's case, whose replica the open edition does not have yet",
     },
 }
 
