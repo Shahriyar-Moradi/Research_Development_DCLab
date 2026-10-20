@@ -38,7 +38,7 @@ from ..agents.registry import Registry, Tool
 PURPOSE = "home_orchestrator"
 AGENT = "home.project"
 RULES_AGENT = "home.project.rules"
-TEAM = {"reader": "Records reader", "evaluator": "Evaluator", "experimenter": "Experimenter", "coder": "Notebook coder"}
+TEAM = {"analyst": "Problem analyst", "reader": "Records reader", "evaluator": "Evaluator", "experimenter": "Experimenter", "coder": "Notebook coder"}
 CAP_EUR = 0.25  # one turn's model spend, at most
 TAIL = 12  # messages of the conversation the model reads
 SHOWN_SENTENCES = 4  # a reply beside a table: at most this many sentences (the owner: "bring the table instead of the texts")
@@ -69,6 +69,7 @@ class Turn:
         self.results: list[Any] = []
         self.tasks: list[dict[str, Any]] = []
         self.chips: list[str] = []
+        self.change_unclear = False  # the words change the problem but name nothing the rules can read
 
     def project(self) -> dict[str, Any]:
         return self.projects.get(self.project_id)
@@ -439,13 +440,212 @@ def write_notebook_cell(t: Turn, /, request: str = "", **_: Any) -> dict[str, An
     return result
 
 
-READS = {"list_projects": list_projects, "show_notebook": show_notebook, "show_activity": show_activity, "show_models": show_models, "show_features": show_features, "show_data": show_data, "show_leakage": show_leakage, "show_stages": show_stages,
+# ---------------------------------------------------------------------- the Problem analyst (step 1 of connecting understanding, 2026-10-21)
+# The built project answers one problem. When the person changes it ("the outcome should be churn in 60 days", "we score at signup"),
+# the analyst shows what would change and checks the new problem against the project's table (dclab_core.meet), then records the
+# person's confirmation. Nothing here changes the built project: a confirmed problem becomes a new version through the Solution
+# planner (step 2), on a fresh held-back split, because the old one was read for another problem.
+
+CHANGE_FIELDS = {"outcome": "the outcome column", "prediction_moment": "the prediction moment", "horizon": "how far ahead it looks",
+                 "unit": "what one prediction is for", "family": "the kind of problem", "time_column": "the column that orders the rows"}
+
+
+def _draft(t: Turn) -> dict[str, Any]:
+    return t.agent.store.get(t.draft_id)
+
+
+def _data_card(t: Turn) -> Any:
+    """The project's data card (its tables without their rows), else the draft's; None when neither was drawn."""
+    from dclab_core.datacard import DataCard
+
+    for doc in (((t.project().get("data") or {}).get("card")), _draft(t).get("data_card")):
+        if isinstance(doc, dict) and doc.get("schema_version"):
+            try:
+                return DataCard.read({k: v for k, v in doc.items() if k != "fit"})
+            except Exception:  # noqa: BLE001 - a card of an older shape: try the next
+                continue
+    return None
+
+
+def _columns(t: Turn) -> list[str]:
+    data = _data_card(t)
+    return [c.name for tbl in (data.tables if data is not None else []) for c in tbl.columns]
+
+
+def _problem_now(t: Turn) -> dict[str, Any]:
+    """The problem the built project answers: from its saved solution, and the draft's card for what the solution does not hold."""
+    from .card import card_of
+
+    sol = t.project().get("solution") or {}
+    card = card_of(_draft(t))
+    u = _draft(t).get("understanding") or {}
+    return {"outcome": sol.get("target"), "task": sol.get("task"), "family": card.family.value, "prediction_moment": sol.get("prediction_moment"),
+            "horizon": card.horizon.value or u.get("horizon"), "unit": card.brief.unit.value, "time_column": sol.get("time_column"),
+            "metric": sol.get("metric"), "forbidden": [f.get("column") for f in sol.get("forbidden") or [] if isinstance(f, dict)]}
+
+
+def _problem_current(t: Turn) -> dict[str, Any]:
+    """The problem as the conversation stands: as built, with the latest confirmed version's parts on top (a confirmed version
+    keeps the whole problem it confirmed, so changes add up)."""
+    versions = _draft(t).get("problem_versions") or []
+    return dict(versions[-1].get("problem") or {}) if versions and versions[-1].get("problem") else _problem_now(t)
+
+
+def show_problem(t: Turn, /, **_: Any) -> dict[str, Any]:
+    """The problem as it stands: the outcome, the moment, the unit, the kind, the split's time column, the metric (as built, with any
+    confirmed change on top, and what the built project still answers)."""
+    now = _problem_current(t)
+    built = _problem_now(t)
+    facts = [[CHANGE_FIELDS.get(k, k.replace("_", " ")).capitalize(), v] for k, v in now.items() if k not in ("forbidden", "task") and v]
+    if now.get("forbidden"):
+        facts.append(["Never used (unknown at the moment)", ", ".join(str(c) for c in now["forbidden"][:12])])
+    versions = _draft(t).get("problem_versions") or []
+    if versions:
+        differs = {k: built.get(k) for k in now if k != "forbidden" and now.get(k) != built.get(k)}
+        facts.append([f"Confirmed version {len(versions) + 1}", "the built project still answers " + "; ".join(f"{CHANGE_FIELDS.get(k, k)}: {v or 'not set'}"
+                                                                                                         for k, v in differs.items()) if differs else "the same problem"])
+    return {"card": t.show("show_problem", {"agent": "analyst", "title": "The problem this project answers" if not versions else "The problem as it stands",
+                                            "page": "solution", "facts": facts,
+                                            "note": "To change it, say what is different (for example: the outcome is another column, or the prediction is made earlier)."})}
+
+
+def _consequences(before: dict[str, Any], changes: dict[str, str]) -> list[str]:
+    """What a change means for the built project, by rule."""
+    out = []
+    if "outcome" in changes or "family" in changes:
+        out.append("A new outcome is a new problem: the split, the leakage audit, the features and the models are redone on a fresh held-back "
+                   "split. The current results answer the old outcome and stay as they are.")
+    if "prediction_moment" in changes:
+        out.append("What is known at the new moment differs: the leakage audit runs again and may forbid other columns (anything recorded "
+                   "after the new moment).")
+    if "horizon" in changes:
+        out.append(f"The outcome's window changes (to {changes['horizon']}): the table must record the outcome over that window; a column "
+                   "recorded for another window cannot be reused as it is.")
+    if "unit" in changes:
+        out.append("One prediction is for something else: the rows may need to be aggregated to the new unit first.")
+    if "time_column" in changes:
+        out.append(f"The rows are ordered by {changes['time_column']}: the held-back period changes, so every stage runs again.")
+    return out
+
+
+def propose_problem_change(t: Turn, /, outcome: str = "", prediction_moment: str = "", horizon: str = "", unit: str = "", family: str = "",
+                           time_column: str = "", said: str = "", **_: Any) -> dict[str, Any]:
+    """[the person changed the problem] What would change, field by field, checked against the project's table: the outcome column, the
+    prediction moment, the horizon, the unit, the kind of problem or the time column. Nothing changes until the person confirms."""
+    import copy
+    import secrets
+
+    from dclab_core.card import FAMILIES
+    from dclab_core.meet import check, fit
+
+    from .card import _stated, card_of
+
+    before = _problem_current(t)
+    asked = {"outcome": outcome, "prediction_moment": prediction_moment, "horizon": horizon, "unit": unit, "family": family, "time_column": time_column}
+    changes = {k: str(v).strip()[:300] for k, v in asked.items() if str(v or "").strip() and str(v).strip() != str(before.get(k) or "")}
+    if not changes:
+        return {"error": "Nothing differs from the problem as built. Say which part changes: the outcome, the moment, the horizon or the unit."}
+    if "family" in changes and changes["family"] not in FAMILIES:
+        return {"error": f"{changes['family']!r} is not a kind of problem DCLab knows: one of {', '.join(FAMILIES)}."}
+    data = _data_card(t)
+    columns = [c.name for tbl in (data.tables if data is not None else []) for c in tbl.columns]
+    for key in ("outcome", "time_column"):
+        if key in changes and columns and changes[key] not in columns:
+            near = [c for c in columns if changes[key].lower() in c.lower() or c.lower() in changes[key].lower()][:5]
+            return {"error": f"{changes[key]!r} is not a column of this project's table" + (f"; did you mean {', '.join(near)}?" if near else ".")
+                             + " Name the column that holds it.", "columns": columns[:60]}
+    after_draft = copy.deepcopy(_draft(t))
+    sol = after_draft.setdefault("solution", {}) or {}
+    after_draft["solution"] = sol
+    u = after_draft.setdefault("understanding", {})
+    if "outcome" in changes:
+        sol["target"], u["target"] = changes["outcome"], changes["outcome"]
+        sol.pop("task", None)  # the new outcome's values say the task
+    if "prediction_moment" in changes:
+        sol["prediction_moment"] = u["prediction_moment"] = changes["prediction_moment"]
+    if "time_column" in changes:
+        sol["time_column"] = u["time_column"] = changes["time_column"]
+    if "unit" in changes:
+        u["unit"] = changes["unit"]
+    if "family" in changes:
+        u["family"], u["family_by"] = changes["family"], "person"
+    after = card_of(after_draft)
+    stated = {f: _stated(changes[k]) for k, f in (("outcome", "target_column"), ("time_column", "time_column")) if k in changes}
+    if stated:  # what the person named is on the card checked, whether or not the draft's profile lists the column
+        after = after.model_copy(update={"brief": after.brief.model_copy(update=stated)})
+    mismatches, verdict = [], None
+    if data is not None:
+        checked = check(after, data)
+        verdict = fit(after, data, checked)
+        mismatches = [{"code": m.code, "blocking": m.blocking, "question": m.question} for m in checked.mismatches]
+    rows = [{"field": CHANGE_FIELDS[k], "before": before.get(k) or "not set", "after": v} for k, v in changes.items()]
+    earlier = _draft(t).get("problem_change") or {}
+    replaces = {k: v for k, v in (earlier.get("changes") or {}).items() if k not in changes} if earlier.get("status") == "proposed" else {}
+    problem = {**before, **{k: v for k, v in changes.items()}}
+    change = {"id": "pc" + secrets.token_hex(4), "changes": changes, "before": {k: before.get(k) for k in changes}, "said": said[:600], "problem": problem,
+              "replaces": replaces,
+              "verdict": verdict.verdict if verdict is not None else "not_checked", "mismatches": mismatches,
+              "consequences": _consequences(before, changes), "status": "proposed", "at": now()}
+    t.agent.store.update(t.draft_id, lambda d: d.update(problem_change=change))
+    blocking = [m["question"] for m in mismatches if m["blocking"]]
+    if not blocking:  # a yes confirms it; a change that does not fit the table is answered first, never confirmed by a yes
+        t.agent_offer("confirm_problem_change", {"change": change["id"]})
+    if replaces:
+        blocking_note = "; ".join(f"{CHANGE_FIELDS.get(k, k)} to {v}" for k, v in replaces.items())
+    notes = ([f"This replaces the earlier proposal that was not confirmed ({blocking_note}): say it again to keep it."] if replaces else []) + \
+            ([f"The new problem does not fit the table yet: {q}" for q in blocking] or
+             ([f"Fit with the table: {verdict.verdict.replace('_', ' ')}"] if verdict is not None else ["The new problem could not be checked against the table."]))
+    t.show("propose_problem_change", {
+        "agent": "analyst", "title": "What would change", "page": "solution",
+        "subtitle": "nothing changes in the built project until you confirm",
+        "columns": [{"key": "field", "label": "Part of the problem"}, {"key": "before", "label": "Now"}, {"key": "after", "label": "New"}],
+        "rows": rows, "lines": change["consequences"], "notes": notes + [m["question"] for m in mismatches if not m["blocking"]][:4],
+        "offer": None if blocking else "Say yes to confirm this as the problem; the built project stays as it is."})
+    result = {"proposed": change["id"], "changes": changes, "fit": change["verdict"], "blocking": blocking, "consequences": change["consequences"],
+              "replaces_unconfirmed": replaces}
+    t.results.append(result)
+    return result
+
+
+def confirm_problem_change(t: Turn, /, change: str = "", **_: Any) -> dict[str, Any]:
+    """Record the person's confirmation of the proposed problem change: kept on the chat as a new version of the problem. The built
+    project is not changed; a new version of it is built from the confirmed problem (the Solution planner's step)."""
+    pending = _draft(t).get("problem_change") or {}
+    if not pending or pending.get("status") != "proposed":  # one change is pending at a time: a yes confirms it (a model may name it in words)
+        return {"error": "There is no proposed change to confirm. Say what is different about the problem first."}
+    if (t.offered or {}).get("tool") != "confirm_problem_change":  # the person must have been asked, the turn before (the review, 2026-10-21)
+        return {"error": "The person has not been asked to confirm this change: show it with propose_problem_change and wait for their yes."}
+    blocking = [m["question"] for m in pending.get("mismatches") or [] if m.get("blocking")]
+    if blocking:
+        return {"error": "The new problem does not fit the table yet, so it cannot be confirmed: " + blocking[0], "blocking": blocking}
+    done = {**pending, "status": "confirmed", "confirmed_at": now()}
+
+    def keep(d: dict[str, Any]) -> None:
+        current = d.get("problem_change") or {}
+        if current.get("id") != pending["id"] or current.get("status") != "proposed":  # another proposal landed meanwhile: not this one's to confirm
+            return
+        d["problem_change"] = done
+        d.setdefault("problem_versions", []).append(done)
+    t.agent.store.update(t.draft_id, keep)
+    t.task("confirm_problem_change", TEAM["analyst"], "The new problem, confirmed", "done")
+    result = {"confirmed": done["id"], "changes": done["changes"], "problem": done.get("problem"), "version": len(_draft(t).get("problem_versions") or []) + 1,
+              "next": "The built project stays as it is. A new version is built from the confirmed problem on a fresh held-back split "
+                      "(the Solution planner's step); until then, open a new chat to build it."}
+    t.results.append(result)
+    return result
+
+
+READS = {"show_problem": show_problem, "list_projects": list_projects, "show_notebook": show_notebook, "show_activity": show_activity, "show_models": show_models, "show_features": show_features, "show_data": show_data, "show_leakage": show_leakage, "show_stages": show_stages,
          "show_result": show_result, "show_evaluation": show_evaluation, "improvement_ideas": improvement_ideas, "show_improvements": show_improvements}
-WRITES = {"improve_model": ("improve", improve_model), "adopt_improvement": ("adopt_improvement", adopt_improvement),
+WRITES = {"propose_problem_change": ("propose_problem_change", propose_problem_change),
+          "confirm_problem_change": ("confirm_problem_change", confirm_problem_change), "improve_model": ("improve", improve_model), "adopt_improvement": ("adopt_improvement", adopt_improvement),
           "write_notebook_cell": ("notebook_cell", write_notebook_cell)}
-WHO = {"list_projects": "reader", "show_notebook": "coder", "show_activity": "reader", "show_models": "reader", "show_features": "reader", "show_data": "reader", "show_leakage": "reader", "show_stages": "reader",
+WHO = {"show_problem": "analyst", "propose_problem_change": "analyst", "confirm_problem_change": "analyst", "list_projects": "reader", "show_notebook": "coder", "show_activity": "reader", "show_models": "reader", "show_features": "reader", "show_data": "reader", "show_leakage": "reader", "show_stages": "reader",
        "show_result": "evaluator", "show_evaluation": "evaluator", "improvement_ideas": "experimenter", "show_improvements": "experimenter",
        "improve_model": "experimenter", "adopt_improvement": "experimenter", "write_notebook_cell": "coder"}
+
+
+PROJECT_MOVES = ("improve", "adopt_improvement", "notebook_cell")  # the writes that change the project (the analyst's change the chat only)
 
 
 class HomeGuard:
@@ -460,7 +660,7 @@ class HomeGuard:
             project = turn.project()
         except Exception:  # noqa: BLE001 - the project was deleted meanwhile
             return {"error": "This chat's project no longer exists."}
-        if project.get("running"):  # a job saves this project as it runs: a write now could lose its update or leave it marked running
+        if project.get("running") and tool.move in PROJECT_MOVES:  # a job saves this project as it runs: a write now could lose its update or leave it marked running
             return {"error": f"Something is running in this project ({project['running']}): wait for it to finish, or stop it."}
         if tool.name == "adopt_improvement" and _improving(turn) is not None:
             return {"error": "An improvement run is still going: adopt from its report when it ends."}
@@ -480,8 +680,15 @@ def register(registry: Registry) -> None:
         params = {"type": "object", "properties": {"rows": {"type": "string", "enum": ["holdout", "validation"]}}} if name == "show_evaluation" else empty
         registry.register(Tool(name, f"[{TEAM[WHO[name]]}] " + " ".join((fn.__doc__ or "").split()), params, fn, scope="home", takes_context=True))
     for name, (move, fn) in WRITES.items():
-        params = {"type": "object", "properties": {"candidate": {"type": "string"}}} if name == "adopt_improvement" else \
-            {"type": "object", "properties": {"request": {"type": "string"}}, "required": ["request"]} if name == "write_notebook_cell" else empty
+        S = {"type": "string"}
+        params = {"type": "object", "properties": {"candidate": S}} if name == "adopt_improvement" else \
+            {"type": "object", "properties": {"request": S}, "required": ["request"]} if name == "write_notebook_cell" else \
+            {"type": "object", "properties": {"change": S}} if name == "confirm_problem_change" else \
+            {"type": "object", "properties": {"outcome": {**S, "description": "the new outcome column, exactly as named in the table"},
+                                              "prediction_moment": {**S, "description": "when each prediction is made, and what is known then"},
+                                              "horizon": {**S, "description": "how far ahead, e.g. 60 days"}, "unit": {**S, "description": "what one prediction is for"},
+                                              "family": {**S, "description": "the kind of problem, when it changes"}, "time_column": S,
+                                              "said": {**S, "description": "the person's words that changed it"}}} if name == "propose_problem_change" else empty
         registry.register(Tool(name, f"[{TEAM[WHO[name]]}] " + " ".join((fn.__doc__ or "").split()), params, fn, effect="write", scope="home", move=move,
                                takes_context=True))
     registry.guards["home"] = HomeGuard()
@@ -491,7 +698,7 @@ def register(registry: Registry) -> None:
 
 
 YES = re.compile(r"^\s*(?:ok(?:ay)?|yes|yeah|yep|yup|sure|fine|alright|go(?: ahead| on)?|do it|please(?: do)?|let'?s(?: do it| go)?|start|run it|proceed|"
-                 r"try (?:it|them)|of course|perfect|great)(?:[\s,.!]+(?:ok(?:ay)?|yes|do it|go ahead|please|now|then|thanks|thank you|try them|run it))*[\s.!]*$", re.I)
+                 r"try (?:it|them)|of course|perfect|great|confirm(?: it)?)(?:[\s,.!]+(?:ok(?:ay)?|yes|do it|go ahead|please|now|then|thanks|thank you|try them|run it|confirm(?: it)?))*[\s.!]*$", re.I)
 NO = re.compile(r"^\s*(?:no|nope|not now|later|cancel|stop|don'?t)\b", re.I)
 IMPROVE = re.compile(r"\b(?:improv\w*|better|boost\w*|enhanc\w*|tun(?:e|ing)|optimi[sz]\w*|increase|raise|higher score)\b", re.I)
 DOING = re.compile(r"\b(?:for me|do it|go ahead|build|run|try|start|make|practically|actually|now|please|launch|go)\b|^\s*(?:ok(?:ay)?\s+)?(?:improve|build|run|try|tune|boost)\b", re.I)
@@ -515,19 +722,68 @@ CHIPS = {"show_models": ["Show the evaluation", "Improve the model for me", "Plo
          "show_evaluation": ["Show the held-back result", "How can it improve?", "Plot the confusion matrix"],
          "show_result": ["Show the evaluation", "Show the models trained", "How can it improve?"],
          "improvement_ideas": ["Yes, try them", "Show the models trained"],
+         "propose_problem_change": ["Yes, confirm it", "No, keep the problem as built"], "confirm_problem_change": ["Show the problem", "Show the models trained"],
+         "show_problem": ["Show the models trained", "Show the evaluation"],
          "show_improvements": ["Adopt the best way", "Show the models trained"],
          "improve_model": ["Show the models trained", "Show the evaluation"],
          "adopt_improvement": ["Show the held-back result"], "write_notebook_cell": ["Show the evaluation", "Show the models trained"],
          None: ["Show the models trained", "Show the evaluation", "How can it improve?", "Improve the model for me"]}
 
 
-def plan(text: str, offer: Optional[dict[str, Any]]) -> list[tuple[str, dict[str, Any]]]:
-    """The rules' reading of one message: the tools to call, in order. A yes carries out the pending offer; words name the rest."""
+CHANGE_WORDS = re.compile(r"^\s*no\b|\b(?:actually|instead|rather|should (?:be|predict|look)|not (?:the )?right|wrong|change|changed|different|redefine|"
+                          r"we (?:score|predict|decide) (?:at|when|before|on)|predict \w+ (?:at|when|before))\b", re.I)
+PROBLEM_NOUNS = re.compile(r"\b(?:outcome|target|label|moment|horizon|problem|what (?:we|it) predicts?|unit of prediction)\b", re.I)
+HORIZON = re.compile(r"\b(?:within|in the next|over the next|next)\s+(\d+)\s*(days?|weeks?|months?|years?)\b|\b(\d+)[- ](day|week|month|year)s?\b", re.I)
+MOMENT = re.compile(r"\b(?:predict(?:ed|ion|ions)?|score[sd]?|decide[sd]?|decision)\s+(?:(?:it|them|each\s+\w+|is|are|gets?|will\s+be|should\s+be|must\s+be|"
+                    r"made|done|scored|happens?)\s+)*(at|when|before|right after|on)\s+([^.;,?!]{4,120})", re.I)
+ASK_PROBLEM = re.compile(r"\b(?:what (?:problem|are we predicting|is (?:the|our) (?:outcome|target|problem))|which (?:outcome|target)|the problem (?:we|this)|what does (?:it|this project) predict)\b", re.I)
+
+
+OUTCOME_BEFORE = r"(?:outcome|target|label)\s+(?:column\s+)?(?:should\s+be|must\s+be|is|=|to\s+be|becomes?|would\s+be)\s+(?:the\s+)?(?:column\s+)?"
+HORIZON_WITH = re.compile(r"\b(?:predict\w*|outcome|target|label|ahead|horizon|churn\w*|convert\w*|buy|leave|cancel\w*|happen\w*)\b", re.I)
+
+
+def problem_change(said: str, columns: Any = ()) -> Optional[dict[str, str]]:
+    """The rules' reading of a changed problem: {} when the words change the problem but name nothing they can read (ask which part,
+    after every other reading had its turn), the parts they name (an outcome column of the table, a horizon, a moment), or None when
+    the words do not change the problem. Strict on purpose (the review, 2026-10-21): an outcome only right after an outcome phrase
+    ("the outcome should be X", "predict X"), a horizon only beside a word of the outcome ("predict churn within 60 days"), never
+    "the 30-day features"."""
+    if not CHANGE_WORDS.search(said):
+        return None
+    old = lambda c: re.search(rf"\b(?:not|instead of|rather than|than|from)\s+(?:the\s+)?{re.escape(str(c))}(?![\w])", said, re.I)  # noqa: E731 - "not X": the old one
+    outcome = next((str(c) for c in sorted(columns or (), key=lambda c: -len(str(c))) if len(str(c)) >= 3 and not old(c)
+                    and re.search(rf"(?:{OUTCOME_BEFORE}|\bpredict(?:ing)?\s+(?:the\s+)?){re.escape(str(c))}(?![\w])", said, re.I)), None)
+    horizon = next((h for h in HORIZON.finditer(said) if not re.match(r"\s*(?:features?|columns?|averages?|counts?|windows?\s+of)", said[h.end():], re.I)), None)
+    horizon = horizon if horizon is not None and HORIZON_WITH.search(said) else None
+    moment = MOMENT.search(said)
+    if not (outcome or horizon or moment or PROBLEM_NOUNS.search(said)):
+        return None
+    out: dict[str, str] = {}
+    if outcome:
+        out["outcome"] = outcome
+    if horizon:
+        n, unit = (horizon.group(1), horizon.group(2)) if horizon.group(1) else (horizon.group(3), horizon.group(4) + "s")
+        out["horizon"] = f"{n} {unit.lower()}"
+    if moment and not (horizon and horizon.group(0) in moment.group(0)):
+        out["prediction_moment"] = f"{moment.group(1)} {moment.group(2).strip()}"
+    return out
+
+
+def plan(text: str, offer: Optional[dict[str, Any]], columns: Any = ()) -> list[tuple[str, dict[str, Any]]]:
+    """The rules' reading of one message: the tools to call, in order. A yes carries out the pending offer; a changed problem goes to
+    the Problem analyst; words name the rest."""
     said = text.strip()
     if offer and YES.match(said):
         return [(offer["tool"], dict(offer.get("args") or {}))]
-    if NO.match(said):
-        return []
+    changed = problem_change(said, columns)  # before a no: "no, the prediction is made at signup" corrects the problem
+    if changed:
+        return [("propose_problem_change", {**changed, "said": said[:600]})]
+    if NO.match(said):  # "no" declines; after a bare "no", the rest is read ("no, show the models"), never a refusal ("no, don't improve it")
+        rest = re.sub(r"^\s*(?:no|nope)\b[\s,.!-]*(?:thanks?|thank you)?[\s,.!-]*", "", said, flags=re.I)
+        return plan(rest, None, columns) if rest and rest != said and not NO.match(rest) else []
+    if ASK_PROBLEM.search(said):
+        return [("show_problem", {})]
     if ADOPT.search(said):
         return [("adopt_improvement", {})]
     if PLOT.search(said) and not dict(WORDS)["show_notebook"].search(said):  # "what cells were added" lists them; "plot ..." writes one
@@ -541,6 +797,8 @@ def plan(text: str, offer: Optional[dict[str, Any]]) -> list[tuple[str, dict[str
     for name, words in WORDS:
         if words.search(said) and name not in [n for n, _ in out] and not (out and name in ("show_models", "show_result") and IMPROVE.search(said)):
             out.append((name, {"rows": "validation"} if name == "show_evaluation" and re.search(r"\b(?:folds?|validation|cross)\b", said, re.I) else {}))
+    if not out and changed is not None:  # the problem changes but its words name nothing readable, and nothing else read them: ask which part
+        return [("show_problem", {})]
     return out[:4]
 
 
@@ -634,6 +892,8 @@ class Orchestrator:
                 "stages": {k: (v or {}).get("status") for k, v in (p.get("stages") or {}).items()}, "running": p.get("running"),
                 "model": ev.get("model"), "metric": metric, "held_back_score": _r((ev.get("holdout_metrics") or {}).get(metric)) if metric else None,
                 "last_improvement_run": {"ran_at": rec.get("ran_at"), "tried": len(rec.get("candidates") or []), "best": rec.get("best"), "adopted": rec.get("adopted")} if rec else None,
+                "problem": _problem_now(turn), "table_columns": _columns(turn)[:80],
+                "proposed_problem_change": {k: (turn.agent.store.get(turn.draft_id).get("problem_change") or {}).get(k) for k in ("id", "changes", "status")},
                 "working_now": self.working(turn.draft_id), "pending_offer": (turn.offered or {}).get("tool"), "team": TEAM}
 
     def working(self, draft_id: str) -> list[dict[str, Any]]:
@@ -699,6 +959,10 @@ class Orchestrator:
                     reply, path = self._rules_words(t), "model"
         if reply is None:
             reply = self.rules_turn(t, record)
+        if (t.offered or {}).get("tool") == "confirm_problem_change":  # the offer lives one turn: an unconfirmed proposal it named expires
+            offered_id = (t.offered.get("args") or {}).get("change")
+            self.agent.store.update(draft_id, lambda d: (d.get("problem_change") or {}).update(status="expired", expired_at=now())
+                                    if (d.get("problem_change") or {}).get("status") == "proposed" and (d.get("problem_change") or {}).get("id") == offered_id else None)
         record.update(path=path, reply=reply, tasks=t.tasks, cards=[c.get("title") for c in t.shown.values()])
         self._finish(t, reply, path)
         self._keep(record)
@@ -751,7 +1015,9 @@ class Orchestrator:
         from ..agents import default_registry, harness
 
         registry = default_registry()
-        steps = plan(t.text, t.offered)
+        data = _data_card(t)
+        steps = plan(t.text, t.offered, [c.name for tbl in (data.tables if data is not None else []) for c in tbl.columns])
+        t.change_unclear = problem_change(t.text, ()) == {} and steps == [("show_problem", {})]
         record["plan"] = [{"tool": n, "arguments": a} for n, a in steps]
         with harness.session(RULES_AGENT) as s:
             for name, args in steps:
@@ -763,7 +1029,9 @@ class Orchestrator:
         record["steps"] = [{"tool": n, "arguments": a} for n, a in steps]
         if not steps:
             if NO.match(t.text.strip()) and t.offered:
-                return "All right, I won't start it. Ask for anything else about this project."
+                if t.offered.get("tool") == "confirm_problem_change":  # the proposal is declined, kept as such (the person's answer is a label)
+                    t.agent.store.update(t.draft_id, lambda d: (d.get("problem_change") or {}).update(status="declined", declined_at=now()))
+                return "All right, nothing changes. Ask for anything else about this project."
             return "Here is what I can do for this project. Pick one, or ask in your own words:"
         return self._rules_words(t)
 
@@ -783,6 +1051,17 @@ class Orchestrator:
                 parts.append(f"Adopted {r.get('adopted')} ({r.get('family')}). {r.get('next')}")
             elif task["tool"] == "write_notebook_cell":
                 parts.append("The Notebook coder wrote this cell: read it, then press Run to run it on the training rows only.")
+            elif task["tool"] == "propose_problem_change":
+                r = next((x for x in t.results if isinstance(x, dict) and x.get("proposed")), {})
+                parts.append("The Problem analyst compared the new problem with the one this project was built for: the table above shows what would change. "
+                             + (f"It does not fit the table yet: {r['blocking'][0]}" if r.get("blocking") else
+                                "Say yes to confirm it; the built project stays as it is."))
+            elif task["tool"] == "confirm_problem_change":
+                r = next((x for x in t.results if isinstance(x, dict) and x.get("confirmed")), {})
+                parts.append(f"Confirmed as version {r.get('version')} of the problem. {r.get('next')}")
+            elif task["tool"] == "show_problem" and t.change_unclear:
+                parts.append("The Problem analyst: above is the problem this project answers. Which part changes: the outcome (name its column), "
+                             "the moment the prediction is made, or how far ahead it looks?")
             elif task["tool"] == "improvement_ideas":
                 parts.append("These are the ways this project's own records point to. Say yes and the Experimenter tries them on the training folds now.")
             else:

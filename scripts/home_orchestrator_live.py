@@ -35,6 +35,17 @@ CONVERSATION = [
     ("plot the accuracy of each cross validation fold", {"write_notebook_cell"}, {"improve_model"}),
     ("is there any leakage, and what does the data look like?", {"show_leakage", "show_data"}, {"improve_model"}),
 ]
+# step 1 of connecting understanding (2026-10-21): the person changes the problem on the built chat (columns of the owner's lead table)
+PROBLEM = [
+    ("actually the outcome should be demo_requested, not converted_this_month", {"propose_problem_change"}, {"improve_model"}),
+    ("yes", {"confirm_problem_change"}, {"improve_model"}),
+    ("we should predict conversion within 60 days instead", {"propose_problem_change"}, {"improve_model"}),
+    ("no, the prediction is made when the lead is created, before any email is sent", {"propose_problem_change"}, {"improve_model"}),
+    ("this is the wrong problem", {"show_problem"}, {"improve_model", "confirm_problem_change"}),
+    ("actually the target should be lead_id", {"propose_problem_change"}, {"improve_model"}),
+    ("yes", set(), {"improve_model"}),
+]
+SETS = {"default": CONVERSATION, "problem": PROBLEM}
 TURN_CAP_EUR = 0.06
 
 
@@ -122,8 +133,10 @@ def main() -> int:
     ap.add_argument("--cap-eur", type=float, default=0.5)
     ap.add_argument("--yes", action="store_true")
     ap.add_argument("--rules", action="store_true", help="no model: the rules play every turn (spends nothing)")
+    ap.add_argument("--set", default="default", choices=sorted(SETS), help="which conversation: the first one, or the problem changes (step 1)")
     args = ap.parse_args()
-    print(f"Plan: {len(CONVERSATION)} turns on a copy of project {args.project}; each turn at most €{TURN_CAP_EUR}, the run at most €{args.cap_eur}.")
+    conversation = SETS[args.set]
+    print(f"Plan: {len(conversation)} turns on a copy of project {args.project}; each turn at most €{TURN_CAP_EUR}, the run at most €{args.cap_eur}.")
     if not args.yes and not args.rules:
         print("Add --yes to run it (it spends on the configured model).")
         return 0
@@ -137,6 +150,7 @@ def main() -> int:
     home.mkdir(parents=True, exist_ok=True)
     os.environ["DCLAB_AGENT_HOME"] = str(home)  # the run's records (ledger, experience, usage) stay in the copy's workspace
     projects, drafts, draft_id = copy_project(args.project, args.source_url, Path(args.source_home), home)
+    source_solution = projects.get(args.project).get("solution")
     from dclab_rnd.draft import orchestrator as orch
     from dclab_rnd.draft.chat import HomeAgent
     from dclab_rnd.models import installed
@@ -150,7 +164,7 @@ def main() -> int:
     services = Services(home, projects, gateway)
     agent = HomeAgent(drafts, None)
     sheet = []
-    for text, must, must_not in CONVERSATION:
+    for text, must, must_not in conversation:
         if gateway.spent() >= args.cap_eur - TURN_CAP_EUR:
             sheet.append({"text": text, "skipped": "the run's cap would be passed"})
             break
@@ -164,7 +178,10 @@ def main() -> int:
                       "reply": rec.get("reply"), "dropped": rec.get("dropped"), "model_error": rec.get("model_error"), "eur": round(gateway.spent() - before, 6)})
         print(f"{'PASS' if ok else 'FAIL'}  {text!r:62} {rec.get('path')}: {sorted(called)}  €{gateway.spent() - before:.4f}")
     passed = sum(1 for r in sheet if r.get("ok"))
-    summary = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "project": args.project, "turns": len(sheet), "passed": passed,
+    draft = drafts.get(draft_id)
+    summary = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "project": args.project, "set": args.set,
+               "problem_versions": draft.get("problem_versions"), "problem_change": draft.get("problem_change"),
+               "project_solution_unchanged": projects.get(args.project).get("solution") == source_solution, "turns": len(sheet), "passed": passed,
                "spent_eur": gateway.spent(), "turn_cap_eur": TURN_CAP_EUR, "cap_eur": args.cap_eur, "jobs_recorded": services.submitted, "sheet": sheet,
                "chat": drafts.get(draft_id)["messages"]}
     (run / "result.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False, default=str), encoding="utf-8")

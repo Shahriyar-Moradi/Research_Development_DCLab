@@ -56,7 +56,8 @@ PURPOSES: dict[str, Purpose] = {
     "project_answer": Purpose("standard", 60, "the question, facts computed from the project's stage records, and evidence records (with this "
                                            "workspace's accepted lessons: other projects' aggregate results and scope); no rows"),
     "home_orchestrator": Purpose("standard", 90, "a built project's chat: the person's words (redacted) and the conversation's texts, the project's state (stage "
-                                                 "statuses, the chosen model, its metric and held-back score) and what its specialists' tools return from the "
+                                                 "statuses, the chosen model, its metric and held-back score, the problem as built and the table's column "
+                                                 "names) and what its specialists' tools return from the "
                                                  "project's records (model families and their fold scores, recipes, column names flagged by the data and "
                                                  "leakage stages, evaluation measures and confusion counts, an improvement run's ways and gains); never rows or "
                                                  "cell values", keeps_text=True),

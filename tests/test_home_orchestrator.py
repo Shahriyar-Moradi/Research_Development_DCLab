@@ -36,13 +36,33 @@ RECORDS = {
 }
 
 
+def data_card():
+    """The card of a small churn table (column names and bands only), as a built project keeps it."""
+    import numpy as np
+    import pandas as pd
+
+    from dclab_core.datacard import card_of
+
+    rng = np.random.default_rng(0)
+    n = 400
+    frame = pd.DataFrame({"customer_id": [f"c{i}" for i in range(n)], "signup_date": pd.date_range("2025-01-01", periods=n, freq="D"),
+                          "plan": rng.choice(["basic", "pro"], n), "spend": rng.gamma(2.0, 30.0, n).round(2),
+                          "churned": (rng.random(n) < 0.2).astype(int), "churned_60d": (rng.random(n) < 0.3).astype(int)})
+    return card_of({"churn.parquet": frame}, target="churned").model_dump(mode="json")
+
+
+CARD = None
+
+
 class Projects:
     """The project store's surface the orchestrator reads, on one built project."""
 
     def __init__(self, home):
+        global CARD
+        CARD = CARD or data_card()
         self.home = home
-        self.doc = {"id": "p1", "name": "Churn", "solution": {"target": "churned", "task": "binary"}, "running": None,
-                    "stages": {k: {"status": "completed"} for k in RECORDS}}
+        self.doc = {"id": "p1", "name": "Churn", "solution": {"target": "churned", "task": "binary", "prediction_moment": "At the monthly snapshot of each customer."},
+                    "running": None, "stages": {k: {"status": "completed"} for k in RECORDS}, "data": {"filename": "churn.parquet", "card": CARD}}
 
     def get(self, pid):
         return json.loads(json.dumps(self.doc))
@@ -253,6 +273,101 @@ class RulesTests(unittest.TestCase):
         self.assertIn("show_models", {e.payload.get("tool") for e in steps})
 
 
+class ProblemAnalystTests(unittest.TestCase):  # step 1 of connecting understanding to the built chat (the owner, 2026-10-21)
+    def setUp(self):
+        env = mock.patch.dict(os.environ, {"DCLAB_NO_LIVE_MODELS": "1"})
+        env.start()
+        self.addCleanup(env.stop)
+
+    def test_a_changed_outcome_is_shown_before_and_after_and_a_yes_confirms_it_without_touching_the_project(self):
+        chat = Chat(self)
+        new = chat.since("actually the outcome should be churned_60d, not churned")
+        card = next(m for m in new if m["kind"] == "project_card")["card"]
+        self.assertEqual(card["title"], "What would change")
+        self.assertEqual(card["rows"], [{"field": "the outcome column", "before": "churned", "after": "churned_60d"}])
+        self.assertTrue(any("new problem" in line for line in card["lines"]))  # what it means: a fresh split, everything redone
+        self.assertEqual(card["agent"], "Problem analyst")
+        self.assertIn("Yes, confirm it", new[-1]["chips"])
+        new = chat.since("yes, confirm it")
+        draft = chat.store.get(chat.draft)
+        self.assertEqual(draft["problem_change"]["status"], "confirmed")
+        self.assertEqual(len(draft["problem_versions"]), 1)
+        self.assertIn("Confirmed as version", new[-1]["text"])
+        self.assertEqual(chat.services.projects.doc["solution"]["target"], "churned")  # the built project is not changed
+        self.assertEqual(chat.services.submitted, [])
+
+    def test_confirmed_changes_add_up_and_a_replaced_proposal_is_said(self):  # live, 2026-10-21
+        chat = Chat(self)
+        chat.say("actually the outcome should be churned_60d, not churned")
+        t = orch.Turn(chat.services, "p1", chat.draft, chat.agent, "x")
+        self.assertIn("error", orch.confirm_problem_change(t))  # never confirmed without the person having been asked (the review)
+        t.offered = {"tool": "confirm_problem_change", "args": {"change": chat.store.get(chat.draft)["problem_change"]["id"]}}
+        self.assertIn("confirmed", orch.confirm_problem_change(t, change="outcome: churned -> churned_60d"))  # named in words: still the pending one
+        new = chat.since("we should predict churn within 60 days instead")
+        self.assertEqual(chat.store.get(chat.draft)["problem_change"]["problem"]["outcome"], "churned_60d")  # on top of the confirmed version
+        new = chat.since("no, the prediction should be made at signup")
+        card = next(m for m in new if m["kind"] == "project_card")["card"]
+        self.assertTrue(any("replaces the earlier proposal" in n for n in card["notes"]))
+        facts = dict(next(m for m in chat.since("what are we predicting?") if m["kind"] == "project_card")["card"]["facts"])
+        self.assertEqual(facts["The outcome column"], "churned_60d")
+        self.assertIn("still answers", " ".join(str(v) for v in facts.values()))
+
+    def test_the_reviews_messages_are_read_as_they_mean(self):  # the review, 2026-10-21: refusals never act; ordinary requests stay ordinary
+        cols = ["customer_id", "plan", "churned", "churned_60d"]
+        for said in ("don't improve it", "no, don't improve it, show the models", "stop the improvement run", "cancel, don't adopt it",
+                     "no don't adopt the best way", "no, don't write a cell"):
+            self.assertFalse({n for n, _ in orch.plan(said, {"tool": "improve_model"}, cols)} & {"improve_model", "adopt_improvement", "write_notebook_cell"}, said)
+        self.assertEqual([n for n, _ in orch.plan("plot the predictions in a different color", None, cols)], ["write_notebook_cell"])
+        self.assertEqual([n for n, _ in orch.plan("change the 30-day features", None, cols)], ["show_features"])
+        self.assertNotIn("propose_problem_change", [n for n, _ in orch.plan("why does it predict wrong on the plan column", None, cols)])
+        self.assertNotEqual([n for n, _ in orch.plan("improve the predictions instead", None, cols)], ["show_problem"])
+
+    def test_an_unanswered_proposal_expires_and_cannot_be_confirmed_later(self):
+        chat = Chat(self)
+        chat.say("we should predict churn within 60 days instead")
+        chat.say("show the models")  # the offer was not answered
+        self.assertEqual(chat.store.get(chat.draft)["problem_change"]["status"], "expired")
+        chat.say("yes")
+        self.assertNotIn("problem_versions", chat.store.get(chat.draft))
+
+    def test_no_declines_the_proposal(self):
+        chat = Chat(self)
+        chat.say("we should predict churn within 60 days instead")
+        self.assertIn("nothing changes", chat.since("No, keep the problem as built")[-1]["text"])
+        self.assertEqual(chat.store.get(chat.draft)["problem_change"]["status"], "declined")
+
+    def test_a_horizon_and_a_moment_are_read_from_the_words(self):
+        chat = Chat(self)
+        card = next(m for m in chat.since("we should predict churn within 60 days instead") if m["kind"] == "project_card")["card"]
+        self.assertEqual(card["rows"][0]["after"], "60 days")
+        card = next(m for m in chat.since("no, the prediction should be made at signup") if m["kind"] == "project_card")["card"]
+        self.assertEqual(card["rows"][0]["field"], "the prediction moment")
+
+    def test_an_outcome_that_cannot_be_one_is_never_confirmed(self):
+        chat = Chat(self)
+        new = chat.since("actually the target should be customer_id")
+        self.assertIn("does not fit the table", new[-1]["text"])
+        chat.since("yes")
+        self.assertNotEqual(chat.store.get(chat.draft)["problem_change"]["status"], "confirmed")
+
+    def test_words_that_change_the_problem_without_saying_how_ask_which_part(self):
+        chat = Chat(self)
+        new = chat.since("this is the wrong problem")
+        self.assertEqual(next(m for m in new if m["kind"] == "project_card")["card"]["title"], "The problem this project answers")
+        self.assertIn("Which part changes", new[-1]["text"])
+        self.assertEqual([n for n, _ in orch.plan("try lightgbm instead", None, ["churned"])], ["show_models"])  # a model is not a problem
+        self.assertEqual(orch.plan("actually the outcome should be churned_60d, not churned", None, ["churned", "churned_60d", "converted_this_month"])[0][1]["outcome"],
+                         "churned_60d")  # the column after "not" is the old one, whatever its length
+        self.assertEqual([n for n, _ in orch.plan("no, show the models", {"tool": "improve_model"}, [])], ["show_models"])
+        self.assertEqual(orch.plan("no thanks", {"tool": "improve_model"}, []), [])
+
+    def test_a_column_that_is_not_in_the_table_is_said(self):
+        chat = Chat(self)
+        t = orch.Turn(chat.services, "p1", chat.draft, chat.agent, "x")
+        out = orch.propose_problem_change(t, outcome="revenue_next_year")
+        self.assertIn("not a column", out["error"])
+
+
 class ModelTests(unittest.TestCase):
     def setUp(self):
         env = mock.patch.dict(os.environ, CLEAN)
@@ -298,6 +413,15 @@ class ModelTests(unittest.TestCase):
         board = next(m for m in new if m["kind"] == "task_board")
         self.assertEqual([t["status"] for t in board["tasks"]], ["running"])
         self.assertIn("Experimenter", new[-2]["text"] if new[-2]["kind"] == "project_answer" else new[-1]["text"] + json.dumps(new))
+
+    def test_the_model_proposes_a_problem_change_and_confirms_it_on_a_yes(self):
+        gw = gateway([call("propose_problem_change", {"horizon": "60 days", "said": "churn in 60 days"}, 1), answer("Here is what would change. Confirm?"),
+                      call("confirm_problem_change", {}, 2), answer("Confirmed.")])
+        chat = Chat(self, gw)
+        chat.say("we care about churn in 60 days, not 30")
+        chat.say("yes")
+        self.assertEqual(chat.store.get(chat.draft)["problem_change"]["status"], "confirmed")
+        self.assertIn("table_columns", Seen.prompts[0])  # the model sees the table's column names to name an outcome exactly
 
     def test_a_failing_model_leaves_the_turn_to_the_rules(self):
         chat = Chat(self, gateway([]))  # the script is empty: the first request fails

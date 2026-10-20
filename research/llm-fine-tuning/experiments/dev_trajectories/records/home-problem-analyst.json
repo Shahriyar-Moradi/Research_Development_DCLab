@@ -1,0 +1,175 @@
+{
+  "package": "home-problem-analyst",
+  "title": "The Problem analyst in a built project's chat: a changed problem shown before and after, checked against the table, confirmed as a version",
+  "date": "2026-10-21",
+  "request": "Start step 1: the problem analyst in the built chat (connect the Home orchestrator to problem understanding).",
+  "spec": "Once a project was built, nothing in its chat could handle 'the outcome should be another column', 'we score at signup' or 'within 60 days, not 30'; the orchestrator's team only read records and improved the model.",
+  "plan": [
+    "A fifth specialist, the Problem analyst, with tools show_problem, propose_problem_change and confirm_problem_change in the scope 'home'",
+    "A proposal is built from the draft's problem card with the changes, checked with dclab_core.meet against the project's data card, its consequences by rule",
+    "Nothing changes in the built project; a confirmed change is kept as a version of the problem on the chat",
+    "Rules read the change from the words when no model serves; the model gets the problem and the table's column names",
+    "Capture: the orchestrator's turns kept by the store; its agents registered with their capture tasks"
+  ],
+  "decisions": [
+    {
+      "decision": "A changed problem never edits the built project.",
+      "why": "A new outcome or moment is another problem: its results need a fresh held-back split; the old one was read for the first problem."
+    },
+    {
+      "decision": "The fit with the table is the existing meet check, and a blocking mismatch cannot be confirmed by a yes.",
+      "why": "One rule for problem and data everywhere; an identifier as the outcome is refused, whoever proposes it."
+    },
+    {
+      "decision": "One change is pending at a time; a yes confirms it, whatever the model names it.",
+      "why": "Live: the model passed a description instead of the id and the first confirmation failed."
+    },
+    {
+      "decision": "Confirmed versions add up; a proposal that replaces an unconfirmed one says so.",
+      "why": "Live: a later proposal was compared with the problem as built and silently dropped the earlier unconfirmed change."
+    }
+  ],
+  "change": "dclab_rnd/draft/orchestrator.py (the analyst's tools, problem_change rules, the situation's problem and columns, declining), dclab_rnd/prompts/home_orchestrator.md, dclab_rnd/models/settings.py (what the purpose may see), dclab_rnd/store/tasks.py and keepers/standard.py and shapers.py (the orchestrator agents and their turns kept), tests/test_home_orchestrator.py, scripts/home_orchestrator_live.py (the problem conversation).",
+  "findings": [
+    {
+      "id": "P1",
+      "source": "owner",
+      "severity": "gap",
+      "defect": "A built chat could not take a changed problem.",
+      "scenario": "The person says the outcome should be another column.",
+      "cause": "The understanding agents ended at the build.",
+      "fix": "The Problem analyst's three tools and their rules.",
+      "test": "test_a_changed_outcome_is_shown_before_and_after_and_a_yes_confirms_it_without_touching_the_project"
+    },
+    {
+      "id": "P2",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "An identifier proposed as the outcome was not flagged.",
+      "scenario": "A draft without a table profile; the target customer_id.",
+      "cause": "card_of sets the outcome column only when the draft's profile lists it.",
+      "fix": "The named outcome and time column are put on the checked card directly.",
+      "test": "test_an_outcome_that_cannot_be_one_is_never_confirmed"
+    },
+    {
+      "id": "P3",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "The rules picked the old outcome as the new one.",
+      "scenario": "'the outcome should be demo_requested, not converted_this_month'.",
+      "cause": "The longest column named won; the old one was longer.",
+      "fix": "A column after not, instead of, rather than or from is the old one.",
+      "test": "test_words_that_change_the_problem_without_saying_how_ask_which_part"
+    },
+    {
+      "id": "P4",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "'no, the prediction is made when ...' was read as declining.",
+      "scenario": "A correction that starts with no.",
+      "cause": "NO was checked before the change; the moment pattern missed 'is made when'.",
+      "fix": "The change is read first; the moment pattern takes is, are, made; after a no, the rest of the sentence is planned.",
+      "test": "test_a_horizon_and_a_moment_are_read_from_the_words"
+    },
+    {
+      "id": "P5",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "The first confirmation failed live.",
+      "scenario": "The model named the change in words.",
+      "cause": "confirm required the pending change's id.",
+      "fix": "One change is pending at a time: a yes confirms it.",
+      "test": "test_confirmed_changes_add_up_and_a_replaced_proposal_is_said"
+    },
+    {
+      "id": "P6",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "A later proposal was compared with the problem as built and dropped an unconfirmed change silently.",
+      "scenario": "Outcome confirmed, then a horizon, then a moment.",
+      "cause": "Proposals read the built problem; a new proposal replaced the pending one without a word.",
+      "fix": "Confirmed versions keep the whole problem and add up; a replaced proposal is said on the card.",
+      "test": "test_confirmed_changes_add_up_and_a_replaced_proposal_is_said"
+    },
+    {
+      "id": "P7",
+      "source": "self",
+      "severity": "gap",
+      "defect": "The orchestrator's turns were not kept by the store, and its two agents had no capture tasks.",
+      "scenario": "The store's conductor over a workspace with built chats.",
+      "cause": "home_orchestrator/ had no claim; AGENT_TASKS lacked home.project and home.project.rules.",
+      "fix": "A claim and a shaper for home_orchestrator/; the two agents' tasks.",
+      "test": "tests/test_store.py agent-tasks check"
+    },
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A refusal started what it refused.",
+      "scenario": "'no, don't improve it' queued the improvement job; 'cancel, don't adopt it' adopted.",
+      "cause": "After a no, the rest was planned again with its own negation stripped.",
+      "fix": "The rest is read only after a bare no or nope, and never when it is itself a refusal.",
+      "test": "test_the_reviews_messages_are_read_as_they_mean"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Ordinary requests were taken as a changed problem.",
+      "scenario": "'plot the predictions in a different color', 'change the 30-day features', 'why does it predict wrong on the plan column'.",
+      "cause": "Loose words (different, wrong, predict), any column named, any N-day.",
+      "fix": "An outcome only right after an outcome phrase, a horizon only beside a word of the outcome and never before 'features'; the which-part fallback after every other reading.",
+      "test": "test_the_reviews_messages_are_read_as_they_mean"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "A change could be confirmed without the person's yes.",
+      "scenario": "A proposal left pending, then a model's confirm after a yes meant for something else.",
+      "cause": "confirm ignored whether the person was asked; a pending change never expired.",
+      "fix": "Confirm needs the offer of the turn before; an unanswered proposal expires.",
+      "test": "test_an_unanswered_proposal_expires_and_cannot_be_confirmed_later"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "A confirmation could write an older proposal over a newer one.",
+      "scenario": "A proposal stored between the read and the update.",
+      "cause": "The value confirmed was read before store.update.",
+      "fix": "The stored proposal is read again inside the update and confirmed only if it is the same one.",
+      "test": "none (turns are serialised per draft)"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "The problem conversation on a copy of the owner's lead project (Claude Sonnet 5.5)",
+      "gate": "each turn calls the analyst's tool it must, never the Experimenter; the built project unchanged",
+      "result": "run 1: 7/7 (EUR 0.067) with two behaviours fixed after; run 2: 7/7 (EUR 0.067), the project's solution unchanged, one version confirmed; run 3 after the review: 7/7 (EUR 0.062)",
+      "verdict": "pass",
+      "limits": [
+        "seven turns written by the builder, one project",
+        "the sealed journeys of model roles were not run: this is the orchestrator's purpose, not the roles'"
+      ]
+    },
+    {
+      "name": "The same conversation, rules only",
+      "gate": "each turn calls the tool it must and none it must not",
+      "result": "7/7 after P3 and P4; after the review: 7/7, and the first conversation 9/9",
+      "verdict": "pass",
+      "limits": [
+        "the rules read three parts (outcome, moment, horizon); unit and kind changes need the model or the words of a column"
+      ]
+    }
+  ],
+  "outcome": "In a built chat the person can change the problem; the analyst shows what would change and whether it fits the table, and keeps the confirmed problem as a version while the built project stays as it is.",
+  "lessons": [
+    "Before trusting a 'longest match', ask which mention is the old value: words like not and instead mark it.",
+    "A new agent needs its capture registered, or the store loses its records."
+  ],
+  "risks": [
+    "A confirmed version is not built yet: step 2 (the Solution planner) turns it into a new project version."
+  ],
+  "commits": []
+}

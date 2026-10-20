@@ -7,6 +7,8 @@ from __future__ import annotations
 AGENT_TASKS: dict[str, tuple[str, ...]] = {
     "home": ("agent_step", "conversation_turn", "decision", "model_request"),
     "home.script": ("agent_step", "conversation_turn", "decision"),
+    "home.project": ("agent_step", "conversation_turn", "model_request", "audit_row"),  # the Home orchestrator on a built project (2026-10-20)
+    "home.project.rules": ("agent_step", "conversation_turn", "audit_row"),
     "intern": ("agent_step", "intern_session", "conversation_turn", "model_request"),
     "intern.standard": ("agent_step", "intern_session"),
     "workspace_chat": ("agent_step", "conversation_turn", "model_request", "audit_row"),

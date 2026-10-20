@@ -46,6 +46,7 @@ CLASSES: tuple[tuple[str, str, re.Pattern], ...] = tuple((k, p, re.compile(rx)) 
     ("conversations", "drafts/", r"^drafts/"),
     ("conversations", "intern/", r"^intern/"),
     ("conversations", "workspace_chat/", r"^workspace_chat/"),
+    ("conversations", "home_orchestrator/", r"^home_orchestrator/"),  # the Home orchestrator's turns on built projects, each kept whole
     ("conversations", "twin/", r"^twin/"),
     ("conversations", "mcp/", r"^mcp/"),
     ("agents", "claude_code/", r"^claude_code/"),  # a tester's own sessions, as their share brought them (kept by the agents keeper)

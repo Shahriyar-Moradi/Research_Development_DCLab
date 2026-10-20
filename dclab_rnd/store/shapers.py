@@ -167,7 +167,7 @@ def _type(kind: str, source: str, doc: dict[str, Any]) -> str:
             "interrupt" if "interrupt" in name else "walk" if "walk" in name else "snapshot"
     if kind == "conversations":
         return "intern_session" if "/versions/" in source or name.startswith("intern_session") else \
-            "turn" if source.startswith(("workspace_chat/", "drafts/", "db/draft_event")) and name.endswith(".jsonl") else \
+            "turn" if source.startswith(("workspace_chat/", "home_orchestrator/", "drafts/", "db/draft_event")) and name.endswith(".jsonl") else \
             "mcp_call" if source.startswith("mcp/") else "snapshot"
     if kind == "actions" and source.startswith("metrics/"):  # the agents' metrics ledger: a measurement of an agent
         return "metric"
