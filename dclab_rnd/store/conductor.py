@@ -116,6 +116,7 @@ def conduct(env: Any = None, layout: Optional[Layout] = None, keepers: Optional[
     store = Store(layout)
     keepers = standard.install() if keepers is None else keepers
     env = dict(env) if isinstance(env, dict) else {"services": env} if env is not None else {}
+    env.setdefault("store_root", str(layout.root))  # the keepers that keep local state beside the store (the people keeper's salt) read it
     scope = "one" if env.get("only") else "all"
     run = f"store-{scope}-{uuid.uuid4().hex[:12]}"
     record: dict[str, Any] = {"id": run, "scope": scope, "started": now(), "context": context(), "steps": []}

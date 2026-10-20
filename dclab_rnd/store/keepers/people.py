@@ -33,10 +33,10 @@ from typing import Any, Iterator
 from . import Claim, Keeper, Source
 
 
-def _state_dir() -> Path:
+def _state_dir(env: Any = None) -> Path:
     from ..layout import Layout
 
-    root = Layout().root
+    root = Path(env["store_root"]) if isinstance(env, dict) and env.get("store_root") else Layout().root  # the run's own store
     return root.with_name(root.name + ".people")  # beside the store, not in it: the store is pushed
 
 
@@ -114,7 +114,7 @@ def sources(env: Any) -> Iterator[Source]:
 
     base = Path(env["agent_runs"]) if isinstance(env, dict) and env.get("agent_runs") else AGENT_RUNS
     only = Path(env["only"]).resolve() if isinstance(env, dict) and env.get("only") else None
-    folder = _state_dir()
+    folder = _state_dir(env)
     state = _load(folder)
     tmp = Path(tempfile.mkdtemp(prefix="dclab-people-"))
     try:
