@@ -755,6 +755,9 @@ DC.view('home', {
           + `<div class="table-wrap"><table class="data"><thead><tr><th>Column</th><th>Kind</th><th></th></tr></thead><tbody>${cols}</tbody></table></div>`
           + (pr.note ? `<div class="callout warn small"><span>${esc(pr.note)}</span></div>` : '') + '</div>'
           + `<div class="row"><button type="button" class="btn primary sm" data-syn-approve="${esc(pr.id)}">Approve and create the data</button><button type="button" class="btn sm" data-syn-change="${esc(pr.id)}">Change it</button><button type="button" class="btn sm ghost" data-syn-drop="${esc(pr.id)}">Not now</button></div>`;
+      } else if (m.kind === 'project_answer') {
+        body = `<p>${esc(m.text)}</p>${(m.lines || []).length ? `<ul class="plain">${m.lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>` : ''}`
+          + ((m.proof || []).length ? `<div class="row small"><span class="pill proof">cites</span>${DC.chips(m.proof)}</div>` : '');
       } else {
         body = `<p>${esc(m.text)}</p>${(m.actions || []).length ? `<div class="row">${m.actions.includes('upload') ? '<button type="button" class="btn sm" data-open-bring="upload">Upload a sample</button>' : ''}${m.actions.includes('connect') ? '<button type="button" class="btn sm" data-open-bring="kaggle">Connect a source</button>' : ''}${m.actions.includes('simulate') ? '<button type="button" class="btn sm" data-open-bring="synthetic">Simulate data</button>' : ''}${m.actions.includes('confirm_map') ? '<button type="button" class="btn primary sm" data-map-build="1">Confirm the map and build</button>' : ''}</div>${m.actions.includes('show_map') ? '<div class="stack tight" data-map-box="1"></div>' : ''}` : ''}`;
       }

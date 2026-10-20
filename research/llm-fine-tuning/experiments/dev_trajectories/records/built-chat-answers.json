@@ -1,0 +1,54 @@
+{
+ "package": "built-chat-answers",
+ "title": "A built project's chat answers about the project: how to improve it, from its own records",
+ "date": "2026-10-20",
+ "request": "I asked in the chat how we can improve the model (it was built): is the answer right?",
+ "spec": "The Home chat of a built project ran the plan-building agent, so a question about improving the model got the plan summary again.",
+ "plan": [
+  "Route a message on a built chat to the project's records, not the plan turn",
+  "An improve intent in the project answer agent that reads advice out of the numbers",
+  "Render the advice as a list with its cited rules"
+ ],
+ "decisions": [
+  {
+   "decision": "Each suggestion appears only when a number in the records supports it (an interval too wide, a gap between the folds and the holdout, models within one fold spread, the recipe chosen, tuning's gain, the cutoff).",
+   "why": "An answer about a model must rest on its evidence, not on general advice; a record without the evidence gets only where it stands."
+  },
+  {
+   "decision": "The route changes for a built draft only; an open draft's chat is unchanged.",
+   "why": "The plan-building turn is right until the project is built."
+  }
+ ],
+ "change": "draft/chat.py (reply_built), draft/api.py (message route), studio/agent.py (improvements, IMPROVE), views/home.html (project_answer message), tests/test_built_chat.py.",
+ "findings": [
+  {
+   "id": "B1",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "Asked how to improve a built model, the chat summarised the plan again.",
+   "scenario": "After a project was built, the person reopened its chat and asked how to improve the model; the reply was Here is the solution I would build.",
+   "cause": "The messages route sent every message to the plan-building agent, whatever the draft's status; the reopened chat (an earlier fix) made it reachable.",
+   "fix": "A built draft's messages are answered from the project's records; the project answer agent gained an improve intent.",
+   "test": "tests/test_built_chat.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The improve answer on a project's records",
+   "gate": "each suggestion cites a number in the records; none without its evidence",
+   "result": "with the shapes of a real project: where it stands with its interval and baseline, more cases (interval 0.1 wide), the fold-to-holdout gap, models within one spread, the recipe, tuning, the cutoff",
+   "verdict": "pass",
+   "limits": [
+    "advice from numbers is general: it names where to look, it does not run the experiments"
+   ]
+  }
+ ],
+ "outcome": "A person asking a built project's chat how to improve it gets advice read from that project's own numbers.",
+ "lessons": [
+  "A feature that makes a state reachable (reopening a built chat) must check what the next step does in that state."
+ ],
+ "risks": [
+  "A model-written answer (llm_answer) is used when a model serves the purpose; its quality was not measured."
+ ],
+ "commits": []
+}

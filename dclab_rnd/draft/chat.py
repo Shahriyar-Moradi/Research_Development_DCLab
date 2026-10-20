@@ -553,6 +553,29 @@ class HomeAgent:
         self.refresh_workflow(draft_id)
 
     @turn
+    def reply_built(self, draft_id: str, text: str, answerer: Any) -> None:
+        """A message on the chat of a project that is built (the owner, 2026-10-20: asked how to improve the model, the chat
+        summarised the plan again). The conversation that built the project is over; the person is now asking about the project,
+        so the answer comes from the project's own records (``answerer(question)``: dclab_rnd.studio.agent.answer), never from
+        the plan-building turn. A word to build again is answered by saying it is built."""
+        text = text.strip()[:2000]
+        msg = {"id": "u" + secrets.token_hex(5), "role": "user", "kind": "text", "text": text, "at": now()}
+        self.store.update(draft_id, lambda d: d["messages"].append(msg))
+        self.store.emit(draft_id, "chat", msg)
+        if BUILD_WORDS.search(text):
+            self.say(draft_id, "This chat's project is already built. Open it from Projects, or start a new project from a new chat.")
+            return
+        try:
+            result = answerer(text)
+        except Exception:  # noqa: BLE001 - the project could not be read just now: said, never a silence
+            result = None
+        if not result:
+            self.say(draft_id, "I could not read this project's records just now. Open the project's pages (Models, Evaluation, Reliability) or ask in the Intern.")
+            return
+        lines = [str(x) for x in (result.get("steps") or [])][:12]
+        body = str(result.get("llm_answer") or (result.get("answer") if not lines else "How this project can be improved, from its own records:") or "")
+        self.say(draft_id, body, kind="project_answer", lines=lines, proof=[str(x) for x in (result.get("proof") or [])][:8])
+
     def reply(self, draft_id: str, text: str) -> None:
         """A user message: store it, then let the model (or the script) answer."""
         text = text.strip()[:2000]

@@ -371,6 +371,15 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         busy = await asyncio.to_thread(answering, draft_id)  # first: nothing awaits between the check below and registering the turn
         if busy or ((draft_id + ":agent") in jobs and not jobs[draft_id + ":agent"].done()):
             raise HTTPException(409, "The agent is still answering")
+        built = get(draft_id).get("project_id")
+        if built and projects is not None:  # a built project's chat: the person asks about the project, which answers from its records
+            def about_project(question: str) -> dict[str, Any]:
+                from ..studio import agent as studio_agent
+
+                records = projects.records(built)
+                return studio_agent.answer(question, projects.get(built), records, next((r["task_type"] for r in records.values()), None))
+            background(draft_id + ":agent", lambda: agent(draft_id).reply_built(draft_id, text, about_project))
+            return {"accepted": True}
         background(draft_id + ":agent", lambda: (agent(draft_id).reply(draft_id, text), twin_after(draft_id, "reply", text)))
         return {"accepted": True}
 

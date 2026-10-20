@@ -222,6 +222,63 @@ def narrate(stage: str, record: dict[str, Any], solution: dict[str, Any], task_t
 # ---------------------------------------------------------------------- questions
 
 
+IMPROVE = ("improve", "improvement", "better", "boost", "increase the", "enhance", "raise the", "make it more accurate", "what next", "next step", "how can we get")
+
+
+def improvements(records: dict[str, dict[str, Any]]) -> tuple[list[str], list[str]]:
+    """What the project's own records say would help, most useful first, each a sentence from a number in them; and the rules and
+    precedents it rests on. Nothing is invented: a suggestion appears only when its evidence is there."""
+    out: list[str] = []
+    proof: list[str] = ["DCLAB-R17", "DCLAB-R22"]
+    final = (records.get("final") or {}).get("evidence") or {}
+    metric = (records.get("final") or {}).get("primary_metric") or "score"
+    held = (final.get("holdout_metrics") or {}).get(metric)
+    ci = final.get("holdout_primary_metric_ci") or {}
+    cv = final.get("cv_selected_metric_mean")
+    baselines = final.get("baselines") or {}
+    base = next((b.get(metric) for b in baselines.values() if isinstance(b, dict) and isinstance(b.get(metric), (int, float))), None)
+    if isinstance(held, (int, float)):
+        line = f"Where it stands: holdout {metric} {_fmt(held)}"
+        if ci.get("low") is not None:
+            line += f" (95% {_fmt(ci['low'])} to {_fmt(ci['high'])})"
+        if base is not None:
+            line += f", against {_fmt(base)} for the plainest baseline"
+        out.append(line + ". The holdout was read once, so no choice may be tuned on it again; every idea below is tried on the training folds first.")
+    if isinstance(ci.get("low"), (int, float)) and isinstance(ci.get("high"), (int, float)) and ci["high"] - ci["low"] > 0.08:
+        out.append(f"More cases would help first: the interval is {_fmt(ci['high'] - ci['low'], 3)} wide on {final.get('holdout_rows')} held-back and {final.get('train_rows')} training rows, "
+                   "so small changes in the score cannot be told from luck until there are more rows, and especially more of the rare outcome.")
+    gap = final.get("cv_to_holdout_gap")
+    if isinstance(gap, (int, float)) and cv is not None and abs(gap) > 0.03:
+        out.append(f"The folds said {_fmt(cv)} and the holdout {_fmt(held)}: a gap of {_fmt(abs(gap), 3)}. "
+                   + ("The holdout was harder than the folds; look at what changes over time (drift, a new source, a changed definition) before adding model complexity."
+                      if isinstance(held, (int, float)) and held < cv else "The holdout was easier than the folds; the folds are the cautious estimate."))
+        proof.append("DCLAB-R03")
+    ranking = ((records.get("models") or {}).get("evidence") or {}).get("ranking") or []
+    if ranking:
+        top = ranking[0]
+        near = [r["model"] for r in ranking[1:] if isinstance(r.get("mean"), (int, float)) and isinstance(top.get("mean"), (int, float)) and top["mean"] - r["mean"] < (top.get("std") or 0)]
+        out.append(f"Models: {top['model']} won the screen ({_fmt(top.get('mean'))}±{_fmt(top.get('std'))})"
+                   + (f"; {', '.join(near)} are within one fold spread of it, so they are not worse by evidence. " if near else ". ")
+                   + "A stronger family only helps if the features give it more to find: change the features before the model.")
+    fe = ((records.get("features") or {}).get("evidence")) or {}
+    if fe.get("selected_recipe"):
+        gain = fe.get("selected_vs_reference_gain")
+        out.append(f"Features: the recipe `{fe['selected_recipe']}` was selected" + (f", {_fmt(gain)} over the plain one" if isinstance(gain, (int, float)) else "")
+                   + ". New columns that are known at the prediction moment (counts or recency from event tables, text of a long free-text field, a related table joined by an id) are the usual source of a real gain; each must be added inside the folds.")
+        proof.append("DCLAB-R02")
+    tuning = final.get("tuning_decision") or {}
+    if isinstance(tuning.get("gain"), (int, float)):
+        out.append(f"Tuning gave {_fmt(tuning['gain'])} against a required {_fmt(tuning.get('required_gain'))}: " + ("it cleared the margin and was kept; further search has little left to give." if tuning.get("accepted") else "it did not clear the margin, so the defaults stand."))
+    thresholds = final.get("threshold_analysis") or []
+    if thresholds:
+        out.append("The cutoff is a choice about use, not about the model: moving it trades recall against precision (the Evaluation page shows the confusion matrix at each). Choose it from the cost of a miss against the cost of a false alarm.")
+    for item in ((records.get("models") or {}).get("evidence") or {}).get("review") or []:
+        if isinstance(item, dict) and item.get("text"):
+            out.append(str(item["text"])[:300])
+            break
+    return out, proof
+
+
 def answer(question: str, project: dict[str, Any], records: dict[str, dict[str, Any]], task_type: str | None) -> dict[str, Any]:
     """Evidence-first answer: project facts when the question is about this project, R&D records otherwise."""
     q = question.strip()
@@ -246,6 +303,11 @@ def answer(question: str, project: dict[str, Any], records: dict[str, dict[str, 
         ci = ev["holdout_primary_metric_ci"]
         facts.append(f"Holdout {records['final']['primary_metric']}: {_fmt(ev['holdout_metrics'][records['final']['primary_metric']])} (95% {_fmt(ci['low'])}–{_fmt(ci['high'])}), used {ev.get('holdout_uses_in_this_project', 1)} time(s); not production-approved.")
         proof += ["DCLAB-R17", "DCLAB-R22"]
+    steps: list[str] = []
+    if any(w in lowered for w in IMPROVE) and "final" in records:  # how to improve it: from the project's own numbers
+        steps, more = improvements(records)
+        facts += steps
+        proof += more
     filters = {"task_type": TASK_FILTERS.get(task_type or "", None)} if task_type else {}
     hits = _index().search(q, k=4, **{k: v for k, v in filters.items() if v}) or _index().search(q, k=4)
     for h in hits:
@@ -257,7 +319,7 @@ def answer(question: str, project: dict[str, Any], records: dict[str, dict[str, 
         text += (" " if text else "") + "Relevant evidence: " + " · ".join(evidence_text[:4]) + "."
     if not text:
         text = "I could not match that to the project or the evidence. Try naming a column, a stage or a rule."
-    result = {"question": q, "answer": text, "proof": proof[:8], "source": "evidence"}
+    result = {"question": q, "answer": text, "proof": proof[:8], "source": "evidence", **({"steps": steps} if steps else {})}
     llm = llm_answer(q, facts, hits, project.get("id"))
     if llm:
         result["llm_answer"] = llm
