@@ -1,0 +1,36 @@
+{
+  "package": "home-solution-planner",
+  "title": "The Solution planner: a confirmed problem version planned and built as a new project version from the built chat",
+  "date": "2026-10-21",
+  "request": "Go on with step 2: the Solution planner turns a confirmed problem version into a new version of the project.",
+  "spec": "Step 1 kept a confirmed problem change on the chat, but nothing could build it: the person had to start a new chat by hand.",
+  "plan": [
+    "plan_new_version: the leakage audit and the proposal run again on the project's table for the new problem, shown against version 1",
+    "build_new_version: on the person's yes, a new chat for the version on the same table, built through the same path as build it on Home",
+    "Version 1 never changes; the two linked both ways; a horizon or unit change alone is refused with what is missing"
+  ],
+  "decisions": [
+    {"decision": "Build through quick_build in a new draft, not a new code path.", "why": "The same proposal, leakage review, build checks and agent start as any build: one path to trust and capture."},
+    {"decision": "The new version never forbids less than before: every earlier outcome, version 1's forbidden columns, then the audit's.", "why": "A column a person ticked as unknown at the moment stays unknown when only the outcome changes."},
+    {"decision": "Building needs the plan's offer from the turn before and the person's yes in their words.", "why": "Building creates a project and starts an agent that spends: an offer alone is not consent."},
+    {"decision": "Say what the held-back rows are: the same period as version 1's, read once for the new outcome.", "why": "With the same table and time column the split is the same; calling it fresh overstated it."}
+  ],
+  "change": "dclab_rnd/draft/orchestrator.py (the planner's tools, cannot_build, _forbidden_for, VERSION_BUILD, the confirm offer), dclab_rnd/draft/chat.py, dclab_rnd/prompts/home_orchestrator.md, tests/test_home_orchestrator.py, scripts/home_orchestrator_live.py (a version set).",
+  "findings": [
+    {"id": "V1", "source": "measurement", "severity": "behaviour", "defect": "The real build refused: the outcome was not named.", "scenario": "A built chat without its table's analysis (the copy in the browser check).", "cause": "quick_build reads the columns from the draft's analysis; the version's chat had none.", "fix": "The version's chat gets the project's columns and profile when the old chat has no analysis.", "test": "test_a_confirmed_outcome_is_planned_then_built_as_a_new_version_on_two_yeses"},
+    {"id": "V2", "source": "test", "severity": "behaviour", "defect": "The plan tool refused its own offer.", "scenario": "Build it after a confirmation.", "cause": "The offer passed a version argument the schema did not have.", "fix": "The planner's tools take version.", "test": "SolutionPlannerTests"},
+    {"id": "R1", "source": "reviewer", "severity": "leakage", "defect": "Columns version 1 forbade were dropped in version 2.", "scenario": "v1 forbade a column the audit does not flag; only the outcome changes.", "cause": "The new list was the audit's plus v1's outcome.", "fix": "Version 1's forbidden columns are carried with their reason.", "test": "test_the_new_version_never_forbids_less_than_before"},
+    {"id": "R2", "source": "reviewer", "severity": "leakage", "defect": "A third version did not forbid the second version's outcome, and lost a time column changed earlier.", "scenario": "v1 churned, v2 churned_60d, v3 churned_90d.", "cause": "Only v1's target was added; the time hint read the latest change or v1.", "fix": "Every earlier version's outcome is forbidden; the time column comes from the version's whole problem.", "test": "test_the_new_version_never_forbids_less_than_before"},
+    {"id": "R3", "source": "reviewer", "severity": "behaviour", "defect": "Ordinary requests were taken as build words.", "scenario": "'make a plot of it', 'run that cell' with a version waiting.", "cause": "VERSION_BUILD took create, make, run, start and a bare that.", "fix": "Only build it, build the new version, build version N or a leading build.", "test": "test_build_words_are_strict_and_need_the_persons_yes"},
+    {"id": "R4", "source": "reviewer", "severity": "behaviour", "defect": "The model could build without a yes, and the link raced a running version 1 and the new project's job.", "scenario": "The person clicked Show the problem after the plan; a job runs on v1.", "cause": "Only the offer was checked; whole-document saves.", "fix": "The person's yes in their words is required; v1's link waits while it runs; the new project's link is a field update.", "test": "test_build_words_are_strict_and_need_the_persons_yes"},
+    {"id": "R5", "source": "reviewer", "severity": "behaviour", "defect": "A refused build left an orphan chat per try, and typing build the new version planned again.", "scenario": "A refusal, then plan and yes again.", "cause": "Each try created a draft; the build offer was not read from build words.", "fix": "A retry reuses the version's chat; build words with the build offer pending build.", "test": "test_a_refused_build_reuses_its_chat_on_the_retry"}
+  ],
+  "measurements": [
+    {"name": "Browser check on a copy of the owner's lead project, the real build path", "gate": "version 2 built with the new outcome, the old one forbidden, version 1 unchanged, linked both ways", "result": "built: outcome demo_requested, converted_this_month forbidden, split by created_date, lead_id an identifier, links both ways", "verdict": "pass", "limits": ["no worker ran the new version's stages in the copy"]},
+    {"name": "The version conversation with Claude Sonnet 5.5", "gate": "each turn calls the tool it must and none it must not", "result": "4/4 (EUR 0.029), and 4/4 after the review (EUR 0.030); rules 4/4, and the earlier sets 9/9 and 7/7", "verdict": "pass", "limits": ["the live script's build is the copy's own recorder"]}
+  ],
+  "outcome": "A person can change the problem in a built chat and, on two yeses, get a new project version built from it, never forbidding less than before and leaving version 1 as it was.",
+  "lessons": ["A stub hides what the real path needs: run the real path once before trusting the stub's tests.", "A later version inherits every earlier exclusion: leakage decisions only grow."],
+  "risks": ["The held-back period is version 1's: a new outcome read on it once is honest, but a third outcome on the same rows reads them again for another question."],
+  "commits": []
+}

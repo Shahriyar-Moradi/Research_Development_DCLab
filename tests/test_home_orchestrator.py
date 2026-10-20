@@ -368,6 +368,141 @@ class ProblemAnalystTests(unittest.TestCase):  # step 1 of connecting understand
         self.assertIn("not a column", out["error"])
 
 
+class SolutionPlannerTests(unittest.TestCase):  # step 2 (the owner, 2026-10-21): a confirmed problem version becomes a new project version
+    def setUp(self):
+        env = mock.patch.dict(os.environ, {"DCLAB_NO_LIVE_MODELS": "1"})
+        env.start()
+        self.addCleanup(env.stop)
+        import numpy as np
+        import pandas as pd
+
+        from dclab_rnd.studio import ProjectStore, data
+
+        home = Path(tempfile.mkdtemp())
+        self.projects = ProjectStore(home / "projects")
+        self.store = DraftStore(home / "drafts")
+        pid = self.projects.create("Churn", "general", "Which customers churn")["id"]
+        rng = np.random.default_rng(1)
+        n = 600
+        pd.DataFrame({"customer_id": [f"c{i}" for i in range(n)], "signup_date": pd.date_range("2024-01-01", periods=n, freq="D"),
+                      "plan": rng.choice(["basic", "pro"], n), "spend": rng.gamma(2.0, 30.0, n).round(2),
+                      "churned": (rng.random(n) < 0.2).astype(int), "churned_60d": (rng.random(n) < 0.3).astype(int)}).to_parquet(
+            self.projects.data_dir(pid) / "churn.parquet", index=False)
+        data.attach_data(self.projects, pid, "churn.parquet")
+        project = self.projects.get(pid)
+        project["solution"] = {"target": "churned", "task": "binary", "prediction_moment": "At the monthly snapshot of each customer.", "forbidden": [],
+                               "identifiers": ["customer_id"], "time_column": "signup_date", "metric": "roc_auc"}
+        self.projects.save(project)
+        self.pid = pid
+        self.draft = self.store.create("Which customers churn next month?")["id"]
+        self.store.update(self.draft, lambda d: d.update(status="built", project_id=pid, solution=project["solution"],
+                                                          assets=[{"id": "a1", "name": "churn", "status": "ready", "clean_file": "clean.parquet", "kind": "upload"}],
+                                                          active_asset="a1"))
+        self.built = []
+        projects = self.projects
+
+        def build_from_chat(draft_id):
+            self.built.append(draft_id)
+            return {"project_id": projects.create("Churn v2", "general", "x")["id"], "name": "Churn v2", "started": True, "session_id": "s1"}
+        self.services = type("S", (), {"projects": projects, "gateway": None, "job_store": None, "build_from_chat": staticmethod(build_from_chat),
+                                       "store": type("H", (), {"home": home})()})()
+        self.agent = HomeAgent(self.store, None)
+
+    def say(self, text):
+        before = len(self.store.get(self.draft)["messages"])
+        self.agent.reply_built(self.draft, text, orch.Orchestrator(self.services, self.agent), self.pid)
+        return self.store.get(self.draft)["messages"][before:]
+
+    def test_a_confirmed_outcome_is_planned_then_built_as_a_new_version_on_two_yeses(self):
+        self.say("actually the outcome should be churned_60d, not churned")
+        self.assertIn("Build the new version", self.say("yes")[-1]["chips"])
+        new = self.say("build it")
+        card = next(m for m in new if m["kind"] == "project_card")["card"]
+        self.assertEqual(card["title"], "Plan for version 2")
+        rows = {r["part"]: r for r in card["rows"]}
+        self.assertEqual((rows["Outcome"]["v1"], rows["Outcome"]["new"]), ("churned", "churned_60d"))
+        self.assertIn("churned", rows["Never used (unknown at the moment)"]["new"])  # the old outcome is forbidden by default
+        self.assertEqual(self.built, [])  # a plan, not a build
+        new = self.say("yes, build it")
+        self.assertEqual(len(self.built), 1)
+        nd = self.store.get(self.built[0])
+        asset = nd["assets"][0]
+        self.assertEqual(asset["suggestion"]["target"], "churned_60d")
+        self.assertIn("churned", {f["column"] for f in asset["suggestion"]["forbidden"]})
+        self.assertTrue((self.store.data_dir(nd["id"]) / "clean.parquet").exists())
+        self.assertEqual(nd["version_of"]["project"], self.pid)
+        self.assertIn("churned_60d", [c["name"] for c in nd["analysis"]["columns"]])  # the build reads the outcome among these (the e2e check)
+        build = next(m for m in new if m["kind"] == "build")
+        self.assertEqual(self.projects.get(build["project_id"])["version_of"]["project"], self.pid)
+        self.assertEqual(self.projects.get(self.pid)["solution"]["target"], "churned")  # version 1 untouched
+        self.assertEqual(self.store.get(self.draft)["problem_versions"][-1]["built"], build["project_id"])
+
+    def test_nothing_is_built_without_the_yes_to_the_plan(self):
+        self.say("actually the outcome should be churned_60d, not churned")
+        self.say("yes")
+        t = orch.Turn(self.services, self.pid, self.draft, self.agent, "x")
+        self.assertIn("error", orch.build_new_version(t))  # no plan offered the turn before
+        self.say("build it")
+        self.say("show the problem")  # the plan's offer was not answered
+        t = orch.Turn(self.services, self.pid, self.draft, self.agent, "x")
+        self.assertIn("error", orch.build_new_version(t))
+        self.assertEqual(self.built, [])
+
+    def test_the_new_version_never_forbids_less_than_before(self):  # the review, 2026-10-21 (findings 1 and 2)
+        project = self.projects.get(self.pid)
+        project["solution"]["forbidden"] = [{"column": "spend", "reason": "known only after the month ends"}]
+        self.projects.save(project)
+        self.say("actually the outcome should be churned_60d, not churned")
+        self.say("yes")
+        rows = {r["part"]: r for r in next(m for m in self.say("build it") if m["kind"] == "project_card")["card"]["rows"]}
+        never = rows["Never used (unknown at the moment)"]["new"]
+        self.assertIn("spend", never)  # version 1's forbidden column is carried
+        self.assertIn("churned", never)
+        later = orch._forbidden_for({"outcome": "plan"}, {"target": "churned", "forbidden": []}, {"forbidden": []},
+                                    [{"problem": {"outcome": "churned_60d"}}], "signup_date")
+        self.assertEqual([f["column"] for f in later], ["churned", "churned_60d"])  # every earlier version's outcome, never the time column
+
+    def test_build_words_are_strict_and_need_the_persons_yes(self):  # findings 3, 4 and 5
+        for said in ("make a plot of it", "create a cell for that", "run that cell", "make it a bar chart", "start it again", "run the notebook cell that plots"):
+            self.assertNotIn("plan_new_version", [n for n, _ in orch.plan(said, None, ["churned"], True)], said)
+        self.assertEqual(orch.plan("build the new version", {"tool": "build_new_version", "args": {}}, [], True)[0][0], "build_new_version")
+        self.say("actually the outcome should be churned_60d, not churned")
+        self.say("yes")
+        self.say("build it")
+        t = orch.Turn(self.services, self.pid, self.draft, self.agent, "show the problem")
+        t.offered = {"tool": "build_new_version"}
+        self.assertIn("did not say yes", orch.build_new_version(t)["error"])
+        self.assertEqual(self.built, [])
+
+    def test_a_refused_build_reuses_its_chat_on_the_retry(self):  # finding 5
+        refusals = ["the table is not ready"]
+        projects = self.projects
+
+        def build_from_chat(draft_id):
+            self.built.append(draft_id)
+            if refusals:
+                return {"refused": refusals.pop()}
+            return {"project_id": projects.create("Churn v2", "general", "x")["id"], "name": "Churn v2", "started": True}
+        self.services.build_from_chat = staticmethod(build_from_chat)
+        self.say("actually the outcome should be churned_60d, not churned")
+        self.say("yes")
+        self.say("build it")
+        self.assertIn("could not be built", self.say("yes, build it")[-1]["text"])
+        self.say("build it")
+        self.say("yes, build it")
+        self.assertEqual(len(self.built), 2)
+        self.assertEqual(self.built[0], self.built[1])  # the same chat, not an orphan per try
+        self.assertEqual(sum(1 for m in self.store.get(self.built[1])["messages"] if str(m.get("id", "")).startswith("mv")), 1)
+
+    def test_a_horizon_alone_cannot_be_built_from_this_table_and_says_why(self):
+        self.say("we should predict churn within 60 days instead")
+        new = self.say("yes")
+        self.assertIn("cannot be built from this table", new[-1]["text"])
+        new = self.say("build it")
+        self.assertIn("horizon", new[-1]["text"])
+        self.assertEqual(self.built, [])
+
+
 class ModelTests(unittest.TestCase):
     def setUp(self):
         env = mock.patch.dict(os.environ, CLEAN)

@@ -45,7 +45,14 @@ PROBLEM = [
     ("actually the target should be lead_id", {"propose_problem_change"}, {"improve_model"}),
     ("yes", set(), {"improve_model"}),
 ]
-SETS = {"default": CONVERSATION, "problem": PROBLEM}
+# step 2 (2026-10-21): a confirmed problem version planned and built as a new project version (the build is the copy's own)
+VERSION = [
+    ("actually the outcome should be demo_requested, not converted_this_month", {"propose_problem_change"}, {"improve_model"}),
+    ("yes", {"confirm_problem_change"}, {"build_new_version"}),
+    ("build it", {"plan_new_version"}, {"build_new_version"}),
+    ("yes, build it", {"build_new_version"}, {"improve_model"}),
+]
+SETS = {"default": CONVERSATION, "problem": PROBLEM, "version": VERSION}
 TURN_CAP_EUR = 0.06
 
 
@@ -65,8 +72,14 @@ class Recorded:
 
 class Services:
     def __init__(self, home: Path, projects, gateway):
-        self.home, self.projects, self.gateway, self.job_store, self.submitted = home, projects, gateway, Recorded(), []
+        self.home, self.projects, self.gateway, self.job_store, self.submitted, self.built = home, projects, gateway, Recorded(), [], []
         self.store = type("S", (), {"home": home})()
+
+    def build_from_chat(self, draft_id):
+        """The copy's own build: a project created in the copy, recorded; no stage runs (the real path is checked in the browser)."""
+        made = self.projects.create("Version (live test)", "general", "a version built from the chat")
+        self.built.append({"draft": draft_id, "project": made["id"]})
+        return {"project_id": made["id"], "name": made["name"], "started": False, "note": "recorded by the live test; no stage runs"}
 
     def submit(self, kind, key, payload, here=False, **_):
         job = {"id": f"live-{len(self.submitted) + 1}", "kind": kind, "key": key, "status": "queued", "payload": payload}
@@ -182,7 +195,7 @@ def main() -> int:
     summary = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "project": args.project, "set": args.set,
                "problem_versions": draft.get("problem_versions"), "problem_change": draft.get("problem_change"),
                "project_solution_unchanged": projects.get(args.project).get("solution") == source_solution, "turns": len(sheet), "passed": passed,
-               "spent_eur": gateway.spent(), "turn_cap_eur": TURN_CAP_EUR, "cap_eur": args.cap_eur, "jobs_recorded": services.submitted, "sheet": sheet,
+               "spent_eur": gateway.spent(), "turn_cap_eur": TURN_CAP_EUR, "cap_eur": args.cap_eur, "jobs_recorded": services.submitted, "versions_built": services.built, "sheet": sheet,
                "chat": drafts.get(draft_id)["messages"]}
     (run / "result.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
     print(f"{passed}/{len(sheet)} turns did what they should; spent €{gateway.spent():.4f}. Kept in {run.relative_to(ROOT) if run.is_relative_to(ROOT) else run}")

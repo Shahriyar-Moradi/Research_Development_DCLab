@@ -566,7 +566,9 @@ class HomeAgent:
         self.store.update(draft_id, lambda d: d["messages"].append(msg))
         self.store.emit(draft_id, "chat", msg)
         offered = ((self.store.get(draft_id).get("agent") or {}).get("offer"))
-        if BUILD_WORDS.search(text) and not offered and not orch.IMPROVE.search(text):
+        versions = self.store.get(draft_id).get("problem_versions") or []
+        waiting = bool(versions and not versions[-1].get("built"))  # step 2: a confirmed version waits (one that cannot be built says why)
+        if BUILD_WORDS.search(text) and not offered and not waiting and not orch.IMPROVE.search(text):
             self.say(draft_id, "This chat's project is already built. Ask about it here (its models, its evaluation, how to improve it), "
                                "open it from Projects, or start a new project from a new chat.", kind="project_answer", chips=orch.CHIPS[None])
             return
