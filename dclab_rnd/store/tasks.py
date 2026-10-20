@@ -19,6 +19,7 @@ AGENT_TASKS: dict[str, tuple[str, ...]] = {
     "coordinator": ("agent_step", "decision", "graph_move"),
     "twin": ("agent_step", "conversation_turn", "teacher_answer", "model_request"),
     "conductor": ("agent_step",),
+    "tutor": ("agent_step", "student_version"),
 }
 
 __all__ = ["AGENT_TASKS"]

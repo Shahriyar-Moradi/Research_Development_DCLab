@@ -41,6 +41,7 @@ PROBES = {
     "twin": "tests/test_twin_runs.py::test_the_run_is_a_session_of_the_twin_agent",
     "workspace_chat": "tests/test_workspace_chat.py::test_the_chat_is_a_run_of_the_workspace_chat_agent",
     "conductor": "tests/test_store_conductor.py::test_a_run_is_a_session_of_the_conductor_with_a_step_per_keeper",
+    "tutor": "tests/test_store_tutor.py::test_a_point_with_enough_rows_gets_a_student_kept_whole_and_never_promoted",
 }
 
 # The only functions that call a registered tool, each recording the call as a step (the loop, the standard plan, the

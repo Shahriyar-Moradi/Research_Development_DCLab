@@ -498,7 +498,7 @@ class DataLimitTests(unittest.TestCase):
         row = {c: str(t[c].iloc[0]) for c in t.columns}
         body = shapers._clean({"point": "column.is_identifier", "preview": list(row.values()), "top": list(row.values()),
                                "reason": f"mail {row.get('email', '')}", "used": "rule"})
-        prov = Provenance(entry="e", sha256="0" * 64, source="s", workspace="w", at="2026-10-20T10:00:00+00:00")
+        prov = Provenance(entry="e", sha256="0" * 64, source="s", workspace="w", at="2026-10-20T10:00:00+00:00", consent="train")
         record = StoreRecord(id="r1", kind="decisions", type="decision", at="2026-10-20T10:00:00+00:00", provenance=prov, body=body)
         gw = gateway({"reasoning_teacher": [{"content": "It is unique.", "tool_calls": [], "usage": {"input_tokens": 0, "output_tokens": 0},
                                              "assistant_message": {"role": "assistant", "content": "It is unique."}}]})

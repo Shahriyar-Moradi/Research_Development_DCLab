@@ -36,6 +36,26 @@
    "cause": "The contract refused it.",
    "fix": "Kept: it is counted as refused by its contract.",
    "test": "test_the_sets_hold_the_best_labels_split_by_group_with_a_manifest_and_a_card"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Sealed rows reappeared in train.",
+   "scenario": "A draft's decisions regrouped under its project moved splits.",
+   "cause": "The sealed file was frozen and train rebuilt.",
+   "fix": "Once sealed, always sealed; sealed written once it has rows.",
+   "test": "test_the_sealed_split_is_written_once"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "One project had different splits in different model types.",
+   "scenario": "A project's moves sealed in M6, its decisions in train in M1.",
+   "cause": "Rules sealed by different keys.",
+   "fix": "One group for every record of a project.",
+   "test": "test_the_scripted_day_passes_every_check"
   }
  ],
  "measurements": [],

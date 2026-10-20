@@ -20,6 +20,28 @@ from ..store import now, write_json
 SPLIT_RULE = "dclab_core.datasets.split_of(the record's sealed key), salt dclab-datasets-v1: sealed below 0.2, dev below 0.4, else train"
 
 
+def standing(layout: Layout) -> dict[tuple[str, str], dict[str, Any]]:
+    """Every rule curator's latest choice per (record, model type), refused ones included (read once per build)."""
+    from ..store import Store
+
+    store = Store(layout)
+    out: dict[tuple[str, str], dict[str, Any]] = {}
+    for entry in sorted(store.entries("curation"), key=lambda e: (e.captured_at, e.version)):
+        for line in store.read(entry).decode("utf-8").splitlines():
+            d = json.loads(line)
+            if str(d.get("curator", "")).startswith("rule:") and d.get("record") and d.get("model_type"):
+                out[(d["record"], d["model_type"])] = d
+    return out
+
+
+def allowed(record: Any, model_type: str, choices: dict[tuple[str, str], dict[str, Any]]) -> bool:
+    """A record may enter a model type's set: its consent allows training, and no curator kept it out or had its placement refused."""
+    if record.provenance.consent != "train":
+        return False
+    choice = choices.get((record.id, model_type))
+    return choice is None or (choice.get("quality") != "out" and not choice.get("refused") and choice.get("used") is not False)
+
+
 def write_set(layout: Layout, model_type: str, folder: str, examples: Iterable[Any], *, version: str = "v1", sources: Iterable[dict[str, Any]] = (),
               about: str = "", decontaminated: Iterable[str] = ("the store's own sealed partition",), commit: Optional[str] = None) -> SetManifest:
     """Write one set; returns its manifest."""
@@ -27,29 +49,32 @@ def write_set(layout: Layout, model_type: str, folder: str, examples: Iterable[A
     shape = examples[0].schema_version if examples else f"dclab_core.{EXAMPLE_SHAPES[model_type][0]}.v1"
     base = layout.sets(model_type, *folder.split("/"), version)
     base.mkdir(parents=True, exist_ok=True)
+    sealed, pending = base / "sealed.jsonl", base / "sealed.pending.jsonl"
+    sealed_lines = sealed.read_text(encoding="utf-8").splitlines() if sealed.exists() else []
+    sealed_ids = {json.loads(line)["id"] for line in sealed_lines if line.strip()}
     by_split: dict[str, list[str]] = {"train": [], "dev": [], "sealed": []}
     for ex in sorted(examples, key=lambda e: e.id):
         if ex.model_type != model_type:
             raise ValueError(f"{ex.id} is an example of {ex.model_type}, not {model_type}")
-        by_split[ex.split].append(ex.model_dump_json() + "\n")
+        split = "sealed" if ex.id in sealed_ids else ex.split  # once sealed, always sealed: never in train or dev again
+        by_split[split].append(ex.model_dump_json() + "\n")
     for split in ("train", "dev"):
         (base / f"{split}.jsonl").write_text("".join(by_split[split]), encoding="utf-8")
-    sealed, pending = base / "sealed.jsonl", base / "sealed.pending.jsonl"
-    if not sealed.exists():
-        sealed.write_text("".join(by_split["sealed"]), encoding="utf-8")  # once
-        waiting = 0
-    else:
-        have = set(sealed.read_text(encoding="utf-8").splitlines())
-        later = [line for line in by_split["sealed"] if line.rstrip("\n") not in have]
-        pending.write_text("".join(later), encoding="utf-8")
-        waiting = len(later)
+    later = [line for line in by_split["sealed"] if json.loads(line)["id"] not in sealed_ids]
+    if not sealed_lines and later:
+        sealed.write_text("".join(later), encoding="utf-8")  # written once, on the first build that has sealed rows
+        later = []
+    pending.write_text("".join(later), encoding="utf-8")
+    waiting = len(later)
+    sealed_count = len(sealed.read_text(encoding="utf-8").splitlines()) if sealed.exists() else 0
     labels = Counter(getattr(ex, "label_source", None) or getattr(ex, "decided_by", None) or getattr(ex, "evidence", None) or "none" for ex in examples)
-    weights = {}
+    weights: dict[str, float] = {}
     for ex in examples:
         key = getattr(ex, "label_source", None) or "none"
         weights.setdefault(key, ex.weight)
     manifest = SetManifest(model_type=model_type, name=folder, version=version, shape=shape, sources=sorted(sources, key=lambda s: str(s.get("entry"))),
-                           split_rule=SPLIT_RULE, counts={k: len(v) for k, v in by_split.items()} | {"sealed_pending": waiting},
+                           split_rule=SPLIT_RULE, counts={"train": len(by_split["train"]), "dev": len(by_split["dev"]), "sealed": sealed_count,
+                                                          "sealed_pending": waiting},
                            label_sources=dict(labels), weights=weights, decontaminated=list(decontaminated), commit=commit, built_at=now())
     write_json(base / "MANIFEST.json", json.loads(manifest.model_dump_json()))
     (base / "CARD.md").write_text(card(manifest, about), encoding="utf-8")

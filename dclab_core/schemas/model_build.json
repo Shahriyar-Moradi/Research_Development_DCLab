@@ -1,0 +1,102 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.model_build.v1.json",
+  "additionalProperties": false,
+  "description": "One model built (v1).",
+  "properties": {
+    "at": {
+      "title": "At",
+      "type": "string"
+    },
+    "changed_by_person": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Changed By Person",
+      "type": "array"
+    },
+    "context": {
+      "additionalProperties": true,
+      "title": "Context",
+      "type": "object"
+    },
+    "data": {
+      "additionalProperties": true,
+      "title": "Data",
+      "type": "object"
+    },
+    "id": {
+      "maxLength": 200,
+      "title": "Id",
+      "type": "string"
+    },
+    "model_type": {
+      "maxLength": 60,
+      "title": "Model Type",
+      "type": "string"
+    },
+    "recipe": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Recipe",
+      "type": "array"
+    },
+    "result": {
+      "additionalProperties": true,
+      "title": "Result",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "dclab_core.model_build.v1",
+      "default": "dclab_core.model_build.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "spent": {
+      "additionalProperties": true,
+      "title": "Spent",
+      "type": "object"
+    },
+    "unknown": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Unknown",
+      "type": "object"
+    },
+    "used": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Used"
+    },
+    "went_wrong": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Went Wrong",
+      "type": "array"
+    },
+    "workspace": {
+      "maxLength": 120,
+      "title": "Workspace",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "model_type",
+    "workspace",
+    "at"
+  ],
+  "title": "ModelBuild",
+  "type": "object"
+}

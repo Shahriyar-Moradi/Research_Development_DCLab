@@ -26,6 +26,26 @@
    "cause": "Only a prompt, cut, was logged.",
    "fix": "Each exchange kept whole in its own log.",
    "test": "test_the_gateway_keeps_each_exchange_whole_with_its_thinking"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Whole exchanges were kept for purposes that may keep no text.",
+   "scenario": "evidence_answer kept whole.",
+   "cause": "keeps_text was not read.",
+   "fix": "Kept whole only where the purpose keeps text.",
+   "test": "test_a_purpose_shown_cells_or_a_workspace_keeping_no_text_keeps_its_shape_only"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The teacher's cap was per call.",
+   "scenario": "10,000 calls at the cap each.",
+   "cause": "A new client per call.",
+   "fix": "One client per run, a CLI that plans without --yes.",
+   "test": "test_reasoning_from_the_record_and_a_teachers_checked_against_it"
   }
  ],
  "measurements": [],

@@ -1,0 +1,253 @@
+{
+  "$defs": {
+    "Provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "type": "string"
+        },
+        "by": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "commit": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "consent": {
+          "default": "operate",
+          "enum": [
+            "operate",
+            "improve",
+            "train"
+          ],
+          "type": "string"
+        },
+        "deleted": {
+          "default": false,
+          "type": "boolean"
+        },
+        "draft": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "entry": {
+          "maxLength": 200,
+          "type": "string"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rule": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "workspace": {
+          "maxLength": 120,
+          "type": "string"
+        }
+      },
+      "required": [
+        "entry",
+        "sha256",
+        "source",
+        "workspace",
+        "at"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "cv": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "folds": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "holdout": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "id": {
+      "maxLength": 200,
+      "type": "string"
+    },
+    "metrics": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "model": {
+      "maxLength": 120,
+      "type": "string"
+    },
+    "model_type": {
+      "enum": [
+        "m1_students",
+        "m2_workflow_decisions",
+        "m3_ml_decisions",
+        "m4_workflow_llm",
+        "m5_solver_llm",
+        "m6_stepwise_decisions",
+        "m7_judges",
+        "m8_retrieval"
+      ],
+      "type": "string"
+    },
+    "more": {
+      "items": {
+        "$ref": "#/$defs/Provenance"
+      },
+      "type": "array"
+    },
+    "params": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "primary_metric": {
+      "anyOf": [
+        {
+          "maxLength": 60,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance"
+    },
+    "recipe": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "dclab_core.experiment_record.v1",
+      "default": "dclab_core.experiment_record.v1",
+      "type": "string"
+    },
+    "seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "selected": {
+      "default": false,
+      "type": "boolean"
+    },
+    "split": {
+      "enum": [
+        "train",
+        "dev",
+        "sealed"
+      ],
+      "type": "string"
+    },
+    "table": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "task": {
+      "maxLength": 40,
+      "type": "string"
+    },
+    "weight": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "type": "number"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "model_type",
+    "split",
+    "provenance",
+    "task",
+    "model"
+  ],
+  "type": "object"
+}

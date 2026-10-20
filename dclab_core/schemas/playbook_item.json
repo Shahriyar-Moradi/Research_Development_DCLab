@@ -1,0 +1,86 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.playbook_item.v1.json",
+  "additionalProperties": false,
+  "description": "What the engagements teach about serving well (v1), resting on what it counts, accepted by the owner.",
+  "properties": {
+    "accepted_by": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Accepted By"
+    },
+    "count": {
+      "default": 0,
+      "title": "Count",
+      "type": "integer"
+    },
+    "enough": {
+      "default": false,
+      "title": "Enough",
+      "type": "boolean"
+    },
+    "evidence": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "finding": {
+      "maxLength": 800,
+      "title": "Finding",
+      "type": "string"
+    },
+    "id": {
+      "maxLength": 120,
+      "title": "Id",
+      "type": "string"
+    },
+    "kind": {
+      "anyOf": [
+        {
+          "maxLength": 60,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Kind"
+    },
+    "schema_version": {
+      "const": "dclab_core.playbook_item.v1",
+      "default": "dclab_core.playbook_item.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "topic": {
+      "enum": [
+        "questions",
+        "expectations",
+        "explanations",
+        "failure_points",
+        "time_and_cost",
+        "after_the_first_model"
+      ],
+      "title": "Topic",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "topic",
+    "finding"
+  ],
+  "title": "PlaybookItem",
+  "type": "object"
+}

@@ -97,7 +97,9 @@ def _export(engine: Any, models: Any, base: Path, only: Any, tmp: Path) -> Itera
                 with open(path, "w", encoding="utf-8") as fh:
                     for row in rows:
                         fh.write(json.dumps(row, ensure_ascii=False, default=str, sort_keys=True) + "\n")
-                yield Source(name, f"db/{table_name}.jsonl", path, consent=consent, log=table_name in APPEND_ONLY)
+                from .agents import redact
+
+                yield Source(name, f"db/{table_name}.jsonl", path, consent=consent, log=table_name in APPEND_ONLY, transform=redact)
 
 
 KEEPER = Keeper("database", (Claim("sessions", "db/experience_event"), Claim("decisions", "db/decision_"), Claim("audit", "db/audit_event"),

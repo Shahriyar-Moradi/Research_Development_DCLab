@@ -52,7 +52,12 @@ CONTRACT_ADAPTERS: dict[str, str] = {
         ("chat_example", "chat example"), ("preference_pair", "preference pair"), ("solver_trajectory", "solver trajectory"),
         ("episode", "step-by-step episode"), ("judged_example", "judged example"), ("retrieval_example", "retrieval example"),
         ("curation_decision", "curator's choice"), ("set_manifest", "set manifest"), ("capture_rule", "capture rule"),
-        ("workflow_record", "workflow record of a walk"))},
+        ("workflow_record", "workflow record of a walk"), ("experiment_record", "experiment record of a fitted model"))},
+    **{name: LIBRARY + f" (the service's {what}, 32.24 to 32.31: built from the studio's store; the main product would build its own from "
+                          "its projects' records, through an adapter, when it offers the service)" for name, what in (
+        ("model_build", "record of one model built"), ("build_verdict", "verdict of a build against DCLab's rules"),
+        ("learning_curve", "learning curve"), ("knowledge_item", "knowledge item"), ("service_engagement", "engagement record"),
+        ("playbook_item", "playbook item"))},
     "table_entry": LIBRARY + " (a table's catalog entry with its owner and checks, 30.23; the main product's data catalog keeps its own entries)",
     "project_request": LIBRARY + " (a requested project scored, 30.24; the main product's intake keeps its own requests and scores them through it)",
     "portfolio": LIBRARY + " (the projects chosen of the requested and what they reuse, 30.24)",

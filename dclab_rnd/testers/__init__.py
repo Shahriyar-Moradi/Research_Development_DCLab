@@ -39,24 +39,30 @@ from typing import Any, Callable, Optional
 from ..agents.traces import CELL_KEYS
 
 FILE = "tester.json"
-NOTICE_VERSION = "1"
+NOTICE_VERSION = "2"  # 32.16: the teams' records, students, judgments, model exchanges, MCP calls; your own Claude Code sessions on a yes
 MONTHLY_EUR = 15.0
 MAX_FILE_BYTES = 45 * 1024 * 1024  # GitHub refuses files over 100 MB and warns over 50
 NOTICE = """DCLab R&D: testing on your machine
 
 You are testing the DCLab R&D studio for its owner. While you use it, everything you do in it is recorded in your
 workspace folder: the problems you describe and your messages, every answer and decision DCLab and Claude make, the
-projects you build and their results, and the time and cost of each model request. `make share` sends these records,
-as they are, to the owner's private repository, where they are used to improve DCLab and to train its models.
-A table you upload is sent only if you say yes to that table when you share. Your Anthropic key never leaves your
-machine; your model spend is capped at 15 a month. You can stop sharing at any time; ask the owner to delete what you
-sent."""
+projects you build and their results, the teams' boards and walks, the students DCLab trains and the judgments made of
+them, every model request whole (its prompt, its reply and the model's thinking) and its time and cost, and every call an
+MCP client makes. `make share` sends these records, as they are, to the owner's private repository, on a branch of your
+own (tester/<your id>), where they are used to improve DCLab and to train its models.
+A table you upload is sent only if you say yes to that table when you share. Your own Claude Code sessions on this
+repository are sent only if you say yes at setup (CLAUDE_CODE=yes), with anything shaped like a key removed. Your Anthropic
+key never leaves your machine; your model spend is capped at 15 a month. Deleting a project in the app does not remove what
+was already shared: you can stop sharing at any time, and ask the owner to delete what you sent."""
 
 # the workspace's record files (relative globs); tables are separate and need a yes each
 RECORDS = ("experience/**/*.jsonl", "ledger/**/*.jsonl", "audit.jsonl", "agent_steps.jsonl", "model_requests.jsonl", "model_shadow.jsonl",
            "consent.json", "twin.json", "budgets.json", ".dclab_workspace", "twin/**/*", "intern/**/*.json",
            "projects/*/project.json", "projects/*/stages/*.json", "projects/*/transitions.jsonl", "projects/*/activity.jsonl",
-           "projects/*/memory.jsonl", "drafts/*/draft.json", "drafts/*/events.jsonl", "datasets/**/*", "lessons/**/*")
+           "projects/*/memory.jsonl", "drafts/*/draft.json", "drafts/*/events.jsonl", "datasets/**/*", "lessons/**/*",
+           # 32.16: the store's other kinds
+           "orchestra/**/*", "students/**/*", "judgments/**/*", "own_models/**/*", "model_requests_checks.jsonl", "jobs_history.jsonl",
+           "model_exchanges/**/*.jsonl", "mcp/**/*.jsonl", "workspace_chat/**/*.jsonl", "intern/versions/*.jsonl", "checkpoints.sqlite3")
 TABLES = ("projects/*/data/*", "drafts/*/data/*")
 NEVER = re.compile(r"(^|/)\.env|api[_-]?key|secret|token|\.pem$|\.key$", re.I)
 QUOTES_CELLS = frozenset(CELL_KEYS | {"categories", "numeric_levels", "prefix", "shape", "digits", "top"})  # what quotes a table's cells
@@ -102,8 +108,35 @@ def slug(name: str) -> str:
 # ---------------------------------------------------------------------------------------------------- setup
 
 
+def branch_of(doc: dict[str, Any]) -> str:
+    """32.15: the tester's own branch of the records repository; their shares go there and nowhere else."""
+    return f"tester/{doc['id']}"
+
+
+def _on_branch(clone: Path, branch: str, push: bool = True) -> None:
+    """Check out the tester's branch: theirs from the remote when it exists, else a new branch with no history of anyone else's
+    (an orphan: the owner's store and other testers' records never come with it)."""
+    _git(clone, "fetch", "--quiet", "origin", f"+refs/heads/{branch}:refs/remotes/origin/{branch}", check=False)
+    have = _git(clone, "rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{branch}", check=False).returncode == 0
+    current = _git(clone, "rev-parse", "--abbrev-ref", "HEAD", check=False).stdout.strip()
+    if current == branch:
+        return
+    if have:
+        _git(clone, "checkout", "--quiet", "-B", branch, f"origin/{branch}")
+        return
+    if _git(clone, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}", check=False).returncode == 0:
+        _git(clone, "checkout", "--quiet", branch)
+        return
+    _git(clone, "checkout", "--quiet", "--orphan", branch)
+    _git(clone, "rm", "-r", "-f", "--quiet", "--ignore-unmatch", ".", check=False)
+    _git(clone, "-c", "user.name=DCLab tester", "-c", "user.email=tester@dclab", "-c", "commit.gpgsign=false", "commit", "--quiet",
+         "--allow-empty", "-m", f"start {branch}")
+    if push:
+        _git(clone, "push", "--quiet", "-u", "origin", f"HEAD:refs/heads/{branch}", check=False)
+
+
 def setup(home: Path, *, name: str, email: str, repo: str, clone: Optional[Path] = None, agreed: bool = False,
-          env_file: Optional[Path] = None, log: Callable[[str], None] = print) -> dict[str, Any]:
+          env_file: Optional[Path] = None, log: Callable[[str], None] = print, claude_code: bool = False, push: bool = True) -> dict[str, Any]:
     """The tester's agreement, their id, the switches, the cap, and a clone of the records repository."""
     if not agreed:
         raise TesterError("the tester must agree to the notice first (--agree after reading it)")
@@ -128,8 +161,12 @@ def setup(home: Path, *, name: str, email: str, repo: str, clone: Optional[Path]
         if result.returncode != 0:
             raise TesterError(f"could not clone the records repository: {result.stderr.strip()[:300]} (ask the owner for access)")
     doc["clone"] = str(clone)
+    doc["branch"] = branch_of(doc)
+    doc["claude_code"] = bool(claude_code)  # 32.16: the tester's own Claude Code sessions go only with this yes
+    _on_branch(clone, doc["branch"], push=push)
     _save(home, doc)
-    log(f"tester {doc['id']} set up: consent on, Claude beside the system on, the month capped at {MONTHLY_EUR:g}; records go to {repo}")
+    log(f"tester {doc['id']} set up: consent on, Claude beside the system on, the month capped at {MONTHLY_EUR:g}; records go to {repo}, "
+        f"branch {doc['branch']}" + ("; your Claude Code sessions on this repository go too" if claude_code else ""))
     return doc
 
 
@@ -192,16 +229,31 @@ def _pending(clone: Path) -> bool:
     return out.returncode == 0 and out.stdout.strip() not in ("", "0")
 
 
-def _push(clone: Path) -> None:
-    out = _git(clone, "push", "--quiet", check=False)
-    if out.returncode != 0:  # another tester pushed first: take theirs (their folders only) and try once more
-        _git(clone, "pull", "--rebase", "--quiet", check=False)
-        out = _git(clone, "push", "--quiet", check=False)
+def _push(clone: Path, branch: Optional[str] = None) -> None:
+    """Push the tester's own branch, never another (32.15); the old shared branch when no branch is set (a tester set up before)."""
+    target = ["origin", f"HEAD:refs/heads/{branch}"] if branch else []
+    out = _git(clone, "push", "--quiet", *target, check=False)
+    if out.returncode != 0:  # their own branch moved (a share from another machine of theirs): take it, try once more
+        _git(clone, "pull", "--rebase", "--quiet", *(["origin", branch] if branch else []), check=False)
+        out = _git(clone, "push", "--quiet", *target, check=False)
     if out.returncode != 0:
         raise TesterError(f"the bundle is committed but not pushed: {out.stderr.strip()[:300]} (run make share again when online)")
 
 
 # ---------------------------------------------------------------------------------------------------- share
+
+
+def _claude_code(home: Path) -> dict[str, Path]:
+    """32.16: this machine's Claude Code sessions on this repository (the main checkout and its worktrees), as share paths
+    ``claude_code/<checkout>/<file>``; images never (no redaction can read them)."""
+    from ..store.keepers import agents
+
+    out: dict[str, Path] = {}
+    for checkout, folder in agents.folders(agents.PROJECTS):
+        for path in sorted(folder.rglob("*")):
+            if path.is_file() and not path.is_symlink() and path.suffix.lower() not in agents.IMAGES:
+                out[f"claude_code/{checkout}/{path.relative_to(folder).as_posix()}"] = path
+    return out
 
 
 def _files(home: Path, globs: tuple[str, ...]) -> list[Path]:
@@ -228,6 +280,11 @@ def share(home: Path, *, ask: Optional[Callable[[str, int], bool]] = None, push:
     clone = Path(doc["clone"])
     if not (clone / ".git").is_dir():
         raise TesterError(f"the records repository is not at {clone}: run make tester-setup again")
+    branch = doc.get("branch")
+    if branch:
+        _on_branch(clone, branch, push=push)
+        if _git(clone, "rev-parse", "--abbrev-ref", "HEAD", check=False).stdout.strip() != branch:
+            raise TesterError(f"the records repository is not on your branch {branch}: nothing is shared")
     tables = doc.setdefault("tables", {})
     chosen: list[Path] = []
     for path in _files(home, TABLES):
@@ -241,6 +298,8 @@ def share(home: Path, *, ask: Optional[Callable[[str, int], bool]] = None, push:
     agreed_owners = {"/".join(p.relative_to(home).parts[:2]) for p in chosen}  # projects/<id> or drafts/<id> whose table goes too
     shared = doc.setdefault("shared", {})
     current = {p.relative_to(home).as_posix(): p for p in _files(home, RECORDS) + chosen}
+    sessions = _claude_code(home) if doc.get("claude_code") else {}  # 32.16: only with the tester's yes, credentials removed
+    current.update(sessions)
     removed = sorted(rel for rel in shared if rel not in current)
     when = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ") + "-" + secrets.token_hex(3)  # in order of time, and two shares never meet
     bundle = clone / doc["id"] / when
@@ -253,7 +312,13 @@ def share(home: Path, *, ask: Optional[Callable[[str, int], bool]] = None, push:
             continue
         scrub = bool(SCRUBBED.match(rel)) and "/".join(Path(rel).parts[:2]) not in agreed_owners
         target = bundle / "files" / rel
-        _copy(path, target, scrub)  # copied first, then hashed: what the manifest says is what was sent
+        if rel in sessions:
+            from ..store.keepers.agents import redact
+
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(redact(path.read_bytes()))
+        else:
+            _copy(path, target, scrub)  # copied first, then hashed: what the manifest says is what was sent
         digest = _sha(target)
         if shared.get(rel) == digest:
             target.unlink()
@@ -261,14 +326,14 @@ def share(home: Path, *, ask: Optional[Callable[[str, int], bool]] = None, push:
         staged[rel] = digest
         files.append({"path": rel, "sha256": digest, "bytes": target.stat().st_size, "table": path in chosen, "cells_removed": scrub})
     if push and _pending(clone):  # an earlier bundle committed offline goes first
-        _push(clone)
+        _push(clone, branch)
     if not files and not removed:
         shutil.rmtree(bundle, ignore_errors=True)
         _save(home, doc)
         log("nothing new to share")
         return {"bundle": None, "files": 0, "skipped": skipped}
-    if push:
-        _git(clone, "pull", "--rebase", "--quiet", check=False)  # other testers' folders since; never this one
+    if push and not branch:
+        _git(clone, "pull", "--rebase", "--quiet", check=False)  # the old shared branch: other testers' folders since; never this one
     commit = None
     try:
         commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=Path(__file__).resolve().parents[2]).stdout.strip() or None
@@ -286,7 +351,7 @@ def share(home: Path, *, ask: Optional[Callable[[str, int], bool]] = None, push:
     if out.returncode != 0:
         raise TesterError(f"the bundle could not be committed: {out.stderr.strip()[:300]}")
     if push:
-        _push(clone)
+        _push(clone, branch)
     shared.update(staged)  # only now: a bundle that never reached the owner is sent again
     for rel in removed:
         shared.pop(rel, None)
@@ -305,43 +370,65 @@ def collect(home: Path, records: Path, *, pull: bool = True, log: Callable[[str]
     if not (records / ".git").is_dir():
         raise TesterError(f"no records repository at {records}: clone the private repository there first")
     if pull:
-        out = _git(records, "pull", "--quiet", check=False)
-        if out.returncode != 0:
-            log(f"could not pull ({out.stderr.strip()[:200]}): rebuilding from what is here")
+        got = _git(records, "pull", "--quiet", check=False)
+        if got.returncode != 0:
+            log(f"could not pull ({got.stderr.strip()[:200]}): rebuilding from what is here")
+        _git(records, "fetch", "--quiet", "origin", "+refs/heads/tester/*:refs/remotes/origin/tester/*", check=False)
     out: dict[str, Any] = {}
-    for tester in sorted(p for p in records.iterdir() if p.is_dir() and not p.is_symlink() and not p.name.startswith(".")):
-        target = (home / "testers" / tester.name).resolve()
-        applied = skipped = 0
-        for bundle in sorted(b for b in tester.iterdir() if b.is_dir() and not b.is_symlink() and (b / "manifest.json").is_file()):
-            try:
-                manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
-                if not isinstance(manifest, dict):
-                    raise ValueError("not a record")
-            except ValueError as exc:
-                log(f"{tester.name}/{bundle.name}: the manifest cannot be read ({exc}); skipped")
-                continue
-            root = (bundle / "files").resolve()
-            for f in manifest.get("files") or []:
-                rel = str(f.get("path") or "") if isinstance(f, dict) else ""
-                source = bundle / "files" / rel
-                dest = (target / rel).resolve()
-                inside = rel and not Path(rel).is_absolute() and ".." not in Path(rel).parts and dest.is_relative_to(target)
-                if not inside or not source.is_file() or source.is_symlink() or not source.resolve().is_relative_to(root) or _sha(source) != f.get("sha256"):
-                    skipped += 1  # a path outside the tester's folder, a link, or a file that does not match its manifest is never applied
+    branches = [b.strip() for b in _git(records, "for-each-ref", "--format=%(refname:short)", "refs/remotes/origin/tester/", check=False).stdout.splitlines() if b.strip()]
+    import tempfile
+
+    for ref in branches:  # 32.15: each tester's own branch, read in a worktree of its own, never checked out here
+        where = Path(tempfile.mkdtemp(prefix="dclab-collect-")) / "tree"
+        if _git(records, "worktree", "add", "--quiet", "--detach", str(where), ref, check=False).returncode != 0:
+            log(f"{ref}: could not be read")
+            continue
+        try:
+            for tester in sorted(p for p in where.iterdir() if p.is_dir() and not p.is_symlink() and not p.name.startswith(".")):
+                if f"tester/{tester.name}" != ref.split("origin/", 1)[-1]:
+                    log(f"{ref}: holds {tester.name}'s folder, not its own: skipped")
                     continue
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(source, dest)
-            for rel in manifest.get("removed") or []:  # what the tester deleted is deleted here too
-                dest = (target / str(rel)).resolve()
-                if isinstance(rel, str) and ".." not in Path(rel).parts and dest.is_relative_to(target) and dest.is_file():
-                    dest.unlink()
-            applied += 1
-        if (tester / "tester.json").is_file() and not (tester / "tester.json").is_symlink():
-            target.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(tester / "tester.json", target / "tester.json")
-        out[tester.name] = {"bundles": applied, "skipped_files": skipped, "folder": str(target)}
-        log(f"{tester.name}: {applied} bundles → {target}" + (f" ({skipped} files skipped)" if skipped else ""))
+                out[tester.name] = _replay(tester, home, log)
+        finally:
+            _git(records, "worktree", "remove", "--force", str(where), check=False)
+    for tester in sorted(p for p in records.iterdir() if p.is_dir() and not p.is_symlink() and not p.name.startswith(".") and p.name not in out):
+        out[tester.name] = _replay(tester, home, log)  # a tester's folder on the shared branch (set up before 32.15)
     return out
+
+
+def _replay(tester: Path, home: Path, log: Callable[[str], None]) -> dict[str, Any]:
+    """Every bundle of one tester's folder replayed in order into ``<home>/testers/<id>/``."""
+    target = (home / "testers" / tester.name).resolve()
+    applied = skipped = 0
+    for bundle in sorted(b for b in tester.iterdir() if b.is_dir() and not b.is_symlink() and (b / "manifest.json").is_file()):
+        try:
+            manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
+            if not isinstance(manifest, dict):
+                raise ValueError("not a record")
+        except ValueError as exc:
+            log(f"{tester.name}/{bundle.name}: the manifest cannot be read ({exc}); skipped")
+            continue
+        root = (bundle / "files").resolve()
+        for f in manifest.get("files") or []:
+            rel = str(f.get("path") or "") if isinstance(f, dict) else ""
+            source = bundle / "files" / rel
+            dest = (target / rel).resolve()
+            inside = rel and not Path(rel).is_absolute() and ".." not in Path(rel).parts and dest.is_relative_to(target)
+            if not inside or not source.is_file() or source.is_symlink() or not source.resolve().is_relative_to(root) or _sha(source) != f.get("sha256"):
+                skipped += 1  # a path outside the tester's folder, a link, or a file that does not match its manifest is never applied
+                continue
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, dest)
+        for rel in manifest.get("removed") or []:  # what the tester deleted is deleted here too
+            dest = (target / str(rel)).resolve()
+            if isinstance(rel, str) and ".." not in Path(rel).parts and dest.is_relative_to(target) and dest.is_file():
+                dest.unlink()
+        applied += 1
+    if (tester / "tester.json").is_file() and not (tester / "tester.json").is_symlink():
+        target.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(tester / "tester.json", target / "tester.json")
+    log(f"{tester.name}: {applied} bundles → {target}" + (f" ({skipped} files skipped)" if skipped else ""))
+    return {"bundles": applied, "skipped_files": skipped, "folder": str(target)}
 
 
 def summary(home: Path) -> list[dict[str, Any]]:

@@ -166,6 +166,12 @@ def check(text: str, sources: dict[str, str], limit_words: int | None = None) ->
         else:
             kept.append({"text": _tidy(sentence), "cites": cited})
             used += words(kept[-1]["text"])
+    try:  # 32.23: what the answer cited of what it was offered, and whether it passed
+        from . import searches
+
+        searches.cited([c for k in kept for c in k["cites"]], passed=bool(kept) and not dropped, dropped=len(dropped))
+    except Exception:  # noqa: BLE001
+        pass
     return {"kept": kept, "dropped": dropped, "words": used}
 
 

@@ -192,7 +192,8 @@ def run_one(name: str, slots: Queue, pg: bool, verbose: bool, threads_one: bool 
     env.setdefault("DCLAB_DECISION_SHADOW", "0")  # 22.4: the fitted classifiers live on some machines only; a test turns them on itself
     env.setdefault("DCLAB_STORE_LOOP", "0")
     env.setdefault("DCLAB_STORE_CAPTURE", "0")
-    env.setdefault("DCLAB_STORE_CLAUDE_PROJECTS", "off")  # 32.7: no test reads this machine's Claude Code sessions; a test gives its own folder  # 32.4: no test writes into the owner's store before a deletion; a test turns it on with its own DCLAB_STORE  # 32.2: no worker of a test server runs the store's conductor behind its back
+    env.setdefault("DCLAB_STORE_CLAUDE_PROJECTS", "off")
+    env.setdefault("DCLAB_STORE_COMMITS", "off")  # 32.21: never this repository's whole history in a test  # 32.7: no test reads this machine's Claude Code sessions; a test gives its own folder  # 32.4: no test writes into the owner's store before a deletion; a test turns it on with its own DCLAB_STORE  # 32.2: no worker of a test server runs the store's conductor behind its back
     env.setdefault("DCLAB_STUDENTS_LOOP", "0")  # 29.7: no worker of a test server retrains students behind its back; a test turns it on itself
     env.update({k: "" for k in OWNER_MODEL_CHOICE})  # the owner's .env picks a provider; a test sets the model settings it reads itself
     if slot is not None:

@@ -1,0 +1,40 @@
+{
+ "package": "32.13",
+ "title": "The step-by-step, judge and retrieval sets: episodes of walks, moves and jobs; judgments by people, tests and measurements; searches with what was offered",
+ "date": "2026-10-20",
+ "request": "M6 episodes, M7 judged examples and M8 retrieval examples from the shaped records.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.13",
+ "plan": [
+  "Episodes from walks, graph moves and jobs.",
+  "Judgments from corrections, fixes, G4 and refused moves.",
+  "Retrievals from tool searches and the search log."
+ ],
+ "decisions": [
+  {
+   "decision": "A candidate judged by its own maker with no other evidence never enters.",
+   "why": "A judge model must learn from evidence, not from self-assessment."
+  }
+ ],
+ "change": "dclab_rnd.store.sets.others (episodes, judged, preferences, retrievals).",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A search counted as passed when the tool ran.",
+   "scenario": "Every search that ran was 'passed'.",
+   "cause": "The tool's ok was read as the answer's verdict.",
+   "fix": "Passed only when the answer's check is recorded.",
+   "test": "test_a_search_and_the_answer_citing_it_are_one_retrieval_example"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Processes, judgments and searches each have their set, with who judged and on what evidence.",
+ "lessons": [
+  "Say what a field means before filling it: ok was not passed."
+ ],
+ "risks": [
+  "Episodes of stages and team walks are not built yet."
+ ],
+ "commits": []
+}

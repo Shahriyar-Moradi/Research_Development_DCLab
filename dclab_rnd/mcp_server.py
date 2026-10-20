@@ -80,8 +80,11 @@ def _keep_call(toolbox: Toolbox, run: str | None, name: str, arguments: dict[str
     from datetime import datetime, timezone
 
     try:
-        projects = toolbox.projects
-        home = getattr(projects, "files_home", None) or Path(projects.home).parent  # PostgreSQL's stores keep their files there
+        from .corrections import _home
+
+        home = _home()  # the workspace of the running services (its ledger's or its experience log's folder), on files or PostgreSQL
+        if home is None:
+            return
         (Path(home) / "mcp").mkdir(parents=True, exist_ok=True)
         line = json.dumps({"at": datetime.now(timezone.utc).isoformat(timespec="microseconds"), "run": run, "tool": name,
                            "arguments": arguments, "result": result, "error": error}, ensure_ascii=False, default=str)

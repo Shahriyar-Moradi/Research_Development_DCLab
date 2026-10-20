@@ -690,7 +690,7 @@ def export(store: Any, project_id: str, out: Path, actor: str = "human", check: 
                      files=digests)
     described = {"folder": str(out), "kind": made["kind"], "metric": made["metric"], "value": made["value"], "steps": [s for s, _ in made["blocks"]]}
     if check:
-        described["checked"] = rerun(out)
+        described["checked"] = rerun(out, project=project_id)
         from . import graph
 
         graph.capture(store, project_id, actor)  # WF-10: the export after the final stage, validated and logged as any move
@@ -707,7 +707,7 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def rerun(folder: Path, timeout: int = 1800) -> dict[str, Any]:
+def rerun(folder: Path, timeout: int = 1800, project: str | None = None) -> dict[str, Any]:
     """The exported ``pipeline.py`` run in a Python that cannot import the repository (only the folder and its vendored
     code): whether it reproduced the recorded holdout number."""
     import subprocess
@@ -716,6 +716,10 @@ def rerun(folder: Path, timeout: int = 1800) -> dict[str, Any]:
 
     with tempfile.TemporaryDirectory() as cwd:
         done = subprocess.run([sys.executable, "-I", str(Path(folder) / "pipeline.py")], capture_output=True, text=True, cwd=cwd, timeout=timeout)
+    from .. import code_runs
+
+    code_runs.record(f"export:{Path(folder).resolve()}", (Path(folder) / "pipeline.py").read_text(encoding="utf-8", errors="replace"), done.stdout,
+                     done.stderr, done.returncode, kind="pipeline_export", project=project)  # 32.21: the code, what it printed, what it raised, kept whole
     lines = done.stdout.strip().splitlines()
     try:
         said = json.loads(lines[-1]) if lines else {}

@@ -1,0 +1,288 @@
+{
+  "$defs": {
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "Where a record or an example came from (carried by every one).",
+      "properties": {
+        "at": {
+          "title": "At",
+          "type": "string"
+        },
+        "by": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "By"
+        },
+        "commit": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Commit"
+        },
+        "consent": {
+          "default": "operate",
+          "enum": [
+            "operate",
+            "improve",
+            "train"
+          ],
+          "title": "Consent",
+          "type": "string"
+        },
+        "deleted": {
+          "default": false,
+          "title": "Deleted",
+          "type": "boolean"
+        },
+        "draft": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Draft"
+        },
+        "entry": {
+          "maxLength": 200,
+          "title": "Entry",
+          "type": "string"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Project"
+        },
+        "rule": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rule"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 4000,
+          "title": "Source",
+          "type": "string"
+        },
+        "workspace": {
+          "maxLength": 120,
+          "title": "Workspace",
+          "type": "string"
+        }
+      },
+      "required": [
+        "entry",
+        "sha256",
+        "source",
+        "workspace",
+        "at"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.experiment_record.v1.json",
+  "additionalProperties": false,
+  "description": "32.20: one model fitted on one table, for learning which approach wins on which kind of data (v1): the table's shape in\nbands and counts (never a row or a value), the task, the model and its settings, every fold's scores, the holdout's when it\nwas the one chosen, the time; keyed to the table by its hash.",
+  "properties": {
+    "cv": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cv"
+    },
+    "folds": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Folds"
+    },
+    "holdout": {
+      "additionalProperties": true,
+      "title": "Holdout",
+      "type": "object"
+    },
+    "id": {
+      "maxLength": 200,
+      "title": "Id",
+      "type": "string"
+    },
+    "metrics": {
+      "additionalProperties": true,
+      "title": "Metrics",
+      "type": "object"
+    },
+    "model": {
+      "maxLength": 120,
+      "title": "Model",
+      "type": "string"
+    },
+    "model_type": {
+      "enum": [
+        "m1_students",
+        "m2_workflow_decisions",
+        "m3_ml_decisions",
+        "m4_workflow_llm",
+        "m5_solver_llm",
+        "m6_stepwise_decisions",
+        "m7_judges",
+        "m8_retrieval"
+      ],
+      "title": "Model Type",
+      "type": "string"
+    },
+    "more": {
+      "items": {
+        "$ref": "#/$defs/Provenance"
+      },
+      "title": "More",
+      "type": "array"
+    },
+    "params": {
+      "additionalProperties": true,
+      "title": "Params",
+      "type": "object"
+    },
+    "primary_metric": {
+      "anyOf": [
+        {
+          "maxLength": 60,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Primary Metric"
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance"
+    },
+    "recipe": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Recipe"
+    },
+    "schema_version": {
+      "const": "dclab_core.experiment_record.v1",
+      "default": "dclab_core.experiment_record.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Seconds"
+    },
+    "selected": {
+      "default": false,
+      "title": "Selected",
+      "type": "boolean"
+    },
+    "split": {
+      "enum": [
+        "train",
+        "dev",
+        "sealed"
+      ],
+      "title": "Split",
+      "type": "string"
+    },
+    "table": {
+      "additionalProperties": true,
+      "title": "Table",
+      "type": "object"
+    },
+    "task": {
+      "maxLength": 40,
+      "title": "Task",
+      "type": "string"
+    },
+    "weight": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Weight",
+      "type": "number"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "model_type",
+    "split",
+    "provenance",
+    "task",
+    "model"
+  ],
+  "title": "ExperimentRecord",
+  "type": "object"
+}

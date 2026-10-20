@@ -1,0 +1,115 @@
+{
+  "$defs": {
+    "CurvePoint": {
+      "additionalProperties": false,
+      "properties": {
+        "high": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "High"
+        },
+        "labels": {
+          "minimum": 0,
+          "title": "Labels",
+          "type": "integer"
+        },
+        "low": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Low"
+        },
+        "metric": {
+          "default": "accuracy",
+          "maxLength": 60,
+          "title": "Metric",
+          "type": "string"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score"
+        }
+      },
+      "required": [
+        "labels"
+      ],
+      "title": "CurvePoint",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.learning_curve.v1.json",
+  "additionalProperties": false,
+  "description": "A point's or a kind's score against how many labels it had (v1), from its refits and experiments.",
+  "properties": {
+    "builds": {
+      "default": 0,
+      "title": "Builds",
+      "type": "integer"
+    },
+    "enough": {
+      "default": false,
+      "title": "Enough",
+      "type": "boolean"
+    },
+    "kind": {
+      "enum": [
+        "point",
+        "problem_kind"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "points": {
+      "items": {
+        "$ref": "#/$defs/CurvePoint"
+      },
+      "title": "Points",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.learning_curve.v1",
+      "default": "dclab_core.learning_curve.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "subject": {
+      "maxLength": 200,
+      "title": "Subject",
+      "type": "string"
+    },
+    "why": {
+      "default": "",
+      "maxLength": 600,
+      "title": "Why",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "subject",
+    "kind"
+  ],
+  "title": "LearningCurve",
+  "type": "object"
+}

@@ -1,0 +1,85 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "at": {
+      "type": "string"
+    },
+    "changed_by_person": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "context": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "data": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "id": {
+      "maxLength": 200,
+      "type": "string"
+    },
+    "model_type": {
+      "maxLength": 60,
+      "type": "string"
+    },
+    "recipe": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "result": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "dclab_core.model_build.v1",
+      "default": "dclab_core.model_build.v1",
+      "type": "string"
+    },
+    "spent": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "unknown": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "used": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "went_wrong": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "workspace": {
+      "maxLength": 120,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "model_type",
+    "workspace",
+    "at"
+  ],
+  "type": "object"
+}

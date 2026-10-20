@@ -1,0 +1,64 @@
+{
+ "package": "32.28",
+ "title": "Knowledge from outside: a summary in our own words with its citation, link and licence, refused when it copies its source",
+ "date": "2026-10-20",
+ "request": "Collect outside knowledge carefully.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.28",
+ "plan": [
+  "Refuse a finding without citation, link and licence.",
+  "Refuse a summary sharing a run of 30 words with its source.",
+  "Keep it as from_the_literature in the teachers kind."
+ ],
+ "decisions": [
+  {
+   "decision": "An outside finding is untrusted until a DCLab campaign tests it.",
+   "why": "Evidence first."
+  },
+  {
+   "decision": "The id is a hash of the citation and the summary.",
+   "why": "Python's hash() changes per process."
+  }
+ ],
+ "change": "dclab_rnd/store/service.py external() and copies().",
+ "findings": [
+  {
+   "id": "T4",
+   "source": "self",
+   "severity": "latent",
+   "defect": "The first id used hash(), randomised per process.",
+   "scenario": "The same finding got a new id each run.",
+   "cause": "PYTHONHASHSEED.",
+   "fix": "sha256 of citation and summary.",
+   "test": "test_an_outside_finding_needs_its_citation_and_never_copies_its_source"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "copies() could not refuse a short copy, and was skipped without a source text.",
+   "scenario": "A 25-word sentence copied word for word passed.",
+   "cause": "Only runs of 30 words were checked.",
+   "fix": "Source text required; any 12-word run or over 30% of 8-word runs refused.",
+   "test": "tests/test_store_service.py::test_an_outside_finding_needs_its_citation_never_copies_and_links_to_the_campaign_that_tests_it"
+  },
+  {
+   "id": "R12",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Outside findings could not be accepted or tested, and were filed as teacher answers.",
+   "scenario": "knowledge() never read them; they failed the teacher_answer rule.",
+   "cause": "Kept under teachers.",
+   "fix": "Kept as knowledge/external in the other kind, read by knowledge(); tested() links a campaign or flags a counterexample.",
+   "test": "tests/test_store_service.py::test_an_outside_finding_needs_its_citation_never_copies_and_links_to_the_campaign_that_tests_it"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Outside findings are kept with their source, never copied.",
+ "lessons": [
+  "Write fixtures from the code that writes the records (a stage record copied from the engine), never from memory: invented shapes made every test pass while every real build was judged wrong."
+ ],
+ "risks": [
+  "Running the research agent that finds them needs the owner's yes and a cap."
+ ],
+ "commits": []
+}

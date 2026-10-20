@@ -76,6 +76,9 @@ def solution_saved(project: dict[str, Any], before: dict[str, Any] | None, after
     project["solution_saved_by"] = who
     reason = f"Prediction moment: {after.get('prediction_moment') or 'not written'}"
     if before and who == "human" and by_agent:
+        from .. import corrections
+
+        corrections.record("solution", before, after, reason=reason, project=project.get("id"))  # 32.19: kept whole, before and after
         return add(project, "correction", "The person changed the agent's solution: " + _changes(before, after), reason, who, "set_solution")
     return add(project, "decision", "Solution saved: " + _solution_line(after), reason, who, "set_solution")
 
@@ -84,6 +87,9 @@ def stage_approved(project: dict[str, Any], stage: str, decision: dict[str, Any]
     decision = decision or {}
     chosen = choice or decision.get("chosen") or decision.get("selected")
     if who == "human" and choice and choice != decision.get("selected"):  # a correction is a person changing the rule's choice
+        from .. import corrections
+
+        corrections.record(f"stage_choice:{stage}", decision.get("selected"), choice, reason=decision.get("rule"), project=project.get("id"))
         return add(project, "correction", f"Stage {stage} approved with {choice} instead of the rule's {decision.get('selected')}",
                    f"Rule: {decision.get('rule') or 'the stage rule'}", who, "approve_stage", stage)
     return add(project, "decision", f"Stage {stage} approved" + (f" ({chosen})" if chosen else ""), f"Rule: {decision.get('rule') or 'the stage rule'}",

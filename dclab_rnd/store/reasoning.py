@@ -63,23 +63,73 @@ def check(reasoning: str, record_text: str) -> Optional[str]:
     return None
 
 
+class Teacher:
+    """One teacher for one run: one gateway client, so ``cap_eur`` caps the whole run (never each call); records whose consent
+    does not allow training are never sent; the record's words are redacted again before they leave."""
+
+    def __init__(self, gateway: Any = None, cap_eur: Optional[float] = None):
+        from ..models import installed
+
+        gateway = gateway or installed()
+        self.client = gateway.client(PURPOSE) if gateway is not None else None
+        if self.client is not None and cap_eur is not None:
+            self.client.run_limit_eur = cap_eur
+        self.prompt = PROMPT.read_text(encoding="utf-8")
+
+    @property
+    def spent_eur(self) -> float:
+        return float(getattr(self.client, "spent_eur", 0.0) or 0.0)
+
+    def explain(self, record: StoreRecord, answer: str) -> tuple[Optional[str], str]:
+        from dclab_core import redact
+
+        if self.client is None:
+            return None, "no teacher model serves here"
+        if record.provenance.consent != "train":
+            return None, f"the record's consent ({record.provenance.consent}) does not allow training"
+        whole = json.dumps(record.body, ensure_ascii=False, default=str, sort_keys=True)
+        text = redact.redact_text(whole)[0]  # what leaves: contacts replaced
+        try:
+            reply = self.client.complete([{"role": "system", "content": self.prompt},
+                                          {"role": "user", "content": f"The record:\n{text}\n\nThe answer to explain:\n{answer}"}])
+        except Exception as exc:  # noqa: BLE001 - a refused or failed request (the cap reached): no reasoning, and why
+            return None, f"{type(exc).__name__}: {str(exc)[:200]}"
+        reasoning = str((reply or {}).get("content") or "").strip()
+        why = check(reasoning, whole + "\n" + answer) if reasoning else "the teacher wrote nothing"  # grounded in the record itself
+        return (None, why) if why else (reasoning, "checked: every number from its record")
+
+
 def teacher(record: StoreRecord, answer: str, gateway: Any = None, cap_eur: Optional[float] = None) -> tuple[Optional[str], str]:
-    """(the checked reasoning, why) for one example's answer from its record; (None, why) when no model serves, or it failed its check."""
-    from ..models import installed
-
-    gateway = gateway or installed()
-    client = gateway.client(PURPOSE) if gateway is not None else None
-    if client is None:
-        return None, "no teacher model serves here"
-    if cap_eur is not None:
-        client.run_limit_eur = cap_eur
-    text = json.dumps(record.body, ensure_ascii=False, default=str, sort_keys=True)
-    prompt = PROMPT.read_text(encoding="utf-8")
-    reply = client.complete([{"role": "system", "content": prompt},
-                             {"role": "user", "content": f"The record:\n{text}\n\nThe answer to explain:\n{answer}"}])
-    reasoning = str((reply or {}).get("content") or "").strip()
-    why = check(reasoning, text + "\n" + answer) if reasoning else "the teacher wrote nothing"
-    return (None, why) if why else (reasoning, "checked: every number from its record")
+    """One record's reasoning (a run of one): see :class:`Teacher`."""
+    return Teacher(gateway, cap_eur).explain(record, answer)
 
 
-__all__ = ["recorded", "from_record", "check", "teacher", "PURPOSE", "TEACHER_WEIGHT"]
+def run(layout: Any, *, cap_eur: float, limit: int = 100, yes: bool = False, gateway: Any = None, log: Any = print) -> dict[str, Any]:
+    """Teacher reasoning for the kept exchanges that have no thinking of their own, within one cap for the whole run, each kept
+    under ``raw/teachers/`` as ``reasoning/<record>.json`` (source teacher, weight :data:`TEACHER_WEIGHT`). Without ``yes`` it
+    says what it would do and spends nothing."""
+    from . import shapers
+    from .store import Store, now
+
+    todo = [r for r in shapers.records(layout, "model_requests") if r.body.get("whole") and not r.body.get("thinking") and r.body.get("reply")
+            and r.provenance.consent == "train"][:limit]
+    if not yes:
+        log(f"would ask the teacher for {len(todo)} reasonings, capped at EUR {cap_eur} for the run; nothing sent (add --yes)")
+        return {"planned": len(todo), "cap_eur": cap_eur, "sent": 0}
+    t, store, kept, refused = Teacher(gateway, cap_eur), Store(layout), 0, {}
+    for r in todo:
+        reasoning, why = t.explain(r, str(r.body.get("reply")))
+        if reasoning is None:
+            refused[why.split(":")[0]] = refused.get(why.split(":")[0], 0) + 1
+            if why.startswith(("RuntimeError: BudgetExceeded", "no teacher")):
+                break
+            continue
+        store.keep("teachers", r.provenance.workspace, f"reasoning/{r.id.replace(':', '_').replace('#', '_')}.json",
+                   json.dumps({"record": r.id, "reasoning": reasoning, "source": "teacher", "weight": TEACHER_WEIGHT, "at": now(),
+                               "model": getattr(t.client, "model", None)}).encode(), consent="train")
+        kept += 1
+    log(f"kept {kept} teacher reasonings, spent EUR {t.spent_eur:.4f} of {cap_eur}; not kept: {refused}")
+    return {"kept": kept, "spent_eur": round(t.spent_eur, 6), "refused": refused}
+
+
+__all__ = ["recorded", "from_record", "check", "teacher", "Teacher", "run", "PURPOSE", "TEACHER_WEIGHT"]

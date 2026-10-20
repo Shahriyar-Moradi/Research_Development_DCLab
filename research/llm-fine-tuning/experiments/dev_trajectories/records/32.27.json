@@ -1,0 +1,54 @@
+{
+ "package": "32.27",
+ "title": "The building knowledge base: every rule, pitfall, finding and precedent proposed with its evidence, accepted only by a person",
+ "date": "2026-10-20",
+ "request": "Collect the knowledge of building models correctly.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.27",
+ "plan": [
+  "Propose KnowledgeItems from the evidence index's rules, pitfalls, findings and leakage precedents.",
+  "Stage from each rule's category.",
+  "A person's yes kept in docs/knowledge/building/."
+ ],
+ "decisions": [
+  {
+   "decision": "Nothing is accepted by code.",
+   "why": "The owner's rule for the knowledge base."
+  },
+  {
+   "decision": "A rule is measured_here only with evidence beyond the rules file.",
+   "why": "A rule without a campaign is a hypothesis."
+  }
+ ],
+ "change": "dclab_rnd/store/service.py knowledge() and accept(); python -m dclab_rnd.store knowledge|know-accept.",
+ "findings": [
+  {
+   "id": "R13",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Findings citing only generated packs were measured_here; an accepted item was never flagged; CLAUDE.md's rules were missing.",
+   "scenario": "Items promoted past hypothesis without a campaign.",
+   "cause": "Every non-rule type counted as measured.",
+   "fix": "measured_here only with a citation under evidence/campaigns/; an accepted item compared with its source and flagged; CLAUDE.md rules added.",
+   "test": "tests/test_store_service.py::test_a_knowledge_item_is_only_proposed_until_a_person_accepts_it_and_flagged_when_its_source_changes"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "knowledge items proposed",
+   "gate": "every rule, pitfall, finding and precedent proposed; none accepted by code",
+   "result": "items proposed from the evidence index and CLAUDE.md; 0 accepted",
+   "verdict": "pass",
+   "limits": [
+    "the count changes as the evidence index grows"
+   ]
+  }
+ ],
+ "outcome": "46 items proposed (45 measured here, 1 hypothesis), none accepted.",
+ "lessons": [
+  "Write fixtures from the code that writes the records (a stage record copied from the engine), never from memory: invented shapes made every test pass while every real build was judged wrong."
+ ],
+ "risks": [
+  "Stage inference by keywords for records without a category is rough."
+ ],
+ "commits": []
+}

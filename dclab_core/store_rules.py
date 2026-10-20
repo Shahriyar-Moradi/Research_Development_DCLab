@@ -23,7 +23,7 @@ from pydantic import Field
 from dclab_core.contracts import CONTRACTS, Contract, Versioned, _version
 from dclab_core.store import CONFIRMED, LEDGER_SOURCES, Kind, ModelType
 
-VERSION = "capture_rules_v1"
+VERSION = "capture_rules_v2"  # v2 (32.11 review): every project-bound rule seals by the one group
 
 
 class CaptureRule(Versioned):
@@ -81,13 +81,13 @@ RULES: dict[str, CaptureRule] = {r.task: r for r in (
        "folds": "every fold's score", "holdout_reads": "the holdout's read count", "seconds": "its time", "cost_eur": "its cost",
        "project": "its project"},
        ("m3_ml_decisions", "m4_workflow_llm", "m5_solver_llm", "m6_stepwise_decisions", "m7_judges"),
-       ["the holdout was read at most once", "every choice has its reason"], sealed_key="project", keeper="projects"),
+       ["the holdout was read at most once", "every choice has its reason"], sealed_key="group", keeper="projects"),
     _r("graph_move", "workflows", ("graph_move",), {"move": "the validator", "from_state": "before", "to_state": "after", "allowed": "the validator's verdict",
        "project": "its project"},
-       ("m2_workflow_decisions", "m6_stepwise_decisions"), ["a refused move keeps its refusal"], sealed_key="project", keeper="projects"),
+       ("m2_workflow_decisions", "m6_stepwise_decisions"), ["a refused move keeps its refusal"], sealed_key="group", keeper="projects"),
     _r("conversation_turn", "conversations", ("turn",), {"surface": "home, intern, workspace_chat, twin, mcp", "role": "person or agent",
        "text": "the words, redacted", "conversation": "its conversation"}, ("m4_workflow_llm", "m2_workflow_decisions"), ["the person's words are redacted"],
-       sealed_key="conversation", keeper="conversations"),
+       sealed_key="group", keeper="conversations"),
     _r("agent_step", "actions", ("step",), {"agent": "the harness", "tool": "the tool or none", "arguments": "its arguments",
        "result": "its result", "ok": "whether it worked", "run": "its run"}, ("m5_solver_llm", "m6_stepwise_decisions", "m7_judges"),
        ["every tool call has its step in the same run"], sealed_key="run", keeper="actions"),
@@ -106,7 +106,7 @@ RULES: dict[str, CaptureRule] = {r.task: r for r in (
        ("m1_students",), ["a refit is a new version beside the old"], at_decision=False, keeper="students", sealed_key="point"),
     _r("correction", "decisions", ("correction",), {"what": "the card, solution, map, report, plan or cell", "before": "what DCLab proposed",
        "after": "what the person made it", "source": "who corrected it (a person)", "project": "its project or draft"}, ("m2_workflow_decisions", "m4_workflow_llm", "m6_stepwise_decisions", "m7_judges"),
-       ["before and after are both kept"], confirmed_by=("person",), sealed_key="project", keeper="decisions"),
+       ["before and after are both kept"], confirmed_by=("person",), sealed_key="group", keeper="decisions"),
     _r("deletion", "deletions", ("deletion",), {"what": "project, draft or session", "id": "its id", "by": "who deleted it"}, (),
        ["the deleted data is still in the store"], at_decision=False, keeper="hooks"),
     _r("session_event", "sessions", (), {"kind": "the experience log's event kind", "actor": "who acted", "visit": "the visit"},

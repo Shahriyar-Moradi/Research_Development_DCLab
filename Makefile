@@ -1,4 +1,4 @@
-.PHONY: store students lake priors archive capture twin-eval tester-setup share collect catalog datasets decisions-gen decision-models decisions-export decision-gate workflow-models solver-data own-models benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all check-quick check-quick-tests check-commit core-schemas core-wheel-check code-check journeys harness-eval decision-r3 benchmark-v4 pitfalls-by-kind results-by-kind
+.PHONY: store store-check students lake priors archive capture twin-eval tester-setup share collect catalog datasets decisions-gen decision-models decisions-export decision-gate workflow-models solver-data own-models benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all check-quick check-quick-tests check-commit core-schemas core-wheel-check code-check journeys harness-eval decision-r3 benchmark-v4 pitfalls-by-kind results-by-kind
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -109,13 +109,17 @@ replay:  ## rerun a stage from its run record in a scratch copy and compare its 
 db-reset:  ## a clean development database (drops and recreates dclab_dev; needs CONFIRM=yes)
 	$(PYTHON) scripts/dev.py db-reset $(if $(filter yes,$(CONFIRM)),--yes,)
 
-capture:  ## 26.9: capture and keep everything for training: every workspace's decisions (rules, Claude, classifiers, people), the rules on every test, GLiNER2.5-Decide on every test (in the ai12 env: GLINER_PY), the summary, the GLiNER2-format datasets, then a permanent snapshot
+capture:  ## 26.9: capture and keep everything for training: the store's whole run first (32.18), every workspace's decisions (rules, Claude, classifiers, people), the rules on every test, GLiNER2.5-Decide on every test (in the ai12 env: GLINER_PY), the summary, the GLiNER2-format datasets, then a permanent snapshot
+	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.store run
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.lake harvest
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.lake rules
 	DCLAB_NO_LIVE_MODELS=1 PYTHONPATH=. $(or $(GLINER_PY),/opt/miniconda3/envs/ai12/bin/python) -m dclab_rnd.lake answers
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.lake answers-summary > /dev/null
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.lake answers-export
 	$(PYTHON) -m dclab_rnd.archive
+
+store-check:  ## 32.18: one scripted day captured end to end through the store's three tiers, curators, sets and tutor, in a scratch folder: every kind, nothing twice, the deleted project kept, no key or contact, sealed apart
+	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.store.check
 
 store:  ## the store (32.x, docs/guides/STORING_PHASE_PLAN.md): its status and its catalog, README and schemas rewritten at training_records/store (a clone of dclab-records, owner/main)
 	$(PYTHON) -m dclab_rnd.store status && $(PYTHON) -m dclab_rnd.store catalog
@@ -385,7 +389,7 @@ decision-r3:  ## 22.7: an R3-shaped run of the decision classifiers against the 
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.decision_r3 $(ARGS)
 
 tester-setup:  ## 25.11: a trusted tester's first step (NAME=, EMAIL=, REPO= the owner's private records repository); shows the notice, needs AGREE=yes
-	$(PYTHON) -m dclab_rnd.testers setup --name "$(NAME)" --email "$(EMAIL)" --repo "$(REPO)" $(if $(filter yes,$(AGREE)),--agree,)
+	$(PYTHON) -m dclab_rnd.testers setup --name "$(NAME)" --email "$(EMAIL)" --repo "$(REPO)" $(if $(filter yes,$(AGREE)),--agree,) $(if $(filter yes,$(CLAUDE_CODE)),--claude-code,)
 
 share:  ## 25.11: a tester sends what changed in their workspace (and the tables they agree to) to the owner's records repository
 	$(PYTHON) -m dclab_rnd.testers share $(ARGS)

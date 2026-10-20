@@ -1,76 +1,167 @@
-# Trusted friends testing the DCLab R&D studio
+# Testing the DCLab R&D studio with trusted friends
 
-Package 25.11. Each friend clones the repository and runs DCLab on their own machine, with their own Anthropic key.
-Everything they do is recorded in their workspace folder, and `make share` sends it to the owner's private records
-repository; the owner's `make collect` brings every tester's records into the owner's workspace.
+Packages 25.11, 32.15 to 32.17. Each friend clones this repository and runs DCLab on their own machine, with their own
+Anthropic key, to solve a problem of their own. Everything they do is recorded in their workspace folder. `make share`
+sends it to the owner's private records repository, on **a branch of their own** (`tester/<their id>`). The owner's
+`make collect` reads every tester's branch and rebuilds each tester's workspace; the store (the storing phase,
+`STORING_PHASE_PLAN.md`) keeps everything from there.
 
-## The owner, once
+## For a friend: step by step
 
-1. Make a **private** GitHub repository for the records, for example `dclab-tester-records`, with a first commit
-   (a README).
-2. Invite each friend to it with write access (Settings → Collaborators), and give them read access to this code
-   repository.
-3. Clone the records repository on your machine, for example next to this one, and put its path in `.env`:
-   `DCLAB_TESTER_RECORDS=/path/to/dclab-tester-records`.
-
-## Each friend, once
+### 1. Get the studio (once)
 
 ```bash
 git clone git@github.com:Shahriyar-Moradi/Research_Development_DCLab.git
 cd Research_Development_DCLab
-python -m venv .venv && .venv/bin/pip install -r requirements/base.txt pyarrow   # the README's Install
+python -m venv .venv && .venv/bin/pip install -r requirements/base.txt pyarrow
 python -m dclab_rnd.testers notice
-make tester-setup NAME="Ali Rezaei" EMAIL=ali@example.com REPO=git@github.com:OWNER/dclab-tester-records.git AGREE=yes
 ```
 
-`tester-setup` refuses without `AGREE=yes`. It gives the tester an id, turns the workspace's consent on (improve and
-train), turns Claude beside DCLab on, caps the month at 15 (`DCLAB_WORKSPACE_MONTHLY_EUR` in their `.env`) and clones
-the records repository into their workspace. Then the friend adds their own key to `.env`
-(`ANTHROPIC_API_KEY=…`, `DCLAB_LLM_PROVIDER=anthropic`), keeps `DCLAB_DATABASE_URL` empty (a tester's workspace keeps its
-records in files; a share refuses otherwise) and starts DCLab with `make notebook`.
+Read the notice. It says what is recorded and sent, and what is never sent.
 
-## Each friend, now and then
+### 2. Set yourself up (once)
 
 ```bash
-make share                      # asks once per table (again when its content changes); ARGS="--tables no" never sends tables
+make tester-setup NAME="Ali Rezaei" EMAIL=ali@example.com REPO=git@github.com:Shahriyar-Moradi/dclab-records.git AGREE=yes
+```
+
+Add `CLAUDE_CODE=yes` only if you also want to share your own Claude Code sessions on this repository (with anything
+shaped like a key removed). Without it, they never leave your machine.
+
+What setup does:
+
+- gives you an id;
+- turns your workspace's consent on (to improve DCLab and to train its models);
+- turns Claude beside DCLab on;
+- caps your month at 15 (`DCLAB_WORKSPACE_MONTHLY_EUR` in your `.env`);
+- clones the records repository into your workspace and puts it on your branch, `tester/<your id>`.
+
+Your branch starts empty: nobody else's records come with it.
+
+Then add your own key to `.env` (`ANTHROPIC_API_KEY=…`, `DCLAB_LLM_PROVIDER=anthropic`). Keep `DCLAB_DATABASE_URL` empty:
+a tester's workspace keeps its records in files, and a share refuses otherwise.
+
+### 3. Solve your problem
+
+```bash
+make notebook
+```
+
+Open the page it prints. Describe your problem in your own words on Home, answer DCLab's questions, upload your table
+(or ask for an invented one), and carry it to a result. Say when something is unclear or wrong: your corrections are the
+most useful thing you can give.
+
+### 4. Share (now and then, and before you stop for the day)
+
+```bash
+make share                      # asks once per table (again when its content changes)
+make share ARGS="--tables no"   # never send a table
 make share ARGS=--forget-tables # decide every table again
 ```
 
-Only the files that changed since the last share are sent, whole: the session record, the decision ledger, the
-audit, the twin folder (Claude beside DCLab: both answers per step, Claude's conversation, its reading and thinking,
-the picks, the budget raises), the intern's sessions, the projects' and drafts' records, the datasets built, and the
-tables they said yes to. When they said no to a table, the values of its cells are taken out of the records that quote
-them (a column's examples, previews, top values and categories). A file they deleted is deleted on the owner's side
-too. Never `.env`, a key, or a file over 45 MB. If they are offline, the bundle is committed and sent by the next
-`make share`. A share needs the workspace's consent on: turning it off stops sharing.
+**What is sent.** Only the files that changed since your last share, whole:
 
-## The owner, now and then
+- your sessions and the decisions DCLab made;
+- the audit;
+- Claude beside DCLab, step by step;
+- the intern's sessions, every saved version of them;
+- the teams' boards and walks;
+- the students DCLab trains, and the judgments made of them;
+- every model request whole (its prompt, its reply and the model's thinking);
+- the calls an MCP client made;
+- your projects' and drafts' records;
+- the tables you said yes to;
+- with `CLAUDE_CODE=yes`, your Claude Code sessions on this repository.
+
+**What is never sent.**
+
+- **Your `.env`, a key, or a file over 45 MB.**
+- **A table you said no to.** The values of its cells are taken out of the records that quote them (a column's examples,
+  previews, top values).
+- **Screenshots.** No redaction can read them.
+
+**If you are offline,** the bundle is committed and the next `make share` sends it.
+
+### 5. Stop, or ask for removal
+
+- To stop sharing, stop running `make share`, or turn your workspace's consent off.
+- Deleting a project in the app does **not** remove what you already shared.
+- To have something removed, ask the owner. The owner's `store forget` removes it from the store, and the removal is
+  recorded.
+
+## Testing together
+
+- **A weekly problem.** The owner proposes one problem a week, or you bring your own. Each of you solves it and shares.
+- **A shared checklist** for each run:
+  - did DCLab understand the problem?
+  - did it ask the right questions?
+  - did it catch the leaking column?
+  - did the number it gave hold up?
+  - what did you have to correct?
+- **A bug.** File it with your share's id: the bundle folder `tester/<your id>` → `<id>/<time>` that `make share` printed.
+  The owner can then read exactly what you did.
+- **After each round,** the owner runs `make collect` and reads the Admin pages: Sessions, Decisions and Evaluation.
+
+## For the owner: once
+
+1. The private records repository is `dclab-records`. The owner's own store lives on its `owner/main` branch, and each
+   tester gets `tester/<id>`.
+2. Invite each friend with write access (Settings → Collaborators), and give them read access to this code repository.
+3. Protect the branches that are not theirs (Settings → Branches → a rule for `owner/*`, and for each `tester/<id>`
+   allow only that tester, or protect `tester/*` and allow pushes from the collaborators who own each). The tool itself
+   only ever pushes a tester's own branch.
+4. Clone the records repository and put its path in `.env`: `DCLAB_TESTER_RECORDS=/path/to/dclab-records`.
+
+## For the owner: now and then
 
 ```bash
-make collect                    # reads DCLAB_TESTER_RECORDS from .env, pulls, rebuilds each tester under agent_runs/testers/<id>/
+make collect   # pulls, reads every tester/* branch, rebuilds each tester under agent_runs/testers/<id>/
 ```
 
-Each tester's folder is laid out like a workspace; a file that does not match its manifest's hash, a link, or a path
-outside the tester's folder is never applied, and a bundle whose manifest cannot be read is skipped and said.
-Any tester with write access could write into another tester's folder of a shared repository: if that matters, make one
-repository per tester. The **Evaluation** tab on Admin includes every collected tester
-(Claude beside DCLab step by step, and every model's precision, recall, F1 and accuracy); `make collect` ends with a
-table per tester (sessions, drafts, projects, Claude's turns, decisions, model spend); the session record of one tester
-is read with `DCLAB_AGENT_HOME=agent_runs/testers/<id> python -m dclab_rnd.experience sessions`.
+How it works:
 
-## What a tester agrees to
+- **Each branch is read in a worktree of its own;** none is checked out in place.
+- **A branch must hold its own tester's folder:** a branch holding another tester's folder is skipped, and the log says so.
+- **Bad files are never applied:** a file that does not match its manifest's hash, a link, or a path outside the tester's
+  folder.
+- **Testers set up before branches** keep their folders on the shared branch, and are still collected.
 
-`python -m dclab_rnd.testers notice` prints it: their problems, messages, every answer and decision DCLab and Claude
-make, their projects and results, and the cost of each model request are recorded and sent, as they are, to the
-owner's private repository, to improve DCLab and train its models; a table goes only with their yes; their key never
-leaves their machine; they can stop sharing and ask the owner to delete what they sent (delete their folder in the
-records repository and under `agent_runs/testers/`).
+`make collect` ends with a table per tester: sessions, drafts, projects, Claude's turns, decisions and model spend. The
+store's keepers then keep each tester's workspace, under that tester's own consent.
 
-## Testing on a shared server instead
+---
 
-If friends should use one server rather than their own machines: turn sign-in on (`DCLAB_AUTH=password`,
-`DCLAB_SECRET_KEY`, PostgreSQL, `python -m dclab_rnd.storage upgrade`, then
-`python -m dclab_rnd.accounts add --email you@example.com --role owner`), add each friend on Admin → Members (each
-person's monthly model budget is 15 by default, set per person there), and serve it over HTTPS with its host name in
-`DCLAB_ALLOWED_HOSTS` (a cloud deployment from `deploy/`, or a tunnel; the owner's to set up). Everything each person
-does is then kept in that server's workspace under their account.
+## راهنمای فارسی
+
+**برای دوستانی که DCLab را آزمایش می‌کنند**
+
+۱. **یک بار:**
+   - مخزن را clone کنید، محیط را بسازید و متن اطلاعیه را بخوانید (`python -m dclab_rnd.testers notice`).
+   - بعد `make tester-setup` را با نام، ایمیل، آدرس مخزن ثبت‌ها و `AGREE=yes` اجرا کنید.
+   - اگر می‌خواهید جلسه‌های Claude Code شما روی همین مخزن هم فرستاده شود، `CLAUDE_CODE=yes` را هم اضافه کنید. در این حالت هر
+     چیزی که شبیه کلید باشد پاک می‌شود.
+   - این کار شاخهٔ خودتان، `tester/<شناسهٔ شما>`، را می‌سازد. شاخه خالی شروع می‌شود و ثبت‌های هیچ‌کس دیگری با آن نمی‌آید.
+
+۲. **کلید:** کلید Anthropic خودتان را در `.env` بگذارید و `DCLAB_DATABASE_URL` را خالی بگذارید.
+
+۳. **حل مسئله:** با `make notebook` مسئلهٔ خودتان را حل کنید. هر جا DCLab اشتباه کرد بگویید؛ اصلاح‌های شما ارزشمندترین داده
+   است.
+
+۴. **ارسال:** گاه‌به‌گاه `make share` را اجرا کنید.
+   - فقط چیزهایی که تغییر کرده فرستاده می‌شود، و فقط به شاخهٔ خودتان.
+   - جدول‌ها فقط با «بله» شما فرستاده می‌شوند.
+   - `.env`، کلیدها، فایل‌های بزرگ‌تر از ۴۵ مگابایت و تصویرها هرگز فرستاده نمی‌شوند.
+
+۵. **حذف:** پاک کردن یک پروژه در برنامه چیزی را که قبلاً فرستاده‌اید پاک نمی‌کند. برای حذف از مالک بخواهید.
+
+**آزمایش با هم:**
+
+- هر هفته یک مسئله؛
+- یک فهرست بررسی مشترک؛
+- هر اشکال با شناسهٔ بستهٔ ارسالی‌تان گزارش شود.
+
+**برای مالک:**
+
+- هر آزمایش‌کننده را با دسترسی نوشتن به مخزن `dclab-records` دعوت کنید.
+- شاخه‌های دیگران را محافظت کنید.
+- `make collect` را اجرا کنید. این فرمان همهٔ شاخه‌های `tester/*` را می‌خواند و فضای کار هر آزمایش‌کننده را می‌سازد.

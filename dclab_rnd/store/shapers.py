@@ -47,13 +47,12 @@ TEXT_KEYS = {"text", "content", "reason", "question", "answer", "prompt", "reply
 LIFT = ("project", "draft", "run", "conversation", "visit", "job", "request", "session")
 RENAME = {"project_id": "project", "draft_id": "draft", "record_id": "record", "sessionId": "session", "timestamp": "at"}
 BINARY = (".joblib", ".pkl", ".pickle", ".npy", ".npz", ".sqlite3", ".parquet", ".bin", ".onnx", ".pt")
-TABLE_LINE = re.compile(r"^[^\n]*([,\t;|])[^\n]*\1[^\n]*$")
 
 
 def _version() -> str:
     from dclab_core import redact, store_rules
 
-    return f"shapers-2:{redact.VERSION}:{store_rules.VERSION}"
+    return f"shapers-3:{redact.VERSION}:{store_rules.VERSION}"  # 3: one group for every kind; tables printed with spaces
 
 
 def _id_key(key: Optional[str]) -> bool:
@@ -63,27 +62,49 @@ def _id_key(key: Optional[str]) -> bool:
         k.endswith(("_id", "Id", "_ids", "uuid", "Uuid", "_sha256", "_hash", "_at"))  # ids, hashes and times: how records link and order
 
 
+def _columns(line: str) -> Optional[tuple[str, int]]:
+    """How a line splits into a table's cells: by a separator (, tab ; |) at least twice, or by runs of two or more spaces into
+    three or more fields (a printed frame); None when it does not read as a table's line."""
+    for sep in (",", "\t", ";", "|"):
+        n = line.count(sep)
+        tight = n >= 1 and not re.search(rf"{re.escape(sep)} | {re.escape(sep)}", line) and " " not in line.strip()  # a,b with no space: a CSV row
+        if n >= 2 or tight:
+            return sep, n
+    fields = [f for f in re.split(r"\s{2,}", line.strip()) if f]
+    return ("  ", len(fields)) if len(fields) >= 3 else None
+
+
 def _tables_out(text: str) -> str:
-    """A printed table replaced by its size: three or more consecutive lines that share a separator, each at least twice."""
-    lines = text.split("\n")
-    if len(lines) < 3:
+    """A printed table replaced by its size: two or more consecutive lines that split the same way (a header and a row is
+    already a row of someone's table), by separators or by aligned spaces."""
+    if "\n" not in text:
         return text
-    out, run = [], []
+    lines = text.split("\n")
+    out: list[str] = []
+    run: list[str] = []
+    shape: Optional[tuple[str, int]] = None
 
     def flush() -> None:
-        if len(run) >= 3:
+        if len(run) >= 2:
             out.append(f"[a table of {len(run)} lines removed]")
         else:
             out.extend(run)
         run.clear()
 
     for line in lines:
-        m = TABLE_LINE.match(line)
-        if m and (not run or line.count(m.group(1)) == run[0].count(m.group(1))):
+        cols = _columns(line)
+        same = cols is not None and shape is not None and cols[0] == shape[0] and (cols[1] == shape[1] or (cols[0] == "  " and abs(cols[1] - shape[1]) <= 1))
+        if cols is not None and (not run or same):  # a printed frame's header has one field less than its rows (the index)
             run.append(line)
+            shape = cols
+            continue
+        flush()
+        if cols is not None:
+            run.append(line)
+            shape = cols
         else:
-            flush()
-            out.append(line) if not m else run.append(line)
+            out.append(line)
+            shape = None
     flush()
     return "\n".join(out)
 
@@ -112,6 +133,8 @@ def _body(doc: Any, kind: str, source: str) -> dict[str, Any]:
     body = dict(doc) if isinstance(doc, dict) else {"value": doc}
     if isinstance(body.get("doc"), dict):  # a database row: its document's fields lifted beside its columns
         body = {**body["doc"], **{k: v for k, v in body.items() if k != "doc"}}
+    if source.startswith("db/stage_record") and isinstance(body.get("record"), dict):  # a stage row: its record lifted, never read as an id
+        body = {**body.pop("record"), **body}
     for old, new in RENAME.items():
         if old in body and body.get(new) is None:
             body[new] = body[old]
@@ -192,12 +215,14 @@ def _opened(store: Store, entry: Any) -> Iterator[Any]:
 
 
 class Context:
-    """What one record's split and flags need from the others: each decision's group, each draft's project, what was deleted."""
+    """What one record's split and flags need from the others: each decision's group, each draft's project, what was deleted,
+    and each keeping run's context (its commit: 32.22)."""
 
     def __init__(self) -> None:
         self.groups: dict[str, str] = {}
         self.drafts: dict[str, str] = {}
         self.deleted: set[str] = set()
+        self.runs: dict[str, dict[str, Any]] = {}
 
     def group(self, body: dict[str, Any]) -> Optional[str]:
         from dclab_core.datasets import group_of
@@ -207,6 +232,14 @@ class Context:
 
 def _context(store: Store) -> Context:
     ctx = Context()
+    base = store.layout.runs()
+    for path in base.rglob("store-*.json") if base.exists() else []:
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+            if doc.get("id") and doc.get("context"):
+                ctx.runs[str(doc["id"])] = doc["context"]
+        except (OSError, ValueError):
+            continue
     for e in store.entries("deletions"):
         try:
             doc = json.loads(store.read(e))
@@ -263,12 +296,18 @@ def _record(entry: Any, n: int, doc: Any, ctx: Context) -> StoreRecord:
         body.setdefault("state_at", body.get("at"))  # a ledger decision's state is captured where and when it is made
     if kind == "teachers" and not body.get("group"):
         body["group"] = ctx.groups.get(str(body.get("record") or body.get("decision") or "")) or ctx.group(body)
+    if kind not in ("decisions", "teachers") and not body.get("group"):  # one group for a project everywhere: its draft's, its own
+        body["group"] = ctx.group(body)
     at = str(body.get("at") or body.get("captured_at") or entry.captured_at)
     rule = store_rules.rule_for(kind, type_)
     flags = [f"{f.what}:{f.field or '-'}" for f in store_rules.check({"kind": kind, "type": type_, "at": at, "body": body}, rule)]
-    key = body.get(rule.sealed_key) if rule and rule.sealed_key else None
+    key = body.get("group") or (body.get(rule.sealed_key) if rule and rule.sealed_key else None)  # the group first: one split per project
     ids = {str(body.get(k)) for k in ("project", "draft", "session", "conversation", "id") if isinstance(body.get(k), str)}
+    run_context = ctx.runs.get(str(entry.run or "")) or {}
+    if run_context:
+        body.setdefault("_context", run_context)  # 32.22: the code, libraries and machine it was kept with
     prov = Provenance(entry=entry.id, sha256=entry.sha256, source=entry.source, workspace=entry.workspace, consent=entry.consent, at=entry.captured_at,
+                      commit=(run_context.get("commit") or None) and str(run_context["commit"])[:64],
                       project=body.get("project") if isinstance(body.get("project"), str) and len(body["project"]) <= 120 else None,
                       draft=body.get("draft") if isinstance(body.get("draft"), str) and len(body["draft"]) <= 120 else None,
                       deleted=bool(ids & ctx.deleted), rule=f"{store_rules.VERSION}:{rule.task}" if rule else None)

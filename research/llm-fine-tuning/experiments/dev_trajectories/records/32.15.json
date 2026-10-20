@@ -1,0 +1,29 @@
+{
+ "package": "32.15",
+ "title": "A branch per tester: setup starts an empty branch of their own, a share pushes only there, the owner's collect reads every tester branch",
+ "date": "2026-10-20",
+ "request": "Testers' shares on their own branches, never another's; collect rebuilds all.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.15",
+ "plan": [
+  "An orphan branch per tester.",
+  "Share checks out and pushes only that branch.",
+  "Collect reads each branch in a worktree of its own."
+ ],
+ "decisions": [
+  {
+   "decision": "A tester's branch starts as an orphan.",
+   "why": "The owner's store and other testers' records must never come with it."
+  }
+ ],
+ "change": "dclab_rnd.testers (branch_of, _on_branch, _push to the tester's branch, collect from tester/* branches, _replay).",
+ "findings": [],
+ "measurements": [],
+ "outcome": "Two testers share at once to their own branches with no conflict, and collect rebuilds both.",
+ "lessons": [
+  "Read another branch in a worktree, never by checking it out."
+ ],
+ "risks": [
+  "Branch protection is the owner's setting."
+ ],
+ "commits": []
+}

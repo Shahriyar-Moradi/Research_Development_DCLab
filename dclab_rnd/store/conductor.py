@@ -25,6 +25,51 @@ from .store import Store, now, write_json
 EVERY_SECONDS = 3600
 
 
+def context() -> dict[str, Any]:
+    """32.22: what every record of this run was kept with: the code's commit (and whether the tree was clean), Python and the
+    libraries that make the numbers, the platform, and the machine (a hash of its name, never the name)."""
+    import hashlib
+    import platform
+    import subprocess
+
+    from .layout import ROOT
+
+    def git(*args: str) -> str:
+        try:
+            return subprocess.run(["git", "-C", str(ROOT), *args], capture_output=True, text=True, timeout=10).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            return ""
+
+    versions = {}
+    for name in ("numpy", "pandas", "sklearn", "pydantic", "dclab_core"):
+        try:
+            versions[name] = getattr(__import__(name), "__version__", None)
+        except ImportError:
+            versions[name] = None
+    return {"commit": git("rev-parse", "HEAD") or None, "dirty": bool(git("status", "--porcelain", "--untracked-files=no")),
+            "python": platform.python_version(), "libraries": versions, "platform": platform.platform(terse=True),
+            "machine": hashlib.sha256(platform.node().encode()).hexdigest()[:12]}
+
+
+BINARY = (".pkl", ".pickle", ".joblib", ".sqlite3", ".npy", ".npz", ".parquet", ".onnx", ".pt", ".bin")
+
+
+def _cleaned(src: Any) -> Any:
+    """Every source's bytes with credentials removed after its own transform, whichever keeper offers it (a fix's failing output, a
+    walk, a database row); a binary file left as it is (a regex on its bytes could break it), a gzip opened and closed again."""
+    from .keepers.agents import redact
+    from .keepers.standard import _gz_secrets
+
+    if src.source.endswith(BINARY):
+        return src.transform
+    own = src.transform
+    clean = _gz_secrets if src.source.endswith(".gz") else redact
+
+    def both(raw: bytes) -> bytes:
+        return clean(own(raw) if own is not None else raw)
+    return both
+
+
 def _step(keeper: Keeper, env: Any, store: Store, run: str) -> dict[str, Any]:
     """One keeper's sources kept, each on its own: a source that fails (unreadable, gone) is recorded with its error and the rest
     still run (nothing is refused at capture: an unreadable file is kept as its error)."""
@@ -38,7 +83,7 @@ def _step(keeper: Keeper, env: Any, store: Store, run: str) -> dict[str, Any]:
             if kind is None:
                 out["refused"].append({"source": src.source, "why": f"not one of {keeper.name}'s claims"})
                 continue
-            args = dict(consent=src.consent, run=run, note=src.note, transform=src.transform)
+            args = dict(consent=src.consent, run=run, note=src.note, transform=_cleaned(src))
             try:
                 if src.log:
                     entry = store.keep_log(kind, src.workspace, src.source, src.data, **args)
@@ -73,7 +118,7 @@ def conduct(env: Any = None, layout: Optional[Layout] = None, keepers: Optional[
     env = dict(env) if isinstance(env, dict) else {"services": env} if env is not None else {}
     scope = "one" if env.get("only") else "all"
     run = f"store-{scope}-{uuid.uuid4().hex[:12]}"
-    record: dict[str, Any] = {"id": run, "scope": scope, "started": now(), "steps": []}
+    record: dict[str, Any] = {"id": run, "scope": scope, "started": now(), "context": context(), "steps": []}
     with harness.session("conductor", run_id=run) as session:
         for keeper in keepers.values():
             step = _step(keeper, env, store, run)
@@ -115,6 +160,32 @@ def conduct(env: Any = None, layout: Optional[Layout] = None, keepers: Optional[
             record["steps"].append(curated)
             session.step("curate", {}, {k: curated.get(k) for k in ("decisions", "shadow", "error")}, curated["seconds"],
                          verdict="failed" if curated["error"] else "ok")
+            started = time.monotonic()  # the sets after the curators: every model type's training sets rebuilt from the records
+            built: dict[str, Any] = {"name": "builders", "stage": "build", "error": None, "errors": [], "read": 0, "kept": 0, "unchanged": 0, "sets": {}}
+            from .sets import decisions as decision_sets, experiments as experiment_sets, llm as llm_sets, others as other_sets
+
+            for name, builder in (("decisions", decision_sets.build), ("llm", llm_sets.build), ("others", other_sets.build),
+                                  ("experiments", experiment_sets.build)):
+                try:
+                    built["sets"].update(builder(layout)["sets"])
+                except Exception as exc:  # noqa: BLE001 - one builder's failure leaves the others' sets standing
+                    built["errors"].append({"source": name, "error": f"{type(exc).__name__}: {exc}"})
+            try:  # the tutor after the sets: every point's student refitted and measured, never promoted
+                from . import tutor
+
+                built["students"] = tutor.teach(layout, run=f"{run}-tutor")["students"]
+            except Exception as exc:  # noqa: BLE001
+                built["errors"].append({"source": "tutor", "error": f"{type(exc).__name__}: {exc}"})
+            try:  # 32.24 to 32.31: the builds and their verdicts, the curves, the catalog, the engagements and the playbook
+                from . import service
+
+                built["service"] = service.write(layout)
+            except Exception as exc:  # noqa: BLE001
+                built["errors"].append({"source": "service", "error": f"{type(exc).__name__}: {exc}"})
+            built["seconds"] = round(time.monotonic() - started, 3)
+            record["steps"].append(built)
+            session.step("build", {}, {"sets": len(built["sets"]), "errors": len(built["errors"])}, built["seconds"],
+                         verdict="failed" if built["errors"] else "ok")
     record["ended"] = now()
     record["failed"] = [s["name"] for s in record["steps"] if s["error"]]
     record["source_errors"] = sum(len(s["errors"]) for s in record["steps"])

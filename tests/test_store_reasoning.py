@@ -69,7 +69,7 @@ class ReasoningTest(unittest.TestCase):
         long = "x" * 30_000
         with mock.patch.dict(os.environ, {"DCLAB_LOG_PROMPTS": "1"}):
             gw = gateway(self.home, [reply("The answer.", [{"text": "First I read the record.", "signature": "s"}])])
-            gw.client("stage_notes").complete([{"role": "user", "content": long}])
+            gw.client("home_agent").complete([{"role": "user", "content": long}])  # a purpose that keeps text
         doc = self.exchanges()[0]
         self.assertTrue(doc["whole"])
         self.assertEqual(len(doc["messages"][0]["content"]), 30_000)  # never cut
@@ -79,9 +79,11 @@ class ReasoningTest(unittest.TestCase):
         self.assertEqual(reasoning.recorded(doc), "First I read the record.")
 
     def test_a_purpose_shown_cells_or_a_workspace_keeping_no_text_keeps_its_shape_only(self):
-        gw = gateway(self.home, [reply("a"), reply("b")])
+        gw = gateway(self.home, [reply("a"), reply("b"), reply("c")])
         with mock.patch.dict(os.environ, {"DCLAB_LOG_PROMPTS": "0"}):
-            gw.client("stage_notes").complete([{"role": "user", "content": "secret words"}])
+            gw.client("home_agent").complete([{"role": "user", "content": "secret words"}])
+        with mock.patch.dict(os.environ, {"DCLAB_LOG_PROMPTS": "1"}):
+            gateway(self.home, [reply("c")]).client("evidence_answer").complete([{"role": "user", "content": "secret words"}])  # may keep no text
         with mock.patch.dict(os.environ, {"DCLAB_LOG_PROMPTS": "1"}):
             gw.client("intern").complete([{"role": "user", "content": "cell 4111"}])  # the intern is shown cell values
         for doc in self.exchanges():

@@ -1,0 +1,44 @@
+{
+ "package": "32.21",
+ "title": "Code with its execution: every run's code, output and error, a failure paired with its fix, notebooks with their errors, and every commit's patch",
+ "date": "2026-10-20",
+ "request": "Every piece of code written or run, with its output, error and the fix that followed.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.21",
+ "plan": [
+  "Record code runs.",
+  "Pair failures with fixes.",
+  "Keep notebooks' errors and printed text.",
+  "Keep commits as patches."
+ ],
+ "decisions": [],
+ "change": "dclab_rnd.code_runs, studio.code.rerun, the notebook transform, keepers.commits.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "privacy",
+   "defect": "A two-column CSV printed by a cell was not seen as a table.",
+   "scenario": "email,amount and one row.",
+   "cause": "A table line needed two separators.",
+   "fix": "A separator with no space beside it reads as a table line.",
+   "test": "test_a_failed_run_and_its_fix_are_one_record_and_a_notebook_keeps_its_errors"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "A test read this repository's whole history.",
+   "scenario": "The context test took 89 seconds.",
+   "cause": "The commits keeper ran in every test.",
+   "fix": "Off in tests unless a test gives its own repository; each commit kept once.",
+   "test": "test_each_commit_is_kept_once_as_its_patch_generated_files_left_out"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Code is kept with what it did: what failed, how it was fixed, and every commit.",
+ "lessons": [],
+ "risks": [
+  "The intern does not run code itself yet."
+ ],
+ "commits": []
+}

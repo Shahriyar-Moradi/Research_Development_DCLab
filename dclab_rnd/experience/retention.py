@@ -137,6 +137,8 @@ def sweep_events(log: Any, now: Optional[datetime] = None, event_days: Optional[
                     if any(k in payload for k in MODEL_TEXT):
                         c.execute(sa.update(t).where(t.c.id == rid).values(doc=_without_text(doc)))
                         out["texts_removed"] += 1
+        if stale:
+            out["exchanges_texts_removed"] = exchanges(getattr(log, "home", None), before=stale)
         return out
 
     def keep(doc: dict[str, Any]) -> Optional[dict[str, Any]]:
@@ -150,7 +152,39 @@ def sweep_events(log: Any, now: Optional[datetime] = None, event_days: Optional[
         return doc
 
     _rewrite(Path(log.root), keep)
+    if stale:
+        out["exchanges_texts_removed"] = exchanges(getattr(log, "home", None), before=stale)
     return out
+
+
+def exchanges(home: Any, *, project: str | None = None, draft: str | None = None, before: str | None = None) -> int:
+    """32.10's whole exchanges in the workspace (``model_exchanges/``) follow retention and deletion there: a deleted project's or
+    draft's removed, and the text of one older than ``before`` taken out (its shape kept). The store keeps its own copy (it
+    copied them first: the owner's rule). How many were changed."""
+    if home is None:
+        return 0
+    root = Path(home) / "model_exchanges"
+    changed = 0
+    for path in sorted(root.rglob("*.jsonl")) if root.exists() else []:
+        out, touched = [], False
+        for line in path.read_text(encoding="utf-8").splitlines():
+            try:
+                doc = json.loads(line)
+            except ValueError:
+                out.append(line)
+                continue
+            if (project and doc.get("project") == project) or (draft and doc.get("draft") == draft):
+                touched, changed = True, changed + 1
+                continue
+            if before and str(doc.get("at") or "") < before and doc.get("whole"):
+                doc = {k: v for k, v in doc.items() if k not in ("messages", "reply", "tool_calls", "thinking")} | {"whole": False, "why": "past retention"}
+                touched, changed = True, changed + 1
+            out.append(json.dumps(doc, ensure_ascii=False, default=str))
+        if touched:
+            tmp = path.with_suffix(".jsonl.part")
+            tmp.write_text("".join(x + "\n" for x in out), encoding="utf-8")
+            tmp.replace(path)
+    return changed
 
 
 def _without_text(doc: dict[str, Any]) -> dict[str, Any]:
@@ -234,6 +268,11 @@ def forget(*, project: str | None = None, draft: str | None = None, visit: str |
             out.setdefault("failed", []).append(name)
             print(f"retention: could not remove the {name} of what was deleted: {type(exc).__name__}", file=sys.stderr, flush=True)
     home = getattr(log, "home", None) or getattr(ledger, "home", None)
+    if home is not None and (project or draft):  # 32.10: the whole exchanges of what was deleted
+        try:
+            out["exchanges"] = exchanges(home, project=project, draft=draft)
+        except Exception:  # noqa: BLE001
+            out.setdefault("failed", []).append("exchanges")
     if home is not None and (project or draft):  # 28.2: a team's boards, pauses and walk records of what was deleted
         try:
             from ..orchestra import board as team_board

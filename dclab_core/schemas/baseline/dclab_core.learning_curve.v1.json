@@ -1,0 +1,99 @@
+{
+  "$defs": {
+    "CurvePoint": {
+      "additionalProperties": false,
+      "properties": {
+        "high": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "labels": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "low": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "metric": {
+          "default": "accuracy",
+          "maxLength": 60,
+          "type": "string"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "labels"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "builds": {
+      "default": 0,
+      "type": "integer"
+    },
+    "enough": {
+      "default": false,
+      "type": "boolean"
+    },
+    "kind": {
+      "enum": [
+        "point",
+        "problem_kind"
+      ],
+      "type": "string"
+    },
+    "points": {
+      "items": {
+        "$ref": "#/$defs/CurvePoint"
+      },
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.learning_curve.v1",
+      "default": "dclab_core.learning_curve.v1",
+      "type": "string"
+    },
+    "subject": {
+      "maxLength": 200,
+      "type": "string"
+    },
+    "why": {
+      "default": "",
+      "maxLength": 600,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "subject",
+    "kind"
+  ],
+  "type": "object"
+}

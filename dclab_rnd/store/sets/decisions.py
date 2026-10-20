@@ -79,12 +79,16 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
             continue
         value, source = _best_label(labels.get(str(record.body.get("id")), []))
         weight = 1.0 if source in CONFIRMED or source is None else SILVER  # a teacher's or a rule's label weighs less, kept apart by its source
+        if source == "blind":  # a blind draw's label carries its draw's weight (the ledger's), never 1 by default
+            weight = float(next((lab.body.get("weight") for lab in labels.get(str(record.body.get("id")), []) if lab.body.get("weight") is not None), 1.0))
+            weight = min(1.0, max(0.0, weight))
         answers = [Answer(by=str(a.get("by") or a.get("answerer") or "unknown"), value=a.get("value"), reason=a.get("reason"))
                    for a in record.body.get("answers") or [] if isinstance(a, dict)]
         state = {k: v for k, v in (record.body.get("state") or {}).items()}
         try:
             ex = DecisionExample(id=f"{model_type}:{rid}", model_type=model_type, split=split_of(str(group)), provenance=record.provenance,
                                  weight=weight, point=str(record.body.get("point")), group=str(choice.get("folder") or "").split("/")[0] or "general",
+                                 split_group=str(group),
                                  state=state, options=[str(o) for o in record.body.get("options") or []], answers=answers, label=value, label_source=source)
         except Exception as exc:  # noqa: BLE001 - a record whose state the contract refuses (a value in it) never enters a set
             out_of_sets[f"refused by its contract: {type(exc).__name__}"] += 1

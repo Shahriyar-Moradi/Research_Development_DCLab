@@ -53,6 +53,12 @@ class Layout:
     def schemas(self) -> Path:
         return self.root / "schemas"
 
+    def tier(self, name: str) -> Path:
+        """One tier's folder: ``raw``, ``records`` or ``sets``."""
+        if name not in TIERS:
+            raise ValueError(f"{name!r} is not a tier ({', '.join(TIERS)})")
+        return self.root / name
+
     # tier 1
     def raw(self, kind: str) -> Path:
         if kind not in KINDS:
@@ -78,6 +84,11 @@ class Layout:
 
     def schema(self, name: str) -> Path:
         return self.schemas / f"{_part(name)}.json"
+
+    def service(self, name: str) -> Path:
+        """``service/<name>.json`` (32.24 to 32.31): the builds with their verdicts, the curves, the catalog, the engagements and
+        the playbook, rebuilt from the records with every whole run."""
+        return self.root / "service" / f"{_part(name)}.json"
 
     @staticmethod
     def workspace(ident: str) -> str:
@@ -135,6 +146,10 @@ class Layout:
 
     def quarantine_file(self, reason: str, run: str) -> Path:
         return self.quarantine(reason) / f"{_part(run)}.jsonl"
+
+    def curation_seen(self) -> Path:
+        """Every (model type, record body) the curators placed, so a record kept again is a duplicate in any later run."""
+        return self.root / "raw" / "curation" / ".seen.txt"
 
     def curation_state(self) -> Path:
         """Which record files the curators last read (their hashes): an unchanged file is not curated again."""

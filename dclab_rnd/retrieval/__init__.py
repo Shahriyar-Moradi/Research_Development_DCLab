@@ -264,6 +264,15 @@ def chosen() -> str:
 
 
 def search(question: str, k: int = K, index: Any = None) -> list[dict[str, Any]]:
+    """The evidence records for a question (see :func:`_search`); each search kept with what it offered (32.23)."""
+    hits = _search(question, k, index)
+    from .. import searches
+
+    searches.offered("evidence", question, [h.get("record_id") for h in hits], hits[0].get("method") if hits else None)
+    return hits
+
+
+def _search(question: str, k: int = K, index: Any = None) -> list[dict[str, Any]]:
     """The evidence records for a question in ``index`` (the caller's, so a rebuilt index is searched as it is now), by
     the measured method; each hit has the record's fields, its keyword score (0 when keyword search did not find it)
     and the method. Keyword search when the vectors cannot be built (an environment without scikit-learn)."""

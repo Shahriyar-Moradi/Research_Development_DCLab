@@ -18,7 +18,7 @@ Pure pydantic. The host owns the files, the agents and the models; the core neve
 from __future__ import annotations
 
 import re
-from typing import Any, Literal, Optional
+from typing import Any, ClassVar, Literal, Optional
 
 from pydantic import Field, field_validator, model_validator
 
@@ -166,11 +166,14 @@ class Answer(Contract):
 
 
 class DecisionExample(_Example):
-    """M1, M2, M3: one decision as a classifier learns it (v1)."""
+    """M1, M2, M3: one decision as a classifier learns it (v2: ``split_group``, the table or project it belongs to, so folds and
+    splits keep one table's rows together; v1 reads, its split group unknown)."""
 
-    schema_version: Literal["dclab_core.decision_example.v1"] = _version("decision_example")
+    schema_version: Literal["dclab_core.decision_example.v2"] = _version("decision_example", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.decision_example.v1"})
     point: str = Field(max_length=120)
     group: str = Field(max_length=80)            # M2: the system (dclab, rnd, internal); M3: the family; M1: the student's model
+    split_group: Optional[str] = Field(default=None, max_length=200)  # the record's sealed group (a project, a draft's project, a table)
     state: dict[str, Any] = Field(default_factory=dict)   # bands, codes, counts, flags: the ledger's state, never a value
     options: list[str] = Field(default_factory=list)
     answers: list[Answer] = Field(default_factory=list)
@@ -178,6 +181,13 @@ class DecisionExample(_Example):
     label_source: Optional[LabelSource] = None
 
     _state = field_validator("state")(classmethod(lambda cls, v: _state_ok(v)))
+
+    @model_validator(mode="before")
+    @classmethod
+    def _read_v1(cls, data: Any) -> Any:
+        if isinstance(data, dict) and data.get("schema_version") == "dclab_core.decision_example.v1":
+            data = {**data, "schema_version": "dclab_core.decision_example.v2"}
+        return data
 
     @model_validator(mode="after")
     def _label_says_who(self):
@@ -314,6 +324,26 @@ class RetrievalExample(_Example):
     passed: Optional[bool] = None
 
 
+class ExperimentRecord(_Example):
+    """32.20: one model fitted on one table, for learning which approach wins on which kind of data (v1): the table's shape in
+    bands and counts (never a row or a value), the task, the model and its settings, every fold's scores, the holdout's when it
+    was the one chosen, the time; keyed to the table by its hash."""
+
+    schema_version: Literal["dclab_core.experiment_record.v1"] = _version("experiment_record")
+    task: str = Field(max_length=40)
+    table: dict[str, Any] = Field(default_factory=dict)   # rows band, columns, column kinds' counts, positive rate band, the table's sha256
+    model: str = Field(max_length=120)
+    params: dict[str, Any] = Field(default_factory=dict)
+    recipe: Optional[str] = Field(default=None, max_length=120)
+    cv: Optional[str] = Field(default=None, max_length=300)
+    folds: Optional[int] = None
+    metrics: dict[str, Any] = Field(default_factory=dict)  # metric -> mean, std, min, max over the folds
+    primary_metric: Optional[str] = Field(default=None, max_length=60)
+    selected: bool = False
+    holdout: dict[str, Any] = Field(default_factory=dict)  # the holdout's metrics, only for the model chosen
+    seconds: Optional[float] = None
+
+
 class CurationDecision(Versioned):
     """One curator's choice for one record (v1): which model it teaches, where it goes, its quality and why."""
 
@@ -383,21 +413,21 @@ class WorkflowRecord(Versioned):
         return self
 
 
-for _name, _cls in (("workflow_record", WorkflowRecord), ("store_entry", StoreEntry), ("store_record", StoreRecord), ("decision_example", DecisionExample),
+for _name, _cls in (("experiment_record", ExperimentRecord), ("workflow_record", WorkflowRecord), ("store_entry", StoreEntry), ("store_record", StoreRecord), ("decision_example", DecisionExample),
                     ("chat_example", ChatExample), ("preference_pair", PreferencePair), ("solver_trajectory", SolverTrajectory),
                     ("episode", Episode), ("judged_example", JudgedExample), ("retrieval_example", RetrievalExample),
                     ("curation_decision", CurationDecision), ("set_manifest", SetManifest)):
     CONTRACTS[_name] = _cls
 
 EXAMPLE_SHAPES: dict[str, tuple[str, ...]] = {  # model type -> the example contracts its sets hold
-    "m1_students": ("decision_example",), "m2_workflow_decisions": ("decision_example",), "m3_ml_decisions": ("decision_example",),
-    "m4_workflow_llm": ("chat_example", "preference_pair"), "m5_solver_llm": ("solver_trajectory", "chat_example", "preference_pair"),
+    "m1_students": ("decision_example",), "m2_workflow_decisions": ("decision_example",), "m3_ml_decisions": ("decision_example", "experiment_record"),
+    "m4_workflow_llm": ("chat_example", "preference_pair"), "m5_solver_llm": ("solver_trajectory", "chat_example", "preference_pair", "experiment_record"),
     "m6_stepwise_decisions": ("episode",), "m7_judges": ("judged_example", "preference_pair"), "m8_retrieval": ("retrieval_example",),
 }
 
 __all__ = ["ModelType", "MODEL_TYPES", "Kind", "KINDS", "Split", "LabelSource", "ReasoningSource", "REASONING_SOURCES", "Quality",
            "StoreEntry", "Provenance", "StoreRecord", "Answer", "DecisionExample", "Message", "ChatExample", "PreferencePair",
            "TrajectoryStep", "SolverTrajectory", "EpisodeStep", "Episode", "JudgedExample", "RetrievalExample", "CurationDecision",
-           "SetManifest", "EXAMPLE_SHAPES", "WalkStep", "WorkflowRecord"]
+           "SetManifest", "EXAMPLE_SHAPES", "WalkStep", "WorkflowRecord", "ExperimentRecord"]
 
 import dclab_core.store_rules  # noqa: E402,F401  (the capture rules register their contract; imported here so every reader sees it)

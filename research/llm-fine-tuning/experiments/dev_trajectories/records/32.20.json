@@ -1,0 +1,22 @@
+{
+ "package": "32.20",
+ "title": "The experiments themselves: every model fitted as a record of its table's shape, its settings, every fold's scores and the holdout of the one chosen",
+ "date": "2026-10-20",
+ "request": "One experiment record per model fitted, keyed to its table's data card, with no row.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.20",
+ "plan": [
+  "Read the models and final stage records.",
+  "Describe the table in bands.",
+  "Write the M3 experiments set."
+ ],
+ "decisions": [],
+ "change": "dclab_core.store.ExperimentRecord, dclab_rnd.store.sets.experiments.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "Every fitted model is a record that says which approach won on which kind of table.",
+ "lessons": [],
+ "risks": [
+  "Research campaigns' experiments are not yet included."
+ ],
+ "commits": []
+}

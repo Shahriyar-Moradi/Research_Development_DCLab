@@ -50,9 +50,7 @@ class McpOverHttpTests(unittest.TestCase):
         self.assertEqual(self.client.get(f"/api/projects/{project_id}").status_code, 200)
         bad = self.post(rpc("tools/call", {"name": "create_project", "arguments": {"name": "x"}}, 5))
         self.assertTrue(bad["result"].get("isError") or "error" in json.loads(bad["result"]["content"][0]["text"]))
-        services = self.client.app.state.services  # 32.7: every call kept whole as its own source, its run with it
-        home = getattr(services.projects, "files_home", None) or services.projects.home.parent
-        calls = [json.loads(line) for line in (Path(home) / "mcp" / "calls.jsonl").read_text(encoding="utf-8").splitlines()]
+        calls = [json.loads(line) for line in (self.home / "mcp" / "calls.jsonl").read_text(encoding="utf-8").splitlines()]  # 32.7: every call kept
         self.assertEqual([c["tool"] for c in calls][:2], ["search_evidence", "create_project"])  # a call the protocol refused never reached a tool
         self.assertTrue(all(c["run"] for c in calls))
 

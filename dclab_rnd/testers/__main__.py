@@ -36,6 +36,7 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--repo", required=True, help="the owner's private records repository (git URL)")
     s.add_argument("--clone", type=Path, default=None, help="where to keep its clone (default: <workspace>/tester-records)")
     s.add_argument("--agree", action="store_true", help="you read the notice (python -m dclab_rnd.testers notice) and agree")
+    s.add_argument("--claude-code", action="store_true", help="also share your own Claude Code sessions on this repository (keys removed)")
     sh = sub.add_parser("share")
     sh.add_argument("--tables", choices=("ask", "yes", "no"), default="ask", help="for a table not decided before (or changed since): ask, send it, or keep it")
     sh.add_argument("--forget-tables", action="store_true", help="forget every earlier yes or no about tables, and decide again")
@@ -63,7 +64,8 @@ def main(argv: list[str] | None = None) -> int:
             if not args.agree:
                 print(NOTICE + "\n\nRead it, then run again with --agree.")
                 return 2
-            setup(home, name=args.name, email=args.email, repo=args.repo, clone=args.clone, agreed=True, env_file=ROOT / ".env")
+            setup(home, name=args.name, email=args.email, repo=args.repo, clone=args.clone, agreed=True, env_file=ROOT / ".env",
+                  claude_code=args.claude_code)
             print("Next: put your own ANTHROPIC_API_KEY and DCLAB_LLM_PROVIDER=anthropic in .env, start DCLab (make notebook), and run make share now and then.")
         elif args.command == "share":
             def ask(rel: str, size: int) -> bool:

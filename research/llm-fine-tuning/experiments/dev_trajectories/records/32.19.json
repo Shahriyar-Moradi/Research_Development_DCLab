@@ -1,0 +1,24 @@
+{
+ "package": "32.19",
+ "title": "Corrections and failures: a person's changes kept whole as before and after, turned into preference pairs, and refused moves judged as failures",
+ "date": "2026-10-20",
+ "request": "Every edit to a card, a solution, a map or a stage choice kept as before and after; failures as counterexamples.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.19",
+ "plan": [
+  "Record corrections where they are made.",
+  "Turn each into a preference pair.",
+  "Judge refused moves."
+ ],
+ "decisions": [],
+ "change": "dclab_rnd.corrections, the solution saves, stage approvals and map edits, others.preferences and the move judgments.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "Every correction a person makes is kept whole and teaches what DCLab got wrong.",
+ "lessons": [
+  "The strongest signal is where a person disagreed: capture it where it happens."
+ ],
+ "risks": [
+  "A card's field edited in the conversation is not yet a correction record."
+ ],
+ "commits": []
+}

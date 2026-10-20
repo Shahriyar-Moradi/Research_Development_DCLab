@@ -1,0 +1,92 @@
+{
+ "package": "32.12",
+ "title": "The LLM sets: M4 by stage from every kept exchange and Home conversation, M5 from every Claude Code and intern session, sealed people and benchmarks kept out",
+ "date": "2026-10-20",
+ "request": "M4 chat examples by stage and M5 whole trajectories, with reasoning, decontaminated against sealed sets and MLE-bench.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.12",
+ "plan": [
+  "M4 from exchanges kept whole and drafts' conversations.",
+  "M5 from transcripts and intern sessions.",
+  "Keep out sealed people's words and benchmark tasks."
+ ],
+ "decisions": [
+  {
+   "decision": "Contamination is matched on an example's own texts with one compiled pattern.",
+   "why": "Matching on JSON missed sentences with quotes or line breaks, and 1,300 substring searches per example were slow."
+  },
+  {
+   "decision": "Trajectories are built transcript by transcript.",
+   "why": "1.1 GB of transcripts must never be held at once."
+  }
+ ],
+ "change": "dclab_rnd.store.sets.llm (from_exchange, from_draft, trajectories, intern_trajectories, Contamination, sealed_texts), benchmarks.txt (MLE-bench Lite, to be checked).",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The LLM builders bypassed consent and the curators.",
+   "scenario": "A tester's exchange refused by the guarded write still reached M4.",
+   "cause": "The builders did not read the curators' refusals.",
+   "fix": "Every builder takes only train-consented records that no curator refused or kept out.",
+   "test": "test_m4_and_m5_examples_carry_their_reasoning_and_contaminated_ones_stay_out"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Each exchange was split by its own request.",
+   "scenario": "A conversation's turns repeat earlier turns: they could sit in train and sealed.",
+   "cause": "No group was given to exchanges.",
+   "fix": "Every record's split is its project's group.",
+   "test": "test_the_scripted_day_passes_every_check"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The newest draft was chosen by the id's text.",
+   "scenario": "v10 sorted before v9.",
+   "cause": "String comparison of entry ids.",
+   "fix": "By the version number.",
+   "test": "test_m4_and_m5_examples_carry_their_reasoning_and_contaminated_ones_stay_out"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The benchmark list was empty and intern sessions were not built.",
+   "scenario": "No MLE-bench task could be caught.",
+   "cause": "The list was left to fill.",
+   "fix": "MLE-bench Lite listed (to check against its source); intern trajectories built.",
+   "test": "test_m4_and_m5_examples_carry_their_reasoning_and_contaminated_ones_stay_out"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The benchmark list was read once at import.",
+   "scenario": "A test's own list was never used.",
+   "cause": "A default argument bound at definition.",
+   "fix": "Read at call time.",
+   "test": "test_m4_and_m5_examples_carry_their_reasoning_and_contaminated_ones_stay_out"
+  },
+  {
+   "id": "S1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The benchmark list was written from memory.",
+   "scenario": "A competition of MLE-bench missing from the list would let its solutions into train.",
+   "cause": "Only the Lite split was remembered.",
+   "fix": "Checked against openai/mle-bench's split files: Lite matched 22 of 22; the 75 competitions and spaceship-titanic added.",
+   "test": "test_store_sets_llm"
+  }
+ ],
+ "measurements": [],
+ "outcome": "The workflow LLM and the solver LLM have their sets, every turn and step with its labelled reasoning, nothing sealed or benchmarked in train.",
+ "lessons": [
+  "A default argument is read once: anything a test or a caller should change is read at call time."
+ ],
+ "risks": [],
+ "commits": []
+}

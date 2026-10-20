@@ -1,0 +1,23 @@
+{
+ "package": "32.22",
+ "title": "Cost, time and context: every whole run's code, libraries and machine, carried on every record, and the spend totalled by purpose and model type",
+ "date": "2026-10-20",
+ "request": "Every record carries its context; the catalog totals the cost per model type.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.22",
+ "plan": [
+  "A context per run.",
+  "Carried by the shapers.",
+  "Prompt hashes on exchanges.",
+  "Spend in the catalog."
+ ],
+ "decisions": [],
+ "change": "conductor.context, shapers' run contexts, the exchange's prompt_sha256, catalog costs.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "Every record says what code and machine kept it, and the spend is totalled.",
+ "lessons": [],
+ "risks": [
+  "CPU time per step is not measured."
+ ],
+ "commits": []
+}

@@ -68,7 +68,7 @@ class ConductorTest(unittest.TestCase):
         again = conductor.conduct(None, self.layout, keepers())
         self.assertEqual({s["name"]: s["unchanged"] for s in again["steps"]}["sessions"], 1)  # nothing new the second time
         steps_seen = [e for e in self.log.read() if e.kind == "agent.step" and e.ids.run == record["id"]]
-        self.assertEqual(sorted(e.payload.get("tool") for e in steps_seen), ["curate", "keep:audit", "keep:sessions", "shape"])
+        self.assertEqual(sorted(e.payload.get("tool") for e in steps_seen), ["build", "curate", "keep:audit", "keep:sessions", "shape"])  # the tutor runs as its own agent
 
     def test_two_keepers_on_one_path_are_refused(self):
         from dclab_rnd.store.keepers import Claim, Keeper, register

@@ -1,0 +1,129 @@
+{
+ "package": "32.24",
+ "title": "The build record: every project the store kept becomes one ModelBuild, each part filled or unknown with why",
+ "date": "2026-10-20",
+ "request": "Collect the data and the knowledge of building models correctly for businesses: one record per model built, its context, data, recipe, cost, result and what a person changed.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.24",
+ "plan": [
+  "Read the newest project, stage, move and walk records of each project from the store's records tier.",
+  "Fill ModelBuild v1 with bands only.",
+  "Say every part that cannot be filled, and why."
+ ],
+ "decisions": [
+  {
+   "decision": "A build is read from the store's records, never from the live workspace.",
+   "why": "The store keeps a deleted project whole; the build of a deleted project is still a build."
+  },
+  {
+   "decision": "The newest version of a source wins by its capture time.",
+   "why": "Later captures are later versions of the same file."
+  },
+  {
+   "decision": "Context and data are bands (size, rows band, column count), never names or values.",
+   "why": "The catalog crosses businesses."
+  }
+ ],
+ "change": "dclab_core/service.py (ModelBuild and the other service contracts, dclab-core 0.99.0); dclab_rnd/store/service.py builds() and _latest().",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The first draft read walks' times and stage fields from memory.",
+   "scenario": "people_minutes and the recipe were empty for every build.",
+   "cause": "Field names guessed: the recipe sits under the data stage's evidence.recipe.choices, the bar under the final stage's evidence.success_bar.",
+   "fix": "Read the engine's own stage_data and stage_final to name the fields.",
+   "test": "test_a_kept_project_is_a_build_judged_correct_and_a_leak_or_a_second_read_makes_it_incorrect"
+  },
+  {
+   "id": "T2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The real store holds no project yet.",
+   "scenario": "builds() on the owner's store gave 0 builds.",
+   "cause": "The backfill has not run.",
+   "fix": "The tests build a scratch store; the backfill is a separate step.",
+   "test": "test_store_service"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "PostgreSQL workspaces gave no builds.",
+   "scenario": "db/project, db/stage_record and db/transition rows were skipped.",
+   "cause": "Only file sources were mapped; the shaper also nulled a stage row's record as an id field.",
+   "fix": "Map the three tables; the shaper lifts a stage row's record into its body.",
+   "test": "tests/test_store_service.py::test_a_postgresql_workspace_gives_the_same_build"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Spend and moves were counted twice after a log was rewritten, and two workspaces' projects with one id merged.",
+   "scenario": "keep_log keeps a rewritten log whole again; projects keyed by id alone.",
+   "cause": "Every kept version was read.",
+   "fix": "Read each source's current chain (its last whole version and later tails); key by (workspace, project).",
+   "test": "tests/test_store_service.py::test_the_same_project_id_in_two_workspaces_is_two_builds_and_a_rewritten_log_is_counted_once"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "used was True for every project whose final stage ran.",
+   "scenario": "outcome.observed is also emitted for the holdout's own read.",
+   "cause": "Every outcome event counted.",
+   "fix": "Count only outcomes observed in the business or a promotion.",
+   "test": "tests/test_store_service.py::test_the_holdouts_own_outcome_is_not_use_and_a_business_outcome_is"
+  },
+  {
+   "id": "R14",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Consent was ignored.",
+   "scenario": "A workspace without consent to improve entered the service records.",
+   "cause": "The builders read every record.",
+   "fix": "Read only records with improve or train consent; a training set still requires train.",
+   "test": "tests/test_store_service.py::test_a_record_without_consent_to_improve_is_not_read"
+  },
+  {
+   "id": "R15",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Students were not builds; unfilled parts were not marked unknown.",
+   "scenario": "data.columns was always None; industry, used and result unmarked.",
+   "cause": "Only projects were read; the project's data has a columns list, not column_count.",
+   "fix": "Students from the tutor's card and measurement; every unfilled part in unknown with why.",
+   "test": "tests/test_store_service.py::test_a_student_refit_is_a_build_and_its_curve_says_too_few"
+  },
+  {
+   "id": "R16",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "people_minutes was wall-clock time and problem_kind was the task.",
+   "scenario": "A walk over two days gave 2880 minutes.",
+   "cause": "First to last step; solution.task.",
+   "fix": "Active minutes with gaps capped at 30; the kind from solution.kind or the data stage; chat turns counted, questions marked unknown.",
+   "test": "tests/test_store_service.py::test_a_clean_build_is_correct_and_its_parts_are_read_from_the_studios_records"
+  },
+  {
+   "id": "R17",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The service step scanned the store four times.",
+   "scenario": "write() built the builds in four places.",
+   "cause": "Each function rebuilt its inputs.",
+   "fix": "Build once in write() and pass them down.",
+   "test": "tests/test_store_service.py::test_a_walk_kept_twice_is_one_engagement_and_the_playbook_counts_what_it_rests_on"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Every kept project is a build record with its parts or why not.",
+ "lessons": [
+  "Name record fields from the code that writes them, never from memory.",
+  "Write fixtures from the code that writes the records (a stage record copied from the engine), never from memory: invented shapes made every test pass while every real build was judged wrong."
+ ],
+ "risks": [
+  "The code export's rerun is not in the records, so no build is correct until it is."
+ ],
+ "commits": []
+}

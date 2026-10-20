@@ -1,0 +1,115 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.knowledge_item.v1.json",
+  "additionalProperties": false,
+  "description": "A practice, a rule or a pitfall of building one model type correctly (v1).",
+  "properties": {
+    "accepted_by": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Accepted By"
+    },
+    "counterexamples": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Counterexamples",
+      "type": "array"
+    },
+    "evidence": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "flagged": {
+      "anyOf": [
+        {
+          "maxLength": 600,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Flagged"
+    },
+    "id": {
+      "maxLength": 120,
+      "title": "Id",
+      "type": "string"
+    },
+    "model_type": {
+      "maxLength": 60,
+      "title": "Model Type",
+      "type": "string"
+    },
+    "practice": {
+      "maxLength": 600,
+      "title": "Practice",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.knowledge_item.v1",
+      "default": "dclab_core.knowledge_item.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope": {
+      "additionalProperties": true,
+      "title": "Scope",
+      "type": "object"
+    },
+    "stage": {
+      "enum": [
+        "problem",
+        "data",
+        "labels",
+        "split",
+        "features",
+        "model",
+        "evaluation",
+        "deployment",
+        "monitoring",
+        "service"
+      ],
+      "title": "Stage",
+      "type": "string"
+    },
+    "status": {
+      "default": "hypothesis",
+      "enum": [
+        "measured_here",
+        "from_the_literature",
+        "hypothesis"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "why": {
+      "default": "",
+      "maxLength": 1200,
+      "title": "Why",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "model_type",
+    "stage",
+    "practice"
+  ],
+  "title": "KnowledgeItem",
+  "type": "object"
+}

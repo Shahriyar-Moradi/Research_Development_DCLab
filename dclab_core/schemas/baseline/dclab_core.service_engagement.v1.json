@@ -1,0 +1,95 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "agreement": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "at": {
+      "type": "string"
+    },
+    "context": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "delivered": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "expected": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "explanation": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "feedback": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "handover": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "id": {
+      "maxLength": 200,
+      "type": "string"
+    },
+    "questions": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "request": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "dclab_core.service_engagement.v1",
+      "default": "dclab_core.service_engagement.v1",
+      "type": "string"
+    },
+    "stopped": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "unknown": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "workspace": {
+      "maxLength": 120,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "workspace",
+    "at"
+  ],
+  "type": "object"
+}

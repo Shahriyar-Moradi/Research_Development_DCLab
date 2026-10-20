@@ -1,0 +1,37 @@
+{
+ "package": "32.29",
+ "title": "A building guide per problem kind: only cited sentences kept, too few builds said",
+ "date": "2026-10-20",
+ "request": "A guide per model type from what is known.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.29",
+ "plan": [
+  "Claims from accepted items and the catalog.",
+  "cited.check keeps only cited sentences whose numbers are in their sources."
+ ],
+ "decisions": [
+  {
+   "decision": "A kind with too few builds says so instead of a typical number.",
+   "why": "Never guess a figure."
+  }
+ ],
+ "change": "dclab_rnd/store/service.py guides(); python -m dclab_rnd.store guides.",
+ "findings": [
+  {
+   "id": "T5",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The guide lost its citation marks.",
+   "scenario": "An accepted item's sentence appeared without [ID].",
+   "cause": "cited.check returns the sentence with its marks stripped and the cites apart.",
+   "fix": "Put the marks back from the kept sentence's cites.",
+   "test": "test_a_knowledge_item_is_only_proposed_until_a_person_accepts_it"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Guides cite what they rest on.",
+ "lessons": [
+  "Read what a checker returns before relying on it."
+ ],
+ "risks": [],
+ "commits": []
+}

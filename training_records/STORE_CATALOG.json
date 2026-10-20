@@ -1,10 +1,10 @@
 {
- "built_at": "2026-10-19T22:30:40+00:00",
  "capture_rules": {
   "tasks": [
    "agent_session",
    "agent_step",
    "audit_row",
+   "build",
    "conversation_turn",
    "correction",
    "curation",
@@ -12,16 +12,24 @@
    "deletion",
    "fix",
    "graph_move",
+   "intern_session",
    "job",
    "label",
    "model_request",
+   "other_file",
    "session_event",
    "stage_run",
    "student_version",
    "teacher_answer",
+   "team_walk",
    "test_run"
   ],
-  "version": "capture_rules_v1"
+  "version": "capture_rules_v2"
+ },
+ "costs": {
+  "by_model_type": {},
+  "by_purpose": {},
+  "total_eur": 0
  },
  "kinds": {
   "actions": {
@@ -96,6 +104,14 @@
    "what": "every model request with its shadows and checks",
    "workspaces": []
   },
+  "other": {
+   "bytes": 0,
+   "entries": 0,
+   "last": null,
+   "sources": 0,
+   "what": "anything else a workspace holds (logs, results, designs, transcripts, settings), so nothing is left out",
+   "workspaces": []
+  },
   "sessions": {
    "bytes": 0,
    "entries": 0,
@@ -163,7 +179,8 @@
   "m3_ml_decisions": {
    "sets": [],
    "shapes": [
-    "decision_example"
+    "decision_example",
+    "experiment_record"
    ],
    "what": "Data science and machine-learning decision models (classification and the other families)"
   },
@@ -180,7 +197,8 @@
    "shapes": [
     "solver_trajectory",
     "chat_example",
-    "preference_pair"
+    "preference_pair",
+    "experiment_record"
    ],
    "what": "An LLM that knows many machine-learning problems, solutions and code, to solve MLE-bench"
   },
@@ -222,6 +240,14 @@
   "schemas/retrieval_example.json",
   "schemas/curation_decision.json",
   "schemas/set_manifest.json",
-  "schemas/capture_rule.json"
+  "schemas/capture_rule.json",
+  "schemas/workflow_record.json",
+  "schemas/experiment_record.json",
+  "schemas/model_build.json",
+  "schemas/build_verdict.json",
+  "schemas/learning_curve.json",
+  "schemas/knowledge_item.json",
+  "schemas/service_engagement.json",
+  "schemas/playbook_item.json"
  ]
 }

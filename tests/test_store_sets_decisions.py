@@ -51,7 +51,7 @@ class DecisionSetsTest(unittest.TestCase):
 
     def rows(self, model_type, folder, split):
         path = self.layout.sets(model_type, *folder.split("/"), "v1") / f"{split}.jsonl"
-        return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+        return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()] if path.exists() else []
 
     def test_the_sets_hold_the_best_labels_split_by_group_with_a_manifest_and_a_card(self):
         from dclab_rnd.store.sets import decisions

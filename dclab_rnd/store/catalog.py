@@ -16,7 +16,8 @@ from .layout import DEFAULT, ROOT, Layout
 from .store import Store, now, write_json
 
 SCHEMAS = ("store_entry", "store_record", "decision_example", "chat_example", "preference_pair", "solver_trajectory", "episode",
-           "judged_example", "retrieval_example", "curation_decision", "set_manifest", "capture_rule", "workflow_record")
+           "judged_example", "retrieval_example", "curation_decision", "set_manifest", "capture_rule", "workflow_record", "experiment_record",
+           "model_build", "build_verdict", "learning_curve", "knowledge_item", "service_engagement", "playbook_item")
 from .layout import CATALOG_COPY as COPY  # noqa: E402
 
 
@@ -36,12 +37,33 @@ def _quarantine(layout: Layout) -> dict[str, int]:
     return {p.name: sum(1 for _ in p.rglob("*.json*")) for p in sorted(base.iterdir())} if base.exists() else {}
 
 
+def _costs(layout: Layout) -> dict[str, Any]:
+    """32.22: model spend from the shaped model requests: in total, by purpose, and by model type (each request's cost counted for
+    every model type its record was placed in)."""
+    from . import shapers
+    from .sets import standing
+
+    by_purpose: dict[str, float] = {}
+    per_record: dict[str, float] = {}
+    for r in shapers.records(layout, "model_requests"):
+        eur = r.body.get("cost_eur")
+        if isinstance(eur, (int, float)):
+            by_purpose[str(r.body.get("purpose") or "unknown")] = by_purpose.get(str(r.body.get("purpose") or "unknown"), 0.0) + float(eur)
+            per_record[r.id] = float(eur)
+    by_model: dict[str, float] = {}
+    for (rid, model_type), choice in standing(layout).items():
+        if rid in per_record and choice.get("quality") != "out" and not choice.get("refused"):
+            by_model[model_type] = by_model.get(model_type, 0.0) + per_record[rid]
+    return {"total_eur": round(sum(by_purpose.values()), 6), "by_purpose": {k: round(v, 6) for k, v in sorted(by_purpose.items())},
+            "by_model_type": {k: round(v, 6) for k, v in sorted(by_model.items())}}
+
+
 def build(layout: Optional[Layout] = None) -> dict[str, Any]:
     layout = layout or Layout()
     store = Store(layout)
     from dclab_core.store_rules import RULES, VERSION
 
-    return {"schema_version": 1, "built_at": now(), "root": "the store's root (dclab-records, owner/main)",
+    return {"schema_version": 1, "built_at": now(), "root": "the store's root (dclab-records, owner/main)", "costs": _costs(layout),
             "kinds": {k: {"what": KINDS[k], **v} for k, v in store.counts().items()},
             "model_types": {m: {"what": MODEL_TYPES[m], "shapes": list(EXAMPLE_SHAPES[m]), "sets": s} for m, s in _sets(layout).items()},
             "quarantine": _quarantine(layout), "capture_rules": {"version": VERSION, "tasks": sorted(RULES)},
@@ -58,6 +80,8 @@ Everything DCLab keeps for training its models and learning its craft, in three 
 - `sets/<model type>/`: training sets, each with `MANIFEST.json`, `CARD.md` and its train, dev and sealed splits (a sealed
   split is never read to tune anything).
 - `quarantine/<reason>/`: records kept out of a set, with the check they failed. They are still whole in `raw/`.
+- `service/`: the knowledge of building models for businesses and of giving the service: every build with its verdict,
+  the learning curves, the catalog of kinds (aggregates only), the engagements and the playbook.
 - `runs/`: every conductor, shaper, curator, builder and tutor run.
 - `schemas/`: the JSON Schema of every record and set shape.
 - `forgotten/`: the owner's tombstones, never the data.

@@ -405,6 +405,10 @@ def edit(drafts: Any, draft_id: str, action: str, *, who: str = "person", adviso
     experience.record("graph.move", "person", {"move": f"map:{action}", "allowed": True, "from": held.fingerprint, "to": made.fingerprint, "failed_checks": None,
                                                "rules": ["problem_map.validate"]}, conversation=draft_id)
     capture.map_edited(draft_id, action, len(held.parts), len(made.parts))
+    from .. import corrections
+
+    corrections.record(f"map:{action}", json.loads(held.model_dump_json()), json.loads(made.model_dump_json()), by=str(who or "person"),
+                       draft=draft_id)  # 32.19: the map before and after a person's edit, whole
     added = [p.id for p in made.parts if p.id not in {q.id for q in held.parts}]
     hooks.map_changed(draft_id, held, made, action, who, part=kw.get("part") or kw.get("keep") or (added[0] if added else None))  # an id, never the title a person typed
     refresh_review(drafts, draft_id, advisor)

@@ -1,0 +1,40 @@
+{
+ "package": "32.25",
+ "title": "Learning curves and the service's catalog: what a kind of model takes, said only from three builds",
+ "date": "2026-10-20",
+ "request": "What it takes to build each kind of model: how many labels, how often it meets its bar, its cost and time.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.25",
+ "plan": [
+  "Curves from the tutor's kept model cards.",
+  "The catalog per problem kind, aggregates only.",
+  "Fewer than three builds: say so."
+ ],
+ "decisions": [
+  {
+   "decision": "MIN_BUILDS = 3.",
+   "why": "A median of one or two builds would be one business's figures."
+  }
+ ],
+ "change": "dclab_rnd/store/service.py curves() and service_catalog().",
+ "findings": [
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The catalog and the playbook could show one workspace's figures alone.",
+   "scenario": "Three builds all from one business gave that business's own met share and median cost.",
+   "cause": "Only the build count was gated.",
+   "fix": "A figure needs three builds in three workspaces.",
+   "test": "tests/test_store_service.py::test_the_catalog_shows_a_figure_only_from_three_builds_in_three_workspaces"
+  }
+ ],
+ "measurements": [],
+ "outcome": "The catalog says a figure only where it rests on enough builds.",
+ "lessons": [
+  "Write fixtures from the code that writes the records (a stage record copied from the engine), never from memory: invented shapes made every test pass while every real build was judged wrong."
+ ],
+ "risks": [
+  "Three builds from one workspace still describe that one workspace."
+ ],
+ "commits": []
+}

@@ -464,16 +464,20 @@ class Bound:
             if home is None:
                 return
             shown_cells = int(getattr(self.p, "cell_values", 0) or 0) > 0
-            whole = experience.model_text_allowed() and not shown_cells
+            whole = experience.model_text_allowed() and bool(getattr(self.p, "keeps_text", False)) and not shown_cells  # 23.10's rule
             thinking = (out or {}).get("thinking") or []
+            import hashlib
+
+            system = next((str(m.get("content") or "") for m in messages if m.get("role") == "system"), "")
             doc: dict[str, Any] = {"at": datetime.now(timezone.utc).isoformat(timespec="microseconds"), "model_request": request_id,
+                                   "prompt_sha256": hashlib.sha256(system.encode()).hexdigest()[:16] if system else None,  # 32.22
                                    "purpose": self.purpose, "tier": self.tier.get("name"), "model": self.model, "project": self.project_id,
                                    "draft": self.draft_id, "outcome": outcome, "usage": (out or {}).get("usage"), "whole": whole}
             if whole:
                 doc.update(messages=messages, reply=(out or {}).get("content"), tool_calls=(out or {}).get("tool_calls"), thinking=thinking)
             else:
                 doc.update(messages=len(messages), reply_chars=len(str((out or {}).get("content") or "")), thought=bool(thinking),
-                           why="a purpose shown cell values, or a workspace that keeps no model text: its shape only")
+                           why="a purpose shown cell values or one that may not keep text, or a workspace that keeps no model text: its shape only")
             day = datetime.now(timezone.utc)
             folder = home / "model_exchanges" / f"{day:%Y}" / f"{day:%m}"
             folder.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "Check": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 120,
+          "title": "Name",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "unknown"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "why": {
+          "default": "",
+          "maxLength": 600,
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "status"
+      ],
+      "title": "Check",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.build_verdict.v1.json",
+  "additionalProperties": false,
+  "description": "A build judged against DCLab's rules (v1): correct only when every check passed; incorrect when any failed (that check\nnamed); unknown otherwise.",
+  "properties": {
+    "build": {
+      "maxLength": 200,
+      "title": "Build",
+      "type": "string"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/Check"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "rules": {
+      "default": "DCLab rules: CLAUDE.md 1 to 6, the gates G1 to G4",
+      "maxLength": 200,
+      "title": "Rules",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.build_verdict.v1",
+      "default": "dclab_core.build_verdict.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "verdict": {
+      "enum": [
+        "correct",
+        "incorrect",
+        "unknown"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "build",
+    "verdict"
+  ],
+  "title": "BuildVerdict",
+  "type": "object"
+}

@@ -31,6 +31,26 @@
    "cause": "Placement needs the point.",
    "fix": "The test labels carry their points, as the ledger's do.",
    "test": "test_each_record_goes_where_it_fits_and_the_rest_is_kept_out_with_why"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Duplicates were not caught across runs.",
+   "scenario": "A log kept whole again doubled M1's rows.",
+   "cause": "The seen set lived one run.",
+   "fix": "Kept across runs.",
+   "test": "test_each_record_goes_where_it_fits_and_the_rest_is_kept_out_with_why"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The guarded write let any folder through and dropped a malformed reply.",
+   "scenario": "m4_workflow_llm/not_a_stage passed.",
+   "cause": "Only the path's syntax was checked.",
+   "fix": "Each model type's own folders; a failed answer kept.",
+   "test": "test_a_models_answers_stay_in_shadow_and_a_bad_path_is_refused_and_kept"
   }
  ],
  "measurements": [],

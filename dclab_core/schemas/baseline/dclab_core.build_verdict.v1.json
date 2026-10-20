@@ -1,0 +1,68 @@
+{
+  "$defs": {
+    "Check": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 120,
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "why": {
+          "default": "",
+          "maxLength": 600,
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "status"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "build": {
+      "maxLength": 200,
+      "type": "string"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/Check"
+      },
+      "type": "array"
+    },
+    "rules": {
+      "default": "DCLab rules: CLAUDE.md 1 to 6, the gates G1 to G4",
+      "maxLength": 200,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.build_verdict.v1",
+      "default": "dclab_core.build_verdict.v1",
+      "type": "string"
+    },
+    "verdict": {
+      "enum": [
+        "correct",
+        "incorrect",
+        "unknown"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "build",
+    "verdict"
+  ],
+  "type": "object"
+}

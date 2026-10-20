@@ -41,6 +41,7 @@ CLASSES: tuple[tuple[str, str, re.Pattern], ...] = tuple((k, p, re.compile(rx)) 
     ("actions", "agent_steps", r"^agent_steps\.jsonl$"),
     ("audit", "audit", r"^audit\.jsonl$"),
     ("model_requests", "model_", r"^model_(requests|requests_checks|shadow)\.jsonl$|^model_exchanges/"),
+    ("actions", "searches/", r"^searches/"),
     ("conversations", "drafts/", r"^drafts/"),
     ("conversations", "intern/", r"^intern/"),
     ("conversations", "workspace_chat/", r"^workspace_chat/"),
@@ -55,6 +56,7 @@ CLASSES: tuple[tuple[str, str, re.Pattern], ...] = tuple((k, p, re.compile(rx)) 
     ("students", "own_models/", r"^own_models/"),
     ("teachers", "judgments/", r"^judgments/"),
     ("tests", "live_tests/", r"^live_tests/"),
+    ("tests", "code_runs/", r"^code_runs/"),
     ("other", "", r""),
 ))
 KEEPER_OF = {"sessions": "sessions", "decisions": "decisions", "actions": "actions", "audit": "audit", "model_requests": "model_requests",
@@ -107,12 +109,24 @@ def scrub(rel: str, raw: bytes) -> bytes:
 
 
 def notebook(raw: bytes) -> bytes:
-    """A notebook without its cells' outputs (a printed table is a table's rows); its code and its text kept."""
+    """A notebook without the outputs that show a table (a displayed frame, a plot): its code, its text, its errors and what it
+    printed kept, a printed table in it replaced by its size."""
+    from ..shapers import _tables_out
+
     try:
         doc = json.loads(raw)
         for cell in doc.get("cells") or []:
             if "outputs" in cell:
-                cell["outputs"] = []
+                kept = []
+                for o in cell["outputs"] or []:
+                    if not isinstance(o, dict):
+                        continue
+                    if o.get("output_type") == "error":
+                        kept.append({k: o.get(k) for k in ("output_type", "ename", "evalue", "traceback")})
+                    elif o.get("output_type") == "stream":
+                        text = "".join(o.get("text") or []) if isinstance(o.get("text"), list) else str(o.get("text") or "")
+                        kept.append({"output_type": "stream", "name": o.get("name"), "text": _tables_out(text)})
+                cell["outputs"] = kept
             if "execution_count" in cell:
                 cell["execution_count"] = None
         return (json.dumps(doc, ensure_ascii=False, indent=1) + "\n").encode()
@@ -169,6 +183,28 @@ def _counted(group: list[Item]) -> bytes:
     return json.dumps(rows, indent=0).encode()
 
 
+def _secrets(raw: bytes) -> bytes:
+    """Anything shaped like a credential replaced by a marker, in every file every keeper keeps (the store is pushed)."""
+    from .agents import redact
+
+    return redact(raw)
+
+
+def _gz_secrets(raw: bytes) -> bytes:
+    """A gzip file with the credentials inside it replaced (opened, cleaned, written again with no time inside)."""
+    import gzip
+    import io
+
+    try:
+        inner = gzip.decompress(raw)
+    except OSError:
+        return _secrets(raw)
+    buf = io.BytesIO()
+    with gzip.GzipFile(fileobj=buf, mode="wb", mtime=0) as fh:
+        fh.write(_secrets(inner))
+    return buf.getvalue()
+
+
 def _for_kind(kind: str) -> Any:
     def sources(env: Any) -> Iterator[Source]:
         counts: dict[tuple[str, str], list[Item]] = {}
@@ -180,13 +216,13 @@ def _for_kind(kind: str) -> Any:
                 continue
             log = item.rel.endswith(".jsonl")
             if item.rel.endswith(".ipynb"):
-                yield Source(item.ws.name, item.rel, item.path, consent=item.ws.consent, transform=notebook,
+                yield Source(item.ws.name, item.rel, item.path, consent=item.ws.consent, transform=lambda raw: _secrets(notebook(raw)),
                              note="its cells' outputs removed (a printed table is a table's rows); its code and text kept")
             elif _scrubbed(item.rel):
-                yield Source(item.ws.name, item.rel, item.path, consent=item.ws.consent, log=log, transform=lambda raw, r=item.rel: scrub(r, raw),
+                yield Source(item.ws.name, item.rel, item.path, consent=item.ws.consent, log=log, transform=lambda raw, r=item.rel: _secrets(scrub(r, raw)),
                              note="scrubbed: the keys that quote a table's cells removed (testers.QUOTES_CELLS)")
             else:
-                yield Source(item.ws.name, item.rel, item.path, consent=item.ws.consent, log=log)
+                yield Source(item.ws.name, item.rel, item.path, consent=item.ws.consent, log=log, transform=_secrets)
         for (ws_name, prefix), group in sorted(counts.items(), key=lambda kv: kv[0]):
             yield Source(ws_name, f"{prefix}~counts.json", lambda g=group: _counted(g), consent=group[0].ws.consent,
                          note="counts only: " + "; ".join(sorted({i.counted for i in group})))
@@ -200,7 +236,8 @@ def _repo_files(base: Path, prefix: str, workspace: str = "rnd") -> Any:
         root = Path(env["test_runs"]) if isinstance(env, dict) and env.get("test_runs") else base
         for path in sorted(root.rglob("*")) if root.exists() else []:
             if path.is_file() and not path.name.endswith(SKIP_NAMES):
-                yield Source(workspace, f"{prefix}{path.relative_to(root).as_posix()}", path, consent="train", log=path.suffix == ".jsonl")
+                yield Source(workspace, f"{prefix}{path.relative_to(root).as_posix()}", path, consent="train", log=path.suffix == ".jsonl",
+                             transform=_gz_secrets if path.suffix == ".gz" else _secrets)  # a run's own gzip: opened, cleaned, closed again
     return sources
 
 
@@ -222,6 +259,7 @@ TEST_RUNS_KEEPER = Keeper("test_runs", (Claim("tests", "test_runs/"),), _repo_fi
 def install(registry: Optional[dict[str, Keeper]] = None) -> dict[str, Keeper]:
     from .. import fixes, workflows
     from .agents import KEEPER as AGENTS
+    from .commits import KEEPER as COMMITS
     from .database import KEEPER as DATABASE
 
     reg = REGISTRY if registry is None else registry
@@ -229,7 +267,7 @@ def install(registry: Optional[dict[str, Keeper]] = None) -> dict[str, Keeper]:
                    "each walk from a draft to a report as one workflow record (32.5)")
     fix = Keeper("fixes", (Claim("fixes", "fixes/"),), fixes.keeper_sources, ("m4_workflow_llm", "m5_solver_llm", "m7_judges"),
                  "a failing test, the run that passed it next, and the commits between (32.6)")
-    for keeper in KEEPERS + (TEST_RUNS_KEEPER, DATABASE, AGENTS, walks, fix):
+    for keeper in KEEPERS + (TEST_RUNS_KEEPER, DATABASE, AGENTS, COMMITS, walks, fix):
         if keeper.name not in reg:
             register(keeper, reg)
     return reg

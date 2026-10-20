@@ -1,0 +1,93 @@
+{
+ "package": "32.26",
+ "title": "Every build judged correct or not by code, a check that cannot be read never assumed passed",
+ "date": "2026-10-20",
+ "request": "Know whether each model was built correctly by DCLab's rules.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.26",
+ "plan": [
+  "Eight checks from CLAUDE.md's rules and the gates.",
+  "Each fact from the build's own records or None with why.",
+  "correct only when every check passed."
+ ],
+ "decisions": [
+  {
+   "decision": "The verdict is code, not a model's opinion.",
+   "why": "CLAUDE.md rule 5: deterministic code owns the judgement."
+  },
+  {
+   "decision": "export_reproduces stays unknown until the code export's check is in the records.",
+   "why": "A check that cannot be read is never assumed passed."
+  }
+ ],
+ "change": "dclab_core/service.py verdict() and CHECKS; dclab_rnd/store/service.py _facts().",
+ "findings": [
+  {
+   "id": "T3",
+   "source": "test",
+   "severity": "leakage",
+   "defect": "A planted leaking feature must fail the build.",
+   "scenario": "A project kept final_fare as a feature with a leakage risk.",
+   "cause": "-",
+   "fix": "no_leaking_column fails and names the column.",
+   "test": "test_a_kept_project_is_a_build_judged_correct_and_a_leak_or_a_second_read_makes_it_incorrect"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The verdict read a stage status the studio never writes.",
+   "scenario": "A project that read its holdout twice was judged unknown on every check, not incorrect.",
+   "cause": "status == 'done' and 'started' were guessed; the engine writes 'completed' and 'started_at'.",
+   "fix": "Finished means completed or approved (graph.DONE); started_at read.",
+   "test": "tests/test_store_service.py::test_a_used_leaking_column_or_a_second_read_is_incorrect_and_a_missing_record_is_unknown"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "no_leaking_column passed on every real build.",
+   "scenario": "The engine never writes 'leak' into risk_features, so nothing could fail.",
+   "cause": "The fixture invented a leakage note the engine never writes.",
+   "fix": "Read the leakage stage's declared_leakage_features and heuristic_review_candidates against the data stage's column_roles; unknown without both records.",
+   "test": "tests/test_store_service.py::test_a_used_leaking_column_or_a_second_read_is_incorrect_and_a_missing_record_is_unknown"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A missing contract was judged incorrect, and no build could be correct.",
+   "scenario": "A project without a prediction moment failed; export_reproduces was always unknown.",
+   "cause": "False for a missing fact; the export's check, recorded in project.exports.code, was never read.",
+   "fix": "None for a missing contract; export_reproduces from project.exports.code against the final run.",
+   "test": "tests/test_store_service.py::test_a_clean_build_is_correct_and_its_parts_are_read_from_the_studios_records"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "An absent holdout count passed holdout_read_once.",
+   "scenario": "int(None or 0) read as zero reads.",
+   "cause": "A default turned a missing fact into a pass.",
+   "fix": "None when no count is recorded.",
+   "test": "tests/test_store_service.py::test_a_used_leaking_column_or_a_second_read_is_incorrect_and_a_missing_record_is_unknown"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "beats_baselines compared the point estimate, guessed the metric's direction, and read an optional metric field.",
+   "scenario": "0.51 [0.40, 0.62] passed against a 0.50 baseline; mase was judged higher-is-better.",
+   "cause": "Point estimate; a substring list; solution.metric is optional.",
+   "fix": "The interval's bound on the metric's side, the direction from solution_brief.HIGHER (unknown when absent), the final record's primary_metric.",
+   "test": "tests/test_store_service.py::test_the_interval_must_clear_the_baseline_on_the_metrics_own_side"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Each build has a verdict with each check's status and why.",
+ "lessons": [
+  "Unknown is a verdict of its own: it keeps a missing record from reading as a pass.",
+  "Write fixtures from the code that writes the records (a stage record copied from the engine), never from memory: invented shapes made every test pass while every real build was judged wrong."
+ ],
+ "risks": [],
+ "commits": []
+}

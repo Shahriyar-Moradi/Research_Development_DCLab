@@ -1,0 +1,113 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.service_engagement.v1.json",
+  "additionalProperties": false,
+  "description": "A piece of work done for someone (v1): request, clarification, agreement, delivery, explanation, handover, feedback.",
+  "properties": {
+    "agreement": {
+      "additionalProperties": true,
+      "title": "Agreement",
+      "type": "object"
+    },
+    "at": {
+      "title": "At",
+      "type": "string"
+    },
+    "context": {
+      "additionalProperties": true,
+      "title": "Context",
+      "type": "object"
+    },
+    "delivered": {
+      "additionalProperties": true,
+      "title": "Delivered",
+      "type": "object"
+    },
+    "expected": {
+      "additionalProperties": true,
+      "title": "Expected",
+      "type": "object"
+    },
+    "explanation": {
+      "additionalProperties": true,
+      "title": "Explanation",
+      "type": "object"
+    },
+    "feedback": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Feedback",
+      "type": "array"
+    },
+    "handover": {
+      "additionalProperties": true,
+      "title": "Handover",
+      "type": "object"
+    },
+    "id": {
+      "maxLength": 200,
+      "title": "Id",
+      "type": "string"
+    },
+    "questions": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Questions",
+      "type": "array"
+    },
+    "request": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Request"
+    },
+    "schema_version": {
+      "const": "dclab_core.service_engagement.v1",
+      "default": "dclab_core.service_engagement.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "stopped": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Stopped"
+    },
+    "unknown": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Unknown",
+      "type": "object"
+    },
+    "workspace": {
+      "maxLength": 120,
+      "title": "Workspace",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "workspace",
+    "at"
+  ],
+  "title": "ServiceEngagement",
+  "type": "object"
+}

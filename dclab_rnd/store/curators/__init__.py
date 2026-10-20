@@ -56,7 +56,7 @@ def _decision_point(record: StoreRecord) -> Optional[str]:
 def place(model_type: str, record: StoreRecord) -> Optional[dict[str, Any]]:
     """A rule curator's placement of one record for one model type (None: it does not belong there)."""
     b, kind, t = record.body, record.kind, record.type
-    broken = [f for f in record.flags if f.startswith(("missing:", "untimed:"))]
+    broken = [f for f in record.flags if f.startswith(("missing:", "untimed:", "late:"))]  # a state written after its decision is not what was known
     out = {"model_type": model_type, "quality": "keep", "weight": 1.0, "reason": ""}
     if model_type in ("m1_students", "m2_workflow_decisions", "m3_ml_decisions") and kind == "decisions" and t in ("decision", "label"):
         point = _decision_point(record)
@@ -129,7 +129,8 @@ def curate(layout: Optional[Layout] = None, run: Optional[str] = None, model: Op
     decisions: list[str] = []
     quarantine: dict[str, list[str]] = defaultdict(list)
     counts: Counter = Counter()
-    seen: set[tuple[str, str]] = set()
+    seen_path = layout.curation_seen()
+    seen: set[str] = set(seen_path.read_text(encoding="utf-8").split()) if seen_path.exists() else set()  # across runs: a record placed once
     state_path = layout.curation_state()
     state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.exists() else {}
     shadow_pool: list[StoreRecord] = []
@@ -142,9 +143,10 @@ def curate(layout: Optional[Layout] = None, run: Optional[str] = None, model: Op
                     proposal = place(model_type, record)
                     if proposal is None:
                         continue
-                    if (model_type, body_hash) in seen:
+                    mark = f"{model_type}:{body_hash}"
+                    if mark in seen:
                         proposal = {**proposal, "quality": "out", "reason": "a duplicate of a record already placed"}
-                    seen.add((model_type, body_hash))
+                    seen.add(mark)
                     decision = {"id": f"{run}:{record.id}:{model_type}", "record": record.id, "curator": f"rule:{model_type}", "at": now(), **proposal}
                     made, why = write.check(layout, decision, record)
                     if made is None:
@@ -153,8 +155,8 @@ def curate(layout: Optional[Layout] = None, run: Optional[str] = None, model: Op
                     counts[(model_type, made.quality if made.used else "refused")] += 1
                     if made.quality == "out" or not made.used:
                         quarantine[_code(why or made.reason.split(":")[0])].append(json.dumps({"record": record.id, "model_type": model_type, "why": why or made.reason}) + "\n")
-                if model is not None and len(shadow_pool) < sample:
-                    shadow_pool.append(record)
+                if model is not None and len(shadow_pool) < sample and int(hashlib.sha1(record.id.encode()).hexdigest()[:4], 16) % 7 == 0:
+                    shadow_pool.append(record)  # a sample across every kind, not the first files alone
         state[rel] = digest
     shadow = 0
     if model is not None and shadow_pool:
@@ -165,7 +167,10 @@ def curate(layout: Optional[Layout] = None, run: Optional[str] = None, model: Op
         by_id = {r.id: r for r in shadow_pool}
         for a in answers:
             record = by_id.get(str(a.get("record"))) if isinstance(a, dict) else None
-            if record is None:
+            if record is None:  # a reply that names no record we sent, or that failed: kept as a failed answer
+                decisions.append(json.dumps({"id": f"{run}:shadow:failed:{len(decisions)}", "curator": "model:store_curator", "used": False,
+                                             "refused": "the model's answer names no record of the batch, or the model failed", "answer": a},
+                                            ensure_ascii=False, default=str) + "\n")
                 continue
             decision = {"id": f"{run}:{record.id}:{a.get('model_type')}:shadow", "record": record.id, "curator": "model:store_curator", "at": now(),
                         "used": False, **{k: a.get(k) for k in ("model_type", "folder", "quality", "weight", "reason") if a.get(k) is not None}}
@@ -183,6 +188,7 @@ def curate(layout: Optional[Layout] = None, run: Optional[str] = None, model: Op
         target.write_text("".join(lines), encoding="utf-8")
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(json.dumps(state, sort_keys=True), encoding="utf-8")
+    seen_path.write_text("\n".join(sorted(seen)), encoding="utf-8")
     return {"run": run, "decisions": len(decisions), "shadow": shadow, "by_model": {f"{m}:{q}": n for (m, q), n in sorted(counts.items())},
             "quarantined": {r: len(v) for r, v in quarantine.items()}}
 

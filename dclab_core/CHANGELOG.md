@@ -4,6 +4,20 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.99.0 (2026-10-20)
+
+Packages 32.12 to 32.31 of the storing phase.
+
+- `store`: `DecisionExample` v2 (its `split_group`, the one group a project's examples share everywhere; v1 reads as v2);
+  `ExperimentRecord` v1 (32.20: one fitted model, its table's hash and shape in bands, every fold's scores, the holdout's
+  metrics only for the model chosen; never a row).
+- `store_rules`: `capture_rules_v2`, every project-bound rule sealing by that one group.
+- `service` (new, 32.24 to 32.31): `ModelBuild` v1 (one model built: its context in bands, its data's shape, its recipe
+  with reasons, what it cost, its result against its bar, what went wrong, what a person changed, whether it was used),
+  `BuildVerdict` v1 with `verdict(build, facts)` over `CHECKS` (correct only when every check passed; a check its records
+  cannot say stays unknown, never assumed passed), `LearningCurve` v1, `KnowledgeItem` v1 (a practice with its evidence,
+  scope and status, accepted only by a person), `ServiceEngagement` v1 and `PlaybookItem` v1.
+
 ## 0.98.0 (2026-10-20)
 
 Package 32.1, the storing phase's first: the store's contracts.

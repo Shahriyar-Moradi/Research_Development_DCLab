@@ -191,13 +191,21 @@ def load(out: Path = OUT) -> list[BusinessExample]:
 
 def find(words: str, top: int = 3) -> list[dict[str, Any]]:
     """The examples closest to a person's words, for the owner and the rules (every visibility)."""
-    return [{**brief(e), "score": s} for e, s in search(load(), words, top)]
+    found = [{**brief(e), "score": s} for e, s in search(load(), words, top)]
+    from . import searches
+
+    searches.offered("examples", words, [f.get("id") for f in found])  # 32.23
+    return found
 
 
 def context_for_model(examples: list[BusinessExample] | None, words: str, top: int = 3) -> list[dict[str, Any]]:
     """30.7: the examples a model's context may hold for a person's words: only those a model may read (``for_model``),
     each as its brief (the general pattern, never where it is kept). The one way examples reach a model."""
-    return [{**brief(e), "score": s} for e, s in search(for_model(load() if examples is None else examples), words, top)]
+    found = [{**brief(e), "score": s} for e, s in search(for_model(load() if examples is None else examples), words, top)]
+    from . import searches
+
+    searches.offered("examples", words, [f.get("id") for f in found])  # 32.23
+    return found
 
 
 PARAPHRASES = ROOT / "dclab_rnd" / "knowledge" / "practice_paraphrases_v2.json"  # 30.18: an independent writer's versions of the practice questions

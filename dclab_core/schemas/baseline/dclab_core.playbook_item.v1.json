@@ -1,0 +1,74 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "accepted_by": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "count": {
+      "default": 0,
+      "type": "integer"
+    },
+    "enough": {
+      "default": false,
+      "type": "boolean"
+    },
+    "evidence": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "finding": {
+      "maxLength": 800,
+      "type": "string"
+    },
+    "id": {
+      "maxLength": 120,
+      "type": "string"
+    },
+    "kind": {
+      "anyOf": [
+        {
+          "maxLength": 60,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "dclab_core.playbook_item.v1",
+      "default": "dclab_core.playbook_item.v1",
+      "type": "string"
+    },
+    "topic": {
+      "enum": [
+        "questions",
+        "expectations",
+        "explanations",
+        "failure_points",
+        "time_and_cost",
+        "after_the_first_model"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "topic",
+    "finding"
+  ],
+  "type": "object"
+}

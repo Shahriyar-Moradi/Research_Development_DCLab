@@ -935,6 +935,75 @@ gate. Model spend:
     - The sealed split is written once.
     - Teacher-student pairs are kept.
   - **Left open:** the lake's per-point sets as a view of these; live runs of the curator and the teacher (within the budget).
+- **32.12 to 32.23 built (2026-10-20), a review's 20 findings fixed.**
+  - **The LLM sets.** M4 by stage, from every exchange kept whole and every Home conversation. M5 from every Claude Code
+    and intern session, streamed one transcript at a time. Every turn and step carries its labelled reasoning. Sealed
+    people and MLE-bench Lite tasks are kept out of train and dev (one compiled pattern, matched on the texts).
+  - **M6, M7 and M8.**
+    - M6: walks, moves and jobs as episodes.
+    - M7: corrections, fixes, G4 and refused moves as judgments, and corrections as preference pairs.
+    - M8: searches with what they offered and what the answer cited.
+  - **The tutor.** It fits a student on confirmed labels and measures it on confirmed dev labels beside the rule. Every
+    version is kept whole and listed in shadow; it never promotes.
+  - **Testers.** Each has their own orphan branch, and a share pushes only there. Collect reads every tester branch in a
+    worktree of its own. The share carries the store's kinds, and the tester's own Claude Code sessions only with their
+    yes. The guide is in English and Persian.
+  - **The check.** `make store-check` runs one scripted day and passes 26 of 26. It found that a key in a plain log was
+    kept, so every keeper now removes credentials.
+  - **Corrections, experiments, code, context, searches.**
+    - Corrections are kept whole as before and after.
+    - Every fitted model is an experiment record against its table's shape.
+    - Code runs are paired with their fixes; notebooks keep their errors; every commit is kept as its patch.
+    - Each run's context (commit, libraries, a hash of the machine) is carried on its records, and the spend is totalled.
+    - Every search is kept with what it offered and what was cited.
+  - **The review's leakage fixes.**
+    - Once sealed, always sealed.
+    - One group for every record of a project, across all eight model types.
+    - The tutor folds on the true table group (`DecisionExample` v2).
+    - Consent and the curators' refusals hold in every builder.
+  - **Left open:**
+    - stage and team-walk episodes;
+    - the research campaigns' experiments;
+    - CPU time per step;
+    - a workspace reading the store's shadow students;
+    - live runs of the curator and the teacher.
+- **32.24 to 32.31 built (2026-10-20), a review's 17 findings fixed (dclab-core 0.99.0).**
+  - **Builds.** Every project the store kept is a `ModelBuild`: file or PostgreSQL workspaces, a deleted project, a
+    tester's project. So is every student the tutor refitted.
+    - Each build holds its context and data in bands, its recipe with reasons, people's active time (gaps capped at 30
+      minutes), its spend, its result against its signed bar, what went wrong and what a person changed.
+    - An outcome counts as use only when it was observed in the business or in a promotion.
+    - Only each source's current version is read, so a rewritten log or a walk kept again is never counted twice.
+    - Builds are keyed by workspace and project.
+    - Only records whose workspace allows improving DCLab are read.
+  - **Verdicts.** Code judges each build on eight checks, from the engine's real records:
+    - a declared leakage column used as a feature;
+    - a holdout read twice;
+    - an interval that does not clear every baseline on the metric's own side;
+    - the code export's rerun.
+    - A fact its records cannot say stays unknown; a missing contract is unknown, not incorrect.
+  - **Curves and the catalog.**
+    - Curves per student point, and per problem kind by rows band.
+    - The catalog of kinds gives each met share with a Wilson interval, and gives a figure only from three builds in
+      three workspaces.
+  - **Knowledge.**
+    - Items are proposed from the evidence index, CLAUDE.md's rules and the outside findings.
+    - An item is `measured_here` only with a campaign behind it, and is accepted only by a person.
+    - An accepted item whose source changed is flagged.
+    - An outside finding is refused when it copies its source, even in a short sentence; `tested()` links it to its
+      campaign or records the counterexample.
+    - The guides keep only cited sentences.
+  - **The service.**
+    - Each walk's newest version is an engagement; what its records cannot say is listed.
+    - The playbook gives a figure only from three engagements in three workspaces.
+    - All of it is rebuilt into `service/` once per whole run (`python -m dclab_rnd.store
+      service|knowledge|know-accept|guides`).
+  - **Left open:**
+    - the research agent that finds outside findings (needs the owner's yes and a cap);
+    - an engagement's request, feedback and explanation, read from the draft and the report;
+    - labelled rows counted apart from rows.
+  - **The MLE-bench list checked** against openai/mle-bench: the Lite split matched (22 of 22), and the rest of its 75
+    competitions and its development task were added (76 names).
 
 ---
 

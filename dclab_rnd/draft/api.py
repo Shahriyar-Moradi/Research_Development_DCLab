@@ -312,6 +312,13 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
         value = solution.model_dump()
+        if actor == "human":  # 32.19: a person's solution over the agent's or the proposal, kept whole as before and after
+            from .. import corrections
+
+            proposal = draft.get("proposal") or {}
+            earlier = draft.get("solution") if draft.get("solution_by") == "agent" else {k: proposal.get(k) for k in value if k in proposal} or None
+            if earlier and any(earlier.get(k) != value.get(k) for k in earlier):
+                corrections.record("solution", earlier, value, draft=draft_id)
 
         def put(d):
             d["solution"] = value

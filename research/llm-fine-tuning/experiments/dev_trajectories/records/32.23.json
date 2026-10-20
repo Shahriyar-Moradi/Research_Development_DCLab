@@ -1,0 +1,20 @@
+{
+ "package": "32.23",
+ "title": "Search and reading: every evidence and example search kept with what it offered, and what its answer cited and whether it passed",
+ "date": "2026-10-20",
+ "request": "An evidence search by a role yields a retrieval record with the offered and cited passages.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.23",
+ "plan": [
+  "Keep each search's offer.",
+  "Keep each checked answer's citations.",
+  "Join them by run."
+ ],
+ "decisions": [],
+ "change": "dclab_rnd.searches, retrieval.search, business_examples.find and context_for_model, cited.check, M8 from the search log.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "Every search and what was used of it is kept, for M8 and to find where knowledge is thin.",
+ "lessons": [],
+ "risks": [],
+ "commits": []
+}
