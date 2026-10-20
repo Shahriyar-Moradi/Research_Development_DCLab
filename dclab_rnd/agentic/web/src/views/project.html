@@ -471,12 +471,13 @@ DC.view('project', {
       if (e.target.closest('[data-scroll-ask]')) { const c = $('#ask-card', el); if (c) { DC.reveal(c); c.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }
     });
     el.addEventListener('keydown', e => { const n = e.target.closest('.node'); if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); drawNode(n.dataset.node); } });
-    drawValidator(); drawTeam(); setProject('bank');
+    drawValidator(); drawTeam();  // the project is chosen in enter(): drawing the sample here made it the open project for every page
   },
   async enter() {
     // a project just created by the wizard, else the most recent real project, else the bank sample
     const list = await this.switcher();
-    const want = DC.state.projectId ? 'p:' + DC.state.projectId : DC.state.project || (list.length ? 'p:' + list[0].id : 'bank');
+    const chosen = DC.state.projectId || DC.state.project ? null : await DC.currentProject.id();  // the project the person chose, as every page reads it
+    const want = DC.state.projectId ? 'p:' + DC.state.projectId : DC.state.project || (chosen ? 'p:' + chosen : list.length ? 'p:' + list[0].id : 'bank');
     DC.state.projectId = null; DC.state.project = want;
     if (want.startsWith('p:')) { try { await this.openReal(want); return; } catch (e) { DC.toast(e.message, { ok: false }); } }
     this.setProject(want.startsWith('p:') ? 'bank' : want);

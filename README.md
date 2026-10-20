@@ -4,6 +4,21 @@ The research arm of DCLab. Its job is to find out, with measured evidence, how t
 
 New here? Read the plain-language [field notes](docs/guides/DCLAB_FIELD_NOTES.md) first (no ML background needed), then the [research tracks](research/README.md).
 
+## Start here: use the studio
+
+[![The DCLab studio's Home](docs/guides/images/user-guide/01-home.jpg)](docs/guides/USER_GUIDE.md)
+
+```bash
+python -m venv .venv && .venv/bin/pip install -r requirements/base.txt pyarrow
+cp .env.example .env      # optional: DCLAB_LLM_PROVIDER=anthropic and ANTHROPIC_API_KEY=... for Claude
+make notebook             # then open http://127.0.0.1:8765
+```
+
+**[The user guide](docs/guides/USER_GUIDE.md)** walks through the setup, a first project from one sentence to the decision
+brief, and every page (Home, the conversation, the team, Workflow, Solution & data, Notebook, Leakage & features, Models,
+Evaluation, Reliability & holdout, Decision brief, Intern, Compute & jobs, the evidence library, the research lab, Domain
+packs, Admin), each with a screenshot.
+
 ---
 
 ## Repository layout
@@ -110,7 +125,7 @@ To keep working with Claude Code locally, run `claude` in the repository folder.
 ## Develop locally (PostgreSQL, no containers)
 
 ```bash
-brew services start postgresql@15   # once: a local PostgreSQL (Linux: sudo systemctl start postgresql)
+brew services start postgresql@16   # once: a local PostgreSQL (Linux: sudo systemctl start postgresql)
 make dev                            # creates and migrates dclab_dev, serves http://127.0.0.1:8765, reloads on code changes
 make test-db                        # the database the tests use (dclab_test); make test-pg runs the suite on it
 make db-reset CONFIRM=yes           # a clean dclab_dev (deletes its projects, drafts and sessions)
