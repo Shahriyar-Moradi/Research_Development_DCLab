@@ -87,9 +87,10 @@ def _load(folder: Path) -> list[Any]:
 def _own() -> list[Any]:
     """26.7: this workspace's own models, answering in shadow beside DCLab's."""
     try:
-        from ..own_models import current
+        from ..extensions import optional
 
-        return current()
+        own_models = optional("own_models")
+        return own_models.current() if own_models is not None else []
     except Exception:  # noqa: BLE001 - no own model here
         return []
 
@@ -278,7 +279,12 @@ def labelled(ledger: Any, home: Optional[Any] = None, point: Optional[str] = Non
     labels = list(ledger.labels(point=point)) if ledger is not None else []
     if home is None:
         return records, labels
-    from ..evaluation import testers
+    from ..extensions import optional
+
+    evaluation = optional("evaluation")  # testers' collected ledgers: the full edition's
+    if evaluation is None:
+        return records, labels
+    testers = evaluation.testers
 
     seen, seen_labels = {r.id for r in records}, {x.id for x in labels}
     for folder in testers(Path(home)):

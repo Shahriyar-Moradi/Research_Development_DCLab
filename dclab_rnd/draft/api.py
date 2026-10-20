@@ -90,9 +90,22 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             home = Path(Settings().agent_home)
         return home, getattr(ctx, "gateway", None) or models
 
+    def closed(name: str, what: str) -> Any:
+        """A part of the full edition (the twin lane, the understanding team), or a 404 in the open one."""
+        from ..extensions import optional
+
+        module = optional(name)
+        if module is None:
+            raise HTTPException(404, f"{what} is not part of this edition")
+        return module
+
     def twin_after(draft_id: str, event: str, text: str | None = None, to: str = "both") -> None:
         """25.4: Claude's turn beside the system's, in a thread of its own; nothing when the owner's switch is off."""
-        from ..twin import home as twin_home
+        from ..extensions import optional
+
+        twin_home = optional("twin.home")
+        if twin_home is None:  # the open edition has no twin lane
+            return
 
         home, gateway = workspace()
         twin_home.after_turn(drafts, gateway, home, draft_id, event, text, to)
@@ -188,7 +201,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
         gone = await asyncio.to_thread(retention.forget, draft=draft_id, usage=getattr(models, "usage", None))
         try:  # 25.4: and its twin session
-            from ..twin import home as twin_home
+            twin_home = closed("twin.home", "The twin lane")
 
             gone["twin_sessions"] = await asyncio.to_thread(twin_home.Sessions(workspace()[0]).forget, draft_id)
         except Exception:  # noqa: BLE001
@@ -388,7 +401,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         text = str(dump(payload).get("text", "")).strip()
         if not text:
             raise HTTPException(422, "Write a message first")
-        from ..twin import home as twin_home
+        twin_home = closed("twin.home", "The twin lane")
 
         home, _gateway = workspace()
         if not twin_home.settings(home)["on"]:
@@ -421,7 +434,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         """25.5: the person says which answer to a Home step is right ({"step", "arm": "system" | "ai_first"}): the step's truth, a person's pick."""
         get(draft_id)
         body = dump(payload)
-        from ..twin import home as twin_home
+        twin_home = closed("twin.home", "The twin lane")
 
         home, gateway = workspace()
         try:
@@ -441,7 +454,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         from .. import audit, limits
         from ..accounts.principal import current
         from ..experience import hooks
-        from ..twin import home as twin_home
+        twin_home = closed("twin.home", "The twin lane")
 
         body = dump(payload)
         add = body.get("add_eur", twin_home.RAISE_STEP)
@@ -469,8 +482,11 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
     async def twin_view(draft_id: str):
         """25.4: Claude's lane on this draft: its conversation, its last record, and each Home step's two answers."""
         get(draft_id)
-        from ..twin import home as twin_home
+        from ..extensions import optional
 
+        twin_home = optional("twin.home")
+        if twin_home is None:  # the open edition: no lane to show (the page reads it as off)
+            return {"on": False, "available": False}
         home, gateway = workspace()
         return await asyncio.to_thread(twin_home.HomeTwin(drafts, gateway, home).view, draft_id)
 
@@ -664,7 +680,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
     @router.post("/api/drafts/{draft_id}/data/hf", response_model=Doc)
     async def data_hf(draft_id: str, payload: AnyObject):
-        from ..connectors import hf
+        hf = closed("connectors.hf", "The Hugging Face connector")
 
         get(draft_id)
         body = dump(payload)
@@ -693,7 +709,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
     @router.post("/api/drafts/{draft_id}/data/cloud", response_model=Doc)
     async def data_cloud(draft_id: str, payload: AnyObject):
-        from ..connectors import cloud
+        cloud = closed("connectors.cloud", "The cloud storage connector")
 
         get(draft_id)
         body = dump(payload)
@@ -900,7 +916,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         """The understanding walk on this draft as it stands: its last board (the node that worked, what it found), the pause
         waiting for the person, and its last record. Nothing runs."""
         get(draft_id)
-        from ..orchestra import service as team
+        team = closed("orchestra.service", "The understanding team")
 
         home, _ = workspace()
         return await asyncio.to_thread(team.view, home, f"draft:{draft_id}")
@@ -912,7 +928,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         get(draft_id)
         if (draft_id + ":agent") in jobs or await asyncio.to_thread(answering, draft_id):
             raise HTTPException(409, "the agent is answering this draft: try again when it is done")
-        from ..orchestra import service as team
+        team = closed("orchestra.service", "The understanding team")
 
         home, gateway = workspace()
         try:
@@ -925,8 +941,11 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
     def team_on() -> bool:
         """28.8: the workspace's switch: Home's build goes through the understanding team's walk."""
-        from ..orchestra import settings as team_settings
+        from ..extensions import optional
 
+        team_settings = optional("orchestra.settings")
+        if team_settings is None:  # the open edition has no understanding team: Home builds directly
+            return False
         home, _ = workspace()
         return bool(team_settings.settings(home)["on"])
 
@@ -934,7 +953,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         """28.8: the switch on: the understanding walk builds (``orchestra.service.build_draft``), or a 409 says what it asks
         first or why it stopped. ``inline``: called from the Home agent's own turn ("build it", its build tool): the walk runs in
         this thread, which holds the draft's turn (another thread would wait on it for ever: the review of 28.8)."""
-        from ..orchestra import service as team
+        team = closed("orchestra.service", "The understanding team")
 
         home, gateway = workspace()
         try:

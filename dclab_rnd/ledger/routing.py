@@ -62,9 +62,11 @@ def passed(home: Optional[Any] = None) -> dict[str, dict[str, Any]]:
             out[f"{doc['model']['name']}@{doc['model']['version']}"] = {"point": doc["point"], "verdict": doc.get("verdict") or {},
                                                                        "gate": doc["gate"]["version"], "family": doc["model"].get("family")}
     if home is not None:
-        from ..own_models import passed as own
+        from ..extensions import optional
 
-        out.update(own(home))
+        own_models = optional("own_models")  # this workspace's own models: the full edition's
+        if own_models is not None:
+            out.update(own_models.passed(home))
     return out
 
 
@@ -132,9 +134,10 @@ def switch(store: Any, audit_log: Any, point: str, answerer: Optional[str], leve
             if why:
                 raise DecisionRoutingError(why)
         elif level >= 2:
-            from ..agent_eval.journeys import workflow_measured
+            from ..extensions import optional
 
-            run = workflow_measured(answerer, point, level)  # 21.5: measured inside the workflow at this level, on its own
+            journeys = optional("agent_eval.journeys")  # the open edition has no measurement: no model acts at a check there
+            run = journeys.workflow_measured(answerer, point, level) if journeys is not None else None  # 21.5: measured inside the workflow at this level, on its own
             if run is None or not run.get("ok"):
                 raise DecisionRoutingError(
                     f"{answerer} has not passed the journeys at level {level} on its own" + (f" ({run['run']}: right less often than the "
@@ -183,9 +186,10 @@ def answer(doc: dict[str, Any], point: str, state: dict[str, Any], options: list
     if name:
         found = next((a for a in (shadow.answerers() if answerers is None else answerers) if f"{a.name}@{a.version}" == name), None)
         if found is None and answerers is None and str(name).startswith("own@"):  # 26.7: this workspace's own model
-            from ..own_models import current
+            from ..extensions import optional
 
-            found = next((a for a in current() if f"{a.name}@{a.version}" == name), None)
+            own_models = optional("own_models")
+            found = next((a for a in own_models.current() if f"{a.name}@{a.version}" == name), None) if own_models is not None else None
     got = None
     if found is not None and level:
         try:

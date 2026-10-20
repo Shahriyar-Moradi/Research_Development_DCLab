@@ -156,7 +156,7 @@ def eval_rows(results: Path) -> list[dict[str, Any]]:
 def sync_eval(home: Any = None, results: Optional[Path] = None) -> int:
     """Read the evaluation results into the ledger once each (a result already in it is never added again). Returns how many
     measurements were added."""
-    from .store.layout import ROOT
+    from .settings import ROOT  # the repository (the evidence folder is the full edition's)
 
     target = path_of(home)
     if target is None:

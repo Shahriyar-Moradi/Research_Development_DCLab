@@ -12,8 +12,8 @@ from typing import Any
 
 
 def roles(gateway: Any) -> list[dict[str, Any]]:
-    from ..agent_eval import conversation
     from ..agents import harness
+    from ..extensions import optional
     from . import routing, settings
     from .usage import month_start
 
@@ -25,7 +25,8 @@ def roles(gateway: Any) -> list[dict[str, Any]]:
         gate = {r["role"]: r for r in judged_roles.status()}
     except Exception:  # noqa: BLE001 - the judged table is optional here
         gate = {}
-    measured = conversation.by_model()
+    conversation = optional("agent_eval.conversation")  # the open edition has no measurement: no score shown
+    measured = conversation.by_model() if conversation is not None else {}
     purposes = [*harness.ROLES, *(p for a in harness.AGENTS.values() for p in a.purposes)]
     out = []
     for purpose in purposes:

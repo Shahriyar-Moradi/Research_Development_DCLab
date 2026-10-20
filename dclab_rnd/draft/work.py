@@ -31,11 +31,12 @@ class DraftWork:
         home = getattr(getattr(self.jobs, "store", None), "home", None)
         if home is None:
             return False
-        from ..orchestra.settings import settings
+        from ..extensions import optional
 
-        from ..orchestra.patterns import passed
-
-        return bool(settings(home).get(name)) and passed(name)  # a switch left on serves only while its result still passes
+        team_settings, patterns = optional("orchestra.settings"), optional("orchestra.patterns")
+        if team_settings is None or patterns is None:  # the open edition has no team patterns
+            return False
+        return bool(team_settings.settings(home).get(name)) and patterns.passed(name)  # a switch left on serves only while its result still passes
 
     def requests(self, draft_id: str, what: str, args: dict[str, Any]) -> None:
         """The agent asked for something that runs in the background: simulate data, or build and train (25.13: the

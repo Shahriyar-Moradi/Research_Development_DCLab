@@ -114,9 +114,11 @@ def sweep_events(log: Any, now: Optional[datetime] = None, event_days: Optional[
     if not event_days and not text_days:
         return out
     try:  # 32.4: the store keeps the events first; retention then removes them from the workspace only
-        from ..store import hooks
+        from ..extensions import optional
 
-        hooks.before_removal(getattr(log, "home", None), "retention", None, by="retention")
+        hooks = optional("store.hooks")  # the open edition has no store
+        if hooks is not None:
+            hooks.before_removal(getattr(log, "home", None), "retention", None, by="retention")
     except Exception:  # noqa: BLE001
         pass
     old = (now - timedelta(days=event_days)).isoformat(timespec="microseconds") if event_days else None
@@ -253,9 +255,11 @@ def forget(*, project: str | None = None, draft: str | None = None, visit: str |
     home = getattr(log, "home", None) or getattr(ledger, "home", None)
     if visit and not (project or draft):  # 32.4: a visit's events kept first (a project's or a draft's were kept by its store's delete)
         try:
-            from ..store import hooks
+            from ..extensions import optional
 
-            hooks.before_removal(home, "visit", visit)
+            hooks = optional("store.hooks")
+            if hooks is not None:
+                hooks.before_removal(home, "visit", visit)
         except Exception:  # noqa: BLE001
             pass
     out: dict[str, Any] = {"events": 0, "decisions": 0, "prompts": 0}
@@ -275,17 +279,20 @@ def forget(*, project: str | None = None, draft: str | None = None, visit: str |
             out.setdefault("failed", []).append("exchanges")
     if home is not None and (project or draft):  # 28.2: a team's boards, pauses and walk records of what was deleted
         try:
-            from ..orchestra import board as team_board
+            from ..extensions import optional
 
-            out["orchestra"] = sum(team_board.forget(home, f"{kind}:{ident}") for kind, ident in (("draft", draft), ("project", project)) if ident)
+            team_board = optional("orchestra.board")
+            out["orchestra"] = 0 if team_board is None else sum(team_board.forget(home, f"{kind}:{ident}") for kind, ident in (("draft", draft), ("project", project)) if ident)
         except Exception as exc:  # noqa: BLE001
             out.setdefault("failed", []).append("orchestra")
             print(f"retention: could not remove the team records of what was deleted: {type(exc).__name__}", file=sys.stderr, flush=True)
     if home is not None and (out.get("events") or out.get("decisions") or out.get("orchestra")):  # 23.10: a set may hold what was just removed: rebuild it
         try:
-            from .. import datasets
+            from ..extensions import optional
 
-            datasets.mark_stale(home)
+            datasets = optional("datasets")
+            if datasets is not None:
+                datasets.mark_stale(home)
         except Exception:  # noqa: BLE001 - the deletion stands whether or not the marker is written
             pass
     return out

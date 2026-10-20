@@ -201,7 +201,9 @@ def from_twin_steps(steps: Iterable[Any], source: str = "twin steps") -> Evaluat
     A flag field (``home.ready:ready``) is scored as a flag; the answerer is the arm's name and who answered it. The
     system's answer to one step of one session counts once, however many AI answers were set beside it (a twin run's
     lane and its expert record). A person's pick is left out: it is the chosen side by construction."""
-    from dclab_core import twin
+    import importlib
+
+    twin = importlib.import_module("dclab_core.twin")  # the twin lane is the full edition's; this board is only built from its steps
 
     cases: dict[tuple[str, str, str, str, str], list[tuple[Any, Any]]] = defaultdict(list)
     kinds: dict[tuple[str, str, str, str, str], str] = {}

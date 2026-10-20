@@ -323,8 +323,11 @@ class EmbeddedMachine(Machine):
     def _image_decisions(self, threshold: float) -> list[dict[str, Any]]:
         """26.8: the image points on the training images only (a held-out image is never compared): near copies across
         sources, suspect labels, whether a mirror flip keeps the label. Keys name rows of the table as attached."""
-        from dclab_core import image_decisions as idc
+        from ..extensions import optional
 
+        idc = optional("dclab_core.image_decisions")  # the image decision points: the full edition's
+        if idc is None:
+            return []
         train = np.flatnonzero(~self.test)
         if len(train) > self.MAX_IMAGE_DECISIONS:
             train = np.sort(np.random.default_rng(0).choice(train, self.MAX_IMAGE_DECISIONS, replace=False))

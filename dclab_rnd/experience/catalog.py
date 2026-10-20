@@ -32,8 +32,12 @@ def _manifests(root: Path) -> list[Path]:
 
 def catalog(home: Path) -> list[dict[str, Any]]:
     """Every dataset of the workspace, newest build first."""
-    from dclab_core.datasets import DatasetManifest
+    from ..extensions import optional
 
+    core_datasets = optional("dclab_core.datasets")
+    if core_datasets is None:  # the training sets are the full edition's
+        return []
+    DatasetManifest = core_datasets.DatasetManifest
     root = Path(home) / FOLDER
     items = []
     for path in _manifests(root):
@@ -52,7 +56,12 @@ def catalog(home: Path) -> list[dict[str, Any]]:
 
 def lineage(home: Path, path: str, log: Any, ledger: Any = None) -> dict[str, Any]:
     """The sessions one dataset came from: its sources resolved to visits through the session record."""
-    from dclab_core.datasets import DatasetManifest
+    from ..extensions import optional
+
+    core_datasets = optional("dclab_core.datasets")
+    if core_datasets is None:  # the training sets are the full edition's
+        raise ValueError("Datasets are not part of this edition")
+    DatasetManifest = core_datasets.DatasetManifest
 
     root = (Path(home) / FOLDER).resolve()
     folder = (root / path).resolve()

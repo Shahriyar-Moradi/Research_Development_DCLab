@@ -86,9 +86,12 @@ class Anomaly(ProblemKind):
 
     # ------------------------------------------------------------------ acceptance (the owner's morning, no label)
     def case(self, seed: int = 0) -> Any:
-        from dclab_core.replicas import delivery_fraud
-
+        from ..extensions import optional
         from .acceptance import Case
+
+        delivery_fraud = optional("dclab_core.replicas.delivery_fraud")  # the full edition's replica
+        if delivery_fraud is None:
+            return None
 
         replica = delivery_fraud.generate(seed)
         rides = replica.rides[replica.rides["status"] == "DELIVERED"].reset_index(drop=True)

@@ -1,0 +1,52 @@
+/* dclabai's open theme (Apache-2.0): the design tokens every stylesheet of the studio reads. An original set: a calm slate
+   ground, an emerald brand, a blue accent, and one scale each for space, type, radius and shadow. */
+:root {
+  --dc-font-body: "Plus Jakarta Sans", Inter, system-ui, -apple-system, "Segoe UI", Vazirmatn, sans-serif;
+  --dc-font-display: Outfit, "Plus Jakarta Sans", Inter, system-ui, sans-serif;
+  --dc-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --dc-weight-regular: 400; --dc-weight-medium: 500; --dc-weight-semibold: 600; --dc-weight-bold: 700;
+  --dc-tracking-tight: -0.015em; --dc-tracking-micro: 0.02em; --dc-tracking-caps: 0.06em;
+
+  --dc-text-2xs: 10px; --dc-text-xs: 11px; --dc-text-sm: 12px; --dc-text-base: 13px; --dc-text-md: 14px; --dc-text-lg: 16px;
+  --dc-text-xl: 18px; --dc-text-2xl: 20px; --dc-text-3xl: 24px; --dc-text-4xl: 30px; --dc-text-5xl: 36px;
+  --dc-text-11: 11px; --dc-text-12: 12px; --dc-text-13: 13px; --dc-text-15: 15px; --dc-text-20: 20px; --dc-text-24: 24px; --dc-text-28: 28px;
+
+  --dc-space-1: 2px; --dc-space-2: 4px; --dc-space-3: 6px; --dc-space-4: 8px; --dc-space-5: 12px; --dc-space-6: 16px;
+  --dc-space-7: 20px; --dc-space-8: 24px; --dc-space-9: 32px;
+
+  --dc-radius-xs: 4px; --dc-radius-sm: 6px; --dc-radius-md: 8px; --dc-radius-lg: 10px; --dc-radius-xl: 14px;
+  --dc-radius-10: 10px; --dc-radius-12: 12px; --dc-radius-16: 16px; --dc-radius-20: 20px;
+  --dc-radius-card: 12px; --dc-radius-drawer: 16px; --dc-radius-modal: 16px; --dc-radius-nav: 8px; --dc-radius-pill: 999px;
+
+  --dc-control-xs: 24px; --dc-control-sm: 28px; --dc-control: 34px; --dc-control-lg: 40px;
+  --dc-card-padding: 16px; --dc-page-inset: 24px; --dc-sidebar-width: 248px; --dc-sidebar-padding-block: 16px; --dc-nav-row: 34px;
+  --dc-drawer-width: 480px; --dc-modal-width-md: 560px; --dc-modal-padding: 24px;
+  --dc-toast-padding-block: 10px; --dc-toast-padding-inline: 14px; --dc-z-toast: 1000;
+
+  --dc-ground: #f4f6f8; --dc-surface: #ffffff; --dc-surface-hover: #f7f9fb; --dc-surface-input: #ffffff; --dc-surface-muted: #f1f4f7;
+  --dc-surface-row-hover: #f5f8fa; --dc-surface-sunken: #eef2f5;
+  --dc-text: #17202a; --dc-text-secondary: #46525e; --dc-text-muted: #66727f; --dc-text-faint: #8b95a0; --dc-text-inverse: #ffffff;
+  --dc-border: #e2e7ec; --dc-border-strong: #cfd7df;
+  --dc-ink: #10202b; --dc-on-ink-border: rgba(255, 255, 255, 0.12); --dc-on-ink-chip: rgba(255, 255, 255, 0.08); --dc-on-ink-muted: #9fb0bf;
+
+  --dc-brand: #0f9d7a; --dc-brand-deep: #0b7a5f; --dc-brand-deep-hover: #09654f; --dc-on-brand: #ffffff;
+  --dc-accent: #2f6fde; --dc-accent-hover: #2459b8; --dc-accent-ink: #1d4796; --dc-accent-soft: #e8f0fd; --dc-on-accent: #ffffff;
+  --dc-chart-1: #2f6fde;
+
+  --dc-success-bg: #ecf8f3; --dc-success-border: #b9e5d3; --dc-success-chip: #dcf3e9; --dc-success-fg: #0c7454; --dc-success-solid: #12a37b;
+  --dc-warning-bg: #fff7e8; --dc-warning-border: #f3d9a4; --dc-warning-chip: #fdeecd; --dc-warning-fg: #8a5a00; --dc-warning-solid: #e09b13;
+  --dc-danger-bg: #fdf0ef; --dc-danger-border: #f3c4bf; --dc-danger-chip: #fbe3e0; --dc-danger-fg: #b3261e; --dc-danger-solid: #d93a2b; --dc-danger-deep: #9b2318;
+  --dc-info-bg: #eef5fd; --dc-info-border: #c5daf5; --dc-info-chip: #e1ecfb; --dc-info-fg: #1f5fbf; --dc-info-solid: #2f6fde;
+  --dc-neutral-chip: #eef1f4; --dc-neutral-fg: #4b5763; --dc-violet-chip: #efe9fc; --dc-violet-fg: #5b3cc4;
+  --dc-toast-mark-success: #34d399;
+
+  --dc-focus-ring: 0 0 0 3px rgba(47, 111, 222, 0.35); --dc-focus-offset: 2px;
+  --dc-scrim-drawer: rgba(16, 32, 43, 0.35); --dc-scrim-modal: rgba(16, 32, 43, 0.45); --dc-scrollbar-thumb: #cad3dc;
+  --dc-shadow-card: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.04);
+  --dc-shadow-nav-active: 0 1px 2px rgba(16, 24, 40, 0.08);
+  --dc-shadow-segment-active: 0 1px 2px rgba(16, 24, 40, 0.1);
+  --dc-shadow-drawer: 0 8px 32px rgba(16, 24, 40, 0.18);
+  --dc-shadow-modal: 0 12px 40px rgba(16, 24, 40, 0.22);
+  --dc-shadow-toast: 0 6px 24px rgba(16, 24, 40, 0.18); --dc-shadow-toast-v3: 0 6px 24px rgba(16, 24, 40, 0.18);
+}
+html, body { font-family: var(--dc-font-body); color: var(--dc-text); background: var(--dc-ground); }

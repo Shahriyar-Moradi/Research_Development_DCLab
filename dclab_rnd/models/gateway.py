@@ -573,5 +573,7 @@ def for_workspace(home=None) -> Gateway:
     from .shadow import open_shadows
 
     root = Path(__file__).resolve().parents[2]
-    home = Path(home or os.environ.get("DCLAB_AGENT_HOME") or root / "agent_runs")
+    from ..settings import default_home
+
+    home = Path(home or os.environ.get("DCLAB_AGENT_HOME") or default_home())  # the repository's agent_runs, or ~/.dclabai when installed
     return Gateway(open_usage(home), routing=open_routing(home), shadows=open_shadows(home))  # the same routing as the server

@@ -237,8 +237,12 @@ def _audit_frame(X: Any, y: Any, task: str = "auto", blind: bool = False, source
 def find_examples(words: str, top: int = 3) -> dict[str, Any]:
     """Business problems like the one described (30.18): for each of the closest examples, how such a problem is understood and
     solved, what goes wrong, and the recipe it maps to. Only examples a model may read, as their general pattern; never a private one."""
-    from dclab_rnd.business_examples import context_for_model
+    from dclab_rnd.extensions import optional
 
+    kb = optional("business_examples")
+    if kb is None:  # the open edition ships no business examples
+        return {"examples": [], "note": "No business examples in this edition."}
+    context_for_model = kb.context_for_model
     top = max(1, min(int(top or 3), 5))
     found = context_for_model(None, str(words or "")[:2000], top)
     return {"examples": [{k: e[k] for k in ("id", "title", "understanding", "pitfalls", "solution", "workflow", "pattern", "recipe", "score") if k in e}
@@ -273,8 +277,11 @@ def kind_checks(kind: str) -> dict[str, Any]:
 
 
 def _kind_results(kind: str) -> Any:
-    from dclab_rnd.agent_eval import by_kind
+    from dclab_rnd.extensions import optional
 
+    by_kind = optional("agent_eval.by_kind")
+    if by_kind is None:  # the open edition has no benchmark per kind
+        return {}
     try:
         found = by_kind.row(kind)
     except Exception as exc:  # noqa: BLE001 - results that cannot be read are said, never invented

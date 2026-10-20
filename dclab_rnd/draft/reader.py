@@ -28,9 +28,16 @@ def reader(gateway: Any, *, draft_id: Optional[str] = None, cap_eur: Optional[fl
     if gateway is None or not gateway.available("conversation_reader"):
         return None
     if not force:
-        from ..agent_eval.journeys import reader_passed
+        from ..extensions import optional
 
-        if not (switched_on() and reader_passed()):
+        journeys = optional("agent_eval.journeys")
+        if journeys is None:  # the open edition: the person's switch (dclab_rnd.gates)
+            from .. import gates
+
+            measured = gates.passed("conversation_reader")
+        else:
+            measured = journeys.reader_passed()
+        if not (switched_on() and measured):
             return None
     from dclab_core.agents import run_role
     from dclab_core.conversation import READER

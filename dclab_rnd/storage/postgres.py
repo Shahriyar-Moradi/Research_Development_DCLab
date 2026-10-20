@@ -127,9 +127,11 @@ class PgProjects(_Base):
     def delete(self, project_id: str) -> None:
         import shutil
 
-        from ..store import hooks
+        from ..extensions import optional
 
-        hooks.keep_before(self.files_home, "project", project_id, lambda: self.get(project_id))  # 32.4: the row's document kept first
+        hooks = optional("store.hooks")  # the open edition has no store
+        if hooks is not None:
+            hooks.keep_before(self.files_home, "project", project_id, lambda: self.get(project_id))  # 32.4: the row's document kept first
         with self.engine.begin() as c:
             c.execute(sa.delete(project).where(project.c.id == _key(project_id), project.c.workspace_id == self.workspace_id))
         shutil.rmtree(self._folder(project_id), ignore_errors=True)
@@ -316,9 +318,11 @@ class PgDrafts(_Base):
     def delete(self, draft_id: str) -> None:
         import shutil
 
-        from ..store import hooks
+        from ..extensions import optional
 
-        hooks.keep_before(self.files_home, "draft", draft_id, lambda: self.get(draft_id))  # 32.4: the row's document kept first
+        hooks = optional("store.hooks")  # the open edition has no store
+        if hooks is not None:
+            hooks.keep_before(self.files_home, "draft", draft_id, lambda: self.get(draft_id))  # 32.4: the row's document kept first
         with self.engine.begin() as c:
             c.execute(sa.delete(draft).where(draft.c.id == _key(draft_id), draft.c.workspace_id == self.workspace_id))
         shutil.rmtree(self.files_home / "drafts" / draft_id, ignore_errors=True)
@@ -400,9 +404,11 @@ class PgSessions(_Base):
             return [{**r.doc, "steps": int(r.steps)} for r in c.execute(query)]
 
     def delete(self, session_id: str) -> None:
-        from ..store import hooks
+        from ..extensions import optional
 
-        hooks.keep_before(self.files_home, "session", session_id, lambda: self.get(session_id))  # 32.4: the row's document kept first
+        hooks = optional("store.hooks")  # the open edition has no store
+        if hooks is not None:
+            hooks.keep_before(self.files_home, "session", session_id, lambda: self.get(session_id))  # 32.4: the row's document kept first
         with self.engine.begin() as c:
             c.execute(sa.delete(intern_session).where(intern_session.c.id == _key(session_id), intern_session.c.workspace_id == self.workspace_id))
 

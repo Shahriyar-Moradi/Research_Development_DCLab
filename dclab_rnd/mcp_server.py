@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any
 
 from dclab_rnd.agentic.catalog import ROOT
+from dclab_rnd.settings import default_home
 from dclab_rnd.intern.tools import Toolbox
 from dclab_rnd.studio import ProjectStore
 
@@ -129,7 +130,7 @@ def standalone_app(home: Path):
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--port", type=int, default=int(os.environ.get("DCLAB_MCP_PORT", "8777")))
-    parser.add_argument("--home", type=Path, default=Path(os.environ.get("DCLAB_STUDIO_HOME") or ROOT / "agent_runs" / "projects"))
+    parser.add_argument("--home", type=Path, default=Path(os.environ.get("DCLAB_STUDIO_HOME") or default_home() / "projects"))
     args = parser.parse_args(argv)
     if not available():
         print("The MCP server needs the optional package: pip install mcp", file=sys.stderr)

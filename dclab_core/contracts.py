@@ -376,6 +376,18 @@ CONTRACTS: dict[str, type[Versioned]] = {
     "solution_report": SolutionReport,
 }
 
+def _closed(name: str) -> None:
+    """Register a contract module that only the full edition has (the store, the training sets, the twin...): the open-source
+    edition leaves those modules out, and the rest of the registry stands without them. A module that is there but fails raises."""
+    import importlib
+
+    try:
+        importlib.import_module(name)
+    except ModuleNotFoundError as exc:
+        if exc.name != name:
+            raise
+
+
 import dclab_core.experience  # noqa: E402,F401  (registers its contracts in CONTRACTS: every reader sees all of them)
 import dclab_core.card  # noqa: E402,F401  (the problem card, 20.1)
 import dclab_core.lineage  # noqa: E402,F401  (run records, 19.5)
@@ -390,21 +402,21 @@ import dclab_core.metric_change  # noqa: E402,F401  (the semantic layer and the 
 import dclab_core.department_agent  # noqa: E402,F401  (a department agent's policy, 30.22)
 import dclab_core.triage  # noqa: E402,F401  (a project request and the portfolio chosen, 30.24)
 import dclab_core.foundation  # noqa: E402,F401  (a table's catalog entry, 30.23)
-import dclab_core.store  # noqa: E402,F401  (the store: entries, records, examples per model type, sets; and its capture rules, 32.1)
-import dclab_core.service  # noqa: E402,F401  (the service's knowledge: builds, verdicts, curves, knowledge items, engagements, playbook, 32.24 to 32.31)
-import dclab_core.datasets  # noqa: E402,F401  (dataset manifests, 19.12)
-import dclab_core.decision_models  # noqa: E402,F401  (decision model cards, 22.2)
+_closed("dclab_core.store")  # (the store: entries, records, examples per model type, sets; and its capture rules, 32.1)
+_closed("dclab_core.service")  # (the service's knowledge: builds, verdicts, curves, knowledge items, engagements, playbook, 32.24 to 32.31)
+_closed("dclab_core.datasets")  # (dataset manifests, 19.12)
+_closed("dclab_core.decision_models")  # (decision model cards, 22.2)
 import dclab_core.coordinator  # noqa: E402,F401  (the coordinator's situation, 21.2)
 import dclab_core.solution_workflow  # noqa: E402,F401  (the solution workflow, 20.6)
 import dclab_core.pipeline  # noqa: E402,F401  (the pipeline of workflows, 20.8)
 import dclab_core.problem_map  # noqa: E402,F401  (the problem map, 24.1)
-import dclab_core.twin  # noqa: E402,F401  (the twin: the system and an AI-first agent on one step, 25.1)
-import dclab_core.expert  # noqa: E402,F401  (the expert's record, 25.3)
-import dclab_core.lake  # noqa: E402,F401  (the training lake's records, 26.1)
+_closed("dclab_core.twin")  # (the twin: the system and an AI-first agent on one step, 25.1)
+_closed("dclab_core.expert")  # (the expert's record, 25.3)
+_closed("dclab_core.lake")  # (the training lake's records, 26.1)
 import dclab_core.evaluation  # noqa: E402,F401  (every answerer's scores, 25.8)
-import dclab_core.orchestra  # noqa: E402,F401  (a team of agents: its board and its record, 28.2)
+_closed("dclab_core.orchestra")  # (a team of agents: its board and its record, 28.2)
 import dclab_core.auditor  # noqa: E402,F401  (the auditor's verdict before a holdout is read, 28.5)
-import dclab_core.business_examples  # noqa: E402,F401  (business examples for understanding and solving, 30.5)
+_closed("dclab_core.business_examples")  # (business examples for understanding and solving, 30.5)
 import dclab_core.recipes  # noqa: E402,F401  (recipe parts and resolved recipes, 30.10)
 import dclab_core.second_opinion  # noqa: E402,F401  (the second opinion on the card's family, 28.6)
 import dclab_core.debate  # noqa: E402,F401  (two solution designers and a judge, 28.6)

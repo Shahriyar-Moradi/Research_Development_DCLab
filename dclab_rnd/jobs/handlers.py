@@ -152,8 +152,9 @@ def _programme_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[st
 # ---------------------------------------------------------------------- a twin run of a project: the system and Claude side by side (25.6)
 
 def _twin_run(s: Any, payload: dict[str, Any]) -> None:
-    from .. import twin
-    from ..twin import home as twin_home
+    from ..extensions import optional
+
+    twin, twin_home = optional("twin"), optional("twin.home")  # registered only when the edition has the twin lane
 
     settings = twin_home.settings(s.store.home)
     if not settings["on"]:
@@ -176,17 +177,17 @@ def _students_run(s: Any, payload: dict[str, Any]) -> None:
     """29.7: the students' loop on this workspace: sets, the students whose homework grew, demotion, the register."""
     from pathlib import Path
 
-    from .. import students_loop
+    from ..extensions import optional
 
-    students_loop.run(Path(s.store.home), s.ledger, s.gateway.routing, s.audit)
+    optional("students_loop").run(Path(s.store.home), s.ledger, s.gateway.routing, s.audit)  # registered only in the full edition
 
 
 def _students_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
     from pathlib import Path
 
-    from .. import students_loop
+    from ..extensions import optional
 
-    students_loop.failed(Path(s.store.home))  # the next run waits an hour
+    optional("students_loop").failed(Path(s.store.home))  # the next run waits an hour
 
 
 STORE_RUN_SECONDS = 3 * 3600  # a whole run of a large workspace takes about twenty minutes; three hours means it is stuck
@@ -215,9 +216,9 @@ def _store_run(s: Any, payload: dict[str, Any]) -> None:
 
 def _store_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
     """Nothing to put back (the store is append-only); the failure recorded, so the next run waits its hour."""
-    from ..store import conductor
+    from ..extensions import optional
 
-    conductor.failed(why=reason)
+    optional("store.conductor").failed(why=reason)  # registered only in the full edition
 
 
 # ---------------------------------------------------------------------- improving a finished model, on the training folds only
@@ -271,9 +272,14 @@ def register() -> None:
     handler("rerun", _rerun_run, _rerun_settle)
     handler("programme", _programme_run, _programme_settle)
     handler("improve", _improve_run, _improve_settle)
-    handler("twin", _twin_run, _twin_settle)
-    handler("students", _students_run, _students_settle)
-    handler("store", _store_run, _store_settle)
+    from ..extensions import available
+
+    if available("twin"):  # the closed parts' jobs exist only in the full edition
+        handler("twin", _twin_run, _twin_settle)
+    if available("students_loop"):
+        handler("students", _students_run, _students_settle)
+    if available("store"):
+        handler("store", _store_run, _store_settle)
 
 
 register()

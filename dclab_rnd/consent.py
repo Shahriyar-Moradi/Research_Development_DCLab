@@ -74,9 +74,11 @@ def set_workspace_consent(home: Path, use: str, on: bool, who: str = "owner") ->
     current = workspace_consent(home)
     if not on:  # 23.10: sets built under a use that is now off are removed by the next sweep
         try:
-            from . import datasets
+            from .extensions import optional
 
-            datasets.mark_stale(home)
+            datasets = optional("datasets")  # the training sets are the full edition's
+            if datasets is not None:
+                datasets.mark_stale(home)
         except Exception:  # noqa: BLE001 - the switch is saved whether or not the marker is
             pass
     return current
@@ -382,7 +384,12 @@ def export_main_product(records: Iterable[Any], labels: Iterable[Any], workspace
     refused without ``train``, bands only, nobody named). A label source it has no word for (``measured``) stays here
     and is counted; nothing is sent by this function: what the main product receives, and under which of its own
     consents (its ADR 0008), is its change."""
-    from dclab_core.adapters.main_product_r3 import label_rows, releases
+    from .extensions import optional
+
+    r3 = optional("dclab_core.adapters.main_product_r3")
+    if r3 is None:  # the main product's adapters are not part of the open edition
+        return {"decisions": [], "left_out": {}, "points": [], "note": "the main product's adapter is not part of this edition"}
+    label_rows, releases = r3.label_rows, r3.releases
 
     points = set(releases())
     out, left = [], {}

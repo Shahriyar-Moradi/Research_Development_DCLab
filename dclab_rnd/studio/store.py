@@ -161,9 +161,11 @@ class ProjectStore:
     def delete(self, project_id: str) -> None:
         import shutil
 
-        from ..store import hooks
+        from ..extensions import optional
 
-        hooks.keep_before(self.home.parent, "project", project_id)  # 32.4: the store keeps it first
+        hooks = optional("store.hooks")  # the open edition has no store
+        if hooks is not None:
+            hooks.keep_before(self.home.parent, "project", project_id)  # 32.4: the store keeps it first
         directory = self.directory(project_id)
         if directory.exists():
             shutil.rmtree(directory)

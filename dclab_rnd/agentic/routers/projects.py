@@ -13,7 +13,7 @@ from fastapi.responses import Response
 
 from ... import audit, lessons as workspace_lessons
 from ...studio import agent as studio_agent, data as studio_data, engine as studio_engine, export as studio_export
-from ...studio import graph as studio_graph, lineage as studio_lineage, memory as studio_memory, sft as studio_sft, solution as studio_solution
+from ...studio import graph as studio_graph, lineage as studio_lineage, memory as studio_memory, solution as studio_solution
 from ..api_models import (OCTET, AnyObject, Answer, Fixes, GateApproval, Graph, Lessons, MoveCheck, Project, ProjectCreate, ProjectPatch, Proposal,
                           ProposalRequest, Page, Question, Review, Router, SampleChoice, SolutionBody, StageApproval, Verdict, download)
 from ..services import charge_upload, Services, services
@@ -125,9 +125,11 @@ async def patch_project(project_id: str, payload: ProjectPatch, s: Services = De
 
         consents.invalidate(project_id)  # 23.1: the next record of this project is stamped with the new level
         if not on:
-            from ... import datasets
+            from ...extensions import optional
 
-            datasets.mark_stale(s.store.home)  # 23.10: what was built from this project under the use now off is removed by the next sweep
+            datasets = optional("datasets")  # the training sets are the full edition's
+            if datasets is not None:
+                datasets.mark_stale(s.store.home)  # 23.10: what was built from this project under the use now off is removed by the next sweep
         experience.record("consent.changed", "person", {"scope": "project", "use": use, "on": on, "was": not on,
                                                         "level": core.level_of(consents.workspace_consent(s.store.home), consents.project_consent(p)),
                                                         "notice_version": consents.NOTICE_VERSION}, project=project_id)
@@ -606,8 +608,11 @@ async def run_twin(project_id: str, body: Any = Body(None), s: Services = Depend
     import secrets
     from datetime import datetime, timezone
 
-    from ...twin import home as twin_home
+    from ...extensions import optional
 
+    twin_home = optional("twin.home")
+    if twin_home is None:
+        raise HTTPException(404, "The twin lane is not part of this edition")
     project = s.project(project_id)
     if not twin_home.settings(s.store.home)["on"]:
         raise HTTPException(409, "Claude beside the system is off in this workspace (the owner's switch, Admin)")
@@ -640,9 +645,12 @@ async def project_twin_runs(project_id: str, s: Services = Depends(services)):
     expert's story as text (COMPARE.md, DESIGN.md)."""
     import json as _json
 
-    from ... import twin
+    from ...extensions import optional
 
+    twin = optional("twin")
     s.project(project_id)
+    if twin is None:  # the open edition has no twin runs
+        return {"runs": []}
 
     def read() -> list[dict[str, Any]]:
         out = []
@@ -1160,6 +1168,11 @@ async def export_solution_report(project_id: str, s: Services = Depends(services
 
 @router.get("/api/projects/{project_id}/export/sft", response_class=Response, responses=download("application/x-ndjson"))
 async def export_sft(project_id: str, s: Services = Depends(services)):
+    from ...extensions import optional
+
+    studio_sft = optional("studio.sft")
+    if studio_sft is None:
+        raise HTTPException(404, "Training examples are not part of this edition")
     p = s.project(project_id)
     rows = studio_sft.examples_from_project(p, s.projects.records(project_id))
     text = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows)

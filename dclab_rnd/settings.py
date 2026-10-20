@@ -21,6 +21,13 @@ ROOT = Path(__file__).resolve().parents[1]
 UPLOAD_MAX_BYTES = 200 * 1024 * 1024  # the project upload route; the draft route (draft/api.py MAX_UPLOAD) and the connectors (connectors.MAX_BYTES) keep the same limit in their own constants
 
 
+def default_home() -> Path:
+    """The workspace folder when DCLAB_AGENT_HOME is not set: the checkout's ``agent_runs`` when this package runs from a
+    repository, else ``~/.dclabai`` (an installed package must never write inside site-packages)."""
+    repo = ROOT / "agent_runs"
+    return repo if repo.exists() or (ROOT / ".git").exists() else Path.home() / ".dclabai"
+
+
 def load_secret_files() -> list[str]:
     """``NAME_FILE`` secrets (``dclab_rnd/secret_files.py``); an unreadable one raises RuntimeError."""
     from . import secret_files
@@ -31,7 +38,7 @@ def load_secret_files() -> list[str]:
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=None, extra="ignore", populate_by_name=True)
 
-    agent_home: Path = Field(ROOT / "agent_runs", alias="DCLAB_AGENT_HOME", description="the workspace folder")
+    agent_home: Path = Field(default_factory=lambda: default_home(), alias="DCLAB_AGENT_HOME", description="the workspace folder")
     database_url: str = Field("", alias="DCLAB_DATABASE_URL", description="PostgreSQL for projects, drafts and sessions; files when empty")
     files_url: str = Field("", alias="DCLAB_FILES_URL", description="s3://bucket/prefix for tables and artifacts; the workspace folder when empty")
     ml_python: Path = Field(ROOT / ".venv/bin/python", alias="DCLAB_ML_PYTHON", description="the interpreter the research campaign runs experiments with")

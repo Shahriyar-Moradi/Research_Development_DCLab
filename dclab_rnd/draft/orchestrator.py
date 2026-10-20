@@ -459,9 +459,14 @@ def _model_serves() -> bool:
     if forced in ("model", "rules"):
         return forced == "model"
     try:
-        from ..agent_eval.journeys.built import model_serves
+        from ..extensions import optional
 
-        return model_serves()
+        built = optional("agent_eval.journeys.built")
+        if built is None:  # the open edition: the person's switch or the doctor's probe (dclab_rnd.gates)
+            from .. import gates
+
+            return gates.passed("built_chat")
+        return built.model_serves()
     except Exception:  # noqa: BLE001 - fail closed (the review of step 3)
         return False
 

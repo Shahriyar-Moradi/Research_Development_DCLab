@@ -25,11 +25,13 @@ GROUPS = {"project": "dclab_rnd.intern.tools", "draft": "dclab_rnd.draft.chat", 
 
 def build_registry(groups: tuple[str, ...] = tuple(GROUPS)) -> Registry:
     """A registry with the given groups of DCLab tools (all of them by default)."""
-    import importlib
+    from ..extensions import optional
 
     registry = Registry()
     for group in groups:
-        importlib.import_module(GROUPS[group]).register(registry)
+        module = optional(GROUPS[group].split(".", 1)[1])  # a group of the full edition (the research campaign's) may be absent
+        if module is not None:
+            module.register(registry)
     return registry
 
 

@@ -303,29 +303,20 @@ class Worker:
     def _retain(self, halt: threading.Event) -> None:
         """Raw uploads past DCLAB_RETENTION_RAW_DAYS (package 12.5): on a thread of its own, so a long sweep never delays a heartbeat."""
         from .. import retention
+        from ..extensions import optional
 
-        from .. import datasets, students_loop
-
+        sweeps = [m for m in (optional("datasets"), optional("students_loop"), optional("store.conductor")) if m is not None]  # the full edition's
         state: dict[str, float] = {}
         while not halt.wait(60):
             try:
                 retention.sweep_due(self.env, state, time.monotonic())
             except Exception:  # noqa: BLE001 — the next hour tries again
                 traceback.print_exc()
-            try:  # 23.10: the sets, once a day where consent allows and after a deletion
-                datasets.sweep_due(self.env)
-            except Exception:  # noqa: BLE001
-                traceback.print_exc()
-            try:  # 29.7: the students' loop, queued as a job after new labels or once a night
-                students_loop.sweep_due(self.env)
-            except Exception:  # noqa: BLE001
-                traceback.print_exc()
-            try:  # 32.2: the store's conductor, at most once an hour
-                from ..store import conductor
-
-                conductor.sweep_due(self.env)
-            except Exception:  # noqa: BLE001
-                traceback.print_exc()
+            for sweep in sweeps:  # 23.10 the sets once a day, 29.7 the students' loop, 32.2 the store's conductor at most hourly
+                try:
+                    sweep.sweep_due(self.env)
+                except Exception:  # noqa: BLE001
+                    traceback.print_exc()
 
     def recover(self) -> list[dict[str, Any]]:
         """Mark interrupted every running job whose worker stopped beating, or whose worker was a process of this machine

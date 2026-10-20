@@ -82,7 +82,9 @@ def embedding_model() -> str:
 def cache_dir() -> Path:
     import os
 
-    return Path(os.environ.get("DCLAB_EMBEDDINGS_DIR") or Path(os.environ.get("DCLAB_AGENT_HOME") or ROOT / "agent_runs") / "embeddings")
+    from ..settings import default_home
+
+    return Path(os.environ.get("DCLAB_EMBEDDINGS_DIR") or Path(os.environ.get("DCLAB_AGENT_HOME") or default_home()) / "embeddings")
 
 
 class Embedder:

@@ -31,9 +31,13 @@ def switched_on() -> bool:
 def roles_passed() -> bool:
     """Whether the roles passed both of their sealed measurements (24.8): the decomposer against the rules on the sealed briefs (``map_gate_v1``), and the map roles against the
     rules on the sealed programme journeys (``journeys_programme_gate_v1``). Neither stored run, no role: the rules serve."""
-    from ..agent_eval import complex as map_suite
-    from ..agent_eval.journeys import programme as programme_journeys
+    from ..extensions import optional
 
+    map_suite, programme_journeys = optional("agent_eval.complex"), optional("agent_eval.journeys.programme")
+    if map_suite is None or programme_journeys is None:  # the open edition: the person's switch (dclab_rnd.gates)
+        from .. import gates
+
+        return gates.passed("map_roles")
     return map_suite.sealed_passed() and programme_journeys.roles_passed()
 
 
@@ -122,9 +126,10 @@ def examples_for(words: str, advisor: Any) -> list[str]:
     passed its sealed journeys and the switch is on (``business_examples.serve``), or a measurement asks for them (``advisor.examples``)."""
     if advisor is None:
         return []
-    from .. import business_examples as kb
+    from ..extensions import optional
 
-    if not (getattr(advisor, "examples", False) or kb.serve()):
+    kb = optional("business_examples")
+    if kb is None or not (getattr(advisor, "examples", False) or kb.serve()):
         return []
     try:
         return kb.for_role(words)

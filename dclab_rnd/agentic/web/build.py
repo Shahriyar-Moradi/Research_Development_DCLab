@@ -34,7 +34,9 @@ HEAD = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
         '<meta name="color-scheme" content="light dark">\n')
 # app.css, in this order: the TripsSource design kit (kit/, copied unchanged), the product's design system on its tokens
 # (styles.css), then the product's components drawn the kit's way (look.css)
-CSS = ("kit/ts-tokens.css", "kit/ts-theme-blue.css", "kit/ts-components.css", "styles.css", "look.css")
+KIT = ("kit/ts-tokens.css", "kit/ts-theme-blue.css", "kit/ts-components.css")
+OPEN_THEME = ("theme/dc-tokens.css",)  # the open-source edition's own tokens (the kit is not part of it)
+CSS = (KIT if (Path(__file__).resolve().parent / "src" / "kit").is_dir() else OPEN_THEME) + ("styles.css", "look.css")
 INLINE_STYLE = re.compile(r'(?<![-\w])style\s*=\s*["\']', re.I)
 
 

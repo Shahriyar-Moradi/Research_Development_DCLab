@@ -799,9 +799,11 @@ def archive_run(store, run_id: str, *, reset_snapshots: bool = True) -> dict[str
     _write_json(root / "trajectory.json", trajectory)
     write_studio_run_report(store, run_id)
     # Additive clean projection (does not remove trial-*/events/reports).
-    from .clean_export import write_run_clean
+    from ..extensions import optional
 
-    write_run_clean(store, run_id)
+    clean = optional("agentic.clean_export")  # the research runs' clean projection: the full edition's
+    if clean is not None:
+        clean.write_run_clean(store, run_id)
     manifest_path = write_manifest(store, run_id)
     return json.loads(manifest_path.read_text(encoding="utf-8"))
 
@@ -937,9 +939,11 @@ def write_studio_index(store) -> Path:
     organize_studio_assets(store)
     write_studio_readme(store)
     write_catalog_links(store)
-    from .clean_export import write_studio_clean_exports
+    from ..extensions import optional
 
-    write_studio_clean_exports(store)
+    clean = optional("agentic.clean_export")
+    if clean is not None:
+        clean.write_studio_clean_exports(store)
 
     runs = []
     for run in store.list():

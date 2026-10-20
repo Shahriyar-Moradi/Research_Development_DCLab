@@ -11,7 +11,7 @@ from typing import Any
 from fastapi import Depends, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
 
-from ... import research_map
+from ...extensions import optional
 from ...studio import data as studio_data, engine as studio_engine, graph as studio_graph
 from ..api_models import Config, Doc, ModelsSummary, Page, Router, RoutingChange, Workspace
 from ..catalog import ROOT, catalog
@@ -107,9 +107,11 @@ async def configuration(s: Services = Depends(services)):
 def conversation_scores(purpose: str, tier: Any, routing_doc: dict[str, Any]) -> dict[str, float]:
     """The share of right cards of the model a role would move to, of its own tier's model and of the one a reviewer
     approved for it, measured on the same stored conversations at the role's current prompt (21.4)."""
-    from ...agent_eval import conversation
     from ...models import routing as model_routing, settings as model_settings
 
+    conversation = optional("agent_eval.conversation")
+    if conversation is None:  # the open edition has no stored conversations measured
+        return {}
     if not isinstance(tier, str) or tier not in model_settings.ROUTABLE:
         return {}
     current = model_routing.route(routing_doc, purpose)
@@ -182,12 +184,18 @@ async def change_routing(body: RoutingChange, request: Request, s: Services = De
 
 @router.get("/api/research", response_model=Page)
 async def research():
-    """Every research idea with its champion, experiments, notebooks, evaluation, reports and relations."""
+    """Every research idea with its champion, experiments, notebooks, evaluation, reports and relations (the full edition's)."""
+    research_map = optional("research_map")
+    if research_map is None:
+        raise HTTPException(404, "The research map is not part of this edition")
     return research_map.research_map()
 
 
 @router.get("/api/research/file", response_model=Page)
 async def research_file(path: str):
+    research_map = optional("research_map")
+    if research_map is None:
+        raise HTTPException(404, "The research map is not part of this edition")
     try:
         return research_map.preview(path)
     except ValueError as error:

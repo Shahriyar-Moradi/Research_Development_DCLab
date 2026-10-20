@@ -115,7 +115,12 @@ class Services:
     def launch(self, run_id: str, resume: bool = False) -> None:
         if any(not task.done() for task in self.tasks.values()):
             raise HTTPException(409, "One active research run at a time; pause it before starting another")
-        from .engine import run_research  # imported on first run: the map and history work without the agent stack
+        from ..extensions import optional
+
+        engine = optional("agentic.engine")  # imported on first run: the map and history work without the agent stack
+        if engine is None:
+            raise HTTPException(404, "Research runs are not part of this edition")
+        run_research = engine.run_research
 
         task = asyncio.create_task(run_research(self.store, run_id, resume))
         self.tasks[run_id] = task

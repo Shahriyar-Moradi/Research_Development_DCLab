@@ -33,8 +33,11 @@ def plan(purpose: str, home: Path) -> dict[str, Any]:
     """Where a role stands on the way to being served by the tuned model, and what is still missing before ``promote``.
     ``ready``: nothing is missing but, for a role that reads what the person means, the measurement given to promote
     (``needs_measurement``)."""
-    from ..agent_eval.regression import passed_with
+    from ..extensions import optional
     from .routing import UNDERSTANDING
+
+    regression = optional("agent_eval.regression")
+    passed_with = regression.passed_with if regression is not None else (lambda *a, **k: None)  # the open edition: nothing measured
 
     settings.purpose(purpose)  # an unknown purpose is an error
     tier = settings.public(settings.TUNED)

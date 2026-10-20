@@ -89,9 +89,10 @@ def _disagreement(record: Any, student: Optional[str]) -> bool:
 
 def _students() -> dict[str, str]:
     """Each point's current student, as the register names it (its card's ``name@version``)."""
-    from ..students import students
+    from ..extensions import optional
 
-    return {p: c["answerer"] for p, c in students().items() if c.get("answerer")}
+    register = optional("students")  # the students are the full edition's
+    return {} if register is None else {p: c["answerer"] for p, c in register.students().items() if c.get("answerer")}
 
 
 def queue(ledger: Any = None, point: Optional[str] = None, limit: int = 50, seed: str = "blind-v1", skip: Sequence[str] = (),

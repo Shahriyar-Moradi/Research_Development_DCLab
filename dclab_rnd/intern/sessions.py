@@ -97,9 +97,11 @@ class SessionStore:
         return out[offset:offset + limit] if limit is not None else out
 
     def delete(self, session_id: str) -> None:
-        from ..store import hooks
+        from ..extensions import optional
 
-        hooks.keep_before(self.home.parent, "session", session_id)  # 32.4: the store keeps it first (its versions included)
+        hooks = optional("store.hooks")  # the open edition has no store
+        if hooks is not None:
+            hooks.keep_before(self.home.parent, "session", session_id)  # 32.4: the store keeps it first (its versions included)
         path = self.path(session_id)
         if path.exists():
             path.unlink()

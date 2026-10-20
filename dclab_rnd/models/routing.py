@@ -197,9 +197,10 @@ def change(store: RoutingStore, purpose: str, setting: str, tier: str | None, ro
                                + "; ".join(f"{b}: {scores.get(b, 'not measured')}" for b in sorted(bars)) + "), or the owner overrides with a reason")
         evidence = {"measured": {k: scores[k] for k in sorted({str(model), *bars}) if k in scores}, "override": not better}
     if setting == "serve" and tier is not None:  # 21.5: no model serves a purpose before the harness suite passed with it here
-        from ..agent_eval.regression import passed_with
+        from ..extensions import optional
 
-        suite = passed_with(purpose, str(model))
+        regression = optional("agent_eval.regression")  # the open edition: no suite, so only the owner's override with a reason
+        suite = regression.passed_with(purpose, str(model)) if regression is not None else None
         if suite is None and not (override and role == "owner"):
             raise RoutingError(f"{model} has not passed the harness suite serving {purpose} on these prompts and gates: run "
                                "make harness-eval ARGS='--live --cap-eur N' with it, or the owner overrides with a reason")

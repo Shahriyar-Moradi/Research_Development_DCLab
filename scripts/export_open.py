@@ -1,0 +1,250 @@
+"""Build the open-source tree, `dclabai`, from this private repository (the plan: ~/.claude/plans/async-skipping-firefly.md).
+
+    .venv/bin/python scripts/export_open.py --out ../dclabai-export          # build the tree and check it
+    .venv/bin/python scripts/export_open.py --out ../dclabai-export --check  # check only (no tests), for a quick look
+
+What it does, in order (nothing is published, nothing in this repository changes):
+1. Takes the files git tracks (`git ls-files`: an untracked file, a .env, a record can never reach the export), keeps those the
+   manifest's INCLUDE globs match and EXCLUDE globs do not (export/manifest.py).
+2. Copies them into a fresh folder, moving `dclab_rnd/` to `dclabai/` and rewriting every whole-word `dclab_rnd` (imports,
+   strings, docs) to `dclabai`; strips `# dclab:closed-begin` … `# dclab:closed-end` blocks; lays export/overlay/ on top.
+3. Checks, each blocking: the private words (export/forbidden.txt), secrets (scripts/scan_secrets.py's patterns), file sizes and
+   binaries, a leftover closed marker, and the import closure (every `dclabai.*` / `dclab_core.*` module an exported file imports
+   must exist in the tree, unless it is named inside `optional(...)` and listed in the manifest's CLOSED).
+4. Writes EXPORT_REPORT.json beside the tree (files, sizes, every finding) and prints a summary; exits 1 when a check failed.
+
+The tests, the wheel, the fresh-venv install and the end-to-end flows run on the exported tree in later steps of the plan.
+"""
+
+from __future__ import annotations
+
+import argparse
+import ast
+import fnmatch
+import importlib.util
+import json
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+CLOSED_BEGIN, CLOSED_END = "# dclab:closed-begin", "# dclab:closed-end"
+TEXT_SUFFIXES = {".py", ".md", ".txt", ".toml", ".cfg", ".ini", ".json", ".jsonl", ".yml", ".yaml", ".html", ".js", ".css", ".sh", ".mako", ".ipynb", ""}
+
+
+def manifest():
+    spec = importlib.util.spec_from_file_location("export_manifest", ROOT / "export" / "manifest.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _match(path: str, globs: list[str]) -> bool:
+    return any(fnmatch.fnmatch(path, g) or (g.endswith("/**") and path.startswith(g[:-3] + "/")) for g in globs)
+
+
+def selected(m) -> list[str]:
+    tracked = subprocess.run(["git", "ls-files", "-z"], cwd=ROOT, capture_output=True, check=True).stdout.decode().split("\0")
+    return sorted(p for p in tracked if p and _match(p, m.INCLUDE) and not _match(p, m.EXCLUDE) and (ROOT / p).is_file())
+
+
+def _renamed_path(path: str, m) -> str:
+    for old, new in m.RENAME.items():
+        if path == old or path.startswith(old + "/"):
+            return new + path[len(old):]
+    return path
+
+
+def _rewrite(text: str, m) -> str:
+    for old, new in m.RENAME.items():
+        text = re.sub(rf"(?<![\w]){re.escape(old)}(?![\w])", new, text)
+    for pattern, replacement in getattr(m, "REPLACE", []):
+        text = re.sub(pattern, replacement, text)
+    return text
+
+
+def _strip_closed(text: str) -> tuple[str, int]:
+    out, inside, blocks = [], False, 0
+    for line in text.splitlines(keepends=True):
+        if line.strip().startswith(CLOSED_BEGIN):
+            inside, blocks = True, blocks + 1
+            continue
+        if line.strip().startswith(CLOSED_END):
+            inside = False
+            continue
+        if not inside:
+            out.append(line)
+    return "".join(out), blocks
+
+
+def build(out: Path, m) -> dict:
+    files = selected(m)
+    report = {"files": [], "closed_blocks": 0, "findings": []}
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
+    for rel in files:
+        src, dst = ROOT / rel, out / _renamed_path(rel, m)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if src.suffix in TEXT_SUFFIXES:
+            try:
+                text = src.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                shutil.copyfile(src, dst)
+            else:
+                text, blocks = _strip_closed(_rewrite(text, m))
+                report["closed_blocks"] += blocks
+                dst.write_text(text, encoding="utf-8")
+        else:
+            shutil.copyfile(src, dst)
+        report["files"].append({"path": str(dst.relative_to(out)), "bytes": dst.stat().st_size})
+    overlay = ROOT / m.OVERLAY
+    if overlay.is_dir():
+        for src in overlay.rglob("*"):
+            if src.is_file():
+                dst = out / src.relative_to(overlay)
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(src, dst)
+                report["files"].append({"path": str(dst.relative_to(out)), "bytes": dst.stat().st_size, "overlay": True})
+    return report
+
+
+def scan_words(out: Path, m) -> list[dict]:
+    patterns = [re.compile(line.strip(), re.I) for line in (ROOT / m.FORBIDDEN_FILE).read_text(encoding="utf-8").splitlines()
+                if line.strip() and not line.startswith("#")]
+    found = []
+    for path in sorted(out.rglob("*")):
+        if not path.is_file():
+            continue
+        rel = str(path.relative_to(out))
+        if path.stat().st_size > m.MAX_FILE_BYTES:
+            found.append({"check": "size", "path": rel, "detail": f"{path.stat().st_size} bytes"})
+        if path.suffix not in TEXT_SUFFIXES and path.name not in (".env.example", ".gitignore", "LICENSE", "NOTICE"):
+            if path.suffix not in m.BINARY_ALLOWED:
+                found.append({"check": "binary", "path": rel, "detail": path.suffix})
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            found.append({"check": "binary", "path": rel, "detail": "not utf-8"})
+            continue
+        for n, line in enumerate(text.splitlines(), 1):
+            for p in patterns:
+                if p.search(line):
+                    found.append({"check": "private word", "path": rel, "line": n, "detail": p.pattern})
+            if CLOSED_BEGIN in line or CLOSED_END in line:
+                found.append({"check": "closed marker", "path": rel, "line": n, "detail": "left after stripping"})
+    return found
+
+
+def scan_secrets(out: Path) -> list[dict]:
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import scan_secrets  # noqa: E402 - the repository's own patterns and placeholders
+
+    hits = scan_secrets.scan(scan_secrets.everything(out), out)
+    return [{"check": "secret", "path": h[0], "line": h[1], "detail": h[2]} for h in hits]
+
+
+def _module_of(path: Path, out: Path) -> str:
+    parts = list(path.relative_to(out).with_suffix("").parts)
+    return ".".join(parts[:-1] if parts[-1] == "__init__" else parts)
+
+
+def import_closure(out: Path, m) -> list[dict]:
+    """Every in-house module an exported file imports must be in the tree; a closed one only by name inside optional(...)."""
+    roots = (m.PUBLIC_NAME, "dclab_core")
+    present = {_module_of(p, out) for p in out.rglob("*.py")}
+    left_out = set()  # every module of the private packages the manifest left out ("from ...studio import sft" names one)
+    tracked = subprocess.run(["git", "ls-files", "-z"], cwd=ROOT, capture_output=True, check=True).stdout.decode().split("\0")
+    for rel in tracked:
+        if rel.endswith(".py") and _match(rel, m.INCLUDE) and _match(rel, m.EXCLUDE):
+            parts = list(Path(_renamed_path(rel, m)).with_suffix("").parts)
+            left_out.add(".".join(parts[:-1] if parts[-1] == "__init__" else parts))
+    closed = [f"{m.PUBLIC_NAME}.{c}" for c in m.CLOSED]
+    is_closed = lambda t: any(t == c or t.startswith(c + ".") for c in closed)  # noqa: E731
+    found: dict[tuple[str, str], dict] = {}
+
+    def flag(path: Path, line: int, target: str, why: str) -> None:
+        found.setdefault((str(path.relative_to(out)), target), {"check": "import", "path": str(path.relative_to(out)), "line": line,
+                                                               "detail": f"{target}: {why}"})
+    for path in sorted(out.rglob("*.py")):
+        module = _module_of(path, out)
+        package = module if path.name == "__init__.py" else module.rsplit(".", 1)[0]
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+        except SyntaxError as exc:
+            found[(str(path), "syntax")] = {"check": "syntax", "path": str(path.relative_to(out)), "detail": str(exc)}
+            continue
+        optional_args = {a.value for node in ast.walk(tree) if isinstance(node, ast.Call)
+                         and getattr(node.func, "id", getattr(node.func, "attr", "")) == "optional"
+                         for a in node.args if isinstance(a, ast.Constant) and isinstance(a.value, str)}
+        for node in ast.walk(tree):
+            modules, names = [], []
+            if isinstance(node, ast.Import):
+                modules = [a.name for a in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                if node.level:
+                    base = package.split(".")
+                    prefix = ".".join(base[: len(base) - node.level + 1])
+                    mod = f"{prefix}.{node.module}" if node.module else prefix
+                else:
+                    mod = node.module or ""
+                modules = [mod]
+                names = [f"{mod}.{a.name}" for a in node.names]
+            for target in modules + names:
+                if not target.startswith(roots):
+                    continue
+                if is_closed(target):
+                    if target.split(".", 1)[1] not in optional_args:
+                        flag(path, node.lineno, target, "a closed module, imported outside optional()")
+                elif target in modules and target not in present:
+                    flag(path, node.lineno, target, "not in the open tree")
+                elif target in names and target in left_out:
+                    flag(path, node.lineno, target, "a module the export leaves out")
+                elif target in names and target not in present and target.rsplit(".", 1)[0] not in present:
+                    flag(path, node.lineno, target, "not in the open tree")
+    return list(found.values())
+
+
+def build_ui(out: Path, m) -> dict:
+    """The studio's UI built inside the open tree, from its own sources and the open theme (the built files are never copied
+    from this repository). A build that fails is a finding."""
+    static = out / m.PUBLIC_NAME / "agentic" / "static" / "app"
+    static.mkdir(parents=True, exist_ok=True)
+    done = subprocess.run([sys.executable, "-I", "-B", "-c", "import sys, runpy; sys.path.insert(0, '.'); sys.argv = ['build']; "
+                           f"runpy.run_module('{m.PUBLIC_NAME}.agentic.web.build', run_name='__main__')"],
+                          cwd=out, capture_output=True, text=True, env={"PATH": "/usr/bin:/bin", "DCLAB_NO_LIVE_MODELS": "1", "HOME": str(out), "PYTHONDONTWRITEBYTECODE": "1"})
+    if done.returncode != 0:
+        return {"built": False, "findings": [{"check": "ui build", "path": str(static.relative_to(out)), "detail": done.stderr.strip()[-400:]}]}
+    return {"built": True, "files": sum(1 for p in static.rglob("*") if p.is_file())}
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("--out", required=True, help="the folder to build the open tree in (emptied first; outside this repository)")
+    ap.add_argument("--check", action="store_true", help="build and check only")
+    args = ap.parse_args(argv)
+    out = Path(args.out).resolve()
+    if out == ROOT or ROOT in out.parents:
+        print("The open tree is built outside this repository.")
+        return 2
+    m = manifest()
+    report = build(out, m)
+    report["ui"] = build_ui(out, m)
+    findings = scan_words(out, m) + scan_secrets(out) + import_closure(out, m) + report["ui"].get("findings", [])
+    report["findings"] = findings
+    by = {}
+    for f in findings:
+        by[f["check"]] = by.get(f["check"], 0) + 1
+    report["summary"] = {"files": len(report["files"]), "bytes": sum(f["bytes"] for f in report["files"]), "closed_blocks": report["closed_blocks"],
+                         "findings": by}
+    (out.parent / f"{out.name}.EXPORT_REPORT.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
+    print(json.dumps(report["summary"], indent=1))
+    return 1 if findings else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

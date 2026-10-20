@@ -49,9 +49,12 @@ class RareEvent(Binary):
 
 
     def case(self, seed: int = 0) -> Any:
-        from dclab_core.replicas import delivery_fraud as dfr
-
+        from ..extensions import optional
         from .acceptance import Case
+
+        dfr = optional("dclab_core.replicas.delivery_fraud")  # the full edition's replica
+        if dfr is None:
+            return None
 
         replica = dfr.generate(seed=seed)
 
