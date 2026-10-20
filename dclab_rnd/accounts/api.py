@@ -73,7 +73,7 @@ async def sign_in(payload: AnyObject, request: Request):
     _audit_account(spaces[0][0], "sign_in", "sign_in", user, {"via": "password"})
     _auth_event(spaces[0][0], "auth.sign_in", {"via": "password", "session": digest(token)}, user["id"], request)  # the session's id is the token's digest
     response = JSONResponse({"signed_in": True, "csrf": csrf, "workspace_id": spaces[0][0]})
-    response.set_cookie(COOKIE, token, max_age=SESSION_MAX_DAYS * 86400, httponly=True, samesite="lax",
+    response.set_cookie(COOKIE, token, max_age=int(SESSION_MAX_DAYS * 86400), httponly=True, samesite="lax",
                         secure=bool(_settings(request).cookie_secure), path="/")
     return response
 
@@ -327,7 +327,7 @@ async def oidc_callback(request: Request, code: str = "", state: str = ""):
     _audit_account(workspace, "sign_in", "sign_in", user, {"via": "identity provider"})
     _auth_event(workspace, "auth.sign_in", {"via": "identity_provider", "session": digest(token)}, user["id"], request)
     response = RedirectResponse("/", status_code=302)
-    response.set_cookie(COOKIE, token, max_age=SESSION_MAX_DAYS * 86400, httponly=True, samesite="lax",
+    response.set_cookie(COOKIE, token, max_age=int(SESSION_MAX_DAYS * 86400), httponly=True, samesite="lax",
                         secure=bool(_settings(request).cookie_secure), path="/")
     response.delete_cookie(oidc.COOKIE, path="/api/auth/oidc")
     return response
