@@ -11,8 +11,39 @@
  ],
  "decisions": [],
  "change": "dclab_core.store.ExperimentRecord, dclab_rnd.store.sets.experiments.",
- "findings": [],
- "measurements": [],
+ "findings": [
+  {
+   "id": "E1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The experiments builder read projects by id alone, missed PostgreSQL workspaces and ignored consent.",
+   "scenario": "The same weaknesses the reviewer found in the service's builds (32.24): a project id in two workspaces merged; db/ rows skipped.",
+   "cause": "Its own reader, written before the service's.",
+   "fix": "It reads the service's per-(workspace, project) records, train consent only, its split from the project's one group.",
+   "test": "tests/test_store_experiments.py::ExperimentsTest::test_every_model_fitted_is_one_record_with_its_tables_shape_and_no_row"
+  },
+  {
+   "id": "E2",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The research campaigns' experiments were not in the M3 set.",
+   "scenario": "14 model-selection results on public datasets left out.",
+   "cause": "Left open in 32.20.",
+   "fix": "campaign_records(): each candidate with its dataset card's shape and the optimization result's holdout for the model kept; split by dataset.",
+   "test": "tests/test_store_experiments.py::ExperimentsTest::test_the_campaigns_experiments_are_records_split_by_dataset"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "experiments on the backfilled store",
+   "gate": "every candidate of every engine project and campaign kept as a record, one dataset or project in one split",
+   "result": "about 1,700 candidates from 293 engine projects, and 70 from 14 campaign datasets (train 35, dev 20, sealed 15; 4 with their holdout)",
+   "verdict": "pass",
+   "limits": [
+    "the kinds with their own machine record their candidates in their own shapes and are not read yet"
+   ]
+  }
+ ],
  "outcome": "Every fitted model is a record that says which approach won on which kind of table.",
  "lessons": [],
  "risks": [

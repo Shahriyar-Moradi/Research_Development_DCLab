@@ -107,11 +107,13 @@ def _latest(layout: Layout) -> dict[tuple[str, str], dict[str, Any]]:
             pid = r.body.get("id") or (parts[1] if parts[0] == "projects" else None)
             if pid:
                 p = _project(by, ws, pid)
-                p["project"], p["deleted"] = r.body, p.get("deleted") or r.provenance.deleted
+                p["project"], p["deleted"], p["consent"] = r.body, p.get("deleted") or r.provenance.deleted, r.provenance.consent
         elif r.type == "stage_run":
             pid, stage, body = _stage_body(r)
             if pid and stage:
-                _project(by, ws, pid)["stages"][stage] = body
+                p = _project(by, ws, pid)
+                p["stages"][stage] = body
+                p.setdefault("records", {})[stage] = r  # the record itself, for its provenance and split
         elif r.type == "graph_move":
             move = r.body.get("entry") if isinstance(r.body.get("entry"), dict) else r.body  # a PostgreSQL row holds it in ``entry``
             pid = r.body.get("project") or (parts[1] if parts[0] == "projects" else None)

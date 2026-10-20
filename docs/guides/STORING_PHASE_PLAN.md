@@ -963,7 +963,7 @@ gate. Model spend:
     - Consent and the curators' refusals hold in every builder.
   - **Left open:**
     - stage and team-walk episodes;
-    - the research campaigns' experiments;
+    - the experiments of the kinds with their own machine (their candidates are in their own shapes);
     - CPU time per step;
     - a workspace reading the store's shadow students;
     - live runs of the curator and the teacher.
@@ -1024,6 +1024,8 @@ gate. Model spend:
       has room for its whole reply.
     - **The teacher had nothing to do:** no whole exchange without thinking is kept yet. `DCLAB_LOG_PROMPTS=1` keeps
       them from now on.
+  - **The research campaigns' experiments (32.20):** the 14 model-selection results on public datasets are M3 experiment
+    records, split by dataset. The engine's experiments are now read per workspace and project, train consent only.
   - **The MLE-bench list checked** against openai/mle-bench: the Lite split matched (22 of 22), and the rest of its 75
     competitions and its development task were added (76 names).
 

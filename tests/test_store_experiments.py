@@ -53,6 +53,27 @@ class ExperimentsTest(unittest.TestCase):
         self.assertNotIn("customerID", json.dumps([r.model_dump(mode="json") for r in rows]))  # no column's name or value of the table
         report = experiments.build(layout)
         self.assertIn("m3_ml_decisions/experiments/binary", report["sets"])
+        # the same project id in another workspace is its own; a workspace that does not allow training gives none
+        store.keep("workflows", "other", "projects/p1/project.json", json.dumps(project).encode(), consent="train")
+        store.keep("workflows", "other", "projects/p1/stages/models.json", json.dumps(models).encode(), consent="train")
+        store.keep("workflows", "improve", "projects/p2/project.json", json.dumps({**project, "id": "p2"}).encode(), consent="improve")
+        store.keep("workflows", "improve", "projects/p2/stages/models.json", json.dumps(models).encode(), consent="improve")
+        shapers.shape(layout)
+        ids = {r.id.rsplit(":", 1)[0] for r in experiments.records(layout)}
+        self.assertEqual(ids, {"m3_ml_decisions:experiment:dev:p1", "m3_ml_decisions:experiment:other:p1"})
+
+    def test_the_campaigns_experiments_are_records_split_by_dataset(self):
+        from dclab_rnd.store.sets import experiments
+
+        rows = experiments.campaign_records()
+        self.assertTrue(rows)
+        by_dataset: dict = {}
+        for r in rows:
+            by_dataset.setdefault(r.table["dataset"], set()).add(r.split)
+        self.assertTrue(all(len(splits) == 1 for splits in by_dataset.values()))  # one dataset never crosses train and sealed
+        self.assertTrue(all(r.provenance.source.startswith("evidence/campaigns/") for r in rows))
+        self.assertTrue(all(not r.holdout for r in rows if not r.selected))
+        self.assertTrue(any(r.selected and r.holdout for r in rows))
 
 
 if __name__ == "__main__":
