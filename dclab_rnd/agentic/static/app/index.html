@@ -1977,6 +1977,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
         <label class="sr-only" for="member-name">Name</label><input id="member-name" type="text" placeholder="Name (optional)" data-style="flex:1;min-width:120px">
         <label class="sr-only" for="member-role">Role</label><select id="member-role" data-style="width:auto"></select>
         <label class="sr-only" for="member-secret">First password</label><input id="member-secret" type="password" placeholder="First password (10+ characters)" autocomplete="new-password" data-style="flex:1;min-width:160px" hidden>
+        <label class="check" for="member-own"><input id="member-own" type="checkbox" checked> Their own workspace: their projects stay apart (you can open it from the workspace switcher)</label>
         <button type="submit" class="btn sm primary">Add</button>
       </form>
     </div>

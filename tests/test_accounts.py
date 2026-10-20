@@ -267,6 +267,23 @@ class AccountsTests(unittest.TestCase):
         labels = {m["role_label"] for m in owner.get("/api/workspace/members").json()}
         self.assertTrue(labels <= {"Owner", "ML engineer", "Reviewer", "Business viewer"})  # the Admin page's names
 
+    def test_a_friend_added_with_their_own_workspace_never_sees_the_owners_projects(self):
+        owner = self.clients["owner1"]
+        email = f"friend-{os.getpid()}@example.com"
+        added = owner.post("/api/workspace/members", json={"email": email, "name": "Ali", "role": "viewer", "password": PASSWORD, "own_workspace": True})
+        self.assertEqual(added.status_code, 201, added.text)
+        body = added.json()
+        self.assertEqual((body["role"], body["workspace"]), ("owner", "Ali's lab"))
+        self.assertNotIn(body["id"], {m["id"] for m in owner.get("/api/workspace/members").json()})  # not in the owner's workspace
+        self.users["friend"] = self.accounts.by_email(email)
+        friend = self.sign_in("friend")
+        me = friend.get("/api/auth/me").json()
+        self.assertEqual([w["id"] for w in me["workspaces"]], [body["workspace_id"]])
+        self.assertEqual(friend.get("/api/projects").json(), [])  # an empty lab of their own
+        made = friend.post("/api/projects", json={"name": "Friend's churn", "goal": "g"}).json()["id"]
+        self.assertNotIn(made, {p["id"] for p in owner.get("/api/projects").json()})  # their projects stay apart
+        self.assertEqual(self.accounts.role_of(self.users["owner1"]["id"], body["workspace_id"]), "owner")  # the inviter can open it
+
     def test_a_member_of_two_workspaces_switches_between_them(self):
         user = self.accounts.create_user(f"both-{os.getpid()}@example.com", "Both", password=PASSWORD)
         self.accounts.set_member(self.w1, user["id"], "viewer")

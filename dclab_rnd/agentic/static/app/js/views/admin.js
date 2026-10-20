@@ -125,11 +125,17 @@ DC.view('admin', {
     /* Members and API tokens (package 10.2, part C) */
     $('#member-add', el).addEventListener('submit', async e => {
       e.preventDefault();
-      const body = { email: $('#member-email', el).value, name: $('#member-name', el).value, role: $('#member-role', el).value };
+      const own = $('#member-own', el).checked;
+      const body = { email: $('#member-email', el).value, name: $('#member-name', el).value, role: $('#member-role', el).value, own_workspace: own };
       if (!$('#member-secret', el).hidden && $('#member-secret', el).value) body.password = $('#member-secret', el).value;
-      try { await DC.client.addMember({ body }); toast('Added. The change is in the audit log.'); e.target.reset(); await this.loadMembers(el); }
+      try {
+        const added = await DC.client.addMember({ body });
+        toast(own ? `Added, with their own workspace “${added.workspace}”. The change is in the audit log.` : 'Added. The change is in the audit log.');
+        e.target.reset(); $('#member-role', el).disabled = $('#member-own', el).checked; await this.loadMembers(el);
+      }
       catch (err) { toast(err.message, { ok: false }); }
     });
+    $('#member-own', el).addEventListener('change', e => { $('#member-role', el).disabled = e.target.checked; });  // in their own workspace they are its owner
     el.addEventListener('change', async e => {
       const sel = e.target.closest('[data-member-role]'); if (!sel) return;
       try { await DC.client.changeMember(sel.dataset.memberRole, { body: { role: sel.value } }); toast('Role changed. The change is in the audit log.'); }
@@ -708,6 +714,7 @@ DC.view('admin', {
     add.hidden = !owner;
     $('#member-role', el).innerHTML = roles.map(([k, l]) => `<option value="${k}" ${k === 'viewer' ? 'selected' : ''}>${l}</option>`).join('');
     $('#member-secret', el).hidden = auth.mode !== 'password';
+    $('#member-role', el).disabled = $('#member-own', el).checked;
     DC.hydrate(el);
   },
 

@@ -127,16 +127,26 @@ async def add_member(payload: AnyObject, request: Request):
         raise HTTPException(422, f"role is one of {', '.join(ROLES)}")
     email = str(body.get("email") or "").strip().lower()
 
+    own = bool(body.get("own_workspace"))  # the person gets a workspace of their own: their projects stay apart from everyone's
+
     def add():
         found = accounts.by_email(email)
         user = found or accounts.create_user(email, str(body.get("name") or ""), password=body.get("password") or None)
+        if own:
+            label = str(body.get("name") or "").strip() or email.split("@")[0]
+            workspace_id = accounts.create_workspace(f"{label}'s lab")
+            accounts.set_member(workspace_id, user["id"], "owner")  # they own their space
+            if who.user_id:
+                accounts.set_member(workspace_id, who.user_id, "owner")  # and the inviter can open it from the switcher
+            return {"id": user["id"], "email": user["email"], "role": "owner", "role_label": LABELS["owner"], "created": found is None,
+                    "workspace_id": workspace_id, "workspace": f"{label}'s lab"}
         accounts.set_member(who.workspace_id, user["id"], role)
         return {"id": user["id"], "email": user["email"], "role": role, "role_label": LABELS[role], "created": found is None}
     try:
         added = await asyncio.to_thread(add)
     except (AccountError, ValueError) as exc:
         raise HTTPException(422, str(exc)) from None
-    _audit_member("add_member", added["id"], role)
+    _audit_member("add_member_own_workspace" if own else "add_member", added["id"], added["role"])
     return added
 
 
