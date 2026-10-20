@@ -869,10 +869,54 @@ async def review_project_notebook(project_id: str, s: Services = Depends(service
     def review():
         report = s.project_review(project_id)
         keys = ("detector", "severity", "cell", "line", "title", "message", "suggestion", "rules")
-        return {"summary": report["summary"], "cells": [{"type": c["type"], "source": c["source"]} for c in report["cells"]],
+        exported = studio_export.notebook(s.project(project_id), s.projects.records(project_id))["cells"]
+        roles = [((c.get("metadata") or {}).get("dclab") or {}).get("role") for c in exported] if len(exported) == len(report["cells"]) else []
+        return {"summary": report["summary"], "cells": [{"type": c["type"], "source": c["source"], **({"role": roles[i]} if roles and roles[i] else {})}
+                                                        for i, c in enumerate(report["cells"])],
                 "findings": [{**{k: f.get(k) for k in keys}, "proof": [r["record_id"] for r in f.get("proof", [])]} for f in report["findings"]],
                 "limitations": report.get("limitations", []), "fixes_available": s.gateway.available("notebook_review")}
     return await asyncio.to_thread(review)
+
+
+@router.post("/api/projects/{project_id}/notebook/run", response_model=Page)
+async def run_notebook_cell(project_id: str, payload: AnyObject, s: Services = Depends(services)):
+    """Run one code cell of the project's notebook in its kernel (the owner, 2026-10-20): the cell the server generates for
+    that index, never code sent by the page; the kernel has the training rows only, and the holdout cell is refused (409).
+    The outputs come back as text, pictures (PNG) and errors; every run is kept in the workspace's code runs."""
+    from ...accounts.principal import current
+    from ...studio.kernels import CellRefused
+
+    project = s.project(project_id)
+    if not project.get("solution"):
+        raise HTTPException(409, "Save the solution first: the notebook is generated from it")
+    try:
+        cell = int((payload.model_dump() if hasattr(payload, "model_dump") else dict(payload or {})).get("cell"))
+    except (TypeError, ValueError):
+        raise HTTPException(422, "cell is the index of a code cell") from None
+    who = current()
+
+    def run():
+        return s.kernels.run(s.projects, project, s.projects.records(project_id), cell, by=getattr(who, "user_id", None))
+    try:
+        return await asyncio.to_thread(run)
+    except (CellRefused, studio_export.ExportUnsupported) as exc:
+        raise HTTPException(409, str(exc)) from None
+    except studio_data.DataError as exc:
+        raise HTTPException(409, f"The project's table cannot be read: {exc}") from None
+
+
+@router.post("/api/projects/{project_id}/notebook/restart", response_model=Page)
+async def restart_notebook_kernel(project_id: str, s: Services = Depends(services)):
+    """Stop the project's kernel: the next cell starts a fresh one, with the training rows of the current split."""
+    s.project(project_id)
+    return await asyncio.to_thread(s.kernels.restart, project_id)
+
+
+@router.get("/api/projects/{project_id}/notebook/kernel", response_model=Page)
+async def notebook_kernel(project_id: str, s: Services = Depends(services)):
+    """Whether the project's kernel runs, how many cells it ran, and how long it has been idle."""
+    s.project(project_id)
+    return s.kernels.status(project_id)
 
 
 @router.post("/api/projects/{project_id}/review/fixes", response_model=Fixes)

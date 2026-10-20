@@ -838,6 +838,45 @@ How it is used:
   (what a good answer to a business looks like).
 - **Done when:** each playbook item cites the engagements it rests on, and a kind with too few engagements says so.
 
+## Part J: people (added 2026-10-20)
+
+### 32.32 Each person's account, sessions and work
+
+The owner, 2026-10-20: store each user, the sessions of their account, and everything they do (actions, decisions,
+logs), for training and fine-tuning. With accounts on (`DCLAB_AUTH`), every event already carries `ids.user`; the store
+keeps no account table today (`keepers/database.NEVER`).
+
+- **A people keeper.** Per workspace (on PostgreSQL), it keeps each person and each of their sessions:
+  - **a person:** the user id (stable, already a pseudonym), their role per workspace, how they sign in, when they
+    joined, and whether they are active;
+  - **a session:** its start, last-seen and end times and its workspace.
+  - **Never kept:**
+    - a password or its hash;
+    - a session or API token, or a token's digest;
+    - an email (only its hash, to recognise the same person);
+    - a raw address.
+  - The store is pushed to GitHub.
+- **Every record says whose it is.** The shapers lift `ids.user` onto every record (`body.user`, `provenance.by`). That
+  covers:
+  - visits, page views and clicks;
+  - chat turns;
+  - decisions and corrections;
+  - graph moves;
+  - stage runs;
+  - intern and agent steps;
+  - model requests and their cost;
+  - feedback, uploads and errors;
+  - logs.
+- **A per-person record.** `service/people.json`: each person's sessions, actions, decisions and corrections, projects,
+  spend, and where they stalled. Aggregates only across people, as the catalog.
+- **Splits.** Training sets keep splitting by project, so one person's work never crosses train and sealed.
+- **Consent.** A workspace's consent governs, as for every record. A friend given their own workspace (Admin, Members,
+  "their own workspace") is governed by their own consent.
+- **Done when:**
+  - a signed-in person's session and actions are kept and joined to them;
+  - no password, token, digest or email is in `raw/` or `records/` (the store check gains these plants);
+  - a person removed from the product stays in the store until the owner's audited forget.
+
 ## The owner's answers (2026-10-20)
 
 - **The store's bulk:** a separate private GitHub repository, `dclab-records`, with one branch per person (`owner/main`,

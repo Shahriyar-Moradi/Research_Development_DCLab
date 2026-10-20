@@ -76,6 +76,7 @@ A ──► B ──► (training data can leave the workspace)
 | The main product's ADR 0008 changed to "only with consent" | I (22.7) | in that repository |
 | Pretrained image weights, or a download approval | 16.12 (later) | the owner's choice |
 | Rotate the OpenAI key | now | — |
+| Who may run notebook cells | before a shared or cloud deployment | **decided 2026-10-20**: any signed-in member for now; later only the owner and ML engineers, on a machine of their own, until each kernel runs in a container sandbox (the kernel already has the training rows only and no key) |
 | The product's model | — | **decided 2026-10-15**: Anthropic Claude Sonnet 5.5 (`DCLAB_LLM_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` in `.env`) |
 
 ## Status

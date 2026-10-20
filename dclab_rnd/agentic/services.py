@@ -83,6 +83,9 @@ class Services:
             workspace_lessons.install(self.lesson_store)  # accepted lessons join every evidence search
         self.csrf = secrets.token_urlsafe(32)
         self.fixing: set[str] = set()  # projects whose notebook fixes are being written (one model request at a time each)
+        from ..studio.kernels import Kernels
+
+        self.kernels = Kernels(self.store.home)  # the Notebook page's kernels, one per project, started on the first cell
         from ..settings import UPLOAD_MAX_BYTES
         self.upload_max_bytes = UPLOAD_MAX_BYTES  # a constant, not an environment variable
         self.mcp = None

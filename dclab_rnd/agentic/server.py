@@ -99,6 +99,8 @@ def create_app(home=None) -> FastAPI:
                 yield
         for each in pool.all():  # running jobs stop at their next checkpoint, interrupted and retryable
             await asyncio.to_thread(each.worker.stop)
+        for each in pool.all():  # the Notebook page's kernels end with the server
+            await asyncio.to_thread(each.kernels.shutdown_all)
         active = [t for each in pool.all() for t in (*each.tasks.values(), *each.draft_tasks.values())]
         for task in active:
             task.cancel()

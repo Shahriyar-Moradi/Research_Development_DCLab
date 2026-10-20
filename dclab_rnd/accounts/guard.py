@@ -31,6 +31,10 @@ SPECIAL = {
     # questions spend the model budget but change nothing: every role may ask (package 10.6 limits the spend)
     ("POST", "/api/projects/{project_id}/ask"): "read",
     ("POST", "/api/projects/{project_id}/graph/check"): "read",
+    # the owner's choice, 2026-10-20: any signed-in member may run notebook cells (the kernel has the training rows only);
+    # a later step keeps them to the owner and ML engineers on their own machine until a container sandbox exists
+    ("POST", "/api/projects/{project_id}/notebook/run"): "read",
+    ("POST", "/api/projects/{project_id}/notebook/restart"): "read",
     ("POST", "/api/evidence/ask"): "read",
     # signed in, any role: switching workspace, one's own API tokens
     ("POST", "/api/auth/workspace"): "read",

@@ -1,0 +1,74 @@
+{
+ "package": "notebook-cells",
+ "title": "Run the project's notebook cells on the Notebook page, in a kernel with the training rows only",
+ "date": "2026-10-20",
+ "request": "After the fixes, how can we run cells? Can it be implemented? (The page said running cells here was not built.)",
+ "spec": "The owner's decisions, 2026-10-20: any signed-in member may run cells for now (local-only later); the kernel gets the training rows only.",
+ "plan": [
+  "A Jupyter kernel per project, started on the first cell, shut down when idle.",
+  "The kernel's folder holds the table's training rows under the name the notebook reads.",
+  "Run the server's own cell for an index; refuse the holdout cell.",
+  "Keep every run whole; wire Run, Run all, Restart and outputs on the page."
+ ],
+ "decisions": [
+  {
+   "decision": "The kernel reads a copy of the table with the engine's training rows only, in the table's own columns.",
+   "why": "The notebook's cells then run unchanged and the holdout never enters the kernel: the owner's choice."
+  },
+  {
+   "decision": "The engine keeps each prepared row's place in the loaded table (Prepared.source_rows).",
+   "why": "The split's indices point at prepared rows (filtered, reordered, sampled); the copy must be rows of the raw file."
+  },
+  {
+   "decision": "A cell runs the source the server generates for that index, never code from the page.",
+   "why": "The page cannot send arbitrary code through this route."
+  },
+  {
+   "decision": "The kernel runs the server's own Python, without any key, token or database address in its environment.",
+   "why": "A cell's code must not read the server's secrets; a kernel found elsewhere on the machine ran other libraries."
+  },
+  {
+   "decision": "Run and restart are read-level routes.",
+   "why": "The owner chose any signed-in member; the safer rule is in the roadmap for a shared deployment."
+  }
+ ],
+ "change": "dclab_rnd/studio/kernels.py; studio/engine.py (source_rows); studio/export.py (cell roles; the positive class as the engine picks it); routes run, restart and kernel status; guard; services; server shutdown; the Notebook page; tests/test_notebook_cells.py.",
+ "findings": [
+  {
+   "id": "N1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The exported notebook's cross-validation cell failed with one class.",
+   "scenario": "A solution with no positive label: the notebook compared the target to the string 'None', so every row was 0.",
+   "cause": "The export wrote the unset positive label as text; the engine takes the last value in order.",
+   "fix": "The export writes the engine's rule into the notebook.",
+   "test": "tests/test_notebook_cells.py::NotebookCellsTest::test_the_cells_run_up_to_the_holdout_on_the_training_rows_only"
+  },
+  {
+   "id": "N2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The kernel ran another environment's Python.",
+   "scenario": "The traceback showed /opt/miniconda3/envs/llm10.",
+   "cause": "The python3 kernelspec resolved to one installed elsewhere on the machine.",
+   "fix": "A kernelspec of the server's own interpreter.",
+   "test": "tests/test_notebook_cells.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Run all on a real project in the browser",
+   "gate": "every cell before the holdout runs, the holdout cell is refused, the kernel has the training rows only",
+   "result": "6 code cells ran (1,200 training rows, CV mean 0.866); the holdout cell shows runs in the workflow; the kernel table holds no holdout row",
+   "verdict": "pass"
+  }
+ ],
+ "outcome": "A person can run the project's notebook on its page, with the holdout read only by the workflow.",
+ "lessons": [
+  "Pin a kernel to the server's own interpreter: the default kernelspec may be any Python on the machine."
+ ],
+ "risks": [
+  "Any signed-in member can run code as the server's user until the sandbox step; a project with a joined label file runs in the person's own Jupyter."
+ ],
+ "commits": []
+}

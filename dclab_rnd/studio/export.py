@@ -51,8 +51,9 @@ METRIC_CODE = {
 }
 
 
-def _cell(kind: str, source: str) -> dict[str, Any]:
-    cell = {"cell_type": kind, "metadata": {}, "source": source.rstrip("\n") + "\n"}
+def _cell(kind: str, source: str, role: str | None = None) -> dict[str, Any]:
+    """A notebook cell; ``role`` marks the cells the page's kernel treats apart (``holdout``: the one read of the holdout)."""
+    cell = {"cell_type": kind, "metadata": {"dclab": {"role": role}} if role else {}, "source": source.rstrip("\n") + "\n"}
     if kind == "code":
         cell.update(execution_count=None, outputs=[])
     return cell
@@ -157,7 +158,7 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
               + _target_code(task, solution, data.get("profile"))
               + f"X = frame.drop(columns=[TARGET] + [c for c in DROP if c in frame])\nprint(X.shape, y.value_counts(normalize=True).round(3).to_dict() if y.nunique() < 20 else y.describe())"),
         _cell("markdown", "## 2. Lock the holdout before looking at the target\n\n" + _split_text(time_column, group_column, regression)),
-        _cell("code", _split_code(time_column, group_column, regression, data, _folds(project, records))),
+        _cell("code", _split_code(time_column, group_column, regression, data, _folds(project, records)), role="split"),
         _cell("markdown", f"## 3. Feature recipe `{recipe}`\n\n{features.get('rule', '')}\n\nEvery statistic (imputation, scaling, one-hot categories) is learned inside the training folds only."),
         _cell("code", _recipe_code(recipe, time_column, codes, encode_codes)),
         _cell("markdown", f"## 4. Model `{family}`\n\n{models.get('rule', '')}\n\n"
@@ -170,7 +171,8 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
         _cell("markdown", "## 5. Training-only cross-validation\n\nThe same folds for every comparison; the holdout is still sealed."),
         _cell("code", _cv_code(task, metric_expr, regression, weighted, clip)),
         _cell("markdown", "## 6. Score the holdout once\n\nThis is the honest number. Changing the model after seeing it would make the next score optimistic (DCLAB-R17)."),
-        _cell("code", _fit_code(task, "X_train", "y_train", weighted) + "\n" + _score_code(task, metric_expr, clip) + "print('holdout', round(float(holdout), 4))"),
+        _cell("code", _fit_code(task, "X_train", "y_train", weighted) + "\n" + _score_code(task, metric_expr, clip) + "print('holdout', round(float(holdout), 4))",
+              role="holdout"),
         _cell("markdown", _result_markdown(records, metric)),
     ]
     return {"cells": cells, "metadata": {"kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
@@ -194,6 +196,9 @@ def _target_code(task: str, solution: dict[str, Any], profile: Any = None) -> st
     if task == "binary":
         from ..kinds.binary import as_table_label, profile_booleans
 
+        if solution.get("positive_label") is None:  # as the engine: the last value, in order, when the solution names none
+            return ("POSITIVE = str(sorted(frame[TARGET].dropna().unique(), key=str)[-1]).strip()  # the solution names no positive value\n"
+                    "y = (frame[TARGET].astype(str).str.strip() == POSITIVE).astype(int)\n")
         positive = as_table_label(solution.get("positive_label"), profile_booleans(profile, solution.get("target")))  # as the engine reads it
         return f"y = (frame[TARGET].astype(str).str.strip() == {str(positive)!r}).astype(int)\n"
     if task == "multiclass":

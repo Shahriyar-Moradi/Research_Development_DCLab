@@ -100,6 +100,7 @@ class Prepared:
         self.score_rows: pd.DataFrame | None = None  # 30.12: every unconfirmed row, scored for a capacity's queue, never judged on
         self.dated = False  # 30.12: whether the time column holds dates (a capacity's periods), set on every prepare
         self.brief: dict[str, Any] | None = None  # 30.14: the project's Solution Brief, set on every prepare
+        self.source_rows: np.ndarray | None = None  # each row of the bundle's X: its place in the table as loaded (after a label file's join)
 
     @property
     def task(self) -> str:
@@ -160,10 +161,12 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     source_rows = len(frame)
     labeled_frame = frame.copy() if solution.label_source_column else None  # 30.12: every row with its source, for the rule behind a noisy one
     labels_by_source, score_rows = _label_sources(frame, solution)  # 30.12: a noisy source's rows kept out of training and judging
-    frame = frame[frame[solution.target].notna()].reset_index(drop=True)
+    positions = np.arange(len(frame))  # each prepared row's place in the table as loaded (the notebook's kernel reads its training rows by it)
+    has_target = frame[solution.target].notna().to_numpy()
+    frame, positions = frame[has_target].reset_index(drop=True), positions[has_target]
     y, class_labels = kind.target(frame, solution)
     keep = y.notna()
-    frame, y = frame[keep].reset_index(drop=True), y[keep].reset_index(drop=True)
+    frame, y, positions = frame[keep].reset_index(drop=True), y[keep].reset_index(drop=True), positions[keep.to_numpy()]
     X = frame.drop(columns=[solution.target])
 
     roles: dict[str, str] = {}
@@ -179,6 +182,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
             stamps = pd.to_datetime(X[time_column], errors="coerce")
             valid = stamps.notna()
             X, y, frame = X[valid].reset_index(drop=True), y[valid].reset_index(drop=True), frame[valid].reset_index(drop=True)
+            positions = positions[valid.to_numpy()]
             X[time_column] = pd.to_datetime(X[time_column], errors="coerce").dt.strftime("%Y-%m-%d %H:%M:%S")
             identifiers[time_column] = "time key: orders the split; only calendar features are derived from it"
             datetime_time = True
@@ -224,6 +228,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
             order = np.sort(np.random.default_rng(ds.RANDOM_STATE).choice(len(X), max_rows, replace=False))
             sampling["rule"] = f"random sample of {max_rows} rows, seed {ds.RANDOM_STATE} (label-independent)"
         X, y = X.iloc[order].reset_index(drop=True), y.iloc[order].reset_index(drop=True)
+        positions = positions[np.asarray(order)]
     sampling["rows_used"] = int(len(X))
 
     split = kind.split(solution)
@@ -262,6 +267,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     code_rule = "declared in the R&D dataset catalog for this sample" if declared is not None else HEURISTIC_RULE
     recipes = _register_recipes(bundle.spec, X, roles, datetime_time, project.get("feature_programs"), kind)
     prepared = Prepared(frame, solution, bundle, roles, class_labels, recipes, sampling, code_rule)
+    prepared.source_rows = positions
     from dclab_core import sensitivity
 
     prepared.personal = {c["name"] for c in ((project.get("data") or {}).get("profile") or {}).get("columns", [])

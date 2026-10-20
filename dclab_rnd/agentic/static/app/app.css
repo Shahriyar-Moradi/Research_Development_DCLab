@@ -7369,6 +7369,9 @@ a.list-item:hover, button.list-item:hover { background: var(--ts-surface-row-hov
 .cell.focus { border-color: var(--ts-accent); box-shadow: 0 0 0 var(--ts-space-1) var(--ts-accent-soft); }
 .agent-cell { border-color: var(--ts-accent); background: var(--ts-accent-soft); border-radius: var(--ts-radius-16); }
 pre.code { border-radius: var(--ts-radius-sm); background: var(--ts-surface-sunken); }
+.cell-out { white-space: pre-wrap; }
+.cell-err { color: var(--ts-danger-fg); border-left-color: var(--ts-danger-border); }  /* a cell's error, as an alert's danger tone */
+.cell-img { display: block; max-width: 100%; height: auto; border-radius: var(--ts-radius-xs); background: var(--ts-surface); }
 pre.term { border-radius: var(--ts-radius-sm); }
 .vs-frame { border-radius: var(--ts-radius-16); }
 .solution-sheet .cs-row { padding: var(--ts-space-4) var(--ts-card-padding); border-bottom-color: var(--ts-border); }
