@@ -144,7 +144,8 @@ class DclabRegistryTests(unittest.TestCase):
                 self.assertTrue(tool.description)
                 if tool.move is not None:
                     moves = {"project": studio_graph.MOVES, "draft": DRAFT_MOVES.values(), "session": SESSION_MOVES.values(),
-                             "campaign": ("experiment",)}[tool.scope]
+                             "campaign": ("experiment",),
+                             "home": __import__("dclab_rnd.draft.orchestrator", fromlist=["HOME_MOVES"]).HOME_MOVES}[tool.scope]
                     self.assertIn(tool.move, moves)
                     self.assertEqual(tool.effect, "write")
         for old, new in LEGACY_TOOLS.items():
