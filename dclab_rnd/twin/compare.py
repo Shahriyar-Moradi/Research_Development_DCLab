@@ -273,8 +273,11 @@ def planted(kind: str, ref: str, lane: Any = None) -> dict[str, Any] | None:
     # a column the solution reads as the time or a group is no leak to forbid (the standard plan drops it the same way); identifiers are
     # not judged: the R&D's list is a floor (the proposal adds the ones it detects), so a set compare would fault a right answer
     roles = {suggestion.get("time_column"), suggestion.get("group_column")} - {None}
-    return {"solution.columns": {"target": suggestion.get("target"),
-                                 "leakage": sorted(f["column"] for f in suggestion.get("forbidden") or [] if f["column"] not in roles)}}
+    truth = {"target": suggestion.get("target"),
+             "leakage": sorted(f["column"] for f in suggestion.get("forbidden") or [] if f["column"] not in roles)}
+    if suggestion.get("task"):  # 2026-10-22: a solve that predicts letters as a number is wrong, whatever its columns
+        truth["task"] = suggestion["task"]
+    return {"solution.columns": truth}
 
 
 def _arm(name: str, summary: dict[str, Any], step: str) -> Any:

@@ -37,6 +37,46 @@ def _finite(value: Any) -> Any:
     return value
 
 
+def found_time_column(suggestion: dict[str, Any], proposal: dict[str, Any], profile: dict[str, Any] | None = None,
+                      frame: Any = None) -> str | None:
+    """The column the split follows: the one the table's known solution names, else the only time column the proposal found
+    itself (a blind table gives no known solution). Ordering by time is the safe default: a time split never flatters the
+    score, a random one can. A found column is taken only when it really orders the rows: a date column, or a number that
+    never goes down along the rows with nothing missing (an elapsed-seconds counter; a duration such as ``wait_time_min`` is
+    a feature, not an order); a date only when it is on every row (a ``chargeback_at`` filled on fraud rows only would empty
+    the table). A column the audit flagged qualifies as such a counter, or as a full date whose name says nothing of after
+    the outcome: an event date whose outcome rate drifts is flagged too and is exactly what must order the split, while a
+    ``resolved_at`` never does (the engine derives calendar features from the time key). Two or more such columns are left
+    to a person: picking one would be a guess."""
+    if suggestion.get("time_column"):
+        return suggestion["time_column"]
+    flagged = {f.get("column") for f in [*(proposal.get("forbidden") or []), *(suggestion.get("forbidden") or [])] if isinstance(f, dict)}
+    kinds = {c.get("name"): c.get("kind") for c in (profile or {}).get("columns") or []}
+
+    def counter(name: str) -> bool:  # a number that never goes down along the rows, nothing missing: the rows are in its order
+        if frame is None or name not in getattr(frame, "columns", []) or kinds.get(name) == "datetime":
+            return False
+        import pandas as pd
+
+        values = pd.to_numeric(frame[name], errors="coerce")
+        return bool(values.notna().all() and values.is_monotonic_increasing and values.nunique() > 1)
+
+    def full_date(name: str) -> bool:  # a date on every row (a date with gaps would drop the rows without one)
+        return kinds.get(name) == "datetime" and frame is not None and name in getattr(frame, "columns", []) and bool(frame[name].notna().all())
+
+    def orders(name: str) -> bool:
+        if counter(name):  # the rows already follow it (fraud's elapsed seconds): it adds nothing, its role keeps it out
+            return True
+        if name in flagged:  # flagged dates: an event date whose outcome rate drifts is flagged too, and must order the split;
+            from dclab_core.datacard import after_outcome_words  # one named as written after the outcome never does
+
+            return full_date(name) and after_outcome_words(name) is None
+        return full_date(name)
+
+    found = [c for c in proposal.get("time_candidates") or [] if c != proposal.get("target") and orders(c)]
+    return found[0] if len(found) == 1 else None
+
+
 def step_record(n: int, tool: str, arguments: dict[str, Any], result: Any, seconds: float) -> dict[str, Any]:
     """One tool call as the session keeps it: the line the transcript shows (``summary``) and the whole result (``result``,
     the keys that quote the table's cells removed, as in the trace), so a trajectory built from the session is never cut."""
@@ -362,13 +402,18 @@ class Intern:
                     known[f["column"]] = {"column": f["column"], "reason": f["reason"]}
             # A time, group or identifier column is already kept out of the model by its role; listing it as
             # forbidden too is a contradiction the solution validator refuses (the fraud sample's elapsed Time).
-            roles = {suggestion.get("time_column"), suggestion.get("group_column"), *proposal.get("identifiers", []), *suggestion.get("identifiers", [])}
+            from dclab_rnd.studio import data as studio_data
+
+            project = self.toolbox.projects.get(pid)
+            time_column = found_time_column(suggestion, proposal, (project.get("data") or {}).get("profile"),
+                                            studio_data.load_table(studio_data.data_path(self.toolbox.projects, project)))
+            roles = {time_column, suggestion.get("group_column"), *proposal.get("identifiers", []), *suggestion.get("identifiers", [])}
             known = {c: f for c, f in known.items() if c not in roles}
             solution = {"project_id": pid, "target": target, "task": proposal["task"],
                         "prediction_moment": suggestion.get("prediction_moment") or _stated_moment(session["task"])
                         or ("Predict at the moment the row is recorded; " + proposal["prediction_moment_hint"]),
                         "forbidden": list(known.values()), "identifiers": sorted(set(proposal.get("identifiers", [])) | set(suggestion.get("identifiers", []))),
-                        "time_column": suggestion.get("time_column") or None, "group_column": suggestion.get("group_column") or None,
+                        "time_column": time_column or None, "group_column": suggestion.get("group_column") or None,
                         "text_columns": suggestion.get("text_columns") or [], "positive_label": suggestion.get("positive_label") or proposal.get("positive_label"),
                         "metric": suggestion.get("metric") or None}
             if proposal["task"] == "binary" and not suggestion.get("labels"):  # 15.9: the person's words on the labels, binary only

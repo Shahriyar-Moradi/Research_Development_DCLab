@@ -86,12 +86,29 @@ def _texty(s: pd.Series) -> bool:
     return pd.api.types.is_object_dtype(s) or pd.api.types.is_string_dtype(s)
 
 
+MAX_CODED_CLASSES = 50
+
+
+def coded_classes(y: pd.Series) -> bool:
+    """Whole numbers that code classes, not a count or a measure: their values run without a gap from 0 or 1, there are at
+    most MAX_CODED_CLASSES of them, and even the rarest holds a fair share of the rows (a quarter of an even share). Letters
+    coded 1 to 26 qualify; a count with a long tail, or ages from 18 up, do not."""
+    values = pd.to_numeric(y.dropna(), errors="coerce").dropna()
+    if values.empty or not (values % 1 == 0).all():
+        return False
+    levels = sorted({int(v) for v in values})
+    k = len(levels)
+    if not 2 < k <= MAX_CODED_CLASSES or levels[0] not in (0, 1) or levels[-1] - levels[0] + 1 != k:
+        return False
+    return bool(values.value_counts(normalize=True).min() >= 0.25 / k)
+
+
 def _infer_task(y: pd.Series) -> TaskType:
     values = y.dropna()
     if values.nunique() == 2:
         return "binary"
     if _texty(values) or str(values.dtype) in ("category", "bool") or (
-            pd.api.types.is_integer_dtype(values) and values.nunique() <= 20):
+            pd.api.types.is_integer_dtype(values) and values.nunique() <= 20) or coded_classes(values):
         return "multiclass"
     return "regression" if pd.api.types.is_numeric_dtype(values) else "multiclass"
 

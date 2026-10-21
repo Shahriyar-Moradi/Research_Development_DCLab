@@ -1,0 +1,182 @@
+{
+ "package": "rules-task-and-time-order",
+ "title": "The rules read coded classes as classes and order the split by the one time column they find",
+ "date": "2026-10-22",
+ "request": "Fix the rules' leak finder on the solver runs' misses: online_shoppers' post-visit activity columns, fraud's Time read as a leak, letter_recognition treated as a number to predict.",
+ "spec": "Four fixes: one shared rule for whole numbers that code classes; the standard plan orders its split by the one time column it found; a studied sample's planted truth names its task; the M5 builder keeps the newest solve per table and solver. online_shoppers deliberately unchanged.",
+ "plan": [
+  "read the known answers before changing anything",
+  "dclab_core.analyse.coded_classes, used by _infer_task, studio.data.detect_task and the datacard",
+  "intern.loop.found_time_column in the standard plan",
+  "twin.compare.planted adds the task; store.sets.llm.newest_per_table",
+  "rerun the solver runs and the scripted judgment suite"
+ ],
+ "decisions": [
+  {
+   "decision": "online_shoppers' activity columns are left to understanding, not a rule",
+   "why": "its known answer depends on a session-start moment no rule can read from column names; fitting the rules to a measured sample's answer would make the measurement look better without making DCLab better; the sample's moment text lists the columns, so passing it would hand over the answer"
+  },
+  {
+   "decision": "A time column the proposal found orders the split only when it really orders the rows",
+   "why": "review: a duration named wait_time_min, or a chargeback date filled on fraud rows only, would otherwise become the split key"
+  },
+  {
+   "decision": "A flagged column may order the split as a counter the rows follow, or as a full date whose name says nothing of after the outcome",
+   "why": "fraud's elapsed Time and an event date whose outcome rate drifts are flagged by the audit yet are the right time order; a resolved_at is not"
+  },
+  {
+   "decision": "The coded-classes reading says so in the task note above 20 levels",
+   "why": "numbers alone cannot tell letters coded 1 to 26 from months 1 to 35; the person must see it is a reading"
+  }
+ ],
+ "change": "dclab_core/analyse.py (coded_classes), dclab_core/datacard.py (task reading, after_outcome_words), dclab_core 0.100.2 and CHANGELOG; dclab_rnd/studio/data.py (detect_task); dclab_rnd/intern/loop.py (found_time_column); dclab_rnd/twin/compare.py (planted task); dclab_rnd/store/sets/llm.py (newest_per_table); tests/test_task_and_time_rules.py (new), tests/test_agent_eval.py (scorecard), tests/test_store_m5_trajectories.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "letter_recognition, letters coded as whole numbers 1 to 26, was proposed as regression",
+   "scenario": "the blind solver run scored it by mean absolute error",
+   "cause": "an integer outcome with more than 20 values was read as a number, in three places",
+   "fix": "one shared coded_classes rule",
+   "test": "tests/test_task_and_time_rules.py CodedClassesTest",
+   "severity": "behaviour",
+   "impact": "a wrong task in a clean trajectory",
+   "alternatives": [
+    "raise the limit to 30 (only moves the line)"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "defect": "the standard plan never ordered a blind table's split by the time column it found",
+   "scenario": "credit_card_fraud: the proposal found Time, the split stayed random",
+   "cause": "the time column came only from the sample's hidden known solution",
+   "fix": "found_time_column",
+   "test": "tests/test_task_and_time_rules.py FoundTimeColumnTest",
+   "severity": "leakage",
+   "impact": "a random split on time-ordered rows flatters the score",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "defect": "a solve with the wrong task passed its planted truth",
+   "scenario": "letters predicted as a number passed",
+   "cause": "the truth judged the target and leak columns only",
+   "fix": "the planted truth names the task when the solution states one",
+   "test": "tests/test_task_and_time_rules.py PlantedTaskTest",
+   "severity": "gap",
+   "impact": "a wrong solve in the clean set",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "self",
+   "defect": "reruns piled up near-copies of one table's solve",
+   "scenario": "16 solver runs run twice",
+   "cause": "every placed solve was kept",
+   "fix": "newest_per_table",
+   "test": "tests/test_task_and_time_rules.py NewestPerTableTest",
+   "severity": "behaviour",
+   "impact": "one table weighed many times",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "a found time column flagged as a leak became the split key and lost its flag",
+   "scenario": "chargeback_at filled on fraud rows only: 318 of 3000 rows left, one class, the leakage stage failed",
+   "cause": "candidates were not checked against the flags",
+   "fix": "a flagged column orders the split only as a counter the rows follow or a full date with no after-the-outcome word; a date with gaps never",
+   "test": "test_a_time_flagged_as_a_leak_never_orders_the_split, test_a_date_with_gaps_never_orders_the_split",
+   "severity": "leakage",
+   "impact": "a broken run, or a post-outcome calendar in the model",
+   "alternatives": [
+    "never adopt a flagged column (then the drifting event date of AE-11 and fraud's Time are lost)"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "a number named like a time became the split key",
+   "scenario": "wait_time_min, the strongest feature, dropped and the holdout made of the longest waits",
+   "cause": "time candidates include any number whose name matches a time word",
+   "fix": "a number orders the split only when it never goes down along the rows with nothing missing",
+   "test": "test_a_duration_is_a_feature_not_an_order",
+   "severity": "behaviour",
+   "impact": "a lost feature and a skewed holdout",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "defect": "an evenly spread whole-number quantity reads as classes",
+   "scenario": "tenure_months 1 to 35 in a replica",
+   "cause": "numbers alone cannot tell codes from an even quantity",
+   "fix": "the task note says it is a coded-classes reading and how to switch",
+   "test": "test_the_task_note_says_when_it_is_a_coded_reading",
+   "severity": "latent",
+   "impact": "a person may miss a wrong task",
+   "alternatives": [],
+   "open": "a host should show the reading"
+  },
+  {
+   "id": "F8",
+   "source": "test",
+   "defect": "a check-quick failure on 2026-10-21 was called a timing race in commit 58ccfc48",
+   "scenario": "test_agents_traces got 24 tool calls",
+   "cause": "check-quick let the owner's OpenAI key reach the tests (fixed in bae85e29 by another session)",
+   "fix": "none here: the record corrects the explanation",
+   "test": "tests/test_run_capture.py",
+   "severity": "behaviour",
+   "impact": "live requests on the owner's key during a gate",
+   "alternatives": [],
+   "open": "the owner checks the OpenAI usage of 2026-10-21"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the scripted judgment suite, standard plan",
+   "gate": "no new false alarm, and every trap caught before still caught",
+   "fixed_before_run": true,
+   "result": "AEV-052: 2 of 13 leaks caught (the time trap added), 1 of 20 false alarms as before",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "",
+   "against_gate": "",
+   "limits": [
+    "20 scripted cases"
+   ]
+  },
+  {
+   "name": "the rules' blind solver runs on the 16 studied samples, the outcome named",
+   "gate": "letter_recognition and credit_card_fraud pass with their task; online_shoppers is expected to fail",
+   "fixed_before_run": true,
+   "result": "15 of the 16 passed; letter_recognition as multiclass; credit_card_fraud split by Time; online_shoppers failed",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "a full-profile fraud run: the quick profile's latest slice holds too few frauds for its score to say anything",
+   "against_gate": "",
+   "limits": [
+    "16 tables",
+    "the quick profile"
+   ]
+  }
+ ],
+ "outcome": "The rules predict coded classes as classes and order a blind table's split by a real time column they found, never by a suspected leak with gaps or an after-the-outcome date; the judge checks the task; one solve per table and solver is kept.",
+ "lessons": [
+  "Read the known answer before calling a miss a bug: two of three misses were the task and the judge.",
+  "A guard written against one danger can remove the case it was meant to help: measure the trap suite after every guard."
+ ],
+ "risks": [
+  "an evenly spread quantity read as classes",
+  "a drifting date with an innocent name that was written after the outcome"
+ ],
+ "commits": []
+}

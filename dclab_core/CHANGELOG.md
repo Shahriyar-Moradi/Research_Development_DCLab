@@ -4,6 +4,17 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.100.2 (2026-10-22)
+
+Whole numbers that code classes are read as classes.
+
+- `analyse.coded_classes` (new): whole numbers from 0 or 1 without a gap, at most 50 of them, the rarest holding at least
+  a quarter of an even share: letters coded 1 to 26 qualify, a count with a long tail or ages from 18 do not. Numbers
+  alone cannot tell codes from an evenly spread quantity (months 1 to 35), so a host should show the reading.
+- `analyse._infer_task` and `datacard`'s task reading use it above 20 levels (multiclass where they said regression).
+- `datacard.after_outcome_words` (new, public): the after-the-outcome words in a column's name, for hosts that must not
+  take such a column for the time order.
+
 ## 0.100.1 (2026-10-21)
 
 pandas 3 support (pandas 2 unchanged).

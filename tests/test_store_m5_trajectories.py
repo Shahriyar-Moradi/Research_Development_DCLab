@@ -206,8 +206,10 @@ class SolverTrajectoriesTest(unittest.TestCase):
 
     def test_a_sealed_session_seals_its_table(self):
         studio = self.rows("trajectories/studio", "v2")
-        self.assertEqual(studio["m5_solver_llm:intern:111111111111"]["split"], "sealed")
-        self.assertEqual(studio["m5_solver_llm:intern:222222222222"]["split"], "sealed")
+        kept = [i for i in ("m5_solver_llm:intern:111111111111", "m5_solver_llm:intern:222222222222") if i in studio]
+        self.assertEqual(len(kept), 1)  # one solve per table and solver: the two rules solves of sha-shared are one
+        self.assertEqual(studio[kept[0]]["split"], "sealed")  # and the sealed session still seals the table
+        self.assertGreaterEqual(self.report["kept_out"].get("m5: superseded by a newer solve of its table by the same solver", 0), 1)
         train = (self.base("trajectories/studio", "v2") / "train.jsonl").read_text(encoding="utf-8")
         self.assertNotIn("sha-shared", train)
         self.assertEqual(studio["m5_solver_llm:intern:333333333333"]["split"], "sealed")  # its table's sealed final was run from the screen

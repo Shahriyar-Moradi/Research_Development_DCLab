@@ -425,7 +425,8 @@ def intern_trajectories(records: Iterable[StoreRecord], finals: Optional[dict[tu
                      "outcome_named": OUTCOME_NAMED in str(r.body.get("task") or ""),  # the person named the outcome: not the solver's choice
                      "twin": {"run": lane.group("run"), "lane": lane.group("lane")} if lane else None},
             steps=steps, metric=(holdout or {}).get("metric"), score=(holdout or {}).get("score"),
-            submission={"holdout": holdout["record"], "holdout_rows": holdout.get("holdout_rows"), "truth": truth, "truth_source": truth_source,
+            submission={"holdout": holdout["record"], "holdout_rows": holdout.get("holdout_rows"), "completed_at": holdout.get("completed_at"),
+                        "truth": truth, "truth_source": truth_source,
                         "results_cut": cut} if holdout else None)
 
 
@@ -542,6 +543,23 @@ def selfplay_pairs(t: SolverTrajectory) -> Iterable[PreferencePair]:
                              decided_by=label["source"])
 
 
+def newest_per_table(placed: list[tuple[str, SolverTrajectory]]) -> Iterable[tuple[str, SolverTrajectory, bool]]:
+    """One solve per table and solver: the newest (by when its final completed). A rerun reflects the solver as it is now,
+    and a table solved ten times the same way would weigh ten times; the older solves are counted, not placed."""
+    def key(t: SolverTrajectory) -> tuple[str, str]:
+        return str(t.problem.get("data_sha256")), str(t.problem.get("answerer"))
+
+    def when(t: SolverTrajectory) -> float:
+        return float((t.submission or {}).get("completed_at") or 0.0)
+
+    best: dict[tuple[str, str], SolverTrajectory] = {}
+    for _folder, t in placed:
+        if key(t) not in best or (when(t), t.id) > (when(best[key(t)]), best[key(t)].id):
+            best[key(t)] = t
+    for folder, t in placed:
+        yield folder, t, best[key(t)] is t
+
+
 def place(t: SolverTrajectory) -> tuple[Optional[str], str]:
     """Where an intern trajectory goes: the clean set, the frontier's silver set, or nowhere (with why)."""
     if t.score is None or not t.submission:
@@ -611,12 +629,18 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
         out["m5: a self-play solve that did not pass its checks"] += sum(1 for v in verified.values() if not v)
     finals = holdouts(shapers.records(layout, "workflows"))
     truths = twin_truths(r for r in shapers.records(layout, "conversations") if r.provenance.source.endswith("steps.jsonl"))
+    placed = []
     for t in intern_trajectories((r for r in shapers.records(layout, "conversations") if allowed(r, "m5_solver_llm", choices)), finals, truths):
         folder, why = place(t)
         if folder is None:
             out[why] += 1
             continue
-        add("m5_solver_llm", folder, t)
+        placed.append((folder, t))
+    for folder, t, newest in newest_per_table(placed):
+        if newest:
+            add("m5_solver_llm", folder, t)
+        else:
+            out["m5: superseded by a newer solve of its table by the same solver"] += 1
     report = {"sets": {}, "kept_out": dict(out)}
     abouts = {"m4_workflow_llm": "The workflow LLM's examples of one stage: messages as sent, each assistant turn with its labelled reasoning.",
               "m5_solver_llm": "Whole solving runs: each step's recorded thought, its tool call and the call's result."}

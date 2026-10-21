@@ -579,6 +579,12 @@ def _after_named(name: str) -> Optional[str]:
     return ", ".join(hit) if hit else None
 
 
+def after_outcome_words(name: str) -> Optional[str]:
+    """The words in a column's name that a value written after the outcome often carries (final, resolved, refund...),
+    or None: a suspicion to check, never a verdict."""
+    return _after_named(name)
+
+
 def _row_number(series: pd.Series) -> bool:
     numbers = pd.to_numeric(series, errors="coerce")
     if numbers.isna().any() or len(numbers) < MIN_ROWS or not (numbers % 1 == 0).all():
@@ -764,7 +770,9 @@ def _modifiers(frame: pd.DataFrame, table: "TableCard", target: Optional[str]) -
     y = rows[target]
     values = y.dropna().unique()
     numeric = pd.api.types.is_numeric_dtype(y)
-    task = "binary" if len(values) == 2 else "regression" if numeric and len(values) > 20 else "multiclass"
+    from .analyse import coded_classes  # here, not at the top: analyse is the larger module
+
+    task = "binary" if len(values) == 2 else "regression" if numeric and len(values) > 20 and not coded_classes(y) else "multiclass"
     positive = rate = None
     if task == "binary":
         counts = y.astype(str).value_counts()

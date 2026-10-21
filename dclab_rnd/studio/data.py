@@ -10,6 +10,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from dclab_core.analyse import coded_classes
 from dclab_core.times import read_times
 
 from dclab_rnd.agentic.catalog import DATASETS, ROOT
@@ -219,10 +220,14 @@ def detect_task(frame: pd.DataFrame, target: str) -> dict[str, Any]:
         rate = float((series == positive).mean())
         return {"task": "binary", "classes": [str(v) for v in values], "positive_label": str(positive), "positive_rate": rate,
                 "note": f"Two classes; `{positive}` is treated as the positive class ({rate:.1%} of rows)."}
-    if unique <= 20 and (not numeric or (series % 1 == 0).all()):
+    if (unique <= 20 and (not numeric or (series % 1 == 0).all())) or (numeric and coded_classes(series)):  # letters coded 1 to 26
         counts = series.value_counts()
+        note = f"{unique} classes; the smallest has {int(counts.min())} rows."
+        if unique > 20:  # only the coded-classes reading put it here: numbers alone cannot tell codes from an even quantity
+            note += (f" Read as {unique} coded classes (whole numbers from {int(series.min())} without a gap, evenly spread); "
+                     "if it is a quantity (months, an age, a count), set the task to regression.")
         return {"task": "multiclass", "classes": [str(v) for v in counts.index.tolist()], "n_classes": int(unique),
-                "smallest_class": int(counts.min()), "note": f"{unique} classes; the smallest has {int(counts.min())} rows."}
+                "smallest_class": int(counts.min()), "note": note}
     if numeric:
         return {"task": "regression", "mean": float(series.mean()), "std": float(series.std()),
                 "note": f"Continuous target (mean {series.mean():.3g}, std {series.std():.3g})."}
