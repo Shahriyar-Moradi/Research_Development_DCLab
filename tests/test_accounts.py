@@ -182,7 +182,8 @@ class AccountsTests(unittest.TestCase):
 
     def test_pages_load_and_the_schema_is_not_served(self):
         anonymous = self.TestClient(self.app)
-        for path in ("/", "/guide"):
+        guide = (ROOT / "evidence" / "knowledge" / "MODEL_BUILDING_FIELD_GUIDE.html").is_file()  # the research's field guide, where it is built
+        for path in ("/", "/guide") if guide else ("/",):
             self.assertEqual(anonymous.get(path).status_code, 200, path)  # the shell: no data; the sign-in page lives here (part C)
             self.assertEqual(self.clients["view1"].get(path).status_code, 200, path)
         self.assertEqual(anonymous.get("/openapi.json").status_code, 404)  # FastAPI's own routes are outside the role check

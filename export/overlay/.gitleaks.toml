@@ -1,0 +1,11 @@
+# The secret scan's rules, with its defaults. Two tests use values that look like secrets on purpose: they check that
+# the studio never shows them (the connectors' status, a backup's file list). They are not keys.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "test values shaped like secrets, to prove they are never shown"
+paths = [
+  '''tests/test_pages_platform\.py''',
+  '''tests/test_backup_retention\.py''',
+]

@@ -24,6 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
+      - if: runner.os == 'macOS'
+        run: brew install libomp  # LightGBM loads OpenMP
       - run: uv venv --python ${{ matrix.python }} && uv pip install ".[all]"
       - run: .venv/bin/python scripts/run_tests.py --jobs 4
   flows:

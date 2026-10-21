@@ -40,6 +40,7 @@ docker run -p 127.0.0.1:8765:8765 -v dclabai:/workspace ghcr.io/shahriyar-moradi
 ```
 
 Optional extras: `pip install "dclabai[all]"` (Claude, PostgreSQL, notebook cells, MCP, PDF reports).
+On macOS, LightGBM needs OpenMP: `brew install libomp` (`dclab doctor` checks it).
 
 ## Your model
 

@@ -44,7 +44,7 @@ class MatrixTest(unittest.TestCase):
     def test_a_kind_never_run_is_partial_and_says_so(self):
         row = {r["kind"]: r for r in acceptance.matrix([])}["regression"]
         self.assertEqual(row["status"], "partial")
-        self.assertIn("kinds-check", row["missing"][0])
+        self.assertRegex(row["missing"][0], r"kinds-check|python -m \w+\.kinds")  # how to run it, in this edition's words
 
     def test_the_stored_results_come_from_the_harness(self):
         path = Path(tempfile.mkdtemp()) / "capability.json"

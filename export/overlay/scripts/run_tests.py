@@ -30,6 +30,8 @@ def run(path: Path) -> tuple[Path, int, float, str]:
         env = {**os.environ, "TMPDIR": tmp, "HOME": tmp, "DCLAB_NO_LIVE_MODELS": "1", "PYTHONDONTWRITEBYTECODE": "1"}
         for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "DCLAB_LLM_BASE_URL", "DCLAB_LLM_PROVIDER", "DCLAB_DATABASE_URL"):
             env.pop(key, None)  # a developer's own settings never reach a test
+        if "pgtest" not in path.read_text(encoding="utf-8"):
+            env.pop("DCLAB_TEST_DATABASE_URL", None)  # only the files that use the test database reach it
         done = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-t", "tests", "-p", path.name],
                               cwd=ROOT, env=env, capture_output=True, text=True)
     return path, done.returncode, time.time() - started, done.stdout + done.stderr
@@ -49,12 +51,20 @@ def main(argv: list[str] | None = None) -> int:
             print(f"no such test file: {', '.join(sorted(missing))}")
             return 2
     failed = []
+    # files that use the test database run one at a time, after the rest: each empties it, so two at once would race
+    database = [f for f in files if os.environ.get("DCLAB_TEST_DATABASE_URL") and "pgtest" in f.read_text(encoding="utf-8")]
+    rest = [f for f in files if f not in database]
+
+    def report(path, code, seconds, output):
+        last = next((line for line in reversed(output.splitlines()) if line.startswith(("OK", "FAILED"))), "")
+        print(f"  {'ok  ' if code == 0 else 'FAIL'} {path.name:<40} {seconds:6.1f}s  {last}", flush=True)
+        if code != 0:
+            failed.append((path, output))
     with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
-        for path, code, seconds, output in pool.map(run, files):
-            last = next((line for line in reversed(output.splitlines()) if line.startswith(("OK", "FAILED"))), "")
-            print(f"  {'ok  ' if code == 0 else 'FAIL'} {path.name:<40} {seconds:6.1f}s  {last}", flush=True)
-            if code != 0:
-                failed.append((path, output))
+        for result in pool.map(run, rest):
+            report(*result)
+    for path in database:
+        report(*run(path))
     for path, output in failed:
         print(f"\n===== {path.name}\n{output}")
     print(f"\n{len(files) - len(failed)} of {len(files)} test files passed")

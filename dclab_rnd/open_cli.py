@@ -213,12 +213,21 @@ def doctor() -> int:
     else:
         line(True, "storage: local files (set DCLAB_DATABASE_URL for PostgreSQL)")
     try:
+        import lightgbm  # noqa: F401  (the engine's gradient-boosted trees: it loads OpenMP)
+
+        line(True, "the engine's libraries load")
+    except OSError as exc:  # macOS without OpenMP: "Library not loaded: @rpath/libomp.dylib"
+        line(False, f"LightGBM cannot load ({str(exc).splitlines()[0][:80]})",
+             "brew install libomp" if sys.platform == "darwin" else "install your system's OpenMP runtime (libgomp)")
+    except ImportError:
+        line(False, "LightGBM is not installed", "pip install dclabai")
+    try:
         import ipykernel  # noqa: F401
         import jupyter_client  # noqa: F401
 
         line(True, "notebook cells: a Jupyter kernel is available")
-    except ImportError:
-        line(False, "notebook cells: no Jupyter kernel", 'pip install "dclabai[notebook]"')
+    except ImportError:  # an optional extra: the studio runs without it
+        print('  --  notebook cells: off (optional: pip install "dclabai[notebook]")')
     probe = probe_model()
     if not probe.get("configured"):
         from .models import settings as model_settings

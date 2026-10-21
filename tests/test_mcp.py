@@ -44,7 +44,9 @@ class McpOverHttpTests(unittest.TestCase):
         self.assertEqual(next(t for t in tools if t["name"] == "set_solution")["inputSchema"]["required"], ["project_id", "target", "task", "prediction_moment"])
         hit = self.post(rpc("tools/call", {"name": "search_evidence", "arguments": {"query": "duration leakage bank marketing", "k": 2}}, 3))
         payload = json.loads(hit["result"]["content"][0]["text"])
-        self.assertTrue(any(r["record_id"].startswith("LEAK-") or r["record_id"].startswith("EXP-") for r in payload["results"]))
+        full = (ROOT / "evidence" / "knowledge" / "rag" / "records.jsonl").exists()  # the open edition packages the rules and pitfalls only
+        prefixes = ("LEAK-", "EXP-") if full else ("DCLAB-", "PIT-")
+        self.assertTrue(any(r["record_id"].startswith(prefixes) for r in payload["results"]), payload["results"])
         created = self.post(rpc("tools/call", {"name": "create_project", "arguments": {"name": "via mcp", "goal": "smoke"}}, 4))
         project_id = json.loads(created["result"]["content"][0]["text"])["project_id"]
         self.assertEqual(self.client.get(f"/api/projects/{project_id}").status_code, 200)
