@@ -32,8 +32,16 @@ class AcceptanceTest(unittest.TestCase):
                 accept(self, key)
 
     def test_every_registered_kind_has_a_case(self):
+        from dclab_rnd.extensions import available
+
+        # the open edition does not ship the delivery_fraud replica: the rare-event kind has no main case there (its retail case
+        # is judged alone), and only it; the anomaly kind falls back to the shipped fraud programme replica
+        without = set() if available("dclab_core.replicas.delivery_fraud") else {"rare_event"}
         for kind in kinds.all_kinds():
-            self.assertIsNotNone(kind.case(0), kind.key)
+            if kind.key in without:
+                self.assertIsNone(kind.case(0), kind.key)
+            else:
+                self.assertIsNotNone(kind.case(0), kind.key)
 
 
 if __name__ == "__main__":

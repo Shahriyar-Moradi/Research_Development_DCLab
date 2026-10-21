@@ -2,13 +2,15 @@
 import unittest
 import numpy as np
 import pandas as pd
-from dclab_rnd.agentic.worker import DerivedFeatures, validate_plan, build_pipeline, load
+from dclab_rnd.agentic.worker import DerivedFeatures, validate_plan, build_pipeline, load, source_paths
 
 def plan():
     return dict(dataset="bank_marketing", model="logistic_regression", parameters={}, drop_columns=[], stress_columns=[], features=[])
 
 class WorkerSafety(unittest.TestCase):
     def test_project_data_loaders_enforce_identifiers_and_types(self):
+        if not all(source_paths(key)[0].exists() for key in ("telco_churn", "hyperack")):
+            self.skipTest("the project tables (telco_churn, hyperack) are not part of this edition")
         X,y,cats,_,hashes=load("telco_churn",800)
         self.assertNotIn("customerID",X);self.assertTrue(pd.api.types.is_numeric_dtype(X.TotalCharges))
         self.assertEqual(set(y.unique()),{0,1});self.assertIn("Contract",cats)

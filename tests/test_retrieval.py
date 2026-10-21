@@ -10,12 +10,17 @@ sys.path.insert(0, str(ROOT))
 
 from dclab_rnd import retrieval, tools  # noqa: E402
 
+# the open edition packages the rules and pitfalls only: the research records the questions cite, and the stored measurement, stay private
+FULL_INDEX = (ROOT / "evidence" / "knowledge" / "rag" / "records.jsonl").exists()
+NO_FULL_INDEX = "the research records are not part of this edition (it packages the rules and pitfalls only)"
+
 
 class RetrievalTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.m = retrieval.measure()
 
+    @unittest.skipUnless(FULL_INDEX, NO_FULL_INDEX)
     def test_sixty_questions_whose_answers_exist(self):
         qs = retrieval.questions()
         known = {r["record_id"] for r in tools._index().records}
@@ -24,6 +29,7 @@ class RetrievalTests(unittest.TestCase):
         self.assertTrue(all(q["answers"] and set(q["answers"]) <= known for q in qs))
         self.assertEqual(set(self.m["groups"]), {"rule", "paraphrase", "pitfall", "precedent", "experiment", "workflow"})
 
+    @unittest.skipUnless(retrieval.RESULTS.is_dir(), "the stored retrieval measurement is not part of this edition")
     def test_recall_is_what_the_stored_measurement_says(self):
         stored = json.loads(sorted(retrieval.RESULTS.glob("RET-*.json"))[-1].read_text())
         self.assertEqual(stored["index_signature"], retrieval._signature(), "the index changed: run make retrieval-eval")
@@ -47,6 +53,7 @@ class RetrievalTests(unittest.TestCase):
         self.assertTrue(all({"record_id", "title", "text", "score", "method"} <= set(h) for h in hits))
         self.assertIn("PIT-003", [h["record_id"] for h in hits])
 
+    @unittest.skipUnless(FULL_INDEX, NO_FULL_INDEX)
     def test_a_paraphrase_shares_no_word_with_the_records_that_answer_it(self):
         from dclab_rnd.evidence_index import tokenize
         by = {r["record_id"]: r for r in tools._index().records}
@@ -68,7 +75,8 @@ class RetrievalTests(unittest.TestCase):
             strong = evidence.ask("Should I oversample before splitting?")
         self.assertEqual(strong.get("weak"), None)  # a strong keyword match anywhere in the hits is not a weak answer
         self.assertIn(a["mode"], ("records", "none"))
-        self.assertIsNone(a.get("weak"))  # its first fused hit is weak, another hit is not: the answer is not "weak"
+        if FULL_INDEX:  # which hits it fuses depends on the records: this holds on the full index
+            self.assertIsNone(a.get("weak"))  # its first fused hit is weak, another hit is not: the answer is not "weak"
 
 
 if __name__ == "__main__":

@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT))
 
 from dclab_rnd.agents import EFFECTS, SCOPES, Policy, Registry, Tool, build_registry, default_registry, run  # noqa: E402
 from dclab_rnd.draft.chat import DRAFT_MOVES, HomeAgent  # noqa: E402
+from dclab_rnd.extensions import optional  # noqa: E402
 from dclab_rnd.draft.store import DraftStore  # noqa: E402
 from dclab_rnd.intern.loop import SESSION_MOVES, Intern  # noqa: E402
 from dclab_rnd.intern.sessions import SessionStore  # noqa: E402
@@ -135,7 +136,8 @@ class DclabRegistryTests(unittest.TestCase):
         self.assertEqual(set(registry.names("draft")), {"ask_user", "record", "set_pack", "propose_workflow", "request_data", "get_profile", "get_analysis", "simulate_data", "build_solution",
                                                         "decide_point"})
         self.assertEqual(set(registry.names("session")), {"write_plan", "finish"})
-        self.assertEqual(registry.names("campaign"), ["run_experiment"])
+        # the research campaign's experiment tool is a closed part, absent from the open edition
+        self.assertEqual(registry.names("campaign"), ["run_experiment"] if optional("agentic.campaign_tools") else [])
         for tool in registry.tools.values():
             with self.subTest(tool.name):
                 jsonschema.Draft202012Validator.check_schema(tool.parameters)

@@ -72,6 +72,10 @@ class RouteTests(unittest.TestCase):
         self.headers = {"X-DCLab-Token": self.client.get("/api/config").json()["csrf"]}
 
     def test_old_and_new_solution_routes(self):
+        from dclab_rnd.studio import data as studio_data
+
+        if "bank_marketing" not in {sample["key"] for sample in studio_data.sample_catalog()}:
+            self.skipTest("the bank_marketing sample table is not part of this edition")
         c = self.client
         pid = c.post("/api/projects", json={"name": "Bank", "industry": "Banking", "goal": "who subscribes"}, headers=self.headers).json()["id"]
         sample = c.post(f"/api/projects/{pid}/data/sample", json={"key": "bank_marketing"}, headers=self.headers)

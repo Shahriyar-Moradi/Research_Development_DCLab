@@ -10,6 +10,14 @@ sys.path.insert(0, str(ROOT))
 
 from dclab_rnd.studio import leakage_review  # noqa: E402
 
+FULL_INDEX = (ROOT / "evidence" / "knowledge" / "rag" / "records.jsonl").exists()  # the open edition packages the rules and pitfalls only
+
+
+def bank_marketing_missing() -> bool:
+    from dclab_rnd.studio import data as studio_data
+
+    return "bank_marketing" not in {sample["key"] for sample in studio_data.sample_catalog()}
+
 MOMENT = "Immediately before a marketing call. Duration is post-call and forbidden."
 PROFILE = {"columns": [{"name": n, "kind": k, "missing_rate": 0.0, "unique": u, "preview": ["SECRET-VALUE"]}
                        for n, k, u in [("age", "numeric", 70), ("duration", "numeric", 1500), ("pdays", "numeric", 27), ("campaign", "numeric", 40),
@@ -31,6 +39,8 @@ class Scripted:
 
 class ReviewerTests(unittest.TestCase):
     def test_on_the_studied_samples_it_finds_the_rds_forbidden_columns(self):
+        if bank_marketing_missing():
+            self.skipTest("the studied sample tables are not part of this edition")
         keys = ["bank_marketing", "online_shoppers", "hyperack", "credit_card_fraud", "bike_sharing_daily", "ecommerce_clothing_reviews"]
         m = leakage_review.measure(keys)  # the six samples where the R&D forbade columns; no model
         by = {r["sample"]: r for r in m["samples"]}
@@ -43,7 +53,8 @@ class ReviewerTests(unittest.TestCase):
     def test_only_the_audits_flags_are_ticked(self):
         out = leakage_review.review(PROFILE, MOMENT, FLAGGED, "y")
         self.assertEqual([(i["column"], i["source"], i["apply"]) for i in out["items"]], [("duration", "audit", True)])
-        self.assertEqual(out["items"][0]["records"], ["LEAK-bank_marketing", "DCLAB-R04"])
+        # the leakage precedent LEAK-bank_marketing is a research record, absent from the open edition's packaged index
+        self.assertEqual(out["items"][0]["records"], ["LEAK-bank_marketing", "DCLAB-R04"] if FULL_INDEX else ["DCLAB-R04"])
         moment = "Session-start purchase prediction. Exclude durations and bounce rates"
         profile = {"columns": [{"name": "BounceRates"}, {"name": "Region"}]}
         item, = leakage_review.review(profile, moment, [], "Revenue")["items"]
@@ -103,6 +114,8 @@ class ReviewerTests(unittest.TestCase):
         from dclab_rnd.intern.tools import Toolbox
         from dclab_rnd.studio import ProjectStore
 
+        if bank_marketing_missing():
+            self.skipTest("the bank_marketing sample table is not part of this edition")
         box = Toolbox(ProjectStore(Path(tempfile.mkdtemp()) / "projects"))
         pid = box.call("create_project", {"name": "Calls", "goal": "Predict term deposits"})["project_id"]
         box.call("use_sample", {"project_id": pid, "key": "bank_marketing"})

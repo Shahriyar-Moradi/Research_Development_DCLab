@@ -105,8 +105,6 @@ TESTS = {
         "tests/test_deploy.py": "tests the cloud code in deploy/, which is not exported",
         "tests/test_staging_check.py": "tests a Makefile target of the private repository",
         "tests/test_decision_routing.py": "routes measured classifiers: needs the sealed gate results in evidence/ and the agent_eval suites",
-        "tests/test_kind_acceptance_rare.py": "the acceptance of the delivery_fraud replica, which is not part of the open edition yet",
-        "tests/test_code.py": "built around the anomaly kind's case, whose replica the open edition does not have yet",
     },
 }
 

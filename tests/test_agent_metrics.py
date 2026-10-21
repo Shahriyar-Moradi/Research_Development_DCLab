@@ -103,7 +103,8 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(got.status_code, 200, got.text)
         body = got.json()
         self.assertIn("intern", [a["agent"] for a in body["agents"]])
-        self.assertTrue(body["suites"])  # the repository's own evaluation results, read in
+        if (ROOT / "evidence" / "campaigns").is_dir():  # the repository's own evaluation results, read in (absent from the open edition)
+            self.assertTrue(body["suites"])
         self.assertIn("never", body["note"].lower())
 
 

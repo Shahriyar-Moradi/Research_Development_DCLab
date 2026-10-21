@@ -170,7 +170,10 @@ class RouteTest(unittest.TestCase):
     def test_a_single_problem_keeps_the_kind_the_detection_found_and_the_rest_are_still_listed(self):
         from dclab_rnd import kinds
 
-        journeys = json.loads((ROOT / "dclab_rnd" / "agent_eval" / "journeys" / "journeys_dev.json").read_text(encoding="utf-8"))
+        path = ROOT / "dclab_rnd" / "agent_eval" / "journeys" / "journeys_dev.json"
+        if not path.exists():
+            self.skipTest("the dev journeys (agent_eval) are not part of this edition")
+        journeys = json.loads(path.read_text(encoding="utf-8"))
         for journey in journeys:
             detected = kinds.detect(journey["words"])["key"]
             m = pm.decompose(journey["words"])
@@ -369,10 +372,14 @@ class ReplicaTest(unittest.TestCase):
     def test_every_kinds_replica_routes_first_to_that_kind(self):
         warnings.filterwarnings("ignore")
         from dclab_rnd import kinds
+        from dclab_rnd.extensions import available
 
         self.assertEqual(set(KIND_PROBLEM), {k.key for k in kinds.all_kinds() if k.key in sol.BY_ID})
+        replica = available("dclab_core.replicas.delivery_fraud")  # the full edition has every kind's case
         for key, (family, labels) in KIND_PROBLEM.items():
             with self.subTest(kind=key):
+                if not replica and kinds.get(key).case(0) is None:
+                    self.skipTest(f"{key}'s replica is not part of this edition")
                 sub, m = single(family, labels)
                 r = sol.route(sub, self.data_of(key), m)
                 self.assertEqual(r.chosen, key, [(c.approach, c.blocking) for c in r.candidates])

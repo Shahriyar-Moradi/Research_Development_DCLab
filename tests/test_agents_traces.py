@@ -17,6 +17,10 @@ from dclab_rnd.intern.loop import Intern  # noqa: E402
 from dclab_rnd.intern.sessions import SessionStore  # noqa: E402
 from dclab_rnd.intern.tools import Toolbox  # noqa: E402
 from dclab_rnd.studio.store import ProjectStore  # noqa: E402
+from dclab_rnd.studio import data as studio_data  # noqa: E402
+
+TELCO_MISSING = "telco_churn" not in {sample["key"] for sample in studio_data.sample_catalog()}
+NO_TELCO = "the telco_churn sample table is not part of this edition"
 
 
 def obj(properties=None, required=()):
@@ -110,6 +114,7 @@ class ReviewFindingTests(unittest.TestCase):
         self.home = Path(tempfile.mkdtemp())
         self.store = FileTraces(self.home / "agent_steps.jsonl")
 
+    @unittest.skipIf(TELCO_MISSING, NO_TELCO)
     def test_no_cell_value_reaches_a_row(self):
         box = Toolbox(ProjectStore(self.home / "projects"))
         pid = box.call("create_project", {"name": "t", "goal": "Predict churn"})["project_id"]
@@ -141,6 +146,7 @@ class ReviewFindingTests(unittest.TestCase):
         self.assertEqual([r["n"] for r in self.store.steps(s["id"])], [done["steps"][-1]["n"]])
         self.assertEqual(done["steps"][-1]["n"], 2)
 
+    @unittest.skipIf(TELCO_MISSING, NO_TELCO)
     def test_the_standard_plan_records_the_state_before_creating_a_project(self):
         intern = Intern(SessionStore(self.home / "intern"), Toolbox(ProjectStore(self.home / "projects")), None, traces=self.store)
         s = intern.start("Predict which telco customers churn")

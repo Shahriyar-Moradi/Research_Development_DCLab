@@ -59,6 +59,7 @@ class McpOverHttpTests(unittest.TestCase):
         self.assertTrue(info["mcp_url"].endswith("/mcp"))
 
 
+@unittest.skipUnless((ROOT / "scripts" / "chat_ui.py").exists(), "scripts/chat_ui.py is not part of this edition")
 class ChatUiConfigTests(unittest.TestCase):
     def test_env_local_points_chat_ui_at_dclab(self):
         import argparse

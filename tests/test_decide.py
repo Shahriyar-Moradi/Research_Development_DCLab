@@ -20,12 +20,15 @@ try:
     import pandas  # noqa: F401
 
     from dclab_rnd import decide, kinds, ledger
+    from dclab_rnd.extensions import available
     from dclab_rnd.ledger import shadow
     from dclab_rnd.studio.data import profile_table
 except ImportError as error:
     MISSING = str(error)
 else:
     MISSING = ""
+# the notebook companion is a closed part: the open edition answers through the API and the tool only
+COMPANION = not MISSING and available("notebook_assist")
 
 
 def states(key="binary"):
@@ -61,13 +64,14 @@ class DecideTest(unittest.TestCase):
                 api = client.post("/api/decide", json={"point": point, "state": state}, headers=h)
                 self.assertEqual(api.status_code, 200, api.text)
                 tool = default_registry().call("decide", {"point": point, "state": state}, scope="project")
-                companion = subprocess.run([sys.executable, "-m", "dclab_rnd.notebook_assist", "--decide", json.dumps({"point": point, "state": state}),
-                                            "--home", self.home],
-                                           capture_output=True, text=True, cwd=ROOT, env={**os.environ, "DCLAB_NO_LIVE_MODELS": "1"}, timeout=300)
-                self.assertEqual(companion.returncode, 0, companion.stderr[-800:])
                 one = api.json()
                 self.assertEqual(one, json.loads(tool if isinstance(tool, str) else json.dumps(tool)))
-                self.assertEqual(one, json.loads(companion.stdout))
+                if COMPANION:
+                    companion = subprocess.run([sys.executable, "-m", "dclab_rnd.notebook_assist", "--decide", json.dumps({"point": point, "state": state}),
+                                                "--home", self.home],
+                                               capture_output=True, text=True, cwd=ROOT, env={**os.environ, "DCLAB_NO_LIVE_MODELS": "1"}, timeout=300)
+                    self.assertEqual(companion.returncode, 0, companion.stderr[-800:])
+                    self.assertEqual(one, json.loads(companion.stdout))
                 self.assertTrue(one["evidence"] and one["rule"] is not None)
                 self.assertEqual(one["routing"], "workspace")
                 if name and point == "column.is_identifier":
@@ -209,6 +213,15 @@ class DecideTest(unittest.TestCase):
         state = {"column": "customer_id", "name_tokens": ["customer", "id"], "dtype": "string", "uniqueness": "all"}
         with self.assertRaises(decide.DecideError):
             decide.ask("column.is_identifier", state, options=["maybe"])
+        if any(shadow.GATE.glob("DMG-*.json")):  # the sealed gate's verdicts are records the open edition does not ship
+            self._a_failed_verdict_is_said_as_one(state)
+        if COMPANION:
+            broken = subprocess.run([sys.executable, "-m", "dclab_rnd.notebook_assist", "--decide", "{not json"], capture_output=True, text=True, cwd=ROOT,
+                                    env={**os.environ, "DCLAB_NO_LIVE_MODELS": "1"}, timeout=300)
+            self.assertEqual(broken.returncode, 2)
+            self.assertIn("error", json.loads(broken.stdout))
+
+    def _a_failed_verdict_is_said_as_one(self, state):
         failed = next(n for n, v in shadow.gate_results().items() if v == "fail" and n.startswith("column.is_identifier"))
 
         class Judged:
@@ -221,10 +234,6 @@ class DecideTest(unittest.TestCase):
         with mock.patch.object(shadow, "answerers", return_value=(Judged(),)):
             got = decide.ask("column.is_identifier", state, routing_doc={})
         self.assertEqual(got["models"][0]["sealed_gate"], "fail")  # a failed verdict is said as one, not as "not judged"
-        broken = subprocess.run([sys.executable, "-m", "dclab_rnd.notebook_assist", "--decide", "{not json"], capture_output=True, text=True, cwd=ROOT,
-                                env={**os.environ, "DCLAB_NO_LIVE_MODELS": "1"}, timeout=300)
-        self.assertEqual(broken.returncode, 2)
-        self.assertIn("error", json.loads(broken.stdout))
 
 
 if __name__ == "__main__":

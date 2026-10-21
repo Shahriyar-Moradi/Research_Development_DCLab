@@ -44,6 +44,10 @@ def pricing(varied):
 @unittest.skipIf(MISSING, MISSING)
 class DecisionTest(unittest.TestCase):
     def test_the_fraud_replica_gets_a_review_budget_from_the_cost_of_a_review(self):
+        from dclab_rnd.extensions import available
+
+        if not available("dclab_core.replicas.delivery_fraud"):
+            self.skipTest("the delivery_fraud replica is not part of this edition")
         case = kinds.get("rare_event").case(0)
         case.solution = {**case.solution, "decision": {"action": "review", "value_per_case": 60, "cost_per_review": 1.5}}
         _, _, final = finish(case)

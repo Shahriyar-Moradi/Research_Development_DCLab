@@ -727,9 +727,16 @@ class ApiTests(unittest.TestCase):
     def draft(self, did):
         return self.client.get(f"/api/drafts/{did}").json()
 
+    def needs_bank_marketing(self):
+        from dclab_rnd.studio import data as studio_data
+
+        if "bank_marketing" not in {sample["key"] for sample in studio_data.sample_catalog()}:
+            self.skipTest("the bank_marketing sample table is not part of this edition")
+
     def test_build_it_in_the_chat_builds_the_project_and_the_agent_carries_out_the_plan(self):
         """25.13 (the owner, 2026-10-16: "ok build model" built nothing; "do all things automatically, the agentic way"): the
         words build the project from what the chat settled, with the audit's solution, and hand it to the intern."""
+        self.needs_bank_marketing()
         c = self.client
         d = c.post("/api/drafts", json={"problem": "Rank clients for the term-deposit call campaign"}, headers=self.h).json()
         wait(lambda: self.draft(d["id"])["questions"])
@@ -766,6 +773,7 @@ class ApiTests(unittest.TestCase):
     def test_build_it_builds_when_the_audit_flagged_the_time_column(self):
         """The owner, 2026-10-20: the audit flagged signup_date and the proposal also chose it as the time column; "build it", "ok"
         and "yes" were refused each time ("untick it under Forbidden"). The chat's build keeps it as the time column, never a feature."""
+        self.needs_bank_marketing()
         from dclab_rnd.studio import solution as studio_solution
 
         real = studio_solution.propose
@@ -791,6 +799,7 @@ class ApiTests(unittest.TestCase):
 
     def test_the_build_route_says_what_is_missing_and_a_full_job_queue_keeps_the_project(self):
         """25.13 review: a refusal is a 409 with its rule; when the agent cannot start (the job limit), the project stands and the chat says so."""
+        self.needs_bank_marketing()
         c = self.client
         d = c.post("/api/drafts", json={"problem": "Rank clients for the term-deposit call campaign"}, headers=self.h).json()
         wait(lambda: self.draft(d["id"])["questions"])
@@ -810,6 +819,7 @@ class ApiTests(unittest.TestCase):
         self.assertIn("Open the project", out["note"])
 
     def test_a_failing_build_is_said_in_the_chat(self):
+        self.needs_bank_marketing()
         c = self.client
         d = c.post("/api/drafts", json={"problem": "Rank clients for the term-deposit call campaign"}, headers=self.h).json()
         wait(lambda: self.draft(d["id"])["questions"])
@@ -831,10 +841,13 @@ class ApiTests(unittest.TestCase):
             emitted |= set(re.findall(r"(?:store|drafts)\.emit\([A-Za-z_.\[\]\"']+, \"([a-z_]+)\"", path.read_text(encoding="utf-8")))
         core = (root / "agentic" / "web" / "src" / "core.js").read_text(encoding="utf-8")
         listened = set(re.findall(r"'([a-z]+)'", re.search(r"\[('message'.*?)\]\.forEach\(t => src\.addEventListener", core, re.S).group(1)))
-        self.assertTrue(emitted >= {"chat", "twin", "plan"}, emitted)
+        from dclab_rnd.extensions import available
+
+        self.assertTrue(emitted >= {"chat", "plan"} | ({"twin"} if available("twin") else set()), emitted)  # the twin lane is a closed part
         self.assertEqual(emitted - listened, set(), "events the server emits and the page never hears")
 
     def test_full_flow_sample_then_build(self):
+        self.needs_bank_marketing()
         c = self.client
         self.assertEqual(len(c.get("/api/packs").json()), len(pack.PACKS))
         self.assertEqual(c.post("/api/drafts", json={"problem": "x"}, headers=self.h).status_code, 422)

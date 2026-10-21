@@ -173,7 +173,10 @@ class EngineRecordTests(unittest.TestCase):
         return done, by
 
     def test_engine_kinds_record_the_split_and_metric_they_ran(self):
-        for key in ("binary", "regression", "places", "rare_event"):
+        from dclab_rnd.extensions import available
+
+        fraud = ("rare_event",) if available("dclab_core.replicas.delivery_fraud") else ()  # its replica is not in the open edition
+        for key in ("binary", "regression", "places", *fraud):
             done, by = self.check(key)
             self.assertEqual(by["primary_metric"]["value"], done.records["data"]["primary_metric"], key)
             self.assertEqual(by["split"]["value"], done.evidence("data")["split_strategy"], key)

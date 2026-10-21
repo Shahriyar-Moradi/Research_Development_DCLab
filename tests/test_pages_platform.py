@@ -14,6 +14,10 @@ sys.path.insert(0, str(ROOT))
 def setUpModule():  # 21.5: these tests are about routing, not the harness suite: a suite run that passed is assumed
     from unittest import mock
 
+    from dclab_rnd.extensions import available
+
+    if not available("agent_eval.regression"):
+        return  # the harness suite is a closed part: the open edition has no gate to assume passed
     patcher = mock.patch("dclab_rnd.agent_eval.regression.passed_with", return_value={"id": "HRN-TEST"})
     patcher.start()
     unittest.addModuleCleanup(patcher.stop)
@@ -62,10 +66,11 @@ class PlatformApiTests(unittest.TestCase):
         self.assertNotIn(("PUT", "/api/projects/{project_id}/contract"), rest)  # a hidden alias
         self.assertTrue(all(p.startswith("/api/") for _, p in rest))
         self.assertEqual(sorted(d["rest_groups"]), sorted({r["group"] for r in d["rest"]}))
-        cli = {t["target"]: t for t in d["cli"]}
-        self.assertIn("rd-check", cli)
-        self.assertIn("MCP", cli["mcp-serve"]["help"])
-        self.assertEqual(cli["knowledge"]["help"], "rebuild the evidence index and the SFT v3 corpus after new results")
+        if (ROOT / "Makefile").exists():  # the open edition ships no Makefile
+            cli = {t["target"]: t for t in d["cli"]}
+            self.assertIn("rd-check", cli)
+            self.assertIn("MCP", cli["mcp-serve"]["help"])
+            self.assertEqual(cli["knowledge"]["help"], "rebuild the evidence index and the SFT v3 corpus after new results")
         self.assertEqual(d["vscode"]["status"], "not packaged yet")
 
     def test_connector_status_names_and_booleans_never_secrets(self):

@@ -101,6 +101,7 @@ console.log(JSON.stringify(out));
 
 
 class BrowserTestsTests(unittest.TestCase):
+    @unittest.skipUnless((ROOT / "scripts" / "browser_e2e.py").exists(), "scripts/browser_e2e.py is not part of this edition")
     def test_the_browser_tests_visit_every_page_the_app_has(self):
         sys.path.insert(0, str(ROOT / "scripts"))
         import browser_e2e
