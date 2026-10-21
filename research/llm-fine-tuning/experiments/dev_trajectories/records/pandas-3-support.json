@@ -1,0 +1,81 @@
+{
+ "package": "pandas-3-support",
+ "title": "pandas 3 support: text found in either string type, times without a year left missing, read-only arrays copied",
+ "date": "2026-10-21",
+ "request": "The open edition caps pandas below 3; run the suite on pandas 3 and fix what breaks (owner: go on with what remains).",
+ "spec": "pandas 3.0 release notes: the string dtype by default, copy-on-write (read-only arrays from to_numpy).",
+ "plan": [
+  "Run the open tree's suite on pandas 3 (92 of 97 files passed).",
+  "Group the failures by cause.",
+  "Fix each cause once, in dclab_core where shared, so pandas 2 behaves as before.",
+  "Run the failing files on pandas 3 and pandas 2, then the full gate."
+ ],
+ "decisions": [
+  {
+   "decision": "One module, dclab_core.times, for is_text and read_times.",
+   "why": "Nine places asked 'is it text' and ten parsed mixed times; one rule keeps them equal on both versions."
+  },
+  {
+   "decision": "A parsed time before the year 1000 is taken as one whose year was not written.",
+   "why": "pandas 3's mixed parsing fills a missing year with 1; no real table has dates in year 1."
+  },
+  {
+   "decision": "Tests that asserted dtype == object now assert is_text.",
+   "why": "What they check is that a column stayed text, not which type pandas uses for text."
+  }
+ ],
+ "change": "dclab_core/times.py (new), datacard.py, analyse.py, leaves.py, anomaly.py (read_times, copies), dclab_rnd/draft/structure.py, studio/data.py, tools.py, kinds/embedded.py, general_pipeline/transformer.py (is_text), tests; dclab-core 0.100.1",
+ "findings": [
+  {
+   "id": "P1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Text columns were not recognised as text on pandas 3.",
+   "scenario": "A label column 'square'/'circle' sent to astype(int); a 'cash' column sent to float.",
+   "cause": "pandas 3 stores text in its string type, so dtype == object is False.",
+   "fix": "is_text: object or pd.StringDtype.",
+   "test": "tests/test_core_embeddings.py, tests/test_retail_returns_replica.py"
+  },
+  {
+   "id": "P2",
+   "source": "test",
+   "severity": "latent",
+   "defect": "A syslog time without a year became a date in year 1.",
+   "scenario": "auth.log lines 'Oct  1 14:32:00' read as Timestamp('0001-10-01').",
+   "cause": "pandas 3's format='mixed' fills a missing year with 1 where pandas 2 returned NaT.",
+   "fix": "read_times / without_yearless: values before 1000 made missing.",
+   "test": "tests/test_core_times.py, tests/test_draft_data.py"
+  },
+  {
+   "id": "P3",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "In-place changes to arrays from pandas failed.",
+   "scenario": "anomaly.split shuffling the index; datacard's quantiles; a test flipping labels.",
+   "cause": "Copy-on-write: to_numpy() returns read-only views.",
+   "fix": "to_numpy(copy=True) where the array is changed.",
+   "test": "tests/test_core_anomaly.py, tests/test_solutions.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the 7 affected test files",
+   "gate": "pass on pandas 3.0.6 and pandas 2.3.3",
+   "result": "135 tests pass on both",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the affected files only; the whole suites are run next"
+   ]
+  }
+ ],
+ "outcome": "The failing files pass on pandas 3 and pandas 2; the full suites decide whether the open edition's pandas<3 cap can go.",
+ "lessons": [
+  "A dtype check is a claim about the library's version: ask what you mean (is it text?) through one helper.",
+  "A parser that changes from 'missing' to 'a guess' fails silently; test the missing case, not only the read one."
+ ],
+ "risks": [
+  "Places that test dtype in other ways (select_dtypes, kind letters) were searched, but code paths without tests may still assume object."
+ ],
+ "commits": []
+}

@@ -76,7 +76,7 @@ class FTTransformerClassifier(BaseEstimator, ClassifierMixin):
             cat_cols = [
                 c
                 for c in X_df.columns
-                if X_df[c].dtype == "object"
+                if X_df[c].dtype == "object" or isinstance(X_df[c].dtype, pd.StringDtype)  # pandas 3 text
                 or X_df[c].nunique() < 10
                 or c in ["deliverey_category_id", "weekday", "time_bucket", "is_rush_hour", "is_weekend"]
             ]

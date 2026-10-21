@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dclab_core.replicas import retail_returns as rr  # noqa: E402
+from dclab_core.times import is_text  # noqa: E402
 
 SEEDS = (0, 1, 2)
 
@@ -112,7 +113,7 @@ class RetailReturnsReplicaTests(unittest.TestCase):
             self.assertTrue(((gap > 0) & (gap <= 90)).all(), seed)
             self.assertGreaterEqual(int(((copies["ts"].to_numpy() >= cut) & (orig["sold"].to_numpy() < cut)).sum()), 1, seed)  # across the cut
             # no column of the returns table alone gives the fraud away ...
-            singles = {c: _auc(m[c].astype("category").cat.codes if m[c].dtype == object else m[c], m["fraud"])
+            singles = {c: _auc(m[c].astype("category").cat.codes if is_text(m[c]) else m[c], m["fraud"])
                        for c in ("refund_method", "reason_code", "amount", "items", "rule_flag")}
             best = max(max(v, 1 - v) for v in singles.values())
             self.assertLess(best, 0.85, (seed, singles))

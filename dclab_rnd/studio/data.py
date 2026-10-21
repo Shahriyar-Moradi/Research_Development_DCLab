@@ -10,6 +10,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from dclab_core.times import read_times
 
 from dclab_rnd.agentic.catalog import DATASETS, ROOT
 from dclab_rnd.categoricals import declared_categorical
@@ -53,7 +54,7 @@ def _datetime_like(series: pd.Series) -> bool:
     if sample.empty or sample.str.len().median() < 6:
         return False
     try:
-        parsed = pd.to_datetime(sample, errors="coerce", format="mixed")
+        parsed = read_times(sample)
     except (TypeError, ValueError):
         parsed = pd.to_datetime(sample, errors="coerce")
     return bool(parsed.notna().mean() >= 0.9)

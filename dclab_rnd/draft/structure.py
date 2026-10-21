@@ -33,6 +33,7 @@ from typing import Any, Callable, Iterable
 
 import numpy as np
 import pandas as pd
+from dclab_core.times import is_text, without_yearless
 
 from dclab_rnd import prompts
 from dclab_rnd.studio.data import load_table
@@ -119,7 +120,7 @@ def _to_datetime(text: pd.Series, fmt: str) -> pd.Series | None:
             out = pd.to_datetime(text, format=fmt, errors="coerce", utc=True)
     except (TypeError, ValueError, OverflowError):
         return None
-    return out if pd.api.types.is_datetime64_any_dtype(out) else None
+    return without_yearless(out) if pd.api.types.is_datetime64_any_dtype(out) else None  # pandas 3 reads a missing year as 1
 
 
 def _as_number(series: pd.Series) -> pd.Series:
@@ -472,7 +473,7 @@ def _settle_cells(frame: pd.DataFrame, info: dict[str, Any]) -> pd.DataFrame:
     values: list[pd.Series] = []
     for position in range(frame.shape[1]):
         name, series = str(frame.columns[position]), frame.iloc[:, position]
-        if series.dtype == object:
+        if is_text(series):
             kinds = series.map(_cell_kind)
             if (kinds == "nested_list").any():
                 name, series = f"{name}.count", series.map(_item_count)

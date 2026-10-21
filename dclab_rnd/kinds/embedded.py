@@ -11,6 +11,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from dclab_core.times import is_text
 from pydantic import BaseModel, ConfigDict
 
 from .base import ProblemKind
@@ -193,7 +194,7 @@ class Embedded(ProblemKind):
             X, first = embeddings.encode(items, encoder, cache)
             _, again = embeddings.encode(items, encoder, cache)  # the second pass reads the cache
             y = table[label]
-            y = (y == sorted(y.unique())[-1]).astype(int) if y.dtype == object else y.astype(int)
+            y = (y == sorted(y.unique())[-1]).astype(int) if is_text(y) else y.astype(int)
             result = embeddings.evaluate(X, y.to_numpy(), table[f["source_column"]], threshold=threshold)
             by_source = embeddings.near_duplicates(X, table[f["source_column"]].to_numpy(), threshold=threshold)
             return {"encoding": first, "again": again, "calibration": calibration, "threshold": threshold, "evaluation": result,

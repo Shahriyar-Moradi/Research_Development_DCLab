@@ -18,6 +18,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from dclab_core.times import is_text  # noqa: E402
 from dclab_rnd.draft import analyze as an  # noqa: E402
 from dclab_rnd.draft import clean as cl  # noqa: E402
 from dclab_rnd.draft import structure as st  # noqa: E402
@@ -99,7 +100,8 @@ class StructureTabularTest(TempDirTest):
         pd.DataFrame({"id": [1, 2, 3], "tags": [["a", "b"], ["c"], []]}).to_parquet(path)
         frame, info = st.to_table(path)
         self.assertEqual(info["format"], "parquet")
-        self.assertEqual(frame["tags"].tolist(), ["a|b", "c", None])
+        self.assertEqual(frame["tags"].tolist()[:2], ["a|b", "c"])
+        self.assertTrue(pd.isna(frame["tags"].iloc[2]))  # missing: None on pandas 2, NaN in pandas 3's string type
         self.assertTrue(any("Joined lists" in n for n in info["notes"]))
 
     def test_excel_reads_the_first_sheet_with_data(self):
@@ -217,7 +219,7 @@ class StructureLogTest(TempDirTest):
         self.assertEqual(str(frame.loc[1, "timestamp"]), "2024-05-02 08:00:13.007000")
         self.assertEqual(frame.loc[3, "msg"], "payment for order 1003 failed")
         self.assertEqual(frame["level"].unique().tolist(), ["INFO", "WARN", "ERROR", "DEBUG"])
-        self.assertEqual(frame["duration_ms"].dtype, object)  # values of keys stay text; clean reads numbers
+        self.assertTrue(is_text(frame["duration_ms"]))  # values of keys stay text; clean reads numbers
 
     def test_timestamp_level_message_lines(self):
         lines = "\n".join(f"2024-01-0{1 + i % 9}T10:0{i % 10}:00Z [{['INFO', 'ERROR'][i % 2]}] job {i} finished" for i in range(12))
@@ -396,7 +398,7 @@ class CleanTest(unittest.TestCase):
         self.assertEqual(out["share"].tolist()[:4], [5.0, 10.0, 12.5, 0.0])
         self.assertIn("percentages", step["detail"])
         for column in ("zip", "mixed", "decimal_comma"):
-            self.assertEqual(out[column].dtype, object, column)
+            self.assertTrue(is_text(out[column]), column)
 
     def test_whole_numbers_become_integers(self):
         out, _ = cl.clean(pd.DataFrame({"n": ["1,000", "2", "3"], "m": ["1", "2", None]}))
@@ -418,8 +420,8 @@ class CleanTest(unittest.TestCase):
         self.assertEqual(out.loc[1, "signed"], pd.Timestamp("2024-01-06 10:30:00"))
         self.assertTrue(pd.isna(out.loc[9, "signed"]))
         self.assertIn("'unknown'", step["detail"])
-        self.assertEqual(out["weekday"].dtype, object)
-        self.assertEqual(out["phone"].dtype, object)
+        self.assertTrue(is_text(out["weekday"]))
+        self.assertTrue(is_text(out["phone"]))
 
     def test_booleans(self):
         frame = pd.DataFrame({"row": range(7), "active": ["yes", "No", "Y", "n", "TRUE", "f", None],
@@ -429,7 +431,7 @@ class CleanTest(unittest.TestCase):
         self.assertEqual(out["active"].tolist()[:6], [True, False, True, False, True, False])
         self.assertTrue(pd.isna(out.loc[6, "active"]))
         self.assertEqual(entry(log, "booleans")["changed"], 6)
-        self.assertEqual(out["maybe"].dtype, object)
+        self.assertTrue(is_text(out["maybe"]))
 
     def test_empty_rows_and_columns(self):
         frame = pd.DataFrame({"a": [1, None, 3], "b": ["x", None, "z"], "c": [None, None, None]})

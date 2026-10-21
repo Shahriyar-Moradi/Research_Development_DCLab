@@ -4,6 +4,15 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.100.1 (2026-10-21)
+
+pandas 3 support (pandas 2 unchanged).
+
+- `times` (new): `is_text` (a text column is `object` on pandas 2 and the string type on pandas 3) and `read_times`
+  (per-value time parsing that leaves a time without a written year missing: pandas 3 read "Oct  1 14:32:00" as year 1).
+  `datacard`, `analyse`, `leaves` and `anomaly` read times through it, so a year-less column is not taken for a time.
+- `anomaly.split` and `datacard.column_card` copy the arrays they change (pandas 3 hands out read-only arrays).
+
 ## 0.100.0 (2026-10-20)
 
 Prompt caching on Anthropic's Messages API.

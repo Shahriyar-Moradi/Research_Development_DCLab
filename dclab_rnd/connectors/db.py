@@ -257,7 +257,7 @@ def _to_parquet(frame, path: Path) -> None:
     frame = frame.copy()
     frame.columns = [str(c) for c in frame.columns]
     for col in frame.columns:
-        if frame[col].dtype != object:
+        if frame[col].dtype != object:  # Decimal cells come back as objects on pandas 2 and 3
             continue
         values = frame[col].dropna()
         if len(values) and all(isinstance(v, Decimal) for v in values):

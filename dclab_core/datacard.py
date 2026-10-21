@@ -36,6 +36,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Literal, Optional
 
 import numpy as np
 import pandas as pd
+from dclab_core.times import read_times
 from pydantic import Field
 
 from dclab_core import sensitivity
@@ -216,7 +217,7 @@ def _dates(series: pd.Series) -> Optional[pd.Series]:
     sample = series.dropna().astype(str).head(200)
     if sample.empty or not sample.str.match(r"^\d{4}-\d{2}-\d{2}").all():
         return None
-    parsed = pd.to_datetime(series, errors="coerce", format="mixed")
+    parsed = read_times(series)
     return parsed if parsed.notna().sum() >= 0.99 * series.notna().sum() else None
 
 
@@ -382,7 +383,7 @@ def column_card(name: str, series: pd.Series, keep_categories: bool = False) -> 
         numbers = pd.to_numeric(values, errors="coerce").astype(float)
         numbers = numbers[np.isfinite(numbers)]  # an inf or two never cost the whole card
         if len(numbers) >= MIN_ROWS:
-            q = numbers.quantile(list(QUANTILES)).to_numpy()
+            q = numbers.quantile(list(QUANTILES)).to_numpy(copy=True)  # changed below: pandas 3's arrays are read-only
             if len(numbers) < 100:  # with few rows the 1st and 99th percentiles are nearly one row's value
                 q[0], q[-1] = q[1], q[-2]
             spread = float(q[-2] - q[1]) or float(q[-1] - q[0]) or abs(float(q[3])) or 1.0

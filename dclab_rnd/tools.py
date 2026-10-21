@@ -164,12 +164,13 @@ def audit_columns(path: str, target: str, task: str = "auto", blind: bool = Fals
 def _audit_frame(X: Any, y: Any, task: str = "auto", blind: bool = False, source: str = "") -> dict[str, Any]:
     import numpy as np
     import pandas as pd
+    from dclab_core.times import is_text
     from sklearn.metrics import roc_auc_score
 
     y = pd.Series(y).reset_index(drop=True)
     X = X.reset_index(drop=True)
     if task == "auto":
-        task = "classification" if (y.dtype == object or y.nunique() <= 20) else "regression"
+        task = "classification" if (is_text(y) or y.nunique() <= 20) else "regression"
     if task == "classification":
         classes = y.astype(str)
         positive = classes.value_counts().index[-1] if classes.nunique() == 2 else None

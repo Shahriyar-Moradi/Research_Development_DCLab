@@ -84,7 +84,7 @@ class ReplicaTest(unittest.TestCase):
         self.assertEqual(r["near_duplicates_across_holdout"]["pairs_across_sides"], 0)
         self.assertGreater(r["near_duplicates_across_random_folds"]["pairs_across_sides"], 5 * max(r["near_duplicates_across_folds"]["pairs_across_sides"], 1))
         self.assertLess(r["grouped_folds"], r["random_folds"])  # near copies flatter random folds
-        y = (im.table["label"] == "square").astype(int).to_numpy()
+        y = (im.table["label"] == "square").astype(int).to_numpy(copy=True)  # changed below
         y[r["holdout_rows"]] = 1 - y[r["holdout_rows"]]  # other labels on the holdout: the model must not move
         again = embeddings.evaluate(X, y, im.table["scene"], threshold=cal["threshold"])
         self.assertEqual(again["holdout_predictions"], r["holdout_predictions"])

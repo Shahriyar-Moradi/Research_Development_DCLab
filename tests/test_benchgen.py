@@ -52,9 +52,11 @@ class PlantTest(unittest.TestCase):
         import numpy as np
         import pandas as pd
 
+        from dclab_core.times import is_text
+
         f, kind_of = self.frame, {k: c for c, k in self.planted.items()}
         col = lambda k: f[kind_of[k]]  # noqa: E731
-        y = (f["churned"] == "yes").astype(float) if f["churned"].dtype == object else f["churned"].astype(float)
+        y = (f["churned"] == "yes").astype(float) if is_text(f["churned"]) else f["churned"].astype(float)
         self.assertTrue(col("identifier").is_unique)
         self.assertLess(col("entity").nunique(), len(f) / 2)  # a key that recurs
         self.assertTrue(3 <= col("code").nunique() <= 8 and pd.api.types.is_numeric_dtype(col("code")))

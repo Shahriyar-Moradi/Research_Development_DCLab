@@ -24,6 +24,9 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 
+from dclab_core.times import read_times
+
+
 DETECTORS = ("rules", "isolation_forest", "nearest_neighbours", "entity")
 SHAPES = ("far_value", "broken_pair", "busy_entity")
 ID_LIKE = ("_id", "_ref", "_key", "_uuid", "phone", "email")
@@ -155,7 +158,7 @@ def _days(frame: pd.DataFrame, time: Optional[str]) -> Optional[pd.Series]:
     raw = frame[time]
     if pd.api.types.is_numeric_dtype(raw) and not pd.api.types.is_datetime64_any_dtype(raw):
         return None
-    stamps = pd.to_datetime(raw, errors="coerce", format="mixed")
+    stamps = read_times(raw)
     return stamps.dt.floor("D") if stamps.notna().mean() > 0.9 else None
 
 
@@ -175,7 +178,7 @@ def split(frame: pd.DataFrame, time: Optional[str] = None, holdout: float = 0.2,
         info = {"by": "day", "holdout_from": str(pd.Timestamp(hold_from).date()), "validation_from": str(pd.Timestamp(val_from).date())}
     else:
         rng = np.random.default_rng(seed)
-        idx = frame.index.to_numpy()
+        idx = frame.index.to_numpy(copy=True)  # shuffled in place: pandas 3 hands out read-only arrays
         rng.shuffle(idx)
         h = int(len(idx) * holdout)
         holdout_idx, train_idx = pd.Index(idx[:h]), pd.Index(idx[h:])

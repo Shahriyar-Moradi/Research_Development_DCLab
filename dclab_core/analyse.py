@@ -24,6 +24,7 @@ from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
+from dclab_core.times import read_times
 
 from dclab_core.advisor import Advisor
 from dclab_core.agents import Role, run_role
@@ -117,14 +118,14 @@ def _time_columns(df: pd.DataFrame) -> list[str]:
         if pd.api.types.is_datetime64_any_dtype(df[c]):
             out.append(c)
         elif _texty(df[c]) and TIME_NAME.search(str(c)):  # pandas 3 reads text as the string dtype, not object
-            parsed = pd.to_datetime(df[c].dropna().head(200), errors="coerce", format="mixed")
+            parsed = read_times(df[c].dropna().head(200))
             if len(parsed) and parsed.notna().mean() > 0.9:
                 out.append(c)
     return out
 
 
 def _as_time(s: pd.Series) -> pd.Series:
-    return s if pd.api.types.is_datetime64_any_dtype(s) else pd.to_datetime(s, errors="coerce", format="mixed")
+    return s if pd.api.types.is_datetime64_any_dtype(s) else read_times(s)
 
 
 def _decimal(s: pd.Series) -> bool:

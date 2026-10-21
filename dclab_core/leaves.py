@@ -23,6 +23,7 @@ from typing import Any, Callable, Optional
 
 import numpy as np
 import pandas as pd
+from dclab_core.times import read_times
 
 from dclab_core import anomaly
 from dclab_core.compose import MIN_POSITIVES, budget_rows, recall_at
@@ -170,7 +171,7 @@ def confirmation_column(cases: pd.DataFrame, key: Sequence[str]) -> Optional[str
             continue
         if not (CONFIRM_NAME.search(str(c)) or DATE_NAME.search(str(c))):
             continue
-        when = pd.to_datetime(cases[c], errors="coerce", format="mixed")
+        when = read_times(cases[c])
         if when.notna().mean() > 0.9:
             found.append((0 if CONFIRM_NAME.search(str(c)) else 1, str(c)))
     return min(found)[1] if found else None
@@ -181,7 +182,7 @@ def case_dates(frame: pd.DataFrame, cases: pd.DataFrame, key: Sequence[str], col
     from dclab_core.analyse import _key_text
 
     key = list(key)
-    when = pd.to_datetime(cases[column], errors="coerce", format="mixed").reset_index(drop=True)
+    when = read_times(cases[column]).reset_index(drop=True)
     wanted = cases[key].reset_index(drop=True).apply(_key_text)
     have = frame[key].apply(_key_text)
     if len(key) == 1:
@@ -333,7 +334,7 @@ def _times(frame: pd.DataFrame, column: Optional[str]) -> Optional[pd.Series]:
     raw = frame[column]
     if pd.api.types.is_numeric_dtype(raw) and not pd.api.types.is_datetime64_any_dtype(raw):
         return None
-    t = pd.to_datetime(raw, errors="coerce", format="mixed")
+    t = read_times(raw)
     return t if t.notna().mean() > 0.9 else None
 
 
@@ -391,7 +392,7 @@ def _shared_as_of(frame: pd.DataFrame, key: str, table: pd.DataFrame, links: Seq
     (an account opened later is not yet part of the group), else as the table stands. A value shared by more than LINK_MAX_GROUP accounts counts as one."""
     best = pd.Series(1.0, index=frame.index)
     by_account = table.set_index(key)
-    opened = pd.to_datetime(table[signup], errors="coerce", format="mixed").fillna(pd.Timestamp("1900-01-01")).to_numpy() if signup else None
+    opened = read_times(table[signup]).fillna(pd.Timestamp("1900-01-01")).to_numpy() if signup else None
     for c in links:
         value = frame[key].map(by_account[c])
         if opened is None or t is None:
