@@ -455,6 +455,17 @@ SELFPLAY_WS = re.compile(r"^selfplay__ledgers__(?P<kind>[a-z0-9_]+?)__(?P<seed>\
 LABEL_RANK = {"benchmark": 0, "measured": 1, "user_decision_exposed": 2, "blind": 3}  # the planted truth first; a model's never
 
 
+NO_OUTCOME_KINDS = frozenset({"segmentation", "anomaly"})  # self-play kinds that learn no outcome: groups, a review list
+
+
+def selfplay_problem(kind: str, seed: str, group: str) -> dict[str, Any]:
+    """What a self-play trajectory says it was asked: an outcome named, except for a kind that has none to learn."""
+    named = kind not in NO_OUTCOME_KINDS
+    said = "its outcome and its prediction moment are stated" if named else "it has no outcome to learn; its task and its moment are stated"
+    return {"request": f"Solve the invented {kind} problem (seed {seed}): {said}.", "agent": "engine", "answerer": "rules",
+            "origin": "verified_synthetic", "outcome_named": named, "group": group}
+
+
 def selfplay_verified(records: Iterable[StoreRecord]) -> dict[str, bool]:
     """Each self-play solve's group (``selfplay:<kind>:<seed>``) and whether its kind's acceptance decisions all passed."""
     out: dict[str, bool] = {}
@@ -506,8 +517,7 @@ def selfplay_trajectories(records: Iterable[StoreRecord], verified: dict[str, bo
         yield SolverTrajectory(
             id=f"m5_solver_llm:selfplay:{kind}:{seed}", model_type="m5_solver_llm", split=split, provenance=first.provenance, more=more,
             problem_kind=kind, steps=steps, metric=outcome.get("metric"), score=outcome.get("value"),
-            problem={"request": f"Solve the invented {kind} problem (seed {seed}): its outcome and its prediction moment are stated.",
-                     "agent": "engine", "answerer": "rules", "origin": "verified_synthetic", "outcome_named": True, "group": group},
+            problem=selfplay_problem(kind, seed, group),
             submission={"verified": bool(verified.get(group)), "interval": outcome.get("interval"), "reference": outcome.get("reference"),
                         "labelled_steps": sum(1 for s in steps if s.result and s.result.get("label")),
                         "steps_against_label": sum(1 for s in steps if not s.ok)})

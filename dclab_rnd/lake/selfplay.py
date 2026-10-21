@@ -10,6 +10,17 @@ Every example comes twice: with the table's own column names, and with the names
 learns to read the bands and the stated moment, not to recognise a replica's names. Origin ``verified_synthetic``;
 the group is the kind and seed, so a problem never lands in two splits.
 
+Every kind is played, not only those with an outcome column:
+
+- a kind whose case names no outcome column (entity tables, streams, ranking and matching state theirs in the kind's
+  fields; segmentation and anomaly have none) is solved by the engine on its own machine and checked by its
+  ``accept_engine``; its decision ledger is its record. It writes no example of the families below: they assume one
+  outcome column and the person's forbidden list, while these machines keep their leaks out themselves, so a leakage
+  example would say "nothing forbidden" on a table with a planted leak;
+- a kind the engine does not run (``runs_in_engine = False``: metric change) is solved by its own library (``kind.solve``)
+  and checked by ``kind.accept``; its path records no ledger decision, so the whole solve (each question, the rules'
+  reading, the answer, the planted truth, the checks) is kept in ``library_solves.jsonl``.
+
 ``python -m dclab_rnd.lake selfplay [--seeds 20] [--kinds binary,regression]`` writes ``lake/bronze/selfplay/``
 (examples and the rejection log); ``make lake`` reads them into gold.
 """
@@ -251,15 +262,52 @@ def _run_recorded(A: Any, case: Any, key: str, group: str) -> Any:
         ledger.install(before)
 
 
+def teaches(kind: Any, case: Any) -> bool:
+    """Whether a verified solve becomes examples of the families below: an engine kind whose case names its outcome column."""
+    return getattr(kind, "runs_in_engine", True) and getattr(case, "target", None) is not None
+
+
+def _solve_library(kind: Any, case: Any, group: str) -> tuple[Any, list[dict[str, Any]]]:
+    """A kind the engine does not run, solved by its own library and checked by its own acceptance; a ledger installed
+    meanwhile keeps whatever the solve records (``ledgers/<kind>/<seed>/``, left out when nothing was)."""
+    from .. import ledger
+
+    _, key, seed = group.split(":")
+    folder = OUT / "ledgers" / key / seed
+    shutil.rmtree(folder, ignore_errors=True)
+    book = ledger.FileLedger(folder, "selfplay")
+    book.home = folder
+    before = ledger._INSTALLED.get("ledger")
+    ledger.install(book)
+    try:
+        run = kind.solve(case)
+    finally:
+        ledger.install(before)
+    if folder.is_dir() and not any(p.is_file() for p in folder.rglob("*")):
+        shutil.rmtree(folder)  # no decision recorded: no empty workspace for the store to find
+    return run, kind.accept(run)
+
+
+def _plain(value: Any) -> Any:
+    """A library solve as JSON, whole: its answers (pydantic models) as their fields."""
+    if hasattr(value, "model_dump"):
+        return value.model_dump(mode="json")
+    return str(value)
+
+
 def _label_tuning(book: Any, kind_key: str, seed: int, run: Any) -> None:
     """29.3: the solve's ``tuning.accept`` labelled by a fresh draw of its replica (``lake/replicate.py``): the right answer
     to "keep the tuning?", measured on new rows of the same process; nothing when the draw cannot tell them apart. A
-    replicate that fails costs the label only, never the solve."""
-    from .. import kinds, ledger
+    replicate that fails costs the label only, never the solve. The kind is self-play's own (an image variant draws its
+    image case again; the registry knows only the engine kinds)."""
+    from .. import ledger
     from .replicate import tuning_on_fresh_draw
 
     try:
-        got = tuning_on_fresh_draw(kinds.get(kind_key), seed, run)
+        kind = next((k for k in _kinds() if k.key == kind_key), None)
+        if kind is None:
+            raise KeyError(f"no self-play kind {kind_key!r}")
+        got = tuning_on_fresh_draw(kind, seed, run)
         records = book.records(point="tuning.accept")
         if got is None or not records:
             return
@@ -303,6 +351,8 @@ def backfill(kinds_keys: Iterable[str] | None = None, log=print, limit: int | No
         _, key, seed = group.split(":")
         if not t.get("verified") or group in done or (wanted and key not in wanted) or key not in by_key:
             continue
+        if not getattr(by_key[key], "runs_in_engine", True):
+            continue  # a library kind: no engine ledger to record again, its solve is kept whole already
         if limit is not None and n >= limit:
             break
         kind, started = by_key[key], time.perf_counter()
@@ -310,7 +360,8 @@ def backfill(kinds_keys: Iterable[str] | None = None, log=print, limit: int | No
             case = kind.case(int(seed))
             run = _run_recorded(A, case, getattr(kind, "engine_key", key), group)
             checks = kind.accept_engine(run) if kind.own_machine() is not None else kind.accept(run)
-            got = [e for masked in (False, True) for e in examples_of(kind, int(seed), case, run, checks, masked) if e.family == "solution_design"]
+            got = [e for masked in (False, True) for e in examples_of(kind, int(seed), case, run, checks, masked)
+                   if e.family == "solution_design"] if teaches(kind, case) else []
             if not [c for c in checks if not c["ok"]] and group not in kept:
                 with (OUT / "examples.jsonl").open("a", encoding="utf-8") as f:
                     f.write("".join(e.model_dump_json() + "\n" for e in got))
@@ -343,11 +394,16 @@ def solve(kinds_keys: Iterable[str] | None = None, seeds: int = 20, log=print) -
         with done_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps({"group": group, **outcome}) + "\n")
 
+    def keep_library(group: str, run: Any, checks: list[dict[str, Any]]) -> None:  # the whole solve, verified or not
+        missed = [c for c in checks if not c["ok"]]
+        with (OUT / "library_solves.jsonl").open("a", encoding="utf-8") as f:
+            f.write(json.dumps({"group": group, "verified": bool(checks) and not missed, "checks": checks, "solve": run,
+                                "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}, default=_plain) + "\n")
+
     for kind in _kinds():
         if wanted and kind.key not in wanted:
             continue
-        if not getattr(kind, "runs_in_engine", True):
-            continue
+        library = not getattr(kind, "runs_in_engine", True)
         for seed in range(seeds):
             group = f"selfplay:{kind.key}:{seed}"
             if group in done:
@@ -355,11 +411,15 @@ def solve(kinds_keys: Iterable[str] | None = None, seeds: int = 20, log=print) -
             started = time.perf_counter()
             try:
                 case = kind.case(seed)
-                if case is None or case.target is None:
-                    break  # a kind without a replica case, or one with no outcome (anomaly: its own path)
-                run = _run_recorded(A, case, getattr(kind, "engine_key", kind.key), group)
-                # a kind with its own machine checks the engine's run with accept_engine (its accept reads its own machine's result)
-                checks = kind.accept_engine(run) if kind.own_machine() is not None else kind.accept(run)
+                if case is None:
+                    break  # a kind without a replica case
+                if library:
+                    run, checks = _solve_library(kind, case, group)
+                    keep_library(group, run, checks)
+                else:
+                    run = _run_recorded(A, case, getattr(kind, "engine_key", kind.key), group)
+                    # a kind with its own machine checks the engine's run with accept_engine (its accept reads its own machine's result)
+                    checks = kind.accept_engine(run) if kind.own_machine() is not None else kind.accept(run)
             except Exception as exc:  # noqa: BLE001 — a solve that breaks is a rejection with its reason, never a stop
                 rejected.append({"group": group, "reason": f"{type(exc).__name__}: {str(exc)[:200]}"})
                 record(group, [], {"verified": False, "reason": rejected[-1]["reason"]})
@@ -370,14 +430,15 @@ def solve(kinds_keys: Iterable[str] | None = None, seeds: int = 20, log=print) -
                 record(group, [], {"verified": False, "missed": rejected[-1]["missed"]})
                 continue
             got: list[L.TrainingExample] = []
-            for masked in (False, True):
-                got += examples_of(kind, seed, case, run, checks, masked)
-            kept += got
-            try:
-                with (OUT / "screens.jsonl").open("a", encoding="utf-8") as f:
-                    f.write(json.dumps(screen_record(kind, seed, case, run), default=str) + "\n")
-            except Exception as exc:  # noqa: BLE001 — a screen that cannot be read costs itself, never the examples
-                log(f"{group}: no screen record ({type(exc).__name__})")
+            if teaches(kind, case):
+                for masked in (False, True):
+                    got += examples_of(kind, seed, case, run, checks, masked)
+                kept += got
+                try:
+                    with (OUT / "screens.jsonl").open("a", encoding="utf-8") as f:
+                        f.write(json.dumps(screen_record(kind, seed, case, run), default=str) + "\n")
+                except Exception as exc:  # noqa: BLE001 — a screen that cannot be read costs itself, never the examples
+                    log(f"{group}: no screen record ({type(exc).__name__})")
             record(group, got, {"verified": True, "examples": len(got), "seconds": round(time.perf_counter() - started, 1)})
             log(f"{group}: verified ({len(checks)} decisions, {time.perf_counter() - started:.0f}s)")
     tried = [json.loads(x) for x in done_path.read_text(encoding="utf-8").splitlines() if x.strip()]
@@ -394,7 +455,8 @@ def forget(kinds_keys: Iterable[str]) -> dict[str, int]:
     mine = lambda group: str(group or "").split(":")[1:2] and str(group).split(":")[1] in wanted  # noqa: E731
     removed: dict[str, int] = {}
     for name, key in (("examples.jsonl", lambda d: d.get("provenance", {}).get("group")), ("screens.jsonl", lambda d: d.get("group")),
-                      ("done.jsonl", lambda d: d.get("group")), ("backfill_done.jsonl", lambda d: d.get("group"))):
+                      ("done.jsonl", lambda d: d.get("group")), ("backfill_done.jsonl", lambda d: d.get("group")),
+                      ("library_solves.jsonl", lambda d: d.get("group"))):
         path = OUT / name
         if not path.is_file():
             continue

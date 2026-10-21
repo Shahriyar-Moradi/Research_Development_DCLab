@@ -1,0 +1,140 @@
+{
+ "package": "selfplay-every-kind",
+ "title": "Self-play solves every kind: the four kinds whose outcome sits in their fields, the two with none, and the library kind metric change",
+ "date": "2026-10-22",
+ "request": "Add the 7 kinds self-play never solves (metric_change, entity_tables, matching, ranking, segmentation, streams, anomaly), each solved and verified the way its own acceptance does, its ledger recorded, failures logged; fix the image variant's fresh-draw label (KeyError on embedded_images).",
+ "spec": "dclab_rnd/lake/selfplay.py (27.3), dclab_rnd/kinds/acceptance.py (run: kind.solve/accept, accept_engine), dclab_rnd/lake/replicate.py (29.3), dclab_rnd/store/sets/llm.py (M5 self-play trajectories).",
+ "plan": [
+  "Probe one solve per kind in a scratch folder: do the engine runs pass accept_engine, what do they record, how long do they take.",
+  "Failing test first: one solve per kind, a failed solve logged, backfill and forget, the image variant's lookup.",
+  "Remove the stop on a case with no outcome column; give the library kind its own path; keep no example a kind cannot state truthfully.",
+  "Run the CLI with 2 seeds per kind on the real self-play folder; check-quick; reviewer."
+ ],
+ "decisions": [
+  {
+   "decision": "The six own-machine kinds are checked by accept_engine only, as every own-machine kind already in self-play is.",
+   "why": "acceptance.run also runs the library solve; running both doubles the time and the engine's run is what the ledger records."
+  },
+  {
+   "decision": "A kind whose case names no outcome column, or a library kind, writes no examples.jsonl family and no screen.",
+   "why": "The families assume one outcome column and the Solution's forbidden list. These machines keep their leaks out themselves (solution.forbidden is empty), so a leakage example would say 'nothing forbidden' on a table with a planted leak. Their ledger is their record."
+  },
+  {
+   "decision": "metric_change keeps its whole solve (questions, the rules' reading, answers as their fields, truth, checks) in library_solves.jsonl, verified or not.",
+   "why": "Its path records no ledger decision; the store keeps every file of the self-play folder, so the solve is captured without a new store rule. An empty ledger folder is removed so the store finds no empty workspace."
+  },
+  {
+   "decision": "The fresh-draw label looks the kind up among self-play's own kinds, not the registry.",
+   "why": "The image variant is not a registry kind; it must draw its image case again, not the text case."
+  },
+  {
+   "decision": "No label is invented for image solves.",
+   "why": "The embedded machine measures no tuning candidate, so a fresh draw has nothing to compare; the fix removes the error, the label stays absent."
+  }
+ ],
+ "change": "dclab_rnd/lake/selfplay.py (teaches, _solve_library, _plain, library_solves.jsonl, _label_tuning lookup, backfill and forget), dclab_rnd/store/sets/llm.py (selfplay_problem, NO_OUTCOME_KINDS), dclab_rnd/lake/benchmark.py (truth looks the kind up among self-play's kinds, with the pixel prefix), tests/test_selfplay_kinds.py",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "Seven of 18 kinds never reached self-play: no practice data for the models.",
+   "scenario": "python -m dclab_rnd.lake selfplay on entity_tables.",
+   "cause": "solve() did `break` when case.target is None, and skipped runs_in_engine = False kinds.",
+   "fix": "Stop only on a missing case; the library kind solved by kind.solve and checked by kind.accept.",
+   "test": "tests/test_selfplay_kinds.py (one test per kind)"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Image solves logged 'no fresh-draw label (KeyError: Unknown problem kind embedded_images)'.",
+   "scenario": "Any embedded_images solve.",
+   "cause": "_label_tuning called kinds.get(group's kind key); the variant's key is not a registry kind.",
+   "fix": "Look the kind up in selfplay._kinds().",
+   "test": "test_the_image_variant_draws_its_fresh_case_from_its_own_kind"
+  },
+  {
+   "id": "S3",
+   "source": "self",
+   "severity": "latent",
+   "defect": "Examples for the new kinds would have taught false leakage and split answers.",
+   "scenario": "entity_tables: its written-later customer columns are leaks the machine keeps out, while solution.forbidden is empty.",
+   "cause": "examples_of reads the Solution's forbidden list and one outcome column.",
+   "fix": "teaches(): no examples or screens for kinds without an outcome column or a library kind; backfill too.",
+   "test": "check_engine_kind asserts no examples; the backfill test"
+  },
+  {
+   "id": "S4",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The M5 trajectory said every self-play problem has its outcome named.",
+   "scenario": "segmentation and anomaly trajectories, now in the store.",
+   "cause": "A fixed request text with outcome_named True.",
+   "fix": "selfplay_problem() with NO_OUTCOME_KINDS.",
+   "test": "test_a_trajectory_of_a_kind_with_no_outcome_never_says_one_was_named"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "benchmark.truth raised StopIteration on an embedded_images row; truth_problems dropped every image trace as unreadable.",
+   "scenario": "truth({'provenance': {'group': 'selfplay:embedded_images:0'}, ...}).",
+   "cause": "The same registry lookup as S2; and masked names drawn without the pixel prefix examples_of uses.",
+   "fix": "Look the kind up in selfplay._kinds() and pass the pixel prefix.",
+   "test": "test_the_benchmark_reads_an_image_solves_truth"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Forecasting's 200 leakage_judgment examples say forbidden [] while its machine keeps rain_mm (the planted leak) out.",
+   "scenario": "lake/bronze/selfplay/examples.jsonl, selfplay:forecasting:3.",
+   "cause": "Older: examples_of reads solution.forbidden, not the machine's kept_out.",
+   "fix": "Not fixed here: a follow-up (read the leakage stage's kept_out for own-machine kinds, then solve forecasting again; the owner's call on the re-run).",
+   "test": "none yet"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "new tests",
+   "gate": "each kind has a verified solve with 1 seed",
+   "result": "tests/test_selfplay_kinds.py: 14 tests pass (about 50 s alone)",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "one seed per kind in the tests"
+   ]
+  },
+  {
+   "name": "CLI on the real self-play folder",
+   "gate": "python -m dclab_rnd.lake selfplay --seeds 2 --kinds <kind> works for each",
+   "result": "14 of 14 solves verified (7 kinds x seeds 0-1), 2-17 s each; problems 1038 -> 1052",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "two seeds per kind; the full self-play run is the owner's call"
+   ]
+  },
+  {
+   "name": "image fresh-draw label",
+   "gate": "no KeyError; a label only where the machine measured a tuning candidate",
+   "result": "the error is gone; no label, because the embedded machine measures no tuning candidate",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "a label needs the embedded machine to measure a tuning candidate"
+   ]
+  }
+ ],
+ "outcome": "Every one of the 18 kinds now reaches self-play; the seven new ones leave verified decision ledgers (metric change its whole solve), and no example states something its run did not decide.",
+ "lessons": [
+  "Before turning a new kind's runs into training examples, check that each field the example reads is where that kind keeps its decision: a machine kind keeps its leaks in its leakage stage, not in the Solution.",
+  "A wrapper object (the image variant) must be looked up where it lives, never in the registry by its own key."
+ ],
+ "risks": [
+  "The new kinds give ledgers only; no example families teach them yet.",
+  "A run stopped between library_solves.jsonl and done.jsonl writes a second line for that group when resumed; nothing reads the file yet."
+ ],
+ "commits": []
+}

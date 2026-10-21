@@ -65,16 +65,15 @@ _TRUTHS: dict[str, dict[str, Any]] = {}
 
 def truth(row: dict[str, Any]) -> dict[str, Any]:
     """The replica's planted facts for a case, in the naming the case shows (masked names when it was masked)."""
-    from .. import kinds
-    from .selfplay import _columns
+    from .selfplay import _columns, _kinds
 
     _, kind_key, seed = row["provenance"]["group"].split(":")
     masked = "col_01" in row["messages"][1]["content"]
     key = f"{kind_key}:{seed}:{masked}"
     if key not in _TRUTHS:
-        kind = next(k for k in kinds.all_kinds() if k.key == kind_key)
+        kind = next(k for k in _kinds() if k.key == kind_key)  # self-play's own kinds: an image variant is not in the registry
         case = kind.case(int(seed))
-        _, alias = _columns(case.table, case.target, masked)
+        _, alias = _columns(case.table, case.target, masked, ((case.solution or {}).get("kind_fields") or {}).get("pixel_prefix"))
         f = case.facts
         name = lambda c: alias.get(c, c) if c else None  # noqa: E731
         _TRUTHS[key] = {"task": case.task, "leak": [name(c) for c in ([f["leak"]] if isinstance(f.get("leak"), str) else f.get("leaks") or []) if c],
