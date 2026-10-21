@@ -28,50 +28,55 @@
  },
  "costs": {
   "by_model_type": {
-   "m4_workflow_llm": 37.546897
+   "m4_workflow_llm": 64.950571
   },
   "by_purpose": {
-   "ai_first": 10.653826,
-   "brief_checker": 0.002409,
-   "campaign": 0.002046,
-   "campaign_review": 3.116564,
-   "conversation_reader": 3.675186,
-   "critic": 0.001585,
-   "data_investigator": 0.035193,
-   "data_need": 0.371018,
-   "debate_judge": 0.010788,
+   "ai_first": 16.717666,
+   "brief_checker": 0.004818,
+   "campaign": 0.004092,
+   "campaign_review": 6.233128,
+   "conversation_reader": 7.350372,
+   "critic": 0.00317,
+   "data_investigator": 0.070386,
+   "data_need": 0.742036,
+   "debate_judge": 0.021576,
    "decision_answer": 3.650672,
-   "decision_labeler": 6.578116,
-   "decomposer": 1.05154,
-   "embedding": 0.001115,
+   "decision_labeler": 9.55822,
+   "decomposer": 2.10308,
+   "embedding": 0.00223,
    "evidence_answer": 0.012102,
-   "feature_engineer": 0.00746,
-   "home_agent": 1.138656,
-   "intern": 9.465823,
-   "leakage_review": 0.155306,
-   "map_reviewer": 0.604556,
-   "metric_question": 0.131618,
+   "feature_engineer": 0.01492,
+   "home_agent": 1.635395,
+   "home_orchestrator": 0.402659,
+   "intern": 12.399966,
+   "leakage_review": 0.383564,
+   "map_reviewer": 1.209112,
+   "metric_question": 0.263236,
+   "notebook_cell": 0.116011,
    "parse_pattern": 0.002646,
-   "problem_analyst": 0.07094,
-   "project_answer": 0.039368,
-   "reporter": 0.005094,
-   "solution_challenger": 0.064291,
-   "solution_planner": 0.958573,
-   "solution_router": 0.392386,
-   "stage_notes": 1.382276,
-   "synthetic_schema": 0.115924,
-   "understanding_critic": 1.690404
+   "problem_analyst": 0.147013,
+   "project_answer": 0.108858,
+   "reasoning_teacher": 0.00776,
+   "reporter": 0.030468,
+   "solution_challenger": 0.128582,
+   "solution_planner": 1.917146,
+   "solution_router": 0.784772,
+   "stage_notes": 2.997204,
+   "store_curator": 0.40908,
+   "synthetic_schema": 0.182947,
+   "understanding_critic": 3.380808
   },
-  "total_eur": 45.387481
+  "total_eur": 72.995695
  },
  "kinds": {
   "actions": {
-   "bytes": 355700,
-   "entries": 26,
-   "last": "2026-10-20T03:09:46+00:00",
-   "sources": 26,
+   "bytes": 2502903,
+   "entries": 181,
+   "last": "2026-10-21T19:50:29+00:00",
+   "sources": 119,
    "what": "agent steps and tool calls",
    "workspaces": [
+    "dev",
     "live_tests__2026-10-16_phase3__workspace",
     "live_tests__2026-10-16_phase3__workspace__twin__runs__20261016-100832-215130__ai_first",
     "live_tests__2026-10-16_phase3__workspace__twin__runs__20261016-100832-215130__workflow",
@@ -86,6 +91,7 @@
     "live_tests__2026-10-16_phase3__workspace__twin__runs__20261016-115746-c3bb98__ai_first",
     "live_tests__2026-10-16_phase3__workspace__twin__runs__20261016-115746-c3bb98__workflow",
     "live_tests__2026-10-19_model_paths__104822",
+    "live_tests__2026-10-20_home_orchestrator__run-163041__workspace",
     "twin__runs__20261016-100832-215130__ai_first",
     "twin__runs__20261016-100832-215130__workflow",
     "twin__runs__20261016-112025-a15b8e__ai_first",
@@ -97,24 +103,62 @@
     "twin__runs__20261016-114806-2ba186__ai_first",
     "twin__runs__20261016-114806-2ba186__workflow",
     "twin__runs__20261016-115746-c3bb98__ai_first",
-    "twin__runs__20261016-115746-c3bb98__workflow"
+    "twin__runs__20261016-115746-c3bb98__workflow",
+    "twin__runs__20261021-135638-0c10f6__workflow",
+    "twin__runs__20261021-135926-f5c3c7__workflow",
+    "twin__runs__20261021-140032-82d699__workflow",
+    "twin__runs__20261021-140045-594f1b__workflow",
+    "twin__runs__20261021-140050-6ac74d__workflow",
+    "twin__runs__20261021-140139-251918__workflow",
+    "twin__runs__20261021-140148-76398a__workflow",
+    "twin__runs__20261021-140216-fecd75__workflow",
+    "twin__runs__20261021-140259-26bb14__workflow",
+    "twin__runs__20261021-140340-067490__workflow",
+    "twin__runs__20261021-140348-2d1462__workflow",
+    "twin__runs__20261021-140446-b92b2c__workflow",
+    "twin__runs__20261021-140551-8b7350__workflow",
+    "twin__runs__20261021-141003-97e8e6__workflow",
+    "twin__runs__20261021-141028-fda97a__workflow",
+    "twin__runs__20261021-141040-00c409__workflow",
+    "twin__runs__20261021-142944-7d0ce9__ai_first",
+    "twin__runs__20261021-142944-7d0ce9__workflow",
+    "twin__runs__20261021-143903-9f915c__ai_first",
+    "twin__runs__20261021-143903-9f915c__workflow",
+    "twin__runs__20261021-144909-90078b__ai_first",
+    "twin__runs__20261021-144909-90078b__workflow",
+    "twin__runs__20261021-145639-d52d2b__ai_first",
+    "twin__runs__20261021-145639-d52d2b__workflow",
+    "twin__runs__20261021-150827-ba88bf__ai_first",
+    "twin__runs__20261021-150827-ba88bf__workflow",
+    "twin__runs__20261021-151709-0a6b88__ai_first",
+    "twin__runs__20261021-151709-0a6b88__workflow",
+    "twin__runs__20261021-152951-d9f1c1__ai_first",
+    "twin__runs__20261021-152951-d9f1c1__workflow",
+    "twin__runs__20261021-153955-36da2b__ai_first",
+    "twin__runs__20261021-153955-36da2b__workflow",
+    "twin__runs__20261021-154916-1c49c5__ai_first",
+    "twin__runs__20261021-154916-1c49c5__workflow",
+    "twin__runs__20261021-155706-1183eb__ai_first",
+    "twin__runs__20261021-155706-1183eb__workflow",
+    "twin__runs__20261021-161241-b0cedc__ai_first",
+    "twin__runs__20261021-161241-b0cedc__workflow"
    ]
   },
   "agents": {
-   "bytes": 689828520,
-   "entries": 1279,
-   "last": "2026-10-20T03:15:30+00:00",
-   "sources": 1279,
+   "bytes": 791844470,
+   "entries": 1466,
+   "last": "2026-10-21T19:57:21+00:00",
+   "sources": 1408,
    "what": "other agents' sessions: Claude Code (the main checkout and its worktrees), testers'",
    "workspaces": [
     "rnd"
    ]
   },
   "audit": {
-   "bytes": 133054,
-   "entries": 27,
-   "last": "2026-10-20T03:09:46+00:00",
-   "sources": 27,
+   "bytes": 471057,
+   "entries": 107,
+   "last": "2026-10-21T19:50:30+00:00",
+   "sources": 76,
    "what": "the audit trail",
    "workspaces": [
     "dev",
@@ -132,6 +176,15 @@
     "live_tests__2026-10-16_phase3__workspace__twin__runs__20261016-115746-c3bb98__ai_first",
     "live_tests__2026-10-16_phase3__workspace__twin__runs__20261016-115746-c3bb98__workflow",
     "live_tests__2026-10-19_model_paths__104822",
+    "live_tests__2026-10-20_home_orchestrator__run-162809__workspace",
+    "live_tests__2026-10-20_home_orchestrator__run-163041__workspace",
+    "live_tests__2026-10-20_home_orchestrator__run-164834__workspace",
+    "live_tests__2026-10-20_home_orchestrator__run-165229__workspace",
+    "live_tests__2026-10-21_home_orchestrator__run-202135__workspace",
+    "live_tests__2026-10-21_home_orchestrator__run-202328__workspace",
+    "live_tests__2026-10-21_home_orchestrator__run-202932__workspace",
+    "live_tests__2026-10-21_home_orchestrator__run-210215__workspace",
+    "live_tests__2026-10-21_home_orchestrator__run-210923__workspace",
     "twin__runs__20261016-100832-215130__ai_first",
     "twin__runs__20261016-100832-215130__workflow",
     "twin__runs__20261016-112025-a15b8e__ai_first",
@@ -143,14 +196,52 @@
     "twin__runs__20261016-114806-2ba186__ai_first",
     "twin__runs__20261016-114806-2ba186__workflow",
     "twin__runs__20261016-115746-c3bb98__ai_first",
-    "twin__runs__20261016-115746-c3bb98__workflow"
+    "twin__runs__20261016-115746-c3bb98__workflow",
+    "twin__runs__20261021-135638-0c10f6__workflow",
+    "twin__runs__20261021-135926-f5c3c7__workflow",
+    "twin__runs__20261021-140032-82d699__workflow",
+    "twin__runs__20261021-140045-594f1b__workflow",
+    "twin__runs__20261021-140050-6ac74d__workflow",
+    "twin__runs__20261021-140139-251918__workflow",
+    "twin__runs__20261021-140148-76398a__workflow",
+    "twin__runs__20261021-140216-fecd75__workflow",
+    "twin__runs__20261021-140259-26bb14__workflow",
+    "twin__runs__20261021-140340-067490__workflow",
+    "twin__runs__20261021-140348-2d1462__workflow",
+    "twin__runs__20261021-140446-b92b2c__workflow",
+    "twin__runs__20261021-140551-8b7350__workflow",
+    "twin__runs__20261021-141003-97e8e6__workflow",
+    "twin__runs__20261021-141028-fda97a__workflow",
+    "twin__runs__20261021-141040-00c409__workflow",
+    "twin__runs__20261021-142944-7d0ce9__ai_first",
+    "twin__runs__20261021-142944-7d0ce9__workflow",
+    "twin__runs__20261021-143903-9f915c__ai_first",
+    "twin__runs__20261021-143903-9f915c__workflow",
+    "twin__runs__20261021-144909-90078b__ai_first",
+    "twin__runs__20261021-144909-90078b__workflow",
+    "twin__runs__20261021-145639-d52d2b__ai_first",
+    "twin__runs__20261021-145639-d52d2b__workflow",
+    "twin__runs__20261021-150827-ba88bf__ai_first",
+    "twin__runs__20261021-150827-ba88bf__workflow",
+    "twin__runs__20261021-151709-0a6b88__ai_first",
+    "twin__runs__20261021-151709-0a6b88__workflow",
+    "twin__runs__20261021-152951-d9f1c1__ai_first",
+    "twin__runs__20261021-152951-d9f1c1__workflow",
+    "twin__runs__20261021-153955-36da2b__ai_first",
+    "twin__runs__20261021-153955-36da2b__workflow",
+    "twin__runs__20261021-154916-1c49c5__ai_first",
+    "twin__runs__20261021-154916-1c49c5__workflow",
+    "twin__runs__20261021-155706-1183eb__ai_first",
+    "twin__runs__20261021-155706-1183eb__workflow",
+    "twin__runs__20261021-161241-b0cedc__ai_first",
+    "twin__runs__20261021-161241-b0cedc__workflow"
    ]
   },
   "conversations": {
-   "bytes": 79366194,
-   "entries": 2692,
-   "last": "2026-10-20T03:10:21+00:00",
-   "sources": 2692,
+   "bytes": 113968511,
+   "entries": 2961,
+   "last": "2026-10-21T19:51:17+00:00",
+   "sources": 2925,
    "what": "Home, the intern, the workspace chat, the twin, MCP",
    "workspaces": [
     "dev",
@@ -933,6 +1024,17 @@
     "live_tests__2026-10-19_live__6_harness_full__rg-01__workspace",
     "live_tests__2026-10-19_live__6_harness_full__rg-02__workspace",
     "live_tests__2026-10-19_model_paths__104822",
+    "live_tests__2026-10-20_home_orchestrator__run-162732__workspace",
+    "live_tests__2026-10-20_home_orchestrator__run-162809__workspace",
+    "live_tests__2026-10-20_home_orchestrator__run-163041__workspace",
+    "live_tests__2026-10-20_home_orchestrator__run-164834__workspace",
+    "live_tests__2026-10-20_home_orchestrator__run-165229__workspace",
+    "live_tests__2026-10-21__home-team-claude",
+    "live_tests__2026-10-21_home_orchestrator__run-202135__workspace",
+    "live_tests__2026-10-21_home_orchestrator__run-202328__workspace",
+    "live_tests__2026-10-21_home_orchestrator__run-202932__workspace",
+    "live_tests__2026-10-21_home_orchestrator__run-210215__workspace",
+    "live_tests__2026-10-21_home_orchestrator__run-210923__workspace",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -948,26 +1050,65 @@
     "twin__runs__20261016-114806-2ba186__ai_first",
     "twin__runs__20261016-114806-2ba186__workflow",
     "twin__runs__20261016-115746-c3bb98__ai_first",
-    "twin__runs__20261016-115746-c3bb98__workflow"
+    "twin__runs__20261016-115746-c3bb98__workflow",
+    "twin__runs__20261021-135638-0c10f6__workflow",
+    "twin__runs__20261021-135926-f5c3c7__workflow",
+    "twin__runs__20261021-140032-82d699__workflow",
+    "twin__runs__20261021-140045-594f1b__workflow",
+    "twin__runs__20261021-140050-6ac74d__workflow",
+    "twin__runs__20261021-140139-251918__workflow",
+    "twin__runs__20261021-140148-76398a__workflow",
+    "twin__runs__20261021-140216-fecd75__workflow",
+    "twin__runs__20261021-140259-26bb14__workflow",
+    "twin__runs__20261021-140340-067490__workflow",
+    "twin__runs__20261021-140348-2d1462__workflow",
+    "twin__runs__20261021-140446-b92b2c__workflow",
+    "twin__runs__20261021-140551-8b7350__workflow",
+    "twin__runs__20261021-141003-97e8e6__workflow",
+    "twin__runs__20261021-141028-fda97a__workflow",
+    "twin__runs__20261021-141040-00c409__workflow",
+    "twin__runs__20261021-142944-7d0ce9__ai_first",
+    "twin__runs__20261021-142944-7d0ce9__workflow",
+    "twin__runs__20261021-143903-9f915c__ai_first",
+    "twin__runs__20261021-143903-9f915c__workflow",
+    "twin__runs__20261021-144909-90078b__ai_first",
+    "twin__runs__20261021-144909-90078b__workflow",
+    "twin__runs__20261021-145639-d52d2b__ai_first",
+    "twin__runs__20261021-145639-d52d2b__workflow",
+    "twin__runs__20261021-150827-ba88bf__ai_first",
+    "twin__runs__20261021-150827-ba88bf__workflow",
+    "twin__runs__20261021-151709-0a6b88__ai_first",
+    "twin__runs__20261021-151709-0a6b88__workflow",
+    "twin__runs__20261021-152951-d9f1c1__ai_first",
+    "twin__runs__20261021-152951-d9f1c1__workflow",
+    "twin__runs__20261021-153955-36da2b__ai_first",
+    "twin__runs__20261021-153955-36da2b__workflow",
+    "twin__runs__20261021-154916-1c49c5__ai_first",
+    "twin__runs__20261021-154916-1c49c5__workflow",
+    "twin__runs__20261021-155706-1183eb__ai_first",
+    "twin__runs__20261021-155706-1183eb__workflow",
+    "twin__runs__20261021-161241-b0cedc__ai_first",
+    "twin__runs__20261021-161241-b0cedc__workflow"
    ]
   },
   "curation": {
-   "bytes": 160945939,
-   "entries": 5,
-   "last": "2026-10-20T04:01:34+00:00",
-   "sources": 5,
+   "bytes": 567168315,
+   "entries": 19,
+   "last": "2026-10-21T20:00:51+00:00",
+   "sources": 19,
    "what": "every curator's choice: where each record went, its quality, why, and its failed answers",
    "workspaces": [
     "rnd"
    ]
   },
   "decisions": {
-   "bytes": 4278037,
-   "entries": 67,
-   "last": "2026-10-20T03:09:46+00:00",
-   "sources": 67,
+   "bytes": 182937300,
+   "entries": 3263,
+   "last": "2026-10-21T19:50:29+00:00",
+   "sources": 3228,
    "what": "the decision ledger: records, labels and outcomes",
    "workspaces": [
+    "dev",
     "live_tests__2026-10-16_phase3__workspace",
     "live_tests__2026-10-16_phase3__workspace__twin__runs__20261016-100832-215130__ai_first",
     "live_tests__2026-10-16_phase3__workspace__twin__runs__20261016-100832-215130__workflow",
@@ -978,10 +1119,1106 @@
     "live_tests__2026-10-16_phase3__workspace__twin__runs__20261016-114806-2ba186__workflow",
     "live_tests__2026-10-16_phase3__workspace__twin__runs__20261016-115746-c3bb98__ai_first",
     "live_tests__2026-10-19_model_paths__104822",
+    "live_tests__2026-10-20_home_orchestrator__run-163041__workspace",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
     "real_problems__2026-10-20_fraud__workspace",
+    "selfplay__ledgers__binary__0",
+    "selfplay__ledgers__binary__1",
+    "selfplay__ledgers__binary__10",
+    "selfplay__ledgers__binary__11",
+    "selfplay__ledgers__binary__12",
+    "selfplay__ledgers__binary__13",
+    "selfplay__ledgers__binary__14",
+    "selfplay__ledgers__binary__15",
+    "selfplay__ledgers__binary__16",
+    "selfplay__ledgers__binary__17",
+    "selfplay__ledgers__binary__18",
+    "selfplay__ledgers__binary__19",
+    "selfplay__ledgers__binary__2",
+    "selfplay__ledgers__binary__20",
+    "selfplay__ledgers__binary__21",
+    "selfplay__ledgers__binary__22",
+    "selfplay__ledgers__binary__23",
+    "selfplay__ledgers__binary__24",
+    "selfplay__ledgers__binary__25",
+    "selfplay__ledgers__binary__26",
+    "selfplay__ledgers__binary__27",
+    "selfplay__ledgers__binary__28",
+    "selfplay__ledgers__binary__29",
+    "selfplay__ledgers__binary__3",
+    "selfplay__ledgers__binary__30",
+    "selfplay__ledgers__binary__31",
+    "selfplay__ledgers__binary__32",
+    "selfplay__ledgers__binary__33",
+    "selfplay__ledgers__binary__34",
+    "selfplay__ledgers__binary__35",
+    "selfplay__ledgers__binary__36",
+    "selfplay__ledgers__binary__37",
+    "selfplay__ledgers__binary__38",
+    "selfplay__ledgers__binary__39",
+    "selfplay__ledgers__binary__4",
+    "selfplay__ledgers__binary__40",
+    "selfplay__ledgers__binary__41",
+    "selfplay__ledgers__binary__42",
+    "selfplay__ledgers__binary__43",
+    "selfplay__ledgers__binary__44",
+    "selfplay__ledgers__binary__45",
+    "selfplay__ledgers__binary__46",
+    "selfplay__ledgers__binary__47",
+    "selfplay__ledgers__binary__48",
+    "selfplay__ledgers__binary__49",
+    "selfplay__ledgers__binary__5",
+    "selfplay__ledgers__binary__50",
+    "selfplay__ledgers__binary__51",
+    "selfplay__ledgers__binary__52",
+    "selfplay__ledgers__binary__53",
+    "selfplay__ledgers__binary__54",
+    "selfplay__ledgers__binary__55",
+    "selfplay__ledgers__binary__56",
+    "selfplay__ledgers__binary__57",
+    "selfplay__ledgers__binary__58",
+    "selfplay__ledgers__binary__59",
+    "selfplay__ledgers__binary__6",
+    "selfplay__ledgers__binary__60",
+    "selfplay__ledgers__binary__61",
+    "selfplay__ledgers__binary__62",
+    "selfplay__ledgers__binary__63",
+    "selfplay__ledgers__binary__64",
+    "selfplay__ledgers__binary__65",
+    "selfplay__ledgers__binary__66",
+    "selfplay__ledgers__binary__67",
+    "selfplay__ledgers__binary__68",
+    "selfplay__ledgers__binary__69",
+    "selfplay__ledgers__binary__7",
+    "selfplay__ledgers__binary__70",
+    "selfplay__ledgers__binary__71",
+    "selfplay__ledgers__binary__72",
+    "selfplay__ledgers__binary__73",
+    "selfplay__ledgers__binary__74",
+    "selfplay__ledgers__binary__75",
+    "selfplay__ledgers__binary__76",
+    "selfplay__ledgers__binary__77",
+    "selfplay__ledgers__binary__78",
+    "selfplay__ledgers__binary__79",
+    "selfplay__ledgers__binary__8",
+    "selfplay__ledgers__binary__80",
+    "selfplay__ledgers__binary__81",
+    "selfplay__ledgers__binary__82",
+    "selfplay__ledgers__binary__83",
+    "selfplay__ledgers__binary__84",
+    "selfplay__ledgers__binary__85",
+    "selfplay__ledgers__binary__86",
+    "selfplay__ledgers__binary__87",
+    "selfplay__ledgers__binary__88",
+    "selfplay__ledgers__binary__89",
+    "selfplay__ledgers__binary__9",
+    "selfplay__ledgers__binary__90",
+    "selfplay__ledgers__binary__91",
+    "selfplay__ledgers__binary__92",
+    "selfplay__ledgers__binary__93",
+    "selfplay__ledgers__binary__94",
+    "selfplay__ledgers__binary__95",
+    "selfplay__ledgers__binary__96",
+    "selfplay__ledgers__binary__97",
+    "selfplay__ledgers__binary__98",
+    "selfplay__ledgers__binary__99",
+    "selfplay__ledgers__embedded__0",
+    "selfplay__ledgers__embedded__1",
+    "selfplay__ledgers__embedded__10",
+    "selfplay__ledgers__embedded__11",
+    "selfplay__ledgers__embedded__12",
+    "selfplay__ledgers__embedded__13",
+    "selfplay__ledgers__embedded__14",
+    "selfplay__ledgers__embedded__15",
+    "selfplay__ledgers__embedded__18",
+    "selfplay__ledgers__embedded__19",
+    "selfplay__ledgers__embedded__2",
+    "selfplay__ledgers__embedded__20",
+    "selfplay__ledgers__embedded__21",
+    "selfplay__ledgers__embedded__22",
+    "selfplay__ledgers__embedded__23",
+    "selfplay__ledgers__embedded__24",
+    "selfplay__ledgers__embedded__25",
+    "selfplay__ledgers__embedded__26",
+    "selfplay__ledgers__embedded__27",
+    "selfplay__ledgers__embedded__28",
+    "selfplay__ledgers__embedded__29",
+    "selfplay__ledgers__embedded__3",
+    "selfplay__ledgers__embedded__30",
+    "selfplay__ledgers__embedded__31",
+    "selfplay__ledgers__embedded__32",
+    "selfplay__ledgers__embedded__33",
+    "selfplay__ledgers__embedded__34",
+    "selfplay__ledgers__embedded__35",
+    "selfplay__ledgers__embedded__36",
+    "selfplay__ledgers__embedded__37",
+    "selfplay__ledgers__embedded__38",
+    "selfplay__ledgers__embedded__39",
+    "selfplay__ledgers__embedded__4",
+    "selfplay__ledgers__embedded__40",
+    "selfplay__ledgers__embedded__41",
+    "selfplay__ledgers__embedded__42",
+    "selfplay__ledgers__embedded__43",
+    "selfplay__ledgers__embedded__44",
+    "selfplay__ledgers__embedded__45",
+    "selfplay__ledgers__embedded__46",
+    "selfplay__ledgers__embedded__47",
+    "selfplay__ledgers__embedded__48",
+    "selfplay__ledgers__embedded__49",
+    "selfplay__ledgers__embedded__5",
+    "selfplay__ledgers__embedded__50",
+    "selfplay__ledgers__embedded__51",
+    "selfplay__ledgers__embedded__52",
+    "selfplay__ledgers__embedded__53",
+    "selfplay__ledgers__embedded__54",
+    "selfplay__ledgers__embedded__55",
+    "selfplay__ledgers__embedded__56",
+    "selfplay__ledgers__embedded__57",
+    "selfplay__ledgers__embedded__58",
+    "selfplay__ledgers__embedded__59",
+    "selfplay__ledgers__embedded__6",
+    "selfplay__ledgers__embedded__60",
+    "selfplay__ledgers__embedded__61",
+    "selfplay__ledgers__embedded__62",
+    "selfplay__ledgers__embedded__63",
+    "selfplay__ledgers__embedded__64",
+    "selfplay__ledgers__embedded__65",
+    "selfplay__ledgers__embedded__66",
+    "selfplay__ledgers__embedded__67",
+    "selfplay__ledgers__embedded__68",
+    "selfplay__ledgers__embedded__69",
+    "selfplay__ledgers__embedded__7",
+    "selfplay__ledgers__embedded__70",
+    "selfplay__ledgers__embedded__71",
+    "selfplay__ledgers__embedded__72",
+    "selfplay__ledgers__embedded__73",
+    "selfplay__ledgers__embedded__74",
+    "selfplay__ledgers__embedded__75",
+    "selfplay__ledgers__embedded__76",
+    "selfplay__ledgers__embedded__77",
+    "selfplay__ledgers__embedded__78",
+    "selfplay__ledgers__embedded__79",
+    "selfplay__ledgers__embedded__8",
+    "selfplay__ledgers__embedded__80",
+    "selfplay__ledgers__embedded__81",
+    "selfplay__ledgers__embedded__82",
+    "selfplay__ledgers__embedded__83",
+    "selfplay__ledgers__embedded__84",
+    "selfplay__ledgers__embedded__85",
+    "selfplay__ledgers__embedded__86",
+    "selfplay__ledgers__embedded__87",
+    "selfplay__ledgers__embedded__88",
+    "selfplay__ledgers__embedded__89",
+    "selfplay__ledgers__embedded__9",
+    "selfplay__ledgers__embedded__90",
+    "selfplay__ledgers__embedded__91",
+    "selfplay__ledgers__embedded__92",
+    "selfplay__ledgers__embedded__93",
+    "selfplay__ledgers__embedded__94",
+    "selfplay__ledgers__embedded__95",
+    "selfplay__ledgers__embedded__96",
+    "selfplay__ledgers__embedded__97",
+    "selfplay__ledgers__embedded__98",
+    "selfplay__ledgers__embedded__99",
+    "selfplay__ledgers__embedded_images__0",
+    "selfplay__ledgers__embedded_images__1",
+    "selfplay__ledgers__embedded_images__10",
+    "selfplay__ledgers__embedded_images__11",
+    "selfplay__ledgers__embedded_images__12",
+    "selfplay__ledgers__embedded_images__13",
+    "selfplay__ledgers__embedded_images__14",
+    "selfplay__ledgers__embedded_images__15",
+    "selfplay__ledgers__embedded_images__16",
+    "selfplay__ledgers__embedded_images__17",
+    "selfplay__ledgers__embedded_images__18",
+    "selfplay__ledgers__embedded_images__19",
+    "selfplay__ledgers__embedded_images__2",
+    "selfplay__ledgers__embedded_images__20",
+    "selfplay__ledgers__embedded_images__21",
+    "selfplay__ledgers__embedded_images__22",
+    "selfplay__ledgers__embedded_images__23",
+    "selfplay__ledgers__embedded_images__24",
+    "selfplay__ledgers__embedded_images__25",
+    "selfplay__ledgers__embedded_images__26",
+    "selfplay__ledgers__embedded_images__27",
+    "selfplay__ledgers__embedded_images__28",
+    "selfplay__ledgers__embedded_images__29",
+    "selfplay__ledgers__embedded_images__3",
+    "selfplay__ledgers__embedded_images__30",
+    "selfplay__ledgers__embedded_images__31",
+    "selfplay__ledgers__embedded_images__32",
+    "selfplay__ledgers__embedded_images__33",
+    "selfplay__ledgers__embedded_images__34",
+    "selfplay__ledgers__embedded_images__35",
+    "selfplay__ledgers__embedded_images__36",
+    "selfplay__ledgers__embedded_images__37",
+    "selfplay__ledgers__embedded_images__38",
+    "selfplay__ledgers__embedded_images__39",
+    "selfplay__ledgers__embedded_images__4",
+    "selfplay__ledgers__embedded_images__40",
+    "selfplay__ledgers__embedded_images__41",
+    "selfplay__ledgers__embedded_images__42",
+    "selfplay__ledgers__embedded_images__43",
+    "selfplay__ledgers__embedded_images__44",
+    "selfplay__ledgers__embedded_images__45",
+    "selfplay__ledgers__embedded_images__46",
+    "selfplay__ledgers__embedded_images__47",
+    "selfplay__ledgers__embedded_images__48",
+    "selfplay__ledgers__embedded_images__49",
+    "selfplay__ledgers__embedded_images__5",
+    "selfplay__ledgers__embedded_images__50",
+    "selfplay__ledgers__embedded_images__51",
+    "selfplay__ledgers__embedded_images__52",
+    "selfplay__ledgers__embedded_images__53",
+    "selfplay__ledgers__embedded_images__54",
+    "selfplay__ledgers__embedded_images__55",
+    "selfplay__ledgers__embedded_images__56",
+    "selfplay__ledgers__embedded_images__57",
+    "selfplay__ledgers__embedded_images__58",
+    "selfplay__ledgers__embedded_images__59",
+    "selfplay__ledgers__embedded_images__6",
+    "selfplay__ledgers__embedded_images__60",
+    "selfplay__ledgers__embedded_images__61",
+    "selfplay__ledgers__embedded_images__62",
+    "selfplay__ledgers__embedded_images__63",
+    "selfplay__ledgers__embedded_images__64",
+    "selfplay__ledgers__embedded_images__65",
+    "selfplay__ledgers__embedded_images__66",
+    "selfplay__ledgers__embedded_images__67",
+    "selfplay__ledgers__embedded_images__68",
+    "selfplay__ledgers__embedded_images__69",
+    "selfplay__ledgers__embedded_images__7",
+    "selfplay__ledgers__embedded_images__70",
+    "selfplay__ledgers__embedded_images__71",
+    "selfplay__ledgers__embedded_images__72",
+    "selfplay__ledgers__embedded_images__73",
+    "selfplay__ledgers__embedded_images__74",
+    "selfplay__ledgers__embedded_images__75",
+    "selfplay__ledgers__embedded_images__76",
+    "selfplay__ledgers__embedded_images__77",
+    "selfplay__ledgers__embedded_images__78",
+    "selfplay__ledgers__embedded_images__79",
+    "selfplay__ledgers__embedded_images__8",
+    "selfplay__ledgers__embedded_images__80",
+    "selfplay__ledgers__embedded_images__81",
+    "selfplay__ledgers__embedded_images__82",
+    "selfplay__ledgers__embedded_images__83",
+    "selfplay__ledgers__embedded_images__84",
+    "selfplay__ledgers__embedded_images__85",
+    "selfplay__ledgers__embedded_images__86",
+    "selfplay__ledgers__embedded_images__87",
+    "selfplay__ledgers__embedded_images__88",
+    "selfplay__ledgers__embedded_images__89",
+    "selfplay__ledgers__embedded_images__9",
+    "selfplay__ledgers__embedded_images__90",
+    "selfplay__ledgers__embedded_images__91",
+    "selfplay__ledgers__embedded_images__92",
+    "selfplay__ledgers__embedded_images__93",
+    "selfplay__ledgers__embedded_images__94",
+    "selfplay__ledgers__embedded_images__95",
+    "selfplay__ledgers__embedded_images__96",
+    "selfplay__ledgers__embedded_images__97",
+    "selfplay__ledgers__embedded_images__98",
+    "selfplay__ledgers__embedded_images__99",
+    "selfplay__ledgers__forecasting__0",
+    "selfplay__ledgers__forecasting__1",
+    "selfplay__ledgers__forecasting__10",
+    "selfplay__ledgers__forecasting__11",
+    "selfplay__ledgers__forecasting__12",
+    "selfplay__ledgers__forecasting__13",
+    "selfplay__ledgers__forecasting__14",
+    "selfplay__ledgers__forecasting__15",
+    "selfplay__ledgers__forecasting__16",
+    "selfplay__ledgers__forecasting__17",
+    "selfplay__ledgers__forecasting__18",
+    "selfplay__ledgers__forecasting__19",
+    "selfplay__ledgers__forecasting__2",
+    "selfplay__ledgers__forecasting__20",
+    "selfplay__ledgers__forecasting__21",
+    "selfplay__ledgers__forecasting__22",
+    "selfplay__ledgers__forecasting__23",
+    "selfplay__ledgers__forecasting__24",
+    "selfplay__ledgers__forecasting__25",
+    "selfplay__ledgers__forecasting__26",
+    "selfplay__ledgers__forecasting__27",
+    "selfplay__ledgers__forecasting__28",
+    "selfplay__ledgers__forecasting__29",
+    "selfplay__ledgers__forecasting__3",
+    "selfplay__ledgers__forecasting__30",
+    "selfplay__ledgers__forecasting__31",
+    "selfplay__ledgers__forecasting__32",
+    "selfplay__ledgers__forecasting__33",
+    "selfplay__ledgers__forecasting__34",
+    "selfplay__ledgers__forecasting__35",
+    "selfplay__ledgers__forecasting__36",
+    "selfplay__ledgers__forecasting__37",
+    "selfplay__ledgers__forecasting__38",
+    "selfplay__ledgers__forecasting__39",
+    "selfplay__ledgers__forecasting__4",
+    "selfplay__ledgers__forecasting__40",
+    "selfplay__ledgers__forecasting__41",
+    "selfplay__ledgers__forecasting__42",
+    "selfplay__ledgers__forecasting__43",
+    "selfplay__ledgers__forecasting__44",
+    "selfplay__ledgers__forecasting__45",
+    "selfplay__ledgers__forecasting__46",
+    "selfplay__ledgers__forecasting__47",
+    "selfplay__ledgers__forecasting__48",
+    "selfplay__ledgers__forecasting__49",
+    "selfplay__ledgers__forecasting__5",
+    "selfplay__ledgers__forecasting__50",
+    "selfplay__ledgers__forecasting__51",
+    "selfplay__ledgers__forecasting__52",
+    "selfplay__ledgers__forecasting__53",
+    "selfplay__ledgers__forecasting__54",
+    "selfplay__ledgers__forecasting__55",
+    "selfplay__ledgers__forecasting__56",
+    "selfplay__ledgers__forecasting__57",
+    "selfplay__ledgers__forecasting__58",
+    "selfplay__ledgers__forecasting__59",
+    "selfplay__ledgers__forecasting__6",
+    "selfplay__ledgers__forecasting__60",
+    "selfplay__ledgers__forecasting__61",
+    "selfplay__ledgers__forecasting__62",
+    "selfplay__ledgers__forecasting__63",
+    "selfplay__ledgers__forecasting__64",
+    "selfplay__ledgers__forecasting__65",
+    "selfplay__ledgers__forecasting__66",
+    "selfplay__ledgers__forecasting__67",
+    "selfplay__ledgers__forecasting__68",
+    "selfplay__ledgers__forecasting__69",
+    "selfplay__ledgers__forecasting__7",
+    "selfplay__ledgers__forecasting__70",
+    "selfplay__ledgers__forecasting__71",
+    "selfplay__ledgers__forecasting__72",
+    "selfplay__ledgers__forecasting__73",
+    "selfplay__ledgers__forecasting__74",
+    "selfplay__ledgers__forecasting__75",
+    "selfplay__ledgers__forecasting__76",
+    "selfplay__ledgers__forecasting__77",
+    "selfplay__ledgers__forecasting__78",
+    "selfplay__ledgers__forecasting__79",
+    "selfplay__ledgers__forecasting__8",
+    "selfplay__ledgers__forecasting__80",
+    "selfplay__ledgers__forecasting__81",
+    "selfplay__ledgers__forecasting__82",
+    "selfplay__ledgers__forecasting__83",
+    "selfplay__ledgers__forecasting__84",
+    "selfplay__ledgers__forecasting__85",
+    "selfplay__ledgers__forecasting__86",
+    "selfplay__ledgers__forecasting__87",
+    "selfplay__ledgers__forecasting__88",
+    "selfplay__ledgers__forecasting__89",
+    "selfplay__ledgers__forecasting__9",
+    "selfplay__ledgers__forecasting__90",
+    "selfplay__ledgers__forecasting__91",
+    "selfplay__ledgers__forecasting__92",
+    "selfplay__ledgers__forecasting__93",
+    "selfplay__ledgers__forecasting__94",
+    "selfplay__ledgers__forecasting__95",
+    "selfplay__ledgers__forecasting__96",
+    "selfplay__ledgers__forecasting__97",
+    "selfplay__ledgers__forecasting__98",
+    "selfplay__ledgers__forecasting__99",
+    "selfplay__ledgers__multiclass__0",
+    "selfplay__ledgers__multiclass__1",
+    "selfplay__ledgers__multiclass__10",
+    "selfplay__ledgers__multiclass__11",
+    "selfplay__ledgers__multiclass__12",
+    "selfplay__ledgers__multiclass__13",
+    "selfplay__ledgers__multiclass__14",
+    "selfplay__ledgers__multiclass__15",
+    "selfplay__ledgers__multiclass__16",
+    "selfplay__ledgers__multiclass__17",
+    "selfplay__ledgers__multiclass__18",
+    "selfplay__ledgers__multiclass__19",
+    "selfplay__ledgers__multiclass__2",
+    "selfplay__ledgers__multiclass__20",
+    "selfplay__ledgers__multiclass__21",
+    "selfplay__ledgers__multiclass__22",
+    "selfplay__ledgers__multiclass__23",
+    "selfplay__ledgers__multiclass__24",
+    "selfplay__ledgers__multiclass__25",
+    "selfplay__ledgers__multiclass__26",
+    "selfplay__ledgers__multiclass__27",
+    "selfplay__ledgers__multiclass__28",
+    "selfplay__ledgers__multiclass__29",
+    "selfplay__ledgers__multiclass__3",
+    "selfplay__ledgers__multiclass__30",
+    "selfplay__ledgers__multiclass__31",
+    "selfplay__ledgers__multiclass__32",
+    "selfplay__ledgers__multiclass__33",
+    "selfplay__ledgers__multiclass__34",
+    "selfplay__ledgers__multiclass__35",
+    "selfplay__ledgers__multiclass__36",
+    "selfplay__ledgers__multiclass__37",
+    "selfplay__ledgers__multiclass__38",
+    "selfplay__ledgers__multiclass__39",
+    "selfplay__ledgers__multiclass__4",
+    "selfplay__ledgers__multiclass__40",
+    "selfplay__ledgers__multiclass__41",
+    "selfplay__ledgers__multiclass__42",
+    "selfplay__ledgers__multiclass__43",
+    "selfplay__ledgers__multiclass__44",
+    "selfplay__ledgers__multiclass__45",
+    "selfplay__ledgers__multiclass__46",
+    "selfplay__ledgers__multiclass__47",
+    "selfplay__ledgers__multiclass__48",
+    "selfplay__ledgers__multiclass__49",
+    "selfplay__ledgers__multiclass__5",
+    "selfplay__ledgers__multiclass__50",
+    "selfplay__ledgers__multiclass__51",
+    "selfplay__ledgers__multiclass__52",
+    "selfplay__ledgers__multiclass__53",
+    "selfplay__ledgers__multiclass__54",
+    "selfplay__ledgers__multiclass__55",
+    "selfplay__ledgers__multiclass__56",
+    "selfplay__ledgers__multiclass__57",
+    "selfplay__ledgers__multiclass__58",
+    "selfplay__ledgers__multiclass__59",
+    "selfplay__ledgers__multiclass__6",
+    "selfplay__ledgers__multiclass__60",
+    "selfplay__ledgers__multiclass__61",
+    "selfplay__ledgers__multiclass__62",
+    "selfplay__ledgers__multiclass__63",
+    "selfplay__ledgers__multiclass__64",
+    "selfplay__ledgers__multiclass__65",
+    "selfplay__ledgers__multiclass__66",
+    "selfplay__ledgers__multiclass__67",
+    "selfplay__ledgers__multiclass__68",
+    "selfplay__ledgers__multiclass__69",
+    "selfplay__ledgers__multiclass__7",
+    "selfplay__ledgers__multiclass__70",
+    "selfplay__ledgers__multiclass__71",
+    "selfplay__ledgers__multiclass__72",
+    "selfplay__ledgers__multiclass__73",
+    "selfplay__ledgers__multiclass__74",
+    "selfplay__ledgers__multiclass__75",
+    "selfplay__ledgers__multiclass__76",
+    "selfplay__ledgers__multiclass__77",
+    "selfplay__ledgers__multiclass__78",
+    "selfplay__ledgers__multiclass__79",
+    "selfplay__ledgers__multiclass__8",
+    "selfplay__ledgers__multiclass__80",
+    "selfplay__ledgers__multiclass__81",
+    "selfplay__ledgers__multiclass__82",
+    "selfplay__ledgers__multiclass__83",
+    "selfplay__ledgers__multiclass__84",
+    "selfplay__ledgers__multiclass__85",
+    "selfplay__ledgers__multiclass__86",
+    "selfplay__ledgers__multiclass__87",
+    "selfplay__ledgers__multiclass__88",
+    "selfplay__ledgers__multiclass__89",
+    "selfplay__ledgers__multiclass__9",
+    "selfplay__ledgers__multiclass__90",
+    "selfplay__ledgers__multiclass__91",
+    "selfplay__ledgers__multiclass__92",
+    "selfplay__ledgers__multiclass__93",
+    "selfplay__ledgers__multiclass__94",
+    "selfplay__ledgers__multiclass__95",
+    "selfplay__ledgers__multiclass__96",
+    "selfplay__ledgers__multiclass__97",
+    "selfplay__ledgers__multiclass__98",
+    "selfplay__ledgers__multiclass__99",
+    "selfplay__ledgers__places__0",
+    "selfplay__ledgers__places__1",
+    "selfplay__ledgers__places__10",
+    "selfplay__ledgers__places__11",
+    "selfplay__ledgers__places__12",
+    "selfplay__ledgers__places__13",
+    "selfplay__ledgers__places__14",
+    "selfplay__ledgers__places__15",
+    "selfplay__ledgers__places__16",
+    "selfplay__ledgers__places__17",
+    "selfplay__ledgers__places__18",
+    "selfplay__ledgers__places__19",
+    "selfplay__ledgers__places__2",
+    "selfplay__ledgers__places__20",
+    "selfplay__ledgers__places__21",
+    "selfplay__ledgers__places__22",
+    "selfplay__ledgers__places__23",
+    "selfplay__ledgers__places__24",
+    "selfplay__ledgers__places__25",
+    "selfplay__ledgers__places__26",
+    "selfplay__ledgers__places__27",
+    "selfplay__ledgers__places__28",
+    "selfplay__ledgers__places__29",
+    "selfplay__ledgers__places__3",
+    "selfplay__ledgers__places__30",
+    "selfplay__ledgers__places__31",
+    "selfplay__ledgers__places__32",
+    "selfplay__ledgers__places__33",
+    "selfplay__ledgers__places__34",
+    "selfplay__ledgers__places__35",
+    "selfplay__ledgers__places__36",
+    "selfplay__ledgers__places__37",
+    "selfplay__ledgers__places__38",
+    "selfplay__ledgers__places__39",
+    "selfplay__ledgers__places__4",
+    "selfplay__ledgers__places__40",
+    "selfplay__ledgers__places__41",
+    "selfplay__ledgers__places__42",
+    "selfplay__ledgers__places__43",
+    "selfplay__ledgers__places__44",
+    "selfplay__ledgers__places__45",
+    "selfplay__ledgers__places__46",
+    "selfplay__ledgers__places__47",
+    "selfplay__ledgers__places__48",
+    "selfplay__ledgers__places__49",
+    "selfplay__ledgers__places__5",
+    "selfplay__ledgers__places__50",
+    "selfplay__ledgers__places__51",
+    "selfplay__ledgers__places__52",
+    "selfplay__ledgers__places__53",
+    "selfplay__ledgers__places__54",
+    "selfplay__ledgers__places__55",
+    "selfplay__ledgers__places__56",
+    "selfplay__ledgers__places__57",
+    "selfplay__ledgers__places__58",
+    "selfplay__ledgers__places__59",
+    "selfplay__ledgers__places__6",
+    "selfplay__ledgers__places__60",
+    "selfplay__ledgers__places__61",
+    "selfplay__ledgers__places__62",
+    "selfplay__ledgers__places__63",
+    "selfplay__ledgers__places__64",
+    "selfplay__ledgers__places__65",
+    "selfplay__ledgers__places__66",
+    "selfplay__ledgers__places__67",
+    "selfplay__ledgers__places__68",
+    "selfplay__ledgers__places__69",
+    "selfplay__ledgers__places__7",
+    "selfplay__ledgers__places__70",
+    "selfplay__ledgers__places__71",
+    "selfplay__ledgers__places__72",
+    "selfplay__ledgers__places__73",
+    "selfplay__ledgers__places__74",
+    "selfplay__ledgers__places__75",
+    "selfplay__ledgers__places__76",
+    "selfplay__ledgers__places__77",
+    "selfplay__ledgers__places__78",
+    "selfplay__ledgers__places__79",
+    "selfplay__ledgers__places__8",
+    "selfplay__ledgers__places__80",
+    "selfplay__ledgers__places__81",
+    "selfplay__ledgers__places__82",
+    "selfplay__ledgers__places__83",
+    "selfplay__ledgers__places__84",
+    "selfplay__ledgers__places__85",
+    "selfplay__ledgers__places__86",
+    "selfplay__ledgers__places__87",
+    "selfplay__ledgers__places__88",
+    "selfplay__ledgers__places__89",
+    "selfplay__ledgers__places__9",
+    "selfplay__ledgers__places__90",
+    "selfplay__ledgers__places__91",
+    "selfplay__ledgers__places__92",
+    "selfplay__ledgers__places__93",
+    "selfplay__ledgers__places__94",
+    "selfplay__ledgers__places__95",
+    "selfplay__ledgers__places__96",
+    "selfplay__ledgers__places__97",
+    "selfplay__ledgers__places__98",
+    "selfplay__ledgers__places__99",
+    "selfplay__ledgers__rare_event__0",
+    "selfplay__ledgers__rare_event__1",
+    "selfplay__ledgers__rare_event__10",
+    "selfplay__ledgers__rare_event__11",
+    "selfplay__ledgers__rare_event__12",
+    "selfplay__ledgers__rare_event__13",
+    "selfplay__ledgers__rare_event__14",
+    "selfplay__ledgers__rare_event__15",
+    "selfplay__ledgers__rare_event__16",
+    "selfplay__ledgers__rare_event__17",
+    "selfplay__ledgers__rare_event__18",
+    "selfplay__ledgers__rare_event__19",
+    "selfplay__ledgers__rare_event__2",
+    "selfplay__ledgers__rare_event__20",
+    "selfplay__ledgers__rare_event__21",
+    "selfplay__ledgers__rare_event__22",
+    "selfplay__ledgers__rare_event__23",
+    "selfplay__ledgers__rare_event__24",
+    "selfplay__ledgers__rare_event__25",
+    "selfplay__ledgers__rare_event__26",
+    "selfplay__ledgers__rare_event__27",
+    "selfplay__ledgers__rare_event__28",
+    "selfplay__ledgers__rare_event__29",
+    "selfplay__ledgers__rare_event__3",
+    "selfplay__ledgers__rare_event__30",
+    "selfplay__ledgers__rare_event__31",
+    "selfplay__ledgers__rare_event__32",
+    "selfplay__ledgers__rare_event__33",
+    "selfplay__ledgers__rare_event__34",
+    "selfplay__ledgers__rare_event__35",
+    "selfplay__ledgers__rare_event__36",
+    "selfplay__ledgers__rare_event__37",
+    "selfplay__ledgers__rare_event__38",
+    "selfplay__ledgers__rare_event__39",
+    "selfplay__ledgers__rare_event__4",
+    "selfplay__ledgers__rare_event__40",
+    "selfplay__ledgers__rare_event__41",
+    "selfplay__ledgers__rare_event__42",
+    "selfplay__ledgers__rare_event__43",
+    "selfplay__ledgers__rare_event__44",
+    "selfplay__ledgers__rare_event__45",
+    "selfplay__ledgers__rare_event__46",
+    "selfplay__ledgers__rare_event__47",
+    "selfplay__ledgers__rare_event__48",
+    "selfplay__ledgers__rare_event__49",
+    "selfplay__ledgers__rare_event__5",
+    "selfplay__ledgers__rare_event__50",
+    "selfplay__ledgers__rare_event__51",
+    "selfplay__ledgers__rare_event__52",
+    "selfplay__ledgers__rare_event__53",
+    "selfplay__ledgers__rare_event__54",
+    "selfplay__ledgers__rare_event__55",
+    "selfplay__ledgers__rare_event__56",
+    "selfplay__ledgers__rare_event__57",
+    "selfplay__ledgers__rare_event__58",
+    "selfplay__ledgers__rare_event__59",
+    "selfplay__ledgers__rare_event__6",
+    "selfplay__ledgers__rare_event__60",
+    "selfplay__ledgers__rare_event__61",
+    "selfplay__ledgers__rare_event__62",
+    "selfplay__ledgers__rare_event__63",
+    "selfplay__ledgers__rare_event__64",
+    "selfplay__ledgers__rare_event__65",
+    "selfplay__ledgers__rare_event__66",
+    "selfplay__ledgers__rare_event__67",
+    "selfplay__ledgers__rare_event__68",
+    "selfplay__ledgers__rare_event__69",
+    "selfplay__ledgers__rare_event__7",
+    "selfplay__ledgers__rare_event__70",
+    "selfplay__ledgers__rare_event__71",
+    "selfplay__ledgers__rare_event__72",
+    "selfplay__ledgers__rare_event__73",
+    "selfplay__ledgers__rare_event__74",
+    "selfplay__ledgers__rare_event__75",
+    "selfplay__ledgers__rare_event__76",
+    "selfplay__ledgers__rare_event__77",
+    "selfplay__ledgers__rare_event__78",
+    "selfplay__ledgers__rare_event__79",
+    "selfplay__ledgers__rare_event__8",
+    "selfplay__ledgers__rare_event__80",
+    "selfplay__ledgers__rare_event__81",
+    "selfplay__ledgers__rare_event__82",
+    "selfplay__ledgers__rare_event__83",
+    "selfplay__ledgers__rare_event__84",
+    "selfplay__ledgers__rare_event__85",
+    "selfplay__ledgers__rare_event__86",
+    "selfplay__ledgers__rare_event__87",
+    "selfplay__ledgers__rare_event__88",
+    "selfplay__ledgers__rare_event__89",
+    "selfplay__ledgers__rare_event__9",
+    "selfplay__ledgers__rare_event__90",
+    "selfplay__ledgers__rare_event__91",
+    "selfplay__ledgers__rare_event__92",
+    "selfplay__ledgers__rare_event__93",
+    "selfplay__ledgers__rare_event__94",
+    "selfplay__ledgers__rare_event__95",
+    "selfplay__ledgers__rare_event__96",
+    "selfplay__ledgers__rare_event__97",
+    "selfplay__ledgers__rare_event__98",
+    "selfplay__ledgers__rare_event__99",
+    "selfplay__ledgers__regression__0",
+    "selfplay__ledgers__regression__1",
+    "selfplay__ledgers__regression__10",
+    "selfplay__ledgers__regression__11",
+    "selfplay__ledgers__regression__12",
+    "selfplay__ledgers__regression__13",
+    "selfplay__ledgers__regression__14",
+    "selfplay__ledgers__regression__15",
+    "selfplay__ledgers__regression__16",
+    "selfplay__ledgers__regression__17",
+    "selfplay__ledgers__regression__18",
+    "selfplay__ledgers__regression__19",
+    "selfplay__ledgers__regression__2",
+    "selfplay__ledgers__regression__20",
+    "selfplay__ledgers__regression__21",
+    "selfplay__ledgers__regression__22",
+    "selfplay__ledgers__regression__23",
+    "selfplay__ledgers__regression__24",
+    "selfplay__ledgers__regression__25",
+    "selfplay__ledgers__regression__26",
+    "selfplay__ledgers__regression__27",
+    "selfplay__ledgers__regression__28",
+    "selfplay__ledgers__regression__29",
+    "selfplay__ledgers__regression__3",
+    "selfplay__ledgers__regression__30",
+    "selfplay__ledgers__regression__31",
+    "selfplay__ledgers__regression__32",
+    "selfplay__ledgers__regression__33",
+    "selfplay__ledgers__regression__34",
+    "selfplay__ledgers__regression__35",
+    "selfplay__ledgers__regression__36",
+    "selfplay__ledgers__regression__37",
+    "selfplay__ledgers__regression__38",
+    "selfplay__ledgers__regression__39",
+    "selfplay__ledgers__regression__4",
+    "selfplay__ledgers__regression__40",
+    "selfplay__ledgers__regression__41",
+    "selfplay__ledgers__regression__42",
+    "selfplay__ledgers__regression__43",
+    "selfplay__ledgers__regression__44",
+    "selfplay__ledgers__regression__45",
+    "selfplay__ledgers__regression__46",
+    "selfplay__ledgers__regression__47",
+    "selfplay__ledgers__regression__48",
+    "selfplay__ledgers__regression__49",
+    "selfplay__ledgers__regression__5",
+    "selfplay__ledgers__regression__50",
+    "selfplay__ledgers__regression__51",
+    "selfplay__ledgers__regression__52",
+    "selfplay__ledgers__regression__53",
+    "selfplay__ledgers__regression__54",
+    "selfplay__ledgers__regression__55",
+    "selfplay__ledgers__regression__56",
+    "selfplay__ledgers__regression__57",
+    "selfplay__ledgers__regression__58",
+    "selfplay__ledgers__regression__59",
+    "selfplay__ledgers__regression__6",
+    "selfplay__ledgers__regression__60",
+    "selfplay__ledgers__regression__61",
+    "selfplay__ledgers__regression__62",
+    "selfplay__ledgers__regression__63",
+    "selfplay__ledgers__regression__64",
+    "selfplay__ledgers__regression__65",
+    "selfplay__ledgers__regression__66",
+    "selfplay__ledgers__regression__67",
+    "selfplay__ledgers__regression__68",
+    "selfplay__ledgers__regression__69",
+    "selfplay__ledgers__regression__7",
+    "selfplay__ledgers__regression__70",
+    "selfplay__ledgers__regression__71",
+    "selfplay__ledgers__regression__72",
+    "selfplay__ledgers__regression__73",
+    "selfplay__ledgers__regression__74",
+    "selfplay__ledgers__regression__75",
+    "selfplay__ledgers__regression__76",
+    "selfplay__ledgers__regression__77",
+    "selfplay__ledgers__regression__78",
+    "selfplay__ledgers__regression__79",
+    "selfplay__ledgers__regression__8",
+    "selfplay__ledgers__regression__80",
+    "selfplay__ledgers__regression__81",
+    "selfplay__ledgers__regression__82",
+    "selfplay__ledgers__regression__83",
+    "selfplay__ledgers__regression__84",
+    "selfplay__ledgers__regression__85",
+    "selfplay__ledgers__regression__86",
+    "selfplay__ledgers__regression__87",
+    "selfplay__ledgers__regression__88",
+    "selfplay__ledgers__regression__89",
+    "selfplay__ledgers__regression__9",
+    "selfplay__ledgers__regression__90",
+    "selfplay__ledgers__regression__91",
+    "selfplay__ledgers__regression__92",
+    "selfplay__ledgers__regression__93",
+    "selfplay__ledgers__regression__94",
+    "selfplay__ledgers__regression__95",
+    "selfplay__ledgers__regression__96",
+    "selfplay__ledgers__regression__97",
+    "selfplay__ledgers__regression__98",
+    "selfplay__ledgers__regression__99",
+    "selfplay__ledgers__text_tabular__0",
+    "selfplay__ledgers__text_tabular__1",
+    "selfplay__ledgers__text_tabular__10",
+    "selfplay__ledgers__text_tabular__11",
+    "selfplay__ledgers__text_tabular__12",
+    "selfplay__ledgers__text_tabular__13",
+    "selfplay__ledgers__text_tabular__14",
+    "selfplay__ledgers__text_tabular__15",
+    "selfplay__ledgers__text_tabular__16",
+    "selfplay__ledgers__text_tabular__17",
+    "selfplay__ledgers__text_tabular__18",
+    "selfplay__ledgers__text_tabular__19",
+    "selfplay__ledgers__text_tabular__2",
+    "selfplay__ledgers__text_tabular__20",
+    "selfplay__ledgers__text_tabular__21",
+    "selfplay__ledgers__text_tabular__22",
+    "selfplay__ledgers__text_tabular__23",
+    "selfplay__ledgers__text_tabular__24",
+    "selfplay__ledgers__text_tabular__25",
+    "selfplay__ledgers__text_tabular__26",
+    "selfplay__ledgers__text_tabular__27",
+    "selfplay__ledgers__text_tabular__28",
+    "selfplay__ledgers__text_tabular__29",
+    "selfplay__ledgers__text_tabular__3",
+    "selfplay__ledgers__text_tabular__30",
+    "selfplay__ledgers__text_tabular__31",
+    "selfplay__ledgers__text_tabular__32",
+    "selfplay__ledgers__text_tabular__33",
+    "selfplay__ledgers__text_tabular__34",
+    "selfplay__ledgers__text_tabular__35",
+    "selfplay__ledgers__text_tabular__36",
+    "selfplay__ledgers__text_tabular__37",
+    "selfplay__ledgers__text_tabular__38",
+    "selfplay__ledgers__text_tabular__39",
+    "selfplay__ledgers__text_tabular__4",
+    "selfplay__ledgers__text_tabular__40",
+    "selfplay__ledgers__text_tabular__41",
+    "selfplay__ledgers__text_tabular__42",
+    "selfplay__ledgers__text_tabular__43",
+    "selfplay__ledgers__text_tabular__44",
+    "selfplay__ledgers__text_tabular__45",
+    "selfplay__ledgers__text_tabular__46",
+    "selfplay__ledgers__text_tabular__47",
+    "selfplay__ledgers__text_tabular__48",
+    "selfplay__ledgers__text_tabular__49",
+    "selfplay__ledgers__text_tabular__5",
+    "selfplay__ledgers__text_tabular__50",
+    "selfplay__ledgers__text_tabular__51",
+    "selfplay__ledgers__text_tabular__52",
+    "selfplay__ledgers__text_tabular__53",
+    "selfplay__ledgers__text_tabular__54",
+    "selfplay__ledgers__text_tabular__55",
+    "selfplay__ledgers__text_tabular__56",
+    "selfplay__ledgers__text_tabular__57",
+    "selfplay__ledgers__text_tabular__58",
+    "selfplay__ledgers__text_tabular__59",
+    "selfplay__ledgers__text_tabular__6",
+    "selfplay__ledgers__text_tabular__60",
+    "selfplay__ledgers__text_tabular__61",
+    "selfplay__ledgers__text_tabular__62",
+    "selfplay__ledgers__text_tabular__63",
+    "selfplay__ledgers__text_tabular__64",
+    "selfplay__ledgers__text_tabular__65",
+    "selfplay__ledgers__text_tabular__66",
+    "selfplay__ledgers__text_tabular__67",
+    "selfplay__ledgers__text_tabular__68",
+    "selfplay__ledgers__text_tabular__69",
+    "selfplay__ledgers__text_tabular__7",
+    "selfplay__ledgers__text_tabular__70",
+    "selfplay__ledgers__text_tabular__71",
+    "selfplay__ledgers__text_tabular__72",
+    "selfplay__ledgers__text_tabular__73",
+    "selfplay__ledgers__text_tabular__74",
+    "selfplay__ledgers__text_tabular__75",
+    "selfplay__ledgers__text_tabular__76",
+    "selfplay__ledgers__text_tabular__77",
+    "selfplay__ledgers__text_tabular__78",
+    "selfplay__ledgers__text_tabular__79",
+    "selfplay__ledgers__text_tabular__8",
+    "selfplay__ledgers__text_tabular__80",
+    "selfplay__ledgers__text_tabular__81",
+    "selfplay__ledgers__text_tabular__82",
+    "selfplay__ledgers__text_tabular__83",
+    "selfplay__ledgers__text_tabular__84",
+    "selfplay__ledgers__text_tabular__85",
+    "selfplay__ledgers__text_tabular__86",
+    "selfplay__ledgers__text_tabular__87",
+    "selfplay__ledgers__text_tabular__88",
+    "selfplay__ledgers__text_tabular__89",
+    "selfplay__ledgers__text_tabular__9",
+    "selfplay__ledgers__text_tabular__90",
+    "selfplay__ledgers__text_tabular__91",
+    "selfplay__ledgers__text_tabular__92",
+    "selfplay__ledgers__text_tabular__93",
+    "selfplay__ledgers__text_tabular__94",
+    "selfplay__ledgers__text_tabular__95",
+    "selfplay__ledgers__text_tabular__96",
+    "selfplay__ledgers__text_tabular__97",
+    "selfplay__ledgers__text_tabular__98",
+    "selfplay__ledgers__text_tabular__99",
+    "selfplay__ledgers__time_to_event__0",
+    "selfplay__ledgers__time_to_event__1",
+    "selfplay__ledgers__time_to_event__10",
+    "selfplay__ledgers__time_to_event__11",
+    "selfplay__ledgers__time_to_event__12",
+    "selfplay__ledgers__time_to_event__13",
+    "selfplay__ledgers__time_to_event__14",
+    "selfplay__ledgers__time_to_event__15",
+    "selfplay__ledgers__time_to_event__16",
+    "selfplay__ledgers__time_to_event__17",
+    "selfplay__ledgers__time_to_event__18",
+    "selfplay__ledgers__time_to_event__19",
+    "selfplay__ledgers__time_to_event__2",
+    "selfplay__ledgers__time_to_event__20",
+    "selfplay__ledgers__time_to_event__21",
+    "selfplay__ledgers__time_to_event__22",
+    "selfplay__ledgers__time_to_event__23",
+    "selfplay__ledgers__time_to_event__24",
+    "selfplay__ledgers__time_to_event__25",
+    "selfplay__ledgers__time_to_event__26",
+    "selfplay__ledgers__time_to_event__27",
+    "selfplay__ledgers__time_to_event__28",
+    "selfplay__ledgers__time_to_event__29",
+    "selfplay__ledgers__time_to_event__3",
+    "selfplay__ledgers__time_to_event__30",
+    "selfplay__ledgers__time_to_event__31",
+    "selfplay__ledgers__time_to_event__32",
+    "selfplay__ledgers__time_to_event__33",
+    "selfplay__ledgers__time_to_event__34",
+    "selfplay__ledgers__time_to_event__35",
+    "selfplay__ledgers__time_to_event__36",
+    "selfplay__ledgers__time_to_event__37",
+    "selfplay__ledgers__time_to_event__38",
+    "selfplay__ledgers__time_to_event__39",
+    "selfplay__ledgers__time_to_event__4",
+    "selfplay__ledgers__time_to_event__40",
+    "selfplay__ledgers__time_to_event__41",
+    "selfplay__ledgers__time_to_event__42",
+    "selfplay__ledgers__time_to_event__43",
+    "selfplay__ledgers__time_to_event__44",
+    "selfplay__ledgers__time_to_event__45",
+    "selfplay__ledgers__time_to_event__46",
+    "selfplay__ledgers__time_to_event__47",
+    "selfplay__ledgers__time_to_event__48",
+    "selfplay__ledgers__time_to_event__49",
+    "selfplay__ledgers__time_to_event__5",
+    "selfplay__ledgers__time_to_event__50",
+    "selfplay__ledgers__time_to_event__51",
+    "selfplay__ledgers__time_to_event__52",
+    "selfplay__ledgers__time_to_event__53",
+    "selfplay__ledgers__time_to_event__54",
+    "selfplay__ledgers__time_to_event__55",
+    "selfplay__ledgers__time_to_event__56",
+    "selfplay__ledgers__time_to_event__57",
+    "selfplay__ledgers__time_to_event__58",
+    "selfplay__ledgers__time_to_event__59",
+    "selfplay__ledgers__time_to_event__6",
+    "selfplay__ledgers__time_to_event__60",
+    "selfplay__ledgers__time_to_event__61",
+    "selfplay__ledgers__time_to_event__62",
+    "selfplay__ledgers__time_to_event__63",
+    "selfplay__ledgers__time_to_event__64",
+    "selfplay__ledgers__time_to_event__65",
+    "selfplay__ledgers__time_to_event__66",
+    "selfplay__ledgers__time_to_event__67",
+    "selfplay__ledgers__time_to_event__68",
+    "selfplay__ledgers__time_to_event__69",
+    "selfplay__ledgers__time_to_event__7",
+    "selfplay__ledgers__time_to_event__70",
+    "selfplay__ledgers__time_to_event__71",
+    "selfplay__ledgers__time_to_event__72",
+    "selfplay__ledgers__time_to_event__73",
+    "selfplay__ledgers__time_to_event__74",
+    "selfplay__ledgers__time_to_event__75",
+    "selfplay__ledgers__time_to_event__76",
+    "selfplay__ledgers__time_to_event__77",
+    "selfplay__ledgers__time_to_event__78",
+    "selfplay__ledgers__time_to_event__79",
+    "selfplay__ledgers__time_to_event__80",
+    "selfplay__ledgers__time_to_event__81",
+    "selfplay__ledgers__time_to_event__82",
+    "selfplay__ledgers__time_to_event__83",
+    "selfplay__ledgers__time_to_event__84",
+    "selfplay__ledgers__time_to_event__85",
+    "selfplay__ledgers__time_to_event__86",
+    "selfplay__ledgers__time_to_event__87",
+    "selfplay__ledgers__time_to_event__88",
+    "selfplay__ledgers__time_to_event__89",
+    "selfplay__ledgers__time_to_event__9",
+    "selfplay__ledgers__time_to_event__90",
+    "selfplay__ledgers__time_to_event__91",
+    "selfplay__ledgers__time_to_event__92",
+    "selfplay__ledgers__time_to_event__93",
+    "selfplay__ledgers__time_to_event__94",
+    "selfplay__ledgers__time_to_event__95",
+    "selfplay__ledgers__time_to_event__96",
+    "selfplay__ledgers__time_to_event__97",
+    "selfplay__ledgers__time_to_event__98",
+    "selfplay__ledgers__time_to_event__99",
+    "selfplay__ledgers__uplift__0",
+    "selfplay__ledgers__uplift__1",
+    "selfplay__ledgers__uplift__10",
+    "selfplay__ledgers__uplift__11",
+    "selfplay__ledgers__uplift__12",
+    "selfplay__ledgers__uplift__13",
+    "selfplay__ledgers__uplift__14",
+    "selfplay__ledgers__uplift__16",
+    "selfplay__ledgers__uplift__17",
+    "selfplay__ledgers__uplift__18",
+    "selfplay__ledgers__uplift__19",
+    "selfplay__ledgers__uplift__2",
+    "selfplay__ledgers__uplift__20",
+    "selfplay__ledgers__uplift__21",
+    "selfplay__ledgers__uplift__22",
+    "selfplay__ledgers__uplift__23",
+    "selfplay__ledgers__uplift__24",
+    "selfplay__ledgers__uplift__25",
+    "selfplay__ledgers__uplift__26",
+    "selfplay__ledgers__uplift__27",
+    "selfplay__ledgers__uplift__28",
+    "selfplay__ledgers__uplift__29",
+    "selfplay__ledgers__uplift__3",
+    "selfplay__ledgers__uplift__30",
+    "selfplay__ledgers__uplift__31",
+    "selfplay__ledgers__uplift__32",
+    "selfplay__ledgers__uplift__33",
+    "selfplay__ledgers__uplift__34",
+    "selfplay__ledgers__uplift__35",
+    "selfplay__ledgers__uplift__36",
+    "selfplay__ledgers__uplift__37",
+    "selfplay__ledgers__uplift__38",
+    "selfplay__ledgers__uplift__39",
+    "selfplay__ledgers__uplift__4",
+    "selfplay__ledgers__uplift__40",
+    "selfplay__ledgers__uplift__41",
+    "selfplay__ledgers__uplift__42",
+    "selfplay__ledgers__uplift__43",
+    "selfplay__ledgers__uplift__44",
+    "selfplay__ledgers__uplift__45",
+    "selfplay__ledgers__uplift__46",
+    "selfplay__ledgers__uplift__47",
+    "selfplay__ledgers__uplift__48",
+    "selfplay__ledgers__uplift__49",
+    "selfplay__ledgers__uplift__5",
+    "selfplay__ledgers__uplift__50",
+    "selfplay__ledgers__uplift__51",
+    "selfplay__ledgers__uplift__52",
+    "selfplay__ledgers__uplift__53",
+    "selfplay__ledgers__uplift__54",
+    "selfplay__ledgers__uplift__55",
+    "selfplay__ledgers__uplift__56",
+    "selfplay__ledgers__uplift__57",
+    "selfplay__ledgers__uplift__58",
+    "selfplay__ledgers__uplift__59",
+    "selfplay__ledgers__uplift__6",
+    "selfplay__ledgers__uplift__60",
+    "selfplay__ledgers__uplift__61",
+    "selfplay__ledgers__uplift__62",
+    "selfplay__ledgers__uplift__63",
+    "selfplay__ledgers__uplift__64",
+    "selfplay__ledgers__uplift__65",
+    "selfplay__ledgers__uplift__66",
+    "selfplay__ledgers__uplift__67",
+    "selfplay__ledgers__uplift__68",
+    "selfplay__ledgers__uplift__69",
+    "selfplay__ledgers__uplift__7",
+    "selfplay__ledgers__uplift__70",
+    "selfplay__ledgers__uplift__71",
+    "selfplay__ledgers__uplift__72",
+    "selfplay__ledgers__uplift__73",
+    "selfplay__ledgers__uplift__74",
+    "selfplay__ledgers__uplift__75",
+    "selfplay__ledgers__uplift__76",
+    "selfplay__ledgers__uplift__77",
+    "selfplay__ledgers__uplift__78",
+    "selfplay__ledgers__uplift__79",
+    "selfplay__ledgers__uplift__80",
+    "selfplay__ledgers__uplift__81",
+    "selfplay__ledgers__uplift__82",
+    "selfplay__ledgers__uplift__83",
+    "selfplay__ledgers__uplift__84",
+    "selfplay__ledgers__uplift__85",
+    "selfplay__ledgers__uplift__86",
+    "selfplay__ledgers__uplift__87",
+    "selfplay__ledgers__uplift__88",
+    "selfplay__ledgers__uplift__89",
+    "selfplay__ledgers__uplift__9",
+    "selfplay__ledgers__uplift__90",
+    "selfplay__ledgers__uplift__91",
+    "selfplay__ledgers__uplift__92",
+    "selfplay__ledgers__uplift__93",
+    "selfplay__ledgers__uplift__94",
+    "selfplay__ledgers__uplift__95",
+    "selfplay__ledgers__uplift__96",
+    "selfplay__ledgers__uplift__97",
+    "selfplay__ledgers__uplift__98",
+    "selfplay__ledgers__uplift__99",
     "twin__runs__20261016-100832-215130__ai_first",
     "twin__runs__20261016-100832-215130__workflow",
     "twin__runs__20261016-112025-a15b8e__ai_first",
@@ -989,34 +2226,72 @@
     "twin__runs__20261016-113617-286709__ai_first",
     "twin__runs__20261016-114806-2ba186__ai_first",
     "twin__runs__20261016-114806-2ba186__workflow",
-    "twin__runs__20261016-115746-c3bb98__ai_first"
+    "twin__runs__20261016-115746-c3bb98__ai_first",
+    "twin__runs__20261021-135638-0c10f6__workflow",
+    "twin__runs__20261021-135926-f5c3c7__workflow",
+    "twin__runs__20261021-140032-82d699__workflow",
+    "twin__runs__20261021-140045-594f1b__workflow",
+    "twin__runs__20261021-140050-6ac74d__workflow",
+    "twin__runs__20261021-140139-251918__workflow",
+    "twin__runs__20261021-140148-76398a__workflow",
+    "twin__runs__20261021-140216-fecd75__workflow",
+    "twin__runs__20261021-140259-26bb14__workflow",
+    "twin__runs__20261021-140340-067490__workflow",
+    "twin__runs__20261021-140348-2d1462__workflow",
+    "twin__runs__20261021-140446-b92b2c__workflow",
+    "twin__runs__20261021-140551-8b7350__workflow",
+    "twin__runs__20261021-141003-97e8e6__workflow",
+    "twin__runs__20261021-141028-fda97a__workflow",
+    "twin__runs__20261021-141040-00c409__workflow",
+    "twin__runs__20261021-142944-7d0ce9__ai_first",
+    "twin__runs__20261021-142944-7d0ce9__workflow",
+    "twin__runs__20261021-143903-9f915c__ai_first",
+    "twin__runs__20261021-143903-9f915c__workflow",
+    "twin__runs__20261021-144909-90078b__ai_first",
+    "twin__runs__20261021-144909-90078b__workflow",
+    "twin__runs__20261021-145639-d52d2b__ai_first",
+    "twin__runs__20261021-145639-d52d2b__workflow",
+    "twin__runs__20261021-150827-ba88bf__ai_first",
+    "twin__runs__20261021-150827-ba88bf__workflow",
+    "twin__runs__20261021-151709-0a6b88__ai_first",
+    "twin__runs__20261021-151709-0a6b88__workflow",
+    "twin__runs__20261021-152951-d9f1c1__ai_first",
+    "twin__runs__20261021-152951-d9f1c1__workflow",
+    "twin__runs__20261021-153955-36da2b__ai_first",
+    "twin__runs__20261021-153955-36da2b__workflow",
+    "twin__runs__20261021-154916-1c49c5__ai_first",
+    "twin__runs__20261021-154916-1c49c5__workflow",
+    "twin__runs__20261021-155706-1183eb__ai_first",
+    "twin__runs__20261021-155706-1183eb__workflow",
+    "twin__runs__20261021-161241-b0cedc__ai_first",
+    "twin__runs__20261021-161241-b0cedc__workflow"
    ]
   },
   "deletions": {
-   "bytes": 243,
-   "entries": 1,
-   "last": "2026-10-20T02:14:15+00:00",
-   "sources": 1,
+   "bytes": 18961,
+   "entries": 78,
+   "last": "2026-10-21T18:27:29+00:00",
+   "sources": 76,
    "what": "each deletion in the product, recorded beside what it removed",
    "workspaces": [
     "dev"
    ]
   },
   "fixes": {
-   "bytes": 96814390,
-   "entries": 505,
-   "last": "2026-10-20T03:15:57+00:00",
-   "sources": 505,
+   "bytes": 102147645,
+   "entries": 673,
+   "last": "2026-10-21T19:57:50+00:00",
+   "sources": 663,
    "what": "a failing test, the passing run after it, and the commits between",
    "workspaces": [
     "rnd"
    ]
   },
   "model_requests": {
-   "bytes": 20246540,
-   "entries": 22,
-   "last": "2026-10-20T03:09:52+00:00",
-   "sources": 22,
+   "bytes": 34619901,
+   "entries": 87,
+   "last": "2026-10-21T19:50:37+00:00",
+   "sources": 41,
    "what": "every model request with its shadows and checks",
    "workspaces": [
     "dev",
@@ -1032,19 +2307,33 @@
     "live_tests__2026-10-18_students_judge_full__workspace",
     "live_tests__2026-10-19_committee",
     "live_tests__2026-10-19_model_paths__104822",
+    "live_tests__2026-10-20__prompt_cache",
+    "live_tests__2026-10-21__home-team-claude",
+    "live_tests__2026-10-21__open-edition__claude-sonnet",
     "twin__runs__20261016-100832-215130__ai_first",
     "twin__runs__20261016-112025-a15b8e__ai_first",
     "twin__runs__20261016-112855-921d50__ai_first",
     "twin__runs__20261016-113617-286709__ai_first",
     "twin__runs__20261016-114806-2ba186__ai_first",
-    "twin__runs__20261016-115746-c3bb98__ai_first"
+    "twin__runs__20261016-115746-c3bb98__ai_first",
+    "twin__runs__20261021-142944-7d0ce9__ai_first",
+    "twin__runs__20261021-143903-9f915c__ai_first",
+    "twin__runs__20261021-144909-90078b__ai_first",
+    "twin__runs__20261021-145639-d52d2b__ai_first",
+    "twin__runs__20261021-150827-ba88bf__ai_first",
+    "twin__runs__20261021-151709-0a6b88__ai_first",
+    "twin__runs__20261021-152951-d9f1c1__ai_first",
+    "twin__runs__20261021-153955-36da2b__ai_first",
+    "twin__runs__20261021-154916-1c49c5__ai_first",
+    "twin__runs__20261021-155706-1183eb__ai_first",
+    "twin__runs__20261021-161241-b0cedc__ai_first"
    ]
   },
   "other": {
-   "bytes": 38871780,
-   "entries": 2280,
-   "last": "2026-10-20T03:12:15+00:00",
-   "sources": 2280,
+   "bytes": 104875969,
+   "entries": 2694,
+   "last": "2026-10-21T19:53:52+00:00",
+   "sources": 2627,
    "what": "anything else a workspace holds (logs, results, designs, transcripts, settings), so nothing is left out",
    "workspaces": [
     "dev",
@@ -1830,10 +3119,19 @@
     "live_tests__2026-10-19_live__6_harness_full__rg-01__workspace",
     "live_tests__2026-10-19_live__6_harness_full__rg-02__workspace",
     "live_tests__2026-10-19_model_paths__104822",
+    "live_tests__2026-10-20__prompt_cache",
+    "live_tests__2026-10-20_home_orchestrator__run-162809__workspace",
+    "live_tests__2026-10-20_home_orchestrator__run-163041__workspace",
+    "live_tests__2026-10-20_home_orchestrator__run-164834__workspace",
+    "live_tests__2026-10-20_home_orchestrator__run-165229__workspace",
+    "live_tests__2026-10-21__home-team-claude",
+    "live_tests__2026-10-21__open-edition__claude-sonnet",
+    "live_tests__2026-10-21_home_orchestrator__run-202328__workspace",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
     "real_problems__2026-10-20_fraud__workspace",
+    "selfplay",
     "twin__runs__20261016-100832-215130__ai_first",
     "twin__runs__20261016-100832-215130__workflow",
     "twin__runs__20261016-112025-a15b8e__ai_first",
@@ -1845,14 +3143,52 @@
     "twin__runs__20261016-114806-2ba186__ai_first",
     "twin__runs__20261016-114806-2ba186__workflow",
     "twin__runs__20261016-115746-c3bb98__ai_first",
-    "twin__runs__20261016-115746-c3bb98__workflow"
+    "twin__runs__20261016-115746-c3bb98__workflow",
+    "twin__runs__20261021-135638-0c10f6__workflow",
+    "twin__runs__20261021-135926-f5c3c7__workflow",
+    "twin__runs__20261021-140032-82d699__workflow",
+    "twin__runs__20261021-140045-594f1b__workflow",
+    "twin__runs__20261021-140050-6ac74d__workflow",
+    "twin__runs__20261021-140139-251918__workflow",
+    "twin__runs__20261021-140148-76398a__workflow",
+    "twin__runs__20261021-140216-fecd75__workflow",
+    "twin__runs__20261021-140259-26bb14__workflow",
+    "twin__runs__20261021-140340-067490__workflow",
+    "twin__runs__20261021-140348-2d1462__workflow",
+    "twin__runs__20261021-140446-b92b2c__workflow",
+    "twin__runs__20261021-140551-8b7350__workflow",
+    "twin__runs__20261021-141003-97e8e6__workflow",
+    "twin__runs__20261021-141028-fda97a__workflow",
+    "twin__runs__20261021-141040-00c409__workflow",
+    "twin__runs__20261021-142944-7d0ce9__ai_first",
+    "twin__runs__20261021-142944-7d0ce9__workflow",
+    "twin__runs__20261021-143903-9f915c__ai_first",
+    "twin__runs__20261021-143903-9f915c__workflow",
+    "twin__runs__20261021-144909-90078b__ai_first",
+    "twin__runs__20261021-144909-90078b__workflow",
+    "twin__runs__20261021-145639-d52d2b__ai_first",
+    "twin__runs__20261021-145639-d52d2b__workflow",
+    "twin__runs__20261021-150827-ba88bf__ai_first",
+    "twin__runs__20261021-150827-ba88bf__workflow",
+    "twin__runs__20261021-151709-0a6b88__ai_first",
+    "twin__runs__20261021-151709-0a6b88__workflow",
+    "twin__runs__20261021-152951-d9f1c1__ai_first",
+    "twin__runs__20261021-152951-d9f1c1__workflow",
+    "twin__runs__20261021-153955-36da2b__ai_first",
+    "twin__runs__20261021-153955-36da2b__workflow",
+    "twin__runs__20261021-154916-1c49c5__ai_first",
+    "twin__runs__20261021-154916-1c49c5__workflow",
+    "twin__runs__20261021-155706-1183eb__ai_first",
+    "twin__runs__20261021-155706-1183eb__workflow",
+    "twin__runs__20261021-161241-b0cedc__ai_first",
+    "twin__runs__20261021-161241-b0cedc__workflow"
    ]
   },
   "sessions": {
-   "bytes": 11154547,
-   "entries": 83,
-   "last": "2026-10-20T03:09:45+00:00",
-   "sources": 83,
+   "bytes": 30948925,
+   "entries": 278,
+   "last": "2026-10-21T19:49:32+00:00",
+   "sources": 186,
    "what": "the experience log's events",
    "workspaces": [
     "dev",
@@ -1870,6 +3206,7 @@
     "live_tests__2026-10-16_phase3__workspace__twin__runs__20261016-115746-c3bb98__ai_first",
     "live_tests__2026-10-16_phase3__workspace__twin__runs__20261016-115746-c3bb98__workflow",
     "live_tests__2026-10-19_model_paths__104822",
+    "live_tests__2026-10-20_home_orchestrator__run-163041__workspace",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -1885,29 +3222,70 @@
     "twin__runs__20261016-114806-2ba186__ai_first",
     "twin__runs__20261016-114806-2ba186__workflow",
     "twin__runs__20261016-115746-c3bb98__ai_first",
-    "twin__runs__20261016-115746-c3bb98__workflow"
+    "twin__runs__20261016-115746-c3bb98__workflow",
+    "twin__runs__20261021-135638-0c10f6__workflow",
+    "twin__runs__20261021-135926-f5c3c7__workflow",
+    "twin__runs__20261021-140032-82d699__workflow",
+    "twin__runs__20261021-140045-594f1b__workflow",
+    "twin__runs__20261021-140050-6ac74d__workflow",
+    "twin__runs__20261021-140139-251918__workflow",
+    "twin__runs__20261021-140148-76398a__workflow",
+    "twin__runs__20261021-140216-fecd75__workflow",
+    "twin__runs__20261021-140259-26bb14__workflow",
+    "twin__runs__20261021-140340-067490__workflow",
+    "twin__runs__20261021-140348-2d1462__workflow",
+    "twin__runs__20261021-140446-b92b2c__workflow",
+    "twin__runs__20261021-140551-8b7350__workflow",
+    "twin__runs__20261021-141003-97e8e6__workflow",
+    "twin__runs__20261021-141028-fda97a__workflow",
+    "twin__runs__20261021-141040-00c409__workflow",
+    "twin__runs__20261021-142944-7d0ce9__ai_first",
+    "twin__runs__20261021-142944-7d0ce9__workflow",
+    "twin__runs__20261021-143903-9f915c__ai_first",
+    "twin__runs__20261021-143903-9f915c__workflow",
+    "twin__runs__20261021-144909-90078b__ai_first",
+    "twin__runs__20261021-144909-90078b__workflow",
+    "twin__runs__20261021-145639-d52d2b__ai_first",
+    "twin__runs__20261021-145639-d52d2b__workflow",
+    "twin__runs__20261021-150827-ba88bf__ai_first",
+    "twin__runs__20261021-150827-ba88bf__workflow",
+    "twin__runs__20261021-151709-0a6b88__ai_first",
+    "twin__runs__20261021-151709-0a6b88__workflow",
+    "twin__runs__20261021-152951-d9f1c1__ai_first",
+    "twin__runs__20261021-152951-d9f1c1__workflow",
+    "twin__runs__20261021-153955-36da2b__ai_first",
+    "twin__runs__20261021-153955-36da2b__workflow",
+    "twin__runs__20261021-154916-1c49c5__ai_first",
+    "twin__runs__20261021-154916-1c49c5__workflow",
+    "twin__runs__20261021-155706-1183eb__ai_first",
+    "twin__runs__20261021-155706-1183eb__workflow",
+    "twin__runs__20261021-161241-b0cedc__ai_first",
+    "twin__runs__20261021-161241-b0cedc__workflow"
    ]
   },
   "students": {
-   "bytes": 90251,
-   "entries": 9,
-   "last": "2026-10-20T03:11:23+00:00",
-   "sources": 9,
+   "bytes": 1945018,
+   "entries": 63,
+   "last": "2026-10-21T20:16:47+00:00",
+   "sources": 43,
    "what": "every student version, whole: the fitted model, its training snapshot, card, measurements, shadow answers",
    "workspaces": [
     "dev",
-    "live_tests__2026-10-19_model_paths__104822"
+    "live_tests__2026-10-19_model_paths__104822",
+    "rnd"
    ]
   },
   "tasks": {
-   "bytes": 10917,
-   "entries": 2,
-   "last": "2026-10-20T03:11:23+00:00",
-   "sources": 2,
+   "bytes": 845294,
+   "entries": 90,
+   "last": "2026-10-21T19:52:39+00:00",
+   "sources": 7,
    "what": "every job's state changes; the development sessions' task lists",
    "workspaces": [
+    "dev",
     "live_tests__2026-10-16_phase3__workspace",
-    "live_tests__2026-10-19_model_paths__104822"
+    "live_tests__2026-10-19_model_paths__104822",
+    "live_tests__2026-10-20_home_orchestrator__run-163041__workspace"
    ]
   },
   "teachers": {
@@ -1931,21 +3309,22 @@
    ]
   },
   "tests": {
-   "bytes": 130733260,
-   "entries": 1743,
-   "last": "2026-10-20T03:12:16+00:00",
-   "sources": 1743,
+   "bytes": 132876519,
+   "entries": 2003,
+   "last": "2026-10-21T19:53:58+00:00",
+   "sources": 1965,
    "what": "test runs and gates",
    "workspaces": [
     "dev",
+    "live_tests__2026-10-20_home_orchestrator__run-163041__workspace",
     "rnd"
    ]
   },
   "workflows": {
-   "bytes": 193214868,
-   "entries": 7670,
-   "last": "2026-10-20T03:36:17+00:00",
-   "sources": 7670,
+   "bytes": 221369340,
+   "entries": 8406,
+   "last": "2026-10-21T19:57:49+00:00",
+   "sources": 8357,
    "what": "each walk from a draft to a report; team and orchestra boards, walks and interrupts",
    "workspaces": [
     "dev",
@@ -2728,6 +4107,16 @@
     "live_tests__2026-10-19_live__6_harness_full__rg-01__workspace",
     "live_tests__2026-10-19_live__6_harness_full__rg-02__workspace",
     "live_tests__2026-10-19_model_paths__104822",
+    "live_tests__2026-10-20_home_orchestrator__run-162732__workspace",
+    "live_tests__2026-10-20_home_orchestrator__run-162809__workspace",
+    "live_tests__2026-10-20_home_orchestrator__run-163041__workspace",
+    "live_tests__2026-10-20_home_orchestrator__run-164834__workspace",
+    "live_tests__2026-10-20_home_orchestrator__run-165229__workspace",
+    "live_tests__2026-10-21_home_orchestrator__run-202135__workspace",
+    "live_tests__2026-10-21_home_orchestrator__run-202328__workspace",
+    "live_tests__2026-10-21_home_orchestrator__run-202932__workspace",
+    "live_tests__2026-10-21_home_orchestrator__run-210215__workspace",
+    "live_tests__2026-10-21_home_orchestrator__run-210923__workspace",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -2743,7 +4132,45 @@
     "twin__runs__20261016-114806-2ba186__ai_first",
     "twin__runs__20261016-114806-2ba186__workflow",
     "twin__runs__20261016-115746-c3bb98__ai_first",
-    "twin__runs__20261016-115746-c3bb98__workflow"
+    "twin__runs__20261016-115746-c3bb98__workflow",
+    "twin__runs__20261021-135638-0c10f6__workflow",
+    "twin__runs__20261021-135926-f5c3c7__workflow",
+    "twin__runs__20261021-140032-82d699__workflow",
+    "twin__runs__20261021-140045-594f1b__workflow",
+    "twin__runs__20261021-140050-6ac74d__workflow",
+    "twin__runs__20261021-140139-251918__workflow",
+    "twin__runs__20261021-140148-76398a__workflow",
+    "twin__runs__20261021-140216-fecd75__workflow",
+    "twin__runs__20261021-140259-26bb14__workflow",
+    "twin__runs__20261021-140340-067490__workflow",
+    "twin__runs__20261021-140348-2d1462__workflow",
+    "twin__runs__20261021-140446-b92b2c__workflow",
+    "twin__runs__20261021-140551-8b7350__workflow",
+    "twin__runs__20261021-141003-97e8e6__workflow",
+    "twin__runs__20261021-141028-fda97a__workflow",
+    "twin__runs__20261021-141040-00c409__workflow",
+    "twin__runs__20261021-142944-7d0ce9__ai_first",
+    "twin__runs__20261021-142944-7d0ce9__workflow",
+    "twin__runs__20261021-143903-9f915c__ai_first",
+    "twin__runs__20261021-143903-9f915c__workflow",
+    "twin__runs__20261021-144909-90078b__ai_first",
+    "twin__runs__20261021-144909-90078b__workflow",
+    "twin__runs__20261021-145639-d52d2b__ai_first",
+    "twin__runs__20261021-145639-d52d2b__workflow",
+    "twin__runs__20261021-150827-ba88bf__ai_first",
+    "twin__runs__20261021-150827-ba88bf__workflow",
+    "twin__runs__20261021-151709-0a6b88__ai_first",
+    "twin__runs__20261021-151709-0a6b88__workflow",
+    "twin__runs__20261021-152951-d9f1c1__ai_first",
+    "twin__runs__20261021-152951-d9f1c1__workflow",
+    "twin__runs__20261021-153955-36da2b__ai_first",
+    "twin__runs__20261021-153955-36da2b__workflow",
+    "twin__runs__20261021-154916-1c49c5__ai_first",
+    "twin__runs__20261021-154916-1c49c5__workflow",
+    "twin__runs__20261021-155706-1183eb__ai_first",
+    "twin__runs__20261021-155706-1183eb__workflow",
+    "twin__runs__20261021-161241-b0cedc__ai_first",
+    "twin__runs__20261021-161241-b0cedc__workflow"
    ]
   }
  },
@@ -2752,10 +4179,10 @@
    "sets": [
     {
      "counts": {
-      "dev": 10,
+      "dev": 39,
       "sealed": 7,
-      "sealed_pending": 0,
-      "train": 44
+      "sealed_pending": 53,
+      "train": 139
      },
      "name": "column.category_code/pairs",
      "path": "sets/m1_students/column.category_code/pairs/v1",
@@ -2763,10 +4190,10 @@
     },
     {
      "counts": {
-      "dev": 10,
+      "dev": 314,
       "sealed": 7,
-      "sealed_pending": 0,
-      "train": 44
+      "sealed_pending": 429,
+      "train": 967
      },
      "name": "column.category_code",
      "path": "sets/m1_students/column.category_code/v1",
@@ -2785,10 +4212,10 @@
     },
     {
      "counts": {
-      "dev": 1,
-      "sealed": 0,
+      "dev": 40,
+      "sealed": 26,
       "sealed_pending": 0,
-      "train": 2
+      "train": 93
      },
      "name": "column.group",
      "path": "sets/m1_students/column.group/v1",
@@ -2796,10 +4223,10 @@
     },
     {
      "counts": {
-      "dev": 73,
+      "dev": 172,
       "sealed": 34,
-      "sealed_pending": 0,
-      "train": 147
+      "sealed_pending": 200,
+      "train": 667
      },
      "name": "column.is_identifier/pairs",
      "path": "sets/m1_students/column.is_identifier/pairs/v1",
@@ -2807,10 +4234,10 @@
     },
     {
      "counts": {
-      "dev": 73,
+      "dev": 6648,
       "sealed": 34,
-      "sealed_pending": 0,
-      "train": 147
+      "sealed_pending": 6958,
+      "train": 21673
      },
      "name": "column.is_identifier",
      "path": "sets/m1_students/column.is_identifier/v1",
@@ -2818,10 +4245,10 @@
     },
     {
      "counts": {
-      "dev": 65,
+      "dev": 164,
       "sealed": 34,
-      "sealed_pending": 0,
-      "train": 163
+      "sealed_pending": 184,
+      "train": 721
      },
      "name": "column.semantic_role/pairs",
      "path": "sets/m1_students/column.semantic_role/pairs/v1",
@@ -2829,10 +4256,10 @@
     },
     {
      "counts": {
-      "dev": 65,
+      "dev": 1404,
       "sealed": 34,
-      "sealed_pending": 0,
-      "train": 163
+      "sealed_pending": 1720,
+      "train": 4473
      },
      "name": "column.semantic_role",
      "path": "sets/m1_students/column.semantic_role/v1",
@@ -2840,10 +4267,10 @@
     },
     {
      "counts": {
-      "dev": 7,
+      "dev": 8,
       "sealed": 1,
       "sealed_pending": 0,
-      "train": 4
+      "train": 8
      },
      "name": "column.time/pairs",
      "path": "sets/m1_students/column.time/pairs/v1",
@@ -2851,10 +4278,10 @@
     },
     {
      "counts": {
-      "dev": 7,
+      "dev": 203,
       "sealed": 1,
-      "sealed_pending": 0,
-      "train": 4
+      "sealed_pending": 210,
+      "train": 606
      },
      "name": "column.time",
      "path": "sets/m1_students/column.time/v1",
@@ -2864,8 +4291,8 @@
      "counts": {
       "dev": 1,
       "sealed": 1,
-      "sealed_pending": 0,
-      "train": 2
+      "sealed_pending": 3,
+      "train": 10
      },
      "name": "data.cases_table/pairs",
      "path": "sets/m1_students/data.cases_table/pairs/v1",
@@ -2875,8 +4302,8 @@
      "counts": {
       "dev": 4,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 7
+      "sealed_pending": 3,
+      "train": 15
      },
      "name": "data.cases_table",
      "path": "sets/m1_students/data.cases_table/v1",
@@ -2885,9 +4312,9 @@
     {
      "counts": {
       "dev": 2,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 2
+      "sealed": 7,
+      "sealed_pending": 12,
+      "train": 30
      },
      "name": "data.cleaning_keep",
      "path": "sets/m1_students/data.cleaning_keep/v1",
@@ -2897,8 +4324,8 @@
      "counts": {
       "dev": 11,
       "sealed": 5,
-      "sealed_pending": 0,
-      "train": 43
+      "sealed_pending": 63,
+      "train": 164
      },
      "name": "data.cleaning_step/pairs",
      "path": "sets/m1_students/data.cleaning_step/pairs/v1",
@@ -2908,8 +4335,8 @@
      "counts": {
       "dev": 60,
       "sealed": 8,
-      "sealed_pending": 0,
-      "train": 74
+      "sealed_pending": 63,
+      "train": 195
      },
      "name": "data.cleaning_step",
      "path": "sets/m1_students/data.cleaning_step/v1",
@@ -2918,9 +4345,9 @@
     {
      "counts": {
       "dev": 1,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 1
+      "sealed": 1,
+      "sealed_pending": 1,
+      "train": 6
      },
      "name": "data.fit_verdict",
      "path": "sets/m1_students/data.fit_verdict/v1",
@@ -2928,10 +4355,10 @@
     },
     {
      "counts": {
-      "dev": 4,
+      "dev": 231,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 10
+      "sealed_pending": 246,
+      "train": 684
      },
      "name": "data.sampling",
      "path": "sets/m1_students/data.sampling/v1",
@@ -2941,8 +4368,8 @@
      "counts": {
       "dev": 1,
       "sealed": 1,
-      "sealed_pending": 0,
-      "train": 3
+      "sealed_pending": 3,
+      "train": 11
      },
      "name": "data.structure_format",
      "path": "sets/m1_students/data.structure_format/v1",
@@ -2953,7 +4380,7 @@
       "dev": 1,
       "sealed": 0,
       "sealed_pending": 0,
-      "train": 1
+      "train": 4
      },
      "name": "data.synthetic_shape",
      "path": "sets/m1_students/data.synthetic_shape/v1",
@@ -2961,10 +4388,32 @@
     },
     {
      "counts": {
-      "dev": 93,
-      "sealed": 37,
+      "dev": 65,
+      "sealed": 88,
       "sealed_pending": 0,
-      "train": 172
+      "train": 204
+     },
+     "name": "experiment.accept",
+     "path": "sets/m1_students/experiment.accept/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 65,
+      "sealed": 88,
+      "sealed_pending": 0,
+      "train": 204
+     },
+     "name": "experiment.next",
+     "path": "sets/m1_students/experiment.next/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 203,
+      "sealed": 37,
+      "sealed_pending": 226,
+      "train": 703
      },
      "name": "feature.leakage_suspect/pairs",
      "path": "sets/m1_students/feature.leakage_suspect/pairs/v1",
@@ -2972,10 +4421,10 @@
     },
     {
      "counts": {
-      "dev": 93,
+      "dev": 6953,
       "sealed": 37,
-      "sealed_pending": 0,
-      "train": 172
+      "sealed_pending": 7283,
+      "train": 22520
      },
      "name": "feature.leakage_suspect",
      "path": "sets/m1_students/feature.leakage_suspect/v1",
@@ -2983,10 +4432,10 @@
     },
     {
      "counts": {
-      "dev": 3,
+      "dev": 230,
       "sealed": 3,
-      "sealed_pending": 0,
-      "train": 9
+      "sealed_pending": 244,
+      "train": 681
      },
      "name": "features.recipe",
      "path": "sets/m1_students/features.recipe/v1",
@@ -2994,10 +4443,43 @@
     },
     {
      "counts": {
-      "dev": 2,
-      "sealed": 0,
+      "dev": 18,
+      "sealed": 19,
       "sealed_pending": 0,
-      "train": 2
+      "train": 63
+     },
+     "name": "image.flip_safe",
+     "path": "sets/m1_students/image.flip_safe/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 3614,
+      "sealed": 3852,
+      "sealed_pending": 0,
+      "train": 12862
+     },
+     "name": "image.label_suspect",
+     "path": "sets/m1_students/image.label_suspect/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 2160,
+      "sealed": 2280,
+      "sealed_pending": 0,
+      "train": 7560
+     },
+     "name": "image.near_copy",
+     "path": "sets/m1_students/image.near_copy/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 41,
+      "sealed": 26,
+      "sealed_pending": 0,
+      "train": 93
      },
      "name": "labels.join_key",
      "path": "sets/m1_students/labels.join_key/v1",
@@ -3019,7 +4501,7 @@
       "dev": 4,
       "sealed": 0,
       "sealed_pending": 0,
-      "train": 4
+      "train": 5
      },
      "name": "map.size",
      "path": "sets/m1_students/map.size/v1",
@@ -3027,10 +4509,10 @@
     },
     {
      "counts": {
-      "dev": 4,
+      "dev": 231,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 10
+      "sealed_pending": 246,
+      "train": 684
      },
      "name": "metric.primary",
      "path": "sets/m1_students/metric.primary/v1",
@@ -3038,10 +4520,10 @@
     },
     {
      "counts": {
-      "dev": 3,
+      "dev": 230,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 10
+      "sealed_pending": 242,
+      "train": 680
      },
      "name": "model.family",
      "path": "sets/m1_students/model.family/v1",
@@ -3049,10 +4531,21 @@
     },
     {
      "counts": {
-      "dev": 1,
-      "sealed": 0,
+      "dev": 53,
+      "sealed": 74,
       "sealed_pending": 0,
-      "train": 0
+      "train": 169
+     },
+     "name": "model.review",
+     "path": "sets/m1_students/model.review/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 305,
+      "sealed": 1,
+      "sealed_pending": 319,
+      "train": 919
      },
      "name": "modifier.groups",
      "path": "sets/m1_students/modifier.groups/v1",
@@ -3060,10 +4553,10 @@
     },
     {
      "counts": {
-      "dev": 1,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 0
+      "dev": 249,
+      "sealed": 1,
+      "sealed_pending": 268,
+      "train": 751
      },
      "name": "modifier.noisy_labels",
      "path": "sets/m1_students/modifier.noisy_labels/v1",
@@ -3071,10 +4564,10 @@
     },
     {
      "counts": {
-      "dev": 1,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 0
+      "dev": 305,
+      "sealed": 1,
+      "sealed_pending": 319,
+      "train": 919
      },
      "name": "modifier.rare_positives",
      "path": "sets/m1_students/modifier.rare_positives/v1",
@@ -3082,10 +4575,10 @@
     },
     {
      "counts": {
-      "dev": 1,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 0
+      "dev": 249,
+      "sealed": 1,
+      "sealed_pending": 268,
+      "train": 751
      },
      "name": "modifier.review_capacity",
      "path": "sets/m1_students/modifier.review_capacity/v1",
@@ -3093,10 +4586,10 @@
     },
     {
      "counts": {
-      "dev": 1,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 0
+      "dev": 305,
+      "sealed": 1,
+      "sealed_pending": 319,
+      "train": 919
      },
      "name": "modifier.time_order",
      "path": "sets/m1_students/modifier.time_order/v1",
@@ -3105,9 +4598,9 @@
     {
      "counts": {
       "dev": 3,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 2
+      "sealed": 1,
+      "sealed_pending": 1,
+      "train": 7
      },
      "name": "problem.family/pairs",
      "path": "sets/m1_students/problem.family/pairs/v1",
@@ -3116,9 +4609,9 @@
     {
      "counts": {
       "dev": 5,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 3
+      "sealed": 1,
+      "sealed_pending": 1,
+      "train": 8
      },
      "name": "problem.family",
      "path": "sets/m1_students/problem.family/v1",
@@ -3126,10 +4619,10 @@
     },
     {
      "counts": {
-      "dev": 4,
+      "dev": 5,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 16
+      "sealed_pending": 4,
+      "train": 30
      },
      "name": "problem.pack",
      "path": "sets/m1_students/problem.pack/v1",
@@ -3138,9 +4631,9 @@
     {
      "counts": {
       "dev": 3,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 2
+      "sealed": 1,
+      "sealed_pending": 1,
+      "train": 7
      },
      "name": "problem.ready/pairs",
      "path": "sets/m1_students/problem.ready/pairs/v1",
@@ -3149,9 +4642,9 @@
     {
      "counts": {
       "dev": 5,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 3
+      "sealed": 1,
+      "sealed_pending": 1,
+      "train": 8
      },
      "name": "problem.ready",
      "path": "sets/m1_students/problem.ready/v1",
@@ -3159,10 +4652,21 @@
     },
     {
      "counts": {
+      "dev": 0,
+      "sealed": 0,
+      "sealed_pending": 0,
+      "train": 13
+     },
+     "name": "report.claim",
+     "path": "sets/m1_students/report.claim/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
       "dev": 3,
       "sealed": 0,
       "sealed_pending": 0,
-      "train": 3
+      "train": 4
      },
      "name": "solution.route/pairs",
      "path": "sets/m1_students/solution.route/pairs/v1",
@@ -3173,7 +4677,7 @@
       "dev": 5,
       "sealed": 0,
       "sealed_pending": 0,
-      "train": 5
+      "train": 6
      },
      "name": "solution.route",
      "path": "sets/m1_students/solution.route/v1",
@@ -3181,10 +4685,10 @@
     },
     {
      "counts": {
-      "dev": 4,
+      "dev": 231,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 10
+      "sealed_pending": 246,
+      "train": 684
      },
      "name": "split.folds",
      "path": "sets/m1_students/split.folds/v1",
@@ -3192,10 +4696,10 @@
     },
     {
      "counts": {
-      "dev": 0,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 2
+      "dev": 6,
+      "sealed": 1,
+      "sealed_pending": 7,
+      "train": 24
      },
      "name": "split.strategy/pairs",
      "path": "sets/m1_students/split.strategy/pairs/v1",
@@ -3203,10 +4707,10 @@
     },
     {
      "counts": {
-      "dev": 4,
+      "dev": 126,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 10
+      "sealed_pending": 148,
+      "train": 392
      },
      "name": "split.strategy",
      "path": "sets/m1_students/split.strategy/v1",
@@ -3214,10 +4718,10 @@
     },
     {
      "counts": {
-      "dev": 5,
+      "dev": 348,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 9
+      "sealed_pending": 348,
+      "train": 1020
      },
      "name": "target.column",
      "path": "sets/m1_students/target.column/v1",
@@ -3225,10 +4729,10 @@
     },
     {
      "counts": {
-      "dev": 1,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 1
+      "dev": 7,
+      "sealed": 1,
+      "sealed_pending": 8,
+      "train": 21
      },
      "name": "task.framing/pairs",
      "path": "sets/m1_students/task.framing/pairs/v1",
@@ -3236,10 +4740,10 @@
     },
     {
      "counts": {
-      "dev": 5,
+      "dev": 348,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 9
+      "sealed_pending": 348,
+      "train": 1020
      },
      "name": "task.framing",
      "path": "sets/m1_students/task.framing/v1",
@@ -3250,7 +4754,7 @@
       "dev": 37,
       "sealed": 0,
       "sealed_pending": 0,
-      "train": 37
+      "train": 42
      },
      "name": "team.next_node",
      "path": "sets/m1_students/team.next_node/v1",
@@ -3258,10 +4762,10 @@
     },
     {
      "counts": {
-      "dev": 3,
+      "dev": 71,
       "sealed": 1,
-      "sealed_pending": 0,
-      "train": 8
+      "sealed_pending": 68,
+      "train": 211
      },
      "name": "threshold.operating_point",
      "path": "sets/m1_students/threshold.operating_point/v1",
@@ -3269,10 +4773,10 @@
     },
     {
      "counts": {
-      "dev": 3,
+      "dev": 230,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 8
+      "sealed_pending": 242,
+      "train": 676
      },
      "name": "tuning.accept",
      "path": "sets/m1_students/tuning.accept/v1",
@@ -3280,10 +4784,10 @@
     },
     {
      "counts": {
-      "dev": 0,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 1
+      "dev": 188,
+      "sealed": 1,
+      "sealed_pending": 203,
+      "train": 551
      },
      "name": "workflow.g4",
      "path": "sets/m1_students/workflow.g4/v1",
@@ -3291,10 +4795,10 @@
     },
     {
      "counts": {
-      "dev": 30,
+      "dev": 1242,
       "sealed": 21,
-      "sealed_pending": 0,
-      "train": 99
+      "sealed_pending": 1285,
+      "train": 3674
      },
      "name": "workflow.move",
      "path": "sets/m1_students/workflow.move/v1",
@@ -3304,8 +4808,8 @@
      "counts": {
       "dev": 13,
       "sealed": 1,
-      "sealed_pending": 0,
-      "train": 12
+      "sealed_pending": 11,
+      "train": 35
      },
      "name": "workflow.next_question/pairs",
      "path": "sets/m1_students/workflow.next_question/pairs/v1",
@@ -3313,10 +4817,10 @@
     },
     {
      "counts": {
-      "dev": 15,
+      "dev": 16,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 24
+      "sealed_pending": 12,
+      "train": 52
      },
      "name": "workflow.next_question",
      "path": "sets/m1_students/workflow.next_question/v1",
@@ -3325,9 +4829,20 @@
     {
      "counts": {
       "dev": 0,
-      "sealed": 5,
+      "sealed": 0,
       "sealed_pending": 0,
-      "train": 24
+      "train": 2
+     },
+     "name": "workflow.revisit",
+     "path": "sets/m1_students/workflow.revisit/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 10,
+      "sealed": 5,
+      "sealed_pending": 6,
+      "train": 72
      },
      "name": "workflow.stage_approval",
      "path": "sets/m1_students/workflow.stage_approval/v1",
@@ -3335,10 +4850,10 @@
     },
     {
      "counts": {
-      "dev": 8,
+      "dev": 9,
       "sealed": 3,
-      "sealed_pending": 0,
-      "train": 27
+      "sealed_pending": 4,
+      "train": 41
      },
      "name": "workflow.template",
      "path": "sets/m1_students/workflow.template/v1",
@@ -3357,7 +4872,7 @@
       "dev": 37,
       "sealed": 0,
       "sealed_pending": 0,
-      "train": 37
+      "train": 42
      },
      "name": "internal/team.next_node",
      "path": "sets/m2_workflow_decisions/internal/team.next_node/v1",
@@ -3365,13 +4880,24 @@
     },
     {
      "counts": {
-      "dev": 0,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 1
+      "dev": 188,
+      "sealed": 1,
+      "sealed_pending": 203,
+      "train": 551
      },
      "name": "internal/workflow.g4",
      "path": "sets/m2_workflow_decisions/internal/workflow.g4/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 65,
+      "sealed": 88,
+      "sealed_pending": 0,
+      "train": 204
+     },
+     "name": "rnd/experiment.next",
+     "path": "sets/m2_workflow_decisions/rnd/experiment.next/v1",
      "version": "v1"
     },
     {
@@ -3390,7 +4916,7 @@
       "dev": 4,
       "sealed": 0,
       "sealed_pending": 0,
-      "train": 4
+      "train": 5
      },
      "name": "rnd/map.size",
      "path": "sets/m2_workflow_decisions/rnd/map.size/v1",
@@ -3399,9 +4925,9 @@
     {
      "counts": {
       "dev": 5,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 3
+      "sealed": 1,
+      "sealed_pending": 1,
+      "train": 8
      },
      "name": "rnd/problem.family",
      "path": "sets/m2_workflow_decisions/rnd/problem.family/v1",
@@ -3409,10 +4935,10 @@
     },
     {
      "counts": {
-      "dev": 4,
+      "dev": 5,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 16
+      "sealed_pending": 4,
+      "train": 30
      },
      "name": "rnd/problem.pack",
      "path": "sets/m2_workflow_decisions/rnd/problem.pack/v1",
@@ -3421,9 +4947,9 @@
     {
      "counts": {
       "dev": 5,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 3
+      "sealed": 1,
+      "sealed_pending": 1,
+      "train": 8
      },
      "name": "rnd/problem.ready",
      "path": "sets/m2_workflow_decisions/rnd/problem.ready/v1",
@@ -3434,7 +4960,7 @@
       "dev": 5,
       "sealed": 0,
       "sealed_pending": 0,
-      "train": 5
+      "train": 6
      },
      "name": "rnd/solution.route",
      "path": "sets/m2_workflow_decisions/rnd/solution.route/v1",
@@ -3442,10 +4968,10 @@
     },
     {
      "counts": {
-      "dev": 30,
+      "dev": 1242,
       "sealed": 21,
-      "sealed_pending": 0,
-      "train": 99
+      "sealed_pending": 1285,
+      "train": 3674
      },
      "name": "rnd/workflow.move",
      "path": "sets/m2_workflow_decisions/rnd/workflow.move/v1",
@@ -3453,10 +4979,10 @@
     },
     {
      "counts": {
-      "dev": 15,
+      "dev": 16,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 24
+      "sealed_pending": 12,
+      "train": 52
      },
      "name": "rnd/workflow.next_question",
      "path": "sets/m2_workflow_decisions/rnd/workflow.next_question/v1",
@@ -3465,9 +4991,20 @@
     {
      "counts": {
       "dev": 0,
-      "sealed": 5,
+      "sealed": 0,
       "sealed_pending": 0,
-      "train": 24
+      "train": 2
+     },
+     "name": "rnd/workflow.revisit",
+     "path": "sets/m2_workflow_decisions/rnd/workflow.revisit/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 10,
+      "sealed": 5,
+      "sealed_pending": 6,
+      "train": 72
      },
      "name": "rnd/workflow.stage_approval",
      "path": "sets/m2_workflow_decisions/rnd/workflow.stage_approval/v1",
@@ -3475,10 +5012,10 @@
     },
     {
      "counts": {
-      "dev": 8,
+      "dev": 9,
       "sealed": 3,
-      "sealed_pending": 0,
-      "train": 27
+      "sealed_pending": 4,
+      "train": 41
      },
      "name": "rnd/workflow.template",
      "path": "sets/m2_workflow_decisions/rnd/workflow.template/v1",
@@ -3494,10 +5031,10 @@
    "sets": [
     {
      "counts": {
-      "dev": 83,
+      "dev": 5132,
       "sealed": 17,
-      "sealed_pending": 0,
-      "train": 155
+      "sealed_pending": 5200,
+      "train": 17009
      },
      "name": "binary_classification/feature.leakage_suspect",
      "path": "sets/m3_ml_decisions/binary_classification/feature.leakage_suspect/v1",
@@ -3505,10 +5042,10 @@
     },
     {
      "counts": {
-      "dev": 1,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 0
+      "dev": 146,
+      "sealed": 1,
+      "sealed_pending": 150,
+      "train": 444
      },
      "name": "binary_classification/modifier.groups",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.groups/v1",
@@ -3516,10 +5053,10 @@
     },
     {
      "counts": {
-      "dev": 1,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 0
+      "dev": 123,
+      "sealed": 1,
+      "sealed_pending": 128,
+      "train": 373
      },
      "name": "binary_classification/modifier.noisy_labels",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.noisy_labels/v1",
@@ -3527,10 +5064,10 @@
     },
     {
      "counts": {
-      "dev": 1,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 0
+      "dev": 146,
+      "sealed": 1,
+      "sealed_pending": 150,
+      "train": 444
      },
      "name": "binary_classification/modifier.rare_positives",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.rare_positives/v1",
@@ -3538,10 +5075,10 @@
     },
     {
      "counts": {
-      "dev": 1,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 0
+      "dev": 123,
+      "sealed": 1,
+      "sealed_pending": 128,
+      "train": 373
      },
      "name": "binary_classification/modifier.review_capacity",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.review_capacity/v1",
@@ -3549,10 +5086,10 @@
     },
     {
      "counts": {
-      "dev": 1,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 0
+      "dev": 146,
+      "sealed": 1,
+      "sealed_pending": 150,
+      "train": 444
      },
      "name": "binary_classification/modifier.time_order",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.time_order/v1",
@@ -3560,10 +5097,10 @@
     },
     {
      "counts": {
-      "dev": 197,
+      "dev": 270,
       "sealed": 162,
-      "sealed_pending": 0,
-      "train": 635
+      "sealed_pending": 212,
+      "train": 853
      },
      "name": "experiments/binary",
      "path": "sets/m3_ml_decisions/experiments/binary/v1",
@@ -3571,10 +5108,21 @@
     },
     {
      "counts": {
+      "dev": 0,
+      "sealed": 0,
+      "sealed_pending": 0,
+      "train": 5
+     },
+     "name": "experiments/binary_imbalanced",
+     "path": "sets/m3_ml_decisions/experiments/binary_imbalanced/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
       "dev": 65,
       "sealed": 25,
-      "sealed_pending": 0,
-      "train": 85
+      "sealed_pending": 25,
+      "train": 95
      },
      "name": "experiments/multiclass",
      "path": "sets/m3_ml_decisions/experiments/multiclass/v1",
@@ -3584,8 +5132,8 @@
      "counts": {
       "dev": 90,
       "sealed": 85,
-      "sealed_pending": 0,
-      "train": 325
+      "sealed_pending": 95,
+      "train": 335
      },
      "name": "experiments/regression",
      "path": "sets/m3_ml_decisions/experiments/regression/v1",
@@ -3593,10 +5141,32 @@
     },
     {
      "counts": {
-      "dev": 10,
-      "sealed": 7,
+      "dev": 5,
+      "sealed": 0,
       "sealed_pending": 0,
-      "train": 44
+      "train": 0
+     },
+     "name": "experiments/text_tabular_binary",
+     "path": "sets/m3_ml_decisions/experiments/text_tabular_binary/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 0,
+      "sealed": 0,
+      "sealed_pending": 0,
+      "train": 5
+     },
+     "name": "experiments/timeseries_regression",
+     "path": "sets/m3_ml_decisions/experiments/timeseries_regression/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 314,
+      "sealed": 7,
+      "sealed_pending": 429,
+      "train": 967
      },
      "name": "general/column.category_code",
      "path": "sets/m3_ml_decisions/general/column.category_code/v1",
@@ -3604,10 +5174,10 @@
     },
     {
      "counts": {
-      "dev": 1,
-      "sealed": 0,
+      "dev": 40,
+      "sealed": 26,
       "sealed_pending": 0,
-      "train": 2
+      "train": 93
      },
      "name": "general/column.group",
      "path": "sets/m3_ml_decisions/general/column.group/v1",
@@ -3615,10 +5185,10 @@
     },
     {
      "counts": {
-      "dev": 73,
+      "dev": 6648,
       "sealed": 34,
-      "sealed_pending": 0,
-      "train": 147
+      "sealed_pending": 6958,
+      "train": 21673
      },
      "name": "general/column.is_identifier",
      "path": "sets/m3_ml_decisions/general/column.is_identifier/v1",
@@ -3626,10 +5196,10 @@
     },
     {
      "counts": {
-      "dev": 65,
+      "dev": 1404,
       "sealed": 34,
-      "sealed_pending": 0,
-      "train": 163
+      "sealed_pending": 1720,
+      "train": 4473
      },
      "name": "general/column.semantic_role",
      "path": "sets/m3_ml_decisions/general/column.semantic_role/v1",
@@ -3637,10 +5207,10 @@
     },
     {
      "counts": {
-      "dev": 7,
+      "dev": 203,
       "sealed": 1,
-      "sealed_pending": 0,
-      "train": 4
+      "sealed_pending": 210,
+      "train": 606
      },
      "name": "general/column.time",
      "path": "sets/m3_ml_decisions/general/column.time/v1",
@@ -3650,8 +5220,8 @@
      "counts": {
       "dev": 4,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 7
+      "sealed_pending": 3,
+      "train": 15
      },
      "name": "general/data.cases_table",
      "path": "sets/m3_ml_decisions/general/data.cases_table/v1",
@@ -3660,9 +5230,9 @@
     {
      "counts": {
       "dev": 2,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 2
+      "sealed": 7,
+      "sealed_pending": 12,
+      "train": 30
      },
      "name": "general/data.cleaning_keep",
      "path": "sets/m3_ml_decisions/general/data.cleaning_keep/v1",
@@ -3672,8 +5242,8 @@
      "counts": {
       "dev": 60,
       "sealed": 8,
-      "sealed_pending": 0,
-      "train": 74
+      "sealed_pending": 63,
+      "train": 195
      },
      "name": "general/data.cleaning_step",
      "path": "sets/m3_ml_decisions/general/data.cleaning_step/v1",
@@ -3682,9 +5252,9 @@
     {
      "counts": {
       "dev": 1,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 1
+      "sealed": 1,
+      "sealed_pending": 1,
+      "train": 6
      },
      "name": "general/data.fit_verdict",
      "path": "sets/m3_ml_decisions/general/data.fit_verdict/v1",
@@ -3692,10 +5262,10 @@
     },
     {
      "counts": {
-      "dev": 4,
+      "dev": 214,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 10
+      "sealed_pending": 216,
+      "train": 630
      },
      "name": "general/data.sampling",
      "path": "sets/m3_ml_decisions/general/data.sampling/v1",
@@ -3705,8 +5275,8 @@
      "counts": {
       "dev": 1,
       "sealed": 1,
-      "sealed_pending": 0,
-      "train": 3
+      "sealed_pending": 3,
+      "train": 11
      },
      "name": "general/data.structure_format",
      "path": "sets/m3_ml_decisions/general/data.structure_format/v1",
@@ -3717,7 +5287,7 @@
       "dev": 1,
       "sealed": 0,
       "sealed_pending": 0,
-      "train": 1
+      "train": 4
      },
      "name": "general/data.synthetic_shape",
      "path": "sets/m3_ml_decisions/general/data.synthetic_shape/v1",
@@ -3725,10 +5295,10 @@
     },
     {
      "counts": {
-      "dev": 10,
+      "dev": 261,
       "sealed": 3,
-      "sealed_pending": 0,
-      "train": 17
+      "sealed_pending": 265,
+      "train": 733
      },
      "name": "general/feature.leakage_suspect",
      "path": "sets/m3_ml_decisions/general/feature.leakage_suspect/v1",
@@ -3736,10 +5306,10 @@
     },
     {
      "counts": {
-      "dev": 3,
+      "dev": 213,
       "sealed": 3,
-      "sealed_pending": 0,
-      "train": 9
+      "sealed_pending": 214,
+      "train": 627
      },
      "name": "general/features.recipe",
      "path": "sets/m3_ml_decisions/general/features.recipe/v1",
@@ -3747,10 +5317,43 @@
     },
     {
      "counts": {
-      "dev": 2,
-      "sealed": 0,
+      "dev": 18,
+      "sealed": 19,
       "sealed_pending": 0,
-      "train": 2
+      "train": 63
+     },
+     "name": "general/image.flip_safe",
+     "path": "sets/m3_ml_decisions/general/image.flip_safe/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 3614,
+      "sealed": 3852,
+      "sealed_pending": 0,
+      "train": 12862
+     },
+     "name": "general/image.label_suspect",
+     "path": "sets/m3_ml_decisions/general/image.label_suspect/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 2160,
+      "sealed": 2280,
+      "sealed_pending": 0,
+      "train": 7560
+     },
+     "name": "general/image.near_copy",
+     "path": "sets/m3_ml_decisions/general/image.near_copy/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 41,
+      "sealed": 26,
+      "sealed_pending": 0,
+      "train": 93
      },
      "name": "general/labels.join_key",
      "path": "sets/m3_ml_decisions/general/labels.join_key/v1",
@@ -3758,10 +5361,10 @@
     },
     {
      "counts": {
-      "dev": 4,
+      "dev": 214,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 10
+      "sealed_pending": 216,
+      "train": 630
      },
      "name": "general/metric.primary",
      "path": "sets/m3_ml_decisions/general/metric.primary/v1",
@@ -3769,10 +5372,10 @@
     },
     {
      "counts": {
-      "dev": 3,
+      "dev": 213,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 10
+      "sealed_pending": 212,
+      "train": 626
      },
      "name": "general/model.family",
      "path": "sets/m3_ml_decisions/general/model.family/v1",
@@ -3780,10 +5383,32 @@
     },
     {
      "counts": {
-      "dev": 4,
-      "sealed": 2,
+      "dev": 36,
+      "sealed": 44,
       "sealed_pending": 0,
-      "train": 10
+      "train": 116
+     },
+     "name": "general/model.review",
+     "path": "sets/m3_ml_decisions/general/model.review/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 0,
+      "sealed": 0,
+      "sealed_pending": 0,
+      "train": 13
+     },
+     "name": "general/report.claim",
+     "path": "sets/m3_ml_decisions/general/report.claim/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 214,
+      "sealed": 2,
+      "sealed_pending": 216,
+      "train": 630
      },
      "name": "general/split.folds",
      "path": "sets/m3_ml_decisions/general/split.folds/v1",
@@ -3791,10 +5416,10 @@
     },
     {
      "counts": {
-      "dev": 4,
+      "dev": 109,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 10
+      "sealed_pending": 118,
+      "train": 338
      },
      "name": "general/split.strategy",
      "path": "sets/m3_ml_decisions/general/split.strategy/v1",
@@ -3802,10 +5427,10 @@
     },
     {
      "counts": {
-      "dev": 5,
+      "dev": 348,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 9
+      "sealed_pending": 348,
+      "train": 1020
      },
      "name": "general/target.column",
      "path": "sets/m3_ml_decisions/general/target.column/v1",
@@ -3813,10 +5438,10 @@
     },
     {
      "counts": {
-      "dev": 5,
+      "dev": 348,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 9
+      "sealed_pending": 348,
+      "train": 1020
      },
      "name": "general/task.framing",
      "path": "sets/m3_ml_decisions/general/task.framing/v1",
@@ -3824,10 +5449,10 @@
     },
     {
      "counts": {
-      "dev": 3,
+      "dev": 71,
       "sealed": 1,
-      "sealed_pending": 0,
-      "train": 8
+      "sealed_pending": 68,
+      "train": 211
      },
      "name": "general/threshold.operating_point",
      "path": "sets/m3_ml_decisions/general/threshold.operating_point/v1",
@@ -3835,10 +5460,10 @@
     },
     {
      "counts": {
-      "dev": 3,
+      "dev": 213,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 8
+      "sealed_pending": 212,
+      "train": 622
      },
      "name": "general/tuning.accept",
      "path": "sets/m3_ml_decisions/general/tuning.accept/v1",
@@ -3846,13 +5471,255 @@
     },
     {
      "counts": {
-      "dev": 0,
-      "sealed": 17,
+      "dev": 30,
+      "sealed": 38,
       "sealed_pending": 0,
-      "train": 0
+      "train": 97
+     },
+     "name": "loss.median/experiment.accept",
+     "path": "sets/m3_ml_decisions/loss.median/experiment.accept/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 17,
+      "sealed": 30,
+      "sealed_pending": 0,
+      "train": 54
+     },
+     "name": "multiclass_classification/data.sampling",
+     "path": "sets/m3_ml_decisions/multiclass_classification/data.sampling/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 17,
+      "sealed": 30,
+      "sealed_pending": 0,
+      "train": 53
+     },
+     "name": "multiclass_classification/experiment.accept",
+     "path": "sets/m3_ml_decisions/multiclass_classification/experiment.accept/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 646,
+      "sealed": 910,
+      "sealed_pending": 0,
+      "train": 2060
+     },
+     "name": "multiclass_classification/feature.leakage_suspect",
+     "path": "sets/m3_ml_decisions/multiclass_classification/feature.leakage_suspect/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 17,
+      "sealed": 30,
+      "sealed_pending": 0,
+      "train": 54
+     },
+     "name": "multiclass_classification/features.recipe",
+     "path": "sets/m3_ml_decisions/multiclass_classification/features.recipe/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 17,
+      "sealed": 30,
+      "sealed_pending": 0,
+      "train": 54
+     },
+     "name": "multiclass_classification/metric.primary",
+     "path": "sets/m3_ml_decisions/multiclass_classification/metric.primary/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 17,
+      "sealed": 30,
+      "sealed_pending": 0,
+      "train": 54
+     },
+     "name": "multiclass_classification/model.family",
+     "path": "sets/m3_ml_decisions/multiclass_classification/model.family/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 17,
+      "sealed": 30,
+      "sealed_pending": 0,
+      "train": 53
+     },
+     "name": "multiclass_classification/model.review",
+     "path": "sets/m3_ml_decisions/multiclass_classification/model.review/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 36,
+      "sealed": 50,
+      "sealed_pending": 0,
+      "train": 115
+     },
+     "name": "multiclass_classification/modifier.groups",
+     "path": "sets/m3_ml_decisions/multiclass_classification/modifier.groups/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 28,
+      "sealed": 43,
+      "sealed_pending": 0,
+      "train": 90
+     },
+     "name": "multiclass_classification/modifier.noisy_labels",
+     "path": "sets/m3_ml_decisions/multiclass_classification/modifier.noisy_labels/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 36,
+      "sealed": 50,
+      "sealed_pending": 0,
+      "train": 115
+     },
+     "name": "multiclass_classification/modifier.rare_positives",
+     "path": "sets/m3_ml_decisions/multiclass_classification/modifier.rare_positives/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 28,
+      "sealed": 43,
+      "sealed_pending": 0,
+      "train": 90
+     },
+     "name": "multiclass_classification/modifier.review_capacity",
+     "path": "sets/m3_ml_decisions/multiclass_classification/modifier.review_capacity/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 36,
+      "sealed": 50,
+      "sealed_pending": 0,
+      "train": 115
+     },
+     "name": "multiclass_classification/modifier.time_order",
+     "path": "sets/m3_ml_decisions/multiclass_classification/modifier.time_order/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 17,
+      "sealed": 30,
+      "sealed_pending": 0,
+      "train": 54
+     },
+     "name": "multiclass_classification/split.folds",
+     "path": "sets/m3_ml_decisions/multiclass_classification/split.folds/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 17,
+      "sealed": 30,
+      "sealed_pending": 0,
+      "train": 54
+     },
+     "name": "multiclass_classification/split.strategy",
+     "path": "sets/m3_ml_decisions/multiclass_classification/split.strategy/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 17,
+      "sealed": 30,
+      "sealed_pending": 0,
+      "train": 54
+     },
+     "name": "multiclass_classification/tuning.accept",
+     "path": "sets/m3_ml_decisions/multiclass_classification/tuning.accept/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 914,
+      "sealed": 17,
+      "sealed_pending": 908,
+      "train": 2718
      },
      "name": "regression/feature.leakage_suspect",
      "path": "sets/m3_ml_decisions/regression/feature.leakage_suspect/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 123,
+      "sealed": 119,
+      "sealed_pending": 0,
+      "train": 360
+     },
+     "name": "regression/modifier.groups",
+     "path": "sets/m3_ml_decisions/regression/modifier.groups/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 98,
+      "sealed": 97,
+      "sealed_pending": 0,
+      "train": 288
+     },
+     "name": "regression/modifier.noisy_labels",
+     "path": "sets/m3_ml_decisions/regression/modifier.noisy_labels/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 123,
+      "sealed": 119,
+      "sealed_pending": 0,
+      "train": 360
+     },
+     "name": "regression/modifier.rare_positives",
+     "path": "sets/m3_ml_decisions/regression/modifier.rare_positives/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 98,
+      "sealed": 97,
+      "sealed_pending": 0,
+      "train": 288
+     },
+     "name": "regression/modifier.review_capacity",
+     "path": "sets/m3_ml_decisions/regression/modifier.review_capacity/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 123,
+      "sealed": 119,
+      "sealed_pending": 0,
+      "train": 360
+     },
+     "name": "regression/modifier.time_order",
+     "path": "sets/m3_ml_decisions/regression/modifier.time_order/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 18,
+      "sealed": 20,
+      "sealed_pending": 0,
+      "train": 54
+     },
+     "name": "target.log/experiment.accept",
+     "path": "sets/m3_ml_decisions/target.log/experiment.accept/v1",
      "version": "v1"
     }
    ],
@@ -3866,10 +5733,21 @@
    "sets": [
     {
      "counts": {
+      "dev": 1,
+      "sealed": 0,
+      "sealed_pending": 0,
+      "train": 48
+     },
+     "name": "plan",
+     "path": "sets/m4_workflow_llm/plan/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
       "dev": 69,
       "sealed": 173,
-      "sealed_pending": 0,
-      "train": 204
+      "sealed_pending": 3,
+      "train": 251
      },
      "name": "understand_problem",
      "path": "sets/m4_workflow_llm/understand_problem/v1",
@@ -3886,6 +5764,17 @@
    "sets": [
     {
      "counts": {
+      "dev": 50,
+      "sealed": 48,
+      "sealed_pending": 0,
+      "train": 134
+     },
+     "name": "preferences/selfplay",
+     "path": "sets/m5_solver_llm/preferences/selfplay/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
       "dev": 0,
       "sealed": 334,
       "sealed_pending": 0,
@@ -3894,6 +5783,61 @@
      "name": "trajectories/development",
      "path": "sets/m5_solver_llm/trajectories/development/v1",
      "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 0,
+      "sealed": 306,
+      "sealed_pending": 0,
+      "train": 33
+     },
+     "name": "trajectories/development",
+     "path": "sets/m5_solver_llm/trajectories/development/v2",
+     "version": "v2"
+    },
+    {
+     "counts": {
+      "dev": 193,
+      "sealed": 304,
+      "sealed_pending": 0,
+      "train": 541
+     },
+     "name": "trajectories/selfplay",
+     "path": "sets/m5_solver_llm/trajectories/selfplay/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 4,
+      "sealed": 2,
+      "sealed_pending": 3,
+      "train": 7
+     },
+     "name": "trajectories/silver_frontier",
+     "path": "sets/m5_solver_llm/trajectories/silver_frontier/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 0,
+      "sealed": 1,
+      "sealed_pending": 1,
+      "train": 4
+     },
+     "name": "trajectories/studio",
+     "path": "sets/m5_solver_llm/trajectories/studio/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 4,
+      "sealed": 2,
+      "sealed_pending": 10,
+      "train": 10
+     },
+     "name": "trajectories/studio",
+     "path": "sets/m5_solver_llm/trajectories/studio/v2",
+     "version": "v2"
     }
    ],
    "shapes": [
@@ -3908,10 +5852,65 @@
    "sets": [
     {
      "counts": {
-      "dev": 173,
-      "sealed": 175,
+      "dev": 158,
+      "sealed": 146,
+      "sealed_pending": 11,
+      "train": 434
+     },
+     "name": "graph",
+     "path": "sets/m6_stepwise_decisions/graph/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 2,
+      "sealed": 1,
       "sealed_pending": 0,
-      "train": 510
+      "train": 0
+     },
+     "name": "job",
+     "path": "sets/m6_stepwise_decisions/job/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 154,
+      "sealed": 145,
+      "sealed_pending": 10,
+      "train": 444
+     },
+     "name": "stages",
+     "path": "sets/m6_stepwise_decisions/stages/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 13,
+      "sealed": 10,
+      "sealed_pending": 0,
+      "train": 42
+     },
+     "name": "team/orchestra",
+     "path": "sets/m6_stepwise_decisions/team/orchestra/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 0,
+      "sealed": 0,
+      "sealed_pending": 0,
+      "train": 4
+     },
+     "name": "team/solution",
+     "path": "sets/m6_stepwise_decisions/team/solution/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 186,
+      "sealed": 175,
+      "sealed_pending": 15,
+      "train": 560
      },
      "name": "walk",
      "path": "sets/m6_stepwise_decisions/walk/v1",
@@ -3927,10 +5926,10 @@
    "sets": [
     {
      "counts": {
-      "dev": 9,
+      "dev": 14,
       "sealed": 15,
-      "sealed_pending": 0,
-      "train": 35
+      "sealed_pending": 15,
+      "train": 70
      },
      "name": "code",
      "path": "sets/m7_judges/code/v1",
@@ -3938,10 +5937,10 @@
     },
     {
      "counts": {
-      "dev": 918,
+      "dev": 1008,
       "sealed": 914,
-      "sealed_pending": 0,
-      "train": 2734
+      "sealed_pending": 83,
+      "train": 2991
      },
      "name": "correction",
      "path": "sets/m7_judges/correction/v1",
@@ -3949,10 +5948,21 @@
     },
     {
      "counts": {
-      "dev": 0,
-      "sealed": 0,
-      "sealed_pending": 0,
-      "train": 1
+      "dev": 1,
+      "sealed": 1,
+      "sealed_pending": 1,
+      "train": 4
+     },
+     "name": "preferences",
+     "path": "sets/m7_judges/preferences/v1",
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 188,
+      "sealed": 1,
+      "sealed_pending": 203,
+      "train": 550
      },
      "name": "result",
      "path": "sets/m7_judges/result/v1",
@@ -3969,10 +5979,10 @@
    "sets": [
     {
      "counts": {
-      "dev": 0,
+      "dev": 1,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 3
+      "sealed_pending": 4,
+      "train": 4
      },
      "name": "evidence",
      "path": "sets/m8_retrieval/evidence/v1",
@@ -3986,8 +5996,8 @@
   }
  },
  "quarantine": {
-  "a_duplicate_of_a_record_already_placed": 2,
-  "broken": 2
+  "a_duplicate_of_a_record_already_placed": 16,
+  "broken": 9
  },
  "root": "the store's root (dclab-records, owner/main)",
  "schema_version": 1,
