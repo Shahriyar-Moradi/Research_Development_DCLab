@@ -114,6 +114,7 @@ TESTS = {
         "tests/test_dev_script.py": "tests scripts/dev.py (the private repository's development runner)",
         "tests/test_deploy.py": "tests the cloud code in deploy/, which is not exported",
         "tests/test_staging_check.py": "tests a Makefile target of the private repository",
+        "tests/test_storage_migrate.py": "builds its workspace with the intern on the Telco sample table, which is not shipped",
         "tests/test_decision_routing.py": "routes measured classifiers: needs the sealed gate results in evidence/ and the agent_eval suites",
     },
 }
