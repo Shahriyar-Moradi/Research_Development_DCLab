@@ -45,7 +45,7 @@ SHOWN_SENTENCES = 4  # a reply beside a table: at most this many sentences (the 
 WATCH_SECONDS = 3 * 3600  # how long a job is followed on the board
 
 
-_WRITTEN_CALL = re.compile(r"```|\"(name|arguments)\"\s*:|\bcall the `?\w+`? (function|tool)\b", re.I)
+_WRITTEN_CALL = re.compile(r"```|\"(name|arguments)\"\s*:|\{\s*\w+\s*:|\[showed the table|\bcall the `?\w+`? (function|tool)\b", re.I)
 
 
 def _not_an_answer(said: str, stopped: str) -> bool:
@@ -1201,6 +1201,7 @@ class Orchestrator:
                                              _latest_version(t) is not None)]
             except Exception:  # noqa: BLE001 - a shadow never stops a turn
                 shadow = None
+        t.rules_plan = shadow or []  # what the rules would run for this message: a model that runs none of it did not answer
         if client is not None:
             try:
                 reply = self.model_turn(t, client, record)
@@ -1257,7 +1258,8 @@ class Orchestrator:
                 t.results.append(s.result)  # an error's words may be repeated
                 t.task(s.tool, TEAM[WHO.get(s.tool, "reader")], s.tool.replace("_", " "), "failed", detail=str(s.result["error"])[:200])
         worked = [s for s in out.steps if s.ok and not (isinstance(s.result, dict) and s.result.get("error"))]
-        if not worked and not t.shown and (not grounded(said, [t.results, self.situation(t)])[0] or _not_an_answer(said, out.stopped)):
+        rules_would_act = bool(getattr(t, "rules_plan", None))  # the message asks for what a tool does, and the model ran none
+        if not worked and not t.shown and (rules_would_act or not grounded(said, [t.results, self.situation(t)])[0] or _not_an_answer(said, out.stopped)):
             # every call refused and nothing grounded said (a small local model): nothing ran, so the rules carry the turn
             # and the refusals stay in the record, never in the reply
             t.tasks[:] = [x for x in t.tasks if x["status"] != "failed"]
