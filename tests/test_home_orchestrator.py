@@ -507,6 +507,25 @@ class SeveralTasksTests(unittest.TestCase):  # "improve and plot in parallel" (t
         chat.since("yes but plot the roc curve instead")
         self.assertEqual(chat.services.submitted, [])  # no job started
 
+    def test_the_model_cannot_start_the_run_on_a_yes_held_back(self):  # live with Claude, 2026-10-21
+        for said, starts in (("yes, but show me the leakage first", False), ("yes", True), ("not now, maybe later", False), ("yes, and plot each fold", True)):
+            chat = Chat(self, gateway([call("improve_model", {}, 1), answer("Done.")]))
+            chat.store.update(chat.draft, lambda d: d.setdefault("agent", {}).update(offer={"tool": "improve_model", "args": {}}))
+            with mock.patch.dict(os.environ, {"DCLAB_BUILT_CHAT_SERVE": "model"}):
+                chat.since(said)
+            self.assertEqual(bool(chat.services.submitted), starts, said)
+        chat = Chat(self, gateway([call("improve_model", {}, 1), answer("Done.")]))
+        with mock.patch.dict(os.environ, {"DCLAB_BUILT_CHAT_SERVE": "model"}):
+            chat.since("how can the model improve?")  # a question: ideas, not a run
+        self.assertEqual(chat.services.submitted, [])
+        chat = Chat(self, gateway([call("improve_model", {}, 1), answer("Here is the audit."), call("improve_model", {}, 2), answer("Started.")]))
+        chat.store.update(chat.draft, lambda d: d.setdefault("agent", {}).update(offer={"tool": "improve_model", "args": {}}))
+        with mock.patch.dict(os.environ, {"DCLAB_BUILT_CHAT_SERVE": "model"}):
+            chat.since("yes, but show me the leakage first")
+            self.assertEqual(chat.services.submitted, [])
+            chat.since("yes")  # the offer is still open: this yes starts it
+        self.assertEqual([j["kind"] for j in chat.services.submitted], ["improve"])
+
     def test_a_worker_in_another_process_waits_for_the_project_lock(self):  # the file store; PostgreSQL locks the row
         import subprocess
         import time

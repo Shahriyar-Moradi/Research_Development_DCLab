@@ -94,6 +94,26 @@
    "cause": "improve.run and the job handler saved whole documents; the file store's lock was per process.",
    "fix": "They update their own fields; the file store also takes a file lock across processes.",
    "test": "tests/test_home_orchestrator.py (a second process holds the lock)"
+  },
+  {
+   "id": "L1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "On the model path, \"yes, but show me the leakage first\" started the improvement run.",
+   "scenario": "Live with Claude after the improvement ideas' offer.",
+   "cause": "The rules were fixed; improve_model itself never read the person's words.",
+   "fix": "improve_model starts only on the person's own request, never held back (first, not now, wait, instead); the offer stays open.",
+   "test": "tests/test_home_orchestrator.py; live recheck: held back, then yes started it"
+  },
+  {
+   "id": "L2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "After \"remember ...\", the model promised to weigh precision more.",
+   "scenario": "Live with Claude.",
+   "cause": "The tool said nothing about what a note does.",
+   "fix": "remember's result says a note changes no setting and suggests the change to ask for.",
+   "test": "live recheck: \"It doesn't change any setting by itself\""
   }
  ],
  "measurements": [
@@ -105,6 +125,17 @@
    "cost_eur": 0.0,
    "limits": [
     "the model path plans its own calls; only the rules' plan was changed"
+   ]
+  },
+  {
+   "name": "live with Claude Sonnet 5.5",
+   "gate": "every new tool used as intended, no spend over the cap",
+   "result": "memory, Reporter, Data engineer (missing data, a column, a lookup join, the outcome refused), ideas, improve and plot together; 71 requests, EUR 0.40 over three runs",
+   "verdict": "pass",
+   "cost_eur": 0.3978,
+   "limits": [
+    "one project, one person's phrasing",
+    "the two live findings were fixed and rechecked once"
    ]
   }
  ],

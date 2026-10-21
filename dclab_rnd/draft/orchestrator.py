@@ -368,11 +368,29 @@ def show_improvements(t: Turn, /, **_: Any) -> dict[str, Any]:
         "rows": rows, "note": rec.get("note")})}
 
 
+WAIT = re.compile(r"\b(?:first|not now|later|wait|not yet|hold on|don'?t|do not|instead|before (?:that|you|it))\b", re.I)
+
+
+def _asked_to_improve(t: Turn) -> bool:
+    """The person's own message starts the run: a yes to the offer, or a request to improve (not a question), never held back."""
+    said = t.text.strip()
+    if WAIT.search(said) or NO.match(said):
+        return False
+    if (t.offered or {}).get("tool") == "improve_model" and (YES.match(said) or YES_THEN.match(said)):
+        return True
+    return bool(IMPROVE.search(said) and DOING.search(said) and not ASKING.search(said))
+
+
 def improve_model(t: Turn, /, **_: Any) -> dict[str, Any]:
     """Start the Experimenter: the improvement job on the training folds only (class weights, the next model families with their own
     settings, another feature recipe, a blend), each compared with the current model on the same folds. It reports in the chat."""
     if not all(t.stage(k) for k in ("features", "models", "final")):
         return {"error": "Run the project's stages up to the final one first: there is no model to improve yet."}
+    if not _asked_to_improve(t):  # live with Claude, 2026-10-21: "yes, but show me the leakage first" started the run
+        if (t.offered or {}).get("tool") == "improve_model" or WAIT.search(t.text):
+            t.agent_offer("improve_model")  # still on offer: the next "yes" starts it (live, the recheck: a later yes found no offer)
+        return {"error": "The person has not asked to start the improvement run now (a question, or a yes held back by \"first\", \"not now\", "
+                         "\"wait\"): do what they asked, then offer it again."}
     p = t.project()
     if p.get("running"):
         return {"error": f"Something is running in this project ({p['running']}): wait for it to finish, or stop it."}
@@ -937,7 +955,8 @@ def remember(t: Turn, /, **_: Any) -> dict[str, Any]:
         return {"error": "Say what to remember, for example: remember that we prefer fewer false alarms."}
     _keep_notes(t, [_new_note("preference", words, "the person asked the team to remember it", "person", "remember")])
     t.task("remember", TEAM["reader"], "Kept in the project's memory", "done")
-    result = {"remembered": words, "next": "Every chat on this project reads it from now on."}
+    result = {"remembered": words, "next": "Every chat on this project reads it from now on. Keeping it changes no setting by itself: "
+                                            "ask for the change it implies (for example a cutoff that favours precision)."}
     t.results.append(result)
     return result
 
