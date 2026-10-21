@@ -18,12 +18,32 @@ from dclab_rnd import prompts
 from dclab_rnd.agents import harness
 from dclab_rnd.agents.registry import Registry, Tool
 from dclab_rnd.agents.runtime import Policy, Step, run as run_policy
-from dclab_rnd.agents.traces import Tracer
+from dclab_rnd.agents.traces import Tracer, scrub
 from dclab_rnd.jobs import checkpoint
 from dclab_rnd.studio import graph as studio_graph
 
 from .sessions import SessionStore, now
-from .tools import LEGACY_TOOLS, RESULT_CHARS, Toolbox, summarize, truncate
+from .tools import LEGACY_TOOLS, RESULT_CHARS, Toolbox, summarize
+
+
+def _finite(value: Any) -> Any:
+    """A number that is not finite (NaN, infinity) as null, at any depth: JSON has no such numbers."""
+    if isinstance(value, float):
+        return value if value == value and value not in (float("inf"), float("-inf")) else None
+    if isinstance(value, dict):
+        return {k: _finite(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_finite(v) for v in value]
+    return value
+
+
+def step_record(n: int, tool: str, arguments: dict[str, Any], result: Any, seconds: float) -> dict[str, Any]:
+    """One tool call as the session keeps it: the line the transcript shows (``summary``) and the whole result (``result``,
+    the keys that quote the table's cells removed, as in the trace), so a trajectory built from the session is never cut."""
+    clean = _finite(json.loads(json.dumps(scrub(result), ensure_ascii=False, default=str)))  # a NaN would make the session unreadable through the API
+    return {"n": n, "tool": tool, "arguments": _finite(json.loads(json.dumps(arguments, ensure_ascii=False, default=str))),  # whole: never cut before saving
+            "summary": summarize(clean), "result": clean,
+            "ok": not (isinstance(result, dict) and "error" in result), "elapsed_seconds": round(seconds, 2), "at": now()}
 
 SESSION_TOOLS = ("write_plan", "finish")  # the intern's own notes on its session (scope "session")
 SESSION_MOVES = {"write_plan": "plan", "finish": "finish"}
@@ -191,9 +211,7 @@ class Intern:
         except Exception as exc:  # 21.1: a call that raised is a step too, then the session fails as before
             self._record(tool, arguments, {"error": type(exc).__name__}, round(time.perf_counter() - clock, 2), len(session["steps"]) + 1)
             raise
-        step = {"n": len(session["steps"]) + 1, "tool": tool, "arguments": arguments if len(json.dumps(arguments, default=str)) <= 1200 else {"_truncated": truncate(arguments, 1200)},
-                "summary": summarize(result), "ok": not (isinstance(result, dict) and "error" in result),
-                "elapsed_seconds": round(time.perf_counter() - clock, 2), "at": now()}
+        step = step_record(len(session["steps"]) + 1, tool, arguments, result, time.perf_counter() - clock)
         if tool == "create_project" and isinstance(result, dict) and result.get("project_id"):
             session["project_id"] = result["project_id"]
         self._record(tool, arguments, result, step["elapsed_seconds"], step["n"])
@@ -232,11 +250,12 @@ class Intern:
         def on_step(step: Step) -> None:
             entry = {"n": len(session["steps"]) + 1, "tool": step.tool, "ok": step.ok, "elapsed_seconds": round(step.seconds, 2), "at": now()}
             if step.tool in SESSION_TOOLS:  # the plan and the report are on the session itself
-                entry.update(arguments={}, summary=((session.get("plan") if step.tool == "write_plan" else session.get("final")) or "")[:200])
+                text = (session.get("plan") if step.tool == "write_plan" else session.get("final")) or ""
+                entry.update(arguments={}, summary=text[:200], result=text)  # the whole plan or report, the summary its first line
             else:
                 arguments = step.arguments
-                entry.update(arguments=arguments if len(json.dumps(arguments, default=str)) <= 1200 else {"_truncated": truncate(arguments, 1200)},
-                             summary=summarize(step.result))
+                whole = step_record(entry["n"], step.tool, arguments, step.result, step.seconds)
+                entry.update(arguments=whole["arguments"], summary=whole["summary"], result=whole["result"])
                 if step.tool == "create_project" and isinstance(step.result, dict) and step.result.get("project_id"):
                     session["project_id"] = step.result["project_id"]
                 self._verdict(step.tool, step.arguments, step.result)

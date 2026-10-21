@@ -20,8 +20,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
-from dclab_core.datasets import split_of
-from dclab_core.store import ChatExample, Message, Provenance, SolverTrajectory, StoreRecord, TrajectoryStep
+from dclab_core.datasets import group_of, split_of
+from dclab_core.store import ChatExample, Message, PreferencePair, Provenance, SolverTrajectory, StoreRecord, TrajectoryStep
 
 from ..layout import ROOT, Layout
 from . import write_set
@@ -182,8 +182,9 @@ def trajectories(records: Iterable[StoreRecord]) -> Iterable[SolverTrajectory]:
 
     def done(lines: list[StoreRecord]) -> Iterable[SolverTrajectory]:
         sessions: dict[str, list[StoreRecord]] = defaultdict(list)
-        for r in lines:
-            sessions[str(r.body["session"])].append(r)
+        for r in lines:  # a subagent's transcript carries its parent's session id: it is its own run, in its parent's split
+            m = re.search(r"/subagents/([^/]+)\.jsonl$", r.provenance.source)
+            sessions[f"{r.body['session']}:{m.group(1)}" if m else str(r.body["session"])].append(r)
         for session, rows in sorted(sessions.items()):
             yield from _trajectory(session, rows)
 
@@ -239,33 +240,309 @@ def _trajectory(session: str, lines: list[StoreRecord]) -> Iterable[SolverTrajec
     first = lines[0]
     prov = first.provenance
     more = list({r.provenance.entry: r.provenance for r in lines[1:] if r.provenance.entry != prov.entry}.values())
-    yield SolverTrajectory(id=f"m5_solver_llm:claude_code:{session}", model_type="m5_solver_llm", split=first.split or split_of(session),
+    yield SolverTrajectory(id=f"m5_solver_llm:claude_code:{session}", model_type="m5_solver_llm", split=first.split or split_of(session.split(":", 1)[0]),
                            provenance=prov, more=more, problem_kind="development",
                            problem={"request": problem, "where": first.body.get("where"), "agent": "claude_code"}, steps=steps,
                            metric=None, score=None)  # development: no metric of its own (its fixes are judged in M7)
 
 
-def intern_trajectories(records: Iterable[StoreRecord]) -> Iterable[SolverTrajectory]:
-    """Each intern session's last saved version as a trajectory: its task, every step's tool, arguments and result."""
+TWIN_LANE = re.compile(r"^(?:(?P<parent>.+)__)?twin__runs__(?P<run>.+)__(?P<lane>workflow|ai_first)$")
+ARM = {"workflow": "system", "ai_first": "ai_first"}
+OLLAMA_TAG = re.compile(r"^[a-z0-9][a-z0-9._/-]*:[a-z0-9][a-z0-9._-]*$")  # qwen2.5-coder:1.5b: a model pulled and served on this machine
+LOCAL_PREFIXES = ("ollama/", "local/", "local:", "tuned:", "tuned/", "dclab-")
+PROVIDERS = {"groq", "google", "gemini", "mistral", "openrouter", "together", "fireworks", "anthropic", "openai", "deepseek", "cohere",
+             "novita", "azure", "bedrock", "vertex", "hf", "huggingface", "xai", "perplexity", "replicate", "nvidia", "cerebras", "sambanova"}
+FINAL_TOOLS = ("run_all",)  # run_programme writes no stages/final.json: its score is the programme's, not this one
+SLACK = 5.0
+OUTCOME_NAMED = "The outcome to predict is the column"  # the phrase of twin/solver_runs.py's task (kept here: the builder imports no runner)
+
+
+def answerer_of(session: dict[str, Any]) -> str:
+    """Who chose the session's moves: ``rules`` (the standard plan), ``local:<model>``, or a provider's model (``claude:``, ``openai:``,
+    ``frontier:``). A model counts as local only on its name's evidence (an Ollama tag, a local or tuned prefix); every other name,
+    and a model-mode session without one, is a provider's: never clean by default."""
+    model = str(session.get("model") or "").strip()
+    if session.get("mode") == "standard" and not model:
+        return "rules"
+    low = model.lower()
+    if not model:
+        return "frontier:unknown"
+    if "claude" in low:
+        return f"claude:{model}"
+    if low.startswith(("gpt", "o1", "o3", "o4")) or "openai" in low:
+        return f"openai:{model}"
+    if low.startswith(LOCAL_PREFIXES):
+        return f"local:{model}"
+    # an Ollama tag (qwen2.5-coder:1.5b): no path, and the part before the colon is not a provider (groq:llama-3 is hosted)
+    if OLLAMA_TAG.match(low) and "/" not in low and low.split(":", 1)[0] not in PROVIDERS:
+        return f"local:{model}"
+    return f"frontier:{model}"
+
+
+def _when(text: Any) -> Optional[float]:
+    from datetime import datetime
+
+    try:
+        return datetime.fromisoformat(str(text).replace("Z", "+00:00")).timestamp()
+    except (TypeError, ValueError):
+        return None
+
+
+def final_windows(steps: Iterable[dict[str, Any]]) -> list[tuple[float, float]]:
+    """When the session itself ran the final stage: each ok call to run_all or run_stage(final), from its start (its time less
+    its seconds) to its end, a few seconds of slack each side. A score is the session's only if its final completed inside one."""
+    out = []
+    for st in steps:
+        if not isinstance(st, dict) or st.get("ok") is False:
+            continue
+        args = st.get("arguments") if isinstance(st.get("arguments"), dict) else {}
+        if st.get("tool") in FINAL_TOOLS or (st.get("tool") == "run_stage" and args.get("stage") == "final"):
+            end = _when(st.get("at"))
+            if end is not None:
+                out.append((end - float(st.get("elapsed_seconds") or 0) - SLACK, end + SLACK))
+    return out
+
+
+def models_in_results(steps: Iterable[dict[str, Any]]) -> list[str]:
+    """The models a step's tool used inside the session (a leakage review or an analyst answered by a model): their text sits in
+    the trajectory, so they count for who made it."""
+    found = []
+    for st in steps:
+        result = st.get("result") if isinstance(st, dict) else None
+        if isinstance(result, dict):
+            model = result.get("model") or result.get("served_by")
+            if isinstance(model, str) and model.strip():
+                found.append(model.strip())
+            elif result.get("mode") == "model":
+                found.append("unknown")
+    return found
+
+
+def clean(answerer: str) -> bool:
+    return answerer == "rules" or answerer.startswith("local:")
+
+
+def holdouts(records: Iterable[StoreRecord]) -> dict[tuple[str, str], list[dict[str, Any]]]:
+    """Every version of each project's final stage, by (workspace, project): the holdout's metric and score, the table it ran on,
+    when it completed and its record's split (the store keeps every version, a cleared and rerun final included)."""
+    out: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for r in records:
+        m = re.search(r"(?:^|/)projects/([^/]+)/stages/final\.json$", r.provenance.source)
+        project = m.group(1) if m else None
+        if project is None and r.provenance.source.startswith("db/stage_record") and r.body.get("stage") == "final":  # PostgreSQL: a row
+            project = r.body.get("project_id") or r.body.get("project")
+        if not project or r.body.get("status") not in (None, "completed"):
+            continue
+        run = r.body.get("run") if isinstance(r.body.get("run"), dict) else {}
+        outputs, inputs, evidence = run.get("outputs") or {}, run.get("inputs") or {}, r.body.get("evidence") or {}
+        value = outputs.get("value")
+        if value is None:
+            value = (evidence.get("holdout_primary_metric_ci") or {}).get("point")
+        if value is None or evidence.get("holdout_consumed") is False:
+            continue
+        out[(r.provenance.workspace, str(project))].append({
+            "metric": outputs.get("metric") or r.body.get("primary_metric"), "score": float(value), "data_sha256": inputs.get("data_sha256"),
+            "task_type": r.body.get("task_type"), "holdout_rows": evidence.get("holdout_rows"), "completed_at": _when(r.body.get("completed_at")),
+            "split": "sealed" if "sealed" in (r.split, split_of(group_of(project=str(project)))) else r.split,  # its project's split
+            "record": f"{r.provenance.workspace}:{r.provenance.source}"})
+    return dict(out)
+
+
+def twin_truths(records: Iterable[StoreRecord]) -> dict[tuple[str, str], dict[str, Any]]:
+    """Each blind twin run's judged columns step, by (the run's workspace, run id): the planted truth and each arm's verdict."""
+    out: dict[tuple[str, str], dict[str, Any]] = {}
+    for r in records:
+        m = re.search(r"(?:^|/)twin/runs/([^/]+)/steps\.jsonl$", r.provenance.source)
+        if m and r.body.get("step") == "solution.columns" and isinstance(r.body.get("verdict"), dict):
+            out[(r.provenance.workspace, m.group(1))] = r.body
+    return out
+
+
+def truth_of(workspace: str, truths: dict[tuple[str, str], dict[str, Any]]) -> tuple[str, Optional[str]]:
+    """``passed``, ``failed``, ``none`` (not a twin lane: no planted truth to judge), or ``unknown``: a twin lane whose verdict is not
+    found (its name cut, its run stopped before the judge, its steps not kept). ``unknown`` is never placed: an unchecked lane is
+    not a checked one."""
+    m = TWIN_LANE.match(workspace)
+    if not m:
+        return ("unknown", None) if "twin__runs__" in workspace else ("none", None)
+    step = truths.get((m.group("parent") or "dev", m.group("run")))
+    fields = ((step or {}).get("verdict") or {}).get(ARM[m.group("lane")])
+    if not isinstance(fields, dict) or not fields:
+        return "unknown", None
+    return ("passed" if all(v is True for v in fields.values()) else "failed"), f"twin:{m.group('run')}:solution.columns"
+
+
+def intern_trajectories(records: Iterable[StoreRecord], finals: Optional[dict[tuple[str, str], dict[str, Any]]] = None,
+                        truths: Optional[dict[tuple[str, str], dict[str, Any]]] = None) -> Iterable[SolverTrajectory]:
+    """Each intern session's last saved version as a trajectory: its task, every step's tool, arguments and whole result (a session
+    from before whole results were kept has its summary, and says so); who chose its moves; its holdout score and the table it ran
+    on (its split: one table, one split); its planted truth's verdict where one was judged."""
+    finals, truths = finals or {}, truths or {}
     newest: dict[str, StoreRecord] = {}
     for r in records:
         if r.type == "intern_session" and r.body.get("id"):
             sid = str(r.body["id"])
             if sid not in newest or (len(r.body.get("steps") or []), r.at) >= (len(newest[sid].body.get("steps") or []), newest[sid].at):
                 newest[sid] = r
+    def holdout_of(r: StoreRecord) -> Optional[dict[str, Any]]:
+        """The final this session itself ran: one that completed inside one of its own final calls (never a score it only read)."""
+        project = str(r.body.get("project_id") or r.body.get("project") or "")
+        windows = final_windows(r.body.get("steps") or []) if project else []
+        mine = [f for f in finals.get((r.provenance.workspace, project), []) if f.get("completed_at") is not None
+                and any(a <= f["completed_at"] <= b for a, b in windows)]
+        return max(mine, key=lambda f: f["completed_at"]) if mine else None
+
+    # one table, one split: a table any sealed session ran on, or any sealed final scored, is sealed for every session on it
+    sealed_tables = {h["data_sha256"] for r in newest.values() if r.split == "sealed" for h in [holdout_of(r)] if h and h.get("data_sha256")}
+    sealed_tables |= {f["data_sha256"] for versions in finals.values() for f in versions if f.get("split") == "sealed" and f.get("data_sha256")}
     for sid, r in sorted(newest.items()):
-        steps = []
+        steps, cut = [], False
         for n, st in enumerate(r.body.get("steps") or []):
             if not isinstance(st, dict):
                 continue
             thought = st.get("thought") or st.get("plan")
+            whole = "result" in st
+            cut = cut or not whole  # a session from before whole results were kept: its summary quotes the table's cells, so it is not used
             steps.append(TrajectoryStep(n=n, thought=str(thought) if thought else None, thought_source="recorded" if thought else None,
                                         no_thought=None if thought else "the intern's step has no thought of its own", tool=(st.get("tool") or None) and str(st["tool"])[:120],
-                                        arguments=st.get("arguments") if isinstance(st.get("arguments"), dict) else {}, result=st.get("result") or st.get("reply"),
-                                        ok=st.get("ok") is not False))
-        if steps:
-            yield SolverTrajectory(id=f"m5_solver_llm:intern:{sid}", model_type="m5_solver_llm", split=r.split or split_of(f"session:{sid}"),
-                                   provenance=r.provenance, problem_kind="studio", problem={"request": r.body.get("task"), "agent": "intern"}, steps=steps)
+                                        arguments=st.get("arguments") if isinstance(st.get("arguments"), dict) else {},
+                                        result=st.get("result") if whole else None, ok=st.get("ok") is not False))
+        if not steps:
+            continue
+        holdout = holdout_of(r)
+        who = answerer_of(r.body)
+        helpers = [m for m in models_in_results(r.body.get("steps") or []) if not clean(answerer_of({"mode": "llm", "model": m}))]
+        if clean(who) and helpers:  # a hosted model wrote part of its results: not a clean run
+            who = f"mixed:{who}+{answerer_of({'mode': 'llm', 'model': helpers[0]})}"
+        truth, truth_source = truth_of(r.provenance.workspace, truths)
+        table = (holdout or {}).get("data_sha256")
+        lane = TWIN_LANE.match(r.provenance.workspace)
+        split = "sealed" if (r.split == "sealed" or table in sealed_tables) else (split_of(f"table:{table}") if table else (r.split or split_of(f"session:{sid}")))
+        yield SolverTrajectory(
+            id=f"m5_solver_llm:intern:{sid}", model_type="m5_solver_llm", split=split,
+            provenance=r.provenance, problem_kind=str((holdout or {}).get("task_type") or "studio"), weight=1.0 if clean(who) else 0.5,
+            problem={"request": r.body.get("task"), "agent": "intern", "answerer": who, "data_sha256": table,
+                     "outcome_named": OUTCOME_NAMED in str(r.body.get("task") or ""),  # the person named the outcome: not the solver's choice
+                     "twin": {"run": lane.group("run"), "lane": lane.group("lane")} if lane else None},
+            steps=steps, metric=(holdout or {}).get("metric"), score=(holdout or {}).get("score"),
+            submission={"holdout": holdout["record"], "holdout_rows": holdout.get("holdout_rows"), "truth": truth, "truth_source": truth_source,
+                        "results_cut": cut} if holdout else None)
+
+
+def keep_sealed(layout: Any, model_type: str, folder: str, version: str, examples: list[Any]) -> list[Any]:
+    """Sealed once, sealed always: an example that spans a raw entry an earlier version of the set sealed stays sealed in this
+    one (a new version changes the split rule, never what was already held back)."""
+    n = int(version.lstrip("v") or 1)
+    sealed: set[str] = set()
+    for k in range(1, n):
+        base = layout.sets(model_type, *folder.split("/"), f"v{k}")
+        for name in ("sealed.jsonl", "sealed.pending.jsonl"):
+            path = base / name
+            if not path.exists():
+                continue
+            with path.open(encoding="utf-8") as fh:
+                for line in fh:
+                    if line.strip():
+                        row = json.loads(line)
+                        sealed.update(p.get("entry") for p in [row.get("provenance") or {}, *(row.get("more") or [])] if p.get("entry"))
+    if not sealed:
+        return examples
+    return [e if e.split == "sealed" or not ({e.provenance.entry, *(m.entry for m in e.more)} & sealed) else e.model_copy(update={"split": "sealed"})
+            for e in examples]
+
+
+SELFPLAY_WS = re.compile(r"^selfplay__ledgers__(?P<kind>[a-z0-9_]+?)__(?P<seed>\d+)$")
+LABEL_RANK = {"benchmark": 0, "measured": 1, "user_decision_exposed": 2, "blind": 3}  # the planted truth first; a model's never
+
+
+def selfplay_verified(records: Iterable[StoreRecord]) -> dict[str, bool]:
+    """Each self-play solve's group (``selfplay:<kind>:<seed>``) and whether its kind's acceptance decisions all passed."""
+    out: dict[str, bool] = {}
+    for r in records:
+        if r.provenance.workspace == "selfplay" and r.provenance.source == "done.jsonl" and r.body.get("group"):
+            out[str(r.body["group"])] = bool(r.body.get("verified"))
+    return out
+
+
+def selfplay_trajectories(records: Iterable[StoreRecord], verified: dict[str, bool]) -> Iterable[SolverTrajectory]:
+    """27.3's verified solves as trajectories: every decision the engine made on an invented problem, in order (its state as
+    bands, never a value; the options; the answer used; the planted or measured label), the holdout's outcome as its score.
+    A solve its acceptance decisions did not all pass is not yielded (the caller counts it)."""
+    solves: dict[str, dict[str, Any]] = defaultdict(lambda: {"decisions": [], "labels": {}, "outcomes": []})
+    for r in records:
+        m = SELFPLAY_WS.match(r.provenance.workspace)
+        if not m:
+            continue
+        solve = solves[f"selfplay:{m.group('kind')}:{m.group('seed')}"]
+        if r.type == "decision":
+            solve["decisions"].append(r)
+        elif r.type == "label" and r.body.get("record"):
+            old = solve["labels"].get(str(r.body["record"]))
+            if old is None or LABEL_RANK.get(str(r.body.get("source")), 9) < LABEL_RANK.get(str(old.get("source")), 9):
+                solve["labels"][str(r.body["record"])] = r.body
+        elif r.type == "outcome" and r.body.get("observed") == "holdout":
+            solve["outcomes"].append(r.body)
+    for group, solve in sorted(solves.items()):
+        if group not in verified or not solve["decisions"]:  # a solve never tried to the end: nothing to say about it
+            continue
+        rows = sorted(solve["decisions"], key=lambda r: (r.at, r.id))
+        steps = []
+        for n, r in enumerate(rows):
+            b = r.body
+            label = solve["labels"].get(str(b.get("id")))
+            reason = next((a.get("reason") for a in b.get("answers") or [] if isinstance(a, dict) and a.get("reason")), None)
+            steps.append(TrajectoryStep(n=n, thought=str(reason) if reason else None, thought_source="from_record" if reason else None,
+                                        no_thought=None if reason else "the engine's rule decided; it wrote no reason",
+                                        tool=f"decide:{str(b.get('point'))[:100]}",
+                                        arguments={"subject": b.get("subject"), "state": b.get("state"), "options": b.get("options")},
+                                        result={"answer": b.get("value_used"), "by": b.get("used"),
+                                                "label": {"value": label.get("value"), "source": label.get("source"), "by": label.get("by")} if label else None},
+                                        ok=label is None or label.get("value") == b.get("value_used")))
+        outcome = solve["outcomes"][0] if solve["outcomes"] else {}
+        _, kind, seed = group.split(":")
+        first = rows[0]
+        more = list({x.provenance.entry: x.provenance for x in rows[1:] if x.provenance.entry != first.provenance.entry}.values())
+        split = "sealed" if any(x.split == "sealed" for x in rows) else (first.split or split_of(group))
+        yield SolverTrajectory(
+            id=f"m5_solver_llm:selfplay:{kind}:{seed}", model_type="m5_solver_llm", split=split, provenance=first.provenance, more=more,
+            problem_kind=kind, steps=steps, metric=outcome.get("metric"), score=outcome.get("value"),
+            problem={"request": f"Solve the invented {kind} problem (seed {seed}): its outcome and its prediction moment are stated.",
+                     "agent": "engine", "answerer": "rules", "origin": "verified_synthetic", "outcome_named": True, "group": group},
+            submission={"verified": bool(verified.get(group)), "interval": outcome.get("interval"), "reference": outcome.get("reference"),
+                        "labelled_steps": sum(1 for s in steps if s.result and s.result.get("label")),
+                        "steps_against_label": sum(1 for s in steps if not s.ok)})
+
+
+def selfplay_pairs(t: SolverTrajectory) -> Iterable[PreferencePair]:
+    """Step 4: each self-play decision whose answer the planted or measured truth contradicts, as a pair: the label chosen over
+    the engine's answer, on the decision as it was posed (its state as bands and its options). From failed solves too: the label
+    is true either way. Never a model's answer as the chosen one."""
+    for s in t.steps:
+        label = (s.result or {}).get("label") if isinstance(s.result, dict) else None
+        if s.ok or not label or label.get("source") not in ("benchmark", "measured"):
+            continue
+        point = str(s.tool or "").removeprefix("decide:")
+        ask = Message(role="user", content=json.dumps({"problem": t.problem_kind, "decide": point, **(s.arguments or {})}, ensure_ascii=False, default=str))
+        yield PreferencePair(id=f"{t.id}:pair:{s.n}", model_type="m5_solver_llm", split=t.split, provenance=t.provenance, more=t.more,
+                             task=f"selfplay:{point}"[:120], prompt=[ask],
+                             chosen=Message(role="assistant", content=json.dumps(label.get("value"), default=str),
+                                            no_reasoning=f"the {label['source']} truth ({label.get('by') or 'planted'})"),
+                             rejected=Message(role="assistant", content=json.dumps(s.result.get("answer"), default=str),
+                                              no_reasoning="the engine's rule answer"),
+                             decided_by=label["source"])
+
+
+def place(t: SolverTrajectory) -> tuple[Optional[str], str]:
+    """Where an intern trajectory goes: the clean set, the frontier's silver set, or nowhere (with why)."""
+    if t.score is None or not t.submission:
+        return None, "m5: not scored on its holdout"
+    if not t.problem.get("data_sha256"):
+        return None, "m5: the table it ran on is not known"  # its split could not follow the table
+    if t.submission.get("truth") == "failed":
+        return None, "m5: failed its planted truth"
+    if t.submission.get("truth") == "unknown":
+        return None, "m5: its planted truth was not judged"
+    return ("trajectories/studio" if clean(str(t.problem.get("answerer"))) else "trajectories/silver_frontier"), ""
 
 
 def build(layout: Optional[Layout] = None) -> dict[str, Any]:
@@ -313,14 +590,46 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
             add("m4_workflow_llm", "understand_problem", ex)
     for t in trajectories(r for r in shapers.records(layout, "agents") if allowed(r, "m5_solver_llm", choices)):
         add("m5_solver_llm", "trajectories/development", t)
-    for t in intern_trajectories(r for r in shapers.records(layout, "conversations") if allowed(r, "m5_solver_llm", choices)):
-        add("m5_solver_llm", "trajectories/studio", t)
+    verified = selfplay_verified(shapers.records(layout, "other"))
+    for t in selfplay_trajectories((r for r in shapers.records(layout, "decisions") if r.provenance.workspace.startswith("selfplay__")
+                                    and allowed(r, "m5_solver_llm", choices)), verified):
+        if t.submission and t.submission.get("verified"):
+            add("m5_solver_llm", "trajectories/selfplay", t)
+        for pair in selfplay_pairs(t):
+            add("m5_solver_llm", "preferences/selfplay", pair)
+    if verified:
+        out["m5: a self-play solve that did not pass its checks"] += sum(1 for v in verified.values() if not v)
+    finals = holdouts(shapers.records(layout, "workflows"))
+    truths = twin_truths(r for r in shapers.records(layout, "conversations") if r.provenance.source.endswith("steps.jsonl"))
+    for t in intern_trajectories((r for r in shapers.records(layout, "conversations") if allowed(r, "m5_solver_llm", choices)), finals, truths):
+        folder, why = place(t)
+        if folder is None:
+            out[why] += 1
+            continue
+        add("m5_solver_llm", folder, t)
     report = {"sets": {}, "kept_out": dict(out)}
     abouts = {"m4_workflow_llm": "The workflow LLM's examples of one stage: messages as sent, each assistant turn with its labelled reasoning.",
               "m5_solver_llm": "Whole solving runs: each step's recorded thought, its tool call and the call's result."}
+    folder_abouts = {
+        "trajectories/studio": "Whole solving runs whose moves the rules or a local model chose, each scored once on its holdout (its metric "
+                               "and score), on the table named by its SHA-256 (one table, one split), and passed its planted truth where one "
+                               "was judged (submission.truth: passed or none). The clean set for training.",
+        "trajectories/silver_frontier": "Whole solving runs whose moves a provider's model (Claude, GPT) chose, scored and checked as the clean "
+                                        "set, at weight 0.5. The owner's rule (2026-10-21): evaluation by default; NOT FOR TRAINING until the "
+                                        "owner records that the provider's terms were checked. Its manifest's consent is improve, not train: every export must check it.",
+        "trajectories/selfplay": "27.3's verified solves of invented problems: every decision the engine made in order (state as bands, the "
+                                 "options, the answer, the planted or measured label), the holdout outcome as the score. Clean (the rules); "
+                                 "the replicas' column names are kept (the lake also masks them): a model may learn their shapes.",
+        "preferences/selfplay": "Kept against refused: each self-play decision the planted (benchmark) or measured truth contradicts, the "
+                                "label chosen over the engine's answer, on the decision as posed (state as bands, options). Failed solves included.",
+        "trajectories/development": "Claude Code sessions on this repository, each by its own session id: how DCLab is built, not an ML solve."}
+    versions = {"trajectories/studio": "v2", "trajectories/development": "v2"}  # v2: split by table, scored; the session id kept (v1's sealed rows were written once)
     for (model_type, folder), examples in sorted(sets.items()):
+        examples = keep_sealed(layout, model_type, folder, versions.get(folder, "v1"), examples)
         sources = {e.provenance.entry: {"entry": e.provenance.entry, "sha256": e.provenance.sha256} for e in examples}
-        m = write_set(layout, model_type, folder, examples, sources=sources.values(), about=abouts[model_type],
+        m = write_set(layout, model_type, folder, examples, version=versions.get(folder, "v1"), sources=sources.values(),
+                      consent="improve" if folder == "trajectories/silver_frontier" else "train",  # not for training until the terms are checked
+                      about=folder_abouts.get(folder, abouts[model_type]),
                       decontaminated=["every sealed journey and conversation set", f"{len(benchmarks)} benchmark task names (benchmarks.txt)"])
         report["sets"][f"{model_type}/{folder}"] = m.counts
     return report

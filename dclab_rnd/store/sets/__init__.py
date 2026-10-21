@@ -43,7 +43,8 @@ def allowed(record: Any, model_type: str, choices: dict[tuple[str, str], dict[st
 
 
 def write_set(layout: Layout, model_type: str, folder: str, examples: Iterable[Any], *, version: str = "v1", sources: Iterable[dict[str, Any]] = (),
-              about: str = "", decontaminated: Iterable[str] = ("the store's own sealed partition",), commit: Optional[str] = None) -> SetManifest:
+              about: str = "", decontaminated: Iterable[str] = ("the store's own sealed partition",), commit: Optional[str] = None,
+              consent: str = "train") -> SetManifest:
     """Write one set; returns its manifest."""
     examples = list(examples)
     shape = examples[0].schema_version if examples else f"dclab_core.{EXAMPLE_SHAPES[model_type][0]}.v1"
@@ -75,7 +76,8 @@ def write_set(layout: Layout, model_type: str, folder: str, examples: Iterable[A
     manifest = SetManifest(model_type=model_type, name=folder, version=version, shape=shape, sources=sorted(sources, key=lambda s: str(s.get("entry"))),
                            split_rule=SPLIT_RULE, counts={"train": len(by_split["train"]), "dev": len(by_split["dev"]), "sealed": sealed_count,
                                                           "sealed_pending": waiting},
-                           label_sources=dict(labels), weights=weights, decontaminated=list(decontaminated), commit=commit, built_at=now())
+                           label_sources=dict(labels), weights=weights, consent=consent, decontaminated=list(decontaminated), commit=commit,
+                           built_at=now())
     write_json(base / "MANIFEST.json", json.loads(manifest.model_dump_json()))
     (base / "CARD.md").write_text(card(manifest, about), encoding="utf-8")
     return manifest

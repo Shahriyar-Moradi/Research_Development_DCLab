@@ -57,8 +57,8 @@ class LlmSetsTest(unittest.TestCase):
         self.benchmarks = Path(tempfile.mkdtemp()) / "benchmarks.txt"
         self.benchmarks.write_text("# tasks\nspaceship-titanic\n", encoding="utf-8")
 
-    def examples(self, model_type, folder):
-        base = self.layout.sets(model_type, *folder.split("/"), "v1")
+    def examples(self, model_type, folder, version="v1"):
+        base = self.layout.sets(model_type, *folder.split("/"), version)
         return [json.loads(line) for s in ("train", "dev", "sealed") if (base / f"{s}.jsonl").exists()
                 for line in (base / f"{s}.jsonl").read_text(encoding="utf-8").splitlines()]
 
@@ -80,7 +80,7 @@ class LlmSetsTest(unittest.TestCase):
         for found, planted in (("a sealed person's words", "mr2"), ("a benchmark task (spaceship-titanic)", "mr3")):
             in_sets = [e for e in m4 if planted in e.provenance.entry or planted in e.model_dump_json()]
             self.assertTrue(any(found in k for k in kept_out) or all(e.split == "sealed" for e in in_sets), found)  # never in train or dev
-        m5 = [SolverTrajectory.model_validate(e) for e in self.examples("m5_solver_llm", "trajectories/development")]
+        m5 = [SolverTrajectory.model_validate(e) for e in self.examples("m5_solver_llm", "trajectories/development", "v2")]  # v2: each session by its own id
         self.assertEqual(len(m5), 1)
         steps = m5[0].steps
         self.assertEqual([(s.tool, s.thought, s.result) for s in steps], [("Bash", "Run the test first.", "1 failed"),

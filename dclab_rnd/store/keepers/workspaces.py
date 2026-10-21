@@ -32,6 +32,7 @@ class Workspace:
     root: Path
     consent: str            # train, improve or operate
     owner: bool             # the owner's own runs
+    ledger_root: bool = False  # the folder is a ledger itself (a self-play solve's): its files read as ledger/<file>
 
 
 def _consent(root: Path, owner: bool) -> str:
@@ -72,6 +73,22 @@ def discover(base: Optional[Path] = None, depth: int = 64) -> Iterator[Workspace
         rel = path.relative_to(base).as_posix()
         owner = not rel.startswith("testers/")
         yield Workspace(name="dev" if rel == "." else slug(rel.replace("/", "__"), 100), root=path, consent=_consent(path, owner), owner=owner)
+
+
+SELFPLAY = ROOT / "lake" / "bronze" / "selfplay"  # 27.3's verified solves: invented tables, the owner's own; kept like the owner's runs
+
+
+def discover_selfplay(base: Optional[Path] = None) -> Iterator[Workspace]:
+    """The self-play folder as workspaces: the folder itself (``selfplay``: what was tried and verified, the screens) and each
+    solve's ledger folder (``selfplay__ledgers__<kind>__<seed>``: every decision the engine made, labelled by the planted truth).
+    Invented problems with no person and no real table, so ``train`` like the owner's own runs."""
+    base = Path(base or SELFPLAY)
+    if not base.is_dir():
+        return
+    yield Workspace(name="selfplay", root=base, consent="train", owner=True)
+    for root in sorted(p for p in base.glob("ledgers/*/*") if p.is_dir()):  # one folder per solve, by its place: ledgers/<kind>/<seed>
+        yield Workspace(name=slug("selfplay__" + root.relative_to(base).as_posix().replace("/", "__"), 100), root=root, consent="train", owner=True,
+                        ledger_root=True)
 
 
 def base_of(home: Path) -> Path:

@@ -43,21 +43,22 @@ CHUNK = 20_000_000
 RETRY = ("OSError", "MemoryError", "PermissionError", "TimeoutError")  # failures that may pass next time
 ALWAYS = ("decisions", "teachers")
 TEXT_KEYS = {"text", "content", "reason", "question", "answer", "prompt", "reply", "thinking", "note", "notes", "problem", "goal", "said", "words",
-             "message", "summary", "why", "query", "detail", "error", "title", "description", "stdout", "stderr", "command", "output", "result"}
+             "message", "summary", "why", "query", "detail", "error", "title", "description", "stdout", "stderr", "command", "output", "result", "task"}
 LIFT = ("project", "draft", "run", "conversation", "visit", "job", "request", "session", "user")  # 32.32: whose it is
 RENAME = {"project_id": "project", "draft_id": "draft", "record_id": "record", "sessionId": "session", "timestamp": "at", "user_id": "user"}
+INTERN_FILE = re.compile(r"(^|/)intern/[0-9a-f]{8,32}\.json$")  # an intern session saved whole by its id (a twin lane, a live test)
 BINARY = (".joblib", ".pkl", ".pickle", ".npy", ".npz", ".sqlite3", ".parquet", ".bin", ".onnx", ".pt")
 
 
 def _version() -> str:
     from dclab_core import redact, store_rules
 
-    return f"shapers-4:{redact.VERSION}:{store_rules.VERSION}"  # 3: one group for every kind; tables printed with spaces; 4: whose it is (body.user, provenance.by)
+    return f"shapers-6:{redact.VERSION}:{store_rules.VERSION}"  # 3: one group for every kind; tables printed with spaces; 4: whose it is (body.user, provenance.by); 5: a session's id kept, intern/<id>.json an intern session; 6: every string under a words key
 
 
 def _id_key(key: Optional[str]) -> bool:
     k = str(key or "")
-    return k in ("ids", "id", "uuid", "signature", "sha256", "hash", "whole_sha256", "at", "timestamp", "time", "created", "updated", "started",
+    return k in ("ids", "id", "uuid", "session", "signature", "sha256", "hash", "whole_sha256", "at", "timestamp", "time", "created", "updated", "started",
                  "finished", "captured_at", "state_at", "version", "schema_version") or \
         k.endswith(("_id", "Id", "_ids", "uuid", "Uuid", "_sha256", "_hash", "_at"))  # ids, hashes and times: how records link and order
 
@@ -114,6 +115,7 @@ def _redact(value: Any, key: Optional[str] = None, every: bool = False) -> Any:
 
     if _id_key(key):
         return value
+    every = every or key in TEXT_KEYS  # every string under a key that holds words (a tool's whole result, its brief, its quotes)
     if isinstance(value, dict):
         return {k: _redact(v, k, every) for k, v in value.items()}
     if isinstance(value, list):
@@ -166,7 +168,7 @@ def _type(kind: str, source: str, doc: dict[str, Any]) -> str:
             "stage_run" if "/stages/" in source or name.startswith("stage_record") else "board" if "board" in name else \
             "interrupt" if "interrupt" in name else "walk" if "walk" in name else "snapshot"
     if kind == "conversations":
-        return "intern_session" if "/versions/" in source or name.startswith("intern_session") else \
+        return "intern_session" if "/versions/" in source or name.startswith("intern_session") or INTERN_FILE.search(source) else \
             "turn" if source.startswith(("workspace_chat/", "home_orchestrator/", "drafts/", "db/draft_event")) and name.endswith(".jsonl") else \
             "mcp_call" if source.startswith("mcp/") else "snapshot"
     if kind == "actions" and source.startswith("metrics/"):  # the agents' metrics ledger: a measurement of an agent

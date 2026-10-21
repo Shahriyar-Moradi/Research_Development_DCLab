@@ -1,0 +1,256 @@
+{
+ "package": "m5-solver-set-scored",
+ "title": "The M5 solver set: whole results, scored and checked trajectories, the rules on 16 problems, self-play kept",
+ "date": "2026-10-21",
+ "request": "Grow the M5 training set (an LLM that solves ML problems on business tables honestly, toward the top of MLE-bench) from its 4 train rows: fix the builder, run the rules' standard plan on many problems, keep self-play, add kept-against-refused pairs; Claude's runs only on the owner's yes.",
+ "spec": "Plan yes-you-are-right-jaunty-parasol, step 1 (fix the builder) and step 2 (the rules on many problems); the store's M5 set, the intern's session steps, the store keepers.",
+ "plan": [
+  "the intern saves each step's whole result (cells removed), never only a 360-character summary",
+  "the builder adds the holdout score, the table it ran on (one table, one split), the planted truth's verdict and who acted",
+  "rules or local runs to trajectories/studio; Claude, GPT or any hosted model to trajectories/silver_frontier (weight 0.5, consent improve)",
+  "a runner for the standard plan on every studied sample, blind, the outcome named",
+  "the store keeps self-play's solves and their ledgers"
+ ],
+ "decisions": [
+  {
+   "decision": "A run counts as clean only when the rules or a local model made every move and no hosted model wrote any of its results",
+   "why": "the owner's rule: Claude's outputs are evaluation by default, silver only tagged, apart and lower weight"
+  },
+  {
+   "decision": "A model is local only on its name's evidence (an Ollama tag with no provider before the colon and no path, or a local/tuned prefix)",
+   "why": "a hosted model named like a tag (groq:llama-3.3-70b, Qwen/...:novita) passed as local in review"
+  },
+  {
+   "decision": "The solver runs name the outcome in the task and hide the R&D's known leak columns",
+   "why": "the standard plan refuses to pick an outcome (the owner's rule, 2026-10-13), which is why blind twin tasks stopped after describing the data; hiding the leaks keeps the truth check honest (a sample's own suggestion would hand the rules the answer)"
+  },
+  {
+   "decision": "Sealed once, sealed always: a new set version keeps every raw entry an earlier version sealed",
+   "why": "v1 of the development set sealed every row under one broken id; v2's new split would have put 302 of those rows in train"
+  },
+  {
+   "decision": "A score is the session's only if its final completed inside one of its own final calls",
+   "why": "a session that only read an existing project, or ran run_all over finished stages, was credited with a final someone else made"
+  },
+  {
+   "decision": "Self-play solves are kept as the owner's own runs (consent train): invented tables, no person",
+   "why": "200 verified solves with every decision and its planted-truth label sat in lake/bronze and never reached the store"
+  }
+ ],
+ "change": "dclab_rnd/intern/loop.py step_record (whole result and arguments, scrubbed, NaN removed); dclab_rnd/store/shapers.py (intern/<id>.json an intern session, the session id kept, every string under a words key redacted, shapers-6); dclab_rnd/store/sets/llm.py (holdouts, twin truths, answerer, final windows, sealed tables, keep_sealed, place, subagent ids, outcome_named); dclab_rnd/store/sets/__init__.py (write_set consent); dclab_rnd/twin/solver_runs.py (new); dclab_rnd/store/keepers (self-play workspaces); tests/test_store_m5_trajectories.py (new).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "intern/<id>.json session files were typed snapshot, so twin lanes and live tests gave no trajectory",
+   "scenario": "the store's M5 set had 4 train rows",
+   "cause": "_type matched only intern/versions/*.jsonl",
+   "fix": "INTERN_FILE pattern",
+   "test": "test_an_intern_file_is_an_intern_session",
+   "severity": "gap",
+   "impact": "most intern sessions lost to M5",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "defect": "every Claude Code session id was redacted to [ID]",
+   "scenario": "334 development trajectories under one id, all sealed",
+   "cause": "session was not an id key",
+   "fix": "session added to the id keys",
+   "test": "test_a_claude_code_session_keeps_its_id",
+   "severity": "behaviour",
+   "impact": "the development set unusable",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "defect": "the intern kept only a 360-character summary of each tool result",
+   "scenario": "training rows ended in an ellipsis",
+   "cause": "the session saved summarize(result) only",
+   "fix": "step_record saves the whole result, cells removed",
+   "test": "test_a_step_keeps_its_whole_result_without_cells",
+   "severity": "gap",
+   "impact": "against the owner's rule never truncate before saving",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "old sessions' summaries quoted table cells into train rows",
+   "scenario": "bank_marketing ages 58, 44, 33 in studio v2 train",
+   "cause": "summaries were never scrubbed; the builder fell back to them",
+   "fix": "a step without a whole result keeps none, results_cut true; summaries built from the scrubbed result",
+   "test": "test_no_cell_reaches_a_placed_row",
+   "severity": "privacy",
+   "impact": "cell values in training data",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "a sealed session's trajectory went to train",
+   "scenario": "session 1da690c146c8, sealed record, train through its table's hash",
+   "cause": "the table split overrode the record's",
+   "fix": "a table any sealed session or sealed final touched is sealed for all",
+   "test": "test_a_sealed_session_seals_its_table",
+   "severity": "leakage",
+   "impact": "sealed data in train",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "a twin lane with no verdict passed as checked",
+   "scenario": "a workspace name cut at 100 characters, a run stopped before the judge",
+   "cause": "truth none was accepted",
+   "fix": "unknown for a twin lane without a verdict, kept out",
+   "test": "test_unscored_unchecked_and_failed_runs_are_placed_nowhere",
+   "severity": "leakage",
+   "impact": "unchecked runs in the clean set",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "defect": "PostgreSQL workspaces were never scored",
+   "scenario": "a db/stage_record row",
+   "cause": "only stages/final.json was read",
+   "fix": "stage rows read too",
+   "test": "test_scored_checked_runs_are_placed_by_who_made_them",
+   "severity": "behaviour",
+   "impact": "two backends differ",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "defect": "hosted models counted as local",
+   "scenario": "deepseek-chat, groq:llama-3.3-70b, Qwen/Qwen2.5-72B-Instruct:novita",
+   "cause": "any unknown name was local, then any name:tag",
+   "fix": "local only on an Ollama tag with no provider and no path, or a local prefix",
+   "test": "test_a_model_is_local_only_on_its_names_evidence",
+   "severity": "behaviour",
+   "impact": "hosted output in the clean set",
+   "alternatives": [
+    "the endpoint host from the usage log"
+   ],
+   "open": "read the endpoint when the usage log is joined"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "defect": "nested strings in the whole result were not redacted",
+   "scenario": "an email under result.brief.known.target.value",
+   "cause": "_redact forgot the parent key",
+   "fix": "every string under a words key redacted; task a words key",
+   "test": "test_a_run_a_hosted_model_helped_is_not_clean_and_its_words_are_redacted",
+   "severity": "privacy",
+   "impact": "a person's contact in training data",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "defect": "a version bump moved sealed rows to train",
+   "scenario": "302 of development v2's train rows were sealed in v1",
+   "cause": "write_set guards sealed rows within one version only",
+   "fix": "keep_sealed reads every earlier version's sealed files",
+   "test": "test_what_an_earlier_version_sealed_stays_sealed",
+   "severity": "leakage",
+   "impact": "sealed data in train",
+   "alternatives": [
+    "the owner records v1 was never read"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "defect": "a score was credited to a session that did not make it",
+   "scenario": "run_all over finished stages; a cleared final's old version",
+   "cause": "any ok final call credited the project's final",
+   "fix": "the final must complete inside the session's own final call; run_programme removed",
+   "test": "test_unscored_unchecked_and_failed_runs_are_placed_nowhere",
+   "severity": "behaviour",
+   "impact": "a person's or Claude's score filed as the rules'",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F12",
+   "source": "measurement",
+   "defect": "331 development rows were 14 sessions",
+   "scenario": "one session 242 times",
+   "cause": "each subagent's transcript carries its parent's session id",
+   "fix": "a subagent is its own trajectory, in its parent's split",
+   "test": "test_each_subagent_is_its_own_trajectory_in_its_parents_split",
+   "severity": "behaviour",
+   "impact": "one id many rows",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F13",
+   "source": "measurement",
+   "defect": "the standard plan stopped after describing the data on 4 of 6 blind twin runs",
+   "scenario": "Name the outcome column first",
+   "cause": "by design: DCLab never picks the outcome; the blind task named none",
+   "fix": "the solver runs name the outcome as a person would, the leaks hidden",
+   "test": "test_the_runner_names_the_outcome_as_the_builder_reads_it",
+   "severity": "latent",
+   "impact": "no clean runs",
+   "alternatives": [
+    "let the rules guess (refused: the owner's rule)"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F14",
+   "source": "measurement",
+   "defect": "self-play was never kept by the store",
+   "scenario": "0 selfplay entries in the catalog; 200 solves in lake/bronze",
+   "cause": "keepers walk agent_runs only",
+   "fix": "self-play workspaces, ledgers filed as decisions",
+   "test": "test_a_solves_ledger_is_kept_as_decisions_and_a_test_folder_never_reads_the_real_one",
+   "severity": "gap",
+   "impact": "M1, M3, M5, M6 data lost",
+   "alternatives": [],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the rules' standard plan on the 16 studied samples, blind, the outcome named",
+   "gate": "at least 10 of the 16 runs pass their planted truth (target and leak columns)",
+   "fixed_before_run": true,
+   "result": "14 of the 16 passed; online_shoppers missed activity columns known only after the visit, credit_card_fraud forbade its time column as a leak",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "self-play solves for more tables; the rules' leak finder on activity columns",
+   "against_gate": "",
+   "limits": [
+    "16 tables only: a repeat adds no new problem"
+   ]
+  }
+ ],
+ "outcome": "The M5 builder places only scored, checked, clean runs; the rules ran blind with the outcome named on every studied sample; self-play reaches the store.",
+ "lessons": [
+  "A count that looks low may be a rule working: read the session's last words before fixing the code.",
+  "A new version of a set must carry its sealed rows forward."
+ ],
+ "risks": [
+  "the 16 samples are 16 tables only: repeats add no new problems",
+  "self-play replicas are invented: a model may learn their shapes"
+ ],
+ "commits": []
+}

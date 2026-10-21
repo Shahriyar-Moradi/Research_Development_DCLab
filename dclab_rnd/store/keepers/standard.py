@@ -26,7 +26,7 @@ from typing import Any, Iterator, Optional
 
 from ..layout import ROOT
 from . import Claim, Keeper, REGISTRY, Source, register
-from .workspaces import AGENT_RUNS, Workspace, discover
+from .workspaces import AGENT_RUNS, SELFPLAY, Workspace, discover, discover_selfplay
 
 TEST_RUNS = ROOT / "training_records" / "test_runs"
 SKIP_NAMES = (".lock", ".part", ".tmp", ".rc", ".DS_Store")
@@ -70,6 +70,9 @@ FEEDS = {"sessions": ("m2_workflow_decisions", "m4_workflow_llm", "m6_stepwise_d
          "workflows": ("m2_workflow_decisions", "m3_ml_decisions", "m5_solver_llm", "m6_stepwise_decisions"), "tasks": ("m2_workflow_decisions", "m6_stepwise_decisions"),
          "students": ("m1_students",), "teachers": ("m1_students", "m7_judges"), "tests": ("m4_workflow_llm", "m5_solver_llm", "m7_judges"),
          "other": (), "agents": ("m4_workflow_llm", "m5_solver_llm", "m7_judges")}
+
+
+LEDGER_PARTS = ("decisions", "labels", "outcomes", "corrections")
 
 
 def classify(rel: str) -> tuple[str, str]:
@@ -150,8 +153,14 @@ def inventory(env: Any) -> list[Item]:
     base = Path(env["agent_runs"]) if isinstance(env, dict) and env.get("agent_runs") else AGENT_RUNS
     only = Path(env["only"]).resolve() if isinstance(env, dict) and env.get("only") else None
     roots = {w.root.resolve(): w for w in discover(base)}
+    bases = [base]
+    selfplay = (env.get("selfplay") if isinstance(env, dict) and "selfplay" in env else
+                None if isinstance(env, dict) and env.get("agent_runs") else SELFPLAY)  # a test's own folder never reads the real one
+    if selfplay is not None and Path(selfplay).is_dir():
+        roots.update({w.root.resolve(): w for w in discover_selfplay(Path(selfplay))})
+        bases.append(Path(selfplay))
     items: list[Item] = []
-    if base.exists():
+    for base in (b for b in bases if b.exists()):
         for path in sorted(base.rglob("*")):
             if path.is_symlink() or not path.is_file() or path.name.endswith(SKIP_NAMES):
                 continue
@@ -163,6 +172,8 @@ def inventory(env: Any) -> list[Item]:
             if only is not None and root != only:
                 continue
             rel = resolved.relative_to(root).as_posix()
+            if ws.ledger_root and rel.split("/", 1)[0] in LEDGER_PARTS:
+                rel = "ledger/" + rel  # a self-play solve's ledger, filed as any workspace's
             kind, prefix = classify(rel)
             table = TABLE_DIRS.search(rel) or (TABLE_FILES.search(rel) and not NOT_TABLES.search(rel))
             counted = ("a table's rows: kept only where a person said yes" if table else
