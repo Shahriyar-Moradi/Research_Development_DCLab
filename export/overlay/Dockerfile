@@ -1,5 +1,5 @@
 # dclabai in a container: the studio (server and its job worker) on port 8765, its workspace in /workspace.
-#   docker run -p 127.0.0.1:8765:8765 -v dclabai:/workspace ghcr.io/dclabai/dclabai
+#   docker run -p 127.0.0.1:8765:8765 -v dclabai:/workspace ghcr.io/shahriyar-moradi/dclabai
 # No key is baked in: a model's settings come from the environment (-e DCLAB_LLM_BASE_URL=... -e OPENAI_MODEL=...).
 FROM python:3.12-slim AS build
 WORKDIR /src

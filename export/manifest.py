@@ -131,4 +131,6 @@ MAX_FILE_BYTES = 1_000_000
 BINARY_ALLOWED = (".woff2", ".woff", ".ttf", ".png", ".svg", ".ico")
 
 # The private words file (one pattern per line, regular expressions, case-insensitive) is export/forbidden.txt: never exported.
+# The public project's own addresses: allowed although they hold words of the owner's name (exact strings only)
+ALLOWED_PUBLIC = ["github.com/Shahriyar-Moradi/dclabai", "ghcr.io/shahriyar-moradi/dclabai"]
 FORBIDDEN_FILE = "export/forbidden.txt"

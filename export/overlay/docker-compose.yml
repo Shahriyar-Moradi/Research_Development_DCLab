@@ -1,6 +1,6 @@
 # The studio with PostgreSQL and accounts (sign-in on). Start: docker compose up -d; the first owner:
 #   docker compose exec app dclab users add --username you --role owner
-# Without this file, `docker run -p 127.0.0.1:8765:8765 ghcr.io/dclabai/dclabai` runs it on files, without sign-in.
+# Without this file, `docker run -p 127.0.0.1:8765:8765 ghcr.io/shahriyar-moradi/dclabai` runs it on files, without sign-in.
 services:
   db:
     image: postgres:16
@@ -15,7 +15,7 @@ services:
       retries: 20
   app:
     build: .
-    image: ghcr.io/dclabai/dclabai:latest
+    image: ghcr.io/shahriyar-moradi/dclabai:latest
     depends_on: {db: {condition: service_healthy}}
     env_file: [.env]
     environment:

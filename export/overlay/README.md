@@ -36,7 +36,7 @@ npx dclabai
 With Docker:
 
 ```bash
-docker run -p 8765:8765 ghcr.io/dclabai/dclabai
+docker run -p 127.0.0.1:8765:8765 -v dclabai:/workspace ghcr.io/shahriyar-moradi/dclabai
 ```
 
 Optional extras: `pip install "dclabai[all]"` (Claude, PostgreSQL, notebook cells, MCP, PDF reports).

@@ -210,6 +210,8 @@ def scan_words(out: Path, m) -> list[dict]:
             found.append({"check": "binary", "path": rel, "detail": "not utf-8"})
             continue
         for n, line in enumerate(text.splitlines(), 1):
+            for allowed in getattr(m, "ALLOWED_PUBLIC", []):
+                line = line.replace(allowed, "")  # the public project's own address, nothing else of the owner's name
             for p in patterns:
                 if p.search(line):
                     found.append({"check": "private word", "path": rel, "line": n, "detail": p.pattern})
