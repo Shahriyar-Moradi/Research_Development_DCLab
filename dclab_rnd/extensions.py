@@ -46,4 +46,22 @@ def edition() -> str:
     return "full" if available("store") else "open"
 
 
-__all__ = ["optional", "available", "edition"]
+def load_plugins(app) -> list[str]:
+    """Plugins: installed packages that declare an entry point in the group ``<package>.plugins`` (``dclabai.plugins``
+    in the open edition), each a function ``register(app)`` that adds routes (with ``agentic.api_models.Router``, so the role checks apply), pages'
+    data or job handlers. A plugin that
+    fails is logged and left out: it never stops the studio from starting. Returns the names of the plugins loaded."""
+    import logging
+    from importlib.metadata import entry_points
+
+    loaded = []
+    for point in entry_points(group=f"{PACKAGE}.plugins"):
+        try:
+            point.load()(app)
+            loaded.append(point.name)
+        except Exception as exc:  # noqa: BLE001 - one broken plugin must not take the studio down
+            logging.getLogger(__name__).warning("plugin %s not loaded: %s: %s", point.name, type(exc).__name__, str(exc)[:200])
+    return loaded
+
+
+__all__ = ["optional", "available", "edition", "load_plugins"]

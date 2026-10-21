@@ -136,6 +136,14 @@ async def model_overview(s: Services = Depends(services)):
     return await asyncio.to_thread(s.gateway.summary)
 
 
+@router.get("/api/models/agents", response_model=Doc)
+async def agent_serving(s: Services = Depends(services)):
+    """For each agent that acts through tools: whether it runs on the configured model or on its rules, and why."""
+    from ... import gates
+
+    return {"agents": await asyncio.to_thread(gates.status, Path(s.store.home))}
+
+
 @router.get("/api/models/roles", response_model=Doc)
 async def model_roles(s: Services = Depends(services)):
     """Each role's model on one page (21.4): its tier and the model serving it, the prompt version, its cap and this

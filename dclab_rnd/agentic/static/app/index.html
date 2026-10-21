@@ -2060,6 +2060,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
     <div class="panel" data-f="admin.models" data-tour="routing">
       <div class="panel-head"><div class="panel-title"><h3>Models and routing</h3><span class="sub" id="models-sub">Cheapest tier that can decide</span></div></div>
       <div class="panel-body stack tight small">
+        <div class="inset stack tight" id="agents-serving"><b>Agents that act through tools</b><span class="muted">Loading…</span></div>
         <div class="inset stack tight"><div class="spread"><b>Tier 1 · typed classifier</b><span class="pill outline">planned</span></div><span class="muted">Column types, ID and timestamp detection, proxy checks. Runs locally.</span></div>
         <div class="inset stack tight"><div class="spread"><b>Tier 2 · NOOA structured calls</b><span class="pill warn">partial</span></div><span class="muted">Typed, non-code-executing calls that pass evidence by reference.</span></div>
         <div class="inset stack tight"><div class="spread"><b>Tier 3 · full model</b><span class="pill ok" id="tier3-pill">built</span></div>

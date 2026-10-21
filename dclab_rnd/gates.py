@@ -93,4 +93,43 @@ def record_probe(probe: dict[str, Any], home: Optional[Path] = None) -> dict[str
     return doc
 
 
-__all__ = ["ROLES", "passed", "why", "trust", "record_probe", "read", "probed_as"]
+LABELS = {"built_chat": "The project chat's team", "map_roles": "The problem map's roles", "conversation_reader": "Home's conversation reader"}
+
+
+def status(home: Optional[Path] = None) -> list[dict[str, Any]]:
+    """For each agent that acts through tools: does it run on the configured model now, and why. It asks the same functions
+    the agents ask (so the page never disagrees with them): the sealed measurements where they exist (the full edition),
+    else this module's switches."""
+    from .extensions import optional
+    from .models import settings as model_settings
+
+    configured = bool(model_settings.public("standard").get("available"))
+    measured = optional("agent_eval") is not None
+    out = []
+    for role in ROLES:
+        try:
+            if role == "built_chat":
+                from .draft.orchestrator import _model_serves
+
+                serves = _model_serves()
+            elif role == "map_roles":
+                from .draft.map import roles_passed
+
+                serves = roles_passed()
+            else:
+                from .draft import reader
+
+                serves = reader.switched_on() and (passed(role, home) if not measured else optional("agent_eval.journeys").reader_passed())
+        except Exception:  # noqa: BLE001 - a switch that cannot be read: the rules serve
+            serves = False
+        if not configured:
+            serves, reason = False, "rules: no model is configured"
+        elif measured:
+            reason = "model: it passed its sealed measurement" if serves else "rules: it has not passed its sealed measurement"
+        else:
+            reason = why(role, home)
+        out.append({"role": role, "label": LABELS.get(role, role), "serves": "model" if serves else "rules", "why": reason})
+    return out
+
+
+__all__ = ["ROLES", "passed", "why", "trust", "record_probe", "read", "probed_as", "status"]

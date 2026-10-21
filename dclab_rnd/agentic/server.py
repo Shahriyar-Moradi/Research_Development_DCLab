@@ -233,6 +233,9 @@ def create_app(home=None) -> FastAPI:
     pages.register_all(app, pages.Context(store=c["store"], projects=c["projects"], drafts=c["drafts"], intern_sessions=c["intern_sessions"],
                                           models=c["gateway"], jobs=c["jobs"], intern_jobs=c["intern_jobs"], draft_jobs=c["draft_jobs"],
                                           job_store=c["job_store"], audit=c["audit"], experience=c["experience"], ledger=c["ledger"]))
+    from ..extensions import load_plugins
+
+    app.state.plugins = load_plugins(app)  # installed packages' routes and handlers (entry points <package>.plugins)
     if s.mcp is not None:
         app.mount("/mcp", app=s.mcp.handle_request, name="mcp")
     app.mount("/static", StaticFiles(directory=STATIC), name="static")

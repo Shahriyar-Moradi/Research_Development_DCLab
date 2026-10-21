@@ -354,10 +354,55 @@ def build_ui(out: Path, m) -> dict:
     return {"built": True, "files": sum(1 for p in static.rglob("*") if p.is_file())}
 
 
+def scan_wheel(out: Path, m) -> dict:
+    """The package people install, scanned like the tree: built from the open tree (uv, else pip), unpacked, then the same
+    private words and secret patterns. A build that fails is a finding."""
+    import shutil
+    import zipfile
+
+    with tempfile.TemporaryDirectory(prefix="export-wheel-") as tmp:
+        dist, unpacked = Path(tmp) / "dist", Path(tmp) / "unpacked"
+        uv = shutil.which("uv") or str(Path.home() / ".local/bin/uv")
+        command = [uv, "build", "--wheel", "--out-dir", str(dist), str(out)] if Path(uv).exists() else \
+            [sys.executable, "-m", "pip", "wheel", "--no-deps", "-q", "-w", str(dist), str(out)]
+        done = subprocess.run(command, capture_output=True, text=True)
+        wheels = sorted(dist.glob("*.whl")) if dist.is_dir() else []
+        if done.returncode != 0 or not wheels:
+            return {"built": False, "findings": [{"check": "wheel build", "path": "dist", "detail": (done.stderr or done.stdout).strip()[-400:]}]}
+        with zipfile.ZipFile(wheels[0]) as z:
+            z.extractall(unpacked)
+        found = [{**f, "check": "wheel: " + f["check"]} for f in scan_words(unpacked, m) + scan_secrets(unpacked)
+                 if f["check"] != "closed marker"]
+        return {"built": True, "name": wheels[0].name, "files": sum(1 for x in unpacked.rglob("*") if x.is_file()),
+                "bytes": wheels[0].stat().st_size, "findings": found}
+
+
+def write_markdown(report: dict, path: Path) -> None:
+    """The report a person reads before a release: what shipped, what was left out and why, and every finding."""
+    s = report["summary"]
+    lines = ["# Export report", "", f"**{'No findings' if not report['findings'] else str(len(report['findings'])) + ' findings: not ready'}**", "",
+             "| | |", "|---|---|", f"| Files | {s['files']} ({s['bytes'] / 1e6:.1f} MB) |", f"| Closed blocks stripped | {s['closed_blocks']} |",
+             f"| Knowledge records shipped | {s['knowledge_records']} (dropped for naming private data: {', '.join(report['knowledge'].get('dropped') or []) or 'none'}) |",
+             f"| Test files shipped | {s['tests']['kept']} (left out: {s['tests']['left_out']}) |"]
+    wheel = report.get("wheel") or {}
+    if wheel:
+        lines.append(f"| Wheel | {wheel.get('name', 'not built')} ({wheel.get('files', 0)} files, {wheel.get('bytes', 0) / 1e6:.1f} MB) |")
+    for kind, verdict in (report.get("kinds_rerun") or {}).items():
+        lines.append(f"| Acceptance rerun in the open tree: {kind} | {verdict} |")
+    lines += ["", "## Findings", ""] + ([f"- **{f['check']}** `{f['path']}`{':' + str(f['line']) if f.get('line') else ''}: {f.get('detail', '')}"
+                                          for f in report["findings"]] or ["None."])
+    by_reason: dict[str, list[str]] = {}
+    for test, why in sorted((report.get("tests") or {}).get("left_out", {}).items()):
+        by_reason.setdefault(re.sub(r"dclab_rnd\.[\w.]+|test_\w+", "…", why), []).append(Path(test).name)
+    lines += ["", "## Test files left out, by reason", ""] + [f"- {why}: {len(names)}" for why, names in sorted(by_reason.items(), key=lambda x: -len(x[1]))]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--out", required=True, help="the folder to build the open tree in (emptied first; outside this repository)")
     ap.add_argument("--check", action="store_true", help="build and check only")
+    ap.add_argument("--no-wheel", action="store_true", help="skip building and scanning the wheel (faster)")
     args = ap.parse_args(argv)
     out = Path(args.out).resolve()
     if out == ROOT or ROOT in out.parents:
@@ -368,8 +413,9 @@ def main(argv: list[str] | None = None) -> int:
     report["knowledge"] = build_knowledge(out, m)
     report["kinds_rerun"] = rerun_kinds(out, m)
     report["ui"] = build_ui(out, m)
+    report["wheel"] = scan_wheel(out, m) if not args.no_wheel else {}
     findings = scan_words(out, m) + scan_secrets(out) + import_closure(out, m) + report["ui"].get("findings", []) \
-        + report["kinds_rerun"].pop("findings", [])
+        + report["kinds_rerun"].pop("findings", []) + report["wheel"].pop("findings", [])
     report["findings"] = findings
     by = {}
     for f in findings:
@@ -378,6 +424,7 @@ def main(argv: list[str] | None = None) -> int:
                          "knowledge_records": report["knowledge"]["records"], "kinds_rerun": report["kinds_rerun"],
                          "tests": {"kept": len(report["tests"]["kept"]), "left_out": len(report["tests"]["left_out"])}, "findings": by}
     (out.parent / f"{out.name}.EXPORT_REPORT.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
+    write_markdown(report, out.parent / f"{out.name}.EXPORT_REPORT.md")
     print(json.dumps(report["summary"], indent=1))
     return 1 if findings else 0
 

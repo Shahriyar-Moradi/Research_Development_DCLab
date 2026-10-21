@@ -57,6 +57,7 @@ cannot is used for prose only). See [docs/models.md](docs/models.md).
 ## Documentation
 
 - [Quickstart](docs/quickstart.md)
+- [Concepts](docs/concepts.md): the prediction moment, the recipe, the holdout read once
 - [Models](docs/models.md)
 - [Architecture](docs/architecture.md)
 - [Adding a kind of problem or a modifier](docs/adding-capability.md)

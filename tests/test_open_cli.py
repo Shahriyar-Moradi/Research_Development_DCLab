@@ -151,3 +151,21 @@ class NeutralDefaultsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AgentStatusTest(unittest.TestCase):
+    def test_with_no_model_every_agent_is_on_its_rules_and_says_why(self):
+        with mock.patch.dict(os.environ, {**CLEAN, "DCLAB_AGENT_HOME": tempfile.mkdtemp()}):
+            rows = gates.status()
+        self.assertEqual({r["role"] for r in rows}, set(gates.ROLES))
+        self.assertTrue(all(r["serves"] == "rules" and "no model" in r["why"] for r in rows))
+
+    def test_the_page_says_what_the_chat_itself_decides(self):
+        with mock.patch.dict(os.environ, {**CLEAN, "OPENAI_API_KEY": "sk-x", "OPENAI_MODEL": "m", "DCLAB_AGENT_HOME": tempfile.mkdtemp()}):
+            for forced in ("model", "rules"):
+                with mock.patch.dict(os.environ, {"DCLAB_BUILT_CHAT_SERVE": forced}):
+                    from dclab_rnd.draft.orchestrator import _model_serves
+
+                    row = next(r for r in gates.status() if r["role"] == "built_chat")
+                    self.assertEqual(row["serves"], "model" if _model_serves() else "rules")
+                    self.assertEqual(row["serves"], forced)

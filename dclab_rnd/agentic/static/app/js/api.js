@@ -308,6 +308,7 @@
     listLessons: ["GET", "/lessons", [], ["project_id", "status"]],
     reviewLesson: ["POST", "/lessons/{lesson_id}/review", ["lesson_id"], []],
     modelOverview: ["GET", "/models", [], []],
+    agentServing: ["GET", "/models/agents", [], []],
     modelRoles: ["GET", "/models/roles", [], []],
     changeRouting: ["POST", "/models/routing", [], []],
     agentScorecard: ["GET", "/models/scorecard", [], []],
@@ -976,6 +977,12 @@
   client.modelOverview = (...args) => call('modelOverview', args);
   client.path.modelOverview = (...args) => build('modelOverview', args).path;
   client.href.modelOverview = (...args) => '/api' + build('modelOverview', args).path;
+  /** GET /api/models/agents: Agent Serving
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.agentServing = (...args) => call('agentServing', args);
+  client.path.agentServing = (...args) => build('agentServing', args).path;
+  client.href.agentServing = (...args) => '/api' + build('agentServing', args).path;
   /** GET /api/models/roles: Model Roles
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Doc>} */

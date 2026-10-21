@@ -773,8 +773,21 @@ DC.view('admin', {
     $('#token-add', el).hidden = false;
   },
 
+  // which agents act on the configured model and which on their rules, and why (the same switches the agents read)
+  async paintAgents(el) {
+    const { $, esc } = DC;
+    const box = $('#agents-serving', el);
+    if (!box) return;
+    let r;
+    try { r = await DC.client.agentServing({ quiet: true }); } catch (e) { DC.states.failed(box, e, { retry: () => this.paintAgents(el) }); return; }
+    box.innerHTML = '<b>Agents that act through tools</b><div class="table-wrap"><table class="data compact"><thead><tr><th>Agent</th><th>Runs on</th><th>Why</th></tr></thead><tbody>'
+      + (r.agents || []).map(a => `<tr><td>${esc(a.label)}</td><td><span class="pill ${a.serves === 'model' ? 'ok' : 'outline'}">${esc(a.serves)}</span></td><td class="small muted">${esc(a.why)}</td></tr>`).join('')
+      + '</tbody></table></div><span class="xs muted">An agent runs on the model only once the model calls tools properly (<code>dclab doctor</code>) or you trust it (<code>dclab models trust</code>); otherwise its rules answer.</span>';
+  },
+
   paintModels(el, m, gw) {
     const { $, esc } = DC;
+    this.paintAgents(el);
     $('#models-sub', el).textContent = gw ? 'Every request goes through one gateway: each purpose uses a tier, and a local model can serve the cheap one' : 'Model status';
     const pill = $('#tier3-pill', el);
     const live = gw ? gw.tiers.some(t => t.available) : m.available;
