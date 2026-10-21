@@ -1,0 +1,313 @@
+{
+ "package": "open-source-dclabai",
+ "title": "dclabai: the open-source edition of the studio, exported from the private repository",
+ "date": "2026-10-21",
+ "request": "Make an open-source project out of the studio without leaking the source of what stays private: anyone can install it with pip, npx or Docker and run it with their own model (Ollama, any OpenAI-compatible endpoint, Claude) or none. Open core, Apache-2.0, name dclabai (dclab is taken on PyPI).",
+ "spec": "Plan async-skipping-firefly: one source and two trees; seams in the private code instead of surgery on copies; an export script with an allowlist manifest, a rename, closed blocks, a leak scanner, an import closure and a UI build; bring-your-own-model with init/doctor; leak-proofing gates; packaging (wheel, npm launcher, Docker, CI); a fresh-install test; a fresh-eyes leak audit.",
+ "plan": [
+  "seams: extensions.optional(), gates.py, lazy contracts, default workspace outside site-packages",
+  "export: manifest, forbidden words, overlay, import closure, UI build, knowledge subset, test selection",
+  "the dclab command (start, init, doctor, models trust/status, migrate, users, worker, version), neutral model defaults",
+  "fresh-install proof: pip install in a clean Python 3.12, dclab start, the product flows with no model and with fake and real models",
+  "leak audit by an independent agent, then remove every finding for real",
+  "publish on the owner's account and fix what its CI finds"
+ ],
+ "decisions": [
+  {
+   "decision": "Closed parts are cut by optional() seams and `dclab:closed` comment blocks in the private source, never by editing exported copies",
+   "why": "one source of truth: the private edition runs unchanged, and the export cannot drift from it"
+  },
+  {
+   "decision": "A private table is removed, never renamed: its name and columns are forbidden words, every mention a blocking finding",
+   "why": "the audit showed a rename (HyperAck to RideFare) hid only the name while its schema, counts, dates and scores still shipped"
+  },
+  {
+   "decision": "The open edition starts tool-using agents on their rules until dclab doctor's probe passes or the person trusts the model",
+   "why": "the full edition's sealed measurements are not shipped; a model that writes calls as text must never reach the person"
+  },
+  {
+   "decision": "pandas is capped below 3 in the open package; the port is a separate task",
+   "why": "a fresh install picked pandas 3 and the engine broke (copy-on-write, a string dtype); the private environment is on 2.3"
+  },
+  {
+   "decision": "The model settings file lives in ~/.config/dclabai, outside the workspace",
+   "why": "the workspace folder is backed up whole; a key inside it would travel with every backup"
+  },
+  {
+   "decision": "Commits on the public repository use the owner's GitHub no-reply address",
+   "why": "the personal e-mail would otherwise be public in the history"
+  }
+ ],
+ "change": "A new export pipeline (scripts/export_open.py, export/manifest.py, export/forbidden.txt, export/overlay/) builds dclabai from the private repository; seams across dclab_rnd and dclab_core keep closed parts out without changing the full edition; dclab_rnd/open_cli.py is the dclab command; fixes in the product found on the way (listed as findings).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "defect": "dclab_core imported importlib for its seams, which its boundary test forbids",
+   "scenario": "the full gate ran test_core_contracts",
+   "cause": "the seams used dynamic imports",
+   "fix": "plain imports inside try/except ModuleNotFoundError; the twin board a closed block",
+   "test": "tests/test_core_contracts.py",
+   "severity": "latent",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "defect": "a store keeper wrote the workspace marker into the folder it keeps, so a second run was never all unchanged",
+   "scenario": "test_store_keepers on PostgreSQL: 48 != 49",
+   "cause": "db.workspace_for creates the marker on first use",
+   "fix": "workspace_key(mark=False) for readers; the walk keeper opens the PostgreSQL stores itself",
+   "test": "tests/test_store_keepers.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "defect": "/api/config of the open server sent the research campaign's projects, commands and a vendor model",
+   "scenario": "a fresh install, empty HOME, GET /api/config",
+   "cause": "the config route always added the campaign's fields",
+   "fix": "the fields only where agentic.campaign_tools exists",
+   "test": "fresh-install check",
+   "severity": "privacy",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "measurement",
+   "defect": "the engine broke on pandas 3",
+   "scenario": "a fresh install picked pandas 3.0.6",
+   "cause": "copy-on-write and the new string dtype",
+   "fix": "the open package caps pandas below 3; the port is a task",
+   "test": "fresh-venv test run",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": "pandas 3 port"
+  },
+  {
+   "id": "F5",
+   "source": "measurement",
+   "defect": "dclab_core.forecast failed on scikit-learn 1.9 when a gap empties a lag column",
+   "scenario": "forecast with gap>=1 on scikit-learn 1.9",
+   "cause": "HistGradientBoosting cannot bin a column with no value",
+   "fix": "drop all-empty columns before the fit (identical results on 1.7)",
+   "test": "tests/test_core_forecast.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F6",
+   "source": "measurement",
+   "defect": "an unshipped repository sample answered 500 from the project route, the intern's tool and MCP",
+   "scenario": "POST /api/projects/{id}/data/sample with a table not in the tree",
+   "cause": "load_sample checked only the key",
+   "fix": "refuse it like an unknown key, as the catalog already hid it",
+   "test": "tests/test_studio.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F7",
+   "source": "measurement",
+   "defect": "downloads went inside site-packages for an installed package",
+   "scenario": "use a download-on-first-use sample from an installed package",
+   "cause": "ROOT/data/downloads",
+   "fix": "the workspace's downloads folder unless running from a checkout",
+   "test": "fresh-install check",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F8",
+   "source": "measurement",
+   "defect": "pages called client functions whose routes the open edition lacks; Domain packs did not render",
+   "scenario": "open the Domain packs page in the open edition",
+   "cause": "a missing function threw a TypeError before the page could catch it",
+   "fix": "the generated client answers a missing route with a rejected 404 promise; closed panes, loaders and nav entries are closed blocks",
+   "test": "tests/test_web_client.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "defect": "a refused notebook cell plus a failing model wrote the cell twice",
+   "scenario": "the model writes a cell that is refused, then its next request fails",
+   "cause": "the fallback counted only non-failed tasks as work done",
+   "fix": "back to any task or card; the refused-call path clears its own tasks",
+   "test": "tests/test_home_orchestrator.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "defect": "a passed probe outlived the model it tested",
+   "scenario": "model A passes doctor, model B fails it, B still serves",
+   "cause": "the probe kept neither the model nor failures",
+   "fix": "the probe carries model and endpoint and every outcome is recorded",
+   "test": "tests/test_open_cli.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "defect": "dclab init wrote API keys into the default workspace, so backups carried them",
+   "scenario": "dclab init, then a workspace backup",
+   "cause": "~/.dclabai was both the config and the workspace",
+   "fix": "settings in ~/.config/dclabai created 0600; backups skip .env",
+   "test": "tests/test_backup_retention.py",
+   "severity": "privacy",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F12",
+   "source": "reviewer",
+   "defect": "a tier on another server inherited OpenAI's model name",
+   "scenario": "a cheap tier on Ollama with no model named",
+   "cause": "the tier copied the standard model",
+   "fix": "that server's own default, none unless OpenAI's",
+   "test": "tests/test_open_cli.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F13",
+   "source": "reviewer",
+   "defect": "the leak audit found the private delivery table, a confidential challenge's brief, the retail interview and the main product's internals in the export",
+   "scenario": "an independent agent read the exported tree",
+   "cause": "renames and docstrings carried them",
+   "fix": "forbidden words with closed blocks, exclusions and invented rewrites; knowledge records naming private data dropped",
+   "test": "export check: 0 findings",
+   "severity": "privacy",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F14",
+   "source": "measurement",
+   "defect": "with a small local model (qwen2.5-coder:1.5b) trusted, the person saw tool calls written as text and one-word replies",
+   "scenario": "the built chat with that model on Ollama",
+   "cause": "only refused calls handed the turn to the rules",
+   "fix": "a written call or a reply under three words, when nothing ran, goes to the rules",
+   "test": "tests/test_home_orchestrator.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F15",
+   "source": "test",
+   "defect": "the first public CI run failed: macOS lacked OpenMP, doctor failed a plain install, database tests raced, a test needed a sample table",
+   "scenario": "CI on the public repository",
+   "cause": "the open runner ran database tests in parallel on one database; the notebook extra counted as required",
+   "fix": "libomp in CI and the README, the notebook a note, database tests serial, the test left out",
+   "test": "public CI third run: all jobs passed",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "export check",
+   "gate": "0 findings from the forbidden words, the secret scan, the import closure and the UI build",
+   "fixed_before_run": true,
+   "result": "0 findings; 633 files; 30 knowledge records; 97 test files",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": "",
+   "against_gate": "",
+   "limits": []
+  },
+  {
+   "name": "fresh-install product flows",
+   "gate": "the five flows of scripts/product_e2e.py pass on the installed package",
+   "fixed_before_run": true,
+   "result": "all pass with no model and with a fake model; the team flow skipped by design",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": "",
+   "against_gate": "",
+   "limits": []
+  },
+  {
+   "name": "public CI",
+   "gate": "every job of the open repository's CI passes",
+   "fixed_before_run": true,
+   "result": "third run: tests on Python 3.10-3.13 and macOS, flows, package, secret scan all passed",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": "",
+   "against_gate": "",
+   "limits": []
+  },
+  {
+   "name": "harness and agent suites after the tool-text change",
+   "gate": "17 of 17 harness cases right on every step",
+   "fixed_before_run": true,
+   "result": "17 of 17, EUR 0",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "next": "",
+   "against_gate": "",
+   "limits": []
+  }
+ ],
+ "outcome": "dclabai is public at github.com/Shahriyar-Moradi/dclabai: installable from the repository, runs with no model or a local or hosted one, its CI green; the private edition is unchanged in behaviour. Left: the PyPI and npm names (the owner's), a first release, the pandas 3 port.",
+ "lessons": [
+  "A rename hides a name, not data: forbid the words and remove the content.",
+  "A fake model proves the plumbing; only a real small model showed the person seeing written tool calls.",
+  "Test a fresh install early: version caps, macOS libraries and file locations break there, not in the developer's environment.",
+  "Run the selection of tests on what the open tree holds (closed blocks stripped), or the selection lies."
+ ],
+ "risks": [
+  "a private word that is not on the list",
+  "a feature that silently differs between editions",
+  "a dependency's new major version"
+ ],
+ "commits": [
+  "5429be65",
+  "f61e2b54",
+  "2cc0cd0f",
+  "56a7e210",
+  "c16b32d9",
+  "a7c59c47",
+  "f519bd61",
+  "367c4373",
+  "de406362",
+  "f5457840",
+  "ae90e0c8",
+  "6dcb68b7",
+  "beba7f67",
+  "241a3d90"
+ ]
+}
