@@ -864,20 +864,117 @@ def build_new_version(t: Turn, /, **_: Any) -> dict[str, Any]:
     return result
 
 
-READS = {"show_problem": show_problem, "list_projects": list_projects, "show_notebook": show_notebook, "show_activity": show_activity, "show_models": show_models, "show_features": show_features, "show_data": show_data, "show_leakage": show_leakage, "show_stages": show_stages,
+# ---------------------------------------------------------------------- project memory: the team remembers across chats
+
+
+REMEMBER = re.compile(r"^\s*(?:please\s+)?(?:remember|keep in mind|note that|make a note)\b|\bfrom now on\b|\b(?:i|we)(?:'d| would)? (?:prefer|rather)\b|"
+                      r"^\s*(?:please\s+)?(?:always|never)\b(?![\s-]*mind)", re.I)
+EXPLICIT = re.compile(r"^\s*(?:please\s+)?(?:remember|keep in mind|make a note)\b", re.I)
+PROBLEM_PARTS = re.compile(r"\b(?:outcome|target|label|horizon|moment|unit of prediction|predict(?:ed|s|ion)?)\b", re.I)
+RECALL = re.compile(r"\bwhat (?:do|did) you (?:remember|know about (?:me|us|my|our))\b|\bwhat (?:did|have) (?:we|i) (?:decide|agree|chose|choose|settle)\w*|"
+                    r"\b(?:our|my) (?:decisions|preferences)\b|\b(?:your|the team'?s?|(?:this )?project'?s?) memory\b|\bshow (?:me )?(?:the )?memory\b", re.I)
+NOTE_LEAD = re.compile(r"^\s*(?:please\s+)?(?:remember|keep in mind|note|make a note)(?:\s+(?:that|this|of))?\s*[:,-]?\s*", re.I)
+
+
+def asks_to_remember(said: str) -> bool:
+    """The person asks the team to keep a decision or preference: never a question (unless it starts with "remember"), and
+    never a change of what is predicted or when (that goes to the Problem analyst, checked against the table)."""
+    if not REMEMBER.search(said) or PROBLEM_PARTS.search(said) or MOMENT.search(said):
+        return False
+    return bool(EXPLICIT.search(said)) or not ASKING.search(said)
+
+
+def _new_note(kind: str, decision: str, reason: str, who: str, move: str) -> dict[str, Any]:
+    """A note in studio.memory's shape (one line each, cut), not yet in any project."""
+    from ..studio import memory as studio_memory
+
+    return studio_memory.add({}, kind, decision, reason, who, move)
+
+
+def _keep_notes(t: Turn, notes: list[dict[str, Any]]) -> None:
+    """Into the project's memory. The store adds them to what is stored (storage/notes.py), so a job saving the whole
+    project, another chat or a removal meanwhile never loses one."""
+    if not notes:
+        return
+    t.projects.update(t.project_id, memory=notes)
+    for n in notes:
+        t.projects.log(t.project_id, "memory_noted", {"note": n["id"], "kind": n["kind"], "move": n["move"], "by": n["who"]})
+
+
+def remember(t: Turn, /, **_: Any) -> dict[str, Any]:
+    """Keep what the person just asked the team to remember (a decision or preference, for example "I prefer fewer false
+    alarms" or "explain in plain words") in the project's memory: every chat on this project reads it from now on. Only when
+    their message asks for it; their own words are kept, redacted, never yours and never a value from the table."""
+    from dclab_core import redact
+
+    if not asks_to_remember(t.text):
+        return {"error": "The person did not ask to remember anything in this message: only their own request is kept."}
+    words = redact.redact_text(NOTE_LEAD.sub("", t.text).strip())[0]
+    if len(words.split()) < 2:
+        return {"error": "Say what to remember, for example: remember that we prefer fewer false alarms."}
+    _keep_notes(t, [_new_note("preference", words, "the person asked the team to remember it", "person", "remember")])
+    t.task("remember", TEAM["reader"], "Kept in the project's memory", "done")
+    result = {"remembered": words, "next": "Every chat on this project reads it from now on."}
+    t.results.append(result)
+    return result
+
+
+def show_memory(t: Turn, /, **_: Any) -> dict[str, Any]:
+    """What the team remembers about this project: decisions and preferences from every chat and every person, latest last."""
+    from ..studio import memory as studio_memory
+
+    notes = studio_memory.active(t.project())
+    if not notes:
+        return {"error": "Nothing is remembered for this project yet. Say, for example, remember that we prefer fewer false alarms."}
+    rows = [{"at": str(n.get("at") or "")[:16].replace("T", " "), "kind": n.get("kind"), "who": n.get("who"), "what": n.get("decision"), "why": n.get("reason")}
+            for n in notes]
+    return {"card": t.show("show_memory", {
+        "agent": "reader", "title": "What the team remembers", "page": "project",
+        "columns": [{"key": "at", "label": "When (UTC)"}, {"key": "kind", "label": "Kind"}, {"key": "who", "label": "Who"},
+                    {"key": "what", "label": "What"}, {"key": "why", "label": "Why"}], "rows": rows})}
+
+
+def _noted(tool: str, result: dict[str, Any]) -> Optional[dict[str, Any]]:
+    """The note a successful chat write leaves in the project's memory (the person agreed to each of these)."""
+    if tool == "confirm_problem_change":
+        from dclab_core import redact
+
+        changes = result.get("changes") if isinstance(result.get("changes"), dict) else {}
+        said = redact.redact_text("; ".join(f"{k.replace('_', ' ')} {v}" for k, v in changes.items()))[0]  # a moment is the person's words
+        return _new_note("decision", f"Version {result.get('version')} of the problem confirmed: {said or result.get('confirmed')}",
+                         "the person confirmed it in the chat; this project still answers the problem it was built for", "person", "confirm_problem_change")
+    if tool == "adopt_improvement":
+        return _new_note("decision", f"Adopted the improvement {result.get('adopted')} ({result.get('family')})", "it beat the current model on the training folds; the person adopted it",
+                         "person", "adopt_improvement")
+    if tool == "build_new_version":
+        return _new_note("decision", f"Built version {result.get('version')} as a new project", "the person said yes to its plan", "person", "build_version")
+    return None
+
+
+READS = {"show_problem": show_problem, "show_memory": show_memory, "list_projects": list_projects, "show_notebook": show_notebook, "show_activity": show_activity, "show_models": show_models, "show_features": show_features, "show_data": show_data, "show_leakage": show_leakage, "show_stages": show_stages,
          "show_result": show_result, "show_evaluation": show_evaluation, "improvement_ideas": improvement_ideas, "show_improvements": show_improvements}
 WRITES = {"plan_new_version": ("plan_version", plan_new_version), "build_new_version": ("build_version", build_new_version),
           "propose_problem_change": ("propose_problem_change", propose_problem_change),
           "confirm_problem_change": ("confirm_problem_change", confirm_problem_change), "improve_model": ("improve", improve_model), "adopt_improvement": ("adopt_improvement", adopt_improvement),
-          "write_notebook_cell": ("notebook_cell", write_notebook_cell)}
-WHO = {"plan_new_version": "planner", "build_new_version": "planner", "show_problem": "analyst", "propose_problem_change": "analyst", "confirm_problem_change": "analyst", "list_projects": "reader", "show_notebook": "coder", "show_activity": "reader", "show_models": "reader", "show_features": "reader", "show_data": "reader", "show_leakage": "reader", "show_stages": "reader",
+          "write_notebook_cell": ("notebook_cell", write_notebook_cell), "remember": ("remember", remember)}
+WHO = {"remember": "reader", "show_memory": "reader", "plan_new_version": "planner", "build_new_version": "planner", "show_problem": "analyst", "propose_problem_change": "analyst", "confirm_problem_change": "analyst", "list_projects": "reader", "show_notebook": "coder", "show_activity": "reader", "show_models": "reader", "show_features": "reader", "show_data": "reader", "show_leakage": "reader", "show_stages": "reader",
        "show_result": "evaluator", "show_evaluation": "evaluator", "improvement_ideas": "experimenter", "show_improvements": "experimenter",
        "improve_model": "experimenter", "adopt_improvement": "experimenter", "write_notebook_cell": "coder"}
 
 
 HOME_MOVES = ("plan_version", "build_version", "propose_problem_change", "confirm_problem_change", "improve", "adopt_improvement",
-              "notebook_cell")  # every write the built chat's team may make (its guard checks each; the tests check each tool declares one)
+              "notebook_cell", "remember")  # every write the built chat's team may make (its guard checks each; the tests check each tool declares one)
 PROJECT_MOVES = ("improve", "adopt_improvement", "notebook_cell")  # the writes that change the project (the analyst's change the chat only)
+
+
+def _remembered(t: Turn) -> list[str]:
+    """The project's memory as the model reads it: one line a note, latest last (decisions and preferences from every chat)."""
+    from ..studio import memory as studio_memory
+
+    try:
+        return studio_memory.summary(t.project())
+    except Exception:  # noqa: BLE001 - the memory never stops a turn
+        return []
 
 
 class HomeGuard:
@@ -898,6 +995,13 @@ class HomeGuard:
             return {"error": "An improvement run is still going: adopt from its report when it ends."}
         result = proceed()
         ok = isinstance(result, dict) and "error" not in result
+        if ok:
+            note = _noted(tool.name, result)
+            if note is not None:
+                try:
+                    _keep_notes(turn, [note])
+                except Exception:  # noqa: BLE001 - a note never undoes the write it describes
+                    pass
         try:
             audit.record_for(turn.projects, "move", "agent", "home", move=tool.move, status="allowed" if ok else "refused", project_id=turn.project_id,
                              draft_id=turn.draft_id, message=(result or {}).get("error") if not ok else f"home orchestrator: {tool.name}")
@@ -1024,6 +1128,10 @@ def plan(text: str, offer: Optional[dict[str, Any]], columns: Any = (), version_
     if NO.match(said):  # "no" declines; after a bare "no", the rest is read ("no, show the models"), never a refusal ("no, don't improve it")
         rest = re.sub(r"^\s*(?:no|nope)\b[\s,.!-]*(?:thanks?|thank you)?[\s,.!-]*", "", said, flags=re.I)
         return plan(rest, None, columns) if rest and rest != said and not NO.match(rest) else []
+    if RECALL.search(said):
+        return [("show_memory", {})]
+    if asks_to_remember(said):
+        return [("remember", {})]
     if ASK_PROBLEM.search(said):
         return [("show_problem", {})]
     if ADOPT.search(said):
@@ -1138,7 +1246,8 @@ class Orchestrator:
                 "proposed_problem_change": {k: (turn.agent.store.get(turn.draft_id).get("problem_change") or {}).get(k) for k in ("id", "changes", "status")},
                 "confirmed_version_waiting": ({k: (_latest_version(turn) or {}).get(k) for k in ("id", "changes")} | {"planned": bool((_latest_version(turn) or {}).get("plan"))})
                 if _latest_version(turn) else None,
-                "working_now": self.working(turn.draft_id), "pending_offer": (turn.offered or {}).get("tool"), "team": TEAM}
+                "working_now": self.working(turn.draft_id), "pending_offer": (turn.offered or {}).get("tool"), "team": TEAM,
+                "remembered": _remembered(turn)}
 
     def working(self, draft_id: str) -> list[dict[str, Any]]:
         """The board tasks of this chat still running (an improvement job under way), with their job's status now."""
@@ -1321,6 +1430,9 @@ class Orchestrator:
             elif task["tool"] == "adopt_improvement":
                 r = next((x for x in t.results if isinstance(x, dict) and x.get("adopted")), {})
                 parts.append(f"Adopted {r.get('adopted')} ({r.get('family')}). {r.get('next')}")
+            elif task["tool"] == "remember":
+                r = next((x for x in t.results if isinstance(x, dict) and x.get("remembered")), {})
+                parts.append(f"Kept in the project's memory: \"{r.get('remembered')}\". {r.get('next')}")
             elif task["tool"] == "write_notebook_cell":
                 parts.append("The Notebook coder wrote this cell: read it, then press Run to run it on the training rows only.")
             elif task["tool"] == "propose_problem_change":

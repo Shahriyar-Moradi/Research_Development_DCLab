@@ -160,6 +160,7 @@ class DataLimitTests(unittest.TestCase):
         self.addCleanup(models.install, None)
         for stage in ("data", "leakage", "features", "models", "final"):
             engine.execute(store, pid, stage, "human")
+        store.update(pid, memory=[orchestrator._new_note("preference", "we prefer fewer false alarms", "the person asked", "person", "remember")])  # its card is checked too
         names, script = list(orchestrator.READS), []
         for start in range(0, len(names), 4):  # a turn makes at most a few calls (five replies): every read tool over a few turns
             script += [tool_call(n, {}, i) for i, n in enumerate(names[start:start + 4], 1)] + [{"content": "Here they are.", "tool_calls": [], "usage": {}}]

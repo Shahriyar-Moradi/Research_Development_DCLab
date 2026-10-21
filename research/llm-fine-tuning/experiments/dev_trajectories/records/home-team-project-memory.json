@@ -1,0 +1,112 @@
+{
+ "package": "home-team-project-memory",
+ "title": "The built chat's team remembers decisions and preferences across chats, and no project write ever drops a memory note",
+ "date": "2026-10-21",
+ "request": "Finish the Home team: data agent, reporter, project memory (the team remembers your decisions and preferences across chats), several tasks at once. Built memory first: the others read it.",
+ "spec": "dclab_rnd/studio/memory.py (A5.2 notes: added or marked removed, never a cell value); the Home orchestrator (dclab_rnd/draft/orchestrator.py).",
+ "plan": [
+  "Tools remember (write, move remember) and show_memory (read), owned by the Records reader.",
+  "The model reads the project's notes every turn (situation.remembered).",
+  "A note after each confirmed problem version, adopted improvement and built version.",
+  "Rules route explicit requests only; review; fix; agent-eval and harness-eval for the changed tool list."
+ ],
+ "decisions": [
+  {
+   "decision": "Notes are merged by id in the project stores (files and PostgreSQL), a removal winning, on every save and update.",
+   "why": "Jobs save the whole project document after minutes; a note written meanwhile was dropped. One rule at the storage layer protects every writer, not only the chat."
+  },
+  {
+   "decision": "remember keeps the person's own words and refuses unless their message asked for it.",
+   "why": "A model's paraphrase would be stored forever as the person's preference."
+  },
+  {
+   "decision": "Questions and changes of what is predicted or when are never preferences.",
+   "why": "A changed prediction moment must go through the Problem analyst's check against the table, not sit in memory unchecked."
+  }
+ ],
+ "change": "dclab_rnd/draft/orchestrator.py (remember, show_memory, notes after writes, routing), dclab_rnd/storage/notes.py (new), storage/postgres.py and studio/store.py (merge on save/update, a per-project lock in the file store), tests (home orchestrator, storage contract on both backends, model data limits)",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Questions, complaints and moment changes became permanent preferences.",
+   "scenario": "\"why do we always lose recall?\", \"from now on, predict at signup\" routed to remember.",
+   "cause": "The first patterns matched any \"we always/never\" and \"from now on\".",
+   "fix": "asks_to_remember: never a question unless it starts with remember; never with a problem part or a prediction moment.",
+   "test": "tests/test_home_orchestrator.py"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The model could store a note the person never asked for, labelled as the person's.",
+   "scenario": "\"show the models, I don't care about recall today\" and the model calls remember(\"we don't care about recall\").",
+   "cause": "remember took the model's argument as it was.",
+   "fix": "remember refuses unless the person's message asks, and keeps their own redacted words.",
+   "test": "tests/test_home_orchestrator.py"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Notes were lost or a removal undone by concurrent writes.",
+   "scenario": "A stage job reads the project, the person says remember, the job saves the whole document: the note is gone.",
+   "cause": "Every whole-document save replaced the memory list.",
+   "fix": "storage/notes.py merges notes by id on save and update in both backends; the chat's waiting list was removed.",
+   "test": "tests/test_storage_contract.py (files and PostgreSQL)"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A confirmed problem version was noted as \"Problem changed\" on a project that did not change.",
+   "scenario": "The intern on p1 reads it as a decision about p1's target.",
+   "cause": "The note's words.",
+   "fix": "\"Version N of the problem confirmed\", with the reason that this project still answers the problem it was built for.",
+   "test": "tests/test_home_orchestrator.py"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The changed tool list needed the agent evaluations rerun.",
+   "scenario": "test_prompt_gate and test_harness_gate: tools:home changed.",
+   "cause": "Tool schemas are hashed like prompts.",
+   "fix": "make agent-eval and make harness-eval.",
+   "test": "tests/test_prompt_gate.py, tests/test_harness_gate.py"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The privacy check over every chat read tool counted the new one but saw no card.",
+   "scenario": "test_model_data_limits: 11 cards for 12 read tools.",
+   "cause": "The test project had no notes.",
+   "fix": "The test gives it one, so the memory card's content is checked too.",
+   "test": "tests/test_model_data_limits.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "affected tests",
+   "gate": "pass on files and PostgreSQL",
+   "result": "home orchestrator 46, storage contract 25 on both backends, model data limits 35",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "no live model run of remember yet"
+   ]
+  }
+ ],
+ "outcome": "The team keeps decisions and preferences in the project's memory and every chat reads them; no write of the project can drop a note.",
+ "lessons": [
+  "When many writers save whole documents, protect an append-only field where the document is written, not in each writer.",
+  "A tool that writes on the person's behalf must check the person's own words, not the model's."
+ ],
+ "risks": [
+  "The file store's lock is per process: a separate worker process can still race; PostgreSQL locks the row.",
+  "A value the person types in their own sentence is kept (redaction removes emails and similar only)."
+ ],
+ "commits": []
+}

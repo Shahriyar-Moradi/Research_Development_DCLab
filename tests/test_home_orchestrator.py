@@ -71,6 +71,10 @@ class Projects:
         self.doc = json.loads(json.dumps(doc))
 
     def update(self, pid, **changes):
+        from dclab_rnd.storage.notes import merge
+
+        if "memory" in changes:  # as the real stores do: notes are added to what is stored
+            changes = {**changes, "memory": merge(self.doc.get("memory"), changes["memory"])}
         self.doc.update(changes)
 
     def records(self, pid):
@@ -371,6 +375,94 @@ class ProblemAnalystTests(unittest.TestCase):  # step 1 of connecting understand
         t = orch.Turn(chat.services, "p1", chat.draft, chat.agent, "x")
         out = orch.propose_problem_change(t, outcome="revenue_next_year")
         self.assertIn("not a column", out["error"])
+
+
+class ProjectMemoryTests(unittest.TestCase):  # the Home team remembers decisions and preferences across chats (the owner, 2026-10-21)
+    def setUp(self):
+        env = mock.patch.dict(os.environ, {"DCLAB_NO_LIVE_MODELS": "1"})
+        env.start()
+        self.addCleanup(env.stop)
+
+    def other_chat(self, chat):
+        """A second chat on the same project."""
+        draft = chat.store.create("Same project, another day")["id"]
+        chat.store.update(draft, lambda d: d.update(status="built", project_id="p1"))
+        return draft
+
+    def test_a_preference_is_kept_and_another_chat_on_the_project_reads_it(self):
+        chat = Chat(self)
+        new = chat.since("remember that we prefer fewer false alarms over catching every case")
+        notes = chat.services.projects.doc["memory"]
+        self.assertEqual([(n["kind"], n["move"], n["who"]) for n in notes], [("preference", "remember", "person")])
+        self.assertEqual(notes[0]["decision"], "we prefer fewer false alarms over catching every case")
+        self.assertIn("Kept in the project's memory: \"we prefer fewer false alarms", new[-1]["text"])
+        other = self.other_chat(chat)
+        before = len(chat.store.get(other).get("messages") or [])
+        chat.agent.reply_built(other, "what do you remember?", orch.Orchestrator(chat.services, chat.agent), "p1")
+        card = next(m for m in chat.store.get(other)["messages"][before:] if m["kind"] == "project_card")["card"]
+        self.assertEqual(card["title"], "What the team remembers")
+        self.assertEqual(card["rows"][0]["what"], "we prefer fewer false alarms over catching every case")
+
+    def test_questions_complaints_and_problem_changes_are_never_kept_as_preferences(self):  # the review, 2026-10-21
+        for said in ("why do we always lose recall?", "I always get confused by AUC, what is it?", "we never had churn labels before 2020, is that a problem?",
+                     "I never asked for that", "note how many rows are missing", "we always predict at signup, not at renewal", "from now on, predict at signup",
+                     "remember: the outcome is churned_60d", "Never-mind", "never mind", "I don't want to improve it", "no thanks"):
+            self.assertNotIn("remember", [n for n, _ in orch.plan(said, None, ["churned", "churned_60d"])], said)
+        self.assertNotEqual(orch.plan("the model uses too much memory", None)[:1], [("show_memory", {})])
+        for said in ("remember that we prefer fewer false alarms", "I prefer fewer false alarms", "from now on explain results in plain words",
+                     "always explain the numbers simply", "please keep in mind that the team reviews 50 cases a day"):
+            self.assertEqual(orch.plan(said, None)[0][0], "remember", said)
+
+    def test_the_model_cannot_keep_a_note_the_person_did_not_ask_for(self):  # the review: it would be labelled the person's
+        chat = Chat(self)
+        t = orch.Turn(chat.services, "p1", chat.draft, chat.agent, "show the models, I don't care about recall today")
+        self.assertIn("error", orch.remember(t, note="we don't care about recall"))
+        self.assertNotIn("memory", chat.services.projects.doc)
+
+    def test_a_job_saving_the_whole_project_keeps_a_note_written_meanwhile(self):  # the real file store
+        from dclab_rnd.studio.store import ProjectStore
+
+        store = ProjectStore(Path(tempfile.mkdtemp()))
+        p = store.create("Churn")
+        job_copy = store.get(p["id"])  # a job reads the project ...
+        store.update(p["id"], memory=[orch._new_note("preference", "we prefer recall", "asked", "person", "remember")])
+        store.update(p["id"], memory=[orch._new_note("preference", "explain simply", "asked", "person", "remember")])  # a second chat
+        job_copy["stages"] = {"final": {"status": "completed"}}
+        store.save(job_copy)  # ... and saves all of it minutes later
+        self.assertEqual([n["decision"] for n in store.get(p["id"])["memory"]], ["we prefer recall", "explain simply"])
+        from dclab_rnd.studio import memory as studio_memory
+
+        note = store.get(p["id"])["memory"][0]["id"]
+        stale = store.get(p["id"])
+        studio_memory.remove(store, p["id"], note, "person", "not true any more")
+        store.save(stale)  # a copy read before the removal does not bring it back
+        self.assertTrue(store.get(p["id"])["memory"][0]["removed"])
+
+    def test_a_confirmed_problem_change_is_remembered(self):
+        chat = Chat(self)
+        chat.say("actually the outcome should be churned_60d, not churned")
+        self.assertNotIn("memory", chat.services.projects.doc)  # a proposal is not a decision
+        chat.say("yes, confirm it")
+        note = chat.services.projects.doc["memory"][-1]
+        self.assertEqual((note["kind"], note["move"], note["who"]), ("decision", "confirm_problem_change", "person"))
+        self.assertIn("churned_60d", note["decision"])
+        self.assertIn("still answers the problem it was built for", note["reason"])
+
+    def test_the_words_kept_are_redacted_and_declines_are_not_preferences(self):
+        chat = Chat(self)
+        chat.say("remember to send the results to dana@example.com")
+        self.assertNotIn("dana@example.com", json.dumps(chat.services.projects.doc["memory"]))
+        for said in ("I don't want to improve it", "never mind", "no thanks"):
+            self.assertNotIn("remember", [n for n, _ in orch.plan(said, None)], said)
+        self.assertEqual(orch.plan("what did we decide?", None)[0][0], "show_memory")
+
+    def test_the_model_reads_the_memory(self):
+        with mock.patch.dict(os.environ, CLEAN):
+            Seen.prompts = []
+            chat = Chat(self, gateway([answer("Noted.")]))
+            chat.services.projects.doc["memory"] = [orch._new_note("preference", "we prefer recall over precision", "the person asked", "person", "remember")]
+            chat.say("hello")
+        self.assertTrue(any("we prefer recall over precision" in p for p in Seen.prompts))
 
 
 class SolutionPlannerTests(unittest.TestCase):  # step 2 (the owner, 2026-10-21): a confirmed problem version becomes a new project version

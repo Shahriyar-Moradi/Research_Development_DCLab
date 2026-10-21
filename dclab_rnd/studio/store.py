@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -47,6 +48,15 @@ def migrate(project: dict[str, Any]) -> bool:
             if "contract_hash" in entry:
                 entry.setdefault("solution_hash", entry.pop("contract_hash")); changed = True
     return changed
+
+
+_LOCKS: dict[str, "threading.RLock"] = {}
+_LOCKS_LOCK = threading.Lock()
+
+
+def _project_lock(project_id: str) -> "threading.RLock":
+    with _LOCKS_LOCK:
+        return _LOCKS.setdefault(project_id, threading.RLock())
 
 
 def new_project(project_id: str, name: str, industry: str = "general", goal: str = "") -> dict[str, Any]:
@@ -137,14 +147,24 @@ class ProjectStore:
         return project
 
     def save(self, project: dict[str, Any]) -> dict[str, Any]:
-        project["updated"] = now()
-        _write_atomic(self.directory(project["id"]) / "project.json", json.dumps(project, indent=2, ensure_ascii=False))
+        from ..storage.notes import into
+
+        path = self.directory(project["id"]) / "project.json"
+        with _project_lock(project["id"]):
+            try:
+                stored = json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+            except (OSError, json.JSONDecodeError):
+                stored = None
+            into(project, stored)  # a note written while this document was out is kept (storage/notes.py)
+            project["updated"] = now()
+            _write_atomic(path, json.dumps(project, indent=2, ensure_ascii=False))
         return project
 
     def update(self, project_id: str, **values: Any) -> dict[str, Any]:
-        project = self.get(project_id)
-        project.update(values)
-        return self.save(project)
+        with _project_lock(project_id):  # one read and write at a time per project in this process (the lock is reentrant)
+            project = self.get(project_id)
+            project.update(values)  # memory merges in save: notes are added to what is stored
+            return self.save(project)
 
     def list(self, limit: int | None = None, offset: int = 0) -> list[dict[str, Any]]:
         projects = []

@@ -101,15 +101,22 @@ class PgProjects(_Base):
             raise KeyError(doc["id"])
 
     def save(self, doc: dict[str, Any]) -> dict[str, Any]:
+        from .notes import into
+
         with self.engine.begin() as c:
+            into(doc, c.execute(self._select(doc["id"], lock=True)).scalar())  # a note written while this document was out is kept
             self._write(c, doc)
         return doc
 
     def update(self, project_id: str, **values: Any) -> dict[str, Any]:
+        from .notes import merge
+
         with self.engine.begin() as c:
             doc = c.execute(self._select(project_id, lock=True)).scalar()
             if doc is None:
                 raise KeyError(project_id)
+            if "memory" in values:  # notes are added to what is stored, never replace it
+                values = {**values, "memory": merge(doc.get("memory"), values["memory"])}
             doc.update(values)
             self._write(c, doc)
             return doc

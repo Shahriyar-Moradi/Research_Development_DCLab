@@ -48,6 +48,23 @@ class Contract:
         self.assertEqual([x["id"] for x in self.projects.list()], [p["id"]])
         self.projects.delete(a["id"])  # deleting twice is fine
 
+    def test_memory_notes_survive_a_whole_document_saved_later(self):  # a job reads the project, saves all of it minutes later
+        def note(i, removed=None):
+            return {"id": f"n{i}", "at": "2026-10-21T00:00:00+00:00", "kind": "preference", "decision": f"note {i}", "reason": "", "who": "person",
+                    "move": "remember", "stage": None, "removed": removed}
+        p = self.projects.create("Churn")
+        job_copy = self.projects.get(p["id"])
+        self.projects.update(p["id"], memory=[note(1)])
+        self.projects.update(p["id"], memory=[note(2)])  # another chat: added, not replaced
+        stale = self.projects.get(p["id"])
+        self.projects.update(p["id"], memory=[note(1, removed={"by": "person"})])  # removed meanwhile
+        job_copy["goal"] = "from the job"
+        self.projects.save(stale)  # a copy read before the removal does not bring the note back
+        self.projects.save(job_copy)  # a copy read before both notes keeps them
+        got = self.projects.get(p["id"])
+        self.assertEqual(got["goal"], "from the job")
+        self.assertEqual([(n["id"], bool(n["removed"])) for n in got["memory"]], [("n1", True), ("n2", False)])
+
     def test_old_documents_are_migrated_when_read(self):
         p = self.projects.create("Old")
         doc = self.projects.get(p["id"])
