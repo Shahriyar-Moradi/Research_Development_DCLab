@@ -569,6 +569,16 @@ class ModelTests(unittest.TestCase):
             new = chat.since("show the models")
         self.assertEqual(new[-1]["path"], "rules")
 
+    def test_a_tool_call_written_as_text_or_an_empty_reply_leaves_the_turn_to_the_rules(self):  # qwen2.5-coder:1.5b on Ollama, 2026-10-21
+        for said in ('To do that, call the `solve` function:\n\n```json\n{\n  "name": "solve",\n}\n```',
+                     '```json\n{"name": "improvement_ideas", "arguments": {"problem": {}}}\n```', "ok"):
+            with self.subTest(said=said[:20]):
+                chat = Chat(self, gateway([answer(said)]))
+                new = chat.since("show me the models")
+                self.assertEqual(new[-1]["path"], "rules")
+                self.assertTrue(any(m["kind"] == "project_card" for m in new))  # the rules' table
+                self.assertNotIn('"name"', json.dumps([m.get("text") for m in new]))
+
     def test_a_refused_cell_and_a_failing_model_never_write_the_cell_twice(self):  # the review of 2026-10-21: the rules replanned the write
         refused = {"id": "c1", "request": "plot", "code": "x = 1", "explanation": "", "problems": ["reads the holdout"], "status": "refused"}
         with mock.patch("dclab_rnd.studio.notebook_agent.write", return_value=refused) as write:

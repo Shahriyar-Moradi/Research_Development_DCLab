@@ -45,6 +45,15 @@ SHOWN_SENTENCES = 4  # a reply beside a table: at most this many sentences (the 
 WATCH_SECONDS = 3 * 3600  # how long a job is followed on the board
 
 
+_WRITTEN_CALL = re.compile(r"```|\"(name|arguments)\"\s*:|\bcall the `?\w+`? (function|tool)\b", re.I)
+
+
+def _not_an_answer(said: str, stopped: str) -> bool:
+    """A reply that is a tool call written as text (a small model's habit, a known tool or not) or a word or two: nothing
+    ran and nothing was said, so the rules answer instead (found with qwen2.5-coder:1.5b on Ollama, 2026-10-21)."""
+    return stopped == "tools_as_text" or bool(_WRITTEN_CALL.search(said)) or len(re.findall(r"\w+", said)) < 3
+
+
 class ModelUnhelpful(RuntimeError):
     """The model's turn ran nothing and said nothing grounded: the rules answer instead."""
 
@@ -1248,7 +1257,7 @@ class Orchestrator:
                 t.results.append(s.result)  # an error's words may be repeated
                 t.task(s.tool, TEAM[WHO.get(s.tool, "reader")], s.tool.replace("_", " "), "failed", detail=str(s.result["error"])[:200])
         worked = [s for s in out.steps if s.ok and not (isinstance(s.result, dict) and s.result.get("error"))]
-        if not worked and not t.shown and not grounded(said, [t.results, self.situation(t)])[0]:
+        if not worked and not t.shown and (not grounded(said, [t.results, self.situation(t)])[0] or _not_an_answer(said, out.stopped)):
             # every call refused and nothing grounded said (a small local model): nothing ran, so the rules carry the turn
             # and the refusals stay in the record, never in the reply
             t.tasks[:] = [x for x in t.tasks if x["status"] != "failed"]
