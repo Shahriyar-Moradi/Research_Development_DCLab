@@ -555,6 +555,36 @@ class SeveralTasksTests(unittest.TestCase):  # "improve and plot in parallel" (t
         self.assertEqual([n for n, _ in orch.plan("how can it improve and add column b = spend / 2", None)], ["improvement_ideas"])  # one offer a turn
 
 
+class ReplyLengthTests(unittest.TestCase):  # live with Claude, 2026-10-21: four sentences for "two", and "Do you want me to?" alone
+    def test_a_short_follow_up_keeps_the_sentence_it_follows(self):
+        said = ("The last run found two ways. One is a recipe (about +0.005). The other is a blend (about +0.003). Neither can be adopted here. "
+                "You already confirmed a version 2, so I can plan that version next. Do you want me to?")
+        short = orch.shorten(said, 4)
+        self.assertTrue(short.endswith("so I can plan that version next. Do you want me to?"), short)
+        self.assertEqual(len(re_sentences(short)), 4)
+        said = ("Logistic regression is the chosen model. It scored about 0.84 on the folds. The last run tried seven ways. Two cleared the margin. "
+                "The next step is to plan the confirmed version 2. Say \"plan it\" and I'll run it.")  # live: the request kept its step
+        self.assertTrue(orch.shorten(said, 4).endswith("The next step is to plan the confirmed version 2. Say \"plan it\" and I'll run it."))
+
+    def test_the_persons_length_is_kept(self):
+        self.assertEqual([orch.asked_length(x) for x in ("Summarize the project for my boss in two sentences", "in one line please",
+                                                          "give me a 3-sentence summary", "explain it in a single sentence", "tell me everything")],
+                         [2, 1, 3, 1, None])
+        with mock.patch.dict(os.environ, CLEAN):
+            Seen.prompts = []
+            chat = Chat(self, gateway([call("show_result", {}, 1), answer("It ranks customers by their risk of leaving. It scored 0.7235 on the held-back cases. "
+                                                                            "It needs a later period to be trusted. The report can be downloaded.")]))
+            reply = chat.since("Explain the held-back result in two sentences")[-1]["text"]
+        self.assertEqual(len(re_sentences(reply)), 2, reply)
+        self.assertTrue(any("at most 2 sentence" in p for p in Seen.prompts))  # the model is told too
+
+
+def re_sentences(text):
+    import re
+
+    return [x for x in re.split(r"(?<=[.!?])\s+", text.strip()) if x]
+
+
 class ReporterTests(unittest.TestCase):  # "write me the report for my manager", cited and from the records (the owner, 2026-10-21)
     def setUp(self):
         env = mock.patch.dict(os.environ, {"DCLAB_NO_LIVE_MODELS": "1"})

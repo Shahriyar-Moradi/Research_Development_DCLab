@@ -43,6 +43,29 @@ TEAM = {"analyst": "Problem analyst", "planner": "Solution planner", "reader": "
 CAP_EUR = 0.25  # one turn's model spend, at most
 TAIL = 12  # messages of the conversation the model reads
 SHOWN_SENTENCES = 4  # a reply beside a table: at most this many sentences (the owner: "bring the table instead of the texts")
+NUMBERS = {"one": 1, "a single": 1, "single": 1, "two": 2, "a couple of": 2, "three": 3, "four": 4, "five": 5}
+LENGTH = re.compile(r"\b(?:in|with|using|within|to)\s+(?:just\s+|only\s+|at most\s+)?(one|a single|two|a couple of|three|four|five|[1-5])\s+(?:short\s+)?sentences?\b|"
+                    r"\bin (one|a single) (?:line|sentence)\b|\b(one|two|three|four|five|[1-5])[- ]sentences?\b", re.I)
+
+
+def asked_length(text: str) -> Optional[int]:
+    """How many sentences the person asked for ("in two sentences", "in one line"), or None."""
+    m = LENGTH.search(text or "")
+    if not m:
+        return None
+    word = next(g for g in m.groups() if g).lower()
+    return int(word) if word.isdigit() else NUMBERS.get(word)
+
+
+def shorten(text: str, most: int) -> str:
+    """At most ``most`` sentences: the first ones, and the last two together, since a reply ends with its next step and the
+    request it leads to ("..., so I can plan that version next. Do you want me to?"; "Say \"plan it\""): a request never
+    stands alone without the step it names (live, 2026-10-21)."""
+    sentences = [x for x in re.split(r"(?<=[.!?])\s+", text.strip()) if x]
+    if len(sentences) <= most:
+        return text.strip()
+    tail = sentences[-2:] if most >= 3 else sentences[-1:]
+    return " ".join(sentences[:most - len(tail)] + tail)
 WATCH_SECONDS = 3 * 3600  # how long a job is followed on the board
 
 
@@ -1657,7 +1680,8 @@ class Orchestrator:
                 "confirmed_version_waiting": ({k: (_latest_version(turn) or {}).get(k) for k in ("id", "changes")} | {"planned": bool((_latest_version(turn) or {}).get("plan"))})
                 if _latest_version(turn) else None,
                 "working_now": self.working(turn.draft_id), "pending_offer": (turn.offered or {}).get("tool"), "team": TEAM,
-                "remembered": _remembered(turn)}
+                "remembered": _remembered(turn),
+                **({"reply_length": f"the person asked for at most {asked_length(turn.text)} sentence(s): answer in that many"} if asked_length(turn.text) else {})}
 
     def working(self, draft_id: str) -> list[dict[str, Any]]:
         """The board tasks of this chat still running (an improvement job under way), with their job's status now."""
@@ -1791,9 +1815,11 @@ class Orchestrator:
         if t.shown:  # the owner, 2026-10-20: "bring the table instead of the texts": a list that repeats a shown table is dropped
             kept, listed = without_lists(kept)
             dropped += listed
-            sentences = re.split(r"(?<=[.!?])\s+", kept)
-            if len(sentences) > SHOWN_SENTENCES:  # the table speaks; the words say what it means and the next step (the whole reply stays in the record)
-                kept = " ".join(sentences[:SHOWN_SENTENCES - 1] + sentences[-1:])
+            kept = shorten(kept, SHOWN_SENTENCES)  # the table speaks; the words say what it means and the next step (the whole reply stays in the record)
+        most = asked_length(t.text)
+        if most:  # "in two sentences": the person's length, kept (live, 2026-10-21: four came back)
+            sentences = [x for x in re.split(r"(?<=[.!?])\s+", kept.strip()) if x]
+            kept = " ".join(sentences[:most])
         record["said"], record["dropped"] = said, dropped
         if not kept:
             return self._rules_words(t) if t.shown or t.tasks else "I could not answer that from this project's records. Here is what I can do:"

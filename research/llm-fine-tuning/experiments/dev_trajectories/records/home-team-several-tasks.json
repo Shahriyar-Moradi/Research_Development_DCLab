@@ -114,6 +114,26 @@
    "cause": "The tool said nothing about what a note does.",
    "fix": "remember's result says a note changes no setting and suggests the change to ask for.",
    "test": "live recheck: \"It doesn't change any setting by itself\""
+  },
+  {
+   "id": "L3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "\"In two sentences\" gave four.",
+   "scenario": "Live: \"Summarize the project for my boss in two sentences\".",
+   "cause": "Nothing told the model the length or kept it.",
+   "fix": "asked_length: the model is told (situation.reply_length) and the reply is cut to that many.",
+   "test": "tests/test_home_orchestrator.py; live: two sentences"
+  },
+  {
+   "id": "L4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A shortened reply ended with a request that lost its step.",
+   "scenario": "Live: \"... Do you want me to?\" and 'Say \"plan it\"' without the sentence naming the step.",
+   "cause": "The shortening beside a card kept the first three sentences and the last one.",
+   "fix": "shorten keeps the last two sentences together.",
+   "test": "tests/test_home_orchestrator.py; replayed on every live reply"
   }
  ],
  "measurements": [
@@ -130,9 +150,9 @@
   {
    "name": "live with Claude Sonnet 5.5",
    "gate": "every new tool used as intended, no spend over the cap",
-   "result": "memory, Reporter, Data engineer (missing data, a column, a lookup join, the outcome refused), ideas, improve and plot together; 71 requests, EUR 0.40 over three runs",
+   "result": "memory, Reporter, Data engineer (missing data, a column, a lookup join, the outcome refused), ideas, improve and plot together; 71 requests, EUR 0.40 over three runs; a third check of the reply length and the shortening, EUR 0.43 in all",
    "verdict": "pass",
-   "cost_eur": 0.3978,
+   "cost_eur": 0.4331,
    "limits": [
     "one project, one person's phrasing",
     "the two live findings were fixed and rechecked once"
