@@ -220,7 +220,7 @@ class Gateway:
 
     def available(self, purpose: str) -> bool:
         """A model serves this purpose: its tier has a key, and the SDK is installed (or a test supplies the transport).
-        With DCLAB_NO_LIVE_MODELS=1 (set by make rd-check, make test-pg and make product-e2e) no live endpoint serves
+        With DCLAB_NO_LIVE_MODELS=1 (set in every test process by tests/run_parallel.py, by every make gate that runs tests and by make product-e2e) no live endpoint serves
         anything, whatever .env says: tests use scripted transports only."""
         serve = self.route(purpose)[0]
         if purpose == "embedding" and settings.tier(serve).get("provider") in NO_EMBEDDINGS:

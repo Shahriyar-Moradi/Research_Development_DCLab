@@ -2,10 +2,12 @@
 intern writes its trace and the Intern page receives it; no cell value is stored."""
 
 import json
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -266,7 +268,9 @@ class InternTraceTests(unittest.TestCase):
             from dclab_rnd.agentic.server import create_app
         except ImportError as error:
             self.skipTest(f"dependencies not installed: {error}")
-        with TestClient(create_app(Path(tempfile.mkdtemp()))) as client:
+        # the standard plan is what this checks, so no model may serve the intern, whatever key the environment holds
+        # (make check-quick once ran it with the owner's OpenAI key from .env, and a live model planned 24 steps)
+        with mock.patch.dict(os.environ, {"DCLAB_NO_LIVE_MODELS": "1"}), TestClient(create_app(Path(tempfile.mkdtemp()))) as client:
             headers = {"X-DCLab-Token": client.get("/api/config").json()["csrf"]}
             s = client.post("/api/intern/sessions?wait=true", json={"task": "Something the samples do not cover at all"}, headers=headers).json()
             got = client.get(f"/api/intern/sessions/{s['id']}").json()

@@ -182,12 +182,13 @@ def slot_databases(jobs: int, required: bool) -> list[str] | None:
         return None
 
 
-OWNER_MODEL_CHOICE = ("DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL")  # set empty, so .env (read without override) cannot set them
+# set empty, so .env (read without override on import, by dclab_rnd/agentic/server.py among others) cannot set them
+OWNER_MODEL_CHOICE = ("DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "OPENAI_API_KEY")
 
 
-def run_one(name: str, slots: Queue, pg: bool, verbose: bool, threads_one: bool = True) -> dict:
-    slot = slots.get()
-    tmp = tempfile.mkdtemp(prefix=f"dclab-{name.split('::')[0][5:-3]}-")
+def child_env(tmp: str, threads_one: bool = True) -> dict:
+    """A test process's environment, as CI's: no live model is ever reached, whichever gate started the runner (make
+    check-quick exported no DCLAB_NO_LIVE_MODELS, so the owner's OpenAI key from .env served the API's intern in a test)."""
     env = {**ONE_THREAD, **os.environ, "TMPDIR": tmp} if threads_one else {**os.environ, "TMPDIR": tmp}
     env.setdefault("DCLAB_DECISION_SHADOW", "0")  # 22.4: the fitted classifiers live on some machines only; a test turns them on itself
     env.setdefault("DCLAB_STORE_LOOP", "0")
@@ -195,7 +196,15 @@ def run_one(name: str, slots: Queue, pg: bool, verbose: bool, threads_one: bool 
     env.setdefault("DCLAB_STORE_CLAUDE_PROJECTS", "off")
     env.setdefault("DCLAB_STORE_COMMITS", "off")  # 32.21: never this repository's whole history in a test  # 32.7: no test reads this machine's Claude Code sessions; a test gives its own folder  # 32.4: no test writes into the owner's store before a deletion; a test turns it on with its own DCLAB_STORE  # 32.2: no worker of a test server runs the store's conductor behind its back
     env.setdefault("DCLAB_STUDENTS_LOOP", "0")  # 29.7: no worker of a test server retrains students behind its back; a test turns it on itself
-    env.update({k: "" for k in OWNER_MODEL_CHOICE})  # the owner's .env picks a provider; a test sets the model settings it reads itself
+    env.update({k: "" for k in OWNER_MODEL_CHOICE})  # the owner's .env picks a provider and holds keys; a test sets the model settings it reads itself
+    env["DCLAB_NO_LIVE_MODELS"] = "1"  # tests use scripted transports only (dclab_rnd/models/gateway.py); a test that needs it off patches it itself
+    return env
+
+
+def run_one(name: str, slots: Queue, pg: bool, verbose: bool, threads_one: bool = True) -> dict:
+    slot = slots.get()
+    tmp = tempfile.mkdtemp(prefix=f"dclab-{name.split('::')[0][5:-3]}-")
+    env = child_env(tmp, threads_one)
     if slot is not None:
         env["DCLAB_TEST_DATABASE_URL"] = slot
         if pg:

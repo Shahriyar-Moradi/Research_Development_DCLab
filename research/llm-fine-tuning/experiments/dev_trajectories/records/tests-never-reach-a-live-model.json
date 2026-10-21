@@ -1,0 +1,126 @@
+{
+  "package": "tests-never-reach-a-live-model",
+  "title": "A test that failed in make check-quick was not flaky: the gate let the owner's OpenAI key serve the intern in a test",
+  "date": "2026-10-22",
+  "request": "test_agents_traces.py's API intern test failed once in make check-quick under heavy load: it expected the standard plan's trace ['list_samples'] and got 24 tool calls. Find the shared state that leaks a model between tests, make the test independent of it, and prove the fix with a reproduction that fails before.",
+  "spec": "CLAUDE.md: tests never reach a live model (DCLAB_NO_LIVE_MODELS=1, scripted transports); .github/workflows/ci.yml runs tests with DCLAB_NO_LIVE_MODELS=1 and an empty OPENAI_API_KEY.",
+  "plan": [
+    "Read the failing run's kept output (training_records/test_runs/2026-10-21/) before guessing at test order.",
+    "Follow how the API's intern gets its model: Services -> gateway.client('intern') -> the tier's key and DCLAB_NO_LIVE_MODELS.",
+    "Reproduce without spending: a fake OpenAI-compatible server on localhost and a fake key, in check-quick's environment.",
+    "Fix where the environment is made (the runner and the Makefile), and make the test hold whatever the environment."
+  ],
+  "decisions": [
+    {
+      "decision": "Fix the test runner's environment, not only the one test.",
+      "why": "The fake model also received 10 stage-explanation requests from other tests in the same file that still passed: every test that reaches a model path spent the owner's money silently under check-quick."
+    },
+    {
+      "decision": "The runner forces DCLAB_NO_LIVE_MODELS=1 (not setdefault) and blanks OPENAI_API_KEY in every test process.",
+      "why": "This is CI's environment; rd-check already ran the whole suite with the switch on, and every test that needs a key or the switch off patches it itself."
+    },
+    {
+      "decision": "Leave models.install's leaked gateway alone.",
+      "why": "create_app installs its gateway for the process and never uninstalls it, but the reproduction showed later tests reach the model through a fresh Gateway() just the same: it is not the cause, and changing server shutdown is outside this fix."
+    },
+    {
+      "decision": "Never reproduce with the real key.",
+      "why": "The failing path spends money on a live model; the fake server shows the same behaviour and counts the requests."
+    }
+  ],
+  "change": "tests/run_parallel.py (child_env: DCLAB_NO_LIVE_MODELS=1, OPENAI_API_KEY blanked), Makefile (check-quick, check-quick-tests, agent-test export DCLAB_NO_LIVE_MODELS=1), tests/test_agents_traces.py (the API test sets the switch itself), tests/test_run_capture.py (NoLiveModelTest)",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "make check-quick ran tests with a live model: the API test's intern was planned by the owner's OpenAI model (24 tool calls, 224 s for the file) instead of the standard plan.",
+      "scenario": "make check-quick with test_agents_traces.py among the affected files, the owner's .env holding OPENAI_API_KEY.",
+      "cause": "dclab_rnd/agentic/server.py loads .env on import (without override); tests/run_parallel.py blanked only the Anthropic settings; the Makefile exported DCLAB_NO_LIVE_MODELS=1 for rd-check and check-all but not check-quick, so the gateway's switch was off and the standard tier had a key.",
+      "fix": "run_parallel.child_env forces DCLAB_NO_LIVE_MODELS=1 and blanks OPENAI_API_KEY for every test process; check-quick, check-quick-tests and agent-test export the switch.",
+      "test": "tests/test_run_capture.py NoLiveModelTest (fails on main: no child_env, check-quick missing from the export line)"
+    },
+    {
+      "id": "F2",
+      "source": "self",
+      "severity": "gap",
+      "defect": "The failure was read as flakiness under load; it was deterministic in one gate and absent in the other.",
+      "scenario": "Passed alone and in make rd-check (which exports the switch), failed in make check-quick (which did not). The run record's env field was {} for the failing run.",
+      "cause": "The run record keeps DCLAB_NO_LIVE_MODELS when set; its absence was the clue, not the load.",
+      "fix": "None needed in the record; the lesson is to read the environment of a gate-only failure first.",
+      "test": "the reproduction script (fake model): fails on main every time, no load needed"
+    },
+    {
+      "id": "F3",
+      "source": "self",
+      "severity": "gap",
+      "defect": "The API test depended on the gate for its own premise (no model serves the intern).",
+      "scenario": "python -m unittest test_agents_traces with OPENAI_API_KEY in the environment.",
+      "cause": "Nothing in the test switched live models off.",
+      "fix": "The test patches DCLAB_NO_LIVE_MODELS=1 around create_app.",
+      "test": "the test run directly with a fake key and a fake model: passes, 0 requests"
+    },
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Two comments named too little: the gateway's docstring listed only rd-check, test-pg and product-e2e as switching live models off, and the runner's comment named one module as the one that loads .env.",
+      "scenario": "A reader trusting the docstring would think make check-quick and the runner leave the switch to the caller.",
+      "cause": "The comments were written when only those places set it.",
+      "fix": "The docstring names the runner and every gate that runs tests; the runner's comment says server.py is one loader among others.",
+      "test": "none (comments); the reviewer found no correctness issue: no target needs a live model through the runner, the no-fork path gets the same environment, agent-test is only helped"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "make agent-test does not go through the runner, so before this fix the owner's OpenAI key from .env reached its pytest run with the switch off.",
+      "scenario": "make agent-test on the owner's machine.",
+      "cause": "agent-test exported the Anthropic blanks but not DCLAB_NO_LIVE_MODELS.",
+      "fix": "agent-test is on the Makefile's export line; the gateway refuses the real transport with the switch on.",
+      "test": "tests/test_run_capture.py test_every_gate_that_runs_tests_switches_live_models_off"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "reproduction: test_agents_traces.py through tests/run_parallel.py in check-quick's environment, fake key, fake model on localhost",
+      "gate": "fails before the fix, passes after it, the fake model receives no request after it",
+      "result": "main: FAIL (trace ['write_plan', 'finish']), 12 requests (2 intern, 10 stage explanations); fix: OK, 0 requests",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "a fake model stands in for the live one; the failing live run is known only from its kept output"
+      ]
+    },
+    {
+      "name": "the named test files and the runner's and gateway's tests",
+      "gate": "test_agents_traces, test_intern, test_agent_harness, test_run_capture, test_models_gateway pass",
+      "result": "92 tests in 5 files pass",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": []
+    },
+    {
+      "name": "13 files that set or blank OPENAI_API_KEY themselves",
+      "gate": "pass with the key blanked by the runner",
+      "result": "162 tests in 13 files pass",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "not the whole suite; rd-check already runs it with the switch on, and CI with the key empty"
+      ]
+    }
+  ],
+  "outcome": "Every test process the runner starts is as CI's: no live model, no OpenAI key, whichever gate started it. The test that failed is deterministic and holds on its own. Past check-quick runs may have spent on the owner's OpenAI key.",
+  "lessons": [
+    "A failure that appears in one gate and not another is about the gate's environment before it is about load or order.",
+    "A switch exported per make target is easy to miss on a new target; put it where the processes are made (the runner) as well.",
+    "Reproduce a spending path with a fake endpoint that counts requests: it shows every caller, not only the failing one."
+  ],
+  "risks": [
+    "Make targets that run tests without tests/run_parallel.py (pytest under .venv-agent, scripts) rely on the Makefile's export line only.",
+    "Other keys in .env (TABPFN_TOKEN, connector tokens) are not blanked; DCLAB_NO_LIVE_MODELS covers the model gateway only.",
+    "models.install keeps a closed app's gateway as the process's fallback; harmless here, but a later test reads a deleted workspace's routing and usage log."
+  ],
+  "commits": []
+}

@@ -224,8 +224,9 @@ test-pg:  ## the whole suite on PostgreSQL, in parallel: needs the local databas
 	DCLAB_DATABASE_URL=$${DCLAB_TEST_DATABASE_URL:-postgresql+psycopg://$$USER@/dclab_test} $(PYTHON) -m dclab_rnd.storage upgrade
 	$(TEST_TMP) DCLAB_DATABASE_URL=$${DCLAB_TEST_DATABASE_URL:-postgresql+psycopg://$$USER@/dclab_test} $(RUN_TESTS) --pg
 
-# Tests and the end-to-end flows never reach a live model, whatever .env configures (dclab_rnd/models/gateway.py)
-test test-serial rd-check test-pg product-e2e check-all: export DCLAB_NO_LIVE_MODELS = 1
+# Tests and the end-to-end flows never reach a live model, whatever .env configures (dclab_rnd/models/gateway.py); every gate
+# that runs tests is listed (check-quick was not, and the owner's OpenAI key from .env served a test's intern on 2026-10-21)
+test test-serial check-quick check-quick-tests agent-test rd-check test-pg product-e2e check-all: export DCLAB_NO_LIVE_MODELS = 1
 # The owner's .env picks the product's model provider; a test sets the model settings it reads itself (read without override)
 test test-serial rd-check test-pg product-e2e check-all check-quick check-quick-tests agent-test browser-test: export DCLAB_LLM_PROVIDER =
 test test-serial rd-check test-pg product-e2e check-all check-quick check-quick-tests agent-test browser-test: export ANTHROPIC_API_KEY =
