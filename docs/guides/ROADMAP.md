@@ -96,3 +96,9 @@ the students (`PHASE7_STUDENTS_PLAN.md`): 29.1, 29.2, 29.4, 29.5, 29.13, 29.14 a
 29.3, 29.7 to 29.12, 29.15, 29.16 and 29.18 open. Phase 8, the knowledge cards and recipes
 (`PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md`): 30.7 to 30.11 built; 30.12 to 30.20 and Part G open. Phase 9, the learning
 loop (`PHASE9_LEARNING_LOOP_PLAN.md`): planned only, built after phases 6 to 8.
+
+**Lessons from MLE-bench (planned 2026-10-21, nothing built yet).** The leading agents on OpenAI's MLE-bench win by
+searching many solutions, remembering what worked and blending the best; packages 33.1 to 33.9 bring that into DCLab
+under its rules (honest selection under many attempts first, no leak kept for a medal, deterministic code owning the
+choice), with MLE-bench itself kept as 31.12's sealed exam. The plan: `MLE_BENCH_LESSONS_PLAN.md`; its place in the
+order is the owner's.
