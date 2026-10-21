@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any
 
 SKIP = (".ready-", ".jobs.", ".dclab_files.", ".retiring-")  # probes and temporary files, never part of a workspace
+SECRETS = (".env",)  # a settings file holds keys: never in a backup, wherever it was put
 
 
 class BackupError(RuntimeError):
@@ -102,7 +103,7 @@ def _files(home: Path) -> list[str]:
     for root, _, names in os.walk(home, followlinks=True):
         for name in names:
             path = Path(root) / name
-            if not name.startswith(SKIP) and path.is_file():
+            if not name.startswith(SKIP) and name not in SECRETS and path.is_file():
                 out.append(path.relative_to(home).as_posix())
     return sorted(out)
 

@@ -228,8 +228,15 @@ def tier(name: str) -> dict[str, Any]:
         standard = tier("standard")
         own_url = _env(name, "BASE_URL")
         base_url = own_url or standard["base_url"]
-        model = _env(name, "MODEL") or (_claude_model() if own_url and provider(own_url) == "anthropic" != standard["provider"] else standard["model"])
         same_host = not own_url or _host(own_url) == _host(standard["base_url"])
+        if _env(name, "MODEL"):
+            model = _env(name, "MODEL")
+        elif own_url and provider(own_url) == "anthropic" != standard["provider"]:
+            model = _claude_model()
+        elif not same_host:  # another server: never the standard tier's model name (a vendor's model sent to Ollama fails unreadably)
+            model = os.environ.get("DCLAB_INTERN_MODEL") or default_model(own_url)
+        else:
+            model = standard["model"]
         key = _env(name, "API_KEY") or (standard["api_key"] if same_host else "")
         if not key and provider(base_url) == "anthropic":
             key = os.environ.get("ANTHROPIC_API_KEY", "").strip()

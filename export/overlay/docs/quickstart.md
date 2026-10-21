@@ -13,7 +13,7 @@ dclab init
 ```
 
 It finds Ollama on your machine, or asks for an OpenAI-compatible URL and key, or a Claude key, and writes
-`~/.dclabai/.env`. Skip it to run every agent on its rules. Check the result with `dclab doctor`.
+`~/.config/dclabai/.env`. Skip it to run every agent on its rules. Check the result with `dclab doctor`.
 
 ## 3. Start the studio
 

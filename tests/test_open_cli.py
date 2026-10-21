@@ -18,7 +18,8 @@ from dclab_rnd.models import settings as model_settings
 from dclab_rnd.models.gateway import Gateway
 
 CLEAN = {k: "" for k in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL", "DCLAB_LLM_BASE_URL", "DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY",
-                         "ANTHROPIC_MODEL", "DCLAB_INTERN_MODEL", "DCLAB_TIER_STANDARD_MODEL", "DCLAB_TIER_STANDARD_BASE_URL")}
+                         "ANTHROPIC_MODEL", "DCLAB_INTERN_MODEL", "DCLAB_TIER_STANDARD_MODEL", "DCLAB_TIER_STANDARD_BASE_URL",
+                         "DCLAB_TIER_CHEAP_MODEL", "DCLAB_TIER_CHEAP_BASE_URL")}
 
 
 class Scripted:
@@ -47,7 +48,11 @@ class CliTest(unittest.TestCase):
         self.addCleanup(models.install, self.before)
 
     def use(self, replies):
-        models.install(Gateway(None, transport=lambda tier, purpose: Scripted(replies)))
+        gateway = Gateway(None, transport=lambda tier, purpose: Scripted(replies))
+        models.install(gateway)
+        patch = mock.patch("dclab_rnd.models.gateway.for_workspace", return_value=gateway)  # the doctor probes through the workspace's gateway
+        patch.start()
+        self.addCleanup(patch.stop)
 
     def run_cli(self, *argv):
         out = io.StringIO()
@@ -70,6 +75,21 @@ class CliTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("wrote the call as text", out)
         self.assertFalse(gates.passed("built_chat", self.home))
+
+    def test_a_failed_probe_after_a_passed_one_puts_the_agents_back_on_their_rules(self):  # the review of 2026-10-21
+        self.use([reply("OK"), reply(calls=[{"id": "c1", "name": "record_answer", "arguments": {"answer": 5}}])])
+        self.run_cli("doctor")
+        self.assertEqual(gates.why("built_chat", self.home), "model (probed)")
+        self.use([RuntimeError("APIConnectionError: connection refused")])
+        self.assertEqual(self.run_cli("doctor")[0], 1)
+        self.assertEqual(gates.why("built_chat", self.home), "rules")
+
+    def test_a_probe_holds_for_the_model_it_tried_only(self):
+        self.use([reply("OK"), reply(calls=[{"id": "c1", "name": "record_answer", "arguments": {"answer": 5}}])])
+        self.run_cli("doctor")
+        with mock.patch.dict(os.environ, {"OPENAI_MODEL": "another-model"}):
+            self.assertEqual(gates.why("built_chat", self.home), "rules")  # model B never serves on model A's probe
+        self.assertEqual(gates.read(self.home)["probe"]["model"], "a-model")
 
     def test_a_failing_endpoint_is_reported_with_its_reason_and_fails_the_doctor(self):
         self.use([RuntimeError("APIConnectionError: connection refused")])
@@ -112,6 +132,17 @@ class NeutralDefaultsTest(unittest.TestCase):
         self.assertEqual(tier["model"], "")
         self.assertFalse(tier["available"])
         self.assertFalse(tier["model_configured"])
+
+    def test_a_tier_on_another_server_never_inherits_the_standard_model(self):  # the review of 2026-10-21
+        with mock.patch.dict(os.environ, {**CLEAN, "OPENAI_API_KEY": "sk-x", "DCLAB_TIER_CHEAP_BASE_URL": "http://localhost:11434/v1"}):
+            cheap = model_settings.public("cheap")
+        self.assertEqual(cheap["model"], "")
+        self.assertFalse(cheap["available"])
+        with mock.patch.dict(os.environ, {**CLEAN, "OPENAI_API_KEY": "sk-x", "OPENAI_MODEL": "m1", "DCLAB_TIER_CHEAP_MODEL": "small",
+                                          "DCLAB_TIER_CHEAP_BASE_URL": "http://localhost:11434/v1"}):
+            self.assertEqual(model_settings.tier("cheap")["model"], "small")
+        with mock.patch.dict(os.environ, {**CLEAN, "OPENAI_API_KEY": "sk-x", "OPENAI_MODEL": "m1"}):
+            self.assertEqual(model_settings.tier("cheap")["model"], "m1")  # the same server: the standard model, as before
 
     def test_the_vendor_endpoint_keeps_its_default_model(self):
         with mock.patch.dict(os.environ, {**CLEAN, "OPENAI_API_KEY": "sk-x"}):

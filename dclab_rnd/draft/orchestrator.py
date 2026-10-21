@@ -1198,7 +1198,7 @@ class Orchestrator:
                 path = "model"
             except Exception as exc:  # noqa: BLE001 - the model failed or its cap was reached: the rules carry this turn
                 record["model_error"] = f"{type(exc).__name__}: {str(exc)[:300]}"
-                if t.shown or any(x["status"] != "failed" for x in t.tasks):  # tools ran this turn: say what they did; planning again would run a write twice
+                if t.tasks or t.shown:  # tools ran this turn (a refused cell was still written): say what they did; planning again would run a write twice
                     reply, path = self._rules_words(t), "model"
         if reply is None:
             reply = self.rules_turn(t, record)

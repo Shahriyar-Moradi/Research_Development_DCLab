@@ -569,6 +569,14 @@ class ModelTests(unittest.TestCase):
             new = chat.since("show the models")
         self.assertEqual(new[-1]["path"], "rules")
 
+    def test_a_refused_cell_and_a_failing_model_never_write_the_cell_twice(self):  # the review of 2026-10-21: the rules replanned the write
+        refused = {"id": "c1", "request": "plot", "code": "x = 1", "explanation": "", "problems": ["reads the holdout"], "status": "refused"}
+        with mock.patch("dclab_rnd.studio.notebook_agent.write", return_value=refused) as write:
+            chat = Chat(self, gateway([call("write_notebook_cell", {"request": "plot the confusion matrix"}, 1)]))  # then the script runs out
+            new = chat.since("plot the confusion matrix")
+        self.assertEqual(write.call_count, 1)
+        self.assertEqual(sum(1 for m in new if m["kind"] == "notebook_cell"), 1)
+
     def test_a_model_whose_every_tool_call_is_refused_leaves_the_turn_to_the_rules(self):  # found on a small local model (2026-10-21)
         chat = Chat(self, gateway([call("show_problem", {"answer": 5}, n) for n in range(1, 7)] + [answer("")]))
         new = chat.since("show me the models")

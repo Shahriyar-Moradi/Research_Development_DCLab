@@ -332,3 +332,14 @@ class ConnectionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BackupFilesTest(unittest.TestCase):
+    def test_a_settings_file_with_keys_is_never_part_of_a_backup(self):  # the review of 2026-10-21: dclab init once wrote it in the workspace
+        from dclab_rnd.storage import backup
+
+        home = Path(tempfile.mkdtemp())
+        (home / "projects").mkdir()
+        (home / "projects" / "p.json").write_text("{}", encoding="utf-8")
+        (home / ".env").write_text("OPENAI_API_KEY=sk-never\n", encoding="utf-8")
+        self.assertEqual(backup._files(home), ["projects/p.json"])

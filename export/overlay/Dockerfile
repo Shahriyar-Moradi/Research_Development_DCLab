@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && rm 
     && useradd --create-home --uid 10001 dclab && mkdir -p /workspace && chown dclab:dclab /workspace
 COPY --from=build /wheels /wheels
 RUN pip install --no-cache-dir --no-index --find-links /wheels "dclabai[notebook,postgres,anthropic,mcp]" && rm -rf /wheels
-ENV PYTHONUNBUFFERED=1 DCLAB_AGENT_HOME=/workspace DCLAB_CONFIG_DIR=/workspace/.config
+ENV PYTHONUNBUFFERED=1 DCLAB_AGENT_HOME=/workspace
 USER dclab
 WORKDIR /workspace
 EXPOSE 8765

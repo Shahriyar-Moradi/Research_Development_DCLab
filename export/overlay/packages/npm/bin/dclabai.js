@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // npx dclabai [command] [args]: runs the `dclab` command of the Python package dclabai (default command: start).
-// It uses uv (uvx) when it is installed, else pipx, else a virtual environment of its own in ~/.dclabai/venv
+// It uses uv (uvx) when it is installed, else pipx, else a virtual environment of its own in ~/.cache/dclabai/venv
 // (made on the first run with python3 -m venv, then pip install dclabai). Nothing else is downloaded.
 "use strict";
 const { spawnSync } = require("node:child_process");
@@ -33,7 +33,7 @@ function run(tool, toolArgs) {
 }
 
 function ownVenv() {
-  const home = process.env.DCLAB_CONFIG_DIR || path.join(os.homedir(), ".dclabai");
+  const home = process.env.DCLABAI_CACHE || path.join(process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache"), "dclabai");  // never the workspace
   const venv = path.join(home, "venv");
   const bin = process.platform === "win32" ? path.join(venv, "Scripts") : path.join(venv, "bin");
   const dclab = path.join(bin, process.platform === "win32" ? "dclab.exe" : "dclab");

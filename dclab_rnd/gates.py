@@ -5,7 +5,8 @@ has no sealed sets; there a role that acts through tools starts on its rules, an
 
 - ``DCLAB_AGENT_MODE=model`` (or ``rules``) says so for every role, or
 - the person trusted it: ``dclab models trust <role|all>`` writes ``gates.local.json`` in the workspace folder, or
-- ``dclab doctor``'s probe found the model calls tools natively (``"probe": {"tools": true}`` in the same file).
+- ``dclab doctor``'s probe found the model calls tools natively (``"probe": {"tools": true, "model": ..., "endpoint": ...}``
+  in the same file), for the model and endpoint configured now.
 
 Nothing here is a measurement: the studio shows each role as "model (probed)", "model (trusted by you)" or "rules".
 """
@@ -53,9 +54,21 @@ def why(role: str, home: Optional[Path] = None) -> str:
     trusted = set(doc.get("trusted") or [])
     if role in trusted or "all" in trusted:
         return "model (trusted by you)"
-    if (doc.get("probe") or {}).get("tools") is True:
-        return "model (probed)"
+    probe = doc.get("probe") or {}
+    if probe.get("tools") is True and probe.get("model") and {k: probe.get(k) for k in ("model", "endpoint")} == probed_as():
+        return "model (probed)"  # a probe holds for the model and endpoint it tried, never for the next one configured
     return "rules"
+
+
+def probed_as() -> dict[str, Any]:
+    """The model a probe is about: the standard tier's model and endpoint (never its key)."""
+    try:
+        from .models import settings as model_settings
+
+        tier = model_settings.public("standard")
+        return {"model": tier.get("model") or "", "endpoint": tier.get("endpoint") or ""}
+    except Exception:  # noqa: BLE001 - no model layer: nothing was probed
+        return {"model": "", "endpoint": ""}
 
 
 def passed(role: str, home: Optional[Path] = None) -> bool:
@@ -80,4 +93,4 @@ def record_probe(probe: dict[str, Any], home: Optional[Path] = None) -> dict[str
     return doc
 
 
-__all__ = ["ROLES", "passed", "why", "trust", "record_probe", "read"]
+__all__ = ["ROLES", "passed", "why", "trust", "record_probe", "read", "probed_as"]

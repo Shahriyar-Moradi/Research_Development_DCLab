@@ -10,7 +10,8 @@
     dclab worker                      a job worker of its own (for a server started with DCLAB_WORKER=external)
     dclab version
 
-Settings come from the environment, then `./.env`, then `~/.dclabai/.env` (what `dclab init` writes). A key is never printed.
+Settings come from the environment, then `./.env`, then `~/.config/dclabai/.env` (what `dclab init` writes, outside the
+workspace folder so a workspace backup never holds a key). A key is never printed.
 """
 
 from __future__ import annotations
@@ -29,7 +30,7 @@ from typing import Any, Optional
 
 from .extensions import PACKAGE
 
-CONFIG_DIR = Path(os.environ.get("DCLAB_CONFIG_DIR") or Path.home() / ".dclabai")
+CONFIG_DIR = Path(os.environ.get("DCLAB_CONFIG_DIR") or Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "dclabai")
 CONFIG_ENV = CONFIG_DIR / ".env"
 OLLAMA = "http://localhost:11434"
 TOOL_MODELS = ("qwen", "llama3.1", "llama3.2", "llama3.3", "mistral", "command-r", "firefunction", "hermes", "granite", "gpt-oss")
@@ -118,8 +119,10 @@ def _write_env(values: dict[str, str]) -> Path:
         model_keys = ("DCLAB_LLM_BASE_URL", "DCLAB_LLM_PROVIDER", "OPENAI_API_KEY", "OPENAI_MODEL", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL")
         keep = [line for line in CONFIG_ENV.read_text(encoding="utf-8").splitlines() if not line.split("=", 1)[0].strip() in model_keys]
     lines = keep + [f"{k}={v}" for k, v in values.items() if v]
-    CONFIG_ENV.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    os.chmod(CONFIG_ENV, 0o600)
+    fd = os.open(CONFIG_ENV, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)  # private from the first byte, never readable for a moment
+    with os.fdopen(fd, "w", encoding="utf-8") as out:
+        out.write("\n".join(lines) + "\n")
+    os.chmod(CONFIG_ENV, 0o600)  # a file that existed before keeps its old mode through os.open
     return CONFIG_ENV
 
 
@@ -160,9 +163,9 @@ PROBE_TOOL = {"type": "function", "function": {"name": "record_answer", "descrip
 
 def probe_model() -> dict[str, Any]:
     """A plain completion and one tool call through the gateway, the way the agents ask (a few tokens)."""
-    from .models import installed
+    from .models.gateway import for_workspace
 
-    gateway = installed()
+    gateway = for_workspace(_home())  # the workspace's own gateway: its usage log and routing, as the server's
     client = gateway.client("home_orchestrator")
     if client is None:
         return {"configured": False}
@@ -229,17 +232,18 @@ def doctor() -> int:
         else:
             print("  --  no model configured: every agent runs on its rules (`dclab init` to choose one)")
     else:
+        from . import gates
+
+        gates.record_probe({"tools": bool(probe.get("completion") and probe.get("tools")), "completion": bool(probe.get("completion")),
+                            "at": probe.get("at"), **gates.probed_as()}, home)  # every outcome: a failed probe never leaves an old pass
         line(bool(probe.get("completion")), f"the model answers ({probe.get('seconds', '?')} s)", probe.get("error") or "check the URL, key and model name")
         if not probe.get("completion"):
-            print("  --  tool-using agents: rules (until the model answers)")
+            print(f"  --  tool-using agents: {gates.why('built_chat', home)}")
             return 1
         tools = bool(probe.get("tools"))
         line(tools, "the model calls tools natively (the agents need it)",
              "choose a model with tool calling (for example qwen2.5 or llama3.1 on Ollama); "
              + ("it wrote the call as text instead" if probe.get("tools_as_text") else probe.get("tools_error") or "it answered without the tool"))
-        from . import gates
-
-        gates.record_probe({k: probe.get(k) for k in ("tools", "completion", "at")}, home)
         print(f"  --  tool-using agents: {gates.why('built_chat', home)}")
     return 0 if ok else 1
 
