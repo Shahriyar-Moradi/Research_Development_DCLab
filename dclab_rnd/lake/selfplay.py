@@ -150,6 +150,30 @@ def beats_chance(primary: str | None, metrics: dict[str, Any], baseline: dict[st
     return (metrics[primary] > chance) if primary and isinstance(chance, (int, float)) else None
 
 
+IDENTIFIER_REASONS = ("a different value on every row: an identifier", "an identifier in the solution")  # kinds/time_to_event.py, uplift.py
+
+
+def kept_out(run: Any, sol: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
+    """The columns a solve kept out of the model, as (forbidden with reasons, identifiers). A kind with its own machine
+    keeps its leaks out in its leakage stage, never in the Solution (forecasting's weather of the day, a survival table's
+    counts during the follow-up): its declared leaks are added with the machine's reasons, and a column the machine
+    keeps out as an identifier is an identifier, not a leak."""
+    forbidden = [{"column": f.get("column"), "reason": f.get("reason")} for f in sol.get("forbidden") or []]
+    identifiers = list(sol.get("identifiers") or [])
+    if not (run.records.get("leakage") or {}).get("machine"):
+        return forbidden, identifiers
+    leak = run.evidence("leakage")
+    why = leak.get("why") or {}
+    # the machines' own words for an identifier (a reason quoting the person's moment may hold the word elsewhere)
+    identifiers += [c for c in leak.get("kept_out") or [] if str(why.get(c) or "").endswith(IDENTIFIER_REASONS) and c not in identifiers]
+    have = {f["column"] for f in forbidden}
+    for c in leak.get("declared_leakage_features") or []:
+        if c not in have and c not in identifiers:
+            forbidden.append({"column": c, "reason": str(why.get(c) or "kept out by the kind's machine")})
+            have.add(c)
+    return forbidden, identifiers
+
+
 def examples_of(kind: Any, seed: int, case: Any, run: Any, checks: list[dict[str, Any]], masked: bool) -> list[L.TrainingExample]:
     """The families one verified solve teaches, in one naming variant."""
     columns, alias = _columns(case.table, case.target, masked, ((case.solution or {}).get("kind_fields") or {}).get("pixel_prefix"))
@@ -183,10 +207,11 @@ def examples_of(kind: Any, seed: int, case: Any, run: Any, checks: list[dict[str
     leak = run.evidence("leakage")
     signals = [{"column": rename(x.get("feature") or x.get("column")), **{k: x[k] for k in ("score", "metric", "auc", "value") if k in x}}
                for x in (leak.get("top_univariate_signals") or []) if isinstance(x, dict)][:8]
+    forbidden, identifiers = kept_out(run, sol)
     add("leakage_judgment", "Which columns must stay out of the model, and why?",
         {**base, "train_only_signals": signals, "note": "each column alone against the outcome, measured on training rows only"},
-        {"forbidden": [{"column": rename(f.get("column")), "reason": mask(f.get("reason"))[:300]} for f in sol.get("forbidden") or []],
-         "identifiers": [rename(c) for c in sol.get("identifiers") or []]})
+        {"forbidden": [{"column": rename(f.get("column")), "reason": mask(f.get("reason"))[:300]} for f in forbidden],
+         "identifiers": [rename(c) for c in identifiers]})
     add("split_design", "How should the rows be split so the evaluation is honest?", base,
         {"holdout": mask(data.get("holdout_split"))[:300],
          "time_column": rename(sol.get("time_column")), "group_column": rename(sol.get("group_column")),
@@ -202,8 +227,8 @@ def examples_of(kind: Any, seed: int, case: Any, run: Any, checks: list[dict[str
     workflow = [
         {"step": "split", "decision": {"holdout": mask(data.get("holdout_split"))[:300], "cross_validation": mask(data.get("cv_protocol"))[:200],
                                        "time_column": rename(sol.get("time_column")), "group_column": rename(sol.get("group_column"))}},
-        {"step": "leakage", "decision": {"forbidden": [rename(f.get("column")) for f in sol.get("forbidden") or []],
-                                         "identifiers": [rename(c) for c in sol.get("identifiers") or []]}},
+        {"step": "leakage", "decision": {"forbidden": [rename(f.get("column")) for f in forbidden],
+                                         "identifiers": [rename(c) for c in identifiers]}},
         {"step": "features", "decision": {"recipe": features.get("selected_recipe")}},
         {"step": "models", "decision": {"model": models.get("selected_model"), "selection_rule": mask(models.get("selection_rule"))[:200]}},
         {"step": "final", "decision": {"metric": final.get("metric"), "holdout_read_once": final.get("holdout_uses_in_this_project") == 1}},

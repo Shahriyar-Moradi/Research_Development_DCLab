@@ -119,6 +119,33 @@ class SelfplayKindsTests(unittest.TestCase):
         self.assertTrue(p["outcome_named"])
         self.assertEqual(p["request"], "Solve the invented ranking problem (seed 0): its outcome and its prediction moment are stated.")
 
+    def check_machine_leaks_taught(self, key: str, leaks: list[str], identifier: str | None) -> None:
+        """A kind with its own machine keeps its planted leak out in its leakage stage, not in the Solution: the examples
+        must say so (they said ``forbidden: []`` on every forecasting solve)."""
+        self.solve_one(key)
+        got = self.P.examples()
+        plain = [e for e in got if "col_01" not in e.messages[1]["content"]]
+        leakage = json.loads(next(e for e in plain if e.family == "leakage_judgment").messages[2]["content"])
+        forbidden = {f["column"]: f["reason"] for f in leakage["forbidden"]}
+        self.assertLessEqual(set(leaks), set(forbidden), leakage)
+        self.assertTrue(all(forbidden[c] for c in leaks))  # each with the machine's reason
+        if identifier:
+            self.assertNotIn(identifier, forbidden)  # an identifier is not a leak
+            self.assertIn(identifier, leakage["identifiers"])
+        workflow = json.loads(next(e for e in plain if e.family == "solution_design").messages[2]["content"])["workflow"]
+        step = next(s["decision"] for s in workflow if s["step"] == "leakage")
+        self.assertLessEqual(set(leaks), set(step["forbidden"]))
+        masked = [e for e in got if e.family == "leakage_judgment" and "col_01" in e.messages[1]["content"]]
+        self.assertTrue(masked)
+        for e in masked:  # the masked twin names no column, not even in the machine's reasons
+            self.assertFalse([c for c in leaks if c in e.messages[2]["content"]])
+
+    def test_forecasting_examples_keep_its_planted_leak_out(self):
+        self.check_machine_leaks_taught("forecasting", ["rain_mm"], None)
+
+    def test_time_to_event_examples_keep_both_planted_leaks_out_and_its_identifier_apart(self):
+        self.check_machine_leaks_taught("time_to_event", ["months_billed", "tickets_so_far"], "subscriber_id")
+
     def test_the_benchmark_reads_an_image_solves_truth(self):
         from dclab_rnd.lake import benchmark
 

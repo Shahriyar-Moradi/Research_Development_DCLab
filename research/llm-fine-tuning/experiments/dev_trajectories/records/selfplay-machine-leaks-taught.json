@@ -1,0 +1,116 @@
+{
+ "package": "selfplay-machine-leaks-taught",
+ "title": "Self-play's leakage examples say what a kind's own machine kept out: forecasting and time to event taught that their planted leaks were allowed",
+ "date": "2026-10-22",
+ "request": "Fix the false leakage examples of own-machine kinds: forecasting's leakage examples said nothing was forbidden while its machine keeps the planted leak out.",
+ "spec": "dclab_rnd/lake/selfplay.py (examples_of: leakage_judgment and the solution_design leakage step); the machines' leakage stages in dclab_rnd/kinds/forecasting.py, time_to_event.py, uplift.py, embedded.py.",
+ "plan": [
+  "Count, on the stored examples, which kinds' leakage answers miss a leak or an identifier their replica planted.",
+  "Read each machine's leakage stage: what kept_out, declared_leakage_features and why mean there.",
+  "Failing test on forecasting and time to event; then add the machine's declared leaks to the answer.",
+  "Check the other machine kinds' examples stay the same."
+ ],
+ "decisions": [
+  {
+   "decision": "Add the machine's declared_leakage_features, not its kept_out.",
+   "why": "kept_out means different things per machine: the embedded machine lists every column it does not read, which is not a leak; declared_leakage_features is each machine's own list of leaks."
+  },
+  {
+   "decision": "A kept-out column whose reason says identifier goes to identifiers.",
+   "why": "The survival and uplift machines put identifiers into the same kept-out list; calling an identifier a leak would teach another false answer."
+  },
+  {
+   "decision": "Runs without a machine are unchanged.",
+   "why": "Their Solution's forbidden list is the engine's decision, and the count found their examples right."
+  },
+  {
+   "decision": "The stored examples are not solved again here.",
+   "why": "It replaces training data in the lake; the owner decides when, with the command given."
+  }
+ ],
+ "change": "dclab_rnd/lake/selfplay.py (kept_out, used by both leakage families of examples_of), tests/test_selfplay_kinds.py",
+ "findings": [
+  {
+   "id": "L1",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "Every forecasting leakage example said forbidden is empty while rain_mm, the day's weather, is a planted leak its machine keeps out.",
+   "scenario": "lake/bronze/selfplay/examples.jsonl, selfplay:forecasting:0: forbidden [] on a table with rain_mm.",
+   "cause": "examples_of read the Solution's forbidden list; a machine keeps its leaks in its leakage stage.",
+   "fix": "kept_out() adds the machine's declared leaks with its reasons.",
+   "test": "test_forecasting_examples_keep_its_planted_leak_out"
+  },
+  {
+   "id": "L2",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "Every time-to-event leakage example left out tickets_so_far, counted during the follow-up.",
+   "scenario": "selfplay:time_to_event:0: forbidden months_billed and cancelled, not tickets_so_far.",
+   "cause": "The same: the survival machine keeps it out, the Solution does not name it.",
+   "fix": "The same, with an identifier the machine keeps out sent to identifiers.",
+   "test": "test_time_to_event_examples_keep_both_planted_leaks_out_and_its_identifier_apart"
+  },
+  {
+   "id": "L3",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The lake benchmark's truth reads leak and leaks but not leaky_columns, so multiclass and regression leaks are never scored there.",
+   "scenario": "benchmark.truth on a multiclass row gives no planted leak while its replica plants resolved_by and first_response_minutes.",
+   "cause": "Replicas name their leaks under different keys.",
+   "fix": "Not fixed here: a follow-up.",
+   "test": "none yet"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A kept-out column was called an identifier when its reason held the word anywhere.",
+   "scenario": "A moment sentence quoting the word identifier makes a leak's reason match, so the leak is filed as an identifier.",
+   "cause": "A substring test on the machine's reason text.",
+   "fix": "Match only the machines' own identifier reasons (IDENTIFIER_REASONS).",
+   "test": "test_time_to_event_examples_keep_both_planted_leaks_out_and_its_identifier_apart"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "false leakage examples in the stored lake",
+   "gate": "every leakage example keeps its replica's planted leaks and identifiers out",
+   "result": "forecasting 100 of 100 and time_to_event 93 of 93 unmasked examples miss their leak; every other kind none",
+   "verdict": "fail",
+   "cost_eur": 0.0,
+   "limits": [
+    "measured on the unmasked variant; the masked twin carries the same answer",
+    "the stored examples stay false until the two kinds are solved again"
+   ]
+  },
+  {
+   "name": "new solves after the fix",
+   "gate": "the planted leaks in forbidden with the machine's reason, identifiers apart, other kinds unchanged",
+   "result": "forecasting and time_to_event tests pass; uplift, embedded and embedded_images give the same leakage example as stored; time_to_event gains only tickets_so_far",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "checked on one seed per kind"
+   ]
+  },
+  {
+   "name": "affected tests",
+   "gate": "every affected test file passes",
+   "result": "130 tests in 9 files pass",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the full gate was not run: the owner's daytime rule is one test, and check-quick ran earlier the same day"
+   ]
+  }
+ ],
+ "outcome": "New self-play solves teach that a machine kind's planted leak stays out; the stored forecasting and time-to-event examples still need solving again.",
+ "lessons": [
+  "Before turning a run into an answer, read where that kind records the decision: a machine keeps it in its own stage, not in the Solution.",
+  "Measure training data against the planted truth before trusting it: a count over the stored lake found two kinds false on every row."
+ ],
+ "risks": [
+  "A machine that words an identifier in a new way would see it called a leak until IDENTIFIER_REASONS names it."
+ ],
+ "commits": []
+}
