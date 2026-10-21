@@ -23,7 +23,9 @@
     <nav id="nav" aria-label="Main"></nav>
     <div class="side-foot">
       <div class="nav-label">Preview</div>
+      <!-- dclab:closed-begin  (the blueprint layer: the full edition's planning view) -->
       <label class="nav-item switch-item" title="Outline every feature as built, partial, to build or research"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg><span>Blueprint layer</span><span class="switch"><input type="checkbox" id="bp-switch"><span class="track"></span></span></label>
+      <!-- dclab:closed-end -->
       <button type="button" class="nav-item" id="side-tours"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 10 4l4 10 2-4 4 10"/></svg><span>Guided tours</span></button>
     </div>
   </aside>
@@ -218,10 +220,12 @@
       <div class="panel-body"><div class="grid g2" id="home-und-fields"></div></div>
     </div>
 
+    <!-- dclab:closed-begin  (the understanding team: the full edition's) -->
     <div class="panel" id="home-team" hidden data-f="home.team">
       <div class="panel-head"><div class="panel-title"><h2>The team</h2><span class="sub">The understanding team walks this draft step by step, and stops only to ask you: a question, a confirmation, or leave to build.</span></div><button type="button" class="btn sm" id="home-team-go">Walk with the team</button></div>
       <div class="panel-body"><div id="home-team-board" class="stack"></div></div>
     </div>
+    <!-- dclab:closed-end -->
 
     <div class="grid g-chat" id="home-lanes">
     <div class="panel" id="home-chat" hidden data-f="home.chat">

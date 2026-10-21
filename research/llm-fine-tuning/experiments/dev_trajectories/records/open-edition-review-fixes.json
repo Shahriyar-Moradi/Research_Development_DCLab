@@ -1,0 +1,168 @@
+{
+ "package": "open-edition-review-fixes",
+ "title": "The open edition's review fixes: the install note, pages left out, the reader's status, the team panel, and text that carries a synthetic target",
+ "date": "2026-10-21",
+ "request": "Check the whole open edition as a person installs and runs it; then (owner) include the README install fix, the Blueprint link, the reader status, the team call and the synthetic-text fix in the same public update as pandas 3.",
+ "spec": "The review of 2026-10-21 on the installed public package (Claude Sonnet 5.5 and no model): an Intern run, 17 pages, the server log, the CLI and the five product flows.",
+ "plan": [
+  "Run the person's path: install from GitHub, dclab init, dclab start, an Intern run on a synthetic sentiment table, every page, the flows on a throwaway studio.",
+  "Fix each finding in the private source, stripped or kept by the export's closed blocks so the full edition does not change.",
+  "Export, check the stripped pages parse and show nothing private, then run the gates."
+ ],
+ "decisions": [
+  {
+   "decision": "Leave the team panel and the blueprint layer out of the open edition with closed blocks, not a runtime edition check.",
+   "why": "The repository already strips the full edition's pages this way (Admin's Teams tab); the full edition keeps its behaviour byte for byte."
+  },
+  {
+   "decision": "A text column carries a synthetic effect through the words its sentences contain (\"col=word\"), not through per-class sentence templates.",
+   "why": "It keeps the one linear predictor every other column type uses, needs no class semantics, and a spec without text effects draws the same rows as before."
+  },
+  {
+   "decision": "The README says the package is not released and installs from GitHub into its own environment.",
+   "why": "pip, npm and the image all returned 404; installing into a shared environment downgraded the owner's pandas 3 to 2.3.3."
+  },
+  {
+   "decision": "dclab models status prints gates.status(), the Models page's rows.",
+   "why": "The command printed the probe while the page printed what serves; one source keeps them equal."
+  },
+  {
+   "decision": "Text effects match whole words, in any case.",
+   "why": "A part of a word marks unrelated sentences and can turn an effect into a constant; the prompt and the docs say word."
+  }
+ ],
+ "change": "export/overlay/README.md and docs/quickstart.md (install, keys in the shell), export/overlay/pyproject.toml (pandas>=2.0,<4), export/overlay/.github/workflows/ci.yml (a pandas 2 job), dclab_rnd/agentic/web/src/core.js and shell.html (the blueprint layer and the research pages closed), views/home.html (the team panel closed), dclab_rnd/gates.py and open_cli.py (the reader's reason), dclab_rnd/draft/synthetic.py and prompts/synthetic_schema.md (text effects), tests/test_open_cli.py, tests/test_draft_synthetic.py, static/app rebuilt.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A synthetic sentiment table scored at chance (holdout macro-F1 0.358, chance 0.333).",
+   "scenario": "Home's model designed a 3-class sentiment table; comments reading 'Reported a problem with ...' were positive 30% of the time, like every other comment.",
+   "cause": "Text columns could not carry effects: their sentences were drawn apart from the target.",
+   "fix": "Text effects \"col=word\" (1 when the sentence contains the word, a topic or a template word); the prompt tells the model to use them when the outcome depends on what a text says.",
+   "test": "tests/test_draft_synthetic.py: test_a_text_column_carries_the_target_only_through_its_effects, test_a_text_effect_names_a_word_its_text_contains"
+  },
+  {
+   "id": "R2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The team panel showed on every Home draft in the open edition, its button could only fail, and each draft asked /api/drafts/{id}/team for a 404.",
+   "scenario": "Open Home, describe a problem: 'The team' panel with 'Walk with the team'.",
+   "cause": "The understanding team is the full edition's (closed on the server), but its panel and calls were not closed in the page.",
+   "fix": "Closed blocks around the panel, its show/hide line, its loader and its click handler.",
+   "test": "the export's home.js and core.js parse (node --check); a draft in the exported studio shows no panel and sends no /team request (browser)"
+  },
+  {
+   "id": "R3",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The 'Blueprint layer' switch and the command palette opened an empty blueprint and the private research pages (Research lab, Benchmark, Policy model) as blank pages.",
+   "scenario": "Turn on 'Blueprint layer' in the sidebar, or press Cmd-K and pick 'Research lab'.",
+   "cause": "Their views are left out of the export, but the switch, the palette action and the pages' entries in VIEW_META were not.",
+   "fix": "Closed blocks around those entries, the switch, its listener, its restore and the tour's last sentence; a hash for a page left out falls back to Home.",
+   "test": "browser on the export: the sidebar foot shows only Guided tours; 62 palette entries, none private; #lab shows Home"
+  },
+  {
+   "id": "R4",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The Models page said 'rules' for Home's conversation reader with the reason 'model (probed)', and dclab models status said 'model (probed)'.",
+   "scenario": "dclab doctor passes the probe; DCLAB_CONVERSATION_READER is unset.",
+   "cause": "status() took the probe's reason even when the reader's own switch was off; the command printed why() alone.",
+   "fix": "The switched-off reason first; a reason never says model when the rules serve; the command prints status().",
+   "test": "tests/test_open_cli.py: test_a_reader_switched_off_says_so_on_the_page_and_in_the_command"
+  },
+  {
+   "id": "R5",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The README offered pip, npx and Docker installs that all fail (404), and its commands carried '# or: ...' comments that zsh passes to pip as package names.",
+   "scenario": "Paste the README's first block into zsh: 'Invalid requirement: #'.",
+   "cause": "The README was written for after the release; zsh does not treat # as a comment at an interactive prompt.",
+   "fix": "A not-released note, the GitHub install in its own venv, one command per block with no trailing comment; the docs say a key already in the shell is used when init chose no model.",
+   "test": "read through; the next public CI installs the same way"
+  },
+  {
+   "id": "V1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The map roles were shown as served by the model while their switch was off and the rules drew the map.",
+   "scenario": "A model configured, DCLAB_MAP_ROLES unset, dclab models trust all: status() said ('map_roles', 'model', 'model (trusted by you)') while draft.map.advisor_for returned None.",
+   "cause": "status() asked roles_passed() alone; the product asks switched_on() and roles_passed().",
+   "fix": "The map roles' switch is asked like the reader's, with its own reason; docs/models.md names both switches.",
+   "test": "tests/test_open_cli.py: test_a_reader_switched_off_says_so_on_the_page_and_in_the_command (both roles)"
+  },
+  {
+   "id": "V2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A text effect matched parts of words: note=on marked 56% of rows (Mentioned, comment on), and topics app / apple pie / happy path with note=app marked every row, a constant.",
+   "scenario": "Default topics, 5000 rows, effects {\"note=on\": 1}.",
+   "cause": "Plain substring matching in the check and the feature; TEMPLATE_WORDS also kept doubled spaces ('mentioned  and') that no sentence contains.",
+   "fix": "One whole-word matcher (no word character on either side) for the check and the feature; TEMPLATE_WORDS are the pieces between the topics.",
+   "test": "tests/test_draft_synthetic.py: test_a_text_effect_marks_whole_words_only, test_a_text_effect_names_a_word_its_text_contains"
+  },
+  {
+   "id": "G1",
+   "source": "test",
+   "severity": "latent",
+   "defect": "The plugin test failed on PostgreSQL: TypeError 'function' object is not iterable inside alembic.",
+   "scenario": "make check-all: test_plugins.py passes on files and fails in the PostgreSQL pass.",
+   "cause": "The test replaced importlib.metadata.entry_points for every caller; on PostgreSQL the studio imports alembic while the patch is on, and alembic's own plugin group got the test's fake list.",
+   "fix": "The fake list answers only the studio's plugin group; every other group gets the real entry points.",
+   "test": "tests/test_plugins.py on files and with DCLAB_DATABASE_URL set"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the open suite on pandas 3.0.6 (export of 878e3295)",
+   "gate": "every file passes",
+   "result": "98 of 98 files passed",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "run while other sessions' jobs shared the machine: file times are not comparable"
+   ]
+  },
+  {
+   "name": "the product flows on the installed public package",
+   "gate": "every flow passes, no model",
+   "result": "upload (roc_auc 0.849, 0.808 to 0.883), no-data, synthetic, log-file pass; upload-team skipped in this edition",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "quick mode, one holdout"
+   ]
+  },
+  {
+   "name": "the export with these fixes",
+   "gate": "0 findings, the stripped pages parse",
+   "result": "637 files, 70 closed blocks, 0 findings; core.js and home.js pass node --check",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": []
+  },
+  {
+   "name": "the owner's Intern run on Claude Sonnet 5.5",
+   "gate": "the run completes and reports honestly",
+   "result": "14 steps, no error; the report said the model was near chance and not to deploy it",
+   "verdict": "pass",
+   "cost_eur": 0.23,
+   "limits": [
+    "one run"
+   ]
+  }
+ ],
+ "outcome": "The five findings are fixed in the private source; the open edition no longer shows the full edition's team, blueprint or research pages, the reader's status agrees everywhere, synthetic text can carry its target, and the README installs what exists today.",
+ "lessons": [
+  "A page left out of an edition must take every way in with it: the menu, the palette, a switch, a saved setting and a tour's sentence.",
+  "A synthetic table whose text cannot carry the target makes every text task look broken; the generator must let what a column says matter when the problem is about what it says.",
+  "A README written for after a release is wrong until the release: say what works today first."
+ ],
+ "risks": [
+  "The engine models text only for binary targets: a multiclass sentiment problem still treats text as categories (left for v0.2).",
+  "With no model chosen in dclab init, an OPENAI_API_KEY in the shell is still used; the docs now say so, the behaviour is unchanged."
+ ],
+ "commits": []
+}

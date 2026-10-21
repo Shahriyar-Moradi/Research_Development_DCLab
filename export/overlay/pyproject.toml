@@ -19,7 +19,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.26",
-    "pandas>=2.0,<3",  # tested on 2.x; pandas 3 (copy-on-write, a string dtype) is not supported yet
+    "pandas>=2.0,<4",  # tested on 2.x and 3.x (CI runs both)
     "scikit-learn>=1.5",
     "lightgbm>=4.4",
     "xgboost-cpu>=2.1; sys_platform != 'darwin'",  # the CPU build (no NVIDIA libraries); it has wheels for Linux and Windows only

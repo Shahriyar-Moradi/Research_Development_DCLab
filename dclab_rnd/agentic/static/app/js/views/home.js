@@ -142,7 +142,9 @@ DC.view('home', {
       $('#home-solution', el).hidden = !on;
       $('#home-chat', el).hidden = !on;
       $('#home-understand', el).hidden = !on;
+      // dclab:closed-begin  (the understanding team: the full edition's)
       $('#home-team', el).hidden = !on;
+      // dclab:closed-end
       if (!on) { $('#home-twin', el).hidden = true; $('#home-lanes', el).className = 'stack'; }
     }
     const CHATS = ['open', 'built'];  // a built project's chat stays open: the person reads it and goes on
@@ -175,8 +177,11 @@ DC.view('home', {
       updateDataPill();
       drawUnderstanding(draft);
       loadTwin();
+      // dclab:closed-begin  (the understanding team: the full edition's)
       loadTeam();
+      // dclab:closed-end
     }
+    // dclab:closed-begin  (the understanding team: the full edition's)
     // 28.8: the team's walk: its board and the pause it waits on, read without running; a step only when the person asks
     async function loadTeam() {
       const box = $('#home-team-board', el);
@@ -227,6 +232,7 @@ DC.view('home', {
       }
       catch (e) { DC.states.failed(box, e, { lead: 'The team could not go on: ', retry: loadTeam }); }
     }
+    // dclab:closed-end
     async function resume(id) {
       try { const d = await DC.client.readDraft(id, { quiet: true }); if (CHATS.includes(d.status)) { remember(d.id); openDraft(d); return true; } }
       catch (e) { if (e.status !== 404) return false; }  // a slow or failed read keeps the draft remembered; only a draft that is gone is forgotten
@@ -1019,7 +1025,9 @@ DC.view('home', {
       b.disabled = on; b.textContent = on ? 'Building…' : (S.draft && S.draft.project_id ? 'Open the project' : 'Build this chat as a project');
     }
     $('#home-create', el).addEventListener('click', build);
+    // dclab:closed-begin  (the understanding team: the full edition's)
     $('#home-team-go', el).addEventListener('click', () => teamStep({}));  // 28.8: start the walk (a walk already waiting answers with its pause)
+    // dclab:closed-end
     /* The header's "New project from chat" (the owner, 2026-10-16: a completely new project, never the old chat): the open
        conversation is put away (it stays in Projects and Needs you, to resume from there), the box is cleared and focused,
        and the page says what comes next */

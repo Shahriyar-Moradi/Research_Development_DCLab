@@ -17,7 +17,10 @@ How the target is made
   "per standard deviation";
 - boolean columns (key ``"col"``, or ``"col=true"`` / ``"col=false"``) enter as 0/1;
 - categorical columns take one key per value, ``"col=value"``, entering as a 0/1 indicator;
-- id, text and datetime columns cannot carry effects.
+- text columns take one key per word, ``"col=word"``: 1 when the row's text contains the word (any case), a word of
+  its categories or of the sentence templates ("problem", "positive comment"...). Without one, a text column's words
+  say nothing about the target (a review's sentiment drawn apart from what it says);
+- id and datetime columns cannot carry effects.
 
 *Binary*: a latent logistic model, positive when ``eta / noise + e > t`` with ``e ~ Logistic(0, 1)``.
 With ``positive_rate`` set, the threshold ``t`` (minus the intercept) is solved on the sample itself: the
@@ -69,7 +72,7 @@ DIST_PARAMS: dict[str, tuple[str, ...]] = {
 }
 CLIP_KEYS = ("clip_min", "clip_max")
 NUMERIC_TYPES = ("numeric", "integer")
-EFFECT_TYPES = ("numeric", "integer", "boolean", "categorical")
+EFFECT_TYPES = ("numeric", "integer", "boolean", "categorical", "text")
 TRUE_WORDS, FALSE_WORDS = {"true", "yes", "1"}, {"false", "no", "0"}
 DATE_ONLY = re.compile(r"\d{4}-\d{2}-\d{2}")
 DEFAULT_START, DEFAULT_END = "2024-01-01", "2024-12-31"
@@ -77,6 +80,20 @@ DEFAULT_VOCAB = ("billing", "delivery", "pricing", "support", "the app", "the co
                  "an account change", "a refund", "the website")
 TEXT_TEMPLATES = ("Asked about {a}.", "Reported a problem with {a}.", "Mentioned {a} and {b}.",
                   "Follow-up on {a}.", "Positive comment on {a}.", "Requested a change to {a} after {b}.")
+# the templates' fixed words, between the topics: "reported a problem with", "mentioned", "and", ...
+TEMPLATE_WORDS = tuple(dict.fromkeys(piece.strip(" .").lower() for t in TEXT_TEMPLATES for piece in re.split(r"\{[ab]\}", t)
+                                     if piece.strip(" .")))
+
+
+def _word_pattern(word: str) -> re.Pattern:
+    """Whole words only, in any case: "on" finds "Follow-up on", never "Mentioned"."""
+    return re.compile(rf"(?<!\w){re.escape(word.strip())}(?!\w)", re.IGNORECASE)
+
+
+def _text_word_appears(column: "ColumnSpec", word: str) -> bool:
+    """Whether a text column's generated sentences can contain ``word`` as whole words: in its categories or a template."""
+    found = _word_pattern(word)
+    return any(found.search(part) for part in (*(column.categories or DEFAULT_VOCAB), *TEMPLATE_WORDS))
 
 
 def _timestamp(value: str, where: str) -> pd.Timestamp:
@@ -309,8 +326,16 @@ def _resolve_effect(key: str, by_name: dict[str, ColumnSpec]) -> tuple[ColumnSpe
     else:
         raise ValueError(f"Effect {key!r} names no column in the spec (use \"column\" or \"column=value\")")
     if column.type not in EFFECT_TYPES:
-        raise ValueError(f"Effect {key!r} is on the {column.type} column {column.name!r}: effects can use numeric, integer, boolean "
-                         "or categorical columns only")
+        raise ValueError(f"Effect {key!r} is on the {column.type} column {column.name!r}: effects can use numeric, integer, boolean, "
+                         "categorical or text columns only")
+    if column.type == "text":
+        if not value:
+            raise ValueError(f"Effect {key!r} is on the text column {column.name!r}: use one key per word its text contains, "
+                             f"like \"{column.name}=problem\"")
+        if not _text_word_appears(column, value):
+            raise ValueError(f"Effect {key!r}: {value!r} never appears in {column.name!r}; use a word of its categories or of "
+                             f"its sentences ({', '.join(TEMPLATE_WORDS)})")
+        return column, value
     if column.type == "categorical":
         if value is None:
             raise ValueError(f"Effect {key!r} is on the categorical column {column.name!r}: use one key per value, "
@@ -460,6 +485,9 @@ def _effect_feature(column: ColumnSpec, value: str | None, values: np.ndarray) -
         if value is not None and value.lower() in FALSE_WORDS:
             flags = ~flags
         return flags.astype(float)
+    if column.type == "text":
+        found = _word_pattern(value)  # the same whole-word rule the spec was checked with
+        return np.fromiter((found.search(str(v)) is not None for v in values), dtype=float, count=len(values))
     return (values == value).astype(float)
 
 

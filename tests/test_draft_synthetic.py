@@ -106,10 +106,32 @@ class ValidationTests(unittest.TestCase):
     def test_unknown_effect_column(self):
         self.assert_rejected(with_target(effects={"income": 1.0}), "names no column")
 
-    def test_effects_on_id_text_datetime_columns(self):
-        for key in ("row_id", "note", "when"):
+    def test_effects_on_id_and_datetime_columns(self):
+        for key in ("row_id", "when"):
             with self.subTest(key=key):
                 self.assert_rejected(with_target(effects={key: 1.0}), "effects can use numeric")
+
+    def test_a_text_effect_names_a_word_its_text_contains(self):  # the review of 2026-10-21
+        self.assert_rejected(with_target(effects={"note": 1.0}), "one key per word", "note=problem")
+        self.assert_rejected(with_target(effects={"note=refund policy": 1.0}), "never appears in 'note'", "reported a problem with")
+        for word in ("problem", "Positive comment", "billing", "the app"):  # a sentence's words, a topic, in any case
+            with self.subTest(word=word):
+                syn.SyntheticSpec.model_validate(with_target(effects={f"note={word}": 1.0}))
+        for part in ("men", "rob", "pp", "note="):  # a part of a word is not a word ("men" in "Mentioned"), nor is nothing
+            with self.subTest(part=part):
+                self.assert_rejected(with_target(effects={f"note={part}" if part != "note=" else part: 1.0}), "note")
+        self.assertNotIn("mentioned  and", syn.TEMPLATE_WORDS)  # pieces between the topics, no doubled spaces
+        self.assertIn("mentioned", syn.TEMPLATE_WORDS)
+
+    def test_a_text_effect_marks_whole_words_only(self):  # the review of 2026-10-21: "on" marked "Mentioned" too
+        data = with_column(7, categories=["app", "apple pie", "happy path"])
+        data["target"] = {"name": "y", "type": "regression", "noise": 0.0001, "effects": {"note=app": 10.0, "note=on": 1.0}}
+        frame = syn.generate(syn.SyntheticSpec.model_validate({**data, "rows": 3000}))
+        app = frame["note"].str.contains(r"(?<!\w)app(?!\w)", regex=True)
+        on = frame["note"].str.contains(r"(?<!\w)on(?!\w)", regex=True)
+        self.assertTrue(0.2 < app.mean() < 0.8)  # "apple pie" and "happy path" alone do not count
+        rest = frame["y"] - (10.0 * app + 1.0 * on)  # y = base + the two whole-word effects + tiny noise
+        self.assertLess(rest.std(), 0.01)
 
     def test_categorical_effect_needs_a_known_value(self):
         self.assert_rejected(with_target(effects={"plan": 1.0}), "plan=basic")
@@ -223,6 +245,22 @@ class GenerationTests(unittest.TestCase):
         high = frame["x"] > frame["x"].median()
         self.assertGreater(index[high].mean(), index[~high].mean() + 0.3)
         self.assertEqual(set(frame["tier"]), {"low", "mid", "high"})
+
+    def test_a_text_column_carries_the_target_only_through_its_effects(self):  # the review of 2026-10-21: sentiment at chance
+        def sentiment(effects):
+            data = spec_dict(rows=20_000, target={"name": "sentiment", "type": "multiclass", "classes": ["negative", "neutral", "positive"],
+                                                  "effects": effects})
+            frame = syn.generate(syn.SyntheticSpec.model_validate(data))
+            return frame, frame["sentiment"].map({"negative": 0, "neutral": 1, "positive": 2})
+
+        frame, index = sentiment({"note=positive comment": 3.0, "note=problem": -3.0})
+        praise, problem = frame["note"].str.contains("Positive comment"), frame["note"].str.contains("problem")
+        self.assertGreater(index[praise].mean(), index[problem].mean() + 0.8)  # the words now say which way the class goes
+        self.assertGreater((frame.loc[praise, "sentiment"] == "positive").mean(), 0.5)
+
+        frame, index = sentiment({"x": 1.0})  # no text effect: the sentences say nothing, as before
+        praise, problem = frame["note"].str.contains("Positive comment"), frame["note"].str.contains("problem")
+        self.assertAlmostEqual(index[praise].mean(), index[problem].mean(), delta=0.08)
 
     def test_null_rate_respected_and_target_uses_clean_values(self):
         data = spec_dict(rows=5000, target={"name": "y", "type": "regression", "noise": 0, "effects": {"x": 2.0}})

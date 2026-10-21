@@ -31,8 +31,9 @@ OPENAI_MODEL=your-model-name
 
 ## Claude
 
+The `[all]` install includes Claude's library. Then set (or answer `dclab init`'s questions):
+
 ```bash
-pip install "dclabai[anthropic]"
 DCLAB_LLM_PROVIDER=anthropic
 ANTHROPIC_API_KEY=...
 ANTHROPIC_MODEL=your-claude-model
@@ -49,5 +50,6 @@ Purposes are grouped into tiers (`cheap`, `standard`, `strong`); each can point 
 ## Which agents use the model
 
 An agent that acts through tools starts on its rules until your model passes `dclab doctor`'s tool-calling probe, or until
-you trust it (`dclab models trust all`). The studio shows, for each agent, whether it runs on your model (probed or trusted)
-or on its rules.
+you trust it (`dclab models trust all`). Two of them also stay off until you switch them on: Home's conversation reader
+(`DCLAB_CONVERSATION_READER=1`) and the problem map's roles (`DCLAB_MAP_ROLES=1`). The studio (Admin, Models) and
+`dclab models status` show, for each agent, whether it runs on your model (probed or trusted) or on its rules, and why.

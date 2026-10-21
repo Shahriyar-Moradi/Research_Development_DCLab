@@ -67,9 +67,19 @@
    "limits": [
     "the affected files only; the whole suites are run next"
    ]
+  },
+  {
+   "name": "the open edition's whole suite (98 test files) on pandas 3.0.6",
+   "gate": "every file passes",
+   "result": "98 of 98 files passed",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "other sessions' jobs shared the machine, so file times are not comparable"
+   ]
   }
  ],
- "outcome": "The failing files pass on pandas 3 and pandas 2; the full suites decide whether the open edition's pandas<3 cap can go.",
+ "outcome": "The open edition's suite passes on pandas 3 (98 of 98 files) and the affected files on pandas 2; the open edition's dependency becomes pandas>=2.0,<4, with a CI job pinning pandas 2.",
  "lessons": [
   "A dtype check is a claim about the library's version: ask what you mean (is it text?) through one helper.",
   "A parser that changes from 'missing' to 'a guess' fails silently; test the missing case, not only the read one."

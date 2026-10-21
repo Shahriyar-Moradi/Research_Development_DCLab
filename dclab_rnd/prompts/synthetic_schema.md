@@ -9,12 +9,12 @@ column = {"name": str (1-60 chars, unique), "type": "numeric"|"integer"|"categor
   categorical: "categories": [2-50 strings], optional "weights": [same length]
   boolean: "p_true": 0-1
   datetime: "start", "end": ISO dates, start before end
-  text: optional "categories" as topic words; id: nothing else}
+  text: optional "categories" as topic words, each row a sentence such as "Reported a problem with <topic>." or "Positive comment on <topic>."; id: nothing else}
 
 target = {"name": str (not a column name), "type": "binary"|"multiclass"|"regression", "description": str,
   "classes": binary: two labels, negative first; multiclass: 3-20 labels (positive weights push toward later classes),
   "positive_rate": binary only, 0.005-0.95,
-  "effects": {"column": weight} for numeric, integer (per standard deviation) and boolean columns, {"column=value": weight} for a categorical value; never on id, text or datetime columns,
+  "effects": {"column": weight} for numeric, integer (per standard deviation) and boolean columns, {"column=value": weight} for a categorical value, {"column=word": weight} for a text column (1 when its text contains the word: a topic word or a sentence word: "problem", "positive comment", "asked about", "requested a change", "follow-up", "mentioned"); never on id or datetime columns,
   "noise": > 0 (regression: noise sd in target units), "base": regression intercept}
 
 Rules:
@@ -22,5 +22,6 @@ Rules:
 - No names, emails, phone numbers, addresses or other personal data of real people; use an id column instead.
 - Only columns known at the moment the prediction is made: nothing computed from the target or recorded after it.
 - Include a target only if the problem has something to predict; otherwise "target": null.
+- When the outcome depends on what a text says (a review's sentiment, a ticket's type), give the text column effects on its words; without them its words say nothing about the target.
 - Set time_order to true for forecasting and time-series problems (rows ordered by the first datetime column).
 - DCLab chooses the number of rows; do not set it.

@@ -94,6 +94,7 @@ def record_probe(probe: dict[str, Any], home: Optional[Path] = None) -> dict[str
 
 
 LABELS = {"built_chat": "The project chat's team", "map_roles": "The problem map's roles", "conversation_reader": "Home's conversation reader"}
+SWITCHES = {"map_roles": "DCLAB_MAP_ROLES", "conversation_reader": "DCLAB_CONVERSATION_READER"}  # roles that also need their own switch
 
 
 def status(home: Optional[Path] = None) -> list[dict[str, Any]]:
@@ -107,27 +108,34 @@ def status(home: Optional[Path] = None) -> list[dict[str, Any]]:
     measured = optional("agent_eval") is not None
     out = []
     for role in ROLES:
+        switched_off = False
         try:
             if role == "built_chat":
                 from .draft.orchestrator import _model_serves
 
                 serves = _model_serves()
             elif role == "map_roles":
-                from .draft.map import roles_passed
+                from .draft import map as problem_map
 
-                serves = roles_passed()
+                switched_off = not problem_map.switched_on()  # draft.map.advisor_for asks the switch and the measurement
+                serves = not switched_off and problem_map.roles_passed()
             else:
                 from .draft import reader
 
-                serves = reader.switched_on() and (passed(role, home) if not measured else optional("agent_eval.journeys").reader_passed())
+                switched_off = not reader.switched_on()
+                serves = not switched_off and (passed(role, home) if not measured else optional("agent_eval.journeys").reader_passed())
         except Exception:  # noqa: BLE001 - a switch that cannot be read: the rules serve
             serves = False
         if not configured:
             serves, reason = False, "rules: no model is configured"
+        elif switched_off:  # off until it is switched on, whatever a probe or a measurement says
+            reason = f"rules: switched off ({SWITCHES[role]}=1 turns it on)"
         elif measured:
             reason = "model: it passed its sealed measurement" if serves else "rules: it has not passed its sealed measurement"
         else:
             reason = why(role, home)
+            if not serves and reason.startswith("model"):  # the reason never says model when the rules serve
+                reason = "rules"
         out.append({"role": role, "label": LABELS.get(role, role), "serves": "model" if serves else "rules", "why": reason})
     return out
 

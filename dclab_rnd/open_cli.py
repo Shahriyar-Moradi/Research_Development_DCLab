@@ -264,8 +264,8 @@ def models_status() -> int:
     from . import gates
 
     home = _home()
-    for role in gates.ROLES:
-        print(f"  {role:22} {gates.why(role, home)}")
+    for row in gates.status(home):  # the Models page's rows: the command and the page never disagree
+        print(f"  {row['role']:22} {row['why']}")
     probe = (gates.read(home).get("probe") or {})
     if probe:
         print(f"  (the doctor's probe at {probe.get('at')}: tools {'yes' if probe.get('tools') else 'no'})")

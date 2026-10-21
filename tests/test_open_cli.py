@@ -14,6 +14,7 @@ from pathlib import Path
 from unittest import mock
 
 from dclab_rnd import gates, models, open_cli
+from dclab_rnd.extensions import optional
 from dclab_rnd.models import settings as model_settings
 from dclab_rnd.models.gateway import Gateway
 
@@ -102,7 +103,9 @@ class CliTest(unittest.TestCase):
         self.assertEqual(self.run_cli("models", "trust", "nope")[0], 2)
         code, out = self.run_cli("models", "trust", "built_chat")
         self.assertEqual(code, 0)
-        self.assertIn("model (trusted by you)", out)
+        self.assertEqual(gates.why("built_chat", self.home), "model (trusted by you)")
+        if optional("agent_eval") is None:  # the open edition: the switch decides, and the command shows it (the full edition's measurement decides there)
+            self.assertIn("model (trusted by you)", out)
         self.assertFalse(gates.passed("map_roles", self.home))
 
     def test_init_writes_a_private_settings_file_and_keeps_the_lines_it_does_not_own(self):
@@ -169,3 +172,20 @@ class AgentStatusTest(unittest.TestCase):
                     row = next(r for r in gates.status() if r["role"] == "built_chat")
                     self.assertEqual(row["serves"], "model" if _model_serves() else "rules")
                     self.assertEqual(row["serves"], forced)
+
+    def test_a_reader_switched_off_says_so_on_the_page_and_in_the_command(self):  # the review of 2026-10-21: it said "model (probed)"
+        home = tempfile.mkdtemp()
+        with mock.patch.dict(os.environ, {**CLEAN, "OPENAI_API_KEY": "sk-x", "OPENAI_MODEL": "m", "DCLAB_AGENT_HOME": home,
+                                          "DCLAB_CONVERSATION_READER": "", "DCLAB_MAP_ROLES": ""}):
+            gates.trust(["all"], Path(home))  # the model would serve every role it is asked for
+            rows = gates.status()
+            out = io.StringIO()
+            with redirect_stdout(out):
+                code = open_cli.main(["models", "status"])
+        for role, switch in (("conversation_reader", "DCLAB_CONVERSATION_READER"), ("map_roles", "DCLAB_MAP_ROLES")):
+            row = next(r for r in rows if r["role"] == role)
+            self.assertEqual(row["serves"], "rules", row)  # what the product does: draft.reader and draft.map ask their switch
+            self.assertIn(f"switched off ({switch}=1", row["why"])
+        self.assertTrue(all(r["why"].startswith(r["serves"]) for r in rows), rows)  # a reason never says model when the rules serve
+        self.assertEqual(code, 0)
+        self.assertRegex(out.getvalue(), r"conversation_reader\s+rules: switched off")

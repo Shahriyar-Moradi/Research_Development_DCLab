@@ -11,8 +11,10 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python: ["3.10", "3.11", "3.12", "3.13"]
+        pandas: [""]  # the newest pandas the range allows (3.x from Python 3.11; 3.10 stays on 2.x)
         include:
-          - {os: macos-latest, python: "3.12"}
+          - {os: macos-latest, python: "3.12", pandas: ""}
+          - {os: ubuntu-latest, python: "3.12", pandas: "pandas<3"}  # pandas 2 stays supported: one job pins it
     services:
       postgres:
         image: ${{ matrix.os == 'ubuntu-latest' && 'postgres:16' || '' }}
@@ -26,7 +28,8 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - if: runner.os == 'macOS'
         run: brew install libomp  # LightGBM loads OpenMP
-      - run: uv venv --python ${{ matrix.python }} && uv pip install ".[all]"
+      - run: uv venv --python ${{ matrix.python }} && uv pip install ".[all]" ${{ matrix.pandas && format('"{0}"', matrix.pandas) || '' }}
+      - run: .venv/bin/python -c "import pandas; print('pandas', pandas.__version__)"
       - run: .venv/bin/python scripts/run_tests.py --jobs 4
   flows:
     runs-on: ubuntu-latest
