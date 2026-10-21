@@ -65,6 +65,7 @@ DC.view('project', {
           ['now', 'RZ', 'human', 'Waiting: business sign-off', 'WF-10', [], 'wait', 'approve', 'dddddddddc'],
         ],
       },
+      // dclab:closed-begin  (the private delivery project's sample)
       hyperack: {
         title: 'HyperAck order acceptance', sub: 'hyperack · tabular · binary · 11,118 orders · 2022-06-29 to 2022-11-14',
         lede: 'Step 1 is waiting for an answer only the owner can give: the moment of prediction. The research runs exist, but none counts until the solution is signed.',
@@ -77,6 +78,7 @@ DC.view('project', {
           ['now', 'SM', 'human', 'Waiting for the owner\'s answer', 'WF-01', [], 'wait', 'ask', 'b---------'],
         ],
       },
+      // dclab:closed-end
       telco: {
         title: 'Telco churn', sub: 'telco_churn · tabular · binary · 7,043 customers',
         lede: 'The screen finished, but the solution never said when the prediction is made or how long the outcome window is. It was reopened; later steps wait for it.',
@@ -172,11 +174,14 @@ DC.view('project', {
         <div><div class="eyebrow">Rules</div>${chips(RULES[id])}</div>
         ${produced.length ? `<div><div class="eyebrow">Evidence produced here</div>${chips(produced)}</div>` : ''}
         <div><div class="eyebrow">Allowed moves from here</div><ul class="small">${next.join('')}</ul></div>
+        <!-- dclab:closed-begin -->
         ${proj === 'hyperack' && id === 'WF-01' ? askCard() : ''}
+        <!-- dclab:closed-end -->
         ${proj === 'telco' && id === 'WF-01' ? telcoCard() : ''}`;
       $$('.node rect', el).forEach(r => r.removeAttribute('style'));
       const g = $(`.node[data-node="${id}"] rect`, el); if (g) g.style.strokeWidth = '2.6';
     }
+    // dclab:closed-begin  (the private delivery project's sample)
     function askCard() {
       return `<div class="ask-card" id="ask-card">
         <div class="q">When is the HyperAck prediction made?</div>
@@ -189,6 +194,7 @@ DC.view('project', {
         <div class="small muted">Also needed: the target window (accepted within how many seconds?).</div>
       </div>`;
     }
+    // dclab:closed-end
     function telcoCard() {
       return `<div class="ask-card"><div class="q">Which outcome window should "churn" mean?</div>
         <div class="small">The dataset card says a verified prediction timestamp and outcome window are still required ${chip('DATASET-telco_churn')}. The screen result (${chip('FINDING-churn-linear')}) stays in the log but cannot be promoted until this is answered.</div>
@@ -323,7 +329,11 @@ DC.view('project', {
       let list = [];
       try { list = (await DC.client.workspace()).projects.slice(0, 3); } catch (e) { /* offline: samples only */ }
       $('#proj-switch', el).innerHTML = list.map(p => `<button type="button" data-v="p:${esc(p.id)}" aria-pressed="false">${esc(p.name)}</button>`).join('')
-        + '<button type="button" data-v="bank" aria-pressed="false">Term-deposit calls · sample</button><button type="button" data-v="hyperack" aria-pressed="false">HyperAck · sample</button><button type="button" data-v="telco" aria-pressed="false">Telco churn · sample</button>';
+        + '<button type="button" data-v="bank" aria-pressed="false">Term-deposit calls · sample</button>'
+        // dclab:closed-begin
+        + '<button type="button" data-v="hyperack" aria-pressed="false">HyperAck · sample</button>'
+        // dclab:closed-end
+        + '<button type="button" data-v="telco" aria-pressed="false">Telco churn · sample</button>';
       return list;
     }
     el.addEventListener('click', e => {  // deleting a project (it was on the old UI; 8.3): its files go, the audit keeps an entry

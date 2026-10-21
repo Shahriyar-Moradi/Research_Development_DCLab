@@ -2,31 +2,31 @@ DC.view('intern', {
   init(el) {
     const { $, $$, esc, chip, chips, icon, codeBlock, toast, int } = DC;
     const SESS = [
-      ['HyperAck: an acceptance model we can trust', 'paused · question for you', 'warn', true],
+      ['Courier offers (invented sample): an acceptance model we can trust', 'paused · question for you', 'warn', true],
       ['Card fraud: does hour of day help?', 'done · 14 calls · PR-AUC kept', 'ok'],
       ['Telco churn: rerun after the solution is fixed', 'waiting on the solution', 'warn'],
       ['Bike demand: beat the lag-2 baseline', 'done · MAE 680.0 vs 1,156.4', 'ok'],
       ['Review a notebook from Ava', 'done · 10 findings', 'ok'],
     ];
-    $('#intern-sessions', el).innerHTML = SESS.map(([t, s, c, on]) => `<button type="button" class="list-item" ${on ? 'data-style="background:var(--accent-soft)" data-pane-go="overview"' : 'data-toast="In the demo only the HyperAck session opens."'}><div class="li-main"><span class="li-title">${esc(t)}</span><span class="li-sub"><span class="dot ${c}"></span> ${esc(s)}</span></div></button>`).join('');
+    $('#intern-sessions', el).innerHTML = SESS.map(([t, s, c, on]) => `<button type="button" class="list-item" ${on ? 'data-style="background:var(--accent-soft)" data-pane-go="overview"' : 'data-toast="In the demo only the first session opens."'}><div class="li-main"><span class="li-title">${esc(t)}</span><span class="li-sub"><span class="dot ${c}"></span> ${esc(s)}</span></div></button>`).join('');
 
     const TOOL = (name, sum, body, t, extra = '') => ({ k: 'tool', name, sum, body, t, extra });
     const PRE = [
-      { k: 'user', text: 'Build an order-acceptance model for HyperAck that we can trust. Use what the R&D already learned. Ask me before anything irreversible.' },
+      { k: 'user', text: 'Build an order-acceptance model for our courier offers that we can trust. Use what the evidence already says. Ask me before anything irreversible.' },
       { k: 'agent', text: 'I will start from the evidence, draft the solution, and stop at the first thing only you can decide. Plan:' , plan: true },
-      TOOL('search_evidence', '"HyperAck leakage final fare" · 3 records', `<div class="small">Found ${chips(['LEAK-hyperack', 'PIT-005', 'DATASET-hyperack'])}. Final fares are post-outcome; with them ROC-AUC reaches 0.9802, without 0.9455. On this data a forward-in-time test scored 0.9371 against 0.9332 for a random split.</div>`, '0.4 s'),
-      TOOL('create_project · use_sample', 'hyperack · 11,118 orders · 2022-06-29 → 2022-11-14', `<pre class="term"><span class="t-dim">rows</span> 11,118   <span class="t-dim">columns</span> 14   <span class="t-dim">target</span> hyper_ack (0/1)
-<span class="t-dim">time column</span> created_at   <span class="t-dim">range</span> 2022-06-29 → 2022-11-14</pre>`, '1.2 s'),
-      TOOL('propose_solution', 'forbidden: 2 · review: 2 · split by time', `<div class="small stack tight"><div><span class="pill bad">forbidden</span> <code>final_customer_fare</code>, <code>final_biker_fare</code> · known after the dispatch outcome ${chip('LEAK-hyperack')}</div><div><span class="pill warn">review</span> <code>first_created_at</code> (timestamp, becomes calendar features) · <code>deliverey_category_id</code> (strong signal, legitimate?)</div><div><span class="pill accent">split</span> by time: last 20% of orders as holdout ${chip('PIT-005')}</div></div>`, '0.9 s'),
+      TOOL('search_evidence', '"acceptance leakage fare" · 2 records', `<div class="small">Found ${chips(['DCLAB-R01', 'DCLAB-R04'])}. A fare settled after delivery is post-outcome: it must not be a feature. Data that arrives over time is tested forward in time.</div>`, '0.4 s'),
+      TOOL('create_project · use_sample', 'courier offers (invented) · 12,000 orders · 2024-02-01 → 2024-06-30', `<pre class="term"><span class="t-dim">rows</span> 12,000   <span class="t-dim">columns</span> 12   <span class="t-dim">target</span> accepted (0/1)
+<span class="t-dim">time column</span> created_at   <span class="t-dim">range</span> 2024-02-01 → 2024-06-30</pre>`, '1.2 s'),
+      TOOL('propose_solution', 'forbidden: 2 · review: 2 · split by time', `<div class="small stack tight"><div><span class="pill bad">forbidden</span> <code>fare_settled</code>, <code>courier_payout</code> · known after the dispatch outcome ${chip('DCLAB-R04')}</div><div><span class="pill warn">review</span> <code>offered_at</code> (timestamp, becomes calendar features) · <code>category_id</code> (strong signal, legitimate?)</div><div><span class="pill accent">split</span> by time: last 20% of orders as holdout ${chip('DCLAB-R01')}</div></div>`, '0.9 s'),
       { k: 'ask' },
     ];
     function POSTFOR(a) {
       const solution = a === 'create'
-        ? TOOL('set_solution', 'solution v1 signed · prediction at order creation', `<div class="small">Same moment as the R&amp;D solution ${chip('DATASET-hyperack')}. Courier-side columns are not allowed. Final fares stay forbidden.</div>`, '0.2 s')
-        : TOOL('set_solution', 'solution v1 signed · prediction at the courier offer', '<div class="small">Courier distance and offer price become allowed; anything written after the offer stays forbidden. This is a new solution: the R&amp;D has not run it yet.</div>', '0.2 s');
+        ? TOOL('set_solution', 'solution v1 signed · prediction at order creation', `<div class="small">The moment the solution was drafted for ${chip('DCLAB-R01')}. Courier-side columns are not allowed. Settled fares stay forbidden.</div>`, '0.2 s')
+        : TOOL('set_solution', 'solution v1 signed · prediction at the courier offer', '<div class="small">Courier distance and offer price become allowed; anything written after the offer stays forbidden. This is a new solution: it has not run yet.</div>', '0.2 s');
       return [
         solution,
-        TOOL('run_stage · WF-02 → WF-05', 'lineage ok · split by time · train-only profile · leakage audit', `<div class="small">Final fares stay blocked ${chip('LEAK-hyperack')}. The canary was caught. <code>deliverey_category_id</code> stays flagged for your review.</div>`, '6.8 s'),
+        TOOL('run_stage · WF-02 → WF-05', 'lineage ok · split by time · train-only profile · leakage audit', `<div class="small">Settled fares stay blocked ${chip('DCLAB-R04')}. The canary was caught. <code>category_id</code> stays flagged for your review.</div>`, '6.8 s'),
         TOOL('sandbox.run', 'calendar features built inside time-ordered folds', `${codeBlock(`hour = df.created_at.dt.hour
 weekday = df.created_at.dt.weekday
 # cyclic encoding; nothing is learned from the target
@@ -39,8 +39,8 @@ df["is_weekend"] = weekday >= 5`)}<pre class="term" data-style="margin-top:6px">
     }
     function FINALFOR(a) {
       return a === 'create'
-        ? [TOOL('open_holdout', 'approved by Shahriyar · used once', `<div class="small">Last 20% of orders by time (from 2022-10-16): <b class="mono">ROC-AUC 0.9371</b>, the protocol of the R&amp;D's forward-in-time test ${chip('PIT-005')}.</div>`, '2.2 s'), { k: 'report' }]
-        : [TOOL('open_holdout', 'approved by Shahriyar · used once', '<div class="small">In the product the score appears here. This solution has no R&amp;D run yet, so the demo shows no number rather than an invented one.</div>', '2.2 s'), { k: 'report' }];
+        ? [TOOL('open_holdout', 'approved by Shahriyar · used once', `<div class="small">Last 20% of orders by time (from 2024-06-01): <b class="mono">ROC-AUC 0.91</b> on this invented sample, tested forward in time ${chip('DCLAB-R01')}.</div>`, '2.2 s'), { k: 'report' }]
+        : [TOOL('open_holdout', 'approved by Shahriyar · used once', '<div class="small">In the product the score appears here. This solution has not run yet, so the demo shows no number.</div>', '2.2 s'), { k: 'report' }];
     }
     let POST = POSTFOR('create'), FINAL = FINALFOR('create');
     let phase = 'pre', answered = null, steps = 9, minutes = 3.1, spend = 0.42;
@@ -49,14 +49,14 @@ df["is_weekend"] = weekday >= 5`)}<pre class="term" data-style="margin-top:6px">
     function msgUser(t) { return `<div class="msg user"><span class="avatar">SM</span><div class="msg-body"><span class="who">Shahriyar <span>Oct 2, 15:10</span></span><div class="bubble">${esc(t)}</div></div></div>`; }
     function msgAgent(html) { return `<div class="msg"><span class="avatar ai">AI</span><div class="msg-body"><span class="who">Intern</span>${html}</div></div>`; }
     function planHtml() {
-      const P = [['Check the evidence for HyperAck', 'done'], ['Load and profile the data', 'done'], ['Draft the solution', 'done'], ['Ask the owner what only the owner knows', answered ? 'done' : 'now'], ['Run WF-02 to WF-08 inside the graph', phase === 'final' || phase === 'done' ? 'done' : phase === 'post' ? 'now' : ''], ['Ask before opening the holdout', phase === 'done' ? 'done' : phase === 'final' ? 'now' : ''], ['Write the brief and the report', phase === 'done' ? 'done' : '']];
+      const P = [['Check the evidence', 'done'], ['Load and profile the data', 'done'], ['Draft the solution', 'done'], ['Ask the owner what only the owner knows', answered ? 'done' : 'now'], ['Run WF-02 to WF-08 inside the graph', phase === 'final' || phase === 'done' ? 'done' : phase === 'post' ? 'now' : ''], ['Ask before opening the holdout', phase === 'done' ? 'done' : phase === 'final' ? 'now' : ''], ['Write the brief and the report', phase === 'done' ? 'done' : '']];
       return `<ul class="plan-list">${P.map(([t, s]) => `<li class="${s}"><span class="pi">${s === 'done' ? '✓' : ''}</span><span class="t">${esc(t)}</span></li>`).join('')}</ul>`;
     }
     function toolHtml(s, open) {
       return `<details class="tool-call reveal" ${open ? 'open' : ''} ${s.extra}><summary><span class="tname">${esc(s.name)}</span><span class="tsum">${esc(s.sum)}</span><span class="ttime">${esc(s.t)}</span></summary><div class="tc-body">${s.body}</div></details>`;
     }
     function askHtml() {
-      return `<div class="ask-card reveal" data-f="intern.ask"><div class="spread"><span class="q">When is the HyperAck prediction made?</span><span class="pill warn">blocks WF-01</span></div>
+      return `<div class="ask-card reveal" data-f="intern.ask"><div class="spread"><span class="q">When is the acceptance prediction made?</span><span class="pill warn">blocks WF-01</span></div>
         <div class="small">I cannot decide this from the data. It changes which columns are allowed.</div>
         <div class="ask-options">
           <button type="button" class="ask-option" data-answer="create" aria-pressed="${answered === 'create'}"><span><b>At order creation.</b> Before any courier sees it.</span></button>
@@ -71,18 +71,18 @@ df["is_weekend"] = weekday >= 5`)}<pre class="term" data-style="margin-top:6px">
     function approveHtml() {
       const done = phase === 'final' || phase === 'done';
       return `<div class="ask-card reveal"><div class="spread"><span class="q">May I open the holdout? It can be opened once.</span><span class="pill warn">approval gate</span></div>
-        <div class="small">Locked: solution v1, feature recipe, model and tuning decision. The 2,222 orders from 2022-10-16 on have never been read.</div>
+        <div class="small">Locked: solution v1, feature recipe, model and tuning decision. The 2,400 orders from 2024-06-01 on have never been read.</div>
         <div class="row"><button type="button" class="btn sm primary" data-approve="yes" ${done ? 'disabled' : ''}>Approve once</button><button type="button" class="btn sm" data-approve="no" ${done ? 'disabled' : ''}>Not yet</button>${done ? '<span class="pill ok">approved</span>' : ''}</div></div>`;
     }
     function reportHtml() {
       const body = answered === 'create'
-        ? `<div>Solution v1 is signed: prediction at order creation, as the R&amp;D assumed. Final fares are blocked ${chip('LEAK-hyperack')}.</div>
-           <div>On the last 20% of orders by time the protocol scores <b>ROC-AUC 0.9371</b> ${chip('PIT-005')}; the leakage-safe cross-validated ensemble reached 0.9455 ${chip('LEAK-hyperack')}. One time-ordered holdout; the interval is in the full report.</div>`
-        : `<div>Solution v1 is signed: prediction at the courier offer. The R&amp;D has not run this solution yet, so I report no score until the stage records exist.</div>
+        ? `<div>Solution v1 is signed: prediction at order creation. Settled fares are blocked ${chip('DCLAB-R04')}.</div>
+           <div>On the last 20% of orders by time the protocol scores <b>ROC-AUC 0.91</b> on this invented sample ${chip('DCLAB-R01')}. One time-ordered holdout; the interval is in the full report.</div>`
+        : `<div>Solution v1 is signed: prediction at the courier offer. This solution has not run yet, so I report no score until the stage records exist.</div>
            <div>Next: collect courier-side columns with their timestamps, then rerun WF-02 to WF-09.</div>`;
       return msgAgent(`<div class="inset stack tight reveal"><b>Report</b>${body}
-        <div>Not proven: behaviour after November 2022, and whether <code>deliverey_category_id</code> is legitimate. I flagged it for your review.</div>
-        <div class="row"><a class="btn sm" href="#project" data-project="hyperack">Open the project</a><a class="btn sm" href="#brief">See a finished brief</a></div></div>`);
+        <div>Not proven: behaviour after June 2024, and whether <code>category_id</code> is legitimate. I flagged it for your review.</div>
+        <div class="row"><a class="btn sm" href="#project">Open the project</a><a class="btn sm" href="#brief">See a finished brief</a></div></div>`);
     }
     function render() {
       if (R.mode !== 'sample') return;  // a real session owns the thread
@@ -161,7 +161,7 @@ df["is_weekend"] = weekday >= 5`)}<pre class="term" data-style="margin-top:6px">
     /* ---------------- real sessions ----------------
        Real mode: at least one intern session exists (or one is being started). The Overview shows the selected
        session (DC.state.internSession, else the most recent), polled every 2 s while it works. Sample mode keeps the
-       scripted HyperAck conversation above. */
+       scripted sample conversation above. */
     const R = { mode: 'sample', sessions: [], cur: null, proj: null, projKey: '', info: null, timer: null, seq: 0, kick: 0, sig: '', openFor: null, seen: {}, follow: {}, starting: false, busy: false };
     const STATUS = { queued: ['queued', 'accent', 'live'], running: ['working…', 'accent', 'live'], completed: ['done', 'ok', 'ok'], failed: ['failed', 'bad', 'bad'], budget_exhausted: ['budget used up', 'warn', 'warn'], stopped: ['stopped', 'warn', 'warn'] };
     const isLive = s => !!s && (s.status === 'queued' || s.status === 'running');
@@ -377,7 +377,7 @@ df["is_weekend"] = weekday >= 5`)}<pre class="term" data-style="margin-top:6px">
       const nav = document.querySelector('[data-nav="intern"] .count'); if (nav && SAMPLE.nav != null) nav.textContent = SAMPLE.nav;
       $('#sess-mode', el).textContent = SAMPLE.mode; $('#sess-title', el).textContent = SAMPLE.title;
       $('#sess-replay', el).hidden = false; $('#intern-new-cmd', el).hidden = true; $('#intern-follow', el).placeholder = SAMPLE.placeholder;
-      railLink.hidden = false; railLink.dataset.project = 'hyperack';
+      railLink.hidden = false; railLink.dataset.project = 'bank';
       $('[data-f="intern.ladder"] .pill', el).textContent = SAMPLE.ladderPill;
       modelReal();
       render();

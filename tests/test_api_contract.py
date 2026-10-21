@@ -51,7 +51,10 @@ class ApiContractTests(unittest.TestCase):
 
     def test_no_route_reads_its_body_by_hand(self):
         modules = [f"agentic/routers/{m}.py" for m in ("core", "runs", "projects", "intern")] + ["draft/api.py"]
-        modules += [f"agentic/pages/{m}.py" for m in ("ops", "lab", "learn", "platform", "evidence")]
+        from dclab_rnd.agentic import pages
+        from dclab_rnd.extensions import available
+
+        modules += [f"agentic/pages/{m}.py" for m in pages.MODULES if available(f"agentic.pages.{m}")]  # every page module this edition has
         for module in modules:
             source = (ROOT / "dclab_rnd" / module).read_text(encoding="utf-8")
             self.assertNotIn("await request.json()", source, module)

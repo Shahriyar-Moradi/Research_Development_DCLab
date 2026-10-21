@@ -11,6 +11,7 @@ PROJECTS = {
         "default_dataset": "bank_marketing",
         "status": "Ready for agentic experiments",
     },
+    # dclab:closed-begin  (the private delivery project: the full edition's)
     "hyperack": {
         "name": "HyperAck",
         "summary": "Delivery acceptance R&D with an existing 83-experiment lifecycle: 15 original, 15 leakage-safe and 53 optimized-safe tests.",
@@ -18,6 +19,7 @@ PROJECTS = {
         "default_dataset": "hyperack",
         "status": "83 historical experiments completed",
     },
+    # dclab:closed-end
     "telco_churn": {
         "name": "Telco Churn",
         "summary": "Customer churn R&D with a reproducible 15-experiment development-CV benchmark and an agentic follow-up loop.",
@@ -32,6 +34,7 @@ def _read(path: Path):
 
 def historical_context(project, root=ROOT):
     """Curated context only: old reused holdouts are hypotheses, not live evidence IDs."""
+    # dclab:closed-begin  (the private delivery project: the full edition's)
     if project != "hyperack":
         return []
     unsafe = _read(root / "research/tabular-classification/experiments/hyperack_exp/results/benchmark_summary.json") or {}
@@ -42,6 +45,8 @@ def historical_context(project, root=ROOT):
         {"record": "hyperack-history-safe", "experiments": 15, "reported_auc": safe.get("metrics", {}).get("roc_auc", 0.938655), "status": "leakage-safe historical holdout", "warning": "The repeatedly consulted historical holdout is development evidence, not independent confirmation.", "source": "research/tabular-classification/experiments/hyperack_exp/results/14_leakage_safe_features.json"},
         {"record": "hyperack-history-optimized-safe", "experiments": 53, "reported_auc": champion.get("metrics", {}).get("roc_auc", 0.945461), "reported_recall": champion.get("metrics", {}).get("recall", 0.77842), "status": "best optimized-safe historical result", "warning": "Use as a hypothesis/reference only; new agentic trials use separate group-CV evidence IDs.", "source": "research/tabular-classification/experiments/optimized_safe_model/results/53_softvote_etbag_lgbmwinner_xgb.json"},
     ]
+    # dclab:closed-end
+    return []  # no curated history in this edition
 
 def project_catalog(root=ROOT):
     result = []
@@ -51,7 +56,9 @@ def project_catalog(root=ROOT):
             summary = _read(root / "research/churn-prediction/experiments/churn_exp/results/summary.json")
             item["campaign"] = summary or {"completed": 0, "planned": 15}
             if summary: item["status"] = f"{summary['completed']}-experiment campaign completed"
+        # dclab:closed-begin  (the private delivery project: the full edition's)
         elif key == "hyperack":
             item["campaign"] = {"completed": 83, "planned": 83, "safe_champion_auc": 0.945461, "unsafe_ceiling_auc": 0.979256}
+        # dclab:closed-end
         result.append(item)
     return result

@@ -8,6 +8,7 @@ def plan():
     return dict(dataset="bank_marketing", model="logistic_regression", parameters={}, drop_columns=[], stress_columns=[], features=[])
 
 class WorkerSafety(unittest.TestCase):
+    # dclab:closed-begin  (the project tables include the private delivery table)
     def test_project_data_loaders_enforce_identifiers_and_types(self):
         if not all(source_paths(key)[0].exists() for key in ("telco_churn", "hyperack")):
             self.skipTest("the project tables (telco_churn, hyperack) are not part of this edition")
@@ -20,6 +21,7 @@ class WorkerSafety(unittest.TestCase):
         self.assertIn("final_customer_fare",X);self.assertIn("deliverey_category_id",cats)
         p={**plan(),"dataset":"hyperack"};columns=validate_plan(p,X,cats)
         self.assertNotIn("final_customer_fare",columns["model_raw"]);self.assertNotIn("final_biker_fare",columns["model_raw"])
+    # dclab:closed-end
 
     def test_blocked_ancestor_and_categorical_math(self):
         X=pd.DataFrame({"balance":[1.,2.],"duration":[10.,20.],"job":["a","b"]})

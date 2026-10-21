@@ -191,12 +191,14 @@ def _expansion_cards() -> dict[str, dict[str, Any]]:
 
 
 PROJECT_CARDS = {
+    # dclab:closed-begin  (the private delivery project's card and precedent)
     "hyperack": {
         "name": "HyperAck delivery acceptance (DCLab project data)",
         "description": "Predict whether a delivery order is accepted (hyper_ack 0/1) at order time, before dispatch.",
         "task_type": "binary",
         "rows": 11118,
     },
+    # dclab:closed-end
     "telco_churn": {
         "name": "Telco customer churn (IBM sample)",
         "description": "Predict whether a telecom customer churns (Churn Yes/No) from account, service and billing fields.",
@@ -616,6 +618,7 @@ def _leakage_records(root: Path, cards: dict[str, dict[str, Any]]) -> list[Recor
                 citations=[path.relative_to(root).as_posix()],
             )
         )
+    # dclab:closed-begin  (the private delivery project's card and precedent)
     pack_path = root / "evidence/knowledge" / "master_evidence_pack.json"
     if pack_path.exists():
         hyper = _read_json(pack_path).get("hyperack") or {}
@@ -639,6 +642,7 @@ def _leakage_records(root: Path, cards: dict[str, dict[str, Any]]) -> list[Recor
                     citations=[hyper.get("safe_source", ""), hyper.get("unsafe_source", "")],
                 )
             )
+    # dclab:closed-end
     return out
 
 

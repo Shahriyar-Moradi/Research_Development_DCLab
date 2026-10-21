@@ -3,8 +3,8 @@
 A retail group wants to find the fake returns its staff file: a cashier copies a real bill and, late in the evening, files a return against the copy to
 take the refund. It has the sales table (one row per bill) and the returns table (one row per return). Its labels grew over time: at first only its
 business rules said which returns look fake; later the loss-prevention team began to review a fixed number of returns a day, the rule's hits first and
-a random sample of the rest, and clustering spread their confirmed cases to similar ones. Written from the owner's problem patterns 1 to 5
-(docs/sources/2026-10_retail_interview/ml_problem_patterns.pdf), whose last paragraph names these traps.
+a random sample of the rest, and clustering spread their confirmed cases to similar ones. A common loss-prevention set-up, invented here with
+the traps below.
 
 The traps a careful data scientist must see:
 

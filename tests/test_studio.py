@@ -72,7 +72,11 @@ class DataAndContractTests(unittest.TestCase):
 
     def test_sample_catalog_carries_known_solutions(self):
         catalog = {s["key"]: s for s in sd.sample_catalog()}
+        if "bank_marketing" not in catalog:
+            self.skipTest("the repository's sample tables are not part of this edition")
+        # dclab:closed-begin
         self.assertIn("final_customer_fare", catalog["hyperack"]["blocked"])
+        # dclab:closed-end
         self.assertIn("duration", catalog["bank_marketing"]["blocked"])
 
     def test_a_tree_without_the_repository_tables_never_offers_them(self):
@@ -261,7 +265,10 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(c.get(f"/api/projects/{pid}").status_code, 404)
 
     def test_samples_and_capabilities(self):
-        self.assertTrue(any(s["key"] == "telco_churn" for s in self.client.get("/api/samples").json()))
+        samples = {s["key"] for s in self.client.get("/api/samples").json()}
+        self.assertEqual(samples, {s["key"] for s in sd.sample_catalog()})  # the route offers what the catalog has, no more
+        if sd._sample_source("telco_churn", sd.ROOT).exists():  # the repository's tables (the open edition ships none)
+            self.assertIn("telco_churn", samples)
         status = self.client.get("/api/studio").json()
         self.assertEqual(status["tasks"], ["binary", "multiclass", "regression"])
 

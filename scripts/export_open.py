@@ -73,8 +73,8 @@ def selected_tests(m, files: list[str]) -> tuple[list[str], dict[str, str]]:
         if rel in spec["exclude"]:
             left[rel] = spec["exclude"][rel]
             continue
-        text = (ROOT / rel).read_text(encoding="utf-8")
-        private = next((w for w in spec["private_paths"] if w in text), None)
+        text = _strip_closed((ROOT / rel).read_text(encoding="utf-8"))[0]  # what the open tree would hold
+        private = next((w for w in spec["private_paths"] if re.search(w, text)), None)
         if private:
             left[rel] = f"names {private}"
             continue
@@ -318,12 +318,17 @@ def rerun_kinds(out: Path, m) -> dict:
 def build_knowledge(out: Path, m) -> dict:
     """The packaged knowledge: only the record types the manifest names, with citations cut to the open tree's own paths."""
     spec = m.KNOWLEDGE
-    kept = []
+    private = [re.compile(w.strip(), re.I) for w in (ROOT / m.FORBIDDEN_FILE).read_text(encoding="utf-8").splitlines()
+               if w.strip() and not w.startswith("#")]
+    kept, dropped = [], []
     for line in (ROOT / spec["source"]).read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
         record = json.loads(line)
         if record.get("type") not in spec["types"]:
+            continue
+        if any(p.search(line) for p in private):  # measured on (or naming) private data: never shipped, even as knowledge
+            dropped.append(record.get("record_id"))
             continue
         own = [c for c in record.get("citations") or [] if c.split("/", 1)[0] in m.RENAME]
         record["citations"] = [_renamed_path(c, m) for c in own] or [f"{m.PUBLIC_NAME}/{spec['out']}"]
@@ -331,7 +336,7 @@ def build_knowledge(out: Path, m) -> dict:
     dst = out / m.PUBLIC_NAME / spec["out"]
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(_rewrite("\n".join(kept) + "\n", m), encoding="utf-8")
-    return {"path": str(dst.relative_to(out)), "records": len(kept), "bytes": dst.stat().st_size}
+    return {"path": str(dst.relative_to(out)), "records": len(kept), "dropped": dropped, "bytes": dst.stat().st_size}
 
 
 def build_ui(out: Path, m) -> dict:

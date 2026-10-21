@@ -60,8 +60,15 @@ POST_OUTCOME_NAME = re.compile(
     re.IGNORECASE,
 )
 SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2, "info": 3}
+_TARGETS = ["target", "label", "y", "class", "churn", "outcome", "is_fraud", "default"]  # a column named like a target
+# dclab:closed-begin
+_TARGETS.append("hyper_ack")
+# dclab:closed-end
+TARGET_NAMES = "(" + "|".join(_TARGETS) + ")"
 KNOWN_DATASET_PATTERNS = {
+    # dclab:closed-begin  (the private delivery project's file)
     "hyperack": r"hyper_?ackt?[-_]dataset|hyperack",
+    # dclab:closed-end
     "telco_churn": r"Telco-Customer-Churn",
     "bank_marketing": r"bank_marketing|bank-full|bank-additional",
     "online_shoppers": r"online_shoppers",
@@ -348,7 +355,7 @@ def _analyze_cell(tree: ast.AST, cell: int, state: _State, findings: list[Findin
             chain = ast.unparse(call.func.value) if hasattr(ast, "unparse") else ""
             if "groupby" in chain and (name == "mean" or any(s in {"mean", "sum"} for s in _strings_in(call))):
                 aggregated = _strings_in(call.func.value)
-                target_like = any(re.fullmatch(r"(target|label|y|class|churn|outcome|is_fraud|default|hyper_ack)", v, re.IGNORECASE) for v in aggregated)
+                target_like = any(re.fullmatch(TARGET_NAMES, v, re.IGNORECASE) for v in aggregated)
                 findings.append(Finding(
                     "aggregate_before_split", "high" if target_like else "medium", cell, line,
                     "Target-mean feature computed on all rows" if target_like else "Group aggregate computed on all rows",

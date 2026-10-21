@@ -33,7 +33,10 @@ POLICY = prompts.text("intern")  # dclab_rnd/prompts/intern.md (A4.3: prompts ar
 SAMPLE_HINTS = [
     (r"churn|telco|subscri", "telco_churn"), (r"fraud|credit.?card|transaction", "credit_card_fraud"), (r"bike|rental|demand|forecast|time.?series", "bike_sharing_daily"),
     (r"letter|26 class|multi.?class|handwrit", "letter_recognition"), (r"review|text|clothing|sentiment", "ecommerce_clothing_reviews"),
-    (r"hyperack|delivery|dispatch|courier", "hyperack"), (r"bank|deposit|marketing", "bank_marketing"), (r"spam|email", "spambase"),
+    # dclab:closed-begin
+    (r"hyperack|delivery|dispatch|courier", "hyperack"),
+    # dclab:closed-end
+    (r"bank|deposit|marketing", "bank_marketing"), (r"spam|email", "spambase"),
     (r"heart|cardio", "heart_disease"), (r"cancer|tumou?r", "breast_cancer"), (r"wine", "wine_quality"), (r"mushroom", "mushroom"),
     (r"shopper|purchase|session", "online_shoppers"), (r"german|loan|credit risk", "german_credit"), (r"default|billing", "credit_default"), (r"income|census|adult", "adult"),
 ]

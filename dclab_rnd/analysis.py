@@ -137,6 +137,7 @@ def _recommendations(records: list[ExperimentRecord], champions: list[dict], mod
         "success": "Promote a winner only when its median lift is positive and the 95% paired interval is decision-useful.",
     })
 
+    # dclab:closed-begin  (the private delivery project's recommendation)
     if any(item["dataset"] == "hyperack" for item in champions):
         recs.append({
             "priority": 2,
@@ -145,6 +146,7 @@ def _recommendations(records: list[ExperimentRecord], champions: list[dict], mod
             "experiment": "Backtest the safe champion on later-time, unseen-zone, and high-demand slices; compare AUC, recall, calibration, and coverage.",
             "success": "Document the worst-slice floor and define a retraining or rollback threshold before deployment.",
         })
+    # dclab:closed-end
 
     if model_evidence:
         leader = min(

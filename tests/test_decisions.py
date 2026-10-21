@@ -97,8 +97,8 @@ class DecisionTest(unittest.TestCase):
             Solution(**base, decision={"action": "price", "price_column": "p", "side": "pay"})  # paying needs a value
         self.assertEqual(Solution(**base, decision=PAY).decision.side, "pay")
         with self.assertRaises(ValueError):  # a forbidden column never feeds the acceptance model, even as a reference
-            Solution(**base, forbidden=[{"column": "final_customer_fare"}],
-                     decision={"action": "price", "price_column": "fee", "reference_column": "final_customer_fare"})
+            Solution(**base, forbidden=[{"column": "fare_settled"}],
+                     decision={"action": "price", "price_column": "fee", "reference_column": "fare_settled"})
 
     def test_a_review_that_does_not_pay_is_said_plainly(self):
         from dclab_rnd.studio import engine

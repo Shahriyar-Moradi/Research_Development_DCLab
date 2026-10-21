@@ -2,8 +2,8 @@
 
 A retail group with brands in several malls asks why a number moved: a brand head wants to know why the brand's sales are down in one mall against
 last year, in minutes and with the reason. It has two tables: the door counters' visitors (one row per store a day) and the tills' sales (one row per
-store, category and day: the paying transactions and their amount). Written from the owner's pattern 6 (docs/sources/2026-10_retail_interview/,
-"Ask-your-data BI and root-cause analysis"): sales = footfall x conversion x basket, and the answer is which factor moved, where, and by how much.
+store, category and day: the paying transactions and their amount). A common "ask your data" question with a root cause:
+sales = footfall x conversion x basket, and the answer is which factor moved, where, and by how much.
 
 The causes planted in the question month (the last month of the data, against the same month a year before), one of each per seed:
 

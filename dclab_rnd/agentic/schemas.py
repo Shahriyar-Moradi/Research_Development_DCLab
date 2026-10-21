@@ -85,8 +85,15 @@ class Synthesis(Strict):
 
 DEFAULT_GOAL = "Learn which feature engineering, model families and tuning choices improve robust tabular prediction. Audit leakage and prediction-time availability, compare paired CV evidence, stress missing production features, and capture reusable workflows and negative results."
 
+PROJECT_KEYS: tuple[str, ...] = ("general",)  # the research campaign's projects
+# dclab:closed-begin
+PROJECT_KEYS += ("hyperack",)
+# dclab:closed-end
+PROJECT_KEYS += ("telco_churn",)
+
+
 class RunRequest(Strict):
-    project: Literal["general", "hyperack", "telco_churn"] = "general"
+    project: Literal[PROJECT_KEYS] = "general"  # type: ignore[valid-type]
     goal: str = Field(default=DEFAULT_GOAL, min_length=20, max_length=6000)
     datasets: list[str] = Field(default_factory=lambda: ["bank_marketing"], min_length=1, max_length=10)
     model: str = Field(default="gpt-5.6-terra", pattern=r"^gpt-[a-zA-Z0-9.\-]+$")

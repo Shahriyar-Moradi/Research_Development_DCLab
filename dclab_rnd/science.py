@@ -191,7 +191,7 @@ def _bounded_model(
     # Importing this module loads optional GBDT libraries, so keep it lazy.
     from general_pipeline.models import get_model
 
-    # The repository's old "optimized" profile was tuned for HyperAck. New
+    # The repository's old "optimized" profile was tuned for one project. New
     # dataset-specific candidates start from the transparent baseline instead
     # of presenting transferred parameters as fresh optimization evidence.
     factory_level = optimization if model_params is None else "baseline"

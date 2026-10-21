@@ -854,7 +854,7 @@ def write_catalog_links(store) -> Path:
                 "Symlinks into canonical `agent_runs/<run_id>/` folders.",
                 "",
                 "- `by_label/` — date_project_datasets_shortid",
-                "- `by_project/` — general / hyperack / telco_churn",
+                "- `by_project/` — one folder per research project (general, telco_churn, …)",
                 "- `by_dataset/` — adult, bank_marketing, …",
                 "- `by_status/` — completed, failed, paused, …",
                 "- `by_run_id/` — raw UUID lookup",

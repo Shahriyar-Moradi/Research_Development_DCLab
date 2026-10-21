@@ -174,21 +174,25 @@
               <div class="li-main"><span class="li-title">Approve a pilot of the term-deposit call list</span><span class="li-sub">Calling the top 2,000 of 20,000 clients: about 39 subscriptions per 100 calls (range 31–48), against 12 when calling at random. The range comes from one 800-row holdout.</span></div>
               <div class="li-side"><span class="pill warn">Due Friday</span><span>Open brief →</span></div>
             </a>
+            <!-- dclab:closed-begin  (the private delivery project) -->
             <a class="list-item" href="#project" data-project="hyperack">
               <span class="avatar">SM</span>
               <div class="li-main"><span class="li-title">HyperAck: when is the prediction made?</span><span class="li-sub">Only the owner can answer. Until then the project waits at step 1 of 10.</span></div>
               <div class="li-side"><span class="pill warn">Blocks a project</span><span>Answer →</span></div>
             </a>
+            <!-- dclab:closed-end -->
           </div>
         </div>
       </div>
       <details class="panel" data-f="home.inbox" data-tour="inbox" id="home-inbox">
         <summary class="panel-head" data-style="cursor:pointer;list-style:none"><h2>Needs you</h2><span class="row"><span class="pill bad">3</span><span class="muted small" aria-hidden="true">▾</span></span></summary>
         <div class="list" data-style="max-height:420px;overflow:auto">
+          <!-- dclab:closed-begin  (the private delivery project) -->
           <a class="list-item" href="#project" data-project="hyperack">
             <span class="avatar ai">AI</span>
             <div class="li-main"><span class="li-title">When is the HyperAck prediction made?</span><span class="li-sub">At order creation, at the courier offer, or after assignment? This decides which columns are allowed.</span><span class="row"><span class="pill warn">Question</span><span class="tag">WF-01</span></span></div>
           </a>
+          <!-- dclab:closed-end -->
           <a class="list-item" href="#brief">
             <span class="avatar c">RZ</span>
             <div class="li-main"><span class="li-title">Sign the term-deposit brief</span><span class="li-sub">Reza reviewed it and asked one question about the call cost.</span><span class="row"><span class="pill info">Sign-off</span><span class="tag">WF-10</span></span></div>
@@ -278,7 +282,7 @@
             <tbody></tbody>
           </table>
         </div>
-        <div class="panel-foot bar"><span class="dot ok"></span>done <span class="dot accent"></span>current <span class="dot warn"></span>waiting on a person <span class="muted">· Click a row to open it. Term-deposit calls, HyperAck and Telco churn open in full.</span></div>
+        <div class="panel-foot bar"><span class="dot ok"></span>done <span class="dot accent"></span>current <span class="dot warn"></span>waiting on a person <span class="muted">· Click a row to open it. Term-deposit calls and Telco churn open in full.</span></div>
       </div>
   </div>
 
@@ -480,7 +484,9 @@
     <span class="eyebrow">Project</span>
     <div class="seg" data-seg="proj" id="proj-switch" role="group" aria-label="Project">
       <button type="button" data-v="bank" aria-pressed="true">Term-deposit calls</button>
+      <!-- dclab:closed-begin  (the private delivery project's sample) -->
       <button type="button" data-v="hyperack" aria-pressed="false">HyperAck</button>
+      <!-- dclab:closed-end -->
       <button type="button" data-v="telco" aria-pressed="false">Telco churn</button>
     </div>
     <span class="small muted" id="proj-sub"></span>
@@ -621,7 +627,7 @@
           <div class="list-item"><span class="pill ok">done</span><div class="li-main"><span class="li-title">Call capacity per month</span><span class="li-sub">2,000 calls · answered Sep 27</span></div></div>
           <div class="list-item"><span class="pill ok">done</span><div class="li-main"><span class="li-title">Who signs the brief?</span><span class="li-sub">Reza, retention lead</span></div></div>
         </div>
-        <div class="panel-foot">Other projects: HyperAck and Telco churn each wait on one answer.</div>
+        <div class="panel-foot">Other projects: Telco churn waits on one answer.</div>
       </div>
       <div class="stack">
         <div class="panel" id="sol-signoff">
@@ -1003,6 +1009,7 @@
         <div class="panel-head"><div class="panel-title"><h3>Across the R&amp;D datasets</h3><span class="sub">Why one default family is not enough</span></div>${chip:FINDING-model-families}</div>
         <div class="panel-body"><div id="family-chart"></div><p class="xs muted">Mean rank over 11 datasets (lower is better) and wins. Winners differ by dataset.</p></div>
       </div>
+      <!-- dclab:closed-begin  (a research track on the private delivery project) -->
       <div class="panel" data-f="models.foundation">
         <div class="panel-head"><h3>Tabular foundation models</h3><span class="pill">research</span></div>
         <div class="panel-body small stack tight">
@@ -1010,6 +1017,7 @@
           <a class="link-btn small" href="#lab">See the track in the research map →</a>
         </div>
       </div>
+      <!-- dclab:closed-end -->
       <div class="panel dashed"><div class="panel-body small stack tight" data-style="padding-top:20px"><div class="eyebrow">Rules on this page</div><div>${chip:DCLAB-R13} No universal best algorithm; screen several families.</div><div>${chip:DCLAB-R14} Judge by mean, stability, probabilities and runtime, not ROC-AUC alone.</div><div>${chip:DCLAB-R15} Tune only after data, features, metric and family are locked.</div></div></div>
     </div>
   </div>
@@ -1090,7 +1098,9 @@
         <div class="panel-head"><h3 id="rl-shift-h" data-slot>Shift over time</h3><span class="pill warn" id="rl-shift-pill" data-slot>cannot test yet</span></div>
         <div class="panel-body small stack tight" id="rl-shift-body" data-slot>
           <p>The table has month and day but no year, so no forward-in-time test is possible. The owner was asked for the real call dates.</p>
+          <!-- dclab:closed-begin  (the private delivery project's measurement) -->
           <p class="muted">On HyperAck, where dates exist, a forward-in-time test scored 0.9371 against 0.9332 for a random split. Time can help or hurt; it has to be measured ${chip:PIT-005}.</p>
+          <!-- dclab:closed-end -->
         </div>
       </div>
       <div class="panel" data-f="rel.missing">
@@ -1277,7 +1287,7 @@
 
   <div class="pane" data-pane="overview" data-label="Overview">
     <div class="stats">
-      <div class="stat"><span class="v warn">1</span><span class="l">question waiting for you · when is the HyperAck prediction made?</span></div>
+      <div class="stat"><span class="v warn">1</span><span class="l">question waiting for you · when is the acceptance prediction made?</span></div>
       <div class="stat"><span class="v">5</span><span class="l">sessions · 3 done, 2 waiting on a person</span><div class="row"><button type="button" class="link-btn small" data-pane-go="sessions">See all sessions →</button></div></div>
       <div class="stat"><span class="v">€5 <small>· 48 calls · 30 min</small></span><span class="l">budget per session · enforced on every call</span></div>
       <div class="stat"><span class="v ok">5</span><span class="l">guardrails active · the holdout opens once, after the owner approves</span></div>
@@ -1286,7 +1296,7 @@
     <div class="grid g-side">
       <div class="panel" data-f="intern.session" data-tour="intern-thread">
         <div class="panel-head">
-          <div class="panel-title"><span class="eyebrow" id="sess-mode">open model · via Hugging Face router</span><h2 id="sess-title">HyperAck: an acceptance model we can trust</h2></div>
+          <div class="panel-title"><span class="eyebrow" id="sess-mode">open model · via Hugging Face router</span><h2 id="sess-title">Courier offers (invented sample): an acceptance model we can trust</h2></div>
           <div class="row"><span class="pill warn" id="sess-status">paused · waiting for you</span><button type="button" class="btn sm" id="sess-replay"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/></svg>Replay</button></div>
         </div>
         <div class="panel-body"><div class="thread" id="thread"></div></div>
@@ -1305,7 +1315,7 @@
           <div class="panel-body stack tight" id="budget"></div>
         </div>
         <div class="panel" data-f="intern.graphpos">
-          <div class="panel-head"><h3>Where it is in the graph</h3><a class="link-btn small" href="#project" data-project="hyperack">Open →</a></div>
+          <div class="panel-head"><h3>Where it is in the graph</h3><a class="link-btn small" href="#project" data-project="bank">Open →</a></div>
           <div class="panel-body"><div class="wf-rail" id="intern-rail" data-style="grid-template-columns:repeat(5,minmax(0,1fr))"></div></div>
         </div>
       </aside>
@@ -1314,7 +1324,7 @@
 
   <div class="pane" data-pane="sessions" data-label="Sessions" data-count="5">
     <div class="panel">
-      <div class="panel-head"><div class="panel-title"><h2>Sessions</h2><span class="sub">In the demo only the HyperAck session opens.</span></div><span class="pill">5</span></div>
+      <div class="panel-head"><div class="panel-title"><h2>Sessions</h2><span class="sub">In the demo only the first session opens.</span></div><span class="pill">5</span></div>
       <div class="list" id="intern-sessions"></div>
       <div class="panel-foot" id="intern-delete-row" hidden><button type="button" class="btn sm danger" id="intern-delete">Delete the open session</button></div>
     </div>

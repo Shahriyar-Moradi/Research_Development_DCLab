@@ -314,7 +314,7 @@ TOOLS: dict[str, tuple[Callable[..., Any], dict[str, Any]]] = {
         "properties": {
             "query": {"type": "string", "description": "Natural-language question or keywords."},
             "type": {"type": "string", "enum": ["rule", "workflow", "dataset", "experiment", "leakage_precedent", "pitfall", "finding", "kind"]},
-            "dataset": {"type": "string", "description": "Dataset key, e.g. bank_marketing, hyperack, telco_churn."},
+            "dataset": {"type": "string", "description": "Dataset key, e.g. bank_marketing, telco_churn."},
             "stage": {"type": "string", "enum": STAGE_ORDER},
             "task_type": {"type": "string"},
             "k": {"type": "integer", "minimum": 1, "maximum": 20, "default": 5},
@@ -399,11 +399,13 @@ def _verification_cases() -> list[dict[str, Any]]:
         if (base / "X.parquet").exists():
             cases.append({"dataset": key, "X": pd.read_parquet(base / "X.parquet"),
                           "y": pd.read_parquet(base / "y.parquet").iloc[:, 0], "known": known, "task": "classification"})
+    # dclab:closed-begin  (the private delivery project's table)
     hyper = ROOT / "data" / "project" / "hyperack" / "hyper_ackt-dataset.csv"
     if hyper.exists():
         df = pd.read_csv(hyper)
         cases.append({"dataset": "hyperack", "X": df.drop(columns=["hyper_ack"]), "y": df["hyper_ack"],
                       "known": ["final_customer_fare", "final_biker_fare"], "task": "classification"})
+    # dclab:closed-end
     telco = ROOT / "data" / "project" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
     if telco.exists():
         df = pd.read_csv(telco)

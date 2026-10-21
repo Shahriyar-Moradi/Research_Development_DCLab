@@ -104,7 +104,10 @@ async def configuration(s: Services = Depends(services)):
     return {**doc, "ml_python_available": Path(st.ml_python).exists(), "default_goal": DEFAULT_GOAL,
             "default_model": st.openai_model, "default_project": "general", "projects": project_catalog(), "datasets": catalog(),
             "frameworks": [f"NOOA {version('nooa')} · typed Predict specialists", f"LangGraph {version('langgraph')} · durable research loop", "OpenAI · Responses API · store=false"],
-            "commands": {"serve": ".venv-agent/bin/python -m dclab_rnd.agentic serve", "hyperack": ".venv-agent/bin/python -m dclab_rnd.agentic run --project hyperack --datasets hyperack --experiments 4",
+            "commands": {"serve": ".venv-agent/bin/python -m dclab_rnd.agentic serve",
+                         # dclab:closed-begin
+                         "hyperack": ".venv-agent/bin/python -m dclab_rnd.agentic run --project hyperack --datasets hyperack --experiments 4",
+                         # dclab:closed-end
                          "churn_campaign": ".venv/bin/python -m dclab_rnd.churn_suite run", "churn_agent": ".venv-agent/bin/python -m dclab_rnd.agentic run --project telco_churn --datasets telco_churn --experiments 4"},
             "privacy": "When a model is configured, aggregate data profiles (with up to three example values per column) and scientific evidence are sent to it; the Home agent sends summaries only. Full rows and API keys are never sent. store=false; provider policies still apply."}
 

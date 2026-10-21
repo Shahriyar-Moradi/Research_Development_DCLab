@@ -14,7 +14,9 @@ DATASETS = {
     "spambase": {"categorical": [], "blocked": [], "decision": "Email classification after message receipt. Sender-specific proxies and distribution shift remain risks."},
     "online_shoppers": {"categorical": "Month OperatingSystems Browser Region TrafficType VisitorType Weekend".split(), "blocked": ["PageValues", "Administrative", "Administrative_Duration", "Informational", "Informational_Duration", "ProductRelated", "ProductRelated_Duration", "BounceRates", "ExitRates"], "decision": "Session-start purchase prediction. Exclude completed-session counts, durations, bounce/exit rates and PageValues; session-start availability of remaining metadata is assumed, not verified."},
     "wine_quality": {"categorical": [], "blocked": [], "decision": "Wine quality >=6 after physicochemical tests and before quality rating; wine-type/source subgroup information is missing from this legacy cache."},
+    # dclab:closed-begin  (the private delivery project's table)
     "hyperack": {"project": "hyperack", "categorical": ["deliverey_category_id", "weekday", "time_bucket"], "blocked": ["final_customer_fare", "final_biker_fare"], "decision": "Order-time HyperAck prediction before dispatch outcome and final fare are known. Final customer/biker fare are post-outcome and forbidden; the timestamps are converted to calendar features."},
+    # dclab:closed-end
     "telco_churn": {"project": "telco_churn", "categorical": "gender SeniorCitizen Partner Dependents PhoneService MultipleLines InternetService OnlineSecurity OnlineBackup DeviceProtection TechSupport StreamingTV StreamingMovies Contract PaperlessBilling PaymentMethod".split(), "blocked": ["customerID"], "decision": "End-of-snapshot churn-risk research using current account/service/billing fields. customerID is an identifier and forbidden. A verified prediction timestamp and outcome window are still required before deployment."},
 }
 
@@ -28,9 +30,11 @@ def catalog(root=ROOT):
         if path.exists():
             meta = json.loads(path.read_text())
             result.append({**meta, **policy, "key": key, "available": (path.parent / "X.parquet").exists(), "provenance_warning": "Legacy numeric cache: categorical labels were factorized upstream. Treat curated category codes as nominal; original labels and missing-token semantics need raw-source validation. Public UCI data; verify source license before redistribution."})
+        # dclab:closed-begin  (the private delivery project's table)
         elif key == "hyperack":
             source = root / "data" / "project" / "hyperack" / "hyper_ackt-dataset.csv"
             result.append({**policy, "key": key, "name": "HyperAck delivery acceptance", "rows": 11118, "features": 14, "available": source.exists(), "source": source.name, "provenance_warning": "Local DCLab project data. Historical results include both leakage-unsafe and leakage-safe suites; final fares are never allowed in new agentic runs."})
+        # dclab:closed-end
         elif key == "telco_churn":
             source = root / "data" / "project" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
             result.append({**policy, "key": key, "name": "Telco customer churn", "rows": 7043, "features": 19, "available": source.exists(), "source": source.name, "provenance_warning": "Public IBM-style sample mirrored locally. customerID is excluded; blank TotalCharges values are handled without using the target. License and production lineage require verification."})

@@ -28,13 +28,22 @@ from .catalog import ROOT, DATASETS, catalog
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
+CUSTOM = {"telco_churn"}  # the project tables read by _load_custom
+# dclab:closed-begin
+CUSTOM.add("hyperack")
+# dclab:closed-end
+
+
 def source_paths(key, root=ROOT):
+    # dclab:closed-begin  (the private delivery project's table)
     if key == "hyperack": return [root / "data" / "project" / "hyperack" / "hyper_ackt-dataset.csv"]
+    # dclab:closed-end
     if key == "telco_churn": return [root / "data" / "project" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"]
     directory = root / "data/public" / key
     return [directory / "X.parquet", directory / "y.parquet", directory / "meta.json"]
 
 def _load_custom(key, root):
+    # dclab:closed-begin  (the private delivery project's table)
     if key == "hyperack":
         path = source_paths(key, root)[0]
         frame = pd.read_csv(path)
@@ -46,6 +55,7 @@ def _load_custom(key, root):
         frame["created_hour"] = first.dt.hour
         frame["created_minute"] = first.dt.minute
         return frame, y
+    # dclab:closed-end
     path = source_paths(key, root)[0]
     frame = pd.read_csv(path, dtype={"SeniorCitizen": "string"})
     y = frame.pop("Churn").map({"No": 0, "Yes": 1}).astype(int)
@@ -58,7 +68,7 @@ def load(key, max_rows, root=ROOT):
     if key not in DATASETS:
         raise ValueError("Unknown dataset")
     directory = root / "data/public" / key
-    if key in ("hyperack", "telco_churn"):
+    if key in CUSTOM:
         X, y = _load_custom(key, root)
     else:
         X = pd.read_parquet(directory / "X.parquet")
@@ -90,7 +100,9 @@ def profile(key, max_rows):
             item["target_abs_correlation"] = float(abs(series.corr(y))) if series.nunique() > 1 else None
         columns.append(item)
     warnings = ["Target associations are exploratory signals, not proof of leakage.", "Availability must be confirmed from event lineage and prediction timestamps.", "Only aggregate profiles are sent to the LLM; no source rows."]
+    # dclab:closed-begin  (the private delivery project's table)
     if key == "hyperack": warnings.append("The 0.9793 historical ceiling used post-outcome final fares; those columns are policy-blocked here.")
+    # dclab:closed-end
     if key == "telco_churn": warnings.append("customerID is removed before profiling/modeling; the dataset lacks entity history and a verified outcome-window timestamp.")
     return {"dataset": key, "rows": len(X), "positive_fraction": float(y.mean()), "exact_duplicate_fraction": float(X.duplicated().mean()), "columns": columns, "policy": next(c for c in catalog() if c["key"] == key), "hashes": hashes, "warnings": warnings}
 

@@ -198,7 +198,7 @@ class ProblemBrief(Versioned):
     unit: TextFact = _fact(TextFact, "What one scored row is: a ride, a customer-month, a ticket (ProblemSpec.prediction_unit).")
     task: TaskFact = _fact(TaskFact, "binary, multiclass or regression (ProblemSpec.task_type).")
     target_column: TextFact = _fact(TextFact, "The column holding the label, when there is one (ProblemSpec.target_column).")
-    target_definition: TextFact = _fact(TextFact, "How the label is defined when no column holds it, e.g. 'listed in known_frauds.csv'.")
+    target_definition: TextFact = _fact(TextFact, "How the label is defined when no column holds it, e.g. 'listed in the file of confirmed cases'.")
     label_source: LabelSourceFact = _fact(LabelSourceFact, "Where labels come from: a column, another file, or none.")
     label_coverage: CoverageFact = _fact(CoverageFact, "complete, or partial (a sample: unlabelled is not negative).")
     prediction_moment: TextFact = _fact(TextFact, "When the prediction is made and what is known then.")

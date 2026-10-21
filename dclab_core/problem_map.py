@@ -1,7 +1,7 @@
 """The problem map (package 24.1): a problem as parts and sub-problems, how their outputs combine, and the rules that draw and judge it.
 
 A small problem is a map with one part and one sub-problem: nothing changes for it except that the map says so and why. A
-complex one (the owner's example: fraud among bikers and customers, with a few confirmed cases and a review budget) is several
+complex one (for example fraud among couriers and customers, with a few confirmed cases and a review budget) is several
 parts, each with its question, its unit and its moment; each part has a sub-problem shaped like a problem card (a family, labels,
 an outcome, what it needs, what it reads of the others); and a composition says how their outputs combine (a sequence, a fusion
 of scores, a gate, a budget), step by step, each step on what exists before it.

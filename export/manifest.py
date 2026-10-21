@@ -20,6 +20,8 @@ INCLUDE = [
 ]
 
 EXCLUDE = [
+    "dclab_rnd/pitfalls.py",  # the research that measured the pitfalls (on the private delivery table too); the open tree ships its records
+    "dclab_rnd/retrieval/questions_v1.json",  # the measured questions' answers cite research records the open tree does not ship
     "dclab_rnd/agentic/web/src/views/lab.html", "dclab_rnd/agentic/web/src/views/benchmark.html",
     "dclab_rnd/agentic/web/src/views/policy.html",  # the research pages (their routes are the full edition's)
     "dclab_rnd/agentic/web/src/views/blueprint.html", "dclab_rnd/agentic/web/src/features.js",  # the planning page (overlay: an empty registry)
@@ -73,11 +75,13 @@ CLOSED = [
 # Words replaced in every exported text file, in this order (after the package rename): the owner's real dataset and the mock
 # user become invented names, private working files become the public ones. The scanner then checks nothing private is left.
 REPLACE = [
+    # the main product's internals named in comments (its adapters are not exported)
+    (r"main product apps/api/app/agents/semantic/releases\.py at the recorded commit", "the main product's release"),
+    (r"\bJev's\b", "the main product agent's"), (r"\bJev\b", "the main product's agent"),
+    (r"``semantic_decision_answers``", "decision-answer table"), (r"semantic_decision_answers", "decision answers"),
+    (r"``project_decision_records``", "decision-record table"), (r"project_decision_records", "decision records"),
+    (r"``ml_run_events``", "run-event table"), (r"``r3_runs``", "run table"), (r"\br3_runs\b", "run table"),
     (r"make kinds-check ARGS=", "python -m dclabai.kinds "), (r"make kinds-check", "python -m dclabai.kinds"),
-    (r"hyper_ackt-dataset\.csv", "ride_fares.csv"),
-    (r"hyper_ackt", "ride_fares"),
-    (r"hyper_ack\b", "accepted"),
-    (r"HYPERACK", "RIDEFARE"), (r"HyperAck", "RideFare"), (r"Hyperack", "Ridefare"), (r"hyperack", "ridefare"),
     (r"shahriar994@gmail\.com", "alex@example.com"),
     (r"Shahriyar Moradi", "Alex Morgan"), (r"Shahriar Moradi", "Alex Morgan"),
     (r"Shahriyar", "Alex"), (r"Shahriar", "Alex"), (r"shahriyar", "alex"), (r"shahriar", "alex"),
@@ -95,8 +99,10 @@ OVERLAY = "export/overlay"  # files only the open tree has (README, LICENSE, pyp
 TESTS = {
     "candidates": "tests/test_*.py",
     "helpers": ["tests/pgtest.py", "tests/fixtures/**"],
-    "private_paths": ["data/project", "data/public", "data/downloads", "evidence/", "research/", "training_records", "agent_runs/",
-                      "docs/guides", "docs/product-demo", "/sft/", "decisions/", "dev_trajectories", "make rd-check"],
+    # regular expressions: a private folder named as a path of this repository (never inside a URL like /api/evidence/...)
+    "private_paths": [r"data/(project|public|downloads)", r"(?<![/\w])evidence/", r"(?<![/\w])research/", r"training_records", r"agent_runs/",
+                      r"docs/guides", r"docs/product-demo", r"/sft/", r"(?<![/\w])decisions/", r"dev_trajectories", r"make rd-check",
+                      r"known_frauds", r"sender_phone", r"(?i:hyper_?ack)"],
     "exclude": {  # a test file left out by hand, with why (each found by running the selection in a fresh install)
         "tests/test_config.py": "reads the repository with git and scripts/scan_secrets.py; back when the open repository's CI runs it",
         "tests/test_core_wheel.py": "checks dclab_core's own wheel and changelog, which stay in the private repository",

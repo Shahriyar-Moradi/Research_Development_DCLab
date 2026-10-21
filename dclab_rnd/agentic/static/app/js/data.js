@@ -9,8 +9,10 @@ window.DEMO = {
   projects: [
     { id: 'bank', name: 'Term-deposit calls', dataset: 'bank_marketing', pack: 'Tabular · binary', states: 'dddddddddc', at: 'WF-10 · Knowledge capture',
       score: 'ROC-AUC 0.7718', ci: '0.7126–0.8290', note: 'holdout, opened once', ev: 'EXP-010', leaks: 1, status: 'Awaits sign-off', cls: 'warn', updated: '2 h ago', owner: 'SM', filter: 'active', open: 'project' },
+    // dclab:closed-begin  (the private delivery project's sample row)
     { id: 'hyperack', name: 'HyperAck order acceptance', dataset: 'hyperack', pack: 'Tabular · binary · time', states: 'b---------', at: 'WF-01 · Solution draft',
       score: 'safe CV ROC-AUC 0.9455', ci: '', note: 'unsafe 0.9802 is blocked', ev: 'LEAK-hyperack', leaks: 2, status: 'Owner question', cls: 'warn', updated: 'yesterday', owner: 'SM', filter: 'waiting', open: 'hyperack' },
+    // dclab:closed-end
     { id: 'telco', name: 'Telco churn', dataset: 'telco_churn', pack: 'Tabular · binary', states: 'bdddddd---', at: 'WF-01 · reopened',
       score: 'dev CV ROC-AUC 0.8499', ci: '', note: 'AP 0.6708 · logistic won', ev: 'FINDING-churn-linear', leaks: 1, status: 'Solution reopened', cls: 'warn', updated: '3 d ago', owner: 'AV', filter: 'waiting', open: 'telco' },
     { id: 'fraud', name: 'Card fraud screening', dataset: 'credit_card_fraud', pack: 'Imbalanced · time split', states: 'dddddddddd', at: 'Done',

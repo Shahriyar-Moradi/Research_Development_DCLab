@@ -38,6 +38,7 @@ class Scripted:
 
 
 class ReviewerTests(unittest.TestCase):
+    # dclab:closed-begin  (the studied samples include the private delivery table)
     def test_on_the_studied_samples_it_finds_the_rds_forbidden_columns(self):
         if bank_marketing_missing():
             self.skipTest("the studied sample tables are not part of this edition")
@@ -49,6 +50,7 @@ class ReviewerTests(unittest.TestCase):
         # what only a reader of the moment finds: "completed-session counts" name no column
         self.assertEqual(by["online_shoppers"]["missed"], ["Administrative", "Informational", "ProductRelated"])
         self.assertIn("BounceRates", by["online_shoppers"]["found"])  # "Exclude … bounce/exit rates" in the moment
+    # dclab:closed-end
 
     def test_only_the_audits_flags_are_ticked(self):
         out = leakage_review.review(PROFILE, MOMENT, FLAGGED, "y")

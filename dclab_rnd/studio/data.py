@@ -256,9 +256,11 @@ def _positive_label(values: list[Any], counts: dict[Any, int] | None = None) -> 
 # ---------------------------------------------------------------------- samples
 
 SAMPLE_META = {
-    "hyperack": {"target": "hyper_ack", "industry": "logistics and delivery", "identifiers": [], "time": "created_date",
-                 "goal": "Predict whether a delivery order will be accepted, at the moment the order is created."},
-    "telco_churn": {"target": "Churn", "industry": "telecom", "identifiers": ["customerID"], "time": None,
+    # dclab:closed-begin  (the private delivery project's table)
+    "hyperack": {"name": "HyperAck delivery acceptance", "target": "hyper_ack", "industry": "logistics and delivery", "identifiers": [],
+                 "time": "created_date", "goal": "Predict whether a delivery order will be accepted, at the moment the order is created."},
+    # dclab:closed-end
+    "telco_churn": {"name": "Telco customer churn", "target": "Churn", "industry": "telecom", "identifiers": ["customerID"], "time": None,
                     "goal": "Predict which customers will churn, from their current account and billing fields."},
 }
 PUBLIC_GOALS = {
@@ -288,8 +290,10 @@ def _expansion_specs():
 
 def _sample_source(key: str, root: Path) -> Path:
     """Where a repository sample's table lives (the project tables, else a public parquet)."""
+    # dclab:closed-begin
     if key == "hyperack":
         return root / "data/project/hyperack/hyper_ackt-dataset.csv"
+    # dclab:closed-end
     if key == "telco_churn":
         return root / "data/project/telco/WA_Fn-UseC_-Telco-Customer-Churn.csv"
     return root / "data/public" / key / "X.parquet"
@@ -307,7 +311,7 @@ def sample_catalog(root: Path = ROOT) -> list[dict[str, Any]]:
         if key in SAMPLE_META:
             meta = SAMPLE_META[key]
             available = _sample_source(key, root).exists()
-            name = "HyperAck delivery acceptance" if key == "hyperack" else "Telco customer churn"
+            name = meta["name"]
             goal, industry = meta["goal"], meta["industry"]
         else:
             available = _sample_source(key, root).exists()
@@ -335,12 +339,17 @@ def load_sample(key: str, root: Path = ROOT) -> tuple[pd.DataFrame, dict[str, An
     if key not in DATASETS or not _sample_source(key, root).exists():
         raise KeyError(key)  # unknown, or a table this tree does not ship (the open edition ships none): as in sample_catalog
     policy = DATASETS[key]
+    frame = None
+    # dclab:closed-begin  (the private delivery project's table)
     if key == "hyperack":
         frame = pd.read_csv(root / "data/project/hyperack/hyper_ackt-dataset.csv")
         target, identifiers, time_column = "hyper_ack", [], "created_date"
         for column in ("first_created_at",):
             if column in frame:
                 frame = frame.drop(columns=[column])
+    # dclab:closed-end
+    if frame is not None:
+        pass
     elif key == "telco_churn":
         frame = pd.read_csv(root / "data/project/telco/WA_Fn-UseC_-Telco-Customer-Churn.csv")
         frame["TotalCharges"] = pd.to_numeric(frame["TotalCharges"].astype(str).str.strip(), errors="coerce")

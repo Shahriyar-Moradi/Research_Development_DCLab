@@ -377,6 +377,7 @@ def export_decisions(records: Iterable[Any], labels: Iterable[Any], workspace: d
     return out
 
 
+# dclab:closed-begin  (the main product's export: the full edition's)
 def export_main_product(records: Iterable[Any], labels: Iterable[Any], workspace: dict[str, bool],
                         projects: dict[str, dict[str, Any]], drafts: dict[str, str] | None = None) -> dict[str, Any]:
     """22.7: the decisions of the main product's Jev purposes in its label format (``semantic_decision_answers``'
@@ -402,6 +403,7 @@ def export_main_product(records: Iterable[Any], labels: Iterable[Any], workspace
         out.append({"decision": {k: doc.get(k) for k in ("id", "point", "subject", "state", "options", "answers", "value_used", "used", "level")},
                     "labels": rows})
     return {"decisions": out, "left_out": left, "points": sorted(points)}
+# dclab:closed-end
 
 
 def tombstone(kind: str, ident: str) -> dict[str, Any]:
@@ -415,5 +417,8 @@ def consented_projects(projects: Any, workspace: dict[str, bool], use: str) -> d
     return {p["id"]: p for p in projects.list() if allowed(workspace, p, use)}
 
 
-__all__ = ["USES", "workspace_consent", "set_workspace_consent", "project_consent", "allowed", "export_events", "export_decisions", "export_main_product",
+__all__ = ["USES", "workspace_consent", "set_workspace_consent", "project_consent", "allowed", "export_events", "export_decisions", 
            "ConsentRefused", "tombstone", "consented_projects", "draft_projects"]
+# dclab:closed-begin
+__all__.append("export_main_product")
+# dclab:closed-end

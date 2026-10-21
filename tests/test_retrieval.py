@@ -18,7 +18,7 @@ NO_FULL_INDEX = "the research records are not part of this edition (it packages 
 class RetrievalTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = retrieval.measure()
+        cls.m = retrieval.measure() if retrieval.QUESTIONS.is_file() else None  # the measured questions cite the research records
 
     @unittest.skipUnless(FULL_INDEX, NO_FULL_INDEX)
     def test_sixty_questions_whose_answers_exist(self):
@@ -39,6 +39,8 @@ class RetrievalTests(unittest.TestCase):
                 self.assertAlmostEqual(self.m["recall"][method][group], value, delta=0.02, msg=f"{method} {group}")
 
     def test_the_hybrid_is_used_only_when_it_is_not_worse_on_any_group(self):
+        if self.m is None:
+            self.skipTest("the measured questions are not part of this edition")
         groups = ["rule", "paraphrase"]
         self.assertEqual(retrieval.choose({"bm25": {"rule": 0.8, "paraphrase": 0.2, "overall": 0.5}, "hybrid": {"rule": 0.73, "paraphrase": 0.5, "overall": 0.6}}, groups), "bm25")
         self.assertEqual(retrieval.choose({"bm25": {"rule": 0.8, "paraphrase": 0.2, "overall": 0.5}, "hybrid": {"rule": 0.8, "paraphrase": 0.3, "overall": 0.55}}, groups), "hybrid")
