@@ -1,0 +1,119 @@
+{
+ "package": "home-team-several-tasks",
+ "title": "Several tasks at once in the built chat: a message with several asks runs them together, a plot alongside an improvement run",
+ "date": "2026-10-21",
+ "request": "Several tasks at once on the board, for example improve and plot in parallel.",
+ "spec": "The built chat's rules plan (draft/orchestrator.plan) and HomeGuard; studio/improve.py's saves.",
+ "plan": [
+  "plan() reads a message part by part when it asks for several things; at most 3 tasks and one offer.",
+  "\"yes, and ...\" carries out the offer and the rest.",
+  "A notebook cell is written while an improvement runs; a stage run still blocks it."
+ ],
+ "decisions": [
+  {
+   "decision": "Only light work runs beside an improvement (a notebook cell); a second improvement or a stage waits.",
+   "why": "The Mac has 8 GB; two model trainings at once would slow both."
+  },
+  {
+   "decision": "A cell may be written during an improvement run, not during a stage run.",
+   "why": "The improvement job reads the project just before each save; a stage run holds it for minutes and saves it whole."
+  },
+  {
+   "decision": "Building is never carried by \"yes, and ...\".",
+   "why": "Building spends and creates a project: it needs a plain yes."
+  }
+ ],
+ "change": "dclab_rnd/draft/orchestrator.py (plan wrapper, SPLIT, YES_AND, ALONGSIDE_IMPROVE), tests/test_home_orchestrator.py, studio/improve.py and jobs/handlers.py (field updates), studio/store.py (a file lock across processes)",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "\"yes, and plot it\" ran only the plot.",
+   "scenario": "After an offer to improve.",
+   "cause": "A yes followed by words was not a yes.",
+   "fix": "YES_AND offers take the yes and plan the rest.",
+   "test": "tests/test_home_orchestrator.py"
+  },
+  {
+   "id": "T2",
+   "source": "self",
+   "severity": "gap",
+   "defect": "A data change in one part of a message was lost.",
+   "scenario": "\"add column a = spend * 2 and plot the spend\".",
+   "cause": "Only splittable tools and reads were kept from parts.",
+   "fix": "propose_data_change kept too, one offer a turn.",
+   "test": "tests/test_home_orchestrator.py"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A joined copy of a later outcome stayed in the new version.",
+   "scenario": "join plans(plan, churned_60d, price), yes, then change the outcome to churned_60d.",
+   "cause": "The joined column was renamed plans_churned_60d and only renamed names were compared.",
+   "fix": "_reads includes the joined table's own column names.",
+   "test": "tests/test_home_orchestrator.py"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "\"yes, but ...\" carried out the offer.",
+   "scenario": "\"right, but show me the leakage first\" confirmed a problem change; \"yes but plot the roc curve instead\" started a job.",
+   "cause": "Any yes with two more words ran the offer.",
+   "fix": "Only \"yes and/then/also ...\", and nothing that holds it back (but, instead, first, not now).",
+   "test": "tests/test_home_orchestrator.py"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A plot made better started a model improvement.",
+   "scenario": "\"plot spend by month, and make it look better\" submitted an improve job.",
+   "cause": "A part's IMPROVE and DOING words.",
+   "fix": "From a part, an improvement only when it names the model.",
+   "test": "tests/test_home_orchestrator.py"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "\"yes, and add column ...\" lost the yes.",
+   "scenario": "After a proposed problem change: the change expired, the data change was proposed.",
+   "cause": "The tail kept only reads and splittable tools.",
+   "fix": "propose_data_change and remember are kept after the yes.",
+   "test": "tests/test_home_orchestrator.py"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A cell written beside an improvement run could still be lost, and the job's fields overwritten.",
+   "scenario": "The worker gets the project, the chat writes a cell, the worker saves the whole document.",
+   "cause": "improve.run and the job handler saved whole documents; the file store's lock was per process.",
+   "fix": "They update their own fields; the file store also takes a file lock across processes.",
+   "test": "tests/test_home_orchestrator.py (a second process holds the lock)"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "affected tests",
+   "gate": "every affected test file passes",
+   "result": "home orchestrator 65, jobs 18, improve 3, storage contract 25 on both backends",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the model path plans its own calls; only the rules' plan was changed"
+   ]
+  }
+ ],
+ "outcome": "A person can ask for several things in one message and see them on one board; a plot is written while the model improves.",
+ "lessons": [
+  "Before allowing work in parallel, read how each long job saves: the risk is a whole-document save over minutes."
+ ],
+ "risks": [
+  "The split is by words; an ask joined by a bare \"and\" without a verb stays one ask."
+ ],
+ "commits": []
+}

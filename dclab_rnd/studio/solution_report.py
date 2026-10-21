@@ -99,6 +99,34 @@ def build(store: Any, project_id: str, rubric: Optional[list[dict[str, Any]]] = 
     return report
 
 
+def latest(store: Any, project_id: str) -> dict[str, Any]:
+    """The project's report as the person downloads it and the chat's Reporter reads it: built once per set of records
+    (a digest of them), with the reporter role's cited summaries when that role is on and a model serves it, and kept on
+    the project, so asking again costs nothing. Returns ``{"report": SolutionReport, "markdown": str, "cached": bool}``."""
+    import hashlib
+    import json
+
+    from dclab_core import report as core_report
+
+    from .. import roles
+
+    project = store.get(project_id)
+    advisor = roles.advisor("reporter", project=project, cap_eur=roles.CALL_CAP_EUR)
+    private = bool((project.get("settings") or {}).get("private"))
+    key = {"records": store.records(project_id), "private": private, "prose": advisor is not None and not private}  # a project made private, or the reporter turned on, builds again
+    digest = hashlib.sha256(json.dumps(key, sort_keys=True, default=str).encode()).hexdigest()[:16]
+    cached = project.get("solution_report") or {}
+    if cached.get("digest") == digest and cached.get("markdown") and cached.get("report"):
+        try:
+            return {"report": SolutionReport.model_validate(cached["report"]), "markdown": cached["markdown"], "cached": True}
+        except ValueError:  # a cache of an older shape: built again
+            pass
+    built = build(store, project_id, None, True, advisor)
+    text = core_report.to_markdown(built)
+    store.update(project_id, solution_report={"digest": digest, "markdown": text, "report": built.model_dump(mode="json")})
+    return {"report": built, "markdown": text, "cached": False}
+
+
 def write(store: Any, project_id: str, directory: Path, rubric: Optional[list[dict[str, Any]]] = None,
           formats: tuple[str, ...] = FORMATS, analyse: bool = True) -> dict[str, Path]:
     """The report written as files in ``directory`` (``report.md``, ``report.html``, ``report.pdf``). The PDF needs

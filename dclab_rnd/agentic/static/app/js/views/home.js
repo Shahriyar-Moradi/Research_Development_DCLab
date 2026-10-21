@@ -578,7 +578,9 @@ DC.view('home', {
       const proof = (c.proof || []).length ? `<div class="row small"><span class="pill proof">cites</span>${DC.chips(c.proof)}</div>` : '';
       const notes = (c.notes || []).map(n => `<div class="small muted">${esc(n)}</div>`).join('') + (c.note ? `<div class="small muted">${esc(c.note)}</div>` : '');
       const open = c.page && c.project ? `<button type="button" class="btn sm" data-open-project="${esc(c.project)}" data-open-view="${esc(c.page)}">Open ${esc(PAGES[c.page] || c.page)}</button>` : '';
-      return `<div class="inset stack tight project-card"><div class="row between"><div><div class="eyebrow">${esc(c.agent || '')}</div><b>${esc(c.title || '')}</b>${c.subtitle ? `<div class="small muted">${esc(c.subtitle)}</div>` : ''}</div>${open}</div>`
+      const href = c.download && c.project && DC.client.href[c.download.route];  // a route the API client knows, never a path from the card
+      const download = href ? `<a class="btn sm" href="${esc(href(c.project))}" download>${esc(c.download.label || 'Download')}</a>` : '';
+      return `<div class="inset stack tight project-card"><div class="row between"><div><div class="eyebrow">${esc(c.agent || '')}</div><b>${esc(c.title || '')}</b>${c.subtitle ? `<div class="small muted">${esc(c.subtitle)}</div>` : ''}</div>${open}${download}</div>`
         + facts + table + matrix + lines + proof + notes + (c.offer ? `<div class="small">${esc(c.offer)}</div>` : '') + '</div>';
     }
     function boardHtml(tasks) {

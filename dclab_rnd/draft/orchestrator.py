@@ -38,7 +38,8 @@ from ..agents.registry import Registry, Tool
 PURPOSE = "home_orchestrator"
 AGENT = "home.project"
 RULES_AGENT = "home.project.rules"
-TEAM = {"analyst": "Problem analyst", "planner": "Solution planner", "reader": "Records reader", "evaluator": "Evaluator", "experimenter": "Experimenter", "coder": "Notebook coder"}
+TEAM = {"analyst": "Problem analyst", "planner": "Solution planner", "reader": "Records reader", "evaluator": "Evaluator", "experimenter": "Experimenter", "coder": "Notebook coder",
+        "reporter": "Reporter", "data": "Data engineer"}
 CAP_EUR = 0.25  # one turn's model spend, at most
 TAIL = 12  # messages of the conversation the model reads
 SHOWN_SENTENCES = 4  # a reply beside a table: at most this many sentences (the owner: "bring the table instead of the texts")
@@ -654,7 +655,10 @@ def confirm_problem_change(t: Turn, /, change: str = "", **_: Any) -> dict[str, 
     blocking = [m["question"] for m in pending.get("mismatches") or [] if m.get("blocking")]
     if blocking:
         return {"error": "The new problem does not fit the table yet, so it cannot be confirmed: " + blocking[0], "blocking": blocking}
-    done = {**pending, "status": "confirmed", "confirmed_at": now()}
+    new_outcome = (pending.get("problem") or {}).get("outcome") or (pending.get("changes") or {}).get("outcome")
+    kept_ops = [o for o in _base_ops(t) if new_outcome not in _reads(o)]  # a column read from the new outcome would carry its answer
+    dropped_ops = [o for o in _base_ops(t) if new_outcome in _reads(o)]
+    done = {**pending, "status": "confirmed", "confirmed_at": now(), "data_ops": kept_ops, "data_ops_dropped": dropped_ops}
 
     def keep(d: dict[str, Any]) -> None:
         current = d.get("problem_change") or {}
@@ -669,7 +673,9 @@ def confirm_problem_change(t: Turn, /, change: str = "", **_: Any) -> dict[str, 
         t.agent_offer("plan_new_version", {"version": done["id"]})
     result = {"confirmed": done["id"], "changes": done["changes"], "problem": done.get("problem"), "version": len(_draft(t).get("problem_versions") or []) + 1,
               "next": ("The built project stays as it is. Say yes (or build it) and the Solution planner plans the new version: a new project, its stages run again."
-                       if why is None else f"The built project stays as it is. This version cannot be built from this table yet: {why}")}
+                       if why is None else f"The built project stays as it is. This version cannot be built from this table yet: {why}")
+              + ("" if not dropped_ops else " Left out of this version, because they read the new outcome: "
+                 + "; ".join(_describe_ops(dropped_ops)) + ".")}
     t.results.append(result)
     return result
 
@@ -742,10 +748,13 @@ def plan_new_version(t: Turn, /, **_: Any) -> dict[str, Any]:
     problem = dict(version.get("problem") or {})
     target = problem.get("outcome") or old.get("target")
     time_hint = problem.get("time_column") or old.get("time_column")  # the version's whole problem: a time column changed in an earlier version stays
+    ops = list(version.get("data_ops") or [])
     try:
         frame = studio_data.load_table(studio_data.data_path(t.projects, project))
-        proposal = studio_solution.propose(frame, (project.get("data") or {}).get("profile") or studio_data.profile_table(frame), target, None,
-                                           project.get("pack"), time_hint)
+        if ops:  # the Data engineer's confirmed changes, on this version's copy of the table
+            frame = _with_changes(t, frame, ops)
+        profile = studio_data.profile_table(frame) if ops else (project.get("data") or {}).get("profile") or studio_data.profile_table(frame)
+        proposal = studio_solution.propose(frame, profile, target, None, project.get("pack"), time_hint)
     except Exception as exc:  # noqa: BLE001 - the table cannot be read, or the outcome refused: said, nothing planned
         return {"error": f"The new version cannot be planned on this table: {str(getattr(exc, 'detail', None) or exc)[:300]}"}
     time_column = time_hint if time_hint in frame.columns else (proposal.get("time_candidates") or [None])[0]
@@ -771,9 +780,10 @@ def plan_new_version(t: Turn, /, **_: Any) -> dict[str, Any]:
         "rows": rows, "mark": "changed",
         "lines": ["A new chat is opened for this version, on the same table; the agent runs its stages again. The held-back period is the same as version 1's "
                   "(same table, same time column), read once for the new outcome.",
+                  *(["Data changes in this version: " + "; ".join(_describe_ops(ops))] if ops else []),
                   "The built project stays as it is; the two are linked."],
         "notes": [f"{f['column']}: {f['reason']}" for f in forbidden[:6]], "offer": "Say yes to build it."})
-    result = {"planned": version["id"], "version": number, **planned}
+    result = {"planned": version["id"], "version": number, **planned, **({"data_changes": _describe_ops(ops)} if ops else {})}
     t.results.append(result)
     return result
 
@@ -807,7 +817,15 @@ def build_new_version(t: Turn, /, **_: Any) -> dict[str, Any]:
         nd = None
     nd = nd if nd is not None and not nd.get("project_id") else drafts.create(words[:2000])  # a retry after a refusal reuses its chat
     asset = next((a for a in old_draft.get("assets") or [] if a.get("id") == old_draft.get("active_asset")), {}) or {}
-    shutil.copyfile(studio_data.data_path(t.projects, project), drafts.data_dir(nd["id"]) / "clean.parquet")
+    table_file = drafts.data_dir(nd["id"]) / "clean.parquet"
+    shutil.copyfile(studio_data.data_path(t.projects, project), table_file)
+    ops, changed = list(version.get("data_ops") or []), None
+    if ops:  # the confirmed data changes, on this version's copy only
+        try:
+            changed = _with_changes(t, studio_data.load_table(table_file), ops)
+        except Exception as exc:  # noqa: BLE001 - a joined table changed or went away since the change was confirmed
+            return {"error": f"Version {number}'s data changes cannot be made any more: {str(exc)[:200]}"}
+        changed.to_parquet(table_file, index=False)
     forbidden = [{"column": c, "reason": "forbidden in the version's plan"} for c in plan.get("forbidden") or []]
     suggestion = {"target": plan["outcome"], "forbidden": forbidden, **({"prediction_moment": plan["prediction_moment"]} if plan.get("prediction_moment") else {}),
                   **({"time_column": plan["time_column"]} if plan.get("time_column") else {})}
@@ -823,17 +841,22 @@ def build_new_version(t: Turn, /, **_: Any) -> dict[str, Any]:
             u[key] = version["changes"][key]
     intro_id = f"mv{version['id']}"
     intro = {"id": intro_id, "role": "agent", "kind": "text", "at": now(),
-             "text": (f"This chat builds version {number} of {project.get('name')}: " + "; ".join(f"{CHANGE_FIELDS.get(k, k)} {v}" for k, v in (version.get('changes') or {}).items())
+             "text": (f"This chat builds version {number} of {project.get('name')}: " + "; ".join([f"{CHANGE_FIELDS.get(k, k)} {v}" for k, v in (version.get('changes') or {}).items()]
+                                                                                                   + _describe_ops(ops))
                       + f". Version 1 stays as it was. Asked from the chat of project {t.project_id}.")}
 
     data = project.get("data") or {}
     analysis = old_draft.get("analysis") if ((old_draft.get("analysis") or {}).get("columns")) else \
         {**(old_draft.get("analysis") or {}), "columns": [{"name": str(c)} for c in data.get("columns") or []], "profile": data.get("profile") or {}}
+    data_card = old_draft.get("data_card")
+    if changed is not None:  # the version's table has new columns: its analysis and data card are drawn again (names and bands, never a row)
+        analysis = {**(old_draft.get("analysis") or {}), "columns": [{"name": str(c)} for c in changed.columns], "profile": studio_data.profile_table(changed)}
+        data_card = studio_data.data_card({new_asset["name"]: changed}, new_asset["name"], plan["outcome"]) or data_card
     # the e2e check, 2026-10-21: a chat without its table's analysis left the build without the columns, so the outcome was "not named"
 
     def seed(d: dict[str, Any]) -> None:
         d["messages"] = [m for m in d.get("messages") or [] if m.get("id") != intro_id]  # a retry seeds the reused chat again, once
-        d.update(assets=[new_asset], active_asset=new_asset["id"], analysis=analysis, data_card=old_draft.get("data_card"),
+        d.update(assets=[new_asset], active_asset=new_asset["id"], analysis=analysis, data_card=data_card,
                  understanding=u, settings=old_draft.get("settings"), pack=old_draft.get("pack"), structure=old_draft.get("structure"),
                  version_of={"project": t.project_id, "draft": t.draft_id, "version": number, "change": version["id"], "problem": problem})
         d["messages"].append(intro)
@@ -943,6 +966,9 @@ def _noted(tool: str, result: dict[str, Any]) -> Optional[dict[str, Any]]:
         said = redact.redact_text("; ".join(f"{k.replace('_', ' ')} {v}" for k, v in changes.items()))[0]  # a moment is the person's words
         return _new_note("decision", f"Version {result.get('version')} of the problem confirmed: {said or result.get('confirmed')}",
                          "the person confirmed it in the chat; this project still answers the problem it was built for", "person", "confirm_problem_change")
+    if tool == "confirm_data_change":
+        return _new_note("decision", f"Version {result.get('version')} confirmed with data changes: " + "; ".join(result.get("data_changes") or []),
+                         "the person confirmed it in the chat; this project's table stays as it is", "person", "confirm_data_change")
     if tool == "adopt_improvement":
         return _new_note("decision", f"Adopted the improvement {result.get('adopted')} ({result.get('family')})", "it beat the current model on the training folds; the person adopted it",
                          "person", "adopt_improvement")
@@ -951,19 +977,319 @@ def _noted(tool: str, result: dict[str, Any]) -> Optional[dict[str, Any]]:
     return None
 
 
-READS = {"show_problem": show_problem, "show_memory": show_memory, "list_projects": list_projects, "show_notebook": show_notebook, "show_activity": show_activity, "show_models": show_models, "show_features": show_features, "show_data": show_data, "show_leakage": show_leakage, "show_stages": show_stages,
+# ---------------------------------------------------------------------- the Reporter: the report from the records, for a manager or the team
+
+
+AUDIENCE = r"(?:my|the|our) (?:manager|boss|team|stakeholders?|director|client|lead|board)"
+REPORT = re.compile(r"\b(?:write|make|draft|prepare|give|send|create|need|want|produce|download)\b[^.?!]{0,40}\breport\b|"
+                    rf"\b(?:report|summary|write-?up)\b[^.?!]{{0,30}}\bfor {AUDIENCE}\b|\bsummari[sz]e\b[^.?!]{{0,40}}\bfor {AUDIENCE}\b|"
+                    rf"\bwrite (?:it )?up\b[^.?!]{{0,40}}\bfor {AUDIENCE}\b|\bsummary of (?:the |this |my )?project\b|"
+                    r"\b(?:full|final|solution|project'?s?) report\b", re.I)  # "the report" alone is the last improvement run's
+NOT_REPORT = re.compile(r"\b(?:improvements?|experiments?|tried|last run|classification report|cells?)\b", re.I)
+
+
+def asks_for_report(said: str) -> bool:
+    """The person asks for the project's report: never a summary of one subject (the data, the models), a plot or a cell, or
+    the improvement run's report; a subject named beside it is read by its own tool."""
+    if not REPORT.search(said) or NOT_REPORT.search(said) or PLOT.search(said):
+        return False
+    named = [n for n, w in WORDS if n not in ("show_result", "show_evaluation", "show_improvements") and w.search(said)]  # "results", "the report": in every report
+    return not named or bool(re.search(rf"\bfor {AUDIENCE}\b|\b(?:full|final|solution) report\b", said, re.I))
+FOR_MANAGER = ("The problem as understood", "Results, with their intervals", "Limits, and what the data cannot show", "Next steps")
+FOR_TEAM = FOR_MANAGER[:1] + ("What the data shows", "Decisions and reasons") + FOR_MANAGER[1:]
+
+
+def _first_lines(body: str, n: int) -> list[str]:
+    out = []
+    for line in body.split("\n"):
+        line = re.sub(r"^\s*(?:[-*]|\d+\.)\s+", "", line).replace("**", "").strip()
+        if line and not line.startswith(("|", "#")):
+            out.append(line if len(line) <= 400 else line[:399] + "…")
+        if len(out) == n:
+            break
+    return out
+
+
+def write_report(t: Turn, /, audience: str = "manager", **_: Any) -> dict[str, Any]:
+    """The project's report from its records, every number traced to the record it came from: for a manager (the problem,
+    the result with its interval, the limits, the next steps, a few lines each) or for the team (also the data and the
+    decisions), with the full report to download. No model invents any of it: a model's summary, when one is on, is kept
+    only where it cites the records."""
+    from ..studio import memory as studio_memory, solution_report
+
+    if not t.stage("final"):
+        from ..studio import programme as studio_programme
+
+        programme = studio_programme.stored(t.project())
+        if programme is not None and programme.holdout is not None:  # a problem of several parts reports its programme: the download has it
+            return {"card": t.show("write_report", {
+                "agent": "reporter", "title": "The programme's report", "page": "evaluation",
+                "lines": ["This project was solved as a programme of several parts: its report covers the composition and each part, every number from the records."],
+                "download": {"route": "exportSolutionReport", "label": "Download the programme's report"}})}
+        return _stage_missing("final")
+    audience = "team" if str(audience).lower().startswith(("team", "tech", "data", "engineer")) else "manager"
+    built = solution_report.latest(t.projects, t.project_id)
+    report = built["report"]
+    by_title = {sec.title: sec for sec in report.sections}
+    lines, cites = [], []
+    for title in FOR_TEAM if audience == "team" else FOR_MANAGER:
+        sec = by_title.get(title)
+        if sec is None:
+            continue
+        for line in _first_lines(sec.body, 4 if audience == "team" else 2):
+            lines.append(f"{title}: {line}")
+        cites += [c for c in (".".join(str(x).split(".")[:3]) for x in sec.cites) if c not in cites]  # deeper parts can name a table's values
+    decided = [n["decision"] for n in studio_memory.active(t.project()) if n.get("who") == "person"][-3:]
+    if decided:
+        lines.append("What you decided: " + "; ".join(decided))
+    return {"card": t.show("write_report", {
+        "agent": "reporter", "title": "Report for your manager" if audience == "manager" else "Report for the team", "page": "evaluation",
+        "lines": lines, "proof": cites[:8], "download": {"route": "exportSolutionReport", "label": "Download the full report"},
+        "offer": "Every line comes from the project's records; the full report traces each number to the record it came from."}),
+        "audience": audience, "sections": len(report.sections), "numbers_traced": len(report.numbers), "cached": built["cached"]}  # never the numbers' keys: they can name values
+
+
+# ---------------------------------------------------------------------- the Data engineer: what is missing, a new column, a lookup join
+
+
+DATA_GAPS = re.compile(r"\bwhat(?:'s| is| are)? (?:still )?missing (?:in|from) (?:the |my |this |our )?(?:data(?:set)?|table|columns?)\b|"
+                       r"\bmissing (?:values?|data|cells?)\b|\bgaps? in (?:the|my|this|our) data\b|\bwhat data (?:is|are) missing\b|"
+                       r"\b(?:incomplete|empty) (?:columns?|data|rows?|cells?)\b|\bnulls? (?:in|values?|counts?)\b", re.I)
+ADD_COLUMN = re.compile(r"\b(?:add|create|make|derive|compute)\s+(?:a\s+|the\s+|one\s+)?(?:new\s+)?(?:column|feature|field)\s+"
+                        r"[`'\"]?([A-Za-z_][A-Za-z0-9_]{0,59})[`'\"]?\s*(?:=|:|as|equal to|from)\s*(.+?)\s*[.!]?$", re.I)
+ADD_WORDS = re.compile(r"\b(?:add|create|derive|compute)\s+(?:a\s+|the\s+)?new\s+(?:column|feature|field)\b|\b(?:add|create)\s+(?:a\s+|one\s+)?column\b", re.I)
+NOT_DATA = re.compile(r"\b(?:importance|chart|plot|graph|histogram|heat ?map|figure|holdout|held[- ]back|team|us|me|meeting|call|note)\b", re.I)
+FORMULA_LIKE = re.compile(r"[-+*/()<>=%]|\b(?:" + "|".join(("log1p", "abs", "sqrt", "round", "days_between", "year", "month", "weekday", "hour", "is_missing")) + r")\b")
+JOIN = re.compile(r"\b(?:join|merge|bring in)\s+(?:the\s+|my\s+|this\s+)?(?:table\s+)?[`'\"]?([A-Za-z0-9_.-]{1,60}?)[`'\"]?"
+                  r"(?:\s+table)?\s+(?:on|by|using)\s+(?:the\s+)?[`'\"]?([A-Za-z_][A-Za-z0-9_ ]{0,59}?)[`'\"]?(?:\s+column)?\s*[.!]?$", re.I)
+JOIN_WORDS = re.compile(r"\b(?:join|merge)\b[^.?!]{0,40}\btables?\b", re.I)
+
+
+def data_gaps(t: Turn, /, **_: Any) -> dict[str, Any]:
+    """What is missing in the data: the columns with empty cells (their share, never a value), and where the problem asks for
+    something the table does not hold (a date column for a horizon, the outcome itself), each with what would answer it."""
+    card = _data_card(t)
+    if card is None:
+        return {"error": "This project's table has no data card yet: run the data stage first."}
+    rows = []
+    for table in card.tables:
+        for c in table.columns:
+            if c.null_rate > 0:
+                rows.append({"column": c.name if len(card.tables) == 1 else f"{table.name}.{c.name}", "missing": round(100 * c.null_rate, 1),
+                             "purpose": str(c.purpose or c.role).replace("_", " ")})
+    rows.sort(key=lambda r: -r["missing"])
+    lines = []
+    try:
+        from dclab_core import meet
+
+        from .card import card_of
+
+        checked = meet.check(card_of(_draft(t)), card)
+        lines = [m.question for m in checked.mismatches][:6]
+    except Exception:  # noqa: BLE001 - the comparison is advice: the columns stand without it
+        pass
+    if not rows and not lines:
+        lines = ["No column has empty cells, and the table holds what the problem asks for."]
+    total = sum(len(tb.columns) for tb in card.tables)
+    return {"card": t.show("data_gaps", {
+        "agent": "data", "title": "What is missing in the data", "page": "project",
+        "subtitle": "from the table's data card: column names and shares, never a row",
+        "facts": [["Columns", total], ["Columns with empty cells", len(rows)]],
+        "columns": [{"key": "column", "label": "Column"}, {"key": "missing", "label": "Empty (%)", "num": True}, {"key": "purpose", "label": "Used as"}],
+        "rows": rows[:40], "lines": lines,
+        "offer": "To add a column: add column NAME = FORMULA (for example spend / tenure_months). To bring in a lookup table: join TABLE on KEY."})}
+
+
+def _with_changes(t: Turn, frame: Any, ops: list[dict[str, Any]]) -> Any:
+    """The table with a version's data changes, each joined table read again from where it was found."""
+    from ..studio import derive
+
+    sources = {o["table"]: o.get("source") or {} for o in ops if o.get("op") == "join"}
+    return derive.apply(frame, ops, lambda name: _table_from(t, sources[name]))
+
+
+def _describe_ops(ops: list[dict[str, Any]]) -> list[str]:
+    from ..studio import derive
+
+    return [derive.describe(o) for o in ops]
+
+
+def _last_version(t: Turn) -> Optional[dict[str, Any]]:
+    """The chat's last confirmed version, built or not: each new one starts from its problem and its data changes."""
+    versions = _draft(t).get("problem_versions") or []
+    return versions[-1] if versions else None
+
+
+def _base_ops(t: Turn) -> list[dict[str, Any]]:
+    """The data changes the last version holds (each new one adds to them), built or not."""
+    return list((_last_version(t) or {}).get("data_ops") or [])
+
+
+def _never_from(t: Turn) -> tuple[set[str], set[str]]:
+    """The outcomes and forbidden columns a data change may never read: version 1's, every confirmed or proposed version's
+    outcome, and every column a version's plan forbids (a column built from a later version's outcome carries its answer)."""
+    sol = t.project().get("solution") or {}
+    outcomes = {sol.get("target")}
+    forbidden = {f.get("column") for f in sol.get("forbidden") or [] if isinstance(f, dict)}
+    d = _draft(t)
+    for v in [*(d.get("problem_versions") or []), *([d["problem_change"]] if (d.get("problem_change") or {}).get("status") == "proposed" else [])]:
+        outcomes |= {(v.get("problem") or {}).get("outcome"), (v.get("changes") or {}).get("outcome")}
+        forbidden |= set((v.get("plan") or {}).get("forbidden") or [])
+        forbidden |= {f.get("column") if isinstance(f, dict) else f for f in (v.get("problem") or {}).get("forbidden") or []}
+    outcomes.add(_problem_current(t).get("outcome"))
+    return {o for o in outcomes if o}, {f for f in forbidden if f} - {o for o in outcomes if o}
+
+
+def _reads(op: dict[str, Any]) -> set[str]:
+    """Every column a data change reads or brings."""
+    return set(op.get("reads") or []) | ({op["on"]} if op.get("on") else set()) | set(op.get("columns") or []) | set(op.get("source_columns") or []) \
+        | ({op["name"]} if op.get("name") else set())  # a joined column renamed for a clash is still that column
+
+
+def _version_frame(t: Turn) -> Any:
+    from ..studio import data as studio_data, derive
+
+    frame = studio_data.load_table(studio_data.data_path(t.projects, t.project()))
+    return _with_changes(t, frame, _base_ops(t)) if _base_ops(t) else frame
+
+
+def _join_table(t: Turn, name: str) -> tuple[Any, dict[str, Any]]:
+    """Another table by name: one the project holds beside its table, else the table of another chat in this workspace."""
+    import pandas as pd
+
+    from ..studio import data as studio_data
+
+    want = re.sub(r"\.(?:csv|parquet|xlsx?|json)$", "", str(name or "").strip().lower())
+    project = t.project()
+    for key in (project.get("tables") or {}):
+        if key.lower() == want:
+            return studio_data.load_tables(t.projects, project, [key])[key], {"kind": "project_table", "name": key}
+    drafts = t.agent.store
+    for d in drafts.list(limit=200):
+        if d.get("id") == t.draft_id:
+            continue
+        for a in d.get("assets") or []:
+            names = {str(a.get("name") or "").lower(), re.sub(r"\.\w+$", "", str(a.get("filename") or a.get("name") or "")).lower()}
+            if want in names and a.get("status") == "ready" and a.get("clean_file"):
+                path = drafts.data_dir(d["id"]) / a["clean_file"]
+                if path.is_file():
+                    return pd.read_parquet(path), {"kind": "chat", "draft": d["id"], "asset": a["id"], "file": a["clean_file"]}
+    raise KeyError(name)
+
+
+def _table_from(t: Turn, source: dict[str, Any]) -> Any:
+    """A joined table again, from where the change found it."""
+    import pandas as pd
+
+    from ..studio import data as studio_data
+
+    if source.get("kind") == "project_table":
+        return studio_data.load_tables(t.projects, t.project(), [source["name"]])[source["name"]]
+    return pd.read_parquet(t.agent.store.data_dir(source["draft"]) / source["file"])
+
+
+def propose_data_change(t: Turn, /, change: str = "", name: str = "", formula: str = "", table: str = "", on: str = "", **_: Any) -> dict[str, Any]:
+    """Propose a change to the project's data for a new version: add a column from a formula over the table's columns
+    (change="add_column", name, formula such as "spend / tenure_months" or "days_between(signup, last_seen)"), or bring in a
+    lookup table by a key (change="join", table, on). Checked first: never from the outcome, a forbidden column or a leak
+    suspect; a joined table must have one row per key. Nothing changes until the person confirms; the built project never does."""
+    import secrets
+
+    from ..studio import derive
+
+    outcomes, forbidden = _never_from(t)
+    card = _data_card(t)
+    suspects = [c.name for tb in (card.tables if card is not None else []) for c in tb.columns
+                if c.purpose == "leak_suspect"]
+    change = change or ("join" if table or on else "add_column" if name or formula else "")
+    try:
+        frame = _version_frame(t)
+        if change == "add_column":
+            if not (name and formula):
+                return {"error": "Say the new column's name and its formula, for example: add column spend_per_month = spend / tenure_months. "
+                                 "Formulas use column names, numbers, + - * / and " + ", ".join(derive.FUNCTIONS) + "."}
+            op = derive.check_add(frame, name, formula, sorted(outcomes), sorted(forbidden), suspects)
+        elif change == "join":
+            if not (table and on):
+                return {"error": "Say which table and which key, for example: join plans on plan_id. The table is one of this project's tables, "
+                                 "or a table you added in another chat."}
+            try:
+                other, source = _join_table(t, table)
+            except KeyError:
+                return {"error": f"There is no table named {table!r} in this project or in another chat of this workspace: add it in a new chat first."}
+            op = {**derive.check_join(frame, other, table, on, sorted(outcomes), sorted(forbidden), suspects), "source": source}
+        else:
+            return {"error": "Say what to change: add column NAME = FORMULA, or join TABLE on KEY."}
+    except derive.ChangeRefused as exc:
+        return {"error": f"The Data engineer cannot make that change: {exc}."}
+    except Exception as exc:  # noqa: BLE001 - the table cannot be read: said, nothing proposed
+        return {"error": f"The project's table cannot be read: {str(exc)[:200]}"}
+    pending = {"id": "dc" + secrets.token_hex(4), "ops": [op], "status": "proposed", "at": now(), "said": t.text[:600]}
+    t.agent.store.update(t.draft_id, lambda d: d.update(data_change=pending))
+    t.agent_offer("confirm_data_change", {"change": pending["id"]})
+    t.task("propose_data_change", TEAM["data"], "A change to the data, to confirm", "done")
+    t.show("propose_data_change", {
+        "agent": "data", "title": "What would change in the data", "page": "project",
+        "lines": [derive.describe(op), *(["On top of the data changes already confirmed: " + "; ".join(derive.describe(o) for o in _base_ops(t))] if _base_ops(t) else []),
+                  "It goes into a new version of the project: the leakage audit and every stage run again on the changed table, and the held-back "
+                  "rows are read once, at the end. This project stays as it is."],
+        "offer": "Say yes to confirm it."})
+    result = {"proposed": pending["id"], "change": derive.describe(op)}
+    t.results.append(result)
+    return result
+
+
+def confirm_data_change(t: Turn, /, **_: Any) -> dict[str, Any]:
+    """[after propose_data_change and the person's yes] Keep the proposed data change as a new version of the project, to plan and
+    build next (with any problem change confirmed before it). The built project is not changed."""
+    from ..studio import derive
+
+    pending = _draft(t).get("data_change") or {}
+    if pending.get("status") != "proposed":
+        return {"error": "There is no proposed data change to confirm."}
+    if (t.offered or {}).get("tool") != "confirm_data_change":
+        return {"error": "The person has not been asked to confirm this change: show it with propose_data_change and wait for their yes."}
+    if not (YES.match(t.text.strip()) or SAYS_YES.match(t.text)):
+        return {"error": "The person did not say yes to this change: ask them to confirm it."}
+    base = _last_version(t) or {}
+    version = {"id": pending["id"], "changes": dict(base.get("changes") or {}), "problem": base.get("problem") or _problem_now(t),
+               "data_ops": _base_ops(t) + list(pending["ops"]), "said": pending.get("said"), "status": "confirmed", "confirmed_at": now(),
+               "kind": "data"}
+
+    def keep(d: dict[str, Any]) -> None:
+        if (d.get("data_change") or {}).get("id") != pending["id"] or (d.get("data_change") or {}).get("status") != "proposed":
+            return
+        d["data_change"] = {**pending, "status": "confirmed"}
+        versions = d.setdefault("problem_versions", [])
+        if versions and base and not versions[-1].get("built") and versions[-1].get("id") == base.get("id"):
+            versions[-1] = {**version, "replaces": base.get("id")}  # the unbuilt version takes the new change: one version, all its changes
+        else:
+            versions.append(version)
+    t.agent.store.update(t.draft_id, keep)
+    t.task("confirm_data_change", TEAM["data"], "The data change, confirmed", "done")
+    t.agent_offer("plan_new_version", {"version": version["id"]})
+    result = {"confirmed": version["id"], "data_changes": [derive.describe(o) for o in version["data_ops"]],
+              "version": len(_draft(t).get("problem_versions") or []) + 1,
+              "next": "The built project stays as it is. Say yes and the Solution planner plans the new version on the changed table."}
+    t.results.append(result)
+    return result
+
+
+READS = {"show_problem": show_problem, "show_memory": show_memory, "write_report": write_report, "data_gaps": data_gaps, "list_projects": list_projects, "show_notebook": show_notebook, "show_activity": show_activity, "show_models": show_models, "show_features": show_features, "show_data": show_data, "show_leakage": show_leakage, "show_stages": show_stages,
          "show_result": show_result, "show_evaluation": show_evaluation, "improvement_ideas": improvement_ideas, "show_improvements": show_improvements}
 WRITES = {"plan_new_version": ("plan_version", plan_new_version), "build_new_version": ("build_version", build_new_version),
           "propose_problem_change": ("propose_problem_change", propose_problem_change),
           "confirm_problem_change": ("confirm_problem_change", confirm_problem_change), "improve_model": ("improve", improve_model), "adopt_improvement": ("adopt_improvement", adopt_improvement),
-          "write_notebook_cell": ("notebook_cell", write_notebook_cell), "remember": ("remember", remember)}
-WHO = {"remember": "reader", "show_memory": "reader", "plan_new_version": "planner", "build_new_version": "planner", "show_problem": "analyst", "propose_problem_change": "analyst", "confirm_problem_change": "analyst", "list_projects": "reader", "show_notebook": "coder", "show_activity": "reader", "show_models": "reader", "show_features": "reader", "show_data": "reader", "show_leakage": "reader", "show_stages": "reader",
+          "write_notebook_cell": ("notebook_cell", write_notebook_cell), "remember": ("remember", remember),
+          "propose_data_change": ("propose_data_change", propose_data_change), "confirm_data_change": ("confirm_data_change", confirm_data_change)}
+WHO = {"data_gaps": "data", "propose_data_change": "data", "confirm_data_change": "data", "write_report": "reporter", "remember": "reader", "show_memory": "reader", "plan_new_version": "planner", "build_new_version": "planner", "show_problem": "analyst", "propose_problem_change": "analyst", "confirm_problem_change": "analyst", "list_projects": "reader", "show_notebook": "coder", "show_activity": "reader", "show_models": "reader", "show_features": "reader", "show_data": "reader", "show_leakage": "reader", "show_stages": "reader",
        "show_result": "evaluator", "show_evaluation": "evaluator", "improvement_ideas": "experimenter", "show_improvements": "experimenter",
        "improve_model": "experimenter", "adopt_improvement": "experimenter", "write_notebook_cell": "coder"}
 
 
 HOME_MOVES = ("plan_version", "build_version", "propose_problem_change", "confirm_problem_change", "improve", "adopt_improvement",
-              "notebook_cell", "remember")  # every write the built chat's team may make (its guard checks each; the tests check each tool declares one)
+              "notebook_cell", "remember", "propose_data_change", "confirm_data_change")  # every write the built chat's team may make (its guard checks each; the tests check each tool declares one)
+ALONGSIDE_IMPROVE = ("notebook_cell",)  # an improvement run re-reads the project just before each save, so a cell written meanwhile stays
 PROJECT_MOVES = ("improve", "adopt_improvement", "notebook_cell")  # the writes that change the project (the analyst's change the chat only)
 
 
@@ -989,7 +1315,8 @@ class HomeGuard:
             project = turn.project()
         except Exception:  # noqa: BLE001 - the project was deleted meanwhile
             return {"error": "This chat's project no longer exists."}
-        if project.get("running") and tool.move in PROJECT_MOVES:  # a job saves this project as it runs: a write now could lose its update or leave it marked running
+        alongside = project.get("running") == "improve" and tool.move in ALONGSIDE_IMPROVE  # several tasks at once (the owner, 2026-10-21)
+        if project.get("running") and tool.move in PROJECT_MOVES and not alongside:  # a job saves this project as it runs: a write now could lose its update or leave it marked running
             return {"error": f"Something is running in this project ({project['running']}): wait for it to finish, or stop it."}
         if tool.name == "adopt_improvement" and _improving(turn) is not None:
             return {"error": "An improvement run is still going: adopt from its report when it ends."}
@@ -1013,13 +1340,19 @@ class HomeGuard:
 def register(registry: Registry) -> None:
     empty = {"type": "object", "properties": {}}
     for name, fn in READS.items():
-        params = {"type": "object", "properties": {"rows": {"type": "string", "enum": ["holdout", "validation"]}}} if name == "show_evaluation" else empty
+        params = {"type": "object", "properties": {"rows": {"type": "string", "enum": ["holdout", "validation"]}}} if name == "show_evaluation" else \
+            {"type": "object", "properties": {"audience": {"type": "string", "enum": ["manager", "team"]}}} if name == "write_report" else empty
         registry.register(Tool(name, f"[{TEAM[WHO[name]]}] " + " ".join((fn.__doc__ or "").split()), params, fn, scope="home", takes_context=True))
     for name, (move, fn) in WRITES.items():
         S = {"type": "string"}
         params = {"type": "object", "properties": {"candidate": S}} if name == "adopt_improvement" else \
             {"type": "object", "properties": {"request": S}, "required": ["request"]} if name == "write_notebook_cell" else \
-            {"type": "object", "properties": {"change": S}} if name == "confirm_problem_change" else \
+            {"type": "object", "properties": {"change": S}} if name in ("confirm_problem_change", "confirm_data_change") else \
+            {"type": "object", "properties": {"change": {"type": "string", "enum": ["add_column", "join"]},
+                                              "name": {**S, "description": "add_column: the new column's name"},
+                                              "formula": {**S, "description": "add_column: over the table's columns, e.g. spend / tenure_months"},
+                                              "table": {**S, "description": "join: the other table's name"}, "on": {**S, "description": "join: the key column"}},
+             "required": ["change"]} if name == "propose_data_change" else \
             {"type": "object", "properties": {"version": S}} if name in ("plan_new_version", "build_new_version") else \
             {"type": "object", "properties": {"outcome": {**S, "description": "the new outcome column, exactly as named in the table"},
                                               "prediction_moment": {**S, "description": "when each prediction is made, and what is known then"},
@@ -1056,7 +1389,11 @@ WORDS = [  # a read named by its words, in this order
     ("show_data", re.compile(r"\b(?:data(?:set)?|rows?|table|outcome|target|missing|drift|duplicates?)\b", re.I)),
     ("show_stages", re.compile(r"\b(?:stages?|status|progress|running|done yet|finished)\b", re.I)),
 ]
-CHIPS = {"show_models": ["Show the evaluation", "Improve the model for me", "Plot each fold's score"],
+CHIPS = {"data_gaps": ["Show the data", "Write the report for my manager"], "propose_data_change": ["Yes, confirm it", "No, keep the data as it is"],
+         "confirm_data_change": ["Yes, plan the new version", "Show the problem"],
+         "write_report": ["Write the report for the team", "What do you remember?", "Show the held-back result"],
+         "remember": ["What do you remember?", "Write the report for my manager"], "show_memory": ["Write the report for my manager", "Show the models trained"],
+         "show_models": ["Show the evaluation", "Improve the model for me", "Plot each fold's score"],
          "show_evaluation": ["Show the held-back result", "How can it improve?", "Plot the confusion matrix"],
          "show_result": ["Show the evaluation", "Show the models trained", "How can it improve?"],
          "improvement_ideas": ["Yes, try them", "Show the models trained"],
@@ -1112,8 +1449,47 @@ def problem_change(said: str, columns: Any = ()) -> Optional[dict[str, str]]:
 VERSION_BUILD = re.compile(r"\bbuild\s+(?:it|the\s+new\s+version|(?:the\s+)?version\s*\d*|(?:a|the)\s+new\s+one|the\s+new\s+project)\b|^\s*(?:ok(?:ay)?,?\s+|yes,?\s+|let'?s\s+)?build\b", re.I)
 
 
+SPLIT = re.compile(r"\s*(?:,\s*(?:and\s+|then\s+)?|;\s*|\s+and then\s+|\s+then\s+|\s+and also\s+|\s+also\s+|\s+and\s+(?=(?:please\s+)?(?:show|plot|draw|chart|improve|"
+                   r"write|make|tell|give|list|what|how|run|try|build|explain|compare)\b))\s*", re.I)
+SPLITTABLE = ("write_notebook_cell", "improve_model", "improvement_ideas", "write_report", "data_gaps", "show_memory")  # each returns alone; a message may ask for more
+MAX_TASKS = 3
+YES_AND = ("improve_model", "confirm_problem_change", "confirm_data_change")
+YES_THEN = re.compile(r"^\s*(?:yes|yeah|yep|ok(?:ay)?|sure|confirm(?:ed)?|correct|right|agreed)\b[\s,.!-]*(?:and|then|also)\b\s*", re.I)
+HOLD = re.compile(r"\b(?:but|instead|first|not now|later|wait|don'?t|do not|no|not yet|hold)\b", re.I)  # the yes is not a yes  # offers a "yes, and ..." carries out (building needs a plain yes)
+OFFERING = ("improvement_ideas", "propose_data_change")  # each asks for a yes next
+
+
 def plan(text: str, offer: Optional[dict[str, Any]], columns: Any = (), version_waiting: bool = False) -> list[tuple[str, dict[str, Any]]]:
-    """The rules' reading of one message: the tools to call, in order. A yes carries out the pending offer; a changed problem goes to
+    """The rules' reading of one message, part by part when it asks for several things ("improve the model and plot each fold"):
+    the tools to call, in order, at most MAX_TASKS. A write that needs the person's yes is never read from a part."""
+    joined = YES_THEN.match(text.strip())
+    if offer and offer.get("tool") in YES_AND and joined:  # "yes, and plot it": the offer, then the rest; never "yes, but ..."
+        rest = text.strip()[joined.end():]
+        tail = [(n, a) for n, a in plan(rest, None, columns, version_waiting)
+                if n != offer["tool"] and (n in SPLITTABLE or n in READS or n in ("propose_data_change", "remember"))] \
+            if len(rest.split()) >= 2 and not HOLD.search(rest) else []
+        if tail:
+            return [(offer["tool"], dict(offer.get("args") or {}))] + tail[:MAX_TASKS - 1]
+    whole = _plan_one(text, offer, columns, version_waiting)
+    if offer and YES.match(text.strip()) or not (len(whole) == 1 and whole[0][0] in SPLITTABLE):
+        return whole
+    parts = [x for x in SPLIT.split(text.strip()) if len(x.split()) >= 2]
+    if len(parts) < 2:
+        return whole
+    out: list[tuple[str, dict[str, Any]]] = []
+    for part in parts:
+        for name, args in _plan_one(part, None, columns, version_waiting):
+            offering = [n for n, _ in out if n in OFFERING]
+            if name in ("improve_model", "improvement_ideas") and not re.search(r"\bmodel\b", part, re.I):
+                continue  # "make it look better" beside a plot is about the plot, not a model run
+            if (name in SPLITTABLE or name in READS or name == "propose_data_change") and name not in [n for n, _ in out] \
+                    and not (name in OFFERING and offering):  # one offer a turn: a second would overwrite the first's question
+                out.append((name, args))
+    return out[:MAX_TASKS] if len({n for n, _ in out}) > 1 else whole
+
+
+def _plan_one(text: str, offer: Optional[dict[str, Any]], columns: Any = (), version_waiting: bool = False) -> list[tuple[str, dict[str, Any]]]:
+    """The rules' reading of one ask: the tools to call, in order. A yes carries out the pending offer; a changed problem goes to
     the Problem analyst; words name the rest."""
     said = text.strip()
     if offer and YES.match(said):
@@ -1127,11 +1503,26 @@ def plan(text: str, offer: Optional[dict[str, Any]], columns: Any = (), version_
         return [("propose_problem_change", {**changed, "said": said[:600]})]
     if NO.match(said):  # "no" declines; after a bare "no", the rest is read ("no, show the models"), never a refusal ("no, don't improve it")
         rest = re.sub(r"^\s*(?:no|nope)\b[\s,.!-]*(?:thanks?|thank you)?[\s,.!-]*", "", said, flags=re.I)
-        return plan(rest, None, columns) if rest and rest != said and not NO.match(rest) else []
+        return _plan_one(rest, None, columns) if rest and rest != said and not NO.match(rest) else []
     if RECALL.search(said):
         return [("show_memory", {})]
     if asks_to_remember(said):
         return [("remember", {})]
+    data_words = not NOT_DATA.search(said) and not IMPROVE.search(said)
+    m = ADD_COLUMN.search(said)
+    if m and data_words and FORMULA_LIKE.search(m.group(2)):
+        return [("propose_data_change", {"change": "add_column", "name": m.group(1), "formula": m.group(2)})]
+    if ADD_WORDS.search(said) and data_words:
+        return [("propose_data_change", {"change": "add_column"})]
+    m = JOIN.search(said)
+    if m and data_words:
+        return [("propose_data_change", {"change": "join", "table": m.group(1), "on": m.group(2).strip()})]
+    if JOIN_WORDS.search(said) and data_words:
+        return [("propose_data_change", {"change": "join"})]
+    if DATA_GAPS.search(said) and not dict(WORDS)["show_leakage"].search(said):
+        return [("data_gaps", {})]
+    if asks_for_report(said):
+        return [("write_report", {"audience": "team" if re.search(r"\b(?:team|technical|data scientists?|engineers?)\b", said, re.I) else "manager"})]
     if ASK_PROBLEM.search(said):
         return [("show_problem", {})]
     if ADOPT.search(said):
@@ -1430,6 +1821,12 @@ class Orchestrator:
             elif task["tool"] == "adopt_improvement":
                 r = next((x for x in t.results if isinstance(x, dict) and x.get("adopted")), {})
                 parts.append(f"Adopted {r.get('adopted')} ({r.get('family')}). {r.get('next')}")
+            elif task["tool"] == "propose_data_change":
+                r = next((x for x in t.results if isinstance(x, dict) and x.get("proposed", "").startswith("dc")), {})
+                parts.append(f"The Data engineer checked the change: {r.get('change')}. Say yes to confirm it; this project stays as it is.")
+            elif task["tool"] == "confirm_data_change":
+                r = next((x for x in t.results if isinstance(x, dict) and x.get("data_changes")), {})
+                parts.append(f"Confirmed as version {r.get('version')}: {'; '.join(r.get('data_changes') or [])}. {r.get('next')}")
             elif task["tool"] == "remember":
                 r = next((x for x in t.results if isinstance(x, dict) and x.get("remembered")), {})
                 parts.append(f"Kept in the project's memory: \"{r.get('remembered')}\". {r.get('next')}")

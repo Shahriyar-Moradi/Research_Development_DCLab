@@ -179,6 +179,41 @@ class DataLimitTests(unittest.TestCase):
         self.assertGreaterEqual(len(shown), len(names) - 2, shown)  # every read tool's card (the notebook's and the improvement run's lists are empty here)
         self.assertEqual(self.assertWithinLimit("home_orchestrator"), set())
 
+    def test_the_reporter_in_the_chat_sends_the_model_no_value_on_a_regression_project(self):  # the review: segment names and the outcome's minimum
+        from dclab_rnd.draft import orchestrator
+        from dclab_rnd.draft.chat import HomeAgent
+        from dclab_rnd.draft.store import DraftStore
+        from dclab_rnd.studio import ProjectStore, data, engine
+        store = ProjectStore(Path(tempfile.mkdtemp()) / "projects")
+        pid = store.create("Marked", "general", "Predict the amount")["id"]
+        table = marked_table().rename(columns={"spend": "amount"}).drop(columns=["churned"])
+        table.to_parquet(store.data_dir(pid) / "t.parquet", index=False)
+        data.attach_data(store, pid, "t.parquet")
+        p = store.get(pid)
+        p["solution"] = {"target": "amount", "task": "regression", "positive_label": None, "prediction_moment": "At the monthly snapshot.", "forbidden": [],
+                         "identifiers": ["note"], "time_column": None, "group_column": None, "text_columns": [], "metric": "mae", "notes": ""}
+        p["settings"]["quick"] = True
+        store.save(p)
+        models.install(gateway())
+        self.addCleanup(models.install, None)
+        for stage in ("data", "leakage", "features", "models", "final"):
+            engine.execute(store, pid, stage, "human")
+        shared = Capture("home_orchestrator", [tool_call("write_report", {"audience": "team"}, 1), {"content": "Here it is.", "tool_calls": [], "usage": {}},
+                                               tool_call("write_report", {"audience": "manager"}, 2), {"content": "Here it is.", "tool_calls": [], "usage": {}}])
+        gw = Gateway(FileUsage(Path(tempfile.mkdtemp()) / "u.jsonl"),
+                     transport=lambda tier, purpose: shared if purpose is settings.PURPOSES["home_orchestrator"] else Capture("other", []))
+        drafts = DraftStore(Path(tempfile.mkdtemp()))
+        did = drafts.create("Predict the amount")["id"]
+        drafts.update(did, lambda d: d.update(status="built", project_id=pid))
+        home = HomeAgent(drafts, None)
+        services = type("S", (), {"projects": store, "gateway": gw, "store": type("H", (), {"home": Path(tempfile.mkdtemp())})()})()
+        with mock.patch.dict(os.environ, {"DCLAB_BUILT_CHAT_SERVE": "model"}):
+            home.reply_built(did, "write the report for the team", orchestrator.Orchestrator(services, home), pid)
+            home.reply_built(did, "now the report for my manager", orchestrator.Orchestrator(services, home), pid)
+        titles = {m["card"]["title"] for m in drafts.get(did)["messages"] if m["kind"] == "project_card"}
+        self.assertTrue({"Report for the team", "Report for your manager"} <= titles, titles)
+        self.assertEqual(self.assertWithinLimit("home_orchestrator"), set())
+
     def test_the_notebook_cell_writer_sees_the_code_and_column_names_never_values(self):
         from dclab_rnd.studio import notebook_agent
         store, pid = self._project()

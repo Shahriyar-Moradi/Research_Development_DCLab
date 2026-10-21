@@ -228,9 +228,7 @@ def _improve_run(s: Any, payload: dict[str, Any]) -> None:
 
     pid = payload["project_id"]
     checkpoint()
-    p = s.projects.get(pid)
-    p["running"] = "improve"
-    s.projects.save(p)
+    p = s.projects.update(pid, running="improve")  # one field: a cell the chat writes alongside is never saved over
     draft_id = (p.get("draft") or {}).get("id")
     try:
         record = improve.run(s.projects, pid)
@@ -239,10 +237,8 @@ def _improve_run(s: Any, payload: dict[str, Any]) -> None:
             s.draft_work.agent(draft_id).say(draft_id, str(exc))
         return
     finally:
-        done = s.projects.get(pid)
-        if done.get("running") == "improve":
-            done["running"] = None
-            s.projects.save(done)
+        if s.projects.get(pid).get("running") == "improve":
+            s.projects.update(pid, running=None)
     if draft_id:
         tried, clear = len(record["candidates"]), sum(1 for c in record["candidates"] if c["clears"])
         best = next((c for c in record["candidates"] if c["id"] == record["best"]), None)

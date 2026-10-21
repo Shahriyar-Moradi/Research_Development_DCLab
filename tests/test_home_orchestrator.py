@@ -465,6 +465,140 @@ class ProjectMemoryTests(unittest.TestCase):  # the Home team remembers decision
         self.assertTrue(any("we prefer recall over precision" in p for p in Seen.prompts))
 
 
+class SeveralTasksTests(unittest.TestCase):  # "improve and plot in parallel" (the owner, 2026-10-21)
+    def setUp(self):
+        env = mock.patch.dict(os.environ, {**CLEAN, "DCLAB_BUILT_CHAT_SERVE": "rules"})  # the rules plan; a model client writes the cells
+        env.start()
+        self.addCleanup(env.stop)
+        cell = {"id": "c1", "request": "plot", "code": "plt.plot(fold_scores)", "explanation": "", "problems": [], "status": "proposed"}
+        write = mock.patch("dclab_rnd.studio.notebook_agent.write", return_value=cell)
+        self.write = write.start()
+        self.addCleanup(write.stop)
+
+    def test_one_message_with_two_asks_starts_the_improvement_and_writes_the_plot(self):
+        self.assertEqual([n for n, _ in orch.plan("improve the model for me and plot each fold's score", None)], ["improve_model", "write_notebook_cell"])
+        chat = Chat(self, gateway([]))
+        new = chat.since("improve the model for me and plot each fold's score")
+        self.assertEqual([j["kind"] for j in chat.services.submitted], ["improve"])
+        self.assertTrue(any(m["kind"] == "notebook_cell" for m in new))
+        self.assertEqual(self.write.call_args.args[2], "plot each fold's score")  # the cell is asked for its own part
+        board = [x for m in new if m["kind"] == "task_board" for x in m["tasks"]]
+        self.assertTrue({x["agent"] for x in board} >= {"Experimenter", "Notebook coder"}, board)  # both on one board
+
+    def test_a_plot_is_written_while_the_improvement_runs_but_not_while_a_stage_runs(self):
+        chat = Chat(self, gateway([]))
+        chat.services.projects.doc["running"] = "improve"
+        self.assertTrue(any(m["kind"] == "notebook_cell" for m in chat.since("plot the confusion matrix")))
+        chat.services.projects.doc["running"] = "final"  # a stage holds the whole project for minutes: a cell would be lost
+        new = chat.since("plot the confusion matrix")
+        self.assertFalse(any(m["kind"] == "notebook_cell" for m in new))
+        self.assertIn("Something is running", new[-1]["text"])
+
+    def test_yes_but_is_not_a_yes_and_a_plot_made_better_is_not_a_model_run(self):  # the review, 2026-10-21
+        for said in ("right, but show me the leakage first", "yes but plot the roc curve instead", "yes, but not now, show the models"):
+            for offered in ("confirm_problem_change", "improve_model"):
+                self.assertNotIn(offered, [n for n, _ in orch.plan(said, {"tool": offered})], said)
+        for said in ("plot spend by month, and make it look better", "plot the roc curve and try a better threshold", "plot the roc curve, then increase the font size"):
+            self.assertEqual([n for n, _ in orch.plan(said, None)], ["write_notebook_cell"], said)
+        self.assertEqual([n for n, _ in orch.plan("yes, and add column spend2 = spend * 2", {"tool": "confirm_problem_change"})],
+                         ["confirm_problem_change", "propose_data_change"])
+        chat = Chat(self, gateway([]))
+        chat.store.update(chat.draft, lambda d: d.setdefault("agent", {}).update(offer={"tool": "improve_model", "args": {}}))
+        chat.since("yes but plot the roc curve instead")
+        self.assertEqual(chat.services.submitted, [])  # no job started
+
+    def test_a_worker_in_another_process_waits_for_the_project_lock(self):  # the file store; PostgreSQL locks the row
+        import subprocess
+        import time
+
+        from dclab_rnd.studio.store import ProjectStore
+
+        store = ProjectStore(Path(tempfile.mkdtemp()))
+        pid = store.create("Churn")["id"]
+        holder = subprocess.Popen([sys.executable, "-c", (
+            "import sys, time; sys.path.insert(0, %r)\n"
+            "from dclab_rnd.studio.store import ProjectStore, _project_lock\n"
+            "s = ProjectStore(%r)\n"
+            "with _project_lock(%r, s.directory(%r)):\n"
+            "    print('held', flush=True); time.sleep(1.5)\n") % (str(ROOT), str(store.home), pid, pid)], stdout=subprocess.PIPE, text=True)
+        self.assertEqual(holder.stdout.readline().strip(), "held")
+        started = time.monotonic()
+        store.update(pid, notebook_agent_cells=[{"id": "c1"}])
+        waited = time.monotonic() - started
+        holder.wait(10)
+        self.assertGreater(waited, 0.8)  # it waited for the other process, rather than writing under it
+        self.assertEqual(store.get(pid)["notebook_agent_cells"], [{"id": "c1"}])
+
+    def test_a_yes_and_a_single_ask_are_never_split(self):
+        self.assertEqual([n for n, _ in orch.plan("yes, and plot each fold's score", {"tool": "improve_model"})], ["improve_model", "write_notebook_cell"])
+        self.assertEqual([n for n, _ in orch.plan("yes, and plot it", {"tool": "build_new_version"})], ["write_notebook_cell"])  # building: a plain yes only
+        self.assertEqual([n for n, _ in orch.plan("plot the spend and the tenure", None)], ["write_notebook_cell"])
+        self.assertEqual([n for n, _ in orch.plan("how can it improve and add column b = spend / 2", None)], ["improvement_ideas"])  # one offer a turn
+
+
+class ReporterTests(unittest.TestCase):  # "write me the report for my manager", cited and from the records (the owner, 2026-10-21)
+    def setUp(self):
+        env = mock.patch.dict(os.environ, {"DCLAB_NO_LIVE_MODELS": "1"})
+        env.start()
+        self.addCleanup(env.stop)
+        from dclab_core.contracts import ReportSection, SolutionReport
+
+        report = SolutionReport(title="Solution report: Churn", sections=[
+            ReportSection(title="The problem as understood", body="- Predict churned at the monthly snapshot.\n- Binary outcome.", cites=["brief.target"]),
+            ReportSection(title="What the data shows", body="- 6400 training rows.", cites=["data.evidence.train_rows"]),
+            ReportSection(title="Results, with their intervals", body="- roc_auc 0.7235 on the held-back cases (95% 0.6731 to 0.7716).", cites=["final.evidence.holdout_metrics"]),
+            ReportSection(title="Limits, and what the data cannot show", body="- One time period only.", cites=[]),
+            ReportSection(title="Next steps", body="- Monitor the score monthly.", cites=[])], numbers={"final.evidence.holdout_metrics.roc_auc": 0.7235})
+        patch = mock.patch("dclab_rnd.studio.solution_report.latest", return_value={"report": report, "markdown": "# r", "cached": False})
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    def test_the_manager_gets_the_problem_result_limits_and_next_steps_with_the_full_report_to_download(self):
+        chat = Chat(self)
+        chat.services.projects.doc["memory"] = [orch._new_note("preference", "we prefer fewer false alarms", "asked", "person", "remember")]
+        new = chat.since("write me the report for my manager")
+        card = next(m for m in new if m["kind"] == "project_card")["card"]
+        self.assertEqual((card["agent"], card["title"]), ("Reporter", "Report for your manager"))
+        self.assertEqual([line.split(":")[0] for line in card["lines"][:-1]],
+                         ["The problem as understood", "The problem as understood", "Results, with their intervals", "Limits, and what the data cannot show", "Next steps"])
+        self.assertIn("0.7235", " ".join(card["lines"]))
+        self.assertNotIn("6400", " ".join(card["lines"]))  # the data section is for the team
+        self.assertEqual(card["lines"][-1], "What you decided: we prefer fewer false alarms")
+        self.assertEqual(card["download"], {"route": "exportSolutionReport", "label": "Download the full report"})
+        self.assertIn("final.evidence.holdout_metrics", card["proof"])
+
+    def test_report_requests_reach_the_reporter_and_other_summaries_do_not(self):  # the review, 2026-10-21
+        for said in ("write me the report for my manager", "Summarize the project for my manager", "Can you write up the results for my boss?",
+                     "Download the report", "I need the final report", "give me a summary of the project", "prepare a report for the board"):
+            self.assertEqual([n for n, _ in orch.plan(said, None)][:1], ["write_report"], said)
+        for said, other in (("Remember that we need a monthly report for the board", "remember"), ("give me a summary of the data", "show_data"),
+                            ("I want a summary of the leakage findings", "show_leakage"), ("Can you give me a summary of the models trained?", "show_models"),
+                            ("Give me a summary of the stages", "show_stages"), ("write a cell with the classification report", "write_notebook_cell"),
+                            ("Plot the confusion matrix and give me a summary", "write_notebook_cell"),
+                            ("give me the report of the experiment you just ran", "show_improvements"),
+                            ("Show me the results of the improvements and write a summary", None)):
+            planned = [n for n, _ in orch.plan(said, None)]
+            self.assertNotIn("write_report", planned, said)
+            if other:
+                self.assertIn(other, planned, said)
+
+    def test_without_the_final_stage_the_reporter_says_what_is_missing(self):
+        chat = Chat(self)
+        with mock.patch.dict(RECORDS):
+            del RECORDS["final"]
+            result = orch.write_report(orch.Turn(chat.services, "p1", chat.draft, chat.agent, "write the report"))
+        self.assertIn("error", result)
+
+    def test_the_team_gets_the_data_and_decisions_too_and_the_improvement_report_is_not_this_one(self):
+        self.assertEqual(orch.plan("write the report for the team", None), [("write_report", {"audience": "team"})])
+        for said in ("what does the report say?", "show me the report of the last improvement run"):
+            self.assertNotIn("write_report", [n for n, _ in orch.plan(said, None)], said)
+        chat = Chat(self)
+        card = next(m for m in chat.since("Write the report for the team") if m["kind"] == "project_card")["card"]
+        self.assertEqual(card["title"], "Report for the team")
+        self.assertIn("6400", " ".join(card["lines"]))
+
+
 class SolutionPlannerTests(unittest.TestCase):  # step 2 (the owner, 2026-10-21): a confirmed problem version becomes a new project version
     def setUp(self):
         env = mock.patch.dict(os.environ, {"DCLAB_NO_LIVE_MODELS": "1"})
@@ -720,6 +854,143 @@ class GroundingTests(unittest.TestCase):
         self.assertIn("76%", kept)
         self.assertIn("3 folds", kept)
         self.assertEqual(dropped, ["The gain is 0.21."])
+
+
+
+class DataEngineerTests(unittest.TestCase):  # "add this column", "join this table", "what's missing in the data" (the owner, 2026-10-21)
+    setUp = SolutionPlannerTests.setUp
+    say = SolutionPlannerTests.say
+
+    def card(self, new):
+        return next(m for m in new if m["kind"] == "project_card")["card"]
+
+    def other_chat_table(self, name, frame):
+        import pandas as pd  # noqa: F401
+
+        d = self.store.create(f"the {name} table")["id"]
+        frame.to_parquet(self.store.data_dir(d) / "clean.parquet", index=False)
+        self.store.update(d, lambda doc: doc.update(assets=[{"id": "b1", "name": name, "status": "ready", "clean_file": "clean.parquet"}]))
+        return d
+
+    def test_a_new_column_is_checked_confirmed_planned_and_built_in_a_new_version_only(self):
+        from dclab_rnd.studio import data as studio_data
+
+        new = self.say("add column spend_per_day = spend / 30")
+        card = self.card(new)
+        self.assertEqual((card["agent"], card["title"]), ("Data engineer", "What would change in the data"))
+        self.assertIn("add spend_per_day = spend / 30", card["lines"][0])
+        self.assertIn("Confirmed as version", self.say("yes")[-1]["text"])
+        version = self.store.get(self.draft)["problem_versions"][-1]
+        self.assertEqual([o["name"] for o in version["data_ops"]], ["spend_per_day"])
+        self.assertEqual(self.projects.get(self.pid)["memory"][-1]["move"], "confirm_data_change")
+        plan = self.card(self.say("yes"))
+        self.assertTrue(any("Data changes in this version" in line for line in plan["lines"]))
+        self.say("build it")
+        self.assertEqual(len(self.built), 1)
+        import pandas as pd
+
+        built = pd.read_parquet(self.store.data_dir(self.built[0]) / "clean.parquet")
+        self.assertIn("spend_per_day", built.columns)
+        new_card = self.store.get(self.built[0])["data_card"]
+        self.assertIn("spend_per_day", [c["name"] for tb in new_card["tables"] for c in tb["columns"]])
+        v1 = studio_data.load_table(studio_data.data_path(self.projects, self.projects.get(self.pid)))
+        self.assertNotIn("spend_per_day", v1.columns)  # the built project's table never changes
+
+    def test_a_column_from_the_outcome_or_a_forbidden_one_or_code_is_refused(self):
+        project = self.projects.get(self.pid)
+        project["solution"]["forbidden"] = [{"column": "churned_60d", "reason": "after the moment"}]
+        self.projects.save(project)
+        for said, why in (("add column x = churned * 2", "outcome"), ("add column y = churned_60d + 1", "forbidden"),
+                          ("add column z = __import__('os').getcwd()", "cannot make")):
+            new = self.say(said)
+            self.assertIn(why, new[-1]["text"], said)
+            self.assertNotIn("data_change", self.store.get(self.draft))
+        self.assertIn("formula", self.say("add a new column for the spend per day")[-1]["text"])
+
+    def test_a_lookup_table_from_another_chat_joins_and_an_event_table_is_refused(self):
+        import pandas as pd
+
+        self.other_chat_table("plans", pd.DataFrame({"plan": ["basic", "pro"], "price": [5.0, 9.0]}))
+        self.other_chat_table("orders", pd.DataFrame({"plan": ["basic", "basic", "pro"], "amount": [1.0, 2.0, 3.0]}))
+        card = self.card(self.say("join plans on plan"))
+        self.assertIn("join plans on plan: 1 column (price), found for 100% of rows", card["lines"][0])
+        self.say("no")
+        self.assertIn("table of events", self.say("join orders on plan")[-1]["text"])
+        self.assertIn("no table named", self.say("join tickets on plan")[-1]["text"])
+
+    def test_a_joined_copy_of_a_later_outcome_is_left_out_of_that_version(self):  # the review: renamed for the clash, still the outcome
+        import pandas as pd
+
+        self.other_chat_table("plans", pd.DataFrame({"plan": ["basic", "pro"], "churned_60d": [0, 1], "price": [5.0, 9.0]}))
+        self.say("join plans on plan")
+        self.say("yes")
+        self.say("actually the outcome should be churned_60d, not churned")
+        new = self.say("yes, confirm it")
+        self.assertEqual(self.store.get(self.draft)["problem_versions"][-1]["data_ops"], [])
+        self.assertIn("Left out of this version", new[-1]["text"])
+
+    def test_a_column_from_a_later_versions_outcome_is_refused_in_either_order(self):  # the review: AUC 0.87 from a noisy copy
+        self.say("actually the outcome should be churned_60d, not churned")
+        self.say("yes")
+        self.assertIn("outcome", self.say("add column leak = churned_60d + spend / 60")[-1]["text"])
+        self.assertNotIn("data_change", self.store.get(self.draft))
+
+    def test_a_data_change_that_reads_a_new_outcome_is_left_out_of_that_version(self):
+        self.say("add column flag60 = churned_60d * 1")
+        self.say("yes")
+        self.say("actually the outcome should be churned_60d, not churned")
+        new = self.say("yes, confirm it")
+        version = self.store.get(self.draft)["problem_versions"][-1]
+        self.assertEqual(version["data_ops"], [])
+        self.assertIn("Left out of this version", new[-1]["text"])
+
+    def test_a_join_on_the_outcome_a_changed_table_and_a_clashing_name_are_refused(self):
+        import pandas as pd
+
+        from dclab_rnd.studio import derive
+
+        self.other_chat_table("labels", pd.DataFrame({"churned": [0, 1], "status": ["kept", "lost"]}))
+        self.assertIn("outcome", self.say("join labels on churned")[-1]["text"])
+        frame = pd.DataFrame({"plan": ["a", "b"], "churn": [1, 2], "plans_churn": [0, 1]})
+        with self.assertRaises(derive.ChangeRefused):
+            derive.check_join(frame, pd.DataFrame({"plan": ["a", "b"], "churn": [7, 8]}), "plans", "plan", "plans_churn", [])
+        plans = pd.DataFrame({"plan": ["a", "b"], "price": [1.0, 2.0]})
+        op = derive.check_join(frame, plans, "plans", "plan", "x", [])
+        with self.assertRaises(derive.ChangeRefused):  # the table gained a column after it was checked
+            derive.apply(frame, [op], lambda name: plans.assign(churned=[0, 1]))
+
+    def test_the_chain_keeps_data_changes_and_the_problem_after_a_version_is_built(self):
+        self.say("actually the outcome should be churned_60d, not churned")
+        self.say("yes")
+        self.say("yes")
+        self.say("build it")
+        self.say("add column spend2 = spend * 2")
+        self.say("yes")
+        version = self.store.get(self.draft)["problem_versions"][-1]
+        self.assertEqual(version["problem"]["outcome"], "churned_60d")  # not back to version 1's outcome
+        self.assertEqual([o["name"] for o in version["data_ops"]], ["spend2"])
+
+    def test_text_columns_and_requests_that_are_not_data_changes(self):
+        import pandas as pd
+
+        from dclab_rnd.studio import derive
+
+        frame = pd.DataFrame({"plan": ["basic", None, "pro"], "day": ["2025-01-01", "2025-01-05", "2025-02-01"]})
+        self.assertEqual(derive.compute(frame, "is_missing(plan)").tolist(), [0.0, 1.0, 0.0])
+        self.assertEqual(derive.compute(frame, "month(day)").tolist(), [1.0, 1.0, 2.0])
+        with self.assertRaises(derive.ChangeRefused):
+            derive.compute(pd.DataFrame({"t": [1, 2]}), "t ** -1")
+        for said in ("add a column chart of churn by plan", "create a feature importance chart", "compute the feature importance",
+                     "derive the feature list", "look up the score on the holdout", "can I join the team?", "join us",
+                     "add a field note: churn is monthly", "what's the null hypothesis?", "what's missing from the report?"):
+            self.assertNotIn("propose_data_change", [n for n, _ in orch.plan(said, None)], said)
+            self.assertNotIn("data_gaps", [n for n, _ in orch.plan(said, None)], said)
+
+    def test_what_is_missing_reads_the_data_card(self):
+        self.assertEqual(orch.plan("what's missing in the data?", None)[0][0], "data_gaps")
+        self.assertEqual(orch.plan("are there missing values?", None)[0][0], "data_gaps")
+        card = self.card(self.say("what is missing in the data?"))
+        self.assertEqual((card["agent"], card["title"]), ("Data engineer", "What is missing in the data"))
 
 
 if __name__ == "__main__":

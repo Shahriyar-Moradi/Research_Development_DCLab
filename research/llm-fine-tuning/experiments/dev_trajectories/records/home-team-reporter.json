@@ -1,0 +1,97 @@
+{
+ "package": "home-team-reporter",
+ "title": "The Reporter in the built chat: the report for a manager or the team, from the records, with the full report to download",
+ "date": "2026-10-21",
+ "request": "Reporter: \"write me the report for my manager\", cited and from the records.",
+ "spec": "dclab_rnd/studio/solution_report.py (17.7, every number traced to a record; the reporter role's cited prose, 18.7) and the built chat (draft/orchestrator.py).",
+ "plan": [
+  "One build per set of records shared by the download route and the chat (solution_report.latest).",
+  "write_report (Reporter): the manager's four sections or the team's six, a few lines each, the person's decisions from memory, the cites, a download.",
+  "The card's download through DC.client.href (never a path string).",
+  "Routing; review; data limits on a regression project; agent-eval and harness-eval."
+ ],
+ "decisions": [
+  {
+   "decision": "The chat shows a short version and links the full report, rather than writing new prose.",
+   "why": "The report's prose is written by code from the records (a model's summary kept only where cited.check passes); a second writer would need its own checks."
+  },
+  {
+   "decision": "The tool returns how many numbers were traced, not the numbers.",
+   "why": "Their record keys can name a table's values (a segment's name), and the built chat's model may see none."
+  }
+ ],
+ "change": "dclab_rnd/draft/orchestrator.py (Reporter, write_report, asks_for_report), studio/solution_report.py (latest), agentic/routers/projects.py (the route uses latest), web/src/views/home.html (download), tests",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The tool's result sent table values to the built chat's model.",
+   "scenario": "A regression project: numbers keys held all 7 segment names and the outcome's training minimum.",
+   "cause": "report.numbers is keyed by record paths, which can include a segment's value; the cites too.",
+   "fix": "Return only the count; cites cut to their first three parts.",
+   "test": "tests/test_model_data_limits.py (regression, team and manager)"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Summaries of one subject and notes went to the Reporter.",
+   "scenario": "\"give me a summary of the data\" -> write_report; \"Remember that we need a monthly report for the board\" lost the note.",
+   "cause": "\"summary\" after any verb matched; the report check ran before remember.",
+   "fix": "asks_for_report: no plot, cell, improvement or named subject unless for an audience; remember first.",
+   "test": "tests/test_home_orchestrator.py"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A project made private still got the model's prose from the cache.",
+   "scenario": "Build the report, set settings.private, ask again.",
+   "cause": "The cache key covered the records only.",
+   "fix": "The key covers privacy and whether prose was possible.",
+   "test": "tests/test_solution_report_cache.py"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A programme project got \"final stage missing\".",
+   "scenario": "A problem of several parts with a programme holdout.",
+   "cause": "write_report needed the final stage.",
+   "fix": "A card with the programme's report to download.",
+   "test": "not tested (no programme fixture in the chat tests)"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "\"Download the report\" went to the improvement run's report.",
+   "scenario": "plan('Download the report').",
+   "cause": "show_improvements' words include \"the report\".",
+   "fix": "Not counted as a named subject.",
+   "test": "tests/test_home_orchestrator.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "affected tests",
+   "gate": "every affected test file passes",
+   "result": "home orchestrator 50, model data limits 36, report cache 2, roles layer 10",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "no live model run of the Reporter yet"
+   ]
+  }
+ ],
+ "outcome": "The Reporter answers report requests in the chat from the records, for a manager or the team, without a value reaching the model.",
+ "lessons": [
+  "A tool's result goes to the model too: check what it returns, not only what its card shows.",
+  "Record paths are data: a key can carry a value of the table."
+ ],
+ "risks": [
+  "The manager lines are the report's first lines per section, not a rewrite for that reader."
+ ],
+ "commits": []
+}

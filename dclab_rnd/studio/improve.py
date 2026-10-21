@@ -161,9 +161,7 @@ def run(store: Any, project_id: str, *, budget_seconds: float = 300.0, log: Any 
                                                      "std": rn._std(base, metric), "fold_scores": [round(s, 6) for s in base_scores]},
               "candidates": results, "aspects": list(aspects.values()), "best": best["id"] if best else None, "skipped": skipped, "adopted": None,
               "seconds": round(time.perf_counter() - started, 1), "note": NOTE}
-    latest = store.get(project_id)
-    latest["improvements"] = record
-    store.save(latest)
+    store.update(project_id, improvements=record)  # its own field only: a cell or a note written meanwhile stays
     store.log(project_id, "improve_run", {"tried": len(results), "clear": sum(r["clears"] for r in results), "best": record["best"], "seconds": record["seconds"]})
     return record
 

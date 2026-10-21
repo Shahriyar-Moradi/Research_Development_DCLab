@@ -1130,10 +1130,7 @@ async def export_solution_report(project_id: str, s: Services = Depends(services
     is on (18.9) and a model serves it; never for a private project."""
     from dclab_core import report as core_report
 
-    from ... import roles
     from ...studio import solution_report
-
-    import hashlib
 
     p = s.project(project_id)
     from ...studio import programme as studio_programme
@@ -1153,15 +1150,7 @@ async def export_solution_report(project_id: str, s: Services = Depends(services
                         headers={"Content-Disposition": f'attachment; filename="dclab-{p["name"][:40].replace(" ", "_")}-programme.md"'})
     if not s.projects.has_stage(project_id, "final"):
         raise HTTPException(409, "Run the final stage first: the report reads the finished records")
-    digest = hashlib.sha256(json.dumps(s.projects.records(project_id), sort_keys=True, default=str).encode()).hexdigest()[:16]
-    cached = p.get("solution_report") or {}  # the same records: the same report, no new request
-    if cached.get("digest") == digest and cached.get("markdown"):
-        text = cached["markdown"]
-    else:
-        advisor = roles.advisor("reporter", project=p, cap_eur=roles.CALL_CAP_EUR)
-        built = await asyncio.to_thread(solution_report.build, s.projects, project_id, None, True, advisor)
-        text = core_report.to_markdown(built)
-        s.projects.update(project_id, solution_report={"digest": digest, "markdown": text})
+    text = (await asyncio.to_thread(solution_report.latest, s.projects, project_id))["markdown"]  # the same records: the same report, no new request
     return Response(text, media_type="text/markdown; charset=utf-8",
                     headers={"Content-Disposition": f'attachment; filename="dclab-solution-report-{p["name"][:40].replace(" ", "_")}.md"'})
 

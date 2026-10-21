@@ -1,0 +1,130 @@
+{
+ "package": "home-team-data-engineer",
+ "title": "The Data engineer in the built chat: what is missing, a new column from a formula, a lookup join, each in a new version only",
+ "date": "2026-10-21",
+ "request": "Data agent: \"add this column\", \"join this table\", \"what's missing in the data\", from the built chat.",
+ "spec": "The built chat's version flow (propose, confirm, plan, build: a new project, the built one unchanged); dclab_core.datacard (bands, never a row); dclab_core.meet.",
+ "plan": [
+  "studio/derive.py: formulas parsed against a whitelist, never run; lookup joins only; a version's changes applied in order.",
+  "data_gaps from the data card and meet.check; propose_data_change and confirm_data_change; plan and build apply data_ops to the version's copy.",
+  "Review; fix; tests for every finding."
+ ],
+ "decisions": [
+  {
+   "decision": "Every data change goes into a new version; the built project's table never changes.",
+   "why": "A new column can leak; the new version runs the leakage audit and every stage again, and reads its holdout once."
+  },
+  {
+   "decision": "Only lookup joins (the key unique in the other table).",
+   "why": "An event table needs its rows summed up to the prediction moment with a time cutoff, or it leaks what happened after."
+  },
+  {
+   "decision": "Formulas are parsed with ast against a whitelist.",
+   "why": "A person's or a model's formula must never run code."
+  }
+ ],
+ "change": "dclab_rnd/studio/derive.py (new), dclab_rnd/draft/orchestrator.py (Data engineer, data_gaps, propose/confirm_data_change, data_ops in plan and build), tests/test_studio_derive.py, tests/test_home_orchestrator.py",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A new column could be built from a later version's outcome.",
+   "scenario": "Outcome changed to churned_60d, then add column leak = churned_60d + spend / 60: accepted, AUC 0.87 in the built table.",
+   "cause": "The check read version 1's outcome and forbidden list only.",
+   "fix": "_never_from: every version's outcome and plan-forbidden columns; a problem change drops data changes that read its outcome, and says so.",
+   "test": "tests/test_home_orchestrator.py (both orders)"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A join's key was never checked.",
+   "scenario": "join labels on churned, where the other table maps churned to a status.",
+   "cause": "check_join checked the joined columns, not the key.",
+   "fix": "The key goes through blocked_inputs (outcomes, forbidden, suspects).",
+   "test": "tests/test_home_orchestrator.py"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A joined table that changed after confirmation was joined whole.",
+   "scenario": "The other table gains a churned column before the build.",
+   "cause": "apply re-read the source and took every column.",
+   "fix": "The op keeps the checked columns and a content fingerprint; apply refuses a changed table.",
+   "test": "tests/test_home_orchestrator.py"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A renamed joined column could overwrite an existing column, the outcome included.",
+   "scenario": "Frame has churn and the outcome plans_churn; plans has churn.",
+   "cause": "The rename to table_column did not check the new name.",
+   "fix": "Refused when the new name exists; apply uses the checked names.",
+   "test": "tests/test_home_orchestrator.py"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "After a version was built, the next lost the earlier changes.",
+   "scenario": "Outcome version built, then add column: version 3 went back to churned.",
+   "cause": "_latest_version ignores built versions.",
+   "fix": "_last_version (built or not) for the problem and the data changes.",
+   "test": "tests/test_home_orchestrator.py"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "is_missing and the date functions read text columns as numbers.",
+   "scenario": "is_missing(plan) gave 1 on every row; month(day) on text dates gave nothing.",
+   "cause": "Every column was turned into numbers first.",
+   "fix": "Those functions read the column as it is.",
+   "test": "tests/test_home_orchestrator.py"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Plot and other requests were routed to the Data engineer.",
+   "scenario": "\"add a column chart\", \"join us\", \"what's the null hypothesis?\".",
+   "cause": "Wide patterns ran before PLOT and the reads.",
+   "fix": "NOT_DATA, FORMULA_LIKE, a table word for joins, a data word for nulls.",
+   "test": "tests/test_home_orchestrator.py"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A numpy refusal reached the person as \"the table cannot be read\".",
+   "scenario": "t ** -1 on an integer column.",
+   "cause": "Only ChangeRefused was said as such.",
+   "fix": "compute turns any other error into ChangeRefused.",
+   "test": "tests/test_home_orchestrator.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "affected tests",
+   "gate": "every affected test file passes",
+   "result": "home orchestrator 62, derive 5, data limits 36, journeys built 6",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "no live model run of the Data engineer yet"
+   ]
+  }
+ ],
+ "outcome": "The chat's Data engineer says what is missing, and adds columns or lookup tables only through a new version that is audited again.",
+ "lessons": [
+  "A leakage check must read every outcome in play, not the one the project was built for.",
+  "Whatever is re-read at build time must be the thing that was checked: keep a fingerprint."
+ ],
+ "risks": [
+  "Event tables (one-to-many) are refused rather than aggregated at the prediction moment."
+ ],
+ "commits": []
+}
