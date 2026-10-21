@@ -303,6 +303,10 @@ class ProblemAnalystTests(unittest.TestCase):  # step 1 of connecting understand
         t = orch.Turn(chat.services, "p1", chat.draft, chat.agent, "x")
         self.assertIn("error", orch.confirm_problem_change(t))  # never confirmed without the person having been asked (the review)
         t.offered = {"tool": "confirm_problem_change", "args": {"change": chat.store.get(chat.draft)["problem_change"]["id"]}}
+        self.assertIn("did not say yes", orch.confirm_problem_change(t)["error"])  # asked is not agreed (Claude, live, 2026-10-21)
+        t.text = "build a new version with 5 folds"
+        self.assertIn("did not say yes", orch.confirm_problem_change(t)["error"])
+        t.text = "yes, use churned_60d"
         self.assertIn("confirmed", orch.confirm_problem_change(t, change="outcome: churned -> churned_60d"))  # named in words: still the pending one
         new = chat.since("we should predict churn within 60 days instead")
         self.assertEqual(chat.store.get(chat.draft)["problem_change"]["problem"]["outcome"], "churned_60d")  # on top of the confirmed version
