@@ -67,11 +67,15 @@ window.DEMO = {
       name: 'Researcher tour', role: 'researcher', blurb: 'Evidence, campaigns, the judgment benchmark, the policy model and the domain packs.',
       steps: [
         { view: 'evidence', target: 'ev-search', title: 'The evidence library', text: 'The real records: rules, workflow blocks, experiments, leakage precedents, pitfalls. Every suggestion in the product cites them.' },
+        // dclab:closed-begin  (the research and planning pages: the full edition's)
         { view: 'lab', target: 'lab-registry', title: 'Where evidence comes from', text: 'Campaigns run on real datasets. LLM critiques are checked against the numbers before they are kept.' },
         { view: 'benchmark', target: 'bench-board', title: 'Proof that the agent judges well', text: 'Unseen notebooks with planted traps. Each policy is scored on valid moves, leaks caught, citation accuracy and unsafe actions.' },
         { view: 'policy', target: 'policy-curriculum', title: 'Teach a small model the workflow', text: 'Trajectories from the graph become training data. The model learns the next move, when to stop and when to ask.' },
+        // dclab:closed-end
         { view: 'packs', target: 'pack-map', title: 'One engine, many domains', text: 'The same ten steps, mapped to vision, driving, maps and software. Each pack adds its own rules, tools and metrics.' },
+        // dclab:closed-begin  (the research and planning pages: the full edition's)
         { view: 'blueprint', target: 'bp-table', title: 'Decide what to build', text: 'Every feature in this demo, marked built, partial, to build or research. Mark each one Must, Later or Cut.' },
+        // dclab:closed-end
       ],
     },
     admin: {

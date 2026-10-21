@@ -35,37 +35,45 @@ DC.view('packs', {
         checks: ['conditions listed', 'guide version recorded', 'no drive in two splits', 'computed on train only', 'dedupe hash across splits', 'augmentations declared', 'same split for all', 'margin declared', 'every slice has an interval', 'failures reviewed'],
         rules: ['CV-01 Split by drive or scene, never by frame', 'CV-02 Report every operating condition as its own slice', 'CV-03 Near-duplicate frames count as one'], tools: ['frame_dedupe', 'slice_eval', 'detector_screen', 'failure_gallery'], metrics: ['mAP@0.5 per slice', 'Miss rate at the operating threshold'],
         engine: TAB_ENGINE + ' Images cannot enter the engine.',
-        foot: 'Planned in research/computer-vision; no experiment has run.' },
+        foot: 'Planned; no experiment has run.' },
       driving: { f: 'packs.driving',
         steps: ['ODD: weather, light, road type, speed; safety metric', 'Sensor logs, calibration, labelling', 'By trip, route and time; geographic holdout', 'ODD coverage per split', 'Same route or adjacent time in train and test', 'Sensor and fusion choices', 'Detectors on identical trips', 'Latency-aware tuning', 'ODD slices, rare events, latency budget', 'Evidence for a safety case, never an approval'],
         checks: ['ODD signed', 'calibration versions', 'routes disjoint', 'coverage gaps listed', 'route and time leakage', 'sensor set declared', 'identical trips', 'latency budget', 'rare-event recall', 'no deployment claim'],
         rules: ['DRV-01 A benchmark result is never a safety claim', 'DRV-02 Out-of-ODD inputs must be detected, not guessed'], tools: ['odd_coverage', 'route_split', 'latency_probe'], metrics: ['Miss rate by distance and ODD slice', 'End-to-end latency'],
         engine: TAB_ENGINE + ' Sensor logs cannot enter the engine.',
-        foot: 'Safety-critical research, proposed in research/driving-maps; no experiment has run. The pack would produce evidence for a safety case; it never approves a vehicle.' },
+        foot: 'Safety-critical research, proposed; no experiment has run. The pack would produce evidence for a safety case; it never approves a vehicle.' },
       maps: { f: 'packs.maps',
         steps: ['Target per segment, horizon, decision time', 'Road graph version, sensor coverage', 'By time; held-out districts', 'Coverage and gaps per segment', 'Future incidents, neighbours\' future values', 'Graph neighbourhood and time lags', 'Seasonal baseline, boosting with graph features, temporal GNN', 'Tuning on backtests', 'Incidents, holidays, unseen segments', 'Lessons per road type'],
         checks: ['graph version pinned', 'coverage map', 'districts disjoint', 'gaps listed', 'neighbour values lagged', 'graph features causal', 'same backtests', 'margin declared', 'unseen-segment slice', 'reviewed'],
         rules: ['MAP-01 Neighbour features must be lagged like the target'], tools: ['graph_snapshot', 'district_split', 'gnn_screen'], metrics: ['MAE per segment and horizon', 'Error during incidents'],
         engine: TAB_ENGINE + ' Road graphs cannot enter the engine.',
-        foot: 'Proposed in research/driving-maps and research/temporal-gnn. No experiments yet.' },
+        foot: 'Proposed; no experiments yet.' },
       scenegraph: { f: 'packs.scene',
         steps: ['Objects, relations, events; when the system must know', 'Video licence, relation annotation guide', 'By video and scene', 'Relation frequencies', 'Same scene or adjacent clips across splits', 'Detector outputs, tracks, predicted graphs', 'A: video→VLM · B: pairwise classifier · C: temporal GNN · D: video + graph→VLM', 'Tuning on validation videos', 'Rare relations, occlusion; asks for evidence when unsure', 'Lessons and examples'],
         checks: ['event moment declared', 'guide version', 'videos disjoint', 'train only', 'clip adjacency', 'track lineage', 'same videos for A–D', 'margin declared', 'uncertainty triggers evidence', 'reviewed'],
         rules: ['SG-01 When uncertain, gather evidence instead of guessing a relation'], tools: ['track_objects', 'relation_eval', 'vlm_compare'], metrics: ['Relation recall@k', 'Event F1'],
         engine: TAB_ENGINE + ' Video cannot enter the engine.',
-        foot: 'Proposed in research/vision-scene-graphs; no implementation or result yet. Goal: a vision-language agent that keeps a temporal scene graph and gathers evidence when unsure.' },
+        foot: 'Proposed; no implementation or result yet. Goal: a vision-language agent that keeps a temporal scene graph and gathers evidence when unsure.' },
       llm: { f: 'packs.llm',
         steps: ['Task, success metric, refusal behaviour', 'Data licence and provenance', 'By source and document; near-duplicates grouped', 'Lengths, task mix', 'Benchmark contamination; prompt near-duplicates', 'Data recipe ladder', 'Base models and LoRA ranks on the same eval', 'Hyperparameters on dev only', 'Held-out tasks, safety, regressions', 'Model card and lessons'],
         checks: ['metric declared', 'licences', 'sources disjoint', 'train only', 'contamination scan', 'recipe declared', 'same eval', 'dev only', 'held-out tasks', 'card written'],
         rules: ['LLM-01 Hold whole datasets out, not random examples', 'LLM-02 Facts that change stay in retrieval, not weights'], tools: ['build_sft', 'train_lora', 'eval_sft', 'contamination_scan'], metrics: ['Held-out task score', 'Judgment benchmark'],
-        engine: TAB_ENGINE + ' Training an LLM is not a notebook stage: the corpus builder, train_lora.py and eval_sft.py are research scripts run by hand.',
-        foot: 'Corpus v3, train_lora.py and eval_sft.py exist in research/llm-fine-tuning; the Policy model page shows whether any run exists.' },
+        engine: TAB_ENGINE + ' Training an LLM is not a notebook stage.'
+          // dclab:closed-begin
+          + ' The corpus builder, train_lora.py and eval_sft.py are research scripts run by hand.'
+          // dclab:closed-end
+          ,
+        foot: 'Documented, not offered here.'
+          // dclab:closed-begin
+          + ' Corpus v3, train_lora.py and eval_sft.py exist in research/llm-fine-tuning; the Policy model page shows whether any run exists.'
+          // dclab:closed-end
+          },
       software: { f: 'packs.software',
         steps: ['Issue → what "fixed" means; acceptance tests', 'Repository, commit, issue link', 'By repository and time', 'Reproduce the bug', 'Fix visible in tests? flaky tests?', 'Candidate patches', 'Same test runs for every patch', 'Smallest diff that passes', 'Full regression suite, review', 'Lesson and example'],
         checks: ['acceptance tests named', 'commit pinned', 'repos disjoint', 'failing test first', 'flakiness check', 'patches isolated', 'identical runs', 'diff size', 'full suite green', 'reviewed'],
         rules: ['SW-01 Reproduce before fixing', 'SW-02 Never weaken a test to pass it'], tools: ['reproduce', 'run_tests', 'diff_review'], metrics: ['Tests passing', 'Reviewer acceptance'],
         engine: 'Research only: not a machine-learning pack, so it cannot be picked on Home or in a solution draft, and nothing runs for it.',
-        foot: 'Proposed in research/cross-industry-workflows: the same ten steps outside machine learning. No implementation yet.' },
+        foot: 'Proposed: the same ten steps outside machine learning. No implementation yet.' },
     };
     /* Research packs the page documents but the server does not offer (not in dclab_rnd/draft/pack.py, so never detected or picked). */
     const PAGE_ONLY = [{ key: 'software', name: 'Software bug-fixing', desc: 'The first non-ML pack: fix an issue so the tests pass.', maturity: 'Not built', cls: '', icon: 'bug', page_only: true }];

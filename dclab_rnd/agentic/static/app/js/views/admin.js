@@ -822,8 +822,10 @@ DC.view('admin', {
     const mb = v => Math.round(v / 1048576) + ' MB';
     $('#privacy-body', el).innerHTML = l.privacy.map(p => `<div class="inset stack tight"><div class="spread"><b>${esc(p.title)}</b><span class="pill ${p.on ? 'ok' : 'outline'}">${p.on ? 'yes' : 'no'}</span></div><span class="muted">${esc(p.text)}</span></div>`).join('') +
       `<dl class="kv"><dt>Upload limit</dt><dd>${mb(l.upload_max_bytes)} per file · ${mb(l.connector_max_bytes)} per connector import</dd><dt>Workspace folder</dt><dd class="mono xs">${esc(l.storage)}</dd></dl>` +
-      '<div id="consent-box" class="stack tight"></div>';
+      '<div id="consent-box" class="stack tight"><b>Sharing</b><span class="small muted">Nothing here leaves this machine: this edition sends no records anywhere.</span></div>';
+    // dclab:closed-begin  (sharing records with the DCLab team: the full edition's switches replace the line above)
     this.loadConsent(el);
+    // dclab:closed-end
   },
 
   // 19.10: what may leave this workspace; each use off until the owner turns it on, every change in the audit log

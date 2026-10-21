@@ -75,6 +75,10 @@ CLOSED = [
 # Words replaced in every exported text file, in this order (after the package rename): the owner's real dataset and the mock
 # user become invented names, private working files become the public ones. The scanner then checks nothing private is left.
 REPLACE = [
+    # the owner's dated words in comments (who said what, when): the sentence stays, the attribution goes
+    (r" ?\((the )?owner, \d{4}-\d{2}-\d{2}\)", ""), (r"\((the )?owner, \d{4}-\d{2}-\d{2}: ", "("),
+    (r"the owner's choice, \d{4}-\d{2}-\d{2}", "a design choice"), (r"[Tt]he owner, \d{4}-\d{2}-\d{2}: ", ""),
+    (r"[Tt]he owner, \d{4}-\d{2}-\d{2}", "a design decision"),
     # the main product's internals named in comments (its adapters are not exported)
     (r"main product apps/api/app/agents/semantic/releases\.py at the recorded commit", "the main product's release"),
     (r"\bJev's\b", "the main product agent's"), (r"\bJev\b", "the main product's agent"),
