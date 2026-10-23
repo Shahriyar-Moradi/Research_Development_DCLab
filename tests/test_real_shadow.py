@@ -119,6 +119,20 @@ class RealShadowTest(unittest.TestCase):
         self.assertEqual((student["truth"], student["coverage"]), (1, 1.0))
         self.assertIn("accuracy", student)
 
+    def test_compare_puts_generations_of_students_on_the_same_rows(self):
+        from dclab_rnd.ledger import shadow
+
+        self.run_all()
+        truth = {("openml-2", "plan"): {"column.semantic_role": "categorical_code"}}
+        with mock.patch.object(real_shadow, "_truths", return_value=truth), \
+                mock.patch.object(shadow, "answerers", side_effect=lambda folder=None: (student(),)):
+            out = real_shadow.compare({"first": Path("a"), "second": Path("b")}, self.eval)
+        point = out["column.semantic_role"]
+        self.assertEqual(point["rule"]["accuracy"], 1.0)
+        self.assertEqual(point["first"], point["second"])  # the same student on the same rows: the same scores
+        self.assertEqual(point["first"]["coverage"], 1.0)
+        self.assertTrue((self.eval / "compare.json").is_file())
+
     def test_a_failed_download_is_kept_failed_and_read_again_only_when_asked(self):
         self.fail_did = 1
         counts = self.run_all()
@@ -159,14 +173,16 @@ class RealShadowTest(unittest.TestCase):
         self.assertTrue(out.get("stopped") or len(lines) == 5)
         self.assertEqual(len(open_ledger(self.train).labels()), labels_before)  # never a label in the ledger
 
-    def test_a_failing_model_stops_and_writes_nothing(self):
+    def test_an_outage_stops_and_a_single_failure_is_an_abstention(self):
         class Broken:
             def complete(self, *a, **k):
                 raise ConnectionError("down")
-        out = self.silver_with(Broken(), cap=1.0)
-        self.assertTrue(out["stopped"])
-        path = self.train / "silver.jsonl"
-        self.assertFalse(path.is_file() and path.read_text().strip())  # no empty answer kept as done
+        with mock.patch.object(real_shadow.time, "sleep"):
+            out = self.silver_with(Broken(), cap=1.0)
+        self.assertEqual((out["stopped"], out["why"]), (True, "failures"))
+        lines = [json.loads(l) for l in (self.train / "silver.jsonl").read_text().splitlines()]
+        self.assertEqual(len(lines), 2)  # the two before the third in a row, kept as failed abstentions; the third not written
+        self.assertTrue(all(l["failed"] and l["abstained"] and l["claude"] is None for l in lines))
 
 
 if __name__ == "__main__":

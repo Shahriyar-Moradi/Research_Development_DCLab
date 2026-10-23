@@ -1,0 +1,228 @@
+{
+ "schema_version": "dclab_core.decision_model_card.v1",
+ "point": "task.framing",
+ "name": "task.framing.boosting",
+ "version": "df4f720cab33",
+ "family": "boosting",
+ "strength": 0.1,
+ "features": 239,
+ "fields": [
+  "cardinality",
+  "classes",
+  "column",
+  "columns",
+  "dtype",
+  "integer_valued",
+  "name_tokens",
+  "nulls",
+  "rows",
+  "uniqueness",
+  "value_pattern"
+ ],
+ "excluded": [],
+ "trained_on": 1943,
+ "trained_set": "d6700a3e8e7fb8b825b0621129830b24af3ac0865c32fd49caf728903e2fbdf1",
+ "groups": 1231,
+ "label_sources": {
+  "benchmark": 1943
+ },
+ "chosen_by": "out-of-fold accuracy over 5 folds grouped by table; best boosting:0.1",
+ "oof_accuracy": {
+  "logistic:0.1": 0.9182,
+  "logistic:1.0": 0.9243,
+  "logistic:10.0": 0.9274,
+  "boosting:0.1": 0.9516,
+  "boosting:1.0": 0.9403,
+  "boosting:10.0": 0.9444
+ },
+ "calibration": "Platt scaling on the same 5 table-grouped folds of the training rows",
+ "dev": {
+  "n": 103,
+  "accuracy": 0.9806,
+  "accuracy_ci": [
+   0.9319,
+   0.9947
+  ],
+  "precision": 0.9744,
+  "precision_ci": [
+   0.9333,
+   1.0
+  ],
+  "recall": 0.9792,
+  "recall_ci": [
+   0.9474,
+   1.0
+  ],
+  "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+  "answered": 103,
+  "per_class": {
+   "binary": {
+    "n": 47,
+    "precision": 1.0,
+    "precision_ci": [
+     0.9244,
+     1.0
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9244,
+     1.0
+    ]
+   },
+   "multiclass": {
+    "n": 24,
+    "precision": 0.9231,
+    "precision_ci": [
+     0.7586,
+     0.9786
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.862,
+     1.0
+    ]
+   },
+   "regression": {
+    "n": 32,
+    "precision": 1.0,
+    "precision_ci": [
+     0.8865,
+     1.0
+    ],
+    "recall": 0.9375,
+    "recall_ci": [
+     0.7985,
+     0.9827
+    ]
+   }
+  }
+ },
+ "rule_dev": {
+  "n": 103,
+  "accuracy": 0.9709,
+  "accuracy_ci": [
+   0.9178,
+   0.99
+  ],
+  "precision": 0.963,
+  "precision_ci": [
+   0.9167,
+   1.0
+  ],
+  "recall": 0.9688,
+  "recall_ci": [
+   0.9316,
+   1.0
+  ],
+  "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+  "answered": 103,
+  "per_class": {
+   "binary": {
+    "n": 47,
+    "precision": 1.0,
+    "precision_ci": [
+     0.9244,
+     1.0
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9244,
+     1.0
+    ]
+   },
+   "multiclass": {
+    "n": 24,
+    "precision": 0.8889,
+    "precision_ci": [
+     0.7194,
+     0.9615
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.862,
+     1.0
+    ]
+   },
+   "regression": {
+    "n": 32,
+    "precision": 1.0,
+    "precision_ci": [
+     0.883,
+     1.0
+    ],
+    "recall": 0.9062,
+    "recall_ci": [
+     0.7578,
+     0.9676
+    ]
+   }
+  }
+ },
+ "dev_by_source": {
+  "benchmark": {
+   "n": 103,
+   "accuracy": 0.9806,
+   "accuracy_ci": [
+    0.9319,
+    0.9947
+   ],
+   "precision": 0.9744,
+   "precision_ci": [
+    0.9333,
+    1.0
+   ],
+   "recall": 0.9792,
+   "recall_ci": [
+    0.9474,
+    1.0
+   ],
+   "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+   "answered": 103,
+   "per_class": {
+    "binary": {
+     "n": 47,
+     "precision": 1.0,
+     "precision_ci": [
+      0.9244,
+      1.0
+     ],
+     "recall": 1.0,
+     "recall_ci": [
+      0.9244,
+      1.0
+     ]
+    },
+    "multiclass": {
+     "n": 24,
+     "precision": 0.9231,
+     "precision_ci": [
+      0.7586,
+      0.9786
+     ],
+     "recall": 1.0,
+     "recall_ci": [
+      0.862,
+      1.0
+     ]
+    },
+    "regression": {
+     "n": 32,
+     "precision": 1.0,
+     "precision_ci": [
+      0.8865,
+      1.0
+     ],
+     "recall": 0.9375,
+     "recall_ci": [
+      0.7985,
+      0.9827
+     ]
+    }
+   }
+  }
+ },
+ "dev_calibration_error": 0.1141,
+ "limits": [
+  "Trained on invented tables (planted kinds) and real OpenML tables (their declared truths); measured here on the real tables' dev rows. The two sets' definitions differ in places (real_homework.LIMITS): not evidence about a project's data."
+ ]
+}

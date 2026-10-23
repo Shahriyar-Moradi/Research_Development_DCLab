@@ -23,8 +23,8 @@ The commands:
 - ``measure``: per point and student, coverage (decisions the student answered), agreement with the rule, and, on the
   dev tables, the rule's and the student's accuracy against the declared truth.
 - ``silver``: Claude's opinion on a fair sample of the train tables' disagreements (``decision_answer``, the state only:
-  bands and name tokens, never a value), within a euro cap; stopped at the first failure or the cap, never writing an
-  empty answer. Kept apart, in ``silver.jsonl``: evaluation and silver, never a label in the ledger (the owner's rule,
+  bands and name tokens, never a value), within a euro cap; a failed request is tried once more, then kept as an
+  abstention (marked failed); stopped at the cap or after three failures in a row, never writing those. Kept apart, in ``silver.jsonl``: evaluation and silver, never a label in the ledger (the owner's rule,
   2026-10-17).
 
 Nothing here is a sealed verdict: the real tables' declarations are their uploaders', not checked.
@@ -246,6 +246,53 @@ def measure(home: Optional[Path] = None) -> dict[str, Any]:
     return out
 
 
+def compare(folders: dict[str, Path], home: Optional[Path] = None) -> dict[str, Any]:
+    """Several generations of students on the same dev tables (``EVAL_HOME``): for each point, each folder's student answers
+    every recorded state (not a shadow kept in the record: the same rows for all), scored against the declared truth, beside
+    the rule, and against Claude's silver opinion where one was asked. Written to ``compare.json``."""
+    from .ledger import shadow
+
+    home = Path(home or EVAL_HOME)
+    rows, truths = _rows(home, shadowed=False), _truths()
+    silver_by: dict[str, Any] = {}
+    path = home / "silver.jsonl"
+    for line in path.read_text().splitlines() if path.is_file() else []:
+        r = json.loads(line)
+        if r.get("claude") is not None:
+            silver_by[r["record"]] = r["claude"]
+    students = {name: {getattr(m, "point", None) or next(iter(m.points)): m for m in shadow.answerers(str(folder))} for name, folder in folders.items()}
+    out: dict[str, Any] = {}
+    for point in sorted({r["point"] for r in rows}):
+        mine = [r for r in rows if r["point"] == point]
+        entry: dict[str, Any] = {"decisions": len(mine)}
+        truth_of = {r["record"]: (truths.get((r["where"], r["subject"])) or {}).get(point) for r in mine}
+        judged = [r for r in mine if truth_of[r["record"]] is not None]
+        if judged:
+            entry["rule"] = {"truth": len(judged), "accuracy": round(sum(str(r["rule"]) == str(truth_of[r["record"]]) for r in judged) / len(judged), 4)}
+        for name, by_point in students.items():
+            model = by_point.get(point)
+            if model is None:
+                continue
+            said = {}
+            for r in mine:
+                a = model.answer(point, r["state"], r["options"])
+                said[r["record"]] = _yes(getattr(a, "value", None)) if a is not None else None
+            answered = [r for r in mine if said[r["record"]] is not None]
+            e: dict[str, Any] = {"coverage": round(len(answered) / len(mine), 4),
+                                 "agree_with_rule": round(sum(str(said[r["record"]]) == str(r["rule"]) for r in answered) / max(len(answered), 1), 4)}
+            right = [r for r in judged if said[r["record"]] is not None]
+            if right:
+                e["accuracy"] = round(sum(str(said[r["record"]]) == str(truth_of[r["record"]]) for r in right) / len(right), 4)
+            claude = [r for r in answered if r["record"] in silver_by]
+            if claude:
+                e["agree_with_claude"] = round(sum(str(said[r["record"]]) == str(silver_by[r["record"]]) for r in claude) / len(claude), 4)
+                e["claude_n"] = len(claude)
+            entry[name] = e
+        out[point] = entry
+    (home / "compare.json").write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
+    return out
+
+
 # ---------------------------------------------------------------------- Claude's silver opinion on the disagreements
 
 
@@ -265,9 +312,13 @@ def silver(home: Optional[Path] = None, per_point: int = 60, cap_eur: float = 3.
     by_point: dict[str, list] = defaultdict(list)
     for r in sorted(rows, key=lambda r: str(r["record"])):  # a fixed order before the seeded shuffle: the same sample for the same records
         by_point[r["point"]].append(r)
-    rng, out_path, asked = random.Random(seed), home / "silver.jsonl", Counter()
-    done = {json.loads(l)["record"] for l in out_path.read_text().splitlines()} if out_path.is_file() else set()
-    advisor = GatewayAdvisor(gateway, max_tokens=200, cap_eur=cap_eur)
+    rng, out_path, asked, in_a_row, step = random.Random(seed), home / "silver.jsonl", Counter(), 0, 0.0
+    last = {}  # each record's latest line: a failed one is asked again (its new line follows it)
+    for line in out_path.read_text().splitlines() if out_path.is_file() else []:
+        row = json.loads(line)
+        last[row["record"]] = row
+    done = {rec for rec, row in last.items() if not row.get("failed")}
+    advisor = GatewayAdvisor(gateway, max_tokens=600, cap_eur=cap_eur)  # 200 cut Claude's one-sentence reasons (live, 2026-10-23)
     answerer = ModelAnswerer(advisor, list(by_point), name="claude", version="silver-1")
     with out_path.open("a", encoding="utf-8") as fh:
         for point, items in sorted(by_point.items()):
@@ -275,14 +326,25 @@ def silver(home: Optional[Path] = None, per_point: int = 60, cap_eur: float = 3.
             for r in items[:per_point]:
                 if r["record"] in done:
                     continue
-                errors = answerer.errors
-                a = answerer.answer(point, r["state"], r["options"])
-                if a is None and answerer.errors > errors:  # a failed request or the cap reached: stop, write nothing
-                    log("stopped: a request failed or the cap was reached")
-                    return {"asked": dict(asked), "spent_eur": round(advisor.spent_eur(), 4), "stopped": True}
+                failed = False
+                for attempt in range(2):  # one retry: a passing failure or a reply that did not read
+                    errors, before = answerer.errors, advisor.spent_eur()
+                    a = answerer.answer(point, r["state"], r["options"])
+                    step = max(step, advisor.spent_eur() - before)
+                    failed = a is None and answerer.errors > errors
+                    if not failed:
+                        break
+                    if advisor.spent_eur() + 1.5 * step >= cap_eur:  # the cap (a refused request near it): stop, write nothing
+                        log("stopped: the cap was reached")
+                        return {"asked": dict(asked), "spent_eur": round(advisor.spent_eur(), 4), "stopped": True, "why": "cap"}
+                    time.sleep(2 * (attempt + 1))
+                in_a_row = in_a_row + 1 if failed else 0
+                if in_a_row >= 3:  # three in a row: an outage; stop without writing this one
+                    log("stopped: three requests in a row failed")
+                    return {"asked": dict(asked), "spent_eur": round(advisor.spent_eur(), 4), "stopped": True, "why": "failures"}
                 fh.write(json.dumps({"record": r["record"], "point": point, "where": r["where"], "subject": r["subject"], "state": r["state"],
                                      "rule": r["rule"], "students": r["students"], "claude": _yes(getattr(a, "value", None)) if a is not None else None,
-                                     "abstained": a is None, "label": "silver", "use": "evaluation"}, ensure_ascii=False, default=str) + "\n")
+                                     "abstained": a is None, "failed": failed, "label": "silver", "use": "evaluation"}, ensure_ascii=False, default=str) + "\n")
                 asked[point] += 1
     return {"asked": dict(asked), "spent_eur": round(advisor.spent_eur(), 4)}
 

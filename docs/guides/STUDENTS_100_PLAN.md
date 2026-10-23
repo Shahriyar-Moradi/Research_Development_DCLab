@@ -20,6 +20,28 @@ generation 2), all built. It does not replace it: it widens it from 17 students 
   (`agent_runs/live_tests/2026-10-23/real-shadow/`, consent "train"), Claude's silver opinion on a sample of the
   disagreements, kept apart.
 
+## First results of the real-table shadow run (2026-10-23)
+
+652 real OpenML tables (107 dev, measured only; 545 train, recorded as homework; the sealed ones left out), 50,967
+decisions, none failed; Claude's silver opinion on 289 disagreements, EUR 0.64. Records in
+`agent_runs/live_tests/2026-10-23-real-shadow/` (`eval/measure.json`, `eval/compare.json`, `eval/silver.jsonl`).
+
+**The students trained only on invented tables are not better than the rules on real tables.** Where a student and the
+rule disagree, Claude sides with the rule on leakage 95 to 5 (the leakage student, which passed its sealed exam on
+invented tables, flags 709 of 2,642 real columns the rule keeps), on the time column 23 to 3, on the task 20 to 2, on
+identifiers 25 to 14, and on roles 59 to 38.
+
+**Real homework fixes that where real truths exist.** On the 2,638 real dev columns, against their declared truth:
+
+| Point | Rule | Student, invented only | Student, invented and real |
+|---|---|---|---|
+| `column.semantic_role` | 93.6% | 94.0% | **99.7%** |
+| `column.is_identifier` | **100%** | 98.9% | 99.2% |
+
+A fresh retrain (`models_real_v2`) reproduces `models_real_v1`'s cards (real dev 99.6%, 99.2%, task 98.1%). The lesson for
+every point: invented homework teaches the method, real homework teaches the skill. Leakage, time and group have no
+real truth yet: their real labels must come from people (S5.1), measured outcomes (S3) or, as evaluation only, Claude.
+
 ## The rule this plan keeps
 
 **A student is worth adding only where it has labelled examples and a rule to beat.** One hundred students without data

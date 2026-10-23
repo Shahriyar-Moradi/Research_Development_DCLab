@@ -1,0 +1,316 @@
+{
+ "schema_version": "dclab_core.decision_model_card.v1",
+ "point": "column.semantic_role",
+ "name": "column.semantic_role.logistic",
+ "version": "ddef6e78dae8",
+ "family": "logistic",
+ "strength": 10.0,
+ "features": 6618,
+ "fields": [
+  "cardinality",
+  "column",
+  "dtype",
+  "name_tokens",
+  "nulls",
+  "target",
+  "uniqueness",
+  "value_pattern"
+ ],
+ "excluded": [],
+ "trained_on": 22341,
+ "trained_set": "c918782a102e26aa1383e6c630b4333fce0a91e59827186cd540b932c6b54e75",
+ "groups": 931,
+ "label_sources": {
+  "benchmark": 22341
+ },
+ "chosen_by": "out-of-fold accuracy over 5 folds grouped by table; best logistic:10.0",
+ "oof_accuracy": {
+  "logistic:0.1": 0.9757,
+  "logistic:1.0": 0.9809,
+  "logistic:10.0": 0.9817,
+  "boosting:0.1": 0.9763,
+  "boosting:1.0": 0.9776,
+  "boosting:10.0": 0.9816
+ },
+ "calibration": "Platt scaling on the same 5 table-grouped folds of the training rows",
+ "dev": {
+  "n": 3744,
+  "accuracy": 0.9963,
+  "accuracy_ci": [
+   0.9937,
+   0.9978
+  ],
+  "precision": 0.7738,
+  "precision_ci": [
+   0.7457,
+   0.7976
+  ],
+  "recall": 0.7939,
+  "recall_ci": [
+   0.7892,
+   0.7981
+  ],
+  "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+  "answered": 3744,
+  "per_class": {
+   "categorical_code": {
+    "n": 572,
+    "precision": 0.9948,
+    "precision_ci": [
+     0.9847,
+     0.9982
+    ],
+    "recall": 0.9983,
+    "recall_ci": [
+     0.9902,
+     0.9997
+    ]
+   },
+   "datetime": {
+    "n": 22,
+    "precision": 0.88,
+    "precision_ci": [
+     0.7004,
+     0.9583
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.8513,
+     1.0
+    ]
+   },
+   "free_text": {
+    "n": 213,
+    "precision": 0.9952,
+    "precision_ci": [
+     0.9733,
+     0.9992
+    ],
+    "recall": 0.9718,
+    "recall_ci": [
+     0.9399,
+     0.987
+    ]
+   },
+   "identifier": {
+    "n": 6,
+    "precision": 0.0,
+    "precision_ci": [
+     0.0,
+     0.4899
+    ],
+    "recall": 0.0,
+    "recall_ci": [
+     0.0,
+     0.3903
+    ]
+   },
+   "numeric": {
+    "n": 2931,
+    "precision": 0.999,
+    "precision_ci": [
+     0.997,
+     0.9997
+    ],
+    "recall": 0.9997,
+    "recall_ci": [
+     0.9981,
+     0.9999
+    ]
+   }
+  }
+ },
+ "rule_dev": {
+  "n": 3744,
+  "accuracy": 0.8224,
+  "accuracy_ci": [
+   0.8098,
+   0.8343
+  ],
+  "precision": 0.5352,
+  "precision_ci": [
+   0.4755,
+   0.589
+  ],
+  "recall": 0.6649,
+  "recall_ci": [
+   0.631,
+   0.6998
+  ],
+  "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+  "answered": 3744,
+  "per_class": {
+   "categorical_code": {
+    "n": 572,
+    "precision": 0.4918,
+    "precision_ci": [
+     0.4631,
+     0.5206
+    ],
+    "recall": 0.9948,
+    "recall_ci": [
+     0.9847,
+     0.9982
+    ]
+   },
+   "datetime": {
+    "n": 22,
+    "precision": 0.5946,
+    "precision_ci": [
+     0.4349,
+     0.7365
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.8513,
+     1.0
+    ]
+   },
+   "free_text": {
+    "n": 213,
+    "precision": 1.0,
+    "precision_ci": [
+     0.8985,
+     1.0
+    ],
+    "recall": 0.1596,
+    "recall_ci": [
+     0.1165,
+     0.2148
+    ]
+   },
+   "identifier": {
+    "n": 6,
+    "precision": 0.125,
+    "precision_ci": [
+     0.0586,
+     0.247
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.6097,
+     1.0
+    ]
+   },
+   "numeric": {
+    "n": 2931,
+    "precision": 1.0,
+    "precision_ci": [
+     0.9984,
+     1.0
+    ],
+    "recall": 0.8352,
+    "recall_ci": [
+     0.8213,
+     0.8482
+    ]
+   },
+   "other": {
+    "n": 0,
+    "precision": 0.0,
+    "precision_ci": [
+     0.0,
+     0.1611
+    ],
+    "recall": 0.0,
+    "recall_ci": [
+     null,
+     null
+    ]
+   }
+  }
+ },
+ "dev_by_source": {
+  "benchmark": {
+   "n": 3744,
+   "accuracy": 0.9963,
+   "accuracy_ci": [
+    0.9937,
+    0.9978
+   ],
+   "precision": 0.7738,
+   "precision_ci": [
+    0.7457,
+    0.7976
+   ],
+   "recall": 0.7939,
+   "recall_ci": [
+    0.7892,
+    0.7981
+   ],
+   "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+   "answered": 3744,
+   "per_class": {
+    "categorical_code": {
+     "n": 572,
+     "precision": 0.9948,
+     "precision_ci": [
+      0.9847,
+      0.9982
+     ],
+     "recall": 0.9983,
+     "recall_ci": [
+      0.9902,
+      0.9997
+     ]
+    },
+    "datetime": {
+     "n": 22,
+     "precision": 0.88,
+     "precision_ci": [
+      0.7004,
+      0.9583
+     ],
+     "recall": 1.0,
+     "recall_ci": [
+      0.8513,
+      1.0
+     ]
+    },
+    "free_text": {
+     "n": 213,
+     "precision": 0.9952,
+     "precision_ci": [
+      0.9733,
+      0.9992
+     ],
+     "recall": 0.9718,
+     "recall_ci": [
+      0.9399,
+      0.987
+     ]
+    },
+    "identifier": {
+     "n": 6,
+     "precision": 0.0,
+     "precision_ci": [
+      0.0,
+      0.4899
+     ],
+     "recall": 0.0,
+     "recall_ci": [
+      0.0,
+      0.3903
+     ]
+    },
+    "numeric": {
+     "n": 2931,
+     "precision": 0.999,
+     "precision_ci": [
+      0.997,
+      0.9997
+     ],
+     "recall": 0.9997,
+     "recall_ci": [
+      0.9981,
+      0.9999
+     ]
+    }
+   }
+  }
+ },
+ "dev_calibration_error": 0.0208,
+ "limits": [
+  "Trained on invented tables (planted kinds) and real OpenML tables (their declared truths); measured here on the real tables' dev rows. The two sets' definitions differ in places (real_homework.LIMITS): not evidence about a project's data."
+ ]
+}

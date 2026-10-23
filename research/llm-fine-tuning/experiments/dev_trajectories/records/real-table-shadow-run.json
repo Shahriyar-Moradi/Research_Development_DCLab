@@ -135,21 +135,42 @@
    "cause": "dclab_core.analyse built every combination of the categories.",
    "fix": "observed=True (4e683d11).",
    "test": "tests/test_core_analyse.py"
+  },
+  {
+   "id": "L1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Claude's silver answers were cut at the token limit.",
+   "scenario": "7 of 17 abstained, then three in a row: the run stopped.",
+   "cause": "max_tokens 200 for an answer and a one-sentence reason.",
+   "fix": "600 tokens; a failed request tried once more, kept as a failed abstention, asked again on the next run.",
+   "test": "tests/test_real_shadow.py"
+  },
+  {
+   "id": "L2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A request refused near the cap was kept as a failed answer.",
+   "scenario": "The cap test after the 600-token change.",
+   "cause": "The cap check looked at the spend only, not the next request's cost.",
+   "fix": "Stop when what is left is under 1.5 times the costliest answer so far.",
+   "test": "tests/test_real_shadow.py"
   }
  ],
  "measurements": [
   {
-   "name": "the tests",
-   "gate": "every affected test file passes",
-   "result": "real_shadow 5, decision_shadow 10, decision_capture 22, ledger 14",
+   "name": "the real-table shadow run",
+   "gate": "every table done or failed with its reason; dev tables measured only",
+   "result": "652 tables, 50,967 decisions, 0 failed; roles: rule 93.6%, invented student 94.0%, real-homework student 99.7%; identifier: rule 100%, 98.9%, 99.2%; Claude sides with the rule on 95 of 100 leakage disagreements",
    "verdict": "pass",
-   "cost_eur": 0.0,
+   "cost_eur": 0.638,
    "limits": [
-    "the run's own measurement follows when it ends"
+    "the tables' declarations are their uploaders'",
+    "Claude's opinion is silver, not truth"
    ]
   }
  ],
- "outcome": "The students whisper beside the rule on real tables; the records are kept as homework (train tables) or measured only (dev tables).",
+ "outcome": "On real tables the invented-only students are not better than the rules; with real homework the column-role student reaches 99.7% against the rule's 93.6%.",
  "lessons": [
   "Running on real data found a crash invented data never would.",
   "A measurement workspace must not share consent with a training one."
