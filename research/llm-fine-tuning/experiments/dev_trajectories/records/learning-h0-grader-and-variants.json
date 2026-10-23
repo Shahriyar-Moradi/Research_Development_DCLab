@@ -1,0 +1,261 @@
+{
+ "package": "learning-h0-grader-and-variants",
+ "title": "The grader with codes, the first variant family and the baseline (harness learning, H0)",
+ "date": "2026-10-23",
+ "request": "The owner asked to start building H0 of the harness-learning plan: the challenge pack contract, the grader with codes, the first variant family and the scoreboard baseline, then stop.",
+ "spec": "Plan 'improve the harness so it learns', package H0 (Phase 9's 31.1 to 31.4, revised by the two harness reports): a pack's public part and its key apart; a deterministic grader whose codes never name a column (the lesson leak the reports found in Phase 9's example); the duplicate and group leakage family in learning, check and sealed partitions; today's DCLab as the zero of every learning curve.",
+ "plan": [
+  "read the kinds' cases and acceptance runs, the replicas, the engine's records, the campaigns' layout and the contract registry",
+  "the contracts in dclab_core (challenge_pack: pack, key, observed, grade) with the code vocabulary and the partition rule",
+  "the groups family generator with its knobs and the reference statements",
+  "the studio side: packs written apart from their keys, a solve from the public folder, observe a run",
+  "the scoreboard: two arms per variant as a run of the learning agent, the summary, the sealed rule, the campaign and the make target",
+  "tests, the baselines on check and learning, the adversarial review"
+ ],
+ "decisions": [
+  {
+   "decision": "The new contract is challenge_pack, not challenge",
+   "why": "dclab_core.challenge and dclab_rnd.challenge already name 16.13's challenge mode (briefs)"
+  },
+  {
+   "decision": "Codes name a kind of mistake and its trap (SPLIT_WRONG:repeated_entity), never a column or a value",
+   "why": "a lesson written from a code cannot carry one variant's answer to the next; the reports found that leak in Phase 9's own lesson example"
+  },
+  {
+   "decision": "Duplicates are a knob, not a graded trap",
+   "why": "the engine reports duplicates only in a note no statement can change, so even the right answer would fail a duplicate check; copies are an entity's rows, which the group split holds"
+  },
+  {
+   "decision": "The honest-estimate guard uses the holdout's own bootstrap interval, a fixed share only as a fallback",
+   "why": "with about 40 groups in the holdout an honest estimate missed a fixed 5% limit by chance: the reference failed 2 of 12 variants"
+  },
+  {
+   "decision": "Every variant must pass with its key's statements, or it is dropped and listed",
+   "why": "a variant the right answer cannot pass measures the generator, not the solver"
+  },
+  {
+   "decision": "The baselines run on check and learning; the sealed partition stays unread",
+   "why": "a sealed set is read once per promotion, where both arms run paired on it; a baseline read now would spend it for nothing"
+  },
+  {
+   "decision": "Each attempt is a run of a new harness agent, learning, each arm a step with its whole grade",
+   "why": "the owner's rule: every process records itself; the harness test requires every agent registered with a probe"
+  }
+ ],
+ "change": "dclab_core/challenge_pack.py (new), dclab_core/variants.py (new), dclab_core/contracts.py (registered), dclab_core 0.102.0 + CHANGELOG + schemas and baselines; dclab_rnd/learning/ (new: packs, grading, scoreboard, __main__); dclab_rnd/agents/harness.py (the learning agent); Makefile (learning-baseline); evidence/campaigns/learning_v1/manifest.json; docs/DATA_CATALOG.md and data_catalog.json regenerated; tests/test_learning_h0.py (new), tests/test_agent_harness.py (its probe).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "the first variants were unsolvable: most of the signal sat in the entity's hidden risk, so even the reference answer barely beat the baseline (AUC 0.59; for regression worse than the median)",
+   "scenario": "seeds 0 and 1, the reference arm",
+   "cause": "a generator that put the trap's signal where no honest model can reach it",
+   "fix": "row-level features carry their own signal (amount, item count, tier, channel) beside the entity's risk",
+   "test": "tests/test_learning_h0.py::test_a_solve_never_opens_a_key_and_the_reference_solves_every_variant_it_is_given",
+   "severity": "behaviour",
+   "impact": "every variant would have been dropped as unsolvable",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "defect": "a timed variant broke the engine: every entity recurred across the year, so a split both forward in time and by entity left 2 rows to test on",
+   "scenario": "seed 7 (loans, timed, plain key)",
+   "cause": "entities active all year, unlike real customers and patients",
+   "fix": "each entity is active in a window of weeks; a time-and-group split then holds out entities it never saw",
+   "test": "the same test (seed 4 is timed)",
+   "severity": "behaviour",
+   "impact": "timed variants unusable",
+   "alternatives": [
+    "grade timed variants on the time split alone (drops the family's trap)"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "defect": "a fixed 5% gap limit failed honest solves",
+   "scenario": "2 of 12 reference solves failed GAP_OPTIMISTIC on holdouts of about 40 groups",
+   "cause": "sampling noise of a small grouped holdout is larger than a fixed share",
+   "fix": "the guard reads the holdout's bootstrap interval; 0 of 30 reference failures after",
+   "test": "tests/test_learning_h0.py::test_an_honest_gap_inside_the_holdouts_interval_passes_and_a_loss_metric_reads_the_other_side",
+   "severity": "behaviour",
+   "impact": "a grader that fails right answers",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "the public pack carried its seed (its id, a field, the row keys' values), so whoever could run the generator could rebuild the key without opening it",
+   "scenario": "generate('groups', pack.seed).key",
+   "cause": "a deterministic id from the seed",
+   "fix": "an opaque token as the id; seed and partition moved into the key; row keys drawn at random from the seed's generator, never its digits",
+   "test": "tests/test_learning_h0.py::test_a_seed_gives_the_same_table_and_a_partition_of_its_own",
+   "severity": "leakage",
+   "impact": "the key readable by a solver that runs code",
+   "alternatives": [],
+   "open": "a solver that runs the generator could still match a table by brute force over seeds: H1's sandbox is where that closes"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "a solve that never fitted a model passed: the guards were skipped when a score was missing",
+   "scenario": "Observed with the right columns kept out and no scores",
+   "cause": "a guard ran only when its numbers existed",
+   "fix": "a missing validation, holdout or baseline fails its guard",
+   "test": "tests/test_learning_h0.py::test_a_solve_with_no_model_fails_the_guards_and_blocking_honest_columns_fails_without_a_decoy",
+   "severity": "behaviour",
+   "impact": "a free pass for doing nothing",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "keeping every honest column out went unpunished when a variant had no decoy (four in ten)",
+   "scenario": "all honest columns but one blocked: holdout 0.55 against 0.5 passed",
+   "cause": "only decoys were checked for false alarms",
+   "fix": "the key lists the honest columns known before the moment; keeping any out is a false alarm",
+   "test": "the same test",
+   "severity": "behaviour",
+   "impact": "over-blocking rewarded",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "defect": "the sealed rule could be bypassed: a run without --write, or one that crashed, left no file and the next read was allowed",
+   "scenario": "baseline --split sealed without --write, again and again",
+   "cause": "the check looked for a stored result only",
+   "fix": "a sealed read must be stored, and its marker is written before the first solve; a broken attempt is a row with its reason",
+   "test": "tests/test_learning_h0.py::test_the_baseline_summarises_and_a_sealed_partition_is_read_once",
+   "severity": "leakage",
+   "impact": "the exam turned into practice",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "defect": "the run record was cut before the codes and held column names; the command installed no record at all",
+   "scenario": "a learning session's tool result cut at 360 characters inside its checks",
+   "cause": "the whole grade and observed were the step's result; no log was installed by the CLI",
+   "fix": "a step keeps the verdict and the codes only; the command installs the workspace's record; the session's params name the pack and partition",
+   "test": "tests/test_learning_h0.py::test_an_attempt_is_a_run_of_the_learning_agent_with_a_step_per_arm",
+   "severity": "gap",
+   "impact": "an attempt not captured whole; names a learner would read",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "defect": "the reference arm, which states the key's answers, could write them to a ledger as a person's decisions",
+   "scenario": "a server or self-play ledger installed during a baseline",
+   "cause": "acceptance's adopt records the solution as a person's",
+   "fix": "the reference arm runs with no ledger and records no events",
+   "test": "the same attempt test",
+   "severity": "leakage",
+   "impact": "key answers harvested as labels",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "defect": "the table's SHA-256 was of the frame in memory, not of the file a solver reads",
+   "scenario": "nobody could check table.csv against the pack",
+   "cause": "hash_pandas_object",
+   "fix": "the SHA-256 of the CSV's exact bytes, and exactly those bytes written",
+   "test": "the seed test",
+   "severity": "gap",
+   "impact": "a fingerprint no one could verify",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "defect": "names_in matched substrings and missed names written with spaces",
+   "scenario": "'account' found inside 'account for'; 'refund settled' missed",
+   "cause": "a substring test",
+   "fix": "whole words, with underscores or spaces",
+   "test": "tests/test_learning_h0.py::test_names_in_finds_a_column_as_a_whole_word_with_underscores_or_spaces",
+   "severity": "latent",
+   "impact": "H2's name filter would have been wrong",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F12",
+   "source": "reviewer",
+   "defect": "a result file of another family ending in the same name refused a sealed run, and two runs could take one id; the decoy ignored time order",
+   "scenario": "glob LRN-*_groups_sealed; a decoy counted before the sort by time",
+   "cause": "a loose pattern, a read-then-write id, a count before the sort",
+   "fix": "an exact pattern, open(..., 'x') with a retry, the count after the sort",
+   "test": "the baseline tests",
+   "severity": "latent",
+   "impact": "rare collisions and a decoy out of order",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F13",
+   "source": "measurement",
+   "defect": "the honesty guard still failed an honest solve after the two-noise fix",
+   "scenario": "a regression variant on 57 groups: validation beat the holdout by 2.7 noise units with the reference answer",
+   "cause": "the engine's holdout intervals run narrow on small grouped holdouts (40 draws)",
+   "fix": "the threshold measured, not guessed: 60 honest reference solves on learning and check variants reached 2.71 at most; the guard fails past 3.5, the gaming traces sit at 5 to 8",
+   "test": "tests/test_learning_h0.py::test_an_honest_gap_inside_the_holdouts_interval_passes_and_a_loss_metric_reads_the_other_side",
+   "severity": "behaviour",
+   "impact": "a grader that fails right answers",
+   "alternatives": [],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the reference arm on 60 variants (30 learning, 30 check)",
+   "gate": "every variant solvable by its key's statements; the honesty guard's threshold set above every honest solve",
+   "fixed_before_run": true,
+   "result": "60 of 60 solvable; the largest honest gap 2.71 noise units, 2 of 60 past 1.96; the threshold set at 3.5 before the baselines",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "the baselines",
+   "against_gate": "",
+   "limits": [
+    "calibrated on this family only"
+   ]
+  },
+  {
+   "name": "the baselines (LRN-001 check, LRN-002 learning; 20 variants each)",
+   "gate": "every scored variant solvable",
+   "fixed_before_run": true,
+   "result": "check: today's DCLab passes 7 of 20 (Wilson 0.18 to 0.57), decision score 0.86; learning: 3 of 20 (0.05 to 0.36), 0.83; all 40 solvable; it fails a plain-named group key in 0 of 19 and a decoy in 0 of 24; it catches the leak in all 40",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "H1, the read-only layer; the sealed partition stays unread until the first promotion",
+   "against_gate": "",
+   "limits": [
+    "the leak is nearly perfect, so a one-column screen finds it whatever its name: the leak_name knob does not make it harder",
+    "the sealed variants come from the same generator; an independent author is the owner's decision",
+    "no converter from today's replicas yet: the plan's H0 named it; it follows"
+   ]
+  }
+ ],
+ "outcome": "A challenge pack lives apart from its key, a solve reads only the public part, a deterministic grader returns codes that never name a column, the groups family draws distinct and solvable variants in three partitions, and today's DCLab is measured on them as the zero of every learning curve.",
+ "lessons": [
+  "Prove a generated challenge solvable by its own key before counting it: a variant the right answer fails measures the generator.",
+  "Judge an estimate against its own sampling interval, not a fixed share."
+ ],
+ "risks": [
+  "the sealed variants are drawn by the same generator as the learning ones: a learner that fits the generator's habits could pass them; an independent author is the plan's open decision",
+  "the grader judges decisions, not a fresh holdout of unseen entities: a solve that splits right but models badly passes when it beats the baseline",
+  "a solver that can run the generator could match a table to its seed by brute force: closed only by H1's sandbox",
+  "the replica converter and the 'every replica grades as today' test are not built (named in the plan's H0)"
+ ],
+ "commits": []
+}

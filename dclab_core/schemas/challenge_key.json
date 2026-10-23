@@ -1,0 +1,114 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.challenge_key.v1.json",
+  "additionalProperties": false,
+  "description": "The part only the grader reads (v1): the planted columns and the knobs the variant was drawn with. The knobs say\nhow hard the variant is (``key_name: plain`` is a group key a name-based rule cannot spot), never a column.",
+  "properties": {
+    "decoys": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Decoys",
+      "type": "array"
+    },
+    "duplicate_rows": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Duplicate Rows",
+      "type": "integer"
+    },
+    "family": {
+      "maxLength": 60,
+      "title": "Family",
+      "type": "string"
+    },
+    "group_column": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Group Column"
+    },
+    "knobs": {
+      "additionalProperties": true,
+      "title": "Knobs",
+      "type": "object"
+    },
+    "known_before": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Known Before",
+      "type": "array"
+    },
+    "leaks": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Leaks",
+      "type": "array"
+    },
+    "pack": {
+      "maxLength": 80,
+      "title": "Pack",
+      "type": "string"
+    },
+    "partition": {
+      "enum": [
+        "learning",
+        "check",
+        "sealed"
+      ],
+      "title": "Partition",
+      "type": "string"
+    },
+    "row_key": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Row Key"
+    },
+    "schema_version": {
+      "const": "dclab_core.challenge_key.v1",
+      "default": "dclab_core.challenge_key.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seed": {
+      "minimum": 0,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "time_column": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Time Column"
+    }
+  },
+  "required": [
+    "schema_version",
+    "pack",
+    "family",
+    "seed",
+    "partition"
+  ],
+  "title": "ChallengeKey",
+  "type": "object"
+}

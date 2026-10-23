@@ -1,0 +1,94 @@
+{
+  "$defs": {
+    "Brief": {
+      "additionalProperties": false,
+      "description": "What the person brings: the request in their words, the outcome, the moment a prediction is made, the task.",
+      "properties": {
+        "moment": {
+          "maxLength": 400,
+          "title": "Moment",
+          "type": "string"
+        },
+        "request": {
+          "maxLength": 600,
+          "title": "Request",
+          "type": "string"
+        },
+        "target": {
+          "maxLength": 120,
+          "title": "Target",
+          "type": "string"
+        },
+        "task": {
+          "enum": [
+            "binary",
+            "regression"
+          ],
+          "title": "Task",
+          "type": "string"
+        }
+      },
+      "required": [
+        "request",
+        "target",
+        "moment",
+        "task"
+      ],
+      "title": "Brief",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.challenge_pack.v1.json",
+  "additionalProperties": false,
+  "description": "The part of a challenge the solver may read (v1).",
+  "properties": {
+    "brief": {
+      "$ref": "#/$defs/Brief"
+    },
+    "columns": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 2,
+      "title": "Columns",
+      "type": "array"
+    },
+    "family": {
+      "maxLength": 60,
+      "title": "Family",
+      "type": "string"
+    },
+    "id": {
+      "maxLength": 80,
+      "title": "Id",
+      "type": "string"
+    },
+    "rows": {
+      "minimum": 1,
+      "title": "Rows",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.challenge_pack.v1",
+      "default": "dclab_core.challenge_pack.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "table_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Table Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "family",
+    "brief",
+    "columns",
+    "rows",
+    "table_sha256"
+  ],
+  "title": "ChallengePack",
+  "type": "object"
+}

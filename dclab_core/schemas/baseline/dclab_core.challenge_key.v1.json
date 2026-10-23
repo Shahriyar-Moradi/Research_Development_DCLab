@@ -1,0 +1,98 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "decoys": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "duplicate_rows": {
+      "default": 0,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "family": {
+      "maxLength": 60,
+      "type": "string"
+    },
+    "group_column": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "knobs": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "known_before": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "leaks": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "pack": {
+      "maxLength": 80,
+      "type": "string"
+    },
+    "partition": {
+      "enum": [
+        "learning",
+        "check",
+        "sealed"
+      ],
+      "type": "string"
+    },
+    "row_key": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "dclab_core.challenge_key.v1",
+      "default": "dclab_core.challenge_key.v1",
+      "type": "string"
+    },
+    "seed": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "time_column": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "schema_version",
+    "pack",
+    "family",
+    "seed",
+    "partition"
+  ],
+  "type": "object"
+}

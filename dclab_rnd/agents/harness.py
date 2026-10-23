@@ -56,6 +56,8 @@ AGENTS: dict[str, Agent] = {
     "tutor": Agent("dclab_rnd.store.tutor:teach", "session", (), "32.14: the students' agent: a student fitted and measured for every point the store's sets allow, never promoted"),
     "conductor": Agent("dclab_rnd.store.conductor:conduct", "session", (), "32.2: the store's conductor: the keepers, then the later tiers, each a step"),
     "coordinator": Agent("dclab_rnd.draft.coordinator:Coordinator.run", "session", (), "the lead agent: problem to built project, gate by gate"),
+    "learning": Agent("dclab_rnd.learning.scoreboard:attempt", "session", (), "H0: one challenge pack's attempt, each arm solved from the "
+                      "public folder and graded against the key, a step with its whole grade"),
     "twin": Agent("dclab_rnd.twin:run", "session", ("ai_first",), "a twin run (25.2, 25.3): the current system and Claude on one problem, two lanes at once, "
                                                        "each a workspace folder; Claude serves every purpose of its lane through the lane's own client"),
 }

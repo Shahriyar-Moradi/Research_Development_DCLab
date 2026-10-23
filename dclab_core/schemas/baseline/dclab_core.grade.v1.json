@@ -1,0 +1,122 @@
+{
+  "$defs": {
+    "GradeCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "trap": {
+          "maxLength": 40,
+          "type": "string"
+        }
+      },
+      "required": [
+        "trap",
+        "ok"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/GradeCheck"
+      },
+      "type": "array"
+    },
+    "codes": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "decision_score": {
+      "maximum": 1,
+      "minimum": 0,
+      "type": "number"
+    },
+    "grader": {
+      "default": "grader_v1",
+      "type": "string"
+    },
+    "holdout": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "metric": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "pack": {
+      "maxLength": 80,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.grade.v1",
+      "default": "dclab_core.grade.v1",
+      "type": "string"
+    },
+    "traps": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "traps_caught": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "validation": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "verdict": {
+      "enum": [
+        "pass",
+        "fail"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "pack",
+    "decision_score",
+    "traps_caught",
+    "traps",
+    "verdict"
+  ],
+  "type": "object"
+}

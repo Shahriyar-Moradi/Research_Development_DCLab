@@ -1,0 +1,29 @@
+{
+ "campaign_id": "learning_v1",
+ "objective": "H0 of the harness that learns: how often does today's DCLab, with nothing learned, solve the invented challenge packs of a family (the zero of every learning curve), and is every variant solvable by its key?",
+ "rule": "every variant drawn from its seed, written apart from its key, solved from its public folder (the rules arm: the proposal accepted, nothing stated; the reference arm: the key's statements), graded by code; the gate fixed before the first baseline; a sealed partition read once per promotion",
+ "command": "make learning-baseline FAMILY=groups SPLIT=check N=20",
+ "gate": {
+  "version": "learning_gate_v1",
+  "fixed": "2026-10-23, before the first baseline",
+  "grader": "grader_v1",
+  "generator": "variants_v1",
+  "partition_salt": "dclab-challenges-v1",
+  "partition_bounds": "learning < 0.5 <= check < 0.8 <= sealed",
+  "codes": [
+   "FALSE_ALARM:known_before",
+   "GAP_OPTIMISTIC:validation_over_holdout",
+   "IDENTIFIER_USED:row_key",
+   "LEAK_KEPT:after_outcome",
+   "LEAK_LEANED:after_outcome",
+   "NO_SIGNAL:not_above_baseline",
+   "SPLIT_WRONG:repeated_entity"
+  ],
+  "honest_estimate": "validation beats the holdout by at most 3.5 times both estimates' noise together (the holdout's from its bootstrap interval, validation's from the folds' spread over the root of their count; without an interval: within 5% of the validation score; without a validation score: failed)",
+  "beats_baseline": "the holdout better than the best simple baseline; without a holdout or a baseline: failed",
+  "known_before": "no honest column known before the moment kept out (one check), and each decoy kept in (a check each)",
+  "solvable": "a variant counts only when its reference statements pass every check; one that does not, or whose attempt broke, is dropped and listed",
+  "sealed": "a sealed partition is read once per promotion of the whole loop: its marker is written before the first solve",
+  "pass": "a baseline is a measurement, not a promotion: it passes when every scored variant was solvable"
+ }
+}

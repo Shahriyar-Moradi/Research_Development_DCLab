@@ -442,3 +442,4 @@ except ModuleNotFoundError as _exc:
 import dclab_core.recipes  # noqa: E402,F401  (recipe parts and resolved recipes, 30.10)
 import dclab_core.second_opinion  # noqa: E402,F401  (the second opinion on the card's family, 28.6)
 import dclab_core.debate  # noqa: E402,F401  (two solution designers and a judge, 28.6)
+import dclab_core.challenge_pack  # noqa: E402,F401  (challenge packs, their keys and grades: the harness that learns, H0)

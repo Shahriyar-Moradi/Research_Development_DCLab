@@ -4,6 +4,20 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.102.0 (2026-10-23)
+
+Challenge packs, their keys and their grades: H0 of the harness that learns.
+
+- `challenge_pack` (new): `ChallengePack` v1 (what a solver may read: the request, the outcome, the moment, the task, the
+  columns, the table's fingerprint), `ChallengeKey` v1 (what only the grader reads: the planted columns and the knobs),
+  `Observed` (what a solve did), `Grade` v1 (a check a trap and a guard, the verdict, and codes that name a kind of
+  mistake, never a column or a value). `grade(key, observed)`, deterministic; `partition_of(family, seed)` puts a seed
+  in one of learning, check and sealed (about 5 : 3 : 2) by a salted hash.
+- `variants` (new): `generate(family, seed)`, the first family `groups` (duplicate and group leakage: entities with a
+  lasting risk, a key with a key-like or a plain name, a column written after the outcome, a decoy named like a leak,
+  exact copies, a time column or none, four domain skins, binary or regression); `reference(key)`, the statements
+  that must pass for a variant to count as solvable.
+
 ## 0.101.0 (2026-10-23)
 
 Every recorded turn has a thinking slot, and an example carries the tools its model was offered.

@@ -1,0 +1,141 @@
+{
+  "$defs": {
+    "GradeCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Code"
+        },
+        "ok": {
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "trap": {
+          "maxLength": 40,
+          "title": "Trap",
+          "type": "string"
+        }
+      },
+      "required": [
+        "trap",
+        "ok"
+      ],
+      "title": "GradeCheck",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.grade.v1.json",
+  "additionalProperties": false,
+  "description": "A solve graded against its key (v1): a check a trap and a guard, the codes of what went wrong, the verdict.",
+  "properties": {
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/GradeCheck"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "codes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Codes",
+      "type": "array"
+    },
+    "decision_score": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Decision Score",
+      "type": "number"
+    },
+    "grader": {
+      "default": "grader_v1",
+      "title": "Grader",
+      "type": "string"
+    },
+    "holdout": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Holdout"
+    },
+    "metric": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Metric"
+    },
+    "pack": {
+      "maxLength": 80,
+      "title": "Pack",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.grade.v1",
+      "default": "dclab_core.grade.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "traps": {
+      "minimum": 0,
+      "title": "Traps",
+      "type": "integer"
+    },
+    "traps_caught": {
+      "minimum": 0,
+      "title": "Traps Caught",
+      "type": "integer"
+    },
+    "validation": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Validation"
+    },
+    "verdict": {
+      "enum": [
+        "pass",
+        "fail"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "pack",
+    "decision_score",
+    "traps_caught",
+    "traps",
+    "verdict"
+  ],
+  "title": "Grade",
+  "type": "object"
+}

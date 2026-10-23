@@ -1,0 +1,79 @@
+{
+  "$defs": {
+    "Brief": {
+      "additionalProperties": false,
+      "properties": {
+        "moment": {
+          "maxLength": 400,
+          "type": "string"
+        },
+        "request": {
+          "maxLength": 600,
+          "type": "string"
+        },
+        "target": {
+          "maxLength": 120,
+          "type": "string"
+        },
+        "task": {
+          "enum": [
+            "binary",
+            "regression"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "request",
+        "target",
+        "moment",
+        "task"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "brief": {
+      "$ref": "#/$defs/Brief"
+    },
+    "columns": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 2,
+      "type": "array"
+    },
+    "family": {
+      "maxLength": 60,
+      "type": "string"
+    },
+    "id": {
+      "maxLength": 80,
+      "type": "string"
+    },
+    "rows": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.challenge_pack.v1",
+      "default": "dclab_core.challenge_pack.v1",
+      "type": "string"
+    },
+    "table_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "family",
+    "brief",
+    "columns",
+    "rows",
+    "table_sha256"
+  ],
+  "type": "object"
+}

@@ -37,6 +37,7 @@ PROBES = {
     "team": "tests/test_team.py::test_the_teams_moves_are_steps_of_its_run",
     "campaign": "tests/test_agentic.py::test_the_campaign_runs_in_the_harness_and_its_requests_are_recorded",
     "coordinator": "tests/test_coordinator.py::test_the_mornings_walk_is_a_run_of_the_coordinator",
+    "learning": "tests/test_learning_h0.py::test_an_attempt_is_a_run_of_the_learning_agent_with_a_step_per_arm",
     "orchestra": "tests/test_orchestra.py::test_the_spike_is_a_session_of_the_orchestra_agent",
     "orchestra.walk": "tests/test_orchestra_walk.py::test_the_walk_is_a_session_of_the_orchestra_walk_agent",
     "orchestra.solution": "tests/test_orchestra_solution.py::test_the_team_is_a_session_of_the_orchestra_solution_agent",
