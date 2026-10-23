@@ -1,0 +1,25 @@
+{
+  "name": "dclab-notebook-companion",
+  "displayName": "DCLab Notebook Companion (Local Preview)",
+  "description": "Read-only, evidence-linked DCLab suggestions beneath VS Code notebook cells.",
+  "version": "0.1.0",
+  "publisher": "dclab-local",
+  "private": true,
+  "engines": {"vscode": "^1.90.0"},
+  "main": "./extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "commands": [
+      {"command": "dclabNotebook.reviewActive", "title": "DCLab: Review Active Notebook"},
+      {"command": "dclabNotebook.showProof", "title": "DCLab: Show Cell Evidence"}
+    ],
+    "configuration": {
+      "title": "DCLab Notebook Companion",
+      "properties": {
+        "dclabNotebook.repoPath": {"type": "string", "default": "", "description": "Path to the DCLab R&D repo; leave empty when the notebook is inside that workspace."},
+        "dclabNotebook.pythonPath": {"type": "string", "default": "", "description": "Python interpreter with access to dclab_rnd. Defaults to <repo>/.venv/bin/python."},
+        "dclabNotebook.autoReview": {"type": "boolean", "default": true, "description": "Refresh read-only suggestions when notebook cells change. No cells are executed or sent to a provider."}
+      }
+    }
+  }
+}

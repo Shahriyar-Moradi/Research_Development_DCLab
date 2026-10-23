@@ -1,0 +1,800 @@
+<!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>DCLab training data samples</title>
+<style>:root{--bg:#fff;--ink:#1f2937;--soft:#6b7280;--line:#e5e7eb;--code:#f6f7f9;--acc:#1d4ed8}
+@media (prefers-color-scheme:dark){:root{--bg:#111827;--ink:#e5e7eb;--soft:#9ca3af;--line:#374151;--code:#1f2937;--acc:#93c5fd}}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,system-ui,sans-serif;max-width:980px;margin:0 auto;padding:16px}
+h1{font-size:24px}h2{color:var(--acc);margin-top:32px}.where{color:var(--soft);margin-top:-8px}
+table{border-collapse:collapse;width:100%;margin:8px 0}td,th{border:1px solid var(--line);padding:6px;text-align:left;vertical-align:top}
+pre{background:var(--code);padding:12px;overflow-x:auto;font-size:12.5px;border-radius:6px;white-space:pre-wrap;word-break:break-word}</style></head><body>
+<h1>DCLab training data: one real row per model</h1>
+<p>Each section shows one real row from the training store, with its fields explained. Long texts are cut and say how much is cut. No row holds a table's cell values.</p>
+<section><h2>1. Student models</h2><p class=where>m1_students / target.column</p><table><tr><th>Field</th><th>What it means</th></tr><tr><td><code>point</code></td><td>which small decision this is</td></tr><tr><td><code>state</code></td><td>the situation, described in bands (never a table&#x27;s values)</td></tr><tr><td><code>options</code></td><td>the choices that were open</td></tr><tr><td><code>answers</code></td><td>who answered what: a rule, a model role, a person</td></tr><tr><td><code>label / label_source</code></td><td>the checked right answer and who checked it (empty here: no check yet)</td></tr><tr><td><code>split / split_group</code></td><td>train, dev or sealed; every row of one project lands in the same split</td></tr></table><details open><summary>The row itself</summary><pre>{
+  &quot;id&quot;: &quot;m1_students:decisions:dev:5bf0dafbd1fb:v3#2&quot;,
+  &quot;model_type&quot;: &quot;m1_students&quot;,
+  &quot;split&quot;: &quot;train&quot;,
+  &quot;weight&quot;: 1.0,
+  &quot;schema_version&quot;: &quot;dclab_core.decision_example.v2&quot;,
+  &quot;point&quot;: &quot;target.column&quot;,
+  &quot;group&quot;: &quot;target.column&quot;,
+  &quot;split_group&quot;: &quot;project:e15422617e62&quot;,
+  &quot;state&quot;: {
+    &quot;columns&quot;: 13,
+    &quot;outcome_known&quot;: true,
+    &quot;rows&quot;: &quot;medium&quot;
+  },
+  &quot;options&quot;: [
+    &quot;converted_this_month&quot;,
+    &quot;lead_source&quot;,
+    &quot;emails_opened&quot;,
+    &quot;demo_requested&quot;,
+    &quot;previous_contacts&quot;,
+    &quot;region&quot;,
+    &quot;… 2 more&quot;
+  ],
+  &quot;answers&quot;: [
+    {
+      &quot;by&quot;: &quot;model_role&quot;,
+      &quot;value&quot;: &quot;converted_this_month&quot;,
+      &quot;reason&quot;: null
+    }
+  ],
+  &quot;label&quot;: null,
+  &quot;label_source&quot;: null
+}</pre></details></section><section><h2>2. Workflow decision models</h2><p class=where>m2_workflow_decisions / workflow.move</p><table><tr><th>Field</th><th>What it means</th></tr><tr><td><code>state</code></td><td>where the workflow was (state WF-01, the holdout not yet used) and the move asked for</td></tr><tr><td><code>answers</code></td><td>the person asked, the validator&#x27;s rule allowed it</td></tr></table><details open><summary>The row itself</summary><pre>{
+  &quot;id&quot;: &quot;m2_workflow_decisions:decisions:dev:5bf0dafbd1fb:v3#38&quot;,
+  &quot;model_type&quot;: &quot;m2_workflow_decisions&quot;,
+  &quot;split&quot;: &quot;train&quot;,
+  &quot;weight&quot;: 1.0,
+  &quot;schema_version&quot;: &quot;dclab_core.decision_example.v2&quot;,
+  &quot;point&quot;: &quot;workflow.move&quot;,
+  &quot;group&quot;: &quot;rnd&quot;,
+  &quot;split_group&quot;: &quot;project:e15422617e62&quot;,
+  &quot;state&quot;: {
+    &quot;from_state&quot;: &quot;wf-01&quot;,
+    &quot;holdout_used&quot;: 0,
+    &quot;move&quot;: &quot;set_solution&quot;
+  },
+  &quot;options&quot;: [],
+  &quot;answers&quot;: [
+    {
+      &quot;by&quot;: &quot;person&quot;,
+      &quot;value&quot;: true,
+      &quot;reason&quot;: null
+    },
+    {
+      &quot;by&quot;: &quot;rule&quot;,
+      &quot;value&quot;: true,
+      &quot;reason&quot;: &quot;Allowed.&quot;
+    }
+  ],
+  &quot;label&quot;: null,
+  &quot;label_source&quot;: null
+}</pre></details></section><section><h2>3. ML decision models</h2><p class=where>m3_ml_decisions / feature.leakage_suspect (with a planted-truth label)</p><table><tr><th>Field</th><th>What it means</th></tr><tr><td><code>state</code></td><td>one column described in bands: its type, how many values, how many missing, its name&#x27;s words</td></tr><tr><td><code>label_source = benchmark</code></td><td>the planted truth says whether this column is a leak: this row can teach better than the rules</td></tr></table><details open><summary>The row itself</summary><pre>{
+  &quot;id&quot;: &quot;m3_ml_decisions:decisions:dev:dc1f090d91bb:v3#10&quot;,
+  &quot;model_type&quot;: &quot;m3_ml_decisions&quot;,
+  &quot;split&quot;: &quot;train&quot;,
+  &quot;weight&quot;: 1.0,
+  &quot;schema_version&quot;: &quot;dclab_core.decision_example.v2&quot;,
+  &quot;point&quot;: &quot;feature.leakage_suspect&quot;,
+  &quot;group&quot;: &quot;binary_classification&quot;,
+  &quot;split_group&quot;: &quot;project:2dac1418ef64&quot;,
+  &quot;state&quot;: {
+    &quot;column&quot;: &quot;education&quot;,
+    &quot;name_tokens&quot;: [
+      &quot;education&quot;
+    ],
+    &quot;dtype&quot;: &quot;float&quot;,
+    &quot;uniqueness&quot;: &quot;under_1pct&quot;,
+    &quot;nulls&quot;: &quot;none&quot;,
+    &quot;cardinality&quot;: &quot;low&quot;,
+    &quot;value_pattern&quot;: &quot;not_text&quot;,
+    &quot;target&quot;: &quot;target&quot;,
+    &quot;task&quot;: &quot;binary_classification&quot;
+  },
+  &quot;options&quot;: [
+    &quot;yes&quot;,
+    &quot;no&quot;
+  ],
+  &quot;answers&quot;: [
+    {
+      &quot;by&quot;: &quot;person&quot;,
+      &quot;value&quot;: false,
+      &quot;reason&quot;: null
+    },
+    {
+      &quot;by&quot;: &quot;classifier&quot;,
+      &quot;value&quot;: true,
+      &quot;reason&quot;: null
+    }
+  ],
+  &quot;label&quot;: false,
+  &quot;label_source&quot;: &quot;benchmark&quot;
+}</pre></details></section><section><h2>4. Workflow LLM</h2><p class=where>SFT v3 corpus (research/…/sft/out_v3)</p><table><tr><th>Field</th><th>What it means</th></tr><tr><td><code>messages</code></td><td>system instruction, the experiment&#x27;s setup as the question, and the 5-part answer: evidence, interpretation, decision, risks, next test</td></tr></table><details open><summary>The row itself</summary><pre>{
+  &quot;messages&quot;: [
+    {
+      &quot;role&quot;: &quot;system&quot;,
+      &quot;content&quot;: &quot;You are DCLab&#x27;s senior data-science and ML-engineering assistant. Reason only from the evidence given in the conversation. Structure answers as: Evidence (what was measured), Interpretation (what it means and how uncertain it is), Decision (what to do now), Risks (what is missing or could be wrong), and Next test (the smallest falsifiable experiment). Never claim production readiness from benchmark evidence alone.&quot;
+    },
+    {
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;content&quot;: &quot;### Dataset\nDataset `credit_card_fraud`: Credit Card Fraud Detection (ULB / Kaggle). Two days of September-2013 European card transactions (28 PCA components V1-V28, Amount, elapsed Time) used to predict whether a transaction is fraudulent (Class=1, 0.17% of rows). Facts: task type binary_imbalanced, 284,807 rows, 30 features, positive rate 0.2%. Decision-time contract: Score each transaction at authorization time using only that transaction&#x27;s own attributes (V1-V28, Amount, and time-of-day derived from its timestamp); the dataset-relative elapsed `Time` counter itself is not a production feature. Blocked (post-outcome or forbidden) columns: Time.\n\n### Stage\nStage: Data understanding (WF-04). Profile the TRAINING split only: schema and types, target balance, missingness, duplicates, identifier-like columns and a random-split drift smoke check. The goal is to surface reliability and produ… [717 more characters]&quot;
+    },
+    {
+      &quot;role&quot;: &quot;assistant&quot;,
+      &quot;content&quot;: &quot;**Evidence.** credit_card_fraud has 284807 source rows and 30 raw columns; the locked holdout is last 56961 of 284807 rows by `Time` (56961 rows), leaving 227846 training rows with a training positive rate of 0.0018 (417 positives vs 227429 negatives). 6 of 30 columns triggered missingness, identifier, near-constant, or train/holdout PSI&gt;0.20 review rules (Time: train_holdout_feature_shift; V1: train_holdout_feature_shift; V3: train_holdout_feature_shift; V11: train_holdout_feature_shift; V25: train_holdout_feature_shift; V28: train_holdout_feature_shift). Accuracy is misleading here: predicting &#x27;not fraud&#x27; for every training row already scores 0.9982 accuracy, so ranking metrics (average precision primary) are required. Training covers 40.3 h and the time-ordered holdout the final 7.7 h; 840 training rows are exact feature duplicates.\n\n**Interpretation.** These are training-CV developme… [624 more characters]&quot;
+    }
+  ],
+  &quot;metadata&quot;: {
+    &quot;task&quot;: &quot;explain_experiment&quot;,
+    &quot;experiment_id&quot;: &quot;EXP-051&quot;,
+    &quot;campaign&quot;: &quot;expansion_v1&quot;,
+    &quot;dataset&quot;: &quot;credit_card_fraud&quot;,
+    &quot;stage&quot;: &quot;data_understanding&quot;,
+    &quot;task_type&quot;: &quot;binary_imbalanced&quot;
+  }
+}</pre></details></section><section><h2>4. Workflow LLM (store)</h2><p class=where>m4_workflow_llm / understand_problem</p><table><tr><th>Field</th><th>What it means</th></tr><tr><td><code>messages</code></td><td>a real conversation of DCLab&#x27;s Home agent; each assistant turn says whether its reasoning was recorded</td></tr></table><details open><summary>The row itself</summary><pre>{
+  &quot;id&quot;: &quot;m4_workflow_llm:conversations:dev:09527e73a4f7:v1#0&quot;,
+  &quot;model_type&quot;: &quot;m4_workflow_llm&quot;,
+  &quot;split&quot;: &quot;train&quot;,
+  &quot;weight&quot;: 1.0,
+  &quot;schema_version&quot;: &quot;dclab_core.chat_example.v1&quot;,
+  &quot;task&quot;: &quot;home_conversation&quot;,
+  &quot;stage&quot;: &quot;understand_problem&quot;,
+  &quot;messages&quot;: [
+    {
+      &quot;role&quot;: &quot;assistant&quot;,
+      &quot;content&quot;: &quot;Thanks. First let&#x27;s pin down what the model should predict, and when. You can upload or connect data at any time, or we can plan the solution first.&quot;,
+      &quot;reasoning&quot;: null,
+      &quot;reasoning_source&quot;: null,
+      &quot;no_reasoning&quot;: &quot;the Home agent&#x27;s turn: its thinking is in its model exchange when a model wrote it&quot;,
+      &quot;tool_calls&quot;: [],
+      &quot;name&quot;: null
+    },
+    {
+      &quot;role&quot;: &quot;assistant&quot;,
+      &quot;content&quot;: &quot;Which column is the outcome the model should predict?&quot;,
+      &quot;reasoning&quot;: null,
+      &quot;reasoning_source&quot;: null,
+      &quot;no_reasoning&quot;: &quot;the Home agent&#x27;s turn: its thinking is in its model exchange when a model wrote it&quot;,
+      &quot;tool_calls&quot;: [],
+      &quot;name&quot;: null
+    },
+    {
+      &quot;role&quot;: &quot;assistant&quot;,
+      &quot;content&quot;: &quot;Your data is ready: 3 rows and 3 columns. Here is a first look.&quot;,
+      &quot;reasoning&quot;: null,
+      &quot;reasoning_source&quot;: null,
+      &quot;no_reasoning&quot;: &quot;the Home agent&#x27;s turn: its thinking is in its model exchange when a model wrote it&quot;,
+      &quot;tool_calls&quot;: [],
+      &quot;name&quot;: null
+    }
+  ],
+  &quot;check&quot;: {
+    &quot;built&quot;: false
+  }
+}</pre></details></section><section><h2>5. Solver LLM: whole solve</h2><p class=where>m5_solver_llm / trajectories/studio</p><table><tr><th>Field</th><th>What it means</th></tr><tr><td><code>steps</code></td><td>every tool call in order, with its arguments and its WHOLE result (table cells removed)</td></tr><tr><td><code>score / metric</code></td><td>the holdout result, read once</td></tr><tr><td><code>submission.truth</code></td><td>whether the planted truth (outcome, leaks, task) was met</td></tr><tr><td><code>problem.answerer</code></td><td>rules = clean; a hosted model would be silver</td></tr></table><details open><summary>The row itself</summary><pre>{
+  &quot;id&quot;: &quot;m5_solver_llm:intern:0758f6d655e0&quot;,
+  &quot;model_type&quot;: &quot;m5_solver_llm&quot;,
+  &quot;split&quot;: &quot;train&quot;,
+  &quot;weight&quot;: 1.0,
+  &quot;schema_version&quot;: &quot;dclab_core.solver_trajectory.v1&quot;,
+  &quot;problem_kind&quot;: &quot;binary_imbalanced&quot;,
+  &quot;problem&quot;: {
+    &quot;request&quot;: &quot;Build a leakage-safe model for the project&#x27;s table: understand the problem, describe the data, propose and set the solution, run the stages and report the honest holdout score. The outcome to predict is the column `Class`.&quot;,
+    &quot;agent&quot;: &quot;intern&quot;,
+    &quot;answerer&quot;: &quot;rules&quot;,
+    &quot;data_sha256&quot;: &quot;ec7d6f2331e12089eac2049f4160e41326125ddf60774f9a2cbbbe0fadd4f6b4&quot;,
+    &quot;outcome_named&quot;: true,
+    &quot;twin&quot;: {
+      &quot;run&quot;: &quot;20261021-214240-a8d50c&quot;,
+      &quot;lane&quot;: &quot;workflow&quot;
+    }
+  },
+  &quot;steps&quot;: [
+    {
+      &quot;n&quot;: 0,
+      &quot;read&quot;: null,
+      &quot;thought&quot;: null,
+      &quot;thought_source&quot;: null,
+      &quot;no_thought&quot;: &quot;the intern&#x27;s step has no thought of its own&quot;,
+      &quot;tool&quot;: &quot;describe_data&quot;,
+      &quot;arguments&quot;: {
+        &quot;project_id&quot;: &quot;dfe6164de5b2&quot;
+      },
+      &quot;result&quot;: {
+        &quot;filename&quot;: &quot;credit_card_fraud.csv&quot;,
+        &quot;rows&quot;: 284807,
+        &quot;column_count&quot;: 31,
+        &quot;columns&quot;: [
+          {
+            &quot;name&quot;: &quot;Time&quot;,
+            &quot;kind&quot;: &quot;numeric&quot;,
+            &quot;missing&quot;: 0.0,
+            &quot;unique&quot;: 124592
+          },
+          {
+            &quot;name&quot;: &quot;V1&quot;,
+            &quot;kind&quot;: &quot;numeric&quot;,
+            &quot;missing&quot;: 0.0,
+            &quot;unique&quot;: 275653
+          },
+          {
+            &quot;name&quot;: &quot;V2&quot;,
+            &quot;kind&quot;: &quot;numeric&quot;,
+            &quot;missing&quot;: 0.0,
+            &quot;unique&quot;: 275655
+          },
+          {
+            &quot;name&quot;: &quot;V3&quot;,
+            &quot;kind&quot;: &quot;numeric&quot;,
+            &quot;missing&quot;: 0.0,
+            &quot;unique&quot;: 275657
+          },
+          {
+            &quot;name&quot;: &quot;V4&quot;,
+            &quot;kind&quot;: &quot;numeric&quot;,
+            &quot;missing&quot;: 0.0,
+            &quot;unique&quot;: 275654
+          },
+          {
+            &quot;name&quot;: &quot;V5&quot;,
+            &quot;kind&quot;: &quot;numeric&quot;,
+            &quot;missing&quot;: 0.0,
+            &quot;unique&quot;: 275657
+          },
+          &quot;… 25 more&quot;
+        ],
+        &quot;target_candidates&quot;: [
+          &quot;Class&quot;,
+          &quot;Amount&quot;,
+          &quot;Time&quot;,
+          &quot;V1&quot;,
+          &quot;V2&quot;,
+          &quot;V3&quot;,
+          &quot;… 2 more&quot;
+        ],
+        &quot;time_candidates&quot;: [
+          &quot;Time&quot;
+        ],
+        &quot;id_candidates&quot;: [],
+        &quot;text_candidates&quot;: [],
+        &quot;suggestion&quot;: null,
+        &quot;solution&quot;: null,
+        &quot;memory&quot;: [],
+        &quot;brief&quot;: {
+          &quot;known&quot;: {
+            &quot;goal&quot;: {
+              &quot;value&quot;: &quot;Build a leakage-safe model for the project&#x27;s table: understand the problem, describe the data, propose and set the solution, run the stages and report the honest holdout score.&quot;,
+              &quot;how&quot;: &quot;stated&quot;
+            },
+            &quot;time_column&quot;: {
+              &quot;value&quot;: &quot;Time&quot;,
+              &quot;how&quot;: &quot;inferred&quot;
+            }
+          },
+          &quot;open_questions&quot;: [
+            &quot;What exactly is predicted for each row: which column, or how is the label defined?&quot;,
+            &quot;When is the prediction made, and what is already known at that moment? (Everything known only later must stay out of the model.)&quot;,
+            &quot;Is the answer a yes or no, one of several classes, or a quantity?&quot;,
+            &quot;What is one scored row: a transaction, a customer, an order, a ticket?&quot;
+          ]
+        }
+      },
+      &quot;ok&quot;: true
+    },
+    {
+      &quot;n&quot;: 1,
+      &quot;read&quot;: null,
+      &quot;thought&quot;: null,
+      &quot;thought_source&quot;: null,
+      &quot;no_thought&quot;: &quot;the intern&#x27;s step has no thought of its own&quot;,
+      &quot;tool&quot;: &quot;propose_solution&quot;,
+      &quot;arguments&quot;: {
+        &quot;project_id&quot;: &quot;dfe6164de5b2&quot;,
+        &quot;target&quot;: &quot;Class&quot;
+      },
+      &quot;result&quot;: {
+        &quot;target&quot;: &quot;Class&quot;,
+        &quot;task&quot;: &quot;binary&quot;,
+        &quot;detected&quot;: {
+          &quot;task&quot;: &quot;binary&quot;,
+          &quot;classes&quot;: [
+            &quot;0&quot;,
+            &quot;1&quot;
+          ],
+          &quot;positive_label&quot;: &quot;1&quot;,
+          &quot;positive_rate&quot;: 0.0018874902143478072,
+          &quot;note&quot;: &quot;Two classes; `1` is treated as the positive class (0.2% of the rows read).&quot;
+        },
+        &quot;positive_label&quot;: &quot;1&quot;,
+        &quot;forbidden&quot;: [
+          {
+            &quot;column&quot;: &quot;Time&quot;,
+            &quot;reason&quot;: &quot;known DCLab leakage precedent LEAK-credit_card_fraud&quot;,
+            &quot;risk_score&quot;: 3.0,
+            &quot;proof&quot;: [
+              &quot;LEAK-credit_card_fraud&quot;,
+              &quot;DCLAB-R04&quot;,
+              &quot;DCLAB-R05&quot;
+            ]
+          }
+        ],
+        &quot;identifiers&quot;: [],
+        &quot;time_candidates&quot;: [
+          &quot;Time&quot;
+        ],
+        &quot;group_candidates&quot;: [],
+        &quot;text_columns&quot;: [],
+        &quot;metric&quot;: &quot;average_precision&quot;,
+        &quot;metric_options&quot;: [
+          [
+            &quot;roc_auc&quot;,
+            &quot;ROC-AUC (ranking quality, balanced classes)&quot;
+          ],
+          [
+            &quot;average_precision&quot;,
+            &quot;Average precision (rare positives)&quot;
+          ],
+          [
+            &quot;recall_at_budget&quot;,
+            &quot;Recall at the review budget (the share of cases found when the team reviews its budget)&quot;
+          ]
+        ],
+        &quot;prediction_moment_hint&quot;: &quot;Describe the moment a real prediction is made and what is already known then. `Time` looks like a timestamp: if rows are events in time, the split should follow it. The audit flagged `Time` as possibly known only after the outcome; confirm or clear each one.&quot;,
+        &quot;plan&quot;: [
+          {
+            &quot;decision&quot;: &quot;task.framing&quot;,
+            &quot;choice&quot;: {
+              &quot;task&quot;: &quot;binary&quot;
+            },
+            &quot;why&quot;: &quot;The problem is binary.&quot;
+          },
+          {
+            &quot;decision&quot;: &quot;labels.coverage&quot;,
+            &quot;choice&quot;: &quot;complete&quot;,
+            &quot;why&quot;: &quot;Nothing says the labels are a sample; every row with a label is treated as labelled.&quot;
+          },
+          {
+            &quot;decision&quot;: &quot;split.strategy&quot;,
+            &quot;choice&quot;: {
+              &quot;kind&quot;: &quot;stratified&quot;,
+              &quot;holdout&quot;: &quot;locked first, used once, after the choice&quot;
+            },
+            &quot;why&quot;: &quot;No entity repeats strongly and no time orders the rows: a stratified split is fair.&quot;
+          },
+          {
+            &quot;decision&quot;: &quot;metric.primary&quot;,
+            &quot;choice&quot;: &quot;average_precision&quot;,
+            &quot;why&quot;: &quot;Positives are 0.14% of rows: average precision ranks the rare cases; accuracy would reward always saying no.&quot;
+          },
+          {
+            &quot;decision&quot;: &quot;metric.secondary&quot;,
+            &quot;choice&quot;: [
+              &quot;recall_at_budget&quot;,
+              &quot;roc_auc&quot;,
+              &quot;brier&quot;
+            ],
+            &quot;why&quot;: &quot;Reported beside the primary metric, so one number does not hide a weakness.&quot;
+          },
+          {
+            &quot;decision&quot;: &quot;baseline&quot;,
+            &quot;choice&quot;: [
+              &quot;majority class&quot;,
+              &quot;random ranking (average precision = prevalence)&quot;
+            ],
+            &quot;why&quot;: &quot;Every model is compared with what needs no model: a score only means something above these.&quot;
+          },
+          &quot;… 7 more&quot;
+        ]
+      },
+      &quot;ok&quot;: true
+    },
+    {
+      &quot;n&quot;: 2,
+      &quot;read&quot;: null,
+      &quot;thought&quot;: null,
+      &quot;thought_source&quot;: null,
+      &quot;no_thought&quot;: &quot;the intern&#x27;s step has no thought of its own&quot;,
+      &quot;tool&quot;: &quot;set_solution&quot;,
+      &quot;arguments&quot;: {
+        &quot;project_id&quot;: &quot;dfe6164de5b2&quot;,
+        &quot;target&quot;: &quot;Class&quot;,
+        &quot;task&quot;: &quot;binary&quot;,
+        &quot;prediction_moment&quot;: &quot;Predict at the moment the row is recorded; Describe the moment a real prediction is made and what is already known then. `Time` looks like a timestamp: if rows are events in time, the split should follow it. The audit flagged `Time` as possibly known only after the outcome; confirm or clear each one.&quot;,
+        &quot;time_column&quot;: &quot;Time&quot;,
+        &quot;positive_label&quot;: &quot;1&quot;
+      },
+      &quot;result&quot;: {
+        &quot;saved&quot;: true,
+        &quot;solution&quot;: {
+          &quot;target&quot;: &quot;Class&quot;,
+          &quot;task&quot;: &quot;binary&quot;,
+          &quot;positive_label&quot;: &quot;1&quot;,
+          &quot;prediction_moment&quot;: &quot;Predict at the moment the row is recorded; Describe the moment a real prediction is made and what is already known then. `Time` looks like a timestamp: if rows are events in time, the split should follow it. The audit flagged `Time` as possibly known only after the outcome; confirm or clear each one.&quot;,
+          &quot;forbidden&quot;: [],
+          &quot;identifiers&quot;: [],
+          &quot;time_column&quot;: &quot;Time&quot;,
+          &quot;group_column&quot;: null,
+          &quot;text_columns&quot;: [],
+          &quot;metric&quot;: null,
+          &quot;notes&quot;: &quot;&quot;,
+          &quot;labels&quot;: &quot;complete&quot;,
+          &quot;label_provenance&quot;: &quot;&quot;,
+          &quot;alert_budget&quot;: null,
+          &quot;kind&quot;: null,
+          &quot;kind_fields&quot;: {},
+          &quot;decision&quot;: null,
+          &quot;spatial&quot;: null,
+          &quot;label_source_column&quot;: null,
+          &quot;confirmed_sources&quot;: [],
+          &quot;capacity_k&quot;: null,
+          &quot;capacity_period&quot;: null
+        },
+        &quot;next&quot;: &quot;run_stage(&#x27;data&#x27;) or run_all&quot;
+      },
+      &quot;ok&quot;: true
+    },
+    {
+      &quot;n&quot;: 3,
+      &quot;read&quot;: null,
+      &quot;thought&quot;: null,
+      &quot;thought_source&quot;: null,
+      &quot;no_thought&quot;: &quot;the intern&#x27;s step has no thought of its own&quot;,
+      &quot;tool&quot;: &quot;run_all&quot;,
+      &quot;arguments&quot;: {
+        &quot;project_id&quot;: &quot;dfe6164de5b2&quot;
+      },
+      &quot;result&quot;: {
+        &quot;data&quot;: {
+          &quot;stage&quot;: &quot;data&quot;,
+          &quot;title&quot;: &quot;Understand the data&quot;,
+          &quot;metric&quot;: &quot;average_precision&quot;,
+          &quot;summary&quot;: &quot;Profiled 16000 training rows × 30 columns (holdout: last 4000 of 20000 rows by `Time`); per-column missingness, uniqueness and PSI; 1 columns flagged for review.&quot;,
+          &quot;numbers&quot;: {
+            &quot;train_rows&quot;: 16000,
+            &quot;holdout_rows&quot;: 4000,
+            &quot;usable_inputs&quot;: 29,
+            &quot;cv&quot;: &quot;expanding-window TimeSeriesSplit(3) on time-ordered training rows&quot;,
+            &quot;risk_features&quot;: {
+              &quot;Time&quot;: [
+                &quot;train_holdout_feature_shift&quot;
+              ]
+            },
+            &quot;target_summary&quot;: {
+              &quot;positive_rate_train&quot;: 0.000625,
+              &quot;positives_train&quot;: 10,
+              &quot;negatives_train&quot;: 15990,
+              &quot;imbalance_ratio_neg_per_pos&quot;: 1599.0,
+              &quot;majority_baseline_accuracy_train&quot;: 0.999375,
+              &quot;positive_label&quot;: &quot;1&quot;
+            }
+          },
+          &quot;claims&quot;: [
+            &quot;[fact] [ID] source rows and 30 columns; 29 are usable inputs under the solution. The locked holdout is last 4000 of 20000 rows by `Time` (4000 rows); 16000 training rows remain with a positive rate of 0.1% (10 positives).&quot;,
+            &quot;[risk] 1 of 30 columns triggered a review rule (missingness &gt; 5%, identifier-like, near-constant, or train/holdout PSI &gt; 0.20): Time: train_holdout_feature_shift.&quot;,
+            &quot;[risk] Predicting the majority class for every row already scores 99.9% accuracy, so accuracy alone cannot judge this model; the solution scores average precision (PR-AUC).&quot;
+          ],
+          &quot;notes&quot;: [
+            {
+              &quot;severity&quot;: &quot;warning&quot;,
+              &quot;title&quot;: &quot;Some inputs drift between training and holdout&quot;,
+              &quot;text&quot;: &quot;Time have PSI &gt; 0.20 between the training rows and the sealed holdout. Expect the holdout score to be lower than CV and treat it as the honest number.&quot;,
+              &quot;proof&quot;: [
+                &quot;DCLAB-R12&quot;,
+                &quot;DCLAB-R18&quot;
+              ]
+            },
+            {
+              &quot;severity&quot;: &quot;warning&quot;,
+              &quot;title&quot;: &quot;Rare positives: accuracy would mislead&quot;,
+              &quot;text&quot;: &quot;Only 0.1% of training rows are positive. The campaigns scored such problems with average precision and recall at a precision target, not accuracy.&quot;,
+              &quot;proof&quot;: [
+                &quot;DCLAB-R18&quot;,
+                &quot;EXP-051&quot;,
+                &quot;EXP-016&quot;
+              ]
+            }
+          ],
+          &quot;decision&quot;: {}
+        },
+        &quot;leakage&quot;: {
+          &quot;stage&quot;: &quot;leakage&quot;,
+          &quot;title&quot;: &quot;Audit leakage&quot;,
+          &quot;metric&quot;: &quot;average_precision&quot;,
+          &quot;summary&quot;: &quot;Scanned 16000 training rows with binary_imbalanced heuristics and synthetic canaries; no forbidden columns; safe lightgbm raw baseline average precision (PR-AUC) 0.0501±0.0589. Random vs time-ordered CV gap: +0.0764.&quot;,
+          &quot;numbers&quot;: {
+            &quot;forbidden&quot;: [],
+            &quot;apparent_lift&quot;: 0.0,
+            &quot;metric&quot;: &quot;average_precision&quot;,
+            &quot;review_candidates&quot;: [],
+            &quot;canary_passed&quot;: true
+          },
+          &quot;claims&quot;: [
+            &quot;[fact] The binary_imbalanced leakage detector caught its synthetic canaries: {&#x27;exact_copy_detected&#x27;: True, &#x27;passed&#x27;: True}.&quot;,
+            &quot;[decision] No column is forbidden under the solution; the safe lightgbm raw baseline scores 0.0501±0.0589 training-CV average precision (PR-AUC), apparent lift 0 by construction.&quot;,
+            &quot;[risk] Heuristics flagged 0 non-declared column(s) for human review: none. Strongest single-feature signal: V27 (0.895).&quot;,
+            &quot;[risk] Random KFold(3) reports average precision (PR-AUC) 0.1264±0.2006 for the same safe recipe versus 0.0501±0.0589 with time-ordered CV: random splits look +0.0764 better because they see the future.&quot;
+          ],
+          &quot;notes&quot;: [
+            {
+              &quot;severity&quot;: &quot;warning&quot;,
+              &quot;title&quot;: &quot;Random splits would look 0.0764 better than time-ordered ones&quot;,
+              &quot;text&quot;: &quot;That gap is the optimism a random split would have hidden. The time-ordered protocol is kept for every later stage.&quot;,
+              &quot;proof&quot;: [
+                &quot;DCLAB-R02&quot;,
+                &quot;EXP-062&quot;
+              ]
+            }
+          ],
+          &quot;decision&quot;: {}
+        },
+        &quot;features&quot;: {
+          &quot;stage&quot;: &quot;features&quot;,
+          &quot;title&quot;: &quot;Climb the feature ladder&quot;,
+          &quot;metric&quot;: &quot;average_precision&quot;,
+          &quot;summary&quot;: &quot;Compared 3 feature recipes with lightgbm on expanding-window TimeSeriesSplit(3) on time-ordered training rows: raw (29 feats, 0.0501±0.0589); log_numeric (58 feats, 0.0501±0.0589); selected_mi (17 feats, 0.0318±0.0286). Selected `raw`.&quot;,
+          &quot;numbers&quot;: {
+            &quot;selected&quot;: &quot;raw&quot;,
+            &quot;best&quot;: &quot;raw&quot;,
+            &quot;ladder&quot;: [
+              {
+                &quot;recipe&quot;: &quot;raw&quot;,
+                &quot;features&quot;: 29.0,
+                &quot;mean&quot;: 0.05009025549830967,
+                &quot;std&quot;: 0.05885355115938988
+              },
+              {
+                &quot;recipe&quot;: &quot;log_numeric&quot;,
+                &quot;features&quot;: 58.0,
+                &quot;mean&quot;: 0.05009025549830967,
+                &quot;std&quot;: 0.05885355115938988
+              },
+              {
+                &quot;recipe&quot;: &quot;selected_mi&quot;,
+                &quot;features&quot;: 17.0,
+                &quot;mean&quot;: 0.031847952799369264,
+                &quot;std&quot;: 0.028567635899156524
+              }
+            ]
+          },
+          &quot;claims&quot;: [
+            &quot;[decision] Selected recipe `raw` (29 features, 0.0501±0.0589 average precision (PR-AUC)); best mean was `raw` at 0.0501±0.0589. Ladder: raw (29 feats, 0.0501±0.0589); log_numeric (58 feats, 0.0501±0.0589); selected_mi (17 feats, 0.0318±0.0286).&quot;,
+            &quot;[fact] Versus the first rung (`raw`), the selected recipe changes average precision (PR-AUC) by +0.0000 on identical folds.&quot;
+          ],
+          &quot;notes&quot;: [],
+          &quot;decision&quot;: {
+            &quot;kind&quot;: &quot;recipe&quot;,
+            &quot;selected&quot;: &quot;raw&quot;,
+            &quot;chosen&quot;: &quot;raw&quot;,
+            &quot;options&quot;: [
+              &quot;raw&quot;,
+              &quot;log_numeric&quot;,
+              &quot;selected_mi&quot;
+            ]
+          }
+        },
+        &quot;models&quot;: {
+          &quot;stage&quot;: &quot;models&quot;,
+          &quot;title&quot;: &quot;Screen algorithms&quot;,
+          &quot;metric&quot;: &quot;average_precision&quot;,
+          &quot;summary&quot;: &quot;Screened 9 model families on the `raw` recipe and expanding-window TimeSeriesSplit(3) on time-ordered training rows: logistic_regression 0.3069±0.4554 (0.3s); extra_trees 0.3026±0.5067 (0.4s); pu_bagging 0.2170±0.3688 (0.6s); ecod 0.0539±0.0292 (1.0s); lightgbm 0.0501±0.0589 (0.4s); xgboost 0.0467±0.0798 (0.4s); percentile_rules 0.0315±0.0212 (0.3s); hist_gradient_boosting 0.0254±0.0428 (0.4s); isolation_forest 0.0099±0.0048 (0.4s).&quot;,
+          &quot;numbers&quot;: {
+            &quot;selected&quot;: &quot;logistic_regression&quot;,
+            &quot;ranking&quot;: [
+              {
+                &quot;model&quot;: &quot;logistic_regression&quot;,
+                &quot;mean&quot;: 0.3069108728565612,
+                &quot;std&quot;: 0.45543981449260207
+              },
+              {
+                &quot;model&quot;: &quot;extra_trees&quot;,
+                &quot;mean&quot;: 0.3025769230769231,
+                &quot;std&quot;: 0.5066543005358578
+              },
+              {
+                &quot;model&quot;: &quot;pu_bagging&quot;,
+                &quot;mean&quot;: 0.21698341028548232,
+                &quot;std&quot;: 0.3688370111814024
+              },
+              {
+                &quot;model&quot;: &quot;ecod&quot;,
+                &quot;mean&quot;: 0.053910553354312975,
+                &quot;std&quot;: 0.02918683865192467
+              },
+              {
+                &quot;model&quot;: &quot;lightgbm&quot;,
+                &quot;mean&quot;: 0.05009025549830967,
+                &quot;std&quot;: 0.05885355115938988
+              },
+              {
+                &quot;model&quot;: &quot;xgboost&quot;,
+                &quot;mean&quot;: 0.04667966001856639,
+                &quot;std&quot;: 0.07976989252391666
+              },
+              &quot;… 3 more&quot;
+            ]
+          },
+          &quot;claims&quot;: [
+            &quot;[recommendation] logistic_regression leads on the `raw` recipe (0.3069±0.4554 average precision (PR-AUC), adjusted 0.1931); runner-up extra_trees at 0.3026±0.5067. Ranking: logistic_regression 0.3069±0.4554 (0.3s); extra_trees 0.3026±0.5067 (0.4s); pu_bagging 0.2170±0.3688 (0.6s); ecod 0.0539±0.0292 (1.0s); lightgbm 0.0501±0.0589 (0.4s); xgboost 0.0467±0.0798 (0.4s); percentile_rules 0.0315±0.0212 (0.3s); hist_gradient_boosting 0.0254±0.0428 (0.4s); isolation_forest 0.0099±0.0048 (0.4s).&quot;,
+            &quot;[fact] The gap between leader and runner-up is 0.0043 against a leader fold std of 0.4554; the two are within fold noise.&quot;
+          ],
+          &quot;notes&quot;: [
+            {
+              &quot;severity&quot;: &quot;warning&quot;,
+              &quot;title&quot;: &quot;logistic_regression and extra_trees are within fold noise&quot;,
+              &quot;text&quot;: &quot;Either could be the better model. Prefer the simpler or faster one unless the final holdout separates them; do not read the ranking as a verdict.&quot;,
+              &quot;proof&quot;: [
+                &quot;DCLAB-R14&quot;,
+                &quot;DCLAB-R16&quot;
+              ]
+            }
+          ],
+          &quot;decision&quot;: {
+            &quot;kind&quot;: &quot;model&quot;,
+            &quot;selected&quot;: &quot;logistic_regression&quot;,
+            &quot;chosen&quot;: &quot;logistic_regression&quot;,
+            &quot;options&quot;: [
+              &quot;logistic_regression&quot;,
+              &quot;extra_trees&quot;,
+              &quot;pu_bagging&quot;,
+              &quot;ecod&quot;,
+              &quot;lightgbm&quot;,
+              &quot;xgboost&quot;,
+              &quot;… 3 more&quot;
+            ]
+          }
+        },
+        &quot;final&quot;: {
+          &quot;stage&quot;: &quot;final&quot;,
+          &quot;title&quot;: &quot;Tune and confirm on the holdout&quot;,
+          &quot;metric&quot;: &quot;average_precision&quot;,
+          &quot;summary&quot;: &quot;Tried 2 explicit logistic_regression parameter candidates on expanding-window TimeSeriesSplit(3) on time-ordered training rows (tuning accepted), fitted logistic_regression_C01 on all 16000 training rows and scored the sealed holdout once: average precision (PR-AUC) 0.5010 (0.0000–1.0000).&quot;,
+          &quot;numbers&quot;: {
+            &quot;model&quot;: &quot;logistic_regression&quot;,
+            &quot;recipe&quot;: &quot;raw&quot;,
+            &quot;holdout&quot;: {
+              &quot;average_precision&quot;: 0.5010245901639344
+            },
+            &quot;interval95&quot;: [
+              0.0,
+              1.0
+            ],
+            &quot;cv_mean&quot;: 0.3470487324007927,
+            &quot;tuning_accepted&quot;: true,
+            &quot;holdout_uses&quot;: 1,
+            &quot;baselines&quot;: {
+              &quot;majority_class&quot;: {
+                &quot;accuracy&quot;: 0.9995,
+                &quot;roc_auc&quot;: 0.5,
+                &quot;average_precision_random_ranking&quot;: 0.0005
+              }
+            }
+          },
+          &quot;claims&quot;: [
+            &quot;[fact] logistic_regression/logistic_regression_C01 on the `raw` recipe scored average precision (PR-AUC) 0.5010 on the once-consumed holdout (last 4000 of 20000 rows by `Time`; iid row bootstrap 95% interval 0.0000–1.0000); training-CV mean was 0.3470.&quot;,
+            &quot;[decision] Tuning accepted: best candidate logistic_regression_C01 changed mean training-CV average precision (PR-AUC) by +0.0401 (required ≥ 0.0010), so logistic_regression_C01 was used.&quot;,
+            &quot;[fact] Trivial baselines on the same holdout: majority_class: accuracy 0.9995, roc_auc 0.5000, average_precision_random_ranking 0.0005.&quot;
+          ],
+          &quot;notes&quot;: [],
+          &quot;decision&quot;: {
+            &quot;kind&quot;: &quot;final&quot;,
+            &quot;selected&quot;: &quot;logistic_regression_C01&quot;,
+            &quot;chosen&quot;: &quot;logistic_regression_C01&quot;
+          }
+        }
+      },
+      &quot;ok&quot;: true
+    },
+    {
+      &quot;n&quot;: 4,
+      &quot;read&quot;: null,
+      &quot;thought&quot;: null,
+      &quot;thought_source&quot;: null,
+      &quot;no_thought&quot;: &quot;the intern&#x27;s step has no thought of its own&quot;,
+      &quot;tool&quot;: &quot;export_notebook&quot;,
+      &quot;arguments&quot;: {
+        &quot;project_id&quot;: &quot;dfe6164de5b2&quot;
+      },
+      &quot;result&quot;: {
+        &quot;notebook&quot;: &quot;/api/projects/[ID]/export/notebook&quot;,
+        &quot;report&quot;: &quot;/api/projects/[ID]/export/report&quot;,
+        &quot;files&quot;: [
+          &quot;projects/[ID]/exports/notebook.ipynb&quot;,
+          &quot;projects/[ID]/exports/report.md&quot;
+        ],
+        &quot;project_url&quot;: &quot;#project/[ID]&quot;
+      },
+      &quot;ok&quot;: true
+    }
+  ],
+  &quot;submission&quot;: {
+    &quot;holdout&quot;: &quot;twin__runs__20261021-214240-a8d50c__workflow:projects/dfe6164de5b2/stages/final.json&quot;,
+    &quot;holdout_rows&quot;: 4000,
+    &quot;completed_at&quot;: 1792619012.0,
+    &quot;truth&quot;: &quot;passed&quot;,
+    &quot;truth_source&quot;: &quot;twin:20261021-214240-a8d50c:solution.columns&quot;,
+    &quot;results_cut&quot;: false
+  },
+  &quot;metric&quot;: &quot;average_precision&quot;,
+  &quot;score&quot;: 0.5010245901639344
+}</pre></details></section><section><h2>5. Solver LLM: pair</h2><p class=where>m5_solver_llm / preferences/selfplay</p><table><tr><th>Field</th><th>What it means</th></tr><tr><td><code>prompt</code></td><td>the decision as it was posed</td></tr><tr><td><code>chosen</code></td><td>the planted or measured truth</td></tr><tr><td><code>rejected</code></td><td>the engine&#x27;s wrong answer</td></tr></table><details open><summary>The row itself</summary><pre>{
+  &quot;id&quot;: &quot;m5_solver_llm:selfplay:binary:73:pair:46&quot;,
+  &quot;model_type&quot;: &quot;m5_solver_llm&quot;,
+  &quot;split&quot;: &quot;train&quot;,
+  &quot;weight&quot;: 1.0,
+  &quot;schema_version&quot;: &quot;dclab_core.preference_pair.v1&quot;,
+  &quot;task&quot;: &quot;selfplay:tuning.accept&quot;,
+  &quot;prompt&quot;: [
+    {
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;content&quot;: &quot;{\&quot;problem\&quot;: \&quot;binary\&quot;, \&quot;decide\&quot;: \&quot;tuning.accept\&quot;, \&quot;subject\&quot;: {\&quot;kind\&quot;: \&quot;project\&quot;, \&quot;key\&quot;: \&quot;881b37eb4a92\&quot;}, \&quot;state\&quot;: {\&quot;rows\&quot;: \&quot;medium\&quot;, \&quot;columns\&quot;: 9, \&quot;tuning_gain\&quot;: 9.260103755259763e-05}, \&quot;options\&quot;: [\&quot;yes\&quot;, \&quot;no\&quot;]}&quot;,
+      &quot;reasoning&quot;: null,
+      &quot;reasoning_source&quot;: null,
+      &quot;no_reasoning&quot;: null,
+      &quot;tool_calls&quot;: [],
+      &quot;name&quot;: null
+    }
+  ],
+  &quot;chosen&quot;: {
+    &quot;role&quot;: &quot;assistant&quot;,
+    &quot;content&quot;: &quot;true&quot;,
+    &quot;reasoning&quot;: null,
+    &quot;reasoning_source&quot;: null,
+    &quot;no_reasoning&quot;: &quot;the measured truth (fresh_draw)&quot;,
+    &quot;tool_calls&quot;: [],
+    &quot;name&quot;: null
+  },
+  &quot;rejected&quot;: {
+    &quot;role&quot;: &quot;assistant&quot;,
+    &quot;content&quot;: &quot;false&quot;,
+    &quot;reasoning&quot;: null,
+    &quot;reasoning_source&quot;: null,
+    &quot;no_reasoning&quot;: &quot;the engine&#x27;s rule answer&quot;,
+    &quot;tool_calls&quot;: [],
+    &quot;name&quot;: null
+  },
+  &quot;decided_by&quot;: &quot;measured&quot;
+}</pre></details></section><section><h2>6. Step-by-step decisions</h2><p class=where>m6_stepwise_decisions / stages</p><table><tr><th>Field</th><th>What it means</th></tr><tr><td><code>steps</code></td><td>the stages in the order they ran, each with its state and outcome</td></tr></table><details open><summary>The row itself</summary><pre>{
+  &quot;id&quot;: &quot;m6:stages:dev:1c98a827f644&quot;,
+  &quot;model_type&quot;: &quot;m6_stepwise_decisions&quot;,
+  &quot;split&quot;: &quot;train&quot;,
+  &quot;weight&quot;: 1.0,
+  &quot;schema_version&quot;: &quot;dclab_core.episode.v1&quot;,
+  &quot;process&quot;: &quot;stages&quot;,
+  &quot;steps&quot;: [
+    {
+      &quot;n&quot;: 0,
+      &quot;state&quot;: {
+        &quot;step&quot;: 0,
+        &quot;move&quot;: &quot;data&quot;
+      },
+      &quot;options&quot;: [],
+      &quot;action&quot;: &quot;data&quot;,
+      &quot;outcome&quot;: &quot;completed&quot;,
+      &quot;at&quot;: &quot;2026-10-21T21:56:53+00:00&quot;
+    },
+    {
+      &quot;n&quot;: 1,
+      &quot;state&quot;: {
+        &quot;step&quot;: 1,
+        &quot;move&quot;: &quot;leakage&quot;
+      },
+      &quot;options&quot;: [],
+      &quot;action&quot;: &quot;leakage&quot;,
+      &quot;outcome&quot;: &quot;completed&quot;,
+      &quot;at&quot;: &quot;2026-10-21T21:56:56+00:00&quot;
+    },
+    {
+      &quot;n&quot;: 2,
+      &quot;state&quot;: {
+        &quot;step&quot;: 2,
+        &quot;move&quot;: &quot;features&quot;
+      },
+      &quot;options&quot;: [],
+      &quot;action&quot;: &quot;features&quot;,
+      &quot;outcome&quot;: &quot;completed&quot;,
+      &quot;at&quot;: &quot;2026-10-21T21:57:06+00:00&quot;
+    }
+  ],
+  &quot;gaps&quot;: [],
+  &quot;outcome&quot;: &quot;completed&quot;
+}</pre></details></section></body></html>

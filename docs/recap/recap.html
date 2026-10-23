@@ -1,8 +1,9 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><title>DCLab R&D Recap</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap">
 <style>
 @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
 :root { --ink:#132026; --muted:#5d6e76; --accent:#0d7567; --soft:#e0f1ed; --line:#d8e0e2; --proof:#4650c4; }
-body { font-family: "DejaVu Sans", sans-serif; color: var(--ink); font-size: 10.2pt; line-height: 1.5; margin: 0; }
+body { font-family: "DejaVu Sans", "Helvetica Neue", Arial, sans-serif; color: var(--ink); font-size: 10.2pt; line-height: 1.5; margin: 0; }
 h1 { font-size: 24pt; margin: 0 0 6pt; color: var(--ink); }
 h2 { font-size: 14.5pt; color: var(--accent); border-bottom: 1.5px solid var(--accent); padding-bottom: 3pt; margin: 18pt 0 8pt; page-break-after: avoid; }
 h3 { font-size: 11pt; margin: 10pt 0 4pt; page-break-after: avoid; }
@@ -10,7 +11,7 @@ p { margin: 0 0 6pt; } ul { margin: 0 0 6pt; padding-left: 16pt; } li { margin-b
 table { width: 100%; border-collapse: collapse; margin: 4pt 0 10pt; font-size: 9.2pt; page-break-inside: avoid; }
 th { text-align: left; background: var(--soft); padding: 4pt 6pt; border-bottom: 1px solid var(--line); }
 td { padding: 4pt 6pt; border-bottom: 1px solid var(--line); vertical-align: top; }
-code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.8pt; background: #f1f4f4; padding: 0 3px; border-radius: 3px; }
+code { font-family: "DejaVu Sans Mono", Menlo, monospace; font-size: 8.8pt; background: #f1f4f4; padding: 0 3px; border-radius: 3px; }
 .cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always; }
 .cover .eyebrow { color: var(--accent); font-weight: bold; letter-spacing: 2px; font-size: 10pt; }
 .cover .sub { color: var(--muted); font-size: 12pt; max-width: 140mm; }
@@ -21,16 +22,16 @@ code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.8pt; background:
 .kpi { flex: 1; border: 1px solid var(--line); padding: 6pt 8pt; border-radius: 6px; }
 .kpi b { display: block; font-size: 15pt; }
 .kpi span { font-size: 8.5pt; color: var(--muted); }
-.fa { direction: rtl; text-align: right; font-size: 10.4pt; line-height: 1.9; }
-.fa h2 { text-align: right; } .fa ul { padding-left: 0; padding-right: 16pt; }
+.fa { direction: rtl; text-align: right; font-family: "Vazirmatn", "Geeza Pro", "DejaVu Sans", sans-serif; font-size: 10.4pt; line-height: 1.9; }
+.fa h2, .fa h3 { text-align: right; } .fa code { direction: ltr; unicode-bidi: embed; } .fa ul { padding-left: 0; padding-right: 16pt; }
 .pb { page-break-before: always; }
 </style></head><body>
 
 <section class="cover">
   <div class="eyebrow">DCLAB R&amp;D · PROJECT AND PRODUCT</div>
   <h1>Recap: from research repository to an ML Intern with proof</h1>
-  <p class="sub">Everything we discussed and built in this work session, from the first cleanup of the repository to the clickable demo of the final product. English first, Persian summary at the end.</p>
-  <p class="muted" style="margin-top:20pt">Repository: Shahriyar-Moradi/Research_Development_DCLab · latest commit <code>4865ead</code> on main and dev · October 2026</p>
+  <p class="sub">Everything we discussed and built, from the first cleanup of the repository to the redesigned clickable demo of the final product. English first, then a Persian summary and a Persian walkthrough of the demo.</p>
+  <p class="muted" style="margin-top:20pt">Repository: Shahriyar-Moradi/Research_Development_DCLab · latest commit <code>1cf5ae5</code> on main · updated 5 October 2026</p>
   <p class="muted">Note: in this document, "DCLab" means the DCLab R&amp;D project and the product growing out of it, not DCLab's main product.</p>
 </section>
 
@@ -59,14 +60,16 @@ code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.8pt; background:
 <tr><td>Your background</td><td>Two PDFs of earlier chats (43 questions, 69 messages) to give full context.</td><td>A full review: the six layers, the 10 workflow blocks, the 22 rules, the controlled-graph architecture, domain packs, the workflow-policy model, and a prioritized MVP roadmap.</td></tr>
 <tr><td>Final product demo</td><td>"Generate a full HTML demo of the final product … to understand what we miss, need and don't need."</td><td>A <b>19-page clickable demo</b> with 4 role views, guided tours, a <b>Blueprint layer</b> marking 151 features, and a Must / Later / Cut decision board. Published privately and committed as <code>docs/product-demo/</code> (<code>make product-demo</code>, checked by <code>make rd-check</code>).</td></tr>
 <tr><td>Move to local</td><td>"Switch the cloud environment to my local one."</td><td>Explained teleport (<code>claude --teleport session_01VD8xcoYNb4YJEpXWRz2oU3</code>) and Remote Control (<code>/remote-control</code>); all branches pushed and aligned at <code>4865ead</code>.</td></tr>
+<tr><td>Category-code bug fix</td><td>The fix task suggested while building the demo.</td><td>Commit <code>1cf5ae5</code>: factorized category codes no longer enter log, ratio, product, interaction or binning features (rule DCLAB-R11). The declared categorical columns are the source of truth; <code>tests/test_category_codes.py</code> covers it. Old results stay as recorded; <code>evidence/README.md</code> lists the affected records.</td></tr>
+<tr><td>Demo redesign</td><td>"The demo is crowded and hard to understand … make it clean and move details into tabs on the top."</td><td>New design system (cool grey, white cards, green actions, Inter and JetBrains Mono). The sidebar is regrouped as Workspace, Project, Knowledge and Platform. Every page opens on an <b>Overview</b> with four headline numbers and one main card, and the details live in tabs at the top of the page. Tours and the Blueprint layer open the right tab by themselves; ⌘K finds tabs. The published copy is updated; the source change is not committed yet.</td></tr>
 </table>
 
-<h2 class="pb">3. Where the repository stands</h2>
+<h2>3. Where the repository stands</h2>
 <div class="kpis">
   <div class="kpi"><b>579</b><span>experiments in the registry · 483 eligible · 11 datasets</span></div>
   <div class="kpi"><b>133</b><span>evidence records: 22 rules, 10 workflow blocks, 70 experiments, 6 leakage precedents, 6 pitfalls</span></div>
   <div class="kpi"><b>326</b><span>SFT v3 examples (260 train · 66 validation)</span></div>
-  <div class="kpi"><b>94</b><span>tests passing in <code>make rd-check</code></span></div>
+  <div class="kpi"><b>110</b><span>tests in the working copy · 108 pass, 2 fail (see section 7)</span></div>
 </div>
 <table>
 <tr><th style="width:30%">Piece</th><th style="width:16%">Status</th><th>Where</th></tr>
@@ -79,6 +82,7 @@ code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.8pt; background:
 <tr><td>Workflow graph with validator and logged moves</td><td>Partial</td><td>stages run in order; explicit graph not yet</td></tr>
 <tr><td>Judgment benchmark</td><td>Partial</td><td>notebook pilot 6/7; blind auditor 11/18 leaks</td></tr>
 <tr><td>Real code execution, GPU jobs</td><td>Missing</td><td>reachable only through Chat UI's ML Intern mode</td></tr>
+<tr><td>Product demo (19 pages, Blueprint, decisions)</td><td>Built, redesigned</td><td><code>docs/product-demo/</code></td></tr>
 <tr><td>Vision, driving, maps, scene-graph packs</td><td>Proposals</td><td><code>research/</code> tracks with 0 experiments</td></tr>
 </table>
 
@@ -90,19 +94,19 @@ code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.8pt; background:
 <li><b>Measured pitfalls.</b> Oversampling before the split: up to +0.3003 ROC-AUC of pure inflation. Target-encoding an ID: 1.0000 reported vs 0.8160 honest. Choosing by holdout score: +0.0072 optimism on average.</li>
 <li><b>No universal best algorithm.</b> LightGBM had the best mean rank (2.55) but won only 3 of 11 datasets; logistic regression won the Telco churn campaign (0.8499).</li>
 <li><b>The critic gate works.</b> 147 LLM critic challenges kept, 10 dropped because the numbers contradicted them.</li>
-<li><b>A real bug found while building the demo.</b> The pipeline takes the log of factorized category codes (<code>log1p_month</code>, <code>log1p_poutcome</code> are top features in EXP-010). A fix task was suggested separately.</li>
+<li><b>A real bug, found by the demo and now fixed.</b> The pipeline took the log of factorized category codes (<code>log1p_month</code>, <code>log1p_poutcome</code> were top features in EXP-010). Fixed in <code>1cf5ae5</code>. An informal paired re-check on identical training folds (no holdout, nothing saved as a result) shows the derived recipes' lift came from arithmetic on codes: without it, bank_marketing <code>ratios</code> loses 0.016 ROC-AUC and german_credit <code>interactions</code> 0.021, so both would pick <code>raw</code>.</li>
 </ul>
 
 <h2>5. The product demo and the Blueprint</h2>
-<p>The demo shows the final product as if it were finished, so we can decide what to build. Groups and pages:</p>
+<p>The demo shows the final product as if it were finished, so we can decide what to build. After the redesign every page opens on an <b>Overview</b> (four headline numbers and one main card) and keeps its details in tabs at the top. Groups in the sidebar:</p>
 <table>
-<tr><th style="width:18%">Group</th><th>Pages</th></tr>
-<tr><td>Build</td><td>Home · New project · Workflow graph · Contract &amp; data · Notebook · Leakage &amp; features · Models · Reliability &amp; holdout · Decision brief (English/Persian) · Intern · Compute &amp; jobs</td></tr>
-<tr><td>Know</td><td>Evidence library (searches the 133 real records) · Research lab · Judgment benchmark</td></tr>
-<tr><td>Learn</td><td>Policy model (curriculum, data, review queue, deployment gates, cost ladder, macro-actions)</td></tr>
-<tr><td>Platform</td><td>Domain packs · Integrations · Admin (rules as policy switches, roles, budgets)</td></tr>
-<tr><td>Plan</td><td>Blueprint: gap map, roadmap, non-goals, Must / Later / Cut decisions</td></tr>
+<tr><th style="width:22%">Group</th><th>Pages</th></tr>
+<tr><td>Workspace</td><td>Home · New project · Intern · Compute &amp; jobs</td></tr>
+<tr><td>Project · Term deposits</td><td>Workflow · Contract &amp; data · Notebook · Leakage &amp; features · Models · Reliability · Decision brief (English/Persian)</td></tr>
+<tr><td>Knowledge</td><td>Evidence library (searches the 133 real records) · Research lab · Benchmark · Policy model</td></tr>
+<tr><td>Platform</td><td>Domain packs · Integrations · Admin · Blueprint &amp; roadmap (gap map, roadmap, non-goals, Must / Later / Cut decisions)</td></tr>
 </table>
+<p>The top bar holds breadcrumbs, search (⌘K), the "View as" menu (developer, business, researcher, admin) and the theme switch. The Blueprint layer and the guided tours sit at the bottom of the sidebar.</p>
 <div class="kpis">
   <div class="kpi"><b>151</b><span>features in the demo</span></div>
   <div class="kpi"><b>51</b><span>built today</span></div>
@@ -110,9 +114,9 @@ code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.8pt; background:
   <div class="kpi"><b>48</b><span>to build</span></div>
   <div class="kpi"><b>6</b><span>need research</span></div>
 </div>
-<div class="box proof">Open it: <code>docs/product-demo/index.html</code> (no server needed) or the private published copy at claude.ai/artifact/Vky86ZeEg2z5gqeapBXwtr, where your decisions save to a shared store Claude can read. No decisions are saved yet.</div>
+<div class="box proof">Open it: <code>docs/product-demo/index.html</code> (no server needed) or the private published copy at claude.ai/artifact/Vky86ZeEg2z5gqeapBXwtr, where your decisions save to a shared store Claude can read. The published copy shows the redesign. No decisions are saved yet (checked 5 October).</div>
 
-<h2 class="pb">6. Roadmap toward the MVP</h2>
+<h2>6. Roadmap toward the MVP</h2>
 <table>
 <tr><th style="width:20%">Phase</th><th>Goal</th><th style="width:34%">Done when</th></tr>
 <tr><td><b>P1 · Proof core</b></td><td>Make every move checkable: the workflow graph, the validator, the transition log, questions and approvals, the business brief, the production gate, the first benchmark suites.</td><td>Term-deposit calls and HyperAck run end to end inside the graph; suites A–D score the standard plan and one LLM.</td></tr>
@@ -134,7 +138,8 @@ code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.8pt; background:
 <li><b>Your decisions:</b> walk through the demo and mark Must / Later / Cut on the Blueprint page; they become the build plan.</li>
 <li><b>Owner worksheet:</b> HyperAck prediction moment (order creation, courier offer, or after assignment) and Telco churn outcome window (30 or 90 days). Also: is <code>campaign</code> counted before the call being predicted?</li>
 <li><b>First build step:</b> the workflow graph with its validator and transition log (P1). Everything else depends on it.</li>
-<li><b>Bug fix:</b> stop log-transforming factorized category codes (suggested task).</li>
+<li><b>Commit the demo redesign:</b> the new <code>docs/product-demo/</code> sources are ready but not committed, because <code>make rd-check</code> does not fully pass yet.</li>
+<li><b>Two failing tests:</b> <code>test_intern</code> (<code>test_sessions_over_http</code>: an intern session over HTTP ends as "failed") was already failing before the redesign. <code>test_research_map</code> (generated files are stale) follows from uncommitted edits to <code>dclab_rnd/research_map.py</code> and other files that another session is still making after the category-code fix; finish that work and rerun <code>make research-index</code>.</li>
 <li><b>Local work:</b> the session was teleported to your computer; run <code>/remote-control</code> there to continue from the Claude app. Local setup: <code>python3 -m venv .venv</code>, install <code>requirements/base.txt</code>, add <code>.env</code>, then <code>make rd-check</code> and <code>make notebook</code>.</li>
 </ul>
 
@@ -144,16 +149,59 @@ code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.8pt; background:
 <p><b>کارهایی که به ترتیب انجام دادیم:</b></p>
 <ul>
 <li>مخزن را تمیز و ساختارمند کردیم: هر ایده‌ی پژوهشی یک پوشه با شکل یکسان، نقشه‌ی پژوهش، حذف فایل‌های اضافی.</li>
-<li>نوت‌بوک DCLab را ساختیم: پروژه، داده، قرارداد پیش‌بینی، پنج مرحله‌ی قطعی، یادداشت‌های مستند و خروجی ‎.ipynb.</li>
+<li>نوت‌بوک DCLab را ساختیم: پروژه، داده، قرارداد پیش‌بینی، پنج مرحله‌ی قطعی، یادداشت‌های مستند و خروجی نوت‌بوک ژوپیتر (ipynb).</li>
 <li>شکاف‌ها را پر کردیم: داده‌های Kaggle و هاگینگ‌فیس، تقلب، چندکلاسه، سری زمانی، متن، ۳۲۶ نمونه‌ی آموزشی SFT و اسکریپت آموزش LoRA.</li>
 <li>اینترن DCLab را ساختیم: کار را می‌دهید، با ۱۸ ابزار و بودجه‌ی مشخص انجام می‌دهد و گزارش می‌دهد.</li>
 <li>DCLab را به‌صورت سرور MCP به Chat UI و حالت ML Intern هاگینگ‌فیس وصل کردیم و سرتاسر تست کردیم.</li>
 <li>دو PDF گفت‌وگوهای قبلی شما را کامل مرور کردیم و نقشه‌ی راه MVP را نوشتیم.</li>
 <li>دموی قابل‌کلیک محصول نهایی را ساختیم: ۱۹ صفحه، ۴ نمای کاربری، تورهای راهنما و لایه‌ی Blueprint با ۱۵۱ قابلیت (۵۱ ساخته‌شده، ۴۶ نیمه‌کاره، ۴۸ برای ساخت، ۶ نیازمند پژوهش).</li>
 <li>راه انتقال جلسه به کامپیوتر شما را با teleport و Remote Control توضیح دادیم و همه‌ی branchها را هم‌سطح کردیم.</li>
+<li>باگ کدهای دسته‌ای را رفع کردیم (commit <code>1cf5ae5</code>): دیگر از کدهای عددیِ دسته‌ها لگاریتم، نسبت یا ضرب ساخته نمی‌شود.</li>
+<li>دمو را از نو طراحی کردیم: هر صفحه با یک «Overview» ساده باز می‌شود و جزئیات در تب‌های بالای صفحه است؛ نسخه‌ی منتشرشده هم به‌روز شد.</li>
 </ul>
-<p><b>یافته‌های واقعی مهم:</b> نشت ستون duration امتیاز را از ۰٫۷۱۳۰ به ۰٫۸۹۷۲ می‌رساند؛ امتیاز صادقانه‌ی مدل روی holdout برابر ۰٫۷۷۱۸ است (بازه‌ی ۰٫۷۱۲۶ تا ۰٫۸۲۹۰)؛ نوت‌بوک دارای نشت دقت ۰٫۹۶۸۹ گزارش می‌کند در حالی که امتیاز واقعی بعد از اصلاح ۰٫۷۵۷۷ است؛ و pipeline از کدهای دسته‌ای لگاریتم می‌گیرد که باید اصلاح شود.</p>
+<p><b>یافته‌های واقعی مهم:</b> نشت ستون duration امتیاز را از ۰٫۷۱۳۰ به ۰٫۸۹۷۲ می‌رساند؛ امتیاز صادقانه‌ی مدل روی holdout برابر ۰٫۷۷۱۸ است (بازه‌ی ۰٫۷۱۲۶ تا ۰٫۸۲۹۰)؛ نوت‌بوک دارای نشت دقت ۰٫۹۶۸۹ گزارش می‌کند در حالی که امتیاز واقعی بعد از اصلاح ۰٫۷۵۷۷ است؛ و باگ لگاریتم گرفتن از کدهای دسته‌ای رفع شد؛ بررسی دوباره نشان داد بهبودِ دستورهای ویژگیِ مشتق‌شده از همین حساب‌وکتاب روی کدها می‌آمد.</p>
 <p><b>نقشه‌ی راه:</b> فاز ۱ هسته‌ی اثبات (گراف گردش کار، بررسی‌کننده، ثبت حرکت‌ها، بنچمارک)؛ فاز ۲ اجرای کد و GPU و اتصال‌ها؛ فاز ۳ بسته‌های تخصصی با شروع از بینایی ماشین؛ فاز ۴ آموزش مدل کوچک و متمرکز؛ و در کنار آن پژوهش‌هایی مثل ایده‌ی «کیک».</p>
-<p><b>قدم‌های بعدی:</b> در صفحه‌ی Blueprint برای هر قابلیت Must، Later یا Cut بزنید؛ به سؤال‌های برگه‌ی مالک (لحظه‌ی پیش‌بینی HyperAck و پنجره‌ی خروج مشتری Telco) جواب دهید؛ و ساخت را از گراف گردش کار و بررسی‌کننده‌ی آن شروع کنیم.</p>
+<p><b>قدم‌های بعدی:</b> در صفحه‌ی Blueprint برای هر قابلیت Must، Later یا Cut بزنید؛ به سؤال‌های برگه‌ی مالک (لحظه‌ی پیش‌بینی HyperAck و پنجره‌ی خروج مشتری Telco) جواب دهید؛ و ساخت را از گراف گردش کار و بررسی‌کننده‌ی آن شروع کنیم. پیش از آن، دو تست شکست‌خورده باید درست شوند و طراحی جدید دمو commit شود.</p>
+</section>
+
+<section class="fa pb" lang="fa">
+<h2>دمو، بخش به بخش</h2>
+<p><b>ساختار کلی.</b> منوی کناری چهار گروه دارد. هر صفحه با تب «Overview» باز می‌شود: چهار عدد اصلی و یک کارت اصلی. جزئیات در تب‌های بالای صفحه است. در نوار بالا مسیر صفحه، جست‌وجو (⌘K)، انتخاب نما (توسعه‌دهنده، کسب‌وکار، پژوهشگر، مدیر) و تغییر تم هست. پایین منو، لایه‌ی Blueprint (نشان می‌دهد هر قابلیت امروز ساخته شده یا نه) و تورهای راهنما قرار دارند. اعدادی که کنارشان برچسبی مثل <code>EXP-010</code> دارند واقعی‌اند؛ بقیه داده‌ی نمونه است.</p>
+
+<h3>۱. فضای کاری (Workspace)</h3>
+<ul>
+<li><b>Home:</b> خلاصه‌ی فضای کاری: ۹ ستون نشتی پیش از آموزش مسدود شده، هر ۶ holdout فقط یک بار باز شده، ۴ حرکت ناامن متوقف شده و هزینه‌ی این ماه. کادر «از یک جمله شروع کن» و فهرست کارهایی که منتظر شماست. تب‌ها: Projects (۸ پروژه) و Activity.</li>
+<li><b>New project:</b> جادوی شش‌مرحله‌ای از هدف تا قرارداد امضاشده؛ تا قرارداد امضا نشود، هیچ مدلی آموزش نمی‌بیند. تب Data profile پروفایل ستون‌ها و منبع داده را نشان می‌دهد.</li>
+<li><b>Intern:</b> گفت‌وگو با اینترن که در یک بودجه‌ی مشخص (تعداد ابزار، زمان، هزینه) کار می‌کند و هر جا فقط مالک جواب را می‌داند، می‌ایستد و می‌پرسد. تب‌ها: Sessions، Guardrails و Model tiers.</li>
+<li><b>Compute &amp; jobs:</b> کارهای در حال اجرا، ساعت GPU و هزینه، با سقف بودجه. تب‌ها: Spend &amp; approvals و Where it runs.</li>
+</ul>
+
+<h3>۲. پروژه‌ی نمونه: تماس‌های سپرده‌ی مدت‌دار (Term deposits)</h3>
+<p>این پروژه مسیر واقعی آزمایش‌های EXP-006 تا EXP-010 روی داده‌ی bank marketing را دنبال می‌کند.</p>
+<ul>
+<li><b>Workflow:</b> گراف ده‌مرحله‌ای WF-01 تا WF-10، حرکت‌های مجاز بین مرحله‌ها و یک حرکت ناامن که مسدود شد. می‌توان بین سه پروژه (Term-deposit، HyperAck، Telco) جابه‌جا شد. تب‌ها: Transition log (ثبت همه‌ی حرکت‌ها) و Validator &amp; team.</li>
+<li><b>Contract &amp; data:</b> قرارداد پیش‌بینی: سؤال، لحظه‌ی پیش‌بینی، ستون ممنوع <code>duration</code> (فقط بعد از پایان تماس معلوم است)، ظرفیت ۲٬۰۰۰ تماس در ماه، €۸ هزینه‌ی هر تماس و €۱۱۰ ارزش هر اشتراک. تب‌ها: Owner questions، Known when (خط زمانی ستون‌ها)، Costs &amp; metric و Data &amp; split.</li>
+<li><b>Notebook:</b> نوت‌بوک یک همکار که دقت ۰٫۹۶۸۹ نشان می‌دهد، با یک همراه (companion) که ۱۰ یافته‌ی واقعیِ copilot را کنار هر سلول می‌گذارد. بعد از اصلاح‌ها، امتیاز صادقانه ROC-AUC ۰٫۷۵۷۷ است. تب‌ها: Outline &amp; variables، Precedents، Clean version و Stage cells.</li>
+<li><b>Leakage &amp; features:</b> ماتریس ۱۶ ستون: هر ستون در لحظه‌ی پیش‌بینی معلوم است یا نه. تب‌ها: Leak checks (با <code>duration</code> امتیاز از ۰٫۷۱۳۰ به ۰٫۸۹۷۲ می‌پرد)، Data look، Feature ladder و Critic review.</li>
+<li><b>Models:</b> پنج خانواده‌ی مدل روی foldهای یکسان، با قانون انتخابی که از قبل اعلام شده بود؛ extra_trees انتخاب شد. تب‌ها: Selection rule، Tuning و Cost &amp; context.</li>
+<li><b>Reliability:</b> داده‌ی holdout فقط یک بار باز شد: ROC-AUC ۰٫۷۷۱۸ با بازه‌ی ۰٫۷۱۲۶ تا ۰٫۸۲۹۰، و دروازه‌ی تولید ۲ از ۶. تب‌ها: Operating points، Calibration &amp; slices، Shift &amp; missing و Production gate.</li>
+<li><b>Decision brief:</b> گزارش یک‌صفحه‌ای برای تصمیم‌گیران، به انگلیسی و فارسی: حدود ۷۸۰ اشتراک و حدود €۷۰٬۰۰۰ ارزش خالص، با پیشنهاد یک پایلوت. تب‌ها: Value calculator، Risks و Sign-off &amp; lessons.</li>
+</ul>
+
+<h3>۳. دانش (Knowledge)</h3>
+<ul>
+<li><b>Evidence library:</b> جست‌وجو در ۱۳۳ رکورد واقعی مخزن (قانون، آزمایش، نشت، دام). تب‌ها: Rules &amp; workflow، Datasets، Ask و What's inside.</li>
+<li><b>Research lab:</b> در مجموع ۵۷۹ آزمایش، کمپین‌ها، دروازه‌ی منتقد (۱۵۷ چالش، ۱۴۷ نگه‌داشته) و recall ۶۱٪ ممیز کور. تب‌ها: Champions، Pitfalls، Critic gate و Research map.</li>
+<li><b>Benchmark:</b> سنجش قضاوت ایجنت: ممیز کور ۱۱ از ۱۸ نشت را پیدا کرد، پایلوت نوت‌بوک ۶ از ۷. جدول رده‌بندی هنوز برنامه‌ریزی‌شده است.</li>
+<li><b>Policy model:</b> مدل کوچک و متمرکز: ۳۲۶ نمونه‌ی آموزشی و برنامه‌ی آموزشی چهارمرحله‌ای (فقط مرحله‌ی اول داده دارد). تب‌ها: Training data، Expert review و Training &amp; serving.</li>
+</ul>
+
+<h3>۴. پلتفرم (Platform)</h3>
+<ul>
+<li><b>Domain packs:</b> هشت بسته روی یک موتور: جدولی آماده است؛ سری زمانی، بینایی ماشین، رانندگی، نقشه و … در مراحل بعدی. تب Ten steps mapped نشان می‌دهد ده مرحله در هر حوزه چه معنایی دارد.</li>
+<li><b>Integrations:</b> سرور MCP با ۱۸ ابزار (۳۲ ابزار در حالت ML Intern)، Chat UI، VS Code، API و اتصال‌های داده.</li>
+<li><b>Admin:</b> ده سیاست که چهار تا قفل‌اند (مثل «holdout فقط یک بار باز می‌شود»)، ۵ نقش، مسیریابی مدل‌ها، بودجه و audit log.</li>
+<li><b>Blueprint &amp; roadmap:</b> در مجموع ۱۵۱ قابلیت: ۵۱ ساخته‌شده، ۴۶ نیمه‌کاره، ۴۸ برای ساخت و ۶ نیازمند پژوهش. تب‌ها: Roadmap، Decisions (برای هر قابلیت Must، Later یا Cut بزنید) و Scope.</li>
+</ul>
 </section>
 </body></html>

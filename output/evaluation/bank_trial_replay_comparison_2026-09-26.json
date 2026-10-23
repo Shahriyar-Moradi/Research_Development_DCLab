@@ -1,0 +1,59 @@
+{
+  "reference": "agent_runs/eb59895d248c4c909bc731127ca05370/trial-001",
+  "candidate": "output/evaluation/current_worker_bank_trial_2026-09-26",
+  "reference_recipe_sha256": "da815fd071be0ffd0b9b83b33ed4df4bea8c3a7d8f96887c557ca15e0596742a",
+  "candidate_recipe_sha256": "fd9a3ce4c33eaadb903542a438bbc5ffd10dd5aec3e3126360a7fe8ab9d14eae",
+  "reference_oof_sha256": "3fc7232f01801a0a77e3e2bafae4135979fa762d0d528f02588bca15effe1a2b",
+  "candidate_oof_sha256": "3fc7232f01801a0a77e3e2bafae4135979fa762d0d528f02588bca15effe1a2b",
+  "same_plan": true,
+  "same_data_hashes": true,
+  "same_split_hash": true,
+  "same_oof_predictions_bytes": true,
+  "current_code_matches_reference": false,
+  "exact_version_replay": false,
+  "metric_deltas_candidate_minus_reference": {
+    "roc_auc": 0.0,
+    "average_precision": 0.0,
+    "log_loss": 0.0,
+    "brier": 0.0
+  },
+  "candidate_folds_independently_recomputed": [
+    {
+      "repeat": 0,
+      "fold": 0,
+      "row_count": 667,
+      "metrics_match": true
+    },
+    {
+      "repeat": 0,
+      "fold": 1,
+      "row_count": 667,
+      "metrics_match": true
+    },
+    {
+      "repeat": 0,
+      "fold": 2,
+      "row_count": 666,
+      "metrics_match": true
+    },
+    {
+      "repeat": 1,
+      "fold": 0,
+      "row_count": 666,
+      "metrics_match": true
+    },
+    {
+      "repeat": 1,
+      "fold": 1,
+      "row_count": 667,
+      "metrics_match": true
+    },
+    {
+      "repeat": 1,
+      "fold": 2,
+      "row_count": 667,
+      "metrics_match": true
+    }
+  ],
+  "note": "Equal outputs with changed code are reproducibility evidence for this case, not an exact-version replay or future performance confirmation."
+}

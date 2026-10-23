@@ -1,0 +1,232 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "uicheck-accounts",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AUTH=password",
+        "DCLAB_DATABASE_URL=postgresql+psycopg://shahriar@/dclab_uicheck",
+        "DCLAB_AGENT_HOME=/var/folders/h_/g10m0c95119g3wvj2j44slm00000gn/T//uicheck-home",
+        "OPENAI_API_KEY=",
+        "DCLAB_NO_LIVE_MODELS=1",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8799"
+      ],
+      "port": 8799
+    },
+    {
+      "name": "decide-check",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AGENT_HOME=/private/tmp/claude-501/-Users-shahriar-Desktop-Desktop-Work-MyStartUp-R-D/403767c9-6f97-404c-a57d-02366f853759/scratchpad/decide-home",
+        "OPENAI_API_KEY=",
+        "DCLAB_NO_LIVE_MODELS=1",
+        "DCLAB_DATABASE_URL=",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8801"
+      ],
+      "port": 8801
+    },
+    {
+      "name": "map-check",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AGENT_HOME=/private/tmp/claude-501/-Users-shahriar-Desktop-Desktop-Work-MyStartUp-R-D/403767c9-6f97-404c-a57d-02366f853759/scratchpad/map-home",
+        "OPENAI_API_KEY=",
+        "DCLAB_NO_LIVE_MODELS=1",
+        "DCLAB_DATABASE_URL=",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8802"
+      ],
+      "port": 8802
+    },
+    {
+      "name": "twin-check",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AGENT_HOME=/private/tmp/claude-501/-Users-shahriar-Desktop-Desktop-Work-MyStartUp-R-D/403767c9-6f97-404c-a57d-02366f853759/scratchpad/twin-home",
+        "OPENAI_API_KEY=",
+        "DCLAB_NO_LIVE_MODELS=1",
+        "DCLAB_DATABASE_URL=",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8803"
+      ],
+      "port": 8803
+    },
+    {
+      "name": "twin-live",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AGENT_HOME=agent_runs/live_tests/2026-10-16_phase3/workspace",
+        "DCLAB_DATABASE_URL=",
+        "DCLAB_WORKSPACE_MONTHLY_EUR=9",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8804"
+      ],
+      "port": 8804
+    },
+    {
+      "name": "students-check",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AGENT_HOME=/private/tmp/claude-501/-Users-shahriar-Desktop-Desktop-Work-MyStartUp-R-D/403767c9-6f97-404c-a57d-02366f853759/scratchpad/students-home",
+        "OPENAI_API_KEY=",
+        "DCLAB_NO_LIVE_MODELS=1",
+        "DCLAB_DATABASE_URL=",
+        "DCLAB_DECISION_SHADOW=0",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8805"
+      ],
+      "port": 8805
+    },
+    {
+      "name": "team-check",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AGENT_HOME=/private/tmp/claude-501/-Users-shahriar-Desktop-Desktop-Work-MyStartUp-R-D/403767c9-6f97-404c-a57d-02366f853759/scratchpad/team-home",
+        "OPENAI_API_KEY=",
+        "DCLAB_NO_LIVE_MODELS=1",
+        "DCLAB_DATABASE_URL=",
+        "DCLAB_DECISION_SHADOW=0",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8806"
+      ],
+      "port": 8806
+    },
+    {
+      "name": "queue-check",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AGENT_HOME=/private/tmp/claude-501/-Users-shahriar-Desktop-Desktop-Work-MyStartUp-R-D/403767c9-6f97-404c-a57d-02366f853759/scratchpad/queue-home",
+        "OPENAI_API_KEY=",
+        "DCLAB_NO_LIVE_MODELS=1",
+        "DCLAB_DATABASE_URL=",
+        "DCLAB_DECISION_SHADOW=0",
+        "DCLAB_STUDENTS_LOOP=0",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8807"
+      ],
+      "port": 8807
+    },
+    {
+      "name": "notes-check",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AGENT_HOME=/private/tmp/claude-501/-Users-shahriar-Desktop-Desktop-Work-MyStartUp-R-D/403767c9-6f97-404c-a57d-02366f853759/scratchpad/notes-home",
+        "OPENAI_API_KEY=",
+        "DCLAB_NO_LIVE_MODELS=1",
+        "DCLAB_DATABASE_URL=",
+        "DCLAB_DECISION_SHADOW=0",
+        "DCLAB_STUDENTS_LOOP=0",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8808"
+      ],
+      "port": 8808
+    },
+    {
+      "name": "ui-kit",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AGENT_HOME=/private/tmp/claude-501/-Users-shahriar-Desktop-Desktop-Work-MyStartUp-R-D/403767c9-6f97-404c-a57d-02366f853759/scratchpad/ui-home",
+        "OPENAI_API_KEY=",
+        "ANTHROPIC_API_KEY=",
+        "DCLAB_NO_LIVE_MODELS=1",
+        "DCLAB_DATABASE_URL=",
+        "DCLAB_DECISION_SHADOW=0",
+        "DCLAB_STUDENTS_LOOP=0",
+        "DCLAB_STORE_LOOP=0",
+        "DCLAB_STORE_CAPTURE=0",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8810"
+      ],
+      "port": 8810
+    },
+    {
+      "name": "login-check",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AUTH=password",
+        "DCLAB_DATABASE_URL=postgresql+psycopg://shahriar@/dclab_logincheck",
+        "DCLAB_AGENT_HOME=/private/tmp/claude-501/-Users-shahriar-Desktop-Desktop-Work-MyStartUp-R-D/403767c9-6f97-404c-a57d-02366f853759/scratchpad/login-home",
+        "OPENAI_API_KEY=",
+        "ANTHROPIC_API_KEY=",
+        "DCLAB_NO_LIVE_MODELS=1",
+        "DCLAB_DECISION_SHADOW=0",
+        "DCLAB_STUDENTS_LOOP=0",
+        "DCLAB_STORE_LOOP=0",
+        "DCLAB_STORE_CAPTURE=0",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8811"
+      ],
+      "port": 8811
+    },
+    {
+      "name": "home-team",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AGENT_HOME=/private/tmp/claude-501/-Users-shahriar-Desktop-Desktop-Work-MyStartUp-R-D/403767c9-6f97-404c-a57d-02366f853759/scratchpad/version_e2e/run-205958/workspace",
+        "OPENAI_API_KEY=",
+        "ANTHROPIC_API_KEY=",
+        "DCLAB_NO_LIVE_MODELS=1",
+        "DCLAB_DATABASE_URL=",
+        "DCLAB_AUTH=",
+        "DCLAB_DECISION_SHADOW=0",
+        "DCLAB_STUDENTS_LOOP=0",
+        "DCLAB_STORE_LOOP=0",
+        "DCLAB_STORE_CAPTURE=0",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8812"
+      ],
+      "port": 8812
+    }
+  ]
+}

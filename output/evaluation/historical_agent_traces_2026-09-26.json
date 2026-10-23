@@ -1,0 +1,1098 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-26T05:12:37.285925+00:00",
+  "scope": "Historical real agent outputs; deterministic contract checks only, no blinded human-quality labels",
+  "run_count": 6,
+  "agent_stage_counts": {
+    "agenda": 4,
+    "data_review": 4,
+    "proposal": 13,
+    "critique": 13,
+    "synthesis": 3
+  },
+  "checks": {
+    "bank_duration_flagged": {
+      "passed": 2,
+      "total": 2
+    },
+    "bounded_agenda": {
+      "passed": 4,
+      "total": 4
+    },
+    "citations_prior_success": {
+      "passed": 26,
+      "total": 26
+    },
+    "comparison_reference_explicit": {
+      "passed": 5,
+      "total": 9
+    },
+    "current_schema_valid": {
+      "passed": 36,
+      "total": 37
+    },
+    "failed_trial_not_cited": {
+      "passed": 1,
+      "total": 1
+    },
+    "failure_acknowledged": {
+      "passed": 1,
+      "total": 1
+    },
+    "first_trial_transparent_baseline": {
+      "passed": 4,
+      "total": 4
+    },
+    "known_model": {
+      "passed": 13,
+      "total": 13
+    },
+    "latest_completed_trial_cited": {
+      "passed": 12,
+      "total": 12
+    },
+    "lessons_have_successful_evidence": {
+      "passed": 3,
+      "total": 3
+    },
+    "no_direct_blocked_feature_ancestor": {
+      "passed": 13,
+      "total": 13
+    },
+    "no_lesson_without_success": {
+      "passed": 3,
+      "total": 3
+    },
+    "selected_dataset": {
+      "passed": 13,
+      "total": 13
+    },
+    "substantive_review": {
+      "passed": 4,
+      "total": 4
+    }
+  },
+  "agent_decision_accuracy": null,
+  "overall_release_ready": false,
+  "runs": [
+    {
+      "run_id": "4e4b2bb0bd3045229bab58c0be27cdad",
+      "run_status": "failed",
+      "trace_sha256": "51994ee0314e7a88b48fc2bf6718f2a446f95b6d347d7b7a2a9be22bbe41738e",
+      "events": [],
+      "trials": [],
+      "llm_calls": 1,
+      "token_usage": {}
+    },
+    {
+      "run_id": "6141d054c4764b698c92909a454362d8",
+      "run_status": "budget_exhausted",
+      "trace_sha256": "069de1834c83de94278b9242309b965fc5b0895365a482b0a6a54a1a91be371f",
+      "events": [
+        {
+          "event_seq": 155,
+          "agent_stage": "agenda",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "bounded_agenda",
+              "pass": true
+            }
+          ],
+          "checks_passed": 2,
+          "checks_total": 2
+        },
+        {
+          "event_seq": 159,
+          "agent_stage": "data_review",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "substantive_review",
+              "pass": true
+            }
+          ],
+          "checks_passed": 2,
+          "checks_total": 2
+        },
+        {
+          "event_seq": 163,
+          "agent_stage": "proposal",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "selected_dataset",
+              "pass": true
+            },
+            {
+              "name": "known_model",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "no_direct_blocked_feature_ancestor",
+              "pass": true
+            },
+            {
+              "name": "first_trial_transparent_baseline",
+              "pass": true
+            }
+          ],
+          "checks_passed": 6,
+          "checks_total": 6
+        },
+        {
+          "event_seq": 169,
+          "agent_stage": "critique",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "latest_completed_trial_cited",
+              "pass": true
+            }
+          ],
+          "checks_passed": 3,
+          "checks_total": 3
+        },
+        {
+          "event_seq": 173,
+          "agent_stage": "proposal",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "selected_dataset",
+              "pass": true
+            },
+            {
+              "name": "known_model",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "no_direct_blocked_feature_ancestor",
+              "pass": true
+            },
+            {
+              "name": "comparison_reference_explicit",
+              "pass": true
+            }
+          ],
+          "checks_passed": 6,
+          "checks_total": 6
+        },
+        {
+          "event_seq": 179,
+          "agent_stage": "critique",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "latest_completed_trial_cited",
+              "pass": true
+            }
+          ],
+          "checks_passed": 3,
+          "checks_total": 3
+        },
+        {
+          "event_seq": 183,
+          "agent_stage": "proposal",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "selected_dataset",
+              "pass": true
+            },
+            {
+              "name": "known_model",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "no_direct_blocked_feature_ancestor",
+              "pass": true
+            },
+            {
+              "name": "comparison_reference_explicit",
+              "pass": true
+            }
+          ],
+          "checks_passed": 6,
+          "checks_total": 6
+        },
+        {
+          "event_seq": 189,
+          "agent_stage": "critique",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "latest_completed_trial_cited",
+              "pass": true
+            }
+          ],
+          "checks_passed": 3,
+          "checks_total": 3
+        }
+      ],
+      "trials": [
+        {
+          "id": "6141d054c4764b698c92909a454362d8:trial-001",
+          "status": "completed",
+          "seq": 165
+        },
+        {
+          "id": "6141d054c4764b698c92909a454362d8:trial-002",
+          "status": "completed",
+          "seq": 175
+        },
+        {
+          "id": "6141d054c4764b698c92909a454362d8:trial-003",
+          "status": "completed",
+          "seq": 185
+        }
+      ],
+      "llm_calls": 11,
+      "token_usage": {
+        "input_tokens": 74085,
+        "output_tokens": 7885,
+        "total_tokens": 81970
+      }
+    },
+    {
+      "run_id": "72a082af14c94cdb85abbb48cef951d6",
+      "run_status": "completed",
+      "trace_sha256": "fb308a0ee98e8d6a1cc72ad436bc8d817714560b1590767d26361d0c541f6b7b",
+      "events": [
+        {
+          "event_seq": 92,
+          "agent_stage": "agenda",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "bounded_agenda",
+              "pass": true
+            }
+          ],
+          "checks_passed": 2,
+          "checks_total": 2
+        },
+        {
+          "event_seq": 96,
+          "agent_stage": "data_review",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "substantive_review",
+              "pass": true
+            }
+          ],
+          "checks_passed": 2,
+          "checks_total": 2
+        },
+        {
+          "event_seq": 100,
+          "agent_stage": "proposal",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "selected_dataset",
+              "pass": true
+            },
+            {
+              "name": "known_model",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "no_direct_blocked_feature_ancestor",
+              "pass": true
+            },
+            {
+              "name": "first_trial_transparent_baseline",
+              "pass": true
+            }
+          ],
+          "checks_passed": 6,
+          "checks_total": 6
+        },
+        {
+          "event_seq": 106,
+          "agent_stage": "critique",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "latest_completed_trial_cited",
+              "pass": true
+            }
+          ],
+          "checks_passed": 3,
+          "checks_total": 3
+        },
+        {
+          "event_seq": 110,
+          "agent_stage": "proposal",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "selected_dataset",
+              "pass": true
+            },
+            {
+              "name": "known_model",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "no_direct_blocked_feature_ancestor",
+              "pass": true
+            },
+            {
+              "name": "comparison_reference_explicit",
+              "pass": true
+            }
+          ],
+          "checks_passed": 6,
+          "checks_total": 6
+        },
+        {
+          "event_seq": 116,
+          "agent_stage": "critique",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "latest_completed_trial_cited",
+              "pass": true
+            }
+          ],
+          "checks_passed": 3,
+          "checks_total": 3
+        },
+        {
+          "event_seq": 120,
+          "agent_stage": "proposal",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "selected_dataset",
+              "pass": true
+            },
+            {
+              "name": "known_model",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "no_direct_blocked_feature_ancestor",
+              "pass": true
+            },
+            {
+              "name": "comparison_reference_explicit",
+              "pass": true
+            }
+          ],
+          "checks_passed": 6,
+          "checks_total": 6
+        },
+        {
+          "event_seq": 126,
+          "agent_stage": "critique",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "latest_completed_trial_cited",
+              "pass": true
+            }
+          ],
+          "checks_passed": 3,
+          "checks_total": 3
+        },
+        {
+          "event_seq": 130,
+          "agent_stage": "proposal",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "selected_dataset",
+              "pass": true
+            },
+            {
+              "name": "known_model",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "no_direct_blocked_feature_ancestor",
+              "pass": true
+            },
+            {
+              "name": "comparison_reference_explicit",
+              "pass": true
+            }
+          ],
+          "checks_passed": 6,
+          "checks_total": 6
+        },
+        {
+          "event_seq": 136,
+          "agent_stage": "critique",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "latest_completed_trial_cited",
+              "pass": true
+            }
+          ],
+          "checks_passed": 3,
+          "checks_total": 3
+        },
+        {
+          "event_seq": 140,
+          "agent_stage": "synthesis",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "lessons_have_successful_evidence",
+              "pass": true
+            },
+            {
+              "name": "no_lesson_without_success",
+              "pass": true
+            }
+          ],
+          "checks_passed": 3,
+          "checks_total": 3
+        }
+      ],
+      "trials": [
+        {
+          "id": "72a082af14c94cdb85abbb48cef951d6:trial-001",
+          "status": "completed",
+          "seq": 102
+        },
+        {
+          "id": "72a082af14c94cdb85abbb48cef951d6:trial-002",
+          "status": "completed",
+          "seq": 112
+        },
+        {
+          "id": "72a082af14c94cdb85abbb48cef951d6:trial-003",
+          "status": "completed",
+          "seq": 122
+        },
+        {
+          "id": "72a082af14c94cdb85abbb48cef951d6:trial-004",
+          "status": "completed",
+          "seq": 132
+        }
+      ],
+      "llm_calls": 11,
+      "token_usage": {
+        "input_tokens": 141001,
+        "output_tokens": 12095,
+        "total_tokens": 153096
+      }
+    },
+    {
+      "run_id": "cde300a2645f499ab5745825f213614d",
+      "run_status": "failed",
+      "trace_sha256": "4a46434aad0582b540a738fa28ccebe24f28c1525bb740b40ee6b8dd822cfea6",
+      "events": [],
+      "trials": [],
+      "llm_calls": 1,
+      "token_usage": {}
+    },
+    {
+      "run_id": "d311bd62ad644b03ac98f1dab0b5a489",
+      "run_status": "completed",
+      "trace_sha256": "b327faaddc643ab9296e730b98d44313904652b98fc5a64c33514500706bd685",
+      "events": [
+        {
+          "event_seq": 5,
+          "agent_stage": "agenda",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "bounded_agenda",
+              "pass": true
+            }
+          ],
+          "checks_passed": 2,
+          "checks_total": 2
+        },
+        {
+          "event_seq": 9,
+          "agent_stage": "data_review",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "substantive_review",
+              "pass": true
+            },
+            {
+              "name": "bank_duration_flagged",
+              "pass": true
+            }
+          ],
+          "checks_passed": 3,
+          "checks_total": 3
+        },
+        {
+          "event_seq": 13,
+          "agent_stage": "proposal",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "selected_dataset",
+              "pass": true
+            },
+            {
+              "name": "known_model",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "no_direct_blocked_feature_ancestor",
+              "pass": true
+            },
+            {
+              "name": "first_trial_transparent_baseline",
+              "pass": true
+            }
+          ],
+          "checks_passed": 6,
+          "checks_total": 6
+        },
+        {
+          "event_seq": 19,
+          "agent_stage": "critique",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "latest_completed_trial_cited",
+              "pass": true
+            }
+          ],
+          "checks_passed": 3,
+          "checks_total": 3
+        },
+        {
+          "event_seq": 23,
+          "agent_stage": "proposal",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "selected_dataset",
+              "pass": true
+            },
+            {
+              "name": "known_model",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "no_direct_blocked_feature_ancestor",
+              "pass": true
+            },
+            {
+              "name": "comparison_reference_explicit",
+              "pass": false
+            }
+          ],
+          "checks_passed": 5,
+          "checks_total": 6
+        },
+        {
+          "event_seq": 29,
+          "agent_stage": "critique",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "latest_completed_trial_cited",
+              "pass": true
+            }
+          ],
+          "checks_passed": 3,
+          "checks_total": 3
+        },
+        {
+          "event_seq": 33,
+          "agent_stage": "proposal",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "selected_dataset",
+              "pass": true
+            },
+            {
+              "name": "known_model",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "no_direct_blocked_feature_ancestor",
+              "pass": true
+            },
+            {
+              "name": "comparison_reference_explicit",
+              "pass": false
+            }
+          ],
+          "checks_passed": 5,
+          "checks_total": 6
+        },
+        {
+          "event_seq": 39,
+          "agent_stage": "critique",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "failed_trial_not_cited",
+              "pass": true
+            },
+            {
+              "name": "failure_acknowledged",
+              "pass": true
+            }
+          ],
+          "checks_passed": 4,
+          "checks_total": 4
+        },
+        {
+          "event_seq": 43,
+          "agent_stage": "synthesis",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": false
+            },
+            {
+              "name": "lessons_have_successful_evidence",
+              "pass": true
+            },
+            {
+              "name": "no_lesson_without_success",
+              "pass": true
+            }
+          ],
+          "checks_passed": 2,
+          "checks_total": 3
+        }
+      ],
+      "trials": [
+        {
+          "id": "d311bd62ad644b03ac98f1dab0b5a489:trial-001",
+          "status": "completed",
+          "seq": 15
+        },
+        {
+          "id": "d311bd62ad644b03ac98f1dab0b5a489:trial-002",
+          "status": "completed",
+          "seq": 25
+        },
+        {
+          "id": "d311bd62ad644b03ac98f1dab0b5a489:trial-003",
+          "status": "failed",
+          "seq": 35
+        }
+      ],
+      "llm_calls": 9,
+      "token_usage": {
+        "input_tokens": 68414,
+        "output_tokens": 8904,
+        "total_tokens": 77318
+      }
+    },
+    {
+      "run_id": "eb59895d248c4c909bc731127ca05370",
+      "run_status": "completed",
+      "trace_sha256": "fd616faf488426e20236767d21c424cf091ee808f579645e517d20cac732913b",
+      "events": [
+        {
+          "event_seq": 48,
+          "agent_stage": "agenda",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "bounded_agenda",
+              "pass": true
+            }
+          ],
+          "checks_passed": 2,
+          "checks_total": 2
+        },
+        {
+          "event_seq": 52,
+          "agent_stage": "data_review",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "substantive_review",
+              "pass": true
+            },
+            {
+              "name": "bank_duration_flagged",
+              "pass": true
+            }
+          ],
+          "checks_passed": 3,
+          "checks_total": 3
+        },
+        {
+          "event_seq": 56,
+          "agent_stage": "proposal",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "selected_dataset",
+              "pass": true
+            },
+            {
+              "name": "known_model",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "no_direct_blocked_feature_ancestor",
+              "pass": true
+            },
+            {
+              "name": "first_trial_transparent_baseline",
+              "pass": true
+            }
+          ],
+          "checks_passed": 6,
+          "checks_total": 6
+        },
+        {
+          "event_seq": 62,
+          "agent_stage": "critique",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "latest_completed_trial_cited",
+              "pass": true
+            }
+          ],
+          "checks_passed": 3,
+          "checks_total": 3
+        },
+        {
+          "event_seq": 66,
+          "agent_stage": "proposal",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "selected_dataset",
+              "pass": true
+            },
+            {
+              "name": "known_model",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "no_direct_blocked_feature_ancestor",
+              "pass": true
+            },
+            {
+              "name": "comparison_reference_explicit",
+              "pass": false
+            }
+          ],
+          "checks_passed": 5,
+          "checks_total": 6
+        },
+        {
+          "event_seq": 72,
+          "agent_stage": "critique",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "latest_completed_trial_cited",
+              "pass": true
+            }
+          ],
+          "checks_passed": 3,
+          "checks_total": 3
+        },
+        {
+          "event_seq": 76,
+          "agent_stage": "proposal",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "selected_dataset",
+              "pass": true
+            },
+            {
+              "name": "known_model",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "no_direct_blocked_feature_ancestor",
+              "pass": true
+            },
+            {
+              "name": "comparison_reference_explicit",
+              "pass": false
+            }
+          ],
+          "checks_passed": 5,
+          "checks_total": 6
+        },
+        {
+          "event_seq": 82,
+          "agent_stage": "critique",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "citations_prior_success",
+              "pass": true
+            },
+            {
+              "name": "latest_completed_trial_cited",
+              "pass": true
+            }
+          ],
+          "checks_passed": 3,
+          "checks_total": 3
+        },
+        {
+          "event_seq": 86,
+          "agent_stage": "synthesis",
+          "checks": [
+            {
+              "name": "current_schema_valid",
+              "pass": true
+            },
+            {
+              "name": "lessons_have_successful_evidence",
+              "pass": true
+            },
+            {
+              "name": "no_lesson_without_success",
+              "pass": true
+            }
+          ],
+          "checks_passed": 3,
+          "checks_total": 3
+        }
+      ],
+      "trials": [
+        {
+          "id": "eb59895d248c4c909bc731127ca05370:trial-001",
+          "status": "completed",
+          "seq": 58
+        },
+        {
+          "id": "eb59895d248c4c909bc731127ca05370:trial-002",
+          "status": "completed",
+          "seq": 68
+        },
+        {
+          "id": "eb59895d248c4c909bc731127ca05370:trial-003",
+          "status": "completed",
+          "seq": 78
+        }
+      ],
+      "llm_calls": 9,
+      "token_usage": {
+        "input_tokens": 114839,
+        "output_tokens": 10857,
+        "total_tokens": 125696
+      }
+    }
+  ]
+}

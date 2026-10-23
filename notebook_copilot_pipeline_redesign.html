@@ -1,0 +1,119 @@
+<div style="font-family: var(--font-sans);">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 0 2px;">
+    <span style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.03em; color: var(--text-muted); text-transform: uppercase;">churn_model.ipynb</span>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <i class="ti ti-bulb" style="font-size:13px; color: var(--text-accent);" aria-hidden="true"></i>
+      <span style="font-size: 12px; font-weight: 500;">DCLab copilot</span>
+    </div>
+  </div>
+
+  <div style="background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 10px;">
+    <div style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px;">01 / CELL REVIEW</div>
+    <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px;">
+      <div style="width: 22px; height: 22px; border-radius: 50%; background: var(--bg-success); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;">
+        <i class="ti ti-check" style="font-size:13px; color: var(--text-success);" aria-hidden="true"></i>
+      </div>
+      <div>
+        <div style="font-size: 15px; font-weight: 500;">2 cells reviewed, 1 flagged</div>
+        <div style="font-size: 13px; color: var(--text-secondary);">Cell 1 &middot; preprocessing leaks into the split</div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+      <span style="font-size: 11px; background: var(--bg-success); color: var(--text-success); padding: 4px 10px; border-radius: var(--radius);">leakage</span>
+      <span style="font-size: 11px; background: var(--bg-success); color: var(--text-success); padding: 4px 10px; border-radius: var(--radius);">efficiency</span>
+      <span style="font-size: 11px; background: var(--bg-success); color: var(--text-success); padding: 4px 10px; border-radius: var(--radius);">reproducibility</span>
+    </div>
+  </div>
+
+  <div style="background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 10px;">
+    <div style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px;">02 / MODEL CANDIDATES</div>
+    <div style="font-size: 15px; font-weight: 500; margin-bottom: 12px;">3 models match this task</div>
+
+    <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 0.5px solid var(--border);">
+      <div style="width: 30px; height: 30px; border-radius: var(--radius); background: var(--surface-1); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: var(--text-secondary); flex-shrink: 0;">RF</div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 13.5px; font-weight: 500;">Random forest</div>
+        <div style="font-size: 12px; color: var(--text-muted);">Currently in the notebook</div>
+      </div>
+      <div style="text-align: right;"><div style="font-size: 10px; color: var(--text-muted);">EVAL</div><div style="font-size: 13px; font-weight: 500;">0.887</div></div>
+      <div style="text-align: right;"><div style="font-size: 10px; color: var(--text-muted);">TRAIN</div><div style="font-size: 13px; font-weight: 500;">41s</div></div>
+      <div style="text-align: right;"><div style="font-size: 10px; color: var(--text-muted);">MEM</div><div style="font-size: 13px; font-weight: 500;">640mb</div></div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; padding: 10px 8px; margin: 4px -8px; background: var(--bg-success); border: 1px solid var(--border-success); border-radius: var(--radius);">
+      <div style="width: 30px; height: 30px; border-radius: var(--radius); background: var(--text-success); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: var(--surface-2); flex-shrink: 0;">LG</div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 13.5px; font-weight: 500; color: var(--text-success);">LightGBM</div>
+        <div style="font-size: 12px; color: var(--text-success);">Best mean rank across the registry</div>
+      </div>
+      <div style="text-align: right;"><div style="font-size: 10px; color: var(--text-success);">EVAL</div><div style="font-size: 13px; font-weight: 500; color: var(--text-success);">0.912</div></div>
+      <div style="text-align: right;"><div style="font-size: 10px; color: var(--text-success);">TRAIN</div><div style="font-size: 13px; font-weight: 500; color: var(--text-success);">9s</div></div>
+      <div style="text-align: right;"><div style="font-size: 10px; color: var(--text-success);">MEM</div><div style="font-size: 13px; font-weight: 500; color: var(--text-success);">210mb</div></div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 0.5px solid var(--border);">
+      <div style="width: 30px; height: 30px; border-radius: var(--radius); background: var(--surface-1); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: var(--text-secondary); flex-shrink: 0;">XG</div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 13.5px; font-weight: 500;">XGBoost</div>
+        <div style="font-size: 12px; color: var(--text-muted);">Comparable accuracy, slower</div>
+      </div>
+      <div style="text-align: right;"><div style="font-size: 10px; color: var(--text-muted);">EVAL</div><div style="font-size: 13px; font-weight: 500;">0.905</div></div>
+      <div style="text-align: right;"><div style="font-size: 10px; color: var(--text-muted);">TRAIN</div><div style="font-size: 13px; font-weight: 500;">23s</div></div>
+      <div style="text-align: right;"><div style="font-size: 10px; color: var(--text-muted);">MEM</div><div style="font-size: 13px; font-weight: 500;">380mb</div></div>
+    </div>
+  </div>
+
+  <div style="background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 10px;">
+    <div style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px;">03 / ROUTE SELECTED</div>
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 22px; height: 22px; border-radius: 50%; background: var(--bg-success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <i class="ti ti-check" style="font-size:13px; color: var(--text-success);" aria-hidden="true"></i>
+        </div>
+        <div>
+          <div style="font-size: 15px; font-weight: 500;">Switch to LightGBM</div>
+          <div style="font-size: 13px; color: var(--text-secondary);">4.5x faster, equal or better accuracy</div>
+        </div>
+      </div>
+      <span style="font-family: var(--font-mono); font-size: 12px; background: var(--surface-1); border: 0.5px solid var(--border); padding: 6px 12px; border-radius: var(--radius); white-space: nowrap;">eval 0.912 &middot; 9s &middot; 210mb</span>
+    </div>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <button id="apply-btn" style="font-size: 12.5px; padding: 6px 12px;"><i class="ti ti-bolt" style="font-size:14px; vertical-align:-2px; margin-right:4px;" aria-hidden="true"></i>Apply switch</button>
+      <button style="font-size: 12.5px; padding: 6px 12px;">Compare</button>
+      <button id="ask-btn2" style="font-size: 12.5px; padding: 6px 12px; margin-left: auto;">Ask a follow-up ↗</button>
+    </div>
+  </div>
+
+  <div id="apply-card" style="display: none; background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem;">
+    <div style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px;">04 / APPLYING</div>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+      <div style="font-size: 15px; font-weight: 500;">Retraining with LightGBM</div>
+      <span id="pct" style="font-size: 13px; color: var(--text-secondary);">0%</span>
+    </div>
+    <div style="height: 6px; background: var(--surface-1); border-radius: 3px; overflow: hidden;">
+      <div id="bar" style="height: 100%; width: 0%; background: var(--fill-success); transition: width 0.4s linear;"></div>
+    </div>
+  </div>
+
+</div>
+<script>
+(function(){
+  document.getElementById('ask-btn2').addEventListener('click', function(){
+    sendPrompt('Why does LightGBM beat random forest here, and is 210mb of memory realistic on my machine?');
+  });
+  document.getElementById('apply-btn').addEventListener('click', function(){
+    var card = document.getElementById('apply-card');
+    var bar = document.getElementById('bar');
+    var pct = document.getElementById('pct');
+    card.style.display = 'block';
+    var v = 0;
+    var timer = setInterval(function(){
+      v += 7;
+      if (v >= 100) { v = 100; clearInterval(timer); }
+      bar.style.width = v + '%';
+      pct.textContent = v + '%';
+    }, 120);
+  });
+})();
+</script>

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مقایسهٔ مدل‌های متن‌باز</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#ffffff; --ink:#1f2937; --soft:#6b7280; --line:#e5e7eb; --band:#f3f4f6; --acc:#1d4ed8; --good:#e7f6ec; --bad:#fdecec; --warn:#fff7e0; --code:#f6f7f9; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:#111827; --ink:#e5e7eb; --soft:#9ca3af; --line:#374151; --band:#1f2937; --acc:#93c5fd; --good:#12301f; --bad:#3a1717; --warn:#3a3112; --code:#1f2937; }
+  }
+  :root[data-theme="dark"] { --bg:#111827; --ink:#e5e7eb; --soft:#9ca3af; --line:#374151; --band:#1f2937; --acc:#93c5fd; --good:#12301f; --bad:#3a1717; --warn:#3a3112; --code:#1f2937; }
+  html, body { background: var(--bg); color: var(--ink); }
+  body { font-family: "Vazirmatn", Tahoma, sans-serif; font-size: 20px; line-height: 2.1; max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 30px; font-weight: 800; line-height: 1.6; margin: 8px 0 16px; }
+  h2 { font-size: 24px; font-weight: 800; color: var(--acc); margin-top: 40px; border-bottom: 2px solid var(--line); padding-bottom: 6px; }
+  h3 { font-size: 20px; font-weight: 600; margin-top: 24px; }
+  p, li { margin: 6px 0; }
+  ul, ol { padding-right: 24px; padding-left: 0; }
+  b, strong { font-weight: 800; }
+  .ltr, code { direction: ltr; unicode-bidi: isolate; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 16px; background: var(--code); padding: 1px 6px; border-radius: 4px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 17px; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: right; vertical-align: top; }
+  th { background: var(--band); font-weight: 800; }
+  .box { border: 1px solid var(--line); border-radius: 8px; padding: 10px 16px; margin: 12px 0; background: var(--band); }
+  .ex { border-right: 4px solid var(--acc); background: var(--band); padding: 8px 14px; margin: 8px 0; border-radius: 4px; }
+  .note { color: var(--soft); font-size: 17px; }
+  @media (max-width: 600px) { body { font-size: 19px; } table { font-size: 15px; } th, td { padding: 6px; } }
+  @media print { body { max-width: none; } h2 { break-after: avoid; } table, .ex { break-inside: avoid; } }
+  .tw { overflow-x: auto; max-width: 100%; }
+  code { overflow-wrap: anywhere; }
+  bdi { white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<h1>کدام مدل متن‌باز برای fine-tune کردن DCLab خوب است؟</h1>
+<p class="note">۲۳ اکتبر ۲۰۲۶ · <bdi dir="ltr">DCLab R&amp;D</bdi> · پژوهش سه عامل، یادداشت‌ها در <code>research_notes/open_models_2026-10/</code></p>
+
+<div class="box"><b>جواب کوتاه:</b> هیچ مدلی به‌تنهایی <b>همه‌ی</b> توانایی‌هایی را که می‌خواهید ندارد. بهترین راه یک <b>خانواده</b> است:
+<ul>
+<li><b>حل‌کننده و جریان کار</b> (<bdi dir="ltr">M4, M5</bdi>): <bdi dir="ltr">Qwen3.6-35B-A3B</bdi> یا <bdi dir="ltr">Qwen3.8-27B</bdi>.</li>
+<li><b>فارسی</b> و معلمِ متن: <bdi dir="ltr">Gemma 4 31B</bdi>.</li>
+<li><b>شاگردهای کوچک</b> (<bdi dir="ltr">M1, M2, M3, M6</bdi>): <bdi dir="ltr">Qwen3.5-4B</bdi>، <bdi dir="ltr">Granite 4.2-3B</bdi>، <bdi dir="ltr">Gemma 4 E4B</bdi>.</li>
+</ul>
+ولی انتخاب نهایی را <b>آزمون‌های خود DCLab</b> می‌کنند، نه جدول‌های اینترنت.</div>
+
+<h2>۱. DCLab از مدل چه می‌خواهد؟</h2>
+<div class="tw"><table>
+<tr><th>توانایی</th><th>چرا لازم است</th><th>مثال DCLab</th></tr>
+<tr><td>صدا زدن ابزار در چند نوبت</td><td>عامل باید قدم‌به‌قدم ابزار صدا بزند</td><td><code>describe_data</code> ← <code>review_leakage</code> ← <code>run_stage</code></td></tr>
+<tr><td>نگه داشتن «فکر» بین نوبت‌ها</td><td>دلیلِ قدم قبلی گم نشود</td><td>«ستون <code>duration</code> نشت دارد، پس کنارش می‌گذارم» در نوبت بعد یادش بماند</td></tr>
+<tr><td>نوشتن کد</td><td>خروجی <code>pipeline.py</code></td><td>کدی که عدد holdout را دوباره می‌سازد</td></tr>
+<tr><td>متن طولانی</td><td>یک اجرای کامل ۸ تا ۳۲ هزار توکن است</td><td>یک حل کامل روی Telco</td></tr>
+<tr><td>فارسی و انگلیسی</td><td>مالک و کاربران فارسی‌زبان</td><td>توضیح گزارش به فارسی</td></tr>
+<tr><td>مجوز تجاری</td><td>DCLab را به‌عنوان سرویس می‌فروشید</td><td>باید اجازه‌ی fine-tune و فروش بدهد</td></tr>
+<tr><td>جا شدن روی <bdi dir="ltr">M1 Max</bdi></td><td>اجرا (و شاید آموزش) روی Mac</td><td>۳۲ یا ۶۴ گیگ حافظه</td></tr>
+</table></div>
+
+<h2>۲. رتبه‌بندی برای هر نقش</h2>
+
+<h3>حل‌کننده (<bdi dir="ltr">M5</bdi>) و مدل جریان کار (<bdi dir="ltr">M4</bdi>)</h3>
+<div class="tw"><table>
+<tr><th>مدل</th><th>نقطه‌ی قوت</th><th>نقطه‌ی ضعف</th><th>مجوز</th></tr>
+<tr><td><b><bdi dir="ltr">Qwen3.6-35B-A3B</bdi></b> ⭐</td><td>ابزار خیلی خوب (τ² ۹۵٫۳، سنجش مستقل)؛ سریع چون فقط ۳ میلیارد پارامترش در هر قدم کار می‌کند</td><td>آموزش روی Mac فقط با ۶۴ گیگ</td><td><bdi dir="ltr">Apache-2.0</bdi></td></tr>
+<tr><td><b><bdi dir="ltr">Qwen3.8-27B</bdi></b> ⭐</td><td>بهترین در کار ترمینالی (۷۹٫۸) و متن طولانی (۸۲)؛ فکر را به‌طور پیش‌فرض نگه می‌دارد؛ فارسی ۷۶</td><td>چگال است: آموزش روی Mac ۸ تا ۱۰ روز (عملاً نه)</td><td><bdi dir="ltr">Apache-2.0</bdi></td></tr>
+<tr><td><bdi dir="ltr">GLM-4.7-Flash</bdi></td><td>بالاترین τ² (۹۸٫۸)</td><td>متن طولانی ضعیف (۴۱٫۷)؛ اجراهای DCLab بلندند</td><td><bdi dir="ltr">MIT</bdi></td></tr>
+<tr><td><bdi dir="ltr">Nemotron 3.5</bdi></td><td>تمیزترین مجوز و داده‌ی آموزشی باز</td><td>ضعیف‌تر (ترمینال ۲۴٫۳)</td><td><bdi dir="ltr">OpenMDW</bdi></td></tr>
+</table></div>
+<div class="ex"><b>مثال:</b> در یک حل fraud، عامل ۳۰ نوبت ابزار صدا می‌زند. Qwen3.6-35B-A3B این را سریع و ارزان روی Mac اجرا می‌کند. GLM-4.7-Flash در نوبت‌های اول خوب است ولی وقتی متن بلند شد، دلیل‌های اول را گم می‌کند.</div>
+
+<h3>فارسی</h3>
+<div class="tw"><table>
+<tr><th>مدل</th><th>امتیاز فارسی (OPLL)</th><th>نکته</th></tr>
+<tr><td><b><bdi dir="ltr">Gemma 4 31B</bdi></b></td><td>۷۸٫۶ (بهترین)</td><td>در ابزار ضعیف‌تر (τ² ۵۹٫۹)؛ فکرهای قبلی را دور می‌ریزد</td></tr>
+<tr><td><bdi dir="ltr">Qwen3.8-27B</bdi></td><td>۷۶٫۱</td><td>فارسی خوب <b>و</b> ابزار خوب: شاید یک مدل برای هر دو</td></tr>
+<tr><td><bdi dir="ltr">Gemma 4 E4B</bdi></td><td>۵۹٫۰</td><td>بهترین در مدل‌های کوچک</td></tr>
+</table></div>
+
+<h3>شاگردهای کوچک (۱ تا ۴ میلیارد)</h3>
+<div class="tw"><table>
+<tr><th>مدل</th><th>چرا</th></tr>
+<tr><td><b><bdi dir="ltr">Qwen3.5-4B</bdi></b></td><td>ابزار خوب برای اندازه‌اش (τ² ۹۲٫۱)؛ روی ۳۲ گیگ با متن ۱۶ هزار توکنی آموزش می‌بیند (حدود ۳۴ ساعت)</td></tr>
+<tr><td><bdi dir="ltr">Granite 4.2-3B</bdi></td><td>نسخه‌ی رسمی MLX دارد؛ کمترین دردسر نصب</td></tr>
+<tr><td><bdi dir="ltr">Gemma 4 E4B</bdi></td><td>بهترین فارسی کوچک؛ ولی در ابزار ضعیف</td></tr>
+</table></div>
+<div class="ex"><b>مثال:</b> شاگرد «آیا این ستون نشت دارد؟» فقط یک جواب کوتاه می‌دهد. یک مدل ۴ میلیاردی برای این کافی است و در کسری از ثانیه روی Mac جواب می‌دهد.</div>
+
+<h2>۳. از این‌ها دوری کنید (تله‌ی مجوز)</h2>
+<ul>
+<li><bdi dir="ltr">Cohere Aya</bdi>، <bdi dir="ltr">EXAONE</bdi>، <bdi dir="ltr">MiniMax M2.7</bdi>: فقط غیرتجاری. نمی‌توانید بفروشید.</li>
+<li><bdi dir="ltr">Hunyuan</bdi> کوچک: اروپا و بریتانیا را استثنا کرده؛ آموزش مدل دیگر با آن ممنوع.</li>
+<li><bdi dir="ltr">Qwen3.8-Flash-Next</bdi>: فروش به‌عنوان سرویس مجوز جدا می‌خواهد.</li>
+<li>بعضی مدل‌های Mistral و Liquid: سقف درآمد دارند.</li>
+<li><bdi dir="ltr">Muse Glimmer</bdi> (Meta): Apache است ولی یک فایل «سیاست استفاده» کنارش هست که معلوم نیست چقدر الزام‌آور است. پیش از استفاده بپرسید.</li>
+</ul>
+
+<h2>۴. روی <bdi dir="ltr">M1 Max</bdi> چه جا می‌شود؟ (تخمین)</h2>
+<div class="tw"><table>
+<tr><th>اندازه</th><th>۳۲ گیگ</th><th>۶۴ گیگ</th><th>زمان یک دور (۱٬۰۰۰ مثال × ۱۶ هزار توکن)</th></tr>
+<tr><td>۴ میلیارد</td><td>✅ تا ۱۶K</td><td>✅</td><td>حدود ۳۴ ساعت</td></tr>
+<tr><td>۸–۹ میلیارد</td><td>⚠️ فقط ۸K</td><td>✅ تا ۳۲K</td><td>۲٫۵ تا ۳ روز</td></tr>
+<tr><td>۳۰–۳۵ میلیارد MoE</td><td>❌</td><td>⚠️ ۸K تا ۱۶K</td><td>حدود ۲ روز</td></tr>
+<tr><td>۲۷–۳۱ میلیارد چگال</td><td>❌</td><td>⚠️ خیلی کند</td><td>۸ تا ۱۰ روز</td></tr>
+</table></div>
+<p><b>راه بهتر برای مدل‌های بزرگ:</b> آموزش روی GPU کرایه‌ای (یک دور حدود <bdi dir="ltr">$7–67</bdi> در Tinker، یا <bdi dir="ltr">$3–10</bdi> با H100)، بعد <b>اجرا</b> روی Mac.</p>
+<div class="ex"><b>مثال:</b> Qwen3.8-27B روی Mac ده روز طول می‌کشد و در این مدت Mac برای کار دیگری آزاد نیست. همین کار روی یک H100 کرایه‌ای چند ساعت و کمتر از ۱۰ دلار است.</div>
+
+<h3>چند مشکل فنی که باید پیش از آموزش درست شوند</h3>
+<ul>
+<li>ابزار استاندارد MLX فقط <b>آخرین</b> پیام را آموزش می‌دهد. برای اجراهای چندنوبتی DCLab باید هر نوبتِ دستیار آموزش ببیند (حدود ۶۰ خط کد).</li>
+<li>طول پیش‌فرض ۲۰۴۸ توکن است و مثال‌های بلند را <b>بی‌صدا</b> قطع می‌کند.</li>
+<li>Qwen3.5 به بعد به <code>mlx-lm-lora</code> نیاز دارد.</li>
+<li>Gemma 4 روی MLX عملاً تا حدود ۸K محدود است.</li>
+</ul>
+
+<h2>۵. هشدارهای صادقانه</h2>
+<ul>
+<li><b>بیشتر عددها را خود سازنده‌ها داده‌اند.</b> مثلاً Qwen3.6-27B در SWE-bench می‌گوید ۷۷٫۲، ولی روی مسئله‌های تازه ۳۱٫۲ گرفت.</li>
+<li><b>هیچ آزمون عمومی‌ای «یادگیری ماشینِ بدون نشت» را نمی‌سنجد.</b> این دقیقاً کار DCLab است.</li>
+<li><b>آزمون فارسیِ به‌روز وجود ندارد.</b> عدد OPLL قدیمی‌تر است.</li>
+<li>مطمئن نیستم M1 Max شما ۳۲ گیگ است یا ۶۴. جواب نصف جدول بالا را عوض می‌کند.</li>
+<li>آموزش با اجراهای Claude هنوز منتظر بررسی حقوقیِ شما (D11) است.</li>
+</ul>
+
+<h2>۶. قدم بعدی پیشنهادی</h2>
+<ol>
+<li><b>آزمون آزمایشی کوچک:</b> ۱۰۰ قدم آموزش Qwen3.5-4B روی Mac، فقط برای اینکه مطمئن شویم زنجیره کار می‌کند.</li>
+<li><b>مسابقه‌ی DCLab:</b> ۳ یا ۴ نامزد را بدون آموزش روی آزمون‌های خودمان اجرا کنیم: journeys، harness، تله‌های کاشته‌شده، اجراهای حل‌کننده، و ۱۰۰ تا ۲۰۰ سؤال فارسی.</li>
+<li>برنده را انتخاب کنیم، و بعد آموزش واقعی روی GPU کرایه‌ای.</li>
+</ol>
+<div class="box"><b>نتیجه:</b> Qwen برای کار عاملی، Gemma برای فارسی، مدل‌های ۴ میلیاردی برای شاگردها. ولی <b>آزمون خود DCLab</b> تصمیم می‌گیرد.</div>
+
+</body>
+</html>

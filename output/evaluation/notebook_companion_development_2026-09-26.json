@@ -1,0 +1,90 @@
+{
+  "suite_id": "dclab_notebook_companion_development_v1",
+  "scope": "The same researcher-authored development cases used to find prior prototype flaws; not blinded generalization",
+  "cases_passed": 7,
+  "cases_total": 7,
+  "proof_rules_passed": 4,
+  "proof_rules_scored": 4,
+  "availability_wording_safe": true,
+  "overall_release_ready": false,
+  "records": [
+    {
+      "id": "hyperack_eda_not_training",
+      "observed": false,
+      "expected": false,
+      "pass": true,
+      "expected_proof_rule": null,
+      "proof_rule_pass": null,
+      "safe_wording": null,
+      "finding_kind": null,
+      "cell_sha256": "06763470ae3ba450dc1847b5afdd7a36a642eec49268795a1a65db113d5821ec"
+    },
+    {
+      "id": "hyperack_full_data_clustering",
+      "observed": true,
+      "expected": true,
+      "pass": true,
+      "expected_proof_rule": null,
+      "proof_rule_pass": null,
+      "safe_wording": null,
+      "finding_kind": "cross_cell_preprocessing_review",
+      "cell_sha256": "5f7581cdab048609bb3bdcef1d37f0158e03b8c2460d24936816c56f487b8ff0"
+    },
+    {
+      "id": "hyperack_scale_before_split",
+      "observed": true,
+      "expected": true,
+      "pass": true,
+      "expected_proof_rule": "DCLAB-R04",
+      "proof_rule_pass": true,
+      "safe_wording": null,
+      "finding_kind": "preprocessing_before_split",
+      "cell_sha256": "cbc52d4158ef8ea566b29e0f6bae0b6947f50e5554a817734953e0d2fa76075b"
+    },
+    {
+      "id": "churn_scale_before_split",
+      "observed": true,
+      "expected": true,
+      "pass": true,
+      "expected_proof_rule": "DCLAB-R04",
+      "proof_rule_pass": true,
+      "safe_wording": null,
+      "finding_kind": "preprocessing_before_split",
+      "cell_sha256": "c517dad60dd7ed4f8c6e4cb955f21fe658928a4349f0e8b73679eda494dea89a"
+    },
+    {
+      "id": "churn_cancellation_date_availability",
+      "observed": true,
+      "expected": true,
+      "pass": true,
+      "expected_proof_rule": "DCLAB-R05",
+      "proof_rule_pass": true,
+      "safe_wording": true,
+      "finding_kind": "prediction_time_availability",
+      "cell_sha256": "c517dad60dd7ed4f8c6e4cb955f21fe658928a4349f0e8b73679eda494dea89a"
+    },
+    {
+      "id": "churn_unseeded_split",
+      "observed": true,
+      "expected": true,
+      "pass": true,
+      "expected_proof_rule": null,
+      "proof_rule_pass": null,
+      "safe_wording": null,
+      "finding_kind": "unseeded_split",
+      "cell_sha256": "c517dad60dd7ed4f8c6e4cb955f21fe658928a4349f0e8b73679eda494dea89a"
+    },
+    {
+      "id": "churn_single_model_suggestion",
+      "observed": true,
+      "expected": true,
+      "pass": true,
+      "expected_proof_rule": "DCLAB-R13",
+      "proof_rule_pass": true,
+      "safe_wording": null,
+      "finding_kind": "single_model_comparison",
+      "cell_sha256": "877520114d99ff18183f0f21f4d93f11a32caaf92227a403e4b23d5c5a509033"
+    }
+  ],
+  "manifest_sha256": "fdeb38125a64af2348949eef0dd6651a827a2830b63410fd449147ce84d6843c"
+}

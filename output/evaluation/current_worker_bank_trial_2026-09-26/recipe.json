@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "plan": {
+    "dataset": "bank_marketing",
+    "title": "Pre-call logistic baseline with balance and history absence diagnostics",
+    "hypothesis": "Logistic regression with C=1 provides a transparent reference for pre-call subscription prediction using eligible account, schedule and prior-history inputs. Establish current development evidence before comparing a tree family; historical results do not establish this run's performance.",
+    "model": "logistic_regression",
+    "parameters": {
+      "C": 1.0,
+      "n_estimators": null,
+      "max_depth": null,
+      "min_samples_leaf": null,
+      "learning_rate": null
+    },
+    "features": [],
+    "drop_columns": [
+      "duration",
+      "campaign"
+    ],
+    "stress_columns": [
+      "balance",
+      "pdays",
+      "previous"
+    ],
+    "evidence_ids": [],
+    "expected_learning": "Establish baseline average precision, ROC-AUC, Brier score and log loss on the fixed subset using two shared, seeded stratified three-fold CV repeats. Fit imputation, numeric scaling and nominal categorical encoding within training folds; use no class weighting. Treat day_of_week as nominal without inventing calendar semantics. Exclude duration because it is post-call and campaign because its pre-call availability is unverified. Save splits and held-out predictions for paired comparisons. Examine frozen-model sensitivity to the listed source-column stresses using documented training-fold replacements; these do not establish complete history-loss robustness because poutcome remains available. Report probability-bin counts, mean predictions and observed frequencies separately by repeat where supported. Interpret results as descriptive development evidence, not independent test performance or deployment validation."
+  },
+  "max_rows": 2000,
+  "repeats": 2,
+  "data_hashes": {
+    "X.parquet": "cb08d5147dad00ac1f65791b89afb411c4df0bf38a2d294e6e2f684c15bc40c4",
+    "y.parquet": "b9aa6ad73e0b95f6a038fe072888ac21eb1e8fadca97a0789817f6ecbdbe3237",
+    "meta.json": "b8761444ec51b658af715a32e590c0b37e2c57e6f9dc0a623d999de3f428186a"
+  },
+  "worker_hash": "f239ffc1c6ab120bda64010deb921b85b89716c6b3fa8ffcea9c540f0cfc52aa",
+  "catalog_hash": "bed46002fff6d81a3c8bce85912ef998488ae2513bd232ad87ae5f60e272d23b",
+  "blocks": [
+    "load fingerprinted public data",
+    "decision-time policy gate",
+    "fixed duplicate-group folds",
+    "fold-local feature/preprocessing pipeline",
+    "fit and predict OOF",
+    "stress and permutation diagnostics",
+    "paired development comparison; external confirmation pending"
+  ]
+}

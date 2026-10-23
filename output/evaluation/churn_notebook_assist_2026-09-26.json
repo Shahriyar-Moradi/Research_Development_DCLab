@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "notebook_path": "Cluad_R&D_aritfacts_sptember22/demo_churn_model.ipynb",
+  "dataset_inferred": "telco_churn",
+  "rules_sha256": "9b29b9fcf7c2452637085c2efcefab67d2aa8445bd6db150b3abf8088aef208d",
+  "code_cells": [
+    {
+      "notebook_cell_index": 0,
+      "code_cell_index": 0,
+      "source_sha256": "c517dad60dd7ed4f8c6e4cb955f21fe658928a4349f0e8b73679eda494dea89a",
+      "findings": [
+        {
+          "kind": "preprocessing_before_split",
+          "severity": "high",
+          "confidence": "code_order_observed",
+          "title": "Preprocessing appears to fit before the split",
+          "explanation": "A fitted transform runs before the train/test split in this cell's top-level flow. Evaluation rows may influence the transform.",
+          "next_step": "Split first; fit transformations inside training folds or a Pipeline, then compare on unchanged folds.",
+          "proof": {
+            "records": [
+              {
+                "type": "methodological_rule",
+                "id": "DCLAB-R03",
+                "statement": "Fit target-aware EDA, imputers, encoders, scalers, selectors and learned aggregations on training partitions only.",
+                "why": "Any statistic that sees evaluation labels or distributions can make validation optimistic.",
+                "source_references": [
+                  "campaigns/model_building_50_v1/CAMPAIGN_REPORT.md"
+                ],
+                "confidence": "high methodological"
+              },
+              {
+                "type": "methodological_rule",
+                "id": "DCLAB-R04",
+                "statement": "Treat post-outcome, future, target-derived, cross-split aggregate, duplicate/entity and preprocessing leakage as separate failure modes.",
+                "why": "One correlation detector cannot identify all leakage mechanisms.",
+                "source_references": [
+                  "EXP-007",
+                  "EXP-042",
+                  "knowledge/KNOWLEDGE_BASE.md"
+                ],
+                "confidence": "high methodological"
+              }
+            ],
+            "exact_analogous_experiment": false
+          },
+          "auto_fix_available": false
+        },
+        {
+          "kind": "prediction_time_availability",
+          "severity": "review",
+          "confidence": "needs_product_contract",
+          "title": "Verify when `cancellation_date` becomes available",
+          "explanation": "`cancellation_date` is selected as an input and its name suggests it may be recorded after the prediction moment. A name alone does not prove leakage.",
+          "next_step": "Record the decision time, source timestamp and lineage. Exclude it only if unavailable at prediction time; then run a safe-feature ablation.",
+          "proof": {
+            "records": [
+              {
+                "type": "methodological_rule",
+                "id": "DCLAB-R01",
+                "statement": "Write the prediction moment, target window, action, unit of prediction and error costs before inspecting target associations.",
+                "why": "Leakage is defined relative to what is knowable at a specific decision moment, not by a column name.",
+                "source_references": [
+                  "campaigns/model_building_50_v1/AGENT_CONTEXT.md"
+                ],
+                "confidence": "high methodological"
+              },
+              {
+                "type": "methodological_rule",
+                "id": "DCLAB-R05",
+                "statement": "A suspicious name or high univariate AUC starts a semantic review; it does not prove leakage.",
+                "why": "Availability requires source lineage and timestamps; useful real predictors can also be highly associated.",
+                "source_references": [
+                  "campaigns/model_building_50_v1/CAMPAIGN_REPORT.md"
+                ],
+                "confidence": "high methodological"
+              }
+            ],
+            "exact_analogous_experiment": false
+          },
+          "auto_fix_available": false
+        },
+        {
+          "kind": "unseeded_split",
+          "severity": "low",
+          "confidence": "syntax_observed",
+          "title": "Make this split repeatable",
+          "explanation": "train_test_split has no explicit random_state in this call.",
+          "next_step": "Set a seed and preserve the split identity before comparing experiments.",
+          "proof": {
+            "records": [],
+            "exact_analogous_experiment": false,
+            "note": "No directly matching DCLab rule or experiment is cited for this syntax suggestion."
+          },
+          "auto_fix_available": false
+        }
+      ],
+      "review_status": "findings"
+    },
+    {
+      "notebook_cell_index": 1,
+      "code_cell_index": 1,
+      "source_sha256": "877520114d99ff18183f0f21f4d93f11a32caaf92227a403e4b23d5c5a509033",
+      "findings": [
+        {
+          "kind": "single_model_comparison",
+          "severity": "suggestion",
+          "confidence": "not_a_correctness_fault",
+          "title": "Consider a comparison baseline",
+          "explanation": "This notebook instantiates only RandomForestClassifier. That may be intentional, but one model cannot establish which family works best here.",
+          "next_step": "On identical folds, compare a transparent baseline with one justified alternative before tuning.",
+          "proof": {
+            "records": [
+              {
+                "type": "methodological_rule",
+                "id": "DCLAB-R13",
+                "statement": "There is no universal best tabular algorithm; screen a transparent linear baseline and several nonlinear families on identical folds.",
+                "why": "LightGBM had best mean rank across the registry, Extra Trees won 7/10 in the controlled campaign, logistic won churn, and an ensemble won HyperAck.",
+                "source_references": [
+                  "knowledge/evidence.json",
+                  "campaigns/model_building_50_v1/CAMPAIGN_REPORT.md",
+                  "CHURN-014"
+                ],
+                "confidence": "strong empirical"
+              }
+            ],
+            "exact_analogous_experiment": false
+          },
+          "auto_fix_available": false
+        }
+      ],
+      "review_status": "findings"
+    }
+  ],
+  "finding_count": 4,
+  "limitations": [
+    "Static review only; notebook execution order and runtime values are not observed.",
+    "No model-generated code or automatic notebook edits.",
+    "A DCLab rule is methodology, not proof that this notebook has a bug.",
+    "Only an exact matching experiment claim is labeled analogous; otherwise no direct precedent is asserted."
+  ]
+}

@@ -1,0 +1,438 @@
+{
+  "schema_version": 1,
+  "scope": "read-only audit of archived Research Studio runs; no live-agent judgment or external confirmation",
+  "run_count": 6,
+  "run_statuses": {
+    "failed": 2,
+    "budget_exhausted": 1,
+    "completed": 3
+  },
+  "cycle_completion": {
+    "completed": 3,
+    "terminal_runs": 6,
+    "rate": 0.5,
+    "wilson_95": [
+      0.18761280689940868,
+      0.8123871931005913
+    ]
+  },
+  "trials_audited": 12,
+  "trials_passing": 7,
+  "issue_count": 10,
+  "issues_by_code": {
+    "repeat_summary_missing": 4,
+    "repeat_summary_uses_fold_mean": 6
+  },
+  "issues": [
+    {
+      "code": "repeat_summary_missing",
+      "location": "d311bd62ad644b03ac98f1dab0b5a489/d311bd62ad644b03ac98f1dab0b5a489:trial-001/repeat-0",
+      "detail": "Pooled repeat scores can be reconstructed from saved OOF predictions"
+    },
+    {
+      "code": "repeat_summary_missing",
+      "location": "d311bd62ad644b03ac98f1dab0b5a489/d311bd62ad644b03ac98f1dab0b5a489:trial-001/repeat-1",
+      "detail": "Pooled repeat scores can be reconstructed from saved OOF predictions"
+    },
+    {
+      "code": "repeat_summary_missing",
+      "location": "d311bd62ad644b03ac98f1dab0b5a489/d311bd62ad644b03ac98f1dab0b5a489:trial-002/repeat-0",
+      "detail": "Pooled repeat scores can be reconstructed from saved OOF predictions"
+    },
+    {
+      "code": "repeat_summary_missing",
+      "location": "d311bd62ad644b03ac98f1dab0b5a489/d311bd62ad644b03ac98f1dab0b5a489:trial-002/repeat-1",
+      "detail": "Pooled repeat scores can be reconstructed from saved OOF predictions"
+    },
+    {
+      "code": "repeat_summary_uses_fold_mean",
+      "location": "eb59895d248c4c909bc731127ca05370/eb59895d248c4c909bc731127ca05370:trial-001/repeat-0",
+      "detail": "Reported values are fold averages, not pooled out-of-fold metrics"
+    },
+    {
+      "code": "repeat_summary_uses_fold_mean",
+      "location": "eb59895d248c4c909bc731127ca05370/eb59895d248c4c909bc731127ca05370:trial-001/repeat-1",
+      "detail": "Reported values are fold averages, not pooled out-of-fold metrics"
+    },
+    {
+      "code": "repeat_summary_uses_fold_mean",
+      "location": "eb59895d248c4c909bc731127ca05370/eb59895d248c4c909bc731127ca05370:trial-002/repeat-0",
+      "detail": "Reported values are fold averages, not pooled out-of-fold metrics"
+    },
+    {
+      "code": "repeat_summary_uses_fold_mean",
+      "location": "eb59895d248c4c909bc731127ca05370/eb59895d248c4c909bc731127ca05370:trial-002/repeat-1",
+      "detail": "Reported values are fold averages, not pooled out-of-fold metrics"
+    },
+    {
+      "code": "repeat_summary_uses_fold_mean",
+      "location": "eb59895d248c4c909bc731127ca05370/eb59895d248c4c909bc731127ca05370:trial-003/repeat-0",
+      "detail": "Reported values are fold averages, not pooled out-of-fold metrics"
+    },
+    {
+      "code": "repeat_summary_uses_fold_mean",
+      "location": "eb59895d248c4c909bc731127ca05370/eb59895d248c4c909bc731127ca05370:trial-003/repeat-1",
+      "detail": "Reported values are fold averages, not pooled out-of-fold metrics"
+    }
+  ],
+  "agent_decision_accuracy": null,
+  "user_task_success": null,
+  "independent_model_confirmation": null,
+  "overall_release_ready": false,
+  "runs": [
+    {
+      "id": "4e4b2bb0bd3045229bab58c0be27cdad",
+      "status": "failed",
+      "trials": [],
+      "issues": [],
+      "llm_calls": 1,
+      "tokens_reported": {}
+    },
+    {
+      "id": "6141d054c4764b698c92909a454362d8",
+      "status": "budget_exhausted",
+      "trials": [
+        {
+          "id": "6141d054c4764b698c92909a454362d8:trial-001",
+          "audited": true,
+          "passed": true,
+          "dataset": "telco_churn",
+          "repeat_corrections": []
+        },
+        {
+          "id": "6141d054c4764b698c92909a454362d8:trial-002",
+          "audited": true,
+          "passed": true,
+          "dataset": "telco_churn",
+          "repeat_corrections": []
+        },
+        {
+          "id": "6141d054c4764b698c92909a454362d8:trial-003",
+          "audited": true,
+          "passed": true,
+          "dataset": "telco_churn",
+          "repeat_corrections": []
+        }
+      ],
+      "issues": [],
+      "llm_calls": 11,
+      "tokens_reported": {
+        "input_tokens": 74085,
+        "output_tokens": 7885,
+        "total_tokens": 81970
+      }
+    },
+    {
+      "id": "72a082af14c94cdb85abbb48cef951d6",
+      "status": "completed",
+      "trials": [
+        {
+          "id": "72a082af14c94cdb85abbb48cef951d6:trial-001",
+          "audited": true,
+          "passed": true,
+          "dataset": "german_credit",
+          "repeat_corrections": []
+        },
+        {
+          "id": "72a082af14c94cdb85abbb48cef951d6:trial-002",
+          "audited": true,
+          "passed": true,
+          "dataset": "german_credit",
+          "repeat_corrections": []
+        },
+        {
+          "id": "72a082af14c94cdb85abbb48cef951d6:trial-003",
+          "audited": true,
+          "passed": true,
+          "dataset": "german_credit",
+          "repeat_corrections": []
+        },
+        {
+          "id": "72a082af14c94cdb85abbb48cef951d6:trial-004",
+          "audited": true,
+          "passed": true,
+          "dataset": "german_credit",
+          "repeat_corrections": []
+        }
+      ],
+      "issues": [],
+      "llm_calls": 11,
+      "tokens_reported": {
+        "input_tokens": 141001,
+        "output_tokens": 12095,
+        "total_tokens": 153096
+      }
+    },
+    {
+      "id": "cde300a2645f499ab5745825f213614d",
+      "status": "failed",
+      "trials": [],
+      "issues": [],
+      "llm_calls": 1,
+      "tokens_reported": {}
+    },
+    {
+      "id": "d311bd62ad644b03ac98f1dab0b5a489",
+      "status": "completed",
+      "trials": [
+        {
+          "id": "d311bd62ad644b03ac98f1dab0b5a489:trial-001",
+          "audited": true,
+          "passed": false,
+          "dataset": "bank_marketing",
+          "repeat_corrections": [
+            {
+              "repeat": 0,
+              "reason": "missing",
+              "reported": null,
+              "pooled_oof": {
+                "roc_auc": 0.701888888888889,
+                "average_precision": 0.31097783389256095,
+                "log_loss": 0.29897709677912276,
+                "brier": 0.08047399346252372
+              }
+            },
+            {
+              "repeat": 1,
+              "reason": "missing",
+              "reported": null,
+              "pooled_oof": {
+                "roc_auc": 0.6882777777777778,
+                "average_precision": 0.3146291766087501,
+                "log_loss": 0.3010017607256349,
+                "brier": 0.08044814198605586
+              }
+            }
+          ]
+        },
+        {
+          "id": "d311bd62ad644b03ac98f1dab0b5a489:trial-002",
+          "audited": true,
+          "passed": false,
+          "dataset": "bank_marketing",
+          "repeat_corrections": [
+            {
+              "repeat": 0,
+              "reason": "missing",
+              "reported": null,
+              "pooled_oof": {
+                "roc_auc": 0.6962166666666665,
+                "average_precision": 0.3334781108867057,
+                "log_loss": 0.2913089579086914,
+                "brier": 0.07951818183503549
+              }
+            },
+            {
+              "repeat": 1,
+              "reason": "missing",
+              "reported": null,
+              "pooled_oof": {
+                "roc_auc": 0.6867583333333334,
+                "average_precision": 0.3252496637149337,
+                "log_loss": 0.29345251740746187,
+                "brier": 0.07986987354519798
+              }
+            }
+          ]
+        },
+        {
+          "id": "d311bd62ad644b03ac98f1dab0b5a489:trial-003",
+          "audited": false,
+          "status": "failed"
+        }
+      ],
+      "issues": [
+        {
+          "code": "repeat_summary_missing",
+          "location": "d311bd62ad644b03ac98f1dab0b5a489/d311bd62ad644b03ac98f1dab0b5a489:trial-001/repeat-0",
+          "detail": "Pooled repeat scores can be reconstructed from saved OOF predictions"
+        },
+        {
+          "code": "repeat_summary_missing",
+          "location": "d311bd62ad644b03ac98f1dab0b5a489/d311bd62ad644b03ac98f1dab0b5a489:trial-001/repeat-1",
+          "detail": "Pooled repeat scores can be reconstructed from saved OOF predictions"
+        },
+        {
+          "code": "repeat_summary_missing",
+          "location": "d311bd62ad644b03ac98f1dab0b5a489/d311bd62ad644b03ac98f1dab0b5a489:trial-002/repeat-0",
+          "detail": "Pooled repeat scores can be reconstructed from saved OOF predictions"
+        },
+        {
+          "code": "repeat_summary_missing",
+          "location": "d311bd62ad644b03ac98f1dab0b5a489/d311bd62ad644b03ac98f1dab0b5a489:trial-002/repeat-1",
+          "detail": "Pooled repeat scores can be reconstructed from saved OOF predictions"
+        }
+      ],
+      "llm_calls": 9,
+      "tokens_reported": {
+        "input_tokens": 68414,
+        "output_tokens": 8904,
+        "total_tokens": 77318
+      }
+    },
+    {
+      "id": "eb59895d248c4c909bc731127ca05370",
+      "status": "completed",
+      "trials": [
+        {
+          "id": "eb59895d248c4c909bc731127ca05370:trial-001",
+          "audited": true,
+          "passed": false,
+          "dataset": "bank_marketing",
+          "repeat_corrections": [
+            {
+              "repeat": 0,
+              "reason": "fold_mean_labeled_as_pooled",
+              "reported": {
+                "roc_auc": 0.7034250867397356,
+                "average_precision": 0.31966538691166474,
+                "log_loss": 0.29896107294243995,
+                "brier": 0.0804697578033172
+              },
+              "pooled_oof": {
+                "roc_auc": 0.701888888888889,
+                "average_precision": 0.31097783389256095,
+                "log_loss": 0.29897709677912276,
+                "brier": 0.08047399346252372
+              }
+            },
+            {
+              "repeat": 1,
+              "reason": "fold_mean_labeled_as_pooled",
+              "reported": {
+                "roc_auc": 0.6894867668904375,
+                "average_precision": 0.32829817887168183,
+                "log_loss": 0.30100371777890195,
+                "brier": 0.08045057546859662
+              },
+              "pooled_oof": {
+                "roc_auc": 0.6882777777777778,
+                "average_precision": 0.3146291766087501,
+                "log_loss": 0.3010017607256349,
+                "brier": 0.08044814198605586
+              }
+            }
+          ]
+        },
+        {
+          "id": "eb59895d248c4c909bc731127ca05370:trial-002",
+          "audited": true,
+          "passed": false,
+          "dataset": "bank_marketing",
+          "repeat_corrections": [
+            {
+              "repeat": 0,
+              "reason": "fold_mean_labeled_as_pooled",
+              "reported": {
+                "roc_auc": 0.6976879517485606,
+                "average_precision": 0.3499158402838751,
+                "log_loss": 0.2912952736510628,
+                "brier": 0.0795135264175564
+              },
+              "pooled_oof": {
+                "roc_auc": 0.6962166666666665,
+                "average_precision": 0.3334781108867057,
+                "log_loss": 0.2913089579086914,
+                "brier": 0.07951818183503549
+              }
+            },
+            {
+              "repeat": 1,
+              "reason": "fold_mean_labeled_as_pooled",
+              "reported": {
+                "roc_auc": 0.6873435146731511,
+                "average_precision": 0.3545246472432766,
+                "log_loss": 0.2934547508898559,
+                "brier": 0.07987208159619404
+              },
+              "pooled_oof": {
+                "roc_auc": 0.6867583333333334,
+                "average_precision": 0.3252496637149337,
+                "log_loss": 0.29345251740746187,
+                "brier": 0.07986987354519798
+              }
+            }
+          ]
+        },
+        {
+          "id": "eb59895d248c4c909bc731127ca05370:trial-003",
+          "audited": true,
+          "passed": false,
+          "dataset": "bank_marketing",
+          "repeat_corrections": [
+            {
+              "repeat": 0,
+              "reason": "fold_mean_labeled_as_pooled",
+              "reported": {
+                "roc_auc": 0.71141329527142,
+                "average_precision": 0.3231522433162309,
+                "log_loss": 0.29743017570890107,
+                "brier": 0.0802298858575039
+              },
+              "pooled_oof": {
+                "roc_auc": 0.7092277777777778,
+                "average_precision": 0.31415523071462204,
+                "log_loss": 0.2974453049324685,
+                "brier": 0.0802338791192763
+              }
+            },
+            {
+              "repeat": 1,
+              "reason": "fold_mean_labeled_as_pooled",
+              "reported": {
+                "roc_auc": 0.7003954185198656,
+                "average_precision": 0.3335249173177533,
+                "log_loss": 0.29909809470543225,
+                "brier": 0.08039096680186118
+              },
+              "pooled_oof": {
+                "roc_auc": 0.697625,
+                "average_precision": 0.3162263174837956,
+                "log_loss": 0.2990978706999607,
+                "brier": 0.08038854027167551
+              }
+            }
+          ]
+        }
+      ],
+      "issues": [
+        {
+          "code": "repeat_summary_uses_fold_mean",
+          "location": "eb59895d248c4c909bc731127ca05370/eb59895d248c4c909bc731127ca05370:trial-001/repeat-0",
+          "detail": "Reported values are fold averages, not pooled out-of-fold metrics"
+        },
+        {
+          "code": "repeat_summary_uses_fold_mean",
+          "location": "eb59895d248c4c909bc731127ca05370/eb59895d248c4c909bc731127ca05370:trial-001/repeat-1",
+          "detail": "Reported values are fold averages, not pooled out-of-fold metrics"
+        },
+        {
+          "code": "repeat_summary_uses_fold_mean",
+          "location": "eb59895d248c4c909bc731127ca05370/eb59895d248c4c909bc731127ca05370:trial-002/repeat-0",
+          "detail": "Reported values are fold averages, not pooled out-of-fold metrics"
+        },
+        {
+          "code": "repeat_summary_uses_fold_mean",
+          "location": "eb59895d248c4c909bc731127ca05370/eb59895d248c4c909bc731127ca05370:trial-002/repeat-1",
+          "detail": "Reported values are fold averages, not pooled out-of-fold metrics"
+        },
+        {
+          "code": "repeat_summary_uses_fold_mean",
+          "location": "eb59895d248c4c909bc731127ca05370/eb59895d248c4c909bc731127ca05370:trial-003/repeat-0",
+          "detail": "Reported values are fold averages, not pooled out-of-fold metrics"
+        },
+        {
+          "code": "repeat_summary_uses_fold_mean",
+          "location": "eb59895d248c4c909bc731127ca05370/eb59895d248c4c909bc731127ca05370:trial-003/repeat-1",
+          "detail": "Reported values are fold averages, not pooled out-of-fold metrics"
+        }
+      ],
+      "llm_calls": 9,
+      "tokens_reported": {
+        "input_tokens": 114839,
+        "output_tokens": 10857,
+        "total_tokens": 125696
+      }
+    }
+  ]
+}
