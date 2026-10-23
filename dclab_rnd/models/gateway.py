@@ -45,7 +45,9 @@ def _transport(t: dict[str, Any], p: settings.Purpose) -> ChatClient:
         from .anthropic_client import AnthropicClient
 
         return AnthropicClient(model=t["model"], base_url=t["base_url"], api_key=t["api_key"], timeout=p.timeout, max_retries=0)
-    return ChatClient(model=t["model"], base_url=t["base_url"], api_key=t["api_key"], timeout=p.timeout, max_retries=0)
+    return ChatClient(model=t["model"], base_url=t["base_url"], api_key=t["api_key"], timeout=p.timeout, max_retries=0,
+                      reasoning_field=t.get("reasoning_field"), chat_template_kwargs=t.get("chat_template_kwargs"),
+                      tool_arguments=t.get("tool_arguments") or "json")
 
 
 NO_EMBEDDINGS = ("anthropic",)  # providers that serve no embeddings: the embedding purpose is not offered on them
@@ -428,22 +430,25 @@ class Bound:
               max_tokens: int | None = None, tools: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         started, attempts, delay = time.monotonic(), 0, BACKOFF
         try:
-            chars = sum(len(str(m.get("content") or "")) + len(json.dumps(m.get("tool_calls") or [])) for m in messages) + len(json.dumps(tools or []))
+            # the earlier turns' reasoning goes back to the server under its field (D2), so it is in the prompt's size too
+            chars = sum(len(str(m.get("content") or "")) + len(json.dumps(m.get("tool_calls") or [], default=str))
+                        + sum(len(str(m.get(field) or "")) for field in settings.REASONING_FIELDS) for m in messages) + len(json.dumps(tools or []))
             estimate = prices.estimate(self.model, settings.public(self.tier.get("name") or self.p.tier)["local"], chars, max_tokens)
             refusal, release = self.gateway.reserve(self.project_id, self, estimate, self.purpose)
         except ValueError as error:  # a broken price file: nothing is sent until it is fixed
             refusal, release = str(error), (lambda: None)
         if refusal:  # checked before sending: nothing reaches the provider
-            self._record(messages, None, 0.0, 0, f"refused: {refusal}")
+            self._record(messages, None, 0.0, 0, f"refused: {refusal}", tools)
             error = RuntimeError(f"BudgetExceeded: {refusal}")
             error.transient = False  # type: ignore[attr-defined]
             raise error
         try:
-            return self._send(send, messages, can_retry, started)
+            return self._send(send, messages, can_retry, started, tools)
         finally:
             release()
 
-    def _send(self, send: Callable[[], dict[str, Any]], messages: list[dict[str, Any]], can_retry: Callable[[], bool], started: float) -> dict[str, Any]:
+    def _send(self, send: Callable[[], dict[str, Any]], messages: list[dict[str, Any]], can_retry: Callable[[], bool], started: float,
+              tools: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         attempts, delay = 0, BACKOFF
         while True:
             attempts += 1
@@ -455,17 +460,20 @@ class Bound:
                     self.gateway.sleep(delay)
                     delay *= 2
                     continue
-                self._record(messages, None, time.monotonic() - started, attempts, str(error).split(": ", 1)[-1][:200])
+                self._record(messages, None, time.monotonic() - started, attempts, str(error).split(": ", 1)[-1][:200], tools)
                 raise
             if isinstance(out, dict):  # a request the provider refused before the client sent it again counts as an attempt
                 attempts += int(out.pop("refused_attempts", 0) or 0)
-            self._record(messages, out, time.monotonic() - started, attempts, "ok")
+            self._record(messages, out, time.monotonic() - started, attempts, "ok", tools)
             return out
 
-    def _keep_exchange(self, request_id: str, messages: list[dict[str, Any]], out: dict[str, Any] | None, outcome: str) -> None:
+    def _keep_exchange(self, request_id: str, messages: list[dict[str, Any]], out: dict[str, Any] | None, outcome: str,
+                       tools: list[dict[str, Any]] | None = None) -> None:
         """32.10: the whole exchange kept, never cut: every message as sent, the reply, its tool calls and the model's thinking, one
         line in ``<workspace>/model_exchanges/YYYY/MM/DD.jsonl`` (the store's model_requests keeper keeps it). Where the workspace
-        keeps no model text, or the purpose was shown cell values, only its shape is kept (sizes, tokens, whether it thought)."""
+        keeps no model text, or the purpose was shown cell values, only its shape is kept (sizes, tokens, whether it thought).
+        D2 (2026-10-23): the tools offered too, their names and a hash always, their schemas whole with a whole exchange, so a
+        model trained on the record learns what it could call at that moment."""
         from datetime import datetime, timezone
 
         from .. import experience
@@ -483,9 +491,12 @@ class Bound:
             doc: dict[str, Any] = {"at": datetime.now(timezone.utc).isoformat(timespec="microseconds"), "model_request": request_id,
                                    "prompt_sha256": hashlib.sha256(system.encode()).hexdigest()[:16] if system else None,  # 32.22
                                    "purpose": self.purpose, "tier": self.tier.get("name"), "model": self.model, "project": self.project_id,
-                                   "draft": self.draft_id, "outcome": outcome, "usage": (out or {}).get("usage"), "whole": whole}
+                                   "draft": self.draft_id, "outcome": outcome, "usage": (out or {}).get("usage"), "whole": whole,
+                                   "tool_names": [str((t.get("function") or {}).get("name") or t.get("name") or "") for t in tools or []],
+                                   "tools_sha256": hashlib.sha256(json.dumps(tools, sort_keys=True, default=str).encode()).hexdigest()[:16] if tools else None}
             if whole:
-                doc.update(messages=messages, reply=(out or {}).get("content"), tool_calls=(out or {}).get("tool_calls"), thinking=thinking)
+                doc.update(messages=messages, reply=(out or {}).get("content"), tool_calls=(out or {}).get("tool_calls"), thinking=thinking,
+                           tools=tools or [])
             else:
                 doc.update(messages=len(messages), reply_chars=len(str((out or {}).get("content") or "")), thought=bool(thinking),
                            why="a purpose shown cell values or one that may not keep text, or a workspace that keeps no model text: its shape only")
@@ -497,7 +508,8 @@ class Bound:
         except Exception:  # noqa: BLE001 - a record of the exchange, never a reason for the request to fail
             pass
 
-    def _record(self, messages: list[dict[str, Any]], out: dict[str, Any] | None, seconds: float, attempts: int, outcome: str) -> None:
+    def _record(self, messages: list[dict[str, Any]], out: dict[str, Any] | None, seconds: float, attempts: int, outcome: str,
+                tools: list[dict[str, Any]] | None = None) -> None:
         prompt = "\n\n".join(f"[{m.get('role')}] {m.get('content') or ''}" for m in messages)[:20000] if os.environ.get("DCLAB_LOG_PROMPTS") == "1" else None
         eur = self.gateway.record(self.purpose, self.model, (out or {}).get("usage"), seconds, attempts, outcome, self.project_id, self.draft_id, prompt,
                                   tier=self.tier.get("name"))
@@ -508,7 +520,7 @@ class Bound:
 
         usage = (out or {}).get("usage") or {}
         request_id = experience.new_model_request()
-        self._keep_exchange(request_id, messages, out, outcome)
+        self._keep_exchange(request_id, messages, out, outcome, tools)
         hooks.from_model_request({"id": request_id, "purpose": self.purpose, "tier": self.tier.get("name"), "model": self.model,
                                   "project_id": self.project_id,
                                   "draft_id": self.draft_id, "input_tokens": usage.get("input_tokens"), "output_tokens": usage.get("output_tokens"),

@@ -164,6 +164,13 @@ class Settings(BaseSettings):
                     cast(raw)
                 except ValueError:
                     out.append(f"{name} must be a number, not {raw[:20]!r}")
+        from .models import settings as model_settings  # a tier's reasoning field, template setting or argument format set wrong
+
+        for tier_name in model_settings.ROUTABLE:
+            try:
+                model_settings.options(tier_name)
+            except ValueError as exc:
+                out.append(str(exc))
         return out
 
     @classmethod

@@ -20,6 +20,7 @@ PAUSE_SECONDS = 600  # after a refusal that will not go away by itself (no credi
 
 
 THINKING_REFUSED = "the model would not take extended thinking"
+REASONING_FIELDS = ("reasoning_content", "reasoning")  # the names OpenAI-compatible servers give a reply's reasoning (D2)
 
 
 def failure(exc: BaseException) -> tuple[str, bool]:
@@ -88,13 +89,60 @@ class ChatClient:
     """One ``complete`` call = one chat-completions request. A failure is raised as ``RuntimeError("<Type>: <reason>")``
     with a reason safe to show (see ``failure``); after a refusal that will not go away, requests pause for a while."""
 
-    def __init__(self, model: str | None = None, base_url: str | None = None, api_key: str | None = None, timeout: float = 180, max_retries: int = 1):
+    def __init__(self, model: str | None = None, base_url: str | None = None, api_key: str | None = None, timeout: float = 180, max_retries: int = 1,
+                 reasoning_field: str | None = None, chat_template_kwargs: dict[str, Any] | None = None, tool_arguments: str = "json"):
         cfg = settings()
         self.model = model or cfg["model"]
         self.base_url = base_url or os.environ.get("DCLAB_LLM_BASE_URL") or os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY") or ("ollama" if "11434" in self.base_url else "")
         self._client = None
         self.timeout, self.max_retries = timeout, max_retries  # the gateway passes 0: it retries itself, and counts each attempt
+        # D2 (2026-10-23), the endpoint's options from models.settings.options: the reply field that carries the model's
+        # reasoning (read from every reply, sent back with every earlier assistant turn, so a local model keeps its plan
+        # from turn to turn), the chat-template setting sent with every request, and how tool arguments go back
+        self.reasoning_field = reasoning_field or None
+        self.chat_template_kwargs = dict(chat_template_kwargs or {})
+        self.tool_arguments = tool_arguments
+
+    def _extra(self, kwargs: dict[str, Any]) -> dict[str, Any]:
+        """The endpoint's chat-template setting on every request, in ``extra_body`` beside whatever the caller put there."""
+        if self.chat_template_kwargs:
+            kwargs["extra_body"] = {**(kwargs.get("extra_body") or {}), "chat_template_kwargs": dict(self.chat_template_kwargs)}
+        return kwargs
+
+    def _reasoning(self, message: Any) -> str:
+        """The reasoning a reply (or a stream's delta) carries under this endpoint's field; "" without a field or a value."""
+        if not self.reasoning_field:
+            return ""
+        value = getattr(message, self.reasoning_field, None)
+        return str(value) if value else ""
+
+    def _reply(self, content: str, calls: list[dict[str, Any]], finish: Any, usage: Any, reasoning: str, note: dict[str, Any]) -> dict[str, Any]:
+        """What ``complete`` and ``stream`` return: the reply parsed (``tool_calls`` with dict arguments; ``reasoning`` and
+        ``thinking`` when the model reasoned, in the shape the exchange log keeps) and ``assistant_message`` as the next
+        request sends it back: the reasoning under the endpoint's field, the tool arguments as its template wants them."""
+        message: dict[str, Any] = {"role": "assistant", "content": content}
+        if reasoning and self.reasoning_field:
+            message[self.reasoning_field] = reasoning
+        if calls:
+            message["tool_calls"] = [{"id": c["id"], "type": "function",
+                                      "function": {"name": c["name"], "arguments": c["arguments"] if self.tool_arguments == "object" else json.dumps(c["arguments"])}}
+                                     for c in calls]
+        out = {"content": content, "tool_calls": calls, "finish_reason": finish,
+               "usage": {"input_tokens": getattr(usage, "prompt_tokens", 0) or 0, "output_tokens": getattr(usage, "completion_tokens", 0) or 0},
+               "assistant_message": message, **note}
+        if reasoning:
+            out["reasoning"] = reasoning
+            out["thinking"] = [{"text": reasoning}]
+        return out
+
+    def _fields_seen(self, message: Any) -> dict[str, Any]:
+        """With no field configured: which known reasoning fields the reply carried anyway, so the probe (and a person
+        reading the usage) can name the right one for the tier. Read, never kept or sent back."""
+        if self.reasoning_field:
+            return {}
+        seen = [f for f in REASONING_FIELDS if getattr(message, f, None)]
+        return {"reasoning_fields_seen": seen} if seen else {}
 
     def _limit(self, max_tokens: int | None) -> dict[str, Any]:
         """OpenAI's newer models take ``max_completion_tokens`` (they refuse ``max_tokens``); other OpenAI-compatible
@@ -153,17 +201,20 @@ class ChatClient:
             self._client = openai.OpenAI(base_url=self.base_url, api_key=self.api_key, timeout=self.timeout, max_retries=self.max_retries)
         return self._client
 
-    def stream(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int | None = 1800, on_text=None) -> dict[str, Any]:
+    def stream(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int | None = 1800, on_text=None,
+               **options: Any) -> dict[str, Any]:
         """Like ``complete`` (same return value), but ``on_text(delta)`` hears the reply as it is written.
 
         Tool-call arguments arrive in pieces and are joined here; a call whose arguments are not valid JSON keeps the
-        raw text under ``_raw``, as in ``complete``.
+        raw text under ``_raw``, as in ``complete``. The reasoning arrives in pieces too and is joined.
         """
-        kwargs: dict[str, Any] = {"model": self.model, "messages": messages, **self._limit(max_tokens), "stream": True,
+        kwargs: dict[str, Any] = {"model": self.model, "messages": messages, **self._limit(max_tokens), **options, "stream": True,
                                   "stream_options": {"include_usage": True}}
         if tools:
             kwargs.update(tools=tools, tool_choice="auto")
+        self._extra(kwargs)
         text: list[str] = []
+        thought: list[str] = []
         pieces: dict[int, dict[str, Any]] = {}
         finish, usage = None, None
         self._ready()
@@ -180,6 +231,9 @@ class ChatClient:
                     text.append(delta.content)
                     if on_text:
                         on_text(delta.content)
+                piece = self._reasoning(delta)
+                if piece:
+                    thought.append(piece)
                 for call in getattr(delta, "tool_calls", None) or []:
                     piece = pieces.setdefault(call.index, {"id": "", "name": "", "arguments": ""})
                     piece["id"] = call.id or piece["id"]
@@ -197,14 +251,7 @@ class ChatClient:
             except json.JSONDecodeError:
                 arguments = {"_raw": piece["arguments"]}
             calls.append({"id": piece["id"] or f"call_{index}", "name": piece["name"], "arguments": arguments})
-        content = "".join(text)
-        return {
-            "content": content, "tool_calls": calls, "finish_reason": finish,
-            "usage": {"input_tokens": getattr(usage, "prompt_tokens", 0) or 0, "output_tokens": getattr(usage, "completion_tokens", 0) or 0},
-            "assistant_message": {"role": "assistant", "content": content,
-                                  **({"tool_calls": [{"id": c["id"], "type": "function", "function": {"name": c["name"], "arguments": json.dumps(c["arguments"])}} for c in calls]} if calls else {})},
-            **note,
-        }
+        return self._reply("".join(text), calls, finish, usage, "".join(thought), note)
 
     def embed(self, texts: list[str]) -> dict[str, Any]:
         """Embeddings of the texts, in order: {"vectors": [[...]], "usage": {"input_tokens", "output_tokens": 0}}."""
@@ -223,6 +270,7 @@ class ChatClient:
         kwargs: dict[str, Any] = {"model": self.model, "messages": messages, **self._limit(max_tokens), **options}
         if tools:
             kwargs.update(tools=tools, tool_choice="auto")
+        self._extra(kwargs)
         self._ready()
         try:
             response, note = self._create(kwargs)
@@ -231,18 +279,14 @@ class ChatClient:
         choice = response.choices[0]
         calls = []
         for call in choice.message.tool_calls or []:
-            try:
-                arguments = json.loads(call.function.arguments or "{}")
-            except json.JSONDecodeError:
-                arguments = {"_raw": call.function.arguments}
-            calls.append({"id": call.id, "name": call.function.name, "arguments": arguments})
-        usage = getattr(response, "usage", None)
-        return {
-            "content": choice.message.content or "",
-            "tool_calls": calls,
-            "finish_reason": choice.finish_reason,
-            "usage": {"input_tokens": getattr(usage, "prompt_tokens", 0) or 0, "output_tokens": getattr(usage, "completion_tokens", 0) or 0},
-            "assistant_message": {"role": "assistant", "content": choice.message.content or "",
-                                  **({"tool_calls": [{"id": c["id"], "type": "function", "function": {"name": c["name"], "arguments": json.dumps(c["arguments"])}} for c in calls]} if calls else {})},
-            **note,
-        }
+            arguments = call.function.arguments
+            if arguments is None:  # a call without arguments
+                arguments = {}
+            elif isinstance(arguments, str):  # the wire format; a server set to objects answers with a dict already
+                try:
+                    arguments = json.loads(arguments or "{}")
+                except json.JSONDecodeError:
+                    arguments = {"_raw": call.function.arguments}
+            calls.append({"id": call.id, "name": call.function.name, "arguments": arguments if isinstance(arguments, dict) else {"_raw": arguments}})
+        return {**self._reply(choice.message.content or "", calls, choice.finish_reason, getattr(response, "usage", None),
+                              self._reasoning(choice.message), note), **self._fields_seen(choice.message)}

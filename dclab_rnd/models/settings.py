@@ -17,12 +17,13 @@ prompt. The table is the one place to read what any model is ever shown; the Adm
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlparse
 
-from .client import DEFAULT_MODEL
+from .client import DEFAULT_MODEL, REASONING_FIELDS
 
 TIERS = ("strong", "standard", "cheap")
 TUNED = "tuned"  # the policy model (A6.3/A6.4): only from DCLAB_TIER_TUNED_*; it never falls back to another model
@@ -153,6 +154,34 @@ def _env(tier: str, name: str) -> str:
     return os.environ.get(f"DCLAB_TIER_{tier.upper()}_{name}", "").strip()
 
 
+TOOL_ARGUMENTS = ("json", "object")
+
+
+def options(name: str) -> dict[str, Any]:
+    """A tier's options for an OpenAI-compatible server (D2, 2026-10-23), each chosen per endpoint and never guessed from
+    the model's name: ``reasoning_field``, the reply field that carries the model's reasoning, read from every reply and
+    sent back with every earlier assistant turn (none by default: a server that returns none is asked for none);
+    ``chat_template_kwargs``, JSON sent as ``extra_body`` on every request (Qwen's ``{"preserve_thinking": true}`` keeps
+    the earlier turns' reasoning in the prompt); ``tool_arguments``, how an earlier turn's tool arguments go back:
+    ``json`` (a string, the OpenAI wire format) or ``object`` (a dict, what Qwen's template renders)."""
+    field = _env(name, "REASONING_FIELD").lower()
+    if field in ("", "none"):
+        field = None
+    elif field not in REASONING_FIELDS:
+        raise ValueError(f"DCLAB_TIER_{name.upper()}_REASONING_FIELD must be none, {' or '.join(REASONING_FIELDS)}, not {field!r}")
+    raw = _env(name, "CHAT_TEMPLATE_KWARGS")
+    try:
+        kwargs = json.loads(raw) if raw else {}
+    except json.JSONDecodeError as error:
+        raise ValueError(f"DCLAB_TIER_{name.upper()}_CHAT_TEMPLATE_KWARGS is not JSON: {error}") from None
+    if not isinstance(kwargs, dict):
+        raise ValueError(f"DCLAB_TIER_{name.upper()}_CHAT_TEMPLATE_KWARGS must be a JSON object")
+    arguments = _env(name, "TOOL_ARGUMENTS").lower() or "json"
+    if arguments not in TOOL_ARGUMENTS:
+        raise ValueError(f"DCLAB_TIER_{name.upper()}_TOOL_ARGUMENTS must be {' or '.join(TOOL_ARGUMENTS)}, not {arguments!r}")
+    return {"reasoning_field": field, "chat_template_kwargs": kwargs, "tool_arguments": arguments}
+
+
 def _host(url: str) -> str:
     """Host and port only: a URL can carry a user and a password (https://u:pw@host), which must never be shown or logged."""
     parsed = urlparse(url)
@@ -209,9 +238,9 @@ def tier(name: str) -> dict[str, Any]:
     if name == TUNED:  # unset means absent: a tuned model that silently became the standard one would agree with itself
         base_url, model = _env(name, "BASE_URL"), _env(name, "MODEL")
         if not base_url or not model:
-            return {"name": name, "base_url": "", "model": "", "api_key": "", "provider": "openai"}
+            return {"name": name, "base_url": "", "model": "", "api_key": "", "provider": "openai", **options(name)}
         key = _env(name, "API_KEY") or ("local" if is_local(base_url, name) else "")
-        return {"name": name, "base_url": base_url, "model": model, "api_key": key, "provider": provider(base_url)}
+        return {"name": name, "base_url": base_url, "model": model, "api_key": key, "provider": provider(base_url), **options(name)}
     if name == "standard" and anthropic_default() and not _env(name, "BASE_URL"):
         from .anthropic_client import BASE_URL
 
@@ -242,7 +271,7 @@ def tier(name: str) -> dict[str, Any]:
             key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not key and is_local(base_url, name):
         key = "local"  # a local server (Ollama, LM Studio) needs no key; the SDK still wants one
-    return {"name": name, "base_url": base_url, "model": model, "api_key": key, "provider": provider(base_url)}
+    return {"name": name, "base_url": base_url, "model": model, "api_key": key, "provider": provider(base_url), **options(name)}
 
 
 def public(name: str) -> dict[str, Any]:
@@ -259,7 +288,8 @@ def public(name: str) -> dict[str, Any]:
     return {"name": name, "endpoint": _host(t["base_url"]) if t["base_url"] else "not set", "model": t["model"], "sdk_installed": sdk,
             "provider": t["provider"],
             "key_configured": bool(t["api_key"]), "model_configured": bool(t["model"]), "available": bool(t["api_key"]) and sdk and bool(t["model"]),
-            "local": bool(t["base_url"]) and is_local(t["base_url"], name)}
+            "local": bool(t["base_url"]) and is_local(t["base_url"], name),
+            "reasoning_field": t["reasoning_field"], "chat_template_kwargs": t["chat_template_kwargs"]}
 
 
 def purpose(name: str) -> Purpose:

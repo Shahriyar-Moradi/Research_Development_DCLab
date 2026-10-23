@@ -1,0 +1,49 @@
+{
+ "package": "local-model-reasoning-field",
+ "title": "A local open model's reasoning is read, kept and sent back (D2, P1)",
+ "date": "2026-10-23",
+ "request": "The owner found two bugs in the path a local Qwen model takes: the OpenAI-compatible client ignores the reply's reasoning field (lost training data) and never sends it back (the agent forgets its plan from turn to turn). They asked for the reasoning kept under either name servers use, sent back per endpoint setting, Qwen's preserve_thinking template setting turned on, and tool arguments sent back as objects.",
+ "spec": "Plan D2 whole step record, package P1 (plans/yes-you-are-right-jaunty-parasol.md): per-tier settings REASONING_FIELD, CHAT_TEMPLATE_KWARGS, TOOL_ARGUMENTS; the client reads, keeps and sends back; the exchange log keeps the tools offered; a probe command for the owner.",
+ "plan": [
+  "read the client, the tier settings, the gateway's transport and exchange log, and the test fakes",
+  "three per-tier options in models.settings.options(), chosen per endpoint and never from the model's name",
+  "the client reads the reply's reasoning under the field, in complete and stream, and sends it back in assistant_message",
+  "chat_template_kwargs in extra_body on every request; tool arguments as dicts when the tier says object",
+  "the gateway passes the options, counts the earlier reasoning in its estimate, keeps the tools offered in the exchange",
+  "a probe command through the gateway; tests with SDK-level fakes; the adversarial review"
+ ],
+ "decisions": [
+  {"decision": "The reasoning field is a per-tier setting (none by default), never guessed from the model's name", "why": "Hermes Agent's tracker shows guessing by name breaks on each new server; a server that returns no field is asked for none"},
+  {"decision": "out['thinking'] = [{'text': reasoning}] beside out['reasoning']", "why": "the exchange log and store/sets/llm.py already read that shape from the Anthropic transport; nothing downstream changes"},
+  {"decision": "Tool arguments go back as the OpenAI wire string by default and as dicts only with TOOL_ARGUMENTS=object", "why": "OpenAI and most servers require the string; Qwen's template renders a string badly; the parsed tool_calls keep dicts in every case"},
+  {"decision": "The exchange keeps tool names and a hash always, the schemas whole only with a whole exchange", "why": "a model trained on the record must learn what it could call at that moment; schemas are static definitions, never cell values"},
+  {"decision": "A wrong option value is a Settings.problems() line", "why": "the house pattern for a bad DCLAB_MODEL_RETRIES: the server refuses to start and says why"},
+  {"decision": "The probe is the owner's command, never a test", "why": "D3: tests never reach a live model; which server passes reasoning through is unverified and must be measured"}
+ ],
+ "change": "dclab_rnd/models/settings.py (options(), tier() carries them, public() shows two); dclab_rnd/models/client.py (constructor options, _extra, _reasoning, _reply; complete and stream read and send back); dclab_rnd/models/gateway.py (_transport passes options, _call counts reasoning, tools reach _record and _keep_exchange); dclab_rnd/settings.py (problems() checks the options); dclab_rnd/models/probe_reasoning.py (new); .env.example; tests/test_models_reasoning_field.py (new).",
+ "findings": [
+  {"id": "F1", "source": "self", "defect": "ChatClient read only content and tool_calls; a reply's reasoning_content was dropped", "scenario": "a local Qwen agent through the cheap tier: the exchange log shows thinking=[] on every request", "cause": "the client was written for OpenAI, whose chat completions carry no reasoning field", "fix": "_reasoning(message) reads the tier's field; _reply puts it in out['reasoning'] and out['thinking']", "test": "tests/test_models_reasoning_field.py::test_the_reasoning_is_read_kept_and_sent_back_under_the_configured_field", "severity": "behaviour", "impact": "lost training data on every local-model run", "alternatives": ["read both names always (guessing; a server that returns neither pays nothing, but a server that returns one under a name we did not expect still loses it)"], "open": ""},
+  {"id": "F2", "source": "self", "defect": "assistant_message never carried the reasoning back", "scenario": "turn 2 of a Qwen run: the model re-plans from scratch; with preserve_thinking its template expects the field", "cause": "same as F1", "fix": "assistant_message[field] = reasoning", "test": "the same test", "severity": "behaviour", "impact": "a local agent forgets its plan", "alternatives": [], "open": "whether the server honours it is measured by the probe, not assumed"},
+  {"id": "F3", "source": "self", "defect": "no chat_template_kwargs were sent; stream() accepted no options", "scenario": "Qwen3.6 defaults preserve_thinking off: the earlier reasoning is cut from the prompt even when sent", "cause": "no per-endpoint options existed", "fix": "_extra(kwargs) merges extra_body.chat_template_kwargs; stream() takes **options", "test": "test_a_stream_joins_the_reasoning_pieces_and_sends_the_template_setting", "severity": "behaviour", "impact": "the model learns one habit in training and is used with another", "alternatives": ["set it once on the server (works on vLLM; not on every server)"], "open": ""},
+  {"id": "F4", "source": "self", "defect": "the exchange log kept no record of the tools offered", "scenario": "a training example cannot say which tools existed at that moment", "cause": "tools were passed to the transport but not to _keep_exchange", "fix": "tools flow through _call, _send, _record to _keep_exchange", "test": "test_the_exchange_keeps_the_reasoning_and_the_tools_offered", "severity": "gap", "impact": "M4/M5 examples without their tool list", "alternatives": [], "open": ""},
+  {"id": "F5", "source": "self", "defect": "DCLAB_TEST_RUN and DCLAB_ALLOW_LIVE_MODELS_IN_TESTS (D3, 4f480cc9) were not documented in .env.example", "scenario": "tests/test_config.py::test_every_setting_the_code_reads_is_documented failed", "cause": "the D3 package ran only its own tests", "fix": "two commented lines in .env.example", "test": "tests/test_config.py", "severity": "gap", "impact": "a failing test in the suite", "alternatives": [], "open": ""},
+  {"id": "F6", "source": "reviewer", "defect": "the probe's --raw path sent a request through the transport's SDK client, outside the gateway: no budget, no usage row, no exchange record", "scenario": "probe_reasoning --raw: three requests sent, two counted", "cause": "field discovery needed the raw reply, and the gateway returns the parsed dict only", "fix": "--raw removed; with no field configured the client reports reasoning_fields_seen in its parsed reply, so the probe reads it inside the gateway", "test": "tests/test_models_reasoning_field.py::test_without_a_field_nothing_is_read_or_sent", "severity": "gap", "impact": "an uncounted model request (CLAUDE.md: every request goes through the gateway)", "alternatives": ["keep --raw and count it by hand (two code paths to keep right)"], "open": ""},
+  {"id": "F7", "source": "reviewer", "defect": "a tool call whose arguments were null became {\"_raw\": null} instead of {}", "scenario": "a server omits arguments on a no-argument call: the registry's argument check fails instead of calling the tool", "cause": "the isinstance(str) branch skipped None; before the change json.loads(None or '{}') gave {}", "fix": "None is {} before the string branch", "test": "tests/test_models_reasoning_field.py::test_a_call_without_arguments_runs_with_none", "severity": "behaviour", "impact": "a regression on no-argument tools", "alternatives": [], "open": ""},
+  {"id": "F8", "source": "reviewer", "defect": "the shape-only exchange (a purpose shown cells) had no test for tool_names without schemas", "scenario": "a change could leak schemas or drop the names unnoticed", "cause": "the first test covered the whole branch only", "fix": "a test on the intern purpose: tool_names kept, no tools, messages a count", "test": "tests/test_models_reasoning_field.py::test_a_shape_only_exchange_keeps_the_tool_names_but_no_schemas_or_text", "severity": "gap", "impact": "coverage", "alternatives": [], "open": ""}
+ ],
+ "measurements": [
+  {"name": "the new tests and the 16 files around models settings, gateway, client and the exchange log", "gate": "every test passes", "fixed_before_run": true, "result": "226 tests in 17 files passed after F5", "verdict": "pass", "cost_eur": 0, "next": "the full gate tonight; the probe against the Mac's servers (the owner)", "against_gate": "", "limits": ["no live server was asked: whether Ollama's own API or mlx_lm.server passes the reasoning and the template setting through is unmeasured"]}
+ ],
+ "outcome": "A local model's reasoning is read from every reply, kept in the exchange log in the shape the sets read, and sent back on every earlier turn with the template setting and dict arguments where the tier asks; the tools offered are kept with each exchange.",
+ "lessons": [
+  "Choose a reply's field per endpoint in settings, never from the model's name.",
+  "Put a new value in the shape the readers already use (out['thinking']) and nothing downstream changes."
+ ],
+ "risks": [
+  "a server that returns reasoning under a third name still loses it until the tier names it (reasoning_fields_seen lists the known ones)",
+  "a server that rejects extra_body.chat_template_kwargs fails every request of that tier until the setting is removed",
+  "the probe's made-up conversation is kept in the exchange log under project id 'probe'; the sets do not skip it yet (reviewer's note)",
+  "a shadow tier's server that rejects an unknown message key (the served tier's reasoning field) fails the shadow call: logged, never used"
+ ],
+ "commits": []
+}
