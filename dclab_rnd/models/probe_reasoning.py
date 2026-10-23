@@ -98,7 +98,9 @@ def main(argv: list[str] | None = None) -> int:
         report["earlier_reasoning_seen"] = "unknown: no code word was read from the first reply's reasoning"
     report["verdict"] = ("reasoning kept and sent back" if report["earlier_reasoning_seen"] is True
                          else "reasoning read but the second reply did not know it (the server dropped it, or the template setting is off)" if codes
-                         else f"no reasoning read: set DCLAB_TIER_{args.tier.upper()}_REASONING_FIELD to one of reasoning_fields_seen, or the server returns none")
+                         else ("reasoning read; the model wrote no code word in it, so whether it is sent back is not shown (run again)"
+                               if reasoning else
+                               f"no reasoning read: set DCLAB_TIER_{args.tier.upper()}_REASONING_FIELD to one of reasoning_fields_seen, or the server returns none"))
     print(json.dumps(report, indent=1))
     return 0
 

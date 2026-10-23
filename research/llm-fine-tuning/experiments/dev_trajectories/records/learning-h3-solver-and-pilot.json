@@ -1,0 +1,158 @@
+{
+ "package": "learning-h3-solver-and-pilot",
+ "title": "The intern solves challenge packs on a local model, and the pilot that checks it can (harness learning, H3 first part)",
+ "date": "2026-10-23",
+ "request": "The owner asked to record everything first, then continue the harness-learning plan with the local model (Qwen3.5-4B now, 9B later), allowing 9 GB of swap. H3 needs a solver that repeats for free, so before any lesson is probed the local model must show it can finish the homework at all.",
+ "spec": "Plan 'improve the harness so it learns', package H3 (first part): the intern on the local tier only, a challenge pack opened as a project from its public part alone, the attempt graded by code; a learning attempt kept whole as training data, an exam attempt (check or sealed) leaving nothing; a pilot on the first learning variants with its gate fixed before the run (the final stage completed on at least four of five).",
+ "plan": [
+  "measure what the local server returns as reasoning with probe_reasoning before choosing it",
+  "write the solver: a gateway with every tier local, the person's request from the brief only, the attempt as an acceptance Run for the grader",
+  "write the pilot and its CLI command with the gate fixed before the run",
+  "test with a scripted intern that states what the key would state, then review, then run the pilot live at no cost"
+ ],
+ "decisions": [
+  {
+   "decision": "Ollama's /v1 serves the local solver",
+   "why": "the probe read its reasoning field and its tool calls; mlx_lm.server returns no tool calls for Qwen3.5 (mlx-lm #1293)"
+  },
+  {
+   "decision": "A learning attempt is its own workspace folder with its events and decisions beside its projects",
+   "why": "the store then finds one whole attempt, and a trainer can read the moves with the project they changed"
+  },
+  {
+   "decision": "An exam attempt records nothing and its model exchanges keep their shape only",
+   "why": "an exam problem must never become training data, or the check and sealed scores stop measuring anything new"
+  },
+  {
+   "decision": "A homework that broke before the model answered makes the run invalid, not a fail",
+   "why": "a stopped server or a crash in DCLab's code would otherwise be stored as evidence that the model cannot do the work"
+  },
+  {
+   "decision": "The pilot's result files are named _pilot",
+   "why": "a baseline reader filters by split; a pilot named _learning would look like a baseline"
+  }
+ ],
+ "change": "dclab_rnd/learning/solver.py and pilot.py (new); dclab_rnd/learning/__main__.py (pilot, a first tiny request before the run); dclab_rnd/learning/scoreboard.py (the pilot split in the result name); dclab_rnd/models/probe_reasoning.py (a verdict for reasoning read without a code word); research_notes/open_models_2026-10/servers.md (new: the measured server); tests/test_learning_h3.py (new).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "defect": "an exam attempt wrote its events and decisions into the workspace's installed log and ledger",
+   "scenario": "the pilot command installs the workspace log; an attempt on a check variant left a log and a ledger naming the leak column and the row key, though its project lived in a temporary folder",
+   "cause": "only the project and the session were moved to the temporary folder; every central writer records into the installed log and ledger",
+   "fix": "a recording block around each attempt: events quiet, no ledger, exchanges shape only for an exam; the previous log, ledger and switch restored after",
+   "test": "tests/test_learning_h3.py::SolverTests::test_an_exam_attempt_writes_no_event_and_no_decision_into_the_workspace",
+   "severity": "leakage",
+   "impact": "exam problems would have reached the training sets",
+   "alternatives": [
+    "refuse exam attempts in the solver and grade them only through the scoreboard"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "self",
+   "defect": "an exam attempt's model exchanges would have been kept whole in the workspace's model_exchanges",
+   "scenario": "the gateway writes every exchange under its usage log's folder with every message when the prompt switch is on, whatever folder the project lives in",
+   "cause": "the exchange home is the gateway's usage folder, not the attempt's",
+   "fix": "the prompt switch set off inside an exam attempt and restored after",
+   "test": "tests/test_learning_h3.py::SolverTests::test_an_exam_attempt_writes_no_event_and_no_decision_into_the_workspace",
+   "severity": "leakage",
+   "impact": "the whole exam conversation would have been a training example",
+   "alternatives": [],
+   "open": "a kept attempt's exchanges still go to the workspace's folder, not the attempt's own"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "a stopped server was counted as the model failing the homework",
+   "scenario": "with Ollama stopped every session failed with a connection error; the verdict said the model finished none, and --write stored it as evidence",
+   "cause": "the gateway's client checks the settings, never whether the server answers; a raised attempt was a fail row",
+   "fix": "the command sends one tiny request first and stops; a session that failed before any token came back is a broke row, and any broke row makes the run invalid",
+   "test": "tests/test_learning_h3.py::PilotTests::test_a_server_that_never_answers_makes_the_run_invalid_not_a_fail",
+   "severity": "behaviour",
+   "impact": "a false measurement of the model stored as evidence",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "a kept attempt's decisions were dropped and its events went to another folder",
+   "scenario": "the command installed a log but no ledger; the events landed in the workspace's log while the projects sat in the attempt's folder",
+   "cause": "the attempt never installed records of its own",
+   "fix": "a kept attempt installs its own log and ledger in its folder",
+   "test": "tests/test_learning_h3.py::SolverTests::test_a_kept_attempt_records_its_events_and_decisions_beside_its_projects",
+   "severity": "gap",
+   "impact": "training data lost: the decisions of every learning attempt",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "a pilot with no model passed its gate",
+   "scenario": "with no client the intern runs the standard plan, which finishes every stage",
+   "cause": "only the command checked for a missing client",
+   "fix": "the pilot refuses to run without a client",
+   "test": "tests/test_learning_h3.py::PilotTests::test_a_pilot_without_a_model_is_refused",
+   "severity": "latent",
+   "impact": "the rules measured as if they were the model",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "stored pilot results carried absolute local paths and no fingerprints",
+   "scenario": "a kept attempt's folder path written into committed evidence; no generator or grader version beside the score",
+   "cause": "the row kept the solver's return value as it was",
+   "fix": "paths relative to the workspace; the generator's and grader's fingerprints in the result",
+   "test": "tests/test_learning_h3.py::PilotTests::test_a_model_that_does_not_finish_fails_the_fixed_gate_with_a_row_per_homework",
+   "severity": "privacy",
+   "impact": "a local path in a pushed file; a score not tied to its grader",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F7",
+   "source": "test",
+   "defect": "a model that answered in words and did nothing was first marked as broke",
+   "scenario": "the lazy scripted model replied with prose and no tool call: a failed session with no step",
+   "cause": "the first rule for broke looked only at the steps",
+   "fix": "broke only when no token came back from the model",
+   "test": "tests/test_learning_h3.py::PilotTests::test_a_model_that_does_not_finish_fails_the_fixed_gate_with_a_row_per_homework",
+   "severity": "behaviour",
+   "impact": "a model's real failure would have hidden as an invalid run",
+   "alternatives": [],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the reasoning probe on Ollama with the local Qwen",
+   "gate": "the reasoning field read",
+   "fixed_before_run": true,
+   "result": "the field read on both replies; the tool call worked; recall of earlier reasoning not shown; the second reply was empty after long thinking",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "the pilot measures empty replies on real homework",
+   "against_gate": "",
+   "limits": [
+    "one conversation",
+    "recall not tested"
+   ]
+  }
+ ],
+ "outcome": "The intern can now solve a challenge pack on a model on this machine only; a learning attempt is kept whole (project, session, events, decisions, grade) and an exam attempt leaves nothing; the pilot's gate was fixed before the run and a broken server can no longer be stored as the model's failure.",
+ "lessons": [
+  "Moving a project to a temporary folder is not isolation: every central writer records where it is installed.",
+  "A measurement must tell a broken instrument from a bad result before it is stored.",
+  "Name a new kind of result so no old reader takes it for its own."
+ ],
+ "risks": [
+  "a kept attempt's model exchanges go to the workspace's folder, not the attempt's",
+  "the small model may think long and answer nothing; the pilot measures it"
+ ],
+ "commits": []
+}
