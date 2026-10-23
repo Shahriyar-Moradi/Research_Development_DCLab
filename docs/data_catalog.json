@@ -88,8 +88,10 @@
   },
   {
    "contract": "chat_example",
-   "reads": [],
-   "version": "dclab_core.chat_example.v1"
+   "reads": [
+    "dclab_core.chat_example.v1"
+   ],
+   "version": "dclab_core.chat_example.v2"
   },
   {
    "contract": "coordinator_situation",
@@ -190,7 +192,7 @@
   {
    "contract": "experience_event",
    "reads": [],
-   "version": "dclab_core.experience_event.v12"
+   "version": "dclab_core.experience_event.v13"
   },
   {
    "contract": "experience_session",
@@ -289,8 +291,10 @@
   },
   {
    "contract": "preference_pair",
-   "reads": [],
-   "version": "dclab_core.preference_pair.v1"
+   "reads": [
+    "dclab_core.preference_pair.v1"
+   ],
+   "version": "dclab_core.preference_pair.v2"
   },
   {
    "contract": "problem_brief",
@@ -403,8 +407,10 @@
   },
   {
    "contract": "solver_trajectory",
-   "reads": [],
-   "version": "dclab_core.solver_trajectory.v1"
+   "reads": [
+    "dclab_core.solver_trajectory.v1"
+   ],
+   "version": "dclab_core.solver_trajectory.v2"
   },
   {
    "contract": "store_entry",
@@ -529,7 +535,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.100.2",
+ "dclab_core": "0.101.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1293,6 +1299,7 @@
     "reply": "agent_text",
     "seconds": "count",
     "state": "meta",
+    "thought_source": "meta",
     "tool": "meta",
     "verdict": "meta"
    },

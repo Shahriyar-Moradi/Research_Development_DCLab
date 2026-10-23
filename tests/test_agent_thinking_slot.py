@@ -115,8 +115,17 @@ class RecordedRunTests(unittest.TestCase):
         self.assertEqual((numbers["calls:list_samples"], numbers["calls:search_evidence"]), (1.0, 1.0))
         self.assertEqual((numbers["calls:export_notebook"], numbers["errors:export_notebook"], numbers["refused:export_notebook"]), (0.0, 0.0, 0.0))
         self.assertEqual(numbers["calls:_not_offered"], 0.0)
-        self.assertIn("list_samples", record["params"]["tool_names"].split(","))
         self.assertEqual(len(record["params"]["tools_sha256"]), 16)
+        self.assertNotIn("tool_names", record["params"])  # the event cuts a string to 300 characters: the columns name the tools
+        self.assertEqual(events[-1].payload.get("tool"), None)  # the answer in words is a step with its slot too
+        self.assertEqual(events[-1].payload.get("thought_source"), "visible")
+
+    def test_a_thought_is_redacted_in_the_store_like_every_other_text(self):
+        from dclab_rnd.store import shapers
+
+        body = shapers._clean({"steps": [{"thought": "Write to john.smith@acme.com first", "thought_source": "visible", "summary": "x"}]})
+        self.assertEqual(body["steps"][0]["thought"], "Write to [EMAIL] first")
+        self.assertTrue(shapers._version().startswith("shapers-7:"))  # every kept session is shaped again
 
     def test_a_call_to_a_tool_not_offered_is_counted_and_refused(self):
         session = self.run_intern([("", "delete_everything", {})])

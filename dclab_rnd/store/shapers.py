@@ -43,7 +43,8 @@ CHUNK = 20_000_000
 RETRY = ("OSError", "MemoryError", "PermissionError", "TimeoutError")  # failures that may pass next time
 ALWAYS = ("decisions", "teachers")
 TEXT_KEYS = {"text", "content", "reason", "question", "answer", "prompt", "reply", "thinking", "note", "notes", "problem", "goal", "said", "words",
-             "message", "summary", "why", "query", "detail", "error", "title", "description", "stdout", "stderr", "command", "output", "result", "task"}
+             "message", "summary", "why", "query", "detail", "error", "title", "description", "stdout", "stderr", "command", "output", "result", "task",
+             "thought", "reasoning", "reasoning_content"}  # D2: a step's thought and a reply's reasoning are words too
 LIFT = ("project", "draft", "run", "conversation", "visit", "job", "request", "session", "user")  # 32.32: whose it is
 RENAME = {"project_id": "project", "draft_id": "draft", "record_id": "record", "sessionId": "session", "timestamp": "at", "user_id": "user"}
 INTERN_FILE = re.compile(r"(^|/)intern/[0-9a-f]{8,32}\.json$")  # an intern session saved whole by its id (a twin lane, a live test)
@@ -53,7 +54,7 @@ BINARY = (".joblib", ".pkl", ".pickle", ".npy", ".npz", ".sqlite3", ".parquet", 
 def _version() -> str:
     from dclab_core import redact, store_rules
 
-    return f"shapers-6:{redact.VERSION}:{store_rules.VERSION}"  # 3: one group for every kind; tables printed with spaces; 4: whose it is (body.user, provenance.by); 5: a session's id kept, intern/<id>.json an intern session; 6: every string under a words key
+    return f"shapers-7:{redact.VERSION}:{store_rules.VERSION}"  # 3: one group for every kind; tables printed with spaces; 4: whose it is (body.user, provenance.by); 5: a session's id kept, intern/<id>.json an intern session; 6: every string under a words key; 7: a thought and a reasoning are words keys (D2)
 
 
 def _id_key(key: Optional[str]) -> bool:

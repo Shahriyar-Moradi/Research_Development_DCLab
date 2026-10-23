@@ -233,16 +233,17 @@ class Tracer:
         hooks.from_trace({**row, "reply_text": text, "model_request": model_request, "thought_source": thought_source})
         return row
 
-    def said(self, text: str | None, reply: int | None = None, tokens: dict[str, int] | None = None, verdict: str = "answered") -> None:
+    def said(self, text: str | None, reply: int | None = None, tokens: dict[str, int] | None = None, verdict: str = "answered",
+             thought_source: str | None = None) -> None:
         """A reply without a tool call (an answer, or tool calls written as text): a step in the session's record
-        (21.1), not a row of the trace store, whose rows are the moves a replay sends again."""
+        (21.1), not a row of the trace store, whose rows are the moves a replay sends again. Its thinking slot too (D2)."""
         if reply is not None:
             reply = self.reply_base + reply
             self.last_reply = max(self.last_reply, reply)
         from ..experience import hooks
 
         hooks.from_trace({"run_id": self.run_id, "agent": self.agent, "n": self.n, "reply": reply, "state": self._state(), "tool": None,
-                          "arguments": None, "verdict": verdict, "result": None, "seconds": 0.0,
+                          "arguments": None, "verdict": verdict, "result": None, "seconds": 0.0, "thought_source": thought_source,
                           # tool calls written as text hold arguments (cell values): the step is kept, not its words
                           "reply_text": None if verdict == "no_call" else (text or "").strip() or None,
                           "input_tokens": int((tokens or {}).get("input_tokens") or 0), "output_tokens": int((tokens or {}).get("output_tokens") or 0)})

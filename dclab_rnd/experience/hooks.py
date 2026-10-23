@@ -281,8 +281,8 @@ def from_agent_run(policy: Any, result: Any, trace: Any, started: str, seconds: 
     done = lineage.RunRecord(run=new_run(), kind="agent", name=str(policy.name)[:120], parent=getattr(trace, "run_id", None),
                                status=status, started=started, finished=now(), seconds=max(seconds, 0.0),
                                params={"max_steps": policy.max_steps, "max_seconds": policy.max_seconds, "max_replies": policy.max_replies,
-                                       "tools": len(policy.tools), "tool_names": ",".join(offered)[:2000],
-                                       "tools_sha256": getattr(result, "tools_sha256", None),
+                                       "tools": len(policy.tools), "tools_sha256": getattr(result, "tools_sha256", None),
+                                       # (the event cuts a string to 300 characters: the tools' names are the calls:<tool> columns, never a joined list)
                                        # D2: the same columns every run of this policy (params: the event keeps them whole, numbers only by count)
                                        **tool_counts([(s.tool, _verdict(s.result)) for s in steps], offered)},
                                outputs=lineage.RunOutputs(chosen=stopped, numbers=numbers), code=code("dclab_rnd.agents.runtime"),

@@ -194,7 +194,8 @@ def _run(policy: Policy, client: Any, registry: Registry, messages: list[dict[st
             text = (out.get("content") or "").strip()
             if trace is not None:  # 21.1: a reply without a tool call is a step of the record too (an answer, or calls as text)
                 trace.said(text, reply=reply, tokens=tokens, verdict="answered" if result.steps or not (nudged or policy.must_act
-                                                                                                       or writes_tool_calls(text, allowed)) else "no_call")
+                                                                                                       or writes_tool_calls(text, allowed)) else "no_call",
+                           thought_source=thought_source)
             # Only in a run where no tool has run: a report that quotes a call after real work is an answer.
             if not result.steps and (nudged or policy.must_act or writes_tool_calls(text, allowed)):
                 if not nudged:  # once: the model is told; any reply without a call after that ends the run
