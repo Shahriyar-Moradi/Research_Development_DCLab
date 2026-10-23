@@ -1,4 +1,4 @@
-"""``python -m dclab_rnd.learning baseline|refusal|draft|pilot``: the baseline (H0), the refusal test (H1), drafting lessons (H2), the pilot (H3)."""
+"""``python -m dclab_rnd.learning baseline|refusal|draft|pilot|probe``: the baseline (H0), the refusal test (H1), drafting lessons (H2), the pilot and the probe (H3)."""
 
 from __future__ import annotations
 
@@ -31,7 +31,21 @@ def main(argv: list[str] | None = None) -> int:
     pilot.add_argument("--n", type=int, default=5)
     pilot.add_argument("--max-minutes", type=float, default=None, help="each homework's time budget (default the solver's 15); a laptop's speed, recorded in the result")
     pilot.add_argument("--write", action="store_true", help="store the result in evidence/campaigns/learning_v1/results/")
+    probe = sub.add_parser("probe", help="H3: does one lesson help a local model? the same learning variants without and with it, paired, graded")
+    probe.add_argument("--model", default=None, help="the local model's name on the server, e.g. qwen3.5:4b-16k")
+    probe.add_argument("--bullet", default=None, help="the lesson's id in the family's playbook (B-...)")
+    probe.add_argument("--base-url", default="http://127.0.0.1:11434/v1")
+    probe.add_argument("--family", default="groups")
+    probe.add_argument("--lineage", default="main")
+    probe.add_argument("--n", type=int, default=3, help="how many learning variants (the first ones)")
+    probe.add_argument("--repeats", type=int, default=1, help="pairs per variant")
+    probe.add_argument("--max-minutes", type=float, default=None, help="each homework's time budget (default the solver's 15)")
+    probe.add_argument("--no-reuse-pilot", action="store_true", help="never take the pilot's attempts as the arm without the lesson")
+    probe.add_argument("--pause", action="store_true", help="ask a running probe to stop after the homework it is on")
+    probe.add_argument("--write", action="store_true", help="store the result in evidence/campaigns/learning_v1/results/")
     args = parser.parse_args(argv)
+    if args.command == "probe":
+        return _probe(args)
     if args.command == "pilot":
         return _pilot(args)
     if args.command == "draft":
@@ -118,6 +132,76 @@ def _pilot(args) -> int:
         result["path"] = str(path)
     print(json.dumps({k: result.get(k) for k in ("id", "path", "model", "verdict", "summary")}, indent=1))
     return 0 if result["verdict"].startswith(("ok", "paused")) else 2 if result["verdict"].startswith("invalid") else 1
+
+
+def _local(args) -> tuple[object, int | None] | int:
+    """The intern's client on a local model, checked: on this machine, a window that holds its prompt, answering. An exit
+    code when it is not."""
+    from .solver import ContextTooSmall, NotLocal, check_context, local_gateway
+
+    from ..settings import Settings
+
+    try:
+        gateway = local_gateway(args.model, args.base_url, home=Path(Settings.load().agent_home))
+    except NotLocal as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    client = gateway.client("intern")
+    if client is None:
+        print("no model serves the intern: is the local server running with the model pulled?", file=sys.stderr)
+        return 2
+    try:
+        client.complete([{"role": "user", "content": "Reply with the word ready."}], [], max_tokens=200)
+    except Exception as exc:  # noqa: BLE001
+        print(f"the local model did not answer ({type(exc).__name__}: {str(exc)[:200]}): start the server and pull the model", file=sys.stderr)
+        return 2
+    try:
+        window = check_context(args.model, args.base_url)
+    except ContextTooSmall as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(f"{args.model}: served with a {window or 'unknown'}-token window", file=sys.stderr, flush=True)
+    return client, window
+
+
+def _probe(args) -> int:
+    from .. import experience
+    from ..settings import Settings
+    from .probe import pause_file, run_probe
+    from .scoreboard import _store
+
+    home = Path(Settings.load().agent_home)
+    if args.pause:
+        pause_file(home).parent.mkdir(parents=True, exist_ok=True)
+        pause_file(home).write_text("pause\n", encoding="utf-8")
+        print("the probe stops after the homework it is on; run the same probe command again to go on")
+        return 0
+    if not args.model or not args.bullet:
+        print("--model and --bullet are needed", file=sys.stderr)
+        return 2
+    pause_file(home).unlink(missing_ok=True)
+    got = _local(args)
+    if isinstance(got, int):
+        return got
+    client, window = got
+    before = experience.current_log()
+    if before is None:
+        experience.install(experience.open_log(home))
+    try:
+        result = run_probe(home, client, args.model, args.bullet, args.family, args.n, args.repeats, lineage=args.lineage,
+                           budget={"max_minutes": args.max_minutes} if args.max_minutes else None, reuse_pilot=not args.no_reuse_pilot,
+                           log=lambda *a: print(*a, flush=True))
+        result["context_window"] = window
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    finally:
+        if before is None:
+            experience.install(None)
+    if args.write and result.get("status") != "paused":
+        result["path"] = str(_store(result, args.family, "probe"))
+    print(json.dumps({k: result.get(k) for k in ("id", "path", "model", "verdict", "summary", "bullet")}, indent=1, ensure_ascii=False))
+    return 0 if not result["verdict"].startswith("invalid") else 2
 
 
 def _keep(report: dict) -> None:

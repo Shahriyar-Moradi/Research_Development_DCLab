@@ -148,7 +148,7 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
             "by_knob": {k: {v: {"passed": p, "of": n} for v, (p, n) in sorted(cells.items())} for k, cells in by_knob.items()}}
 
 
-RESULT = re.compile(r"^LRN-(\d+)_(?P<family>[a-z0-9]+)_(?P<split>learning|check|sealed|pilot)\.json$")  # a pilot ran on learning variants; its own name, so no baseline reader takes it
+RESULT = re.compile(r"^LRN-(\d+)_(?P<family>[a-z0-9]+)_(?P<split>learning|check|sealed|pilot|probe)\.json$")  # a pilot ran on learning variants; its own name, so no baseline reader takes it
 
 
 def _results(family: str, split: str) -> list[Path]:

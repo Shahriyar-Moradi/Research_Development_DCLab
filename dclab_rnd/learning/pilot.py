@@ -116,6 +116,10 @@ def run_pilot(home: Path, client: Any, model: str, family: str = "groups", n: in
                          "kept": _relative(out["kept"], home), "knobs": key.knobs, "session": summary_of(out["session"])})
             if out["kept"]:  # the row beside its attempt at once: a pause or a crash later never loses it
                 (Path(out["kept"]) / "pilot_row.json").write_text(json.dumps(rows[-1], indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+                if rows[-1]["broke"]:  # the server or DCLab failed before the model answered: done again, never the model's fail in training
+                    from .probe import mark_invalid
+
+                    mark_invalid(Path(out["kept"]), "the session failed before the model answered (the server or DCLab broke)")
             log(f"{variant.pack.id}: finished {out['finished']}, {grade.verdict} {grade.codes} in {out['seconds']}s "
                 f"({rows[-1]['session']['steps']} steps, {rows[-1]['session']['tool_errors']} tool errors)")
     finished = sum(r["finished"] for r in rows)

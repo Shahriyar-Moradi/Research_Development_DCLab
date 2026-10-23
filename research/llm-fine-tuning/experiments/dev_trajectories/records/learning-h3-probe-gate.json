@@ -1,0 +1,108 @@
+{
+ "package": "learning-h3-probe-gate",
+ "title": "The probe gate: one lesson measured in pairs on the local solver (harness learning, H3)",
+ "date": "2026-10-24",
+ "request": "The owner chose, before sleeping, to build the probe gate and run a tiny live probe (one lesson, three homeworks, with and without) on the local model, at no cost.",
+ "spec": "Plan H3: for a draft lesson, paired runs on learning variants with and without it, the local solver only, at least three repeats, the grader's score; probed only if the mean paired gain is above zero and no solved variant regresses; counters by code; the sealed set never read.",
+ "plan": [
+  "pair each learning variant without and with the one lesson, shown in the first user message",
+  "grade both by code and move the counters once per pair",
+  "promote from draft to probed by a gate fixed before the run",
+  "reuse the pilot's attempts as the arm without the lesson where nothing but time differs",
+  "keep every attempt whole, resumable after a pause"
+ ],
+ "decisions": [
+  {
+   "decision": "The pilot's attempts serve as the arm without the lesson when model, budget, tools and rules match",
+   "why": "on this laptop a homework costs half an hour; the pilot is exactly that arm"
+  },
+  {
+   "decision": "A tiny run moves the counters and never the status",
+   "why": "three pairs cannot show a lesson helps; the gate asks nine pairs with three repeats a variant"
+  },
+  {
+   "decision": "A homework the server broke is marked invalid and done again",
+   "why": "a broken instrument is neither the lesson's nor the model's result"
+  }
+ ],
+ "change": "dclab_rnd/learning/probe.py (new); dclab_rnd/learning/__main__.py (probe, a shared local-client check); dclab_rnd/learning/pilot.py (a broken homework marked invalid); dclab_rnd/learning/scoreboard.py (probe results named apart); tests/test_learning_h3_probe.py (new).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "defect": "a homework the server broke blocked the probe forever and would be filed as the model failing",
+   "scenario": "the server stopped mid-run: the session failed with no step, yet a grade and a row were written; every rerun found the row and stayed invalid; the store read the grade as a failed solve",
+   "cause": "nothing marked the attempt invalid",
+   "fix": "an attempt that broke before the model answered is marked invalid at once, so a rerun does it again and training never counts it",
+   "test": "tests/test_learning_h3_probe.py::ProbeTests::test_a_homework_the_server_broke_is_marked_invalid_and_done_again",
+   "severity": "behaviour",
+   "impact": "a stopped server would end a probe and poison the failed set",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "a pair could mix two time budgets",
+   "scenario": "a probe paused after the arm without the lesson at 45 minutes, resumed at 15: the pair compared 45 against 15",
+   "cause": "a row did not record its budget and the lookup did not compare it",
+   "fix": "each row keeps its budget, and a done homework is found only under the same budget (and the same lesson and lineage for the arm with it)",
+   "test": "tests/test_learning_h3_probe.py::ProbeTests::test_a_pair_never_mixes_two_budgets",
+   "severity": "behaviour",
+   "impact": "an unfair pair counted as evidence",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "the gate promoted a lesson with no repeat although the plan asks three",
+   "scenario": "nine variants, one pair each, could promote a lesson",
+   "cause": "the gate counted pairs only",
+   "fix": "promotion also needs three repeats of each variant; written into the gate before any live probe",
+   "test": "tests/test_learning_h3_probe.py::ProbeTests::test_enough_pairs_without_three_repeats_of_each_variant_keep_the_status",
+   "severity": "gap",
+   "impact": "a lesson promoted on one noisy draw a variant",
+   "alternatives": [
+    "state the departure from the plan in the gate"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "a promotion was tried on a lesson the same run's counts had retired",
+   "scenario": "earlier probes counted it harmful twice; this run's counts reached the retirement line yet its mean gain was positive: the status change was refused and no result was saved",
+   "cause": "the status was read before the counts moved",
+   "fix": "the status is read again after the counts and a promotion is tried only from draft",
+   "test": "tests/test_learning_h3_probe.py::ProbeTests::test_counts_that_retire_a_lesson_win_over_a_promotion_in_the_same_run",
+   "severity": "latent",
+   "impact": "a probe that ends in an error with its counts written",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "a pilot attempt made under older tools or rules could serve as the arm without the lesson",
+   "scenario": "a change to the intern's rules after the pilot: the pair would compare old code against new",
+   "cause": "reuse checked the model and budget only",
+   "fix": "reuse needs the attempt's tools and rules hashes to equal today's",
+   "test": "tests/test_learning_h3_probe.py::ProbeTests::test_the_pilots_attempt_serves_as_the_arm_without_the_lesson",
+   "severity": "latent",
+   "impact": "a pair that measures a code change, not the lesson",
+   "alternatives": [],
+   "open": ""
+  }
+ ],
+ "measurements": [],
+ "outcome": "A lesson can now be measured on the local solver in fair pairs: shown only in the first user message, graded by code, counted once, promoted only by a gate fixed before the run; a broken homework is done again and never counts.",
+ "lessons": [
+  "Put every condition that makes two runs comparable in the row that finds them again.",
+  "Read a state again after the step that can change it, before acting on it."
+ ],
+ "risks": [
+  "three repeats of three variants is about nine hours a lesson on this laptop"
+ ],
+ "commits": []
+}
