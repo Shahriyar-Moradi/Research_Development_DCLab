@@ -30,9 +30,13 @@
   {
    "decision": "The pilot's result files are named _pilot",
    "why": "a baseline reader filters by split; a pilot named _learning would look like a baseline"
+  },
+  {
+   "decision": "A pilot pauses between homeworks and goes on where it stopped",
+   "why": "the owner stops the laptop when needed; a homework takes about 45 minutes on it"
   }
  ],
- "change": "dclab_rnd/learning/solver.py and pilot.py (new); dclab_rnd/learning/__main__.py (pilot, a first tiny request before the run); dclab_rnd/learning/scoreboard.py (the pilot split in the result name); dclab_rnd/models/probe_reasoning.py (a verdict for reasoning read without a code word); research_notes/open_models_2026-10/servers.md (new: the measured server); tests/test_learning_h3.py (new). Later: dclab_rnd/learning/solver.py (served_context, check_context); the pilot's --max-minutes; research_notes/open_models_2026-10/servers.md (the cut window).",
+ "change": "dclab_rnd/learning/solver.py and pilot.py (new); dclab_rnd/learning/__main__.py (pilot, a first tiny request before the run); dclab_rnd/learning/scoreboard.py (the pilot split in the result name); dclab_rnd/models/probe_reasoning.py (a verdict for reasoning read without a code word); research_notes/open_models_2026-10/servers.md (new: the measured server); tests/test_learning_h3.py (new). Later: dclab_rnd/learning/solver.py (served_context, check_context); the pilot's --max-minutes; research_notes/open_models_2026-10/servers.md (the cut window). Later still: pause and go on (--pause, pilot_row.json beside each attempt, done_row by seed, rebuild_row).",
  "findings": [
   {
    "id": "F1",
@@ -154,6 +158,21 @@
    "severity": "behaviour",
    "impact": "a slow machine would read as a model that cannot finish",
    "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F10",
+   "source": "test",
+   "defect": "a paused pilot could not find the homeworks it had done",
+   "scenario": "a pilot run once, paused, then started again: the done homework was not matched and would have been repeated",
+   "cause": "a pack's id is drawn fresh at each draw so the solver cannot tell variants apart, and the lookup matched on it",
+   "fix": "each done homework's row saved beside it with its family and seed at once, and matched on the seed and the model; rows of attempts kept before were rebuilt from their grade, session and project",
+   "test": "tests/test_learning_h3.py::PilotTests::test_a_paused_pilot_stops_between_homeworks_and_goes_on_where_it_stopped",
+   "severity": "behaviour",
+   "impact": "hours of a slow local model repeated after every pause",
+   "alternatives": [
+    "a seeded pack id"
+   ],
    "open": ""
   }
  ],

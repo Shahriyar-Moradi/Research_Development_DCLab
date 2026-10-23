@@ -24,7 +24,8 @@ def main(argv: list[str] | None = None) -> int:
     draft.add_argument("--yes", action="store_true")
     draft.add_argument("--cap-eur", type=float, default=None, help="the most the reflector may spend on one challenge")
     pilot = sub.add_parser("pilot", help="H3: can a local model do the homework at all? the intern on the first learning variants, no lesson shown")
-    pilot.add_argument("--model", required=True, help="the local model's name on the server, e.g. qwen3.5:4b-q4_K_M")
+    pilot.add_argument("--model", default=None, help="the local model's name on the server, e.g. qwen3.5:4b-16k")
+    pilot.add_argument("--pause", action="store_true", help="ask a running pilot to stop after the homework it is on; the same command again goes on")
     pilot.add_argument("--base-url", default="http://127.0.0.1:11434/v1")
     pilot.add_argument("--family", default="groups")
     pilot.add_argument("--n", type=int, default=5)
@@ -66,11 +67,20 @@ def main(argv: list[str] | None = None) -> int:
 def _pilot(args) -> int:
     from .. import experience
     from ..settings import Settings
-    from .pilot import run_pilot
+    from .pilot import pause_file, run_pilot
     from .scoreboard import _store
     from .solver import NotLocal, local_gateway
 
     home = Path(Settings.load().agent_home)
+    if args.pause:
+        pause_file(home).parent.mkdir(parents=True, exist_ok=True)
+        pause_file(home).write_text("pause\n", encoding="utf-8")
+        print("the pilot stops after the homework it is on; run the same pilot command again to go on")
+        return 0
+    if not args.model:
+        print("--model is needed", file=sys.stderr)
+        return 2
+    pause_file(home).unlink(missing_ok=True)  # a start means go: a pause asked while nothing ran is not this run's
     try:
         gateway = local_gateway(args.model, args.base_url, home=home)
     except NotLocal as exc:
@@ -103,11 +113,11 @@ def _pilot(args) -> int:
     finally:
         if before is None:
             experience.install(None)
-    if args.write:
+    if args.write and result.get("status") != "paused":
         path = _store(result, args.family, "pilot")
         result["path"] = str(path)
     print(json.dumps({k: result.get(k) for k in ("id", "path", "model", "verdict", "summary")}, indent=1))
-    return 0 if result["verdict"].startswith("ok") else 2 if result["verdict"].startswith("invalid") else 1
+    return 0 if result["verdict"].startswith(("ok", "paused")) else 2 if result["verdict"].startswith("invalid") else 1
 
 
 def _keep(report: dict) -> None:

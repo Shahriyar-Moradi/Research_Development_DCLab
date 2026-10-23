@@ -248,6 +248,69 @@ class PilotTests(unittest.TestCase):
         self.assertTrue(result["verdict"].startswith("invalid"), result["verdict"])
         self.assertEqual(result["summary"]["broke"], 2)
 
+    def test_a_paused_pilot_stops_between_homeworks_and_goes_on_where_it_stopped(self):
+        from dclab_rnd.learning.pilot import pause_file, run_pilot
+
+        class Lazy(KeyedModel):
+            def __init__(self):
+                super().__init__(None)
+
+        quiet = lambda *_: None  # noqa: E731
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            first = run_pilot(home, Lazy(), "scripted", n=1, log=quiet)
+            self.assertEqual(first["status"], "completed")
+            pause_file(home).write_text("pause")
+            paused = run_pilot(home, Lazy(), "scripted", n=3, log=quiet)
+            self.assertEqual(paused["status"], "paused")  # the done homework came back, the next was not started
+            self.assertEqual([r.get("resumed") for r in paused["rows"]], [True])
+            self.assertFalse(pause_file(home).exists())
+            went_on = run_pilot(home, Lazy(), "scripted", n=3, log=quiet)
+            self.assertEqual(went_on["status"], "completed")
+            self.assertEqual(len(went_on["rows"]), 3)
+            self.assertEqual(went_on["rows"][0]["pack"], first["rows"][0]["pack"])  # the same attempt, found by its seed
+            self.assertEqual(len(list((home / "learning_attempts").glob("*/*-pilot"))), 3)  # no homework done twice
+            other = run_pilot(home, Lazy(), "another", n=1, log=quiet)
+            self.assertEqual(len(list((home / "learning_attempts").glob("*/*-pilot"))), 4)  # another model does its own
+            self.assertNotIn("resumed", other["rows"][0])
+
+    def test_an_invalid_or_ungraded_attempt_is_done_again(self):
+        from dclab_rnd.learning.pilot import done_row, run_pilot
+
+        class Lazy(KeyedModel):
+            def __init__(self):
+                super().__init__(None)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            row = run_pilot(home, Lazy(), "scripted", n=1, log=lambda *_: None)["rows"][0]
+            folder, seed = home / row["kept"], row["seed"]
+            self.assertIsNotNone(done_row(home, "groups", seed, "scripted"))
+            self.assertIsNone(done_row(home, "groups", seed, "another"))
+            (folder / "invalid.json").write_text("{}")
+            self.assertIsNone(done_row(home, "groups", seed, "scripted"))
+            (folder / "invalid.json").unlink()
+            (folder / "grade.json").unlink()
+            self.assertIsNone(done_row(home, "groups", seed, "scripted"))
+
+    def test_an_attempt_kept_before_rows_were_saved_is_rebuilt_and_then_found(self):
+        from dclab_rnd.learning.pilot import done_row, rebuild_row, run_pilot
+
+        class Lazy(KeyedModel):
+            def __init__(self):
+                super().__init__(None)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            row = run_pilot(home, Lazy(), "scripted", n=1, log=lambda *_: None)["rows"][0]
+            folder = home / row["kept"]
+            (folder / "pilot_row.json").unlink()
+            self.assertIsNone(done_row(home, "groups", row["seed"], "scripted"))
+            rebuilt = rebuild_row(folder, home, "groups", row["seed"])
+            self.assertEqual((rebuilt["pack"], rebuilt["verdict"], rebuilt["codes"], rebuilt["finished"]),
+                             (row["pack"], row["verdict"], row["codes"], row["finished"]))
+            self.assertIsNotNone(done_row(home, "groups", row["seed"], "scripted"))
+
     def test_a_pilot_without_a_model_is_refused(self):
         from dclab_rnd.learning.pilot import run_pilot
 
