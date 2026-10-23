@@ -425,6 +425,22 @@ def solve(kinds_keys: Iterable[str] | None = None, seeds: int = 20, log=print) -
             f.write(json.dumps({"group": group, "verified": bool(checks) and not missed, "checks": checks, "solve": run,
                                 "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}, default=_plain) + "\n")
 
+    def keep_failed(group: str, run: Any, checks: list[dict[str, Any]], missed: list[str] | None = None, reason: str | None = None,
+                    trace: str | None = None) -> None:
+        """D2 / P3 (2026-10-23): a failed engine solve kept as carefully as a verified one, in ``failed_solves.jsonl`` ("what went
+        wrong" is training data too, as Hermes Agent keeps its failed runs): the solution, every stage's record, the labels, the
+        checks and what they missed, or the whole error and its traceback; never the table itself. The keys that quote rows
+        (``traces.CELL_KEYS``) are removed as the trace removes them; the stage records still name the replica's categories,
+        class labels and one-hot feature names, as the verified solves' ledgers and screens do: these are invented tables,
+        never a person's. Its ledger folder stays beside it like a verified solve's."""
+        from ..agents.traces import scrub
+
+        with (OUT / "failed_solves.jsonl").open("a", encoding="utf-8") as f:
+            f.write(json.dumps({"group": group, "verified": False, "missed": missed, "reason": reason, "traceback": trace, "checks": checks,
+                                "solve": {"solution": getattr(run, "solution", None), "records": scrub(getattr(run, "records", None)),
+                                          "labels": getattr(run, "labels", None)},
+                                "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}, default=_plain) + "\n")
+
     for kind in _kinds():
         if wanted and kind.key not in wanted:
             continue
@@ -434,6 +450,7 @@ def solve(kinds_keys: Iterable[str] | None = None, seeds: int = 20, log=print) -
             if group in done:
                 continue
             started = time.perf_counter()
+            run = None
             try:
                 case = kind.case(seed)
                 if case is None:
@@ -448,11 +465,17 @@ def solve(kinds_keys: Iterable[str] | None = None, seeds: int = 20, log=print) -
             except Exception as exc:  # noqa: BLE001 — a solve that breaks is a rejection with its reason, never a stop
                 rejected.append({"group": group, "reason": f"{type(exc).__name__}: {str(exc)[:200]}"})
                 record(group, [], {"verified": False, "reason": rejected[-1]["reason"]})
+                if run is not None and not library:  # the engine ran, its checks broke: kept whole, the error and its traceback uncut
+                    import traceback
+
+                    keep_failed(group, run, [], reason=f"{type(exc).__name__}: {exc}", trace=traceback.format_exc())
                 continue
             missed = [c["decision"] for c in checks if not c["ok"]]
             if missed or not checks:
                 rejected.append({"group": group, "missed": missed or ["no acceptance decisions"]})
                 record(group, [], {"verified": False, "missed": rejected[-1]["missed"]})
+                if not library:  # a library solve is already in library_solves.jsonl, verified or not
+                    keep_failed(group, run, checks, missed=rejected[-1]["missed"])
                 continue
             got: list[L.TrainingExample] = []
             if teaches(kind, case):
@@ -481,7 +504,7 @@ def forget(kinds_keys: Iterable[str]) -> dict[str, int]:
     removed: dict[str, int] = {}
     for name, key in (("examples.jsonl", lambda d: d.get("provenance", {}).get("group")), ("screens.jsonl", lambda d: d.get("group")),
                       ("done.jsonl", lambda d: d.get("group")), ("backfill_done.jsonl", lambda d: d.get("group")),
-                      ("library_solves.jsonl", lambda d: d.get("group"))):
+                      ("library_solves.jsonl", lambda d: d.get("group")), ("failed_solves.jsonl", lambda d: d.get("group"))):
         path = OUT / name
         if not path.is_file():
             continue

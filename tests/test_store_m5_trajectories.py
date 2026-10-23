@@ -136,6 +136,15 @@ class SolverTrajectoriesTest(unittest.TestCase):
                  "value": 0.74, "observed": "holdout", "project": f"sp{seed}", "at": AT}) + "\n").encode(), consent="train")
         store.keep_log("other", "selfplay", "done.jsonl", (json.dumps({"group": "selfplay:binary:0", "verified": True}) + "\n"
                                                          + json.dumps({"group": "selfplay:binary:1", "verified": False}) + "\n").encode(), consent="train")
+        store.keep_log("other", "selfplay", "failed_solves.jsonl", (json.dumps(  # D2 / P3: the failed solve kept whole, what it missed
+            {"group": "selfplay:binary:1", "verified": False, "missed": ["planted leak kept out"], "reason": None,
+             "checks": [{"decision": "planted leak kept out", "ok": False, "detail": "final_refund_amount was used"}],
+             "solve": {"solution": {"target": "churned"}, "records": {"final": {"status": "completed"}}, "labels": {}}, "at": AT}) + "\n").encode(), consent="train")
+        # an unscored session on the train project whose table is shared with a sealed project: its failed run is sealed too
+        keep("conversations", "dev", "intern/555555555555.json", session("555555555555", self.train_p, runs=False))
+        # a Claude session that never reached a holdout: a failed frontier run, silver's (never the failed folder's)
+        keep("conversations", "dev", "intern/b2b2b2b2b2b2.json", {**session("b2b2b2b2b2b2", "p10", "llm", "claude-sonnet-5-5", runs=False),
+                                                                 "status": "budget_exhausted"})
         # a Claude Code session whose id is a UUID
         lines = [{"type": "user", "sessionId": SESSION_UUID, "timestamp": AT, "uuid": "u1", "message": {"role": "user", "content": "Fix the test"}},
                  {"type": "assistant", "sessionId": SESSION_UUID, "timestamp": AT, "uuid": "u2", "message": {"role": "assistant", "content": [
@@ -194,15 +203,57 @@ class SolverTrajectoriesTest(unittest.TestCase):
         self.assertEqual(manifest["consent"], "improve")  # not cleared for training
         self.assertEqual(json.loads((self.base("trajectories/studio", "v2") / "MANIFEST.json").read_text(encoding="utf-8"))["consent"], "train")
 
-    def test_unscored_unchecked_and_failed_runs_are_placed_nowhere(self):
-        placed = self.placed()
-        for sid in ("cccccccccccc", "c3c3c3c3c3c3", "dddddddddddd", "d2d2d2d2d2d2"):
+    def test_unscored_unchecked_and_failed_runs_are_kept_in_the_failed_set_never_in_studio(self):
+        """D2 / P3: what went wrong is training data too, kept whole with why; studio and silver hold only verified solves."""
+        from dclab_core.store import SolverTrajectory
+
+        placed, failed = self.placed(), self.rows("trajectories/failed", "v1")
+        for sid in ("cccccccccccc", "c3c3c3c3c3c3", "dddddddddddd", "d2d2d2d2d2d2", "a1a1a1a1a1a1"):
             self.assertNotIn(f"m5_solver_llm:intern:{sid}", placed, sid)
+            self.assertIn(f"m5_solver_llm:intern:{sid}", failed, sid)
+        whys = {sid: SolverTrajectory.model_validate(failed[f"m5_solver_llm:intern:{sid}"]).submission for sid in
+                ("cccccccccccc", "c3c3c3c3c3c3", "dddddddddddd")}
+        self.assertEqual(whys["cccccccccccc"]["why"], "m5: failed its planted truth")
+        self.assertEqual(whys["cccccccccccc"]["truth"], "failed")  # what it had stays beside why
+        self.assertEqual(whys["c3c3c3c3c3c3"]["why"], "m5: its planted truth was not judged")
+        self.assertEqual(whys["dddddddddddd"], {"verified": False, "why": "m5: not scored on its holdout"})
         kept_out = self.report["kept_out"]
-        self.assertEqual(kept_out.get("m5: failed its planted truth"), 1)
-        self.assertEqual(kept_out.get("m5: its planted truth was not judged"), 1)
-        self.assertEqual(kept_out.get("m5: not scored on its holdout"), 3)  # no final, a final it never ran, a final made before it
-        self.assertNotIn("m5_solver_llm:intern:a1a1a1a1a1a1", placed)
+        self.assertEqual(kept_out.get("m5: failed its planted truth (kept in trajectories/failed)"), 1)
+        self.assertEqual(kept_out.get("m5: not scored on its holdout (kept in trajectories/failed)"), 4)  # no final, a final it never ran (twice), a final made before it
+        self.assertNotIn("m5: not scored on its holdout", kept_out)  # nothing is thrown away any more
+        self.assertIn("never mixed into studio", (self.base("trajectories/failed", "v1") / "CARD.md").read_text(encoding="utf-8"))
+
+    def test_a_failed_run_on_a_sealed_table_is_sealed_never_in_train(self):
+        """A run with no holdout of its own still ran on its project's table: any final of the project names it for the split."""
+        from dclab_core.store import SolverTrajectory
+
+        failed = self.rows("trajectories/failed", "v1")
+        t = SolverTrajectory.model_validate(failed["m5_solver_llm:intern:555555555555"])
+        self.assertEqual((t.split, t.problem["data_sha256"], t.submission["why"]), ("sealed", None, "m5: not scored on its holdout"))
+        base = self.base("trajectories/failed", "v1")
+        train = (base / "train.jsonl").read_text(encoding="utf-8") if (base / "train.jsonl").exists() else ""
+        self.assertNotIn("555555555555", train)
+
+    def test_a_frontier_models_failed_run_is_silver_with_why_never_in_the_failed_set(self):
+        from dclab_core.store import SolverTrajectory
+
+        silver, failed = self.rows("trajectories/silver_frontier", "v1"), self.rows("trajectories/failed", "v1")
+        self.assertNotIn("m5_solver_llm:intern:b2b2b2b2b2b2", failed)
+        claude = SolverTrajectory.model_validate(silver["m5_solver_llm:intern:b2b2b2b2b2b2"])
+        self.assertEqual(claude.submission, {"verified": False, "why": "m5: not scored on its holdout (the session ended budget_exhausted)"})
+        self.assertEqual(claude.weight, 0.5)
+
+    def test_a_failed_selfplay_solve_is_kept_with_what_it_missed(self):
+        from dclab_core.store import SolverTrajectory
+
+        failed = self.rows("trajectories/failed", "v1")
+        self.assertNotIn("m5_solver_llm:selfplay:binary:1", self.rows("trajectories/selfplay", "v1"))
+        t = SolverTrajectory.model_validate(failed["m5_solver_llm:selfplay:binary:1"])
+        self.assertEqual((t.submission["verified"], t.submission["why"]), (False, "m5: a self-play solve that did not pass its checks"))
+        self.assertEqual(t.submission["missed"], ["planted leak kept out"])
+        self.assertEqual(t.submission["checks"][0]["detail"], "final_refund_amount was used")
+        self.assertEqual(t.submission["steps_against_label"], 1)  # the step the planted truth contradicts is in the trajectory
+        self.assertFalse(t.steps[1].ok)
 
     def test_a_sealed_session_seals_its_table(self):
         studio = self.rows("trajectories/studio", "v2")
@@ -231,7 +282,7 @@ class SolverTrajectoriesTest(unittest.TestCase):
         self.assertEqual([s.tool for s in t.steps], ["decide:target.column", "decide:feature.leakage_suspect"])
         self.assertEqual(t.steps[1].result["label"]["source"], "benchmark")
         self.assertEqual((t.steps[1].thought_source, t.score), ("from_record", 0.74))
-        self.assertEqual(self.report["kept_out"].get("m5: a self-play solve that did not pass its checks"), 1)
+        self.assertEqual(self.report["kept_out"].get("m5: a self-play solve that did not pass its checks (kept in trajectories/failed)"), 1)
 
     def test_a_decision_the_truth_contradicts_is_a_pair_even_from_a_failed_solve(self):
         from dclab_core.store import PreferencePair

@@ -78,11 +78,54 @@ class SelfplayKindsTests(unittest.TestCase):
         from dclab_rnd import kinds
 
         kind = kinds.get("ranking")
-        with mock.patch.object(type(kind), "accept_engine", lambda self, run: [{"decision": "planted", "ok": False, "detail": ""}]):
+        recorded = self.P._run_recorded
+
+        def planted(*args, **kwargs):  # a stage record quoting rows under a cell key, beside a key that stays
+            run = recorded(*args, **kwargs)
+            run.records.setdefault("data", {})["examples"] = ["58", "44", "33"]
+            run.records["data"]["usable_feature_count"] = 7
+            return run
+
+        with mock.patch.object(type(kind), "accept_engine", lambda self, run: [{"decision": "planted", "ok": False, "detail": ""}]), \
+                mock.patch.object(self.P, "_run_recorded", planted):
             done = self.P.solve(["ranking"], seeds=1, log=lambda *_: None)
         self.assertEqual((done["problems"], done["rejected"]), (0, 1))
         self.assertEqual(lines(self.tmp / "done.jsonl")[0], {"group": "selfplay:ranking:0", "verified": False, "missed": ["planted"]})
         self.assertEqual(self.P.decision_docs(self.tmp), [])
+        # D2 / P3: the failed solve is kept whole beside the verified ones: the keys that quote rows removed, never the table itself
+        kept = lines(self.tmp / "failed_solves.jsonl")
+        self.assertEqual([(d["group"], d["verified"], d["missed"], d["reason"]) for d in kept], [("selfplay:ranking:0", False, ["planted"], None)])
+        self.assertEqual(kept[0]["checks"], [{"decision": "planted", "ok": False, "detail": ""}])
+        self.assertEqual(set(kept[0]["solve"]), {"solution", "records", "labels"})
+        self.assertNotIn("examples", kept[0]["solve"]["records"]["data"])
+        self.assertEqual(kept[0]["solve"]["records"]["data"]["usable_feature_count"], 7)
+        self.assertNotIn('"table"', json.dumps(kept[0]))
+
+    def test_a_solve_whose_checks_break_is_kept_with_its_whole_error(self):
+        from dclab_rnd import kinds
+
+        kind = kinds.get("ranking")
+
+        def broken(self, run):
+            raise RuntimeError("the acceptance read a column that is not there: " + "x" * 300)
+
+        with mock.patch.object(type(kind), "accept_engine", broken):
+            done = self.P.solve(["ranking"], seeds=1, log=lambda *_: None)
+        self.assertEqual(done["rejected"], 1)
+        kept = lines(self.tmp / "failed_solves.jsonl")
+        self.assertEqual(len(kept[0]["reason"]), len("RuntimeError: the acceptance read a column that is not there: ") + 300)  # whole, never cut
+        self.assertIn("RuntimeError", kept[0]["traceback"])
+        self.assertLess(len(lines(self.tmp / "done.jsonl")[0]["reason"]), 220)  # the log line keeps its short form
+
+    def test_forget_takes_out_a_failed_solve_too(self):
+        from dclab_rnd import kinds
+
+        kind = kinds.get("ranking")
+        with mock.patch.object(type(kind), "accept_engine", lambda self, run: [{"decision": "planted", "ok": False, "detail": ""}]):
+            self.P.solve(["ranking"], seeds=1, log=lambda *_: None)
+        self.assertEqual(len(lines(self.tmp / "failed_solves.jsonl")), 1)
+        self.P.forget(["ranking"])
+        self.assertEqual(lines(self.tmp / "failed_solves.jsonl"), [])
 
     def test_a_library_solve_that_breaks_is_logged(self):
         from dclab_rnd import kinds

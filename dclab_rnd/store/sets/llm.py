@@ -418,11 +418,18 @@ def intern_trajectories(records: Iterable[StoreRecord], finals: Optional[dict[tu
         truth, truth_source = truth_of(r.provenance.workspace, truths)
         table = (holdout or {}).get("data_sha256")
         lane = TWIN_LANE.match(r.provenance.workspace)
-        split = "sealed" if (r.split == "sealed" or table in sealed_tables) else (split_of(f"table:{table}") if table else (r.split or split_of(f"session:{sid}")))
+        # a run with no holdout of its own (a failed run, P3) still ran on its project's table: any final of the project names it,
+        # for the split only (its steps describe that table, so a sealed table's run is sealed); a project with no final at all
+        # cannot be tied to a table here, and its split follows its session
+        project = str(r.body.get("project_id") or r.body.get("project") or "")
+        known = {f.get("data_sha256") for f in finals.get((r.provenance.workspace, project), [])} - {None}
+        split = ("sealed" if (r.split == "sealed" or table in sealed_tables or (known & sealed_tables))
+                 else (split_of(f"table:{table}") if table else (r.split or split_of(f"session:{sid}"))))
         yield SolverTrajectory(
             id=f"m5_solver_llm:intern:{sid}", model_type="m5_solver_llm", split=split,
             provenance=r.provenance, problem_kind=str((holdout or {}).get("task_type") or "studio"), weight=1.0 if clean(who) else 0.5,
             problem={"request": r.body.get("task"), "agent": "intern", "answerer": who, "data_sha256": table,
+                     "status": r.body.get("status"), "ended": r.body.get("ended"),  # how the session ended (a failed run says so)
                      "outcome_named": OUTCOME_NAMED in str(r.body.get("task") or ""),  # the person named the outcome: not the solver's choice
                      "twin": {"run": lane.group("run"), "lane": lane.group("lane")} if lane else None},
             steps=steps, metric=(holdout or {}).get("metric"), score=(holdout or {}).get("score"),
@@ -474,6 +481,16 @@ def selfplay_verified(records: Iterable[StoreRecord]) -> dict[str, bool]:
     for r in records:
         if r.provenance.workspace == "selfplay" and r.provenance.source == "done.jsonl" and r.body.get("group"):
             out[str(r.body["group"])] = bool(r.body.get("verified"))
+    return out
+
+
+def selfplay_failures(records: Iterable[StoreRecord]) -> dict[str, dict[str, Any]]:
+    """D2 / P3: what each failed self-play solve missed (``failed_solves.jsonl``: the checks, the decisions missed, or the error
+    that broke it), by its group, for the failed trajectory's submission. The solve itself stays in the record, whole."""
+    out: dict[str, dict[str, Any]] = {}
+    for r in records:
+        if r.provenance.workspace == "selfplay" and r.provenance.source == "failed_solves.jsonl" and r.body.get("group"):
+            out[str(r.body["group"])] = {k: r.body.get(k) for k in ("missed", "reason", "checks") if r.body.get(k) is not None}
     return out
 
 
@@ -561,17 +578,39 @@ def newest_per_table(placed: list[tuple[str, SolverTrajectory]]) -> Iterable[tup
         yield folder, t, best[key(t)] is t
 
 
-def place(t: SolverTrajectory) -> tuple[Optional[str], str]:
-    """Where an intern trajectory goes: the clean set, the frontier's silver set, or nowhere (with why)."""
+FAILED = "trajectories/failed"  # D2 / P3: runs that went wrong, kept whole with why; never mixed into studio
+
+
+def failure_of(t: SolverTrajectory) -> str:
+    """Why a run is not a clean, verified solve ("" when it is): never scored on its holdout (the session's own ending named
+    when it did not complete), failed its planted truth, or its truth was not judged."""
     if t.score is None or not t.submission:
-        return None, "m5: not scored on its holdout"
-    if not t.problem.get("data_sha256"):
-        return None, "m5: the table it ran on is not known"  # its split could not follow the table
+        status = str(t.problem.get("status") or "")
+        return "m5: not scored on its holdout" + (f" (the session ended {status})" if status and status != "completed" else "")
     if t.submission.get("truth") == "failed":
-        return None, "m5: failed its planted truth"
+        return "m5: failed its planted truth"
     if t.submission.get("truth") == "unknown":
-        return None, "m5: its planted truth was not judged"
-    return ("trajectories/studio" if clean(str(t.problem.get("answerer"))) else "trajectories/silver_frontier"), ""
+        return "m5: its planted truth was not judged"
+    return ""
+
+
+def as_failed(t: SolverTrajectory, why: str, **facts: Any) -> SolverTrajectory:
+    """The trajectory marked as a failed run: its submission keeps what it had and says why (``verified`` false), so "what went
+    wrong" is read beside the steps that led there."""
+    return t.model_copy(update={"submission": {**(t.submission or {}), "verified": False, "why": why, **facts}})
+
+
+def place(t: SolverTrajectory) -> tuple[Optional[str], str]:
+    """Where an intern trajectory goes: the clean set, the frontier's silver set, or (D2 / P3) the failed set with why (a
+    frontier model's failed run goes to silver with the same why: never to a training folder). Nowhere only when the table
+    it ran on is not known, since its split could not follow the table; the reason comes back with None."""
+    silver = not clean(str(t.problem.get("answerer")))
+    why = failure_of(t)
+    if why:  # a failed run often has no holdout, so no table: its split followed its session instead
+        return ("trajectories/silver_frontier" if silver else FAILED), why
+    if not t.problem.get("data_sha256"):
+        return None, "m5: the table it ran on is not known"
+    return ("trajectories/silver_frontier" if silver else "trajectories/studio"), ""
 
 
 def build(layout: Optional[Layout] = None) -> dict[str, Any]:
@@ -620,14 +659,18 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
     for t in trajectories(r for r in shapers.records(layout, "agents") if allowed(r, "m5_solver_llm", choices)):
         add("m5_solver_llm", "trajectories/development", t)
     verified = selfplay_verified(shapers.records(layout, "other"))
+    failures = selfplay_failures(shapers.records(layout, "other"))
     for t in selfplay_trajectories((r for r in shapers.records(layout, "decisions") if r.provenance.workspace.startswith("selfplay__")
                                     and allowed(r, "m5_solver_llm", choices)), verified):
         if t.submission and t.submission.get("verified"):
             add("m5_solver_llm", "trajectories/selfplay", t)
+        else:  # D2 / P3: a solve that did not pass its checks is kept whole, with what it missed, beside the verified ones
+            facts = failures.get(t.id.removeprefix("m5_solver_llm:"), {})
+            add("m5_solver_llm", FAILED, as_failed(t, "m5: a self-play solve that did not pass its checks", **facts))
         for pair in selfplay_pairs(t):
             add("m5_solver_llm", "preferences/selfplay", pair)
     if verified:
-        out["m5: a self-play solve that did not pass its checks"] += sum(1 for v in verified.values() if not v)
+        out["m5: a self-play solve that did not pass its checks (kept in trajectories/failed)"] += sum(1 for v in verified.values() if not v)
     finals = holdouts(shapers.records(layout, "workflows"))
     truths = twin_truths(r for r in shapers.records(layout, "conversations") if r.provenance.source.endswith("steps.jsonl"))
     placed = []
@@ -635,6 +678,10 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
         folder, why = place(t)
         if folder is None:
             out[why] += 1
+            continue
+        if why:  # D2 / P3: a run that went wrong, kept whole with why; it never competes with a verified solve of its table
+            add("m5_solver_llm", folder, as_failed(t, why))
+            out[f"{why} (kept in {folder})"] += 1
             continue
         placed.append((folder, t))
     for folder, t, newest in newest_per_table(placed):
@@ -657,7 +704,13 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
                                  "the replicas' column names are kept (the lake also masks them): a model may learn their shapes.",
         "preferences/selfplay": "Kept against refused: each self-play decision the planted (benchmark) or measured truth contradicts, the "
                                 "label chosen over the engine's answer, on the decision as posed (state as bands, options). Failed solves included.",
-        "trajectories/development": "Claude Code sessions on this repository, each by its own session id: how DCLab is built, not an ML solve."}
+        "trajectories/development": "Claude Code sessions on this repository, each by its own session id: how DCLab is built, not an ML solve.",
+        FAILED: "D2 / P3: runs that went wrong, kept as carefully as the verified ones: intern sessions never scored on their holdout "
+                "(the session's own ending named), ones that failed their planted truth or were not judged, and self-play solves "
+                "that did not pass their checks (what they missed). Each submission says why (verified: false). What went wrong is "
+                "training data too; never mixed into studio, and a frontier model's failed run is in silver_frontier, not here. A run "
+                "with no holdout is sealed when any final of its project ran on a sealed table; a project with no final at all cannot "
+                "be tied to a table, so its split follows its session."}
     versions = {"trajectories/studio": "v2", "trajectories/development": "v2"}  # v2: split by table, scored; the session id kept (v1's sealed rows were written once)
     for (model_type, folder), examples in sorted(sets.items()):
         examples = keep_sealed(layout, model_type, folder, versions.get(folder, "v1"), examples)
