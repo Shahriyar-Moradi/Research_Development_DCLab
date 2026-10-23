@@ -25,7 +25,7 @@
    "why": "a broken instrument is neither the lesson's nor the model's result"
   }
  ],
- "change": "dclab_rnd/learning/probe.py (new); dclab_rnd/learning/__main__.py (probe, a shared local-client check); dclab_rnd/learning/pilot.py (a broken homework marked invalid); dclab_rnd/learning/scoreboard.py (probe results named apart); tests/test_learning_h3_probe.py (new).",
+ "change": "dclab_rnd/learning/probe.py (new); dclab_rnd/learning/__main__.py (probe, a shared local-client check); dclab_rnd/learning/pilot.py (a broken homework marked invalid); dclab_rnd/learning/scoreboard.py (probe results named apart); tests/test_learning_h3_probe.py (new). Later: --limit for the pilot and the probe (exit 3 while more remain).",
  "findings": [
   {
    "id": "F1",
@@ -93,6 +93,21 @@
    "impact": "a pair that measures a code change, not the lesson",
    "alternatives": [],
    "open": ""
+  },
+  {
+   "id": "F6",
+   "source": "measurement",
+   "defect": "one process doing homework after homework grew until swap filled the disk",
+   "scenario": "the resumed pilot, fourth homework done, fifth under way: swap at 10 GB, the disk at 1.7 GB free; stopping the process and the model gave back 8 GB at once",
+   "cause": "the process kept what each homework loaded; the operating system swapped it to disk",
+   "fix": "a limit of new homeworks a process, the command exits with 3 when more remain, and a loop runs one homework a process with the disk checked before each",
+   "test": "tests/test_learning_h3.py::PilotTests::test_a_limit_does_that_many_new_homeworks_a_process_and_the_next_goes_on",
+   "severity": "behaviour",
+   "impact": "a night's run stopped by a full disk",
+   "alternatives": [
+    "find what each homework leaves in memory"
+   ],
+   "open": "what each homework leaves in memory is not yet found"
   }
  ],
  "measurements": [],

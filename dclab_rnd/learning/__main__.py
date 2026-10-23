@@ -25,6 +25,7 @@ def main(argv: list[str] | None = None) -> int:
     draft.add_argument("--cap-eur", type=float, default=None, help="the most the reflector may spend on one challenge")
     pilot = sub.add_parser("pilot", help="H3: can a local model do the homework at all? the intern on the first learning variants, no lesson shown")
     pilot.add_argument("--model", default=None, help="the local model's name on the server, e.g. qwen3.5:4b-16k")
+    pilot.add_argument("--limit", type=int, default=None, help="at most this many new homeworks in this process, then exit 3 (loop it: a fresh process a homework)")
     pilot.add_argument("--pause", action="store_true", help="ask a running pilot to stop after the homework it is on; the same command again goes on")
     pilot.add_argument("--base-url", default="http://127.0.0.1:11434/v1")
     pilot.add_argument("--family", default="groups")
@@ -41,6 +42,7 @@ def main(argv: list[str] | None = None) -> int:
     probe.add_argument("--repeats", type=int, default=1, help="pairs per variant")
     probe.add_argument("--max-minutes", type=float, default=None, help="each homework's time budget (default the solver's 15)")
     probe.add_argument("--no-reuse-pilot", action="store_true", help="never take the pilot's attempts as the arm without the lesson")
+    probe.add_argument("--limit", type=int, default=None, help="at most this many new homeworks in this process, then exit 3 (loop it: a fresh process a homework)")
     probe.add_argument("--pause", action="store_true", help="ask a running probe to stop after the homework it is on")
     probe.add_argument("--write", action="store_true", help="store the result in evidence/campaigns/learning_v1/results/")
     args = parser.parse_args(argv)
@@ -122,7 +124,7 @@ def _pilot(args) -> int:
         experience.install(experience.open_log(home))
     try:
         budget = {"max_minutes": args.max_minutes} if args.max_minutes else None
-        result = run_pilot(home, client, args.model, args.family, args.n, log=lambda *a: print(*a, flush=True), budget=budget)
+        result = run_pilot(home, client, args.model, args.family, args.n, log=lambda *a: print(*a, flush=True), budget=budget, limit=args.limit)
         result["context_window"] = window
     finally:
         if before is None:
@@ -131,7 +133,9 @@ def _pilot(args) -> int:
         path = _store(result, args.family, "pilot")
         result["path"] = str(path)
     print(json.dumps({k: result.get(k) for k in ("id", "path", "model", "verdict", "summary")}, indent=1))
-    return 0 if result["verdict"].startswith(("ok", "paused")) else 2 if result["verdict"].startswith("invalid") else 1
+    if result.get("status") == "paused":
+        return 3  # more to do: the same command again goes on (a loop runs one homework a process)
+    return 0 if result["verdict"].startswith("ok") else 2 if result["verdict"].startswith("invalid") else 1
 
 
 def _local(args) -> tuple[object, int | None] | int:
@@ -190,7 +194,7 @@ def _probe(args) -> int:
     try:
         result = run_probe(home, client, args.model, args.bullet, args.family, args.n, args.repeats, lineage=args.lineage,
                            budget={"max_minutes": args.max_minutes} if args.max_minutes else None, reuse_pilot=not args.no_reuse_pilot,
-                           log=lambda *a: print(*a, flush=True))
+                           log=lambda *a: print(*a, flush=True), limit=args.limit)
         result["context_window"] = window
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
@@ -201,6 +205,8 @@ def _probe(args) -> int:
     if args.write and result.get("status") != "paused":
         result["path"] = str(_store(result, args.family, "probe"))
     print(json.dumps({k: result.get(k) for k in ("id", "path", "model", "verdict", "summary", "bullet")}, indent=1, ensure_ascii=False))
+    if result.get("status") == "paused":
+        return 3  # more to do: the same command again goes on (a loop runs one homework a process)
     return 0 if not result["verdict"].startswith("invalid") else 2
 
 

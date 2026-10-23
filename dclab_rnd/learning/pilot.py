@@ -81,12 +81,15 @@ def broke(session: dict[str, Any]) -> bool:
 
 
 def run_pilot(home: Path, client: Any, model: str, family: str = "groups", n: int = 5, log=print,
-              budget: dict[str, Any] | None = None) -> dict[str, Any]:
+              budget: dict[str, Any] | None = None, limit: int | None = None) -> dict[str, Any]:
+    """``limit``: at most this many new homeworks in this process, then it pauses (the next process goes on). Measured
+    2026-10-24: one process doing homework after homework grew until swap reached 10 GB and the disk fell below 2 GB;
+    a fresh process a homework gives its memory back."""
     if client is None:  # with no model the intern runs the standard plan: that would measure the rules, not the model
         raise ValueError("a pilot needs a model client: none serves the intern")
     from .scoreboard import fingerprints
 
-    rows, paused = [], False
+    rows, paused, new = [], False, 0
     with tempfile.TemporaryDirectory() as tmp:
         for seed in V.seeds(family, "learning", n):  # the learning partition only: the first seeds, as the rules' baseline read
             earlier = done_row(home, family, seed, model)
@@ -95,11 +98,13 @@ def run_pilot(home: Path, client: Any, model: str, family: str = "groups", n: in
                 log(f"{earlier['pack']}: done before ({earlier['verdict']} {earlier['codes']}), not repeated")
                 continue
             variant = materialize(Path(tmp), family, seed)
-            if pause_file(home).exists():
-                pause_file(home).unlink()
+            if pause_file(home).exists() or (limit is not None and new >= limit):
+                if pause_file(home).exists():
+                    pause_file(home).unlink()
                 paused = True
                 log(f"paused before {variant.pack.id}: run the same command again to go on")
                 break
+            new += 1
             key = read_key(Path(tmp), family, variant.pack.id)
             started = time.monotonic()
             try:

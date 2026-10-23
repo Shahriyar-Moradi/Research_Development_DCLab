@@ -140,7 +140,9 @@ def _attempt(home: Path, tmp: Path, client: Any, model: str, family: str, seed: 
 
 def run_probe(home: Path, client: Any, model: str, bullet: str, family: str = "groups", n: int = 3, repeats: int = 1,
               seeds: list[int] | None = None, lineage: str = "main", budget: dict[str, Any] | None = None, reuse_pilot: bool = True,
-              log=print) -> dict[str, Any]:
+              log=print, limit: int | None = None) -> dict[str, Any]:
+    """``limit``: at most this many new homeworks in this process, then it pauses (a fresh process a homework gives its
+    memory back; the pilot's measurement of 2026-10-24)."""
     if client is None:  # with no model the intern runs the standard plan: that would measure the rules, not the lesson
         raise ValueError("a probe needs a model client")
     seeds = list(seeds) if seeds is not None else V.seeds(family, "learning", n)
@@ -156,7 +158,7 @@ def run_probe(home: Path, client: Any, model: str, bullet: str, family: str = "g
         raise ValueError(f"{bullet} is retired")
     shown = for_solver(Playbook(family=family, lineage=lineage, version=book.version, bullets=[lesson]), statuses=(lesson.status,))
     budget = {**BUDGET, **(budget or {})}
-    pairs, rows, paused = [], [], False
+    pairs, rows, paused, new = [], [], False, 0
     with tempfile.TemporaryDirectory() as tmp:
         for seed in seeds:
             for repeat in range(repeats):
@@ -168,10 +170,12 @@ def run_probe(home: Path, client: Any, model: str, bullet: str, family: str = "g
                     if row is not None:
                         log(f"{row['pack']} {arm} r{repeat}: done before ({row['verdict']} {row['codes']}), not repeated")
                     else:
-                        if pause_file(home).exists():
-                            pause_file(home).unlink()
+                        if pause_file(home).exists() or (limit is not None and new >= limit):
+                            if pause_file(home).exists():
+                                pause_file(home).unlink()
                             paused = True
                             break
+                        new += 1
                         row = _attempt(home, Path(tmp), client, model, family, seed, repeat, arm, bullet, shown, budget, log, lineage)
                     pair[arm] = row
                     rows.append(row)

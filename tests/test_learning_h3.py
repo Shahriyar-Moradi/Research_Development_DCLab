@@ -302,6 +302,23 @@ class PilotTests(unittest.TestCase):
             self.assertEqual(len(list((home / "learning_attempts").glob("*/*-pilot"))), 4)  # another model does its own
             self.assertNotIn("resumed", other["rows"][0])
 
+    def test_a_limit_does_that_many_new_homeworks_a_process_and_the_next_goes_on(self):
+        from dclab_rnd.learning.pilot import run_pilot
+
+        class Lazy(KeyedModel):
+            def __init__(self):
+                super().__init__(None)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            first = run_pilot(home, Lazy(), "scripted", n=3, limit=1, log=lambda *_: None)
+            self.assertEqual((first["status"], len(first["rows"])), ("paused", 1))
+            second = run_pilot(home, Lazy(), "scripted", n=3, limit=1, log=lambda *_: None)
+            self.assertEqual((second["status"], len(second["rows"])), ("paused", 2))
+            last = run_pilot(home, Lazy(), "scripted", n=3, limit=1, log=lambda *_: None)
+            self.assertEqual((last["status"], len(last["rows"])), ("completed", 3))
+            self.assertEqual(len(list((home / "learning_attempts").glob("*/*-pilot"))), 3)
+
     def test_an_invalid_or_ungraded_attempt_is_done_again(self):
         from dclab_rnd.learning.pilot import done_row, run_pilot
 
