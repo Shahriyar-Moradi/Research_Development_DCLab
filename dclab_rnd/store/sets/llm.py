@@ -95,7 +95,7 @@ class Contamination:
 def texts_of(example: Any) -> list[str]:
     out: list[str] = []
     for m in getattr(example, "messages", None) or []:
-        out += [m.content or "", m.reasoning or ""]
+        out += [m.content or "", m.reasoning or "", json.dumps(m.tool_calls or [], ensure_ascii=False, default=str)]  # a call's arguments are words too
     for st in getattr(example, "steps", None) or []:
         out += [str(getattr(st, "thought", "") or ""), json.dumps(getattr(st, "arguments", None) or {}, ensure_ascii=False, default=str),
                 str(getattr(st, "result", "") or "")]
@@ -135,8 +135,54 @@ def teacher_reasonings(layout: Layout) -> dict[str, str]:
     return out
 
 
+def earlier_reasoning(message: dict[str, Any]) -> str:
+    """An earlier assistant turn's reasoning as the agent sent it back (D2 / P4): the OpenAI-compatible field the tier names
+    (reasoning_content or reasoning, P1), or Anthropic's thinking blocks; "" when the transport returned none."""
+    for key in ("reasoning_content", "reasoning"):
+        if isinstance(message.get(key), str) and message[key].strip():
+            return message[key]
+    blocks = message.get("thinking_blocks")
+    if isinstance(blocks, list):
+        return "\n\n".join(str(b.get("thinking") or "") for b in blocks if isinstance(b, dict) and b.get("type") == "thinking").strip()
+    return ""
+
+
+def earlier_calls(message: dict[str, Any]) -> list[dict[str, Any]]:
+    """An earlier assistant turn's tool calls in the parsed shape ({"id", "name", "arguments": dict}), from the wire shape the
+    agent sent back (a JSON string or, for a tier set to objects, a dict); arguments that are not JSON stay under _raw. The
+    arguments were one string under a key the shaper does not read as words, so they are redacted here, every string."""
+    from .. import shapers
+
+    out = []
+    for i, call in enumerate(message.get("tool_calls") or []):
+        if not isinstance(call, dict):
+            continue
+        function = call.get("function") if isinstance(call.get("function"), dict) else None
+        name, arguments = (function or call).get("name"), (function or call).get("arguments")
+        if isinstance(arguments, str):
+            try:
+                arguments = json.loads(arguments or "{}")
+            except json.JSONDecodeError:
+                arguments = {"_raw": arguments}
+        arguments = shapers._redact(arguments if isinstance(arguments, dict) else {}, every=True)
+        out.append({"id": str(call.get("id") or f"call_{i}")[:120], "name": str(name or ""), "arguments": arguments})
+    return out
+
+
+def all_recorded(example: Any) -> bool:
+    """The reasoning-only sets' rule (D2 / P4): every assistant turn of a chat example, or every tool step of a trajectory, carries
+    reasoning recorded where it was made; a visible, a rule's or a teacher's reasoning is not that, and an empty one never is."""
+    messages = getattr(example, "messages", None)
+    if messages is not None:
+        turns = [m for m in messages if m.role == "assistant"]
+        return bool(turns) and all(m.reasoning_source == "recorded" and bool(m.reasoning) for m in turns)
+    steps = [s for s in getattr(example, "steps", None) or [] if s.tool]
+    return bool(steps) and all(s.thought_source == "recorded" and bool(s.thought) for s in steps)
+
+
 def from_exchange(record: StoreRecord, taught: Optional[dict[str, str]] = None) -> Optional[ChatExample]:
-    """One kept exchange as an M4 example: its messages, and the reply with its thinking as the reasoning."""
+    """One kept exchange as an M4 example: its messages (each earlier assistant turn with the reasoning and the tool calls the
+    agent sent back, each tool turn with the call it answers), the tools offered, and the reply with its thinking as the reasoning."""
     b = record.body
     if not b.get("whole") or not isinstance(b.get("messages"), list):
         return None
@@ -144,7 +190,13 @@ def from_exchange(record: StoreRecord, taught: Optional[dict[str, str]] = None) 
     for m in b["messages"]:
         role = _role(m)
         if role == "assistant":
-            messages.append(Message(role=role, content=_content(m), no_reasoning="an earlier turn, its thinking was not kept with this exchange"))
+            earlier = earlier_reasoning(m)
+            labelled = ({"reasoning": earlier, "reasoning_source": "recorded"} if earlier else
+                        {"no_reasoning": "an earlier turn: the transport returned no reasoning for it, or it was not sent back"})
+            messages.append(Message(role=role, content=_content(m), tool_calls=earlier_calls(m), **labelled))
+        elif role == "tool":
+            messages.append(Message(role=role, content=_content(m), name=m.get("name") if isinstance(m.get("name"), str) else None,
+                                    tool_call_id=str(m["tool_call_id"])[:120] if m.get("tool_call_id") else None))
         else:
             messages.append(Message(role=role, content=_content(m), name=m.get("name") if isinstance(m.get("name"), str) else None))
     thinking = "\n\n".join(str(t.get("text") or t.get("thinking") or "") for t in b.get("thinking") or [] if isinstance(t, dict)).strip()
@@ -158,7 +210,8 @@ def from_exchange(record: StoreRecord, taught: Optional[dict[str, str]] = None) 
     purpose = str(b.get("purpose") or "unknown")
     return ChatExample(id=f"m4_workflow_llm:{record.id}", model_type="m4_workflow_llm", split=record.split or split_of(str(b.get("model_request") or record.id)),
                        provenance=record.provenance, task=purpose, stage=STAGES.get(purpose, "plan"), messages=messages,
-                       weight=0.5 if (taught and not thinking) else 1.0, check={"outcome": b.get("outcome")})
+                       tools=[t for t in b.get("tools") or [] if isinstance(t, dict)],  # P1 keeps the schemas offered with a whole exchange
+                       weight=0.5 if (taught and not thinking) else 1.0, check={"outcome": b.get("outcome"), "model": b.get("model")})
 
 
 def from_draft(record: StoreRecord) -> Optional[ChatExample]:
@@ -249,7 +302,8 @@ def _trajectory(session: str, lines: list[StoreRecord]) -> Iterable[SolverTrajec
 TWIN_LANE = re.compile(r"^(?:(?P<parent>.+)__)?twin__runs__(?P<run>.+)__(?P<lane>workflow|ai_first)$")
 ARM = {"workflow": "system", "ai_first": "ai_first"}
 OLLAMA_TAG = re.compile(r"^[a-z0-9][a-z0-9._/-]*:[a-z0-9][a-z0-9._-]*$")  # qwen2.5-coder:1.5b: a model pulled and served on this machine
-LOCAL_PREFIXES = ("ollama/", "local/", "local:", "tuned:", "tuned/", "dclab-")
+LOCAL_PREFIXES = ("ollama/", "local/", "local:", "tuned:", "tuned/", "dclab-",
+                  "mlx-community/")  # an MLX build runs on this machine only (D2 / P4; a vLLM name like Qwen/... is also a hosted provider's: the endpoint's host is the follow-up)
 PROVIDERS = {"groq", "google", "gemini", "mistral", "openrouter", "together", "fireworks", "anthropic", "openai", "deepseek", "cohere",
              "novita", "azure", "bedrock", "vertex", "hf", "huggingface", "xai", "perplexity", "replicate", "nvidia", "cerebras", "sambanova"}
 FINAL_TOOLS = ("run_all",)  # run_programme writes no stages/final.json: its score is the programme's, not this one
@@ -579,6 +633,8 @@ def newest_per_table(placed: list[tuple[str, SolverTrajectory]]) -> Iterable[tup
 
 
 FAILED = "trajectories/failed"  # D2 / P3: runs that went wrong, kept whole with why; never mixed into studio
+REASONING = "reasoning"  # D2 / P4: M4's reasoning-only set (every assistant turn's reasoning recorded)
+TRAJECTORIES_REASONING = "trajectories/reasoning"  # D2 / P4: M5's (every tool step's thought recorded), from studio only
 
 
 def failure_of(t: SolverTrajectory) -> str:
@@ -641,7 +697,7 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
         if r.provenance.source.startswith("model_exchanges/"):
             ex = from_exchange(r, taught)
             if ex is not None:
-                add("m4_workflow_llm", ex.stage, ex)
+                add("m4_workflow_llm", ex.stage, ex)  # the reasoning-only set is derived from the stage sets below, after their sealed rows are carried
     newest: dict[tuple[str, str], StoreRecord] = {}
     def version(r: StoreRecord) -> int:
         tail = r.provenance.entry.rsplit(":v", 1)[-1]
@@ -686,7 +742,7 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
         placed.append((folder, t))
     for folder, t, newest in newest_per_table(placed):
         if newest:
-            add("m5_solver_llm", folder, t)
+            add("m5_solver_llm", folder, t)  # the reasoning-only set is derived from studio below, after its sealed rows are carried
         else:
             out["m5: superseded by a newer solve of its table by the same solver"] += 1
     report = {"sets": {}, "kept_out": dict(out)}
@@ -710,16 +766,40 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
                 "that did not pass their checks (what they missed). Each submission says why (verified: false). What went wrong is "
                 "training data too; never mixed into studio, and a frontier model's failed run is in silver_frontier, not here. A run "
                 "with no holdout is sealed when any final of its project ran on a sealed table; a project with no final at all cannot "
-                "be tied to a table, so its split follows its session."}
-    versions = {"trajectories/studio": "v2", "trajectories/development": "v2"}  # v2: split by table, scored; the session id kept (v1's sealed rows were written once)
-    for (model_type, folder), examples in sorted(sets.items()):
+                "be tied to a table, so its split follows its session.",
+        REASONING: "D2 / P4: the reasoning-only set of the workflow LLM: exchanges whose every assistant turn carries reasoning recorded "
+                   "where it was made (the local model's reasoning field sent back on every turn, P1), answered by a clean model only "
+                   "(a provider's model's exchanges are evaluation and silver until the owner's D11). Teaches why; the stage sets teach "
+                   "tool use on every exchange. Never an empty, a visible, a rule's or a teacher's reasoning.",
+        TRAJECTORIES_REASONING: "D2 / P4: the reasoning-only set of the solver: studio's clean, verified runs whose every tool step carries the "
+                                "model's recorded thought (never the standard plan's lines, which are from_record). Teaches why; studio "
+                                "teaches the moves on every verified run."}
+    # v2 of the stage sets: each earlier assistant turn with its reasoning and tool calls, each tool turn with its call, the tools
+    # offered (P4); studio v3: each step's thought with its source (P2), the failed runs apart (P3); development v2: each session by
+    # its own id (v1's sealed rows were written once and are carried by keep_sealed)
+    versions = {**{stage: "v2" for stage in set(STAGES.values()) | {"plan", "understand_problem"}},
+                "trajectories/studio": "v3", "trajectories/development": "v2"}
+    written: dict[tuple[str, str], list[Any]] = {}
+
+    def write(model_type: str, folder: str, examples: list[Any]) -> None:
         examples = keep_sealed(layout, model_type, folder, versions.get(folder, "v1"), examples)
+        written[(model_type, folder)] = examples
         sources = {e.provenance.entry: {"entry": e.provenance.entry, "sha256": e.provenance.sha256} for e in examples}
         m = write_set(layout, model_type, folder, examples, version=versions.get(folder, "v1"), sources=sources.values(),
                       consent="improve" if folder == "trajectories/silver_frontier" else "train",  # not for training until the terms are checked
                       about=folder_abouts.get(folder, abouts[model_type]),
                       decontaminated=["every sealed journey and conversation set", f"{len(benchmarks)} benchmark task names (benchmarks.txt)"])
         report["sets"][f"{model_type}/{folder}"] = m.counts
+
+    for (model_type, folder), examples in sorted(sets.items()):
+        write(model_type, folder, examples)
+    # D2 / P4: the reasoning-only sets, derived from their parents after the parents' sealed rows are carried, so "sealed once,
+    # sealed always" holds across folders (studio v1 split by session, v3 by table: a row sealed there is sealed here too); every
+    # row passed the contamination guard on its way into the parent. M4's takes a clean answerer's exchanges only (a provider's
+    # model's are evaluation and silver until the owner's D11; an exchange naming no model is not clean either).
+    write("m4_workflow_llm", REASONING, [e for (mt, f), kept in written.items() if mt == "m4_workflow_llm" for e in kept
+                                        if all_recorded(e) and clean(answerer_of({"mode": "llm", "model": e.check.get("model")}))])
+    write("m5_solver_llm", TRAJECTORIES_REASONING, [e for e in written.get(("m5_solver_llm", "trajectories/studio"), []) if all_recorded(e)])
     return report
 
 

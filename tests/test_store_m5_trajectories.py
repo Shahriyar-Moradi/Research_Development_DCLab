@@ -60,6 +60,12 @@ def verdict(run: str, system: bool, ai_first: bool) -> dict:
                         "ai_first": {"target": ai_first, "leakage": ai_first}}}
 
 
+def table_in(split: str, prefix: str) -> str:
+    from dclab_core.datasets import split_of
+
+    return next(t for t in (f"{prefix}{i}" for i in range(500)) if split_of(f"table:{t}") == split)
+
+
 def project_in(split: str, prefix: str) -> str:
     from dclab_core.datasets import group_of, split_of
 
@@ -142,6 +148,12 @@ class SolverTrajectoriesTest(unittest.TestCase):
              "solve": {"solution": {"target": "churned"}, "records": {"final": {"status": "completed"}}, "labels": {}}, "at": AT}) + "\n").encode(), consent="train")
         # an unscored session on the train project whose table is shared with a sealed project: its failed run is sealed too
         keep("conversations", "dev", "intern/555555555555.json", session("555555555555", self.train_p, runs=False))
+        # D2 / P4: a local model's session whose every tool step carries its recorded thought: studio and the reasoning-only set
+        thought = session("777777777777", "p11", "llm", "qwen3.6:35b-a3b")
+        for n, step in enumerate(thought["steps"]):
+            step.update(thought=f"Thought {n}: the next move.", thought_source="recorded")
+        keep("conversations", "dev", "intern/777777777777.json", thought)
+        keep("workflows", "dev", "projects/p11/stages/final.json", final("p11", table_in("train", "sha-r"), 0.72))  # a train table: the row is train
         # a Claude session that never reached a holdout: a failed frontier run, silver's (never the failed folder's)
         keep("conversations", "dev", "intern/b2b2b2b2b2b2.json", {**session("b2b2b2b2b2b2", "p10", "llm", "claude-sonnet-5-5", runs=False),
                                                                  "status": "budget_exhausted"})
@@ -169,7 +181,7 @@ class SolverTrajectoriesTest(unittest.TestCase):
                 for line in (base / f"{s}.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()}
 
     def placed(self):
-        return {**self.rows("trajectories/studio", "v2"), **self.rows("trajectories/silver_frontier", "v1")}
+        return {**self.rows("trajectories/studio", "v3"), **self.rows("trajectories/silver_frontier", "v1")}
 
     def test_an_intern_file_is_an_intern_session(self):
         from dclab_rnd.store import shapers
@@ -185,7 +197,7 @@ class SolverTrajectoriesTest(unittest.TestCase):
         from dclab_core.datasets import split_of
         from dclab_core.store import SolverTrajectory
 
-        studio, silver = self.rows("trajectories/studio", "v2"), self.rows("trajectories/silver_frontier", "v1")
+        studio, silver = self.rows("trajectories/studio", "v3"), self.rows("trajectories/silver_frontier", "v1")
         rules = SolverTrajectory.model_validate(studio["m5_solver_llm:intern:aaaaaaaaaaaa"])
         self.assertEqual((rules.metric, rules.score), ("roc_auc", 0.77))
         self.assertEqual(rules.problem["answerer"], "rules")
@@ -201,7 +213,7 @@ class SolverTrajectoriesTest(unittest.TestCase):
         self.assertEqual((hosted.problem["answerer"], hosted.score), ("frontier:mistral-large-latest", 0.81))
         manifest = json.loads((self.base("trajectories/silver_frontier", "v1") / "MANIFEST.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["consent"], "improve")  # not cleared for training
-        self.assertEqual(json.loads((self.base("trajectories/studio", "v2") / "MANIFEST.json").read_text(encoding="utf-8"))["consent"], "train")
+        self.assertEqual(json.loads((self.base("trajectories/studio", "v3") / "MANIFEST.json").read_text(encoding="utf-8"))["consent"], "train")
 
     def test_unscored_unchecked_and_failed_runs_are_kept_in_the_failed_set_never_in_studio(self):
         """D2 / P3: what went wrong is training data too, kept whole with why; studio and silver hold only verified solves."""
@@ -222,6 +234,15 @@ class SolverTrajectoriesTest(unittest.TestCase):
         self.assertEqual(kept_out.get("m5: not scored on its holdout (kept in trajectories/failed)"), 4)  # no final, a final it never ran (twice), a final made before it
         self.assertNotIn("m5: not scored on its holdout", kept_out)  # nothing is thrown away any more
         self.assertIn("never mixed into studio", (self.base("trajectories/failed", "v1") / "CARD.md").read_text(encoding="utf-8"))
+
+    def test_the_reasoning_only_set_holds_studios_runs_whose_every_step_is_recorded(self):
+        from dclab_core.store import SolverTrajectory
+
+        studio, reasoning = self.rows("trajectories/studio", "v3"), self.rows("trajectories/reasoning", "v1")
+        self.assertIn("m5_solver_llm:intern:777777777777", studio)
+        t = SolverTrajectory.model_validate(reasoning["m5_solver_llm:intern:777777777777"])
+        self.assertEqual([s.thought_source for s in t.steps], ["recorded", "recorded"])
+        self.assertEqual(set(reasoning), {"m5_solver_llm:intern:777777777777"})  # the rules' runs have no recorded thought; silver never
 
     def test_a_failed_run_on_a_sealed_table_is_sealed_never_in_train(self):
         """A run with no holdout of its own still ran on its project's table: any final of the project names it for the split."""
@@ -256,12 +277,12 @@ class SolverTrajectoriesTest(unittest.TestCase):
         self.assertFalse(t.steps[1].ok)
 
     def test_a_sealed_session_seals_its_table(self):
-        studio = self.rows("trajectories/studio", "v2")
+        studio = self.rows("trajectories/studio", "v3")
         kept = [i for i in ("m5_solver_llm:intern:111111111111", "m5_solver_llm:intern:222222222222") if i in studio]
         self.assertEqual(len(kept), 1)  # one solve per table and solver: the two rules solves of sha-shared are one
         self.assertEqual(studio[kept[0]]["split"], "sealed")  # and the sealed session still seals the table
         self.assertGreaterEqual(self.report["kept_out"].get("m5: superseded by a newer solve of its table by the same solver", 0), 1)
-        train = (self.base("trajectories/studio", "v2") / "train.jsonl").read_text(encoding="utf-8")
+        train = (self.base("trajectories/studio", "v3") / "train.jsonl").read_text(encoding="utf-8")
         self.assertNotIn("sha-shared", train)
         self.assertEqual(studio["m5_solver_llm:intern:333333333333"]["split"], "sealed")  # its table's sealed final was run from the screen
 
@@ -269,7 +290,7 @@ class SolverTrajectoriesTest(unittest.TestCase):
         from dclab_core.store import SolverTrajectory
 
         self.assertNotIn("\"examples\"", json.dumps(self.placed()))
-        old = SolverTrajectory.model_validate(self.rows("trajectories/studio", "v2")["m5_solver_llm:intern:eeeeeeeeeeee"])
+        old = SolverTrajectory.model_validate(self.rows("trajectories/studio", "v3")["m5_solver_llm:intern:eeeeeeeeeeee"])
         self.assertIsNone(old.steps[0].result)  # its summary quoted the cells; nothing is kept in its place
         self.assertTrue(old.submission["results_cut"])
 
@@ -316,6 +337,23 @@ class SolverTrajectoriesTest(unittest.TestCase):
         self.assertEqual(len(ids), 3)
         self.assertEqual(len({dev[i]["split"] for i in ids}), 1)
 
+    def test_a_row_sealed_in_an_earlier_studio_version_is_sealed_in_the_reasoning_set_too(self):
+        """D2 / P4: sealed once, sealed always holds across folders: the reasoning set is derived from studio after its sealed
+        rows are carried (studio v1 was split by session, v3 by table: a row sealed there stays sealed everywhere)."""
+        from dclab_rnd.store.sets import llm
+
+        row = self.rows("trajectories/studio", "v3")["m5_solver_llm:intern:777777777777"]
+        self.assertEqual(row["split"], "train")
+        old = self.base("trajectories/studio", "v1")
+        old.mkdir(parents=True, exist_ok=True)
+        (old / "sealed.jsonl").write_text(json.dumps({"id": row["id"], "provenance": row["provenance"]}) + "\n", encoding="utf-8")
+        llm.build(self.layout)
+        for folder in ("trajectories/studio", "trajectories/reasoning"):
+            base = self.base(folder, "v3" if folder == "trajectories/studio" else "v1")
+            sealed = "".join((base / f).read_text(encoding="utf-8") for f in ("sealed.jsonl", "sealed.pending.jsonl") if (base / f).exists())
+            self.assertIn("777777777777", sealed, folder)
+            self.assertNotIn("777777777777", (base / "train.jsonl").read_text(encoding="utf-8") if (base / "train.jsonl").exists() else "", folder)
+
     def test_what_an_earlier_version_sealed_stays_sealed(self):
         from dclab_core.store import Provenance, SolverTrajectory, TrajectoryStep
         from dclab_rnd.store.sets.llm import keep_sealed
@@ -327,7 +365,7 @@ class SolverTrajectoriesTest(unittest.TestCase):
         (old / "sealed.jsonl").write_text(json.dumps({"id": "x", "provenance": prov}) + "\n", encoding="utf-8")
         t = SolverTrajectory(id="m5_solver_llm:intern:x", model_type="m5_solver_llm", split="train", provenance=Provenance(**prov),
                              problem_kind="binary", problem={}, steps=[TrajectoryStep(n=0, no_thought="-", result=None)])
-        self.assertEqual(keep_sealed(self.layout, "m5_solver_llm", "trajectories/studio", "v2", [t])[0].split, "sealed")
+        self.assertEqual(keep_sealed(self.layout, "m5_solver_llm", "trajectories/studio", "v3", [t])[0].split, "sealed")
 
 
 @unittest.skipIf(MISSING, MISSING)

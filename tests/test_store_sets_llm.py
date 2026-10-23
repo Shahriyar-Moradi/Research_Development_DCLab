@@ -40,7 +40,25 @@ class LlmSetsTest(unittest.TestCase):
         sealed = sorted(llm.sealed_texts())[0]
         leaked = {**exchange, "model_request": "mr2", "messages": [{"role": "user", "content": sealed}], "reply": "ok", "thinking": []}
         bench = {**exchange, "model_request": "mr3", "messages": [{"role": "user", "content": "solve spaceship-titanic now"}], "reply": "ok", "thinking": []}
-        store.keep_log("model_requests", "dev", "model_exchanges/2026/10/20.jsonl", "".join(json.dumps(x) + "\n" for x in (exchange, leaked, bench)).encode(),
+        tools = [{"type": "function", "function": {"name": "describe_data", "parameters": {"type": "object", "properties": {}}}}]
+        # D2 / P4: a local model's exchange whose earlier turn carries the reasoning and the tool call the agent sent back
+        multi = {**exchange, "model_request": "mr4", "purpose": "intern", "model": "qwen3.6:35b-a3b", "tools": tools,
+                 "messages": [{"role": "system", "content": "You are the intern."}, {"role": "user", "content": "Look at the data."},
+                              {"role": "assistant", "content": "", "reasoning_content": "First read the profile.",
+                               "tool_calls": [{"id": "c1", "type": "function", "function": {"name": "describe_data", "arguments": "{\"project_id\": \"p1\"}"}}]},
+                              {"role": "tool", "tool_call_id": "c1", "content": "{\"rows\": 2000}"}],
+                 "reply": "The table has 2000 rows.", "tool_calls": [], "thinking": [{"text": "Now I can answer."}]}
+        claude_multi = {**multi, "model_request": "mr5", "model": "claude-sonnet-5-5"}
+        # the same local model with no reasoning on its earlier turn: in its stage set, never in the reasoning-only set
+        partial = {**multi, "model_request": "mr6", "messages": [{**m, "reasoning_content": None} if m.get("role") == "assistant" else m
+                                                                 for m in multi["messages"]]}
+        # an earlier call whose arguments quote a sealed person's words and an address: kept out, and redacted where kept
+        called = lambda text: {**multi, "messages": [{**m, "tool_calls": [{"id": "c1", "type": "function", "function": {
+            "name": "ask_user", "arguments": json.dumps({"question": text})}}]} if m.get("role") == "assistant" else m for m in multi["messages"]]}
+        sealed_call = {**called(sealed + " Also write to maria.lopez@acme.com"), "model_request": "mr7"}
+        mailed_call = {**called("Write to maria.lopez@acme.com about the late orders"), "model_request": "mr8"}
+        store.keep_log("model_requests", "dev", "model_exchanges/2026/10/20.jsonl",
+                       "".join(json.dumps(x) + "\n" for x in (exchange, leaked, bench, multi, claude_multi, partial, sealed_call, mailed_call)).encode(),
                        consent="train")
         store.keep("conversations", "dev", "drafts/d1/draft.json", json.dumps({"id": "d1", "project_id": "p1", "messages": [
             {"role": "user", "text": "Which orders arrive late?"}, {"role": "agent", "text": "When is the prediction made?"}]}).encode(), consent="train")
@@ -69,7 +87,7 @@ class LlmSetsTest(unittest.TestCase):
         with mock.patch.object(llm, "BENCHMARKS", self.benchmarks):
             report = llm.build(self.layout)
         self.assertIn("m4_workflow_llm/understand_problem", report["sets"])
-        m4 = [ChatExample.model_validate(e) for e in self.examples("m4_workflow_llm", "understand_problem")]
+        m4 = [ChatExample.model_validate(e) for e in self.examples("m4_workflow_llm", "understand_problem", "v2")]  # v2: earlier turns whole
         home = next(e for e in m4 if e.task == "home_agent" and e.messages[-1].content == "What happens at the prediction moment?")
         self.assertEqual((home.messages[-1].reasoning, home.messages[-1].reasoning_source), ("The moment decides which columns leak.", "recorded"))
         convo = next(e for e in m4 if e.task == "home_conversation")
@@ -87,6 +105,35 @@ class LlmSetsTest(unittest.TestCase):
                                                                           (None, None, "The test fails on the holdout read.")])
         self.assertTrue(steps[1].no_thought)
         self.assertEqual(m5[0].problem["request"], "Fix the failing test")
+
+    def test_earlier_turns_keep_their_reasoning_and_calls_and_the_reasoning_only_set_takes_clean_whole_ones(self):
+        """D2 / P4: the local model's earlier turn keeps the reasoning and the call it sent back, the tool turn its call id, the
+        example its tools; the reasoning-only set holds exchanges whose every assistant turn is recorded, by a clean model only."""
+        from dclab_core.store import ChatExample
+        from dclab_rnd.store.sets import llm
+
+        with mock.patch.object(llm, "BENCHMARKS", self.benchmarks):
+            llm.build(self.layout)
+        stage = {e["id"]: ChatExample.model_validate(e) for e in self.examples("m4_workflow_llm", "plan", "v2")}
+        local = next(e for e in stage.values() if e.check.get("model") == "qwen3.6:35b-a3b")
+        earlier, tool, reply = local.messages[2], local.messages[3], local.messages[4]
+        self.assertEqual((earlier.reasoning, earlier.reasoning_source), ("First read the profile.", "recorded"))
+        self.assertEqual(earlier.tool_calls, [{"id": "c1", "name": "describe_data", "arguments": {"project_id": "p1"}}])  # an object, not text
+        self.assertEqual((tool.role, tool.tool_call_id), ("tool", "c1"))
+        self.assertEqual((reply.reasoning, reply.reasoning_source), ("Now I can answer.", "recorded"))
+        self.assertEqual(local.tools[0]["function"]["name"], "describe_data")
+        reasoning = {e["id"]: ChatExample.model_validate(e) for e in self.examples("m4_workflow_llm", "reasoning")}
+        self.assertIn(local.id, reasoning)
+        self.assertFalse(any(e.check.get("model") == "claude-sonnet-5-5" for e in reasoning.values()))  # a provider's model: silver until D11
+        self.assertFalse(any(e.task == "home_conversation" for e in reasoning.values()))  # its turns carry no reasoning
+        self.assertFalse(any(e.task == "home_agent" for e in reasoning.values()))  # recorded, but its exchange names no model: not clean
+        partial = next(e for e in stage.values() if e.check.get("model") == "qwen3.6:35b-a3b" and e.messages[2].no_reasoning)
+        self.assertNotIn(partial.id, reasoning)  # its earlier turn carried no reasoning: the stage set only
+        # an earlier call's arguments: redacted where kept, and a sealed person's words keep the exchange out of train and dev
+        mailed = next(e for e in stage.values() if any("about the late orders" in json.dumps(m.tool_calls) for m in e.messages))
+        self.assertIn("[EMAIL]", json.dumps(mailed.messages[2].tool_calls))
+        self.assertNotIn("maria.lopez", json.dumps(mailed.model_dump(mode="json")))
+        self.assertFalse(any("Also write to" in json.dumps(e.model_dump(mode="json")) for e in stage.values() if e.split != "sealed"))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,42 @@
+{
+ "package": "reasoning-on-every-turn",
+ "title": "Earlier turns keep their reasoning and calls; the reasoning-only sets (D2, P4)",
+ "date": "2026-10-23",
+ "request": "From Hermes Agent the owner wants a reasoning-only training set beside the full one: 'build two sets from the same records: one with real thinking (teaches why), one with every run (teaches tool use); don't mix empty thinking into the first'. The audit of 2026-10-23 found every earlier assistant turn of a kept exchange labelled 'its thinking was not kept', its tool calls dropped, and no example naming the tools offered.",
+ "spec": "Plan D2 whole step record, package P4 (plans/yes-you-are-right-jaunty-parasol.md): from_exchange keeps each earlier turn's reasoning (the field P1 sends back, or Anthropic's thinking blocks) and tool calls (object arguments), tool turns their call id, the example its tools; the folders reasoning (M4) and trajectories/reasoning (M5) hold examples whose every turn or tool step is recorded; the stage sets to v2, studio to v3.",
+ "plan": [
+  "read from_exchange, intern_trajectories, build's placement and write_set's versions",
+  "earlier_reasoning and earlier_calls: an earlier turn as the agent sent it back",
+  "all_recorded: the reasoning-only rule, never an empty, a visible, a rule's or a teacher's reasoning",
+  "the two folders in build, from the same examples; a clean answerer only for M4's",
+  "the version moves and the tests"
+ ],
+ "decisions": [
+  {"decision": "An earlier turn's reasoning comes from the message as sent back (reasoning_content, reasoning, thinking_blocks), never from another exchange", "why": "the exchange is the one record of what the model saw; stitching turns across exchanges would invent a context"},
+  {"decision": "M4's reasoning-only folder takes a clean answerer's exchanges only", "why": "a provider's model's runs are evaluation and silver until the owner's D11; an exchange naming no model is not clean either"},
+  {"decision": "M5's reasoning-only folder is built from studio's placed rows only", "why": "studio already holds clean, verified, newest-per-table runs; the reasoning folder adds the thought rule, nothing else"},
+  {"decision": "The stage sets move to v2 and studio to v3", "why": "their content changed (earlier turns whole, thoughts with sources, failed runs apart); keep_sealed carries every earlier version's sealed rows"},
+  {"decision": "The tools on an intern trajectory stay empty for now", "why": "the session keeps no schemas and the run record only their hash; the exchange log has them, keyed by request, which the session builder does not join yet"}
+ ],
+ "change": "dclab_rnd/store/sets/llm.py (earlier_reasoning, earlier_calls, all_recorded, from_exchange with tools and tool_call_id, the folders REASONING and TRAJECTORIES_REASONING in build, versions, abouts), tests/test_store_sets_llm.py, tests/test_store_m5_trajectories.py.",
+ "findings": [
+  {"id": "F1", "source": "self", "defect": "every earlier assistant turn of an exchange was labelled 'its thinking was not kept' and lost its tool calls", "scenario": "a local model's second turn: the reasoning it sent back under reasoning_content was in the kept messages and still unused", "cause": "from_exchange read only the final reply's thinking", "fix": "earlier_reasoning and earlier_calls on every assistant turn", "test": "tests/test_store_sets_llm.py::test_earlier_turns_keep_their_reasoning_and_calls_and_the_reasoning_only_set_takes_clean_whole_ones", "severity": "gap", "impact": "the workflow LLM's examples taught one thinking turn per exchange", "alternatives": [], "open": ""},
+  {"id": "F2", "source": "self", "defect": "a bare model name counts as a provider's: the first test named a local model without its Ollama tag and the reasoning folder stayed empty", "scenario": "model 'qwen3.6-35b-a3b' is frontier:unknown by answerer_of's rule; 'qwen3.6:35b-a3b' is local", "cause": "the rule judges a model local on its name's evidence only", "fix": "the tests name the model as Ollama does; the rule is kept (never clean by default)", "test": "the same test", "severity": "gap", "impact": "none in code; a lesson for the tier's model name", "alternatives": [], "open": ""},
+  {"id": "F3", "source": "reviewer", "defect": "an earlier turn's tool-call arguments, one JSON string under a key the shaper reads as no words, reached train unredacted and unseen by the sealed-text guard", "scenario": "an earlier ask_user call whose question quoted a sealed journey's sentence and an address: both in the stage set and the reasoning set, nothing kept out", "cause": "earlier_calls parsed the string after the shaper; texts_of read content and reasoning only", "fix": "earlier_calls redacts every string of the parsed arguments; texts_of gives the guard every message's tool calls", "test": "tests/test_store_sets_llm.py (the mailed and the sealed call)", "severity": "leakage", "impact": "a sealed person's words and personal data in a training set (new with P4: before, earlier calls were dropped)", "alternatives": ["add arguments to TEXT_KEYS (the shaper then redacts a tool's code arguments too, the known separate issue)"], "open": ""},
+  {"id": "F4", "source": "reviewer", "defect": "sealed once, sealed always broke across folders: keep_sealed read only the same folder's earlier versions, and the reasoning folders had none", "scenario": "a session sealed in studio v1 (split by session) on a train table: studio v3 sealed, trajectories/reasoning train", "cause": "the reasoning lists were filled at build time, before the parents' sealed rows were carried", "fix": "the reasoning sets are derived from their parents after keep_sealed, then carry their own earlier versions", "test": "tests/test_store_m5_trajectories.py::test_a_row_sealed_in_an_earlier_studio_version_is_sealed_in_the_reasoning_set_too", "severity": "leakage", "impact": "a sealed row in a training folder", "alternatives": [], "open": ""},
+  {"id": "F5", "source": "reviewer", "defect": "a local model served by MLX or vLLM is named mlx-community/... or Qwen/..., which answerer_of files as a provider's: never clean, its runs silver", "scenario": "the owner's planned local server", "cause": "the rule judges by the name alone", "fix": "mlx-community/ added to the local prefixes as a stopgap; the endpoint's host on the exchange and the session is the follow-up", "test": "", "severity": "latent", "impact": "the reasoning sets stay empty for a vLLM-served local model until the follow-up", "alternatives": ["record the tier's provider and host with every exchange (a store and capture change)"], "open": "the endpoint's host on the record"},
+  {"id": "F6", "source": "reviewer", "defect": "the earlier-turn test did not cover a clean model's exchange with no reasoning on its earlier turn", "scenario": "home_agent was kept out for lacking a model, not by the every-turn rule", "cause": "one fixture covered two rules", "fix": "a partial exchange: in its stage set, not in the reasoning set", "test": "the same M4 test", "severity": "gap", "impact": "coverage", "alternatives": [], "open": ""}
+ ],
+ "measurements": [
+  {"name": "the M4 and M5 set tests", "gate": "every test passes; studio's verified rows unchanged under v3", "fixed_before_run": true, "result": "every test in the three store set files passed", "verdict": "pass", "cost_eur": 0, "next": "make capture, then the counts of reasoning and trajectories/reasoning; the full gate tonight", "against_gate": "", "limits": ["no real local-model exchange exists yet (P1 ships the field): the reasoning folders fill after the owner's first local run"]}
+ ],
+ "outcome": "A kept exchange's every assistant turn carries the reasoning and the calls it sent back, its tool turns their call id, the example the tools offered; the reasoning-only sets hold the examples whose every turn or tool step was recorded, by clean answerers only.",
+ "lessons": [
+  "Name a local model as its server names it (an Ollama tag): the store judges an answerer by that name alone."
+ ],
+ "risks": [
+  "the M4 stage sets still take every exchange, a provider's model's included, with consent train: that predates P4 and is the owner's to decide against the silver rule",
+  "an intern trajectory's tools stay empty until the session builder joins the exchange log's schemas"
+ ],
+ "commits": []
+}
