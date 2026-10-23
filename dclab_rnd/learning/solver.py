@@ -163,7 +163,10 @@ def intern_attempt(folder: Path, client: Any, key: ChallengeKey, playbook: dict[
             pid = project["id"]
             shutil.copyfile(Path(folder) / "table.csv", store.data_dir(pid) / "table.csv")
             studio_data.attach_data(store, pid, "table.csv")
-            intern = Intern(SessionStore(root / "intern"), Toolbox(store), client)
+            toolbox = Toolbox(store)
+            if keep:  # the tools offered, whole, beside the session: a trainer shows the model what it could call
+                _keep_tools(root, toolbox)
+            intern = Intern(SessionStore(root / "intern"), toolbox, client)
             session = intern.run(intern.start(task_of(pack), {**BUDGET, **(budget or {})}, project_id=pid, playbook=playbook, by="system")["id"])
             project = store.get(pid)
             records = {}
@@ -179,6 +182,21 @@ def intern_attempt(folder: Path, client: Any, key: ChallengeKey, playbook: dict[
     finally:
         if scratch is not None:
             scratch.cleanup()
+
+
+def _keep_tools(root: Path, toolbox: Any) -> None:
+    """``tools.json``: the schemas the intern was offered, exactly as the loop sends them (the project's tools and the
+    session's own ``write_plan`` and ``finish``), their hash as the run records it, and the hash of its rules (D2's open
+    item: an intern session keeps its messages but not the tools it could call)."""
+    import hashlib
+
+    from dclab_rnd.agents.runtime import tools_hash
+    from dclab_rnd.intern.loop import POLICY, SESSION_TOOLS
+
+    tools = toolbox.registry.schemas(names=list(toolbox.names()) + list(SESSION_TOOLS))
+    (Path(root) / "tools.json").write_text(json.dumps({"tools": tools, "tools_sha256": tools_hash(tools),
+                                                        "policy_sha256": hashlib.sha256(POLICY.encode()).hexdigest()[:16]}, indent=1) + "\n",
+                                            encoding="utf-8")
 
 
 def summary_of(session: dict[str, Any]) -> dict[str, Any]:

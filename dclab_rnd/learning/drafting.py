@@ -31,6 +31,8 @@ def draft_lessons(home: Path, family: str = "groups", n: int = 5, client: Any = 
             key = read_key(Path(tmp), family, row["pack"])
             pack, _ = read_public(public_dir(Path(tmp), family, row["pack"]))
             book, _ = books.book(family)
+            if client is not None and hasattr(client, "spent_eur"):  # this challenge's spend starts at zero, asked or not (a pass asks nothing)
+                client.spent_eur = 0.0
             out = reflect(row, key, pack.columns, book, client=client, cap_eur=cap_eur, run=row.get("run"))
             if client is not None:  # each challenge's spend, before the next one starts again at zero
                 spent += float(getattr(client, "spent_eur", 0.0) or 0.0)

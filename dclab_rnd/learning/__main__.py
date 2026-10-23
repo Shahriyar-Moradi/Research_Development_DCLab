@@ -144,12 +144,24 @@ def _draft(args) -> int:
         if not args.yes or not args.cap_eur or args.cap_eur <= 0:
             print("a model drafts only with --yes and --cap-eur > 0 (per challenge); without --model the rules draft, free", file=sys.stderr)
             return 2
+        from dotenv import load_dotenv
+
+        from ..models import prices, settings
         from ..models.gateway import for_workspace
 
-        client = for_workspace(home).client("reflector")
+        load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)  # the provider and its key, as the server reads them
+        gateway = for_workspace(home)
+        client = gateway.client("reflector")
         if client is None:
             print("no model serves the reflector purpose: configure a tier, or draft with the rules", file=sys.stderr)
             return 2
+        tier = settings.tier(gateway.route("reflector")[0])
+        if not settings.is_local(tier.get("base_url") or "") and prices.price_of(tier.get("model") or "") is None:
+            # a cap counts euros: a model with no price spends without counting, so the cap would never stop it
+            print(f"the reflector would be served by {tier.get('model')} at {settings._host(tier.get('base_url') or '')}, which has no price: "
+                  "a cap cannot hold; add its price or route the purpose to a priced model", file=sys.stderr)
+            return 2
+        print(f"the reflector is {tier.get('model')} at {settings._host(tier.get('base_url') or '')}", file=sys.stderr)
         print(f"the reflector may spend up to EUR {args.cap_eur:.2f} a challenge, {args.n} challenges", file=sys.stderr)
     before = experience.current_log()
     if before is None:
@@ -159,8 +171,6 @@ def _draft(args) -> int:
     finally:
         if before is None:
             experience.install(None)
-    if client is not None:
-        result["spent_eur"] = round(float(getattr(client, "spent_eur", 0.0) or 0.0), 4)
     print(json.dumps(result, indent=1, ensure_ascii=False))
     return 0
 

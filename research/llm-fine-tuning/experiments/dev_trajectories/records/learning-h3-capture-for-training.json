@@ -1,0 +1,119 @@
+{
+ "package": "learning-h3-capture-for-training",
+ "title": "Every learning attempt reaches training in the right set, with the tools it was offered (harness learning, H3)",
+ "date": "2026-10-24",
+ "request": "The owner asked to make sure everything of the pilot is recorded for training before going to sleep, and gave a budget for Claude to draft lessons.",
+ "spec": "Check what a learning attempt keeps, whether the store keeps it, and where the set builders put it; fix what would teach a model the wrong thing; draft lessons with Claude under a cap.",
+ "plan": [
+  "list what a finished attempt's folder holds",
+  "check the store finds the folder and keeps every file",
+  "follow an attempt through the M5 set builder",
+  "draft lessons with the reflector purpose and check which model served it"
+ ],
+ "decisions": [
+  {
+   "decision": "A learning attempt's planted truth is its grade",
+   "why": "the set builder judged truth only for twin lanes, so a graded failure looked unjudged-but-fine"
+  },
+  {
+   "decision": "An attempt marked invalid goes to the failed set with why, never counted as skill",
+   "why": "a broken setup (a cut prompt, too short a budget) says nothing of the model"
+  },
+  {
+   "decision": "The draft command refuses a model with no price",
+   "why": "a cap counts euros; a model with no price spends without counting"
+  }
+ ],
+ "change": "dclab_rnd/store/sets/llm.py (graded_attempts; a learning attempt placed by grade.json and invalid.json; an ungraded one never placed; the tools offered on its trajectory); dclab_rnd/learning/solver.py (tools.json: the schemas exactly as the loop sends them); dclab_rnd/learning/__main__.py (draft loads .env, names its model, refuses one with no price, reports the summed spend); dclab_rnd/learning/drafting.py (each challenge's spend starts at zero); tests/test_store_m5_trajectories.py, tests/test_learning_h3.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "defect": "a homework that finished every stage but failed the challenge grader would be placed in the clean solver set",
+   "scenario": "both graded pilot homeworks copied the rules' proposal and failed on the split and a false alarm; their sessions had a holdout score and no twin verdict",
+   "cause": "the builder's truth came only from twin lanes' verdicts; any other workspace counted as not judged and passed to studio when scored",
+   "fix": "the builder reads each learning attempt's grade and invalid mark; a failed or invalid one goes to the failed set with why and its codes",
+   "test": "tests/test_store_m5_trajectories.py::SolverTrajectoriesTest::test_a_learning_attempt_is_placed_by_its_grade_and_a_broken_setup_never_counts_as_skill",
+   "severity": "behaviour",
+   "impact": "a model trained on the clean set would have learned to copy the rules' mistakes",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "the saved tools left out the two tools the loop adds to every session",
+   "scenario": "tools.json held the project's 28 tools; the loop offered 30, with write_plan and finish, which ends every solved run",
+   "cause": "the toolbox's schemas are its scope only; the loop adds the session's own tools",
+   "fix": "the schemas as the loop sends them, hashed as the run records them",
+   "test": "tests/test_learning_h3.py::SolverTests::test_a_keyed_intern_solves_a_learning_variant_and_the_attempt_is_kept_whole",
+   "severity": "gap",
+   "impact": "a trained model would call a tool it was never shown",
+   "alternatives": [],
+   "open": "attempts kept before this change get tools.json written afterwards from the same code"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "an attempt stopped between its final stage and its grade could be placed as clean",
+   "scenario": "a process killed after the final stage and before the grade was written",
+   "cause": "with no grade the attempt looked like any unjudged session",
+   "fix": "a learning attempt with no grade is not judged, so never placed in studio",
+   "test": "tests/test_store_m5_trajectories.py::SolverTrajectoriesTest::test_a_learning_attempt_is_placed_by_its_grade_and_a_broken_setup_never_counts_as_skill",
+   "severity": "latent",
+   "impact": "an ungraded run counted as a good one",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "measurement",
+   "defect": "the reflector the owner paid for as Claude was served by another provider's model with no price",
+   "scenario": "the draft command with the model: five requests went to an OpenAI model; the cap read zero spend",
+   "cause": "the command never loaded .env, so the provider setting was missing and the shell's OpenAI key served every tier",
+   "fix": "the command loads .env as the server does, names the model before spending, and refuses one with no price",
+   "test": "tests/test_learning_h3.py::DraftSpendTests::test_the_reported_spend_is_every_challenges_not_the_last_ones",
+   "severity": "behaviour",
+   "impact": "spend on an unbudgeted provider, uncounted by the cap",
+   "alternatives": [],
+   "open": "other learning commands that call a hosted model must load .env the same way"
+  },
+  {
+   "id": "F5",
+   "source": "measurement",
+   "defect": "the reported spend was the last challenge's only",
+   "scenario": "four Claude answers cost about EUR 0.017; the command reported EUR 0.0042",
+   "cause": "the command replaced the summed total with the client's counter, which each challenge resets",
+   "fix": "the summed total is reported; each challenge's counter starts at zero whether it asked or not",
+   "test": "tests/test_learning_h3.py::DraftSpendTests::test_the_reported_spend_is_every_challenges_not_the_last_ones",
+   "severity": "behaviour",
+   "impact": "spend reported four times too low",
+   "alternatives": [],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Claude as the reflector on five learning variants",
+   "gate": "a lesson filed only after the screen",
+   "fixed_before_run": true,
+   "result": "four failed variants answered, each with no new lesson: the two held by the rules' drafter already cover both codes",
+   "verdict": "pass",
+   "cost_eur": 0.02,
+   "next": "probe the split lesson on the local model",
+   "against_gate": "",
+   "limits": [
+    "five variants of one family"
+   ]
+  }
+ ],
+ "outcome": "A learning attempt now reaches training in the set its grade says, with the tools it was offered; a broken or ungraded one never counts as skill; the reflector is served by the model the owner chose, under a cap that counts.",
+ "lessons": [
+  "A set builder that knows one kind of truth treats every other run as unjudged and fine: name each source of truth.",
+  "A command that spends must load the same settings the server loads, and say which model it will use before it spends."
+ ],
+ "risks": [
+  "the shell's own OpenAI key still serves any command that does not load .env"
+ ],
+ "commits": []
+}

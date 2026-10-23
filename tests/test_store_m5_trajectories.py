@@ -166,6 +166,23 @@ class SolverTrajectoriesTest(unittest.TestCase):
             own = [{**x, "uuid": f"{agent}-{x['uuid']}"} for x in lines]
             store.keep_log("agents", "rnd", f"claude_code/main/{SESSION_UUID}/subagents/{agent}.jsonl",
                            "".join(json.dumps(x) + "\n" for x in own).encode(), consent="train")
+        # H3 (2026-10-24): three learning attempts of the local solver, each its own workspace: one passed the challenge grader,
+        # one finished every stage but failed it (the rules' proposal copied), one made on a broken setup (the prompt cut)
+        for ws, sid, project, sha, verdict_, invalid in (
+                ("learning_attempts__2026-10-24__1-pk-aaa-pilot", "a0a0a0a0a0a0", "pa", table_in("train", "sha-la"), "pass", False),
+                ("learning_attempts__2026-10-24__2-pk-bbb-pilot", "b0b0b0b0b0b0", "pb", table_in("train", "sha-lb"), "fail", False),
+                ("learning_attempts__2026-10-24__3-pk-ccc-pilot", "c0c0c0c0c0c0", "pc", table_in("train", "sha-lc"), "fail", True)):
+            keep("conversations", ws, f"intern/{sid}.json", session(sid, project, "llm", "qwen3.5:4b-16k"))
+            keep("workflows", ws, f"projects/{project}/stages/final.json", final(project, sha, 0.7))
+            keep("other", ws, "grade.json", {"grade": {"verdict": verdict_, "grader": "grader_v1", "decision_score": 1.0 if verdict_ == "pass" else 0.5,
+                                                       "codes": [] if verdict_ == "pass" else ["SPLIT_WRONG:repeated_entity"]}, "observed": {}})
+            keep("other", ws, "tools.json", {"tools": [{"type": "function", "function": {"name": "describe_data", "parameters": {}}}],
+                                              "tools_sha256": "x", "policy_sha256": "y"})
+            if invalid:
+                keep("other", ws, "invalid.json", {"invalid": True, "why": "the server cut every prompt to 2,050 tokens"})
+        # an attempt stopped between its final stage and its grade: never a clean solve
+        keep("conversations", "learning_attempts__2026-10-24__4-pk-ddd-pilot", "intern/d0d0d0d0d0d0.json", session("d0d0d0d0d0d0", "pd", "llm", "qwen3.5:4b-16k"))
+        keep("workflows", "learning_attempts__2026-10-24__4-pk-ddd-pilot", "projects/pd/stages/final.json", final("pd", table_in("train", "sha-ld"), 0.7))
         shapers.shape(self.layout)
         curators.curate(self.layout, run="r1")
         from dclab_rnd.store.sets import llm
@@ -230,10 +247,29 @@ class SolverTrajectoriesTest(unittest.TestCase):
         self.assertEqual(whys["c3c3c3c3c3c3"]["why"], "m5: its planted truth was not judged")
         self.assertEqual(whys["dddddddddddd"], {"verified": False, "why": "m5: not scored on its holdout"})
         kept_out = self.report["kept_out"]
-        self.assertEqual(kept_out.get("m5: failed its planted truth (kept in trajectories/failed)"), 1)
+        self.assertEqual(kept_out.get("m5: failed its planted truth (kept in trajectories/failed)"), 2)  # the twin lane, and the learning attempt the grader failed
         self.assertEqual(kept_out.get("m5: not scored on its holdout (kept in trajectories/failed)"), 4)  # no final, a final it never ran (twice), a final made before it
         self.assertNotIn("m5: not scored on its holdout", kept_out)  # nothing is thrown away any more
         self.assertIn("never mixed into studio", (self.base("trajectories/failed", "v1") / "CARD.md").read_text(encoding="utf-8"))
+
+    def test_a_learning_attempt_is_placed_by_its_grade_and_a_broken_setup_never_counts_as_skill(self):
+        """H3: a local solver's homework that finished but failed the challenge grader is a failed run with its codes, never a
+        clean solve; one made on a broken setup is kept apart with why; only a passed one is studio's."""
+        from dclab_core.store import SolverTrajectory
+
+        placed, failed = self.placed(), self.rows("trajectories/failed", "v1")
+        self.assertIn("m5_solver_llm:intern:a0a0a0a0a0a0", placed)
+        for sid in ("b0b0b0b0b0b0", "c0c0c0c0c0c0", "d0d0d0d0d0d0"):
+            self.assertNotIn(f"m5_solver_llm:intern:{sid}", placed, sid)
+            self.assertIn(f"m5_solver_llm:intern:{sid}", failed, sid)
+        lost = SolverTrajectory.model_validate(failed["m5_solver_llm:intern:b0b0b0b0b0b0"])
+        self.assertEqual((lost.submission["why"], lost.submission["truth"], lost.submission["truth_source"]),
+                         ("m5: failed its planted truth", "failed", "learning:grader_v1"))
+        self.assertEqual(lost.problem["learning"]["grade"]["codes"], ["SPLIT_WRONG:repeated_entity"])
+        self.assertEqual([t["function"]["name"] for t in lost.tools], ["describe_data"])  # the tools it was offered, whole
+        broken = SolverTrajectory.model_validate(failed["m5_solver_llm:intern:c0c0c0c0c0c0"])
+        self.assertEqual(broken.submission["why"], "m5: a learning attempt made on a broken setup (its folder is marked invalid)")
+        self.assertIn("2,050 tokens", broken.problem["learning"]["invalid"])
 
     def test_the_reasoning_only_set_holds_studios_runs_whose_every_step_is_recorded(self):
         from dclab_core.store import SolverTrajectory

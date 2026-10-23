@@ -426,12 +426,33 @@ def truth_of(workspace: str, truths: dict[tuple[str, str], dict[str, Any]]) -> t
     return ("passed" if all(v is True for v in fields.values()) else "failed"), f"twin:{m.group('run')}:solution.columns"
 
 
+LEARNING_INVALID = "m5: a learning attempt made on a broken setup (its folder is marked invalid)"
+
+
+def graded_attempts(records: Iterable[StoreRecord]) -> dict[str, dict[str, Any]]:
+    """H3 (2026-10-24): each learning attempt's grade by the challenge grader (``grade.json``: its verdict and codes, which never
+    name a column) and its invalid mark (``invalid.json``: made on a broken setup, never a sample of the model's skill), by its
+    workspace. A learning attempt's planted truth is its grade, as a twin lane's is its verdict."""
+    out: dict[str, dict[str, Any]] = {}
+    for r in records:
+        if r.provenance.source == "grade.json" and isinstance(r.body.get("grade"), dict):
+            g = r.body["grade"]
+            out.setdefault(r.provenance.workspace, {})["grade"] = {"verdict": g.get("verdict"), "codes": list(g.get("codes") or []),
+                                                                     "grader": g.get("grader"), "decision_score": g.get("decision_score")}
+        elif r.provenance.source == "invalid.json":
+            out.setdefault(r.provenance.workspace, {})["invalid"] = str(r.body.get("why") or "a broken setup")[:500]
+        elif r.provenance.source == "tools.json" and isinstance(r.body.get("tools"), list):  # the schemas the solver was offered
+            out.setdefault(r.provenance.workspace, {})["tools"] = [t for t in r.body["tools"] if isinstance(t, dict)]
+    return out
+
+
 def intern_trajectories(records: Iterable[StoreRecord], finals: Optional[dict[tuple[str, str], dict[str, Any]]] = None,
-                        truths: Optional[dict[tuple[str, str], dict[str, Any]]] = None) -> Iterable[SolverTrajectory]:
+                        truths: Optional[dict[tuple[str, str], dict[str, Any]]] = None,
+                        graded: Optional[dict[str, dict[str, Any]]] = None) -> Iterable[SolverTrajectory]:
     """Each intern session's last saved version as a trajectory: its task, every step's tool, arguments and whole result (a session
     from before whole results were kept has its summary, and says so); who chose its moves; its holdout score and the table it ran
     on (its split: one table, one split); its planted truth's verdict where one was judged."""
-    finals, truths = finals or {}, truths or {}
+    finals, truths, graded = finals or {}, truths or {}, graded or {}
     newest: dict[str, StoreRecord] = {}
     for r in records:
         if r.type == "intern_session" and r.body.get("id"):
@@ -470,6 +491,13 @@ def intern_trajectories(records: Iterable[StoreRecord], finals: Optional[dict[tu
         if clean(who) and helpers:  # a hosted model wrote part of its results: not a clean run
             who = f"mixed:{who}+{answerer_of({'mode': 'llm', 'model': helpers[0]})}"
         truth, truth_source = truth_of(r.provenance.workspace, truths)
+        learning = graded.get(r.provenance.workspace)
+        if not learning and "learning_attempts__" in r.provenance.workspace:  # an attempt whose grade was never written: not judged
+            learning = {"ungraded": True}
+        if learning:  # a learning attempt: graded by the challenge grader, or marked invalid (a broken setup)
+            grade = learning.get("grade") or {}
+            truth = "invalid" if learning.get("invalid") else ("passed" if grade.get("verdict") == "pass" else "failed") if grade else "unknown"  # no grade: never placed
+            truth_source = f"learning:{grade.get('grader') or 'grader'}"
         table = (holdout or {}).get("data_sha256")
         lane = TWIN_LANE.match(r.provenance.workspace)
         # a run with no holdout of its own (a failed run, P3) still ran on its project's table: any final of the project names it,
@@ -485,7 +513,9 @@ def intern_trajectories(records: Iterable[StoreRecord], finals: Optional[dict[tu
             problem={"request": r.body.get("task"), "agent": "intern", "answerer": who, "data_sha256": table,
                      "status": r.body.get("status"), "ended": r.body.get("ended"),  # how the session ended (a failed run says so)
                      "outcome_named": OUTCOME_NAMED in str(r.body.get("task") or ""),  # the person named the outcome: not the solver's choice
-                     "twin": {"run": lane.group("run"), "lane": lane.group("lane")} if lane else None},
+                     "twin": {"run": lane.group("run"), "lane": lane.group("lane")} if lane else None,
+                     "learning": {k: v for k, v in (learning or {}).items() if k != "tools"} or None},  # its grade (codes, never a column) or why invalid
+            tools=list((learning or {}).get("tools") or []),
             steps=steps, metric=(holdout or {}).get("metric"), score=(holdout or {}).get("score"),
             submission={"holdout": holdout["record"], "holdout_rows": holdout.get("holdout_rows"), "completed_at": holdout.get("completed_at"),
                         "truth": truth, "truth_source": truth_source,
@@ -640,6 +670,8 @@ TRAJECTORIES_REASONING = "trajectories/reasoning"  # D2 / P4: M5's (every tool s
 def failure_of(t: SolverTrajectory) -> str:
     """Why a run is not a clean, verified solve ("" when it is): never scored on its holdout (the session's own ending named
     when it did not complete), failed its planted truth, or its truth was not judged."""
+    if (t.problem.get("learning") or {}).get("invalid"):
+        return LEARNING_INVALID
     if t.score is None or not t.submission:
         status = str(t.problem.get("status") or "")
         return "m5: not scored on its holdout" + (f" (the session ended {status})" if status and status != "completed" else "")
@@ -729,8 +761,10 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
         out["m5: a self-play solve that did not pass its checks (kept in trajectories/failed)"] += sum(1 for v in verified.values() if not v)
     finals = holdouts(shapers.records(layout, "workflows"))
     truths = twin_truths(r for r in shapers.records(layout, "conversations") if r.provenance.source.endswith("steps.jsonl"))
+    graded = graded_attempts(shapers.records(layout, "other"))
     placed = []
-    for t in intern_trajectories((r for r in shapers.records(layout, "conversations") if allowed(r, "m5_solver_llm", choices)), finals, truths):
+    for t in intern_trajectories((r for r in shapers.records(layout, "conversations") if allowed(r, "m5_solver_llm", choices)), finals, truths,
+                                 graded):
         folder, why = place(t)
         if folder is None:
             out[why] += 1

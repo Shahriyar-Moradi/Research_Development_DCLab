@@ -86,6 +86,9 @@ class SolverTests(unittest.TestCase):
             self.assertEqual(kept.parent.parent, home / "learning_attempts")
             self.assertTrue(kept.name.endswith(f"{pack.id}-t"))
             self.assertTrue(any((kept / "projects").iterdir()) and any((kept / "intern").rglob("*.json")))
+            offered = json.loads((kept / "tools.json").read_text())
+            names = [t.get("name") or t.get("function", {}).get("name") for t in offered["tools"]]
+            self.assertTrue({"set_solution", "write_plan", "finish"} <= set(names), names)  # exactly what the loop offers, its own tools too
             keep_grade(out["kept"], grade, observed)
             written = json.loads((kept / "grade.json").read_text())
             self.assertEqual(written["grade"]["verdict"], "pass")
@@ -187,6 +190,31 @@ class SolverTests(unittest.TestCase):
             self.assertTrue(settings.is_local(tier["base_url"]))
             self.assertEqual(tier["model"], "qwen3.5:4b-q4_K_M")
             self.assertEqual(tier["reasoning_field"], "reasoning")
+
+
+@unittest.skipIf(MISSING, MISSING)
+class DraftSpendTests(unittest.TestCase):
+    def test_the_reported_spend_is_every_challenges_not_the_last_ones(self):
+        """Found live 2026-10-24: four reflector answers cost about EUR 0.017 and the command reported EUR 0.0042 (the
+        client's counter holds the last challenge only); a passed challenge asks nothing and adds nothing."""
+        from dclab_rnd.learning.drafting import draft_lessons
+
+        class Priced:
+            model = "scripted-reflector"
+
+            def __init__(self):
+                self.spent_eur, self.asked = 0.0, 0
+
+            def complete(self, messages, tools=None, **_):
+                self.asked += 1
+                self.spent_eur += 0.01
+                return {"content": '{"lessons": []}', "usage": {"input_tokens": 1, "output_tokens": 1}}
+
+        client = Priced()
+        with tempfile.TemporaryDirectory() as tmp:
+            out = draft_lessons(Path(tmp), "groups", n=4, client=client, log=lambda *_: None)
+        self.assertGreater(client.asked, 1)
+        self.assertAlmostEqual(out["spent_eur"], 0.01 * client.asked, places=6)
 
 
 @unittest.skipIf(MISSING, MISSING)
