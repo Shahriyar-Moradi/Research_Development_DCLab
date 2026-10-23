@@ -86,9 +86,9 @@ class Registry:
         """Why the arguments do not fit the tool's schema, in words a model can act on; None when they fit.
 
         An argument sent as null counts as not given (models in strict mode send null for every optional field).
-        ``level``: "schema" (everything), "names" (only unknown and missing arguments) or "none". The agents' own loops
-        use the lighter levels until they run on ``run()`` (package A2.4), because their handlers clamp, coerce and
-        default what the schema would refuse.
+        ``level``: "schema" (everything), "names" (only unknown and missing arguments) or "none". Every entry point uses
+        "schema" since H1 (2026-10-23): the loop, the Toolbox (the standard plan, MCP clients) and the Home agent's code;
+        the lighter levels remain for a caller that must be lenient on purpose.
         """
         if level == "none":
             return None

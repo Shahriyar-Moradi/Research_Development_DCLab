@@ -1,0 +1,166 @@
+{
+ "package": "learning-h1-read-only-layer",
+ "title": "The read-only layer, the refusal test, one validation level everywhere (harness learning, H1)",
+ "date": "2026-10-23",
+ "request": "The owner asked to continue the harness-learning plan through H2. H1 comes before anything learns: the harness reports named editable guardrails as a risk that needs code, not prompts (Harness2 let its editor delete safety rules), and one validation level everywhere (item 4 of the first report).",
+ "spec": "Plan 'improve the harness so it learns', package H1: a list of protected paths and a diff check refusing any learned change to them; a fixed list of bad moves the validator, the loop, the registry, the gateway and the grader must still refuse after every candidate (100% or the candidate is dropped); full schema checks for the Toolbox (the intern's standard plan, MCP clients) and the Home agent's code-made calls.",
+ "plan": [
+  "read the validator's holdout rule, the registry's checks and guards, the three tool entry points and the gateway's reserve",
+  "protected.py: the layer and check_diff / check_git",
+  "refusal.py: eleven cases each driving the real guard with no model and no spend; the refusal command and make target",
+  "Toolbox.call and HomeAgent.run_tool to schema checks; the tests that pinned the old leniency updated",
+  "tests: the layer, every case refused today, a weakened guard reported, every entry point checking types"
+ ],
+ "decisions": [
+  {
+   "decision": "The refusal test drives the real guards, not copies of their rules",
+   "why": "a copy would keep passing after the guard itself was weakened"
+  },
+  {
+   "decision": "A test loosens three guards on purpose and the refusal test must report each",
+   "why": "a test that cannot fail proves nothing"
+  },
+  {
+   "decision": "Each case checks the specific rule fired, not any refusal",
+   "why": "the toy project is refused for having no solution too; the holdout case requires the holdout rule itself to fail, the order case the edge rule"
+  },
+  {
+   "decision": "The whole learning harness and its campaign are protected",
+   "why": "the grader's door, the gate and this layer must not be editable by what they judge; a skill (H4) lives in its own folder outside them"
+  },
+  {
+   "decision": "The Toolbox and the Home agent's code calls move to full schema checks",
+   "why": "the intern's model calls already run on run() with them; a wrong type or a value out of bounds now comes back as an error to read, never a crash inside a handler"
+  }
+ ],
+ "change": "dclab_rnd/learning/protected.py and refusal.py (new); dclab_rnd/learning/__main__.py (refusal); dclab_rnd/intern/tools.py (check=schema); dclab_rnd/draft/chat.py (check=schema); Makefile (refusal-test); tests/test_learning_h1.py (new); tests/test_agents_runtime.py and test_draft_flow.py (the leniency they pinned replaced by the new rule); tests/test_agent_harness.py (the refusal test listed as a measurement harness).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "defect": "a wrong argument type sent through the Toolbox reached its handler and crashed it",
+   "scenario": "describe_data with project_id 5: TypeError inside the handler",
+   "cause": "the Toolbox checked argument names only, a level kept until the intern moved onto run(), which it had",
+   "fix": "schema checks at every entry point",
+   "test": "tests/test_learning_h1.py::test_every_entry_point_checks_argument_types",
+   "severity": "behaviour",
+   "impact": "a crash where an error to read was due",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "defect": "two tests pinned the old leniency: a string number coerced, an offset of 'x' ignored, values outside the schema's bounds clamped",
+   "scenario": "max_rows '5000', max_rows 100, k 50, offset 'x'",
+   "cause": "the leniency was the documented behaviour until this package",
+   "fix": "the tests assert the new rule: a readable error naming the argument and its bound; valid calls unchanged",
+   "test": "tests/test_agents_runtime.py::test_the_toolbox_checks_types_and_bounds_as_the_loop_does",
+   "severity": "behaviour",
+   "impact": "a deliberate change of behaviour, approved with the reports' item 4",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "the guards that call the validator were outside the layer, and the refusal test never went through them",
+   "scenario": "a learned change setting the Toolbox guard's actor to 'human' passed check_diff, and the refusal test still showed 11 of 11 while the agent could reuse the holdout",
+   "cause": "a deny list of files that named the validator but not its callers",
+   "fix": "the layer is an allow list (a learned change writes only skills/), the deny list a second check naming every guard; the two validator cases run through the Toolbox's guard on a real project; a test loosens the guard exactly as the attack did and the refusal test reports it",
+   "test": "tests/test_learning_h1.py::test_a_weakened_guard_is_reported",
+   "severity": "leakage",
+   "impact": "the holdout reusable by a learned change",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "a renamed protected file was listed by its new name only",
+   "scenario": "git mv of the grader into skills/ returned nothing",
+   "cause": "git diff --name-only",
+   "fix": "--no-renames --raw: a rename is a deletion and an addition; a symbolic link refused by its mode",
+   "test": "tests/test_learning_h1.py::test_a_commit_range_counts_a_rename_as_both_paths_and_refuses_a_link",
+   "severity": "leakage",
+   "impact": "the grader movable out of the layer",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "an upper-case path got past the list; the Mac's disk opens it as the real file",
+   "scenario": "dclab_rnd/studio/GRAPH.py",
+   "cause": "a case-sensitive comparison on a case-insensitive disk",
+   "fix": "paths compared without case",
+   "test": "tests/test_learning_h1.py::test_a_learned_change_may_write_only_skills_and_never_the_layer",
+   "severity": "leakage",
+   "impact": "the validator writable by its upper-case name",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "the list missed the tests, the Makefile, the repository's hooks and settings, the gates H5 must pass, the purposes and routing",
+   "scenario": "a learned refusal-test target set to true would pass",
+   "cause": "a deny list always misses something",
+   "fix": "the allow list; the deny list extended for readers",
+   "test": "the same test",
+   "severity": "leakage",
+   "impact": "a gate disabled by what it judges",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "defect": "the refusal command printed its verdict and kept nothing",
+   "scenario": "make refusal-test outside the suite",
+   "cause": "no writer",
+   "fix": "the report kept in training_records/test_runs/<date>/",
+   "test": "",
+   "severity": "gap",
+   "impact": "a gate run unrecorded (the owner's rule)",
+   "alternatives": [],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the refusal test on today's code",
+   "gate": "every case refused",
+   "fixed_before_run": true,
+   "result": "11 of 11 refused, the two validator cases through the Toolbox's own guard; four guards loosened in a test, each reported",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "run after every learned candidate (H3 onwards)",
+   "against_gate": "",
+   "limits": [
+    "eleven cases: a guard the list does not name is not tested"
+   ]
+  },
+  {
+   "name": "the 47 test files driving the Toolbox, MCP or Home tools",
+   "gate": "every test passes with schema checks",
+   "fixed_before_run": true,
+   "result": "861 tests; three failed (the two pinned leniencies and the harness rule), all fixed",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "the full gate tonight",
+   "against_gate": "",
+   "limits": []
+  }
+ ],
+ "outcome": "Nothing learned can change the validator, the caps, the loop, the grader, the generator, the prompts or the learning harness; eleven bad moves are refused by the real guards with no model and no spend; every tool entry point checks argument types as the loop does.",
+ "lessons": [
+  "Prove a guard test can fail by loosening the guard in a test.",
+  "When a leniency was a placeholder for a later move, remove it when the move lands."
+ ],
+ "risks": [
+  "H5's candidate prompts need their own entry in the allow list when H5 is built",
+  "MCP clients that send a number as text now get an error instead of a conversion: no MCP-level test covers it"
+ ],
+ "commits": []
+}

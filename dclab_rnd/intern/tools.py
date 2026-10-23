@@ -211,8 +211,10 @@ class Toolbox:
         return self.registry.names("project")
 
     def call(self, name: str, arguments: dict[str, Any] | None = None) -> Any:
-        # The intern's loop and MCP clients keep the handlers' clamping and coercion until A2.4 moves the intern onto run().
-        return self.registry.call(name, arguments, context=self, scope="project", check="names")
+        # H1 (2026-10-23): one validation level everywhere. The intern's model calls already run on run() with full schema
+        # checks; the standard plan and MCP clients get the same, so a wrong argument comes back as an error to read, never
+        # a crash inside a handler.
+        return self.registry.call(name, arguments, context=self, scope="project", check="schema")
 
     def list_samples(self) -> dict[str, Any]:
         return {"samples": [{k: s[k] for k in ("key", "name", "task", "goal", "industry", "source", "rows", "blocked")} for s in studio_data.sample_catalog() if s["available"]]}

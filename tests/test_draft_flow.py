@@ -438,7 +438,8 @@ class AgentTests(unittest.TestCase):
         page = agent.run_tool(d["id"], "get_profile", {"offset": 40})
         self.assertEqual((page["total_columns"], [c["name"] for c in page["columns"]], page["target_candidates"]), (45, ["c40", "c41", "c42", "c43", "c44"], ["c44"]))
         self.assertEqual(set(page["columns"][0]), {"name", "kind", "missing_rate", "unique"})
-        named = agent.run_tool(d["id"], "get_profile", {"columns": ["c7", "nope"], "offset": "x"})
+        self.assertIn("Invalid argument for get_profile: offset", agent.run_tool(d["id"], "get_profile", {"columns": ["c7"], "offset": "x"})["error"])
+        named = agent.run_tool(d["id"], "get_profile", {"columns": ["c7", "nope"]})  # H1: a code-made call is checked like a model's
         self.assertEqual([c["name"] for c in named["columns"]], ["c7"])
         findings = agent.run_tool(d["id"], "get_analysis", {})
         self.assertEqual((findings["summary"]["rows"], findings["highlights"][0]["title"], findings["correlations"][0]["rho"]), (500, "Duplicate rows", 0.9))

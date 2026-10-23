@@ -163,15 +163,19 @@ class DclabRegistryTests(unittest.TestCase):
 class UnchangedBehaviourTests(unittest.TestCase):
     """Calls that worked before the registry still work through the toolbox (its handlers clamp and coerce)."""
 
-    def test_the_toolbox_keeps_its_handlers_tolerance(self):
+    def test_the_toolbox_checks_types_and_bounds_as_the_loop_does(self):
+        """H1 (2026-10-23): one validation level everywhere: a wrong type comes back as an error to read, as it does for a
+        model's call in the loop, and so does a value outside the schema's bounds."""
         box = Toolbox(ProjectStore(Path(tempfile.mkdtemp())))
-        made = box.call("create_project", {"name": "x", "goal": "Predict churn", "industry": "retail"})
+        made = box.call("create_project", {"name": "x", "goal": "Predict churn", "industry": "general"})
         pid = made["project_id"]
-        self.assertEqual(box.projects.get(pid)["industry"], "general")
-        self.assertEqual(box.call("set_settings", {"project_id": pid, "max_rows": 100})["settings"]["max_rows"], 200)
-        self.assertEqual(box.call("set_settings", {"project_id": pid, "max_rows": "5000"})["settings"]["max_rows"], 5000)
+        self.assertIn("Invalid argument", box.call("create_project", {"name": "x", "goal": "g", "industry": "retail"}).get("error", ""))
+        self.assertIn("less than the minimum of 200", box.call("set_settings", {"project_id": pid, "max_rows": 100})["error"])  # the schema's bound, read
+        self.assertEqual(box.call("set_settings", {"project_id": pid, "max_rows": 5000})["settings"]["max_rows"], 5000)
+        self.assertIn("Invalid argument for set_settings: max_rows", box.call("set_settings", {"project_id": pid, "max_rows": "5000"})["error"])
         self.assertIn("error", box.call("get_results", {"project_id": pid, "stage": None}))  # "No stage has run yet", as before
-        self.assertIn("results", box.call("search_evidence", {"query": "duration leakage", "k": 50}))
+        self.assertIn("greater than the maximum of 20", box.call("search_evidence", {"query": "duration leakage", "k": 50})["error"])
+        self.assertIn("results", box.call("search_evidence", {"query": "duration leakage", "k": 20}))
 
     def test_a_home_handler_ignores_a_stray_turn_argument(self):
         store = DraftStore(Path(tempfile.mkdtemp()))

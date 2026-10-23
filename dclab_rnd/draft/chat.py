@@ -1205,7 +1205,8 @@ class HomeAgent:
         if tool is None or tool.scope != "draft":
             return {"error": f"unknown tool {name}"}
         known = {k: v for k, v in args.items() if k in tool.parameters.get("properties", {})}
-        result = self.registry.call(tool.name, known, Turn(self, draft_id), scope="draft", check="none")
+        # H1: the same schema check as the model's calls; code that sends a wrong type gets an error, never a silent coercion
+        result = self.registry.call(tool.name, known, Turn(self, draft_id), scope="draft", check="schema")
         self.moved(draft_id, tool.name, known, result)  # 21.1: code's call is a step of the scripted agent
         return result
 
