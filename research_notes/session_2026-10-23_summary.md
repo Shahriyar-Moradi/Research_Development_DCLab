@@ -84,3 +84,29 @@ tool call, is kept locally by `make dev-archive` (gitignored: it may hold privat
 - **Follow-ups named by the reviews:** the endpoint's host on each run (a vLLM-served local model counts as local); the
   tool schemas on intern sessions; the redactor's damage to code; a PostgreSQL store for the playbook; ACE's pruning;
   the replica converter for challenge packs; an independent author for the sealed variants.
+
+## Evening: H3 part 1, the local solver and its pilot
+
+Commits: 03a87170 (the intern as the solver of a pack, the pilot, review fixes), 2f6e7165 (the served-window check,
+a time budget per homework), caf30d28 (pause and go on).
+
+What was measured on the MacBook Air M1 (8 GB), Ollama 0.40.9, Qwen3.5-4B, at no cost:
+
+| Run | What happened | Verdict |
+|---|---|---|
+| As pulled (4,096 window) | every request reached the model with 2,050 tokens; the intern's first message is about 5,000; the model never saw its task (planned again and again, greeted the person) | invalid: the setup, not the model |
+| 32k window, 15 minutes | worked in order but 1.7 GB ran on the processor; 50 to 350 s a reply; out of time after 5 steps | invalid: the laptop, not the model |
+| 16k window, 45 minutes | homework 1 (seed 3) and 2 (seed 5) finished the final stage, 45 and 29 minutes, 10 steps each | finished 2 of 2; both graded fail with the same codes |
+
+The two graded homeworks failed on SPLIT_WRONG (repeated entity) and FALSE_ALARM (a column known before the moment),
+and caught the leak. The model saved the rules' proposal word for word (the same columns kept out, no group column)
+and added only the time column: the 4B model follows the workflow but adds no judgement of its own, so its score is the
+rules' score. That is the room a lesson can fill in the probe stage.
+
+Stopped after homework 2 at the owner's request. To go on: `python -m dclab_rnd.learning pilot --model qwen3.5:4b-16k
+--n 5 --max-minutes 45 --write` skips seeds 3 and 5 and does 7, 8 and 11 (about 2 hours). Then `make archive`.
+
+Lessons:
+- Check that the server shows the model the whole prompt before measuring a model: the token count of each request tells.
+- A measurement must tell a broken instrument from a bad result before it is stored.
+- Moving a project to a temporary folder is not isolation: every central writer records where it is installed.
