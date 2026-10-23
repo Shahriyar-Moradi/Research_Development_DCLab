@@ -1,0 +1,161 @@
+{
+ "package": "real-table-shadow-run",
+ "title": "The students on real tables, in shadow: DCLab's product path on real OpenML tables, recorded and measured",
+ "date": "2026-10-23",
+ "request": "Try the students on real tables in shadow, record and store them; include Claude; then gather data for 100 students (the owner).",
+ "spec": "ledger.capture.solution_saved and ledger.shadow (22.4); real_homework's derived states (29.15); the lake's split (26.2); docs/guides/STUDENTS_100_PLAN.md",
+ "plan": [
+  "Run the product path on each real table, recording its decisions with every student's shadow.",
+  "Measure on the dev tables against the declared truths.",
+  "Claude's silver opinion on a sample of the disagreements, capped and kept apart.",
+  "Review; fix; restart the run in the corrected layout."
+ ],
+ "decisions": [
+  {
+   "decision": "Train tables in a workspace under train consent, dev tables in one with no consent, sealed tables left out.",
+   "why": "A student must never be trained on what it is measured on, and a sealed set is read once."
+  },
+  {
+   "decision": "Records filed under the table (draft id), not a project.",
+   "why": "A project no store knows is stamped operate; the workspace's own consent should stamp these."
+  },
+  {
+   "decision": "The proposal recorded with a rule actor.",
+   "why": "Nobody chose: an agent answer would be a copy credited to the intern."
+  }
+ ],
+ "change": "dclab_rnd/real_shadow.py (new), dclab_rnd/ledger/capture.py (_who: the rule keeping its proposal), tests/test_real_shadow.py, docs/guides/STUDENTS_100_PLAN.md",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The tests needed fitted students that are not in git.",
+   "scenario": "A clean checkout: no shadow, the tests fail.",
+   "cause": "models_v1/*.joblib is gitignored.",
+   "fix": "A tiny student fitted in the test.",
+   "test": "tests/test_real_shadow.py"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "silver saved empty answers as done after a failure or the cap.",
+   "scenario": "A failing transport: three lines with claude null, no stop.",
+   "cause": "ModelAnswerer turns failures into abstentions.",
+   "fix": "Stop when its error count grows; write nothing.",
+   "test": "tests/test_real_shadow.py"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Sealed and dev tables went into a workspace under train consent.",
+   "scenario": "104 lake-sealed tables would land in the store's train split.",
+   "cause": "One workspace for every table.",
+   "fix": "Sealed left out; dev in a workspace with no consent; train only under train consent.",
+   "test": "tests/test_real_shadow.py"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "silver used a bare gateway from the command line.",
+   "scenario": "No usage log, no monthly caps.",
+   "cause": "models.installed() without a usage log.",
+   "fix": "models.for_tools().",
+   "test": "review"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A lost write was marked done.",
+   "scenario": "A full disk during the batch: the table never retried.",
+   "cause": "batch() catches the failed write.",
+   "fix": "DROPPED counted before and after; no marker when it grew.",
+   "test": "review"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Answers credited to a rule and an agent that did not give them.",
+   "scenario": "roles under rule:prepare_roles; the proposal as the intern's.",
+   "cause": "Labels copied from the engine path.",
+   "fix": "datacard:purposes; actor rule.",
+   "test": "tests/test_real_shadow.py"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "measure hid abstentions and mixed students.",
+   "scenario": "Accuracy over answered decisions only; two students pooled.",
+   "cause": "Records without a shadow dropped; one key per point.",
+   "fix": "Coverage counted; keyed by point and student.",
+   "test": "tests/test_real_shadow.py"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Failures were permanent.",
+   "scenario": "A passing timeout drops a dev table.",
+   "cause": "A failed marker is final.",
+   "fix": "--retry-failed for network errors.",
+   "test": "tests/test_real_shadow.py"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A stopped run could record a table twice.",
+   "scenario": "Ctrl-C inside batch, then a rerun.",
+   "cause": "The batch writes in finally, no marker.",
+   "fix": "One record per point, table and subject in _rows.",
+   "test": "review"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The tests did not prove the claims.",
+   "scenario": "Truth path, cap, non-empty answers, failure path untested.",
+   "cause": "Mocks too wide.",
+   "fix": "Tests for each.",
+   "test": "tests/test_real_shadow.py"
+  },
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The run was killed on its second real table.",
+   "scenario": "OpenML 3, 36 category columns.",
+   "cause": "dclab_core.analyse built every combination of the categories.",
+   "fix": "observed=True (4e683d11).",
+   "test": "tests/test_core_analyse.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the tests",
+   "gate": "every affected test file passes",
+   "result": "real_shadow 5, decision_shadow 10, decision_capture 22, ledger 14",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the run's own measurement follows when it ends"
+   ]
+  }
+ ],
+ "outcome": "The students whisper beside the rule on real tables; the records are kept as homework (train tables) or measured only (dev tables).",
+ "lessons": [
+  "Running on real data found a crash invented data never would.",
+  "A measurement workspace must not share consent with a training one."
+ ],
+ "risks": [
+  "The tables' declarations are their uploaders'."
+ ],
+ "commits": []
+}

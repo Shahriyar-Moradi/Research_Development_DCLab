@@ -39,7 +39,10 @@ def _code(value: Any) -> Any:
 
 
 def _who(actor: str) -> tuple[str, str, int]:
-    """Who saved: a person (the value is theirs), or an agent through the validator (a model role acting with a check)."""
+    """Who saved: a person (the value is theirs), an agent through the validator (a model role acting with a check), or the
+    rule itself when its proposal is kept as it is with nobody choosing (``"rule"``: the real-table shadow run, 2026-10-23)."""
+    if actor == "rule":
+        return ("rule", "rule:proposal_kept", 0)
     return ("model_role", "intern", 2) if actor == "agent" else ("person", "owner", 0)
 
 
