@@ -1,0 +1,43 @@
+{
+ "package": "thinking-slot-every-step",
+ "title": "Every recorded step has a thinking slot, the tools offered, and per-tool counts (D2, P2)",
+ "date": "2026-10-23",
+ "request": "From Hermes Agent the owner wants three habits in DCLab's record: every model turn has a thinking slot (the real reasoning, or the agent's visible words before its tool call, or a marked none), the system prompt and tool list saved with every run, and per-tool counts with the same columns every time. The audit of 2026-10-23 had found the intern's visible reasoning unused ('no thought of its own') and no record of which tools a run could call.",
+ "spec": "Plan D2 whole step record, package P2 (plans/yes-you-are-right-jaunty-parasol.md): Step.thought/thought_source, the intern's entries, the standard plan's sentences, thought_source on the agent.step event, tool counts and tool_names/tools_sha256 in the run record, a tools command, ReasoningSource 'visible' in dclab_core.",
+ "plan": [
+  "read the loop, the tracer, the harness session, the intern's step records, the run hook and the contracts",
+  "thought_of(out): recorded reasoning, else visible words, else nothing; on every Step of the reply",
+  "the intern keeps the thought on its step entries; the standard plan's steps carry the plan's sentence",
+  "the trace passes thought_source to the agent.step event; the vocabulary gains the field (experience v13)",
+  "tool_counts with the same columns per policy, in the run record's params; tool_names and tools_sha256",
+  "dclab_core: ReasoningSource visible, Message.tool_call_id, the three example contracts to v2 with tools",
+  "tests on a scripted intern run; the adversarial review"
+ ],
+ "decisions": [
+  {"decision": "The thinking slot has three sources: recorded, visible, from_record; never an invented thought", "why": "Hermes keeps an empty <think> rather than changing the format; DCLab labels what filled the slot so a reasoning-only set can take recorded ones only"},
+  {"decision": "The reply's visible words are labelled 'visible', a new ReasoningSource, not 'recorded'", "why": "they are the model's words at that moment but not its reasoning; mixing them into recorded reasoning would teach a model to think in replies"},
+  {"decision": "The contract change moves ChatExample, PreferencePair and SolverTrajectory to v2 at once, with tools", "why": "the Literal is shared through Message and TrajectoryStep, so each frozen schema changed; v2 also carries the tools offered, which P4 fills, so the versions move once"},
+  {"decision": "Per-tool counts live in the run record's params, not in outputs.numbers", "why": "event_payload keeps params whole and numbers only by count; the session's record is where the counts are read"},
+  {"decision": "agent.step gains thought_source only; the thought text goes where the reply text already goes", "why": "the event vocabulary is a contract (experience v13); the text is in the session's steps and the exchange log, never cut"},
+  {"decision": "A call to a tool not offered is counted under _not_offered and refused", "why": "the columns stay the same for every run of a policy, and a model that invents tools is measured"}
+ ],
+ "change": "dclab_core/store.py (ReasoningSource visible, Message.tool_call_id, _reads(), chat_example v2, preference_pair v2, solver_trajectory v2 with tools), dclab_core/experience.py (agent.step thought_source, v13, v12 read as v13), dclab_core 0.101.0 + CHANGELOG + schemas and baselines; dclab_rnd/agents/runtime.py (Step.thought, RunResult.offered/tools_sha256, thought_of, tools_hash), agents/traces.py (thought_source to the hook), agents/harness.py (Session.moves), experience/hooks.py (tool_counts, params), experience/__main__.py (tools), intern/loop.py (STANDARD_THOUGHTS, entries), store/sets/llm.py (a step's own thought_source); tests/test_agent_thinking_slot.py (new); four tests moved to v13.",
+ "findings": [
+  {"id": "F1", "source": "self", "defect": "the intern's visible words before a tool call were never a step's thought", "scenario": "store/sets/llm.py labelled every intern step 'the intern's step has no thought of its own' although the words were in the session's messages", "cause": "step_record kept tool, arguments and result only", "fix": "Step.thought from thought_of(out); the intern's entry keeps it with its source", "test": "tests/test_agent_thinking_slot.py::test_every_step_of_a_model_run_has_its_thinking_slot_filled_or_marked", "severity": "gap", "impact": "M5 trajectories without thoughts", "alternatives": ["derive it later from the messages by reply index (fragile across versions of the loop)"], "open": ""},
+  {"id": "F2", "source": "self", "defect": "the event vocabulary refused thought_source on agent.step ('fields not in the vocabulary'), so every step event of a run was dropped", "scenario": "the first test run: test_agent_harness and test_experience_log lost their steps", "cause": "the vocabulary is a closed contract; a field needs a version", "fix": "experience v13 (v12 read as v13), baseline written, the tests naming v12 moved", "test": "tests/test_core_experience.py, tests/test_agent_harness.py", "severity": "behaviour", "impact": "a run without its steps in the record", "alternatives": [], "open": ""},
+  {"id": "F3", "source": "self", "defect": "the per-tool counts put in outputs.numbers never reached the run.recorded event (event_payload keeps only their count)", "scenario": "the test read params/numbers and found none", "cause": "numbers are the stage records' paths, flattened away for the event", "fix": "the counts in params, which the event keeps whole", "test": "the same test", "severity": "behaviour", "impact": "counts written nowhere readable", "alternatives": ["a second event kind (a contract change for a table)"], "open": ""}
+ ],
+ "measurements": [
+  {"name": "the new tests and the 20 files around the loop, the record, the intern and the contracts", "gate": "every test passes", "fixed_before_run": true, "result": "all passed after F2 and F3 (292 then 147 tests)", "verdict": "pass", "cost_eur": 0, "next": "the full gate and make core-wheel-check tonight; P4 fills tools on the examples", "against_gate": "", "limits": ["no live model run: the recorded source is exercised with a scripted reply carrying reasoning"]}
+ ],
+ "outcome": "Every step of a model run and of the standard plan carries a thought with its source or says plainly it has none; the step event says what filled the slot; the run record names the tools offered, their hash, and counts calls, errors and refusals per tool with the same columns every run.",
+ "lessons": [
+  "A field on an event is a contract change: move the version first, then write the field.",
+  "Read where a record's number ends up before putting a number there: the event flattens outputs.numbers to a count."
+ ],
+ "risks": [
+  "a thought that is a reply's visible text can quote a tool result the model saw; the session file already holds those messages, so this is the same exposure, not a new one",
+  "runs recorded before v13 have no thought_source on their steps: the builders treat them as before"
+ ],
+ "commits": []
+}

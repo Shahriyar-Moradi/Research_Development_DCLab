@@ -52,7 +52,8 @@
               "enum": [
                 "recorded",
                 "from_record",
-                "teacher"
+                "teacher",
+                "visible"
               ],
               "type": "string"
             },
@@ -72,6 +73,19 @@
           ],
           "title": "Role",
           "type": "string"
+        },
+        "tool_call_id": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Call Id"
         },
         "tool_calls": {
           "items": {
@@ -208,9 +222,9 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.chat_example.v1.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.chat_example.v2.json",
   "additionalProperties": false,
-  "description": "M4, M5: messages as the model is trained, every assistant turn with its labelled reasoning (v1).",
+  "description": "M4, M5: messages as the model is trained, every assistant turn with its labelled reasoning, and the tools the model\nwas offered (v2: ``tools``, ``Message.tool_call_id`` and the ``visible`` reasoning source; v1 reads, its tools unknown).",
   "properties": {
     "check": {
       "additionalProperties": true,
@@ -255,8 +269,8 @@
       "$ref": "#/$defs/Provenance"
     },
     "schema_version": {
-      "const": "dclab_core.chat_example.v1",
-      "default": "dclab_core.chat_example.v1",
+      "const": "dclab_core.chat_example.v2",
+      "default": "dclab_core.chat_example.v2",
       "title": "Schema Version",
       "type": "string"
     },
@@ -278,6 +292,14 @@
       "maxLength": 120,
       "title": "Task",
       "type": "string"
+    },
+    "tools": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Tools",
+      "type": "array"
     },
     "weight": {
       "default": 1.0,

@@ -86,6 +86,9 @@ def main(argv: list[str] | None = None) -> int:
     show.add_argument("--draft")
     show.add_argument("--json", action="store_true")
     show.add_argument("--model-text", action="store_true", help="also the prompts and replies the workspace kept")
+    counted = sub.add_parser("tools", help="D2: one run's tool counts (calls, errors, refused), the same columns every run")
+    counted.add_argument("run", help="the run id (a session's, a draft's, or an agent run's)")
+    counted.add_argument("--json", action="store_true")
     grouped = sub.add_parser("errors", help="23.4: the last days' errors grouped by fingerprint")
     grouped.add_argument("--days", type=int, default=30)
     grouped.add_argument("--json", action="store_true")
@@ -125,6 +128,24 @@ def main(argv: list[str] | None = None) -> int:
                   "or: .venv/bin/python -m dclab_rnd.storage upgrade", file=sys.stderr)
             return 2
     log = _log()
+    if args.command == "tools":
+        runs = [e for e in log.read(kinds=["run.recorded"]) if e.ids.run == args.run]
+        if not runs:
+            parser.error(f"no run.recorded event for the run {args.run}")
+        table = {}
+        for e in runs:
+            for key, value in (e.payload.get("params") or {}).items():
+                column, _, tool = key.partition(":")
+                if column in ("calls", "errors", "refused") and tool:
+                    table.setdefault(tool, {})[column] = value
+        if args.json:
+            print(json.dumps(table, indent=2, sort_keys=True))
+            return 0
+        print(f"{'tool':40} {'calls':>6} {'errors':>6} {'refused':>8}")
+        for tool in sorted(table):
+            row = table[tool]
+            print(f"{tool:40} {int(row.get('calls', 0)):6d} {int(row.get('errors', 0)):6d} {int(row.get('refused', 0)):8d}")
+        return 0
     if args.command == "catalog":
         from ..ledger import open_ledger
         from ..settings import Settings

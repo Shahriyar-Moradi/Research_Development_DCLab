@@ -86,6 +86,15 @@ def step_record(n: int, tool: str, arguments: dict[str, Any], result: Any, secon
             "ok": not (isinstance(result, dict) and "error" in result), "elapsed_seconds": round(seconds, 2), "at": now()}
 
 SESSION_TOOLS = ("write_plan", "finish")  # the intern's own notes on its session (scope "session")
+# D2: the standard plan's own sentence for each move it makes, kept as that step's thought (source "from_record"): no model
+# chose the step, so its reason is the plan's line, never an invented one
+STANDARD_THOUGHTS = {
+    "list_samples": "pick the dataset the task names", "create_project": "create the project and load the data",
+    "use_sample": "create the project and load the data", "ask_project": "read what the project already holds",
+    "describe_data": "read the data's profile before writing any solution", "search_evidence": "read what the R&D evidence says about this kind of problem",
+    "propose_solution": "write the solution from the R&D audit and suggestion", "set_solution": "write the solution from the R&D audit and suggestion",
+    "set_settings": "set the run's settings before the stages run", "run_all": "run the five stages (quick mode)",
+    "export_notebook": "report the honest score, the leakage findings and the decisions with proof"}
 SESSION_MOVES = {"write_plan": "plan", "finish": "finish"}
 
 POLICY = prompts.text("intern")  # dclab_rnd/prompts/intern.md (A4.3: prompts are versioned files)
@@ -252,6 +261,8 @@ class Intern:
             self._record(tool, arguments, {"error": type(exc).__name__}, round(time.perf_counter() - clock, 2), len(session["steps"]) + 1)
             raise
         step = step_record(len(session["steps"]) + 1, tool, arguments, result, time.perf_counter() - clock)
+        if tool in STANDARD_THOUGHTS:  # D2: the plan's own sentence is the step's thought
+            step.update(thought=STANDARD_THOUGHTS[tool], thought_source="from_record")
         if tool == "create_project" and isinstance(result, dict) and result.get("project_id"):
             session["project_id"] = result["project_id"]
         self._record(tool, arguments, result, step["elapsed_seconds"], step["n"])
@@ -289,6 +300,8 @@ class Intern:
     def _llm_loop(self, session: dict[str, Any], started: float) -> None:
         def on_step(step: Step) -> None:
             entry = {"n": len(session["steps"]) + 1, "tool": step.tool, "ok": step.ok, "elapsed_seconds": round(step.seconds, 2), "at": now()}
+            if step.thought is not None:  # D2: the thinking slot, the model's reasoning or its words before the call, never cut
+                entry.update(thought=step.thought, thought_source=step.thought_source)
             if step.tool in SESSION_TOOLS:  # the plan and the report are on the session itself
                 text = (session.get("plan") if step.tool == "write_plan" else session.get("final")) or ""
                 entry.update(arguments={}, summary=text[:200], result=text)  # the whole plan or report, the summary its first line

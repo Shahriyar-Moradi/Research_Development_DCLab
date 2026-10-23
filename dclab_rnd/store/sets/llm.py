@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any, Iterable, Optional
 
 from dclab_core.datasets import group_of, split_of
-from dclab_core.store import ChatExample, Message, PreferencePair, Provenance, SolverTrajectory, StoreRecord, TrajectoryStep
+from dclab_core.store import REASONING_SOURCES, ChatExample, Message, PreferencePair, Provenance, SolverTrajectory, StoreRecord, TrajectoryStep
 
 from ..layout import ROOT, Layout
 from . import write_set
@@ -403,7 +403,8 @@ def intern_trajectories(records: Iterable[StoreRecord], finals: Optional[dict[tu
             thought = st.get("thought") or st.get("plan")
             whole = "result" in st
             cut = cut or not whole  # a session from before whole results were kept: its summary quotes the table's cells, so it is not used
-            steps.append(TrajectoryStep(n=n, thought=str(thought) if thought else None, thought_source="recorded" if thought else None,
+            source = st.get("thought_source") if st.get("thought_source") in REASONING_SOURCES else "recorded"  # D2: the step says what filled its slot
+            steps.append(TrajectoryStep(n=n, thought=str(thought) if thought else None, thought_source=source if thought else None,
                                         no_thought=None if thought else "the intern's step has no thought of its own", tool=(st.get("tool") or None) and str(st["tool"])[:120],
                                         arguments=st.get("arguments") if isinstance(st.get("arguments"), dict) else {},
                                         result=st.get("result") if whole else None, ok=st.get("ok") is not False))

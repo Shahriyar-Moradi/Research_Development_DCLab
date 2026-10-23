@@ -178,7 +178,7 @@
     },
     "JsonValue": {}
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v12.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v13.json",
   "additionalProperties": false,
   "allOf": [
     {
@@ -399,6 +399,46 @@
               "properties": {
                 "payload": {
                   "required": [
+                    "thought_source"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "thought_source"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "thought_source"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "thought_source"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
                     "tool"
                   ]
                 }
@@ -493,6 +533,9 @@
               "state": {
                 "const": "meta"
               },
+              "thought_source": {
+                "const": "meta"
+              },
               "tool": {
                 "const": "meta"
               },
@@ -507,6 +550,7 @@
                 "reply",
                 "seconds",
                 "state",
+                "thought_source",
                 "tool",
                 "verdict"
               ]
@@ -520,6 +564,7 @@
                 "reply",
                 "seconds",
                 "state",
+                "thought_source",
                 "tool",
                 "verdict"
               ]
@@ -15645,8 +15690,8 @@
       "type": "array"
     },
     "schema_version": {
-      "const": "dclab_core.experience_event.v12",
-      "default": "dclab_core.experience_event.v12",
+      "const": "dclab_core.experience_event.v13",
+      "default": "dclab_core.experience_event.v13",
       "title": "Schema Version",
       "type": "string"
     },

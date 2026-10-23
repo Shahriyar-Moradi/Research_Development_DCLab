@@ -111,6 +111,7 @@ class Session:
     failed: int = 0
     usage: dict[str, int] = field(default_factory=lambda: {"input_tokens": 0, "output_tokens": 0})
     status: Optional[str] = None  # how the run ended when it returned normally but did not complete ("stopped": a declined gate)
+    moves: list[tuple[Optional[str], Optional[str]]] = field(default_factory=list)  # D2: (tool, verdict) of every step, for the run's tool counts
 
     def used(self, tokens: Optional[dict[str, Any]]) -> None:
         """Tokens a model request of this run used (a client outside the gateway's loop reports them here)."""
@@ -129,6 +130,7 @@ class Session:
         row = self.trace(tool, arguments, result, seconds, verdict=verdict, n=n, text=text, model_request=model_request)
         self.steps += 1
         self.failed += int(row.get("verdict") not in ("ok", None))
+        self.moves.append((tool, row.get("verdict")))
         return row
 
     @contextmanager

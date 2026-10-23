@@ -52,7 +52,8 @@
               "enum": [
                 "recorded",
                 "from_record",
-                "teacher"
+                "teacher",
+                "visible"
               ],
               "type": "string"
             },
@@ -72,6 +73,19 @@
           ],
           "title": "Role",
           "type": "string"
+        },
+        "tool_call_id": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Call Id"
         },
         "tool_calls": {
           "items": {
@@ -208,9 +222,9 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.preference_pair.v1.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.preference_pair.v2.json",
   "additionalProperties": false,
-  "description": "M4, M5, M7: one prompt, the chosen and the rejected answers, and who decided (v1).",
+  "description": "M4, M5, M7: one prompt, the chosen and the rejected answers, and who decided (v2: its messages may carry a\n``tool_call_id`` and the ``visible`` reasoning source; v1 reads).",
   "properties": {
     "chosen": {
       "$ref": "#/$defs/Message"
@@ -268,8 +282,8 @@
       "$ref": "#/$defs/Message"
     },
     "schema_version": {
-      "const": "dclab_core.preference_pair.v1",
-      "default": "dclab_core.preference_pair.v1",
+      "const": "dclab_core.preference_pair.v2",
+      "default": "dclab_core.preference_pair.v2",
       "title": "Schema Version",
       "type": "string"
     },

@@ -9,8 +9,9 @@ learns from. ``docs/guides/STORING_PHASE_PLAN.md`` is the plan.
   workspace, the project or draft (deleted or not), who made it, the consent, and when.
 * **Eight model types** (:data:`MODEL_TYPES`), each with its folder. **Raw kinds** (:data:`KINDS`), each with its folder.
 * **Curation is a decision** (:class:`CurationDecision`): a curator's choice for one record, kept with its reason.
-* **Reasoning is labelled** (:data:`REASONING_SOURCES`): recorded where it was made, drawn from the record by code, or
-  written by a teacher afterwards.
+* **Reasoning is labelled** (:data:`REASONING_SOURCES`): recorded where it was made, drawn from the record by code,
+  written by a teacher afterwards, or visible: the agent's own words before its tool call, kept when the model's
+  reasoning was not returned (never counted as recorded reasoning).
 
 Pure pydantic. The host owns the files, the agents and the models; the core never reaches a disk or a database.
 """
@@ -63,8 +64,8 @@ LabelSource = Literal["person", "measured", "benchmark", "blind", "teacher", "ru
 CONFIRMED = ("person", "measured", "benchmark", "blind")  # the sources that confirm a label (blind: weighted by its draw)
 LEDGER_SOURCES: dict[str, str] = {  # the ledger's label sources (dclab_core.ledger.LABEL_SOURCES) in the store's words
     "user_decision_exposed": "person", "measured": "measured", "benchmark": "benchmark", "blind": "blind", "model": "teacher"}
-ReasoningSource = Literal["recorded", "from_record", "teacher"]
-REASONING_SOURCES = ("recorded", "from_record", "teacher")
+ReasoningSource = Literal["recorded", "from_record", "teacher", "visible"]
+REASONING_SOURCES = ("recorded", "from_record", "teacher", "visible")
 Quality = Literal["keep", "silver", "out"]  # out: kept out of the set (quarantined with why), never deleted
 SLUG = re.compile(r"^[a-z0-9][a-z0-9_.:\-]{0,119}$")
 
@@ -196,6 +197,18 @@ class DecisionExample(_Example):
         return self
 
 
+def _reads(old: str, new: str) -> Any:
+    """A validator that reads the previous version's rows as this one (every field the version added has a default)."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _read(cls, data: Any) -> Any:
+        if isinstance(data, dict) and data.get("schema_version") == old:
+            data = {**data, "schema_version": new}
+        return data
+    return _read
+
+
 class Message(Contract):
     role: Literal["system", "user", "assistant", "tool"]
     content: str = ""
@@ -203,6 +216,7 @@ class Message(Contract):
     reasoning_source: Optional[ReasoningSource] = None
     no_reasoning: Optional[str] = Field(default=None, max_length=300)  # why an assistant turn has none (never silently absent)
     tool_calls: list[dict[str, Any]] = Field(default_factory=list)
+    tool_call_id: Optional[str] = Field(default=None, max_length=120)  # a tool turn: which of the assistant's calls it answers
     name: Optional[str] = Field(default=None, max_length=120)
 
     @model_validator(mode="after")
@@ -215,19 +229,26 @@ class Message(Contract):
 
 
 class ChatExample(_Example):
-    """M4, M5: messages as the model is trained, every assistant turn with its labelled reasoning (v1)."""
+    """M4, M5: messages as the model is trained, every assistant turn with its labelled reasoning, and the tools the model
+    was offered (v2: ``tools``, ``Message.tool_call_id`` and the ``visible`` reasoning source; v1 reads, its tools unknown)."""
 
-    schema_version: Literal["dclab_core.chat_example.v1"] = _version("chat_example")
+    schema_version: Literal["dclab_core.chat_example.v2"] = _version("chat_example", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.chat_example.v1"})
+    _read_v1 = _reads("dclab_core.chat_example.v1", "dclab_core.chat_example.v2")
     task: str = Field(max_length=120)
     stage: str = Field(max_length=60)            # M4: understand_problem, understand_data, design_solution, plan, code, report
     messages: list[Message] = Field(min_length=2)
+    tools: list[dict[str, Any]] = Field(default_factory=list)  # the tool schemas offered, as sent ([]: none, or not kept)
     check: dict[str, Any] = Field(default_factory=dict)  # cited, grounded, passed, the gate
 
 
 class PreferencePair(_Example):
-    """M4, M5, M7: one prompt, the chosen and the rejected answers, and who decided (v1)."""
+    """M4, M5, M7: one prompt, the chosen and the rejected answers, and who decided (v2: its messages may carry a
+    ``tool_call_id`` and the ``visible`` reasoning source; v1 reads)."""
 
-    schema_version: Literal["dclab_core.preference_pair.v1"] = _version("preference_pair")
+    schema_version: Literal["dclab_core.preference_pair.v2"] = _version("preference_pair", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.preference_pair.v1"})
+    _read_v1 = _reads("dclab_core.preference_pair.v1", "dclab_core.preference_pair.v2")
     task: str = Field(max_length=120)
     prompt: list[Message] = Field(min_length=1)
     chosen: Message
@@ -256,11 +277,15 @@ class TrajectoryStep(Contract):
 
 
 class SolverTrajectory(_Example):
-    """M5: a problem solved as an agent, every step, the submission and its score on the problem's own metric (v1)."""
+    """M5: a problem solved as an agent, every step, the submission and its score on the problem's own metric (v2: ``tools``,
+    the schemas the agent was offered, and the ``visible`` thought source; v1 reads, its tools unknown)."""
 
-    schema_version: Literal["dclab_core.solver_trajectory.v1"] = _version("solver_trajectory")
+    schema_version: Literal["dclab_core.solver_trajectory.v2"] = _version("solver_trajectory", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.solver_trajectory.v1"})
+    _read_v1 = _reads("dclab_core.solver_trajectory.v1", "dclab_core.solver_trajectory.v2")
     problem_kind: str = Field(max_length=80)
     problem: dict[str, Any] = Field(default_factory=dict)  # its description and data card (never a row)
+    tools: list[dict[str, Any]] = Field(default_factory=list)  # the tool schemas offered, as sent ([]: none, or not kept)
     steps: list[TrajectoryStep] = Field(default_factory=list)
     submission: Optional[dict[str, Any]] = None
     metric: Optional[str] = Field(default=None, max_length=80)

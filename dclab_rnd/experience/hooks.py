@@ -173,7 +173,8 @@ def from_trace(row: dict[str, Any]) -> None:
     with observe.span():  # 23.11: the step is a span; its tool call, below, a span inside it
         record("agent.step", "agent", {"agent": row.get("agent"), "n": row.get("n"), "state": str(row.get("state") or "")[:300] or None,
                                        "reply": text if isinstance(text := row.get("reply_text"), str) and text else None, "tool": row.get("tool"),
-                                       "verdict": row.get("verdict"), "seconds": row.get("seconds")},
+                                       "verdict": row.get("verdict"), "seconds": row.get("seconds"),
+                                       "thought_source": row.get("thought_source")},  # D2: what filled the step's thinking slot
                model_request=row.get("model_request") or (last_model_request() if row.get("reply") is not None else None), **ids)  # only a model's reply joins its request
         if row.get("tool"):
             arguments = row.get("arguments")
@@ -223,6 +224,35 @@ def settings_changed(changes: dict[str, Any], **ids: Any) -> None:
 
 # ---------------------------------------------------------------------- 19.5: runs other than a project's stages
 
+REFUSED = ("blocked", "needs_approval")  # the validator's verdicts (agents.traces.verdict_of)
+NOT_OFFERED = "_not_offered"  # a call to a tool the run could not make
+
+
+def _verdict(result: Any) -> str:
+    from ..agents.traces import verdict_of
+
+    return verdict_of(result)
+
+
+def tool_counts(moves: list[tuple[Any, Any]], offered: list[str]) -> dict[str, float]:
+    """D2 (2026-10-23): a run's tools with the same columns every time, as Hermes Agent keeps them: ``calls:<tool>``,
+    ``errors:<tool>`` (a failed tool or a bad call) and ``refused:<tool>`` (the validator's blocked or needs_approval) for
+    every tool offered, zeros for one never called; a call to a tool not offered is counted under ``_not_offered`` and
+    refused. ``moves`` are (tool, verdict) pairs; a move without a tool (an answer in words) is not a call."""
+    names = list(dict.fromkeys([str(n) for n in offered] + [NOT_OFFERED]))
+    out = {f"{column}:{name}": 0.0 for name in names for column in ("calls", "errors", "refused")}
+    for tool, verdict in moves:
+        if not tool:
+            continue
+        name = str(tool) if (str(tool) in offered or not offered) else NOT_OFFERED
+        for column in ("calls", "errors", "refused"):
+            out.setdefault(f"{column}:{name}", 0.0)
+        out[f"calls:{name}"] += 1.0
+        out[f"errors:{name}"] += float(verdict == "error")
+        out[f"refused:{name}"] += float(verdict in REFUSED or name == NOT_OFFERED)
+    return out
+
+
 def _run_event(done: Any, **ids: Any) -> None:
     from dclab_core.lineage import event_payload
 
@@ -245,11 +275,16 @@ def from_agent_run(policy: Any, result: Any, trace: Any, started: str, seconds: 
     stopped = getattr(result, "stopped", None)
     status = "stopped" if interrupted or stopped in ("steps", "time", "replies") else "failed" if error else "completed"
     usage = getattr(result, "usage", None) or {}
-    numbers = {"steps": float(len(getattr(result, "steps", None) or [])), **{k: float(v) for k, v in usage.items()}}
+    steps = list(getattr(result, "steps", None) or [])
+    offered = [str(n) for n in (getattr(result, "offered", None) or policy.tools)]
+    numbers = {"steps": float(len(steps)), **{k: float(v) for k, v in usage.items()}}
     done = lineage.RunRecord(run=new_run(), kind="agent", name=str(policy.name)[:120], parent=getattr(trace, "run_id", None),
                                status=status, started=started, finished=now(), seconds=max(seconds, 0.0),
                                params={"max_steps": policy.max_steps, "max_seconds": policy.max_seconds, "max_replies": policy.max_replies,
-                                       "tools": len(policy.tools)},
+                                       "tools": len(policy.tools), "tool_names": ",".join(offered)[:2000],
+                                       "tools_sha256": getattr(result, "tools_sha256", None),
+                                       # D2: the same columns every run of this policy (params: the event keeps them whole, numbers only by count)
+                                       **tool_counts([(s.tool, _verdict(s.result)) for s in steps], offered)},
                                outputs=lineage.RunOutputs(chosen=stopped, numbers=numbers), code=code("dclab_rnd.agents.runtime"),
                                error=(error or None) and error[:600])
     ids = {"run": getattr(trace, "run_id", None)}
@@ -275,7 +310,8 @@ def from_agent_session(agent: str, current: Any, started: str, seconds: float, e
     numbers = {"steps": float(current.steps), "failed_steps": float(current.failed), **{k: float(v) for k, v in current.usage.items()}}
     done = lineage.RunRecord(run=new_run(), kind="agent", name=str(agent)[:120], parent=current.run_id, status=status, started=started,
                                finished=now(), seconds=max(seconds, 0.0),
-                               params={k: v for k, v in (params or {}).items() if isinstance(v, (int, float, str, bool))},
+                               params={**{k: v for k, v in (params or {}).items() if isinstance(v, (int, float, str, bool))},
+                                       **tool_counts(list(getattr(current, "moves", None) or []), [])},  # D2: the tools the session called
                                outputs=lineage.RunOutputs(chosen=status, numbers=numbers), code=code("dclab_rnd.agents.harness"),
                                error=(error or None) and error[:600])
     ids = {"run": current.run_id}

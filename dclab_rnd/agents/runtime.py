@@ -50,6 +50,8 @@ class Step:
     seconds: float
     ok: bool
     reply: int = 0  # which model reply (0, 1, ...) in this run() asked for it
+    thought: str | None = None  # D2: the thinking slot of the reply that asked for it (thought_of)
+    thought_source: str | None = None  # "recorded" (the model's reasoning), "visible" (its words before the call), or None
 
 
 @dataclass
@@ -59,6 +61,26 @@ class RunResult:
     final: str | None = None
     stopped: str = "answered"  # answered, terminal, stop_after, steps, replies, time, tools_as_text (a failing model or tool raises)
     usage: dict[str, int] = field(default_factory=lambda: {"input_tokens": 0, "output_tokens": 0})
+    offered: list[str] = field(default_factory=list)  # D2: the tools the model could call, by name
+    tools_sha256: str | None = None  # of their schemas as sent (the exchange log keeps them whole)
+
+
+def thought_of(out: dict[str, Any]) -> tuple[str | None, str | None]:
+    """The thinking slot of one reply (D2, 2026-10-23): the model's reasoning when the transport returned it
+    ("recorded": ``reasoning`` from an OpenAI-compatible server, ``thinking`` blocks from Anthropic), else the words it
+    wrote before its tool calls ("visible"), else nothing, so a step is never silently without one."""
+    reasoning = str(out.get("reasoning") or "") or "\n".join(str(t.get("text") or t.get("thinking") or "")
+                                                             for t in out.get("thinking") or [] if isinstance(t, dict))
+    if reasoning.strip():
+        return reasoning, "recorded"
+    text = str(out.get("content") or "").strip()
+    return (text, "visible") if text else (None, None)
+
+
+def tools_hash(schemas: list[dict[str, Any]]) -> str | None:
+    import hashlib
+
+    return hashlib.sha256(json.dumps(schemas, sort_keys=True, default=str).encode()).hexdigest()[:16] if schemas else None
 
 
 # A reply that writes its tool calls as text instead of calling them (small models served without native tool calling
@@ -138,7 +160,7 @@ def _run(policy: Policy, client: Any, registry: Registry, messages: list[dict[st
     terminal = {registry.get(n).name for n in policy.terminal if registry.get(n)}
     stop_after = {registry.get(n).name for n in policy.stop_after if registry.get(n)}
     schemas = registry.schemas(names=allowed)
-    result = RunResult(messages=messages)
+    result = RunResult(messages=messages, offered=list(allowed), tools_sha256=tools_hash(schemas))
     count = steps_used
     reply = -1
     nudged = False
@@ -167,6 +189,7 @@ def _run(policy: Policy, client: Any, registry: Registry, messages: list[dict[st
             result.usage[key] += tokens[key]
         messages.append(out["assistant_message"])
         calls = out.get("tool_calls") or []
+        thought, thought_source = thought_of(out)
         if not calls:
             text = (out.get("content") or "").strip()
             if trace is not None:  # 21.1: a reply without a tool call is a step of the record too (an answer, or calls as text)
@@ -202,12 +225,13 @@ def _run(policy: Policy, client: Any, registry: Registry, messages: list[dict[st
                 value = registry.call(name, call.get("arguments") or {}, (contexts or {}).get(tool.scope, context))
             count += 1
             step = Step(count, name, call.get("arguments") or {}, value, round(time.monotonic() - clock, 3),
-                        not (isinstance(value, dict) and "error" in value), reply)
+                        not (isinstance(value, dict) and "error" in value), reply, thought=thought, thought_source=thought_source)
             result.steps.append(step)
             if trace is not None:
                 first = sum(1 for s in result.steps if s.reply == reply) == 1
                 trace(step.tool, step.arguments, step.result, step.seconds, reply=reply,
-                      tokens=tokens if first else None, text=(out.get("content") or "").strip() or None if first else None)
+                      tokens=tokens if first else None, text=(out.get("content") or "").strip() or None if first else None,
+                      thought_source=thought_source)
             if on_step:
                 on_step(step)
             from ..ledger import capture  # 19.7: the tool the model chose among those it was offered

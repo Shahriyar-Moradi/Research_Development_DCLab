@@ -4,6 +4,18 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.101.0 (2026-10-23)
+
+Every recorded turn has a thinking slot, and an example carries the tools its model was offered.
+
+- `store.ReasoningSource` gains `visible`: the agent's own words before its tool call, kept as the step's thought when
+  the model's reasoning was not returned; never counted as recorded reasoning (a reasoning-only set excludes it).
+- `store.Message.tool_call_id` (new): a tool turn says which of the assistant's calls it answers.
+- `store.ChatExample` v2, `store.PreferencePair` v2 and `store.SolverTrajectory` v2: `tools`, the schemas the model
+  was offered, on the chat example and the trajectory; a v1 row reads as v2 with no tools known.
+- `experience` v13 (`dclab_core.experience_event.v13`, v12 read as v13): `agent.step` gains `thought_source` (meta),
+  what filled the step's thinking slot.
+
 ## 0.100.2 (2026-10-22)
 
 Whole numbers that code classes are read as classes.
