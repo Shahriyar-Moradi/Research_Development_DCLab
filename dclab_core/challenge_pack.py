@@ -198,16 +198,23 @@ def grade(key: ChallengeKey, observed: Observed) -> Grade:
                  verdict="pass" if checks and all(c.ok for c in checks) else "fail")
 
 
+def _words(text: str) -> list[str]:
+    """A text as lower-case words: CamelCase split, every mark that is not a letter or a digit a space."""
+    split = re.sub(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ", text)
+    return re.sub(r"[^a-z0-9]+", " ", split.lower()).split()
+
+
 def names_in(text: str, key: ChallengeKey, columns: list[str]) -> list[str]:
-    """The table's own column names a text carries (a code, a lesson), as whole words, written with underscores or with
-    spaces (``refund_settled``, ``refund settled``): none may reach a learner."""
-    low = text.lower()
+    """The names a text carries (a code, a lesson), however they are written: ``refund_settled``, ``refund settled``,
+    ``refund-settled``, ``RefundSettled``, ``refundsettled``. None may reach a learner."""
+    words = _words(text)
+    padded, joined_tokens = f" {' '.join(words)} ", set(words)
     names = {c for c in [*columns, *key.leaks, *key.decoys, *key.known_before, key.group_column or "", key.row_key or ""] if c}
     found = set()
     for name in names:
-        for form in {name.lower(), name.lower().replace("_", " ")}:
-            if re.search(rf"(?<![a-z0-9_]){re.escape(form)}(?![a-z0-9_])", low):
-                found.add(name)
+        parts = _words(name)
+        if parts and (f" {' '.join(parts)} " in padded or "".join(parts) in joined_tokens):
+            found.add(name)
     return sorted(found)
 
 

@@ -102,6 +102,7 @@ PURPOSES: dict[str, Purpose] = {
     "data_investigator": Purpose("standard", 60, "the prediction moment, the target's name and the task, and each column's name, kind, "
                                                  "missing share and distinct share (dclab_core's data investigator, package 18.3); "
                                                  "never rows or cell values"),
+    "reflector": Purpose("standard", 60, "one graded attempt at an invented challenge: the grader's codes (kinds of mistake, never a column), the steps the solver took with their verdicts, and the family's current lessons; never the table, a column's name, a value or the answer key (the harness that learns, H2)", keeps_text=True),
     "understanding_critic": Purpose("standard", 60, "the problem as DCLab understood it (family, how outcomes are known, the outcome column's "
                                                     "name, the prediction moment, the unit and the action in the person's words), each column's "
                                                     "name, purpose, role, type, missing and distinct share, and the checks' mismatches (package "

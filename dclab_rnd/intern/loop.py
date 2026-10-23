@@ -130,10 +130,17 @@ class Intern:
 
     # ------------------------------------------------------------------ public
     def start(self, task: str, budget: dict[str, Any] | None = None, project_id: str | None = None, model: str | None = None,
-              by: str = "person") -> dict[str, Any]:
-        """``by``: "system" when DCLab wrote the task (25.13: "build it" on Home), so its words are never the person's."""
+              by: str = "person", playbook: dict[str, Any] | None = None) -> dict[str, Any]:
+        """``by``: "system" when DCLab wrote the task (25.13: "build it" on Home), so its words are never the person's.
+        ``playbook`` (H2): the lessons this session is shown (``learning.inject.for_solver``), kept on the session with
+        the ids shown and put in its first user message, never in the system prompt."""
         mode = "llm" if self.client is not None else "standard"
         session = self.sessions.create(task, mode=mode, model=(model or getattr(self.client, "model", None)) if self.client else None, budget=budget, project_id=project_id)
+        if playbook:  # what it was shown, by its hash too, so a measured run traces back to it
+            import hashlib
+
+            session["playbook"] = {k: playbook[k] for k in ("family", "lineage", "version", "shown", "text") if k in playbook}
+            session["playbook"]["sha256"] = hashlib.sha256(str(playbook.get("text") or "").encode()).hexdigest()[:16]
         session["messages"] = [{"role": "system", "content": POLICY}, {"role": "user", "content": self._task_message(session)}]
         from .. import experience  # 19.3: the person's request in the session's record
 
@@ -174,6 +181,10 @@ class Intern:
             session["error"] = f"{type(exc).__name__}: {str(exc)[:400]}"
             grouped = fingerprints.from_exception(exc)  # 23.4: where it broke, read here while the traceback is at hand
         session["used"]["minutes"] = round(session["used"].get("minutes_before", 0.0) + (time.monotonic() - started) / 60, 2)
+        if session.get("playbook"):  # H2: the shown lessons its replies and thoughts named, kept with what it was shown
+            from ..learning.inject import cited_in
+
+            session["playbook"]["used"] = cited_in(session)
         from .. import experience  # 19.3: the intern's answer, or how the turn ended, in the session's record
 
         if session.get("final"):
@@ -228,6 +239,8 @@ class Intern:
             notes = self._memory(session["project_id"])
             if notes:  # A5.2: what earlier sessions and people decided; do not ask again what is settled here
                 text += "\n\n" + prompts.text("intern_memory") + "\n" + "\n".join(f"- {n}" for n in notes)
+        if (session.get("playbook") or {}).get("text"):  # H2: lessons from earlier graded problems, in the user's turn
+            text += "\n\n" + prompts.text("playbook_intro") + "\n" + session["playbook"]["text"]
         return text + f"\n\nBudget: {session['budget']['max_steps']} tool calls, {session['budget']['max_minutes']} minutes."
 
     def _memory(self, project_id: str) -> list[str]:

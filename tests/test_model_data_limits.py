@@ -323,6 +323,22 @@ class DataLimitTests(unittest.TestCase):
                  [{"code": "time_absent", "question": "When is the prediction made?"}])
         self.assertEqual(self.assertWithinLimit("understanding_critic"), set())
 
+    def test_the_reflector_sees_codes_and_step_verdicts_never_a_name_or_a_value(self):  # the harness that learns, H2
+        from dclab_core.challenge_pack import ChallengeKey
+        from dclab_rnd.learning.reflect import reflect
+
+        table = marked_table()
+        names = list(table.columns)
+        key = ChallengeKey(pack="pk-000000000001", family="groups", seed=1, partition="learning", leaks=[names[0]], group_column=names[1],
+                           row_key=names[-1], known_before=names[2:4])
+        row = {"pack": "pk-000000000001", "arms": {"rules": {"verdict": "fail", "holdout": 0.7, "codes": ["SPLIT_WRONG:repeated_entity"],
+                                                            "checks": [{"trap": "repeated_entity", "ok": False, "code": "SPLIT_WRONG:repeated_entity"}]}}}
+        gw = gateway({"reflector": [{"content": '{"lessons": []}', "tool_calls": [], "usage": {}}]})
+        reflect(row, key, names, client=gw.client("reflector"), cap_eur=0.05)
+        self.assertEqual(self.assertWithinLimit("reflector"), set())
+        sent = " ".join(Capture.prompts.get("reflector", []))
+        self.assertFalse([n for n in names if n in sent], "the reflector was sent a column's name")
+
     def test_the_decision_answerer_sees_bands_and_names_never_values(self):  # 22.5
         from dclab_core.answerers import ModelAnswerer
         from dclab_rnd.core_advisor import GatewayAdvisor
@@ -585,7 +601,7 @@ class DataLimitTests(unittest.TestCase):
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
                   "decision_answer", "decision_labeler", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first", "solver_answer",
                   "understanding_critic", "solution_challenger", "debate_judge", "metric_question", "workspace_chat", "store_curator", "reasoning_teacher", "notebook_cell",
-                  "home_orchestrator"}
+                  "home_orchestrator", "reflector"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

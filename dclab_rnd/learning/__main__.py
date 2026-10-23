@@ -1,4 +1,4 @@
-"""``python -m dclab_rnd.learning baseline|refusal``: the scoreboard's baseline (H0) and the refusal test (H1)."""
+"""``python -m dclab_rnd.learning baseline|refusal|draft``: the baseline (H0), the refusal test (H1), drafting lessons (H2)."""
 
 from __future__ import annotations
 
@@ -17,7 +17,15 @@ def main(argv: list[str] | None = None) -> int:
     base.add_argument("--n", type=int, default=20)
     base.add_argument("--write", action="store_true", help="store the result in evidence/campaigns/learning_v1/results/")
     sub.add_parser("refusal", help="H1: a fixed list of bad moves every guard must still refuse (100% or a candidate is dropped)")
+    draft = sub.add_parser("draft", help="H2: lessons drawn from graded learning variants, screened, filed as drafts in the playbook")
+    draft.add_argument("--family", default="groups")
+    draft.add_argument("--n", type=int, default=5)
+    draft.add_argument("--model", action="store_true", help="the reflector purpose's model drafts (needs --yes and --cap-eur); default: the rules")
+    draft.add_argument("--yes", action="store_true")
+    draft.add_argument("--cap-eur", type=float, default=None, help="the most the reflector may spend on one challenge")
     args = parser.parse_args(argv)
+    if args.command == "draft":
+        return _draft(args)
     if args.command == "refusal":
         from .refusal import run
 
@@ -57,6 +65,38 @@ def _keep(report: dict) -> None:
         (folder / f"refusal-{at:%Y%m%dT%H%M%S%fZ}.json").write_text(json.dumps({**report, "at": at.isoformat(timespec="seconds")}, indent=1) + "\n", encoding="utf-8")
     except OSError:
         pass  # a report that cannot be kept never hides the verdict
+
+
+def _draft(args) -> int:
+    from .. import experience
+    from ..settings import Settings
+    from .drafting import draft_lessons
+
+    home = Path(Settings.load().agent_home)
+    client = None
+    if args.model:
+        if not args.yes or not args.cap_eur or args.cap_eur <= 0:
+            print("a model drafts only with --yes and --cap-eur > 0 (per challenge); without --model the rules draft, free", file=sys.stderr)
+            return 2
+        from ..models.gateway import for_workspace
+
+        client = for_workspace(home).client("reflector")
+        if client is None:
+            print("no model serves the reflector purpose: configure a tier, or draft with the rules", file=sys.stderr)
+            return 2
+        print(f"the reflector may spend up to EUR {args.cap_eur:.2f} a challenge, {args.n} challenges", file=sys.stderr)
+    before = experience.current_log()
+    if before is None:
+        experience.install(experience.open_log(home))
+    try:
+        result = draft_lessons(home, args.family, args.n, client=client, cap_eur=args.cap_eur or 0.10)
+    finally:
+        if before is None:
+            experience.install(None)
+    if client is not None:
+        result["spent_eur"] = round(float(getattr(client, "spent_eur", 0.0) or 0.0), 4)
+    print(json.dumps(result, indent=1, ensure_ascii=False))
+    return 0
 
 
 if __name__ == "__main__":

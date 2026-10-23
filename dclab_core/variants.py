@@ -170,6 +170,17 @@ def generate(family: str, seed: int, pack: str | None = None) -> Variant:
     return FAMILIES[family](int(seed), pack)
 
 
+SHARED = ("account_age_days", "item_count")  # columns every skin of the groups family has
+
+
+def family_names(family: str) -> list[str]:
+    """Every name the family's generator can give a column or a key's values, across all its skins: a lesson for the
+    whole family must name none of them (a skin's names repeat across the learning, check and sealed variants)."""
+    if family != "groups":
+        raise KeyError(f"no names known for the family {family!r}")
+    return sorted({getattr(s, f) for s in SKINS for f in Skin.__dataclass_fields__} | set(SHARED))
+
+
 def seeds(family: str, partition: str, count: int, start: int = 0) -> list[int]:
     """The first ``count`` seeds of a family that fall in a partition."""
     out, seed = [], start
@@ -191,4 +202,4 @@ def reference(key: ChallengeKey) -> dict[str, Any]:
     return statements
 
 
-__all__ = ["VERSION", "Variant", "Skin", "SKINS", "token", "groups", "FAMILIES", "generate", "seeds", "reference"]
+__all__ = ["VERSION", "Variant", "Skin", "SKINS", "SHARED", "family_names", "token", "groups", "FAMILIES", "generate", "seeds", "reference"]

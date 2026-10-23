@@ -96,7 +96,8 @@ class GraderTests(unittest.TestCase):
         k = key(group_column="account", known_before=["account_age_days"])
         self.assertEqual(names_in("Group the folds by account.", k, []), ["account"])
         self.assertEqual(names_in("Keep refund settled out of the model", k, []), ["refund_settled"])
-        self.assertEqual(names_in("Take this into account_age_days", k, []), ["account_age_days"])
+        self.assertEqual(names_in("Take this into account_age_days", k, []), ["account", "account_age_days"])  # its words name both: refused either way
+        self.assertEqual(names_in("Keep RefundSettled, refund-settled and refundsettled out", k, []), ["refund_settled"])
         self.assertEqual(names_in("Group the folds by the entity whose rows repeat.", k, ["basket_value"]), [])
 
     def test_an_honest_gap_inside_the_holdouts_interval_passes_and_a_loss_metric_reads_the_other_side(self):

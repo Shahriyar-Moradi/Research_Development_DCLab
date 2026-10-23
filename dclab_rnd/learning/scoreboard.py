@@ -98,6 +98,7 @@ def attempt(root: Path, family: str, seed: int) -> dict[str, Any]:
     folder = public_dir(root, family, variant.pack.id)
     arms: dict[str, Any] = {}
     with harness.session(AGENT, params={"family": family, "pack": variant.pack.id, "partition": variant.key.partition}) as current:
+        run_id = current.run_id
         for arm in ("rules", "reference"):
             with current.timed(f"solve:{arm}", {"pack": variant.pack.id}) as out:
                 if arm == "rules":
@@ -108,7 +109,7 @@ def attempt(root: Path, family: str, seed: int) -> dict[str, Any]:
                 grade, observed = grade_run(read_key(root, family, variant.pack.id), run)  # the grader's door, after the solve
                 arms[arm] = _arm(grade, observed)
                 out["result"] = _codes_only(grade)
-    return {"pack": variant.pack.id, "seed": int(seed), "partition": variant.key.partition, "knobs": variant.key.knobs,
+    return {"pack": variant.pack.id, "seed": int(seed), "partition": variant.key.partition, "knobs": variant.key.knobs, "run": run_id,
             "arms": arms, "solvable": arms["reference"]["verdict"] == "pass", "seconds": round(time.perf_counter() - started, 2)}
 
 

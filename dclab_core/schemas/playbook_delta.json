@@ -1,0 +1,236 @@
+{
+  "$defs": {
+    "Bullet": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "maxLength": 120,
+          "title": "By",
+          "type": "string"
+        },
+        "codes": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 6,
+          "title": "Codes",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "minItems": 1,
+          "title": "Evidence",
+          "type": "array"
+        },
+        "harmful": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Harmful",
+          "type": "integer"
+        },
+        "helpful": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Helpful",
+          "type": "integer"
+        },
+        "id": {
+          "pattern": "^B-[0-9a-f]{10}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "scope": {
+          "title": "Scope",
+          "type": "string"
+        },
+        "shown": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Shown",
+          "type": "integer"
+        },
+        "status": {
+          "default": "draft",
+          "enum": [
+            "draft",
+            "probed",
+            "accepted",
+            "retired"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 300,
+          "minLength": 10,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "scope",
+        "evidence",
+        "by"
+      ],
+      "title": "Bullet",
+      "type": "object"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "description": "The graded moment a lesson was drawn from: the pack, the run, the step or stage, the code, the grader's version.",
+      "properties": {
+        "code": {
+          "maxLength": 80,
+          "title": "Code",
+          "type": "string"
+        },
+        "grader": {
+          "maxLength": 40,
+          "title": "Grader",
+          "type": "string"
+        },
+        "pack": {
+          "maxLength": 80,
+          "title": "Pack",
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Run"
+        },
+        "step": {
+          "maxLength": 80,
+          "title": "Step",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pack",
+        "step",
+        "code",
+        "grader"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.playbook_delta.v1.json",
+  "additionalProperties": false,
+  "description": "One change to a playbook (v1): who made it, why, when. The playbook is these, applied in order.",
+  "properties": {
+    "at": {
+      "title": "At",
+      "type": "string"
+    },
+    "bullet": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Bullet"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "by": {
+      "maxLength": 120,
+      "title": "By",
+      "type": "string"
+    },
+    "counts": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Counts",
+      "type": "object"
+    },
+    "family": {
+      "maxLength": 40,
+      "title": "Family",
+      "type": "string"
+    },
+    "lineage": {
+      "maxLength": 40,
+      "title": "Lineage",
+      "type": "string"
+    },
+    "op": {
+      "enum": [
+        "add",
+        "count",
+        "status",
+        "retire"
+      ],
+      "title": "Op",
+      "type": "string"
+    },
+    "reason": {
+      "maxLength": 600,
+      "minLength": 3,
+      "title": "Reason",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.playbook_delta.v1",
+      "default": "dclab_core.playbook_delta.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "anyOf": [
+        {
+          "enum": [
+            "draft",
+            "probed",
+            "accepted",
+            "retired"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Status"
+    },
+    "target": {
+      "anyOf": [
+        {
+          "pattern": "^B-[0-9a-f]{10}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target"
+    }
+  },
+  "required": [
+    "schema_version",
+    "family",
+    "lineage",
+    "op",
+    "by",
+    "reason",
+    "at"
+  ],
+  "title": "Delta",
+  "type": "object"
+}

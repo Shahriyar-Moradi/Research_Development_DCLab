@@ -1,0 +1,215 @@
+{
+ "package": "learning-h2-playbook-and-reflector",
+ "title": "The playbook, the reflector, the name screen, case memory and what a solver is shown (harness learning, H2)",
+ "date": "2026-10-23",
+ "request": "The owner asked to continue the harness-learning plan to the end of H2: lessons drawn from graded attempts, screened so they never carry a variant's answer, kept as small deltas merged by code, and shown to a solver beside its task.",
+ "spec": "Plan 'improve the harness so it learns', package H2 (Phase 9's 31.5 to 31.7 with the reports' additions): an ACE-style playbook with invariant and domain lessons and counters moved by code; a reflector with editor discipline reading codes only; a deterministic name filter and an edit cap; case memory without names; the playbook in the solver's first user message, never the system prompt.",
+ "plan": [
+  "the contract in dclab_core: Bullet, Delta, Playbook, apply and build with ACE's rules, render within a budget",
+  "the store: an append-only delta log per family and lineage",
+  "the screen: names as whole words with underscores or spaces, scores, steps, codes, scope, length, three a run",
+  "the reflector: the first wrong step, the rules drafter by default, a model through a new capped purpose",
+  "case memory without names; the payload for a solver; the intern's first user message",
+  "drafting from learning variants only; the command; tests; the prompt gates rerun; the review"
+ ],
+ "decisions": [
+  {
+   "decision": "A playbook is never edited: it is rebuilt from an append-only log of deltas",
+   "why": "ACE's lesson that a rewritten playbook collapses; every change keeps its author, reason and time"
+  },
+  {
+   "decision": "The rules drafter writes one general lesson per code from a fixed table; a model is optional and capped",
+   "why": "lessons cost nothing and name nothing by construction; a model's drafts pass the same screen"
+  },
+  {
+   "decision": "The reflector is sent codes and step verdicts only, never the table, a name, a value or the key",
+   "why": "a lesson written from names passes by recall on the next variant of the same skin"
+  },
+  {
+   "decision": "Case memory keeps codes, lesson ids and verdicts, never a name",
+   "why": "the skins reuse names across variants, so a remembered name is a remembered answer"
+  },
+  {
+   "decision": "Drafts are filed as drafts: no solver sees a lesson before H3's probe accepts it",
+   "why": "a lesson that does not raise the grader's score is noise in every later prompt"
+  },
+  {
+   "decision": "The playbook reaches the intern in its first user message, never its system prompt",
+   "why": "the system prompt is the hash-gated file every change is measured against"
+  }
+ ],
+ "change": "dclab_core/playbook.py (new), dclab_core/contracts.py (registered), dclab_core 0.103.0 + CHANGELOG + schemas; dclab_rnd/learning/ playbooks.py, filter.py, reflect.py, cases.py, inject.py, drafting.py (new) and __main__.py (draft); dclab_rnd/prompts/reflector.md and playbook_intro.md (new); dclab_rnd/models/settings.py (the reflector purpose); dclab_rnd/agents/harness.py (its role); dclab_rnd/intern/loop.py (the playbook argument and the first message); tests/test_learning_h2.py (new); tests/test_model_data_limits.py (the reflector's limit); the prompt gates rerun (AEV-053, HRN-040). Also dclab_core/challenge_pack.py (names matched as words in any spelling) and dclab_core/variants.py (family_names); dclab_rnd/learning/scoreboard.py (the attempt's run id).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "defect": "the rules drafter's own group lesson named two skins' group keys",
+   "scenario": "its example list (a customer, a patient, an account) on the support and clinic variants, where patient and account are the plain-named group keys",
+   "cause": "an example written from general words that the generator happens to use as column names",
+   "fix": "the lesson reworded with no skin's words; a test screens every rule lesson against twelve variants",
+   "test": "tests/test_learning_h2.py::test_no_rule_lesson_names_any_skins_column",
+   "severity": "leakage",
+   "impact": "the answer handed to the solver on those variants",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "defect": "the new purpose had no data-limit test",
+   "scenario": "tests/test_model_data_limits.py lists every purpose with its test",
+   "cause": "a new purpose",
+   "fix": "a test: the reflector is sent codes and verdicts only, no cell value and no column name of a marked table",
+   "test": "tests/test_model_data_limits.py::test_the_reflector_sees_codes_and_step_verdicts_never_a_name_or_a_value",
+   "severity": "privacy",
+   "impact": "an untested channel to a model",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "the screen checked one variant's names while the playbook serves the whole family",
+   "scenario": "a lesson naming the household key passed on a customer variant, and every skin repeats across the partitions: the next household variant reads its answer",
+   "cause": "per-variant screening",
+   "fix": "every lesson screened against every name the family's generator can use, across all skins, with the identifier prefixes",
+   "test": "tests/test_learning_h2.py::test_a_general_lesson_passes_and_every_leak_or_gap_is_refused",
+   "severity": "leakage",
+   "impact": "a pass by recall",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "other spellings of a name passed the screen",
+   "scenario": "refund-settled, RefundSettled, refund.settled",
+   "cause": "a match on underscores and spaces only",
+   "fix": "text and names compared as words: CamelCase split, every other mark a space, the joined form too",
+   "test": "the same test, and tests/test_learning_h0.py::test_names_in_finds_a_column_as_a_whole_word_with_underscores_or_spaces",
+   "severity": "leakage",
+   "impact": "a name through in another case",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "the model's drafts skipped the editor rules",
+   "scenario": "a draft answering a code the attempt did not fail, or one already answered, or citing the wrong step, was filed",
+   "cause": "the rules were applied in the rules drafter only",
+   "fix": "the editor's rules as code for a model's drafts; the step must be where the code's mistake first shows",
+   "test": "tests/test_learning_h2.py::test_a_models_drafts_obey_the_editor_and_a_reached_cap_teaches_nothing",
+   "severity": "behaviour",
+   "impact": "lessons for mistakes never made",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "the cap was cumulative over the challenges and a reached cap crashed the command",
+   "scenario": "one client for n challenges: the spend never reset; BudgetExceeded unhandled",
+   "cause": "the Bound's spend counts its whole life",
+   "fix": "spend reset before each challenge and totalled; a reached cap or a failed provider ends that challenge with no lesson and its reason",
+   "test": "the same test",
+   "severity": "behaviour",
+   "impact": "a traceback and no report after a few challenges",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "defect": "only decimal numbers were refused",
+   "scenario": "a whole number, a percentage or an identifier's value passed",
+   "cause": "a decimal-only rule",
+   "fix": "any digit refused (the rules' lessons have none)",
+   "test": "the filter test",
+   "severity": "leakage",
+   "impact": "values from the attempt",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "defect": "nothing screened a bullet at the store's door",
+   "scenario": "FilePlaybooks.add called directly",
+   "cause": "screening was the caller's job",
+   "fix": "the store refuses an addition that fails the family-wide screen",
+   "test": "tests/test_learning_h2.py::test_the_stores_door_screens_a_bullet_however_it_was_made",
+   "severity": "leakage",
+   "impact": "a lesson unscreened in a solver's prompt",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "defect": "a forged id could replace another bullet's text and reset its counters; a status could skip the probe or go back",
+   "scenario": "add a different text with an existing id; draft to accepted",
+   "cause": "the id was not tied to the text; statuses had no order",
+   "fix": "a bullet's id must be the hash of its scope and normalised text; a status moves one step forward",
+   "test": "tests/test_learning_h2.py::test_an_id_names_one_text_and_a_status_moves_one_step_forward",
+   "severity": "behaviour",
+   "impact": "the curation rules bypassed",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "defect": "the run's link to what it was shown and cited, the attempt's run id, and the reflector's own work were not recorded",
+   "scenario": "cited_in never called; Evidence.run None; refused drafts only on stdout",
+   "cause": "the records were planned but not wired",
+   "fix": "the session keeps the shown text's hash and the ids it cited; the attempt returns its run id; every draft is kept with its fate in learning/drafts.jsonl; the reflector is a recorded role step",
+   "test": "tests/test_learning_h2.py (injection and drafting tests)",
+   "severity": "gap",
+   "impact": "a measured run not traceable to its lessons",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "defect": "the budget was exceeded by the cases' header and line breaks",
+   "scenario": "the test allowed ten tokens over",
+   "cause": "the header uncounted",
+   "fix": "the header and breaks counted; the test holds the budget exactly",
+   "test": "tests/test_learning_h2.py::test_the_rendered_payload_stays_under_its_budget",
+   "severity": "latent",
+   "impact": "a few tokens over",
+   "alternatives": [],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "drafting from six learning variants in a scratch workspace",
+   "gate": "lessons filed only for the codes the baseline fails on, each screened, all drafts",
+   "fixed_before_run": true,
+   "result": "two lessons filed from the first failed attempt (the repeated entity, the decoy); later attempts with the same codes added none; one attempt passed and taught nothing; after the review's fixes every learning test so far and the prompt and harness gates pass",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "H3: the probe decides which drafts become accepted",
+   "against_gate": "",
+   "limits": [
+    "the rules drafter only; a model's drafts were tested with a scripted reply"
+   ]
+  }
+ ],
+ "outcome": "Graded attempts on learning variants become screened lessons in an append-only playbook, with codes and ids as their only link to the attempt; a solver is shown the accepted ones in its first user message, under a budget, and its citations of them are found afterwards.",
+ "lessons": [
+  "Screen a lesson against every name the generator uses, not only the variant it came from: skins share names.",
+  "Write a playbook as a log of deltas: its history is the evidence a promotion needs."
+ ],
+ "risks": [
+  "no lesson is shown to a solver yet: H3's probe must accept one first",
+  "a drafted lesson is only as general as the codes: two different mistakes under one code get one lesson",
+  "the playbook is stored in files only: a PostgreSQL store through storage/ is open",
+  "ACE's pruning of never-used lessons is not built (H3 measures use first)",
+  "a learner run across processes appends under a thread lock only; build() re-applies the rules, so a stale delta is refused on read"
+ ],
+ "commits": []
+}

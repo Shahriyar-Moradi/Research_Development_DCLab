@@ -4,6 +4,17 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.103.0 (2026-10-23)
+
+The playbook: lessons a solver reads, kept as deltas merged by code (H2 of the harness that learns).
+
+- `playbook` (new): `Bullet` (a lesson of at most 300 characters, its scope `invariant` or `domain:<family>`, the grader
+  codes it answers, its status draft, probed, accepted or retired, counters shown, helpful and harmful, the graded
+  moment it came from), `Delta` v1 (add, count, status, retire, with who, why and when) and `Playbook` v1, rebuilt from
+  its deltas by `apply` and `build`. ACE's curation as code: a duplicate merges, counters only rise, a bullet harmful
+  three times more than helpful is retired and stays retired, a text never changes. `render` gives the accepted
+  lessons, invariant first, best first, within a token budget; `cited` finds the ids a reply names.
+
 ## 0.102.0 (2026-10-23)
 
 Challenge packs, their keys and their grades: H0 of the harness that learns.
