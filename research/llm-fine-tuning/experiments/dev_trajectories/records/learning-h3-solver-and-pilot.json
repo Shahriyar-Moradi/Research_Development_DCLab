@@ -32,7 +32,7 @@
    "why": "a baseline reader filters by split; a pilot named _learning would look like a baseline"
   }
  ],
- "change": "dclab_rnd/learning/solver.py and pilot.py (new); dclab_rnd/learning/__main__.py (pilot, a first tiny request before the run); dclab_rnd/learning/scoreboard.py (the pilot split in the result name); dclab_rnd/models/probe_reasoning.py (a verdict for reasoning read without a code word); research_notes/open_models_2026-10/servers.md (new: the measured server); tests/test_learning_h3.py (new).",
+ "change": "dclab_rnd/learning/solver.py and pilot.py (new); dclab_rnd/learning/__main__.py (pilot, a first tiny request before the run); dclab_rnd/learning/scoreboard.py (the pilot split in the result name); dclab_rnd/models/probe_reasoning.py (a verdict for reasoning read without a code word); research_notes/open_models_2026-10/servers.md (new: the measured server); tests/test_learning_h3.py (new). Later: dclab_rnd/learning/solver.py (served_context, check_context); the pilot's --max-minutes; research_notes/open_models_2026-10/servers.md (the cut window).",
  "findings": [
   {
    "id": "F1",
@@ -126,6 +126,35 @@
    "impact": "a model's real failure would have hidden as an invalid run",
    "alternatives": [],
    "open": ""
+  },
+  {
+   "id": "F8",
+   "source": "measurement",
+   "defect": "the local server cut every prompt to a fraction of the intern's first message, silently",
+   "scenario": "the first pilot: every request reached the model with the same 2,050 input tokens; the model rewrote its plan again and again, asked to create a project that existed, and once greeted the person as if no task had been given",
+   "cause": "Ollama loads a model with a 4,096-token window unless told otherwise; the intern's rules and tools are about 5,000 tokens before the first step",
+   "fix": "a model variant with a larger window, and the pilot refuses a model served with less than 16,384 tokens before it starts",
+   "test": "tests/test_learning_h3.py::ContextTests::test_a_small_window_is_refused",
+   "severity": "behaviour",
+   "impact": "a whole pilot measured a broken setup; its attempts are marked invalid, never samples of the model's skill",
+   "alternatives": [
+    "set the server's context length for every model",
+    "shorten the tool descriptions"
+   ],
+   "open": "the tool descriptions are long for a small model"
+  },
+  {
+   "id": "F9",
+   "source": "measurement",
+   "defect": "the time budget measured the laptop, not the model",
+   "scenario": "with the larger window the model worked in order (looked, planned, proposed, reviewed the leakage, saved) but each reply took 50 to 350 seconds, so 15 minutes held about five of the eight steps",
+   "cause": "part of the model ran on the processor, and a small laptop writes a few tokens a second",
+   "fix": "a time budget per homework on the command line, recorded in the result",
+   "test": "tests/test_learning_h3.py::PilotTests::test_a_model_that_does_not_finish_fails_the_fixed_gate_with_a_row_per_homework",
+   "severity": "behaviour",
+   "impact": "a slow machine would read as a model that cannot finish",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [
@@ -148,7 +177,8 @@
  "lessons": [
   "Moving a project to a temporary folder is not isolation: every central writer records where it is installed.",
   "A measurement must tell a broken instrument from a bad result before it is stored.",
-  "Name a new kind of result so no old reader takes it for its own."
+  "Name a new kind of result so no old reader takes it for its own.",
+  "Before measuring a model, check the server shows it the whole prompt: the token count of each request tells."
  ],
  "risks": [
   "a kept attempt's model exchanges go to the workspace's folder, not the attempt's",

@@ -7,6 +7,7 @@ a model that is not on this machine. The pilot keeps one row per homework and fa
 not finish the work.
 """
 
+import io
 import json
 import os
 import re
@@ -186,6 +187,49 @@ class SolverTests(unittest.TestCase):
             self.assertTrue(settings.is_local(tier["base_url"]))
             self.assertEqual(tier["model"], "qwen3.5:4b-q4_K_M")
             self.assertEqual(tier["reasoning_field"], "reasoning")
+
+
+@unittest.skipIf(MISSING, MISSING)
+class ContextTests(unittest.TestCase):
+    """Measured 2026-10-23: Ollama served the model with 4,096 tokens and cut every prompt to 2,050; the intern's first
+    message is about 5,000, so the model never saw its task. A window under the intern's need is refused before a run."""
+
+    def served(self, window):
+        body = json.dumps({"models": [{"name": "qwen3.5:4b-32k", "context_length": window}]}).encode()
+
+        class Reply(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        return mock.patch("urllib.request.urlopen", return_value=Reply(body))
+
+    def test_a_small_window_is_refused(self):
+        from dclab_rnd.learning.solver import ContextTooSmall, check_context
+
+        with self.served(4096), self.assertRaises(ContextTooSmall):
+            check_context("qwen3.5:4b-32k")
+
+    def test_a_large_window_passes_and_an_unknown_one_is_not_refused(self):
+        from dclab_rnd.learning.solver import check_context
+
+        with self.served(32768):
+            self.assertEqual(check_context("qwen3.5:4b-32k"), 32768)
+        with mock.patch("urllib.request.urlopen", side_effect=OSError("no such route")):
+            self.assertIsNone(check_context("qwen3.5:4b-32k"))
+
+    def test_the_intern_first_message_needs_more_than_the_default_window(self):
+        from dclab_rnd.intern.loop import POLICY
+        from dclab_rnd.intern.tools import Toolbox
+        from dclab_rnd.learning.solver import MIN_CONTEXT
+        from dclab_rnd.studio import ProjectStore
+
+        with tempfile.TemporaryDirectory() as tmp:
+            chars = len(POLICY) + len(json.dumps(Toolbox(ProjectStore(Path(tmp))).schemas()))
+        self.assertGreater(chars / 4, 4096 / 2)  # what the default window keeps of a prompt: less than the first message
+        self.assertGreater(MIN_CONTEXT, chars / 3)
 
 
 @unittest.skipIf(MISSING, MISSING)

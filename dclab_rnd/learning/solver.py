@@ -31,6 +31,39 @@ from .packs import read_public
 
 OLLAMA = "http://127.0.0.1:11434/v1"
 BUDGET = {"max_steps": 24, "max_minutes": 15}
+MIN_CONTEXT = 16384  # the intern's first message is about 5,000 tokens (its rules and 28 tools) and grows every step
+
+
+class ContextTooSmall(RuntimeError):
+    """The server cuts every prompt to a window smaller than the intern's conversation: the model would never see its task."""
+
+
+def served_context(model: str, base_url: str = OLLAMA) -> int | None:
+    """The context window the server loaded the model with (Ollama's /api/ps, after a first request), or None when the
+    server does not say. Measured 2026-10-23: Ollama loads a model with 4,096 tokens unless told otherwise, and silently
+    cuts each prompt to about half of it (every pilot request carried 2,050 tokens), so the intern lost its task."""
+    import urllib.request
+
+    root = base_url.rstrip("/").removesuffix("/v1")
+    try:
+        with urllib.request.urlopen(f"{root}/api/ps", timeout=10) as r:
+            models = json.loads(r.read().decode()).get("models") or []
+    except Exception:  # noqa: BLE001 - not Ollama, or no such route: unknown
+        return None
+    for m in models:
+        if m.get("name") == model or m.get("model") == model:
+            value = m.get("context_length")
+            return int(value) if isinstance(value, (int, float)) else None
+    return None
+
+
+def check_context(model: str, base_url: str = OLLAMA, need: int = MIN_CONTEXT) -> int | None:
+    """Refuse a model served with a window under ``need`` (a model variant with ``PARAMETER num_ctx`` fixes it)."""
+    window = served_context(model, base_url)
+    if window is not None and window < need:
+        raise ContextTooSmall(f"{model} is served with a {window}-token window; the intern needs at least {need}: "
+                              f"make a variant with 'PARAMETER num_ctx 32768' (ollama create NAME -f Modelfile) and use it")
+    return window
 
 
 class NotLocal(RuntimeError):
@@ -164,4 +197,4 @@ def keep_grade(root: str | None, grade: Any, observed: Any) -> None:
                                                 encoding="utf-8")
 
 
-__all__ = ["OLLAMA", "BUDGET", "NotLocal", "local_gateway", "task_of", "intern_attempt", "summary_of", "keep_grade"]
+__all__ = ["OLLAMA", "BUDGET", "MIN_CONTEXT", "ContextTooSmall", "served_context", "check_context", "NotLocal", "local_gateway", "task_of", "intern_attempt", "summary_of", "keep_grade"]

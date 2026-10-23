@@ -28,6 +28,7 @@ def main(argv: list[str] | None = None) -> int:
     pilot.add_argument("--base-url", default="http://127.0.0.1:11434/v1")
     pilot.add_argument("--family", default="groups")
     pilot.add_argument("--n", type=int, default=5)
+    pilot.add_argument("--max-minutes", type=float, default=None, help="each homework's time budget (default the solver's 15); a laptop's speed, recorded in the result")
     pilot.add_argument("--write", action="store_true", help="store the result in evidence/campaigns/learning_v1/results/")
     args = parser.parse_args(argv)
     if args.command == "pilot":
@@ -84,11 +85,21 @@ def _pilot(args) -> int:
     except Exception as exc:  # noqa: BLE001
         print(f"the local model did not answer ({type(exc).__name__}: {str(exc)[:200]}): start the server and pull the model", file=sys.stderr)
         return 2
+    from .solver import ContextTooSmall, check_context
+
+    try:  # a window smaller than the conversation is cut silently: the model would never see its task
+        window = check_context(args.model, args.base_url)
+    except ContextTooSmall as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(f"{args.model}: served with a {window or 'unknown'}-token window", file=sys.stderr, flush=True)
     before = experience.current_log()
     if before is None:
         experience.install(experience.open_log(home))
     try:
-        result = run_pilot(home, client, args.model, args.family, args.n)
+        budget = {"max_minutes": args.max_minutes} if args.max_minutes else None
+        result = run_pilot(home, client, args.model, args.family, args.n, log=lambda *a: print(*a, flush=True), budget=budget)
+        result["context_window"] = window
     finally:
         if before is None:
             experience.install(None)

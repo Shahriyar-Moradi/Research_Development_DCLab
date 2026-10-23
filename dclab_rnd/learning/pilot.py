@@ -19,7 +19,7 @@ from dclab_core import variants as V
 
 from .grading import grade_run
 from .packs import materialize, public_dir, read_key
-from .solver import intern_attempt, keep_grade, summary_of
+from .solver import BUDGET, intern_attempt, keep_grade, summary_of
 
 GATE = {"version": "pilot_gate_v1", "fixed": "2026-10-23, before the first pilot",
         "pass": "the final stage completed on at least four of five homeworks (a share of at least 0.8 for another count)",
@@ -35,7 +35,8 @@ def broke(session: dict[str, Any]) -> bool:
     return session.get("status") == "failed" and not (session.get("steps") or []) and not (used.get("output_tokens") or used.get("input_tokens"))
 
 
-def run_pilot(home: Path, client: Any, model: str, family: str = "groups", n: int = 5, log=print) -> dict[str, Any]:
+def run_pilot(home: Path, client: Any, model: str, family: str = "groups", n: int = 5, log=print,
+              budget: dict[str, Any] | None = None) -> dict[str, Any]:
     if client is None:  # with no model the intern runs the standard plan: that would measure the rules, not the model
         raise ValueError("a pilot needs a model client: none serves the intern")
     from .scoreboard import fingerprints
@@ -47,7 +48,7 @@ def run_pilot(home: Path, client: Any, model: str, family: str = "groups", n: in
             key = read_key(Path(tmp), family, variant.pack.id)
             started = time.monotonic()
             try:
-                out = intern_attempt(public_dir(Path(tmp), family, variant.pack.id), client, key, home=home, label="pilot")
+                out = intern_attempt(public_dir(Path(tmp), family, variant.pack.id), client, key, home=home, label="pilot", budget=budget)
             except Exception as exc:  # noqa: BLE001 - an attempt that breaks is a row with its reason
                 rows.append({"pack": variant.pack.id, "seed": seed, "broke": True, "finished": False, "verdict": "broke", "codes": [],
                              "error": f"{type(exc).__name__}: {exc}", "seconds": round(time.monotonic() - started, 1)})
@@ -73,7 +74,7 @@ def run_pilot(home: Path, client: Any, model: str, family: str = "groups", n: in
                else f"ok: the model finished {finished} of {len(rows)} homeworks" if ok
                else f"fail: the model finished only {finished} of {len(rows)} homeworks (the gate asks {FINISH_SHARE:.0%})")
     return {"campaign_id": "learning_v1", "kind": "learning_pilot", "status": "completed", "family": family, "split": "learning",
-            "model": model, "gate": GATE, "fingerprints": fingerprints(), "rows": rows, "summary": summary, "verdict": verdict, "spent_eur": 0.0,
+            "model": model, "budget": {**BUDGET, **(budget or {})}, "gate": GATE, "fingerprints": fingerprints(), "rows": rows, "summary": summary, "verdict": verdict, "spent_eur": 0.0,
             "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "rule": "the first learning variants, no lesson shown, the intern on a local model, graded by code, every attempt kept whole"}
 
