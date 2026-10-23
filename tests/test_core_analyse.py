@@ -327,6 +327,24 @@ class FailurePathTest(unittest.TestCase):
         found = by_id(analyse({"t": df}, target="y", train_index=df.index[:150]))
         self.assertNotIn("F-conflicting-labels", found)
 
+class CategoryColumnsTest(unittest.TestCase):  # the real-table shadow run, 2026-10-23: OpenML 3 killed the process
+    def test_many_category_columns_never_build_every_combination(self):
+        import time
+
+        import numpy as np
+        import pandas as pd
+
+        from dclab_core import analyse
+
+        rng = np.random.default_rng(0)
+        frame = pd.DataFrame({f"c{i}": pd.Categorical(rng.choice(list("abcdef"), 300)) for i in range(30)})  # 6**30 combinations
+        frame["y"] = rng.integers(0, 2, 300)
+        frame = pd.concat([frame, frame.assign(y=1 - frame["y"]).head(5)], ignore_index=True)  # 5 copies with the other label
+        started = time.monotonic()
+        found = analyse._conflicts(frame, "y")
+        self.assertLess(time.monotonic() - started, 10)
+        self.assertEqual(found[0].evidence["groups"], 5)  # the conflicts are still found
+
 
 if __name__ == "__main__":
     unittest.main()

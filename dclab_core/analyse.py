@@ -252,7 +252,10 @@ def _conflicts(train: pd.DataFrame, target: str) -> list[Finding]:
     features = [c for c in train.columns if c != target]
     if not features or len(train) > 500_000:
         return []
-    g = train.groupby(features, dropna=False, sort=False)[target].nunique(dropna=True)
+    # observed=True: only the combinations the rows hold. With category columns pandas' default builds every combination
+    # of every category, which for a real table of 36 category columns (OpenML 3, the real-table shadow run, 2026-10-23)
+    # ran the machine out of memory and the process was killed.
+    g = train.groupby(features, dropna=False, sort=False, observed=True)[target].nunique(dropna=True)
     conflict = int((g > 1).sum())
     if not conflict:
         return []

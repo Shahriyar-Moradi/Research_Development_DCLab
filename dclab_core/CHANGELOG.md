@@ -4,6 +4,12 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.103.1 (2026-10-23)
+
+- `analyse`: the conflicting-labels check groups only the combinations the rows hold (`observed=True`). With category
+  columns pandas built every combination of every category: a real table of 36 category columns (OpenML 3, found by the
+  real-table shadow run) ran the machine out of memory.
+
 ## 0.103.0 (2026-10-23)
 
 The playbook: lessons a solver reads, kept as deltas merged by code (H2 of the harness that learns).

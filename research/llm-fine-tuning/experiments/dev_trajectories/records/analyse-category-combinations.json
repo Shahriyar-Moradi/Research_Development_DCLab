@@ -1,0 +1,51 @@
+{
+ "package": "analyse-category-combinations",
+ "title": "The conflicting-labels check no longer builds every combination of every category",
+ "date": "2026-10-23",
+ "request": "Run the students on real tables in shadow (the owner, 2026-10-23); the run was killed on the second table.",
+ "spec": "dclab_core.analyse._conflicts; pandas groupby on category columns (observed=False builds the cartesian product of the categories).",
+ "plan": [
+  "Find where the process died (faulthandler with a timeout).",
+  "Group only the combinations the rows hold.",
+  "A test with 30 category columns."
+ ],
+ "decisions": [
+  {
+   "decision": "observed=True in the multi-column groupby, the rest left as they are.",
+   "why": "The other groupbys use one column or transform, which never expand."
+  }
+ ],
+ "change": "dclab_core/analyse.py, tests/test_core_analyse.py, dclab-core 0.103.1",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A table with many category columns killed the process (exit 137).",
+   "scenario": "OpenML 3 (3,196 rows, 36 category columns) in the real-table shadow run: propose() -> analyse -> _conflicts.",
+   "cause": "groupby over every feature with pandas' default observed=False builds every combination of the categories.",
+   "fix": "observed=True: only the combinations the rows hold.",
+   "test": "tests/test_core_analyse.py (30 category columns, 6**30 combinations)"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the test",
+   "gate": "finishes in under 10 seconds and still finds the conflicts",
+   "result": "passes; 5 conflicting groups found",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "a parquet table keeps pandas category columns; a CSV upload does not"
+   ]
+  }
+ ],
+ "outcome": "A real table of category columns no longer kills DCLab's analysis.",
+ "lessons": [
+  "Testing on real tables finds what invented ones never do: category dtypes come only from real parquet files."
+ ],
+ "risks": [
+  "Other multi-column groupbys on category columns (capacity) aggregate and could expand the same way."
+ ],
+ "commits": []
+}
