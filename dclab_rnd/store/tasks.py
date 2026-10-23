@@ -22,6 +22,7 @@ AGENT_TASKS: dict[str, tuple[str, ...]] = {
     "twin": ("agent_step", "conversation_turn", "teacher_answer", "model_request"),
     "conductor": ("agent_step",),
     "tutor": ("agent_step", "student_version"),
+    "learning": ("agent_step",),  # the harness that learns (H0): an attempt's steps, each with its verdict and codes; its grades are files of its campaign
 }
 
 __all__ = ["AGENT_TASKS"]

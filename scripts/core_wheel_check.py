@@ -91,7 +91,8 @@ assert queries.cost([])["rows"] == [] and len(catalog.build()["event_kinds"]) > 
 # 24.1: a problem map drawn from words, judged, and mapped to the main product's problem specs
 from dclab_core import problem_map
 from dclab_core.adapters import main_product_problem_map as mppm
-fraud = problem_map.decompose("Find the fake rides our bikers make. We have a few confirmed cases and the team can review 200 a day.")
+# 30.6 draws only the parts a person asks for: the accounts are named, so the rings of linked accounts are a part
+fraud = problem_map.decompose("Find the fake rides our bikers make and the customer accounts that work with them. We have a few confirmed cases and the team can review 200 a day.")
 assert fraud.size == "complex" and len(fraud.parts) == 4 and problem_map.validate(fraud) == [] and len(mppm.problem_specs(fraud)["problem_specs"]) == 4
 assert problem_map.decompose("I want to know which subscribers will cancel").size == "single"
 # 24.2: the reviewer's questions, a person's edit refused with its reason, and the three roles' prompts shipped in the wheel
@@ -107,7 +108,7 @@ assert {"decomposer", "map_reviewer", "data_need"} <= set(prompts.names())
 # 24.3: the router puts the fraud problem's parts where the plan says, from the installed wheel
 from dclab_core import solutions
 assert {k: r.chosen for k, r in solutions.routes(fraud).items()} == {"sp1": "anomaly", "sp2": "rare_event", "sp3": "entity_tables", "sp4": "review_budgeted"}
-assert "solution_router" in prompts.names() and len(solutions.CATALOGUE) == 16
+assert "solution_router" in prompts.names() and len(solutions.CATALOGUE) == 17  # 30.16 added matching
 # 24.4: the solution map of the fraud problem shares one holdout, read once by the composition, from the installed wheel
 from dclab_core import solution_map
 fraud_solution = solution_map.solution_map(fraud, solutions.routes(fraud))

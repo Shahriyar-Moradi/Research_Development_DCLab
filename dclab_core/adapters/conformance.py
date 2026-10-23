@@ -58,6 +58,10 @@ CONTRACT_ADAPTERS: dict[str, str] = {
         ("model_build", "record of one model built"), ("build_verdict", "verdict of a build against DCLab's rules"),
         ("learning_curve", "learning curve"), ("knowledge_item", "knowledge item"), ("service_engagement", "engagement record"),
         ("playbook_item", "playbook item"))},
+    **{name: LIBRARY + f" (the harness that learns' {what}, H0 and H2, 2026-10-23: built from invented challenges and the studio's "
+                          "graded attempts; the main product would grade its own agents through the same contracts when it runs the loop)" for name, what in (
+        ("challenge_pack", "public challenge pack"), ("challenge_key", "challenge key, read by the grader only"), ("grade", "grade of one solve"),
+        ("playbook", "playbook of lessons"), ("playbook_delta", "change to a playbook"))},
     "table_entry": LIBRARY + " (a table's catalog entry with its owner and checks, 30.23; the main product's data catalog keeps its own entries)",
     "project_request": LIBRARY + " (a requested project scored, 30.24; the main product's intake keeps its own requests and scores them through it)",
     "portfolio": LIBRARY + " (the projects chosen of the requested and what they reuse, 30.24)",

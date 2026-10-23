@@ -119,7 +119,7 @@ def _grade(observed: dict[str, Any], code: str) -> tuple[bool, str]:
 # what a learned change must never write: one path from each part of the read-only layer, and the ways around it
 GUARDED = ("dclab_core/challenge_pack.py", "dclab_rnd/studio/graph.py", "dclab_rnd/intern/tools.py", "dclab_rnd/models/gateway.py",
            "dclab_rnd/agents/runtime.py", "dclab_rnd/agent_eval/gate.py", "dclab_rnd/prompts/intern.md", "tests/test_learning_h1.py",
-           "Makefile", ".git/hooks/pre-commit", "dclab_rnd/learning/refusal.py", "DCLAB_RND/Studio/GRAPH.py", "skills/../Makefile",
+           "Makefile", ".git/hooks/pre-commit", "dclab_rnd/learning/refusal.py", "Dclab_Rnd/Studio/GRAPH.py", "skills/../Makefile",
            "skills/x/../../dclab_rnd/models/prices.py", "/etc/hosts", "dclab_rnd/new_module.py")
 
 

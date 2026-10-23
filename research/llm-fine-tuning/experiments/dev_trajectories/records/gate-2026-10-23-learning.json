@@ -1,0 +1,35 @@
+{
+ "package": "gate-2026-10-23-learning",
+ "title": "The full gate and the wheel check after the reasoning-field and harness-learning packages",
+ "date": "2026-10-23",
+ "request": "The owner asked to finish what was left: the full gate and dclab_core's wheel check, owed since the day's packages (D2 P1 to P5, learning H0 to H2) ran only their own tests under the daytime rule.",
+ "spec": "make check-all (the gates, the suite on files and on PostgreSQL, the campaign agent's tests, the end-to-end flows) and make core-wheel-check (dclab_core 0.103.0 built, installed in a clean Python 3.12 with its dependencies only, and run).",
+ "plan": [
+  "run the full gate; read every failure in full",
+  "fix each at its cause, run the failing files on files and on PostgreSQL",
+  "run the wheel check; list every stale smoke check at once rather than one at a time",
+  "commit, push, fast-forward dev"
+ ],
+ "decisions": [
+  {"decision": "The stale smoke check's sentence names the accounts again instead of the check being weakened", "why": "since 30.6 a problem's parts are only the ones a person asks for; the later checks were written around the rings of linked accounts, so the faithful fix restores the input, not the expectation"},
+  {"decision": "The smoke script was run with soft assertions once to list every stale check", "why": "fixing the first failure and running the whole wheel again, one at a time, hides how much went stale"}
+ ],
+ "change": "dclab_rnd/learning/refusal.py (a test path that spelled a setting's name); dclab_rnd/store/tasks.py (the learning agent's capture rule); dclab_core/adapters/conformance.py (the five new contracts as library output, with the reason); scripts/core_wheel_check.py (the fraud sentence names the accounts; the catalogue has seventeen approaches).",
+ "findings": [
+  {"id": "F1", "source": "test", "defect": "an upper-case test path in the refusal test read as an undocumented setting", "scenario": "tests/test_config.py found a setting named like the package in capitals", "cause": "the config check reads every name of that shape in the code", "fix": "the path written in mixed case, still upper-case enough to test the case rule", "test": "tests/test_config.py::test_every_setting_the_code_reads_is_documented", "severity": "gap", "impact": "a failing gate", "alternatives": [], "open": ""},
+  {"id": "F2", "source": "test", "defect": "the new learning agent named no capture rule", "scenario": "tests/test_store.py requires every harness agent in the store's task table", "cause": "H0 registered the agent in the harness only", "fix": "its rule: agent steps, each with its verdict and codes", "test": "tests/test_store.py::test_every_store_contract_is_registered_with_its_schema_and_every_kind_has_a_rule", "severity": "gap", "impact": "an agent whose records no rule checks", "alternatives": [], "open": ""},
+  {"id": "F3", "source": "test", "defect": "the five new contracts had neither a main-product adapter nor a reason", "scenario": "the conformance gate lists every contract without one", "cause": "H0 and H2 added contracts without the conformance table", "fix": "each recorded as library output with why: the main product would grade its own agents through them when it runs the loop", "test": "tests/test_conformance.py::test_the_adapters_are_conformant_at_the_commit_their_field_lists_were_read", "severity": "gap", "impact": "the main product's integration guide silent on them", "alternatives": [], "open": ""},
+  {"id": "F4", "source": "measurement", "defect": "the wheel's smoke test had gone stale twice before today: a fraud sentence that no longer draws the account part, and a catalogue counted at sixteen", "scenario": "make core-wheel-check failed on the problem map and the solution catalogue", "cause": "30.6 drew only the parts asked for and 30.16 added the seventeenth approach; the wheel check was not run after either", "fix": "the sentence names the accounts; the count is seventeen", "test": "make core-wheel-check", "severity": "gap", "impact": "the library's install check red for days", "alternatives": ["expect three parts and drop the account checks (would test less)"], "open": ""}
+ ],
+ "measurements": [
+  {"name": "the full gate", "gate": "every gate, the suite on files and on PostgreSQL, the agent tests and the flows pass", "fixed_before_run": true, "result": "the gates and all five end-to-end flows passed; three test files failed on both stores, all registrations, fixed and passing on files and on PostgreSQL", "verdict": "pass", "cost_eur": 0, "next": "the next nightly gate", "against_gate": "", "limits": ["the suite was rerun for the failing files only, not whole"]},
+  {"name": "the wheel check", "gate": "dclab_core built, installed in a clean Python, run on a replica", "fixed_before_run": true, "result": "passed after F4: the library installs with its four direct dependencies only and solves the replica", "verdict": "pass", "cost_eur": 0, "next": "run it after every dclab_core change", "against_gate": "", "limits": []}
+ ],
+ "outcome": "The day's packages pass the full gate's checks and the library's install check; the registrations every new agent and contract needs are made.",
+ "lessons": [
+  "A new agent or contract is registered in four places: the harness, the store's capture rules, the conformance table and the schemas.",
+  "Run the wheel check after every change to the library: a skipped check goes stale silently."
+ ],
+ "risks": [],
+ "commits": []
+}
