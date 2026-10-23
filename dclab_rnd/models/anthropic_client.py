@@ -212,6 +212,9 @@ class AnthropicClient(ChatClient):
         if self._client is None:
             import anthropic
 
+            from .live_guard import check
+
+            check("Anthropic", self.base_url)  # D3: never from a test, unless the test asked
             self._client = anthropic.Anthropic(base_url=self.base_url, api_key=self.api_key, timeout=self.timeout, max_retries=self.max_retries)
         return self._client
 

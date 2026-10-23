@@ -1,0 +1,81 @@
+{
+ "package": "live-models-opt-in-in-tests",
+ "title": "A test can reach a live model only when it asks for one",
+ "date": "2026-10-23",
+ "request": "The owner approved decision D3 of the harness decision report: tests can never reach a live model unless a test asks for one, whatever entry point started them.",
+ "spec": "reports/DCLab harness decision.pdf, decision D3; the guard sits where a real provider client is created, not in each entry point.",
+ "plan": [
+  "find every place a real model client is created",
+  "refuse it inside a test unless the test opts in",
+  "mark test processes so background threads are covered",
+  "test the guard"
+ ],
+ "decisions": [
+  {
+   "decision": "Guard the creation of the real SDK client in AnthropicClient and ChatClient",
+   "why": "every route to a model (the gateway, the twin lane, scripts) builds one of these two; an environment switch set by each entry point failed four times"
+  },
+  {
+   "decision": "A process is a test when the runner marks it, when started as python -m unittest or under pytest, or when a test case is on the stack",
+   "why": "the 2026-10-21 leak happened in an API worker thread, where no test frame is on the stack"
+  },
+  {
+   "decision": "An injected fake client is never touched; a test opts in with DCLAB_ALLOW_LIVE_MODELS_IN_TESTS=1",
+   "why": "many tests inject scripted clients; a few may need a fake local server on purpose"
+  }
+ ],
+ "change": "dclab_rnd/models/live_guard.py (new); dclab_rnd/models/anthropic_client.py and client.py call it before creating a real client; tests/run_parallel.py marks every test process (DCLAB_TEST_RUN) and drops any inherited opt-in; tests/test_live_guard.py (new).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "owner",
+   "defect": "live model keys reached tests four times",
+   "scenario": "a gate without the switch let the owner's OpenAI key plan an intern turn",
+   "cause": "the only stop was an environment switch each entry point had to set",
+   "fix": "a guard at real client creation",
+   "test": "tests/test_live_guard.py",
+   "severity": "behaviour",
+   "impact": "spend on the owner's key; flaky tests",
+   "alternatives": [
+    "set the switch in more entry points (the pattern that failed)"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "self",
+   "defect": "a background worker thread has no test frame on its stack",
+   "scenario": "the API's intern turn in a test",
+   "cause": "a stack-only check misses threads",
+   "fix": "the runner's process mark and the start command count too",
+   "test": "test_the_mark_holds_in_a_background_thread",
+   "severity": "latent",
+   "impact": "the guard would miss the very case that leaked",
+   "alternatives": [],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the guard's tests and the files around the model clients",
+   "gate": "every test passes with the guard on",
+   "fixed_before_run": true,
+   "result": "all passed in the 13 files around the model clients",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "the full gate tonight",
+   "against_gate": "",
+   "limits": [
+    "the full gate waits for the nightly run (owner's rule)"
+   ]
+  }
+ ],
+ "outcome": "A test process cannot create a real model client unless the test asks for one.",
+ "lessons": [
+  "Guard the one place every path passes, not every entry point."
+ ],
+ "risks": [
+  "a test that relied on reaching a local model now fails loudly and must opt in"
+ ],
+ "commits": []
+}

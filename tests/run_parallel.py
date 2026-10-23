@@ -198,6 +198,8 @@ def child_env(tmp: str, threads_one: bool = True) -> dict:
     env.setdefault("DCLAB_STUDENTS_LOOP", "0")  # 29.7: no worker of a test server retrains students behind its back; a test turns it on itself
     env.update({k: "" for k in OWNER_MODEL_CHOICE})  # the owner's .env picks a provider and holds keys; a test sets the model settings it reads itself
     env["DCLAB_NO_LIVE_MODELS"] = "1"  # tests use scripted transports only (dclab_rnd/models/gateway.py); a test that needs it off patches it itself
+    env["DCLAB_TEST_RUN"] = "1"  # D3 (2026-10-23): a real model client refuses to start in a test process (dclab_rnd/models/live_guard.py)
+    env.pop("DCLAB_ALLOW_LIVE_MODELS_IN_TESTS", None)  # only a test itself may ask for a live model
     return env
 
 
