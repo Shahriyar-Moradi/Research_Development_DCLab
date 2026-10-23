@@ -1,0 +1,307 @@
+{
+ "campaign_id": "learning_v1",
+ "kind": "learning_pilot",
+ "status": "completed",
+ "family": "groups",
+ "split": "learning",
+ "model": "qwen3.5:4b-16k",
+ "budget": {
+  "max_steps": 24,
+  "max_minutes": 45.0
+ },
+ "gate": {
+  "version": "pilot_gate_v1",
+  "fixed": "2026-10-23, before the first pilot",
+  "pass": "the final stage completed on at least four of five homeworks (a share of at least 0.8 for another count)",
+  "measures": "whether the model can do the work at all; not whether a lesson helps (that is the probe's)",
+  "invalid": "a homework that broke (DCLab's code raised, or the server never answered) makes the run invalid, never a model's fail"
+ },
+ "fingerprints": {
+  "generator": "6984c3f1e34290b8",
+  "grader": "4cd43e4a025b1079"
+ },
+ "rows": [
+  {
+   "pack": "pk-c0a7b539934c",
+   "seed": 3,
+   "family": "groups",
+   "model": "qwen3.5:4b-16k",
+   "broke": false,
+   "finished": true,
+   "verdict": "fail",
+   "codes": [
+    "SPLIT_WRONG:repeated_entity",
+    "FALSE_ALARM:known_before"
+   ],
+   "decision_score": 0.7143,
+   "seconds": 2701.0,
+   "kept": "learning_attempts/2026-10-23/164859-pk-c0a7b539934c-pilot",
+   "session": {
+    "status": "budget_exhausted",
+    "ended": null,
+    "steps": 10,
+    "tool_errors": 1,
+    "tools": [
+     "describe_data",
+     "propose_solution",
+     "review_leakage",
+     "set_solution",
+     "run_all",
+     "run_stage",
+     "get_results",
+     "get_results",
+     "get_graph",
+     "check_move"
+    ],
+    "thoughts": {
+     "recorded": 10,
+     "visible": 0,
+     "from_record": 0
+    },
+    "error": null,
+    "playbook": {
+     "sha256": null,
+     "shown": null,
+     "used": null
+    }
+   },
+   "rebuilt": true,
+   "resumed": true
+  },
+  {
+   "pack": "pk-8adbefa80dd5",
+   "seed": 5,
+   "family": "groups",
+   "model": "qwen3.5:4b-16k",
+   "broke": false,
+   "finished": true,
+   "verdict": "fail",
+   "codes": [
+    "SPLIT_WRONG:repeated_entity",
+    "FALSE_ALARM:known_before"
+   ],
+   "decision_score": 0.7143,
+   "seconds": 1758.0,
+   "kept": "learning_attempts/2026-10-23/173401-pk-8adbefa80dd5-pilot",
+   "session": {
+    "status": "completed",
+    "ended": null,
+    "steps": 10,
+    "tool_errors": 0,
+    "tools": [
+     "describe_data",
+     "write_plan",
+     "propose_solution",
+     "set_solution",
+     "run_stage",
+     "run_stage",
+     "run_stage",
+     "run_stage",
+     "run_stage",
+     "finish"
+    ],
+    "thoughts": {
+     "recorded": 10,
+     "visible": 0,
+     "from_record": 0
+    },
+    "error": null,
+    "playbook": {
+     "sha256": null,
+     "shown": null,
+     "used": null
+    }
+   },
+   "rebuilt": true,
+   "resumed": true
+  },
+  {
+   "pack": "pk-666dc5a983f4",
+   "seed": 7,
+   "family": "groups",
+   "model": "qwen3.5:4b-16k",
+   "broke": false,
+   "finished": true,
+   "verdict": "fail",
+   "codes": [
+    "SPLIT_WRONG:repeated_entity",
+    "FALSE_ALARM:known_before"
+   ],
+   "decision_score": 0.7143,
+   "seconds": 1700.7,
+   "kept": "learning_attempts/2026-10-23/212207-pk-666dc5a983f4-pilot",
+   "knobs": {
+    "skin": "ticket",
+    "task": "regression",
+    "key_name": "plain",
+    "leak_name": "worded",
+    "duplicates": 0.02,
+    "decoy": true,
+    "timed": false,
+    "entities": 286,
+    "rows": 1798,
+    "generator": "variants_v1"
+   },
+   "session": {
+    "status": "completed",
+    "ended": null,
+    "steps": 12,
+    "tool_errors": 0,
+    "tools": [
+     "write_plan",
+     "describe_data",
+     "propose_solution",
+     "review_leakage",
+     "set_solution",
+     "run_all",
+     "get_results",
+     "get_results",
+     "get_results",
+     "get_results",
+     "get_graph",
+     "finish"
+    ],
+    "thoughts": {
+     "recorded": 12,
+     "visible": 0,
+     "from_record": 0
+    },
+    "error": null,
+    "playbook": {
+     "sha256": null,
+     "shown": null,
+     "used": null
+    }
+   },
+   "resumed": true
+  },
+  {
+   "pack": "pk-1d5a7a0f99c9",
+   "seed": 8,
+   "family": "groups",
+   "model": "qwen3.5:4b-16k",
+   "broke": false,
+   "finished": true,
+   "verdict": "pass",
+   "codes": [],
+   "decision_score": 1.0,
+   "seconds": 1001.1,
+   "kept": "learning_attempts/2026-10-23/215028-pk-1d5a7a0f99c9-pilot",
+   "knobs": {
+    "skin": "loan",
+    "task": "regression",
+    "key_name": "id",
+    "leak_name": "plain",
+    "duplicates": 0.0,
+    "decoy": false,
+    "timed": true,
+    "entities": 236,
+    "rows": 1404,
+    "generator": "variants_v1"
+   },
+   "session": {
+    "status": "completed",
+    "ended": null,
+    "steps": 7,
+    "tool_errors": 0,
+    "tools": [
+     "describe_data",
+     "propose_solution",
+     "set_solution",
+     "run_all",
+     "get_results",
+     "write_plan",
+     "write_plan"
+    ],
+    "thoughts": {
+     "recorded": 7,
+     "visible": 0,
+     "from_record": 0
+    },
+    "error": null,
+    "playbook": {
+     "sha256": null,
+     "shown": null,
+     "used": null
+    }
+   },
+   "resumed": true
+  },
+  {
+   "pack": "pk-0217ebe5ce80",
+   "seed": 11,
+   "family": "groups",
+   "model": "qwen3.5:4b-16k",
+   "broke": false,
+   "finished": true,
+   "verdict": "fail",
+   "codes": [
+    "SPLIT_WRONG:repeated_entity"
+   ],
+   "decision_score": 0.8571,
+   "seconds": 1134.7,
+   "kept": "learning_attempts/2026-10-23/222027-pk-0217ebe5ce80-pilot",
+   "knobs": {
+    "skin": "order",
+    "task": "binary",
+    "key_name": "plain",
+    "leak_name": "worded",
+    "duplicates": 0.0,
+    "decoy": true,
+    "timed": false,
+    "entities": 232,
+    "rows": 1381,
+    "generator": "variants_v1"
+   },
+   "session": {
+    "status": "completed",
+    "ended": null,
+    "steps": 10,
+    "tool_errors": 1,
+    "tools": [
+     "describe_data",
+     "propose_solution",
+     "set_solution",
+     "set_solution",
+     "run_all",
+     "get_results",
+     "get_results",
+     "write_plan",
+     "ask_project",
+     "finish"
+    ],
+    "thoughts": {
+     "recorded": 10,
+     "visible": 0,
+     "from_record": 0
+    },
+    "error": null,
+    "playbook": {
+     "sha256": null,
+     "shown": null,
+     "used": null
+    }
+   }
+  }
+ ],
+ "summary": {
+  "homeworks": 5,
+  "finished": 5,
+  "passed": 1,
+  "mean_seconds": 1659.1,
+  "codes": {
+   "SPLIT_WRONG:repeated_entity": 4,
+   "FALSE_ALARM:known_before": 3
+  },
+  "tool_errors": 2,
+  "recorded_thoughts": 49,
+  "broke": 0
+ },
+ "verdict": "ok: the model finished 5 of 5 homeworks",
+ "spent_eur": 0.0,
+ "at": "2026-10-23T22:39:21+00:00",
+ "rule": "the first learning variants, no lesson shown, the intern on a local model, graded by code, every attempt kept whole",
+ "context_window": 16384,
+ "id": "LRN-003",
+ "experiment_id": "LRN-003"
+}

@@ -110,3 +110,20 @@ Lessons:
 - Check that the server shows the model the whole prompt before measuring a model: the token count of each request tells.
 - A measurement must tell a broken instrument from a bad result before it is stored.
 - Moving a project to a temporary folder is not isolation: every central writer records where it is installed.
+
+## Night of 2026-10-24: the pilot finished, capture checked, the probe built
+
+- **Pilot result (LRN-003, gate pilot_gate_v1): ok, the model finished 5 of 5 homeworks** (Qwen3.5-4B, 16k window, 45-minute
+  budget). Graded: 1 pass (seed 8), 4 fail; SPLIT_WRONG in 4, FALSE_ALARM in 3; mean 27.7 minutes, 49 thoughts recorded.
+  The model saves the rules' proposal and adds little of its own.
+- **Capture checked for training** (commit 020fd04b): every attempt folder is a workspace the store keeps whole. Found and
+  fixed: a homework that finished but failed the grader would have entered the *clean* solver set (the builder knew only
+  twin verdicts); the tools offered were not kept (now `tools.json`, the 30 schemas as the loop sends them; backfilled into
+  the 12 earlier folders, the intern's code unchanged since before them).
+- **Claude as the reflector** ($15 given by the owner): the draft command had never loaded `.env`, so its first run went to
+  an OpenAI model with no price that the cap could not count (under one cent); fixed. Claude Sonnet 5.5 then read four
+  failed variants and answered `{"lessons": []}` each time: the two lessons the rules wrote already cover both codes. About
+  EUR 0.02.
+- **The probe gate built** (911d66c5): one lesson measured in pairs; promoted only over 9 pairs with 3 repeats a variant.
+- **Memory**: a process doing homework after homework grew until swap reached 10 GB and the disk 1.7 GB; one homework a
+  process now (de4f80f0), with the disk checked before each.
