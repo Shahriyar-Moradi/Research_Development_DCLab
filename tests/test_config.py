@@ -14,7 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
 
-NAMES = re.compile(r"\b(DCLAB_[A-Z0-9_]+|OPENAI_[A-Z0-9_]+|HF_[A-Z0-9_]+|KAGGLE_[A-Z0-9_]+|AWS_[A-Z0-9_]+)\b")
+# a name followed by a file's extension (DCLAB_MASTER_CONTEXT.md) is a file, not a setting
+NAMES = re.compile(r"\b(DCLAB_[A-Z0-9_]+|OPENAI_[A-Z0-9_]+|HF_[A-Z0-9_]+|KAGGLE_[A-Z0-9_]+|AWS_[A-Z0-9_]+)\b(?!\.[a-z])")
 
 
 class ConfigTests(unittest.TestCase):
