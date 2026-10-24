@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DCLab learning loop: the big picture</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#fbfaf7; --ink:#1d1d1f; --soft:#5b5b63; --line:#e3e0d8; --accent:#2f5d8a; --good:#2e7d4f; --warn:#a15c00; --card:#ffffff; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#16171a; --ink:#ececee; --soft:#a6a6ae; --line:#2c2e33; --accent:#8db8e6; --good:#7fcf9e; --warn:#f0b35a; --card:#1e2024; } }
+  :root[data-theme="dark"] { --bg:#16171a; --ink:#ececee; --soft:#a6a6ae; --line:#2c2e33; --accent:#8db8e6; --good:#7fcf9e; --warn:#f0b35a; --card:#1e2024; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:Vazirmatn, system-ui, sans-serif; font-size:20px; line-height:2.1; }
+  main { max-width:860px; margin:0 auto; padding:24px 16px 80px; }
+  h1 { font-size:30px; line-height:1.6; margin:8px 0 4px; }
+  h2 { font-size:24px; margin:40px 0 8px; color:var(--accent); line-height:1.6; }
+  h3 { font-size:21px; margin:24px 0 4px; }
+  p, li { margin:6px 0; }
+  .sub { color:var(--soft); font-size:17px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 18px; margin:14px 0; }
+  .ex { border-inline-start:4px solid var(--good); }
+  .warn { border-inline-start:4px solid var(--warn); }
+  .ltr, code { direction:ltr; unicode-bidi:isolate; font-family:ui-monospace, Menlo, monospace; font-size:16px; }
+  code { background:color-mix(in srgb, var(--accent) 10%, transparent); padding:1px 6px; border-radius:6px; }
+  table { border-collapse:collapse; width:100%; font-size:18px; line-height:1.8; }
+  td, th { border-bottom:1px solid var(--line); padding:6px 8px; text-align:start; vertical-align:top; }
+  .en { direction:ltr; text-align:left; font-family:system-ui, sans-serif; font-size:17px; line-height:1.75; }
+  .en h2 { font-size:22px; } .en h3 { font-size:19px; }
+  ol.steps li { margin:8px 0; }
+  .stage { display:inline-block; padding:0 10px; border-radius:999px; font-size:16px; border:1px solid var(--line); }
+  .here { background:var(--accent); color:var(--bg); border-color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+
+<h1>ما الان دقیقاً چه کار می‌کنیم و چرا؟</h1>
+<p class="sub">تصویر کامل کار «هارنسی که یاد می‌گیرد» در DCLab — ۲۴ اکتبر ۲۰۲۶</p>
+
+<h2>۱. هدف بزرگ</h2>
+<p>DCLab امروز برای فکر کردن از Claude استفاده می‌کند: قوی است، ولی پولی است و بیرون از سیستم ما. هدف این است که روزی <b>مدل خودمان</b> را داشته باشیم: کوچک، ارزان، روی همین مک یا سرور خودمان، که مسئله‌های یادگیری ماشین را <b>درست و صادقانه</b> حل کند (بدون نشت داده).</p>
+<p>مشکل: مدل‌های کوچک ضعیف‌اند. دو راه برای قوی‌کردنشان هست:</p>
+<ol>
+  <li><b>آموزش دادن (fine-tune):</b> مدل را با مثال‌های خوب دوباره آموزش بدهیم. برای این، <b>داده‌ی خوب و کامل</b> لازم است.</li>
+  <li><b>یاد دادن در لحظه:</b> قبل از کار، چند «درس» کوتاه جلویش بگذاریم (مثل یادداشت معلم). ارزان است و آموزش لازم ندارد.</li>
+</ol>
+<p>کار این روزها هر دو را جلو می‌برد: هر تلاش مدل <b>کامل ضبط می‌شود</b> (برای آموزش بعدی)، و هر درس <b>با اندازه‌گیری</b> آزموده می‌شود (برای یاد دادن در لحظه).</p>
+
+<div class="card ex">
+<h3>مثال ساده: مدرسه</h3>
+<p>مدل = دانش‌آموز. <b>تکلیف</b> = یک جدول ساختگی با تله‌های پنهان. <b>کلید جواب</b> در کشوی قفل‌شده‌ی معلم است و دانش‌آموز هرگز آن را نمی‌بیند. <b>معلم</b> (کد نمره‌دهی) جواب را با کلید مقایسه می‌کند و نمره می‌دهد. <b>یادداشت معلم</b> = درس. برای اینکه بفهمیم یادداشت کمک می‌کند یا نه، <b>همان تکلیف</b> را یک بار بدون یادداشت و یک بار با یادداشت می‌دهیم و نمره‌ها را مقایسه می‌کنیم.</p>
+</div>
+
+<h2>۲. نقشه‌ی کار (H0 تا H6) و جای ما</h2>
+<p>
+<span class="stage">H0 تکلیف و نمره‌دهی</span>
+<span class="stage">H1 قفل‌های ایمنی</span>
+<span class="stage">H2 دفترچه‌ی درس‌ها</span>
+<span class="stage here">H3 آزمون درس‌ها (اینجاییم)</span>
+<span class="stage">H4 مهارت‌ها</span>
+<span class="stage">H5 بهتر کردن دستورها</span>
+<span class="stage">H6 اندازه‌گیری نهایی</span>
+</p>
+<table>
+<tr><th>مرحله</th><th>چه کرد</th><th>چرا</th></tr>
+<tr><td>H0</td><td>تکلیف‌های ساختگی با تله: ستونی که بعد از نتیجه نوشته شده (نشت)، مشتری‌ای که در چند ردیف تکرار شده، شناسه‌ی ردیف، و یک «طعمه» که شبیه نشت است ولی نیست. نمره‌دهی با کد.</td><td>بدون نمره‌ی بی‌طرف، نمی‌شود فهمید چیزی بهتر شده یا نه.</td></tr>
+<tr><td>H1</td><td>هیچ چیزِ یادگرفته‌شده نمی‌تواند به نمره‌دهنده، کلیدها، سقف هزینه یا قوانین ایمنی دست بزند. ۱۱ حرکت بد آزموده شد؛ هر ۱۱ رد شد.</td><td>تا سیستم برای نمره‌ی بهتر «تقلب» نکند.</td></tr>
+<tr><td>H2</td><td>از اشتباه‌ها درس نوشته می‌شود (با قانون یا با Claude). درس هرگز نام ستون را نمی‌آورد.</td><td>درسی که جواب را لو بدهد، درس نیست، تقلب است.</td></tr>
+<tr><td>H3</td><td>آزمون جفتی: همان تکلیف، بدون درس و با درس. درس فقط وقتی بالا می‌رود که در ۹ جفت و ۳ تکرار کمک کند و هیچ قبولی را خراب نکند.</td><td>تا درس‌های بی‌فایده یا مضر وارد نشوند.</td></tr>
+</table>
+
+<h2>۳. در این دو روز چه کردیم</h2>
+<ol class="steps">
+  <li><b>ضبط کامل فکر مدل:</b> قبلاً «فکر» مدل محلی دور ریخته می‌شد. حالا هر قدم با فکرش، ابزارهایش و نتیجه‌اش کامل ذخیره می‌شود.</li>
+  <li><b>انتخاب مدل محلی:</b> Qwen 3.5 با ۴ میلیارد پارامتر روی Ollama (رایگان، روی همین لپ‌تاپ).</li>
+  <li><b>دو خرابی محیط پیدا و درست شد:</b> Ollama متن ورودی را به ۲٬۰۵۰ توکن بریده بود (مدل اصلاً تکلیف را نمی‌دید)؛ و هر برنامه با گذشت تکلیف‌ها حافظه را پر می‌کرد تا دیسک پر شد. حالا هر تکلیف در یک برنامه‌ی تازه اجرا می‌شود.</li>
+  <li><b>آزمون اولیه (Pilot):</b> مدل هر ۵ تکلیف را تا آخر انجام داد (دروازه قبول شد)، ولی نمره‌دهنده فقط ۱ از ۵ را قبول کرد.</li>
+  <li><b>داده‌ی آموزشی درست شد:</b> تکلیفی که تمام شده ولی رد شده بود، داشت در مجموعه‌ی «تمیز» آموزش می‌رفت. حالا به مجموعه‌ی «ناموفق» با دلیلش می‌رود.</li>
+  <li><b>ساخت آزمون درس (Probe)</b> و اجرای کوچکش: ۳ تکلیف با درس «تقسیم بر اساس مشتری».</li>
+  <li><b>ذخیره و بایگانی:</b> همه‌چیز در انبار ثبت و یک نسخه‌ی دائمی گرفته شد.</li>
+</ol>
+
+<h2>۴. نتیجه تا الان، و چرا</h2>
+<div class="card warn">
+<p>در جفت ۱ و ۲، نمره با درس و بدون درس یکی بود: <b>۰٫۷۱۴</b>. یعنی درس هنوز کمکی نکرده.</p>
+<p><b>چرا؟</b> مدل اول از قوانین DCLab یک «پیشنهاد» می‌گیرد و تقریباً همان را ذخیره می‌کند. قوانین ستون گروه (مثلاً <span class="ltr">borrower</span>) را پیدا نمی‌کنند، پس مدل هم نمی‌کند. درس را خوانده (اسمش را در فکرش آورده)، ولی جرئت نکرده پیشنهاد را عوض کند. یک بار هم ستون تکرارشونده را دید ولی به‌جای «گروه کردن»، آن را «حذف» کرد. مدل ۴ میلیاردی دستور را دنبال می‌کند، ولی قانون کلی را خوب روی جدول خاص پیاده نمی‌کند. رفتارش هم تصادفی است: یک بار با همین درس درست عمل کرد.</p>
+</div>
+<p><b>قدم بعدی پیشنهادی من:</b> (۱) قانون خود DCLab را بهتر کنیم تا پیشنهادش ستون گروه را پیدا کند (به همه‌ی مدل‌ها کمک می‌کند)؛ (۲) درس را واضح‌تر بنویسیم: «پیشنهاد را بررسی کن؛ اگر ستونی برای هر مشتری تکرار می‌شود، آن را گروه کن، حذفش نکن.»</p>
+
+<h2>۵. نگاه فنی</h2>
+<table class="ltr">
+<tr><td>Homework</td><td><code>dclab_core/challenge_pack.py</code>, <code>variants.py</code>: invented table + hidden key; <code>grade()</code> gives verdict, decision score and codes (never a column name)</td></tr>
+<tr><td>Solver</td><td><code>dclab_rnd/learning/solver.py</code>: the intern on a local model only (Ollama /v1, 16k window); learning attempts kept whole; exam attempts leave nothing</td></tr>
+<tr><td>Pilot</td><td><code>learning/pilot.py</code>, gate <code>pilot_gate_v1</code>: final stage on ≥4 of 5 → LRN-003: 5/5 finished, 1/5 passed</td></tr>
+<tr><td>Lessons</td><td><code>dclab_core/playbook.py</code> (append-only deltas), <code>learning/reflect.py</code> (rules or Claude), <code>filter.py</code> (no names, no digits)</td></tr>
+<tr><td>Probe</td><td><code>learning/probe.py</code>, gate <code>probe_gate_v1</code>: pairs without/with one lesson; counters by code; draft→probed only with ≥9 pairs, ≥3 repeats, mean gain &gt; 0, no pass lost</td></tr>
+<tr><td>Training data</td><td>each attempt: session with thinking, tool calls and results, <code>tools.json</code>, <code>grade.json</code>; the store places it in M5 sets by its grade (<code>store/sets/llm.py</code>)</td></tr>
+</table>
+
+<hr style="margin:48px 0; border:0; border-top:1px solid var(--line)">
+
+<section class="en" dir="ltr">
+<h2>English: what we are doing, and why</h2>
+<p><b>The goal.</b> DCLab thinks with Claude today: strong, but paid and external. The goal is our <b>own small model</b> (cheap, local, private) that solves ML problems honestly, with no leakage. Small models are weak, so there are two ways to make them better: <b>train</b> them (needs good, complete data) or <b>teach at run time</b> with short lessons (cheap, no training). This work does both: every attempt is recorded whole for training, and every lesson is tested by measurement.</p>
+<p><b>The school picture.</b> The model is a student. The homework is an invented table with hidden traps. The answer key sits in the teacher's locked drawer. The grader is code. A lesson is a teacher's note, and we test it by giving the same homework with and without the note.</p>
+<p><b>The plan:</b> H0 homework and grader → H1 safety locks → H2 lesson notebook → <b>H3 testing lessons (we are here)</b> → H4 skills → H5 better prompts → H6 final measurement.</p>
+<p><b>Done in two days:</b> the model's thinking is recorded whole; a local model was chosen (Qwen 3.5, 4B, on Ollama); two setup faults were fixed (prompts cut to 2,050 tokens, and memory growing until the disk filled); the pilot passed its gate (5 of 5 finished) though the grader passed only 1; training data fixed (graded failures no longer reach the clean set); the probe was built and is running; everything is stored and archived.</p>
+<p><b>Result so far:</b> pairs 1 and 2 scored 0.714 with and without the lesson. The model copies DCLab's own proposal, which misses the group column. It read the lesson but did not change the proposal; once it even blocked the repeating column instead of grouping by it. A 4B model follows steps but struggles to apply a general rule to a specific table.</p>
+<p><b>My recommended next step:</b> improve DCLab's rule so its proposal finds the group column (this helps every model), and reword the lesson plainly: "check the proposal's split; if a column repeats per customer, group by it, do not drop it".</p>
+</section>
+
+</main>
+</body>
+</html>

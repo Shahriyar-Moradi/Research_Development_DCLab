@@ -127,3 +127,17 @@ Lessons:
 - **The probe gate built** (911d66c5): one lesson measured in pairs; promoted only over 9 pairs with 3 repeats a variant.
 - **Memory**: a process doing homework after homework grew until swap reached 10 GB and the disk 1.7 GB; one homework a
   process now (de4f80f0), with the disk checked before each.
+
+## 2026-10-24 morning: the first live probe (LRN-004)
+
+The split lesson (B-72118ce532, written by the rules' drafter) on the local Qwen 4B, three learning variants, one
+repeat, the pilot's attempts as the arm without it. Gains: 0.0, 0.0, +0.143 (mean +0.048), no pass lost; the
+counters moved (shown 3, helpful 1, harmful 0); the status stays draft: three pairs of one repeat each are below the
+gate's nine pairs and three repeats. In every pair the model named the lesson. In two it saved the rules' proposal
+unchanged (no group column); in one (seed 7) it set the right group (`account`) and only the decoy remained. An
+unfinished attempt the night before set the right group on seed 3 too: the model is not consistent.
+
+Read: the lesson sometimes helps; the larger cause is that the model copies the rules' proposal, which misses the group
+column. Proposed next: improve the rule that proposes the split (helps every model), and word the lesson plainly
+("group by it, do not drop it"). Also learned: a store run beside the model swapped the disk down to 0.6 GB; the
+loop now waits for store, archive and gate jobs before each homework.
