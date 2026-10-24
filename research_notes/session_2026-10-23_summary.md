@@ -141,3 +141,13 @@ Read: the lesson sometimes helps; the larger cause is that the model copies the 
 column. Proposed next: improve the rule that proposes the split (helps every model), and word the lesson plainly
 ("group by it, do not drop it"). Also learned: a store run beside the model swapped the disk down to 0.6 GB; the
 loop now waits for store, archive and gate jobs before each homework.
+
+## 2026-10-24 midday: the plain lesson (LRN-005)
+
+At the owner's choice the split lesson was reworded plainly (B-7323aa8e6d: "Do not save the proposed split as it is:
+check it... set that column as the group column... Never drop it and never list it as a leak") and probed on the same
+three variants. Gains 0.0, +0.143 (seed 5: the right group, `borrower`), +0.143 (seed 7: the split still wrong but the
+false alarm gone): mean +0.095 against +0.048 for the first wording, no pass lost; still too few pairs to promote. On
+seed 3 the model planned to follow the lesson, tried to save an empty group twice (refused), then blocked the right
+group `account` as a leak, the reason the rules' proposal gives ("single column separates the classes, AUC 0.842"):
+the rules' evidence outweighs the lesson's words for a 4B model.

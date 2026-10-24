@@ -1,0 +1,454 @@
+{
+ "campaign_id": "learning_v1",
+ "kind": "learning_probe",
+ "status": "completed",
+ "family": "groups",
+ "split": "learning",
+ "model": "qwen3.5:4b-16k",
+ "budget": {
+  "max_steps": 24,
+  "max_minutes": 45.0
+ },
+ "bullet": {
+  "id": "B-7323aa8e6d",
+  "text": "Do not save the proposed split as it is: check it. If one column's value repeats across many rows and each value is one customer or person, set that column as the group column so all its rows stay on one side. Never drop it and never list it as a leak.",
+  "scope": "domain:groups",
+  "by": "model:claude-opus-5-5",
+  "status_before": "draft",
+  "status_after": "draft",
+  "counters_after": {
+   "shown": 3,
+   "helpful": 2,
+   "harmful": 0
+  }
+ },
+ "gate": {
+  "version": "probe_gate_v1",
+  "fixed": "2026-10-24, before the first probe",
+  "pair": "the same learning variant, the same local model and budget, without and with the one lesson",
+  "counts": "every pair: shown +1; helpful +1 where the grader's decision score rose with the lesson; harmful +1 where it fell",
+  "promote": "draft -> probed over at least 9 pairs with at least 3 repeats of each variant (the plan's H3), when the mean gain is above zero and no pair loses a pass; the status read again after the counts moved (a lesson they retire stays retired)",
+  "too_few": "fewer than 9 pairs or fewer than 3 repeats a variant: the counters move, the status does not",
+  "reuse": "the pilot's attempt serves as the arm without the lesson only with the same model, budget, tools and rules (their hashes)",
+  "invalid": "a homework that broke before the model answered: nothing counted",
+  "never": "a check or sealed variant is never read by the probe"
+ },
+ "fingerprints": {
+  "generator": "6984c3f1e34290b8",
+  "grader": "4cd43e4a025b1079"
+ },
+ "rows": [
+  {
+   "pack": "pk-c0a7b539934c",
+   "seed": 3,
+   "family": "groups",
+   "model": "qwen3.5:4b-16k",
+   "broke": false,
+   "finished": true,
+   "verdict": "fail",
+   "codes": [
+    "SPLIT_WRONG:repeated_entity",
+    "FALSE_ALARM:known_before"
+   ],
+   "decision_score": 0.7143,
+   "seconds": 2701.0,
+   "kept": "learning_attempts/2026-10-23/164859-pk-c0a7b539934c-pilot",
+   "session": {
+    "status": "budget_exhausted",
+    "ended": null,
+    "steps": 10,
+    "tool_errors": 1,
+    "tools": [
+     "describe_data",
+     "propose_solution",
+     "review_leakage",
+     "set_solution",
+     "run_all",
+     "run_stage",
+     "get_results",
+     "get_results",
+     "get_graph",
+     "check_move"
+    ],
+    "thoughts": {
+     "recorded": 10,
+     "visible": 0,
+     "from_record": 0
+    },
+    "error": null,
+    "playbook": {
+     "sha256": null,
+     "shown": null,
+     "used": null
+    }
+   },
+   "rebuilt": true,
+   "arm": "without",
+   "repeat": 0,
+   "budget": {
+    "max_steps": 24,
+    "max_minutes": 45.0
+   },
+   "from_pilot": true
+  },
+  {
+   "pack": "pk-c8ef8b59ed47",
+   "seed": 3,
+   "family": "groups",
+   "repeat": 0,
+   "arm": "with",
+   "bullet": "B-7323aa8e6d",
+   "lineage": "main",
+   "model": "qwen3.5:4b-16k",
+   "budget": {
+    "max_steps": 24,
+    "max_minutes": 45.0
+   },
+   "broke": false,
+   "finished": true,
+   "verdict": "fail",
+   "codes": [
+    "SPLIT_WRONG:repeated_entity",
+    "FALSE_ALARM:known_before"
+   ],
+   "decision_score": 0.7143,
+   "seconds": 1025.8,
+   "kept": "learning_attempts/2026-10-24/071147-pk-c8ef8b59ed47-probe-7323aa8e6d-with-r0",
+   "session": {
+    "status": "completed",
+    "ended": null,
+    "steps": 10,
+    "tool_errors": 2,
+    "tools": [
+     "describe_data",
+     "write_plan",
+     "propose_solution",
+     "review_leakage",
+     "set_solution",
+     "set_solution",
+     "set_solution",
+     "run_all",
+     "get_results",
+     "finish"
+    ],
+    "thoughts": {
+     "recorded": 10,
+     "visible": 0,
+     "from_record": 0
+    },
+    "error": null,
+    "playbook": {
+     "sha256": "f207b76294be0ca7",
+     "shown": [
+      "B-7323aa8e6d"
+     ],
+     "used": [
+      "B-7323aa8e6d"
+     ]
+    }
+   },
+   "cited": [
+    "B-7323aa8e6d"
+   ]
+  },
+  {
+   "pack": "pk-8adbefa80dd5",
+   "seed": 5,
+   "family": "groups",
+   "model": "qwen3.5:4b-16k",
+   "broke": false,
+   "finished": true,
+   "verdict": "fail",
+   "codes": [
+    "SPLIT_WRONG:repeated_entity",
+    "FALSE_ALARM:known_before"
+   ],
+   "decision_score": 0.7143,
+   "seconds": 1758.0,
+   "kept": "learning_attempts/2026-10-23/173401-pk-8adbefa80dd5-pilot",
+   "session": {
+    "status": "completed",
+    "ended": null,
+    "steps": 10,
+    "tool_errors": 0,
+    "tools": [
+     "describe_data",
+     "write_plan",
+     "propose_solution",
+     "set_solution",
+     "run_stage",
+     "run_stage",
+     "run_stage",
+     "run_stage",
+     "run_stage",
+     "finish"
+    ],
+    "thoughts": {
+     "recorded": 10,
+     "visible": 0,
+     "from_record": 0
+    },
+    "error": null,
+    "playbook": {
+     "sha256": null,
+     "shown": null,
+     "used": null
+    }
+   },
+   "rebuilt": true,
+   "arm": "without",
+   "repeat": 0,
+   "budget": {
+    "max_steps": 24,
+    "max_minutes": 45.0
+   },
+   "from_pilot": true
+  },
+  {
+   "pack": "pk-8f57ea66ae77",
+   "seed": 5,
+   "family": "groups",
+   "repeat": 0,
+   "arm": "with",
+   "bullet": "B-7323aa8e6d",
+   "lineage": "main",
+   "model": "qwen3.5:4b-16k",
+   "budget": {
+    "max_steps": 24,
+    "max_minutes": 45.0
+   },
+   "broke": false,
+   "finished": true,
+   "verdict": "fail",
+   "codes": [
+    "FALSE_ALARM:known_before"
+   ],
+   "decision_score": 0.8571,
+   "seconds": 1261.3,
+   "kept": "learning_attempts/2026-10-24/072922-pk-8f57ea66ae77-probe-7323aa8e6d-with-r0",
+   "session": {
+    "status": "completed",
+    "ended": null,
+    "steps": 11,
+    "tool_errors": 0,
+    "tools": [
+     "write_plan",
+     "describe_data",
+     "review_labels",
+     "propose_solution",
+     "review_leakage",
+     "set_solution",
+     "run_all",
+     "get_results",
+     "get_results",
+     "export_notebook",
+     "finish"
+    ],
+    "thoughts": {
+     "recorded": 11,
+     "visible": 0,
+     "from_record": 0
+    },
+    "error": null,
+    "playbook": {
+     "sha256": "f207b76294be0ca7",
+     "shown": [
+      "B-7323aa8e6d"
+     ],
+     "used": [
+      "B-7323aa8e6d"
+     ]
+    }
+   },
+   "cited": [
+    "B-7323aa8e6d"
+   ]
+  },
+  {
+   "pack": "pk-666dc5a983f4",
+   "seed": 7,
+   "family": "groups",
+   "model": "qwen3.5:4b-16k",
+   "broke": false,
+   "finished": true,
+   "verdict": "fail",
+   "codes": [
+    "SPLIT_WRONG:repeated_entity",
+    "FALSE_ALARM:known_before"
+   ],
+   "decision_score": 0.7143,
+   "seconds": 1700.7,
+   "kept": "learning_attempts/2026-10-23/212207-pk-666dc5a983f4-pilot",
+   "knobs": {
+    "skin": "ticket",
+    "task": "regression",
+    "key_name": "plain",
+    "leak_name": "worded",
+    "duplicates": 0.02,
+    "decoy": true,
+    "timed": false,
+    "entities": 286,
+    "rows": 1798,
+    "generator": "variants_v1"
+   },
+   "session": {
+    "status": "completed",
+    "ended": null,
+    "steps": 12,
+    "tool_errors": 0,
+    "tools": [
+     "write_plan",
+     "describe_data",
+     "propose_solution",
+     "review_leakage",
+     "set_solution",
+     "run_all",
+     "get_results",
+     "get_results",
+     "get_results",
+     "get_results",
+     "get_graph",
+     "finish"
+    ],
+    "thoughts": {
+     "recorded": 12,
+     "visible": 0,
+     "from_record": 0
+    },
+    "error": null,
+    "playbook": {
+     "sha256": null,
+     "shown": null,
+     "used": null
+    }
+   },
+   "arm": "without",
+   "repeat": 0,
+   "budget": {
+    "max_steps": 24,
+    "max_minutes": 45.0
+   },
+   "from_pilot": true
+  },
+  {
+   "pack": "pk-660a764b8cc9",
+   "seed": 7,
+   "family": "groups",
+   "repeat": 0,
+   "arm": "with",
+   "bullet": "B-7323aa8e6d",
+   "lineage": "main",
+   "model": "qwen3.5:4b-16k",
+   "budget": {
+    "max_steps": 24,
+    "max_minutes": 45.0
+   },
+   "broke": false,
+   "finished": true,
+   "verdict": "fail",
+   "codes": [
+    "SPLIT_WRONG:repeated_entity"
+   ],
+   "decision_score": 0.8571,
+   "seconds": 1519.8,
+   "kept": "learning_attempts/2026-10-24/075251-pk-660a764b8cc9-probe-7323aa8e6d-with-r0",
+   "session": {
+    "status": "completed",
+    "ended": null,
+    "steps": 12,
+    "tool_errors": 2,
+    "tools": [
+     "write_plan",
+     "describe_data",
+     "propose_solution",
+     "review_leakage",
+     "set_solution",
+     "set_solution",
+     "set_solution",
+     "run_all",
+     "get_results",
+     "get_results",
+     "get_results",
+     "finish"
+    ],
+    "thoughts": {
+     "recorded": 12,
+     "visible": 0,
+     "from_record": 0
+    },
+    "error": null,
+    "playbook": {
+     "sha256": "f207b76294be0ca7",
+     "shown": [
+      "B-7323aa8e6d"
+     ],
+     "used": [
+      "B-7323aa8e6d"
+     ]
+    }
+   },
+   "cited": [
+    "B-7323aa8e6d"
+   ]
+  }
+ ],
+ "pairs": [
+  {
+   "seed": 3,
+   "repeat": 0,
+   "without": 0.7143,
+   "with": 0.7143,
+   "gain": 0.0,
+   "without_from_pilot": true,
+   "cited": [
+    "B-7323aa8e6d"
+   ]
+  },
+  {
+   "seed": 5,
+   "repeat": 0,
+   "without": 0.7143,
+   "with": 0.8571,
+   "gain": 0.1428,
+   "without_from_pilot": true,
+   "cited": [
+    "B-7323aa8e6d"
+   ]
+  },
+  {
+   "seed": 7,
+   "repeat": 0,
+   "without": 0.7143,
+   "with": 0.8571,
+   "gain": 0.1428,
+   "without_from_pilot": true,
+   "cited": [
+    "B-7323aa8e6d"
+   ]
+  }
+ ],
+ "summary": {
+  "pairs": 3,
+  "scored": 3,
+  "mean_gain": 0.0952,
+  "passes_lost": 0,
+  "counts": {
+   "shown": 3,
+   "helpful": 2,
+   "harmful": 0
+  },
+  "counted_now": {
+   "shown": 3,
+   "helpful": 2,
+   "harmful": 0
+  },
+  "enough": false
+ },
+ "verdict": "too few pairs (3 pairs, 1 repeats a variant; the gate asks 9 and 3): counters moved, status kept (draft); mean gain 0.0952, passes lost 0",
+ "spent_eur": 0.0,
+ "at": "2026-10-24T08:18:11+00:00",
+ "rule": "paired homeworks on learning variants, graded by code; the lesson's counters by code, its status by the gate",
+ "context_window": 16384,
+ "id": "LRN-005",
+ "experiment_id": "LRN-005"
+}
