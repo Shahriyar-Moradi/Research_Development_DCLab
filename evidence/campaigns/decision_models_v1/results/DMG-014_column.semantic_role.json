@@ -1,0 +1,320 @@
+{
+  "id": "DMG-014",
+  "experiment_id": "DMG-014",
+  "campaign_id": "decision_models_v1",
+  "kind": "decision_model_gate",
+  "status": "completed",
+  "at": "2026-10-24T21:00:55+00:00",
+  "point": "column.semantic_role",
+  "model": {
+    "name": "column.semantic_role.logistic",
+    "version": "ddef6e78dae8",
+    "family": "logistic",
+    "strength": 10.0,
+    "trained_set": "c918782a102e26aa1383e6c630b4333fce0a91e59827186cd540b932c6b54e75"
+  },
+  "gate": {
+    "version": "decision_gate_v1",
+    "thresholds": {
+      "scored_share_min": 1.0,
+      "accuracy_lower_min": 0.9,
+      "precision_lower_min": 0.8,
+      "recall_lower_min": 0.8,
+      "margin_lower_min": 0.0,
+      "class_min_rows": 30,
+      "class_recall_min": 0.7,
+      "turned_max": 0.02,
+      "draws": 2000
+    }
+  },
+  "sealed": {
+    "decisions": 4581,
+    "fingerprint": "25509b289f3434bc97f2f52fde6a99a6a6bed92da40dcaa38be25de66f84f527",
+    "left_out": 4
+  },
+  "scope": {
+    "excluded_truths": [
+      "identifier"
+    ],
+    "why": "real tables declare almost no row identifiers (6 of 3,744 dev columns) and DCLab asks column.is_identifier first; fixed on dev rows before the read (98d6cec6)"
+  },
+  "verdict": {
+    "gate": "decision_gate_v1",
+    "pass": false,
+    "criteria": [
+      {
+        "criterion": "every sealed decision scored",
+        "value": "4581/4581",
+        "need": "100%",
+        "pass": true
+      },
+      {
+        "criterion": "accuracy, 95% lower bound (by table group)",
+        "value": 0.986,
+        "need": ">= 0.9",
+        "pass": true
+      },
+      {
+        "criterion": "precision, 95% lower bound (by table group)",
+        "value": 0.7953,
+        "need": ">= 0.8",
+        "pass": false
+      },
+      {
+        "criterion": "recall, 95% lower bound (by table group)",
+        "value": 0.9532,
+        "need": ">= 0.8",
+        "pass": true
+      },
+      {
+        "criterion": "margin over the rule, 95% lower bound (by table group)",
+        "value": 0.1045,
+        "need": "> 0.0",
+        "pass": true
+      },
+      {
+        "criterion": "no class it misses",
+        "value": "none",
+        "need": "no class with 30+ decisions below recall 0.7",
+        "pass": true
+      },
+      {
+        "criterion": "the rule's right decisions kept",
+        "value": 0.0005,
+        "need": "<= 0.02 turned wrong",
+        "pass": true
+      }
+    ],
+    "bounds": {
+      "model": {
+        "accuracy": [
+          0.9919,
+          0.986,
+          0.9959
+        ],
+        "precision": [
+          0.7985,
+          0.7953,
+          0.8
+        ],
+        "recall": [
+          0.973,
+          0.9532,
+          0.9877
+        ]
+      },
+      "rule": {
+        "accuracy": [
+          0.838,
+          0.7738,
+          0.8882
+        ],
+        "precision": [
+          0.5996,
+          0.5446,
+          0.6535
+        ],
+        "recall": [
+          0.7367,
+          0.7132,
+          0.7624
+        ]
+      },
+      "note": "[value, 95% lower, 95% upper], bootstrap of whole table groups; the gate reads these"
+    },
+    "model": {
+      "n": 4581,
+      "accuracy": 0.9919,
+      "accuracy_ci": [
+        0.9889,
+        0.9941
+      ],
+      "precision": 0.7985,
+      "precision_ci": [
+        0.7953,
+        0.8
+      ],
+      "recall": 0.7784,
+      "recall_ci": [
+        0.7626,
+        0.7902
+      ],
+      "intervals": "bootstrap of 2000 draws, clustered by table group, 95%",
+      "answered": 4581,
+      "per_class": {
+        "categorical_code": {
+          "n": 676,
+          "precision": 0.997,
+          "precision_ci": [
+            0.9893,
+            0.9992
+          ],
+          "recall": 0.9985,
+          "recall_ci": [
+            0.9917,
+            0.9997
+          ]
+        },
+        "datetime": {
+          "n": 14,
+          "precision": 1.0,
+          "precision_ci": [
+            0.7847,
+            1.0
+          ],
+          "recall": 1.0,
+          "recall_ci": [
+            0.7847,
+            1.0
+          ]
+        },
+        "free_text": {
+          "n": 251,
+          "precision": 0.9956,
+          "precision_ci": [
+            0.9754,
+            0.9992
+          ],
+          "recall": 0.8964,
+          "recall_ci": [
+            0.8526,
+            0.9283
+          ]
+        },
+        "identifier": {
+          "n": 0,
+          "precision": 0.0,
+          "precision_ci": [
+            0.0,
+            0.1015
+          ],
+          "recall": 0.0,
+          "recall_ci": [
+            null,
+            null
+          ]
+        },
+        "numeric": {
+          "n": 3640,
+          "precision": 1.0,
+          "precision_ci": [
+            0.9989,
+            1.0
+          ],
+          "recall": 0.9973,
+          "recall_ci": [
+            0.9949,
+            0.9985
+          ]
+        }
+      }
+    },
+    "rule": {
+      "n": 4581,
+      "accuracy": 0.838,
+      "accuracy_ci": [
+        0.8271,
+        0.8484
+      ],
+      "precision": 0.5996,
+      "precision_ci": [
+        0.5446,
+        0.6535
+      ],
+      "recall": 0.5894,
+      "recall_ci": [
+        0.5706,
+        0.6099
+      ],
+      "intervals": "bootstrap of 2000 draws, clustered by table group, 95%",
+      "answered": 4581,
+      "per_class": {
+        "categorical_code": {
+          "n": 676,
+          "precision": 0.5153,
+          "precision_ci": [
+            0.4882,
+            0.5423
+          ],
+          "recall": 0.9956,
+          "recall_ci": [
+            0.987,
+            0.9985
+          ]
+        },
+        "datetime": {
+          "n": 14,
+          "precision": 0.4828,
+          "precision_ci": [
+            0.3139,
+            0.6557
+          ],
+          "recall": 1.0,
+          "recall_ci": [
+            0.7847,
+            1.0
+          ]
+        },
+        "free_text": {
+          "n": 251,
+          "precision": 1.0,
+          "precision_ci": [
+            0.8569,
+            1.0
+          ],
+          "recall": 0.0916,
+          "recall_ci": [
+            0.0618,
+            0.1337
+          ]
+        },
+        "identifier": {
+          "n": 0,
+          "precision": 0.0,
+          "precision_ci": [
+            0.0,
+            0.0393
+          ],
+          "recall": 0.0,
+          "recall_ci": [
+            null,
+            null
+          ]
+        },
+        "numeric": {
+          "n": 3640,
+          "precision": 1.0,
+          "precision_ci": [
+            0.9988,
+            1.0
+          ],
+          "recall": 0.8596,
+          "recall_ci": [
+            0.848,
+            0.8705
+          ]
+        }
+      }
+    },
+    "margin": {
+      "difference": 0.1539,
+      "lower": 0.1045,
+      "upper": 0.2165
+    },
+    "turned": [
+      2,
+      3839
+    ],
+    "groups": 177,
+    "decisions": 4581,
+    "not_yet": "Blind cases (the main product's R3 asks for them): the generated sets have benchmark labels only; decision_gate_v2 adds the blind labels of 22.4's disagreements.",
+    "demotion": {
+      "accuracy_lower_below": 0.85,
+      "margin_lower_below": -0.02,
+      "turned_above": 0.05
+    },
+    "scope": "Evidence about this model on these generated decisions, not a claim that it is ready for production."
+  },
+  "result": "fail",
+  "rule": "One run of column.semantic_role.logistic on 4581 sealed decisions of real OpenML tables (their uploaders' declarations), judged by a gate written before it; scope fixed before the read: real tables declare almost no row identifiers (6 of 3,744 dev columns) and DCLab asks column.is_identifier first; fixed on dev rows before the read (98d6cec6); not evidence of production readiness."
+}

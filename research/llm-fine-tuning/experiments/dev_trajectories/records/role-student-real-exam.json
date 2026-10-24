@@ -1,0 +1,56 @@
+{
+ "package": "role-student-real-exam",
+ "title": "The column-role student's sealed exam on real tables: failed on precision by half a point",
+ "date": "2026-10-25",
+ "request": "The owner's step 2: give the role student that reached 99.7% on real dev columns its sealed exam on real tables.",
+ "spec": "decision_gate_v1 (thresholds fixed before any run); real_v1's sealed partition (fingerprint committed 2026-10-19).",
+ "plan": [
+  "Check the student against the gate's bars on dev rows.",
+  "Fix the scope before the read and commit it.",
+  "Read the sealed set once."
+ ],
+ "decisions": [
+  {
+   "decision": "Identifiers left out of the scope, decided on dev rows and committed before the read (98d6cec6).",
+   "why": "6 of 3,744 dev columns are identifiers and the student found none; DCLab asks column.is_identifier first."
+  },
+  {
+   "decision": "No second read and no change to the gate after the result.",
+   "why": "A sealed set is read once; a gate changed after its result is no gate."
+  }
+ ],
+ "change": "dclab_rnd/decision_gate_run.py (the real set, --exclude with a required --why), evidence DMG-014, the plan",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The pre-read check missed the gate's precision definition.",
+   "scenario": "DMG-014: precision lower bound 0.7953 under 0.80; every other criterion passed.",
+   "cause": "The gate averages precision over the classes the student answered; the student still answered identifier on a few non-identifier columns, a class with no truth in the scope. The check averaged over the true classes only.",
+   "fix": "Next: restrict the student's options to the scope's classes when asked inside it; check with the gate's own function before any read.",
+   "test": "evidence/campaigns/decision_models_v1/results/DMG-014_column.semantic_role.json"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "DMG-014",
+   "gate": "decision_gate_v1 on 4,581 sealed real decisions",
+   "result": "fail: accuracy 99.2% (lower 98.6%), rule 83.8%, margin >= 10.5 points, recall 97.3%, precision 79.85% (lower 79.53% < 0.80)",
+   "verdict": "fail",
+   "cost_eur": 0.0,
+   "limits": [
+    "the tables' declarations are their uploaders'",
+    "identifiers outside the scope"
+   ]
+  }
+ ],
+ "outcome": "The role student is far more accurate than the rule on sealed real tables but fails the gate on precision; it stays in shadow.",
+ "lessons": [
+  "Check a candidate with the gate's own function before reading a sealed set: a near-copy of the metric can differ in what it averages over."
+ ],
+ "risks": [
+  "A fresh sealed set needs new real tables."
+ ],
+ "commits": []
+}

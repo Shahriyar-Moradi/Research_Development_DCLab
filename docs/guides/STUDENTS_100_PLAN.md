@@ -55,6 +55,15 @@ real truth yet: their real labels must come from people (S5.1), measured outcome
   The scope and its reason are kept in the result record. A pass lets the owner switch it on for non-identifier
   columns only; the identifier question stays with its own point.
 
+**Result (DMG-014, 2026-10-25): fail.** On 4,581 sealed real decisions: accuracy 99.2% (lower bound 98.6%), the
+rule 83.8%, a margin over it of at least 10.5 points, recall 97.3% (95.3%), no class missed, the rule's right answers
+kept; **precision 79.85% (lower bound 79.53%), under the 80% bar.** The gate's precision is the mean over the classes
+the student *answered*: it still answered `identifier` on a few non-identifier columns, a class with no truth in this
+scope, so precision 0 there pulled the mean of five classes to about 0.8. The dev check before the read averaged over
+the true classes only and missed it: the check, not the gate, was wrong. The sealed set is spent for this point. Next:
+the student answers only the non-identifier options when it is asked inside this scope, and a fresh sealed set comes
+from new real tables (the collector, S2).
+
 ## The rule this plan keeps
 
 **A student is worth adding only where it has labelled examples and a rule to beat.** One hundred students without data
