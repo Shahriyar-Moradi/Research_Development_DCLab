@@ -167,3 +167,20 @@ Reading: the evidence misleads, a strong model reasons past it, a 4B model follo
 the rule helps the small model most. Found and fixed: the Claude probe had moved the lesson's counters (they describe
 the local solver); B-7323aa8e6d's shown 6 / helpful 3 include Claude's 3 pairs (1 helpful); the local solver's own are
 shown 3, helpful 2. A hosted probe now measures only.
+
+## 2026-10-24 afternoon: the decision data and the proposal fix
+
+- **LRN-008** (79582c10): the challenge keys label every column of 20 learning and 20 check variants (sealed never read).
+  On check: the group found by the core rule 20/20, the student 20/20, the studio proposal 10/20 (a leak in 15),
+  GLiNER as is 0/20; the decoy called a leak by both rules 9/9, by the student 0/9; GLiNER calls nearly every column a
+  leak (0.24). A student retrained with the learning rows gained on check but not on any held-out skin: name
+  memorisation, not promoted.
+- **fa6be0a6**, the proposal fix: the studio now takes the core's recurring text keys. A key named like one
+  (customer_id) is a group and an identifier; an ambiguous one (values recurring a few times each: account in a big
+  table, product_name in a small one, the same shape) is offered in groups_to_confirm with why; a group is never a leak.
+  The owner asked Claude to decide between automatic and offered: offered, because a wrong automatic group silently
+  drops a feature and changes what the holdout measures. Two reviews measured the harm of wider first versions on real
+  samples; the twelve samples are unchanged now; 40 challenge variants: 21 grouped, 19 offered, 0 called a leak;
+  the judgment suite catches both group traps (AEV-056, 4 of 13).
+- **Pilot after the fix** (tag proposal-core-keys-v1): homework 1 (seed 3) still failed the split: the group was
+  offered, the 4B model did not take it. Paused after homework 2 for a Mac restart; homeworks 3 to 5 to come.
