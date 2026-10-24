@@ -1,0 +1,126 @@
+{
+ "package": "learning-challenge-decision-data",
+ "title": "Challenge packs as decision data: the trap that broke the pilot, measured for every answerer",
+ "date": "2026-10-24",
+ "request": "The owner chose to add the homework keys to the decision data first and to measure the rule, the student and GLiNER on them, before touching the rule.",
+ "spec": "Label every column of the learning and check variants from their keys; never read a sealed variant; measure the datacard rule, the studio proposal the intern copies, the students and GLiNER as is; retrain the students with the learning rows and test honestly.",
+ "plan": [
+  "reuse benchgen.decide with the key as the truth",
+  "add the studio proposal as an answerer",
+  "ask GLiNER in the ai12 environment and keep its answers",
+  "score by the column's part in the trap",
+  "retrain with each skin held out to tell learning from memorising names"
+ ],
+ "decisions": [
+  {
+   "decision": "Learning variants train, check variants measure, sealed variants are never read",
+   "why": "the sealed variants are the learning loop's exam, read once"
+  },
+  {
+   "decision": "Measure the studio proposal apart from the datacard rule",
+   "why": "the intern copies the proposal; the benchmark measured only the datacard rule"
+  },
+  {
+   "decision": "Hold out a whole skin when retraining",
+   "why": "the student reads column names and the skins share them across partitions"
+  },
+  {
+   "decision": "Do not promote the retrained student",
+   "why": "its gain on check vanished on every held-out skin: it memorised names"
+  }
+ ],
+ "change": "dclab_core/benchgen.py (decide takes truths and label_by; 0.104.0); dclab_rnd/learning/decision_sets.py and gliner_run.py (new); dclab_rnd/learning/__main__.py (decisions build|gliner|measure); dclab_rnd/learning/scoreboard.py; .gitignore (rows rebuilt, GLiNER answers and cards kept); tests/test_learning_decisions.py (new).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "the studio's proposal misses a plain-named group key and calls it a leak",
+   "scenario": "on twenty check variants the proposal offered the group in 10 and called it a leak in 15; the datacard rule and the student found it in all 20",
+   "cause": "studio.solution.propose offers a group candidate only when the name looks like an identifier, and its model-based leak check flags a column that predicts well alone",
+   "fix": "not yet: measured and reported; the fix is to take the core rule's group answer in the proposal",
+   "test": "tests/test_learning_decisions.py::DecisionSetTests::test_rows_carry_the_keys_labels_the_rules_and_the_proposals_answers",
+   "severity": "behaviour",
+   "impact": "the intern copies a wrong split in four of five homeworks",
+   "alternatives": [],
+   "open": "the proposal's fix"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "GLiNER's answers lived only in an ignored folder, overwritten by a rerun",
+   "scenario": "a second run after a library upgrade, or a cleaned folder, loses 1,086 answers that only the ai12 environment can redo",
+   "cause": "the whole set folder was ignored",
+   "fix": "GLiNER's answers are committed beside the manifest; the rows, rebuilt by a command, stay ignored",
+   "test": "git check-ignore on the answers file",
+   "severity": "gap",
+   "impact": "captured answers lost, against the owner's capture rule",
+   "alternatives": [
+    "write them into the lake's answers"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "an answerer that never ran was scored as wrong on every row",
+   "scenario": "measuring before asking GLiNER, or on a clone without the students' fitted files, stores an accuracy of zero with an interval",
+   "cause": "missing answers counted as wrong",
+   "fix": "no answer at all means not measured: no accuracy, no interval, and why",
+   "test": "tests/test_learning_decisions.py::DecisionSetTests::test_an_answerer_that_never_ran_is_not_measured_not_scored_wrong",
+   "severity": "behaviour",
+   "impact": "a false score in committed evidence",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "the held-out-skin split behind the memorisation verdict was untested",
+   "scenario": "a held-out skin's learning rows reaching training would make memorisation look like learning",
+   "cause": "the split was inline in the retraining loop",
+   "fix": "the split is its own function, tested: no row of the held-out skin and no sealed row is trained on",
+   "test": "tests/test_learning_decisions.py::DecisionSetTests::test_a_held_out_skin_is_never_trained_on_and_no_sealed_row_is",
+   "severity": "gap",
+   "impact": "a conclusion resting on unchecked code",
+   "alternatives": [],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "every answerer on twenty check variants (none trained on them)",
+   "gate": "reported, not gated",
+   "fixed_before_run": true,
+   "result": "group found: datacard rule 20/20, student 20/20, studio proposal 10/20, GLiNER 0/20; decoy called a leak: rule 9/9, proposal 9/9, student 0/9, GLiNER 8/9; leak accuracy: student 0.95, rule 0.94, proposal 0.85, GLiNER 0.24",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "the proposal takes the core rule's group answer; the student answers the decoy question",
+   "against_gate": "",
+   "limits": [
+    "one family, four skins, twenty check variants"
+   ]
+  },
+  {
+   "name": "the students retrained with the learning rows",
+   "gate": "a gain that holds on a held-out skin",
+   "fixed_before_run": true,
+   "result": "leak accuracy on check 0.950 to 0.983, generated dev unchanged, but equal to the old student on every held-out skin",
+   "verdict": "fail",
+   "cost_eur": 0,
+   "next": "more skins or names hidden before a student is retrained on challenge rows",
+   "against_gate": "the gain was name memorisation",
+   "limits": [
+    "four skins"
+   ]
+  }
+ ],
+ "outcome": "The trap that broke the pilot is now in the decision data, labelled from the keys; it shows the core rule and the student already answer the group right, the studio's proposal is what misleads the intern, the student alone resists the decoy, and GLiNER as is does not help here.",
+ "lessons": [
+  "Measure the rule the agent actually copies, not only the one the benchmark knows.",
+  "A gain on a split that shares names with training is not a gain until it holds on held-out names."
+ ],
+ "risks": [
+  "one family of invented tables; real tables may differ"
+ ],
+ "commits": []
+}

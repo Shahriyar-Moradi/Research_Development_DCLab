@@ -158,10 +158,12 @@ def table_id(base: str, seed: int, obfuscated: bool) -> str:
 
 
 def decide(frame: pd.DataFrame, planted: Mapping[str, str], target: str, table: str, at: str,
-           group: Optional[str] = None) -> tuple[list[Any], list[Any]]:
+           group: Optional[str] = None, truths: Optional[Mapping[str, Mapping[str, Any]]] = None,
+           label_by: Optional[str] = None) -> tuple[list[Any], list[Any]]:
     """The rules' decisions on the planted columns, with their benchmark labels. ``group``: the dataset the record
     names (by default the table): a table and its hidden-name twin hold the same data and must share one, so the twin
-    never sits in another split."""
+    never sits in another split. ``truths`` (0.104.0): a column's right answers by point, given by the caller (a
+    challenge pack's key) instead of :data:`TRUTH` by its kind; ``label_by`` then names where they came from."""
     from dclab_core.bands import cardinality_band, name_tokens, ratio_band
     from dclab_core.datacard import card_of
     from dclab_core.ledger import POINTS, Answer, DecisionLabel, DecisionRecord
@@ -179,7 +181,7 @@ def decide(frame: pd.DataFrame, planted: Mapping[str, str], target: str, table: 
         state = {"column": column[:200], "name_tokens": name_tokens(column) or None, "dtype": c.dtype, "uniqueness": c.uniqueness,
                  "nulls": c.nulls, "cardinality": c.cardinality, "value_pattern": c.value_pattern, "target": target[:200]}
         state = {k: v for k, v in state.items() if v is not None}
-        for point, truth in TRUTH[kind].items():
+        for point, truth in (truths[column] if truths is not None else TRUTH[kind]).items():
             if point not in POINTS:
                 continue
             value = rule[point]
@@ -190,7 +192,7 @@ def decide(frame: pd.DataFrame, planted: Mapping[str, str], target: str, table: 
                                     value_used=value, used="rule", dataset=(group or table)[:80], at=at)
             records.append(record)
             labels.append(DecisionLabel(id=f"bl{digest}", record=record.id, point=point, value=truth, source="benchmark",
-                                        by=f"generated:benchgen_v1:{kind}", at=at))
+                                        by=(label_by or f"generated:benchgen_v1:{kind}")[:120], at=at))
     return records, labels
 
 

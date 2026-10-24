@@ -1,0 +1,2303 @@
+{
+ "campaign_id": "learning_v1",
+ "kind": "decision_measure",
+ "status": "completed",
+ "family": "groups",
+ "set": "challenge_v1",
+ "answerers": {
+  "rule": "datacard:purposes (the decision benchmark's rules)",
+  "proposal": "studio.solution.propose (what the intern copies)",
+  "student": "models_v1 (trained on generated_v1)",
+  "gliner": "fastino/GLiNER2.5-Decide as is"
+ },
+ "splits": {
+  "train": "learning variants",
+  "dev": "check variants"
+ },
+ "measure": {
+  "column.group": {
+   "train": {
+    "rule": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 1.0,
+     "interval": [
+      0.9792,
+      1.0
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 15,
+       "said_yes": 0,
+       "right": 15
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 6,
+       "said_yes": 0,
+       "right": 6
+      }
+     }
+    },
+    "proposal": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.9503,
+     "interval": [
+      0.9082,
+      0.9736
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 15,
+       "said_yes": 0,
+       "right": 15
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 11,
+       "right": 11
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 6,
+       "said_yes": 0,
+       "right": 6
+      }
+     }
+    },
+    "student": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 1.0,
+     "interval": [
+      0.9792,
+      1.0
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 15,
+       "said_yes": 0,
+       "right": 15
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 6,
+       "said_yes": 0,
+       "right": 6
+      }
+     }
+    },
+    "gliner": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.8895,
+     "interval": [
+      0.8355,
+      0.9273
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 15,
+       "said_yes": 0,
+       "right": 15
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 0
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 6,
+       "said_yes": 0,
+       "right": 6
+      }
+     }
+    }
+   },
+   "dev": {
+    "rule": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 1.0,
+     "interval": [
+      0.9792,
+      1.0
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 0,
+       "right": 9
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 0,
+       "right": 12
+      }
+     }
+    },
+    "proposal": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.9448,
+     "interval": [
+      0.9013,
+      0.9697
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 0,
+       "right": 9
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 10,
+       "right": 10
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 0,
+       "right": 12
+      }
+     }
+    },
+    "student": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 1.0,
+     "interval": [
+      0.9792,
+      1.0
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 0,
+       "right": 9
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 0,
+       "right": 12
+      }
+     }
+    },
+    "gliner": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.8895,
+     "interval": [
+      0.8355,
+      0.9273
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 0,
+       "right": 9
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 0
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 0,
+       "right": 12
+      }
+     }
+    }
+   }
+  },
+  "feature.leakage_suspect": {
+   "train": {
+    "rule": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.9171,
+     "interval": [
+      0.8678,
+      0.9491
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 15,
+       "said_yes": 15,
+       "right": 0
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 6,
+       "said_yes": 0,
+       "right": 6
+      }
+     }
+    },
+    "proposal": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.8508,
+     "interval": [
+      0.7917,
+      0.8954
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 15,
+       "said_yes": 15,
+       "right": 0
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 11,
+       "right": 9
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 6,
+       "said_yes": 1,
+       "right": 5
+      }
+     }
+    },
+    "student": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.9337,
+     "interval": [
+      0.8877,
+      0.9617
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 15,
+       "said_yes": 0,
+       "right": 15
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 4,
+       "right": 96
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 12,
+       "right": 12
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 6,
+       "said_yes": 0,
+       "right": 6
+      }
+     }
+    },
+    "gliner": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.2376,
+     "interval": [
+      0.1814,
+      0.3046
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 15,
+       "said_yes": 14,
+       "right": 1
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 0
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 78,
+       "right": 22
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 0
+      },
+      "time": {
+       "n": 6,
+       "said_yes": 6,
+       "right": 0
+      }
+     }
+    }
+   },
+   "dev": {
+    "rule": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.9392,
+     "interval": [
+      0.8945,
+      0.9657
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 9,
+       "right": 0
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 18,
+       "right": 18
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 0,
+       "right": 12
+      }
+     }
+    },
+    "proposal": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.8508,
+     "interval": [
+      0.7917,
+      0.8954
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 9,
+       "right": 0
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 15,
+       "right": 5
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 3,
+       "right": 9
+      }
+     }
+    },
+    "student": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.9503,
+     "interval": [
+      0.9082,
+      0.9736
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 0,
+       "right": 9
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 4,
+       "right": 96
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 15,
+       "right": 15
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 0,
+       "right": 12
+      }
+     }
+    },
+    "gliner": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.2431,
+     "interval": [
+      0.1864,
+      0.3105
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 8,
+       "right": 1
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 0
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 77,
+       "right": 23
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 0
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 12,
+       "right": 0
+      }
+     }
+    }
+   }
+  },
+  "column.is_identifier": {
+   "train": {
+    "rule": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 1.0,
+     "interval": [
+      0.9792,
+      1.0
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 15,
+       "said_yes": 0,
+       "right": 15
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "time": {
+       "n": 6,
+       "said_yes": 0,
+       "right": 6
+      }
+     }
+    },
+    "proposal": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.9503,
+     "interval": [
+      0.9082,
+      0.9736
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 15,
+       "said_yes": 0,
+       "right": 15
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 11,
+       "right": 11
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "time": {
+       "n": 6,
+       "said_yes": 0,
+       "right": 6
+      }
+     }
+    },
+    "student": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 1.0,
+     "interval": [
+      0.9792,
+      1.0
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 15,
+       "said_yes": 0,
+       "right": 15
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "time": {
+       "n": 6,
+       "said_yes": 0,
+       "right": 6
+      }
+     }
+    },
+    "gliner": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.8619,
+     "interval": [
+      0.8041,
+      0.9047
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 15,
+       "said_yes": 0,
+       "right": 15
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 8,
+       "right": 8
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 8,
+       "right": 92
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 4,
+       "right": 16
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "time": {
+       "n": 6,
+       "said_yes": 1,
+       "right": 5
+      }
+     }
+    }
+   },
+   "dev": {
+    "rule": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 1.0,
+     "interval": [
+      0.9792,
+      1.0
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 0,
+       "right": 9
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 0,
+       "right": 12
+      }
+     }
+    },
+    "proposal": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.9448,
+     "interval": [
+      0.9013,
+      0.9697
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 0,
+       "right": 9
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 10,
+       "right": 10
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 0,
+       "right": 12
+      }
+     }
+    },
+    "student": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 1.0,
+     "interval": [
+      0.9792,
+      1.0
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 0,
+       "right": 9
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 0,
+       "right": 12
+      }
+     }
+    },
+    "gliner": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.8177,
+     "interval": [
+      0.755,
+      0.8671
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 0,
+       "right": 9
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 9,
+       "right": 9
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 11,
+       "right": 89
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 5,
+       "right": 15
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 6,
+       "right": 6
+      }
+     }
+    }
+   }
+  }
+ },
+ "rule": "labels from the keys; no answerer was trained on these rows; a sealed variant is never read",
+ "at": "2026-10-24T09:42:30+00:00",
+ "spent_eur": 0.0,
+ "students_retrained": {
+  "column.group": {
+   "check": {
+    "old": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 1.0,
+     "interval": [
+      0.9792,
+      1.0
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 0,
+       "right": 9
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 0,
+       "right": 12
+      }
+     }
+    },
+    "new": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 1.0,
+     "interval": [
+      0.9792,
+      1.0
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 0,
+       "right": 9
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 0,
+       "right": 12
+      }
+     }
+    }
+   },
+   "generated_dev": {
+    "old": 0.9921,
+    "new": 0.9921
+   },
+   "held_out_skin": {
+    "loan": {
+     "new": {
+      "n": 56,
+      "answered": 56,
+      "accuracy": 1.0,
+      "interval": [
+       0.9358,
+       1.0
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 2,
+        "said_yes": 0,
+        "right": 2
+       },
+       "group": {
+        "n": 6,
+        "said_yes": 6,
+        "right": 6
+       },
+       "honest": {
+        "n": 30,
+        "said_yes": 0,
+        "right": 30
+       },
+       "leak": {
+        "n": 6,
+        "said_yes": 0,
+        "right": 6
+       },
+       "row_key": {
+        "n": 6,
+        "said_yes": 0,
+        "right": 6
+       },
+       "time": {
+        "n": 6,
+        "said_yes": 0,
+        "right": 6
+       }
+      }
+     },
+     "old": {
+      "n": 56,
+      "answered": 56,
+      "accuracy": 1.0,
+      "interval": [
+       0.9358,
+       1.0
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 2,
+        "said_yes": 0,
+        "right": 2
+       },
+       "group": {
+        "n": 6,
+        "said_yes": 6,
+        "right": 6
+       },
+       "honest": {
+        "n": 30,
+        "said_yes": 0,
+        "right": 30
+       },
+       "leak": {
+        "n": 6,
+        "said_yes": 0,
+        "right": 6
+       },
+       "row_key": {
+        "n": 6,
+        "said_yes": 0,
+        "right": 6
+       },
+       "time": {
+        "n": 6,
+        "said_yes": 0,
+        "right": 6
+       }
+      }
+     }
+    },
+    "order": {
+     "new": {
+      "n": 35,
+      "answered": 35,
+      "accuracy": 1.0,
+      "interval": [
+       0.9011,
+       1.0
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 1,
+        "said_yes": 0,
+        "right": 1
+       },
+       "group": {
+        "n": 4,
+        "said_yes": 4,
+        "right": 4
+       },
+       "honest": {
+        "n": 20,
+        "said_yes": 0,
+        "right": 20
+       },
+       "leak": {
+        "n": 4,
+        "said_yes": 0,
+        "right": 4
+       },
+       "row_key": {
+        "n": 4,
+        "said_yes": 0,
+        "right": 4
+       },
+       "time": {
+        "n": 2,
+        "said_yes": 0,
+        "right": 2
+       }
+      }
+     },
+     "old": {
+      "n": 35,
+      "answered": 35,
+      "accuracy": 1.0,
+      "interval": [
+       0.9011,
+       1.0
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 1,
+        "said_yes": 0,
+        "right": 1
+       },
+       "group": {
+        "n": 4,
+        "said_yes": 4,
+        "right": 4
+       },
+       "honest": {
+        "n": 20,
+        "said_yes": 0,
+        "right": 20
+       },
+       "leak": {
+        "n": 4,
+        "said_yes": 0,
+        "right": 4
+       },
+       "row_key": {
+        "n": 4,
+        "said_yes": 0,
+        "right": 4
+       },
+       "time": {
+        "n": 2,
+        "said_yes": 0,
+        "right": 2
+       }
+      }
+     }
+    },
+    "ticket": {
+     "new": {
+      "n": 65,
+      "answered": 65,
+      "accuracy": 1.0,
+      "interval": [
+       0.9442,
+       1.0
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 5,
+        "said_yes": 0,
+        "right": 5
+       },
+       "group": {
+        "n": 7,
+        "said_yes": 7,
+        "right": 7
+       },
+       "honest": {
+        "n": 35,
+        "said_yes": 0,
+        "right": 35
+       },
+       "leak": {
+        "n": 7,
+        "said_yes": 0,
+        "right": 7
+       },
+       "row_key": {
+        "n": 7,
+        "said_yes": 0,
+        "right": 7
+       },
+       "time": {
+        "n": 4,
+        "said_yes": 0,
+        "right": 4
+       }
+      }
+     },
+     "old": {
+      "n": 65,
+      "answered": 65,
+      "accuracy": 1.0,
+      "interval": [
+       0.9442,
+       1.0
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 5,
+        "said_yes": 0,
+        "right": 5
+       },
+       "group": {
+        "n": 7,
+        "said_yes": 7,
+        "right": 7
+       },
+       "honest": {
+        "n": 35,
+        "said_yes": 0,
+        "right": 35
+       },
+       "leak": {
+        "n": 7,
+        "said_yes": 0,
+        "right": 7
+       },
+       "row_key": {
+        "n": 7,
+        "said_yes": 0,
+        "right": 7
+       },
+       "time": {
+        "n": 4,
+        "said_yes": 0,
+        "right": 4
+       }
+      }
+     }
+    },
+    "visit": {
+     "new": {
+      "n": 25,
+      "answered": 25,
+      "accuracy": 1.0,
+      "interval": [
+       0.8668,
+       1.0
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 1,
+        "said_yes": 0,
+        "right": 1
+       },
+       "group": {
+        "n": 3,
+        "said_yes": 3,
+        "right": 3
+       },
+       "honest": {
+        "n": 15,
+        "said_yes": 0,
+        "right": 15
+       },
+       "leak": {
+        "n": 3,
+        "said_yes": 0,
+        "right": 3
+       },
+       "row_key": {
+        "n": 3,
+        "said_yes": 0,
+        "right": 3
+       }
+      }
+     },
+     "old": {
+      "n": 25,
+      "answered": 25,
+      "accuracy": 1.0,
+      "interval": [
+       0.8668,
+       1.0
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 1,
+        "said_yes": 0,
+        "right": 1
+       },
+       "group": {
+        "n": 3,
+        "said_yes": 3,
+        "right": 3
+       },
+       "honest": {
+        "n": 15,
+        "said_yes": 0,
+        "right": 15
+       },
+       "leak": {
+        "n": 3,
+        "said_yes": 0,
+        "right": 3
+       },
+       "row_key": {
+        "n": 3,
+        "said_yes": 0,
+        "right": 3
+       }
+      }
+     }
+    }
+   },
+   "card": {
+    "version": "4f806ec422bd",
+    "family": "boosting",
+    "strength": 0.1,
+    "trained_on": 5077,
+    "groups": 164
+   }
+  },
+  "feature.leakage_suspect": {
+   "check": {
+    "old": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.9503,
+     "interval": [
+      0.9082,
+      0.9736
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 0,
+       "right": 9
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 4,
+       "right": 96
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 15,
+       "right": 15
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 0,
+       "right": 12
+      }
+     }
+    },
+    "new": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 0.9834,
+     "interval": [
+      0.9524,
+      0.9943
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 0,
+       "right": 9
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 17,
+       "right": 17
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 0,
+       "right": 12
+      }
+     }
+    }
+   },
+   "generated_dev": {
+    "old": 0.9706,
+    "new": 0.9698
+   },
+   "held_out_skin": {
+    "loan": {
+     "new": {
+      "n": 56,
+      "answered": 56,
+      "accuracy": 0.9643,
+      "interval": [
+       0.8788,
+       0.9902
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 2,
+        "said_yes": 0,
+        "right": 2
+       },
+       "group": {
+        "n": 6,
+        "said_yes": 0,
+        "right": 6
+       },
+       "honest": {
+        "n": 30,
+        "said_yes": 0,
+        "right": 30
+       },
+       "leak": {
+        "n": 6,
+        "said_yes": 4,
+        "right": 4
+       },
+       "row_key": {
+        "n": 6,
+        "said_yes": 0,
+        "right": 6
+       },
+       "time": {
+        "n": 6,
+        "said_yes": 0,
+        "right": 6
+       }
+      }
+     },
+     "old": {
+      "n": 56,
+      "answered": 56,
+      "accuracy": 0.9643,
+      "interval": [
+       0.8788,
+       0.9902
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 2,
+        "said_yes": 0,
+        "right": 2
+       },
+       "group": {
+        "n": 6,
+        "said_yes": 0,
+        "right": 6
+       },
+       "honest": {
+        "n": 30,
+        "said_yes": 0,
+        "right": 30
+       },
+       "leak": {
+        "n": 6,
+        "said_yes": 4,
+        "right": 4
+       },
+       "row_key": {
+        "n": 6,
+        "said_yes": 0,
+        "right": 6
+       },
+       "time": {
+        "n": 6,
+        "said_yes": 0,
+        "right": 6
+       }
+      }
+     }
+    },
+    "order": {
+     "new": {
+      "n": 35,
+      "answered": 35,
+      "accuracy": 0.8571,
+      "interval": [
+       0.7062,
+       0.9374
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 1,
+        "said_yes": 0,
+        "right": 1
+       },
+       "group": {
+        "n": 4,
+        "said_yes": 0,
+        "right": 4
+       },
+       "honest": {
+        "n": 20,
+        "said_yes": 4,
+        "right": 16
+       },
+       "leak": {
+        "n": 4,
+        "said_yes": 3,
+        "right": 3
+       },
+       "row_key": {
+        "n": 4,
+        "said_yes": 0,
+        "right": 4
+       },
+       "time": {
+        "n": 2,
+        "said_yes": 0,
+        "right": 2
+       }
+      }
+     },
+     "old": {
+      "n": 35,
+      "answered": 35,
+      "accuracy": 0.8571,
+      "interval": [
+       0.7062,
+       0.9374
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 1,
+        "said_yes": 0,
+        "right": 1
+       },
+       "group": {
+        "n": 4,
+        "said_yes": 0,
+        "right": 4
+       },
+       "honest": {
+        "n": 20,
+        "said_yes": 4,
+        "right": 16
+       },
+       "leak": {
+        "n": 4,
+        "said_yes": 3,
+        "right": 3
+       },
+       "row_key": {
+        "n": 4,
+        "said_yes": 0,
+        "right": 4
+       },
+       "time": {
+        "n": 2,
+        "said_yes": 0,
+        "right": 2
+       }
+      }
+     }
+    },
+    "ticket": {
+     "new": {
+      "n": 65,
+      "answered": 65,
+      "accuracy": 0.9846,
+      "interval": [
+       0.9179,
+       0.9973
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 5,
+        "said_yes": 0,
+        "right": 5
+       },
+       "group": {
+        "n": 7,
+        "said_yes": 0,
+        "right": 7
+       },
+       "honest": {
+        "n": 35,
+        "said_yes": 0,
+        "right": 35
+       },
+       "leak": {
+        "n": 7,
+        "said_yes": 6,
+        "right": 6
+       },
+       "row_key": {
+        "n": 7,
+        "said_yes": 0,
+        "right": 7
+       },
+       "time": {
+        "n": 4,
+        "said_yes": 0,
+        "right": 4
+       }
+      }
+     },
+     "old": {
+      "n": 65,
+      "answered": 65,
+      "accuracy": 0.9846,
+      "interval": [
+       0.9179,
+       0.9973
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 5,
+        "said_yes": 0,
+        "right": 5
+       },
+       "group": {
+        "n": 7,
+        "said_yes": 0,
+        "right": 7
+       },
+       "honest": {
+        "n": 35,
+        "said_yes": 0,
+        "right": 35
+       },
+       "leak": {
+        "n": 7,
+        "said_yes": 6,
+        "right": 6
+       },
+       "row_key": {
+        "n": 7,
+        "said_yes": 0,
+        "right": 7
+       },
+       "time": {
+        "n": 4,
+        "said_yes": 0,
+        "right": 4
+       }
+      }
+     }
+    },
+    "visit": {
+     "new": {
+      "n": 25,
+      "answered": 25,
+      "accuracy": 0.96,
+      "interval": [
+       0.8046,
+       0.9929
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 1,
+        "said_yes": 0,
+        "right": 1
+       },
+       "group": {
+        "n": 3,
+        "said_yes": 0,
+        "right": 3
+       },
+       "honest": {
+        "n": 15,
+        "said_yes": 0,
+        "right": 15
+       },
+       "leak": {
+        "n": 3,
+        "said_yes": 2,
+        "right": 2
+       },
+       "row_key": {
+        "n": 3,
+        "said_yes": 0,
+        "right": 3
+       }
+      }
+     },
+     "old": {
+      "n": 25,
+      "answered": 25,
+      "accuracy": 0.96,
+      "interval": [
+       0.8046,
+       0.9929
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 1,
+        "said_yes": 0,
+        "right": 1
+       },
+       "group": {
+        "n": 3,
+        "said_yes": 0,
+        "right": 3
+       },
+       "honest": {
+        "n": 15,
+        "said_yes": 0,
+        "right": 15
+       },
+       "leak": {
+        "n": 3,
+        "said_yes": 2,
+        "right": 2
+       },
+       "row_key": {
+        "n": 3,
+        "said_yes": 0,
+        "right": 3
+       }
+      }
+     }
+    }
+   },
+   "card": {
+    "version": "678a5241ad3e",
+    "family": "logistic",
+    "strength": 1.0,
+    "trained_on": 5077,
+    "groups": 164
+   }
+  },
+  "column.is_identifier": {
+   "check": {
+    "old": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 1.0,
+     "interval": [
+      0.9792,
+      1.0
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 0,
+       "right": 9
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 0,
+       "right": 12
+      }
+     }
+    },
+    "new": {
+     "n": 181,
+     "answered": 181,
+     "accuracy": 1.0,
+     "interval": [
+      0.9792,
+      1.0
+     ],
+     "by_role": {
+      "decoy": {
+       "n": 9,
+       "said_yes": 0,
+       "right": 9
+      },
+      "group": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "honest": {
+       "n": 100,
+       "said_yes": 0,
+       "right": 100
+      },
+      "leak": {
+       "n": 20,
+       "said_yes": 0,
+       "right": 20
+      },
+      "row_key": {
+       "n": 20,
+       "said_yes": 20,
+       "right": 20
+      },
+      "time": {
+       "n": 12,
+       "said_yes": 0,
+       "right": 12
+      }
+     }
+    }
+   },
+   "generated_dev": {
+    "old": 0.9905,
+    "new": 0.9921
+   },
+   "held_out_skin": {
+    "loan": {
+     "new": {
+      "n": 56,
+      "answered": 56,
+      "accuracy": 1.0,
+      "interval": [
+       0.9358,
+       1.0
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 2,
+        "said_yes": 0,
+        "right": 2
+       },
+       "group": {
+        "n": 6,
+        "said_yes": 6,
+        "right": 6
+       },
+       "honest": {
+        "n": 30,
+        "said_yes": 0,
+        "right": 30
+       },
+       "leak": {
+        "n": 6,
+        "said_yes": 0,
+        "right": 6
+       },
+       "row_key": {
+        "n": 6,
+        "said_yes": 6,
+        "right": 6
+       },
+       "time": {
+        "n": 6,
+        "said_yes": 0,
+        "right": 6
+       }
+      }
+     },
+     "old": {
+      "n": 56,
+      "answered": 56,
+      "accuracy": 1.0,
+      "interval": [
+       0.9358,
+       1.0
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 2,
+        "said_yes": 0,
+        "right": 2
+       },
+       "group": {
+        "n": 6,
+        "said_yes": 6,
+        "right": 6
+       },
+       "honest": {
+        "n": 30,
+        "said_yes": 0,
+        "right": 30
+       },
+       "leak": {
+        "n": 6,
+        "said_yes": 0,
+        "right": 6
+       },
+       "row_key": {
+        "n": 6,
+        "said_yes": 6,
+        "right": 6
+       },
+       "time": {
+        "n": 6,
+        "said_yes": 0,
+        "right": 6
+       }
+      }
+     }
+    },
+    "order": {
+     "new": {
+      "n": 35,
+      "answered": 35,
+      "accuracy": 1.0,
+      "interval": [
+       0.9011,
+       1.0
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 1,
+        "said_yes": 0,
+        "right": 1
+       },
+       "group": {
+        "n": 4,
+        "said_yes": 4,
+        "right": 4
+       },
+       "honest": {
+        "n": 20,
+        "said_yes": 0,
+        "right": 20
+       },
+       "leak": {
+        "n": 4,
+        "said_yes": 0,
+        "right": 4
+       },
+       "row_key": {
+        "n": 4,
+        "said_yes": 4,
+        "right": 4
+       },
+       "time": {
+        "n": 2,
+        "said_yes": 0,
+        "right": 2
+       }
+      }
+     },
+     "old": {
+      "n": 35,
+      "answered": 35,
+      "accuracy": 1.0,
+      "interval": [
+       0.9011,
+       1.0
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 1,
+        "said_yes": 0,
+        "right": 1
+       },
+       "group": {
+        "n": 4,
+        "said_yes": 4,
+        "right": 4
+       },
+       "honest": {
+        "n": 20,
+        "said_yes": 0,
+        "right": 20
+       },
+       "leak": {
+        "n": 4,
+        "said_yes": 0,
+        "right": 4
+       },
+       "row_key": {
+        "n": 4,
+        "said_yes": 4,
+        "right": 4
+       },
+       "time": {
+        "n": 2,
+        "said_yes": 0,
+        "right": 2
+       }
+      }
+     }
+    },
+    "ticket": {
+     "new": {
+      "n": 65,
+      "answered": 65,
+      "accuracy": 1.0,
+      "interval": [
+       0.9442,
+       1.0
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 5,
+        "said_yes": 0,
+        "right": 5
+       },
+       "group": {
+        "n": 7,
+        "said_yes": 7,
+        "right": 7
+       },
+       "honest": {
+        "n": 35,
+        "said_yes": 0,
+        "right": 35
+       },
+       "leak": {
+        "n": 7,
+        "said_yes": 0,
+        "right": 7
+       },
+       "row_key": {
+        "n": 7,
+        "said_yes": 7,
+        "right": 7
+       },
+       "time": {
+        "n": 4,
+        "said_yes": 0,
+        "right": 4
+       }
+      }
+     },
+     "old": {
+      "n": 65,
+      "answered": 65,
+      "accuracy": 1.0,
+      "interval": [
+       0.9442,
+       1.0
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 5,
+        "said_yes": 0,
+        "right": 5
+       },
+       "group": {
+        "n": 7,
+        "said_yes": 7,
+        "right": 7
+       },
+       "honest": {
+        "n": 35,
+        "said_yes": 0,
+        "right": 35
+       },
+       "leak": {
+        "n": 7,
+        "said_yes": 0,
+        "right": 7
+       },
+       "row_key": {
+        "n": 7,
+        "said_yes": 7,
+        "right": 7
+       },
+       "time": {
+        "n": 4,
+        "said_yes": 0,
+        "right": 4
+       }
+      }
+     }
+    },
+    "visit": {
+     "new": {
+      "n": 25,
+      "answered": 25,
+      "accuracy": 1.0,
+      "interval": [
+       0.8668,
+       1.0
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 1,
+        "said_yes": 0,
+        "right": 1
+       },
+       "group": {
+        "n": 3,
+        "said_yes": 3,
+        "right": 3
+       },
+       "honest": {
+        "n": 15,
+        "said_yes": 0,
+        "right": 15
+       },
+       "leak": {
+        "n": 3,
+        "said_yes": 0,
+        "right": 3
+       },
+       "row_key": {
+        "n": 3,
+        "said_yes": 3,
+        "right": 3
+       }
+      }
+     },
+     "old": {
+      "n": 25,
+      "answered": 25,
+      "accuracy": 1.0,
+      "interval": [
+       0.8668,
+       1.0
+      ],
+      "by_role": {
+       "decoy": {
+        "n": 1,
+        "said_yes": 0,
+        "right": 1
+       },
+       "group": {
+        "n": 3,
+        "said_yes": 3,
+        "right": 3
+       },
+       "honest": {
+        "n": 15,
+        "said_yes": 0,
+        "right": 15
+       },
+       "leak": {
+        "n": 3,
+        "said_yes": 0,
+        "right": 3
+       },
+       "row_key": {
+        "n": 3,
+        "said_yes": 3,
+        "right": 3
+       }
+      }
+     }
+    }
+   },
+   "card": {
+    "version": "621bb060dfd8",
+    "family": "boosting",
+    "strength": 0.1,
+    "trained_on": 5077,
+    "groups": 164
+   }
+  }
+ },
+ "id": "LRN-008",
+ "experiment_id": "LRN-008"
+}

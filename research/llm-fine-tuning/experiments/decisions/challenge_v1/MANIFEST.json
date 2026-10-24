@@ -1,0 +1,28 @@
+{
+ "version": "challenge_v1",
+ "family": "groups",
+ "variants_per_partition": 20,
+ "partitions": {
+  "learning": "train",
+  "check": "dev"
+ },
+ "counts": {
+  "column.group": {
+   "train": 181,
+   "dev": 181,
+   "yes": 40
+  },
+  "column.is_identifier": {
+   "train": 181,
+   "dev": 181,
+   "yes": 80
+  },
+  "feature.leakage_suspect": {
+   "train": 181,
+   "dev": 181,
+   "yes": 40
+  }
+ },
+ "rule": "labels from each variant's key; learning rows train, check rows measure; a sealed variant is never read",
+ "at": "2026-10-24T09:03:30+00:00"
+}

@@ -1,4 +1,4 @@
-"""``python -m dclab_rnd.learning baseline|refusal|draft|pilot|probe``: the baseline (H0), the refusal test (H1), drafting lessons (H2), the pilot and the probe (H3)."""
+"""``python -m dclab_rnd.learning baseline|refusal|draft|pilot|probe|decisions``: the baseline (H0), the refusal test (H1), drafting lessons (H2), the pilot and the probe (H3)."""
 
 from __future__ import annotations
 
@@ -53,7 +53,15 @@ def main(argv: list[str] | None = None) -> int:
     probe.add_argument("--limit", type=int, default=None, help="at most this many new homeworks in this process, then exit 3 (loop it: a fresh process a homework)")
     probe.add_argument("--pause", action="store_true", help="ask a running probe to stop after the homework it is on")
     probe.add_argument("--write", action="store_true", help="store the result in evidence/campaigns/learning_v1/results/")
+    dec = sub.add_parser("decisions", help="challenge packs as decision data: build the rows from the keys, ask GLiNER, measure every answerer")
+    dec.add_argument("step", choices=("build", "gliner", "measure"))
+    dec.add_argument("--family", default="groups")
+    dec.add_argument("--n", type=int, default=20, help="variants per partition (learning and check; a sealed one is never read)")
+    dec.add_argument("--retrain", action="store_true", help="measure: also train each point's student again with the learning rows")
+    dec.add_argument("--write", action="store_true", help="measure: store the result in evidence/campaigns/learning_v1/results/")
     args = parser.parse_args(argv)
+    if args.command == "decisions":
+        return _decisions(args)
     if args.command == "probe":
         return _probe(args)
     if args.command == "pilot":
@@ -239,6 +247,33 @@ def _probe(args) -> int:
     if result.get("status") == "paused":
         return 3  # more to do: the same command again goes on (a loop runs one homework a process)
     return 0 if not result["verdict"].startswith("invalid") else 2
+
+
+def _decisions(args) -> int:
+    from . import decision_sets as D
+
+    if args.step == "build":
+        print(json.dumps(D.build(args.family, args.n)["counts"], indent=1))
+        return 0
+    if args.step == "gliner":
+        print(json.dumps(D.gliner(), indent=1))
+        return 0
+    from datetime import datetime, timezone
+
+    from .scoreboard import _store
+
+    result = {"campaign_id": "learning_v1", "kind": "decision_measure", "status": "completed", "family": args.family, "set": "challenge_v1",
+              "answerers": {"rule": "datacard:purposes (the decision benchmark's rules)", "proposal": "studio.solution.propose (what the intern copies)",
+                            "student": "models_v1 (trained on generated_v1)", "gliner": "fastino/GLiNER2.5-Decide as is"},
+              "splits": {"train": "learning variants", "dev": "check variants"}, "measure": D.measure(),
+              "rule": "labels from the keys; no answerer was trained on these rows; a sealed variant is never read",
+              "at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "spent_eur": 0.0}
+    if args.retrain:
+        result["students_retrained"] = D.retrain(cards=D.OUT / "models")
+    if args.write:
+        result["path"] = str(_store(result, args.family, "decisions"))
+    print(json.dumps({k: result.get(k) for k in ("id", "path")}, indent=1))
+    return 0
 
 
 def _keep(report: dict) -> None:

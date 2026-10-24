@@ -4,6 +4,11 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.104.0 (2026-10-24)
+
+- `benchgen.decide` takes `truths` (a column's right answers by point, from the caller) and `label_by` (where they came
+  from), so a challenge pack's key labels the rules' decisions on its own table. Without them nothing changes.
+
 ## 0.103.1 (2026-10-23)
 
 - `analyse`: the conflicting-labels check groups only the combinations the rows hold (`observed=True`). With category
