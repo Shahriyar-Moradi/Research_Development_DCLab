@@ -128,6 +128,11 @@
    "version": "dclab_core.data_findings.v1"
   },
   {
+   "contract": "data_value",
+   "reads": [],
+   "version": "dclab_core.data_value.v1"
+  },
+  {
    "contract": "dataset_manifest",
    "reads": [
     "dclab_core.dataset_manifest.v1",
@@ -183,6 +188,11 @@
    "contract": "decision_sample",
    "reads": [],
    "version": "dclab_core.decision_sample.v1"
+  },
+  {
+   "contract": "decision_spec",
+   "reads": [],
+   "version": "dclab_core.decision_spec.v1"
   },
   {
    "contract": "department_policy",
@@ -290,6 +300,11 @@
    "version": "dclab_core.outcome.v1"
   },
   {
+   "contract": "outcome_record",
+   "reads": [],
+   "version": "dclab_core.outcome_record.v1"
+  },
+  {
    "contract": "pipeline",
    "reads": [],
    "version": "dclab_core.pipeline.v1"
@@ -313,6 +328,11 @@
    "contract": "portfolio",
    "reads": [],
    "version": "dclab_core.portfolio.v1"
+  },
+  {
+   "contract": "prediction_record",
+   "reads": [],
+   "version": "dclab_core.prediction_record.v1"
   },
   {
    "contract": "preference_pair",
@@ -560,7 +580,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.103.0",
+ "dclab_core": "0.107.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -704,6 +724,17 @@
    "point": "data.fit_verdict",
    "subjects": [
     "draft"
+   ]
+  },
+  {
+   "about": "Would more rows of the same kind make the model better?",
+   "answer": "choice",
+   "decided_in": "studio/data_value.py: the learning curve's answer on the training folds (34.13), the rule's, when a person asks for it",
+   "kind": "technical",
+   "main_product": null,
+   "point": "data.more_rows",
+   "subjects": [
+    "project"
    ]
   },
   {
@@ -1640,7 +1671,9 @@
    "train_only": []
   },
   {
-   "emitted_by": [],
+   "emitted_by": [
+    "dclab_rnd/experience/hooks.py"
+   ],
    "example": "python -m dclab_rnd.experience search --kind decision.proposed",
    "family": "decision",
    "fields": {

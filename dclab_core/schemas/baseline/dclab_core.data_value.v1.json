@@ -1,0 +1,254 @@
+{
+  "$defs": {
+    "SegmentValue": {
+      "additionalProperties": false,
+      "properties": {
+        "answer": {
+          "enum": [
+            "likely_help",
+            "unlikely_help",
+            "cannot_tell"
+          ],
+          "type": "string"
+        },
+        "column": {
+          "maxLength": 200,
+          "type": "string"
+        },
+        "error_share": {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "level": {
+          "maxLength": 200,
+          "type": "string"
+        },
+        "points": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SizeScore"
+          },
+          "type": "array"
+        },
+        "reason": {
+          "maxLength": 600,
+          "type": "string"
+        },
+        "row_share": {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "rows": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "slope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slope"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "column",
+        "level",
+        "rows",
+        "row_share",
+        "error_share",
+        "answer",
+        "reason"
+      ],
+      "type": "object"
+    },
+    "SizeScore": {
+      "additionalProperties": false,
+      "properties": {
+        "fit_rows": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "fraction": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "type": "number"
+        },
+        "high": {
+          "type": "number"
+        },
+        "low": {
+          "type": "number"
+        },
+        "score": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "fraction",
+        "fit_rows",
+        "score",
+        "low",
+        "high"
+      ],
+      "type": "object"
+    },
+    "Slope": {
+      "additionalProperties": false,
+      "properties": {
+        "gain": {
+          "type": "number"
+        },
+        "high": {
+          "type": "number"
+        },
+        "low": {
+          "type": "number"
+        },
+        "per_doubling": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "gain",
+        "low",
+        "high",
+        "per_doubling"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "answer": {
+      "enum": [
+        "likely_help",
+        "unlikely_help",
+        "cannot_tell"
+      ],
+      "type": "string"
+    },
+    "assumption": {
+      "maxLength": 1200,
+      "type": "string"
+    },
+    "bootstrap": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "folds": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "higher_is_better": {
+      "type": "boolean"
+    },
+    "holdout_read": {
+      "const": false,
+      "default": false,
+      "type": "boolean"
+    },
+    "level": {
+      "exclusiveMaximum": 1,
+      "exclusiveMinimum": 0,
+      "type": "number"
+    },
+    "metric": {
+      "maxLength": 80,
+      "minLength": 1,
+      "type": "string"
+    },
+    "notes": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "plain": {
+      "maxLength": 1200,
+      "type": "string"
+    },
+    "points": {
+      "items": {
+        "$ref": "#/$defs/SizeScore"
+      },
+      "type": "array"
+    },
+    "practical": {
+      "minimum": 0,
+      "type": "number"
+    },
+    "repeats": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "rule": {
+      "default": "data_value_rule_v1",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.data_value.v1",
+      "default": "dclab_core.data_value.v1",
+      "type": "string"
+    },
+    "segments": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/SegmentValue"
+      },
+      "type": "array"
+    },
+    "slope": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Slope"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "subsample": {
+      "enum": [
+        "random",
+        "stratified",
+        "group",
+        "time"
+      ],
+      "type": "string"
+    },
+    "subsample_rule": {
+      "maxLength": 400,
+      "type": "string"
+    },
+    "training_rows": {
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "metric",
+    "higher_is_better",
+    "subsample",
+    "subsample_rule",
+    "folds",
+    "repeats",
+    "bootstrap",
+    "level",
+    "training_rows",
+    "points",
+    "practical",
+    "answer",
+    "plain",
+    "assumption"
+  ],
+  "type": "object"
+}

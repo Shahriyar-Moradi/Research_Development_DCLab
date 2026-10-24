@@ -551,6 +551,36 @@ async def get_improvements(project_id: str, s: Services = Depends(services)):
     return s.project(project_id).get("improvements") or {}
 
 
+@router.post("/api/projects/{project_id}/data-value", response_model=Page)
+async def measure_data_value(project_id: str, wait: bool = True, s: Services = Depends(services)):
+    """Would more rows help (34.13)? The learning curve of the chosen model on the training folds only (25 to 100 % of each fold's fit
+    rows, cut the way the split is made), the last step's gain with its 90 % interval, the answer (``likely_help``, ``unlikely_help`` or
+    ``cannot_tell``) with its assumption, and the same per segment where errors concentrate. A job (Stop, the limits on jobs at once);
+    the held-back cases are never read and no stage record changes. ``wait``: answer with the record; else the job."""
+    from ...studio import data_value as studio_data_value
+
+    project = s.project(project_id)
+    if not all(s.projects.read_stage(project_id, k) for k in ("features", "models")):
+        raise HTTPException(409, "Run the project's stages up to the models stage first: the curve is drawn for the model it chose.")
+    if project.get("running"):
+        raise HTTPException(409, "Something is running in this project: wait for it, or stop it")
+    job = s.submit("data_value", f"{project_id}:data_value", {"project_id": project_id}, here=wait)
+    if not wait:
+        return {"job": job}
+    done = await s.run_here(job)
+    if done.get("status") != "done":
+        raise HTTPException(409, done.get("error") or "The measurement ended without a result")
+    return {**studio_data_value.view(s.project(project_id)), "job": {"id": job["id"], "status": done.get("status")}}
+
+
+@router.get("/api/projects/{project_id}/data-value", response_model=Page)
+async def get_data_value(project_id: str, s: Services = Depends(services)):
+    """The last measurement of whether more rows would help (34.13), or ``{}``."""
+    from ...studio import data_value as studio_data_value
+
+    return studio_data_value.view(s.project(project_id))
+
+
 @router.post("/api/projects/{project_id}/improve/adopt", response_model=Page)
 async def adopt_improvement(project_id: str, payload: AnyObject, s: Services = Depends(services)):
     """Adopt a way that cleared: its parameters are kept for the next final run. That run reads the held-back cases a second time and needs

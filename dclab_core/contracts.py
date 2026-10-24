@@ -446,3 +446,4 @@ import dclab_core.challenge_pack  # noqa: E402,F401  (challenge packs, their key
 import dclab_core.playbook  # noqa: E402,F401  (the playbook and its deltas: the harness that learns, H2)
 import dclab_core.decide  # noqa: E402,F401  (the decision spec: one decision core, 34.1)
 import dclab_core.serving  # noqa: E402,F401  (the prediction and outcome log of a model in use, 34.9)
+import dclab_core.data_value  # noqa: E402,F401  (would more rows help: the learning curve on the training folds, 34.13)

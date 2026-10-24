@@ -146,6 +146,18 @@ pred = serving.PredictionRecord(model_id="p1", model_version="v1", batch=serving
 seen = serving.OutcomeRecord(key=k, outcome=serving.code_outcome("fraud", "binary", positive_label="fraud"), known_at="2026-10-25T10:00:00+00:00",
                              recorded_at="2026-10-25T10:00:00+00:00")
 assert serving.join([serving.PredictionRecord.read(pred.model_dump_json())], [seen])["delay_seconds"].tolist() == [86400.0]
+# 34.13: would more rows help, on the flat replica's training rows with a scikit-learn model in each fold
+from dclab_core import data_value
+from dclab_core.replicas import learning_curves
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import StratifiedKFold
+flat = learning_curves.generate("flat", 0, n=1500).rows
+fx, fy = flat[["strong", "weak_noise_a", "weak_noise_b"]].to_numpy(), (flat["outcome"] == "yes").astype(int).to_numpy()
+curve = data_value.learning_curve(fy, list(StratifiedKFold(3, shuffle=True, random_state=0).split(fx, fy)),
+                                  lambda a, b: LogisticRegression().fit(fx[a], fy[a]).predict_proba(fx[b])[:, 1], roc_auc_score,
+                                  metric="roc_auc", strata=fy, bootstrap=40)
+assert curve.answer in data_value.ANSWERS and not curve.holdout_read and data_value.DataValue.model_validate_json(curve.model_dump_json()) == curve
 def norm(name):
     return re.sub(r"[-_.]+", "-", name).lower()
 dists = sorted(f"{norm(d.metadata['Name'])}=={d.version}" for d in metadata.distributions())

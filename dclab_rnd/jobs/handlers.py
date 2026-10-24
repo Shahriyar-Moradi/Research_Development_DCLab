@@ -182,6 +182,20 @@ def _students_run(s: Any, payload: dict[str, Any]) -> None:
     optional("students_loop").run(Path(s.store.home), s.ledger, s.gateway.routing, s.audit)  # registered only in the full edition
 
 
+def _collect_run(s: Any, payload: dict[str, Any]) -> None:
+    """The collector (S2 of the 100-students plan): new real tables, the students in shadow on them, Claude's capped
+    silver opinion, a run record. Stop works between tables."""
+    from ..extensions import optional
+
+    optional("collector").run(checkpoint=checkpoint)
+
+
+def _collect_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
+    from ..extensions import optional
+
+    optional("collector").failed()  # the next run waits an hour
+
+
 def _students_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
     from pathlib import Path
 
@@ -260,6 +274,28 @@ def _improve_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str,
     s.projects.log(payload["project_id"], "improve_run", {"job": job["id"], "state": "not_finished", "why": TEXT.get(reason, "The improvement ended before it finished")})
 
 
+# ---------------------------------------------------------------------- would more rows help: the learning curve on the training folds (34.13)
+
+def _data_value_run(s: Any, payload: dict[str, Any]) -> None:
+    from ..studio import data_value
+
+    pid = payload["project_id"]
+    checkpoint()
+    s.projects.update(pid, running="data_value")  # one field: a cell the chat writes alongside is never saved over
+    try:
+        data_value.measure(s.projects, pid, actor=payload.get("actor") or "human")
+    finally:
+        if s.projects.get(pid).get("running") == "data_value":
+            s.projects.update(pid, running=None)
+
+
+def _data_value_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
+    p = s.projects.get(payload["project_id"])
+    if p.get("running") == "data_value":  # the worker died or was stopped mid-run: the project is free again
+        s.projects.update(payload["project_id"], running=None)
+    s.projects.log(payload["project_id"], "data_value", {"job": job["id"], "answer": None, "why": TEXT.get(reason, "The measurement ended before it finished")})
+
+
 def register() -> None:
     handler("stage", _stage_run, _stage_settle)
     handler("pipeline", _pipeline_run, _pipeline_settle)
@@ -268,12 +304,15 @@ def register() -> None:
     handler("rerun", _rerun_run, _rerun_settle)
     handler("programme", _programme_run, _programme_settle)
     handler("improve", _improve_run, _improve_settle)
+    handler("data_value", _data_value_run, _data_value_settle)
     from ..extensions import available
 
     if available("twin"):  # the closed parts' jobs exist only in the full edition
         handler("twin", _twin_run, _twin_settle)
     if available("students_loop"):
         handler("students", _students_run, _students_settle)
+    if available("collector"):
+        handler("collect", _collect_run, _collect_settle)
     if available("store"):
         handler("store", _store_run, _store_settle)
 

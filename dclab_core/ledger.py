@@ -206,6 +206,9 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     _p("modifier.time_order", T, DP, "noul", "Do the rows' times order the split (the holdout the latest period)?"),
     _p("modifier.noisy_labels", T, DP, "noul", "Do some labels come from a rule or a likeness, so the model is judged on the confirmed ones only?"),  # 30.12
     _p("modifier.review_capacity", T, DP, "noul", "Does a team check K cases a period, so precision at K decides?"),  # 30.12
+    # 34.13: would more rows of the same kind help, from the learning curve on the training folds (dclab_core.data_value)
+    _p("data.more_rows", T, "project", "choice", "Would more rows of the same kind make the model better?",
+       choices=("likely_help", "unlikely_help", "cannot_tell")),
     # workflow: what steers solving (the second use)
     _p("problem.family", W, DP, "choice", "Which family of problem is it?", choices=FAMILIES),
     _p("problem.ready", W, DP, "noul", "Is the problem understood enough to build?"),

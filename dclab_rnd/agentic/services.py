@@ -27,7 +27,8 @@ from .store import Store
 BUSY = {"stage": "This project is already running a stage", "intern": "This session is still working",
         "pipeline": "This file is already being processed", "synthetic": "Synthetic data is already being generated for this draft",
         "rerun": "This step is already being rerun", "programme": "This project's programme is already running",
-        "twin": "A twin run of this project is already running", "improve": "This project is already being improved", "students": "The students are already being retrained"}
+        "twin": "A twin run of this project is already running", "improve": "This project is already being improved", "students": "The students are already being retrained", "collect": "The collector is already gathering real tables",
+        "data_value": "This project's learning curve is already being drawn"}  # 34.13: a second request while one is queued
 
 
 class Services:

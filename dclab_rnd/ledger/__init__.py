@@ -97,6 +97,7 @@ CAPTURED = {
     "image.near_copy": "kinds/embedded.py leakage (an image table): pairs of training images of different sources, by their pictures' cosine",
     "image.label_suspect": "kinds/embedded.py leakage: training images whose near copies, else nearest images, mostly carry the other label",
     "image.flip_safe": "kinds/embedded.py leakage: whether mirrored training images keep their label, measured on held-apart sources",
+    "data.more_rows": "studio/data_value.py: the learning curve's answer on the training folds (34.13), the rule's, when a person asks for it",
 }
 NOT_DECIDED = {
     "column.missing_value_action": "no choice is made: each model family imputes its own fixed way (expansion/runner.py)",

@@ -459,6 +459,23 @@ def composition_chosen(project_id: str, p: Any) -> int:
 
 
 @_quiet
+def more_rows(project_id: str, result: Any, *, rows: int, columns: int, positive_rate: Optional[float] = None) -> int:
+    """Would more rows help (34.13): the rule's answer from the learning curve on the training folds. The state is what the answer
+    could be predicted from (the training rows' band, the feature count, the metric, how a fit's rows were cut, the score with every
+    row), never the curve's gain the rule read, nor a segment's level."""
+    state: dict[str, Any] = {"rows": rows_band(rows), "columns": int(columns), "metric": _code(result.metric), "strategy": _code(result.subsample),
+                             "has_time": result.subsample == "time", "has_groups": result.subsample == "group"}
+    if result.points:
+        state["cv_mean"] = float(result.points[-1].score)
+    if positive_rate is not None:
+        state["positive_rate"] = ratio_band(float(positive_rate))
+    rec = _put("data.more_rows", ("project", project_id), [answer("rule", f"rule:{result.rule}", result.answer, reason=result.plain[:600] or None)],
+               result.answer, "rule", state={k: v for k, v in state.items() if v is not None}, options=("likely_help", "unlikely_help", "cannot_tell"),
+               project=project_id)
+    return 1 if rec is not None else 0
+
+
+@_quiet
 def workflow_drawn(draft_id: str, key: str, workflow: dict[str, Any], previous: dict[str, Any] | None, proposed: bool, problems: list[str]) -> int:
     """The solution workflow drawn: the pack's template, or a model's proposal the validator accepted or refused.
     Written when something was decided: a model proposed one, or the pack or the source changed."""

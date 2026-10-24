@@ -4,6 +4,23 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.107.0 (2026-10-24)
+
+Would more rows help? (34.13)
+
+- `data_value.DataValue` v1 (new contract) and `data_value.learning_curve`: each training fold's fit rows cut to 25, 50, 75 and
+  100 % (whole groups for a grouped split, the latest rows for a timed one, within each class otherwise; the smaller cuts drawn
+  twice), fitted by an injected `fit_predict` and scored on the same validation rows. The score at each size and the last step's
+  gain come with 90 % intervals from paired draws (validation rows, groups or blocks of time, and the repeats, resampled within
+  each fold). The answer, by `data_value_rule_v1`: `unlikely_help` when the gain's interval tops out below the practical gain
+  (0.005 on a 0-1 score, 1 % of an error), `likely_help` when it is above zero and the gain reaches it, `cannot_tell` otherwise,
+  with the assumption written down. The levels where out-of-fold errors concentrate get their own curve. A fold naming a row
+  past the training rows given is refused: the holdout never enters.
+- `replicas.learning_curves`: a table whose curve still rises (100 small weights on 1200 rows, a noisier region) and one that is
+  flat (one strong column, a third of the labels noise). On ten seeds with a logistic model the rising one said `likely_help`
+  9 times and `cannot_tell` once, the flat one `unlikely_help` 10 times.
+- `ledger`: the point `data.more_rows` (technical, a project's, the three answers).
+
 ## 0.106.0 (2026-10-24)
 
 The prediction and outcome log (34.9).

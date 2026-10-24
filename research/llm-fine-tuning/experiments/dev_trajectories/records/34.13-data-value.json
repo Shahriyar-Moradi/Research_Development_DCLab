@@ -1,0 +1,109 @@
+{
+ "package": "34.13-data-value",
+ "title": "Would more rows help? A learning curve on the training folds, with a plain answer (34.13)",
+ "date": "2026-10-25",
+ "request": "The owner's map of DCLab's abilities names data as a weak layer: nothing says whether more rows or which labels would help. The plan (docs/guides/PHASE10_ABILITIES_PLAN.md, 34.13) asks for an honest, measured answer a person can act on.",
+ "spec": "A learning curve on the training folds only (25, 50, 75 and 100 % of each fold's fit rows; whole groups when grouped, the latest rows when timed, within each class otherwise), the score at each size with an interval, the last step's gain with its 90 % interval, an answer (likely_help, unlikely_help, cannot_tell) with its assumption, and the same per segment; never the holdout; captured as a ledger point and an event.",
+ "plan": [
+  "read the existing learning-curve contract and decide whether to extend it",
+  "a core function taking the host's trainer, fitted inside each fold",
+  "replicas with a known curve, rising and flat",
+  "a studio analysis, its route and job, apart from the stage records",
+  "capture: ledger point data.more_rows and a decision.proposed event"
+ ],
+ "decisions": [
+  {
+   "decision": "A separate contract (DataValue) from the store's LearningCurve",
+   "why": "LearningCurve is knowledge across builds and never names anything of a table; this is one project's measurement and names the segments of the customer's own table"
+  },
+  {
+   "decision": "The answer reads the last step's gain and its interval: likely help only when the interval is above zero",
+   "why": "a noisy flat curve must not say more rows help; measured on pure-noise tables it never did"
+  },
+  {
+   "decision": "A separate analysis and job, never a change to a stage record",
+   "why": "the stage records are what every number is traced to; an advice must not change them"
+  }
+ ],
+ "change": "dclab_core/data_value.py (DataValue v1, SizeScore, learning_curve) and replicas/learning_curves.py; dclab_core ledger point data.more_rows, conformance, contracts, schemas, 0.107.0; dclab_rnd/studio/data_value.py; jobs/handlers.py (data_value); ledger capture more_rows; experience hook data_value_measured; routers/projects.py (POST and GET /api/projects/{id}/data-value) and the web client; agentic/services.py (busy entry); CORE_INTEGRATION.md; the wheel check's smoke; docs/DATA_CATALOG.md regenerated; tests (core 12, studio 7, experience log).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "defect": "a second request while one was queued crashed instead of saying the project was busy",
+   "scenario": "posting the measurement twice with wait false: the first queued, the second answered with an internal error",
+   "cause": "the busy messages had no entry for this kind of job, so looking it up raised",
+   "fix": "the job's busy message added; a route test posts twice and expects the busy answer",
+   "test": "tests/test_data_value.py::DataValueRouteTest::test_a_second_request_while_one_is_queued_is_busy_not_an_error",
+   "severity": "behaviour",
+   "impact": "an error page for a double click",
+   "alternatives": [
+    "pass the busy message from the route"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "defect": "the new write route did not say what it records",
+   "scenario": "the experience log's test lists every write route and what it records; the new route was missing",
+   "cause": "the route was added without its entry",
+   "fix": "the route records a decision.proposed event, and says so",
+   "test": "tests/test_experience_log.py::OneSessionTest::test_every_write_route_says_what_it_records",
+   "severity": "gap",
+   "impact": "a route whose capture nobody checks",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "self",
+   "defect": "the data catalog had not been regenerated for three new contracts",
+   "scenario": "decision_spec (34.1), prediction_record and outcome_record (34.9) and data_value were missing from docs/DATA_CATALOG.md",
+   "cause": "the earlier packages ran make core-schemas but not make catalog",
+   "fix": "make catalog run; the catalog carries all four",
+   "test": "the rd-gates freshness check",
+   "severity": "gap",
+   "impact": "the full gate would have failed on the committed packages",
+   "alternatives": [],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the answer on replicas with a known curve, ten seeds each",
+   "gate": "a rising curve says likely help, a flat one unlikely help",
+   "fixed_before_run": true,
+   "result": "rising 9 of 10 likely help and 1 cannot tell; flat 10 of 10 unlikely help",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "34.14 what to collect next",
+   "against_gate": "",
+   "limits": [
+    "invented tables"
+   ]
+  },
+  {
+   "name": "false alarms on pure-noise tables (the review)",
+   "gate": "never likely help",
+   "fixed_before_run": true,
+   "result": "60 runs over three model families and two sizes: 0 likely help, 55 cannot tell, 5 unlikely help",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "",
+   "against_gate": "",
+   "limits": [
+    "binary outcomes"
+   ]
+  }
+ ],
+ "outcome": "A project whose models stage ran can ask whether more rows would help: the curve on its training folds, the answer with its interval and assumption, and the segments where errors gather, captured as a decision; the held-back cases are never read.",
+ "lessons": [
+  "A new route needs its capture declared as much as its code.",
+  "Regenerate every derived file a contract touches, not only its schema."
+ ],
+ "risks": [
+  "segment names stay in the project record only; any new reader must keep them out of the ledger and events"
+ ],
+ "commits": []
+}

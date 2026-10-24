@@ -1043,3 +1043,22 @@ indexed by `(model_id, key)` and by time, under the workspace's retention and co
 never adds a column for an input value. `join` (or the same SQL: the latest outcome per key, the delay from scoring to
 knowing) is what monitoring with outcomes (34.10) and a retrain (34.11) read. No table of the main product maps onto these
 records at the commit read, so `conformance` lists them as library output.
+
+## Would more rows help? (34.13, dclab-core 0.107.0)
+
+The library's: `dclab_core.data_value.learning_curve` and its record `DataValue` v1. It takes the training rows' labels, their
+folds and an injected `fit_predict(fit_rows, valid_rows)` (the host's own trainer, fitted inside each fold), cuts each fold's fit
+rows to 25, 50, 75 and 100 % (whole groups for a grouped split, the latest rows for a timed one, within each class otherwise),
+scores the cuts on the same validation rows, and returns the score at each size with a 90 % interval (validation rows, groups or
+blocks of time and the repeats resampled, every size on the same draw), the last step's gain with its interval, the answer
+(`likely_help`, `unlikely_help`, `cannot_tell`, rule `data_value_rule_v1`) with its assumption, and the same per segment where
+the out-of-fold errors concentrate. It refuses a fold that names a row past the training rows it was given: the holdout never
+enters. The ledger point is `data.more_rows` (technical, a project's, a choice of the three answers). The studio's reference is
+`dclab_rnd/studio/data_value.py` (`POST /api/projects/{id}/data-value`, a job; the project's `data_value` field).
+
+Where it goes there: a project's training run, after its model is chosen, passes its training folds and a `fit_predict` that
+calls its own trainer with the chosen configuration; the result is stored beside the experiment (the record as JSON,
+`schema_version` kept) and shown where the person decides whether to collect or label more rows. A segment names a column's
+level of the customer's table, so it stays in the project's record under the project's access rules and never enters a
+decision state or an exported event. The answer becomes a `semantic_decision_answers`-style row only when the main product
+adds a governed point for it; until then `conformance` lists `data.more_rows` as this studio's point.

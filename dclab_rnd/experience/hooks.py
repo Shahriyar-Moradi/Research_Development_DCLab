@@ -393,3 +393,10 @@ def programme_built(project_id: str, p: Any, actor: str) -> None:
                                               "composed": h.composed.value if h else None, "best_leaf": h.best_leaf_estimate.value if h else None,
                                               "difference": h.difference.value if h else None, "low": h.difference.low if h else None, "high": h.difference.high if h else None,
                                               "beats_best_leaf": ("yes" if h.beats_best_leaf else "no") if h else None}, project=project_id)
+
+
+@_quiet
+def data_value_measured(project_id: str, result: Any, actor: str) -> None:
+    """Would more rows help (34.13): the rule's answer as a proposed decision, with its plain reason (numbers, never a table's value)."""
+    record("decision.proposed", "system",
+           {"point": "data.more_rows", "by": f"rule:{result.rule}", "choice": result.answer, "why": result.plain[:2000]}, project=project_id)

@@ -178,6 +178,10 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
 - **Delivers:** a learning curve on the training folds (25, 50, 75, 100 % of rows, by group when grouped), its slope
   with an interval, and a plain answer: more rows likely help, or not; per segment where errors concentrate.
 - **Done when:** on replicas built with a known curve the answer matches; it never reads the holdout.
+- **Status:** done (2026-10-25): `dclab_core.data_value` (DataValue v1, dclab-core 0.107.0), the studio analysis
+  (`POST/GET /api/projects/{id}/data-value`, a job), ledger point `data.more_rows`, a `decision.proposed` event. Rising
+  replicas 9/10 likely help (1 cannot tell), flat 10/10 unlikely help; pure noise never likely help (60 runs). Kept apart
+  from the store's `LearningCurve` (cross-build, no names).
 
 ### 34.14 What to collect next
 - **Delivers:** feature-group ablation on folds (which existing groups carry the score), the segments where labels would

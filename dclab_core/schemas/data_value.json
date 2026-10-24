@@ -1,0 +1,299 @@
+{
+  "$defs": {
+    "SegmentValue": {
+      "additionalProperties": false,
+      "description": "A segment where the errors concentrate (a level of a column), and its own curve.",
+      "properties": {
+        "answer": {
+          "enum": [
+            "likely_help",
+            "unlikely_help",
+            "cannot_tell"
+          ],
+          "title": "Answer",
+          "type": "string"
+        },
+        "column": {
+          "maxLength": 200,
+          "title": "Column",
+          "type": "string"
+        },
+        "error_share": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Error Share",
+          "type": "number"
+        },
+        "level": {
+          "maxLength": 200,
+          "title": "Level",
+          "type": "string"
+        },
+        "points": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SizeScore"
+          },
+          "title": "Points",
+          "type": "array"
+        },
+        "reason": {
+          "maxLength": 600,
+          "title": "Reason",
+          "type": "string"
+        },
+        "row_share": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Row Share",
+          "type": "number"
+        },
+        "rows": {
+          "minimum": 0,
+          "title": "Rows",
+          "type": "integer"
+        },
+        "slope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slope"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "column",
+        "level",
+        "rows",
+        "row_share",
+        "error_share",
+        "answer",
+        "reason"
+      ],
+      "title": "SegmentValue",
+      "type": "object"
+    },
+    "SizeScore": {
+      "additionalProperties": false,
+      "description": "The score with a share of the training rows: the mean over folds (the pooled rows, for a segment).",
+      "properties": {
+        "fit_rows": {
+          "minimum": 0,
+          "title": "Fit Rows",
+          "type": "integer"
+        },
+        "fraction": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Fraction",
+          "type": "number"
+        },
+        "high": {
+          "title": "High",
+          "type": "number"
+        },
+        "low": {
+          "title": "Low",
+          "type": "number"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "fraction",
+        "fit_rows",
+        "score",
+        "low",
+        "high"
+      ],
+      "title": "SizeScore",
+      "type": "object"
+    },
+    "Slope": {
+      "additionalProperties": false,
+      "description": "The gain of the curve's last step, oriented so that positive is better, with its interval.",
+      "properties": {
+        "gain": {
+          "title": "Gain",
+          "type": "number"
+        },
+        "high": {
+          "title": "High",
+          "type": "number"
+        },
+        "low": {
+          "title": "Low",
+          "type": "number"
+        },
+        "per_doubling": {
+          "title": "Per Doubling",
+          "type": "number"
+        }
+      },
+      "required": [
+        "gain",
+        "low",
+        "high",
+        "per_doubling"
+      ],
+      "title": "Slope",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.data_value.v1.json",
+  "additionalProperties": false,
+  "description": "Would more rows help (34.13, v1): the learning curve on the training folds, its last step's gain, the answer and\nthe assumption it rests on, and the same per segment where errors concentrate. The holdout is never read.",
+  "properties": {
+    "answer": {
+      "enum": [
+        "likely_help",
+        "unlikely_help",
+        "cannot_tell"
+      ],
+      "title": "Answer",
+      "type": "string"
+    },
+    "assumption": {
+      "maxLength": 1200,
+      "title": "Assumption",
+      "type": "string"
+    },
+    "bootstrap": {
+      "minimum": 0,
+      "title": "Bootstrap",
+      "type": "integer"
+    },
+    "folds": {
+      "minimum": 1,
+      "title": "Folds",
+      "type": "integer"
+    },
+    "higher_is_better": {
+      "title": "Higher Is Better",
+      "type": "boolean"
+    },
+    "holdout_read": {
+      "const": false,
+      "default": false,
+      "title": "Holdout Read",
+      "type": "boolean"
+    },
+    "level": {
+      "exclusiveMaximum": 1,
+      "exclusiveMinimum": 0,
+      "title": "Level",
+      "type": "number"
+    },
+    "metric": {
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Metric",
+      "type": "string"
+    },
+    "notes": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "plain": {
+      "maxLength": 1200,
+      "title": "Plain",
+      "type": "string"
+    },
+    "points": {
+      "items": {
+        "$ref": "#/$defs/SizeScore"
+      },
+      "title": "Points",
+      "type": "array"
+    },
+    "practical": {
+      "minimum": 0,
+      "title": "Practical",
+      "type": "number"
+    },
+    "repeats": {
+      "minimum": 1,
+      "title": "Repeats",
+      "type": "integer"
+    },
+    "rule": {
+      "default": "data_value_rule_v1",
+      "title": "Rule",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.data_value.v1",
+      "default": "dclab_core.data_value.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "segments": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/SegmentValue"
+      },
+      "title": "Segments",
+      "type": "array"
+    },
+    "slope": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Slope"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "subsample": {
+      "enum": [
+        "random",
+        "stratified",
+        "group",
+        "time"
+      ],
+      "title": "Subsample",
+      "type": "string"
+    },
+    "subsample_rule": {
+      "maxLength": 400,
+      "title": "Subsample Rule",
+      "type": "string"
+    },
+    "training_rows": {
+      "minimum": 0,
+      "title": "Training Rows",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "metric",
+    "higher_is_better",
+    "subsample",
+    "subsample_rule",
+    "folds",
+    "repeats",
+    "bootstrap",
+    "level",
+    "training_rows",
+    "points",
+    "practical",
+    "answer",
+    "plain",
+    "assumption"
+  ],
+  "title": "DataValue",
+  "type": "object"
+}

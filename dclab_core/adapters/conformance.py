@@ -68,6 +68,8 @@ CONTRACT_ADAPTERS: dict[str, str] = {
                          "and writes one per row it scores, CORE_INTEGRATION.md 'The prediction and outcome log')",
     "outcome_record": LIBRARY + " (the true outcome of a scored key once known, 34.9; the main product writes it where its customers report "
                       "outcomes, joined to its predictions by serving.join)",
+    "data_value": LIBRARY + " (would more rows help: the learning curve on the training folds, 34.13; the main product draws it with its own "
+                  "trainer in each fold, CORE_INTEGRATION.md 'Would more rows help?')",
     "table_entry": LIBRARY + " (a table's catalog entry with its owner and checks, 30.23; the main product's data catalog keeps its own entries)",
     "project_request": LIBRARY + " (a requested project scored, 30.24; the main product's intake keeps its own requests and scores them through it)",
     "portfolio": LIBRARY + " (the projects chosen of the requested and what they reuse, 30.24)",
@@ -108,6 +110,7 @@ POINTS_NOT_MAPPED: dict[str, str] = {
         "data.cleaning_step", "data.sampling", "split.folds", "data.structure_format", "data.cleaning_keep", "data.synthetic_shape",
         "data.fit_verdict")},
     **{p: _NO_NAME.format(what="evidence search (29.6)") for p in ("evidence.records",)},
+    **{p: _NO_NAME.format(what="data value question (34.13)") for p in ("data.more_rows",)},
     **{p: _NO_NAME.format(what="modelling choice") for p in (
         "features.recipe", "tuning.accept", "holdout.reuse", "experiment.next")},
     **{p: _NO_NAME.format(what="conversation and workflow point (the understanding agents, the coordinator)") for p in (

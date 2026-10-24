@@ -331,6 +331,8 @@
     projectBrief: ["GET", "/projects/{project_id}/brief", ["project_id"], []],
     saveProjectBrief: ["PUT", "/projects/{project_id}/brief", ["project_id"], []],
     uploadData: ["PUT", "/projects/{project_id}/data", ["project_id"], ["filename"]],
+    getDataValue: ["GET", "/projects/{project_id}/data-value", ["project_id"], []],
+    measureDataValue: ["POST", "/projects/{project_id}/data-value", ["project_id"], ["wait"]],
     useSample: ["POST", "/projects/{project_id}/data/sample", ["project_id"], []],
     projectDecisions: ["GET", "/projects/{project_id}/decisions", ["project_id"], []],
     projectDisagreements: ["GET", "/projects/{project_id}/disagreements", ["project_id"], []],
@@ -1116,6 +1118,19 @@
    *  @returns {Promise<Project>} */
   client.uploadData = (...args) => call('uploadData', args);
   client.path.uploadData = (...args) => build('uploadData', args).path;
+  /** GET /api/projects/{project_id}/data-value: Get Data Value
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.getDataValue = (...args) => call('getDataValue', args);
+  client.path.getDataValue = (...args) => build('getDataValue', args).path;
+  client.href.getDataValue = (...args) => '/api' + build('getDataValue', args).path;
+  /** POST /api/projects/{project_id}/data-value: Measure Data Value
+   *  @param {string} project_id
+   *  @param {{query?: {wait?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.measureDataValue = (...args) => call('measureDataValue', args);
+  client.path.measureDataValue = (...args) => build('measureDataValue', args).path;
   /** POST /api/projects/{project_id}/data/sample: Use Sample
    *  @param {string} project_id
    *  @param {{body: SampleChoice, headers?: Object}} [opts]
