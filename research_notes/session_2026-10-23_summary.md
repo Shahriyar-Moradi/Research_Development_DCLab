@@ -184,3 +184,5 @@ shown 3, helpful 2. A hosted probe now measures only.
   the judgment suite catches both group traps (AEV-056, 4 of 13).
 - **Pilot after the fix** (tag proposal-core-keys-v1): homework 1 (seed 3) still failed the split: the group was
   offered, the 4B model did not take it. Paused after homework 2 for a Mac restart; homeworks 3 to 5 to come.
+- Homework 2 after the fix (seed 5): the proposal offered `borrower` only to confirm, and the 4B model took it: the
+  split right, only the decoy left (0.857, was 0.714). Homeworks 3 to 5 after the Mac restart.
