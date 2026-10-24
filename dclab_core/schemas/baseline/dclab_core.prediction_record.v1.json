@@ -1,0 +1,102 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "at": {
+      "type": "string"
+    },
+    "batch": {
+      "pattern": "^[0-9a-f]{32}$",
+      "type": "string"
+    },
+    "decision": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]{0,39}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "key": {
+      "pattern": "^[0-9a-f]{32}$",
+      "type": "string"
+    },
+    "model_id": {
+      "maxLength": 120,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "type": "string"
+    },
+    "model_version": {
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "type": "string"
+    },
+    "position": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "predicted_class": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "dclab_core.prediction_record.v1",
+      "default": "dclab_core.prediction_record.v1",
+      "type": "string"
+    },
+    "score": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "task": {
+      "enum": [
+        "binary",
+        "multiclass",
+        "regression"
+      ],
+      "type": "string"
+    },
+    "threshold": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_id",
+    "model_version",
+    "batch",
+    "position",
+    "key",
+    "task",
+    "at"
+  ],
+  "type": "object"
+}

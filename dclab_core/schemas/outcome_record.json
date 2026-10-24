@@ -1,0 +1,43 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.outcome_record.v1.json",
+  "additionalProperties": false,
+  "description": "What really happened to a key: the outcome coded as the model predicts it (:func:`code_outcome`).",
+  "properties": {
+    "key": {
+      "description": "The row's key as a salted hash, as in its prediction.",
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Key",
+      "type": "string"
+    },
+    "known_at": {
+      "description": "When the outcome became known (ISO 8601 with its zone).",
+      "title": "Known At",
+      "type": "string"
+    },
+    "outcome": {
+      "description": "Binary: 1 positive, 0 not; multiclass: the class's index; regression: the value.",
+      "title": "Outcome",
+      "type": "number"
+    },
+    "recorded_at": {
+      "description": "When it was recorded (ISO 8601 with its zone).",
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.outcome_record.v1",
+      "default": "dclab_core.outcome_record.v1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "key",
+    "outcome",
+    "known_at",
+    "recorded_at"
+  ],
+  "title": "OutcomeRecord",
+  "type": "object"
+}

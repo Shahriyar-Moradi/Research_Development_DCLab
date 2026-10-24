@@ -138,6 +138,14 @@ from dclab_core import datasets as wheel_sets, evaluation
 flag = evaluation.score("rules", "feature.leakage_suspect", "flag", "planted", [(True, True), (False, True), (True, False), (False, False)])
 assert (flag.accuracy, flag.precision, flag.recall) == (0.5, 0.5, 0.5), flag
 assert set(wheel_sets.twin_sets([{"step": json.loads(pair.model_dump_json()), "where": {"draft": "d1"}}])) >= {"twin.steps", "twin.teacher.technical"}
+# 34.9: a prediction and its outcome, keyed by a salted hash, joined through the installed wheel
+from dclab_core import serving
+k = serving.key_hash("order-7", "s" * 16)
+pred = serving.PredictionRecord(model_id="p1", model_version="v1", batch=serving.new_key(), position=0, key=k, task="binary", score=0.8,
+                                decision="alert", threshold=0.5, at="2026-10-24T10:00:00+00:00")
+seen = serving.OutcomeRecord(key=k, outcome=serving.code_outcome("fraud", "binary", positive_label="fraud"), known_at="2026-10-25T10:00:00+00:00",
+                             recorded_at="2026-10-25T10:00:00+00:00")
+assert serving.join([serving.PredictionRecord.read(pred.model_dump_json())], [seen])["delay_seconds"].tolist() == [86400.0]
 def norm(name):
     return re.sub(r"[-_.]+", "-", name).lower()
 dists = sorted(f"{norm(d.metadata['Name'])}=={d.version}" for d in metadata.distributions())

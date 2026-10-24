@@ -64,6 +64,10 @@ CONTRACT_ADAPTERS: dict[str, str] = {
         ("playbook", "playbook of lessons"), ("playbook_delta", "change to a playbook"))},
     "decision_spec": LIBRARY + " (what acting on a row is worth and costs, 34.1; the main product's objective takes its costs through "
                      "adapters.main_product.objective_of, the rest goes to the person choosing the operating point)",
+    "prediction_record": LIBRARY + " (one row scored by a model in use, its key a salted hash, 34.9; the main product runs customer models "
+                         "and writes one per row it scores, CORE_INTEGRATION.md 'The prediction and outcome log')",
+    "outcome_record": LIBRARY + " (the true outcome of a scored key once known, 34.9; the main product writes it where its customers report "
+                      "outcomes, joined to its predictions by serving.join)",
     "table_entry": LIBRARY + " (a table's catalog entry with its owner and checks, 30.23; the main product's data catalog keeps its own entries)",
     "project_request": LIBRARY + " (a requested project scored, 30.24; the main product's intake keeps its own requests and scores them through it)",
     "portfolio": LIBRARY + " (the projects chosen of the requested and what they reuse, 30.24)",

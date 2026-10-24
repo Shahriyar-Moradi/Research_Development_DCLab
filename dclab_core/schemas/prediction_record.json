@@ -1,0 +1,127 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.prediction_record.v1.json",
+  "additionalProperties": false,
+  "description": "One row scored by a model in use. Never a value of the row: its key is a salted hash.",
+  "properties": {
+    "at": {
+      "description": "When it was scored: ISO 8601 with its zone (UTC).",
+      "title": "At",
+      "type": "string"
+    },
+    "batch": {
+      "description": "The request the row came in (rows of a batch were scored together).",
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Batch",
+      "type": "string"
+    },
+    "decision": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]{0,39}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The action taken, as a code (alert, no_alert); None when the service decides nothing.",
+      "title": "Decision"
+    },
+    "key": {
+      "description": "The row's key as a salted hash (key_hash), never the caller's value.",
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Key",
+      "type": "string"
+    },
+    "model_id": {
+      "description": "The model (a project id).",
+      "maxLength": 120,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_version": {
+      "description": "Which fit of it: a fingerprint of the model file.",
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Model Version",
+      "type": "string"
+    },
+    "position": {
+      "description": "The row's place in its batch.",
+      "minimum": 0,
+      "title": "Position",
+      "type": "integer"
+    },
+    "predicted_class": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Multiclass: the chosen class, by its index in the model's class labels.",
+      "title": "Predicted Class"
+    },
+    "schema_version": {
+      "const": "dclab_core.prediction_record.v1",
+      "default": "dclab_core.prediction_record.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "score": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Binary: the score; multiclass: the chosen class's probability; regression: the prediction.",
+      "title": "Score"
+    },
+    "task": {
+      "enum": [
+        "binary",
+        "multiclass",
+        "regression"
+      ],
+      "title": "Task",
+      "type": "string"
+    },
+    "threshold": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The threshold the decision used, when it used one.",
+      "title": "Threshold"
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_id",
+    "model_version",
+    "batch",
+    "position",
+    "key",
+    "task",
+    "at"
+  ],
+  "title": "PredictionRecord",
+  "type": "object"
+}

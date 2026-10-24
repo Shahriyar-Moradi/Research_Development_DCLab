@@ -131,7 +131,10 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
             "batches": ("behaviour features are computed within each request, as they were within each fold and the holdout in "
                         "training: send a whole audit window (or a batch in time order) together; a single row gets no history, "
                         "and no state is kept between requests" if behaviour else "each row is scored on its own"),
-            "production_approved": False}
+            "production_approved": False,
+            # 34.9: the log's model and version (a fingerprint of model.pkl), and the label an outcome that is not positive has
+            "model_id": project_id, "model_version": _fingerprint(out / "model.pkl"),
+            "negative_label": _negative_label(p.frame, solution) if solution.task == "binary" else None}
     calibrator = (final.get("calibration_fit") or {}).get("calibrator")
     if calibrator and calibrator.get("method") != "none":  # 30.15: fitted on the out-of-fold scores; served beside the score, never instead of it
         meta["calibrator"] = calibrator
@@ -140,7 +143,7 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
         (out / "monitoring.json").write_text(json.dumps(_hashed_plan(watch, key), indent=1, default=str) + "\n", encoding="utf-8")
         meta["monitoring"] = "monitoring.json"  # its category levels hashed with the key, as the model's are: no value of the table
     (out / "model.json").write_text(json.dumps(meta, indent=1, default=str) + "\n", encoding="utf-8")
-    for name in ("scorer.py", "app.py"):
+    for name in ("scorer.py", "app.py", "serve_log.py"):
         shutil.copyfile(TEMPLATE / name, out / name)
     vendor = out / "vendor"
     for source, target in VENDOR.items():
@@ -157,29 +160,48 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
     (out / "requirements.txt").write_text("\n".join(pins + ["flask>=3.0", "gunicorn>=22.0", "pytest>=8.0"]) + "\n", encoding="utf-8")
     (out / "Dockerfile").write_text(
         "FROM python:3.12-slim\nWORKDIR /service\nCOPY requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\n"
-        "# the model, the code and the tests: no data file is copied\nCOPY model.pkl model.json scorer.py app.py ./\n"
+        "# the model, the code and the tests: no data file is copied\nCOPY model.pkl model.json scorer.py app.py serve_log.py ./\n"
         + ("COPY monitoring.json ./\n" if meta.get("monitoring") else "") + "COPY vendor ./vendor\n"
         "COPY tests ./tests\n# the hashing key is given at run time: docker run -e DCLAB_SERVICE_KEY=... (it is not in the image)\n"
+        "# the prediction and outcome logs: mount a volume here (-v ...:/logs), or they go with the container\n"
+        "ENV DCLAB_SERVICE_LOG_DIR=/logs\n"
         "EXPOSE 8000\nCMD [\"gunicorn\", \"--bind\", \"0.0.0.0:8000\", \"--workers\", \"2\", \"app:app\"]\n", encoding="utf-8")
-    (out / ".dockerignore").write_text("*.csv\n*.parquet\n*.xlsx\n*.json.gz\n__pycache__\n", encoding="utf-8")
+    (out / ".dockerignore").write_text("*.csv\n*.parquet\n*.xlsx\n*.json.gz\n*.jsonl\n__pycache__\n", encoding="utf-8")
     rows = _made_up_rows(project["data"].get("profile") or {}, meta["input_columns"])
     (out / "tests" / "test_service.py").write_text(
         '"""Generated with the service: made-up rows from the profile (never a real value)."""\n\nimport io\nimport sys\nfrom pathlib import Path\n\n'
-        "sys.path.insert(0, str(Path(__file__).resolve().parents[1]))\n\nfrom app import app  # noqa: E402\n\n"
+        "import pytest\n\nsys.path.insert(0, str(Path(__file__).resolve().parents[1]))\n\nfrom app import app  # noqa: E402\n\n"
         f"ROWS = {json.dumps(rows)}\n\n\n"
+        "@pytest.fixture(autouse=True)\ndef _logs(tmp_path, monkeypatch):\n    monkeypatch.setenv('DCLAB_SERVICE_LOG_DIR', str(tmp_path))  # the tests' rows stay out of the real logs\n\n\n"
         "def test_health_and_model():\n    client = app.test_client()\n    assert client.get('/health').json == {'status': 'ok'}\n"
         "    assert client.get('/model').json['task'] == " + repr(solution.task) + "\n\n\n"
         "def test_one_and_many_rows():\n    client = app.test_client()\n    one = client.post('/predict', json=ROWS[0]).json['predictions']\n"
         "    many = client.post('/predict', json=ROWS).json['predictions']\n    assert len(one) == 1 and len(many) == len(ROWS)\n\n\n"
         "def test_a_csv():\n    import pandas as pd\n    client = app.test_client()\n    data = pd.DataFrame(ROWS).to_csv(index=False).encode()\n"
         "    response = client.post('/predict/csv', data={'file': (io.BytesIO(data), 'rows.csv')})\n"
-        "    assert len(response.json['predictions']) == len(ROWS)\n", encoding="utf-8")
+        "    assert len(response.json['predictions']) == len(ROWS)\n\n\n"
+        "def test_a_prediction_is_logged_and_its_outcome_joins_it(tmp_path):\n    from dclab_core import serving\n    client = app.test_client()\n"
+        "    made = client.post('/predict', json=ROWS).json['predictions']\n"
+        f"    outcome = {_made_up_outcome(solution, p.class_labels)!r}\n"
+        "    assert client.post('/outcome', json={'key': made[0]['key'], 'outcome': outcome}).json == {'recorded': 1}\n"
+        "    joined = serving.join(serving.read_log(tmp_path / 'predictions.jsonl', serving.PredictionRecord),\n"
+        "                          serving.read_log(tmp_path / 'outcomes.jsonl', serving.OutcomeRecord))\n"
+        "    assert len(joined) == 1\n", encoding="utf-8")
     (out / "README.md").write_text(
         f"# Scoring service: {project['name']}\n\nExported by DCLab from the approved final stage: recipe `{recipe_name}`, model `{family}`. "
         "No data is in this folder, and the key that hashes category values is not either: it was given to whoever exported "
         "the service, who passes it as `DCLAB_SERVICE_KEY`.\n\n```bash\ndocker build -t dclab-service .\n"
         "docker run -e DCLAB_SERVICE_KEY=... -p 8000:8000 dclab-service\n```\n\n"
-        "Endpoints: `GET /health`, `GET /model`, `POST /predict` (one row as an object, or a list), `POST /predict/csv` (form field `file`).\n\n"
+        "Endpoints: `GET /health`, `GET /model`, `POST /predict` (one row as an object, or a list), `POST /predict/csv` (form field `file`), "
+        "`POST /outcome` (the true outcome of a row once it is known).\n\n"
+        "Logs: every row scored is a line of `predictions.jsonl` and every outcome a line of `outcomes.jsonl`, beside the model or in "
+        "`DCLAB_SERVICE_LOG_DIR` (the image sets `/logs`: mount a volume there). Keys are hashed with `DCLAB_LOG_KEY` (16 characters or more; without it, `DCLAB_SERVICE_KEY`, which changes with each export): "
+        "set it once and keep it across exports, so an outcome that arrives after a retrain still joins its prediction. A line holds the model and its version, the row's key "
+        "as a salted hash, the score, the decision and the time; never a value of the row. Name the column that identifies a row "
+        "(`{\"rows\": [...], \"key\": \"order_id\"}`, or `?key=order_id`, or the form field `key` with a CSV) and post its outcome "
+        "later with the same value: `{\"key\": 123, \"outcome\": ..., \"known_at\": \"2026-10-25T08:00:00+00:00\"}` or "
+        "`{\"outcomes\": [...]}`; with no key column, each prediction comes back with a key made for it. The two logs join by key "
+        "(`dclab_core.serving.join`), which is what monitoring with outcomes and a retrain read.\n\n"
         f"{meta['batches'].capitalize()}. A score is evidence about the method, not production approval.\n"
         + ("\nMonitoring: `Scorer().monitor(rows, scores)` reads a batch against the training rows' bins in `monitoring.json` "
            "(each column's and the score's PSI, the share the rule flags); an alert says the inputs moved away from what the model "
@@ -198,6 +220,34 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
                                                                         **checked}}
     store.save(project)
     return {"folder": str(out), "meta": meta, "key": key, "checked": checked}
+
+
+def _fingerprint(path: Path) -> str:
+    import hashlib
+
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+
+
+def _negative_label(frame: Any, solution: Any) -> str | None:
+    """A binary target's other label (the one that is not positive), so a posted outcome of either is read; None when the
+    target has not exactly two labels or the positive one is not among them."""
+    target, positive = solution.target, solution.positive_label
+    if positive is None or target not in getattr(frame, "columns", []):
+        return None
+    from dclab_core.serving import _text
+
+    labels = {_text(v) for v in frame[target].dropna().unique()}
+    others = labels - {_text(positive)}
+    return others.pop() if len(labels) == 2 and len(others) == 1 else None
+
+
+def _made_up_outcome(solution: Any, class_labels: Any) -> Any:
+    """An outcome for the generated test: the positive label, the first class, or a number (never a row's value)."""
+    if solution.task == "binary":
+        return solution.positive_label if solution.positive_label is not None else 1
+    if solution.task == "multiclass" and class_labels:
+        return str(list(class_labels)[0])
+    return 1.0
 
 
 def _forget(store: Any, project_id: str, which: str) -> None:

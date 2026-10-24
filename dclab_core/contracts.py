@@ -445,3 +445,4 @@ import dclab_core.debate  # noqa: E402,F401  (two solution designers and a judge
 import dclab_core.challenge_pack  # noqa: E402,F401  (challenge packs, their keys and grades: the harness that learns, H0)
 import dclab_core.playbook  # noqa: E402,F401  (the playbook and its deltas: the harness that learns, H2)
 import dclab_core.decide  # noqa: E402,F401  (the decision spec: one decision core, 34.1)
+import dclab_core.serving  # noqa: E402,F401  (the prediction and outcome log of a model in use, 34.9)

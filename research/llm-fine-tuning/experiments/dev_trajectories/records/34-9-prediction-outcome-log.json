@@ -1,0 +1,176 @@
+{
+ "package": "34-9-prediction-outcome-log",
+ "title": "The prediction and outcome log: every row a model in use scores, and its true outcome, joined by a hashed key",
+ "date": "2026-10-24",
+ "request": "Build package 34.9 of phase 10 (layer 6, Learn): versioned contracts PredictionRecord and OutcomeRecord in dclab_core, registered like the others, and the exported scoring service logging every /predict and /predict/csv to predictions.jsonl and taking POST /outcome; a CORE_INTEGRATION section for the main product, which runs customer models. Never a cell value in a record.",
+ "spec": "dclab_core.serving: PredictionRecord v1 (model id and version, batch and position, the key as a 32-hex salted hash, task, score, class by index, decision as a code, threshold, time) and OutcomeRecord v1 (key, outcome coded as the model predicts it, known_at, recorded_at); key_hash (HMAC-SHA-256), new_key, code_outcome, read_log, join. The service template gains serve_log.py (Flask-free logic, appends under a lock) and thin routes in app.py; the export writes model_id, model_version (a fingerprint of model.pkl) and the binary target's negative label into model.json, copies serve_log.py, sets DCLAB_SERVICE_LOG_DIR=/logs in the image, keeps *.jsonl out of it, and its generated tests check a prediction joins its outcome.",
+ "plan": [
+  "read the plan section, the service export and its template, how contracts are registered",
+  "write failing tests: the core contracts, and an end-to-end test through the exported service",
+  "build dclab_core/serving.py and register it (contracts import, CONTRACT_ADAPTERS reason, schemas, 0.106.0)",
+  "wire the service: serve_log.py, app.py routes, export meta and README",
+  "CHANGELOG, CORE_INTEGRATION section, a wheel-check smoke call",
+  "wheel check, the reviewer, fixes with tests"
+ ],
+ "decisions": [
+  {
+   "decision": "The key is always a salted hash (HMAC with a secret the service holds), and the contract enforces 32 hex characters",
+   "why": "a caller's key is usually an order or customer id, a cell value; a plain hash of a guessable id can be reversed by trying them all, a keyed one cannot without the secret"
+  },
+  {
+   "decision": "A caller with no key column gets a random key per row back with its prediction",
+   "why": "the outcome must be postable later; a random number is no value of the table"
+  },
+  {
+   "decision": "The route logic lives in a Flask-free serve_log.py; app.py stays thin",
+   "why": "Flask is in no environment of the repository; the logic is tested directly, and the routes through a small stand-in for Flask in an isolated Python"
+  },
+  {
+   "decision": "Outcomes are coded as the model predicts them (binary 1/0, multiclass index, regression value); a value that is neither label is refused",
+   "why": "a typo read as a negative would silently bias live performance and a retrain"
+  },
+  {
+   "decision": "Log keys use DCLAB_LOG_KEY, falling back to the export's DCLAB_SERVICE_KEY",
+   "why": "each export makes a new service key; outcomes arrive after a retrain and must still join the earlier model's predictions"
+  },
+  {
+   "decision": "No main-product table maps onto the records; conformance lists them as library output with the reason",
+   "why": "the field lists read at the main product's commit have no serving tables; the guide says how it should store them"
+  },
+  {
+   "decision": "check-quick not run during the day",
+   "why": "the owner's rule: daytime runs only the tests proving the change, gates run nightly and alone; the shared tree also held another session's unfinished data_value contract, which fails the schema tests and the wheel check's conformance call"
+  }
+ ],
+ "change": "dclab_core/serving.py (new); dclab_core/contracts.py (import line); dclab_core/adapters/conformance.py (two reasons); dclab_core/__init__.py, pyproject.toml (0.106.0); dclab_core/CHANGELOG.md; dclab_core/schemas/prediction_record.json, outcome_record.json and their baselines; dclab_rnd/studio/service_template/serve_log.py (new), app.py; dclab_rnd/studio/service.py (meta, copy, Dockerfile, .dockerignore, README, generated tests); scripts/core_wheel_check.py (smoke); docs/guides/CORE_INTEGRATION.md (section); tests/test_core_serving.py (new); tests/test_service_export.py (end-to-end test).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "defect": "a retrain cut outcomes off from older predictions",
+   "scenario": "order 123 scored Monday under export key 1; the project re-exported Tuesday (new key 2); the outcome posted Wednesday is hashed with key 2 and never joins, while /outcome answers recorded: 1",
+   "cause": "keys were hashed with the export's service key, which each export makes anew",
+   "fix": "a log key DCLAB_LOG_KEY that outlives exports, documented in the README",
+   "test": "tests/test_core_serving.py::ServeLogTest::test_keys_join_across_exports_when_the_log_key_is_kept",
+   "severity": "behaviour",
+   "impact": "every outcome arriving after a redeploy lost to monitoring and retraining",
+   "alternatives": [
+    "keep the secret in a file beside the logs (whoever holds the logs then holds the secret)"
+   ],
+   "open": "without DCLAB_LOG_KEY set, the fallback still changes per export: the README says to set it"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "a float-written key in a CSV never joined its JSON outcome",
+   "scenario": "a CSV with order_id 470000166.0 (pandas or Excel writing a float column) read as text, the outcome posted with 470000166: two hashes",
+   "cause": "_text normalised float objects only, not their text",
+   "fix": "a text of the form digits.0 is read as its integer; '007' stays '007'",
+   "test": "tests/test_core_serving.py::ServeLogTest::test_a_csv_float_key_joins_its_json_outcome_and_decisions_are_codes",
+   "severity": "behaviour",
+   "impact": "silent loss of outcomes for CSV callers",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "one torn line made a whole log unreadable",
+   "scenario": "a monitor reads predictions.jsonl during a large write, or a worker is killed mid-line and the next batch lands on the same line",
+   "cause": "read_log raised on the first bad line; the writer did not close a torn line",
+   "fix": "read_log skips lines that are not JSON (a JSON line that is not the contract still raises); the writer starts on a new line when the file does not end in one",
+   "test": "tests/test_core_serving.py::ServeLogTest::test_a_torn_line_is_closed_before_the_next_batch",
+   "severity": "latent",
+   "impact": "monitoring and retrain blocked by one crash",
+   "alternatives": [
+    "readers take a shared lock"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "/outcome accepted a key that cannot be a row key",
+   "scenario": "{'key': {'phone': '0912'}, 'outcome': 1} answered recorded: 1",
+   "cause": "_text stringified any object",
+   "fix": "key_hash refuses anything but text or a number (a bool too)",
+   "test": "tests/test_core_serving.py::ServeLogTest::test_a_bad_request_is_refused_and_leaves_nothing",
+   "severity": "gap",
+   "impact": "junk records that never join",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "binary 1/0 was accepted when it was not one of the model's labels",
+   "scenario": "labels 1 and 2 (positive 2): an outcome 0 was read as the negative",
+   "cause": "the plain 1/0 map applied whatever the labels",
+   "fix": "1/0 and true/false only when the negative label is unknown or the labels are themselves those",
+   "test": "tests/test_core_serving.py::ServingContractsTest::test_an_outcome_is_coded_as_the_model_predicts_it",
+   "severity": "behaviour",
+   "impact": "a typo read as a negative",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "some bad bodies answered 500 instead of 400",
+   "scenario": "{'rows': [...], 'key': ['order_id']} or a body 'abc'",
+   "cause": "the key column name and the rows were not checked before use",
+   "fix": "a key column must be text and rows an object or a list of objects, else Refused (400)",
+   "test": "tests/test_core_serving.py::ServeLogTest::test_a_bad_request_is_refused_and_leaves_nothing",
+   "severity": "gap",
+   "impact": "unclear errors, no leak",
+   "alternatives": [],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "tests.test_core_serving and tests.test_service_export",
+   "gate": "a batch scored and its outcomes posted join by key; no input value in either log (the plan's Done when)",
+   "result": "13 tests pass (177 s): 40 JSON rows and 30 CSV rows keyed by order_id plus 2 with made-up keys scored, 71 outcomes posted, a bad outcome refused with nothing recorded; the logs join on all 71 keys with the right outcomes; no order id, text value or the service key in either log",
+   "verdict": "pass",
+   "limits": [
+    "numeric input values are not searched for in the logs; the contract's fields (extra=forbid, a 32-hex key, a code-only decision) rule them out instead"
+   ]
+  },
+  {
+   "name": "the export's generated tests under real Flask 3.1.3",
+   "gate": "the generated tests/test_service.py of an export pass under the real framework",
+   "result": "4 passed (the reviewer, in a scratch venv; Flask is in no environment of the repository)",
+   "verdict": "pass"
+  },
+  {
+   "name": "make core-wheel-check",
+   "gate": "the wheel builds, installs in a clean Python 3.12 and its smoke calls pass, serving included",
+   "result": "passed on a copy without another session's unfinished data_value (dclab-core 0.106.0); in the shared tree it failed only on data_value's missing conformance reason at that time",
+   "verdict": "pass",
+   "limits": [
+    "not rerun in the shared tree once data_value was finished"
+   ]
+  },
+  {
+   "name": "make check-quick",
+   "gate": "the package gate passes on the affected files",
+   "result": "not run: the owner's daytime rule (only the tests proving the change; gates nightly and alone); a first run was stopped before the reviewer's fixes",
+   "verdict": "not scored",
+   "next": "the nightly gate, once the other sessions' packages in the tree are finished"
+  }
+ ],
+ "outcome": "The contracts and the working reference exist; a batch scored and its outcomes posted join by key, and no input value is in either log (tested). 34.10 and 34.11 can read the logs through serving.read_log and serving.join.",
+ "lessons": [
+  "A keyed hash's secret must outlive the thing that issues it when records written under it are joined later",
+  "Every place a key or a label is normalised must treat the CSV form of a float the same as the number",
+  "An append-only log needs a reader that survives a torn line and a writer that never glues onto one",
+  "A permissive fallback in outcome coding (1/0) becomes a silent mislabel when the labels are other numbers"
+ ],
+ "risks": [
+  "Without DCLAB_LOG_KEY set, outcomes posted after a re-export do not join (documented, not enforced)",
+  "The logs grow without rotation; 34.10 should read them incrementally",
+  "Concurrency rests on fcntl locks on a local file system; a network volume may not honour them"
+ ],
+ "commits": []
+}

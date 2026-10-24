@@ -4,6 +4,21 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.106.0 (2026-10-24)
+
+The prediction and outcome log (34.9).
+
+- `serving.PredictionRecord` v1 and `serving.OutcomeRecord` v1 (new contracts): one row scored by a model in use (the model
+  and its version, the batch and the row's place in it, the row's key, the score, the class by index, the decision as a code,
+  the threshold, the time) and the true outcome of a key once known (coded as the model predicts it, when it became known,
+  when it was recorded). Neither holds a value of the scored table: the key must be a 32-hex hash, a decision a short code,
+  and readers refuse any other field.
+- `serving.key_hash(key, secret)` (HMAC-SHA-256, a secret of 16 characters or more; a CSV's 123.0 is a JSON's 123),
+  `serving.new_key()` for a row with no key of its own, `serving.code_outcome` (binary 1/0 from either label, a value that
+  is neither refused; multiclass the class's index; regression a finite number), `serving.read_log` (a JSONL log read
+  back strictly) and `serving.join` (the predictions that have an outcome, the latest outcome per key, the delay from
+  scoring to knowing).
+
 ## 0.105.0 (2026-10-24)
 
 One decision core (34.1).

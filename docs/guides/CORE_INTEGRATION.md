@@ -1023,3 +1023,23 @@ outcome's kind, the split, a list of known cases and each column's cleaning step
 `name_says_cases`. Where it goes there: the main product's own rules for these choices answer the same tables, and the sets it
 builds from them train and examine its decision models exactly as the studio's do.
 
+## The prediction and outcome log (34.9, dclab-core 0.106.0)
+
+The library's: `dclab_core.serving.PredictionRecord` v1 (one row scored: model id and version, batch and position, the row's
+key as a salted hash, the score, the class by index, the decision as a code, the threshold, the time) and `OutcomeRecord` v1
+(a key's true outcome, coded as the model predicts it, when it became known and when it was recorded); `key_hash`,
+`new_key`, `code_outcome`, `read_log` and `join`. The studio's exported scoring service is the working reference: it logs
+every `/predict` and `/predict/csv` row to `predictions.jsonl`, takes `POST /outcome` into `outcomes.jsonl`
+(`dclab_rnd/studio/service_template/serve_log.py`), and a test scores a batch, posts its outcomes and joins the two logs by key.
+
+Where it goes there: the main product runs customer models, so it writes the records itself. Its scoring path writes one
+`PredictionRecord` per row it scores, in the same transaction as the response or on a queue that cannot lose it; model id
+and version are its model registry's ids. The key is `key_hash(customer_row_key, secret)` with a secret per workspace kept
+in its secret store (never in the record, never in a log line); a request with no row key gets `new_key()` back with each
+prediction. Outcomes arrive where its customers report them (an API, a file drop, a connector's sync) and become
+`OutcomeRecord`s through `code_outcome` with the model's own labels; a value that is neither label is refused, never read
+as a negative. It stores both as rows of two append-only tables (the record's fields as columns, `schema_version` kept),
+indexed by `(model_id, key)` and by time, under the workspace's retention and consent rules like its other records; it
+never adds a column for an input value. `join` (or the same SQL: the latest outcome per key, the delay from scoring to
+knowing) is what monitoring with outcomes (34.10) and a retrain (34.11) read. No table of the main product maps onto these
+records at the commit read, so `conformance` lists them as library output.

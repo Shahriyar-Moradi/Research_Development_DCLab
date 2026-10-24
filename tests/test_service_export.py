@@ -1,6 +1,7 @@
 """Package 15.10: a finished project exported as a scoring service (dclab_rnd/studio/service.py)."""
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -80,6 +81,144 @@ class ServiceExportTest(unittest.TestCase):
         recorded = final["holdout_metrics"]["average_precision"]  # the export refuses a refit that does not reproduce the record
         self.assertAlmostEqual(float(runner.binary_metrics(p.bundle.y_test, expected)["average_precision"]), recorded, places=6)
         self.assertIn("no data file is copied", (out / "Dockerfile").read_text())
+
+    def test_the_service_logs_every_prediction_takes_outcomes_and_the_logs_join_by_key_without_a_value(self):
+        """34.9: a batch scored as JSON and one as CSV, their outcomes posted by the caller's own key (the order id), a
+        batch with no key gets keys made for it; the two logs join by key and neither holds a value of the rows."""
+        from dclab_core import serving
+
+        if self.store.get(self.pid)["stages"]["final"].get("status") != "approved":
+            engine.approve(self.store, self.pid, "final")
+        out = Path(tempfile.mkdtemp()) / "svc"
+        with runner.fast_profile():
+            described = service.export(self.store, self.pid, out)
+            p = engine.prepare(self.store, self.store.get(self.pid))
+        meta, key = described["meta"], described["key"]
+        self.assertEqual((meta["model_id"], len(meta["model_version"])), (self.pid, 16))
+        self.assertIn("predictions.jsonl", (out / "README.md").read_text())
+        self.assertIn("POST /outcome", (out / "README.md").read_text())
+        rows = p.bundle.X_test.head(70).copy()
+        rows["order_id"] = p.frame.loc[rows.index, "order_id"].to_numpy()
+        labels = p.bundle.y_test.loc[rows.index].tolist()
+        scratch = Path(tempfile.mkdtemp())
+        (scratch / "rows.json").write_text(rows.to_json(orient="records", date_format="iso"), encoding="utf-8")
+        (scratch / "labels.json").write_text(json.dumps([str(v) for v in labels]), encoding="utf-8")
+        stub = scratch / "stub"
+        stub.mkdir()
+        (stub / "flask.py").write_text(FLASK_STUB, encoding="utf-8")  # the routes of app.py, called without Flask installed
+        logs = scratch / "logs"
+        result = subprocess.run([sys.executable, "-I", "-c", SERVICE_SCRIPT, str(stub), str(out), str(scratch)], cwd=str(scratch),
+                                capture_output=True, text=True, timeout=600,
+                                env={**os.environ, "DCLAB_SERVICE_KEY": key, "DCLAB_SERVICE_LOG_DIR": str(logs)})
+        self.assertEqual(result.returncode, 0, result.stderr[-3000:])
+        said = json.loads(result.stdout.strip().splitlines()[-1])
+        self.assertEqual(said["statuses"], {"json": 200, "csv": 200, "no_key": 200, "outcomes": 200, "bad_outcome": 400, "no_rows": 400})
+        self.assertEqual(said["recorded"], 70 + 1)
+        predictions = serving.read_log(logs / "predictions.jsonl", serving.PredictionRecord)  # every line strictly the contract
+        outcomes = serving.read_log(logs / "outcomes.jsonl", serving.OutcomeRecord)
+        self.assertEqual((len(predictions), len(outcomes)), (40 + 30 + 2, 70 + 1))  # the refused outcome left nothing
+        self.assertEqual(len({r.batch for r in predictions}), 3)
+        self.assertEqual({(r.model_id, r.model_version, r.task) for r in predictions}, {(self.pid, meta["model_version"], "binary")})
+        self.assertEqual([r.score for r in predictions[:40]], said["scores_json"])  # the score logged is the score answered
+        joined = serving.join(predictions, outcomes)
+        self.assertEqual(len(joined), 70 + 1)  # every keyed row and the made-up key's row met their outcome
+        positive = str(meta["positive_label"])
+        want = {serving.key_hash(order, key): float(str(label) == positive) for order, label in zip(rows["order_id"], labels)}
+        got = dict(zip(joined["key"], joined["outcome"]))
+        self.assertEqual({k: got[k] for k in want}, want)
+        text = (logs / "predictions.jsonl").read_text() + (logs / "outcomes.jsonl").read_text()
+        for column in list(rows.columns):
+            values = rows[column].dropna().astype(str)
+            for value in set(values if column == "order_id" or rows[column].dtype == object else []):
+                if len(value) >= 4:
+                    self.assertNotIn(value, text, f"a value of {column} is in a log")
+        self.assertNotIn(key, text)
+
+
+FLASK_STUB = '''
+"""A stand-in for Flask with the parts app.py uses: routes kept by method and path, one request at a time."""
+
+
+class _Upload:
+    def __init__(self, data):
+        self._data = data
+
+    def read(self):
+        return self._data
+
+
+class _Request:
+    def __init__(self):
+        self.set()
+
+    def set(self, json=None, args=None, files=None, form=None):
+        self._json, self.args, self.form = json, dict(args or {}), dict(form or {})
+        self.files = {k: _Upload(v) for k, v in (files or {}).items()}
+
+    def get_json(self, force=False, silent=False):
+        return self._json
+
+
+request = _Request()
+
+
+def jsonify(obj=None, **kwargs):
+    return obj if obj is not None else kwargs
+
+
+class Flask:
+    def __init__(self, name):
+        self.routes = {}
+
+    def _route(self, method, path):
+        def keep(function):
+            self.routes[(method, path)] = function
+            return function
+        return keep
+
+    def get(self, path):
+        return self._route("GET", path)
+
+    def post(self, path):
+        return self._route("POST", path)
+'''
+
+SERVICE_SCRIPT = r'''
+import io, json, sys
+from pathlib import Path
+sys.path[:0] = [sys.argv[1], sys.argv[2]]
+import flask, app
+import pandas as pd
+
+scratch = Path(sys.argv[3])
+rows = json.loads((scratch / "rows.json").read_text())
+labels = json.loads((scratch / "labels.json").read_text())
+
+
+def call(method, path, **request):
+    flask.request.set(**request)
+    out = app.app.routes[(method, path)]()
+    return out if isinstance(out, tuple) else (out, 200)
+
+
+statuses = {}
+body, statuses["json"] = call("POST", "/predict", json={"rows": rows[:40], "key": "order_id"})
+scores = [p["score"] for p in body["predictions"]]
+assert [p["key"] for p in body["predictions"]] == [str(r["order_id"]) for r in rows[:40]], body["predictions"][:2]
+csv = pd.DataFrame(rows[40:70]).to_csv(index=False).encode()
+body, statuses["csv"] = call("POST", "/predict/csv", files={"file": csv}, form={"key": "order_id"})
+assert len(body["predictions"]) == 30
+body, statuses["no_key"] = call("POST", "/predict", json=rows[:2])
+made = body["predictions"][0]["key"]
+assert len(made) == 32 and body["batch"]
+posted = [{"key": r["order_id"], "outcome": label, "known_at": "2026-10-25T08:00:00+00:00"} for r, label in zip(rows, labels)]
+posted.append({"key": made, "outcome": labels[0]})
+body, statuses["outcomes"] = call("POST", "/outcome", json={"outcomes": posted})
+recorded = body["recorded"]
+_, statuses["bad_outcome"] = call("POST", "/outcome", json={"outcomes": [{"key": "x", "outcome": "maybe"}]})
+_, statuses["no_rows"] = call("POST", "/outcome", json={"nothing": 1})
+print(json.dumps({"statuses": statuses, "scores_json": scores, "recorded": recorded}))
+'''
 
 
 if __name__ == "__main__":

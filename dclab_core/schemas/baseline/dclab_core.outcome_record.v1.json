@@ -1,0 +1,31 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "key": {
+      "pattern": "^[0-9a-f]{32}$",
+      "type": "string"
+    },
+    "known_at": {
+      "type": "string"
+    },
+    "outcome": {
+      "type": "number"
+    },
+    "recorded_at": {
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.outcome_record.v1",
+      "default": "dclab_core.outcome_record.v1",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "key",
+    "outcome",
+    "known_at",
+    "recorded_at"
+  ],
+  "type": "object"
+}
