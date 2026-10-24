@@ -1,0 +1,175 @@
+{
+ "package": "34.2-targeting-and-several-actions",
+ "title": "Targeting and several actions: whom to treat from an uplift model, which action each row gets, the cheapest class (34.2)",
+ "date": "2026-10-25",
+ "request": "The owner asked to finish Phase 10 without stopping. The plan (docs/guides/PHASE10_ABILITIES_PLAN.md, 34.2) asks for targeting from an uplift model under a budget, the choice of several actions under each action's capacity, and the class with the lowest expected cost from a cost matrix.",
+ "spec": "target_by_uplift, choose_actions and choose_by_cost_matrix in dclab_core/decide.py, on top of 34.1's DecisionSpec; measured on the campaign_uplift replica (true uplift known per row) and against an exhaustive search on small cases.",
+ "plan": [
+  "read uplift.py (TLearner, Qini) and the campaign replica",
+  "write the failing tests: regret against treating everyone and a random share, an exhaustive search for several actions, a cost matrix",
+  "targeting: compare the arms among the top rows on validation rows, choose the share with the most incremental value, read the holdout once",
+  "several actions: an exact assignment under capacities",
+  "cost matrix: each row's lowest expected cost",
+  "review, fix, record"
+ ],
+ "decisions": [
+  {
+   "decision": "The value of treating the top rows is measured from the two arms among those rows, never from the model's own uplift scores",
+   "why": "an uplift model's scores are its guess; the arms' outcome rates are what happened, so the chosen share cannot be flattered by the model"
+  },
+  {
+   "decision": "A group of top rows is read only when each arm has at least 30 rows",
+   "why": "the difference of two tiny arms is mostly noise and the maximum of a curve lands there"
+  },
+  {
+   "decision": "An exact assignment (successive shortest paths over the actions) instead of a greedy one",
+   "why": "greedy by value is wrong with two capacities; the exact one equals an exhaustive search and stays fast after vectorising"
+  },
+  {
+   "decision": "Say 'cannot tell' when the value's interval reaches zero instead of forcing a share of zero",
+   "why": "the person sees the chosen share and the doubt together; hiding the share would also hide a real but uncertain gain"
+  }
+ ],
+ "change": "dclab_core/decide.py (MIN_ARM, _cut_points, _incremental, target_by_uplift, _value_of, choose_actions, _flow_assign, choose_by_cost_matrix); version 0.108.0 and CHANGELOG; tests/test_core_decide_targeting.py (new).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "defect": "the holdout was read without the arms' weights when the validation rows were weighted",
+   "scenario": "offers given to 80% of loyal customers and 20% of the rest, weights from those chances: the holdout read 1.40 per row against a true 0.81, outside its own prediction interval",
+   "cause": "the holdout's value used weights of one for every row",
+   "fix": "a w_test argument; weighted validation rows without the holdout's weights are refused",
+   "test": "tests/test_core_decide_targeting.py::TargetingTests::test_weighted_arms_are_read_weighted_on_the_holdout_too",
+   "severity": "behaviour",
+   "impact": "a campaign whose offers were not randomised would report a holdout value far above the truth",
+   "alternatives": [
+    "reuse the validation weights' model on the holdout: the library fits nothing, so the host passes them"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "missing scores gave a threshold that did not match the share chosen",
+   "scenario": "with five missing scores the share chose 1,551 rows but its threshold selected 1,546; with half missing the threshold was empty while the share said 0.19",
+   "cause": "one sort put missing values first and another put them last",
+   "fix": "scores, arms, outcomes and weights must be finite and of one length, on validation and holdout alike",
+   "test": "tests/test_core_decide_targeting.py::TargetingTests::test_noise_says_it_cannot_tell_and_unread_fields_and_bad_scores_are_refused",
+   "severity": "behaviour",
+   "impact": "a model that returns a missing score for some rows would get a decision that treats other rows than it says",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "fields of the decision that targeting does not read were ignored without a word",
+   "scenario": "a daily capacity of 10 still treated 1,555 rows; a false alarm's cost of 30 did not change the share",
+   "cause": "target_by_uplift reads only the value per case, the cost per action and the capacity share",
+   "fix": "a daily capacity, a value column, a false alarm's or a miss's cost are refused with a message",
+   "test": "tests/test_core_decide_targeting.py::TargetingTests::test_noise_says_it_cannot_tell_and_unread_fields_and_bad_scores_are_refused",
+   "severity": "behaviour",
+   "impact": "a person's stated capacity or cost would silently not count",
+   "alternatives": [
+    "take rows_per_day as choose_operating_point does: left for 34.4 when the product passes it"
+   ],
+   "open": "a daily capacity for targeting"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "an assignment dropped a row with a missing or infinite value",
+   "scenario": "values [[missing, 5]] gave no action, losing 5; a value of plus infinity sent its row to no action",
+   "cause": "missing and infinite values broke the comparisons of the flow",
+   "fix": "missing and plus infinity refused; minus infinity kept, meaning the action is not allowed",
+   "test": "tests/test_core_decide_targeting.py::SeveralActionsTests::test_shapes_and_capacities_are_checked",
+   "severity": "behaviour",
+   "impact": "rows silently left without the action they were worth",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "the cost matrix choice accepted probabilities and costs it could not read",
+   "scenario": "a missing probability chose class 0 with no cost; rows not adding up to one gave rescaled costs; a missing cost passed the check for negatives",
+   "cause": "only negative costs were checked",
+   "fix": "finite probabilities at least zero, each row adding up to one, and a finite cost matrix of the classes' size",
+   "test": "tests/test_core_decide_targeting.py::CostMatrixTests::test_a_cost_matrix_must_match_the_classes",
+   "severity": "behaviour",
+   "impact": "a wrong class chosen with a cost that means nothing",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "on pure noise a small share was chosen with a positive value and no doubt said",
+   "scenario": "no true uplift, random arms, a score with no signal, 7,200 rows: a positive share in 34 of 60 runs, the interval's low end above zero in only 3",
+   "cause": "the curve's maximum lands where the arms are smallest and noisiest; the interval was honest but the answer did not read it",
+   "fix": "pays says yes, no or cannot tell; cannot tell when the 90% interval reaches zero, with a note",
+   "test": "tests/test_core_decide_targeting.py::TargetingTests::test_noise_says_it_cannot_tell_and_unread_fields_and_bad_scores_are_refused",
+   "severity": "behaviour",
+   "impact": "a campaign with no effect would be told to treat a small share for a gain that is noise",
+   "alternatives": [
+    "force a share of zero: hides an uncertain but real gain from the person"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F7",
+   "source": "self",
+   "defect": "the exact assignment was too slow for real tables",
+   "scenario": "1,000 rows took 20 seconds",
+   "cause": "the best move for each pair of actions was searched row by row in Python",
+   "fix": "the best move per pair found with array operations; 10,000 rows in 2.7 seconds, 50,000 in 67",
+   "test": "tests/test_core_decide_targeting.py::SeveralActionsTests::test_the_assignment_equals_an_exhaustive_search_on_small_cases",
+   "severity": "latent",
+   "impact": "a product call on a real table would time out",
+   "alternatives": [
+    "a greedy assignment: wrong with two capacities"
+   ],
+   "open": "very large tables (over 50,000 rows) still take minutes"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "targeting regret on the campaign replica",
+   "gate": "the targeted share leaves less value than treating everyone, with the paired difference's 5% quantile above zero, and less than a random share of the same size",
+   "fixed_before_run": true,
+   "result": "both held on the holdout's true uplift; the paired difference's 5% quantile above zero",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "measure through the engine in 34.4",
+   "against_gate": "",
+   "limits": [
+    "one replica and one seed for the random share",
+    "a T-learner only"
+   ]
+  },
+  {
+   "name": "exact assignment against an exhaustive search",
+   "gate": "the same total value on 150 small cases, every capacity held",
+   "fixed_before_run": true,
+   "result": "equal on 150 of 150; the reviewer's independent check against an assignment solver found 0 mismatches in 4,000 cases",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "",
+   "against_gate": "",
+   "limits": [
+    "random tables, not a replica with two actions"
+   ]
+  }
+ ],
+ "outcome": "DCLab chooses whom to treat from an uplift model by what the arms show, says when it cannot tell, assigns several actions exactly under their capacities and picks the cheapest class from a cost matrix.",
+ "lessons": [
+  "Measure a targeting rule from what the arms did, not from the model's own scores.",
+  "When a curve's maximum sits where the data is thinnest, read the interval before the answer.",
+  "Check every input a function does not read: a silently ignored capacity is worse than a refused one."
+ ],
+ "risks": [
+  "an uplift model fitted on the same rows as the targeting would flatter the share",
+  "non-randomised offers need weights the host must supply"
+ ],
+ "commits": []
+}

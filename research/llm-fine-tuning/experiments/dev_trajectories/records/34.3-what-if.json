@@ -1,0 +1,124 @@
+{
+ "package": "34.3-what-if",
+ "title": "What-if: a chosen decision re-scored under other numbers without refitting, and how far each number can move (34.3)",
+ "date": "2026-10-25",
+ "request": "The owner asked to finish Phase 10 without stopping. The plan (docs/guides/PHASE10_ABILITIES_PLAN.md, 34.3) asks for a what-if that re-scores a chosen decision under changed costs, values, capacity or base rate with no refit, and a sensitivity table of which change moves the decision.",
+ "spec": "what_if and sensitivity in dclab_core/decide.py, on top of 34.1's choose_operating_point (which gains row weights for a changed base rate); every answer says what was not refitted.",
+ "plan": [
+  "a changed number: choose again on the same out-of-fold scores with the new spec",
+  "a changed base rate: weight cases by the new rate over the old and non-cases likewise, no refit",
+  "the old decision kept under the new numbers, and the regret of not changing",
+  "a sensitivity table: each stated number times 0.25 to 4, where the share moves",
+  "tests against a fresh choice and a resampled table; review; fix"
+ ],
+ "decisions": [
+  {
+   "decision": "A base rate change reweights the out-of-fold rows instead of resampling them",
+   "why": "it is exact for the expected value under prior shift and needs no random draw; a resampled table only checks it"
+  },
+  {
+   "decision": "The old decision is kept as the very rows it acted on, not as its threshold",
+   "why": "a threshold re-applied under new costs or after rounding acts on other rows than the decision did"
+  },
+  {
+   "decision": "With a value per row, every value scales together (value_scale) and a single value per case is refused",
+   "why": "the core reads the row values, so a changed single value would silently change nothing"
+  },
+  {
+   "decision": "Weighted rows choose a point only: no bootstrap, no entities, no holdout",
+   "why": "those read rows, not weights; weighting them all is a larger change than a what-if needs"
+  }
+ ],
+ "change": "dclab_core/decide.py (WHAT_IF_TERMS, NOT_REFITTED, _rate_weights, what_if, sensitivity; choose_operating_point takes weights and divides by their total); tests/test_core_decide_whatif.py (new); version 0.108.0 with 34.2.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "defect": "keeping the old decision re-applied its rounded threshold and dropped the rows tied at it",
+   "scenario": "scores on a grid of sevenths, a what-if that changed nothing: the old decision acted on 0.282 of rows, the kept one on 0.146, with a regret of 1.66 per row made up",
+   "cause": "the threshold in the answer is rounded to six digits; rounding up leaves the tied rows below it",
+   "fix": "the kept decision takes the same count of rows by the old ranking",
+   "test": "tests/test_core_decide_whatif.py::WhatIfTests::test_keeping_the_old_decision_keeps_its_very_rows",
+   "severity": "behaviour",
+   "impact": "a person asking whether to change their decision would be shown a regret that does not exist",
+   "alternatives": ["keep the threshold unrounded in the answer: still wrong when the ranking itself changes"],
+   "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "with a value per row, the kept decision ranked its rows with the new costs",
+   "scenario": "a review's cost raised from 1 to 8: the kept decision acted on 0.518 instead of 0.684, its regret shown as 0.62 instead of 1.68",
+   "cause": "the expected gain that ranks rows was computed with the new spec",
+   "fix": "the kept rows are ranked with the old spec",
+   "test": "tests/test_core_decide_whatif.py::WhatIfTests::test_keeping_the_old_decision_keeps_its_very_rows",
+   "severity": "behaviour",
+   "impact": "the cost of not changing the decision would be understated",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "the kept decision ignored a smaller capacity",
+   "scenario": "a capacity cut from 0.5 to 0.02: the kept decision acted on 0.329 of rows and its regret was negative",
+   "cause": "the old rows were valued as they were, over the new cap",
+   "fix": "the old rows are cut to the new capacity, best first, and the answer says so",
+   "test": "tests/test_core_decide_whatif.py::WhatIfTests::test_keeping_the_old_decision_keeps_its_very_rows",
+   "severity": "behaviour",
+   "impact": "a decision the team can no longer carry out would look better than the new one",
+   "alternatives": ["mark it over capacity with no regret: less useful to the person"],
+   "open": "on tied scores a capacity cuts through a tie for the kept decision but not for the new choice, so the regret can be negative there"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "with a value per row, a changed value per case was ignored and the sensitivity said the value never matters",
+   "scenario": "a value column with a value per case of 50 changed to 5000: the answer after equalled the answer before",
+   "cause": "the core reads the row values and never the single value",
+   "fix": "a single value change is refused with values per row; value_scale multiplies them all and the sensitivity table uses it",
+   "test": "tests/test_core_decide_whatif.py::WhatIfTests::test_values_per_row_scale_together_and_a_single_value_is_refused",
+   "severity": "behaviour",
+   "impact": "a project valued by a column (an order's amount) would be told its decision does not depend on the value",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "with row weights only the curve used them: the intervals, the capacity flag and the value per row read rows",
+   "scenario": "weights for a base rate of 0.5 on 0.15 with the default bootstrap: a value of 18.43 with an interval of 4.17 to 4.79; all weights 2 doubled the value",
+   "cause": "the bootstrap and the summaries were written before weights existed",
+   "fix": "weights choose a point only (no bootstrap, entities or holdout); the value divides by the total weight; shares and the capacity flag are weighted",
+   "test": "tests/test_core_decide_whatif.py::WhatIfTests::test_weighted_rows_choose_a_point_only_and_weigh_as_shares",
+   "severity": "latent",
+   "impact": "any later caller passing weights would get intervals that do not hold their own point",
+   "alternatives": ["weight the bootstrap too: a larger change for no current caller"],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "a changed cost against a fresh choice, a base rate against a resampled table",
+   "gate": "a changed cost gives exactly a fresh choice's point; a base rate's share within 0.02 of choosing again on a resampled table",
+   "fixed_before_run": true,
+   "result": "the same point exactly; for a base rate of 0.15 moved to 0.05 the reviewer measured 0.117 against 0.114 to 0.126 on ten resampled tables",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "the product's what-if (34.4) reads this",
+   "against_gate": "",
+   "limits": ["invented scores", "prior shift assumes the scores of cases and non-cases keep their shape"]
+  }
+ ],
+ "outcome": "A chosen decision can be asked what if a cost, a value, the capacity or the base rate changes, without refitting: the new point, the old decision's very rows valued anew, the regret of not changing, and how far each number can move.",
+ "lessons": [
+  "Keep a decision as the rows it acted on, never as a rounded threshold re-applied.",
+  "A what-if must refuse a change the core does not read, or it answers that nothing matters.",
+  "A new argument (weights) must reach every summary or be refused where it does not."
+ ],
+ "risks": [
+  "a base rate far from the training rows' makes the reweighting rest on few rows",
+  "a person may read a what-if as a promise; the note says nothing was refitted"
+ ],
+ "commits": []
+}

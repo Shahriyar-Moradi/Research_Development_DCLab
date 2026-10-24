@@ -98,6 +98,10 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
   action's capacity; exact for one capacity), multiclass by a cost matrix.
 - **Done when:** on `campaign_uplift` (true uplift known per row) the targeting's regret against the oracle beats
   random and treat-all with its interval; a two-action replica's choice equals brute force on small sizes.
+- **Status:** done (2026-10-25, dclab-core 0.108.0). `target_by_uplift` reads the arms among the top rows on validation
+  rows (weights when offers were not random), says whether it pays (yes, no, cannot tell) and reads the holdout once;
+  `choose_actions` is exact (successive shortest paths), not greedy; `choose_by_cost_matrix`. Open: a daily capacity for
+  targeting (refused today), a two-action replica (tested on random tables against an exhaustive search).
 
 ### 34.3 What-if
 - **Delivers:** `what_if(result, changes)` re-scores a chosen decision under changed costs, values, capacity or base rate
@@ -105,6 +109,10 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
   flips the decision, and by how much the value moves.
 - **Done when:** doubling a cost moves the point as brute force says; a base-rate change matches a resampled replica;
   every answer says what was not refitted.
+- **Status:** done (2026-10-25, dclab-core 0.108.0). `what_if(y_oof, score_oof, spec, changes)` (costs, values,
+  capacity, base rate by reweighting) and `sensitivity(...)` (each stated number times 0.25 to 4, where the share
+  moves); a changed cost equals a fresh choice exactly; a base rate matches a resampled table within 0.02. Open: what-if
+  for targeting and several actions.
 
 ### 34.4 Decisions in the product
 - **Delivers:** `Solution.decision` v2 (the spec of 34.1, binary and multiclass, the old `review` and `price` kept);

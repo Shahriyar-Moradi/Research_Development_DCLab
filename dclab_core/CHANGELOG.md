@@ -4,6 +4,24 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.108.0 (2026-10-25)
+
+Targeting and several actions (34.2), what-if (34.3).
+
+- `decide.target_by_uplift`: whom to treat. Rows ranked by an uplift model's score; the share whose treatment is worth
+  the most, measured from the arms of rows the model never trained on (the treated and untreated among the top rows,
+  weighted when the arms were not randomised), under a capacity; the holdout read once with a prediction interval;
+  compared with treating everyone, no one and a random share. On the campaign replica it leaves less value on the table
+  than treating everyone or a random share of the same size.
+- `decide.choose_actions`: which of several actions each row gets under each action's capacity, exactly (successive
+  shortest paths; no difference from an exhaustive search on 1,200 random cases; 10,000 rows in about 3 seconds).
+- `decide.choose_by_cost_matrix`: the class with the lowest expected cost for each row.
+- `decide.what_if` and `decide.sensitivity`: a chosen operating point under changed costs, values, capacity or base
+  rate (cases weighted by the new rate over the old), nothing refitted; and how far each stated number can move before
+  the share chosen moves. `choose_operating_point` takes row weights.
+- `target_by_uplift` says whether targeting pays (`yes`, `no`, `cannot tell` when the value's interval reaches zero),
+  refuses decision fields it does not read, non-finite inputs and weighted arms without the holdout's weights.
+
 ## 0.107.0 (2026-10-24)
 
 Would more rows help? (34.13)

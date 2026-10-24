@@ -1062,3 +1062,24 @@ calls its own trainer with the chosen configuration; the result is stored beside
 level of the customer's table, so it stays in the project's record under the project's access rules and never enters a
 decision state or an exported event. The answer becomes a `semantic_decision_answers`-style row only when the main product
 adds a governed point for it; until then `conformance` lists `data.more_rows` as this studio's point.
+
+## Decisions on top of a model (34.1 to 34.3, dclab-core 0.105.0 to 0.108.0)
+
+The library's: `dclab_core.decide`. A host states what acting on a row is worth and costs as a `DecisionSpec` v1 (a value
+per case or a row's value column, a cost per action, a false alarm's and a miss's cost, a capacity as a share or per day)
+and passes its own out-of-fold scores; nothing is fitted by the library except a bootstrap.
+
+- `choose_operating_point(y_oof, score_oof, spec, ...)`: the threshold with the highest expected value under the
+  capacity, its 90 % interval and, when the host passes its holdout, the holdout read once with a prediction interval.
+  The main product's `spec.objective` takes the costs through `adapters.main_product.objective_of(spec)`; a value per
+  case, a cost per action and a capacity have no field there, and the result's notes say so to the person choosing on
+  the operating points page.
+- `target_by_uplift(score, treated, outcome, spec, ...)`: whom to treat from an uplift model's scores on validation rows
+  with both arms (weights when the arms were not randomised); `pays` says yes, no or cannot tell.
+- `choose_actions(values, capacities)`: which of several actions each row gets under each action's capacity, exactly.
+- `choose_by_cost_matrix(proba, cost_matrix)`: each row's class with the lowest expected cost.
+- `what_if(...)` and `sensitivity(...)`: the decision under changed numbers or a changed base rate, and how far each
+  number can move before it changes; nothing is refitted.
+
+Where it goes in the main product: after its experiment's final model is chosen, beside its operating points page; the
+records are plain dicts the host stores with the experiment. Wiring is the main product's own change.
