@@ -25,7 +25,8 @@ MODELS = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "
 RESULTS = ROOT / "evidence" / "campaigns" / "decision_models_v1" / "results"
 DECISIONS = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions"
 SETS = {"v1": (GENERATED, MODELS), "v2": (DECISIONS / "generated_v2", DECISIONS / "models_v2"),  # 29.5: every generation's students sit their exam
-        "images": (DECISIONS / "generated_images_v1", DECISIONS / "models_images_v1")}
+        "images": (DECISIONS / "generated_images_v1", DECISIONS / "models_images_v1"),
+        "real": (DECISIONS / "real_v1", DECISIONS / "models_real_v1")}  # 29.15: real OpenML tables, their declared truths (the owner, 2026-10-25)
 
 
 def sealed_fingerprint(rows: list[dict[str, Any]]) -> str:
@@ -54,7 +55,9 @@ def sealed(point: str, generated: Path = GENERATED) -> list[dict[str, Any]]:
     return rows
 
 
-def judge(point: str, generated: Path = GENERATED, models: Path = MODELS, results: Path = RESULTS) -> Path:
+def judge(point: str, generated: Path = GENERATED, models: Path = MODELS, results: Path = RESULTS, exclude: tuple = (), why: str = "") -> Path:
+    """``exclude``: truths left out of the judged rows, decided before the sealed set is read and kept in the record with
+    ``why`` (the role student on real tables: identifiers are the point column.is_identifier's, asked first)."""
     import joblib
 
     from dclab_core import decision_gate
@@ -70,6 +73,8 @@ def judge(point: str, generated: Path = GENERATED, models: Path = MODELS, result
     if model.version != card["version"]:
         raise ValueError(f"{point}: the fitted model ({model.version}) is not the one its card describes ({card['version']})")
     rows = [r for r in sealed(point, generated) if r.get("label") and r["label"].get("value") is not None]
+    left_out = sum(1 for r in rows if r["label"]["value"] in set(exclude))
+    rows = [r for r in rows if r["label"]["value"] not in set(exclude)]
     answers, errors = [], 0
     for r in rows:
         try:
@@ -89,10 +94,13 @@ def judge(point: str, generated: Path = GENERATED, models: Path = MODELS, result
            "model": {"name": card["name"], "version": card["version"], "family": card["family"], "strength": card["strength"],
                      "trained_set": card["trained_set"]},
            "gate": {"version": decision_gate.VERSION, "thresholds": decision_gate.THRESHOLDS},
-           "sealed": {"decisions": len(rows), "fingerprint": fingerprint},
+           "sealed": {"decisions": len(rows), "fingerprint": fingerprint, **({"left_out": left_out} if exclude else {})},
+           **({"scope": {"excluded_truths": list(exclude), "why": why}} if exclude else {}),
            "verdict": result, "result": "pass" if result["pass"] else "fail",
-           "rule": f"One run of {card['name']} on {len(rows)} sealed decisions of generated tables, judged by a gate written "
-                   "before it; evidence about these planted kinds, not about real tables nor production readiness."}
+           "rule": f"One run of {card['name']} on {len(rows)} sealed decisions of "
+                   + ("real OpenML tables (their uploaders' declarations)" if Path(generated).name.startswith("real") else "generated tables")
+                   + ", judged by a gate written before it" + (f"; scope fixed before the read: {why}" if exclude else "")
+                   + "; not evidence of production readiness."}
     path = results / f"{ident}_{point}.json"
     path.write_text(json.dumps(doc, indent=2, default=str) + "\n", encoding="utf-8")
     return path
@@ -105,6 +113,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--set", default="v1", choices=tuple(SETS), help="29.5: which generation's students (their homework and their cards)")
     parser.add_argument("--points", default="")
     parser.add_argument("--yes", action="store_true", help="read the sealed sets (once: they are then spent for this gate)")
+    parser.add_argument("--exclude", default="", help="truths left out of the judged rows (comma-separated), decided before the read")
+    parser.add_argument("--why", default="", help="why they are left out (kept in the record)")
     args = parser.parse_args(argv)
     generated, models = SETS[args.set]
     cards = [p.stem for p in models.glob("*.json") if p.stem not in ("fitted", "SKIPPED") and (models / f"{p.stem}.joblib").exists()]
@@ -116,7 +126,10 @@ def main(argv: list[str] | None = None) -> int:
         if spent(point, committed_fingerprint(point, generated)):
             print(f"{point:<26} already judged: its sealed set is spent")
             continue
-        doc = json.loads(judge(point, generated, models).read_text(encoding="utf-8"))
+        excluded = tuple(x for x in args.exclude.split(",") if x)
+        if excluded and not args.why:
+            raise SystemExit("--exclude needs --why: the scope is part of the record")
+        doc = json.loads(judge(point, generated, models, exclude=excluded, why=args.why).read_text(encoding="utf-8"))
         v = doc["verdict"]
         print(f"{point:<26} {doc['result']:<4}  " + "  ".join(f"{c['criterion'].split(',')[0]}={c['value']}" for c in v["criteria"]))
     return 0

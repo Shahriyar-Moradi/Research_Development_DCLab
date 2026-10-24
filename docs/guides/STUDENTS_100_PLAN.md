@@ -42,6 +42,19 @@ A fresh retrain (`models_real_v2`) reproduces `models_real_v1`'s cards (real dev
 every point: invented homework teaches the method, real homework teaches the skill. Leakage, time and group have no
 real truth yet: their real labels must come from people (S5.1), measured outcomes (S3) or, as evaluation only, Claude.
 
+## The role student's sealed exam on real tables, fixed before it is read (2026-10-25)
+
+- **Student:** `column.semantic_role` from `models_real_v1` (invented and real homework, 2026-10-19), unchanged.
+- **Exam:** `real_v1`'s sealed partition for `column.semantic_role` (4,585 decisions; its fingerprint committed on
+  2026-10-19), read once with `python -m dclab_rnd.decision_gate_run --set real --points column.semantic_role --yes`.
+- **Gate:** `decision_gate_v1`, its thresholds unchanged.
+- **Scope, decided on the dev rows before the read:** columns whose truth is `identifier` are left out. Why: real tables
+  declare almost no row identifiers (6 of 3,744 dev columns), the student never learned them (0 of 6), and DCLab asks
+  `column.is_identifier` as its own question first. So this student is judged as the role of a column that is not an
+  identifier. On the dev rows, under this scope: student 99.8%, rule 82.2%, macro precision 0.969, macro recall 0.992.
+  The scope and its reason are kept in the result record. A pass lets the owner switch it on for non-identifier
+  columns only; the identifier question stays with its own point.
+
 ## The rule this plan keeps
 
 **A student is worth adding only where it has labelled examples and a rule to beat.** One hundred students without data
