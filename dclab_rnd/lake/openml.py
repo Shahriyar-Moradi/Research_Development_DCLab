@@ -90,9 +90,10 @@ def _licence_ok(licence: str | None) -> bool:
     return any(k in text for k in OPEN_LICENCES)
 
 
-def profile_dataset(did: int) -> dict[str, Any] | None:
-    """One dataset's description, its columns' OpenML marks and their DCLab bands (the data file read once, deleted)."""
-    out_path = CACHE / "datasets" / f"{did}.json"
+def profile_dataset(did: int, cache: Path | None = None) -> dict[str, Any] | None:
+    """One dataset's description, its columns' OpenML marks and their DCLab bands (the data file read once, deleted).
+    ``cache``: another folder (the collector keeps its new tables apart from the lake's 1,200, so real_v1 never changes)."""
+    out_path = Path(cache or CACHE) / "datasets" / f"{did}.json"
     if out_path.is_file():
         return json.loads(out_path.read_text(encoding="utf-8"))
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -134,8 +135,12 @@ def profile_dataset(did: int) -> dict[str, Any] | None:
 
 def fetch(limit: int = 1200, log=print) -> dict[str, int]:
     counts: Counter = Counter()
+    collected = CACHE / "collector" / "datasets"  # the collector's tables (dclab_rnd.collector) stay out of the lake: one place each
     for i, d in enumerate(candidates(limit)):
         did = int(d["did"])
+        if (collected / f"{did}.json").is_file():
+            counts["collector"] += 1
+            continue
         try:
             rec = profile_dataset(did)
             counts["skipped" if rec is None or rec.get("skipped") else "profiled"] += 1

@@ -38,7 +38,7 @@ SOURCES = {  # name: folders copied as they are (the workspace goes through stor
     "lake_bronze": [ROOT / "lake" / "bronze"],
     "openml_profiles": [ROOT / "data" / "downloads" / "openml"],
     "decision_sets": [DECISIONS / "generated_v1", DECISIONS / "generated_images_v1", DECISIONS / "generated_v2", DECISIONS / "workflow_v1",
-                      DECISIONS / "real_v1", DECISIONS / "generated_v1_committee"],  # 29.15: the real-table sets (OpenML); 29.16: the committee's fresh set
+                      DECISIONS / "real_v1", DECISIONS / "generated_v1_committee", DECISIONS / "real_v2"],  # S2: the collector's fresh exam  # 29.15: the real-table sets (OpenML); 29.16: the committee's fresh set
     # 29.18 (the owner: every judgment with all its details, permanently): the live runs whole, their requests, the full
     # replies (judgments/, answers/), the judge's ledgers; results are never edited, a re-run is a new folder
     "live_tests": [ROOT / "agent_runs" / "live_tests"],
@@ -46,6 +46,7 @@ SOURCES = {  # name: folders copied as they are (the workspace goes through stor
     "test_runs": [ROOT / "training_records" / "test_runs"],
     # 30.19: the real problems' kept workspaces and the private problems' records (the owner's fraud), kept out of the repository
     "real_problems": [ROOT / "agent_runs" / "real_problems"],
+    "collector": [ROOT / "agent_runs" / "collector"],  # S2: the collector's state and every run's record
 }
 README = """# DCLab's training records
 

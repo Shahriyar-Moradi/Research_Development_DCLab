@@ -1,0 +1,178 @@
+{
+ "package": "S2-collector",
+ "title": "The collector: real tables for the students every night, in shadow, capped, never a sealed table, never the server's workspace",
+ "date": "2026-10-25",
+ "request": "The owner's step 4: 'The collector agent: every night it finds real tables, runs the students in shadow, and queues the disagreements for you'; a $20 budget.",
+ "spec": "docs/guides/STUDENTS_100_PLAN.md S2: guards (a cap per run and per month, the 80% rule, the store's consent, never a sealed set), a run record per run.",
+ "plan": [
+  "A job of kind collect queued by the worker's nightly sweep when DCLAB_COLLECTOR=1.",
+  "New OpenML candidates profiled into their own folder, so real_v1 never changes.",
+  "Train tables as homework, dev tables measured, sealed tables only profiled, for real_v2.",
+  "Claude's silver opinion on new disagreements within the caps; measured again; a run record.",
+  "Review by dclab-reviewer, every finding fixed with a test."
+ ],
+ "decisions": [
+  {
+   "decision": "Caps: EUR 0.5 a run, EUR 10 a month by default (DCLAB_COLLECTOR_RUN_EUR, DCLAB_COLLECTOR_MONTHLY_EUR).",
+   "why": "The owner's rule for a live run (<= EUR 0.5) and the plan's suggested monthly cap that the owner pasted back; the first draft's 1.5 and 18 went past both."
+  },
+  {
+   "decision": "A copy of a known table is set aside, by its columns' names, whichever split it falls in.",
+   "why": "OpenML re-uploads tables under new ids; the split is by id, so a copy could sit in the exam while its original is homework."
+  },
+  {
+   "decision": "real_v2 is built from the collector's tables only, once, then frozen.",
+   "why": "real_v1's sealed partition is spent for roles; a fresh exam must hold no table any student trained on."
+  },
+  {
+   "decision": "OpenML only for now; benchgen v2 and self-play not wired.",
+   "why": "Real tables are what the students lacked (invented-only students lost to the rules on real tables); the other sources are separate packages."
+  }
+ ],
+ "change": "dclab_rnd/collector.py (new), dclab_rnd/real_shadow.py (exclusive lock, own_books, silver checkpoint, two derived folders), dclab_rnd/real_homework.py (build from given datasets), dclab_rnd/lake/openml.py (profile into another folder; fetch skips the collector's tables), dclab_rnd/jobs (sweep, handler, settle by reason), tests/run_parallel.py, export/manifest.py, dclab_rnd/archive.py, .gitignore, tests",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Inside a job every decision went to the server's workspace.",
+   "scenario": "The worker binds context.using(env); ledger.current_ledger() returns env.ledger and ignores the installed book: dev tables stamped train in agent_runs, measured later on themselves.",
+   "cause": "install() sets only the process fallback; bound services win.",
+   "fix": "real_shadow.own_books(): context.using(None) around the loop, the fallback ledger and DCLAB_DECISION_SHADOW restored afterwards.",
+   "test": "tests/test_collector.py test_inside_a_job_every_decision_stays_in_the_collectors_workspaces (fails on the old code)"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "real_v2's sealed exam could hold copies of training tables.",
+   "scenario": "did 46757 depression_2020 (sealed) has the columns of lake train table 43419 depression; 45067 okcupid_stem (train) copies real_v1 sealed 41440.",
+   "cause": "Splits by dataset id; re-uploads get new ids.",
+   "fix": "twin_of: column-name Jaccard >= 0.8, or the same name without a year and >= 0.5: set aside as near-duplicate.",
+   "test": "test_a_copy_of_a_known_table_is_set_aside_never_homework_nor_exam"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The month cap could be passed: two runs at once, or a run killed after Claude answered.",
+   "scenario": "17.0 of 18 spent, two overlapping runs each get 1.0: 19.0; make dev restarts the worker after silver: the spend never written.",
+   "cause": "No lock; spend written only at the end.",
+   "fix": "real_shadow.exclusive (flock, non-blocking: Busy makes a skipped run; the CLI takes it too); the cap reserved in state.json before silver and settled after.",
+   "test": "test_one_run_at_a_time, test_a_run_killed_or_stopped_while_claude_answers_keeps_its_cap_counted"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The open export would ship collector.py and real_shadow.py and fail its import check.",
+   "scenario": "INCLUDE dclab_rnd/**; CLOSED does not exclude files.",
+   "cause": "Listed in CLOSED only.",
+   "fix": "Both files in EXCLUDE.",
+   "test": "tests/test_open_cli.py passes; grep: every other import goes through optional()"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A test server's worker could start the real collector.",
+   "scenario": "DCLAB_COLLECTOR=1 in .env: a long test queues collect against the real folders and OpenML.",
+   "cause": "run_parallel's child_env did not default it.",
+   "fix": "env.setdefault('DCLAB_COLLECTOR', '0').",
+   "test": "tests/run_parallel.py"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "One night offline used up the candidates for ever.",
+   "scenario": "Every exception wrote a skipped marker; failures skipped the sleep: 100 tables marked in seconds.",
+   "cause": "Network failures treated as unreadable tables.",
+   "fix": "A network failure (real_shadow.is_retry) leaves no mark; three in a row end the gathering; a derivation lost to the network is removed and derived again first.",
+   "test": "test_a_night_offline_leaves_no_mark_and_ends_the_gathering, test_a_derivation_lost_to_the_network_is_tried_again"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A run skipped by a guard used up the night; a person's Stop restarted within the hour.",
+   "scenario": "The learning pilot running at sweep time every night: the collector never ran.",
+   "cause": "_keep set the done clock for skipped runs; settle called failed() for any reason.",
+   "fix": "A skipped run sets failed_clock (an hour); failed(reason='stopped') sets the clock (a night); a run starts only at night (DCLAB_COLLECTOR_HOURS, 0-7).",
+   "test": "test_a_skipped_run_tries_again_within_the_hour_a_stopped_one_waits_a_night, test_due_only_when_switched_on_and_at_night"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Stop did not reach Claude's step.",
+   "scenario": "After Stop, Claude kept being asked up to the run's cap.",
+   "cause": "No checkpoint in silver.",
+   "fix": "silver(checkpoint=) before each request; the reserved cap stays counted when it stops.",
+   "test": "tests/test_real_shadow.py test_a_jobs_stop_reaches_claudes_step"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The exam could freeze too small.",
+   "scenario": "Failed derivations counted; is_identifier has few tables that declare a row identifier.",
+   "cause": "Counted tables, not per point.",
+   "fix": "exam_status counts per point, skips failed derivations, names the thin points.",
+   "test": "test_the_exam_counts_only_derived_sealed_tables_per_point"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "real_v2's sealed rows were not ignored by git nor kept by the archive.",
+   "scenario": "A broad git add would commit sealed.jsonl.",
+   "cause": "Only real_v1 had the rules.",
+   "fix": ".gitignore real_v2/* but its MANIFEST; archive SOURCES real_v2 and agent_runs/collector.",
+   "test": "tests/test_archive.py passes"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The lake could profile the collector's tables.",
+   "scenario": "openml.fetch(limit>1200) would put a table in both the lake and real_v2.",
+   "cause": "fetch did not look at the collector's folder.",
+   "fix": "fetch skips ids the collector holds.",
+   "test": "test_the_lake_never_profiles_a_table_the_collector_holds"
+  },
+  {
+   "id": "B1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "real_homework.build built from nothing when given datasets.",
+   "scenario": "Two test_real_homework tests failed.",
+   "cause": "The parameter 'records' was overwritten by a local list of the same name.",
+   "fix": "Renamed to datasets.",
+   "test": "tests/test_real_homework.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "tests",
+   "gate": "affected files only (the owner's daytime rule)",
+   "result": "102 tests in 8 files pass (collector 14, real_shadow 7, real_homework 8, jobs, lake, archive, decision_gate, open_cli)",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "no live run yet: free disk was under the 3 GB guard"
+   ]
+  }
+ ],
+ "outcome": "The collector is built, reviewed and fixed; it runs only when switched on (DCLAB_COLLECTOR=1), at night, with 3 GB free and the Mac under 80% busy. Not yet run live.",
+ "lessons": [
+  "Inside a job the bound services decide where writes go: a module that installs its own ledger must also unbind the services, or its writes land in the server's workspace.",
+  "Splitting public tables by id is not enough: re-uploads under new ids put copies across the split; compare their columns."
+ ],
+ "risks": [
+  "Done-when not yet met: two nightly runs growing the neediest points' homework (no live run yet).",
+  "Nothing picks the neediest points: OpenML tables feed every column point at once; benchgen and self-play are not wired.",
+  "Only a pgrep check coordinates with the learning agent; no shared queue or budget."
+ ],
+ "commits": []
+}

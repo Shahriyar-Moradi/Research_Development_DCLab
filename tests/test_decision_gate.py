@@ -210,6 +210,22 @@ class RunTest(unittest.TestCase):
         self.assertEqual(doc["result"], "fail")
         self.assertEqual(doc["verdict"]["criteria"][0]["value"], "392/400")
 
+    def test_a_scoped_exam_leaves_the_class_out_of_the_rows_and_of_the_options(self):  # DMG-014, 2026-10-25
+        model = joblib.load(self.models / "column.is_identifier.joblib")
+        seen = []
+        real = model.answer
+
+        def spy(point, state, options):
+            seen.append(list(options))
+            return real(point, state, options)
+
+        model.answer = spy
+        with mock.patch("joblib.load", return_value=model):
+            doc = json.loads(run.judge("column.is_identifier", self.generated, self.models, self.results, exclude=(True,), why="a test").read_text())
+        self.assertEqual(doc["scope"], {"excluded_truths": [True], "why": "a test"})
+        self.assertEqual(doc["sealed"]["decisions"] + doc["sealed"]["left_out"], 400)
+        self.assertTrue(seen and all(True not in o for o in seen))  # the left-out class is never an answer either
+
     def test_a_sealed_set_that_moved_is_refused(self):
         path = self.generated / "decisions" / "column.is_identifier" / "sealed.jsonl"
         lines = path.read_text().splitlines()

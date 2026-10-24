@@ -78,7 +78,8 @@ def judge(point: str, generated: Path = GENERATED, models: Path = MODELS, result
     answers, errors = [], 0
     for r in rows:
         try:
-            got = model.answer(point, r["state"], list(r.get("options") or []))
+            options = [o for o in r.get("options") or [] if o not in set(exclude)]  # a scoped exam: the left-out class is no answer either (DMG-014)
+            got = model.answer(point, r["state"], options)
             answers.append(None if got is None else got.value)
         except Exception:  # noqa: BLE001 - an error is counted, never skipped
             answers.append(None)

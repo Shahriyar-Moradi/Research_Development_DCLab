@@ -305,7 +305,7 @@ class Worker:
         from .. import retention
         from ..extensions import optional
 
-        sweeps = [m for m in (optional("datasets"), optional("students_loop"), optional("store.conductor")) if m is not None]  # the full edition's
+        sweeps = [m for m in (optional("datasets"), optional("students_loop"), optional("store.conductor"), optional("collector")) if m is not None]  # the full edition's
         state: dict[str, float] = {}
         while not halt.wait(60):
             try:

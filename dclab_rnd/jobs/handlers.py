@@ -193,7 +193,7 @@ def _collect_run(s: Any, payload: dict[str, Any]) -> None:
 def _collect_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
     from ..extensions import optional
 
-    optional("collector").failed()  # the next run waits an hour
+    optional("collector").failed(reason=reason)  # a failure waits an hour; a person's Stop waits a night
 
 
 def _students_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:

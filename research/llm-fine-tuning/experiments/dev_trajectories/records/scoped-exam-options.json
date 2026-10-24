@@ -1,0 +1,56 @@
+{
+ "package": "scoped-exam-options",
+ "title": "A scoped exam leaves its class out of the student's options too, not only out of the rows",
+ "date": "2026-10-25",
+ "request": "After DMG-014 failed on precision by half a point: fix the cause before the role student's second exam.",
+ "spec": "decision_gate_v1 unchanged; the scope (identifiers left out) unchanged; only what the student may answer inside it.",
+ "plan": [
+  "Find why precision fell under the bar when accuracy was 99.2%.",
+  "Restrict the options of every row to the scope's classes.",
+  "Check on dev rows with the gate's own verdict, never a copy of it."
+ ],
+ "decisions": [
+  {
+   "decision": "Restrict the options, not the gate.",
+   "why": "The gate's precision is the mean over the classes a student answered; a class with no truth in the scope must not be answerable inside it. Changing the gate after a result would make it no gate."
+  },
+  {
+   "decision": "The spent sealed set is not read again.",
+   "why": "A sealed set is read once; the second exam waits for real_v2 from the collector's new tables."
+  }
+ ],
+ "change": "dclab_rnd/decision_gate_run.py judge: options without the excluded truths; tests/test_decision_gate.py",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "In a scoped exam the student could still answer the excluded class.",
+   "scenario": "DMG-014: a few non-identifier columns answered identifier, a class with no truth in the scope: precision 0 there pulled the mean of five classes to 0.7985.",
+   "cause": "judge() left the excluded truths out of the rows but passed every row's full option list to the student.",
+   "fix": "options = [o for o in r['options'] if o not in exclude] before model.answer.",
+   "test": "tests/test_decision_gate.py test_a_scoped_exam_leaves_the_class_out_of_the_rows_and_of_the_options"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "role student on real_v1 dev rows, the gate's own verdict",
+   "gate": "decision_gate_v1 (dev rows only, never sealed)",
+   "result": "all options: fail, macro precision 0.7464; identifier removed from the options: pass, macro precision 0.9327",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "dev rows, not an exam",
+    "the declarations are the uploaders'"
+   ]
+  }
+ ],
+ "outcome": "A scoped exam now asks the student only for the scope's classes. The role student's second exam waits for real_v2.",
+ "lessons": [
+  "A scope has two sides: the rows judged and the answers allowed. Leaving a class out of one and not the other changes what the metric averages over."
+ ],
+ "risks": [
+  "real_v2 needs at least 50 sealed new tables from the collector before the second exam."
+ ],
+ "commits": []
+}

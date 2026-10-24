@@ -33,6 +33,8 @@ Nothing here is a sealed verdict: the real tables' declarations are their upload
 from __future__ import annotations
 
 import argparse
+import contextlib
+import fcntl
 import json
 import os
 import random
@@ -48,10 +50,38 @@ BASE = ROOT / "agent_runs" / "live_tests" / "2026-10-23-real-shadow"  # gitignor
 TRAIN_HOME = BASE / "workspace"  # the lake reads live_tests/*/workspace
 EVAL_HOME = BASE / "eval"
 DERIVED = ROOT / "data" / "downloads" / "openml" / "real_v1"  # real_homework's records: each column's state and its rules
+COLLECTED = ROOT / "data" / "downloads" / "openml" / "collector"  # the collector's new tables, kept apart from the lake's (real_v1 never changes)
+DERIVED_DIRS = (DERIVED, COLLECTED / "derived")
 REAL = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "real_v1" / "decisions"
 TRUTH_POINTS = ("column.is_identifier", "column.semantic_role")
 ROLES = ["numeric", "categorical_code", "identifier", "datetime", "free_text", "other"]
 RETRY = ("URLError", "Timeout", "timed out", "Connection", "HTTP", "RemoteDisconnected", "IncompleteRead")
+LOCK = BASE / "run.lock"  # one run at a time (this module's and the collector's): two would write and pay twice
+
+
+class Busy(RuntimeError):
+    """Another run holds the lock."""
+
+
+@contextlib.contextmanager
+def exclusive(path: Optional[Path] = None):
+    """Hold the runs' lock, or raise :class:`Busy` at once (never wait: the run that holds it may take hours)."""
+    path = Path(path or LOCK)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fh = path.open("w")
+    try:
+        try:
+            fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise Busy("another real-table run is going on") from exc
+        yield
+    finally:
+        fh.close()  # closing releases the lock
+
+
+def is_retry(error: Any) -> bool:
+    """A passing failure (the network, a timeout): worth trying again later, never a reason to give a table up."""
+    return any(k in str(error) for k in RETRY)
 
 
 def _home(home: Path, train: bool) -> Path:
@@ -73,8 +103,12 @@ def split_of(did: Any) -> str:
 
 def _tables(limit: Optional[int] = None) -> list[dict[str, Any]]:
     """The real tables with a derived record that read (their outcome and their columns' states and rules), sealed left out."""
-    out = []
-    for f in sorted(DERIVED.glob("*.json"), key=lambda p: int(p.stem) if p.stem.isdigit() else 0):
+    out, seen = [], set()
+    files = [f for folder in DERIVED_DIRS if folder.is_dir() for f in folder.glob("*.json")]
+    for f in sorted(files, key=lambda p: int(p.stem) if p.stem.isdigit() else 0):
+        if f.stem in seen:
+            continue
+        seen.add(f.stem)
         try:
             d = json.loads(f.read_text(encoding="utf-8"))
         except (OSError, ValueError):
@@ -154,9 +188,8 @@ def run(train_home: Optional[Path] = None, eval_home: Optional[Path] = None, lim
 
     homes = {"train": _home(train_home or TRAIN_HOME, True), "dev": _home(eval_home or EVAL_HOME, False)}
     books = {k: open_ledger(h) for k, h in homes.items()}
-    os.environ["DCLAB_DECISION_SHADOW"] = "1"  # every fitted student whispers
     tables, counts, started = _tables(limit), Counter(), time.time()
-    try:
+    with own_books():
         for i, d in enumerate(tables, 1):
             split = split_of(d["did"])
             install(books[split])
@@ -165,9 +198,29 @@ def run(train_home: Optional[Path] = None, eval_home: Optional[Path] = None, lim
             counts["decisions"] += int(r.get("decisions") or 0)
             if i % 25 == 0 or i == len(tables):
                 log(f"{i}/{len(tables)} tables {dict(counts)} {time.time() - started:.0f}s")
-    finally:
-        install(None)
     return dict(counts)
+
+
+@contextlib.contextmanager
+def own_books():
+    """Decisions go to the ledger installed inside, never to a server's workspace: inside a job the bound services' ledger
+    wins over an installed one (``ledger.current_ledger``), so they are unbound here (the review of S2: the dev tables
+    would have become the server's training data). Every fitted student whispers inside; the process's fallback ledger
+    and its shadow setting are as they were afterwards."""
+    from . import context
+    from . import ledger
+
+    before, shadow = ledger._INSTALLED.get("ledger"), os.environ.get("DCLAB_DECISION_SHADOW")
+    os.environ["DCLAB_DECISION_SHADOW"] = "1"
+    try:
+        with context.using(None):
+            yield
+    finally:
+        ledger.install(before)
+        if shadow is None:
+            os.environ.pop("DCLAB_DECISION_SHADOW", None)
+        else:
+            os.environ["DCLAB_DECISION_SHADOW"] = shadow
 
 
 # ---------------------------------------------------------------------- measuring
@@ -296,9 +349,11 @@ def compare(folders: dict[str, Path], home: Optional[Path] = None) -> dict[str, 
 # ---------------------------------------------------------------------- Claude's silver opinion on the disagreements
 
 
-def silver(home: Optional[Path] = None, per_point: int = 60, cap_eur: float = 3.0, seed: int = 0, log=print) -> dict[str, Any]:
+def silver(home: Optional[Path] = None, per_point: int = 60, cap_eur: float = 3.0, seed: int = 0, log=print,
+           checkpoint: Any = lambda: None) -> dict[str, Any]:
     """Claude answers a fair sample of each point's disagreements (the state only), within ``cap_eur``; kept apart. It
-    stops at the first failure or the cap without writing an empty answer, so a later run with more budget asks again."""
+    stops at the first failure or the cap without writing an empty answer, so a later run with more budget asks again.
+    ``checkpoint``: called before each request (a job's Stop reaches it)."""
     from dclab_core.answerers import ModelAnswerer
 
     from . import models
@@ -323,9 +378,12 @@ def silver(home: Optional[Path] = None, per_point: int = 60, cap_eur: float = 3.
     with out_path.open("a", encoding="utf-8") as fh:
         for point, items in sorted(by_point.items()):
             rng.shuffle(items)
-            for r in items[:per_point]:
+            for r in items:
+                if asked[point] >= per_point:  # a point's new answers this run, however many earlier runs asked
+                    break
                 if r["record"] in done:
                     continue
+                checkpoint()
                 failed = False
                 for attempt in range(2):  # one retry: a passing failure or a reply that did not read
                     errors, before = answerer.errors, advisor.spent_eur()
@@ -358,12 +416,18 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--per-point", type=int, default=60)
     ap.add_argument("--cap-eur", type=float, default=3.0)
     args = ap.parse_args(argv)
-    if args.command == "run":
-        print(json.dumps(run(limit=args.limit, retry_failed=args.retry_failed)))
-    elif args.command == "measure":
+    if args.command == "measure":
         print(json.dumps(measure(args.home), indent=1))
-    else:
-        print(json.dumps(silver(args.home, args.per_point, args.cap_eur), indent=1))
+        return 0
+    try:
+        with exclusive():  # never beside the collector's run: both would write the same tables and pay twice
+            if args.command == "run":
+                print(json.dumps(run(limit=args.limit, retry_failed=args.retry_failed)))
+            else:
+                print(json.dumps(silver(args.home, args.per_point, args.cap_eur), indent=1))
+    except Busy as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
     return 0
 
 

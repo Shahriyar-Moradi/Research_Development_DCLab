@@ -102,6 +102,13 @@ it stays in shadow until it passes its sealed exam and a person switches it on.
 - **Done when:** two nightly runs grow the three neediest points' homework, inside the cap, each run reported.
 - **Coordinate with:** the learning agent being built in another session (`dclab_rnd/learning`), so the two share one
   queue and one budget instead of competing.
+- **Built (2026-10-25), not yet run live:** `dclab_rnd/collector.py`, `python -m dclab_rnd.collector plan|run|status|exam`;
+  on when `DCLAB_COLLECTOR=1`; a run starts at night (00:00 to 07:00), with 3 GB free and the Mac under 80% busy, one at a
+  time; caps EUR 0.5 a run and EUR 10 a month (`DCLAB_COLLECTOR_RUN_EUR`, `DCLAB_COLLECTOR_MONTHLY_EUR`), the run's cap
+  counted before Claude is asked. OpenML only: a copy of a known table (its columns' names) is set aside, so no copy of a
+  homework table sits in an exam. `real_v2`, the role student's second exam, is built from the collector's own tables
+  once 50 of them are sealed, then frozen. Still open: picking the neediest points (OpenML tables feed every column point
+  at once), benchgen and self-play as sources, one shared budget with the learning agent.
 
 ### S3. Fill the 49 points that have no student (data first)
 Grouped by truth source, the work for each group:

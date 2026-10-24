@@ -41,6 +41,7 @@ EXCLUDE = [
     "dclab_rnd/critic_gate.py", "dclab_rnd/notebook_assist*.py", "dclab_rnd/notebook_eval.py", "dclab_rnd/cycle.py",
     "dclab_rnd/churn_suite.py", "dclab_rnd/generate_llm_review_pdf.py", "dclab_rnd/llm_review.py", "dclab_rnd/certify.py",
     "dclab_rnd/roles_judged.json", "dclab_rnd/challenge/**", "dclab_rnd/real_problems.py", "dclab_rnd/real_homework.py",
+    "dclab_rnd/real_shadow.py", "dclab_rnd/collector.py",
     "dclab_rnd/business_examples.py", "dclab_rnd/knowledge/**", "dclab_rnd/cli.py", "dclab_rnd/agentic/__main__.py",
     "dclab_rnd/agentic/pages/lab.py", "dclab_rnd/agentic/pages/learn.py", "dclab_rnd/agentic/pages/students.py",
     "dclab_rnd/agentic/pages/team.py", "dclab_rnd/agentic/pages/twin.py", "dclab_rnd/agentic/pages/datasets.py",
@@ -66,7 +67,7 @@ EXCLUDE = [
 
 # Modules the open tree may still name inside `optional(...)` (a seam): absent there, present here.
 CLOSED = [
-    "store", "lake", "students", "students_loop", "students_exam", "archive", "devlog", "own_llm", "own_models", "workflow_models",
+    "store", "lake", "students", "students_loop", "students_exam", "collector", "real_shadow", "real_homework", "archive", "devlog", "own_llm", "own_models", "workflow_models",
     "agent_eval", "research_map", "twin", "orchestra", "testers", "business_examples", "real_problems", "committee", "curriculum",
     "datasets", "registry", "master_review", "critic_gate", "notebook_assist", "certify", "cli", "agentic.engine", "agentic.agents",
     "agentic.campaign_tools", "agentic.live_eval", "agentic.guide_review", "agentic.clean_export", "connectors.cloud", "connectors.hf",

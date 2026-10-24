@@ -211,14 +211,16 @@ def decisions_of(rec: dict[str, Any], derived: dict[str, Any]) -> tuple[list[Any
     return records, labels, left
 
 
-def build(out: Path = OUT, derived: Path = DERIVED) -> dict[str, Any]:
+def build(out: Path = OUT, derived: Path = DERIVED, datasets: Optional[Any] = None, version: str = "real_v1", at: str = AT) -> dict[str, Any]:
+    """``datasets``: the profiled datasets to build from (default: the lake's); ``version``, ``at``: the set's name and time
+    (the collector builds real_v2 from its new tables only, so its sealed partition is fresh)."""
     from dclab_core import datasets as builders
     from dclab_core import lake as L
 
     from .lake import openml
 
     records, labels, left, tables, failed, differ = [], [], Counter(), 0, 0, 0
-    for rec in openml.records():
+    for rec in (openml.records() if datasets is None else datasets):
         path = Path(derived) / f"{rec['did']}.json"
         if not path.is_file():
             continue
@@ -258,7 +260,7 @@ def build(out: Path = OUT, derived: Path = DERIVED) -> dict[str, Any]:
         sets[point] = {"decisions": len(rows), "tables": len({x["group"] for x in rows}), "splits": manifest.splits, "rule_right": right,
                        **({"label_yes": positive} if point == "column.is_identifier" else {}),
                        "sealed_fingerprint": hashlib.sha256("\n".join(content).encode()).hexdigest()}
-    summary = {"version": "real_v1", "at": AT, "source": "OpenML (26.2's profiled datasets, open licences), each table's data file read once more",
+    summary = {"version": version, "at": at, "source": "OpenML (26.2's profiled datasets, open licences), each table's data file read once more",
                "grouping": "one group per OpenML dataset; its split from dclab_core.lake.split_of, the same as in the lake's gold",
                "tables": tables, "failed": failed, "decisions": len(docs), "left_out": dict(left),
                "states_differing_from_the_lake": differ, "sets": sets, "limits": LIMITS,
