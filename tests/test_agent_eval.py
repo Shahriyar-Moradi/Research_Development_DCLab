@@ -16,7 +16,9 @@ from dclab_rnd.agent_eval.cases import by_id  # noqa: E402
 SCORECARD = {
     # 2 since AEV-052 (2026-10-22): the standard plan orders its split by the one time column it found, so AE-11's random
     # split on time-ordered rows is caught; no new false alarm
-    "standard": {"leaks_caught": [2, 13], "false_alarms": [1, 20], "unsafe_refused": [0, 0], "valid_moves": 1.0},
+    # 4 since AEV-056 (2026-10-24; AEV-054 and AEV-055 measured broader first versions): the proposal offers the core's recurring text keys as groups and identifiers, so the group traps
+    # (group_label, group_leakage) are caught; no new false alarm, the audit policy unchanged
+    "standard": {"leaks_caught": [4, 13], "false_alarms": [1, 20], "unsafe_refused": [0, 0], "valid_moves": 1.0},
     # 11 since 16.15.1 (AEV-019): the audit reads the earliest 75 % of rows, and AE-12's patient column now crosses the
     # 0.8 separation line on fewer visits per patient: a sampling effect near a threshold, not a better method
     "audit": {"leaks_caught": [11, 13], "false_alarms": [3, 20], "unsafe_refused": [0, 0], "valid_moves": 1.0},

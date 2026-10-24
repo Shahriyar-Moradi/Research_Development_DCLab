@@ -1,0 +1,235 @@
+{
+ "package": "proposal-core-entities",
+ "title": "The studio's proposal offers the core's entities as groups, so the intern stops copying a wrong split",
+ "date": "2026-10-24",
+ "request": "After the decision measurement, the owner chose: make the studio proposal take the core rule's group answer, with a test, then re-run the local pilot to see the effect.",
+ "spec": "The studio's proposal takes dclab_core's recurring text keys: one whose name ends with a key's word becomes a group candidate and an identifier; one whose values recur a few times each (10 to 50 % distinct) is offered in groups_to_confirm with why, and becomes an identifier only when the audit flags it; never a time or text column; a flagged group is kept out as an identifier, never forbidden as a leak; at most fifty identifiers.",
+ "plan": [
+  "find why the proposal misses plain-named groups and calls them leaks",
+  "ask the core data card for entities",
+  "append them; never reorder",
+  "test on challenge variants, ordinary categories and the rows read",
+  "re-measure the pinned judgment suite",
+  "re-run the local pilot under a tag"
+ ],
+ "decisions": [
+  {
+   "decision": "Append the core's entities after the name-based group candidates",
+   "why": "readers take the first candidate as the group; tables where the names found one behave as before"
+  },
+  {
+   "decision": "Make an entity an identifier too",
+   "why": "the core labels an entity an identifier; an identifier is kept out and never judged a leak, which is what Claude did when it passed"
+  },
+  {
+   "decision": "A pilot run measured again carries a tag",
+   "why": "the pilot resumes by model and seed; without a tag it would take the old run's homeworks"
+  },
+  {
+   "decision": "An ambiguous recurring column is offered to confirm, never grouped by itself (Claude's call, the owner asked it to decide)",
+   "why": "account and product_name have the same shape in a small table; a wrong automatic group silently drops a feature and changes what the holdout measures, an offer costs one choice"
+  }
+ ],
+ "change": "dclab_rnd/studio/solution.py (core_keys; propose appends them); tests/test_proposal_entities.py (new); tests/test_agent_eval.py (scorecard re-measured: AEV-054); dclab_rnd/learning/pilot.py, __main__.py, tests/test_learning_h3.py (--tag). dclab_rnd/ledger/capture.py (the rule's answerer named rule:id_like+core_keys and rule:group_candidates+core_keys).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "the proposal offered a group only when its name looked like an identifier, and called a well-predicting group key a leak",
+   "scenario": "challenge check variants: the group offered in 10 of 20, proposed as a leak in 15; the local solver copied it in four of five pilot homeworks",
+   "cause": "group candidates needed an id-like name; the leak audit flags any column that separates the classes alone",
+   "fix": "the core data card's entities join the group candidates and the identifiers",
+   "test": "tests/test_proposal_entities.py::ProposalEntityTests::test_every_challenge_group_is_offered_kept_out_and_never_a_leak",
+   "severity": "behaviour",
+   "impact": "every plain-named group split wrong by the intern and by the standard plan",
+   "alternatives": [
+    "put the student in charge of the group decision"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "defect": "the pinned judgment scorecard moved",
+   "scenario": "the standard plan caught 4 of 13 planted traps instead of 2",
+   "cause": "the two group traps are now caught by the proposal",
+   "fix": "re-measured with make agent-eval (AEV-054): exactly group_label and group_leakage, no new false alarm; the scorecard updated with why",
+   "test": "tests/test_agent_eval.py::JudgmentSuiteTests::test_the_scorecard_is_what_was_measured",
+   "severity": "behaviour",
+   "impact": "none: a better score, recorded",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "taking every entity the card reads dropped real features as identifiers",
+   "scenario": "telco's PhoneService (yes or no), mushroom's ring-number (three values), spambase's word_freq_email and, in an invented table, state, product, brand, a count named NumberOf... and a decimal were all dropped",
+   "cause": "the card's entity covers any column with a key's word in its name at any cardinality, and any text column of twenty levels or more",
+   "fix": "only text entities with more than ten values whose name says key or whose values recur a few times each (10 to 50 % distinct)",
+   "test": "tests/test_proposal_entities.py::ProposalEntityTests::test_properties_named_like_keys_categories_numbers_and_text_dates_stay_features",
+   "severity": "behaviour",
+   "impact": "useful features silently dropped on real tables",
+   "alternatives": [
+    "take an entity only when the audit flagged it"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "a word category became the split's group column",
+   "scenario": "a table with no time column: brand (21 levels) became the group the holdout was split by",
+   "cause": "the groups modifier takes any group candidate with twenty values and two rows each",
+   "fix": "word categories are no longer candidates (the recurrence rule)",
+   "test": "tests/test_proposal_entities.py::ProposalEntityTests::test_properties_named_like_keys_categories_numbers_and_text_dates_stay_features",
+   "severity": "behaviour",
+   "impact": "an evaluation answering a question the model never meets",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "a date stored as text became an identifier and the group",
+   "scenario": "HyperAck: created_date, the time candidate, read by the card as a categorical entity, became both the time and the group",
+   "cause": "the card does not parse that date format",
+   "fix": "a time or text candidate is never taken as a key",
+   "test": "tests/test_proposal_entities.py::ProposalEntityTests::test_properties_named_like_keys_categories_numbers_and_text_dates_stay_features",
+   "severity": "behaviour",
+   "impact": "a split built on one column twice",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "more than fifty identifiers would make a solution fail to save",
+   "scenario": "a wide table with sixty recurring keys",
+   "cause": "a solution holds at most fifty identifiers",
+   "fix": "the proposal adds identifiers up to that limit",
+   "test": "tests/test_proposal_entities.py::ProposalEntityTests::test_a_proposal_never_holds_more_identifiers_than_a_solution_keeps",
+   "severity": "latent",
+   "impact": "Build it refused on wide tables",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "defect": "the ledger would mix two rules under one answerer name",
+   "scenario": "column decisions recorded before and after the change, both as rule:id_like",
+   "cause": "the rule changed, its name did not",
+   "fix": "the rule's answers are named rule:id_like+core_keys and rule:group_candidates+core_keys",
+   "test": "tests/test_ledger.py",
+   "severity": "gap",
+   "impact": "students and comparisons reading two rules as one",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "defect": "a key's word anywhere in a name made a category a key",
+   "scenario": "email_domain was dropped and phone_brand became the split's group",
+   "cause": "the key-name test matched any word of the name",
+   "fix": "the key's word must end the name (customer_id, user_email)",
+   "test": "tests/test_proposal_entities.py::ProposalEntityTests::test_a_key_word_inside_a_name_is_not_a_key",
+   "severity": "behaviour",
+   "impact": "a fraud feature dropped and a wrong split",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "defect": "in a small table a recurring category looks exactly like a key",
+   "scenario": "product_name, job_title and model in tables of 300 to 800 rows were dropped and made the group",
+   "cause": "shape alone cannot tell account from product_name",
+   "fix": "such a column is only offered to confirm, with why; it stays a feature unless someone confirms",
+   "test": "tests/test_proposal_entities.py::ProposalEntityTests::test_a_small_tables_recurring_category_is_offered_never_taken",
+   "severity": "behaviour",
+   "impact": "a silent wrong split on small real tables",
+   "alternatives": [
+    "group every recurring column automatically"
+   ],
+   "open": "the student may answer these later, measured on real tables first"
+  },
+  {
+   "id": "F10",
+   "source": "self",
+   "defect": "a group found by name and flagged by the audit was called a leak again",
+   "scenario": "one check variant after the narrowing: the name rule found the group, the audit flagged it, nothing made it an identifier",
+   "cause": "the loop skipped columns already among the group candidates before keeping a flagged one out",
+   "fix": "a flagged group candidate is an identifier, whatever found it",
+   "test": "tests/test_proposal_entities.py::ProposalEntityTests::test_every_challenge_group_is_offered_kept_out_and_never_a_leak",
+   "severity": "behaviour",
+   "impact": "the original bug back for one variant in twenty",
+   "alternatives": [],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the proposal on twenty challenge check variants",
+   "gate": "the group offered, kept out, never a leak",
+   "fixed_before_run": true,
+   "result": "20 of 20 (was 10 of 20, and a leak in 15)",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "re-run the local pilot",
+   "against_gate": "",
+   "limits": [
+    "one family of invented tables"
+   ]
+  },
+  {
+   "name": "the scripted judgment suite, standard plan",
+   "gate": "no new false alarm",
+   "fixed_before_run": true,
+   "result": "leaks caught 4 of 13 (was 2), false alarms 1 of 20 (unchanged)",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "",
+   "against_gate": "",
+   "limits": [
+    "twenty cases"
+   ]
+  },
+  {
+   "name": "the twelve repository samples, before and after",
+   "gate": "no feature dropped",
+   "fixed_before_run": true,
+   "result": "no identifier, group candidate or keep-out changed on any of the twelve; the challenge groups still 20 of 20; the judgment suite 4 of 13 (AEV-055)",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "re-run the local pilot",
+   "against_gate": "",
+   "limits": [
+    "twelve samples"
+   ]
+  },
+  {
+   "name": "the final rule on forty challenge variants and the twelve samples",
+   "gate": "every group offered, none a leak, no sample feature dropped",
+   "fixed_before_run": true,
+   "result": "21 grouped by name, 19 offered to confirm, 0 called a leak; nothing changed on the twelve samples; judgment suite 4 of 13 (AEV-056)",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "re-run the local pilot under a tag",
+   "against_gate": "",
+   "limits": [
+    "invented families"
+   ]
+  }
+ ],
+ "outcome": "The studio proposal now offers the group that the core's data card finds, keeps it out as an identifier and never proposes it as a leak; the standard plan catches both group traps of the judgment suite.",
+ "lessons": [
+  "When two rules in one system answer the same question, measure both; the agent copies the one it is shown.",
+  "A rule borrowed from another layer brings its whole definition; measure what it changes on real tables before trusting it."
+ ],
+ "risks": [
+  "in 19 of 40 homeworks the local model must itself confirm the offered group"
+ ],
+ "commits": []
+}

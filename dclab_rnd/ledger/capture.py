@@ -111,7 +111,7 @@ def solution_saved(proposal: dict[str, Any] | None, profile: dict[str, Any] | No
             column = columns[name]
             bands = column_state(column, rows)
             rec = _put("column.is_identifier", ("column", name),
-                       [answer("rule", "rule:id_like", name in ids_rule) if own else None, answer(by, who, name in saved_ids)],
+                       [answer("rule", "rule:id_like+core_keys", name in ids_rule) if own else None, answer(by, who, name in saved_ids)],
                        name in saved_ids, by, state=bands, options=["yes", "no"], level=level, exposed=exposed, **ids)
             written += bool(rec)
             if truth and rec is not None:
@@ -158,7 +158,7 @@ def solution_saved(proposal: dict[str, Any] | None, profile: dict[str, Any] | No
         groups = list(own.get("group_candidates") or [])
         for name in dict.fromkeys(groups[:10] + ([solution["group_column"]] if solution.get("group_column") else [])):
             if name in columns:
-                written += bool(_put("column.group", ("column", name), [answer("rule", "rule:group_candidates", name in groups),
+                written += bool(_put("column.group", ("column", name), [answer("rule", "rule:group_candidates+core_keys", name in groups),
                                                                        answer(by, who, name == solution.get("group_column"))],
                                      name == solution.get("group_column"), by, state=column_state(columns[name], rows), options=["yes", "no"],
                                      level=level, exposed=exposed, **ids))

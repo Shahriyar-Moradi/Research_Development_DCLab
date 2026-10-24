@@ -34,6 +34,7 @@ def main(argv: list[str] | None = None) -> int:
     pilot.add_argument("--base-url", default="http://127.0.0.1:11434/v1")
     pilot.add_argument("--family", default="groups")
     pilot.add_argument("--n", type=int, default=5)
+    pilot.add_argument("--tag", default=None, help="a run measured again after a change: its homeworks are its own, never an untagged run's")
     pilot.add_argument("--max-minutes", type=float, default=None, help="each homework's time budget (default the solver's 15); a laptop's speed, recorded in the result")
     pilot.add_argument("--write", action="store_true", help="store the result in evidence/campaigns/learning_v1/results/")
     probe = sub.add_parser("probe", help="H3: does one lesson help a local model? the same learning variants without and with it, paired, graded")
@@ -122,7 +123,7 @@ def _pilot(args) -> int:
     try:
         budget = {**({"max_minutes": args.max_minutes} if args.max_minutes else {}), **({"max_eur": args.cap_eur_each} if args.hosted else {})} or None
         result = run_pilot(home, client, args.model, args.family, args.n, log=lambda *a: print(*a, flush=True), budget=budget, limit=args.limit,
-                           cap_eur=args.cap_eur if args.hosted else None)
+                           cap_eur=args.cap_eur if args.hosted else None, tag=args.tag)
         result["context_window"] = window
     finally:
         if before is None:

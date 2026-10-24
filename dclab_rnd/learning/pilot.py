@@ -34,7 +34,7 @@ def pause_file(home: Path) -> Path:
     return Path(home) / "learning_attempts" / PAUSE
 
 
-def done_row(home: Path, family: str, seed: int, model: str) -> dict[str, Any] | None:
+def done_row(home: Path, family: str, seed: int, model: str, tag: str | None = None) -> dict[str, Any] | None:
     """A homework this model already did and the grader graded, read from its kept folder, so a paused pilot goes on
     where it stopped. Matched on the family and the seed (a pack's id is drawn fresh each time, so the solver cannot
     tell variants apart by it). A folder marked invalid, or with no grade (stopped mid-way), does not count."""
@@ -43,8 +43,8 @@ def done_row(home: Path, family: str, seed: int, model: str) -> dict[str, Any] |
         if (folder / "invalid.json").exists() or not (folder / "grade.json").exists():
             continue
         row = json.loads(saved.read_text(encoding="utf-8"))
-        if row.get("model") == model and row.get("family", "groups") == family and row.get("seed") == seed:
-            return row
+        if row.get("model") == model and row.get("family", "groups") == family and row.get("seed") == seed and row.get("tag") == tag:
+            return row  # a tagged run (another version of DCLab measured again) never takes an untagged run's homework
     return None
 
 
@@ -81,7 +81,8 @@ def broke(session: dict[str, Any]) -> bool:
 
 
 def run_pilot(home: Path, client: Any, model: str, family: str = "groups", n: int = 5, log=print,
-              budget: dict[str, Any] | None = None, limit: int | None = None, cap_eur: float | None = None) -> dict[str, Any]:
+              budget: dict[str, Any] | None = None, limit: int | None = None, cap_eur: float | None = None,
+              tag: str | None = None) -> dict[str, Any]:
     """``limit``: at most this many new homeworks in this process, then it pauses (the next process goes on). Measured
     2026-10-24: one process doing homework after homework grew until swap reached 10 GB and the disk fell below 2 GB;
     a fresh process a homework gives its memory back."""
@@ -92,7 +93,7 @@ def run_pilot(home: Path, client: Any, model: str, family: str = "groups", n: in
     rows, paused, new = [], False, 0
     with tempfile.TemporaryDirectory() as tmp:
         for seed in V.seeds(family, "learning", n):  # the learning partition only: the first seeds, as the rules' baseline read
-            earlier = done_row(home, family, seed, model)
+            earlier = done_row(home, family, seed, model, tag)
             if earlier is not None:  # done before a pause: kept, graded, not done again
                 rows.append({**earlier, "resumed": True})
                 log(f"{earlier['pack']}: done before ({earlier['verdict']} {earlier['codes']}), not repeated")
@@ -121,7 +122,7 @@ def run_pilot(home: Path, client: Any, model: str, family: str = "groups", n: in
                 continue
             grade, observed = grade_run(key, out["run"])
             keep_grade(out["kept"], grade, observed)
-            rows.append({"pack": variant.pack.id, "seed": seed, "family": family, "model": model, "broke": broke(out["session"]), "finished": out["finished"],
+            rows.append({"pack": variant.pack.id, "seed": seed, "family": family, "model": model, "tag": tag, "broke": broke(out["session"]), "finished": out["finished"],
                          "verdict": grade.verdict, "codes": grade.codes, "decision_score": grade.decision_score, "seconds": out["seconds"],
                          "kept": _relative(out["kept"], home), "knobs": key.knobs, "session": summary_of(out["session"])})
             if out["kept"]:  # the row beside its attempt at once: a pause or a crash later never loses it
@@ -149,7 +150,7 @@ def run_pilot(home: Path, client: Any, model: str, family: str = "groups", n: in
                else f"ok: the model finished {finished} of {len(rows)} homeworks" if ok
                else f"fail: the model finished only {finished} of {len(rows)} homeworks (the gate asks {FINISH_SHARE:.0%})")
     return {"campaign_id": "learning_v1", "kind": "learning_pilot", "status": "completed", "family": family, "split": "learning",
-            "model": model, "budget": {**BUDGET, **(budget or {})}, "gate": GATE, "fingerprints": fingerprints(), "rows": rows, "summary": summary, "verdict": verdict, "spent_eur": summary["spent_eur"],
+            "model": model, "tag": tag, "budget": {**BUDGET, **(budget or {})}, "gate": GATE, "fingerprints": fingerprints(), "rows": rows, "summary": summary, "verdict": verdict, "spent_eur": summary["spent_eur"],
             "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "rule": "the first learning variants, no lesson shown, the intern on a local model, graded by code, every attempt kept whole"}
 

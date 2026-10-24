@@ -265,7 +265,7 @@ class Toolbox:
         proposal = studio_solution.propose(frame, project["data"]["profile"], target, task, studio_engine.pack_of(project))
         self.projects.update(project_id, proposal=proposal)  # only the proposal: the project read above is seconds old
         return {k: proposal.get(k) for k in ("target", "task", "detected", "positive_label", "forbidden", "identifiers", "time_candidates",
-                                             "group_candidates", "text_columns", "metric", "metric_options", "prediction_moment_hint",
+                                             "group_candidates", "groups_to_confirm", "text_columns", "metric", "metric_options", "prediction_moment_hint",
                                              "plan")}
 
     def adopt_plan(self, project_id: str, target: str, prediction_moment: str, overrides: list[dict[str, Any]] | None = None) -> dict[str, Any]:

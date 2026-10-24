@@ -328,6 +328,25 @@ class PilotTests(unittest.TestCase):
             self.assertEqual(main(["probe", "--hosted", "--bullet", "B-0000000000", "--cap-eur", "1"]), 2)
         self.assertIn("--yes and --cap-eur", err.getvalue())
 
+    def test_a_tagged_run_does_its_own_homeworks_and_keeps_them_apart(self):
+        from dclab_rnd.learning.pilot import done_row, run_pilot
+
+        class Lazy(KeyedModel):
+            def __init__(self):
+                super().__init__(None)
+
+        quiet = lambda *_: None  # noqa: E731
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            first = run_pilot(home, Lazy(), "scripted", n=1, log=quiet)
+            again = run_pilot(home, Lazy(), "scripted", n=1, log=quiet, tag="after-fix")
+            self.assertNotIn("resumed", again["rows"][0])  # done anew, not taken from the untagged run
+            self.assertEqual(again["tag"], "after-fix")
+            seed = first["rows"][0]["seed"]
+            self.assertIsNone(done_row(home, "groups", seed, "scripted", "other")["tag"] if done_row(home, "groups", seed, "scripted", "other") else None)
+            self.assertEqual(done_row(home, "groups", seed, "scripted")["tag"], None)
+            self.assertEqual(done_row(home, "groups", seed, "scripted", "after-fix")["tag"], "after-fix")
+
     def test_a_limit_does_that_many_new_homeworks_a_process_and_the_next_goes_on(self):
         from dclab_rnd.learning.pilot import run_pilot
 

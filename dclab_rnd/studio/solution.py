@@ -242,6 +242,30 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
     audit = tools._audit_frame(X, y, task="regression" if task == "regression" else "classification", blind=False)
     identifiers = [name for name, c in columns.items() if name != target and (c["id_like"] or (c["name_id_like"] and c["unique_ratio"] > 0.5))]
     group_candidates = [name for name, c in columns.items() if name != target and c["name_id_like"] and 0.005 < c["unique_ratio"] < 0.5 and c["kind"] != "numeric"]
+    structural = set(time_candidates) | set(profile.get("text_candidates") or []) | {target}
+    flagged = {row["column"] for row in audit["flagged"]}
+    groups_to_confirm: list[dict[str, str]] = []
+    for key in core_keys(frame.loc[X.index], target):  # 2026-10-24: recurring keys the names did not show
+        name = key["column"]
+        if name in structural:
+            continue  # a time or a text column is never a key here, whatever the card reads in its values
+        if key["named"]:  # a key's word ends its name (customer_id, user_email): a group, as an id-like name is
+            if name not in group_candidates:
+                group_candidates.append(name)  # appended: a group the names found stays first, as every reader of [0] expects
+            if name not in identifiers and len(identifiers) < IDENTIFIERS_MAX:
+                identifiers.append(name)
+            continue
+        if name in group_candidates:  # already a group by its name: nothing to confirm; flagged, it is a key, never a leak
+            if name in flagged and name not in identifiers and len(identifiers) < IDENTIFIERS_MAX:
+                identifiers.append(name)
+            continue
+        if name in flagged and name not in identifiers and len(identifiers) < IDENTIFIERS_MAX:
+            identifiers.append(name)  # it predicts well alone because its rows belong together: kept out, never called a leak
+        groups_to_confirm.append({"column": name, "why": (
+            "its values recur a few times each, as one customer's or one account's rows do"
+            + ("; alone it separates the outcome, as a key whose rows share an outcome does" if name in flagged else "")
+            + ". If each value is one customer, account or person, split by it (group_column); if it is a property such as "
+              "a product or a job, keep it as a feature")})
     forbidden = []
     label_sources = label_source_candidates(X)  # 30.12: read with the modifiers below
     for row in audit["flagged"]:
@@ -288,7 +312,7 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
         "target": target, "task": task, "kind": kind.key, "kind_title": kind.title, "detected": detected,
         "positive_label": detected.get("positive_label"),
         "forbidden": forbidden, "identifiers": identifiers, "time_candidates": time_candidates,
-        "group_candidates": group_candidates, "text_columns": text_columns,
+        "group_candidates": group_candidates, "groups_to_confirm": groups_to_confirm, "text_columns": text_columns,
         # the metric proposed stays the task's own, as before 16.1 (the wizard saves it): a pack's metric applies when the
         # person leaves the metric empty
         "metric": default_metric(task, metric_rate), "metric_options": METRICS[task],
@@ -305,6 +329,45 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
 
 
 MODEL_PROOF = "decision-model:"  # a forbidden column a routed decision model added (22.9), never the audit's
+
+
+KEY_LEVELS = 10  # a key has more values than this: a yes or no, or three sizes, is a property, whatever its name says
+IDENTIFIERS_MAX = 50  # what a saved solution holds (Solution.identifiers)
+
+
+def core_keys(frame: pd.DataFrame, target: str) -> list[dict[str, Any]]:
+    """The recurring keys ``dclab_core``'s data card finds that the studio's names miss: a text column the card reads as an
+    entity, with more than ``KEY_LEVELS`` values, whose name says it is a key or whose values recur a few times each (10 to
+    50 % distinct: a customer's or an account's handful of rows; a category's values recur dozens of times, under 10 %).
+
+    Why (2026-10-24): the studio offered a group only when its name looked like an identifier, so a plain ``account`` or
+    ``borrower`` was never offered and, predicting well alone, was proposed as a leak (the proposal found the group in 10
+    of 20 challenge check variants and called it a leak in 15; the card in 20 of 20, LRN-008). The card's entity is wider
+    than a key, and the review measured the harm of taking all of it: a yes or no named ``PhoneService``, a three-level
+    ``ring-number``, a numeric ``word_freq_email``, word categories (``brand``, ``state``: one even became the split's
+    group), a date stored as text, then (second review) ``email_domain`` and ``phone_brand`` (a key's word inside the name)
+    and, in small tables, ``product_name`` or ``job_title``, whose values recur a few times each exactly as an account's
+    do: no rule on the table's shape tells them apart. So: a text entity whose name ends with a key's word is a key
+    (``named``); one whose values recur a few times each is only offered, for the intern or the person to confirm
+    (the owner left it to Claude's judgement, 2026-10-24: a wrong automatic group drops a feature and changes what the
+    holdout measures, silently; an offer costs a choice).
+    Read on the rows the proposal reads only."""
+    from dclab_core.bands import name_tokens
+    from dclab_core.datacard import KEY_TOKENS, card_of
+
+    try:
+        card = card_of({"table": frame}, name="table", target=target)
+    except Exception:  # noqa: BLE001 - the card is a second opinion: without it the proposal stands as the rules make it
+        return []
+    out = []
+    for c in card.tables[0].columns:
+        if c.purpose != "entity" or c.name == target or c.dtype not in ("string", "categorical") or c.distinct <= KEY_LEVELS:
+            continue
+        tokens = name_tokens(c.name)
+        named = bool(tokens) and tokens[-1] in KEY_TOKENS  # the key's word ends the name: customer_id, never email_domain
+        if named or c.uniqueness == "from_10_to_50pct":
+            out.append({"column": c.name, "named": named})
+    return out
 
 
 def _model_leaks(columns: dict[str, Any], profile: dict[str, Any], target: str, task: str, identifiers: list[str],
