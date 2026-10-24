@@ -302,6 +302,32 @@ class PilotTests(unittest.TestCase):
             self.assertEqual(len(list((home / "learning_attempts").glob("*/*-pilot"))), 4)  # another model does its own
             self.assertNotIn("resumed", other["rows"][0])
 
+    def test_a_hosted_run_stops_before_a_homework_once_its_cap_is_spent(self):
+        from dclab_rnd.learning.pilot import run_pilot
+
+        class Paid(KeyedModel):  # answers in words, nothing done, and each answer costs EUR 0.02
+            def __init__(self):
+                super().__init__(None)
+                self.spent_eur, self.run_limit_eur = 0.0, None
+
+            def complete(self, messages, tools, **kw):
+                self.spent_eur += 0.02
+                return super().complete(messages, tools, **kw)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            result = run_pilot(Path(tmp), Paid(), "paid", n=3, cap_eur=0.01, log=lambda *_: None)
+            self.assertEqual((result["status"], len(result["rows"])), ("paused", 1))  # the first spent the cap: no second
+            self.assertGreater(result["rows"][0]["session"]["eur"], 0.01)
+
+    def test_hosted_needs_yes_and_a_cap(self):
+        from dclab_rnd.learning.__main__ import main
+
+        with mock.patch("sys.stderr", new_callable=io.StringIO) as err:
+            self.assertEqual(main(["pilot", "--hosted"]), 2)
+            self.assertEqual(main(["pilot", "--hosted", "--yes"]), 2)
+            self.assertEqual(main(["probe", "--hosted", "--bullet", "B-0000000000", "--cap-eur", "1"]), 2)
+        self.assertIn("--yes and --cap-eur", err.getvalue())
+
     def test_a_limit_does_that_many_new_homeworks_a_process_and_the_next_goes_on(self):
         from dclab_rnd.learning.pilot import run_pilot
 

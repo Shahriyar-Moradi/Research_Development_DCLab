@@ -203,6 +203,7 @@ def summary_of(session: dict[str, Any]) -> dict[str, Any]:
     """What a session did, without its words: steps, tool errors, how it ended, the thinking slots filled."""
     steps = session.get("steps") or []
     return {"status": session.get("status"), "ended": session.get("ended"), "steps": len(steps),
+            "eur": round(float((session.get("used") or {}).get("eur") or 0.0), 6),
             "tool_errors": sum(1 for s in steps if s.get("ok") is False), "tools": [s.get("tool") for s in steps],
             "thoughts": {src: sum(1 for s in steps if s.get("thought_source") == src) for src in ("recorded", "visible", "from_record")},
             "error": (session.get("error") or "")[:300] or None, "playbook": {k: (session.get("playbook") or {}).get(k) for k in ("sha256", "shown", "used")}}

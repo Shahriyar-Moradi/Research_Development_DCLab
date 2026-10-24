@@ -140,7 +140,7 @@ def _attempt(home: Path, tmp: Path, client: Any, model: str, family: str, seed: 
 
 def run_probe(home: Path, client: Any, model: str, bullet: str, family: str = "groups", n: int = 3, repeats: int = 1,
               seeds: list[int] | None = None, lineage: str = "main", budget: dict[str, Any] | None = None, reuse_pilot: bool = True,
-              log=print, limit: int | None = None) -> dict[str, Any]:
+              log=print, limit: int | None = None, cap_eur: float | None = None) -> dict[str, Any]:
     """``limit``: at most this many new homeworks in this process, then it pauses (a fresh process a homework gives its
     memory back; the pilot's measurement of 2026-10-24)."""
     if client is None:  # with no model the intern runs the standard plan: that would measure the rules, not the lesson
@@ -170,6 +170,11 @@ def run_probe(home: Path, client: Any, model: str, bullet: str, family: str = "g
                     if row is not None:
                         log(f"{row['pack']} {arm} r{repeat}: done before ({row['verdict']} {row['codes']}), not repeated")
                     else:
+                        spent = sum(float(((r.get("session") or {}).get("eur")) or 0.0) for r in rows if not r.get("from_pilot"))
+                        if cap_eur is not None and spent >= cap_eur:  # a hosted model: the cap holds for the whole probe, its earlier homeworks too
+                            log(f"the cap of EUR {cap_eur:.2f} is spent (EUR {spent:.4f}): stopped")
+                            paused = True
+                            break
                         if pause_file(home).exists() or (limit is not None and new >= limit):
                             if pause_file(home).exists():
                                 pause_file(home).unlink()
@@ -236,7 +241,7 @@ def judge(home: Path, books: FilePlaybooks, family: str, lineage: str, lesson: A
                        "with": p["with"].get("decision_score"), "gain": g, "without_from_pilot": bool(p["without"].get("from_pilot")),
                        "cited": p["with"].get("cited") or []} for p, g in zip(pairs, gains)],
             "summary": {"pairs": len(pairs), "scored": len(scored), "mean_gain": mean, "passes_lost": lost, "counts": counts,
-                        "counted_now": counted, "enough": enough}, "verdict": verdict, "spent_eur": 0.0,
+                        "counted_now": counted, "enough": enough}, "verdict": verdict, "spent_eur": round(sum(float(((r.get("session") or {}).get("eur")) or 0.0) for r in rows if not r.get("from_pilot")), 6),
             "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "rule": "paired homeworks on learning variants, graded by code; the lesson's counters by code, its status by the gate"}
 

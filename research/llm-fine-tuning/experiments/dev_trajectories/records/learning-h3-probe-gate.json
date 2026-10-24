@@ -23,9 +23,13 @@
   {
    "decision": "A homework the server broke is marked invalid and done again",
    "why": "a broken instrument is neither the lesson's nor the model's result"
+  },
+  {
+   "decision": "A hosted model may run the same homeworks once, capped, for comparison; never as the learning loop's solver",
+   "why": "comparing Claude with the local model on the same homeworks tells a weak model from misleading evidence; its runs stay silver"
   }
  ],
- "change": "dclab_rnd/learning/probe.py (new); dclab_rnd/learning/__main__.py (probe, a shared local-client check); dclab_rnd/learning/pilot.py (a broken homework marked invalid); dclab_rnd/learning/scoreboard.py (probe results named apart); tests/test_learning_h3_probe.py (new). Later: --limit for the pilot and the probe (exit 3 while more remain).",
+ "change": "dclab_rnd/learning/probe.py (new); dclab_rnd/learning/__main__.py (probe, a shared local-client check); dclab_rnd/learning/pilot.py (a broken homework marked invalid); dclab_rnd/learning/scoreboard.py (probe results named apart); tests/test_learning_h3_probe.py (new). Later: --limit for the pilot and the probe (exit 3 while more remain). Later: --hosted --yes --cap-eur for the pilot and the probe (a total cap for the run, max_eur a homework, the served model named and priced before any spend).",
  "findings": [
   {
    "id": "F1",

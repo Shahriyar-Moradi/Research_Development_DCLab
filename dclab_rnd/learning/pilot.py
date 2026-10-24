@@ -81,7 +81,7 @@ def broke(session: dict[str, Any]) -> bool:
 
 
 def run_pilot(home: Path, client: Any, model: str, family: str = "groups", n: int = 5, log=print,
-              budget: dict[str, Any] | None = None, limit: int | None = None) -> dict[str, Any]:
+              budget: dict[str, Any] | None = None, limit: int | None = None, cap_eur: float | None = None) -> dict[str, Any]:
     """``limit``: at most this many new homeworks in this process, then it pauses (the next process goes on). Measured
     2026-10-24: one process doing homework after homework grew until swap reached 10 GB and the disk fell below 2 GB;
     a fresh process a homework gives its memory back."""
@@ -98,6 +98,11 @@ def run_pilot(home: Path, client: Any, model: str, family: str = "groups", n: in
                 log(f"{earlier['pack']}: done before ({earlier['verdict']} {earlier['codes']}), not repeated")
                 continue
             variant = materialize(Path(tmp), family, seed)
+            spent = sum(float(((r.get("session") or {}).get("eur")) or 0.0) for r in rows)
+            if cap_eur is not None and spent >= cap_eur:  # a hosted model: the cap holds for the whole pilot, its earlier homeworks too
+                paused = True
+                log(f"the cap of EUR {cap_eur:.2f} is spent (EUR {spent:.4f}): stopped before {variant.pack.id}")
+                break
             if pause_file(home).exists() or (limit is not None and new >= limit):
                 if pause_file(home).exists():
                     pause_file(home).unlink()
@@ -135,6 +140,7 @@ def run_pilot(home: Path, client: Any, model: str, family: str = "groups", n: in
                "tool_errors": sum((r.get("session") or {}).get("tool_errors", 0) for r in rows),
                "recorded_thoughts": sum(((r.get("session") or {}).get("thoughts") or {}).get("recorded", 0) for r in rows)}
     summary["broke"] = sum(bool(r.get("broke")) for r in rows)
+    summary["spent_eur"] = round(sum(float(((r.get("session") or {}).get("eur")) or 0.0) for r in rows), 6)
     ok = bool(rows) and finished / len(rows) >= FINISH_SHARE
     if paused:
         return {"campaign_id": "learning_v1", "kind": "learning_pilot", "status": "paused", "family": family, "model": model, "rows": rows,
@@ -143,7 +149,7 @@ def run_pilot(home: Path, client: Any, model: str, family: str = "groups", n: in
                else f"ok: the model finished {finished} of {len(rows)} homeworks" if ok
                else f"fail: the model finished only {finished} of {len(rows)} homeworks (the gate asks {FINISH_SHARE:.0%})")
     return {"campaign_id": "learning_v1", "kind": "learning_pilot", "status": "completed", "family": family, "split": "learning",
-            "model": model, "budget": {**BUDGET, **(budget or {})}, "gate": GATE, "fingerprints": fingerprints(), "rows": rows, "summary": summary, "verdict": verdict, "spent_eur": 0.0,
+            "model": model, "budget": {**BUDGET, **(budget or {})}, "gate": GATE, "fingerprints": fingerprints(), "rows": rows, "summary": summary, "verdict": verdict, "spent_eur": summary["spent_eur"],
             "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "rule": "the first learning variants, no lesson shown, the intern on a local model, graded by code, every attempt kept whole"}
 

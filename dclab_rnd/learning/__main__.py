@@ -25,6 +25,10 @@ def main(argv: list[str] | None = None) -> int:
     draft.add_argument("--cap-eur", type=float, default=None, help="the most the reflector may spend on one challenge")
     pilot = sub.add_parser("pilot", help="H3: can a local model do the homework at all? the intern on the first learning variants, no lesson shown")
     pilot.add_argument("--model", default=None, help="the local model's name on the server, e.g. qwen3.5:4b-16k")
+    pilot.add_argument("--hosted", action="store_true", help="a one-off comparison on the configured hosted model (Claude), never the learning loop; needs --yes and --cap-eur")
+    pilot.add_argument("--yes", action="store_true")
+    pilot.add_argument("--cap-eur", type=float, default=None, help="with --hosted: the most this whole run may spend")
+    pilot.add_argument("--cap-eur-each", type=float, default=0.5, help="with --hosted: the most one homework may spend")
     pilot.add_argument("--limit", type=int, default=None, help="at most this many new homeworks in this process, then exit 3 (loop it: a fresh process a homework)")
     pilot.add_argument("--pause", action="store_true", help="ask a running pilot to stop after the homework it is on; the same command again goes on")
     pilot.add_argument("--base-url", default="http://127.0.0.1:11434/v1")
@@ -42,6 +46,10 @@ def main(argv: list[str] | None = None) -> int:
     probe.add_argument("--repeats", type=int, default=1, help="pairs per variant")
     probe.add_argument("--max-minutes", type=float, default=None, help="each homework's time budget (default the solver's 15)")
     probe.add_argument("--no-reuse-pilot", action="store_true", help="never take the pilot's attempts as the arm without the lesson")
+    probe.add_argument("--hosted", action="store_true", help="a one-off comparison on the configured hosted model (Claude), never the learning loop; needs --yes and --cap-eur")
+    probe.add_argument("--yes", action="store_true")
+    probe.add_argument("--cap-eur", type=float, default=None, help="with --hosted: the most this whole run may spend")
+    probe.add_argument("--cap-eur-each", type=float, default=0.5, help="with --hosted: the most one homework may spend")
     probe.add_argument("--limit", type=int, default=None, help="at most this many new homeworks in this process, then exit 3 (loop it: a fresh process a homework)")
     probe.add_argument("--pause", action="store_true", help="ask a running probe to stop after the homework it is on")
     probe.add_argument("--write", action="store_true", help="store the result in evidence/campaigns/learning_v1/results/")
@@ -85,7 +93,6 @@ def _pilot(args) -> int:
     from ..settings import Settings
     from .pilot import pause_file, run_pilot
     from .scoreboard import _store
-    from .solver import NotLocal, local_gateway
 
     home = Path(Settings.load().agent_home)
     if args.pause:
@@ -93,38 +100,21 @@ def _pilot(args) -> int:
         pause_file(home).write_text("pause\n", encoding="utf-8")
         print("the pilot stops after the homework it is on; run the same pilot command again to go on")
         return 0
-    if not args.model:
+    if not args.model and not args.hosted:
         print("--model is needed", file=sys.stderr)
         return 2
     pause_file(home).unlink(missing_ok=True)  # a start means go: a pause asked while nothing ran is not this run's
-    try:
-        gateway = local_gateway(args.model, args.base_url, home=home)
-    except NotLocal as exc:
-        print(str(exc), file=sys.stderr)
-        return 2
-    client = gateway.client("intern")
-    if client is None:
-        print("no model serves the intern: is the local server running with the model pulled?", file=sys.stderr)
-        return 2
-    try:  # one tiny request first: a server that is down, or a model not pulled, is not the model failing the homework
-        client.complete([{"role": "user", "content": "Reply with the word ready."}], [], max_tokens=200)
-    except Exception as exc:  # noqa: BLE001
-        print(f"the local model did not answer ({type(exc).__name__}: {str(exc)[:200]}): start the server and pull the model", file=sys.stderr)
-        return 2
-    from .solver import ContextTooSmall, check_context
-
-    try:  # a window smaller than the conversation is cut silently: the model would never see its task
-        window = check_context(args.model, args.base_url)
-    except ContextTooSmall as exc:
-        print(str(exc), file=sys.stderr)
-        return 2
-    print(f"{args.model}: served with a {window or 'unknown'}-token window", file=sys.stderr, flush=True)
+    got = _local(args)
+    if isinstance(got, int):
+        return got
+    client, window = got
     before = experience.current_log()
     if before is None:
         experience.install(experience.open_log(home))
     try:
-        budget = {"max_minutes": args.max_minutes} if args.max_minutes else None
-        result = run_pilot(home, client, args.model, args.family, args.n, log=lambda *a: print(*a, flush=True), budget=budget, limit=args.limit)
+        budget = {**({"max_minutes": args.max_minutes} if args.max_minutes else {}), **({"max_eur": args.cap_eur_each} if args.hosted else {})} or None
+        result = run_pilot(home, client, args.model, args.family, args.n, log=lambda *a: print(*a, flush=True), budget=budget, limit=args.limit,
+                           cap_eur=args.cap_eur if args.hosted else None)
         result["context_window"] = window
     finally:
         if before is None:
@@ -138,9 +128,49 @@ def _pilot(args) -> int:
     return 0 if result["verdict"].startswith("ok") else 2 if result["verdict"].startswith("invalid") else 1
 
 
+def _hosted(args) -> tuple[object, None] | int:
+    """The intern's client on the configured hosted model, for a one-off comparison only (the learning loop's solver is
+    local): .env loaded as the server loads it, a priced model named before any spend, --yes and a cap. Its runs are a
+    frontier model's: the store keeps them silver, never in a training set."""
+    import os
+
+    from dotenv import load_dotenv
+
+    from ..models import prices, settings
+    from ..models.gateway import for_workspace
+    from ..settings import Settings
+
+    if not args.yes or not args.cap_eur or args.cap_eur <= 0:
+        print("a hosted model runs only with --yes and --cap-eur > 0 (the whole run)", file=sys.stderr)
+        return 2
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)
+    os.environ.pop("DCLAB_NO_LIVE_MODELS", None)
+    gateway = for_workspace(Path(Settings.load().agent_home))
+    client = gateway.client("intern")
+    tier = settings.tier(gateway.route("intern")[0])
+    if client is None:
+        print("no model serves the intern", file=sys.stderr)
+        return 2
+    if settings.is_local(tier.get("base_url") or ""):
+        print("the intern is served locally: run without --hosted", file=sys.stderr)
+        return 2
+    if prices.price_of(tier.get("model") or "") is None:
+        print(f"{tier.get('model')} has no price: a cap cannot hold", file=sys.stderr)
+        return 2
+    if args.model and args.model != tier.get("model"):
+        print(f"--model {args.model} is not the served model {tier.get('model')}", file=sys.stderr)
+        return 2
+    args.model = tier.get("model")
+    print(f"hosted: {args.model} at {settings._host(tier.get('base_url') or '')}; at most EUR {args.cap_eur:.2f} this run, "
+          f"EUR {args.cap_eur_each:.2f} a homework", file=sys.stderr, flush=True)
+    return client, None
+
+
 def _local(args) -> tuple[object, int | None] | int:
     """The intern's client on a local model, checked: on this machine, a window that holds its prompt, answering. An exit
-    code when it is not."""
+    code when it is not. With --hosted, the capped hosted client instead."""
+    if getattr(args, "hosted", False):
+        return _hosted(args)
     from .solver import ContextTooSmall, NotLocal, check_context, local_gateway
 
     from ..settings import Settings
@@ -180,8 +210,8 @@ def _probe(args) -> int:
         pause_file(home).write_text("pause\n", encoding="utf-8")
         print("the probe stops after the homework it is on; run the same probe command again to go on")
         return 0
-    if not args.model or not args.bullet:
-        print("--model and --bullet are needed", file=sys.stderr)
+    if (not args.model and not args.hosted) or not args.bullet:
+        print("--model (or --hosted) and --bullet are needed", file=sys.stderr)
         return 2
     pause_file(home).unlink(missing_ok=True)
     got = _local(args)
@@ -193,8 +223,9 @@ def _probe(args) -> int:
         experience.install(experience.open_log(home))
     try:
         result = run_probe(home, client, args.model, args.bullet, args.family, args.n, args.repeats, lineage=args.lineage,
-                           budget={"max_minutes": args.max_minutes} if args.max_minutes else None, reuse_pilot=not args.no_reuse_pilot,
-                           log=lambda *a: print(*a, flush=True), limit=args.limit)
+                           budget={**({"max_minutes": args.max_minutes} if args.max_minutes else {}), **({"max_eur": args.cap_eur_each} if args.hosted else {})} or None,
+                           reuse_pilot=not args.no_reuse_pilot, log=lambda *a: print(*a, flush=True), limit=args.limit,
+                           cap_eur=args.cap_eur if args.hosted else None)
         result["context_window"] = window
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
