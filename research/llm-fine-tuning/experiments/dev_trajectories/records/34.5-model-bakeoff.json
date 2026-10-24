@@ -1,0 +1,194 @@
+{
+  "package": "34.5-model-bakeoff",
+  "title": "A bake-off harness: DCLab's engine against FLAML on the same rows, holdout, folds and metric, its rule fixed before the run",
+  "date": "2026-10-24",
+  "request": "Package 34.5 of the phase-10 plan: compare DCLab's engine as it is with FLAML (owner-approved pip install) on the 10 UCI sets, Telco and the expansion samples, same splits, metric and time budget; holdout score with interval, minutes and peak memory per dataset; stored as an evidence campaign; the rule deciding 34.8 fixed before the run. Small budgets on the 8 GB Air.",
+  "spec": "dclab_rnd/bakeoff.py and make bakeoff. Each dataset becomes a studio project from its sample and the R&D's solution (saved through the graph's set_solution). The engine runs its five stages in a child process with no model offered; its holdout predictions are taken from the final stage's one holdout fit and must reproduce its record. FLAML 2.7.0 runs in another process on engine.prepare's bundle: the engine's raw tabular columns, the engine's training folds as a fixed splitter, the same metric, a 300 s budget, predicting the holdout once. A compare step checks the same holdout rows, labels, groups, folds and columns, then each engine's bootstrap interval and a paired bootstrap of the difference. The rule, the protocol, FLAML's settings and version and the hash of the code that applies them are frozen in the manifest before the first run; results are written once.",
+  "plan": [
+    "read the plan, the expansion datasets and the studio engine",
+    "choose how each engine gets the same split",
+    "install FLAML and read how it splits",
+    "write the harness, the rule and the freeze",
+    "test on a tiny grouped table through the real orchestration",
+    "review before the real run (results are written once)",
+    "fix the findings",
+    "run the bake-off when the machine is free (owner's call)"
+  ],
+  "decisions": [
+    {
+      "decision": "Run the studio engine (all five stages) rather than the expansion runner's campaign",
+      "why": "the expansion runner loads only its four datasets; the studio engine is the engine the product runs on any table, and its prepare() gives one bundle both engines can share"
+    },
+    {
+      "decision": "Give FLAML the engine's own training folds as a splitter object",
+      "why": "FLAML reshuffles rows for its string split types; a splitter object is used as given (no shuffle, no rare-class augment), so both search on the same folds"
+    },
+    {
+      "decision": "Take the engine's holdout predictions by wrapping fit_and_predict during the final stage and check them against the record",
+      "why": "the record keeps no predictions; refitting would be a second holdout read; the check proves the captured predictions are the recorded ones"
+    },
+    {
+      "decision": "Each engine in its own process",
+      "why": "its wall time and peak memory are its own, and a crash or the OS ending one on 8 GB does not end the campaign"
+    },
+    {
+      "decision": "FLAML gets the raw tabular columns, not the engine's engineered features",
+      "why": "a bake-off of engines as they are; the text dataset, where FLAML then sees no text, is reported but not judged by the rule"
+    },
+    {
+      "decision": "A fixed 300 s FLAML budget, the engine's time measured",
+      "why": "the engine has no time knob; the brief asks for about five minutes per engine per dataset; time never enters the rule"
+    },
+    {
+      "decision": "Rule: FLAML ahead (paired 95% interval above 0) on at least a third of the judged datasets and on more than it is behind; at least 10 judged; a FLAML failure counts as behind",
+      "why": "the owner's proposal made exact: paired on the same rows is stricter than two overlapping intervals, and failures and early stops cannot bend the count"
+    }
+  ],
+  "change": "dclab_rnd/bakeoff.py (new); tests/test_bakeoff.py (new, 14 tests); Makefile (bakeoff target); requirements/base.txt (flaml==2.7.0).",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "defect": "FLAML would have searched on its own reshuffled folds, not the engine's",
+      "scenario": "split_type='stratified' or 'group' makes FLAML shuffle X_train and build its own folds",
+      "cause": "FLAML's prepare_data shuffles for uniform and stratified split types",
+      "fix": "pass the engine's bundle.cv_splits as a splitter object with shuffle=False; auto_augment off so no rare row is duplicated",
+      "test": "tests/test_bakeoff.py::BakeoffRunTest::test_flaml_searches_on_the_engine_folds_and_reads_the_holdout_once",
+      "severity": "behaviour",
+      "impact": "the two engines would have been chosen on different folds",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "defect": "the text dataset counted in the rule while FLAML saw no text",
+      "scenario": "ecommerce_clothing_reviews: FLAML gets 4 raw columns, the engine the text too; one dataset can flip a 5-of-14 rule",
+      "cause": "the arm uses raw tabular columns; 34.8 would give FLAML the recipe's features",
+      "fix": "the rule names it 'not judged' and decide() leaves it out",
+      "test": "tests/test_bakeoff.py::BakeoffRuleTest::test_a_flaml_failure_counts_behind_and_the_text_dataset_is_never_judged",
+      "severity": "behaviour",
+      "impact": "the rule would measure the wrong thing on that dataset",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "defect": "one dataset's exception stopped the whole campaign on every rerun",
+      "scenario": "a download or hash failure, or compare's refusal of different splits, raised out of run()",
+      "cause": "no try/except around a dataset's prepare, compare and report",
+      "fix": "each dataset in _run_dataset inside a handler that writes dataset.failed.json and goes on",
+      "test": "tests/test_bakeoff.py::BakeoffRunTest::test_a_failing_dataset_is_recorded_and_the_campaign_goes_on",
+      "severity": "behaviour",
+      "impact": "later datasets would never run",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "defect": "a DCLab retry after a kill or timeout could never succeed",
+      "scenario": "the OS ends the child during models: the project stays marked running; a rerun's data stage is refused by the graph ('nothing else running'); after a final stage the holdout counts as used",
+      "cause": "a retry reused the same project",
+      "fix": "every DCLab retry (and a resume where the engine never finished) starts on a fresh project; FLAML's outputs go with it",
+      "test": "tests/test_bakeoff.py::BakeoffRunTest::test_a_failing_dataset_is_recorded_and_the_campaign_goes_on",
+      "severity": "behaviour",
+      "impact": "a dataset hit by memory pressure on 8 GB would fail forever",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "defect": "the freeze pinned the rule's words, not the code and settings that apply it",
+      "scenario": "edit decide() or upgrade FLAML between datasets: the run resumes silently",
+      "cause": "only RULE and the protocol's prose were hashed",
+      "fix": "the protocol holds FLAML's settings, metric map and version, the draws and seed, and the sha256 of the source of decide, paired_bootstrap, compare, the arms and the column choice",
+      "test": "tests/test_bakeoff.py::BakeoffRunTest::test_the_rule_is_fixed_before_the_run_and_a_change_is_refused",
+      "severity": "behaviour",
+      "impact": "the rule could change after the first result without anyone seeing",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "defect": "a decision could be written early, and failures left the denominator",
+      "scenario": "report --final wrote the permanent decision once any 10 datasets finished; an arm failure silently left the count",
+      "cause": "no rule for failures or an early stop",
+      "fix": "--final only when every dataset not compared failed after its retry; a FLAML failure counts as behind, a DCLab-only failure is left out and listed",
+      "test": "tests/test_bakeoff.py::BakeoffRunTest::test_a_failing_dataset_is_recorded_and_the_campaign_goes_on",
+      "severity": "behaviour",
+      "impact": "stopping on a good score, or FLAML failures favouring FLAML",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "defect": "the Solution was saved without the workflow graph's check and log",
+      "scenario": "_save_solution wrote project['solution'] directly",
+      "cause": "a shortcut past the validator other harnesses use",
+      "fix": "graph.check(set_solution) and graph.log, as real_problems.py does",
+      "test": "tests/test_bakeoff.py::BakeoffRunTest::test_both_engines_score_the_same_holdout_rows_with_intervals",
+      "severity": "gap",
+      "impact": "a move outside the graph's record",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F8",
+      "source": "reviewer",
+      "defect": "the two processes' columns and fold contents were not compared",
+      "scenario": "22.9's routed decisions inside prepare could give one process other identifiers",
+      "cause": "compare checked rows, labels and fold sizes only",
+      "fix": "each engine's split record keeps the model columns and a hash of the fold indices; compare refuses a difference",
+      "test": "tests/test_bakeoff.py::BakeoffRunTest::test_compare_refuses_two_different_holdouts",
+      "severity": "behaviour",
+      "impact": "an unseen difference in inputs between the arms",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F9",
+      "source": "reviewer",
+      "defect": "small leaks of the run into other systems",
+      "scenario": "DCLAB_DATABASE_URL in the shell would send 14 scratch projects' records to PostgreSQL; a results key 'verdict' is read elsewhere as pass or fail",
+      "cause": "the child's environment and the key name",
+      "fix": "DCLAB_DATABASE_URL blanked in the child; the keys renamed comparison and outcome; flaml pinned in requirements/base.txt",
+      "test": "tests/test_bakeoff.py::BakeoffRunTest::test_both_engines_score_the_same_holdout_rows_with_intervals",
+      "severity": "gap",
+      "impact": "agent metrics would log every bake-off result as a failed evaluation",
+      "alternatives": [],
+      "open": ""
+    }
+  ],
+  "measurements": [
+    {
+      "name": "the harness on a tiny grouped table (420 rows, 30 stores), both engines, FLAML 3 s",
+      "gate": "same holdout rows, labels, folds and columns; FLAML fitted on training rows only and predicting the holdout once; the engine's captured predictions reproduce its record; intervals around both scores",
+      "fixed_before_run": true,
+      "result": "14 tests pass in about 20 s",
+      "verdict": "pass",
+      "cost_eur": 0,
+      "next": "the full bake-off (make bakeoff ARGS=\"run --yes\") when the owner is back and the machine is free",
+      "against_gate": "",
+      "limits": [
+        "a tiny invented table; the real run is not done"
+      ]
+    }
+  ],
+  "outcome": "The bake-off harness is built, reviewed and tested; the rule that decides 34.8 is in code and will be frozen into the manifest by the first run. The run itself (14 datasets, about 2 to 3 hours) waits for the owner.",
+  "lessons": [
+    "Before comparing two engines, make them read the same folds, not just the same holdout: an AutoML library reshuffles unless given a splitter object.",
+    "Freeze the code that applies a rule, not only its words.",
+    "On an 8 GB machine a retry must start clean: a killed run leaves state that blocks the next one."
+  ],
+  "risks": [
+    "FLAML sees the engine's raw columns, not its engineered features: a no-go would not prove FLAML as a family behind the recipe is useless",
+    "one holdout per dataset: wide intervals on small sets (heart disease, 61 rows) make 'ahead' hard to reach",
+    "the fraud sample keeps the latest 20,000 rows: few positives in the holdout"
+  ],
+  "commits": []
+}

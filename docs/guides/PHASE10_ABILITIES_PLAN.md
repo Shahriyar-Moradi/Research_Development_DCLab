@@ -125,6 +125,10 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
   minutes, peak memory; stored as an evidence campaign.
 - **Done when:** the table exists for every dataset with intervals; the result decides 34.8 by a rule fixed before the
   run (for example: FLAML ahead by more than its interval on at least a third of the datasets).
+- **Status:** harness done (2026-10-25): `dclab_rnd/bakeoff.py`, `make bakeoff` (plan, then `ARGS="run --yes"`), FLAML
+  2.7.0 pinned; both engines on the same rows, holdout, folds and metric; the rule deciding 34.8 written into the manifest
+  before the first run; review (11 findings, fixed), 14 tests. Open: the run itself (14 datasets, about 2 to 3 hours,
+  alone on the Air).
 
 ### 34.6 Honest selection under many attempts (MLE plan 33.2)
 - As written in `MLE_BENCH_LESSONS_PLAN.md` 33.2: search folds and a selection fold, the measured optimism in the record.
