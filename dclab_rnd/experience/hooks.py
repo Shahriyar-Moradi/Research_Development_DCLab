@@ -396,6 +396,18 @@ def programme_built(project_id: str, p: Any, actor: str) -> None:
 
 
 @_quiet
+def decision_what_if(project_id: str, changes: dict[str, Any], out: dict[str, Any], actor: str) -> None:
+    """A what-if on the project's decision (34.4): what was changed and the decision core's answer, numbers only."""
+    before, after = out.get("before") or {}, out.get("after") or {}
+    asked = ", ".join(f"{k}={v:g}" for k, v in sorted(changes.items()) if isinstance(v, (int, float)))
+    record("decision.proposed", _actor(actor),
+           {"point": "decision.what_if", "by": "rule:decision_core", "choice": f"share {after.get('share')}",
+            "why": (f"under {asked}: the share acted on {before.get('share')} -> {after.get('share')}, the value per row "
+                    f"{before.get('value_per_row')} -> {after.get('value_per_row')}; keeping the old threshold "
+                    f"{(out.get('keep_the_old_threshold') or {}).get('value_per_row')}; nothing refitted")[:2000]}, project=project_id)
+
+
+@_quiet
 def data_value_measured(project_id: str, result: Any, actor: str) -> None:
     """Would more rows help (34.13): the rule's answer as a proposed decision, with its plain reason (numbers, never a table's value)."""
     record("decision.proposed", "system",

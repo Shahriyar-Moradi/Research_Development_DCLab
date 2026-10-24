@@ -581,6 +581,40 @@ async def get_data_value(project_id: str, s: Services = Depends(services)):
     return studio_data_value.view(s.project(project_id))
 
 
+@router.get("/api/projects/{project_id}/decision", response_model=Page)
+async def get_decision(project_id: str, s: Services = Depends(services)):
+    """The project's decision on top of its model (34.4): ``status`` (none, pending, chosen, refused, missing), ``stated`` (the solution's
+    decision), ``chosen`` (the final stage's ``evidence.decision``: the operating point with its interval, curve, holdout read and
+    sensitivity table, or a review budget, a price, a cost matrix), ``sentence`` (its claim) and ``what_if`` (whether one can be asked,
+    the numbers it may change, or why not). Numbers from the stage record only."""
+    from ...studio import decision as studio_decision
+
+    s.project(project_id)
+    return studio_decision.view(s.projects, project_id)
+
+
+@router.post("/api/projects/{project_id}/decision/what-if", response_model=Page)
+async def decision_what_if(project_id: str, payload: AnyObject, s: Services = Depends(services)):
+    """The chosen act decision re-scored under ``changes`` (an object of the decision's numbers: ``value_per_case``,
+    ``cost_per_action``, ``cost_false_positive``, ``cost_false_negative``, ``capacity_share``, or ``base_rate``), on the out-of-fold
+    rows it was chosen on: ``before``, ``after``, ``keep_the_old_threshold``, ``regret_if_unchanged`` and what was not refitted. The
+    model, the stage records and the holdout are untouched. 409 when no what-if can be asked (and why), 422 for a change it does not state."""
+    from ...experience import hooks
+    from ...studio import decision as studio_decision
+
+    s.project(project_id)
+    body = payload.model_dump() if hasattr(payload, "model_dump") else dict(payload or {})
+    changes = body.get("changes") if isinstance(body.get("changes"), dict) else {}
+    try:
+        out = await asyncio.to_thread(studio_decision.what_if, s.projects, project_id, changes)
+    except LookupError as exc:
+        raise HTTPException(409, str(exc.args[0]) if exc.args else "No what-if can be asked") from None
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from None
+    hooks.decision_what_if(project_id, changes, out, "human")
+    return out
+
+
 @router.post("/api/projects/{project_id}/improve/adopt", response_model=Page)
 async def adopt_improvement(project_id: str, payload: AnyObject, s: Services = Depends(services)):
     """Adopt a way that cleared: its parameters are kept for the next final run. That run reads the held-back cases a second time and needs

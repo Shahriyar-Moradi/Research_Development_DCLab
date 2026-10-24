@@ -17,8 +17,28 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
-from typing import Optional
+import threading
+import time
+from pathlib import Path
+from typing import Callable, Optional
+
+
+def watch(folder: Optional[Path], parent: int, *, every: float = 5.0, stop: Callable[[int], None] = os._exit) -> threading.Thread:
+    """A run started by a server's worker stops when that server is gone (it was given to another parent) or its folder of
+    agent runs was removed (a test server's temporary home): 2026-10-25, five such runs outlived their test servers and
+    kept writing into the owner's store. ``stop`` ends the process (the store's file locks go with it)."""
+    def loop() -> None:
+        while True:
+            time.sleep(every)
+            if os.getppid() != parent or (folder is not None and not folder.exists()):
+                stop(3)
+                return
+
+    thread = threading.Thread(target=loop, name="store-run-watch", daemon=True)
+    thread.start()
+    return thread
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -39,8 +59,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parser.parse_args(argv)
     layout = Layout(args.root)
     if args.command == "run":
-        from pathlib import Path
-
+        watch(Path(args.agent_runs) if args.agent_runs else None, os.getppid())
         record = conductor.conduct({"agent_runs": Path(args.agent_runs)} if args.agent_runs else None, layout)
         print(json.dumps({k: record[k] for k in ("id", "started", "ended", "failed", "source_errors")} |
                          {"steps": [{k: s[k] for k in ("name", "read", "kept", "unchanged", "error")} | {"errors": len(s["errors"])} for s in record["steps"]]},

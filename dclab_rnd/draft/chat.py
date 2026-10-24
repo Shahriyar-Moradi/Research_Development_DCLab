@@ -47,6 +47,17 @@ def clause_of(text: str, word: str) -> str:
 
 
 LATER = re.compile(r"\b(after|once|only|later|not known|unknown|leak\w*)\b", re.I)  # a column mentioned as known later
+COSTS_QUESTION = ("Roughly, what does acting on one case cost, and what is a case worth or a miss? For example: a call costs 5; "
+                  "a lost customer costs 300.")
+
+
+def _amounts_said(u: dict[str, Any]) -> bool:
+    """34.4: whether the words on what is done and what it costs already give a decision's amounts (dclab_core.decide.read_spec)."""
+    from dclab_core.decide import read_spec
+
+    return any(read_spec(str(u.get(k) or "")) is not None for k in ("action", "costs"))  # each answer read on its own
+
+
 MAX_QUESTIONS = 5  # 20.10: the conversation gate's five; at four a rare event's review budget was never asked
 MODEL_REPLIES = 5  # model requests per user message
 MODEL_STEPS = 40  # tool calls per user message (a reply may make several)
@@ -711,7 +722,7 @@ class HomeAgent:
 
         field, value = q["field"], value.strip()
         said = costs_said(value)
-        keep = (said.miss.value or said.false_alarm.value) if field == "costs" else bool(value)
+        keep = (said.miss.value or said.false_alarm.value or _amounts_said({"costs": value})) if field == "costs" else bool(value)
         if keep:
             known = str((self.store.get(draft_id).get("understanding") or {}).get("notes") or "")
             self.record(draft_id, field, (f"{known}; {value}" if field == "notes" and known else value))
@@ -1007,6 +1018,11 @@ class HomeAgent:
             if field == "data_plan":
                 return ("data_plan", "Can you share a sample of the data, connect a source, or should I simulate data from this conversation?",
                         ["Upload a sample", "Connect a source", "Simulate data", "No data yet, plan only"], plans.WHY["data_plan"])
+        if (u.get("action") and (plan.get("action") or {}).get("source") == "problem" and "action" not in asked and "costs" not in asked
+                and not u.get("costs") and len(counted(draft)) < MAX_QUESTIONS and not _amounts_said(u)):
+            # 34.4: what is done came from the first sentence, so the question that asks what a wrong one costs was never put:
+            # its amounts are asked once, last, never counted against the five
+            return ("costs", COSTS_QUESTION, [], "With the amounts, the final stage chooses on how many rows acting pays, with its interval.")
         return None
 
     def replied_to(self, draft: dict[str, Any], field: str) -> dict[str, Any] | None:

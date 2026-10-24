@@ -4,6 +4,20 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.109.0 (2026-10-25)
+
+Decisions in the product (34.4).
+
+- `decide.read_spec(text)`: a decision read from a person's words ("a call costs 5 euro; a lost customer costs 300"):
+  each clause with exactly one amount, a money word (a currency, costs, worth, lose, save, pay...) and a word that says
+  what it is (a false alarm, a miss, a case's value, the cost of acting); a clause whose number is a count, a time, a
+  share or a total ("the top 100", "5 minutes", "3 customers", "15 percent", "2 million") is left out, and a text with
+  ".5", "-300" or "10.000" gives nothing; None unless a cost and a value (or a miss) are both said. The words are kept in
+  the spec's notes.
+- `report`: the decision section writes an operating point (the share acted on, its value with its interval, the
+  holdout read once, what moves it) and a cost matrix's choice; a requirement on costs or budgets is covered by
+  `final.evidence.decision`.
+
 ## 0.108.0 (2026-10-25)
 
 Targeting and several actions (34.2), what-if (34.3).

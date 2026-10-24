@@ -1,0 +1,217 @@
+{
+ "package": "34.4-decisions-in-the-product",
+ "title": "Decisions in the product: a project states what acting is worth, the final stage chooses, the page and the intern ask what-if (34.4)",
+ "date": "2026-10-25",
+ "request": "The owner asked to finish Phase 10 without stopping. The plan (docs/guides/PHASE10_ABILITIES_PLAN.md, 34.4) asks for the decision core of 34.1 to 34.3 in the product: the solution's decision v2, the engine's final stage, the report, an API, a web page, an intern tool, and Home asking for value and cost in words.",
+ "spec": "Solution.decision v2 (act, classes); engine _act and _classes; rows for what-if kept beside the project; studio/decision.py behind GET /decision and POST /decision/what-if, the intern's decision_what_if and the Decision page; the report's section; dclab_core.decide.read_spec for Home's words.",
+ "plan": [
+  "map the engine, report, routes, web pages, intern tools and Home with an explorer",
+  "Solution.decision v2 with its checks; engine branches; a test on the churn and ticket replicas",
+  "keep the out-of-fold rows the decision was chosen on, stamped with the final run, never in a record",
+  "one module for the decision view and the what-if; routes, role, event, intern tool",
+  "the report's section and the rubric; the web page through DC.client",
+  "read amounts from Home's words; ask them once when the action came from the first sentence",
+  "product flows, agent suites, a live check with the intern"
+ ],
+ "decisions": [
+  {
+   "decision": "Keep the out-of-fold outcomes and scores in the project's own folder, stamped with the final run id",
+   "why": "a what-if needs them and must not refit; records, events and the ledger never hold a table's values; a stale file from another run is never read"
+  },
+  {
+   "decision": "One module answers the page, the API and the intern",
+   "why": "the same question asked three ways must give one answer; the API test compares it with the core's"
+  },
+  {
+   "decision": "Read amounts only when each clause holds exactly one amount and a word that says what it is",
+   "why": "a wrong reading becomes a decision on the built solution; leaving a phrase unread costs only a question"
+  },
+  {
+   "decision": "Ask for the amounts only when the action came from the first sentence and the limit of questions is not reached",
+   "why": "the action question already asks what a wrong one costs; asking every conversation broke six tests that guard few questions"
+  },
+  {
+   "decision": "Keep the review path on review_budget",
+   "why": "34.1 tested that the core gives the same answers; moving it would change stored records for nothing"
+  }
+ ],
+ "change": "dclab_rnd/studio/solution.py (Decision v2); dclab_rnd/studio/engine.py (_act, _classes, save/load_decision_rows, claims); dclab_rnd/studio/decision.py (new); dclab_rnd/agentic/routers/projects.py (two routes); dclab_rnd/accounts/guard.py; dclab_rnd/experience/hooks.py; dclab_rnd/ledger/capture.py; dclab_rnd/intern/tools.py (decision_what_if); dclab_core/report.py; dclab_core/decide.py (read_spec, 0.109.0); dclab_rnd/draft/api.py and chat.py (amounts read and asked); web views/decision.html, core.js, build.py, generated client and static app; scripts/product_e2e.py, browser_e2e.py, model_paths.py; tests/test_decisions_product.py, tests/test_core_decide_words.py (new).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "defect": "Home never heard the amounts in the product's main flow",
+   "scenario": "the upload flow says 'a call costs 5 euro; a lost customer costs 300', but the chat had taken the action from the first sentence and summarised before the third answer: no decision",
+   "cause": "the action question, which asks what a wrong one costs, is skipped when the first sentence says what is done; the costs field is optional and the scripted chat never asked it",
+   "fix": "the amounts question is asked once when the action came from the first sentence and no amounts were said; its answer is the one source a build adds a decision from",
+   "test": "scripts/product_e2e.py flow_upload (the decision said in the chat is chosen and a what-if answers)",
+   "severity": "gap",
+   "impact": "the decision layer would stay unused for anyone who describes the action in their first sentence",
+   "alternatives": [
+    "read the reply to the summary as amounts: the reply already has other meanings (an edit, build it)"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "defect": "the first version of the costs question broke the rule that Home asks few questions",
+   "scenario": "asked in every conversation with an action and no amounts: five draft-flow tests and one conversation test expected the summary after the required questions",
+   "cause": "the question was added whenever the amounts were missing, even when the action question had just asked for costs",
+   "fix": "narrowed to an action taken from the first sentence, the action question never put, under the limit of five",
+   "test": "tests/test_draft_flow.py, tests/test_conversation.py",
+   "severity": "behaviour",
+   "impact": "every Home conversation one question longer",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "self",
+   "defect": "an amount with a thousands separator was read as a decimal",
+   "scenario": "'if they leave we lose 1,200 a year' read as a miss costing 1.2",
+   "cause": "a comma was always taken as a decimal mark",
+   "fix": "three digits after each comma make a thousands separator; otherwise the comma is a decimal mark",
+   "test": "tests/test_core_decide_words.py::WordsTests::test_plain_amounts_are_read",
+   "severity": "behaviour",
+   "impact": "a decision a thousand times too cheap to act on",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "measurement",
+   "defect": "the live check read the intern's answer from the wrong field",
+   "scenario": "the intern answered with the core's numbers but the check printed an empty report",
+   "cause": "a session's answer is in final, not report",
+   "fix": "the check reads final",
+   "test": "scripts/model_paths.py path_decision",
+   "severity": "latent",
+   "impact": "a passing live check reported as answering nothing",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "the words reader turned counts, times and totals into money, and the build added the result to the person's solution",
+   "scenario": "'We call the top 100 customers each week, a lost customer costs us about 300' became a call costing 100; '5 minutes', '3 customers a week', '2 million', '1.2m', '.5', '-300', '10.000' and '15 percent' were all read as amounts",
+   "cause": "any number in a clause with a cost word was taken as money, and the decision was added from the action answer, which invites capacities",
+   "fix": "a clause needs a money word and no count, time, share or total next to its number; unreadable amounts give nothing; the decision is added only from the answer to the amounts question, as DCLab's own audited move, and amounts heard elsewhere are shown on the Decision page with a confirmed save",
+   "test": "tests/test_core_decide_words.py::WordsTests::test_counts_times_shares_and_totals_are_never_read_as_money; tests/test_decisions_product.py::ReviewFindingsTest::test_only_the_amounts_answer_is_added_and_by_dclab",
+   "severity": "behaviour",
+   "impact": "a project would choose on how many customers to call from a capacity read as a price, attributed to the person",
+   "alternatives": [
+    "a confirmation question in the chat: one more question for every person who says an amount"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "a decision that was not drawn covered a cost requirement in the report",
+   "scenario": "a decision refused with a warning and the requirement 'choose the alert threshold from the cost of a missed churner': marked covered",
+   "cause": "every path under the decision counted, its warning line too",
+   "fix": "a decision's warning, assumption and learnable lines never cover a requirement",
+   "test": "tests/test_decisions_product.py::ReviewFindingsTest::test_a_decision_not_drawn_never_covers_a_requirement",
+   "severity": "behaviour",
+   "impact": "a report claiming a requirement met that was not",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "defect": "the rows file was written after the holdout was read, unguarded",
+   "scenario": "a full disk failed the final stage after its record was written, so its holdout read was not counted; a cut file made the decision page answer 500",
+   "cause": "a plain write and a plain read",
+   "fix": "written to a temporary file and moved in whole, a failure logged; a broken file read as none",
+   "test": "tests/test_decisions_product.py::ReviewFindingsTest::test_a_broken_rows_file_gives_no_what_if_and_no_error",
+   "severity": "behaviour",
+   "impact": "a second holdout read not counted, and a page that fails",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "defect": "one ledger point held two units",
+   "scenario": "threshold.operating_point stored a share for act decisions and a score threshold otherwise",
+   "cause": "the same point and state for both",
+   "fix": "the state says of share or of threshold",
+   "test": "tests/test_ledger.py",
+   "severity": "latent",
+   "impact": "students trained on mixed units",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "defect": "decisions were accepted on kinds whose machine never draws one, and a binary cost matrix over the outcome's names failed only at run time",
+   "scenario": "an uplift project with an act decision showed missing for good; classes no and yes on a binary task were refused by the engine",
+   "cause": "the solution's checks did not know which kinds draw a decision or how a binary model names its classes",
+   "fix": "a decision on a kind with its own machine is refused at save; a binary cost matrix names 0 and 1 or the outcome's own values with the positive one, mapped by the engine",
+   "test": "tests/test_decisions_product.py::ReviewFindingsTest::test_decisions_only_where_the_engine_draws_them",
+   "severity": "behaviour",
+   "impact": "a decision promised and never drawn",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "defect": "test servers left store runs writing into the owner's store",
+   "scenario": "five store runs, parent launchd, on deleted temporary folders, one holding the store's write lock (reported by the collector's session)",
+   "cause": "the scripts' servers kept the worker's store loop on, and the run outlives a killed server",
+   "fix": "every scripted test server turns the store, collector and student loops off; a store run stops when its parent or its folder is gone",
+   "test": "tests/test_store_orphans.py",
+   "severity": "behaviour",
+   "impact": "test records mixed into the training store",
+   "alternatives": [],
+   "open": "the five running processes are the owner's to stop"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the decision through the product, scripted",
+   "gate": "the churn replica's act decision chosen and read once; the saved rows reproduce the choice; the API's what-if equals the core's; the ticket replica's cost matrix costs no more than the likeliest class; the product's upload flow chooses the decision said in the chat",
+   "fixed_before_run": true,
+   "result": "all held; the upload flow called 82.6% of customers at 5 a call and 54.4% at 50",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "measure delivery_fraud through act",
+   "against_gate": "",
+   "limits": [
+    "replicas and a made-up table",
+    "the page was not looked at in a browser: Playwright's browser is not installed"
+   ]
+  },
+  {
+   "name": "the intern answers a what-if, live",
+   "gate": "the intern calls decision_what_if and answers with the core's numbers, within EUR 0.5",
+   "fixed_before_run": true,
+   "result": "two what-if calls; 34.2% instead of 81.5% at 30 a call, 10.25 per row, the old list 6.56, regret 3.69, the core's numbers; EUR 0.103",
+   "verdict": "pass",
+   "cost_eur": 0.103,
+   "next": "",
+   "against_gate": "",
+   "limits": [
+    "one run, one model",
+    "it rounded the sensitivity's switch point instead of quoting the table's own"
+   ]
+  }
+ ],
+ "outcome": "A project can say what acting on a row is worth and costs, in a form or in words; the final stage chooses on how many rows to act with its interval, the report says it, and the page, the API and the intern answer what-if with one answer.",
+ "lessons": [
+  "Run the product's main flow end to end: unit tests passed while the chat never asked for the amounts.",
+  "A question added to a conversation is a cost to every person: put it where the existing questions left a gap.",
+  "Read a person's numbers only when the words leave no doubt; a refused reading is cheap, a wrong one is a wrong decision.",
+  "A reader that guesses is worse than one that refuses: every number must say it is money before it is read as money."
+ ],
+ "risks": [
+  "a wrong amount read from words becomes the built solution's decision",
+  "the rows kept for what-if go stale when the final stage reruns"
+ ],
+ "commits": []
+}

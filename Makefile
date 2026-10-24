@@ -279,7 +279,7 @@ deploy-check:  ## the cloud code (deploy/, package 12.6): tofu fmt -check and to
 	@for d in deploy/aws/staging deploy/aws/production deploy/gcp/staging deploy/gcp/production; do \
 	  (cd $$d && TF_PLUGIN_CACHE_DIR=$${TF_PLUGIN_CACHE_DIR:-$$HOME/.terraform.d/plugin-cache} tofu init -backend=false -input=false > /dev/null && tofu validate -no-color) || exit 1; done
 
-browser-test:  ## Chromium drives the real page on a temporary server: Home, the wizard, a run, the brief; 19 pages at 1280 and 375 px (pip install -r requirements/browser.txt)
+browser-test:  ## Chromium drives the real page on a temporary server: Home, the wizard, a run, the brief, the decision; 21 pages at 1280 and 375 px (pip install -r requirements/browser.txt)
 	$(TEST_TMP) $(PYTHON) scripts/browser_e2e.py
 
 staging-check:  ## the end-to-end flows and the browser checks against a running address, for a staging deployment: make staging-check URL=https://...

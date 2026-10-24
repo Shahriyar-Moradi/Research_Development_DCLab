@@ -75,6 +75,7 @@ WRITE_ROUTES = {
     "POST /api/projects/{project_id}/notebook/cells": (NONE, "a cell the person wrote is kept on the project; its run is kept whole in the workspace's code runs, which is where its content is recorded"),
     "DELETE /api/projects/{project_id}/notebook/cells/{cell_id}": (NONE, "a cell taken out of the notebook; every run of it stays whole in the workspace's code runs, which is where its content is recorded"),
     "POST /api/projects/{project_id}/data-value": (EVENTS, ["decision.proposed"]),  # 34.13: would more rows help, the rule's answer proposed
+    "POST /api/projects/{project_id}/decision/what-if": (EVENTS, ["decision.proposed"]),  # 34.4: a what-if asked, the decision core's answer
     "POST /api/projects/{project_id}/improve": (NONE, "a job (its state is the job table); its ways are the project's improvements record and a report in its chat"),
     "POST /api/projects/{project_id}/improve/adopt": (NONE, "the person's choice of a way is kept on the project (adopted_improvement) and used by the next final run, which is recorded as a run"),
     "POST /api/projects/{project_id}/notebook/restart": (NONE, "a kernel restart changes no project data: the next run of a cell is a code run, and the person's click is a ui.action of the visit"),

@@ -63,7 +63,8 @@ def free_port() -> int:
 def serve(home: Path, port: int) -> subprocess.Popen:
     env = {**os.environ, "DCLAB_AGENT_HOME": str(home), "DCLAB_AUTH": "none", "DCLAB_DATABASE_URL": "", "DCLAB_WORKER": "inline",
            "DCLAB_NO_LIVE_MODELS": "1", "DCLAB_LLM_PROVIDER": "", "ANTHROPIC_API_KEY": "", "OPENAI_API_KEY": "", "DCLAB_STUDIO_HOME": "",
-           "DCLAB_INTERN_HOME": ""}
+           "DCLAB_INTERN_HOME": "", "DCLAB_STORE_LOOP": "0", "DCLAB_STORE_CAPTURE": "0", "DCLAB_COLLECTOR": "0",
+           "DCLAB_STUDENTS_LOOP": "0"}  # no store run, collector or retraining outlives the screenshots' server
     log = open(home / "server.log", "w")
     proc = subprocess.Popen([sys.executable, "-m", "uvicorn", "dclab_rnd.agentic.server:app", "--host", "127.0.0.1", "--port", str(port),
                              "--log-level", "warning"], cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT)

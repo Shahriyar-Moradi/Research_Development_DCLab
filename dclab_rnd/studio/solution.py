@@ -27,17 +27,31 @@ class Forbidden(BaseModel):
 
 
 class Decision(BaseModel):
-    """The action taken on top of the model (package 16.9), with what it is worth and what it costs.
+    """The action taken on top of the model (package 16.9, v2 in 34.4), with what it is worth and what it costs.
 
     ``review``: the team reviews the riskiest rows; finding a case is worth ``value_per_case``, a review costs
     ``cost_per_review``. ``price``: an offer at ``price_column`` is accepted or not (the target); selling, an accepted
     offer earns the price less ``unit_cost``; paying (a fee to a courier or a supplier), it earns ``unit_value_column``
-    (or ``unit_value_factor`` times the reference price) less the price."""
+    (or ``unit_value_factor`` times the reference price) less the price. ``act`` (34.4): any action on a row, stated as
+    dclab_core's DecisionSpec (a case's value or a column of values, a cost per action, a false alarm's and a miss's
+    cost, a capacity as a share or per day). ``classes`` (34.4): each row's class with the lowest expected cost, from a
+    cost matrix (row: the true class, column: the class chosen) over ``classes`` in that order."""
 
     model_config = ConfigDict(extra="forbid")
-    action: Literal["review", "price"]
+    action: Literal["review", "price", "act", "classes"]
     value_per_case: float | None = Field(default=None, gt=0)
     cost_per_review: float | None = Field(default=None, gt=0)
+    # act (34.4): what is done to a row, in the person's words, and dclab_core.decide.DecisionSpec's numbers
+    what: str = Field(default="", max_length=80)  # DecisionSpec.action's own bound
+    cost_per_action: float = Field(default=0.0, ge=0)
+    cost_false_positive: float = Field(default=0.0, ge=0)
+    cost_false_negative: float = Field(default=0.0, ge=0)
+    value_column: str | None = None
+    capacity_share: float | None = Field(default=None, gt=0, lt=1)
+    capacity_per_day: float | None = Field(default=None, gt=0)
+    # classes (34.4): the classes in the cost matrix's order and the matrix itself
+    classes: list[str] = Field(default_factory=list, max_length=50)
+    cost_matrix: list[list[float]] = Field(default_factory=list, max_length=50)
     price_column: str | None = None
     reference_column: str | None = None
     side: Literal["sell", "pay"] = "sell"
@@ -53,6 +67,16 @@ class Decision(BaseModel):
     def complete(self):
         if self.action == "review" and (self.value_per_case is None or self.cost_per_review is None):
             raise ValueError("A review decision needs what finding a case is worth and what a review costs")
+        if self.action == "act":
+            self.spec()  # DecisionSpec's own checks: something must be worth deciding
+        if self.action == "classes":
+            size = len(self.classes)
+            if size < 2 or len(set(self.classes)) != size:
+                raise ValueError("A cost matrix needs the classes it is written over, each once, in its order")
+            if len(self.cost_matrix) != size or any(len(row) != size for row in self.cost_matrix):
+                raise ValueError(f"The cost matrix must be {size} by {size}: a row per true class, a column per class chosen")
+            if any(c < 0 for row in self.cost_matrix for c in row):
+                raise ValueError("A cost matrix holds costs: none may be negative")
         if self.action == "price":
             if not self.price_column:
                 raise ValueError("A price decision needs the column that holds the price offered")
@@ -61,7 +85,16 @@ class Decision(BaseModel):
         return self
 
     def columns(self) -> list[str]:
-        return [c for c in (self.price_column, self.reference_column, self.unit_value_column, *self.test_arm_columns) if c]
+        return [c for c in (self.price_column, self.reference_column, self.unit_value_column, self.value_column, *self.test_arm_columns) if c]
+
+    def spec(self):
+        """The ``act`` decision as dclab_core's DecisionSpec v1 (34.1)."""
+        from dclab_core.decide import DecisionSpec
+
+        return DecisionSpec(action=self.what or "act", value_per_case=self.value_per_case or 0.0, cost_per_action=self.cost_per_action,
+                            cost_false_positive=self.cost_false_positive, cost_false_negative=self.cost_false_negative,
+                            value_column=self.value_column, capacity_share=self.capacity_share,
+                            capacity_per_day=self.capacity_per_day, notes=self.notes)
 
 
 class SpatialSplit(BaseModel):
@@ -144,8 +177,17 @@ class Solution(BaseModel):
             raise ValueError(f"Metric {self.metric!r} does not fit a {self.task} task")
         if len(names) != len(self.forbidden):
             raise ValueError("A column is listed twice under forbidden")
-        if self.decision is not None and self.task != "binary":
-            raise ValueError("A review or price decision reads a yes/no outcome (a case, an accepted offer): the task must be binary")
+        if self.decision is not None and self.decision.action != "classes" and self.task != "binary":
+            raise ValueError("A review, price or act decision reads a yes/no outcome (a case, an accepted offer): the task must be binary; "
+                             "several classes take a cost matrix (action classes)")
+        if self.decision is not None and self.decision.action == "classes" and self.task == "regression":
+            raise ValueError("A cost matrix chooses among classes: the task must be binary or multiclass")
+        if self.decision is not None and kind.own_machine() is not None:  # the review of 34.4: its final stage draws no decision
+            raise ValueError(f"The {kind.title.lower()} kind runs its own machine, which does not draw a decision on top of the model yet: "
+                             "leave the decision out")
+        if (self.decision is not None and self.decision.action == "classes" and self.task == "binary"
+                and sorted(self.decision.classes) != ["0", "1"] and str(self.positive_label) not in self.decision.classes):
+            raise ValueError("A binary cost matrix names the classes 0 and 1, or the outcome's own two values with the positive one among them")
         if self.decision is not None and self.target in self.decision.columns():
             raise ValueError("The decision's price or value column cannot be the target")
         if self.decision is not None and names & set(self.decision.columns()):

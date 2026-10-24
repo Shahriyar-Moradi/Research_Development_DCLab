@@ -1281,6 +1281,54 @@ def _anomaly_solution(projects, project: dict[str, Any], u: dict[str, Any]) -> d
                                                                 "budget": budget}).model_dump()
 
 
+def _decision_said(u: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
+    """34.4: the decision Home heard, as a Solution ``act`` decision, and where it was heard: ``costs`` (the person's own
+    answer to the question that asks for the amounts: the one source a build adds to the solution) or ``action`` (the
+    answer on what is done, which also invites counts and capacities: kept as heard, never added). ``(None, None)``
+    when ``dclab_core.decide.read_spec`` reads nothing plainly."""
+    from dclab_core.decide import read_spec
+
+    for source in ("costs", "action"):
+        said = str(u.get(source) or "").strip()
+        spec = read_spec(said) if said else None
+        if spec is not None:
+            numbers = {k: getattr(spec, k) for k in ("value_per_case", "cost_per_action", "cost_false_positive", "cost_false_negative")
+                       if getattr(spec, k)}
+            return {"action": "act", "what": spec.action, **numbers, "notes": spec.notes[:1000]}, source
+    return None, None
+
+
+def _add_decision(projects: Any, pid: str, stated: dict[str, Any]) -> None:
+    """34.4: the decision read from the person's answer to the amounts question, added to the solution they saved, as
+    DCLab's own move (the actor "agent", through the validator, audited and noted as such), only where the solution
+    takes it (a yes/no outcome the engine itself decides on)."""
+    from .. import audit
+    from ..studio import graph as studio_graph
+    from ..studio import memory as studio_memory
+    from ..studio.solution import Solution
+
+    project = projects.get(pid)
+    before = project.get("solution") or {}
+    if before.get("decision") or before.get("task") != "binary":
+        return
+    try:
+        Solution(**{**before, "decision": stated})
+    except ValueError as exc:  # never forced onto a solution it does not fit
+        projects.log(pid, "decision_unread", {"why": str(exc)[:300]})
+        return
+    verdict = studio_graph.check(project, "set_solution", "agent", target=before.get("target"))
+    studio_graph.log(projects, pid, verdict, project, outcome="done: the decision read from the amounts answer" if verdict.allowed else None)
+    if not verdict.allowed:
+        return
+    project = projects.get(pid)
+    after = {**before, "decision": stated}
+    project["solution"] = after
+    studio_memory.solution_saved(project, before, after, "agent")
+    projects.save(project)
+    audit.solution(projects, project, after, "agent")
+    projects.log(pid, "decision_added", {"decision": stated, "by": "rule:read_spec", "from": "the answer to the amounts question"})
+
+
 def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]:
     """Create the project from the draft: its name and goal, the cleaned table, and what the chat established. Refused
     while the draft holds only a list of known cases (every row a case: nothing to tell them from)."""
@@ -1363,6 +1411,10 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
     plan = draft_map.project_plan(draft)  # 24.5: the confirmed map of a problem with several parts goes with the project, whose programme runs it
     if plan:
         project["programme_plan"] = plan
+    stated, heard_in = _decision_said(u)  # 34.4: "a call costs 5; a lost customer costs 300", read into a decision, or None
+    if stated:
+        project["suggestion"] = {**(project.get("suggestion") or {}), "decision": {**stated, "heard_in": heard_in}}
+        projects.log(pid, "decision_read", {"decision": stated, "heard_in": heard_in})
     built_solution = draft.get("solution")
     if not built_solution and card.family.value == "anomaly" and labels is None and project.get("data"):  # 20.7: no outcome
         built_solution = _anomaly_solution(projects, project, u)  # saved below like the wizard's, through the same check
@@ -1388,6 +1440,8 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
             from .. import audit
 
             audit.solution(projects, project, built_solution, saved_by, built=True)
+            if stated and heard_in == "costs":
+                _add_decision(projects, pid, stated)
 
     def done(d):
         d["status"], d["project_id"] = "built", pid

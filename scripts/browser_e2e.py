@@ -10,8 +10,8 @@ Needs Playwright: pip install -r requirements/browser.txt && python -m playwrigh
            the wizard's five steps with their defaults, a run of every stage from the Workflow page, then the brief
   team     28.8: the Team panel on Home: a question, the map's confirmation, the data given, the build approved
   stats    the numbers on Home, Compute, Integrations and Packs equal the API's (read over HTTP, not through the page)
-  pages    all 20 pages at 1280 px: no console error, no uncaught error, no CSP violation, no failed-load warning
-  mobile   all 20 pages at 375 px: nothing wider than the screen (no sideways scroll)
+  pages    all 21 pages at 1280 px: no console error, no uncaught error, no CSP violation, no failed-load warning
+  mobile   all 21 pages at 375 px: nothing wider than the screen (no sideways scroll)
 
 No model is used when the script starts its server: the chat asks its standard questions. Exit status 0 when every
 check passes; a failing check saves a screenshot under the output folder (--out, default $TMPDIR/dclab-browser).
@@ -32,7 +32,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(1, str(ROOT))  # the team check writes a replica's files (dclab_core)
 TELCO = ROOT / "data/project/telco/WA_Fn-UseC_-Telco-Customer-Churn.csv"
-VIEWS = ["home", "new", "project", "solution", "notebook", "audit", "models", "evaluation", "reliability", "brief", "intern", "compute",
+VIEWS = ["home", "new", "project", "solution", "notebook", "audit", "models", "evaluation", "decision", "reliability", "brief", "intern", "compute",
          "evidence", "lab", "benchmark", "policy", "packs", "integrations", "admin", "blueprint"]
 STAGES = ("data", "leakage", "features", "models", "final")
 # every page reports what goes wrong: uncaught errors, CSP violations (an event, not always a console line)
@@ -169,8 +169,14 @@ def check_flow(b: Browser) -> str:
     check(abs(shown - record["holdout_metrics"][metric]) < 0.006, f"the brief shows {shown}, the record says {record['holdout_metrics'][metric]}")
     report = b.context.request.get(b.base + href)
     check(report.ok and b"holdout" in report.body().lower(), "the report does not download")
+    b.view("decision", settle=1)  # 34.4: the page says what the project's decision is, or how to state one
+    page.wait_for_selector("#dc-box .empty, #dc-box .panel", timeout=30_000)
+    stated = b.api(f"/projects/{project_id}/decision")
+    shown_decision = page.text_content("#dc-box") or ""
+    check(("states no decision" in shown_decision) if stated["status"] == "none" else bool(stated.get("sentence")) and stated["sentence"][:40] in shown_decision,
+          f"the decision page does not show the decision's status {stated['status']}")
     return (f"{answered} question(s) answered by clicking, five wizard steps, five stages in {clicks} click(s) on the Workflow page, "
-            f"brief {metric} {shown} on {record.get('holdout_rows')} rows")
+            f"brief {metric} {shown} on {record.get('holdout_rows')} rows, decision {stated['status']}")
 
 
 FRAUD = ("Find the fake rides and fake orders our bikers and customers make. We have a few confirmed cases, nothing else is labelled, "
@@ -360,7 +366,7 @@ def check_mobile(b: Browser) -> str:
             culprit = b.page.evaluate(CULPRIT)
             wide.append(f"#{name} (+{over}px, {culprit})")
     check(not wide, "wider than 375 px: " + "; ".join(wide))
-    return "20 pages fit 375 px without sideways scroll"
+    return f"{len(VIEWS)} pages fit 375 px without sideways scroll"
 
 
 # the outermost element wider than the screen that is not inside a box that scrolls or clips it

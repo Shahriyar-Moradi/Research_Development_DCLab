@@ -101,6 +101,7 @@ class Prepared:
         self.dated = False  # 30.12: whether the time column holds dates (a capacity's periods), set on every prepare
         self.brief: dict[str, Any] | None = None  # 30.14: the project's Solution Brief, set on every prepare
         self.source_rows: np.ndarray | None = None  # each row of the bundle's X: its place in the table as loaded (after a label file's join)
+        self.decision_rows: dict[str, Any] | None = None  # 34.4: the out-of-fold rows an act decision chose on, saved for what-if
 
     @property
     def task(self) -> str:
@@ -1095,7 +1096,7 @@ def _decision(p: Prepared, selected: dict[str, Any], y_test: pd.Series, predicti
 
     bundle = p.bundle
     try:
-        if decision.action == "review":
+        if decision.action in ("review", "act"):
             index = selected["_oof_index"]
             oof_y = bundle.y_train.to_numpy()[index]
             group = p.solution.group_column
@@ -1106,6 +1107,11 @@ def _decision(p: Prepared, selected: dict[str, Any], y_test: pd.Series, predicti
                 stamps = pd.to_datetime(bundle.X_train[time_column], errors="coerce").dropna()
                 days = (stamps.max() - stamps.min()).total_seconds() / 86400 if len(stamps) > 1 else 0
                 rows_per_day = len(bundle.X_train) / days if days >= 1 else None
+        if decision.action == "act":
+            return _act(p, decision, selected, oof_y, groups, rows_per_day, y_test, predictions)
+        if decision.action == "classes":
+            return _classes(p, decision, selected, y_test, predictions)
+        if decision.action == "review":
             return decide.review_budget(oof_y, selected["_oof_pred"], value_per_case=decision.value_per_case,
                                         cost_per_review=decision.cost_per_review, groups=groups, partial=p.solution.labels == "partial",
                                         rows_per_day=rows_per_day, y_test=y_test.to_numpy(), score_test=predictions)
@@ -1140,6 +1146,119 @@ def _decision(p: Prepared, selected: dict[str, Any], y_test: pd.Series, predicti
         return {"decision": decision.action, "learnable": False, "warning": f"The decision could not be computed ({type(exc).__name__})"}
 
 
+def _act(p: Prepared, decision: Any, selected: dict[str, Any], oof_y: np.ndarray, groups: Any, rows_per_day: float | None,
+         y_test: pd.Series, predictions: np.ndarray) -> dict[str, Any]:
+    """34.4: an ``act`` decision through dclab_core's one decision core: the operating point with the highest expected value
+    on the selected model's out-of-fold scores, under the capacity, read once on the holdout. A value column ranks rows by
+    expected gain, so it must be known when the decision is taken: a forbidden or set-aside one is refused."""
+    from dclab_core import decide
+
+    spec = decision.spec()
+    bundle = p.bundle
+    values = values_test = None
+    if spec.value_column:
+        column = spec.value_column
+        if p.roles.get(column) == "blocked" or column not in bundle.X_train.columns:
+            return {"decision": "operating_point", "learnable": False,
+                    "warning": f"The decision values each case by `{column}` (its role: {p.roles.get(column)}): a value that ranks rows must "
+                               "be known when the decision is taken, so it cannot be forbidden or missing"}
+        train_values = pd.to_numeric(bundle.X_train[column], errors="coerce").to_numpy(dtype=float)[selected["_oof_index"]]
+        test_values = pd.to_numeric(bundle.X_test[column], errors="coerce").to_numpy(dtype=float)
+        if not (np.isfinite(train_values).all() and np.isfinite(test_values).all()):
+            return {"decision": "operating_point", "learnable": False,
+                    "warning": f"`{column}` has missing or non-numeric values: every row needs its value to be ranked by what it is worth"}
+        values, values_test = train_values, test_values
+    if spec.capacity_per_day and not rows_per_day:
+        return {"decision": "operating_point", "learnable": False,
+                "warning": "A capacity per day needs the time column to count the rows that arrive a day: name it, or give the capacity as a share"}
+    out = decide.choose_operating_point(oof_y, selected["_oof_pred"], spec, value_per_case=values, groups=groups, rows_per_day=rows_per_day,
+                                        y_test=y_test.to_numpy(), score_test=predictions, value_test=values_test)
+    out["what"] = spec.action
+    if p.solution.labels == "partial":
+        out["partial_note"] = ("The labels are partial: an unlabelled row may be a case nobody found, so the value is a lower bound "
+                               "and the best share may be larger.")
+    out["sensitivity"] = decide.sensitivity(oof_y, selected["_oof_pred"], spec, value_per_case=values, rows_per_day=rows_per_day)
+    p.decision_rows = {"y": oof_y, "score": selected["_oof_pred"], "value": values, "rows_per_day": rows_per_day}  # saved with the record
+    return out
+
+
+def _classes(p: Prepared, decision: Any, selected: dict[str, Any], y_test: pd.Series, predictions: np.ndarray) -> dict[str, Any]:
+    """34.4: each holdout row's class with the lowest expected cost from the cost matrix, against choosing the likeliest
+    class; the costs are compared on the holdout's true classes (read once, after the model was chosen)."""
+    from dclab_core import decide
+
+    proba = np.asarray(predictions, dtype=float)
+    names = p.class_labels or []
+    labels = [str(c) for c in (names if isinstance(names, (list, tuple)) else [names[i] for i in sorted(names)])]
+    if proba.ndim == 1:  # a binary model's score of the positive class
+        proba = np.column_stack([1 - proba, proba])
+        positive = None if p.solution.positive_label is None else str(p.solution.positive_label)
+        if not labels and positive in decision.classes and len(decision.classes) == 2:  # the outcome's own values: 0 the other, 1 the positive
+            labels = [next(c for c in decision.classes if c != positive), positive]
+        labels = labels or ["0", "1"]
+    if sorted(labels) != sorted(decision.classes):
+        return {"decision": "cost_matrix", "learnable": False,
+                "warning": "The cost matrix names the classes " + ", ".join(decision.classes) + " but the model's classes are "
+                           + ", ".join(labels) + ": write the matrix over the outcome's own classes"}
+    order = [decision.classes.index(c) for c in labels]  # the matrix put in the model's class order
+    cost = np.asarray(decision.cost_matrix, dtype=float)[np.ix_(order, order)]
+    proba = proba / proba.sum(axis=1, keepdims=True)
+    chosen = decide.choose_by_cost_matrix(proba, cost, classes=labels)
+    truth = y_test.to_numpy().astype(int)
+    picked = np.asarray(chosen["choice"])
+    likeliest = proba.argmax(axis=1)
+    cost_of = lambda pick: float(cost[truth, pick].mean())  # noqa: E731 - the realised cost per row of a choice
+    counts = {labels[k]: int((picked == k).sum()) for k in range(len(labels))}
+    return {"decision": "cost_matrix", "classes": labels, "cost_matrix": cost.tolist(), "chosen_counts": counts,
+            "holdout": {"cost_per_row": round(cost_of(picked), 4), "cost_per_row_likeliest_class": round(cost_of(likeliest), 4),
+                        "rows": int(len(truth))},
+            "chosen_on": "the cost matrix and the model's probabilities; nothing tuned on the holdout",
+            "assumption": "The probabilities are read as calibrated; the costs are the person's stated numbers"}
+
+
+DECISION_ROWS = "decision_rows.npz"
+
+
+def save_decision_rows(store: Any, project_id: str, run_id: str, rows: dict[str, Any]) -> None:
+    """The out-of-fold outcomes, scores and values a what-if re-scores (34.4), in the project's own folder beside its
+    exports, stamped with the final run they belong to: never in a record, an event or the ledger. Written to a temporary
+    file and moved in whole; a failure (a full disk) leaves the stage standing and only the what-if unavailable."""
+    import os
+
+    values = rows.get("value")
+    target = Path(store.export_dir(project_id)) / DECISION_ROWS
+    part = target.with_name(f".{DECISION_ROWS}.{run_id}.part")
+    try:
+        with open(part, "wb") as handle:
+            np.savez_compressed(handle, run=np.array([run_id]), y=np.asarray(rows["y"], dtype=np.int8), score=np.asarray(rows["score"], dtype=float),
+                                value=np.asarray(values, dtype=float) if values is not None else np.array([]),
+                                rows_per_day=np.array([rows["rows_per_day"] if rows.get("rows_per_day") else np.nan]))
+        os.replace(part, target)
+    except OSError as exc:  # the review of 34.4: after the holdout was read, a failed side file must not fail the stage
+        from ..observe import log
+
+        log.warning("decision rows not kept: %s", type(exc).__name__)
+        part.unlink(missing_ok=True)
+
+
+def load_decision_rows(store: Any, project_id: str, run_id: str) -> dict[str, Any] | None:
+    """The rows saved by the final run ``run_id``, or None when there are none or they belong to another run."""
+    import zipfile
+
+    path = Path(store.export_dir(project_id)) / DECISION_ROWS
+    if not path.exists():
+        return None
+    try:
+        with np.load(path, allow_pickle=False) as saved:
+            if str(saved["run"][0]) != run_id:
+                return None
+            rpd = float(saved["rows_per_day"][0])
+            return {"y": saved["y"].astype(int), "score": saved["score"], "value": saved["value"] if saved["value"].size else None,
+                    "rows_per_day": rpd if np.isfinite(rpd) else None}
+    except (OSError, ValueError, KeyError, IndexError, zipfile.BadZipFile):  # a broken file: no what-if, never a failed page
+        return None
+
+
 def _decision_claim(eid: str, d: dict[str, Any]) -> dict[str, Any]:
     """The decision in one sentence, every number from evidence.decision (16.9)."""
     paths = ["evidence.decision"]
@@ -1155,6 +1274,24 @@ def _decision_claim(eid: str, d: dict[str, Any]) -> dict[str, Any]:
         if d.get("holdout"):
             text += f" On the holdout it found {d['holdout']['cases_found']} cases in {d['holdout']['reviews']} reviews."
         return _claim(f"{eid}-D1", "decision", text, paths, [d["assumption"]] + ([d["partial_note"]] if d.get("partial_note") else []))
+    if d.get("decision") == "operating_point":  # 34.4: the one decision core
+        what = d.get("what") or "act"
+        if d.get("note"):
+            return _claim(f"{eid}-D1", "risk", d["note"], paths, [d["assumption"]])
+        lo, hi = d["expected_value_per_row_interval"]
+        text = (f"To {what} on the top {d['share']:.2%} of rows ({d['actions_training']} of the training rows, ranked by {d['ranked_by']}) "
+                f"maximises expected value at {d['expected_value_per_row']} per row (90% interval {lo} to {hi}); chosen on out-of-fold "
+                f"scores{', the capacity binding' if d.get('capacity_binds') else ''}.")
+        if d.get("holdout"):
+            plo, phi = d["holdout"]["prediction_interval"]
+            text += (f" On the holdout it acted on {d['holdout']['actions']} rows, found {d['holdout']['cases_found']} cases and earned "
+                     f"{d['holdout']['expected_value_per_row']} per row (prediction interval {plo} to {phi}).")
+        return _claim(f"{eid}-D1", "decision", text, paths, [d["assumption"]])
+    if d.get("decision") == "cost_matrix":
+        h = d["holdout"]
+        text = (f"Choosing each row's class by the lowest expected cost cost {h['cost_per_row']} per row on the holdout, against "
+                f"{h['cost_per_row_likeliest_class']} for the likeliest class, over {h['rows']} rows.")
+        return _claim(f"{eid}-D1", "decision", text, paths, [d["assumption"]])
     lo, hi = d["best_multiple_interval"]
     text = (f"The best price is {d['best_multiple']} times the reference (90% interval {lo} to {hi}), with an expected margin of "
             f"{d['expected_margin_per_offer']} per offer against {d['margin_per_offer_as_priced']} as priced; acceptance at it "
@@ -1659,6 +1796,8 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
                                 seed=ds.RANDOM_STATE)
         record["run"] = run.model_dump(mode="json")
         store.write_stage(project_id, stage, record)
+        if stage == "final" and getattr(p, "decision_rows", None):  # 34.4: what a what-if re-scores, for this run only
+            save_decision_rows(store, project_id, run_id, p.decision_rows)
         from ..ledger import capture  # 19.7: what the stage chose among what it measured
 
         capture.stage_decisions(stage, record, p, project, project=project_id)

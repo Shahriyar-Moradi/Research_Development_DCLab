@@ -334,6 +334,8 @@
     getDataValue: ["GET", "/projects/{project_id}/data-value", ["project_id"], []],
     measureDataValue: ["POST", "/projects/{project_id}/data-value", ["project_id"], ["wait"]],
     useSample: ["POST", "/projects/{project_id}/data/sample", ["project_id"], []],
+    getDecision: ["GET", "/projects/{project_id}/decision", ["project_id"], []],
+    decisionWhatIf: ["POST", "/projects/{project_id}/decision/what-if", ["project_id"], []],
     projectDecisions: ["GET", "/projects/{project_id}/decisions", ["project_id"], []],
     projectDisagreements: ["GET", "/projects/{project_id}/disagreements", ["project_id"], []],
     projectDisagreementAnswer: ["POST", "/projects/{project_id}/disagreements/{record_id}", ["project_id", "record_id"], []],
@@ -1137,6 +1139,19 @@
    *  @returns {Promise<Project>} */
   client.useSample = (...args) => call('useSample', args);
   client.path.useSample = (...args) => build('useSample', args).path;
+  /** GET /api/projects/{project_id}/decision: Get Decision
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.getDecision = (...args) => call('getDecision', args);
+  client.path.getDecision = (...args) => build('getDecision', args).path;
+  client.href.getDecision = (...args) => '/api' + build('getDecision', args).path;
+  /** POST /api/projects/{project_id}/decision/what-if: Decision What If
+   *  @param {string} project_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.decisionWhatIf = (...args) => call('decisionWhatIf', args);
+  client.path.decisionWhatIf = (...args) => build('decisionWhatIf', args).path;
   /** GET /api/projects/{project_id}/decisions: Project Decisions
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]

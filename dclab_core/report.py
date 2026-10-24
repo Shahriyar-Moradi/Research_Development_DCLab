@@ -823,7 +823,8 @@ def _results(w: _Writer, notes: list[str]) -> None:
 
 
 def _decision(w: _Writer, decision: Mapping[str, Any]) -> None:
-    """The decision on top of the model (a review budget or a price), when the run made one (package 16.9)."""
+    """The decision on top of the model (a review budget or a price, 16.9; an operating point from the decision core or a
+    cost matrix over the classes, 34.4), when the run made one."""
     if not decision:
         return
     d = "final.evidence.decision"
@@ -841,6 +842,35 @@ def _decision(w: _Writer, decision: Mapping[str, Any]) -> None:
                + f", for {case} per case found and {cost} per review, chosen on the {w.q(f'{d}.chosen_on', 120)}." if share and value else None)
         found, reviews = w.n(f"{d}.holdout.cases_found", "int"), w.n(f"{d}.holdout.reviews", "int")
         w.line(f"At that share the holdout gave {found} cases in {reviews} reviews." if found and reviews else None)
+        return
+    if decision.get("decision") == "operating_point":  # 34.4: dclab_core.decide.choose_operating_point
+        if w.has(f"{d}.note"):  # no action pays at the stated values and costs
+            w.line(f"The decision: {w.q(f'{d}.note', 400)}")
+            return
+        share, value = w.n(f"{d}.share", "pct"), w.n(f"{d}.expected_value_per_row")
+        lo, hi = w.n(f"{d}.expected_value_per_row_interval.0"), w.n(f"{d}.expected_value_per_row_interval.1")
+        what = w.q(f"{d}.what", 120) if w.has(f"{d}.what") else "act"
+        w.line(f"The decision: {what} on the top {share} of rows, ranked by {w.q(f'{d}.ranked_by', 40)}, worth {value} per row"
+               + (f" (interval {lo} to {hi})" if lo and hi else "") + f", chosen on the {w.q(f'{d}.chosen_on', 120)}"
+               + (", the capacity binding." if decision.get("capacity_binds") else ".") if share and value else None)
+        acted, found, earned = w.n(f"{d}.holdout.actions", "int"), w.n(f"{d}.holdout.cases_found", "int"), w.n(f"{d}.holdout.expected_value_per_row")
+        plo, phi = w.n(f"{d}.holdout.prediction_interval.0"), w.n(f"{d}.holdout.prediction_interval.1")
+        w.line(f"On the holdout it acted on {acted} rows, found {found} cases and earned {earned} per row"
+               + (f" (prediction interval {plo} to {phi})." if plo and phi else ".") if acted and earned else None)
+        moves = [r for r in _seq(_m(decision.get("sensitivity")).get("rows")) if _m(r).get("moves_at") is not None]
+        for i, row in enumerate(_seq(_m(decision.get("sensitivity")).get("rows"))[:6]):
+            if _m(row).get("moves_at") is not None:
+                w.line(f"- The share moves when {w.q(f'{d}.sensitivity.rows.{i}.term', 40, code=True)} is {w.n(f'{d}.sensitivity.rows.{i}.moves_at')} "
+                       "times its stated value (nothing refitted).")
+        if not moves and _seq(_m(decision.get("sensitivity")).get("rows")):
+            w.line("- No stated number moves the share between a quarter and four times its value (nothing refitted).")
+        w.line(f"- {w.q(f'{d}.assumption', 400)}" if w.has(f"{d}.assumption") else None)
+        return
+    if decision.get("decision") == "cost_matrix":  # 34.4: dclab_core.decide.choose_by_cost_matrix
+        cost, base, rows = w.n(f"{d}.holdout.cost_per_row"), w.n(f"{d}.holdout.cost_per_row_likeliest_class"), w.n(f"{d}.holdout.rows", "int")
+        w.line(f"The decision: each row takes the class with the lowest expected cost, {cost} per row on {rows} holdout rows against {base} "
+               "for the likeliest class." if cost and base and rows else None)
+        w.line(f"- {w.q(f'{d}.assumption', 400)}" if w.has(f"{d}.assumption") else None)
         return
     best, lo, hi = w.n(f"{d}.best_multiple"), w.n(f"{d}.best_multiple_interval.0"), w.n(f"{d}.best_multiple_interval.1")
     margin, now = w.n(f"{d}.expected_margin_per_offer"), w.n(f"{d}.margin_per_offer_as_priced")
@@ -1009,7 +1039,8 @@ RUBRIC_RULES = (
     (("pric", "fees", "charg"), "Results, with their intervals", ("final.evidence.decision",)),  # 16.9: a price asked for; see DECISION_RULE
     (("leak",), "Decisions and reasons", ("leakage.",)),
     (("threshold", "budget", "alert", "cost"), "Results, with their intervals",
-     ("final.evidence.holdout_metrics.alert_budget", "final.evidence.holdout_metrics.recall_at_budget", "final.evidence.task_assessment.threshold")),
+     ("final.evidence.holdout_metrics.alert_budget", "final.evidence.holdout_metrics.recall_at_budget", "final.evidence.task_assessment.threshold",
+      "final.evidence.decision")),
     (("model", "classif", "regress", "predict", "algorithm", "train"), "Results, with their intervals", ("final.evidence.holdout_metrics",)),
     (("metric", "evaluat", "validat", "score", "accuracy", "precision", "recall", "auc", "error", "baseline"), "Results, with their intervals",
      ("final.evidence.holdout_metrics", "final.evidence.holdout_primary_metric_ci", "final.evidence.baselines")),
@@ -1029,6 +1060,9 @@ def _where(text: str, used: set[str]) -> tuple[str, str]:
         if re.search(pattern, lowered):
             return "outside this report", f"not covered here: it asks for {what}, which a report does not produce"
     words = re.findall(r"[a-z]+", lowered)
+    # the review of 34.4: a decision's warning or assumption line answers nothing; only what it drew covers a requirement
+    used = [path for path in used if not (path.startswith("final.evidence.decision")
+                                          and path.rsplit(".", 1)[-1] in ("warning", "assumption", "learnable", "reads"))]
     for stems, section, prefixes in RUBRIC_RULES:
         if "fees" in stems:  # the decision rule: a price or a fee asked for, answered only by a decision record
             asked = any(w.startswith(("pric", "charg")) for w in words) or any(w in ("fee", "fees") for w in words)

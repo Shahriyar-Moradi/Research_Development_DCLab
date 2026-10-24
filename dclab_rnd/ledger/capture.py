@@ -318,8 +318,11 @@ def stage_decisions(stage: str, record: dict[str, Any], prepared: Any, owner: di
                     state={"tuning_gain": tuning.get("gain") if isinstance(tuning.get("gain"), (int, float)) else None})
             point = (evidence.get("task_assessment") or {}).get("threshold")
             value = point.get("value") if isinstance(point, dict) else None
-            if isinstance(value, (int, float)) and not isinstance(value, bool):
-                put("threshold.operating_point", float(value), "rule:task_assessment", state={"metric": _code(metric)})
+            core = evidence.get("decision") or {}
+            if core.get("decision") == "operating_point" and isinstance(core.get("share"), (int, float)):  # 34.4: the share the decision core acts on
+                put("threshold.operating_point", float(core["share"]), "rule:decision_core", state={"metric": _code(metric), "of": "share"})
+            elif isinstance(value, (int, float)) and not isinstance(value, bool):
+                put("threshold.operating_point", float(value), "rule:task_assessment", state={"metric": _code(metric), "of": "threshold"})
     return written
 
 

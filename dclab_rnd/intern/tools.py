@@ -184,6 +184,14 @@ def register(registry: Registry) -> None:
     add("approve_stage", {**pid, "stage": {**S, "enum": list(STAGE_KEYS)}, "choice": {**S, "description": "Optional: an option id from the stage's decision, to override the rule's choice (clears later stages)."}},
         ["project_id", "stage"], "Approve a completed stage, optionally choosing a different recipe or model than the rule picked.", "write", "approve_stage")
     add("get_results", {**pid, "stage": {**S, "enum": list(STAGE_KEYS)}}, ["project_id"], "Return the records of the finished stages (or one stage).")
+    what_if_terms = ("value_per_case", "cost_per_action", "cost_false_positive", "cost_false_negative", "capacity_share", "base_rate", "value_scale")
+    add("decision_what_if", {**pid, "changes": {"type": "object", "additionalProperties": False,
+                                                "properties": {k: {"type": "number"} for k in what_if_terms},
+                                                "description": "Optional: the decision's numbers to change (a value, a cost, the capacity share, the "
+                                                               "base rate, or value_scale when each row has its own value). Without it, the decision as chosen."}},
+        ["project_id"],
+        "The project's decision on top of its model (34.4) as the final stage chose it, its sentence and its sensitivity; with changes, "
+        "the decision re-scored under them on the out-of-fold rows it was chosen on (nothing refitted, the holdout untouched).")
     add("ask_project", {**pid, "question": S}, ["project_id", "question"], "Ask the deterministic project agent a question; it answers from the project's own results and the evidence index.")
     add("export_notebook", pid, ["project_id"], "Write the runnable scikit-learn notebook and the markdown report for the project; returns their download paths.", "write", "capture")
     add("get_graph", pid, ["project_id"],
@@ -472,6 +480,26 @@ class Toolbox:
         if stage:
             return compact_record(records.get(stage)) or {"error": f"{stage} has not run"}
         return {s: compact_record(r) for s, r in records.items()} or {"error": "No stage has run yet"}
+
+    def decision_what_if(self, project_id: str, changes: dict[str, Any] | None = None) -> dict[str, Any]:
+        from ..experience import hooks
+        from ..studio import decision as studio_decision
+
+        self.projects.get(project_id)
+        if not changes:
+            seen = studio_decision.view(self.projects, project_id)
+            chosen = seen["chosen"] or {}
+            keys = ("decision", "what", "share", "threshold", "ranked_by", "expected_value_per_row", "expected_value_per_row_interval",
+                    "capacity_binds", "actions_per_day", "holdout", "note", "warning", "learnable")
+            return {"status": seen["status"], "stated": seen["stated"], "sentence": seen["sentence"], "what_if": seen["what_if"],
+                    "chosen": {k: chosen[k] for k in keys if k in chosen},
+                    "sensitivity": [{"term": r.get("term"), "moves_at": r.get("moves_at")} for r in (chosen.get("sensitivity") or {}).get("rows", [])]}
+        try:
+            out = studio_decision.what_if(self.projects, project_id, changes)
+        except LookupError as exc:  # no what-if can be asked here, and why
+            return {"error": str(exc.args[0]) if exc.args else "No what-if can be asked"}
+        hooks.decision_what_if(project_id, changes, out, "agent")
+        return out
 
     def ask_project(self, project_id: str, question: str) -> dict[str, Any]:
         project = self.projects.get(project_id)

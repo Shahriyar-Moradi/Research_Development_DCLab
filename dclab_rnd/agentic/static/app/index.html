@@ -1039,6 +1039,19 @@
   </header>
   <div id="ev-box"></div>
 </section>
+<section class="view" id="view-decision" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow" id="dc-eyebrow">Project · decision</div>
+      <h1>Decision</h1>
+      <p class="lede">What to do with the model's scores: on how many rows to act, what that is worth with its interval, how far each number can move before the choice changes, and what if a cost, a value, the capacity or the share of cases were different.</p>
+    </div>
+    <div class="vh-actions">
+      <a class="btn" href="#evaluation">Evaluation</a>
+    </div>
+  </header>
+  <div id="dc-box"></div>
+</section>
 <section class="view" id="view-reliability" hidden>
   <header class="vh">
     <div class="vh-text">
@@ -2462,6 +2475,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
 <script src="/static/app/js/views/audit.js"></script>
 <script src="/static/app/js/views/models.js"></script>
 <script src="/static/app/js/views/evaluation.js"></script>
+<script src="/static/app/js/views/decision.js"></script>
 <script src="/static/app/js/views/reliability.js"></script>
 <script src="/static/app/js/views/brief.js"></script>
 <script src="/static/app/js/views/intern.js"></script>

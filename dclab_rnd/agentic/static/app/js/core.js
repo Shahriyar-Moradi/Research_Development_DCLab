@@ -84,7 +84,7 @@
   const icon = (name, cls = '') => `<svg viewBox="0 0 24 24" class="${cls}" aria-hidden="true">${IC[name] || ''}</svg>`;
 
   /* ---------------- navigation model ---------------- */
-  const PROJECT_VIEWS = ['project', 'solution', 'notebook', 'audit', 'models', 'evaluation', 'reliability', 'brief'];
+  const PROJECT_VIEWS = ['project', 'solution', 'notebook', 'audit', 'models', 'evaluation', 'decision', 'reliability', 'brief'];
   const VIEW_META = {
     home: { label: 'Home', crumbs: ['Workspace'] },
     new: { label: 'New project', crumbs: ['Workspace'] },
@@ -94,6 +94,7 @@
     audit: { label: 'Leakage & features', crumbs: ['Term-deposit calls'] },
     models: { label: 'Models', crumbs: ['Term-deposit calls'] },
     evaluation: { label: 'Evaluation', crumbs: ['Term-deposit calls'] },
+    decision: { label: 'Decision', crumbs: ['Term-deposit calls'] },
     reliability: { label: 'Reliability & holdout', crumbs: ['Term-deposit calls'] },
     brief: { label: 'Decision brief', crumbs: ['Term-deposit calls'] },
     intern: { label: 'Intern', crumbs: ['Workspace'] },
@@ -125,6 +126,7 @@
       { id: 'audit', label: 'Leakage & features', icon: 'shield' },
       { id: 'models', label: 'Models', icon: 'models' },
       { id: 'evaluation', label: 'Evaluation', icon: 'matrix' },
+      { id: 'decision', label: 'Decision', icon: 'scale' },
       { id: 'reliability', label: 'Reliability', icon: 'pulse' },
       { id: 'brief', label: 'Decision brief', icon: 'brief' },
     ] },

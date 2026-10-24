@@ -62,6 +62,7 @@ SPECIAL = {
     ("GET", "/api/ledger/routing"): "review",
     ("POST", "/api/ledger/routing"): "review",  # 22.6: routing a decision to a model
     ("POST", "/api/decide"): "read",  # 22.8: a question, answered; nothing is written
+    ("POST", "/api/projects/{project_id}/decision/what-if"): "read",  # 34.4: a what-if, answered on kept rows; nothing is written
     ("GET", "/api/ledger/blind/next"): "review",
     ("GET", "/api/ledger/queue"): "review",  # 29.8: the disagreements worth a person's look, shown blind
     ("POST", "/api/projects/{project_id}/disagreements/{record_id}"): "read",  # 29.10: every user is a teacher: a label, never a change

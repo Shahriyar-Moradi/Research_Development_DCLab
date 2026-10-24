@@ -24,6 +24,7 @@ Pure: arrays in, plain data out (numpy, pandas and scikit-learn only).
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from typing import Any, Literal, Optional
 
@@ -297,6 +298,72 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
                           "reads": "the expected value's interval is for the value per row on average; a holdout is one more sample with its "
                                    "own noise, so its value is read against the prediction interval"}
     return out
+
+
+# ------------------------------------------------------------------------------------------------ a decision in words (34.4)
+
+_AMOUNT = re.compile(r"(?:[€$£]\s*)?(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:[.,]\d+)?)\s*(k\b|thousand\b)?(?!\s*%|\d)")
+_CLAUSES = re.compile(r"[;\n]|\.(?!\d)|,(?!\d)|\band\b|\bbut\b|\bwhile\b|\bwhereas\b")
+# the review of 34.4: a number followed by one of these is a count, a time, a share or a total, never a cost per row
+_NOT_MONEY_AFTER = re.compile(r"\s*(minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?|seconds?|secs?|customers?|clients?|cases?|"
+                              r"calls?|reviews?|rows?|orders?|people|persons?|users?|items?|tickets?|times?|alerts?|percent|per\s*cent|"
+                              r"million|mn|m|bn|billion)\b")
+_NOT_MONEY_BEFORE = re.compile(r"\b(top|first|last|after|within|every|each)\s*$")  # "the top 100", "after 12": a rank or a time
+_MONEY = re.compile(r"[€$£]|\b(euros?|eur|dollars?|usd|pounds?|gbp|cost|costs|costing|worth|lose|loses|lost|losing|save|saves|"
+                    r"saving|earn|earns|pay|pays|spend|spends|price|fee|fees|revenue|profit|margin)\b")
+_UNREADABLE = re.compile(r"(?<![\d,])\.\d|-\s*[€$£]?\s*\d|\b\d{1,3}\.\d{3}\b")  # ".5", "-300", "10.000": not read at all
+_FALSE_ALARM = ("false alarm", "false positive", "wrongly", "needless", "for nothing", "wasted", "wrong flag", "annoy")
+_MISS = ("lost", "lose", "loses", "losing", "miss", "missed", "churn", "leaves", "leaving", "undetected", "not caught",
+         "unnoticed", "default", "false negative")
+_VALUE = ("worth", "saves", "save ", "earns", "earn ", "brings", "gain", "revenue", "profit")
+_ACTIONS = ("call", "review", "check", "visit", "offer", "email", "message", "discount", "voucher", "inspection", "audit",
+            "contact", "text", "sms", "coupon", "investigat", "follow-up", "follow up", "intervention", "outreach")
+
+
+def read_spec(text: str) -> Optional[DecisionSpec]:
+    """A decision read from a person's words (34.4), or None when they do not say enough plainly. Each clause must hold
+    exactly one amount, a word that makes it money (a currency, costs, worth, lose, save, pay...) and a word that says
+    what it is: a false alarm's cost, a miss's cost (a lost customer, a missed fraud), a case's value, or what acting on
+    a row costs (a call, a review). A clause whose number is a count, a time, a share or a total ("the top 100", "200 a
+    day" without money, "5 minutes", "3 customers", "15 percent", "2 million") is left out, never guessed; a text with an
+    amount that cannot be read surely (".5", "-300", "10.000") gives nothing. Needs a cost of acting (or of a false
+    alarm) and a value (or a miss's cost)."""
+    raw = str(text or "")
+    if _UNREADABLE.search(raw):
+        return None
+    found: dict[str, float] = {}
+    what = ""
+    for clause in _CLAUSES.split(raw):
+        low = clause.lower().strip()
+        matches = list(_AMOUNT.finditer(low))
+        if len(matches) != 1 or not _MONEY.search(low):
+            continue
+        match = matches[0]
+        if _NOT_MONEY_AFTER.match(low, match.end()) or _NOT_MONEY_BEFORE.search(low[: match.start()]):
+            continue
+        number, scale = match.group(1), match.group(2)
+        thousands = re.fullmatch(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?", number)  # 1,200 is twelve hundred; 2,5 is two and a half
+        amount = float(number.replace(",", "") if thousands else number.replace(",", ".")) * (1000.0 if scale else 1.0)
+        if any(w in low for w in _FALSE_ALARM):
+            key = "cost_false_positive"
+        elif any(w in low for w in _MISS):
+            key = "cost_false_negative"
+        elif any(w in low for w in _VALUE):
+            key = "value_per_case"
+        elif any(a in low for a in _ACTIONS) or "cost" in low:
+            key = "cost_per_action"
+            what = what or next((a.strip() for a in _ACTIONS if a in low), "")
+        else:
+            continue
+        if key in found and found[key] != amount:  # said twice with two amounts: not read
+            return None
+        found[key] = amount
+    acting = found.get("cost_per_action") or found.get("cost_false_positive")
+    worth = found.get("value_per_case") or found.get("cost_false_negative")
+    if not (acting and worth):
+        return None
+    words = " ".join(str(text).split())[:300]
+    return DecisionSpec(action=(what or "act")[:80], notes=f'read from the words: "{words}"', **found)
 
 
 # ------------------------------------------------------------------------------------------------ what-if (34.3)

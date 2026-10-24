@@ -11,6 +11,7 @@ It starts its own server on an empty workspace and drives, through the API as th
   parse       an unusual log file no built-in reader knows: the model proposes a parse pattern, code applies it
   evidence    one question the evidence covers and one it does not: an answer with citations, and a refusal
   intern      one intern session with a small budget, on a project built here from a made-up table
+  decision    34.4: the intern asked a what-if on a project whose final stage chose a decision
 
 For each path it reports what the model proposed and what the code accepted or refused, then the requests and tokens
 used (GET /api/models). It sends no real data: the problem sentences, the log lines and the tables are made up here.
@@ -162,8 +163,9 @@ def path_evidence(api: Api) -> str:
     return "; ".join(out)
 
 
-def made_up_project(api: Api) -> str:
-    """A project on a built-in synthetic table (no model asked to design it): the intern works on made-up rows only."""
+def made_up_project(api: Api, decision: dict | None = None) -> str:
+    """A project on a built-in synthetic table (no model asked to design it): the intern works on made-up rows only.
+    ``decision``: the decision on top of the model (34.4), stated in the solution."""
     did = api.call("POST", "/drafts", {"problem": "Predict which customers will leave next month."})["id"]
     api.call("POST", f"/drafts/{did}/data/synthetic", {"template": "churn", "rows": 600})
     api.wait(f"/drafts/{did}", lambda d: d["assets"] and d["assets"][-1]["status"] in ("ready", "failed"), what="the synthetic table")
@@ -171,7 +173,8 @@ def made_up_project(api: Api) -> str:
     solution = {"target": p["target"], "task": p["task"], "positive_label": str(p["positive_label"]) if p["task"] == "binary" else None,
                 "prediction_moment": "At the start of each month, from the account as it stands that day.",
                 "forbidden": [{"column": f["column"], "reason": f["reason"]} for f in p["forbidden"]], "identifiers": p["identifiers"],
-                "time_column": None, "group_column": None, "text_columns": [], "metric": p["metric"], "notes": ""}
+                "time_column": None, "group_column": None, "text_columns": [], "metric": p["metric"], "notes": "",
+                **({"decision": decision} if decision else {})}
     api.call("PUT", f"/drafts/{did}/solution", solution)
     api.call("PUT", f"/drafts/{did}/settings", {"split": "stratified", "quick": True, "max_rows": 600, "folds": 3, "budget": {}})
     return api.call("POST", f"/drafts/{did}/build")["id"]
@@ -187,12 +190,36 @@ def path_intern(api: Api) -> str:
     return f"status {s['status']}, mode {s.get('mode')}, {len(tools)} steps {tools}, refused or failed {refused}" + (f", error: {s['error']}" if s.get("error") else "")
 
 
-PATHS = {"synthetic": path_synthetic, "chat": path_chat, "parse": path_parse, "evidence": path_evidence, "intern": path_intern}
+def path_decision(api: Api) -> str:
+    """34.4: the intern asked a what-if on a project whose final stage chose a decision: it must call decision_what_if and
+    answer with the core's numbers, never refit anything."""
+    pid = made_up_project(api, {"action": "act", "what": "call the customer", "value_per_case": 120, "cost_per_action": 6})
+    api.call("POST", f"/projects/{pid}/run")
+    api.wait(f"/projects/{pid}", lambda q: all(q["stages"][k]["status"] in ("completed", "failed", "approved")
+                                                for k in ("data", "leakage", "features", "models", "final")), what="the five stages")
+    chosen = api.call("GET", f"/projects/{pid}/decision")
+    s = api.call("POST", "/intern/sessions?wait=true",
+                 {"task": "We call the customers the model ranks highest. What happens to how many we should call if a call cost 30 instead "
+                          "of 6? Answer with the numbers.", "project_id": pid, "budget": {"max_steps": 5, "max_minutes": 4}}, timeout=600)
+    tools = [step.get("tool") for step in s.get("steps") or []]
+    asked = [step for step in s.get("steps") or [] if step.get("tool") == "decision_what_if"]
+    expected = api.call("POST", f"/projects/{pid}/decision/what-if", {"changes": {"cost_per_action": 30}})
+    report = str(s.get("final") or "")  # the session's answer
+    return (f"status {s['status']}, decision {chosen['status']} at {chosen['chosen'].get('share')}, {len(tools)} steps {tools}, "
+            f"what-if asked {len(asked)} time(s); the core says {expected['before']['share']} -> {expected['after']['share']}; "
+            f"report: {report[:400]!r}" + (f", error: {s['error']}" if s.get("error") else ""))
+
+
+PATHS = {"synthetic": path_synthetic, "chat": path_chat, "parse": path_parse, "evidence": path_evidence, "intern": path_intern,
+         "decision": path_decision}
 PURPOSES = {"synthetic": ("synthetic_schema",), "chat": ("home_agent",), "parse": ("parse_pattern",), "evidence": ("evidence_answer",),
-            "intern": ("intern",)}
+            "intern": ("intern",), "decision": ("intern",)}
 
 
 # ------------------------------------------------------------------------------------------------ server
+BACKGROUND_OFF = {"DCLAB_STORE_LOOP": "0", "DCLAB_STORE_CAPTURE": "0", "DCLAB_COLLECTOR": "0", "DCLAB_STUDENTS_LOOP": "0"}  # the worker's own loops, off on a server this script starts
+
+
 def start_server(model_env: dict[str, str]) -> tuple[subprocess.Popen, str, tempfile.TemporaryDirectory]:
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
@@ -200,6 +227,8 @@ def start_server(model_env: dict[str, str]) -> tuple[subprocess.Popen, str, temp
     home = tempfile.TemporaryDirectory(prefix="dclab-model-paths-")
     env = {k: v for k, v in os.environ.items() if k not in ("DCLAB_NO_LIVE_MODELS", "DCLAB_DATABASE_URL", "DCLAB_AUTH")}
     env.update({"DCLAB_AGENT_HOME": home.name, **model_env})  # an empty value here wins over .env (it is loaded without override)
+    for key, value in BACKGROUND_OFF.items():  # no store run, collector or retraining outlives this server (as product_e2e)
+        env.setdefault(key, value)
     process = subprocess.Popen([sys.executable, "-m", "uvicorn", "dclab_rnd.agentic.server:app", "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"],
                                cwd=ROOT, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     base = f"http://127.0.0.1:{port}"

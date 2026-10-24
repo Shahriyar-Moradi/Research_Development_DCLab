@@ -122,6 +122,14 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
   value and cost in words (16.9's open item); a `CORE_INTEGRATION.md` section.
 - **Done when:** `make product-e2e` and `make browser-test` cover the page; the intern answers a what-if on a replica;
   the decision is in the solution report with its interval.
+- **Status:** done (2026-10-25, dclab-core 0.109.0). `Solution.decision` v2 (`act`: DecisionSpec's numbers; `classes`: a
+  cost matrix), chosen by the final stage on out-of-fold scores and read once on the holdout; its out-of-fold rows kept
+  beside the project for what-if (stamped with the final run); `GET/POST /api/projects/{id}/decision[/what-if]`; the
+  Decision page (curve, what moves it, a what-if form); the intern tool `decision_what_if`; the report's section;
+  Home reads amounts in words (`decide.read_spec`) and asks them once when the action came from the first sentence.
+  Live: the intern answered a what-if with the core's numbers (EUR 0.10). Open: the wizard has no fields for a decision
+  (Solution page edits it as JSON only); the engine's review path stays on `review_budget` (same answers, tested);
+  `delivery_fraud` not yet measured through `act`.
 
 ## Layer 3: Build
 

@@ -226,7 +226,15 @@ def flow_upload(api: Api) -> str:
     check("pd.read_parquet(" in notebook and "n_splits=5" in notebook, "the exported notebook does not read the data file or the folds as run")
     check("Synthetic data." not in notebook, "real data was labelled synthetic")
     check(all(m["status"] == "allowed" for m in project["transitions"]), "the validator refused a move on the standard path")
-    return f"{rows:,} rows, 5 folds, five stages; holdout {holdout(project)}"
+    decision = api.call("GET", f"/projects/{project['id']}/decision")  # 34.4: "a call costs 5; a lost customer costs 300", read and chosen
+    heard = [e for e in api.call("GET", f"/projects/{project['id']}").get("activity", []) if e.get("kind") in ("decision_read", "decision_unread")]
+    check(decision["status"] == "chosen" and decision["stated"]["what"] == "call",
+          f"the decision said in the chat was not chosen: {decision['status']}; the chat heard action {understood.get('action')!r}, costs {understood.get('costs')!r}; {heard}")
+    check(decision["what_if"]["available"], f"no what-if on the chosen decision: {decision['what_if'].get('why_not')}")
+    dearer = api.call("POST", f"/projects/{project['id']}/decision/what-if", {"changes": {"cost_per_action": 50}})
+    check(dearer["after"]["share"] <= dearer["before"]["share"], "a dearer call made more calls")
+    return (f"{rows:,} rows, 5 folds, five stages; holdout {holdout(project)}; calls {decision['chosen']['share']:.1%} of customers, "
+            f"{dearer['after']['share']:.1%} at 50 a call")
 
 
 def flow_upload_team(api: Api) -> str:
@@ -336,6 +344,12 @@ FLOWS = {"upload": flow_upload, "upload-team": flow_upload_team, "no-data": flow
 
 
 # ------------------------------------------------------------------------------------------------ server
+# the loops a server's worker starts on its own (the store's conductor, the collector, the students' retraining): off on a
+# test server, as tests/run_parallel.py sets them, so no run outlives it writing into the owner's store (2026-10-25: five
+# orphaned store runs on deleted temporary folders, found by the collector's session)
+BACKGROUND_OFF = {"DCLAB_STORE_LOOP": "0", "DCLAB_STORE_CAPTURE": "0", "DCLAB_COLLECTOR": "0", "DCLAB_STUDENTS_LOOP": "0"}
+
+
 def start_server() -> tuple[subprocess.Popen, str, tempfile.TemporaryDirectory]:
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
@@ -343,6 +357,8 @@ def start_server() -> tuple[subprocess.Popen, str, tempfile.TemporaryDirectory]:
     home = tempfile.TemporaryDirectory(prefix="dclab-e2e-")
     env = {**{k: v for k, v in os.environ.items() if not k.startswith("DCLAB_TIER_")}, "DCLAB_AGENT_HOME": home.name, "OPENAI_API_KEY": "",
            "DCLAB_LLM_BASE_URL": "https://api.openai.com/v1", "DCLAB_NO_LIVE_MODELS": "1"}  # no model, whatever .env says
+    for key, value in BACKGROUND_OFF.items():  # as tests/run_parallel.py: a test server's worker never writes into the owner's store
+        env.setdefault(key, value)
     process = subprocess.Popen([sys.executable, "-m", "uvicorn", "dclab_rnd.agentic.server:app", "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"],
                                cwd=ROOT, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     base = f"http://127.0.0.1:{port}"

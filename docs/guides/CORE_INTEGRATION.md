@@ -1063,7 +1063,7 @@ level of the customer's table, so it stays in the project's record under the pro
 decision state or an exported event. The answer becomes a `semantic_decision_answers`-style row only when the main product
 adds a governed point for it; until then `conformance` lists `data.more_rows` as this studio's point.
 
-## Decisions on top of a model (34.1 to 34.3, dclab-core 0.105.0 to 0.108.0)
+## Decisions on top of a model (34.1 to 34.4, dclab-core 0.105.0 to 0.109.0)
 
 The library's: `dclab_core.decide`. A host states what acting on a row is worth and costs as a `DecisionSpec` v1 (a value
 per case or a row's value column, a cost per action, a false alarm's and a miss's cost, a capacity as a share or per day)
@@ -1080,6 +1080,10 @@ and passes its own out-of-fold scores; nothing is fitted by the library except a
 - `choose_by_cost_matrix(proba, cost_matrix)`: each row's class with the lowest expected cost.
 - `what_if(...)` and `sensitivity(...)`: the decision under changed numbers or a changed base rate, and how far each
   number can move before it changes; nothing is refitted.
+- `read_spec(text)` (0.109.0): a DecisionSpec from a person's words, or None when any amount could be a count, a time,
+  a share or a total; the main product's intake offers it for confirmation. DCLab's studio adds it to a yes/no solution
+  only from the answer to the question that asks for the amounts, as its own audited move; amounts heard elsewhere are
+  shown on the Decision page for the person to use or not.
 
 Where it goes in the main product: after its experiment's final model is chosen, beside its operating points page; the
 records are plain dicts the host stores with the experiment. Wiring is the main product's own change.
