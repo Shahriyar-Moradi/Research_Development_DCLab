@@ -1,0 +1,56 @@
+{
+ "package": "plain-labelling-questions",
+ "title": "The labelling queue in plain words: the question, the facts as sentences, the dataset, readable names first",
+ "date": "2026-10-24",
+ "request": "The owner, labelling real-table disagreements: the questions and columns are not clear; make them simpler.",
+ "spec": "dclab_rnd/ledger/labels.py (29.8 blind queue, 29.11 teaching order); dclab_core.ledger.blind_view.",
+ "plan": [
+  "A plain question per point.",
+  "The state as sentences.",
+  "The dataset's name and its page for a real table.",
+  "An order with readable names first, labels taught (never counted)."
+ ],
+ "decisions": [
+  {
+   "decision": "Readable-first labels are taught, never counted.",
+   "why": "A sample chosen by its names is not fair; the promotion figures must come from the fair queue."
+  },
+  {
+   "decision": "The raw facts stay, folded under the sentences.",
+   "why": "The sentences are a reading of the same bands; the bands remain the record."
+  }
+ ],
+ "change": "dclab_rnd/ledger/labels.py (PLAIN, facts, readable, explain, the readable order), agentic/pages/ledger.py, web/src/views/admin.html, tests/test_label_queue.py",
+ "findings": [
+  {
+   "id": "O1",
+   "source": "owner",
+   "severity": "gap",
+   "defect": "The labelling questions were hard to answer.",
+   "scenario": "Columns named oz58 or V10 with a target oz101, and a question in technical words.",
+   "cause": "The queue showed the raw state and the point's formal question.",
+   "fix": "Plain question, facts in words, the dataset and its link, readable names first.",
+   "test": "tests/test_label_queue.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the queue tests",
+   "gate": "every affected test file passes",
+   "result": "label queue 10, active learning 6, web build 6, api contract 8",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the readable order scans every record: about 12 seconds on 42,000 decisions"
+   ]
+  }
+ ],
+ "outcome": "A person can label real-table disagreements without decoding the state.",
+ "lessons": [
+  "A label is only as good as the question a person can read."
+ ],
+ "risks": [
+  "Readable-first labels teach but cannot show a student is better."
+ ],
+ "commits": []
+}

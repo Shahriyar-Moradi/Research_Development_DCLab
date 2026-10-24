@@ -71,7 +71,7 @@ def next_blind(ledger: Any = None, seed: str = "blind-v1", point: Optional[str] 
     drawn.sort(key=lambda r: contract.stratum(r) != "disagree")
     if drawn:
         record = drawn[0]
-        return {**contract.blind_view(record), "weight": round(1 / contract.blind_probability(record), 6), "seed": seed}
+        return explain({**contract.blind_view(record), "weight": round(1 / contract.blind_probability(record), 6), "seed": seed}, record)
     return None
 
 
@@ -95,6 +95,84 @@ def _students() -> dict[str, str]:
     return {} if register is None else {p: c["answerer"] for p, c in register.students().items() if c.get("answerer")}
 
 
+# ---------------------------------------------------------------------- the question in plain words (the owner, 2026-10-24)
+# "the questions and columns are not clear and easy to answer": each view also carries the question as a person would ask
+# it, the facts in words, the dataset the column came from (a real table's name and its page), and how readable its name is.
+
+PLAIN = {
+    "feature.leakage_suspect": "Is this column only known AFTER the result happens, or does it give the result away? (yes = cheating)",
+    "column.time": "Does this column say WHEN each row happened (a date or time that puts the rows in order)?",
+    "column.is_identifier": "Is this column just a name tag for each row (an ID number or code), with no meaning of its own?",
+    "column.semantic_role": "What kind of column is this?",
+    "column.group": "Does this column group rows that belong together (for example, every row of the same customer)?",
+    "column.category_code": "Are these numbers really category codes (like 1 = red, 2 = blue) rather than amounts?",
+    "task.framing": "What kind of answer should the model predict?",
+}
+_RATIO = {"none": "none", "under_1pct": "under 1%", "from_1_to_10pct": "1 to 10%", "from_10_to_50pct": "10 to 50%",
+          "from_50_to_90pct": "50 to 90%", "from_90_to_99pct": "90 to 99%", "over_99pct": "over 99%", "all": "all"}
+_DTYPE = {"integer": "whole numbers", "float": "numbers with decimals", "boolean": "yes/no values", "datetime": "dates or times",
+          "string": "text", "categorical": "categories (a fixed list of values)", "other": "other values"}
+_CARD = {"constant": "one single value", "binary": "two different values", "low": "a few different values",
+         "medium": "a medium number of different values", "high": "many different values", "very_high": "a very large number of different values"}
+_PATTERN = {"digits": "made of digits", "mixed": "letters and digits mixed", "date_like": "look like dates", "long_text": "long text",
+            "short_text": "short words or codes", "not_text": "numbers"}
+
+
+def facts(state: dict[str, Any]) -> list[str]:
+    """The state as sentences a person reads (the same facts, never a value of the table)."""
+    out = []
+    if state.get("target"):
+        out.append(f"We want to predict: {state['target']}")
+    if state.get("dtype") in _DTYPE:
+        out.append(f"It holds {_DTYPE[state['dtype']]}")
+    if state.get("uniqueness") in _RATIO:
+        out.append(f"Different values: {_RATIO[state['uniqueness']]} of the rows" + (" (almost every row is different)" if state["uniqueness"] in ("over_99pct", "all") else ""))
+    if state.get("cardinality") in _CARD:
+        out.append(f"It has {_CARD[state['cardinality']]}")
+    if state.get("nulls") in _RATIO:
+        out.append("No empty cells" if state["nulls"] == "none" else f"Empty cells: {_RATIO[state['nulls']]} of the rows")
+    if state.get("value_pattern") in _PATTERN:
+        out.append(f"Its values are {_PATTERN[state['value_pattern']]}")
+    if state.get("task"):
+        out.append(f"The task: {str(state['task']).replace('_', ' ')}")
+    return out
+
+
+def readable(name: Any) -> float:
+    """How much a column's name says to a person: the share of its words that are words (3 letters or more, a vowel),
+    0 for codes like V10, oz58 or p-36."""
+    import re
+
+    words = [w for w in re.split(r"[^A-Za-z0-9]+|(?<=[a-z])(?=[A-Z])", str(name or "")) if w]
+    good = [w for w in words if re.fullmatch(r"[A-Za-z]{3,}", w) and re.search(r"[aeiouyAEIOUY]", w)]
+    return round(len(good) / len(words), 3) if words else 0.0
+
+
+def _dataset(record: Any) -> Optional[dict[str, Any]]:
+    """The real table a decision came from, when it is a public one (the real-table shadow run files them as openml-<did>)."""
+    import json as _json
+
+    from .. import settings as _settings
+
+    where = str(getattr(record, "draft", None) or getattr(record, "project", None) or "")
+    if not where.startswith("openml-"):
+        return None
+    did = where.removeprefix("openml-")
+    path = _settings.ROOT / "data" / "downloads" / "openml" / "datasets" / f"{did}.json"
+    try:
+        name = _json.loads(path.read_text(encoding="utf-8")).get("name")
+    except (OSError, ValueError):
+        name = None
+    return {"name": name or f"OpenML dataset {did}", "link": f"https://www.openml.org/d/{did}"}
+
+
+def explain(view: dict[str, Any], record: Any) -> dict[str, Any]:
+    """A blind view with the question in plain words, the facts in words, the dataset and the name's readability."""
+    subject = view.get("subject") or {}
+    return {**view, "plain": PLAIN.get(view.get("point") or getattr(record, "point", ""), view.get("question")),
+            "facts": facts(dict(view.get("state") or {})), "dataset": _dataset(record), "readable": readable(subject.get("key"))}
+
+
 def queue(ledger: Any = None, point: Optional[str] = None, limit: int = 50, seed: str = "blind-v1", skip: Sequence[str] = (),
           current: Optional[dict[str, str]] = None, order: str = "fair") -> dict[str, Any]:
     """29.8: the disagreements worth a person's look: decisions where the point's current student (in shadow) disagrees
@@ -109,6 +187,8 @@ def queue(ledger: Any = None, point: Optional[str] = None, limit: int = 50, seed
     weight (``blind_label(taught=True)``): they train, and never estimate."""
     if order == "teach":
         return _teach(ledger, point, limit, seed, skip, current)
+    if order == "readable":
+        return _readable_first(ledger, point, limit, seed, skip, current)
     import hashlib
 
     from dclab_core import ledger as contract
@@ -128,8 +208,37 @@ def queue(ledger: Any = None, point: Optional[str] = None, limit: int = 50, seed
         if (point is None or r.point == point) and r.id not in skipped:
             waiting.append((hashlib.sha256(f"{seed}:queue:{r.id}".encode()).hexdigest(), r))
     waiting.sort(key=lambda x: x[0])
-    items = [{**contract.blind_view(r), "weight": round(1 / contract.blind_probability(r), 6), "seed": seed} for _, r in waiting[:max(0, int(limit))]]
+    items = [explain({**contract.blind_view(r), "weight": round(1 / contract.blind_probability(r), 6), "seed": seed}, r) for _, r in waiting[:max(0, int(limit))]]
     return {"items": items, "points": dict(sorted(counts.items())), "seed": seed}
+
+
+def _readable_first(ledger: Any, point: Optional[str], limit: int, seed: str, skip: Sequence[str], current: Optional[dict[str, str]]) -> dict[str, Any]:
+    """The owner's order (2026-10-24): the disagreements whose column names say something first (``readable``), so a person
+    can answer; then the rest in a seeded order. Outside the blind draw, like the teaching order, and for the same reason:
+    a sample chosen by its names is not a fair one, so these labels train and never count toward a student acting."""
+    import hashlib
+
+    from dclab_core import ledger as contract
+    from dclab_core.answerers import SHADOW
+
+    store = ledger if ledger is not None else current_ledger()
+    if store is None:
+        return {"items": [], "points": {}, "seed": seed, "order": "readable"}
+    current = _students() if current is None else current
+    known = {x.record for x in store.labels() if x.source in ("blind", "benchmark", "measured")}
+    skipped = set(skip)
+    pool, counts = [], {}
+    for r in store.records():
+        name = current.get(r.point)
+        student = next((a for a in r.answers if a.source == SHADOW and a.answerer == name and a.value is not None), None) if name else None
+        if student is None or not _disagreement(r, name) or not contract.blind_eligible(r) or r.id in known or contract.blind_draw(r, seed):
+            continue
+        counts[r.point] = counts.get(r.point, 0) + 1
+        if r.id not in skipped and (point is None or r.point == point):
+            pool.append((-readable((contract.blind_view(r).get("subject") or {}).get("key")), hashlib.sha256(f"{seed}:readable:{r.id}".encode()).hexdigest(), r))
+    pool.sort(key=lambda x: (x[0], x[1]))
+    items = [explain({**contract.blind_view(r), "weight": None, "taught": True, "seed": seed}, r) for _, _, r in pool[:max(0, int(limit))]]
+    return {"items": items, "points": dict(sorted(counts.items())), "seed": seed, "order": "readable"}
 
 
 def _teach(ledger: Any, point: Optional[str], limit: int, seed: str, skip: Sequence[str], current: Optional[dict[str, str]]) -> dict[str, Any]:
@@ -170,7 +279,7 @@ def _teach(ledger: Any, point: Optional[str], limit: int, seed: str, skip: Seque
     chosen: list[Any] = []  # the points in turn, each in its own order
     for i in range(max((len(x) for x in lists), default=0)):
         chosen += [x[i] for x in lists if i < len(x)]
-    items = [{**contract.blind_view(r), "weight": None, "taught": True, "seed": seed} for r in chosen[:max(0, int(limit))]]
+    items = [explain({**contract.blind_view(r), "weight": None, "taught": True, "seed": seed}, r) for r in chosen[:max(0, int(limit))]]
     return {"items": items, "points": dict(sorted(counts.items())), "seed": seed, "order": "teach"}
 
 

@@ -2201,7 +2201,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
     <div class="panel" data-f="admin.queue">
       <div class="panel-head"><div class="panel-title"><h2>Disagreements to label</h2><span class="sub" id="queue-sub">Where a point's student disagrees with the rule, shown blind (you never see who said what) and in a random order, so whatever part you label is a fair sample. Each label counts toward that student's "needed to act".</span></div>
         <div class="panel-actions"><label class="xs muted" for="queue-point">Point</label> <select id="queue-point" class="sm"><option value="">every point</option></select>
-          <label class="xs muted" for="queue-order">Order</label> <select id="queue-order" class="sm" title="A fair sample counts toward a student acting; what teaches most trains the students and never counts"><option value="fair">a fair sample</option><option value="teach">least sure and random (measured: not passed)</option></select></div></div>
+          <label class="xs muted" for="queue-order">Order</label> <select id="queue-order" class="sm" title="A fair sample counts toward a student acting; what teaches most trains the students and never counts"><option value="fair">a fair sample</option><option value="readable">readable names first (easier; teaches, never counts)</option><option value="teach">least sure and random (measured: not passed)</option></select></div></div>
       <div class="panel-body stack" id="queue-body"><div class="empty">Loading…</div></div>
     </div>
     <div class="panel" data-f="admin.blind">

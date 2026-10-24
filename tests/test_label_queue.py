@@ -216,3 +216,18 @@ class TesterTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PlainQuestionTest(unittest.TestCase):  # the owner, 2026-10-24: "the questions and columns are not clear"
+    def test_facts_in_words_and_readable_names(self):
+        from dclab_rnd.ledger import labels
+
+        said = labels.facts({"target": "churned", "dtype": "float", "uniqueness": "all", "nulls": "none", "cardinality": "high"})
+        self.assertEqual(said[0], "We want to predict: churned")
+        self.assertIn("No empty cells", said)
+        self.assertTrue(any("almost every row is different" in s for s in said))
+        self.assertEqual(labels.readable("oz58"), 0.0)
+        self.assertEqual(labels.readable("V10"), 0.0)
+        self.assertEqual(labels.readable("refund_amount"), 1.0)
+        self.assertGreater(labels.readable("PctYoungKids2Par"), labels.readable("p-36"))
+        self.assertIn("AFTER", labels.PLAIN["feature.leakage_suspect"])

@@ -380,6 +380,7 @@
     "open-source-dclabai",
     "owner-2026-10-15",
     "pandas-3-support",
+    "plain-labelling-questions",
     "project-switcher",
     "prompt-caching",
     "proposal-core-entities",
@@ -398,14 +399,14 @@
     "ui-tripssource-kit",
     "username-login"
   ],
-  "total": 4076,
-  "train": 3237,
+  "total": 4079,
+  "train": 3240,
   "val": 839,
   "by_task": {
-    "fix_finding": 2637,
+    "fix_finding": 2638,
     "judge_measurement": 414,
-    "plan_package": 388,
-    "retrospective": 379,
+    "plan_package": 389,
+    "retrospective": 380,
     "review_change": 258
   },
   "val_packages": [
@@ -490,6 +491,12 @@
     "owner-2026-10-15",
     "selfplay-every-kind"
   ],
-  "refused": [],
+  "refused": [
+    {
+      "package": "plain-labelling-questions",
+      "task": "judge_measurement",
+      "why": "a number the prompt does not give"
+    }
+  ],
   "validation_policy": "whole packages held out by the hash of their id (about 20%)"
 }

@@ -427,7 +427,9 @@ DC.view('admin', {
     const point = pick.value || undefined;
     const orderPick = $('#queue-order', el), order = orderPick ? orderPick.value : 'fair';  // 29.11
     const sub = $('#queue-sub', el);
-    if (sub) sub.textContent = order === 'teach'
+    if (sub) sub.textContent = order === 'readable'
+      ? 'Questions whose column names say something come first, so they are easier to answer; the rest follow. Shown blind. These labels teach the students and never count toward one acting (a sample chosen by its names is not a fair one).'
+      : order === 'teach'
       ? 'Decisions outside the fair sample, the student\'s least sure answers and others drawn at random, in turn; shown blind. These labels train the students and never count toward one acting (measured on invented tables: not passed).'
       : 'Where a point\'s student disagrees with the rule, shown blind (you never see who said what) and in a random order, so whatever part you label is a fair sample. Each label counts toward that student\'s "needed to act".';
     if (orderPick && !orderPick.dataset.wired) { orderPick.dataset.wired = '1'; orderPick.addEventListener('change', () => { this.queueSkipped = []; this.loadQueue(el); }); }
@@ -453,9 +455,14 @@ DC.view('admin', {
       return;
     }
     const state = Object.entries(item.state || {}).map(([k, v]) => `<dt>${esc(k.replace(/_/g, ' '))}</dt><dd class="mono small">${esc(Array.isArray(v) ? v.join(', ') : String(v))}</dd>`).join('');
-    box.innerHTML = `<div><b>${esc(item.question)}</b><div class="xs muted">${esc(item.point)} · about the ${esc(item.subject.kind)} <code>${esc(item.subject.key)}</code> · ${item.taught ? 'chosen to teach: it trains, never counts toward acting' : 'weight ' + esc(String(item.weight))}`
+    // the owner, 2026-10-24: the question in plain words, the column's dataset, the facts as sentences; the raw state folded
+    const plainHead = `<div class="stack tight"><b class="lg">${esc(item.plain || item.question)}</b>`
+      + `<div>Column: <code>${esc(item.subject.key)}</code>${item.dataset ? ` · from the dataset <b>${esc(item.dataset.name)}</b> (<a href="${esc(item.dataset.link)}" target="_blank" rel="noopener">read about it</a>)` : ''}</div>`
+      + ((item.facts || []).length ? `<ul class="plain small">${item.facts.map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : '')
+      + (item.readable === 0 ? `<div class="xs muted">The name is a code: if you cannot tell what it is, "Can't tell" is the right answer.</div>` : '')
+      + `<details class="xs muted"><summary>The facts as DCLab records them</summary>${state ? `<dl class="kv">${state}</dl>` : ''}</details></div>`;
+    box.innerHTML = plainHead + `<div><div class="xs muted">${esc(item.point)} · about the ${esc(item.subject.kind)} <code>${esc(item.subject.key)}</code> · ${item.taught ? 'chosen to teach: it trains, never counts toward acting' : 'weight ' + esc(String(item.weight))}`
       + ` · ${esc(String(this.queueItems.length))} in this batch${this.queueDone ? ` · ${esc(String(this.queueDone))} labelled` : ''}</div></div>`
-      + (state ? `<dl class="kv">${state}</dl>` : '<div class="xs muted">No state was recorded for this decision.</div>')
       + `<div class="row" data-style="flex-wrap:wrap;gap:6px">${(item.options || []).map(o => `<button type="button" class="btn sm" data-q="${esc(o)}">${esc(o)}</button>`).join('')}`
       + `<button type="button" class="btn sm ghost" data-q-skip title="Leave it unlabelled: a gap is reported, a guess is not">Can't tell — next</button></div>`;
     const next = () => { this.queueItems.shift(); if (this.queueItems.length) this.drawQueue(el); else this.loadQueue(el, true); };

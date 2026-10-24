@@ -64,8 +64,8 @@ def register(app, ctx) -> None:
         student answered; label one with {"value", "taught": true}: it trains, never estimates."""
         from ...ledger import labels
 
-        if order not in ("fair", "teach"):
-            raise HTTPException(422, "order is fair or teach")
+        if order not in ("fair", "teach", "readable"):
+            raise HTTPException(422, "order is fair, teach or readable")
         if point is not None and not re.fullmatch(r"[a-z_.]{3,60}", point):
             raise HTTPException(422, "point is a decision point")
         skipped = [x for x in (skip or "").split(",") if x][:500]
