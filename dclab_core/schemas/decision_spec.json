@@ -1,0 +1,95 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.decision_spec.v1.json",
+  "additionalProperties": false,
+  "description": "What acting on a row is worth and costs (34.1, v1): the one statement every operating point is chosen from.\n\nActing on a row that is a case earns ``value_per_case`` (or the row's own value, given beside the scores) and avoids\n``cost_false_negative``, the cost of missing it; acting on a row that is not a case costs ``cost_false_positive``;\nevery action costs ``cost_per_action`` (a review, a call, a coupon). ``capacity_share`` or ``capacity_per_day``\ncaps how many rows may be acted on. The review budget (16.9) is value and an action's cost; the stated-cost\nthreshold (17.5) is a false alarm's and a miss's cost: both are special cases, with the same answers.",
+  "properties": {
+    "action": {
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Action",
+      "type": "string"
+    },
+    "capacity_per_day": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Capacity Per Day"
+    },
+    "capacity_share": {
+      "anyOf": [
+        {
+          "exclusiveMaximum": 1,
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Capacity Share"
+    },
+    "cost_false_negative": {
+      "default": 0.0,
+      "minimum": 0,
+      "title": "Cost False Negative",
+      "type": "number"
+    },
+    "cost_false_positive": {
+      "default": 0.0,
+      "minimum": 0,
+      "title": "Cost False Positive",
+      "type": "number"
+    },
+    "cost_per_action": {
+      "default": 0.0,
+      "minimum": 0,
+      "title": "Cost Per Action",
+      "type": "number"
+    },
+    "notes": {
+      "default": "",
+      "maxLength": 1000,
+      "title": "Notes",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.decision_spec.v1",
+      "default": "dclab_core.decision_spec.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "value_column": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Value Column"
+    },
+    "value_per_case": {
+      "default": 0.0,
+      "minimum": 0,
+      "title": "Value Per Case",
+      "type": "number"
+    }
+  },
+  "required": [
+    "schema_version",
+    "action"
+  ],
+  "title": "DecisionSpec",
+  "type": "object"
+}

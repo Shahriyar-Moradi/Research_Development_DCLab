@@ -62,6 +62,8 @@ CONTRACT_ADAPTERS: dict[str, str] = {
                           "graded attempts; the main product would grade its own agents through the same contracts when it runs the loop)" for name, what in (
         ("challenge_pack", "public challenge pack"), ("challenge_key", "challenge key, read by the grader only"), ("grade", "grade of one solve"),
         ("playbook", "playbook of lessons"), ("playbook_delta", "change to a playbook"))},
+    "decision_spec": LIBRARY + " (what acting on a row is worth and costs, 34.1; the main product's objective takes its costs through "
+                     "adapters.main_product.objective_of, the rest goes to the person choosing the operating point)",
     "table_entry": LIBRARY + " (a table's catalog entry with its owner and checks, 30.23; the main product's data catalog keeps its own entries)",
     "project_request": LIBRARY + " (a requested project scored, 30.24; the main product's intake keeps its own requests and scores them through it)",
     "portfolio": LIBRARY + " (the projects chosen of the requested and what they reuse, 30.24)",

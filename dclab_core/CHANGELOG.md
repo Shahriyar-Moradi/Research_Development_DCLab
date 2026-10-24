@@ -4,6 +4,21 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.105.0 (2026-10-24)
+
+One decision core (34.1).
+
+- `decide.DecisionSpec` v1 (new contract): what acting on a row is worth and costs (a value per case or a row's value
+  column, a cost per action, a false alarm's and a miss's cost, a capacity as a share or per day).
+- `decide.choose_operating_point`: the number of rows to act on with the highest expected value, chosen on out-of-fold
+  scores under the capacity; rows ranked by expected gain when each has its own value and the scores are probabilities.
+  Its interval is the expected value's at the share chosen (90 % held the true value 57 of 60 times in a simulation);
+  the holdout, read once, comes with a prediction interval for one new sample (54 of 60), since a confidence interval
+  holds a same-sized holdout's value only about three times in four.
+- The review budget and the stated-cost threshold are special cases with the same answers; `assess`'s stated-cost path
+  now reads the core.
+- `adapters.main_product.objective_of`: the costs to the main product's objective, a note for each part with no field.
+
 ## 0.104.0 (2026-10-24)
 
 - `benchgen.decide` takes `truths` (a column's right answers by point, from the caller) and `label_by` (where they came

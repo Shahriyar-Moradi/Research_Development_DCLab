@@ -63,11 +63,16 @@ def _threshold(y: np.ndarray, score: np.ndarray, budget: Optional[float], costs:
     positives = int((y == 1).sum())
     if costs and costs.get("false_positive") is not None and costs.get("false_negative") is not None:
         fp_cost, fn_cost = float(costs["false_positive"]), float(costs["false_negative"])
-        cost = fp_cost * fp + fn_cost * (positives - tp)
-        alert_none = fn_cost * positives  # a threshold above every score: no alerts at all
-        if alert_none <= cost.min():
-            return float(np.nextafter(score.max(), np.inf)), f"no alerts: every threshold costs more (a false alarm {fp_cost:g}, a miss {fn_cost:g})"
-        return float(thresholds[int(np.argmin(cost))]), f"the lowest expected cost (a false alarm {fp_cost:g}, a miss {fn_cost:g})"
+        from . import decide  # 34.1: one decision core; stated costs are its special case (the same threshold)
+
+        if fn_cost > 0:
+            point = decide.choose_operating_point(y, score, decide.DecisionSpec(action="alert", cost_false_positive=fp_cost,
+                                                                               cost_false_negative=fn_cost), bootstrap=0)
+            if not point["actions_training"]:
+                return float(np.nextafter(score.max(), np.inf)), f"no alerts: every threshold costs more (a false alarm {fp_cost:g}, a miss {fn_cost:g})"
+            exact = float(np.sort(score)[::-1][point["actions_training"] - 1])  # the score itself, never its rounded copy
+            return exact, f"the lowest expected cost (a false alarm {fp_cost:g}, a miss {fn_cost:g})"
+        return float(np.nextafter(score.max(), np.inf)), f"no alerts: a miss costs nothing here (a false alarm {fp_cost:g})"
     f1 = np.where(tp > 0, 2 * tp / (2 * tp + fp + (positives - tp)), 0.0)
     return float(thresholds[int(np.argmax(f1))]), "the best F1 (no budget or cost was given: ask for one)"
 

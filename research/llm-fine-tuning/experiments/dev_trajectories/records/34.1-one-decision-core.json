@@ -1,0 +1,127 @@
+{
+ "package": "34.1-one-decision-core",
+ "title": "One decision core: what acting on a row is worth and costs, one operating point chosen from it (34.1)",
+ "date": "2026-10-24",
+ "request": "The owner moved DCLab's focus from leakage alone to more abilities; layer 5 (decide) first. The plan (docs/guides/PHASE10_ABILITIES_PLAN.md, 34.1) asks for one decision core uniting the review budget and the stated-cost threshold, with a value per row and a capacity.",
+ "spec": "DecisionSpec v1 and choose_operating_point in dclab_core/decide.py; the review budget and assess's stated-cost threshold as special cases with the same answers; the main product's objective through objective_of.",
+ "plan": [
+  "read decide.py, assess._threshold and the engine's wiring",
+  "write the failing tests: special cases, per-row value, capacity, holdout",
+  "one gain per row against acting on none, ranked by score or expected gain",
+  "intervals measured for what they mean",
+  "assess's stated-cost path reads the core",
+  "register the contract and its schema"
+ ],
+ "decisions": [
+  {
+   "decision": "One gain per row: a case acted on earns its value and avoids its miss cost; a non-case costs a false alarm; every action costs its cost",
+   "why": "the review budget and the stated costs are both this formula with some terms zero, so one core gives both answers"
+  },
+  {
+   "decision": "Rank by expected gain only when a value per row is given and the scores are probabilities",
+   "why": "a likely small case can be worth less than a less likely large one; scores that are not probabilities cannot weigh values"
+  },
+  {
+   "decision": "Two intervals: the expected value's at the share chosen, and a prediction interval for the holdout",
+   "why": "measured: a 90% confidence interval held a same-sized holdout's value in about 45 of 60 seeds, as statistics says it should; each interval is now tested for what it means"
+  },
+  {
+   "decision": "The engine's review path stays on review_budget until 34.4",
+   "why": "moving it changes stored records; 34.4 upgrades the product's decision field and moves it then"
+  }
+ ],
+ "change": "dclab_core/decide.py (DecisionSpec v1, choose_operating_point, _prediction); dclab_core/assess.py (stated costs read the core); dclab_core/adapters/main_product.py (objective_of); dclab_core/adapters/conformance.py, contracts.py, schemas (the contract registered); version 0.105.0 and CHANGELOG; tests/test_core_decision_spec.py (new).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "defect": "the plan's check that the holdout's value falls in the interval asked the wrong thing",
+   "scenario": "a 90% interval for the expected value held a same-sized holdout's value in 45 of 60 seeds (and 43 of 60 for review_budget's own interval)",
+   "cause": "a confidence interval for the average does not include a new sample's own noise; for equal sizes it holds about three times in four",
+   "fix": "the expected value's interval is checked against the value on a very large sample (57 of 60), and a prediction interval for the holdout is given and checked (54 of 60)",
+   "test": "tests/test_core_decision_spec.py::DecisionSpecTests::test_the_intervals_hold_what_they_say_the_expected_value_and_a_holdouts_value",
+   "severity": "behaviour",
+   "impact": "an interval read as a promise about the holdout would be broken one time in four",
+   "alternatives": [],
+   "open": "review_budget keeps its own interval (re-chosen each draw), slightly optimistic"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "a count could cut through tied scores, then the threshold flagged the whole tie",
+   "scenario": "y=[1,1,0], scores [0.9,0.5,0.5], a false alarm 10, a miss 1: the old threshold 0.9 (cost 1), the new 0.5 (cost 10); on scores rounded to 0.1, 86 of 200 seeds changed",
+   "cause": "every count was tried, not only those that end where the score changes",
+   "fix": "a count may end only where the rank changes; assess takes the exact score, never the rounded one",
+   "test": "tests/test_core_decision_spec.py::DecisionSpecTests::test_tied_scores_are_taken_together_as_a_threshold_takes_them",
+   "severity": "behaviour",
+   "impact": "a different, costlier threshold for existing projects whose models give tied scores",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "the holdout was read with a value of zero per case when its values were not passed",
+   "scenario": "a value per row given for the training rows, none for the holdout: its value per row fell from 11.03 to -0.47 with no warning",
+   "cause": "the holdout fell back to the spec's value per case, zero when a value column is used",
+   "fix": "a value per row needs the holdout's values too, and a value column needs its values: both refused otherwise",
+   "test": "tests/test_core_decision_spec.py::DecisionSpecTests::test_values_per_row_and_daily_capacities_are_never_silently_dropped",
+   "severity": "behaviour",
+   "impact": "a wrong holdout number in a stored record",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "a daily capacity was silently ignored",
+   "scenario": "ten a day with no rows-per-day figure: 548 of 2000 rows chosen, the cap said not to bind; with a share too, the looser cap won",
+   "cause": "the daily cap needed rows a day and fell away without them; the share took precedence",
+   "fix": "a daily cap without rows a day is refused; with both, the tighter holds",
+   "test": "tests/test_core_decision_spec.py::DecisionSpecTests::test_values_per_row_and_daily_capacities_are_never_silently_dropped",
+   "severity": "behaviour",
+   "impact": "more actions than the team can take",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "the holdout could act on more rows than the capacity",
+   "scenario": "a capacity of 10%, one action on ten training rows, a holdout of fifteen: two actions where one was allowed",
+   "cause": "the holdout count was a rounded share with at least one",
+   "fix": "the holdout applies the chosen threshold, then the capacity's floor",
+   "test": "tests/test_core_decision_spec.py::DecisionSpecTests::test_the_holdout_never_goes_over_the_capacity",
+   "severity": "latent",
+   "impact": "a holdout number for a decision the team could not take",
+   "alternatives": [],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "interval coverage in simulation (60 seeds, 3000 rows each, 90% nominal)",
+   "gate": "each interval holds what it says about nine times in ten",
+   "fixed_before_run": false,
+   "result": "the expected value's interval held the true value 57 of 60; the prediction interval held the holdout 54 of 60",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "measure on the delivery_fraud replica through the engine in 34.4",
+   "against_gate": "",
+   "limits": [
+    "invented scores",
+    "one value and cost"
+   ]
+  }
+ ],
+ "outcome": "DCLab has one decision core: a person's values, costs and capacity give the operating point with the highest expected value, its tested intervals and the holdout read once; the review budget and the stated-cost threshold are its special cases.",
+ "lessons": [
+  "Test an interval for what it means: a confidence interval for an average is not a promise about one new sample.",
+  "A threshold acts on ties together; a search over counts must too."
+ ],
+ "risks": [
+  "the engine's review path still uses review_budget until 34.4",
+  "the delivery_fraud and delivery_time replicas not yet measured through the engine"
+ ],
+ "commits": []
+}

@@ -961,3 +961,20 @@ def proposals(brief: Any = None, findings: Any = None, plan: Any = None) -> dict
                    Objective=objective(plan, brief), ExperimentPlan=experiment_plan(plan, brief, findings),
                    decision_points=decision_points(plan))
     return out
+
+
+def objective_of(spec: Any) -> dict[str, Any]:
+    """34.1: a :class:`~dclab_core.decide.DecisionSpec` as the main product's ``spec.objective`` fields, and a note for
+    each part it has no field for (the plan's ``threshold.policy`` mapping above): the costs of a false alarm and of a miss
+    have fields; a value per case, a cost per action and a capacity have none, and a person picks the operating point on
+    the host's operating points page."""
+    fields: dict[str, Any] = {}
+    if spec.cost_false_positive:
+        fields["Objective.cost_false_positive"] = float(spec.cost_false_positive)
+    if spec.cost_false_negative:
+        fields["Objective.cost_false_negative"] = float(spec.cost_false_negative)
+    notes = [f"{name} has no field in the main product's objective: say it to the person choosing the operating point"
+             for name, set_ in (("value_per_case", spec.value_per_case), ("cost_per_action", spec.cost_per_action),
+                                ("value_column", spec.value_column), ("capacity_share", spec.capacity_share),
+                                ("capacity_per_day", spec.capacity_per_day)) if set_]
+    return {"fields": fields, "notes": notes}

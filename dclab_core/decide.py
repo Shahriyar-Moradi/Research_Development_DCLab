@@ -25,10 +25,13 @@ Pure: arrays in, plain data out (numpy, pandas and scikit-learn only).
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 import numpy as np
 import pandas as pd
+from pydantic import Field, model_validator
+
+from .contracts import CONTRACTS, Versioned, _version
 
 MIN_PRICES = 5           # distinct prices needed to see a response
 MIN_SPREAD = 0.05        # the coefficient of variation of price (relative to the reference) needed
@@ -119,6 +122,166 @@ def review_budget(y_oof: Sequence[int], score_oof: Sequence[float], *, value_per
         found = int(yt[top].sum())
         out["holdout"] = {"reviews": k, "cases_found": found, "precision": _r(found / k),
                           "expected_value_per_row": _r((value_per_case * found - cost_per_review * k) / len(yt))}
+    return out
+
+
+# ------------------------------------------------------------------------------------------------ one decision core (34.1)
+
+
+class DecisionSpec(Versioned):
+    """What acting on a row is worth and costs (34.1, v1): the one statement every operating point is chosen from.
+
+    Acting on a row that is a case earns ``value_per_case`` (or the row's own value, given beside the scores) and avoids
+    ``cost_false_negative``, the cost of missing it; acting on a row that is not a case costs ``cost_false_positive``;
+    every action costs ``cost_per_action`` (a review, a call, a coupon). ``capacity_share`` or ``capacity_per_day``
+    caps how many rows may be acted on. The review budget (16.9) is value and an action's cost; the stated-cost
+    threshold (17.5) is a false alarm's and a miss's cost: both are special cases, with the same answers."""
+
+    schema_version: Literal["dclab_core.decision_spec.v1"] = _version("decision_spec")
+    action: str = Field(min_length=1, max_length=80)
+    value_per_case: float = Field(default=0.0, ge=0)
+    cost_per_action: float = Field(default=0.0, ge=0)
+    cost_false_positive: float = Field(default=0.0, ge=0)
+    cost_false_negative: float = Field(default=0.0, ge=0)
+    value_column: Optional[str] = Field(default=None, max_length=200)  # a row's own value of a case (an order's amount)
+    capacity_share: Optional[float] = Field(default=None, gt=0, lt=1)
+    capacity_per_day: Optional[float] = Field(default=None, gt=0)
+    notes: str = Field(default="", max_length=1000)
+
+    @model_validator(mode="after")
+    def _worth_deciding(self):
+        if not (self.value_per_case or self.cost_false_negative or self.value_column):
+            raise ValueError("A decision needs what acting on a case is worth: a value per case, a row's value column, or a miss's cost")
+        return self
+
+
+CONTRACTS["decision_spec"] = DecisionSpec
+
+
+def _gain(y: np.ndarray, value: np.ndarray, spec: DecisionSpec) -> np.ndarray:
+    """What acting on each row earns against not acting on it, given whether it is a case."""
+    return np.where(y == 1, value + spec.cost_false_negative, -spec.cost_false_positive) - spec.cost_per_action
+
+
+def _prediction(values: Sequence[float], n_train: int, n_test: int, level: float = 0.9) -> list[Optional[float]]:
+    """Where one new sample of ``n_test`` rows' value per row should fall: the expected value's bootstrap spread widened
+    by the new sample's own noise (normal approximation, variance scaled by 1 + n_train / n_test)."""
+    v = np.asarray([x for x in values if x is not None and np.isfinite(x)], dtype=float)
+    if len(v) < 2 or not n_test:
+        return [None, None]
+    z = {0.9: 1.6449, 0.95: 1.96}.get(level, 1.6449)
+    half = z * float(v.std(ddof=1)) * np.sqrt(1 + n_train / n_test)
+    return [_r(v.mean() - half), _r(v.mean() + half)]
+
+
+def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spec: DecisionSpec, *,
+                           value_per_case: Optional[Sequence[float]] = None, groups: Optional[Sequence[Any]] = None,
+                           rows_per_day: Optional[float] = None, y_test: Optional[Sequence[int]] = None,
+                           score_test: Optional[Sequence[float]] = None, value_test: Optional[Sequence[float]] = None,
+                           bootstrap: int = BOOTSTRAP, seed: int = 0) -> dict[str, Any]:
+    """The number of rows to act on with the highest expected value, chosen on out-of-fold scores under the capacity,
+    with its interval (a bootstrap over rows, or entities when ``groups`` are given), then read once on the holdout.
+
+    Rows are ranked by score; with a value per row (``value_per_case``, from ``spec.value_column``) and scores that are
+    probabilities, by expected gain (score × value, less the costs), so a likely small case can come after a less likely
+    large one. The expected value is against acting on no row."""
+    y, s = np.asarray(y_oof).astype(int), np.asarray(score_oof, dtype=float)
+    n = len(y)
+    per_row = value_per_case is not None
+    if spec.value_column and not per_row:
+        raise ValueError(f"The decision values each case by `{spec.value_column}`: pass that column's values for the rows scored")
+    value = np.asarray(value_per_case, dtype=float) if per_row else np.full(n, spec.value_per_case)
+    if per_row and (len(value) != n or not np.isfinite(value).all()):
+        raise ValueError("A value per row needs one finite value for every row scored")
+    if spec.capacity_per_day and not rows_per_day:
+        raise ValueError("A capacity per day needs how many rows arrive a day (rows_per_day): without it the cap cannot hold")
+    if not n:
+        raise ValueError("No rows were scored: there is no operating point to choose")
+    probabilities = s.min() >= 0 and s.max() <= 1
+    ranked_by = "expected gain" if per_row and probabilities else "score"
+
+    def rank_of(score: np.ndarray, v: np.ndarray) -> np.ndarray:
+        return (score * (v + spec.cost_false_negative) - (1 - score) * spec.cost_false_positive - spec.cost_per_action) if ranked_by == "expected gain" else score
+
+    rank = rank_of(s, value)
+    caps = [c for c in (spec.capacity_share, (spec.capacity_per_day / rows_per_day) if spec.capacity_per_day and rows_per_day else None) if c]
+    cap_share = min(min(caps), 1.0) if caps else None  # the tighter of a share and a daily count
+
+    def curve(rows: np.ndarray) -> tuple[int, np.ndarray]:
+        """The best count to act on and the value at every count; a count may end only where the rank changes, so a
+        threshold (act on every row ranked at least so high) takes rows that tie with it together (the review of 34.1)."""
+        r = rank[rows]
+        order = np.argsort(-r, kind="mergesort")
+        ev = np.r_[0.0, np.cumsum(_gain(y[rows], value[rows], spec)[order])]
+        ranked_r = r[order]
+        valid = np.r_[True, np.r_[ranked_r[:-1] != ranked_r[1:], True]] if len(rows) else np.array([True])
+        limit = len(rows) if cap_share is None else int(np.floor(cap_share * len(rows)))
+        allowed = np.where(valid & (np.arange(len(ev)) <= limit), ev, -np.inf)
+        return int(np.argmax(allowed)), ev
+
+    best, ev = curve(np.arange(n))
+    free = int(np.argmax(np.where(np.r_[True, np.r_[np.sort(rank)[::-1][:-1] != np.sort(rank)[::-1][1:], True]], ev, -np.inf)))
+    threshold = float(np.sort(rank)[::-1][best - 1]) if best else None
+    rng = np.random.default_rng(seed)
+    if groups is not None:  # entities as codes; a row without one is its own unit
+        codes, _ = pd.factorize(pd.Series(np.asarray(groups, dtype=object)))
+        codes = np.where(codes < 0, codes.max(initial=-1) + 1 + np.arange(n), codes)
+        order = np.argsort(codes, kind="stable")
+        keys, starts = np.unique(codes[order], return_index=True)
+        index = dict(zip(keys, np.split(order, starts[1:])))
+    else:
+        keys, index = np.arange(n), None
+    shares, values = [], []
+    for _ in range(bootstrap):
+        draw = rng.choice(keys, size=len(keys), replace=True)
+        rows = np.concatenate([index[k] for k in draw]) if index is not None else draw
+        k, _ = curve(rows)
+        shares.append(k / len(rows))  # the best share again: how stable the choice is
+        acted = rows[rank[rows] >= threshold] if threshold is not None else rows[:0]  # the decision taken: the chosen threshold
+        if cap_share is not None and len(acted) > int(np.floor(cap_share * len(rows))):
+            acted = acted[np.argsort(-rank[acted], kind="mergesort")[: int(np.floor(cap_share * len(rows)))]]
+        values.append(float(_gain(y[acted], value[acted], spec).sum()) / len(rows))
+    ranked = np.sort(rank)[::-1]
+    out: dict[str, Any] = {
+        "decision": "operating_point", "spec": spec.model_dump(), "ranked_by": ranked_by,
+        "share": _r(best / n, 6), "actions_training": best, "threshold": _r(threshold, 6),
+        "threshold_of": "the score" if ranked_by == "score" else "the expected gain of acting on the row",
+        "expected_value_per_row": _r(ev[best] / n if n else None), "expected_value_per_row_interval": _interval(values),
+        "share_interval": _interval(shares), "capacity_share": _r(cap_share, 6), "capacity_binds": cap_share is not None and free > int(np.floor(cap_share * n)),
+        "chosen_on": "out-of-fold training predictions",
+        "interval": (f"90% bootstrap over {'entities' if groups is not None else 'rows'}, {bootstrap} draws, of the expected value per row "
+                     "at the share chosen (the share's own interval: the best share in each draw)"),
+        "curve": [{"share": _r(k / n, 4), "expected_value_per_row": _r(ev[k] / n)} for k in np.unique(np.linspace(0, n, 21).astype(int))] if n else [],
+        "assumption": ("Acting on a row does not change whether it is a case; the values and costs are the person's stated numbers"
+                       + ("; the scores are read as probabilities to rank rows by expected gain" if ranked_by == "expected gain" else "")
+                       + ". Chosen against acting on no row."),
+    }
+    if spec.cost_per_action and (spec.value_per_case or spec.cost_false_negative) and not per_row:
+        out["break_even_precision"] = _r((spec.cost_per_action + spec.cost_false_positive)
+                                         / (spec.value_per_case + spec.cost_false_negative + spec.cost_false_positive))
+    if per_row and ranked_by == "score":
+        out["rank_note"] = "the scores are not probabilities, so rows are ranked by score, not by expected gain: calibrate to weigh the values"
+    if best == 0:
+        out["note"] = ("No action pays: on the training rows' out-of-fold scores, acting on even the most likely rows costs more than it "
+                       "earns at these values and costs.")
+    if rows_per_day:
+        out["actions_per_day"] = _r(best / n * rows_per_day if n else None, 1)
+    if y_test is not None and score_test is not None and best:
+        yt, st = np.asarray(y_test).astype(int), np.asarray(score_test, dtype=float)
+        if per_row and (value_test is None or len(value_test) != len(yt)):
+            raise ValueError("The holdout's rows need their own values per case (value_test), one for each row, to be read")
+        vt = np.asarray(value_test, dtype=float) if per_row else np.full(len(yt), spec.value_per_case)
+        rank_t = rank_of(st, vt)
+        top = np.flatnonzero(rank_t >= threshold)  # the decision as it would run: every row ranked at least as high
+        if cap_share is not None and len(top) > int(np.floor(cap_share * len(yt))):
+            top = top[np.argsort(-rank_t[top], kind="mergesort")[: int(np.floor(cap_share * len(yt)))]]
+        k = len(top)
+        realised = float(_gain(yt[top], vt[top], spec).sum())
+        out["holdout"] = {"actions": k, "cases_found": int(yt[top].sum()), "precision": _r(yt[top].mean()) if k else None,
+                          "expected_value_per_row": _r(realised / len(yt)),
+                          "prediction_interval": _prediction(values, n, len(yt)),
+                          "reads": "the expected value's interval is for the value per row on average; a holdout is one more sample with its "
+                                   "own noise, so its value is read against the prediction interval"}
     return out
 
 

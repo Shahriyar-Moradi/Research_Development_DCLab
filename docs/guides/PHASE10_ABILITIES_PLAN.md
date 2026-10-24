@@ -84,6 +84,13 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
   (`delivery_time`'s `order_value`) changes the chosen rows as brute force says; with capacity the chosen count never
   exceeds it; on `delivery_fraud` the holdout's realised value falls in the interval. Capture: ledger point
   `decision.operating_point` (the rule's answer, the person's choice).
+- **Status:** done (2026-10-24). `DecisionSpec` v1 and `choose_operating_point` (dclab-core 0.105.0); the review budget
+  and the stated-cost threshold are special cases (same answers; ties taken together as a threshold takes them);
+  `assess`'s stated-cost path reads the core; `objective_of` for the main product. Measured: the expected value's 90 %
+  interval held the true value 57 of 60 times, a prediction interval for the holdout 54 of 60 (a confidence interval
+  holds a holdout's value only about three times in four, so "the holdout falls in the interval" was the wrong check).
+  Open: the engine's review path moves to the core in 34.4, with the replicas measured through the engine there; the
+  ledger keeps the existing point `threshold.operating_point`; a cost matrix waits for 34.2's multiclass choice.
 
 ### 34.2 Targeting and several actions
 - **Delivers:** `target_by_uplift(uplift_oof, spec)` (whom to treat under a budget, by expected incremental value) and

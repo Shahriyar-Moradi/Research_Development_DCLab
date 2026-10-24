@@ -1,0 +1,82 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "maxLength": 80,
+      "minLength": 1,
+      "type": "string"
+    },
+    "capacity_per_day": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "capacity_share": {
+      "anyOf": [
+        {
+          "exclusiveMaximum": 1,
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "cost_false_negative": {
+      "default": 0.0,
+      "minimum": 0,
+      "type": "number"
+    },
+    "cost_false_positive": {
+      "default": 0.0,
+      "minimum": 0,
+      "type": "number"
+    },
+    "cost_per_action": {
+      "default": 0.0,
+      "minimum": 0,
+      "type": "number"
+    },
+    "notes": {
+      "default": "",
+      "maxLength": 1000,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.decision_spec.v1",
+      "default": "dclab_core.decision_spec.v1",
+      "type": "string"
+    },
+    "value_column": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "value_per_case": {
+      "default": 0.0,
+      "minimum": 0,
+      "type": "number"
+    }
+  },
+  "required": [
+    "schema_version",
+    "action"
+  ],
+  "type": "object"
+}

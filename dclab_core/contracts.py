@@ -444,3 +444,4 @@ import dclab_core.second_opinion  # noqa: E402,F401  (the second opinion on the 
 import dclab_core.debate  # noqa: E402,F401  (two solution designers and a judge, 28.6)
 import dclab_core.challenge_pack  # noqa: E402,F401  (challenge packs, their keys and grades: the harness that learns, H0)
 import dclab_core.playbook  # noqa: E402,F401  (the playbook and its deltas: the harness that learns, H2)
+import dclab_core.decide  # noqa: E402,F401  (the decision spec: one decision core, 34.1)
