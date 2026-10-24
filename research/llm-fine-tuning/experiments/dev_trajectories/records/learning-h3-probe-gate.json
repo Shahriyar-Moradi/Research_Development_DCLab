@@ -112,9 +112,39 @@
     "find what each homework leaves in memory"
    ],
    "open": "what each homework leaves in memory is not yet found"
+  },
+  {
+   "id": "F7",
+   "source": "self",
+   "defect": "a probe on the hosted model moved a lesson's counters, which describe the local solver",
+   "scenario": "Claude probed the plain lesson on three variants: shown went from 3 to 6 and helpful from 2 to 3, mixing two solvers in one count",
+   "cause": "the probe counted every pair whatever model made it",
+   "fix": "a hosted probe measures only: its verdict says so and no counter or status moves",
+   "test": "tests/test_learning_h3_probe.py::ProbeTests::test_a_hosted_probe_measures_only_and_moves_no_counter",
+   "severity": "behaviour",
+   "impact": "a lesson's counters overstated for the local model; append-only, so the three pairs stay in the log with a note",
+   "alternatives": [
+    "counters per model"
+   ],
+   "open": "B-7323aa8e6d's counters hold three Claude pairs (one helpful); the local solver's own are shown 3, helpful 2"
   }
  ],
- "measurements": [],
+ "measurements": [
+  {
+   "name": "Claude Sonnet as the intern on the five pilot homeworks and the plain lesson's three",
+   "gate": "pilot_gate_v1 (four of five finished); probe_gate_v1",
+   "fixed_before_run": true,
+   "result": "five of five finished, four passed (the local 4B passed one); with the plain lesson 1.0 on all three, a mean gain of +0.048 (two were perfect without it); EUR 0.45",
+   "verdict": "pass",
+   "cost_eur": 0.45,
+   "next": "fix the rule that calls a repeating entity a leak; add the homework keys to the decision data",
+   "against_gate": "",
+   "limits": [
+    "five variants of one family",
+    "one repeat"
+   ]
+  }
+ ],
  "outcome": "A lesson can now be measured on the local solver in fair pairs: shown only in the first user message, graded by code, counted once, promoted only by a gate fixed before the run; a broken homework is done again and never counts.",
  "lessons": [
   "Put every condition that makes two runs comparable in the row that finds them again.",

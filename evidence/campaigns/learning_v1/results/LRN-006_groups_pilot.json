@@ -1,0 +1,327 @@
+{
+ "campaign_id": "learning_v1",
+ "kind": "learning_pilot",
+ "status": "completed",
+ "family": "groups",
+ "split": "learning",
+ "model": "claude-sonnet-5-5",
+ "budget": {
+  "max_steps": 24,
+  "max_minutes": 45.0,
+  "max_eur": 0.5
+ },
+ "gate": {
+  "version": "pilot_gate_v1",
+  "fixed": "2026-10-23, before the first pilot",
+  "pass": "the final stage completed on at least four of five homeworks (a share of at least 0.8 for another count)",
+  "measures": "whether the model can do the work at all; not whether a lesson helps (that is the probe's)",
+  "invalid": "a homework that broke (DCLab's code raised, or the server never answered) makes the run invalid, never a model's fail"
+ },
+ "fingerprints": {
+  "generator": "6984c3f1e34290b8",
+  "grader": "4cd43e4a025b1079"
+ },
+ "rows": [
+  {
+   "pack": "pk-de7028c55b2f",
+   "seed": 3,
+   "family": "groups",
+   "model": "claude-sonnet-5-5",
+   "broke": false,
+   "finished": true,
+   "verdict": "pass",
+   "codes": [],
+   "decision_score": 1.0,
+   "seconds": 169.9,
+   "kept": "learning_attempts/2026-10-24/081856-pk-de7028c55b2f-pilot",
+   "knobs": {
+    "skin": "ticket",
+    "task": "binary",
+    "key_name": "plain",
+    "leak_name": "plain",
+    "duplicates": 0.0,
+    "decoy": true,
+    "timed": false,
+    "entities": 243,
+    "rows": 1478,
+    "generator": "variants_v1"
+   },
+   "session": {
+    "status": "completed",
+    "ended": null,
+    "steps": 8,
+    "eur": 0.065215,
+    "tool_errors": 0,
+    "tools": [
+     "write_plan",
+     "describe_data",
+     "propose_solution",
+     "review_leakage",
+     "set_solution",
+     "run_all",
+     "get_results",
+     "finish"
+    ],
+    "thoughts": {
+     "recorded": 0,
+     "visible": 0,
+     "from_record": 0
+    },
+    "error": null,
+    "playbook": {
+     "sha256": null,
+     "shown": null,
+     "used": null
+    }
+   },
+   "resumed": true
+  },
+  {
+   "pack": "pk-5ba22f56bdfc",
+   "seed": 5,
+   "family": "groups",
+   "model": "claude-sonnet-5-5",
+   "broke": false,
+   "finished": true,
+   "verdict": "fail",
+   "codes": [
+    "FALSE_ALARM:known_before"
+   ],
+   "decision_score": 0.8571,
+   "seconds": 82.5,
+   "kept": "learning_attempts/2026-10-24/082149-pk-5ba22f56bdfc-pilot",
+   "knobs": {
+    "skin": "loan",
+    "task": "regression",
+    "key_name": "plain",
+    "leak_name": "worded",
+    "duplicates": 0.05,
+    "decoy": true,
+    "timed": true,
+    "entities": 235,
+    "rows": 1472,
+    "generator": "variants_v1"
+   },
+   "session": {
+    "status": "completed",
+    "ended": null,
+    "steps": 9,
+    "eur": 0.055905,
+    "tool_errors": 0,
+    "tools": [
+     "write_plan",
+     "describe_data",
+     "propose_solution",
+     "review_leakage",
+     "set_solution",
+     "run_all",
+     "get_results",
+     "get_results",
+     "finish"
+    ],
+    "thoughts": {
+     "recorded": 0,
+     "visible": 0,
+     "from_record": 0
+    },
+    "error": null,
+    "playbook": {
+     "sha256": null,
+     "shown": null,
+     "used": null
+    }
+   },
+   "resumed": true
+  },
+  {
+   "pack": "pk-781037f23bce",
+   "seed": 7,
+   "family": "groups",
+   "model": "claude-sonnet-5-5",
+   "broke": false,
+   "finished": true,
+   "verdict": "pass",
+   "codes": [],
+   "decision_score": 1.0,
+   "seconds": 87.8,
+   "kept": "learning_attempts/2026-10-24/082315-pk-781037f23bce-pilot",
+   "knobs": {
+    "skin": "ticket",
+    "task": "regression",
+    "key_name": "plain",
+    "leak_name": "worded",
+    "duplicates": 0.02,
+    "decoy": true,
+    "timed": false,
+    "entities": 286,
+    "rows": 1798,
+    "generator": "variants_v1"
+   },
+   "session": {
+    "status": "completed",
+    "ended": null,
+    "steps": 10,
+    "eur": 0.054461,
+    "tool_errors": 0,
+    "tools": [
+     "write_plan",
+     "describe_data",
+     "propose_solution",
+     "review_leakage",
+     "decide",
+     "get_record",
+     "set_solution",
+     "run_all",
+     "get_results",
+     "finish"
+    ],
+    "thoughts": {
+     "recorded": 0,
+     "visible": 0,
+     "from_record": 0
+    },
+    "error": null,
+    "playbook": {
+     "sha256": null,
+     "shown": null,
+     "used": null
+    }
+   },
+   "resumed": true
+  },
+  {
+   "pack": "pk-9566a5831b54",
+   "seed": 8,
+   "family": "groups",
+   "model": "claude-sonnet-5-5",
+   "broke": false,
+   "finished": true,
+   "verdict": "pass",
+   "codes": [],
+   "decision_score": 1.0,
+   "seconds": 98.9,
+   "kept": "learning_attempts/2026-10-24/082447-pk-9566a5831b54-pilot",
+   "knobs": {
+    "skin": "loan",
+    "task": "regression",
+    "key_name": "id",
+    "leak_name": "plain",
+    "duplicates": 0.0,
+    "decoy": false,
+    "timed": true,
+    "entities": 236,
+    "rows": 1404,
+    "generator": "variants_v1"
+   },
+   "session": {
+    "status": "completed",
+    "ended": null,
+    "steps": 15,
+    "eur": 0.058049,
+    "tool_errors": 0,
+    "tools": [
+     "write_plan",
+     "describe_data",
+     "propose_solution",
+     "review_leakage",
+     "set_solution",
+     "run_stage",
+     "approve_stage",
+     "run_stage",
+     "approve_stage",
+     "run_stage",
+     "approve_stage",
+     "run_stage",
+     "approve_stage",
+     "run_stage",
+     "finish"
+    ],
+    "thoughts": {
+     "recorded": 0,
+     "visible": 0,
+     "from_record": 0
+    },
+    "error": null,
+    "playbook": {
+     "sha256": null,
+     "shown": null,
+     "used": null
+    }
+   },
+   "resumed": true
+  },
+  {
+   "pack": "pk-8903079a2519",
+   "seed": 11,
+   "family": "groups",
+   "model": "claude-sonnet-5-5",
+   "broke": false,
+   "finished": true,
+   "verdict": "pass",
+   "codes": [],
+   "decision_score": 1.0,
+   "seconds": 80.1,
+   "kept": "learning_attempts/2026-10-24/082629-pk-8903079a2519-pilot",
+   "knobs": {
+    "skin": "order",
+    "task": "binary",
+    "key_name": "plain",
+    "leak_name": "worded",
+    "duplicates": 0.0,
+    "decoy": true,
+    "timed": false,
+    "entities": 232,
+    "rows": 1381,
+    "generator": "variants_v1"
+   },
+   "session": {
+    "status": "completed",
+    "ended": null,
+    "steps": 8,
+    "eur": 0.046361,
+    "tool_errors": 0,
+    "tools": [
+     "write_plan",
+     "describe_data",
+     "propose_solution",
+     "review_leakage",
+     "set_solution",
+     "run_all",
+     "get_results",
+     "finish"
+    ],
+    "thoughts": {
+     "recorded": 0,
+     "visible": 0,
+     "from_record": 0
+    },
+    "error": null,
+    "playbook": {
+     "sha256": null,
+     "shown": null,
+     "used": null
+    }
+   }
+  }
+ ],
+ "summary": {
+  "homeworks": 5,
+  "finished": 5,
+  "passed": 4,
+  "mean_seconds": 103.8,
+  "codes": {
+   "FALSE_ALARM:known_before": 1
+  },
+  "tool_errors": 0,
+  "recorded_thoughts": 0,
+  "broke": 0,
+  "spent_eur": 0.279991
+ },
+ "verdict": "ok: the model finished 5 of 5 homeworks",
+ "spent_eur": 0.279991,
+ "at": "2026-10-24T08:27:49+00:00",
+ "rule": "the first learning variants, no lesson shown, the intern on a local model, graded by code, every attempt kept whole",
+ "context_window": null,
+ "id": "LRN-006",
+ "experiment_id": "LRN-006"
+}

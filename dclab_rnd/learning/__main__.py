@@ -225,7 +225,7 @@ def _probe(args) -> int:
         result = run_probe(home, client, args.model, args.bullet, args.family, args.n, args.repeats, lineage=args.lineage,
                            budget={**({"max_minutes": args.max_minutes} if args.max_minutes else {}), **({"max_eur": args.cap_eur_each} if args.hosted else {})} or None,
                            reuse_pilot=not args.no_reuse_pilot, log=lambda *a: print(*a, flush=True), limit=args.limit,
-                           cap_eur=args.cap_eur if args.hosted else None)
+                           cap_eur=args.cap_eur if args.hosted else None, count=not args.hosted)
         result["context_window"] = window
     except ValueError as exc:
         print(str(exc), file=sys.stderr)

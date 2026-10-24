@@ -151,3 +151,19 @@ false alarm gone): mean +0.095 against +0.048 for the first wording, no pass los
 seed 3 the model planned to follow the lesson, tried to save an empty group twice (refused), then blocked the right
 group `account` as a leak, the reason the rules' proposal gives ("single column separates the classes, AUC 0.842"):
 the rules' evidence outweighs the lesson's words for a 4B model.
+
+## 2026-10-24 afternoon: Claude on the same homeworks (LRN-006, LRN-007), EUR 0.45
+
+| | Local Qwen3.5-4B | Claude Sonnet 5.5 |
+|---|---|---|
+| Pilot, five homeworks | 5 finished, **1 passed** | 5 finished, **4 passed** |
+| Time a homework | about 28 minutes | about 1.5 to 3 minutes |
+| Cost | EUR 0 (the laptop) | EUR 0.28 |
+| Plain lesson, three pairs | mean gain +0.095 | mean gain +0.048 (two already perfect) |
+
+Claude saw the same misleading proposal ("account separates the classes, AUC 0.842") and still set the right group,
+kept only the real leak and left the decoy (four of five); its one failure was the decoy (seed 5), passed with the lesson.
+Reading: the evidence misleads, a strong model reasons past it, a 4B model follows it. Model strength matters; fixing
+the rule helps the small model most. Found and fixed: the Claude probe had moved the lesson's counters (they describe
+the local solver); B-7323aa8e6d's shown 6 / helpful 3 include Claude's 3 pairs (1 helpful); the local solver's own are
+shown 3, helpful 2. A hosted probe now measures only.

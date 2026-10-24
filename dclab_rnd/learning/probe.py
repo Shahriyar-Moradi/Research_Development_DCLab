@@ -140,9 +140,10 @@ def _attempt(home: Path, tmp: Path, client: Any, model: str, family: str, seed: 
 
 def run_probe(home: Path, client: Any, model: str, bullet: str, family: str = "groups", n: int = 3, repeats: int = 1,
               seeds: list[int] | None = None, lineage: str = "main", budget: dict[str, Any] | None = None, reuse_pilot: bool = True,
-              log=print, limit: int | None = None, cap_eur: float | None = None) -> dict[str, Any]:
+              log=print, limit: int | None = None, cap_eur: float | None = None, count: bool = True) -> dict[str, Any]:
     """``limit``: at most this many new homeworks in this process, then it pauses (a fresh process a homework gives its
-    memory back; the pilot's measurement of 2026-10-24)."""
+    memory back; the pilot's measurement of 2026-10-24). ``count=False`` measures only: a hosted model's pairs never move
+    a lesson's counters or status, which describe the local solver (found 2026-10-24: a Claude probe had moved them)."""
     if client is None:  # with no model the intern runs the standard plan: that would measure the rules, not the lesson
         raise ValueError("a probe needs a model client")
     seeds = list(seeds) if seeds is not None else V.seeds(family, "learning", n)
@@ -193,11 +194,11 @@ def run_probe(home: Path, client: Any, model: str, bullet: str, family: str = "g
         log("paused: run the same command again to go on")
         return {"campaign_id": "learning_v1", "kind": "learning_probe", "status": "paused", "family": family, "bullet": bullet, "model": model,
                 "rows": rows, "verdict": f"paused after {len(pairs)} pairs: run the same command again to go on"}
-    return judge(home, books, family, lineage, lesson, model, pairs, rows, budget, log)
+    return judge(home, books, family, lineage, lesson, model, pairs, rows, budget, log, count=count)
 
 
 def judge(home: Path, books: FilePlaybooks, family: str, lineage: str, lesson: Any, model: str, pairs: list[dict[str, Any]],
-          rows: list[dict[str, Any]], budget: dict[str, Any], log=print) -> dict[str, Any]:
+          rows: list[dict[str, Any]], budget: dict[str, Any], log=print, count: bool = True) -> dict[str, Any]:
     from .scoreboard import fingerprints
 
     broken = [r for r in rows if r.get("broke")]
@@ -216,6 +217,9 @@ def judge(home: Path, books: FilePlaybooks, family: str, lineage: str, lesson: A
     enough = len(scored) >= MIN_PAIRS and bool(repeats_of) and min(repeats_of.values()) >= MIN_REPEATS
     if broken:
         verdict, counted = f"invalid: {len(broken)} homeworks broke before the model answered; nothing counted", None
+    elif not count:
+        verdict, counted = (f"measured only ({model}, not the local solver): mean gain {mean} over {len(scored)} pairs, passes lost {lost}; "
+                            "the lesson's counters and status are the local solver's and were not moved"), None
     else:
         counted = _count_once(home, books, family, lineage, lesson.id, pairs, gains)
         promote = enough and mean is not None and mean > 0 and lost == 0

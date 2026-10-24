@@ -201,6 +201,15 @@ class ProbeTests(unittest.TestCase):
             self.assertTrue(fixed["verdict"].startswith("too few pairs"), fixed["verdict"])
             self.assertEqual(book(home, bullet).shown, 1)
 
+    def test_a_hosted_probe_measures_only_and_moves_no_counter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            bullet = lesson(home)
+            result = self.run_probe(home, bullet, n=1, count=False)
+            self.assertTrue(result["verdict"].startswith("measured only"), result["verdict"])
+            b = book(home, bullet)
+            self.assertEqual((b.shown, b.helpful, b.harmful, b.status), (0, 0, 0, "draft"))
+
     def test_too_few_pairs_move_the_counters_and_keep_the_status(self):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
