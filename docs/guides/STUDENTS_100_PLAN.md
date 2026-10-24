@@ -126,6 +126,34 @@ Grouped by truth source, the work for each group:
 - **People and operations (E), about 8 points:** `ops.*`, `report.claim`, `evidence.records`, `problem.pack`,
   `data.fit_verdict`: gathered from people and testers; trained last.
 
+**Measured before building (2026-10-25): most of the 16 "plantable" points do not need a new student.** A student is
+worth adding only where it has a rule to beat and evidence the rule does not already use. On 120 planted tables
+(each also with its names hidden):
+
+| Point | Today's rule on planted tables | Verdict |
+|---|---|---|
+| `modifier.groups` | right 61% (50% with names hidden) | weak rule, but the split student already holds the skill (77% against the rule's 50% on dev): map its answer onto this point, no new student |
+| `modifier.time_order` | right 72% (a birth date read as the row's time) | the same: the split student's answer |
+| `data.cleaning_keep` | right 55% | the cleaning-step student holds it (92% against 73%): map its answer |
+| `data.structure_format`, `labels.join_key`, `modifier.noisy_labels`, `modifier.review_capacity` | not measured: new generators needed | their states are what the rule reads; measure the rule on planted files first, a student only where it errs |
+| `column.missing_value_action`, `labels.situation` | — | no student: DCLab does not make this choice today (`ledger.NOT_DECIDED`) |
+| `target.column` | — | no student: no rule by design (DCLab never guesses the outcome; a key once became one) |
+| `split.folds`, `data.sampling`, `metric.primary` | — | settings or a kind's default: nothing to learn |
+| `holdout.reuse` | — | a rule of method: never a student's to decide |
+| `modifier.rare_positives` | — | the rule is the definition (under 5%): a student could only copy it |
+| `data.synthetic_shape` | — | its truth is the people's (whether the draft goes on) |
+
+The measured group is closer than the plan thought: the 1,114 self-play runs (`lake/bronze/selfplay`) already hold
+measured labels for `tuning.accept` (149, from a fresh draw: a real outcome, not the rule's own answer), `model.family`
+(258) and `features.recipe` (103; both "clearly best on validation", close to the rule's own choice). All are under the
+bar. `tuning.accept` is the one worth growing: about 13% of its decisions get a label, so about 2,000 more self-play runs
+(about 1 GB) would bring it to 300 training and 100 dev labels.
+
+The planted traps also show the cleaner changing real data in the product: every country code `NA` (Namibia) becomes
+missing, and versions `1.10` become the number 1.1. Both were planted on purpose in 29.2, and a student only whispers,
+so the product keeps changing the data. "NA" is truly ambiguous (R writes missing values as `NA`), so the owner decides
+whether the cleaner keeps it as written in a column of two-letter codes and says so.
+
 ### S4. Find the 34 new points (to reach 100)
 - **First an inventory, not invention:** read where DCLab makes a choice today that no point records (the engine's
   encoders and imputers, class weights, calibration, feature selection, text vectorising, date parts, imbalance handling,
