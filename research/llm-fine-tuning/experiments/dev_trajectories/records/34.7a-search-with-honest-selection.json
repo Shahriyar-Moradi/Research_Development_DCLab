@@ -31,6 +31,10 @@
     {
       "decision": "Measure both arms fresh in a new campaign (search_v2) and abort search_v1",
       "why": "search_v1 compared the search with the bake-off's predictions from an older engine and had gates that could not tell a gain; a changed protocol is a new campaign, never an edit"
+    },
+    {
+      "decision": "Do not build stacking and CatBoost (34.7b) now; revisit on the M1 Max with bigger tables",
+      "why": "the owner's call after search_v2: a stack needs the same selection fold and pays the same price, and neither the bake-off nor the search found room above the engine's defaults on these tables"
     }
   ],
   "change": "dclab_rnd/studio/search.py (new); dclab_rnd/studio/engine.py (Prepared.search and search_cut, the fold set aside in prepare, the models stage's search block, the models decision's searched flag, the final stage's searched branch); dclab_rnd/studio/lineage.py (search among the run settings); dclab_rnd/ledger/capture.py (model.family's rule when the search chose); dclab_rnd/search_measure.py (new); tests/test_search_engine.py, tests/test_search_measure.py. requirements/product.txt (Optuna).",
@@ -293,7 +297,7 @@
         "confirm the all-row choice instead (reads the selection rows before the end: the leak R2 removed)",
         "a nested protocol (several times the minutes)"
       ],
-      "open": "whether a search is worth its fold on tables of this size; stacking (34.7b) waits on the owner"
+      "open": "whether a search is worth its fold on bigger tables (the M1 Max)"
     }
   ],
   "measurements": [

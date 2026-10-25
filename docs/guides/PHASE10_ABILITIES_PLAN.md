@@ -180,7 +180,10 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
   fold without a fraud case once the fold was set aside: fixed, the search now skips there). Part of the loss is the
   set-aside's own price: the screen chooses on a fifth fewer rows. So the search stays an opt-in, not recommended.
   `search_v3` (the fix, a crash counted as clearly worse) is ready to confirm; by arithmetic it cannot pass unless the
-  eight numbers change. **34.7b** (stacking, CatBoost): not built; the owner decides after this result.
+  eight numbers change.
+- **Status (34.7b, stacking and CatBoost): not built** (the owner, 2026-10-25, after `search_v2`). A stack needs the same
+  selection fold, so it pays the same price, and the bake-off and the search both found little room above the engine's
+  defaults on these tables. Revisit on the M1 Max with bigger tables, where a fold set aside costs less.
 
 ### 34.8 An AutoML family behind DCLab's splits
 - **Delivers:** FLAML (then AutoGluon on the M1 Max) as one more family in the models stage, fitted inside the same
