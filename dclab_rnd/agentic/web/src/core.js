@@ -1358,7 +1358,56 @@
     });
   }
 
-  window.DC = { ui, states, projectSwitch, loading, showSignIn, explanation, synthetic, loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
+  /* 34.4: the decision on top of the model in plain fields, shared by the wizard's step 3 and the Solution page's editor.
+     html(prefix, d, opts): the box and its fields (ids <prefix>-dc-*), filled from d (a saved act decision, or the amounts
+     heard in the chat); opts.on ticks the box, opts.values lists the numeric columns a value may come from. read(root,
+     prefix): the act decision the fields state, null when the box is not ticked, false when a number cannot be read (said
+     in a toast). wire(root, prefix): the box shows and hides its fields. */
+  const decisionForm = {
+    html(prefix, d, opts = {}) {
+      const v = k => d && d[k] != null && d[k] !== 0 ? esc(String(d[k])) : '';
+      const share = d && d.capacity_share ? esc(String(+(d.capacity_share * 100).toPrecision(12))) : '';  // exact: a resave never moves it
+      const field = (id, label, inner, hint) => `<div class="field"><label for="${id}">${label}</label>${inner}${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
+      const number = (id, key, label, hint, extra = '') => field(id, label, `<input type="number" step="any" min="0" ${extra} id="${id}" value="${key === 'share' ? share : v(key)}">`, hint);
+      const p = prefix + '-dc-';
+      return `<label class="check"><input type="checkbox" id="${p}on" ${opts.on ? 'checked' : ''}><span>Decide which rows to act on, by what acting is worth <span class="small muted">optional: the final stage chooses on how many rows to act, with its interval</span></span></label>
+        <div class="stack tight" id="${p}fields" ${opts.on ? '' : 'hidden'}>
+          ${field(p + 'what', 'What you do to a row', `<input type="text" maxlength="80" id="${p}what" placeholder="call the customer" value="${esc((d && d.what) || '')}">`)}
+          <div class="grid g2">
+            ${number(p + 'value', 'value_per_case', 'A case found is worth', 'what acting on a real case brings')}
+            ${field(p + 'value-col', 'or a value per row', `<select id="${p}value-col" data-style="width:100%"><option value="">none</option>${(opts.values || []).map(o => `<option ${d && o === d.value_column ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`, 'a column known at the prediction moment')}
+            ${number(p + 'cost', 'cost_per_action', 'Each action costs', 'paid on every row acted on')}
+            ${number(p + 'miss', 'cost_false_negative', 'A missed case costs', 'a case not acted on')}
+            ${number(p + 'fp', 'cost_false_positive', 'A wasted action costs extra', 'beyond the action, when the row was no case')}
+            ${number(p + 'share', 'share', 'Act on at most (% of rows)', 'the team\'s capacity, if there is one', 'max="99.9"')}
+            ${number(p + 'day', 'capacity_per_day', 'or at most a day', 'needs the time column')}
+          </div>
+        </div>`;
+    },
+    read(root, prefix) {
+      const p = '#' + prefix + '-dc-', on = $(p + 'on', root);
+      if (!on || !on.checked) return null;
+      const read = id => { const raw = (($(p + id, root) || {}).value || '').trim(); if (raw === '') return null; const n = Number(raw); return Number.isFinite(n) && n >= 0 ? n : NaN; };
+      const nums = { value_per_case: read('value'), cost_per_action: read('cost'), cost_false_negative: read('miss'),
+                     cost_false_positive: read('fp'), capacity_share: read('share'), capacity_per_day: read('day') };
+      if (Object.values(nums).some(n => Number.isNaN(n))) { toast('Each amount in the decision is a number of zero or more.', { ok: false }); return false; }
+      const what = (($(p + 'what', root) || {}).value || '').trim();
+      if (!what) { toast('Say what you do to a row, for example: call the customer.', { ok: false }); ($(p + 'what', root) || {}).focus?.(); return false; }
+      const d = { action: 'act', what };
+      if (nums.value_per_case) d.value_per_case = nums.value_per_case;
+      ['cost_per_action', 'cost_false_negative', 'cost_false_positive'].forEach(k => { if (nums[k] != null) d[k] = nums[k]; });
+      if (nums.capacity_share) d.capacity_share = nums.capacity_share / 100;
+      if (nums.capacity_per_day) d.capacity_per_day = nums.capacity_per_day;
+      const column = ($(p + 'value-col', root) || {}).value;
+      if (column) d.value_column = column;
+      return d;
+    },
+    wire(root, prefix) {
+      root.addEventListener('change', e => { if (e.target.id === prefix + '-dc-on') { const f = $('#' + prefix + '-dc-fields', root); if (f) f.hidden = !e.target.checked; } });
+    },
+  };
+
+  window.DC = { ui, decisionForm, states, projectSwitch, loading, showSignIn, explanation, synthetic, loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
   const start = () => config().catch(() => null).then(boot);  // the server says first whether someone must sign in
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else setTimeout(start, 0);
 })();

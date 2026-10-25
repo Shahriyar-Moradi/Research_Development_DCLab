@@ -405,12 +405,27 @@ DC.view('project', {
       catch (err) { toast(err.message, { ok: false }); }
       finally { e.target.disabled = false; loadTwin(); }
     });
-    async function openReal(key, keepStep) {
-      const p = await DC.client.getProject(key.slice(2));
+    /* Busy while a stage runs or waits its turn: between two stages of one job the project briefly names none running,
+       but the next ones are still "queued" (a page that stopped there showed 1 of 5 stages done after all had finished). */
+    const busy = p => Boolean(p.running) || Object.values(p.stages || {}).some(st => st && (st.status === 'queued' || st.status === 'running'));
+    function follow(key, wait, failures) {
+      clearTimeout(poller);
+      poller = setTimeout(() => { if (proj === key && DC.state.view === 'project') openReal(key, true, failures); }, wait);
+    }
+    async function openReal(key, keepStep, failures) {
+      let p;
+      try { p = await DC.client.getProject(key.slice(2)); }
+      catch (e) {
+        if (failures == null) throw e;  // the page's own load: its error is shown as before
+        if (failures < 5) { follow(key, 3000, failures + 1); return; }  // a poll that failed: try again a few times, never stop silently
+        DC.toast('The page lost touch with the run (' + e.message + '): reload to see where it is.', { ok: false });
+        return;
+      }
+      if (failures != null && (proj !== key || DC.state.view !== 'project')) return;  // a late poll's answer for a project the person left
       REAL[key] = p; P[key] = fromApi(p);
       setProject(key, keepStep);
       clearTimeout(poller);
-      if (p.running) poller = setTimeout(() => { if (proj === key && DC.state.view === 'project') openReal(key, true); }, 1500);
+      if (busy(p)) follow(key, 1500, 0);
     }
     async function switcher() {
       let list = [];

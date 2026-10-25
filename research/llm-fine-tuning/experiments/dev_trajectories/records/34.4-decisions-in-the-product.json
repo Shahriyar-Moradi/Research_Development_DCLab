@@ -263,6 +263,103 @@
    "impact": "a red test on main for an hour",
    "alternatives": [],
    "open": ""
+  },
+  {
+   "id": "F18",
+   "source": "test",
+   "defect": "the Workflow page stopped following a run on a busy machine",
+   "scenario": "the browser flow at a load of 18 on 8 cores: the page showed 1 of 5 stages done while the run had finished",
+   "cause": "the page polled only while the project named a stage running; between two stages of one job the engine names none for a moment while the next stages wait queued, and a poll that failed also ended the polling",
+   "fix": "the page polls while a stage runs or waits queued, and a failed poll is tried again up to five times before it says so",
+   "test": "scripts/browser_e2e.py (poll: an intercepted gap answer, a failed poll, then the real project)",
+   "severity": "behaviour",
+   "impact": "a person told their run was not done when it was",
+   "alternatives": [
+    "poll on a fixed timer whatever the state (needless requests on every open page)"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F19",
+   "source": "owner",
+   "defect": "the end-to-end and browser tests' runs never reached the store",
+   "scenario": "the owner: make sure all data capturing is running for the six models; each test server ran in a temporary workspace deleted at the end",
+   "cause": "the test scripts cleaned their workspace whole",
+   "fix": "before the cleanup the workspace is copied under agent_runs/e2e/<day>/ (about 7 MB a run), where the store finds it as a workspace with consent to train; DCLAB_E2E_KEEP=0 skips it",
+   "test": "tests/test_e2e_keep.py; the store's discovery finds the kept workspace",
+   "severity": "gap",
+   "impact": "every scripted product session lost to the six models' sets",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F20",
+   "source": "owner",
+   "defect": "the Solution page could change the decision only as JSON",
+   "scenario": "a project's solution editor carried the saved decision without showing it",
+   "cause": "the wizard's fields lived in the wizard only",
+   "fix": "one shared helper (DC.decisionForm) draws and reads the fields for the wizard and the Solution page's editor; unticking removes the decision on purpose",
+   "test": "scripts/browser_e2e.py (soledit: the editor shows the decision; a changed cost and an untick reach the server)",
+   "severity": "gap",
+   "impact": "a stated decision hard to change after the build",
+   "alternatives": [
+    "a second copy of the fields (two copies to keep in step)"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F21",
+   "source": "reviewer",
+   "defect": "the test runs' scripted clicks would have entered the training lake as people's answers",
+   "scenario": "one kept product-e2e run held 91 scripted person answers; the whole lake held 28 real people's answers",
+   "cause": "the lake files every by:person answer of every ledger under agent_runs as the people answerer",
+   "fix": "the kept test workspaces sit under a scripted.json marker; the lake never files a person answer from below it (the rules' answers there are kept); the store's owner told to honour the same marker",
+   "test": "tests/test_lake_harvest.py (a script's clicks never filed as people's); tests/test_e2e_keep.py",
+   "severity": "privacy",
+   "impact": "test clicks taken for human labels in the students' training",
+   "alternatives": [
+    "skip the e2e folder in the lake (loses the rules' answers there)"
+   ],
+   "open": "the store's shapers to honour the marker (the other session's area)"
+  },
+  {
+   "id": "F22",
+   "source": "reviewer",
+   "defect": "a saved capacity share moved when the Solution page's editor saved again",
+   "scenario": "a share of 0.25% shown as 0.3 and saved as 0.3%; 0.04% shown as 0 and dropped",
+   "cause": "the field showed the share rounded to a tenth of a percent",
+   "fix": "the share shown exactly",
+   "test": "scripts/browser_e2e.py (soledit)",
+   "severity": "behaviour",
+   "impact": "a team's capacity changed by an unrelated edit, and the stages cleared",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F23",
+   "source": "reviewer",
+   "defect": "the copy could fail the tests and leak the temporary workspace, and was lost under make check-commit",
+   "scenario": "a full disk: the copy raised inside the cleanup, so the workspace stayed and the run read as failed; the gate in a worktree copied into the worktree it then removed",
+   "cause": "no guard on the copy, and the folder taken from the script's own checkout",
+   "fix": "the copy goes to the main checkout's agent_runs (git's common folder), skips under 2 GB free, and only warns when it fails",
+   "test": "tests/test_e2e_keep.py (a failed copy warns)",
+   "severity": "behaviour",
+   "impact": "a passing gate read as failed, and lost captures",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F24",
+   "source": "reviewer",
+   "defect": "the editor could drop a decision, its notes, or switch back to a project the person left",
+   "scenario": "an unreadable amount then Audit redrew the decision unticked and a save removed it; any save dropped the notes the chat heard; a late poll's answer for project A switched the page back after the person chose B",
+   "cause": "the audit ignored the unreadable flag; the form builds a fresh decision; the poll's check ran before the request, not after",
+   "fix": "the audit stops on an unreadable amount; the notes are kept; a poll's answer for a project the person left is dropped",
+   "test": "scripts/browser_e2e.py (soledit, poll)",
+   "severity": "behaviour",
+   "impact": "a stated decision lost, or the wrong project shown",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [

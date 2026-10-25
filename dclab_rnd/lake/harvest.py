@@ -35,6 +35,17 @@ from . import LAKE, ROOT
 
 WORKSPACES = ROOT / "agent_runs"
 BY = {"rule": ("dclab-rules", "train"), "classifier": ("dclab-classifiers", "train"), "person": ("people", "train")}
+SCRIPTED = "scripted.json"  # a workspace a test script drove (the end-to-end and browser tests): its "person" answers are clicks, never a person's
+
+
+def scripted(workspace: Path, root: Path) -> bool:
+    """Whether a workspace, or a folder above it within ``root``, says a script drove it."""
+    for folder in (workspace, *workspace.parents):
+        if (folder / SCRIPTED).is_file():
+            return True
+        if folder == root or root not in folder.parents:
+            return False
+    return False
 
 
 def _lines(path: Path) -> Iterator[dict[str, Any]]:
@@ -89,6 +100,7 @@ def harvest(root: Path = WORKSPACES, lake: Path = LAKE, database: bool = True) -
     for ledger in ledgers:
         workspace = ledger.parent
         where, models = _key(workspace, root), served_models(workspace)
+        driven = scripted(workspace, root)
         for kind, store in (("decisions", records), ("labels", labels), ("outcomes", outcomes)):
             for path in sorted((ledger / kind).rglob("*.jsonl")):
                 for doc in _lines(path):
@@ -96,7 +108,8 @@ def harvest(root: Path = WORKSPACES, lake: Path = LAKE, database: bool = True) -
                     if ident in store:
                         store[ident].setdefault("found_in", []).append(where)
                         continue
-                    store[ident] = {**doc, "found_in": [where], **({"served_models": models} if kind == "decisions" else {})}
+                    store[ident] = {**doc, "found_in": [where], **({"served_models": models} if kind == "decisions" else {}),
+                                    **({"scripted": True} if driven else {})}
     database_note = None
     if database:
         db_records, db_labels, database_note = _database_ledger()
@@ -196,6 +209,8 @@ def _views(records: dict[str, dict[str, Any]], runs: dict[str, Path], lake: Path
                 if not claude:
                     continue
                 answerer, use = "claude", "eval_only"
+            elif by == "person" and r.get("scripted"):  # a test script's click, never a person's answer
+                continue
             elif by in BY:
                 answerer, use = BY[by]
             else:

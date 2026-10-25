@@ -353,6 +353,44 @@ FLOWS = {"upload": flow_upload, "upload-team": flow_upload_team, "no-data": flow
 BACKGROUND_OFF = {"DCLAB_STORE_LOOP": "0", "DCLAB_STORE_CAPTURE": "0", "DCLAB_COLLECTOR": "0", "DCLAB_STUDENTS_LOOP": "0"}
 
 
+def _main_checkout() -> Path:
+    """The repository's main folder, also from a worktree (make check-commit runs the gate in one it then removes)."""
+    try:
+        common = subprocess.run(["git", "rev-parse", "--git-common-dir"], cwd=ROOT, capture_output=True, text=True, timeout=10).stdout.strip()
+        return (ROOT / common).resolve().parent if common else ROOT
+    except Exception:  # noqa: BLE001 - outside git: this folder
+        return ROOT
+
+
+MIN_FREE_BYTES = 2 * 1024 ** 3  # the owner's rule: stop below 2 GB of free disk
+
+
+def keep_workspace(home: tempfile.TemporaryDirectory | None, name: str, root: Path | None = None) -> Path | None:
+    """The owner's rule (2026-10-25: capture everything for the six models): the test server's whole workspace (its
+    sessions, ledger, projects, drafts and events) is copied under ``agent_runs/e2e/<day>/`` of the main checkout before
+    its temporary folder goes, so the store collects it; a ``scripted.json`` beside it says a script drove it (its "person"
+    answers are clicks: the lake never files them as people's). ``DCLAB_E2E_KEEP=0`` skips it (a container whose disk
+    is thrown away); so does a disk under 2 GB free, and a copy that fails only warns: the tests' result stands."""
+    import shutil
+
+    if home is None or os.environ.get("DCLAB_E2E_KEEP", "1") == "0":
+        return None
+    base = (root or (_main_checkout() / "agent_runs" / "e2e"))
+    try:
+        base.mkdir(parents=True, exist_ok=True)
+        if shutil.disk_usage(base).free < MIN_FREE_BYTES:
+            print("not kept: under 2 GB of free disk", file=sys.stderr)
+            return None
+        (base / "scripted.json").write_text(json.dumps({"by": "script", "why": "the end-to-end and browser tests: a person's answers "
+                                                        "here were clicked by a test script, never a person's label"}) + "\n")
+        out = base / time.strftime("%Y-%m-%d") / f"{time.strftime('%H%M%S')}_{name}"
+        shutil.copytree(home.name, out, dirs_exist_ok=True, ignore=shutil.ignore_patterns("*.lock", "*.part"))
+        return out
+    except (OSError, shutil.Error) as error:
+        print(f"not kept: {type(error).__name__}: {error}", file=sys.stderr)
+        return None
+
+
 def start_server() -> tuple[subprocess.Popen, str, tempfile.TemporaryDirectory]:
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
@@ -401,8 +439,15 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         if process is not None:
             process.terminate()
-            process.wait(10)
+            try:
+                process.wait(10)
+            except subprocess.TimeoutExpired:  # a job still running in the server: never leave it behind
+                process.kill()
+                process.wait(10)
         if home is not None:
+            kept = keep_workspace(home, "product_e2e")
+            if kept is not None:
+                print(f"kept: {kept}")
             home.cleanup()
     print("all flows passed" if not failed else f"{failed} flow(s) failed")
     return 1 if failed else 0

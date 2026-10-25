@@ -252,25 +252,9 @@ DC.view('new', {
         const heard = !saved && p.decision ? p.decision : null;
         const d = saved ? (saved.decision || null) : heard;
         const on = saved ? !!saved.decision : !!(heard && heard.heard_in === 'costs');
-        const v = k => d && d[k] != null && d[k] !== 0 ? esc(String(d[k])) : '';
-        const share = d && d.capacity_share ? esc(String(Math.round(d.capacity_share * 1000) / 10)) : '';
         const values = columns().filter(c => c.kind === 'numeric' && c.name !== (saved ? saved.target : p.target)).map(c => c.name);
-        const field = (id, label, inner, hint) => `<div class="field"><label for="${id}">${label}</label>${inner}${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
-        const number = (id, key, hint, extra = '') => field(id, hint[0], `<input type="number" step="any" min="0" ${extra} id="${id}" value="${key === 'share' ? share : v(key)}">`, hint[1]);
-        return `${head}<label class="check"><input type="checkbox" id="wz-dc-on" ${on ? 'checked' : ''}><span>Decide which rows to act on, by what acting is worth <span class="small muted">optional: the final stage chooses on how many rows to act, with its interval</span></span></label>
-          ${heard ? `<span class="small muted">Heard in the chat${heard.heard_in === 'costs' ? '' : ' (in the answer on what is done: check the numbers, then tick the box)'}: the numbers below. ${esc(heard.notes || '')}</span>` : ''}
-          <div class="stack tight" id="wz-dc-fields" ${on ? '' : 'hidden'}>
-            ${field('wz-dc-what', 'What you do to a row', `<input type="text" maxlength="80" id="wz-dc-what" placeholder="call the customer" value="${esc((d && d.what) || '')}">`)}
-            <div class="grid g2">
-              ${number('wz-dc-value', 'value_per_case', ['A case found is worth', 'what acting on a real case brings'])}
-              ${field('wz-dc-value-col', 'or a value per row', `<select id="wz-dc-value-col" data-style="width:100%"><option value="">none</option>${values.map(o => `<option ${d && o === d.value_column ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`, 'a column known at the prediction moment')}
-              ${number('wz-dc-cost', 'cost_per_action', ['Each action costs', 'paid on every row acted on'])}
-              ${number('wz-dc-miss', 'cost_false_negative', ['A missed case costs', 'a case not acted on'])}
-              ${number('wz-dc-fp', 'cost_false_positive', ['A wasted action costs extra', 'beyond the action, when the row was no case'])}
-              ${number('wz-dc-share', 'share', ['Act on at most (% of rows)', 'the team\'s capacity, if there is one'], 'max="99.9"')}
-              ${number('wz-dc-day', 'capacity_per_day', ['or at most a day', 'needs the time column'])}
-            </div>
-          </div></span><span></span></div>`;
+        return `${head}${DC.decisionForm.html('wz', d, { on, values })}
+          ${heard ? `<span class="small muted">Heard in the chat${heard.heard_in === 'costs' ? '' : ' (in the answer on what is done: check the numbers, then tick the box)'}: the numbers above. ${esc(heard.notes || '')}</span>` : ''}</span><span></span></div>`;
       };
       $('#wz-sheet', el).innerHTML = `
         <div class="cs-row"><span class="cs-key">Target</span><span class="cs-val"><code>${esc(saved ? saved.target : p.target)}</code> · ${esc(task || '')}${(saved ? saved.positive_label : p.positive_label) != null ? ` · positive label <code>${esc(saved ? saved.positive_label : p.positive_label)}</code>` : ''}${p.detected && p.detected.note ? `<div class="small muted">${esc(p.detected.note)}</div>` : ''}</span><span></span></div>
@@ -286,7 +270,7 @@ DC.view('new', {
       DC.hydrate($('#wz-sheet', el));
       drawStats();
     }
-    $('#wz-sheet', el).addEventListener('change', e => { if (e.target.id === 'wz-dc-on') { const f = $('#wz-dc-fields', el); if (f) f.hidden = !e.target.checked; } });
+    DC.decisionForm.wire($('#wz-sheet', el), 'wz');
     const touched = e => { if (W.draft && e.target.closest('[data-f="wizard.decision"]')) W.decisionTouched = W.draft.id; };
     $('#wz-sheet', el).addEventListener('input', touched);
     $('#wz-sheet', el).addEventListener('change', touched);
@@ -294,24 +278,8 @@ DC.view('new', {
        number cannot be read (said in a toast). A review, price or classes decision set on the Solution page is kept. */
     function decisionFromSheet() {
       const kept = ((W.draft || {}).solution || {}).decision;
-      if (kept && kept.action !== 'act') return kept;
-      const on = $('#wz-dc-on', el);
-      if (!on || !on.checked) return null;
-      const read = id => { const raw = (($(id, el) || {}).value || '').trim(); if (raw === '') return null; const n = Number(raw); return Number.isFinite(n) && n >= 0 ? n : NaN; };
-      const nums = { value_per_case: read('#wz-dc-value'), cost_per_action: read('#wz-dc-cost'), cost_false_negative: read('#wz-dc-miss'),
-                     cost_false_positive: read('#wz-dc-fp'), capacity_share: read('#wz-dc-share'), capacity_per_day: read('#wz-dc-day') };
-      const bad = Object.keys(nums).filter(k => Number.isNaN(nums[k]));
-      if (bad.length) { toast('Each amount in the decision is a number of zero or more.', { ok: false }); return false; }
-      const what = (($('#wz-dc-what', el) || {}).value || '').trim();
-      if (!what) { toast('Say what you do to a row, for example: call the customer.', { ok: false }); ($('#wz-dc-what', el) || {}).focus?.(); return false; }
-      const d = { action: 'act', what };
-      if (nums.value_per_case) d.value_per_case = nums.value_per_case;
-      ['cost_per_action', 'cost_false_negative', 'cost_false_positive'].forEach(k => { if (nums[k] != null) d[k] = nums[k]; });
-      if (nums.capacity_share) d.capacity_share = nums.capacity_share / 100;
-      if (nums.capacity_per_day) d.capacity_per_day = nums.capacity_per_day;
-      const column = ($('#wz-dc-value-col', el) || {}).value;
-      if (column) d.value_column = column;
-      return d;
+      if (kept && kept.action !== 'act') return kept;  // a review, price or classes decision set before: kept as it is
+      return DC.decisionForm.read(el, 'wz');
     }
     $('#wz-accept', el).addEventListener('click', async () => {
       const p = W.proposal || {}, target = $('#wz-target', el).value;

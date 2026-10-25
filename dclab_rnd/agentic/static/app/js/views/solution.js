@@ -493,7 +493,7 @@ DC.view('solution', {
       }
     });
     /* ---------- edit the solution of a real project (the wizard's fields, the project's own routes) ---------- */
-    let audit = null;
+    let audit = null, decisionWired = false;
     function editHtml(p) {
       const sol = p.solution || {}, cols = (p.data || {}).columns || [], others = cols.filter(c => c !== sol.target);
       const forb = new Set((sol.forbidden || []).map(f => f.column)), ids = new Set(sol.identifiers || []);
@@ -508,20 +508,41 @@ DC.view('solution', {
           <div class="row"><button type="button" class="btn sm" data-es-audit="1">Audit the columns again</button></div></div>
         <div class="field"><span class="label">Identifiers</span><div class="row">${[...idCands].filter(c => c !== sol.target).map(c => `<label class="check"><input type="checkbox" data-es-ident="${esc(c)}" ${ids.has(c) ? 'checked' : ''}><code>${esc(c)}</code></label>`).join('') || '<span class="muted small">None found.</span>'}</div></div>
         <div class="grid g2"><div class="field"><label for="es-time">Time column</label>${pick('es-time', sol.time_column)}</div><div class="field"><label for="es-group">Group column</label>${pick('es-group', sol.group_column)}</div></div>
+        <div class="field" data-f="solution.decision"><span class="label">Decision</span>${decisionHtml(p)}</div>
       </div>`;
+    }
+    /* 34.4: the decision on top of the model, in the wizard's own fields (DC.decisionForm); a review, price or classes
+       decision set another way is kept as it is; an outcome that is not yes/no draws none */
+    function decisionHtml(p) {
+      const sol = p.solution || {}, d = sol.decision;
+      if (d && d.action !== 'act') return `<span class="small">A ${esc(d.action)} decision is set; it is kept as it is.</span>`;
+      if (sol.task !== 'binary') return `<span class="small muted">A decision on top of the model reads a yes/no outcome; this one is ${esc(sol.task || 'not known yet')}.</span>`;
+      const profile = ((p.data || {}).profile || {}).columns || [];
+      const values = profile.filter(c => c.kind === 'numeric' && c.name !== sol.target).map(c => c.name);
+      return DC.decisionForm.html('es', d || null, { on: !!d, values });
     }
     function openEditor(p) {
       DC.drawer.open({ eyebrow: '<span class="eyebrow">Solution · ' + esc(p.name) + '</span>', title: 'Edit the solution', html: editHtml(p),
         actions: '<button type="button" class="btn sm primary" data-es-save="1">Save the solution</button>' });
+      if (!decisionWired) { DC.decisionForm.wire($('#drawer'), 'es'); decisionWired = true; }  // the drawer is one element, wired once
     }
     function editedBody(p) {
       const d = $('#drawer'), sol = p.solution || {}, val = id => (($(id, d) || {}).value || '').trim();
       return { ...sol, target: val('#es-target'), prediction_moment: val('#es-moment'), time_column: val('#es-time') || null, group_column: val('#es-group') || null,
         forbidden: [...d.querySelectorAll('[data-es-forbid]:checked')].map(i => ({ column: i.dataset.esForbid, reason: i.dataset.reason || 'declared unavailable at the prediction moment' })),
-        identifiers: [...d.querySelectorAll('[data-es-ident]:checked')].map(i => i.dataset.esIdent) };
+        identifiers: [...d.querySelectorAll('[data-es-ident]:checked')].map(i => i.dataset.esIdent),
+        ...editedDecision(sol, d) };
+    }
+    function editedDecision(sol, d) {  // the decision's fields, when the editor shows them: a ticked box states it, an unticked one removes it
+      if (!$('#es-dc-on', d)) return {};
+      const decision = DC.decisionForm.read(d, 'es');
+      if (decision === false) return { decision: undefined, unreadable: true };
+      const notes = (sol.decision || {}).action === 'act' ? sol.decision.notes : '';  // what the chat heard stays with the decision
+      return { decision: decision && notes ? { ...decision, notes } : decision };
     }
     async function saveEdit(p) {
       const body = editedBody(p);
+      if (body.unreadable) return;  // a number the decision could not read: said in a toast, nothing saved
       try {
         if (body.target !== (p.solution || {}).target) {
           // a new target needs its own task, positive label and metric: take them from the column audit for it
@@ -555,6 +576,7 @@ DC.view('solution', {
       if (!real || !$('#es-target', $('#drawer'))) return;
       if (e.target.closest('[data-es-audit]')) {
         const keep = editedBody(real);  // the audit redraws the panel; keep what the user typed
+        if (keep.unreadable) return;  // a decision amount that cannot be read: said in a toast, never redrawn as no decision
         try {
           audit = await DC.client.solutionProposal(real.id, { body: { target: keep.target } });
           openEditor({ ...real, solution: { ...(real.solution || {}), ...keep } });

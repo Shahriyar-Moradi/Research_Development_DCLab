@@ -56,6 +56,19 @@ class HarvestTests(unittest.TestCase):
         rules = [json.loads(x) for x in (base / "dclab-rules" / "sessions" / "problem.pack" / "all.jsonl").read_text().splitlines()]
         self.assertTrue(all(r["use"] == "train" for r in rules))
 
+    def test_a_test_scripts_clicks_are_never_filed_as_peoples_answers(self):
+        """The review of 2026-10-25: the end-to-end tests' kept workspaces hold scripted "person" answers; filed as people's
+        they would have outnumbered every real person's answer in the lake."""
+        person = dict(record(1, by_model=False), answers=[{"by": "rule", "answerer": "rule:x", "value": "a"},
+                                                         {"by": "person", "answerer": "owner", "value": "b"}])
+        real = dict(person, id="dr" + "9" * 20)
+        ws = workspace(self.root, "e2e/2026-10-25/164537_product_e2e", [person])
+        (ws.parent.parent / "scripted.json").write_text('{"by": "script"}')  # the marker sits above the kept workspace
+        workspace(self.root, "dev", [real])
+        m = self.harvest()
+        self.assertEqual(m["answers_by_answerer"].get("people"), 1)  # the real person's only
+        self.assertEqual(m["answers_by_answerer"].get("dclab-rules"), 2)  # the rules' answers in both stay
+
     def test_claudes_verdicts_on_real_decisions_are_silver_weighted_by_its_measured_accuracy(self):  # 29.18
         from dclab_rnd import ledger as L
         from dclab_rnd.lake import harvest as H

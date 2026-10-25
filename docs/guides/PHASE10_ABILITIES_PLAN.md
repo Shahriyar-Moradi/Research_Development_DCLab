@@ -320,7 +320,7 @@ or decided; nothing below blocks using them.
    `actions_what_if`; reviewed, 3 findings fixed).
 9. ~~34.4: the wizard has no fields for a decision~~ done 2026-10-25: step 3 has a decision block (what is done, what a
    case is worth, what an action, a miss and a wasted action cost, a capacity), filled from the chat's amounts; tested in
-   the browser. Still open: the Solution page edits the decision as JSON only.
+   the browser. The Solution page's editor has the same fields too (2026-10-25, one shared helper).
 10. 34.7a: a route that lets a person turn the search on after the features stage must clear the stages from data (no
     such route exists today); the search's attempts and optimism as a measured ledger label, if the decision models
     need them; whether a search is worth its fold on bigger tables (with 3).
@@ -338,12 +338,14 @@ or decided; nothing below blocks using them.
     working on the store and the students, today before 22:00, after a store build.
 16. Two scratch worktrees (`search_v2`'s run and the builds') are removed with `git worktree remove` once `search_v3` has run.
 17. Playwright's Chromium (581 MB, `~/Library/Caches/ms-playwright`) stays for `make browser-test`.
-18. The Workflow page may stop refreshing during a run when the machine is slow: the browser flow failed once at a load
-    of 18 on 8 cores (the page showed 1 of 5 stages while the run had finished) and passed on the rerun. Not investigated:
-    a page that stops polling between two stages would explain it.
+18. ~~The Workflow page may stop refreshing during a run when the machine is slow~~ fixed 2026-10-25: it stopped
+    polling in the moment between two stages (none named running, the next queued) or after one failed poll; it now
+    polls while a stage runs or waits, and retries a failed poll (browser check `poll`).
 19. Capture (the owner, 2026-10-25: "make sure all data capturing and recording and store are running for our 6 models"):
     the store collects `agent_runs/`; this session's campaigns now keep their engine runs there (`search_v2` copied in,
-    240 MB; `fraud_decision_v1` and `search_v3` write there). Not captured: `make product-e2e` and `make browser-test` run
-    in temporary workspaces, so their sessions, ledgers and runs are deleted with them (the test results are kept).
+    240 MB; `fraud_decision_v1` and `search_v3` write there). Since 2026-10-25 `make product-e2e` and `make browser-test`
+    keep their test server's workspace under `agent_runs/e2e/<day>/` too (about 7 MB a run; `DCLAB_E2E_KEEP=0` skips),
+    under a `scripted.json` marker: the lake never files their scripted "person" answers as people's. Open: the store's
+    shapers to honour the same marker (the store session's area; told 2026-10-25).
 20. 34.1: a capacity per day is applied as one pool over the holdout (said in `applied_as`); filling it day by day needs
     each holdout row's day passed to the core.

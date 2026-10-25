@@ -9,8 +9,10 @@ Needs Playwright: pip install -r requirements/browser.txt && python -m playwrigh
   flow     one sentence and the Telco CSV uploaded on Home, the chat's questions answered by clicking their options,
            the wizard's five steps with their defaults and a decision stated in its fields (34.4), a run of every stage
            from the Workflow page, then the brief and the decision chosen
+  poll     the Workflow page follows a run across the gap between two stages and past a failed poll
   decide   34.4: a decision said in the chat ("a call costs 5 euro; a lost customer costs 300"), chosen by the final
            stage, on its page: the API's sentence, the curve, and a what-if typed into the form answering as the API does
+  soledit  34.4: the Solution page's editor shows the stated decision; a changed cost and an untick reach the server
   team     28.8: the Team panel on Home: a question, the map's confirmation, the data given, the build approved
   stats    the numbers on Home, Compute, Integrations and Packs equal the API's (read over HTTP, not through the page)
   pages    all 21 pages at 1280 px: no console error, no uncaught error, no CSP violation, no failed-load warning
@@ -342,6 +344,88 @@ def check_decision(b: Browser) -> str:
     return f"chosen on {stated['chosen']['share']:.1%} of rows; at 50 a call the page and the API both act on {expected:.1%}"
 
 
+def check_poll(b: Browser) -> str:
+    """The Workflow page follows a run across the gap between two of its stages (one just ended, the next still queued,
+    none named running) and past a failed poll, until it is done (a page that stopped there showed 1 of 5 stages done
+    after all five had finished, on a busy machine)."""
+    page = b.page
+    projects = b.api("/workspace")["projects"]
+    check(bool(projects), "no project to open")
+    pid = projects[0]["id"]
+    real = b.api(f"/projects/{pid}")
+    check(all((real["stages"].get(st) or {}).get("status") in ("completed", "approved") for st in STAGES), "the first project has not run")
+    gap = json.loads(json.dumps(real))
+    gap["running"] = None  # one stage ended, the next not yet started: the moment a page used to stop
+    gap["stages"]["final"] = {"status": "queued"}
+    calls = {"n": 0}
+
+    def answer(route):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            route.fulfill(status=200, content_type="application/json", body=json.dumps(gap))
+        elif calls["n"] == 2:
+            route.fulfill(status=503, content_type="application/json", body='{"detail": "busy"}')  # a poll that fails
+        else:
+            route.continue_()
+
+    page.evaluate("id => { try { localStorage.setItem('dclab-project', id); } catch (e) {} }", pid)
+    page.reload()
+    page.route(f"**/api/projects/{pid}", answer)
+    try:
+        b.view("project", settle=0.5)
+        deadline = time.time() + 30
+        while calls["n"] < 3 and time.time() < deadline:  # the gap, the failed poll, then the real project
+            page.wait_for_timeout(500)
+        page.wait_for_function("() => document.querySelectorAll('#graph-box g.node.done').length >= 5", timeout=30_000)
+    finally:
+        page.unroute(f"**/api/projects/{pid}")
+    check(calls["n"] >= 3, f"the page asked {calls['n']} time(s): it stopped following the run")
+    left = [m for m in b.problems() if "503" not in m]  # the failed poll this check made on purpose
+    check(not left, f"the Workflow page: {left[:3]}")
+    return f"followed the run across a gap and a failed poll ({calls['n']} requests) until all five stages showed done"
+
+
+def check_solution_decision(b: Browser) -> str:
+    """34.4: the Solution page's editor shows a project's stated decision in the wizard's fields; a changed amount and an
+    unticked box are what the server then holds."""
+    page = b.page
+
+    def save():  # the drawer's save; with stage results to clear, the page asks first
+        page.click("#drawer [data-es-save]")
+        try:
+            page.wait_for_selector("#modal-confirm", state="visible", timeout=3_000)
+            page.click("#modal-confirm")
+        except Exception:  # noqa: BLE001 - no stage result to clear: no question asked
+            pass
+
+    projects = b.api("/workspace")["projects"]
+    stated = [p for p in projects if ((b.api(f"/projects/{p['id']}").get("solution") or {}).get("decision") or {}).get("action") == "act"]
+    check(bool(stated), "no project with a stated decision to edit")
+    pid = stated[0]["id"]
+    page.evaluate("id => { try { localStorage.setItem('dclab-project', id); } catch (e) {} }", pid)
+    page.reload()
+    b.view("solution", settle=1)
+    page.click("[data-edit-solution]")
+    page.wait_for_selector("#drawer #es-dc-on", timeout=30_000)
+    check(page.is_checked("#drawer #es-dc-on") and page.locator("#drawer #es-dc-fields").is_visible(), "the editor does not show the stated decision")
+    page.fill("#drawer #es-dc-cost", "7")
+    save()
+    deadline = time.time() + 30
+    while time.time() < deadline and ((b.api(f"/projects/{pid}")["solution"].get("decision") or {}).get("cost_per_action")) != 7:
+        time.sleep(0.5)
+    check((b.api(f"/projects/{pid}")["solution"].get("decision") or {}).get("cost_per_action") == 7, "the changed cost did not reach the solution")
+    page.click("[data-edit-solution]")
+    page.wait_for_selector("#drawer #es-dc-on", timeout=30_000)
+    page.uncheck("#drawer #es-dc-on")
+    save()
+    deadline = time.time() + 30
+    while time.time() < deadline and b.api(f"/projects/{pid}")["solution"].get("decision"):
+        time.sleep(0.5)
+    check(b.api(f"/projects/{pid}")["solution"].get("decision") is None, "unticking did not remove the decision")
+    check(not b.problems(), f"the Solution page: {b.problems()[:3]}")
+    return "the editor showed the decision; a cost changed to 7 and an untick reached the server"
+
+
 def check_switch(b: Browser) -> str:
     """The green project switcher: Home names the project every page follows, lists the others, and the sidebar's Project
     label and the project pages follow the choice."""
@@ -430,7 +514,7 @@ CULPRIT = """() => { const w = document.documentElement.clientWidth;
   return el ? el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\\s+/).join('.') : '') + ' "' + (el.textContent || '').trim().slice(0, 40) + '"' : '?'; }"""
 
 
-CHECKS = {"flow": (check_flow, 1280), "decide": (check_decision, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "switch": (check_switch, 1280), "ui": (check_ui_events, 1280), "mobile": (check_mobile, 375)}
+CHECKS = {"flow": (check_flow, 1280), "poll": (check_poll, 1280), "decide": (check_decision, 1280), "soledit": (check_solution_decision, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "switch": (check_switch, 1280), "ui": (check_ui_events, 1280), "mobile": (check_mobile, 375)}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -475,6 +559,11 @@ def main(argv: list[str] | None = None) -> int:
                 process.kill()
                 process.wait(10)
         if home is not None:
+            from product_e2e import keep_workspace
+
+            kept = keep_workspace(home, "browser_e2e")
+            if kept is not None:
+                print(f"kept: {kept}")
             home.cleanup()
     print("all browser checks passed" if not failed else f"{failed} browser check(s) failed")
     return 1 if failed else 0
