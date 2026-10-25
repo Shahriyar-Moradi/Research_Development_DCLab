@@ -98,6 +98,11 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "hits": (COUNT, ()), "top_score": (MEASURE, ()), "method": (CODE, ()), "weak": (FLAG, ()),
     # 30.22: a department agent's proposal, as its relative change and the policy's verdict (never the value itself)
     "change": (RATIO, ()), "allowed": (FLAG, ()), "needs_approval": (FLAG, ()), "applied": (FLAG, ()), "agent_level": (CODE, ()),
+    # 0.112.0 (S7, "more ability"): a table at a glance, as counts of its columns by kind (never a value): what an expert reads
+    # to guess which model family will win before trying them all (model.first)
+    "numeric_columns": (COUNT, ()), "category_columns": (COUNT, ()), "text_columns": (COUNT, ()), "high_card_columns": (COUNT, ()),
+    "missing_columns": (COUNT, ()), "usable_features": (COUNT, ()),
+    "of": (CODE, ()),  # 0.112.0: what an operating point is a value of (a share acted on, or a threshold): its records were refused
 }
 Scalar = Union[str, int, float, bool, None]
 
@@ -187,6 +192,7 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     _p("metric.primary", T, DP, "value", "Which metric decides, with its constraints?", "spec.objective", plan_key="metric.primary"),
     _p("features.recipe", T, "project", "value", "Which feature recipe is kept?", plan_key="features.direction"),
     _p("model.family", T, "project", "value", "Which model family is kept?", "training.families_budget", plan_key="model.families"),
+    _p("model.first", T, "project", "value", "Which model family is tried first, before the screen measures them all?"),  # 0.112.0 (S7)
     _p("model.review", T, "project", "choice", "Does the critic's review change the model?", "experiment.review", choices=("keep", "change")),
     _p("tuning.accept", T, "project", "noul", "Is the tuned configuration kept over the default?"),
     _p("threshold.operating_point", T, "project", "value", "At which threshold or budget are cases flagged?", plan_key="threshold.policy"),

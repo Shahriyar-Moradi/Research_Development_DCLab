@@ -4,6 +4,25 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.112.0 (2026-10-25)
+
+More ability for the students (S7 of the 100-students plan): an expert's guess before the screen, and homework whose
+layout does not name its truth.
+
+- `ledger.POINTS`: `model.first`, "which model family is tried first, before the screen measures them all?" (the rule:
+  the kind's fixed order; its measured label: the family that then measures clearly best on the training folds, ahead
+  of every other by their combined spreads; a student is trained on the screens' best mean and judged on both).
+- `ledger.STATE_FIELDS`: a table at a glance, as counts of its columns by kind: `numeric_columns`, `category_columns`,
+  `text_columns`, `high_card_columns`, `missing_columns`, `usable_features`; and `of` (what an operating point is a value
+  of: a share or a threshold), whose `threshold.operating_point` records were refused since 0.109.0.
+- `benchgen3`: `craft_table` (a planted structure: a linear signal, an interaction, thresholds, a high-cardinality
+  category, a seasonal date, a skewed outcome or a rare positive class, informative missing values, or none; the task,
+  size, plain columns, missing values and no-effect decoys (a big category, a date) drawn apart from it; the winner
+  measured by a screen, never planted), and `split_table` and `dirty_table` rebuilt with each trap beside its
+  counter-example (unique plain digits that are numbers beside digits that are an identifier, an id-like name that never
+  repeats, a repeating category that is no entity). Tested: neither a table's width nor a count of the table at a glance
+  names a truth by a lookup.
+
 ## 0.111.0 (2026-10-25)
 
 The learn layer (34.10 to 34.12) and what to collect next (34.14).

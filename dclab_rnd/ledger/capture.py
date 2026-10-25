@@ -16,7 +16,7 @@ from typing import Any, Callable, Optional
 from dclab_core.bands import ratio_band
 
 from . import answer, batch, column_state, decide, label, rows_band
-from .states import tuning_state  # the fields a tuning student reads, built one way
+from .states import table_state, tuning_state  # the fields a student reads, built one way
 
 MAX_COLUMNS = 200  # columns recorded per saved solution, besides every column a rule or the person named
 TASKS = {"binary": "binary_classification", "multiclass": "multiclass_classification", "regression": "regression"}
@@ -172,6 +172,33 @@ def solution_saved(proposal: dict[str, Any] | None, profile: dict[str, Any] | No
     return written
 
 
+def _spec(prepared: Any, name: str) -> Any:
+    try:
+        return getattr(prepared.bundle.spec, name)
+    except Exception:  # noqa: BLE001 - a kind's own machine has no bundle
+        return None
+
+
+def _usable(prepared: Any) -> Any:
+    try:
+        return int(prepared.bundle.X.shape[1])
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _first_family(prepared: Any) -> Any:
+    """The family the models stage screens first: the kind's own order for this task (the engine's own function on the same
+    inputs), or None when it cannot be known."""
+    try:
+        from ..expansion import runner as rn
+        from ..studio import engine
+
+        families = prepared.kind.model_families(rn.model_families(prepared.bundle.task_type), engine._rare_event(prepared))
+        return str(families[0]) if families else None
+    except Exception:  # noqa: BLE001 - a kind's own machine, or no bundle: no first family to record
+        return None
+
+
 def _states(frame: Any, names: list[Any]) -> dict[Any, dict[str, Any]]:
     """Each named column's state, profiled from the stage's rows: its name, dtype and bands, never a value."""
     if frame is None:
@@ -296,6 +323,13 @@ def stage_decisions(stage: str, record: dict[str, Any], prepared: Any, owner: di
             rec = put("model.family", str(decision.get("selected", decision["chosen"]))[:200], "rule:rank_rows",
                       options=[o.get("id") for o in decision.get("options") or []])
             _measured(rec, decision, _higher(prepared, record))  # 29.3: the family that measured clearly best on validation, if one did
+            first = _first_family(prepared)
+            if first is not None:  # S7: the family tried first (the kind's own order) against the table at a glance; its truth, the one
+                # that then measured clearly best: what should have been tried first
+                rec = put("model.first", first, "rule:kind_order", options=[o.get("id") for o in decision.get("options") or []],
+                          state=table_state((owner.get("data") or {}).get("profile"), (owner.get("solution") or {}).get("target"),
+                                            record.get("task_type") or record.get("task"), _spec(prepared, "positive_rate"), _usable(prepared)))
+                _measured(rec, decision, _higher(prepared, record))
             rounds = [r for r in (evidence.get("review") or {}).get("rounds") or [] if isinstance(r, dict)]
             for r in rounds[:20]:
                 critic = (r.get("critic") or {}).get("order") or []

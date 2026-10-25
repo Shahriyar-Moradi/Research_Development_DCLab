@@ -47,6 +47,7 @@ SOURCES = {  # name: folders copied as they are (the workspace goes through stor
     # 30.19: the real problems' kept workspaces and the private problems' records (the owner's fraud), kept out of the repository
     "real_problems": [ROOT / "agent_runs" / "real_problems"],
     "collector": [ROOT / "agent_runs" / "collector"],  # S2: the collector's state and every run's record
+    "real_screens": [ROOT / "agent_runs" / "real_screens", ROOT / "agent_runs" / "craft_screens"],  # S7: real tables screened by the engine, every family's score and its ledger
 }
 README = """# DCLab's training records
 

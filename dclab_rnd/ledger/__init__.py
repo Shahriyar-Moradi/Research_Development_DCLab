@@ -55,6 +55,7 @@ CAPTURED = {
     "data.sampling": "studio/engine.py prepare: which rows the runs read",
     "features.recipe": "studio/engine.py stage_features: the recipe the rule kept",
     "model.family": "studio/engine.py stage_models: the family the rule kept",
+    "model.first": "studio/engine.py stage_models: the family screened first (the kind's order) against the table at a glance, labelled by the one that then measured clearly best (S7)",
     "tuning.accept": "studio/engine.py stage_final: whether the tuned configuration beat the default by its margin",
     "threshold.operating_point": "studio/engine.py stage_final: the operating point from the budget or costs",
     "holdout.reuse": "studio/graph.py: a final stage run again, with or without a person's reason",

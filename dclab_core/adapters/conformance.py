@@ -124,7 +124,7 @@ POINTS_NOT_MAPPED: dict[str, str] = {
     **{p: _NO_NAME.format(what="evidence search (29.6)") for p in ("evidence.records",)},
     **{p: _NO_NAME.format(what="data value question (34.13)") for p in ("data.more_rows",)},
     **{p: _NO_NAME.format(what="modelling choice") for p in (
-        "features.recipe", "tuning.accept", "holdout.reuse", "experiment.next")},
+        "features.recipe", "tuning.accept", "holdout.reuse", "experiment.next", "model.first")},  # 0.112.0: model.first (S7)
     **{p: _NO_NAME.format(what="conversation and workflow point (the understanding agents, the coordinator)") for p in (
         "problem.family", "problem.pack", "map.size", "map.edit", "solution.route", "solution.compose", "workflow.next_question", "workflow.template", "workflow.move", "workflow.revisit",
         "workflow.stage_approval", "workflow.stop", "workflow.g4", "agent.tool_choice", "team.next_node", "critic.send_back")},

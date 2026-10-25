@@ -226,6 +226,43 @@ whether the cleaner keeps it as written in a column of two-letter codes and says
 5. **Generation 2** (one small language model for all points), after the data is balanced: a pilot on the owner's
    M1 Max with MLX (free), its own short prompt matching its answers, then a fair sealed exam.
 
+### S7. More ability: the expert's choices, not only its traps (the owner, 2026-10-25)
+
+The owner: "we are very focused on leakage; we want more ability; the student model must have more ability". The 17
+students judge traps (leakage, identifiers, cleaning, splits), because traps can be planted. An ML expert's main skill is
+different: looking at a table and knowing what will work on it before trying everything.
+
+**Measured first (2026-10-25):** self-play's 1,116 model screens are a weak teacher for that: "always the generator's
+usual winner" is right 70% of the time (logistic regression wins 99 of the 100 binary replicas, "naive" all 100
+forecasting ones). A student would learn the generator, not the table. The honest homework is real tables, the truth
+measured.
+
+**The point, and why it is new:** DCLab screens every model family and keeps the measured best, so "which family wins"
+has no rule to beat (the rule is the measurement). The ability is *before* the screen: `model.first`, "which family is
+tried first?", today a fixed order (the kind's list). Truth: the family that then measures best on the training folds.
+Value: the likely winners screened first, so a run is shorter, a larger search fits its budget, and the agentic solver
+gets a prior. The state is the table's description in bands and counts (rows, columns by type, high-cardinality and
+missing columns, the task, the class balance), never a value.
+
+| Package | Delivers | Done when |
+|---|---|---|
+| G1 benchgen v3 (`dclab_core`) | craft tables whose winner varies by a planted structure (linear or interacting signal, a high-cardinality category, a seasonal date, a skewed outcome, informative missing values, noise), layouts drawn apart from every truth; the trap generators rebuilt with each trap's counter-example | a test: no formula on the layout names a truth; the winners vary within every structure |
+| G2 screens on real tables | `model.first` and the state fields in the ledger; DCLab's engine on the OpenML tables (and the collector's), every family's score and the table's state recorded; resumable, under the 80% rule | train and dev screens from at least 300 real tables; sealed tables screened apart |
+| G3 the student | a classifier for `model.first` from real screens (and craft ones), measured against the fixed order and "always the commonest winner" on dev | its sealed exam on real tables only, by `decision_gate_v1` unchanged, read once |
+| G4 use | the engine records the student's guess beside the screen (shadow); later it screens the guessed top families first | the owner's switch after a passed exam |
+
+**The review of S7 (2026-10-25), before any screen was used:** the acceptance harness runs the engine under its fast
+*test* profile (ensembles cut to ten trees), so the first screens' winners were the test profile's, not the product's
+(on one skewed table LightGBM's error was 347 there and 69 in a full run). Real screens now run the product's own
+settings and say so (`profile: full`); the three written before are kept apart. Self-play's screens run the fast
+profile too, so "logistic regression wins 99 of 100 binary replicas" is partly the ensembles' handicap. Also fixed: the
+table at a glance now carries its task and class balance; craft tables carry no-effect decoys (a big category, a date),
+so neither names a structure; the student's homework label is the screen's best mean (a clear winner is reported
+apart); the baselines come from real training screens only; and two arms are reported, real only and real with craft.
+
+**Screening real tables is also a robustness test of the product:** DCLab's engine crashed on two of the first three
+(a column with no value, classes of one row); both fixed (cb93b9a9). Every failure is kept with its reason.
+
 ### S6. Fair exams for every student
 - A fresh sealed set (v2) per point, drawn once and never read until a promotion; a gate runner that accepts any
   answerer (classifier, language model, rule) so generation 2 is judged like the students.

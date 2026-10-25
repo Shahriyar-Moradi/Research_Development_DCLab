@@ -1,0 +1,157 @@
+{
+ "package": "S7-more-ability",
+ "title": "More ability: which model family to try first, from real tables screened by the engine, and homework whose layout says nothing",
+ "date": "2026-10-25",
+ "request": "The owner: 'go ahead with the generator package, non-stop; we are very focused on leakage in DCLab, we want more ability; the student model must have more ability'.",
+ "spec": "docs/guides/STUDENTS_100_PLAN.md S7: G1 benchgen v3, G2 screens on real tables, G3 the student, G4 use after an exam and the owner's switch.",
+ "plan": [
+  "Measure whether self-play can teach the ability.",
+  "A new point before the screen, with a rule to beat.",
+  "Real tables through the engine, the truth measured.",
+  "Craft tables with planted structures and decoys, the winner measured.",
+  "A student judged by hit, fairness and regret beside two baselines."
+ ],
+ "decisions": [
+  {
+   "decision": "The ability is model.first, the family tried before the screen, not model.family.",
+   "why": "The engine screens every family and keeps the measured best: model.family has no rule to beat; a first guess does (the kind's fixed order)."
+  },
+  {
+   "decision": "Real tables are the homework; craft tables an arm of their own.",
+   "why": "Self-play's 'always the generator's usual winner' is right 70%: invented tables teach the generator."
+  },
+  {
+   "decision": "A pick is judged by hit, fairness (within the folds' noise) and capped regret.",
+   "why": "Two families within noise are equally good first tries; exact match alone would punish a fair pick."
+  },
+  {
+   "decision": "Screens run the product's own settings, never the acceptance harness's fast profile.",
+   "why": "The fast profile cuts ensembles to ten trees and changes who wins."
+  }
+ ],
+ "change": "dclab_core/ledger.py (model.first, the table-at-a-glance fields, 'of'), dclab_core/benchgen3.py (new), dclab_core 0.112.0 and its CHANGELOG, adapters/conformance.py; dclab_rnd/ledger/states.py (table_state, coarse_task), ledger/capture.py (model.first in the models stage), ledger/__init__.py, kinds/acceptance.py (engine_run fast=), real_screen.py and first_family.py (new), archive.py; tests test_benchgen_v3, test_first_family, test_real_screen; STUDENTS_100_PLAN S7.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "Self-play teaches the generator, not the table.",
+   "scenario": "1,116 self-play screens: 'always the kind's usual winner' right 70%; logistic regression wins 99 of 100 binary replicas.",
+   "cause": "Each replica generator has a fixed structure (and they run the fast profile).",
+   "fix": "Real OpenML tables screened by the engine; craft tables with drawn structures as a separate arm.",
+   "test": "the plan's S7 measurement"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The truth was measured under the unit-test profile.",
+   "scenario": "Fast versus full on the same craft table: xgboost against lightgbm; on a skewed table LightGBM's MAE 347 against 69.",
+   "cause": "kinds.acceptance.engine_run always wrapped runner.fast_profile().",
+   "fix": "engine_run(fast=False) for screens; each screen says its profile; first_family reads full screens only; the three fast screens kept apart.",
+   "test": "test_a_table_is_screened_into_its_splits_folder_once, test_only_full_profile_screens_are_read_each_table_once"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Binary and regression tables lost their task in the state.",
+   "scenario": "record task_type 'binary_imbalanced' is not in TASKS; commonest keyed every task under 'None'.",
+   "cause": "Only exact task names were mapped.",
+   "fix": "coarse_task in table_state; commonest keyed on the screen's own task.",
+   "test": "test_a_table_is_screened_into_its_splits_folder_once"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The class balance was missing from the state.",
+   "scenario": "The plan's state includes it; table_state had none.",
+   "cause": "Not passed.",
+   "fix": "positive_rate band from the bundle's spec; usable_features too.",
+   "test": "tests/test_real_screen.py"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Two state fields named the craft structure.",
+   "scenario": "high_card_columns > 0 on 35 of 35 high_card tables and 0 of 265 others; date_columns likewise for seasonal.",
+   "cause": "No decoys; dedicated name pools.",
+   "fix": "No-effect big categories and dates in any structure, one name pool and one value format for both.",
+   "test": "test_no_field_of_the_table_at_a_glance_says_the_structure"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "One point had two truths.",
+   "scenario": "The ledger's label is the clear best; first_family used the best mean, tagged benchmark.",
+   "cause": "Two definitions.",
+   "fix": "Homework: the best mean, tagged measured; the clear winners judged apart (clear_hit), as the ledger's label.",
+   "test": "test_a_pick_is_judged_by_its_gap_in_units_of_noise"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The comparison flattered the student.",
+   "scenario": "The commonest baseline counted craft screens; 30 tables could all be craft.",
+   "cause": "Real and craft mixed.",
+   "fix": "Baselines from real training screens; at least 30 real; two arms reported.",
+   "test": "test_the_student_learns_what_the_fixed_order_misses_and_never_opens_the_sealed_screens"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A zero spread made an infinite regret that the mean silently dropped.",
+   "scenario": "Two families with fold std 0.",
+   "cause": "Division by zero noise.",
+   "fix": "A noise floor and a cap of twenty; an unscored pick counts as the cap.",
+   "test": "test_a_pick_is_judged_by_its_gap_in_units_of_noise"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A failure's text could carry a cell value.",
+   "scenario": "pandas: could not convert string to float: '<a value>'.",
+   "cause": "The exception's message kept whole.",
+   "fix": "_scrub removes what it quotes.",
+   "test": "test_a_sealed_table_sits_apart_and_a_network_failure_leaves_no_mark"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Craft details: missing values on the structure's own column, 'skewed' meaningless for classes, a row sample shuffled, no memory check.",
+   "scenario": "Two thirds of high_card and seasonal tables had gaps on the structure's column.",
+   "cause": "Insertion-order choice; a quantile cut of a monotone signal.",
+   "fix": "Gaps on columns drawn at random apart from the structure's; a rare positive class for 'skewed'; sort_index after sampling; memory in room().",
+   "test": "tests/test_benchgen_v3.py, tests/test_real_screen.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the first real tables",
+   "gate": "affected tests only (the owner's daytime rule)",
+   "result": "774 real tables declare an outcome (545 train, 107 dev, 122 sealed); 2 of the first 3 crashed the engine (fixed apart); one full-profile screen about 13 to 50 s; 53 tests in 6 files pass; dclab-core 0.112.0's wheel runs in a clean Python 3.12",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "no student trained yet: the screens run in the background"
+   ]
+  }
+ ],
+ "outcome": "The new ability's homework is being measured on real tables under the product's own settings; its student, judge and generator are built and tested.",
+ "lessons": [
+  "Measure a truth the way the product will act on it: a test profile's winners are not the product's.",
+  "Every count in a state is a possible tell: test the state's fields, not only the table's width."
+ ],
+ "risks": [
+  "Full-profile screens take longer: the 652 train and dev tables need about a day of the Mac's spare time.",
+  "G4 (use) waits for a passed exam and the owner's switch."
+ ],
+ "commits": []
+}

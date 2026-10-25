@@ -610,7 +610,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.111.0",
+ "dclab_core": "0.112.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -999,6 +999,17 @@
    "kind": "technical",
    "main_product": "training.families_budget",
    "point": "model.family",
+   "subjects": [
+    "project"
+   ]
+  },
+  {
+   "about": "Which model family is tried first, before the screen measures them all?",
+   "answer": "value",
+   "decided_in": "studio/engine.py stage_models: the family screened first (the kind's order) against the table at a glance, labelled by the one that then measured clearly best (S7)",
+   "kind": "technical",
+   "main_product": null,
+   "point": "model.first",
    "subjects": [
     "project"
    ]

@@ -94,4 +94,44 @@ def tuning_state(tuning: Mapping[str, Any], evidence: Mapping[str, Any], metric:
     return {k: v for k, v in state.items() if v is not None}
 
 
-__all__ = ["column_bands", "task_state", "split_state", "cases_state", "cleaning_state", "tuning_state"]
+HIGH_CARD = 50  # a category with more distinct values than this is high-cardinality (one-hot gets wide; trees and encoders differ)
+
+
+def coarse_task(task: Any) -> Optional[str]:
+    """The engine's task name (binary_imbalanced, timeseries_regression, text_tabular_binary...) as the ledger's task band."""
+    name = str(task or "").lower()
+    if "multiclass" in name:
+        return "multiclass_classification"
+    if "binary" in name or name in ("classification", "binary_classification"):
+        return "binary_classification"
+    if "regression" in name:
+        return "regression"
+    return None
+
+
+def table_state(profile: Optional[Mapping[str, Any]], target: Optional[str] = None, task: Optional[str] = None,
+                positive_rate: Optional[float] = None, usable_features: Optional[int] = None) -> dict[str, Any]:
+    """A table at a glance (S7, "more ability"): what an expert reads to guess which model family will win before trying
+    them all (``model.first``): its rows and columns, the features by kind (numbers, categories, text, dates; an identifier
+    apart), how many categories have many values, how many columns have missing values, and the outcome's classes.
+    Counts and bands of the profile, never a value; the outcome is not counted among the features."""
+    cols = [c for c in _columns(profile) if c.get("name") != target]
+    plain = [c for c in cols if not c.get("id_like")]
+    kind = lambda c: c.get("kind")  # noqa: E731
+    outcome = next((c for c in _columns(profile) if target is not None and c.get("name") == target), None)
+    task_band = coarse_task(task)
+    classified = kind(outcome) in ("categorical", "boolean") if outcome else False
+    classified = classified or (task_band or "").endswith("classification")  # classes written as digits
+    classes = outcome.get("unique") if outcome and classified else None
+    state = {**_base(profile), "columns": len(cols) or None,
+             "numeric_columns": sum(kind(c) == "numeric" for c in plain), "category_columns": sum(kind(c) in ("categorical", "boolean") for c in plain),
+             "text_columns": sum(kind(c) == "text" for c in plain), "date_columns": sum(kind(c) == "datetime" for c in plain),
+             "high_card_columns": sum(kind(c) == "categorical" and (c.get("unique") or 0) > HIGH_CARD for c in plain),
+             "missing_columns": sum((c.get("missing_rate") or 0) > 0 for c in cols), "id_columns": len(cols) - len(plain),
+             "classes": int(classes) if isinstance(classes, (int, float)) and classes <= HIGH_CARD else None, "task": task_band,
+             "positive_rate": ratio_band(positive_rate) if isinstance(positive_rate, (int, float)) and 0 <= positive_rate <= 1 else None,
+             "usable_features": int(usable_features) if isinstance(usable_features, int) and usable_features >= 0 else None}
+    return {k: v for k, v in state.items() if v is not None}
+
+
+__all__ = ["column_bands", "task_state", "split_state", "cases_state", "cleaning_state", "tuning_state", "table_state", "coarse_task"]

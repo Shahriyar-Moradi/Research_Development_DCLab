@@ -172,9 +172,12 @@ def adopt(store: Any, project: dict[str, Any], proposal: dict[str, Any], target:
     return store, project["id"]
 
 
-def engine_run(case: Case, replica: str | None = None) -> Run:
+def engine_run(case: Case, replica: str | None = None, fast: bool = True) -> Run:
     """The case as a project, every stage run by the engine with no model asked anything (a replica's records stay on the
-    machine), and the finished records."""
+    machine), and the finished records. ``fast``: the test profile (ensembles cut to a few trees), as acceptance tests run;
+    False runs the product's own settings, as a measurement of which family wins must (the review of S7, 2026-10-25)."""
+    import contextlib
+
     from dclab_rnd.expansion import runner
     from dclab_rnd.models.gateway import private_scope
     from dclab_rnd.studio import engine
@@ -183,7 +186,8 @@ def engine_run(case: Case, replica: str | None = None) -> Run:
 
     with tempfile.TemporaryDirectory() as tmp, use.scope({"decisions": {}}):  # 22.9: the rules, whatever this workspace routes
         store, project_id = build(case, Path(tmp))
-        with runner.fast_profile(), private_scope(True), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None):
+        with (runner.fast_profile() if fast else contextlib.nullcontext()), private_scope(True), \
+                mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None):
             engine.run_all(store, project_id)
         from dclab_rnd.ledger import labels  # 19.8: the replica's planted traps label its decisions (when a ledger keeps them)
 
