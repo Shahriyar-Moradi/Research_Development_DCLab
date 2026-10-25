@@ -180,6 +180,20 @@ def rank_targets(profile: dict[str, Any], problem: str) -> list[str]:
     return (first + [c for c in candidates if c not in first and (c in allowed or c not in described)])[:max(8, len(candidates))]
 
 
+# S8 B3 (live, 2026-10-25): a person who does not know says so, and DCLab recorded "I don't know." as the answer (46
+# prediction moments, 33 outcomes, 31 families of 589 written people; 4 projects built with it as their moment). An
+# answer that is only that is never a value: the question is closed as declined, the field stays unknown, and only the
+# moment, which every solution needs, is assumed, said as an assumption.
+NOT_KNOWN = re.compile(r"\s*(i\s+(really\s+|honestly\s+)?(don'?t|do\s+not|dont)\s+know(\s+(yet|that|really|exactly|for\s+sure))?|not\s+sure"
+                       r"|no\s+idea|dunno|unknown|n/?a|skip)\s*[.!]*\s*", re.I)
+ASSUMED_MOMENT = "At the time each row is recorded, using only what was known then (assumed: the person did not know; change it on the Solution page)"
+
+
+def not_known(value: Any) -> bool:
+    """Whether an answer says only that the person does not know."""
+    return isinstance(value, str) and bool(NOT_KNOWN.fullmatch(value))
+
+
 def moment_options(pack: str | None) -> list[str]:
     if pack == "timeseries":
         return ["The day before", "A week ahead", "A month ahead"]
@@ -304,8 +318,24 @@ class HomeAgent:
         named = [c for c in columns if as_outcome(str(c))]
         return named[0] if len(named) == 1 else value
 
+    @staticmethod
+    def _not_known(d: dict[str, Any], field: str, value: str) -> None:
+        """The person does not know: the question is closed as declined (never asked again), the field stays unknown;
+        the prediction moment, which every solution needs, is assumed and said so."""
+        for q in d.get("questions") or []:
+            if q.get("field") == field and not q.get("answered"):
+                q["answered"], q["declined"] = value.strip()[:400], True
+        u = d.setdefault("understanding", {})
+        u["not_known"] = sorted({*(u.get("not_known") or []), field})
+        if field == "prediction_moment" and not u.get("prediction_moment"):
+            u["prediction_moment"] = ASSUMED_MOMENT
+            u["assumed"] = {**(u.get("assumed") or {}), "prediction_moment": ASSUMED_MOMENT}
+
     def record(self, draft_id: str, field: str, value: str) -> None:
         def put(d):
+            if not_known(value):
+                self._not_known(d, field, value)
+                return
             d.setdefault("understanding", {})[field] = self._as_column(d, field, value)[:400]
             self._close(d, field, d["understanding"][field])
         self.store.update(draft_id, put)
@@ -313,6 +343,9 @@ class HomeAgent:
     def note(self, draft_id: str, field: str, value: str, status: str, source: str, quote: str | None) -> None:
         """Record a field with its plan entry: how it is known and the user's words that say it (package A3.1)."""
         def put(d):
+            if not_known(value):
+                self._not_known(d, field, value)
+                return
             d.setdefault("understanding", {})[field] = self._as_column(d, field, value)[:400]
             d["plan"] = {**plans.empty(), **(d.get("plan") or {}), field: plans.entry(status, source, quote)}
             self._close(d, field, d["understanding"][field])

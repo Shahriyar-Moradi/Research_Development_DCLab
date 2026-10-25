@@ -48,7 +48,9 @@ def person_split(group: str) -> str:
 
 
 def homework() -> list[tuple[str, dict[str, Any]]]:
-    return [("homework_v1", j) for j in json.loads(HOMEWORK.read_text(encoding="utf-8"))] if HOMEWORK.is_file() else []
+    """The new people, each saying "I don't know" to what they cannot answer (they were written with answers left out on
+    purpose; S8 B3); the sealed people are played the same way."""
+    return [("homework_v1", {**j, "dont_know": True}) for j in json.loads(HOMEWORK.read_text(encoding="utf-8"))] if HOMEWORK.is_file() else []
 
 
 def items() -> list[tuple[str, dict[str, Any]]]:
@@ -177,6 +179,7 @@ MARK = "sealed_read.json"  # written before the sealed set is opened: a crash af
 GATE = {"version": "understand_gate_v1", "decision_gate": "decision_gate_v1", "seed": 5,
         "set": "journeys_understand_sealed.json (150 people, ten per kind, written by a separate agent told only the format, the kinds "
                "and their columns, never the homework or its writer's prompt; pinned by sealed_understand.sha256)",
+        "played": "seed 5, on the rules alone, each person saying \"I don't know\" to what they cannot answer, as the homework was played",
         "rule": "Each point's state student, and the text student for problem.family, judged once by decision_gate_v1 (the column "
                 "points' thresholds, unchanged) beside the rule on the same sealed decisions, by person, an answer right when the "
                 "person's journey accepts it; a model that does not pass stays in shadow.",
@@ -215,7 +218,7 @@ def gate(models: Path = MODELS, campaign: Path = CAMPAIGN, workers: int = 3) -> 
     (campaign / MARK).write_text(json.dumps({"fingerprint": fingerprint, "at": W.datetime.now(W.timezone.utc).isoformat(timespec="seconds"),
                                              "models": {p: c["version"] for p, (c, _) in loaded.items()}}, indent=1) + "\n", encoding="utf-8")
     os.environ.pop("DCLAB_JOURNEY_PLAYS", None)  # a sealed person's play is never kept where the store would read it
-    people = [("understand_sealed", j) for j in json.loads(SEALED_FILE.read_text(encoding="utf-8"))]
+    people = [("understand_sealed", {**j, "dont_know": True}) for j in json.loads(SEALED_FILE.read_text(encoding="utf-8"))]  # as the homework is played
     played = W._played([(s, j, GATE["seed"]) for s, j in people], workers)
     labelled = W.label_rows([r for p in played for r in p["rows"]], W.truths(people))
     failed = sorted({f"{p['source']}:{p['id']}" for p in played if p.get("error")})

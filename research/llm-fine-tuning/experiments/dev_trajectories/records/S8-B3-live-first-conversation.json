@@ -1,0 +1,110 @@
+{
+ "package": "S8-B3-live-first-conversation",
+ "title": "The first conversation live with Claude on 45 new people, and the 'I don't know' bug it found",
+ "date": "2026-10-25",
+ "request": "The owner: '$15 to test and make fixes for this plan' (plan 2026-10-25 Part B3).",
+ "spec": "45 dev people of the new homework (three a kind), each played on the rules and with Claude as the Home agent and the roles, every live play kept whole; the failures read, the top ones fixed, the same people played again.",
+ "plan": [
+  "A trial of two people to price a person.",
+  "The 45, capped at EUR 4.",
+  "Read every failure to its cause.",
+  "Fix what is a product bug; name what is a missing ability."
+ ],
+ "decisions": [
+  {
+   "decision": "A person written with answers left out says \"I don't know\" to what they cannot answer (journeys flag dont_know).",
+   "why": "A silent person stopped every play at the first unanswerable question: the test measured the stop, not DCLab; the older journeys keep their silence so their results stay comparable."
+  },
+  {
+   "decision": "An answer that is only \"I don't know\" is never recorded; the question closes as declined; only the moment is assumed, said as inferred.",
+   "why": "Every solution needs a moment; an assumption the person can see and change is honest, a stated 'I don't know.' is not a moment."
+  },
+  {
+   "decision": "The Solution page's missing kind proposal is a package of its own, not a quick fix.",
+   "why": "Each kind needs its own fields (a forecast's series and horizon, a ranking's user and item, a segmentation's outcome): proposing them needs a design per kind."
+  }
+ ],
+ "change": "dclab_rnd/draft/chat.py (not_known, NOT_KNOWN, ASSUMED_MOMENT, _not_known in record and note), dclab_rnd/draft/card.py (an assumed moment is inferred), dclab_rnd/draft/api.py (project.assumed.prediction_moment), dclab_rnd/agent_eval/journeys/__init__.py (_Person dont_know, FIELDS, _find/_unsure), dclab_rnd/understand_students.py (the new and the sealed people played saying I don't know), tests/test_home_not_known.py and tests/test_journeys_dont_know.py (new); HRN-045 (17 of 17).",
+ "findings": [
+  {
+   "id": "B3-1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "DCLab recorded \"I don't know.\" as the person's answer.",
+   "scenario": "Of 589 written people: 46 prediction moments, 33 outcomes, 31 families and 39 budgets were \"I don't know.\"; 4 projects were built with it as their moment.",
+   "cause": "The Home agent's record and note stored any reply; the core's NOT_SAID was never read there.",
+   "fix": "A reply that is only not-knowing is never a value: the question closes as declined, the field stays unknown, the moment is assumed and said so.",
+   "test": "tests/test_home_not_known.py"
+  },
+  {
+   "id": "B3-2",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The understood family does not reach the kind that is built.",
+   "scenario": "JH-forecasting-005 and -008: Claude's card said forecasting, the build ran regression; embedded people ran as text_tabular; 30 of 45 people were wrong in both arms, mostly kinds whose Solution page needs fields the person typed in the older journeys.",
+   "cause": "kinds.resolve reads a declared kind, the pack, then the task; the card's family is not read, and no kind proposes its own fields.",
+   "fix": "Next package: the Solution page proposes the kind and its fields from the card's family and the table.",
+   "test": "to come with the package"
+  },
+  {
+   "id": "B3-3",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The entity is not found without being named.",
+   "scenario": "JH-rare_event-000..002: the folds were not grouped by biker when the person did not name the biker, though biker_id repeats.",
+   "cause": "The group column comes from the person's entity answer.",
+   "fix": "Named for a later package (propose the entity from repeating id columns).",
+   "test": "to come"
+  },
+  {
+   "id": "B3-4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The engine crashed on a table with no usable feature.",
+   "scenario": "JH-ranking-101: LGBMClassifier on 0 features.",
+   "cause": "No check before fitting.",
+   "fix": "Named; to fix with a clear refusal.",
+   "test": "to come"
+  },
+  {
+   "id": "B3-5",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The written person answered a question with another field's words.",
+   "scenario": "Asked when the prediction is made, it answered 'churned' (its outcome); the Solution then refused the moment as too short.",
+   "cause": "The regex fallback for untagged questions also ran for tagged fields the person lacks.",
+   "fix": "A person who does not know a tagged field says so (dont_know people only).",
+   "test": "tests/test_journeys_dont_know.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the live run",
+   "gate": "45 dev people, both arms, capped at EUR 4",
+   "result": "the rules right on 11, Claude as the Home agent right on 14 of 45 (4 only Claude, 1 only the rules, 30 neither); EUR 3.6294; the data investigator asked 36 times",
+   "verdict": "pass",
+   "cost_eur": 3.6294,
+   "limits": [
+    "played before the I-don't-know fix",
+    "dev people of one writer"
+   ]
+  },
+  {
+   "name": "after the fix",
+   "gate": "the affected tests and the harness suite",
+   "result": "379 tests in 18 files pass; HRN-045 17 of 17",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": []
+  }
+ ],
+ "outcome": "A real product bug fixed (I don't know recorded as an answer); the largest missing ability named (the kind and its fields from the understood family).",
+ "lessons": [
+  "A test person who never says 'I don't know' hides how the product treats one who does.",
+  "Read every failure to its cause before counting it: most were one gap, not thirty."
+ ],
+ "risks": [
+  "The fixed product changes the plays: the homework is played again before the students are trained for their exam."
+ ],
+ "commits": []
+}

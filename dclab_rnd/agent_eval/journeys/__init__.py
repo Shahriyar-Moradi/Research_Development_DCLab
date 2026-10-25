@@ -173,14 +173,20 @@ class _Person:
     """The written person: answers a question by the field it asks (or, 26.5, by what its words ask when its field is not one
     they hold), approves every gate, and keeps what was asked."""
 
-    def __init__(self, answers: dict[str, str]):
+    UNSURE = "I don't know."  # S8 B3: what a person who does not know says (dclab_core.conversation reads it as not said)
+
+    def __init__(self, answers: dict[str, str], dont_know: bool = False):
         from dclab_rnd.studio import team
 
         self.asked: list[str] = []
         self.person = team.Person(answer=self._answer, approve=lambda gate, summary: True, who="written person")
         self.answers = answers
+        # S8 B3: a person written with answers left out on purpose says "I don't know" to a question they cannot answer,
+        # as people do, instead of falling silent (the older journeys keep their silence: their results stay comparable)
+        self.dont_know = bool(dont_know)
 
     SAME = {"outcome": "target", "target_check": "target", "labels_check": "labels"}  # one question asked under two names
+    FIELDS = ("target", "prediction_moment", "action", "entity", "labels", "budget", "costs", "data_plan", "family")  # the questions a person holds answers for
     # 26.5: what a question asks, read from its words, when its field is not one the person holds (a model asks in its own
     # words, under no field or another one); the first field whose words match and that the person can answer
     MEANING = (
@@ -208,20 +214,31 @@ class _Person:
         answer to what the stop and the agent's last words ask."""
         import re
 
-        said = self._answer("chat", says)  # the blocker the walk stopped on comes first: leave to build never leaves it open
+        said = self._find("chat", says)  # the blocker the walk stopped on comes first: leave to build never leaves it open
         if said is not None:
             return said
         self.asked.pop()
         if re.search(self.BUILD, str(last or ""), re.I):
             self.asked.append("chat→build")
             return self.GO
-        return self._answer("chat", f"{says} {last}")
+        return self._unsure(self._find("chat", f"{says} {last}"))
 
     def _answer(self, field: str, question: str) -> Optional[str]:
+        return self._unsure(self._find(field, question))
+
+    def _unsure(self, said: Optional[str]) -> Optional[str]:
+        if said is None and self.dont_know:
+            self.asked[-1] = f"{self.asked[-1]}→unsure"
+            return self.UNSURE
+        return said
+
+    def _find(self, field: str, question: str) -> Optional[str]:
         self.asked.append(field)
         said = self.answers.get(field) or self.answers.get(self.SAME.get(field, field))
         if said:
             return said
+        if self.dont_know and self.SAME.get(field, field) in self.FIELDS:
+            return None  # S8 B3: asked a field they cannot answer, a person says so; another field's words are no answer
         import re
 
         for name, pattern in self.MEANING:
@@ -381,7 +398,7 @@ def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]]
             _upload(drafts, agent, other, table, mine / table)
         else:
             _upload(drafts, agent, first, table, mine / table)
-        person = _Person(journey["answers"])
+        person = _Person(journey["answers"], dont_know=bool(journey.get("dont_know")))
         advisor = (live or {}).get("advisor")
         if journey.get("advisor"):  # 21.5: a role's scripted hand-off (the morning's data investigator naming an absent column)
             from dclab_core.agents import ScriptedAdvisor

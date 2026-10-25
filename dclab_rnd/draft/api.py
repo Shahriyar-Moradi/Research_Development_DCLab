@@ -1417,6 +1417,8 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
             suggestion["target"] = target
         if u.get("prediction_moment"):
             suggestion.setdefault("prediction_moment", u["prediction_moment"])
+        if (u.get("assumed") or {}).get("prediction_moment"):  # S8 B3: the person did not know; kept beside the suggestion, as the budget is
+            project["assumed"] = {**(project.get("assumed") or {}), "prediction_moment": u["assumed"]["prediction_moment"]}
         project["suggestion"] = suggestion or None
     if draft.get("settings"):
         st = draft["settings"] = {**draft["settings"], "split": split_of(draft)}  # the copy kept with the project says what runs

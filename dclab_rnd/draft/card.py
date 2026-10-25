@@ -80,7 +80,10 @@ def card_of(draft: dict[str, Any]) -> ProblemCard:
         update["task"] = (TaskFact(value=task, status="stated", quote=task, source="person") if source == "person"
                           else TaskFact(value=task, status="inferred", source="data", reason=f"the outcome column {target}'s values"))
     moment = solution.get("prediction_moment") or u.get("prediction_moment") or own.get("prediction_moment")
-    if moment:
+    if moment and moment == (u.get("assumed") or {}).get("prediction_moment") and not solution.get("prediction_moment"):
+        update["prediction_moment"] = TextFact(value=str(moment)[:4000], status="inferred", source="rule",  # S8 B3: assumed, never stated
+                                               reason="assumed: the person did not know when the prediction is made")
+    elif moment:
         update["prediction_moment"] = _stated(str(moment))
     if u.get("action"):
         update["action"] = _stated(str(u["action"]))
