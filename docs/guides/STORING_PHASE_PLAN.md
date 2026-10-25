@@ -977,6 +977,16 @@ session's split. **Done when:** an undone first try, a committed second try, an 
 it come out as 0, 1, 0 and nothing; a failed edit, an edit outside the repository and a data file never enter
 (`tests/test_store_dclab_code_sets.py`).
 
+### 32.39 The person's own steps in DCLab Code's episodes (added 2026-10-25)
+
+M6 learns a process step by step; between the agent's steps the person acts too. A command the person ran in DCLab Code
+(`! make test`) becomes the step `person:Bash` (outcome `exit_N`, `timed_out`), an undo `person:undo` (outcome
+`restored`, `removed`), each in its place among the agent's steps (a command where it started: the app records its
+start first). Only the act and its outcome code enter: never the command's text or its output. An episode is silver
+while the agent made steps in it, gold when it holds the person's steps alone. **Done when:** the episode's whole step
+list comes out in file order with the person's steps in place, a command started before an agent edit sits before it,
+and the app's own command is not a person step (`tests/test_store_dclab_code_sets.py`).
+
 ## The owner's answers (2026-10-20)
 
 - **The store's bulk:** a separate private GitHub repository, `dclab-records`, with one branch per person (`owner/main`,
@@ -1011,7 +1021,7 @@ it come out as 0, 1, 0 and nothing; a failed edit, an edit outside the repositor
 ## Order
 
 32.1 → 32.2 → 32.3 → 32.4 → 32.5 → 32.6 → 32.7 → 32.8 → 32.9 → 32.10 → 32.11 → 32.12 → 32.13 → 32.14 → 32.15 → 32.16 →
-32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31, then 32.32 → 32.33 → 32.34 → 32.35 → 32.36 → 32.37 → 32.38 (the
+32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31, then 32.32 → 32.33 → 32.34 → 32.35 → 32.36 → 32.37 → 32.38 → 32.39 (the
 check, 32.18, is extended by each).
 
 Every package follows the usual steps: a test first, the reviewer, its development record and `make sft-dev`, and the
@@ -1105,6 +1115,7 @@ gate. Model spend:
     - CPU time per step;
     - a workspace reading the store's shadow students;
     - live runs of the curator and the teacher.
+- **32.39 built (2026-10-25):** the person's own commands and undos as steps of DCLab Code's M6 episodes.
 - **32.38 built (2026-10-25):** the person's undos and commits of DCLab Code's file changes as M7 code judgements.
 - **32.37 built (2026-10-25):** the store every 6 hours on the owner's Mac (launchd), when due, alone, with 2 GB free.
 - **32.36 built (2026-10-25):** DCLab Code's attached images of this repository's sessions counted, never kept.

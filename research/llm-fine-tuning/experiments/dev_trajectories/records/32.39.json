@@ -1,0 +1,77 @@
+{
+ "package": "32.39",
+ "title": "The person's own commands and undos as steps of DCLab Code's M6 episodes",
+ "date": "2026-10-25",
+ "request": "Keep going: add the person's commands and undos to the step-by-step training data.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.39",
+ "plan": [
+  "Merge the person's acts with the agent's steps in file order",
+  "Keep only the act and its outcome code",
+  "Weight by who made the steps"
+ ],
+ "decisions": [
+  {
+   "decision": "A command's text and output never enter the episode",
+   "why": "M6 states carry no content; the agent's own Bash steps keep no command either"
+  },
+  {
+   "decision": "Silver while Claude made steps, gold for the person's alone",
+   "why": "an Episode has one weight; the owner's rule: Claude silver, people gold"
+  }
+ ],
+ "change": "sets/dclab_code.py: person steps (person:Bash, person:undo) in the episode's timeline, placed by the command's recorded start; DCLab Code records person_command_start (dclab-code 3955c69).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "defect": "the test did not prove the merge order",
+   "scenario": "appending the person's steps unsorted still passed",
+   "cause": "the step before the first undo was an Edit either way",
+   "fix": "the whole step list is asserted",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_the_persons_steps_sit_in_the_episode",
+   "severity": "gap"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "a command run during an agent turn landed after the agent's edits",
+   "scenario": "! make test for 60 s while the agent edits at +5 s read as Edit, then the test",
+   "cause": "only the command's end was recorded",
+   "fix": "DCLab Code records its start first; the builder places the step there",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_the_persons_steps_sit_in_the_episode",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "the episode's weight said the steps were all Claude's",
+   "scenario": "a session of the person's commands alone was labelled Claude's, silver",
+   "cause": "one weight for every episode",
+   "fix": "silver while Claude made steps, gold otherwise; the docs say so",
+   "test": "",
+   "severity": "behaviour"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "store tests and the store check",
+   "gate": "every store test passes and the store check passes all its checks",
+   "fixed_before_run": true,
+   "result": "test_store_dclab_code_sets 5 passed; store check 28 of 28",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "invented sessions"
+   ]
+  }
+ ],
+ "outcome": "DCLab Code's episodes show what the agent and the person each did, in order, with no content.",
+ "lessons": [
+  "Record where an act starts, not only where it ends, when other acts run meanwhile",
+  "Assert a whole order, not one neighbour"
+ ],
+ "risks": [],
+ "commits": [
+  "dclab-code 3955c69"
+ ]
+}

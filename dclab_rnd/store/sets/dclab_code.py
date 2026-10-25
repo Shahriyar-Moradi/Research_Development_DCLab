@@ -3,11 +3,13 @@ from the shaped records only. Each session is read in time order: the agent's to
 permission each step needed and the person's answer, the sealed and holdout guard's questions, the agent's questions and
 the answers, plan approvals, the person's grade of each turn, and what became of the work (merged, its copy removed).
 
-- **M6** (:class:`dclab_core.store.Episode`, folder ``dclab_code``): a session as an episode of tool steps. A step's state
+- **M6** (:class:`dclab_core.store.Episode`, folder ``dclab_code``): a session as an episode of tool steps, the person's own
+  steps (``person:Bash`` for a command they ran, ``person:undo``) in their place between the agent's (32.39). A step's state
   is bands and codes only (its step number, the tool as a code, the tool's family, the permission mode, whether it asked
   and why), its action the tool's name, its outcome ``auto_ok``, ``auto_error``, ``allowed_ok``, ``allowed_error``,
   ``denied``, ``answered``, ``skipped`` or ``plan_<choice>``; the episode's outcome from the record (``merged``, ``stopped``,
-  the last turn's result). The steps are the agent's (Claude), so the weight is silver.
+  the last turn's result). Silver weight while the agent (Claude) made steps in it; an episode of the person's steps alone
+  is gold.
 - **M7** (:class:`dclab_core.store.JudgedExample`): the person's judgement, gold: a step allowed or denied (folder
   ``dclab_code_steps``: the tool, its command or file path, why it asked), a plan approved or sent back with a note
   (``dclab_code_plans``: the plan whole), a turn's answer graded good or not good with a note (``dclab_code_answers``).
@@ -100,6 +102,7 @@ class Session:
         self.edits: dict[str, list[dict[str, Any]]] = defaultdict(list)  # file (relative to the session's folder) -> the agent's changes
         self.undos: dict[str, list[dict[str, Any]]] = defaultdict(list)  # file -> the person's undos of it, in order
         self.kept: list[dict[str, Any]] = []        # each commit or merge of the session's work: its order and the files in it
+        self.person_steps: list[dict[str, Any]] = []  # the person's own acts between the agent's steps (commands, undos), in order
         self.outcome: Optional[str] = None
         self._read()
 
@@ -125,6 +128,7 @@ class Session:
                 decisions[str(b["reqId"])] = {**b, "_auto": self._auto(b, after_stop), "_record": r}
         # Pass 2: the steps in file order.
         mode, turn, last_text, stopped, self._thinking = "unknown", 0, None, False, None
+        starts: dict[str, tuple] = {}  # a person's command: where it started
         answers_by_turn: list[Optional[str]] = []
         for r in self.lines:
             b = r.body
@@ -167,6 +171,15 @@ class Session:
                 self.grades.append({"turn": b.get("turn"), "value": b.get("value"), "note": b.get("note"), "record": r, "results_before": turn})
             elif t == "undo" and isinstance(b.get("file"), str) and b.get("by", "person") == "person":
                 self.undos[b["file"]].append({"how": b.get("how"), "record": r, "order": _order(r)})
+                self.person_steps.append({"order": _order(r), "action": "person:undo", "kind": "person_undo", "turn": turn, "mode": mode,
+                                          "outcome": _code(b.get("how") or "undone"), "guard": None, "at": r.at})
+            elif t == "person_command_start" and b.get("id"):
+                starts[str(b["id"])] = _order(r)
+            elif t == "person_command" and b.get("by", "person") == "person":
+                code = "timed_out" if b.get("timedOut") else f"exit_{b.get('exit')}" if isinstance(b.get("exit"), int) else "no_exit"
+                # placed where it started (the app records the start first), so what the agent did meanwhile comes after
+                self.person_steps.append({"order": starts.get(str(b.get("id")), _order(r)), "action": "person:Bash", "kind": "person_shell", "turn": turn, "mode": mode,
+                                          "outcome": code, "guard": b.get("guard"), "at": r.at})
             elif t == "outcome":
                 o = b.get("outcome")
                 if o in ("committed", "merged") and isinstance(b.get("files"), list):  # older records name no files: no verdict from them
@@ -274,10 +287,20 @@ def examples(layout: Layout, choices: Optional[dict] = None) -> dict[tuple[str, 
         split = split_of(s.sdk_id)
         first, more = s.provenance()
         ok = {mt: allowed(s.lines[0], mt, choices) for mt in ("m1_students", "m2_workflow_decisions", "m5_solver_llm", "m6_stepwise_decisions", "m7_judges")}
-        if ok["m6_stepwise_decisions"] and s.steps:
-            steps = [EpisodeStep(n=i, state=s.state(i, st), action=st["tool"][:200], outcome=Session.step_outcome(st), at=st["at"]) for i, st in enumerate(s.steps)]
+        if ok["m6_stepwise_decisions"] and (s.steps or s.person_steps):
+            # The agent's steps and the person's own (commands, undos) in file order: what each did, one step after another.
+            timeline = sorted([(st["order"], "agent", st) for st in s.steps] + [(p["order"], "person", p) for p in s.person_steps], key=lambda x: x[0])
+            steps = []
+            for i, (_, who, x) in enumerate(timeline):
+                if who == "agent":
+                    steps.append(EpisodeStep(n=i, state=s.state(i, x), action=x["tool"][:200], outcome=Session.step_outcome(x), at=x["at"]))
+                else:
+                    state = {"step": i, "move": _code(x["action"]), "kind": x["kind"], "method": x["mode"], "gate_required": False,
+                             "concern_source": x["guard"] or "none", "rounds": x["turn"]}
+                    steps.append(EpisodeStep(n=i, state=state, action=x["action"], outcome=x["outcome"], at=x["at"]))
             groups[("m6_stepwise_decisions", "dclab_code")].append(Episode(
-                id=f"m6:dclab_code:{s.sid}", model_type="m6_stepwise_decisions", split=split, provenance=first, more=more, weight=SILVER,
+                # silver while the agent (Claude) made steps in it; the person's steps alone are gold
+                id=f"m6:dclab_code:{s.sid}", model_type="m6_stepwise_decisions", split=split, provenance=first, more=more, weight=SILVER if s.steps else 1.0,
                 process="dclab_code", steps=steps, outcome=(s.outcome or None) and s.outcome[:200]))
         for i, st in enumerate(s.asked):
             prov = st["record"].provenance
@@ -375,8 +398,9 @@ def preferences(s: Session) -> list[tuple[dict[str, Any], dict[str, Any]]]:
     return pairs
 
 
+ABOUTS_M6 = "DCLab Code sessions as episodes: the agent's tool steps and the person's own (commands, undos), content-free state, the outcome (silver while Claude made steps)."
 ABOUTS = {"m5_solver_llm": "DCLab Code: the step the person allowed against the one they denied (both Claude's: silver, apart; consent from the owner's decision on provider outputs).",
-          "m6_stepwise_decisions": "DCLab Code sessions as episodes of tool steps: content-free state, the tool, the outcome (silver: the steps are Claude's).",
+          "m6_stepwise_decisions": ABOUTS_M6,
           "m7_judges": "The person's judgement of DCLab Code's steps, plans, answers and file changes (undone: 0; kept in committed or merged work: 1) (gold).",
           "m2_workflow_decisions": "The person's choices in DCLab Code: allow a step, approve a plan (gold).",
           "m1_students": "A student per DCLab Code decision point: what the person chooses, from the step's bands (gold)."}

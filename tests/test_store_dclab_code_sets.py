@@ -130,6 +130,13 @@ def undo_lines(repo):
         *edit(T(2, 1), "w8", "Edit", {"file_path": f"{repo}/m.py", "old_string": "a = 3", "new_string": "LATER"}),
         done(T(2, 2)),
         line(T(3, 0), kind="app", type="undo", file="m.py", how="restored", backup="/b/m2.py", by="person"),
+        line(T(3, 1), kind="app", type="person_command", id="c1", command="make test", exit=1, timedOut=False, output="1 failed", by="person", guard=None),
+        line(T(4, 0), kind="app", type="person_command_start", id="c2", by="person"),  # started before the agent's next edit...
+        *edit(T(4, 1), "w9", "Edit", {"file_path": f"{repo}/m.py", "old_string": "a = 1", "new_string": "a = 4"}),
+        line(T(4, 2), kind="app", type="person_command", id="c2", command="make long", exit=None, timedOut=True, output="", by="person", guard=None),  # ...ended after it
+        line(T(4, 3), kind="app", type="person_command", id="c3", command="cat sealed.json", exit=0, timedOut=False, output=None, by="person", guard="sealed"),
+        line(T(4, 4), kind="app", type="person_command", id="c4", command="x", exit=0, timedOut=False, output="", by="app", guard=None),  # never a person step
+        done(T(4, 5)),
     ]
 
 
@@ -246,6 +253,21 @@ class DclabCodeSetsTest(unittest.TestCase):
         self.assertTrue(transcript)
         self.assertEqual({r.split for r in transcript}, {split_of("sdk-s_edge01")})
         self.assertEqual(ep["split"], split_of("sdk-s_edge01"))
+
+    def test_the_persons_steps_sit_in_the_episode(self):
+        ep = next(e for e in self.rows("m6_stepwise_decisions", "dclab_code") if e["id"].endswith("s_undo01"))
+        actions = [(s["action"], s["outcome"]) for s in ep["steps"]]
+        self.assertEqual(actions, [("Edit", "auto_ok"), ("Write", "auto_ok"), ("Write", "auto_ok"), ("Write", "auto_ok"), ("Edit", "auto_error"),
+                                   ("person:undo", "restored"), ("Edit", "auto_ok"), ("Edit", "auto_ok"), ("Edit", "auto_ok"),
+                                   ("person:undo", "restored"), ("person:Bash", "exit_1"),
+                                   ("person:Bash", "timed_out"), ("Edit", "auto_ok"),  # placed where it started, before the edit made meanwhile
+                                   ("person:Bash", "exit_0")])                         # the app's own command is not a person step
+        sealed = ep["steps"][-1]
+        self.assertEqual(sealed["state"]["concern_source"], "sealed")
+        self.assertEqual(ep["weight"], 0.5)  # Claude made steps in it
+        person = [s for s in ep["steps"] if s["action"].startswith("person:")]
+        self.assertTrue(all(s["state"]["kind"] in ("person_undo", "person_shell") and s["state"]["gate_required"] is False for s in person))
+        self.assertNotIn("1 failed", json.dumps(ep))  # a command's output never enters a set
 
     def test_file_changes_judged_by_undo_and_commit(self):
         from dclab_core.datasets import split_of
