@@ -103,6 +103,11 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "numeric_columns": (COUNT, ()), "category_columns": (COUNT, ()), "text_columns": (COUNT, ()), "high_card_columns": (COUNT, ()),
     "missing_columns": (COUNT, ()), "usable_features": (COUNT, ()),
     "of": (CODE, ()),  # 0.112.0: what an operating point is a value of (a share acted on, or a threshold): its records were refused
+    # 0.112.1 (S8): the measured decide, data and learn decisions on real tables: a statement's cost ratio (a false alarm's
+    # and an action's cost over a case's value), the out-of-fold scores' calibration error, the rows a comparison window
+    # holds, and a gain's interval (the learning curve's last step, a challenger's lead)
+    "cost_ratio": (MEASURE, ()), "calibration_error": (MEASURE, ()), "window_rows": (COUNT, ()),
+    "gain_low": (MEASURE, ()), "gain_high": (MEASURE, ()), "capacity_share": (RATIO, ()),
 }
 Scalar = Union[str, int, float, bool, None]
 

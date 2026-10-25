@@ -17,7 +17,8 @@ from dclab_core.store import EXAMPLE_SHAPES, SetManifest
 from ..layout import Layout
 from ..store import now, write_json
 
-SPLIT_RULE = "dclab_core.datasets.split_of(the record's sealed key), salt dclab-datasets-v1: sealed below 0.2, dev below 0.4, else train"
+SPLIT_RULE = ("dclab_core.datasets.split_of(the record's sealed key), salt dclab-datasets-v1: sealed below 0.2, dev below 0.4, else train; "
+              "a public table (openml:<id>): the lake's split")
 
 
 def standing(layout: Layout) -> dict[tuple[str, str], dict[str, Any]]:

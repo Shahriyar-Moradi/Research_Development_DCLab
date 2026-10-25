@@ -29,6 +29,7 @@ consent, every source by id, the counts, and how it was split. The builders:
 from __future__ import annotations
 
 import hashlib
+import re
 from collections import Counter, defaultdict
 from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
@@ -101,8 +102,28 @@ def now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+_PUBLIC_TABLE = re.compile(r"(?:dataset:|draft:)?openml[:-]([1-9][0-9]{0,9})")
+
+
+def table_key(group: Any) -> Optional[str]:
+    """A public table's own key in the lake (``openml:<id>``), whichever way a record names it: its dataset
+    (``dataset:openml:<id>``), its draft (``draft:openml-<id>``) or the lake's own key (``openml:<id>``); None for any
+    other group. Read strictly: the whole group, an id of digits without a leading zero, nothing after it."""
+    m = _PUBLIC_TABLE.fullmatch(str(group))
+    return f"openml:{m.group(1)}" if m else None
+
+
 def split_of(group: str, salt: str = SALT) -> str:
-    """A whole group's split, from its hash: the same group always lands in the same split."""
+    """A whole group's split, from its hash: the same group always lands in the same split.
+
+    A public table's group takes the lake's split (``dclab_core.lake.split_of`` of its key), whichever way it is named:
+    the lake's exams seal tables by that key, so a table sealed there is never trained on here (S8, 2026-10-25: the
+    store split real tables by a hash of their draft or project and put tables the lake keeps for measuring in train)."""
+    key = table_key(group) if salt == SALT else None
+    if key is not None:
+        from .lake import split_of as lake_split
+
+        return lake_split(key)
     h = int(hashlib.sha256(f"{salt}:{group}".encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
     return next((name for name, bound in SPLITS if h < bound), "train")
 
@@ -187,7 +208,8 @@ def decisions(docs: Iterable[dict[str, Any]], point: str, *, workspace: Optional
     return rows, manifest("decisions", f"decisions.{point}", rows, sources_of(rows), use="train", consent=consent, workspace=workspace,
                           counts={"labels_by_source": dict(by_source)},
                           policy="Grouped by dataset, else project (a draft with the project it became), else draft; whole groups to "
-                                 "sealed (20%), dev (20%) or train by the group's hash, the same in every set. The sealed partition is a "
+                                 "sealed (20%), dev (20%) or train by the group's hash, the same in every set (a public table, openml:<id>: the lake's "
+                                 "split, its copies dev). The sealed partition is a "
                                  "file of its own, never used for tuning.",
                           limits=["Labels are kept apart by source; `label` follows ledger.effective_label (blind, benchmark, measured, "
                                   "then a person's correction)."])
@@ -727,7 +749,7 @@ def failures(sessions: Iterable[dict[str, Any]], reviews: Optional[dict[str, dic
 
 
 __all__ = ["group_of", "sources_of", "refit", "SALT", "DatasetManifest", "Source", "decisions", "conversations", "preferences", "trajectories", "workflows", "problem_maps", "routes", "team_walks", "TEAM_FAMILY", "failures", "manifest",
-           "split_of", "LABEL_SOURCES", "VERSION"]
+           "split_of", "table_key", "LABEL_SOURCES", "VERSION"]
 
 
 # ------------------------------------------------------------------------------------------------ (h) the twin (25.7)

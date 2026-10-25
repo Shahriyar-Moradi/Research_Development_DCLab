@@ -113,6 +113,18 @@ NOT_DECIDED = {
 
 
 _BATCH = contextvars.ContextVar("dclab_ledger_batch", default=None)
+_DATASET: "contextvars.ContextVar[Optional[str]]" = contextvars.ContextVar("dclab_ledger_dataset", default=None)
+
+
+@contextlib.contextmanager
+def dataset_scope(name: Optional[str]):
+    """Every decision recorded inside is about this table (its ``dataset``, ``openml:<id>`` for a public one), unless a
+    caller names another: a table's records then share one group, so the store splits them as the lake does (S8)."""
+    token = _DATASET.set(str(name) if name else None)
+    try:
+        yield
+    finally:
+        _DATASET.reset(token)
 
 
 @contextlib.contextmanager
@@ -377,7 +389,7 @@ def _ids(ids: dict[str, Any]) -> dict[str, Any]:
     from ..experience import _IDS
 
     bound = _IDS.get()
-    out = {"project": bound.get("project"), "run": bound.get("run"), "conversation": bound.get("conversation")}
+    out = {"project": bound.get("project"), "run": bound.get("run"), "conversation": bound.get("conversation"), "dataset": _DATASET.get()}
     out.update({k: (str(v) if v is not None else None) for k, v in ids.items()})
     return out
 

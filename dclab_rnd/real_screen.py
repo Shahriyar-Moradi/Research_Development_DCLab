@@ -8,8 +8,9 @@ engine_run``: the proposal accepted, every stage under its gates), its decisions
 with the table at a glance (``ledger.states.table_state``), and every family's training-fold score kept in
 ``screens.jsonl``: the truth a student is judged by (its pick's regret against the best, in units of the folds' noise).
 
-Each table sits in the lake's split (``dclab_core.lake.split_of``): train and dev tables in their own folders, sealed
-tables in a folder of their own that no training reads, for the student's one exam. A table larger than ``MAX_ROWS`` is
+Each table sits in the lake's split (``dclab_core.lake.split_of``, read through ``dclab_core.datasets.split_of`` as the
+store reads it): train and dev tables in their own folders, sealed tables in a folder of their own that no training
+reads, for the student's one exam. A table larger than ``MAX_ROWS`` is
 screened on a seeded sample of its rows. Resumable (a done marker per table); a run waits while the Mac is over 80% busy
 or the disk has under 3 GB free (the owner's rules); one table that cannot be read or solved costs itself only.
 """
@@ -92,15 +93,29 @@ def task_of(frame: Any, target: str) -> str:
     return str(detect_task(frame, target).get("task") or "binary")
 
 
-def screen_one(derived: dict[str, Any], home: Path = HOME, download: Optional[Callable[[Any], Any]] = None) -> dict[str, Any]:
-    """One real table through the engine, its ledger and its screen kept in its split's folder."""
-    from dclab_core import lake
+def dataset_of(did: Any) -> str:
+    """The table's name in every record of its screen: ``openml:<id>`` for a public table, ``craft:<seed>`` for an
+    invented one (benchgen v3)."""
+    s = str(did)
+    return f"craft:{s.removeprefix('craft')}" if s.startswith("craft") else f"openml:{s}"
 
+
+def split_for(did: Any) -> str:
+    """The table's split, the one the store gives its records (``dclab_core.datasets.split_of`` of its dataset: the
+    lake's for a public table), so a table measured on here is never trained on there (S8)."""
+    from dclab_core.datasets import split_of
+
+    return split_of(f"dataset:{dataset_of(did)}")
+
+
+def screen_one(derived: dict[str, Any], home: Path = HOME, download: Optional[Callable[[Any], Any]] = None) -> dict[str, Any]:
+    """One real table through the engine, its ledger and its screen kept in its split's folder; every decision of the
+    run carries the table as its dataset."""
     from . import ledger, real_shadow
     from .kinds import acceptance as A
 
     did = derived["did"]
-    split = lake.split_of(f"openml:{did}")
+    split = split_for(did)
     folder = Path(home) / split
     marker = folder / "done" / f"{did}.json"
     if marker.is_file():
@@ -113,12 +128,13 @@ def screen_one(derived: dict[str, Any], home: Path = HOME, download: Optional[Ca
             frame = frame.sample(MAX_ROWS, random_state=0).sort_index().reset_index(drop=True)  # the file's own order kept
         target = derived["target"]
         case = A.Case(table=frame, target=target, task=task_of(frame, target), moment=MOMENT)
-        book = ledger.FileLedger(folder / "ledgers" / str(did), f"real-screen-{split}")
+        book = ledger.FileLedger(folder / "ledgers" / str(did) / "ledger", f"real-screen-{split}")  # where the store reads a workspace's decisions
         book.home = folder / "ledgers" / str(did)
         before = ledger._INSTALLED.get("ledger")
         ledger.install(book)
         try:
-            run = A.engine_run(case, fast=False)  # the product's own settings: the test profile's few trees change who wins
+            with ledger.dataset_scope(dataset_of(did)):
+                run = A.engine_run(case, fast=False)  # the product's own settings: the test profile's few trees change who wins
         finally:
             ledger.install(before)
         models, features = run.evidence("models"), run.evidence("features")
@@ -147,10 +163,8 @@ def screen_one(derived: dict[str, Any], home: Path = HOME, download: Optional[Ca
 
 def run(home: Path = HOME, limit: Optional[int] = None, wait: bool = True, log=print) -> dict[str, int]:
     """Every table not screened yet (at most ``limit``), waiting for room between tables."""
-    from dclab_core import lake
-
     counts: Counter = Counter()
-    todo = [d for d in tables() if not (Path(home) / lake.split_of(f"openml:{d['did']}") / "done" / f"{d['did']}.json").is_file()]
+    todo = [d for d in tables() if not (Path(home) / split_for(d["did"]) / "done" / f"{d['did']}.json").is_file()]
     for d in todo[:limit] if limit else todo:
         why = room()
         while why and wait:

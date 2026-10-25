@@ -20,10 +20,12 @@ The library imports only pydantic; the builders that read workspaces are the stu
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 from collections import Counter
 from collections.abc import Iterable, Mapping
+from pathlib import Path
 from typing import Any, Literal, Optional
 
 from pydantic import Field, JsonValue
@@ -72,10 +74,35 @@ SPLITS = (("sealed", 0.15), ("dev", 0.30))  # a group's hash below 0.15: sealed;
 HOLDOUT_MARKERS = ("holdout_rows", "holdout_values", "y_holdout", "X_holdout")  # never a key of a gold row
 
 
-def split_of(group: str, salt: str = SALT) -> str:
-    """A whole group's split, from its hash: the same group always lands in the same split."""
+def base_split_of(group: str, salt: str = SALT) -> str:
+    """A whole group's split from its hash alone: the same group always lands in the same split."""
     h = int(hashlib.sha256(f"{salt}:{group}".encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
     return next((name for name, bound in SPLITS if h < bound), "train")
+
+
+TWINS_FILE = Path(__file__).with_name("lake_twins.json")  # built by dclab_rnd.table_twins from the public tables' records
+
+
+@functools.lru_cache(maxsize=1)
+def twins() -> dict[str, Any]:
+    """The public tables that are copies of each other (0.112.1): ``held`` (a train table with a twin in dev or sealed)
+    and ``sealed_with_twins`` (a sealed table with a twin outside sealed: an exam skips it). Empty without the file."""
+    try:
+        doc = json.loads(TWINS_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"held": {}, "sealed_with_twins": {}}
+    return {"held": dict(doc.get("held") or {}), "sealed_with_twins": dict(doc.get("sealed_with_twins") or {})}
+
+
+def split_of(group: str, salt: str = SALT) -> str:
+    """A whole group's split: its hash's, except for public tables that are copies of each other (0.112.1, the review
+    of S8): a train table with a twin in dev or sealed is dev, so a copy of a table kept for measuring is never trained
+    on; and a sealed table with a twin outside sealed is dev too, since a model may have trained on its copy, so it is
+    never read as a blind exam. Both only ever move a table to dev: none becomes train or sealed."""
+    split = base_split_of(group, salt)
+    if salt == SALT and ((split == "train" and str(group) in twins()["held"]) or (split == "sealed" and str(group) in twins()["sealed_with_twins"])):
+        return "dev"
+    return split
 
 
 def fingerprint(value: Any) -> str:
@@ -204,5 +231,5 @@ CONTRACTS["decision_sample"] = DecisionSample
 CONTRACTS["training_example"] = TrainingExample
 CONTRACTS["gold_manifest"] = GoldManifest
 
-__all__ = ["Origin", "Split", "Consent", "TRAINABLE", "EVAL_ONLY", "FAMILIES", "SPLITS", "split_of", "fingerprint", "Provenance",
+__all__ = ["Origin", "Split", "Consent", "TRAINABLE", "EVAL_ONLY", "FAMILIES", "SPLITS", "split_of", "base_split_of", "twins", "fingerprint", "Provenance",
            "DecisionSample", "Verification", "TrainingExample", "GoldManifest", "gold_problems", "manifest_of"]

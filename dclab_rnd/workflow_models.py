@@ -38,6 +38,8 @@ DECISIONS = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions"
 SETS = DECISIONS / "workflow_v1"
 MODELS = DECISIONS / "workflow_models_v1"
 CAMPAIGN = ROOT / "evidence" / "campaigns" / "workflow_models_v1"
+PLAYS = ROOT / "agent_runs" / "journey_plays"  # S8 A2: each collected play kept whole (``DCLAB_JOURNEY_PLAYS``; the CLI's collect sets it)
+DATA_FILES = (".csv", ".parquet", ".xlsx", ".xls", ".tsv", ".json.gz")
 JOURNEYS = ROOT / "dclab_rnd" / "agent_eval" / "journeys"
 SEALED_FILE, SEALED_HASH = JOURNEYS / "journeys_workflow_sealed.json", JOURNEYS / "sealed_workflow.sha256"
 SEEDS = (0, 1)
@@ -96,10 +98,47 @@ def _spent(results: Path, split: str) -> bool:
     return any(Path(results).glob(f"*_{split}.json")) if Path(results).is_dir() else False
 
 
+def kept_folder(source: str, journey_id: str, seed: int) -> Optional[Path]:
+    """Where a play is kept whole (S8 A2), or None: under ``DCLAB_JOURNEY_PLAYS`` when it is set (``off`` keeps none),
+    one folder per set, person and seed. Only ``collect`` sets it, never the gate: a sealed person's play is never kept
+    where the store would read it."""
+    import os
+    import re
+
+    base = os.environ.get("DCLAB_JOURNEY_PLAYS")
+    if not base or base == "off":
+        return None
+    clean = lambda x: re.sub(r"[^A-Za-z0-9_.-]+", "_", str(x))[:80]  # noqa: E731
+    return Path(base) / clean(source) / clean(journey_id) / f"s{int(seed)}"
+
+
+def _tidy(keep: Path) -> None:
+    """A kept play's records stay, its tables go: the invented tables a seed rebuilds are left out, each named with its
+    size and SHA-256 in ``LEFT_OUT.json``; the play's events are copied where the store reads a workspace's experience."""
+    left = []
+    for path in sorted(p for p in keep.rglob("*") if p.is_file() and p.name.endswith(DATA_FILES)):
+        left.append({"file": path.relative_to(keep).as_posix(), "bytes": path.stat().st_size,
+                     "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
+        path.unlink()
+    if left:
+        (keep / "LEFT_OUT.json").write_text(json.dumps({"why": "invented tables, rebuilt from the journey and its seed; the records kept",
+                                                        "files": left}, indent=1) + "\n", encoding="utf-8")
+    events = keep / "events.jsonl"
+    if events.is_file() and events.stat().st_size:
+        first = json.loads(events.read_text(encoding="utf-8").splitlines()[0]).get("at") or datetime.now(timezone.utc).isoformat()
+        day = datetime.fromisoformat(str(first).replace("Z", "+00:00"))
+        target = keep / "workspace" / "experience" / f"{day:%Y}" / f"{day:%m}" / f"{day:%d}" / "journey.jsonl"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(events.read_bytes())
+
+
 def play(item: tuple[str, dict[str, Any], int]) -> dict[str, Any]:
     """One journey played up to its build with a ledger of its own, on the rules alone (an empty routing scope, no
-    shadow): its workflow decisions at the learned points, unlabelled (``label_rows`` labels them)."""
+    shadow): its workflow decisions at the learned points, unlabelled (``label_rows`` labels them). With
+    ``DCLAB_JOURNEY_PLAYS`` set (``kept_folder``), the whole play is kept: its ledger, drafts, project and events, each
+    decision naming the person as its dataset so the store keeps a person's plays in one split."""
     import os
+    import shutil
 
     from dclab_core import workflow_labels as wl
     from dclab_core.ledger import POINTS
@@ -113,17 +152,25 @@ def play(item: tuple[str, dict[str, Any], int]) -> dict[str, Any]:
     person = f"{source}:{journey['id']}"  # a person is a set and an id: two sets may reuse an id
     shadow_before = os.environ.get("DCLAB_DECISION_SHADOW")
     os.environ["DCLAB_DECISION_SHADOW"] = "0"
+    keep = kept_folder(source, journey["id"], seed)
+    if keep is not None and keep.exists():
+        shutil.rmtree(keep)  # a replay replaces the folder (the store keeps every version it captured)
     with tempfile.TemporaryDirectory() as tmp:
-        book = ledger.FileLedger(Path(tmp) / "ledger", "workflow-models")
-        book.home = Path(tmp)
+        home = keep / "workspace" if keep is not None else Path(tmp)
+        book = ledger.FileLedger(home / "ledger", "workflow-models")
+        book.home = home
         before = ledger._INSTALLED.get("ledger")
         ledger.install(book)
         stop = RuntimeError("played up to the build: the stages are not needed by the workflow's decisions")
         error = None
         try:
             with use.scope({"decisions": {}}), mock.patch("dclab_rnd.studio.engine.run_all", side_effect=stop), \
-                    mock.patch("dclab_rnd.studio.programme.run", side_effect=stop):
-                (P.play if "programme" in journey else J.play)(journey, seed)
+                    mock.patch("dclab_rnd.studio.programme.run", side_effect=stop), \
+                    ledger.dataset_scope(f"journey:{person}"[:80] if keep is not None else None):
+                if "programme" in journey:
+                    P.play(journey, seed)  # its own stores: its ledger is kept, its drafts are not
+                else:
+                    J.play(journey, seed, keep=keep)
         except Exception as e:  # noqa: BLE001 - a journey that fails is counted, its decisions so far kept
             if e is not stop:  # the stop after the build is the play's planned end (a programme journey does not catch it)
                 error = f"{type(e).__name__}: {str(e)[:160]}"
@@ -134,6 +181,8 @@ def play(item: tuple[str, dict[str, Any], int]) -> dict[str, Any]:
             else:
                 os.environ["DCLAB_DECISION_SHADOW"] = shadow_before
         records = book.records()
+        if keep is not None:
+            _tidy(keep)
     seen, rows = set(), []
     workflow = Counter(r.point for r in records if POINTS[r.point].kind == "workflow")
     for r in records:
@@ -382,6 +431,10 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--yes", action="store_true", help="gate: read the sealed journeys (once: they are then spent)")
     args = parser.parse_args(argv)
     if args.command in ("collect", "relabel"):
+        if args.command == "collect":
+            import os
+
+            os.environ.setdefault("DCLAB_JOURNEY_PLAYS", str(PLAYS))  # S8 A2: every collected play kept whole (the gate never)
         m = collect(args.workers) if args.command == "collect" else relabel()
         for point, s in m["sets"].items():
             print(f"{point:<24} {s['labelled']:>5} labelled of {s['rows']:>5}, {s['people']} people, rule right {s['rule_right']}  {s['labels']}")

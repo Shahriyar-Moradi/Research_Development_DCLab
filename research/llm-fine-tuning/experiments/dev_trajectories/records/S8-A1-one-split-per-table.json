@@ -1,0 +1,157 @@
+{
+ "package": "S8-A1-one-split-per-table",
+ "title": "One split per public table everywhere, copies included: the store splits real tables as the lake does, and a copy of a table kept for measuring is never trained on",
+ "date": "2026-10-25",
+ "request": "The owner: 'make sure all data must capture and record and store for all 6 models we have', with the plan for more ability (S8) approved; capture correctness first.",
+ "spec": "Plan 2026-10-25 Part A1 (~/.claude/plans/async-skipping-firefly.md): real-table writers name their table; dclab_core.datasets.split_of sends a public table's group to dclab_core.lake.split_of; a test; the moves reported.",
+ "plan": [
+  "Count the real-table records by the lake's split and the store's.",
+  "Ask the other session (the store's author) before changing the split.",
+  "Route a public table's group to the lake's split, parsed strictly.",
+  "Make the screens' records name their table (a ledger dataset scope).",
+  "Report what moves and whether anything leaked."
+ ],
+ "decisions": [
+  {
+   "decision": "The fix is in dclab_core.datasets.split_of, the one function every set builder and the store's shaper call.",
+   "why": "One place: the store, the dataset builders and the curriculum read it; a second mapping in the store would drift."
+  },
+  {
+   "decision": "A public table's group takes the lake's split, not the other way round.",
+   "why": "The lake's split is what the real-table exams seal (real_v1, real_v2, the screens); moving it would unseal tables already read once."
+  },
+  {
+   "decision": "The id is read strictly: the whole group, digits without a leading zero, nothing after them.",
+   "why": "The other session's review: 'openml:02' or 'openml-2-copy' must not become table 2's key by accident."
+  },
+  {
+   "decision": "A ledger dataset scope (ledger.dataset_scope) names the table for every decision inside an engine run; a caller's own dataset wins.",
+   "why": "The engine's records carry a random project id; the screens can name the table once around the run instead of in every capture call."
+  },
+  {
+   "decision": "No forced re-shape now.",
+   "why": "sets/decisions.py recomputes each example's split from its group at build time; the Mac is busy; the next build applies the fix."
+  },
+  {
+   "decision": "Twins move only to dev, in lake.split_of itself.",
+   "why": "Dev is neither trained on nor read as a blind exam: no table becomes train or sealed, so no exam already read changes; and every caller (store, screens, homework, collector) agrees at once."
+  },
+  {
+   "decision": "The twin signature includes OpenML's qualities, and keeps schema-sharing variants together.",
+   "why": "Rows and columns alone held 175 train tables, many synthetic variants; with the qualities 73; the variants left are the same homework for the column students."
+  }
+ ],
+ "change": "dclab_core/datasets.py (table_key, split_of routes a public table to lake.split_of), dclab_core 0.112.1 and its CHANGELOG; dclab_rnd/ledger/__init__.py (dataset_scope, _ids carries the dataset); dclab_rnd/real_screen.py (dataset_of, split_for, the run inside the scope); dclab_rnd/store/sets/__init__.py (SPLIT_RULE says it); docs/DATA_CATALOG.md and data_catalog.json (the version); tests/test_public_table_split.py (new). After the review: dclab_core/lake.py (base_split_of, twins, split_of moves a twinned train or sealed table to dev), dclab_core/lake_twins.json (package data) built by dclab_rnd/table_twins.py; real_screen keeps its ledger under ledgers/<did>/ledger where the store reads decisions; the datasets policy text; the report and note corrected.",
+ "findings": [
+  {
+   "id": "A1-1",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "The store split real tables by a hash of their draft or project (salt dclab-datasets-v1, 20/40) while the lake splits them by openml:<id> (salt dclab-lake-v1, 15/30).",
+   "scenario": "The store's sets held 545 public tables, all lake-train by id, but 90 of them in its dev split and 96 in its sealed split by the old hash; any new real-table record would have been split by a random project id.",
+   "cause": "Two split functions for one table: the lake's for its exams, the datasets' for the store; a screen's records carried a random project id and no table.",
+   "fix": "datasets.split_of sends dataset:openml:<id>, draft:openml-<id> and openml:<id> to lake.split_of; the screens bind the table as the dataset.",
+   "test": "tests/test_public_table_split.py: one table, three names, the lake's split for ids 1..399 (all three splits seen)"
+  },
+  {
+   "id": "A1-2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A loose parse could give another group a table's key.",
+   "scenario": "'openml:02', 'draft:openml-2-copy', 'project:openml:2' read as table 2.",
+   "cause": "A prefix match.",
+   "fix": "A full match: digits without a leading zero, at most ten, nothing after.",
+   "test": "test_the_id_is_read_strictly"
+  },
+  {
+   "id": "A1-3",
+   "source": "measurement",
+   "severity": "latent",
+   "defect": "The store's SPLIT_RULE text would have broken every set manifest.",
+   "scenario": "The longer rule was 230 characters; SetManifest.split_rule allows 200.",
+   "cause": "A contract limit not read before the text grew.",
+   "fix": "A shorter rule (170 characters).",
+   "test": "the manifest's contract at the next build; the affected store tests pass"
+  },
+  {
+   "id": "R-F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The dev record used a severity the devlog contract refuses.",
+   "scenario": "'high': test_devlog and test_datasets errors; make sft-dev would raise.",
+   "cause": "The contract's list not read.",
+   "fix": "leakage and latent.",
+   "test": "tests/test_devlog.py, tests/test_datasets.py"
+  },
+  {
+   "id": "R-F2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The screens' decisions never reached the store's decision sets.",
+   "scenario": "The screen's ledger was opened at ledgers/<did>, so its files were decisions/... and the store classified them as other.",
+   "cause": "The store reads a workspace's ledger/ folder.",
+   "fix": "The ledger opened at ledgers/<did>/ledger; a store-level test shapes a lake-sealed screen record and a lake-sealed draft:openml record and finds both sealed.",
+   "test": "test_a_lake_sealed_tables_records_are_sealed_in_the_store_however_named"
+  },
+  {
+   "id": "R-F3",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "One table under several OpenML ids sat in different splits: a copy of a table sealed for an exam was in training.",
+   "scenario": "glass is 41 (real_v1 sealed) and 952 prnn_fglass (store train); iris four times; 25 of DMG-014's 177 sealed tables have a copy in real_v1's train.",
+   "cause": "The key is the OpenML id, not the table.",
+   "fix": "Twins found by rows, column names and OpenML qualities (dclab_rnd/table_twins.py, dclab_core/lake_twins.json); lake.split_of gives dev to a train twin of a dev or sealed table and to a sealed table with a twin outside sealed; DMG-014 named as partly not blind (its fail stands).",
+   "test": "TwinTest in tests/test_public_table_split.py"
+  },
+  {
+   "id": "R-F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The changelog and the dev record said the next store build would have trained on 84 lake-dev tables.",
+   "scenario": "Those ledgers are in an evaluation workspace whose consent keeps them out of training (counts only).",
+   "cause": "The count read every ledger on disk without its consent.",
+   "fix": "The text says what was measured.",
+   "test": "REPORT.json and NOTE.md rebuilt"
+  },
+  {
+   "id": "R-F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The datasets manifest described the old split for public tables.",
+   "scenario": "make datasets on a real-table workspace would say 20/20 by hash.",
+   "cause": "Only SPLIT_RULE was updated.",
+   "fix": "The policy text names the lake's split for a public table.",
+   "test": "the manifest's text"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "what moves",
+   "gate": "agent_runs/live_tests/2026-10-25-split-fix/report.py (read-only) on the sets built 2026-10-24",
+   "result": "the sets hold 545 public tables, all lake-train by id; with the twins, 40 tables of their train files (9,099 rows) are now dev; 90 store-dev and 96 store-sealed lake-train tables go to train (sealed ones in a new version); DMG-014 was partly not blind (25 of 177 sealed tables have a copy in train)",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the ledgers not yet shaped are counted from their files, not from the store"
+   ]
+  },
+  {
+   "name": "affected tests",
+   "gate": "affected tests only (the owner's daytime rule)",
+   "result": "116 tests in 16 files pass (datasets, store sets and shapers, tutor, screens, shadow, collector, curriculum, real homework, first family, lineage, core wheel, the data catalog after make catalog)",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": []
+  }
+ ],
+ "outcome": "One table, one split, in the lake, the screens and the store, and copies of a table kept for measuring held out of training; the one exam that read copies is named.",
+ "lessons": [
+  "Two hash functions over the same thing are two partitions: when a split matters for an exam, there must be exactly one function that decides it.",
+  "Read a contract's limits before growing a text that goes into it.",
+  "An id is not a table: public datasets are uploaded again under new ids, so a split by id leaks copies."
+ ],
+ "risks": [
+  "Rows already written to a v1 set's sealed file stay sealed (by design): those 106 lake-train tables teach only from the next set version."
+ ],
+ "commits": []
+}

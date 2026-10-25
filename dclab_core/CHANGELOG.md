@@ -4,6 +4,24 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.112.1 (2026-10-25)
+
+One split per public table, everywhere (S8 of the 100-students plan, the owner's "capture everything for every model").
+
+- `datasets.split_of`: a public table's group, however a record names it (`dataset:openml:<id>`, `draft:openml-<id>`,
+  or the lake's own `openml:<id>`), takes the lake's split, so the store and the lake never disagree on a table. Every
+  other group keeps its hash. (The store's sets held 545 public tables, all lake-train by id; 90 of them sat in its dev
+  split and 96 in its sealed split by the old hash.)
+- `datasets.table_key(group)`: the table's key, read strictly (digits without a leading zero, nothing after them), or
+  None.
+- `lake.split_of` and `lake_twins.json` (package data): OpenML holds one table under several ids, and the hash split the
+  copies apart (a copy of a table sealed for an exam was in training). A train table with a twin in dev or sealed, and
+  a sealed table with a twin outside sealed, are dev: never trained on, never read as a blind exam. A table only ever
+  moves to dev. `lake.base_split_of` is the hash alone; `lake.twins()` the file (built by `dclab_rnd.table_twins`).
+- `ledger.STATE_FIELDS`: `cost_ratio`, `calibration_error`, `window_rows`, `gain_low`, `gain_high` and
+  `capacity_share`, for the measured decide, data and learn decisions on real tables (the operating point, would more
+  rows help, a challenger's promotion), each recorded with its measured label.
+
 ## 0.112.0 (2026-10-25)
 
 More ability for the students (S7 of the 100-students plan): an expert's guess before the screen, and homework whose
