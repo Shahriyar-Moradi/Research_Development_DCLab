@@ -297,9 +297,13 @@ or decided; nothing below blocks using them.
    rises on average no (mean difference -0.0034), bounded no (bank marketing's search took 4.81 minutes against 4.5:
    the budget stops new attempts, not one already running, and on a loaded machine the last one ran over; 3.16 on a
    quiet one). The search stays an opt-in.
-2. The nightly gate: `make check-all` and `make core-wheel-check` on the latest commit, alone on the machine. Owed since
-   2026-10-24: 34.9 to 34.14 and dclab-core 0.106.0 to 0.112.0 have had only `make rd-gates` and their own tests. A
-   failure is fixed with a test, or reported.
+2. ~~The nightly gate~~ ran 2026-10-26 on 10c77c72 (`make check-commit GATE=check-all`, then `make core-wheel-check`):
+   rd-gates, the campaign agent's tests, every product-e2e flow and the wheel passed; the suite failed 5 files, each
+   fixed and passing on files and PostgreSQL on 84b76d6c: test_pages_lab (search_v3's verdict had no id; a0622043) and
+   test_data_value on PostgreSQL (two tests that held only on files; a1003ffc), mine; test_second_opinion,
+   test_devlog and test_prompt_gate, from S9 (fixed by that session). Two earlier slips of mine were caught by
+   another session's gate the same evening: 001427a9 left `key` undefined in the challenge solver, and DCLAB_E2E_KEEP
+   had no .env.example line (both fixed in 4393e95b); and 34.13's replica had no traps for the knowledge base (a8f769ee).
 
 **Waits for the M1 Max:**
 3. 34.7b, stacking and CatBoost, on bigger tables, chosen on the same selection fold and measured in its own campaign.
