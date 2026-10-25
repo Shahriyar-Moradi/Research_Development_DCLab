@@ -75,6 +75,38 @@ SIGNALS: dict[str, list[tuple[str, tuple[str, ...], str]]] = {
         ("weather", ("weather", "rain", "temp", "temperature"), "the weather"),
         ("stock", ("stock", "inventory", "available"), "what was in stock"),
     ],
+    # 0.117.0: four more domains (the plan's item 13), each the kinds a careful data scientist would ask for first
+    "maintenance": [
+        ("sensors", ("vibration", "temperature", "temp", "pressure", "voltage", "current", "rpm", "sensor", "reading"),
+         "sensor readings (vibration, temperature, pressure) against the machine's own normal"),
+        ("operating_age", ("runtime", "run_hours", "operating_hours", "cycles", "installed", "age"), "how long and how hard it has run"),
+        ("maintenance_history", ("maintenance", "service", "repair", "replaced", "overhaul", "last_service"), "past maintenance and repairs"),
+        ("errors", ("error", "alarm", "fault", "warning", "alert", "event_code"), "error codes and alarms"),
+        ("load", ("load", "throughput", "speed", "utilization", "duty"), "the load it runs under"),
+        ("environment", ("humidity", "ambient", "dust", "weather"), "where it runs"),
+    ],
+    "conversion": [
+        ("recency_frequency", ("last_purchase", "recency", "frequency", "past_purchases", "purchases", "orders", "days_since"),
+         "how recently and how often they bought"),
+        ("engagement", ("visit", "session", "page", "pageviews", "click", "open", "email_open", "time_on_site"), "how they engaged before"),
+        ("offer", ("offer", "discount", "coupon", "promo", "campaign", "treatment"), "the offer and the campaign they got"),
+        ("channel", ("channel", "source", "referrer", "utm", "medium", "device"), "where they came from"),
+        ("value", ("spend", "revenue", "basket", "order_value", "monetary", "amount"), "how much they spend"),
+    ],
+    "claims": [
+        ("policy", ("policy", "premium", "coverage", "deductible", "sum_insured"), "the policy and its cover"),
+        ("claim_history", ("prior_claim", "previous_claim", "past_claim", "claim_count", "claims"), "past claims"),
+        ("insured", ("vehicle", "property", "driver", "occupation", "age"), "what or who is insured"),
+        ("incident", ("incident", "accident", "damage", "injury", "severity", "witness"), "the incident itself"),
+        ("timing", ("policy_start", "days_to_claim", "report_delay", "reported"), "how soon after the policy began, and how fast it was reported"),
+    ],
+    "returns": [
+        ("item", ("category", "size", "product", "sku", "item", "color", "brand"), "the item (its category and size)"),
+        ("customer_history", ("return_rate", "past_returns", "previous_returns", "returns_count"), "the customer's past returns"),
+        ("order", ("amount", "discount", "price", "payment", "quantity", "basket"), "the order and how it was paid"),
+        ("timing", ("days_since", "delivered", "returned_at", "purchase_date", "hours_since"), "how long after the purchase"),
+        ("channel", ("store", "online", "channel", "cashier", "seller"), "where it was bought and returned"),
+    ],
 }
 DOMAIN_WORDS: dict[str, tuple[str, ...]] = {
     "churn": ("churn", "unsubscribe", "attrition", "retention", "subscriber", "subscription", "renew"),
@@ -82,6 +114,11 @@ DOMAIN_WORDS: dict[str, tuple[str, ...]] = {
     "credit": ("credit", "loan", "default", "repay", "lend"),
     "delivery": ("delivery", "deliveries", "courier", "arrival", "eta"),
     "demand": ("demand", "forecast", "how many", "units sold", "daily sales", "weekly sales"),
+    # after the first five, so a problem they named keeps its domain; words that rarely mean anything else
+    "maintenance": ("machine failure", "machine breakdown", "equipment", "sensor", "breakdown", "downtime", "maintenance", "turbine"),
+    "conversion": ("conversion", "convert", "lead scoring", "sales lead", "campaign", "respond", "response rate", "uplift", "who buys"),
+    "claims": ("claim", "insurance", "insured", "policyholder", "underwriting"),
+    "returns": ("refund", "returned", "product return", "item return", "return rate"),
 }
 ACTIVE_LEARNING = "Active learning stays an option, never the default here: both of its gates failed (ALQ-001, ALQ-002)."
 MAX_ONE_BY_ONE = 20  # columns weighed one by one when no domain groups them

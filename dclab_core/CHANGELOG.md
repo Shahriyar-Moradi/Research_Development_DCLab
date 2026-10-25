@@ -4,6 +4,17 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.117.0 (2026-10-26)
+
+What to collect next knows nine business domains, not five.
+
+- `collect.SIGNALS` and `collect.DOMAIN_WORDS` gain maintenance (sensor readings, operating age, maintenance history,
+  error codes, load, environment), conversion (recency and frequency, engagement, the offer, the channel, spend), claims
+  (the policy, past claims, what is insured, the incident, its timing) and returns (the item, the customer's past
+  returns, the order, the timing, the channel). They come after the first five, so a problem those named keeps its
+  domain, and their words are phrases that rarely mean anything else ("machine failure", not "machine", which would
+  catch "machine learning"; "lead scoring", not "lead"). As before, a missing kind is prior knowledge, never measured.
+
 ## 0.116.0 (2026-10-25)
 
 DCLab's agents behind an external chat (A7): what such a chat sends is its model's words, kept apart from a person's.

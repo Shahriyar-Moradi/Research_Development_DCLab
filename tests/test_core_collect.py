@@ -105,6 +105,28 @@ class CollectTests(unittest.TestCase):
         self.assertEqual(collect.domain_of("Find fake deliveries among the orders"), "fraud")
         self.assertEqual(collect.domain_of(PROBLEM), "churn")
 
+    def test_four_more_domains_are_named_and_matched(self):
+        """0.117.0 (the plan's item 13): maintenance, conversion, claims and returns, after the first five."""
+        problems = {"Alert before a machine breaks down, from its sensor readings": "maintenance",
+                    "Which customers respond to the discount campaign": "conversion",
+                    "Flag an insurance claim worth a closer look": "claims",
+                    "Which orders will be returned for a refund": "returns",
+                    "Predict which subscribers churn after a failed payment": "churn",  # the first five keep their problems
+                    "Predict the return on a stock next month": None, "Estimate the time to lead a project": None,
+                    "Which machine learning model fits": None, "Predict the output of the machine": None}
+        for text, domain in problems.items():
+            self.assertEqual(collect.domain_of(text), domain, text)
+        cases = {("vibration_rms", "maintenance"): "sensors", ("hours_since_last_service", "maintenance"): "maintenance_history",
+                 ("alarm_count", "maintenance"): "errors", ("email_opens_30d", "conversion"): "engagement",
+                 ("utm_source", "conversion"): "channel", ("prior_claims", "claims"): "claim_history",
+                 ("annual_premium", "claims"): "policy", ("past_returns", "returns"): "customer_history",
+                 ("product_category", "returns"): "item"}
+        for (name, domain), kind in cases.items():
+            self.assertEqual(collect.kind_of(name, domain), kind, (name, domain))
+        out = collect.advise(["machine_id", "operating_hours", "alarm_count"], problem="Predict machine breakdowns")
+        missing = [m.kind for m in out.missing] if hasattr(out, "missing") else [m["kind"] for m in out["missing"]]
+        self.assertEqual(missing[0], "sensors")  # the most informative kind no column holds, named first
+
     def test_a_real_segment_names_its_column_never_its_level_and_no_domain_weighs_columns_one_by_one(self):
         segment = {"column": "plan", "level": "basic_monthly", "rows": 400, "row_share": 0.2, "error_share": 0.4, "answer": "likely_help",
                    "reason": "rises"}

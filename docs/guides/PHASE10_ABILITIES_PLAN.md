@@ -349,8 +349,9 @@ or decided; nothing below blocks using them.
     project, the same for every export, kept where the store and the testers' kit never copy it, on files and PostgreSQL.
 12. 34.10 and 34.11: alerts as events and serving the promoted fit belong to the host (the main product); the studio
     records the preferred fit, never a production approval.
-13. 34.14: five domains only (a project in no known domain is weighed column by column, nothing named missing); time
-    folds bootstrapped by row.
+13. 34.14: ~~five domains only~~ nine since 2026-10-26 (dclab-core 0.117.0: maintenance, conversion, claims and
+    returns added after the first five; a project in no known domain is still weighed column by column, nothing named
+    missing); open: time folds bootstrapped by row.
 14. The main product: layer 6 (34.9 to 34.12) and 34.4's decision are wired there by that repository's own change, from
     the `CORE_INTEGRATION.md` sections.
 

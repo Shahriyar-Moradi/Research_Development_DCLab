@@ -1,0 +1,55 @@
+{
+  "package": "34.14-more-domains",
+  "title": "What to collect next knows nine business domains",
+  "date": "2026-10-26",
+  "request": "Phase 10 'What remains' item 13: 34.14 knew five business domains only; a project in another domain is weighed column by column with nothing named missing.",
+  "spec": "dclab_core.collect (0.117.0): SIGNALS and DOMAIN_WORDS gain maintenance, conversion, claims and returns, each its kinds of data in the usual order of value with the column-name words that mark them; matched after the first five.",
+  "plan": [
+    "Choose domains DCLab's replicas and common problems need",
+    "Write each domain's kinds as a careful data scientist would ask for them",
+    "Pick domain words that rarely mean anything else",
+    "Test that the first five keep their problems and that plain words are not caught"
+  ],
+  "decisions": [
+    {
+      "decision": "The new domains come after the first five",
+      "why": "a problem the old words named keeps its domain (a failed payment stays churn)"
+    },
+    {
+      "decision": "Domain words are phrases where a single word is ambiguous",
+      "why": "found by the tests: 'lead' caught 'the time to lead a project' and 'machine' caught 'the output of the machine' (and would catch 'machine learning')"
+    }
+  ],
+  "change": "dclab_core/collect.py; tests/test_core_collect.py (one new test, six problems and nine column names, plus four plain sentences that must stay in no domain); dclab_core 0.117.0",
+  "findings": [
+    {
+      "id": "T1",
+      "source": "test",
+      "defect": "'lead' named the conversion domain for a sentence about leading a project",
+      "scenario": "domain_of('Estimate the time to lead a project') returned conversion",
+      "cause": "a word with several meanings matched as a whole word",
+      "fix": "'lead scoring' and 'sales lead' instead",
+      "test": "tests/test_core_collect.py::CollectTests::test_four_more_domains_are_named_and_matched",
+      "severity": "behaviour"
+    },
+    {
+      "id": "T2",
+      "source": "test",
+      "defect": "'machine' named the maintenance domain for a problem in no domain",
+      "scenario": "the existing test's 'Predict the output of the machine' (a production output, no domain) became maintenance",
+      "cause": "'machine' alone is too broad (it would also catch 'machine learning')",
+      "fix": "'machine failure' and 'machine breakdown' instead; 'machine learning' tested to stay in no domain",
+      "test": "tests/test_core_collect.py::CollectTests::test_a_real_segment_names_its_column_never_its_level_and_no_domain_weighs_columns_one_by_one",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [],
+  "outcome": "Four more domains name what is usually worth collecting, without catching problems outside them.",
+  "lessons": [
+    "A domain's words are tested against sentences that must NOT match as much as against those that must"
+  ],
+  "risks": [
+    "The kinds are prior knowledge, not measured: they say what to ask for, never that it would help"
+  ],
+  "commits": []
+}
