@@ -272,24 +272,24 @@
   {
    "name": "S9.4 live replay (Claude Sonnet 5.5 as the Home agent and the roles, beside the rules)",
    "gate": "the same written people as the first live run: the 11 whose card was right and build wrong, and the 15 right before",
-   "result": "rules 11 -> 16 right of 26 (embedded-100, segmentation-000 and -003, time_to_event-000 and -006 fixed); Claude 14 -> 17 (embedded-100, text_tabular-003, time_to_event-000 and -006 fixed; binary-002 newly wrong: the outcome column not recorded in that run, a path S9 does not touch); forecasting-005 now runs as a forecast, one check left (rain_mm as known ahead); rare_event-001 fails only 'folds grouped by biker' (the entity question built the same night)",
+   "result": "rules 11 -> 16 right of 26 (embedded-100, segmentation-000 and -003, time_to_event-000 and -006 fixed); Claude 14 -> 17 (embedded-100, text_tabular-003, time_to_event-000 and -006 fixed; binary-002 newly wrong: the outcome column not recorded in that run, a path this package does not touch); forecasting-005 now runs as a forecast, one check left (rain_mm as known ahead); rare_event-001 fails only 'folds grouped by biker' (the entity question built the same night); four people now stop at the family question in Claude's arm (segmentation-000 and -003, embedded-007, forecasting-008) since the scripted person's change b2688555; streams-002 refused in both runs; run before 9099bacc",
    "verdict": "pass",
    "cost_eur": 2.04,
    "limits": [
     "one run per person: Claude's reading varies between runs",
-    "the scripted person changed between the runs (b2688555: \"I don't know\" instead of another field's words), so four people now stop at the family question (segmentation-000 and -003, embedded-007, forecasting-008 in Claude's arm): the card does not read the family from the model's own reading of the outcome (\"no outcome, clustering\"): an understanding finding",
-    "streams-002: the incidents come in a table the play does not attach; refused in both runs",
-    "run on the branch before 9099bacc (the disputed-family rule and the typed options)"
+    "the scripted person changed between the runs: those who could not name a family now say so, and the card does not read the family from the model's own reading of the outcome (\"no outcome, clustering\"): an understanding finding",
+    "the incidents of a stream come in a table the play does not attach",
+    "run on the branch before the disputed-family rule and the typed options"
    ]
   },
   {
    "name": "writer D (fourth homework writer: busy people's short messages) and the v2 student again",
    "gate": "dev only; the sealed v2 set stays unread until dev predicts a pass",
-   "result": "479 people (EUR 1.94); dev 0.903 (bound 0.884); a writer held out 0.84 to 0.97",
+   "result": "479 people (EUR 1.94); dev 0.903 (bound 0.884); a writer held out 0.84 to 0.97; the unseen sealed writer would be about 0.85, below the gate's 0.90 bound",
    "verdict": "not scored",
    "cost_eur": 1.94,
    "limits": [
-    "the sealed writer is unseen: about 0.85 expected there, below the 0.90 bound"
+    "the sealed writer is one the student never saw: the held-out writers predict it"
    ]
   }
  ],
