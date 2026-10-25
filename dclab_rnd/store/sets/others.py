@@ -118,16 +118,23 @@ def episodes(layout: Layout, choices: Optional[dict] = None) -> list[Episode]:
     return out
 
 
-def judged(layout: Layout, choices: Optional[dict] = None) -> list[JudgedExample]:
+def _scripted(scripted: Optional[frozenset[str]]) -> frozenset[str]:
+    from ..keepers.workspaces import scripted_names
+
+    return scripted_names() if scripted is None else scripted
+
+
+def judged(layout: Layout, choices: Optional[dict] = None, scripted: Optional[frozenset[str]] = None) -> list[JudgedExample]:
     from ..service import _current
     from . import allowed, standing
 
     MODEL, choices = "m7_judges", choices if choices is not None else standing(layout)
+    scripted = _scripted(scripted)  # S8: a scripted person's correction is no human's judgement
 
     out: list[JudgedExample] = []
     for r in (x for x in _current(layout, "decisions") if allowed(x, MODEL, choices)):
         b = r.body
-        if r.type == "correction" and b.get("before") is not None and b.get("after") is not None:
+        if r.type == "correction" and b.get("before") is not None and b.get("after") is not None and r.provenance.workspace not in scripted:
             out.append(JudgedExample(id=f"m7:correction:{r.id}", model_type="m7_judges", split=r.split or split_of(str(b.get("group") or r.id)),
                                      provenance=r.provenance, judged=_code(b.get("what") or "correction"), candidate=b.get("before"), other=b.get("after"),
                                      preferred="other", candidate_by="dclab", judge="person", evidence="person"))
@@ -152,17 +159,19 @@ def judged(layout: Layout, choices: Optional[dict] = None) -> list[JudgedExample
     return [j for j in out if j.candidate_by != j.judge]  # a candidate judged by its own maker with no other evidence: never
 
 
-def preferences(layout: Layout, choices: Optional[dict] = None) -> list[PreferencePair]:
-    """32.19: each correction as a preference pair: what the person made it (chosen) over what DCLab proposed (rejected)."""
+def preferences(layout: Layout, choices: Optional[dict] = None, scripted: Optional[frozenset[str]] = None) -> list[PreferencePair]:
+    """32.19: each correction as a preference pair: what the person made it (chosen) over what DCLab proposed (rejected);
+    never a scripted person's (S8)."""
     from ..service import _current
     from . import allowed, standing
 
     MODEL, choices = "m7_judges", choices if choices is not None else standing(layout)
+    scripted = _scripted(scripted)
 
     out = []
     for r in (x for x in _current(layout, "decisions") if allowed(x, MODEL, choices)):
         b = r.body
-        if r.type != "correction" or b.get("before") is None or b.get("after") is None:
+        if r.type != "correction" or b.get("before") is None or b.get("after") is None or r.provenance.workspace in scripted:
             continue
         ask = Message(role="user", content=f"Propose the {b.get('what') or 'answer'} for this case.")
         out.append(PreferencePair(id=f"m7:preference:{r.id}", model_type="m7_judges", split=r.split or split_of(str(b.get("group") or r.id)),

@@ -280,6 +280,24 @@ and sealed tables untouched). Each plan was written before any result, in `agent
 model refitted on all training rows (as the engine does), acted on 16.8% of new rows where the capacity allowed 20%:
 the refitted model scores the top a little lower. Layer 5 therefore also measures "act on the chosen share".
 
+**Layer 1 (understand), with the owner's $15 (2026-10-25):**
+- **Homework:** 589 written people over the 15 kinds, written by Claude through the gateway (EUR 2.21), each person's
+  kind and family set by the code (`dclab_rnd/people_writer.py`); a sealed set of 150, written by a separate agent.
+- **Too easy, before:** from the first words alone the rules read the right family for 73% of the older people and 14%
+  of the new ones; in the plays the rule's accuracy on the new people is 0.71 (family) and 0.71 (ready), against 0.95
+  and 0.96 on the older ones.
+- **A student that reads the words** (`dclab_rnd/understand_students.py`): before the fix below, the text student for
+  `problem.family` scored 0.967 on dev against the rule's 0.825; the state-only student 0.50 (the state holds no words).
+  It is retrained on plays of the fixed product before its one sealed exam.
+- **Live with Claude** (45 dev people, EUR 3.63): the rules right on 11, Claude as the Home agent on 14. Fixed: a
+  person's "I don't know" was recorded as their answer (46 moments, 33 outcomes, 31 families; 4 projects built with
+  it); a table with nothing left to learn from crashed the model.
+- **The largest gap found, the next package (S9):** the understood family does not reach the kind that is built. A
+  forecast the card read right ran as a regression; most of the 30 people wrong in both arms are kinds whose Solution
+  page needs fields (a forecast's series and horizon, a ranking's user and item, a segmentation's outcome) that the
+  older written people typed themselves. S9: the Solution page proposes the kind and its fields from the card's family
+  and the table, each kind's own way, and the same people are played again.
+
 ### S6. Fair exams for every student
 - A fresh sealed set (v2) per point, drawn once and never read until a promotion; a gate runner that accepts any
   answerer (classifier, language model, rule) so generation 2 is judged like the students.

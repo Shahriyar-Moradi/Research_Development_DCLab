@@ -57,9 +57,13 @@ def _best_label(labels: list[StoreRecord]) -> tuple[Any, Optional[str]]:
     return best if best else (None, None)
 
 
-def build(layout: Optional[Layout] = None) -> dict[str, Any]:
+def build(layout: Optional[Layout] = None, scripted: Optional[frozenset[str]] = None) -> dict[str, Any]:
+    """``scripted``: the workspaces whose people are a script (``keepers.workspaces.scripted_names``): a person's label
+    there is no human's, so it never confirms a decision (S8, 2026-10-25: test clicks and written people)."""
     from .. import shapers
+    from ..keepers.workspaces import scripted_names
 
+    scripted = scripted_names() if scripted is None else scripted
     layout = layout or Layout()
     placed = placements(layout)
     records = {r.id: r for r in shapers.records(layout, "decisions")}
@@ -69,6 +73,7 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
             labels[str(r.body.get("record") or r.body.get("record_id"))].append(r)
     sets: dict[tuple[str, str], list[DecisionExample]] = defaultdict(list)
     out_of_sets: dict[str, int] = defaultdict(int)
+    set_aside: set[str] = set()
     for (rid, model_type), choice in sorted(placed.items()):
         record = records.get(rid)
         if model_type not in MODELS or record is None or record.type != "decision" or choice.get("quality") == "out":
@@ -77,7 +82,12 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
         if not group:
             out_of_sets["no group: it cannot be sealed"] += 1
             continue
-        value, source = _best_label(labels.get(str(record.body.get("id")), []))
+        own = labels.get(str(record.body.get("id")), [])
+        if record.provenance.workspace in scripted:  # a scripted person's label is a script's: never a confirmed human label
+            own = [lab for lab in own if LEDGER_SOURCES.get(str(lab.body.get("source")), lab.body.get("source")) != "person"]
+            if len(own) < len(labels.get(str(record.body.get("id")), [])):
+                set_aside.add(rid)  # once per record, however many sets it is placed in
+        value, source = _best_label(own)
         weight = 1.0 if source in CONFIRMED or source is None else SILVER  # a teacher's or a rule's label weighs less, kept apart by its source
         if source == "blind":  # a blind draw's label carries its draw's weight (the ledger's), never 1 by default
             weight = float(next((lab.body.get("weight") for lab in labels.get(str(record.body.get("id")), []) if lab.body.get("weight") is not None), 1.0))
@@ -96,6 +106,8 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
         sets[(model_type, str(choice.get("folder")))].append(ex)
         if model_type == "m1_students" and any(a.by.startswith(STUDENTS) for a in answers):
             sets[(model_type, f"{choice.get('folder')}/pairs")].append(ex.model_copy(update={"id": f"{ex.id}:pair"}))
+    if set_aside:
+        out_of_sets["decisions whose scripted person's label was set aside"] = len(set_aside)
     report = {"sets": {}, "out_of_sets": dict(out_of_sets)}
     abouts = {"m1_students": "Every decision of one point with its teachers' answers and its best label: what a student of that point learns.",
               "m2_workflow_decisions": "The workflow's choices of one point, by system (dclab, rnd, internal).",

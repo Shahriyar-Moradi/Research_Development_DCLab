@@ -21,6 +21,25 @@ from typing import Iterator, Optional
 from ..layout import ROOT, slug
 
 AGENT_RUNS = ROOT / "agent_runs"
+SCRIPTED = "scripted.json"  # a folder whose people are a script (test clicks, written people): their "person" answers are no human's
+
+
+def scripted(root: Path, base: Optional[Path] = None) -> bool:
+    """Whether a workspace, or a folder above it within ``base`` (``agent_runs``), says a script drove it (the same rule
+    as ``dclab_rnd.lake.harvest.scripted``)."""
+    base, root = Path(base or AGENT_RUNS).resolve(), Path(root).resolve()
+    for folder in (root, *root.parents):
+        if (folder / SCRIPTED).is_file():
+            return True
+        if folder == base or base not in folder.parents:
+            return False
+    return False
+
+
+def scripted_names(base: Optional[Path] = None) -> frozenset[str]:
+    """The store's names of the scripted workspaces: their person labels are never a human's (S8, 2026-10-25)."""
+    base = Path(base or AGENT_RUNS)
+    return frozenset(w.name for w in discover(base) if scripted(w.root, base))
 MARKS = ("experience", "ledger", "projects", "drafts", "audit.jsonl", "agent_steps.jsonl", "model_requests.jsonl", "jobs.json",
          "jobs_history.jsonl", "intern", "orchestra", "students", ".dclab_workspace", "consent.json")
 SKIP = {"node_modules", ".git", "__pycache__", "studio_assets", "embeddings", "clean_exports", "catalog", "data"}

@@ -1,0 +1,67 @@
+{
+ "package": "S8-A4-scripted-people",
+ "title": "A scripted person is no human: their labels and corrections never confirm anything in the store",
+ "date": "2026-10-25",
+ "request": "The other session (e2e runs kept for the store) and the owner's capture rule: every record stored, each for what it is.",
+ "spec": "A workspace marked scripted (scripted.json in its folder or above it within agent_runs) gives no person label to the decision sets and no person judgement or preference to m7.",
+ "plan": [
+  "Find where the store reads a person's answers as human truth.",
+  "One marker rule, as the lake's.",
+  "Apply it in the decision sets and m7; mark the scripted folders."
+ ],
+ "decisions": [
+  {
+   "decision": "The same marker rule as dclab_rnd.lake.harvest.scripted, in the store's keepers.",
+   "why": "The lake and the store must agree on who is a human."
+  },
+  {
+   "decision": "A scripted person's label is set aside, not relabelled.",
+   "why": "A test click or a written person's choice is the script's, not a measurement: it teaches nothing true about people."
+  },
+  {
+   "decision": "agent_runs/live_tests is marked as a whole.",
+   "why": "Live tests play written or scripted people against a live model: the model is live, the person never is."
+  }
+ ],
+ "change": "dclab_rnd/store/keepers/workspaces.py (SCRIPTED, scripted, scripted_names), dclab_rnd/store/sets/decisions.py (a scripted person's label set aside, counted once per record), dclab_rnd/store/sets/others.py (judged and preferences skip a scripted correction), tests/test_store_scripted.py (new); markers in agent_runs/journey_plays, journey_plays_before_fix and live_tests.",
+ "findings": [
+  {
+   "id": "A4-1",
+   "source": "measurement",
+   "severity": "latent",
+   "defect": "A scripted person's labels and corrections were read as a human's.",
+   "scenario": "In the store's sets, 55 of 404,228 examples carry a person label or judgement, some from scripted live tests (model paths, the home orchestrator); the e2e runs (91 test clicks in one run) and 589 written people's plays were about to add many more.",
+   "cause": "The store ranks a person's label first and makes each correction a human judgement, wherever it was recorded.",
+   "fix": "The marker; the decision sets and m7 skip a scripted person.",
+   "test": "tests/test_store_scripted.py"
+  },
+  {
+   "id": "A4-2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A record placed in two sets was counted twice as set aside.",
+   "scenario": "12 decisions reported as 24.",
+   "cause": "Counted per placement.",
+   "fix": "Counted once per record.",
+   "test": "test_a_scripted_persons_label_and_correction_count_for_nothing"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "affected tests",
+   "gate": "affected tests only",
+   "result": "13 tests in 5 files pass (scripted, decision sets, other sets, keepers, store check); 924 workspaces marked scripted",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the store's sets are rebuilt at the next store run"
+   ]
+  }
+ ],
+ "outcome": "Only real people's choices confirm a label or judge a proposal; every scripted record is still kept, for what it is.",
+ "lessons": [
+  "Who answered is part of the label: a test's person is not a person."
+ ],
+ "risks": [],
+ "commits": []
+}
