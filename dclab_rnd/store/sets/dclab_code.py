@@ -27,9 +27,12 @@ from collections import defaultdict
 from typing import Any, Optional
 
 from dclab_core.datasets import split_of
-from dclab_core.store import DecisionExample, Episode, EpisodeStep, JudgedExample, StoreRecord
+import json
+
+from dclab_core.store import DecisionExample, Episode, EpisodeStep, JudgedExample, Message, PreferencePair, StoreRecord
 
 from ..layout import Layout
+from .. import provider_outputs
 from . import allowed, write_set
 from .decisions import SILVER
 
@@ -89,6 +92,7 @@ class Session:
         self.asked: list[dict[str, Any]] = []      # every step that asked the person, a subagent's included (M7, M2, M1)
         self.plans: list[dict[str, Any]] = []
         self.grades: list[dict[str, Any]] = []
+        self.prompts: dict[int, str] = {}         # turn -> the person's message that started it
         self.outcome: Optional[str] = None
         self._read()
 
@@ -113,7 +117,7 @@ class Session:
             elif t in ("permission_decision", "question_answer", "plan_decision") and b.get("reqId"):
                 decisions[str(b["reqId"])] = {**b, "_auto": self._auto(b, after_stop), "_record": r}
         # Pass 2: the steps in file order.
-        mode, turn, last_text, stopped = "unknown", 0, None, False
+        mode, turn, last_text, stopped, self._thinking = "unknown", 0, None, False, None
         answers_by_turn: list[Optional[str]] = []
         for r in self.lines:
             b = r.body
@@ -129,6 +133,8 @@ class Session:
                             continue
                         if block.get("type") == "text" and not sub:
                             last_text = block.get("text")
+                        elif block.get("type") == "thinking" and not sub and block.get("thinking"):
+                            self._thinking = block.get("thinking")  # the model's recorded thinking before its next step
                         elif block.get("type") == "tool_use":
                             self._step(block, mode, turn, r, sub, requests, decisions)
                 elif m.get("type") == "user":
@@ -139,7 +145,7 @@ class Session:
                                     st["ok"] = not block.get("is_error")
                 elif m.get("type") == "result":
                     answers_by_turn.append(last_text)
-                    last_text = None  # a turn's grade is about this turn's answer only
+                    last_text, self._thinking = None, None  # a turn's grade and thinking belong to this turn only
                     # A stop ends its turn with an error result: the turn's outcome is the stop.
                     self.outcome = "stopped" if stopped else str(m.get("subtype") or "result")
                     turn += 1
@@ -159,6 +165,8 @@ class Session:
                 self.outcome, stopped = "stopped", True
             elif t == "user_message":
                 stopped = False
+                if isinstance(b.get("text"), str):
+                    self.prompts.setdefault(turn, b["text"])
         for g in self.grades:
             # The turn the app recorded (1-based); an older record without it: the last turn finished before the grade.
             n = g["turn"] if isinstance(g["turn"], int) and g["turn"] >= 1 else g["results_before"]
@@ -168,9 +176,12 @@ class Session:
         tid = str(block.get("id") or "")
         req = requests.get(tid)
         dec = decisions.get(str(req.get("reqId"))) if req else None
-        step = {"id": tid, "n": len(self.steps), "tool": str(block.get("name") or "unknown"), "input": block.get("input"), "mode": mode, "turn": turn,
+        step = {"id": tid, "n": len(self.steps), "order": _order(r), "decided": _order(dec["_record"]) if dec else None, "tool": str(block.get("name") or "unknown"), "input": block.get("input"), "mode": mode, "turn": turn,
                 "asked": bool(req), "guard": (req or {}).get("guard"), "reason": (req or {}).get("reason"), "decision": None,
-                "auto": bool(dec and dec["_auto"]), "ok": None, "at": r.at, "record": (dec or {}).get("_record") or r, "sub": sub}
+                "auto": bool(dec and dec["_auto"]), "ok": None, "at": r.at, "record": (dec or {}).get("_record") or r, "sub": sub,
+                "thinking": None if sub else self._thinking}
+        if not sub:
+            self._thinking = None
         if dec:
             t = dec.get("type")
             step["decision"] = dec.get("decision") if t == "permission_decision" else ("answered" if dec.get("answers") else "skipped") \
@@ -234,7 +245,7 @@ def examples(layout: Layout, choices: Optional[dict] = None) -> dict[tuple[str, 
         # so the session and its transcript always share a split.
         split = split_of(s.sdk_id)
         first, more = s.provenance()
-        ok = {mt: allowed(s.lines[0], mt, choices) for mt in ("m1_students", "m2_workflow_decisions", "m6_stepwise_decisions", "m7_judges")}
+        ok = {mt: allowed(s.lines[0], mt, choices) for mt in ("m1_students", "m2_workflow_decisions", "m5_solver_llm", "m6_stepwise_decisions", "m7_judges")}
         if ok["m6_stepwise_decisions"] and s.steps:
             steps = [EpisodeStep(n=i, state=s.state(i, st), action=st["tool"][:200], outcome=Session.step_outcome(st), at=st["at"]) for i, st in enumerate(s.steps)]
             groups[("m6_stepwise_decisions", "dclab_code")].append(Episode(
@@ -268,6 +279,14 @@ def examples(layout: Layout, choices: Optional[dict] = None) -> dict[tuple[str, 
                     groups[(mt, folder)].append(DecisionExample(
                         id=f"{mt}:dclab_code:plan:{s.sid}:{j}", model_type=mt, split=split, provenance=prov, point=POINT_PLAN, group=group,
                         split_group=s.sdk_id, state={"method": p["mode"], "step": j}, options=["auto", "ask", "keep"], label=p["choice"], label_source="person"))
+        for k, (chosen, rejected) in enumerate(preferences(s)):
+            prompt = [Message(role="user", content=s.prompts.get(chosen["turn"]) or "Go on with the task.")]
+            for mt, weight in (("m7_judges", 1.0), ("m5_solver_llm", SILVER)):  # M5: both steps are Claude's, so silver and apart
+                if ok[mt]:
+                    groups[(mt, "dclab_code_preferences")].append(PreferencePair(
+                        id=f"{mt}:dclab_code:preference:{s.sid}:{k}", model_type=mt, split=split, provenance=chosen["record"].provenance,
+                        more=[rejected["record"].provenance] if rejected["record"].provenance.entry != chosen["record"].provenance.entry else [],
+                        weight=weight, task="dclab_code.step", prompt=prompt, chosen=_as_message(chosen), rejected=_as_message(rejected), decided_by="person"))
         for k, g in enumerate(s.grades):
             if ok["m7_judges"] and g["value"] in ("good", "bad") and g["answer"]:
                 groups[("m7_judges", "dclab_code_answers")].append(JudgedExample(
@@ -277,7 +296,31 @@ def examples(layout: Layout, choices: Optional[dict] = None) -> dict[tuple[str, 
     return groups
 
 
-ABOUTS = {"m6_stepwise_decisions": "DCLab Code sessions as episodes of tool steps: content-free state, the tool, the outcome (silver: the steps are Claude's).",
+def _as_message(st: dict[str, Any]) -> Message:
+    call = {"name": st["tool"], "input": _brief(st["tool"], st["input"])}
+    if st.get("thinking"):
+        return Message(role="assistant", content="", tool_calls=[call], reasoning=st["thinking"], reasoning_source="recorded")
+    return Message(role="assistant", content="", tool_calls=[call], no_reasoning="no thinking text was recorded before this step")
+
+
+def preferences(s: Session) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+    """Kept-against-refused pairs: two tries at one step. A step of the agent's own the person denied, and the agent's very
+    next own step, with the same tool, in the same turn, proposed after the deny, that the person allowed. Not a parallel
+    call proposed beside the denied one, not a step after a question or a plan in between (those are steps themselves),
+    not a subagent's step, never the app's own deny."""
+    pairs = []
+    for st in s.steps:
+        if st["decision"] != "deny" or st["auto"] or st["n"] + 1 >= len(s.steps):
+            continue
+        nxt = s.steps[st["n"] + 1]
+        if (nxt["tool"] == st["tool"] and nxt["turn"] == st["turn"] and nxt["asked"] and not nxt["auto"]
+                and nxt["decision"] in ("allow", "allow_always") and st["decided"] is not None and nxt["order"] > st["decided"]):
+            pairs.append((nxt, st))
+    return pairs
+
+
+ABOUTS = {"m5_solver_llm": "DCLab Code: the step the person allowed against the one they denied (both Claude's: silver, apart; consent from the owner's decision on provider outputs).",
+          "m6_stepwise_decisions": "DCLab Code sessions as episodes of tool steps: content-free state, the tool, the outcome (silver: the steps are Claude's).",
           "m7_judges": "The person's judgement of DCLab Code's steps, plans and answers (gold).",
           "m2_workflow_decisions": "The person's choices in DCLab Code: allow a step, approve a plan (gold).",
           "m1_students": "A student per DCLab Code decision point: what the person chooses, from the step's bands (gold)."}
@@ -288,7 +331,9 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
     report: dict[str, Any] = {"sets": {}}
     for (model_type, folder), exs in sorted(examples(layout).items()):
         sources = {e.provenance.entry: {"entry": e.provenance.entry, "sha256": e.provenance.sha256} for e in exs}
-        m = write_set(layout, model_type, folder, exs, sources=sources.values(), about=ABOUTS[model_type])
+        # M5's copy holds only Claude's steps: its consent follows the owner's decision on provider outputs (provider_outputs.py).
+        consent = provider_outputs.consent() if model_type == "m5_solver_llm" else "train"
+        m = write_set(layout, model_type, folder, exs, sources=sources.values(), about=ABOUTS[model_type], consent=consent)
         report["sets"][f"{model_type}/{folder}"] = m.counts
     return report
 

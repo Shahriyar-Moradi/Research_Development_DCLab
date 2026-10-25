@@ -25,6 +25,7 @@ from dclab_core.store import REASONING_SOURCES, ChatExample, Message, Preference
 
 from ..layout import ROOT, Layout
 from . import write_set
+from .. import provider_outputs
 
 STAGES = {"home_agent": "understand_problem", "conversation_reader": "understand_problem", "problem_analyst": "understand_problem",
           "brief_checker": "understand_problem", "understanding_critic": "understand_problem", "data_investigator": "understand_data",
@@ -787,8 +788,9 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
                                "and score), on the table named by its SHA-256 (one table, one split), and passed its planted truth where one "
                                "was judged (submission.truth: passed or none). The clean set for training.",
         "trajectories/silver_frontier": "Whole solving runs whose moves a provider's model (Claude, GPT) chose, scored and checked as the clean "
-                                        "set, at weight 0.5. The owner's rule (2026-10-21): evaluation by default; NOT FOR TRAINING until the "
-                                        "owner records that the provider's terms were checked. Its manifest's consent is improve, not train: every export must check it.",
+                                        "set, at weight 0.5, apart. The owner's decision (2026-10-25, store/owner_decisions.json): for evaluation and "
+                                        "for training, silver and apart; its manifest's consent follows that record (train, or improve when it says no). "
+                                        "Check the provider's terms before a fine-tune uses it.",
         "trajectories/selfplay": "27.3's verified solves of invented problems: every decision the engine made in order (state as bands, the "
                                  "options, the answer, the planted or measured label), the holdout outcome as the score. Clean (the rules); "
                                  "the replicas' column names are kept (the lake also masks them): a model may learn their shapes.",
@@ -820,7 +822,7 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
         written[(model_type, folder)] = examples
         sources = {e.provenance.entry: {"entry": e.provenance.entry, "sha256": e.provenance.sha256} for e in examples}
         m = write_set(layout, model_type, folder, examples, version=versions.get(folder, "v1"), sources=sources.values(),
-                      consent="improve" if folder == "trajectories/silver_frontier" else "train",  # not for training until the terms are checked
+                      consent=provider_outputs.consent() if folder == "trajectories/silver_frontier" else "train",  # the owner's decision (provider_outputs.py)
                       about=folder_abouts.get(folder, abouts[model_type]),
                       decontaminated=["every sealed journey and conversation set", f"{len(benchmarks)} benchmark task names (benchmarks.txt)"])
         report["sets"][f"{model_type}/{folder}"] = m.counts

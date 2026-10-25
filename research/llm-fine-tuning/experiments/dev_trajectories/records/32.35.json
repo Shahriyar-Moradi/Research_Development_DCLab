@@ -1,0 +1,102 @@
+{
+ "package": "32.35",
+ "title": "Kept-against-refused pairs from DCLab Code, with recorded thinking; provider outputs stored for training by the owner's decision",
+ "date": "2026-10-25",
+ "request": "Continue without stopping and capture for the six models; then: store Claude's outputs both for evaluation and for training.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.35",
+ "plan": [
+  "Pairs from the person's own permission answers: a denied step and its next try that was allowed",
+  "Carry the model's recorded thinking on each step",
+  "Record the owner's decision on provider outputs once and make every such set follow it"
+ ],
+ "decisions": [
+  {
+   "decision": "A pair is the denied step's very next own step, same tool, same turn, proposed after the deny",
+   "why": "only that is two tries at one decision; a parallel call or a step after a question is not"
+  },
+  {
+   "decision": "M7 copy gold, M5 copy silver and apart",
+   "why": "the person decided between two Claude candidates; for the solver both candidates are Claude's"
+  },
+  {
+   "decision": "store/owner_decisions.json read by store/provider_outputs.py",
+   "why": "the owner said 2026-10-25: provider outputs for evaluation and for training; one record moves every such set, and one change turns them back"
+  }
+ ],
+ "change": "sets/dclab_code.py pairs and thinking; store/provider_outputs.py and owner_decisions.json; llm.py's silver_frontier consent from the decision; tests.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "defect": "pairs that were not two tries at one decision",
+   "scenario": "rm -rf out and git status proposed together, one denied and one allowed, became a pair; so did a deny, a question answered, then a narrower step",
+   "cause": "the chosen step was the next allowed step anywhere later in the turn",
+   "fix": "the denied step's next own step, same tool, proposed after the deny's decision line",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_the_reviews_cases",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "thinking from one turn attached to the next turn's step",
+   "scenario": "turn 0 ended with thinking; turn 1's first tool call had none and carried turn 0's, labelled recorded",
+   "cause": "the thinking was not cleared at a turn's end",
+   "fix": "cleared with each result",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_the_reviews_cases",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "a pair's prompt was a message sent mid-turn",
+   "scenario": "the person sent a second message while the turn ran; the pair's prompt became it",
+   "cause": "the turn's prompt was overwritten",
+   "fix": "a turn keeps the message that started it (the SDK folds a mid-turn message into the running turn)",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_the_reviews_cases",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "the M5 copy of Claude's steps was marked train against the rule of the day",
+   "scenario": "its manifest said consent train while the rule said evaluation only",
+   "cause": "written like the other sets",
+   "fix": "first consent improve; then the owner decided provider outputs are stored for training too, recorded once and read by every such set",
+   "test": "tests/test_provider_outputs.py",
+   "severity": "privacy"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "the pair's split was not checked",
+   "scenario": "a done-when item with no assertion",
+   "cause": "missed",
+   "fix": "the pair's split asserted against the raw SDK session id",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_the_reviews_cases",
+   "severity": "gap"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "store tests and the store check",
+   "gate": "every store test passes and the store check passes all its checks",
+   "fixed_before_run": true,
+   "result": "provider_outputs 2, dclab_code_sets 3, m5_trajectories 21, sets_llm 2, export_chat 11, dclab_code 5 passed; store check 28 of 28",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "invented sessions"
+   ]
+  }
+ ],
+ "outcome": "The person's choices between two tries become preference pairs with the model's thinking, and Claude's outputs are stored for training as well as evaluation, silver and apart.",
+ "lessons": [
+  "A pair must be two tries at one decision: check what lies between them",
+  "State that resets per turn must be reset at the turn's end",
+  "An owner decision belongs in one recorded place every reader follows"
+ ],
+ "risks": [
+  "the provider's terms on training other models with its outputs are not checked yet"
+ ],
+ "commits": []
+}

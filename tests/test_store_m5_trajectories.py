@@ -229,7 +229,8 @@ class SolverTrajectoriesTest(unittest.TestCase):
         hosted = SolverTrajectory.model_validate(silver["m5_solver_llm:intern:ffffffffffff"])  # scored from a PostgreSQL row
         self.assertEqual((hosted.problem["answerer"], hosted.score), ("frontier:mistral-large-latest", 0.81))
         manifest = json.loads((self.base("trajectories/silver_frontier", "v1") / "MANIFEST.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["consent"], "improve")  # not cleared for training
+        from dclab_rnd.store import provider_outputs
+        self.assertEqual(manifest["consent"], provider_outputs.consent())  # the owner's decision on provider outputs (2026-10-25: train), silver and apart
         self.assertEqual(json.loads((self.base("trajectories/studio", "v3") / "MANIFEST.json").read_text(encoding="utf-8"))["consent"], "train")
 
     def test_unscored_unchecked_and_failed_runs_are_kept_in_the_failed_set_never_in_studio(self):

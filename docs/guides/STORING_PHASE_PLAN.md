@@ -926,6 +926,27 @@ in time order (its SDK messages, permissions, the guard's questions, answers, pl
 - **Done when:** a session yields its episode, judgements and decisions with these labels and weights, no tool output in
   any set, and one session sits in one split across every set (`tests/test_store_dclab_code_sets.py`).
 
+### 32.35 DCLab Code's kept-against-refused pairs (added 2026-10-25)
+
+The six-model list asks for kept-against-refused pairs. `sets/dclab_code.py` adds them from the person's own permission
+answers: a step of the agent's own the person denied, and its next step in the same turn they allowed, as a
+`PreferencePair` (chosen: the allowed step, rejected: the denied one; the prompt: the person's message that started the
+turn). Each step is an assistant message with its tool call (the command or path, never a file's content) and the
+model's thinking recorded just before it (`reasoning_source: recorded`, since DCLab Code records thinking text), or why
+there is none. Never a pair across turns, with a subagent's step, or with the app's own denies.
+
+- **M7** (`m7_judges/dclab_code_preferences`): the person decided, gold.
+- **M5** (`m5_solver_llm/dclab_code_preferences`): both candidates are Claude's, so silver weight and a folder of its own; its
+  consent follows the owner's decision on provider outputs (below).
+- **The owner's decision (2026-10-25), recorded in `dclab_rnd/store/owner_decisions.json` and read by
+  `store/provider_outputs.py`:** a provider model's outputs (Claude, GPT) are stored for evaluation **and** for training,
+  silver (weight 0.5) and apart, each example naming its source. It replaces the rule of 2026-10-21 (evaluation only until
+  the provider's terms are checked) for `trajectories/silver_frontier` and these pairs alike; one change of that file
+  turns them back to evaluation only. The provider's terms on training other models with its outputs are checked before
+  a fine-tune uses these sets.
+- **Done when:** the edge session's deny and its narrower allowed step make one pair with the denied step's thinking, in the
+  session's split (`tests/test_store_dclab_code_sets.py`).
+
 ## The owner's answers (2026-10-20)
 
 - **The store's bulk:** a separate private GitHub repository, `dclab-records`, with one branch per person (`owner/main`,
@@ -960,7 +981,7 @@ in time order (its SDK messages, permissions, the guard's questions, answers, pl
 ## Order
 
 32.1 → 32.2 → 32.3 → 32.4 → 32.5 → 32.6 → 32.7 → 32.8 → 32.9 → 32.10 → 32.11 → 32.12 → 32.13 → 32.14 → 32.15 → 32.16 →
-32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31, then 32.32 → 32.33 → 32.34 (the
+32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31, then 32.32 → 32.33 → 32.34 → 32.35 (the
 check, 32.18, is extended by each).
 
 Every package follows the usual steps: a test first, the reviewer, its development record and `make sft-dev`, and the
@@ -1054,6 +1075,8 @@ gate. Model spend:
     - CPU time per step;
     - a workspace reading the store's shadow students;
     - live runs of the curator and the teacher.
+- **32.35 built (2026-10-25):** DCLab Code's kept-against-refused pairs (M7 gold, M5 silver), with recorded thinking; the
+  owner's decision that provider outputs are stored for evaluation and training (silver, apart) recorded and applied.
 - **32.34 built (2026-10-25):** DCLab Code's sessions as M6 episodes (silver), M7 judgements and M2/M1 decisions (gold).
 - **32.33 built (2026-10-25):** DCLab Code's records of sessions on this repository kept by their own keeper
   (`dclab_code/`), redacted, owner's machine only; other folders' sessions counted only; a review's 5 findings fixed.

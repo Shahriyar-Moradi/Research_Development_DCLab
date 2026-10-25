@@ -1,0 +1,55 @@
+{
+ "package": "dclab-code-v1.4",
+ "title": "DCLab Code: who made each decision, the grade's turn; task list, slash commands, archive, today's spend",
+ "date": "2026-10-25",
+ "request": "Continue without stopping, and capture, record and store data for training the six models.",
+ "spec": "dclab-code README.md",
+ "plan": [
+  "Say who made each decision so a builder never takes the app's for the person's",
+  "Record each grade's turn number",
+  "Four everyday features with page tests"
+ ],
+ "decisions": [
+  {
+   "decision": "by: person or app on every decision record",
+   "why": "R&D 32.34's review found a stop's automatic denies stored as the person's gold labels"
+  },
+  {
+   "decision": "a grade carries its turn number",
+   "why": "R&D's shaper rewrites timestamps, so time cannot match a grade to its turn"
+  }
+ ],
+ "change": "engine decisions with by; feedback turn; TodoWrite checklist; slash suggestions from the SDK's init; archive; today's spend.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "defect": "automatic decisions recorded like the person's",
+   "scenario": "Stop while a step waits: a deny recorded with no sign it was the app's",
+   "cause": "denyAll and the abort handler wrote the same record as the person",
+   "fix": "by: app on them, by: person on the person's",
+   "test": "tests/server.test.js",
+   "severity": "behaviour"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "dclab-code tests",
+   "gate": "every server, unit and page test passes",
+   "result": "35 server and unit tests and 4 page tests in Chromium passed",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "a fake agent"
+   ]
+  }
+ ],
+ "outcome": "Every decision says who made it, each grade its turn, and four everyday features are in the page.",
+ "lessons": [
+  "Record provenance at the source; a reader can only guess it later"
+ ],
+ "risks": [],
+ "commits": [
+  "dclab-code ee0b151"
+ ]
+}

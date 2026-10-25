@@ -61,9 +61,13 @@ def edge_lines():
     return [
         line(T(10, 59, 50), kind="app", type="user_message", id="u1", text="go"),
         sdk(T(10, 59, 51), {"type": "system", "subtype": "init", "session_id": "sdk-s_edge01", "model": "claude-sonnet-5-5", "permissionMode": "default", "tools": []}),
+        sdk(T(10, 59, 57), {"type": "assistant", "parent_tool_use_id": None, "message": {"content": [{"type": "thinking", "thinking": "Clean the outputs first."}]}}),
         tool(T(10, 59, 58), "e1", "Bash", {"command": "rm -rf out"}),
         line(T(11, 0, 1), kind="app", type="permission_request", reqId="pe1", tool="Bash", input={}, reason="rm", guard=None, toolUseId="e1"),
         line(T(11, 0, 5), kind="app", type="permission_decision", reqId="pe1", decision="deny", by="person"),
+        tool(T(11, 0, 5), "e5", "Bash", {"command": "rm -rf out/tmp"}),  # the next try, narrower, which the person allows
+        line(T(11, 0, 5), kind="app", type="permission_request", reqId="pe5", tool="Bash", input={}, reason="rm", guard=None, toolUseId="e5"),
+        line(T(11, 0, 5), kind="app", type="permission_decision", reqId="pe5", decision="allow", by="person"),
         tool(T(11, 0, 6), "e2", "Read", {"file_path": "/r/x.py"}),  # no tool_result follows
         tool(T(11, 0, 7), "e3", "Bash", {"command": "pytest -q"}, parent="tp1"),  # a subagent's step
         line(T(11, 0, 8), kind="app", type="permission_request", reqId="pe3", tool="Bash", input={}, reason=None, guard=None, toolUseId="e3"),
@@ -78,6 +82,25 @@ def edge_lines():
         line(T(11, 1, 3), kind="app", type="permission_decision", reqId="pe4", decision="deny", message="The person stopped the session."),
         sdk(T(11, 1, 4), {"type": "result", "subtype": "error_during_execution", "is_error": True}),
         line(T(11, 1, 5), kind="app", type="feedback", turnTs=T(11, 1, 4), value="bad", note="no answer"),  # an old grade: no turn
+        line(T(11, 2, 0), kind="app", type="user_message", id="u3", text="third task"),
+        line(T(11, 2, 0), kind="app", type="user_message", id="u4", text="MID-TURN MESSAGE"),
+        sdk(T(11, 2, 1), {"type": "assistant", "parent_tool_use_id": None, "message": {"content": [
+            {"type": "tool_use", "id": "e6", "name": "Bash", "input": {"command": "rm -rf data"}},
+            {"type": "tool_use", "id": "e7", "name": "Bash", "input": {"command": "git status"}}]}}),
+        line(T(11, 2, 2), kind="app", type="permission_request", reqId="pe6", tool="Bash", input={}, reason="rm", guard=None, toolUseId="e6"),
+        line(T(11, 2, 3), kind="app", type="permission_decision", reqId="pe6", decision="deny", by="person"),
+        line(T(11, 2, 4), kind="app", type="permission_request", reqId="pe7", tool="Bash", input={}, reason=None, guard=None, toolUseId="e7"),
+        line(T(11, 2, 5), kind="app", type="permission_decision", reqId="pe7", decision="allow", by="person"),
+        sdk(T(11, 2, 5), {"type": "assistant", "parent_tool_use_id": None, "message": {"content": [{"type": "thinking", "thinking": "THINKING OF TURN 3"}]}}),
+        sdk(T(11, 2, 6), {"type": "result", "subtype": "success", "is_error": False}),
+        line(T(11, 3, 0), kind="app", type="user_message", id="u5", text="fourth task"),
+        tool(T(11, 3, 1), "e8", "Bash", {"command": "rm -rf cache"}),  # no thinking before it in this turn
+        line(T(11, 3, 2), kind="app", type="permission_request", reqId="pe8", tool="Bash", input={}, reason="rm", guard=None, toolUseId="e8"),
+        line(T(11, 3, 3), kind="app", type="permission_decision", reqId="pe8", decision="deny", by="person"),
+        tool(T(11, 3, 4), "e9", "Bash", {"command": "rm -rf cache/old"}),
+        line(T(11, 3, 5), kind="app", type="permission_request", reqId="pe9", tool="Bash", input={}, reason="rm", guard=None, toolUseId="e9"),
+        line(T(11, 3, 6), kind="app", type="permission_decision", reqId="pe9", decision="allow", by="person"),
+        sdk(T(11, 3, 7), {"type": "result", "subtype": "success", "is_error": False}),
     ]
 
 
@@ -159,12 +182,32 @@ class DclabCodeSetsTest(unittest.TestCase):
 
         ep = next(e for e in self.rows("m6_stepwise_decisions", "dclab_code") if e["id"].endswith("s_edge01"))
         self.assertEqual([(s["action"], s["outcome"]) for s in ep["steps"]],
-                         [("Bash", "denied"), ("Read", "auto_no_result"), ("Read", "cancelled")])  # the subagent's step is not the agent's own
+                         [("Bash", "denied"), ("Bash", "allowed_no_result"), ("Read", "auto_no_result"), ("Read", "cancelled"),
+                          ("Bash", "denied"), ("Bash", "allowed_no_result"), ("Bash", "denied"), ("Bash", "allowed_no_result")])  # the subagent's step is not the agent's own
+        pairs = [p for p in self.rows("m7_judges", "dclab_code_preferences") if "s_edge01" in p["id"]]
+        self.assertEqual(len(pairs), 2)  # turns 1 and 4; the parallel deny and allow of the third turn are not two tries
+        self.assertEqual(pairs[0]["split"], split_of("sdk-s_edge01"))
+        self.assertEqual(pairs[0]["chosen"]["tool_calls"][0]["input"]["command"], "rm -rf out/tmp")
+        self.assertEqual(pairs[0]["rejected"]["tool_calls"][0]["input"]["command"], "rm -rf out")
+        self.assertEqual((pairs[0]["rejected"]["reasoning"], pairs[0]["rejected"]["reasoning_source"]), ("Clean the outputs first.", "recorded"))
+        self.assertEqual(pairs[0]["prompt"][0]["content"], "go")
+        self.assertEqual(pairs[0]["decided_by"], "person")
+        silver = [p for p in self.rows("m5_solver_llm", "dclab_code_preferences") if "s_edge01" in p["id"]]
+        self.assertEqual([p["weight"] for p in silver], [0.5, 0.5])  # both steps are Claude's: silver for the solver
+        manifest = json.loads((self.layout.sets("m5_solver_llm", "dclab_code_preferences", "v1") / "MANIFEST.json").read_text(encoding="utf-8"))
+        from dclab_rnd.store import provider_outputs
+        self.assertEqual(manifest["consent"], provider_outputs.consent())  # the owner's decision on Claude's outputs (2026-10-25: train)
+        # Thinking never crosses a turn: turn 3 ended with thinking, turn 4's denied step had none before it.
+        fourth = next(p for p in pairs if p["rejected"]["tool_calls"][0]["input"]["command"] == "rm -rf cache")
+        self.assertIsNone(fourth["rejected"].get("reasoning"))
+        self.assertEqual(fourth["prompt"][0]["content"], "fourth task")
+        third_prompt = [x for x in self.rows("m6_stepwise_decisions", "dclab_code") if x["id"].endswith("s_edge01")]
+        self.assertTrue(third_prompt)
         self.assertEqual(ep["steps"][0]["state"]["method"], "ask_first")
-        self.assertEqual(ep["outcome"], "stopped")
+        self.assertEqual(ep["outcome"], "success")  # the last turn ran to its end
         perm = {d["label"] for d in self.rows("m2_workflow_decisions", "internal", "dclab_code.permission") if "s_edge01" in d["id"]}
-        self.assertEqual(perm, {"deny", "allow"})  # the person's deny across the hour and the subagent's allow; the stop's deny is not a label
-        self.assertEqual(len([d for d in self.rows("m1_students", "dclab_code.permission") if "s_edge01" in d["id"]]), 2)
+        self.assertEqual(perm, {"deny", "allow"})  # the person's deny across the hour and the allows; the stop's deny is not a label
+        self.assertEqual(len([d for d in self.rows("m1_students", "dclab_code.permission") if "s_edge01" in d["id"]]), 7)
         answers = [j for j in self.rows("m7_judges", "dclab_code_answers") if "s_edge01" in j["id"]]
         self.assertEqual([(j["candidate"]["answer"], j["score"]) for j in answers], [("Answer A.", 1.0)])  # the bad grade had no answer: not paired with A
         # The session and its Claude Code transcript share one split.
