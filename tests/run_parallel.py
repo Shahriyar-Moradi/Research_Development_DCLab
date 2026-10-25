@@ -183,7 +183,7 @@ def slot_databases(jobs: int, required: bool) -> list[str] | None:
 
 
 # set empty, so .env (read without override on import, by dclab_rnd/agentic/server.py among others) cannot set them
-OWNER_MODEL_CHOICE = ("DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "OPENAI_API_KEY")
+OWNER_MODEL_CHOICE = ("DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "OPENAI_API_KEY", "DCLAB_BLOCK_PROVIDERS")
 
 
 def child_env(tmp: str, threads_one: bool = True) -> dict:

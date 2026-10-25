@@ -1,0 +1,64 @@
+{
+ "package": "claude-only",
+ "title": "Claude only on this machine: OpenAI blocked by a setting, its key kept; a run that never read .env reaches Claude too",
+ "date": "2026-10-25",
+ "request": "The owner: 'use only claude model not openai model but do not delete it'.",
+ "spec": "Every real model client is created behind models/live_guard.check; every tier is resolved by models/settings.tier.",
+ "plan": [
+  "Find every path to OpenAI.",
+  "Block by a setting at the one place every client is created, and at tier resolution.",
+  "Make a live process that never read .env take the owner's settings from it.",
+  "Keep tests unchanged: they never read .env."
+ ],
+ "decisions": [
+  {
+   "decision": "DCLAB_BLOCK_PROVIDERS=openai in .env, not deleting the OpenAI key or settings.",
+   "why": "The owner asked to keep them; a block is reversible by one line."
+  },
+  {
+   "decision": "A provider is known by its hosts (openai.com); a local server is never blocked.",
+   "why": "Ollama and LM Studio speak OpenAI's protocol on localhost; blocking the protocol would block them."
+  },
+  {
+   "decision": "owner_value: the process's own value first (an empty one counts), else .env, never inside a test.",
+   "why": "The test runner blanks the owner's settings; a command-line run that never read .env had taken the OpenAI key from the shell."
+  },
+  {
+   "decision": "The research campaign's own OpenAI endpoints are guarded too.",
+   "why": "agents.py, live_eval.py and guide_review.py build clients outside the gateway."
+  }
+ ],
+ "change": "dclab_rnd/models/live_guard.py (BLOCK, owner_value, blocked, ProviderBlocked, the check), models/settings.py (owner settings, a blocked tier unavailable), agentic/agents.py, live_eval.py, guide_review.py, .env.example, tests/run_parallel.py, tests/test_provider_block.py; .env (the owner's, not committed).",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A command-line run asked OpenAI with the owner's key while the product's model is Claude.",
+   "scenario": "The collector's first trial: 155 decision questions to gpt-5.6-terra (60,039 input and 5,798 output tokens), unpriced, recorded as Claude's.",
+   "cause": "The tier settings read only the process environment; the command line had not read .env, so DCLAB_LLM_PROVIDER was unset and the shell's OPENAI_API_KEY served.",
+   "fix": "owner_value reads .env for a live process; DCLAB_BLOCK_PROVIDERS=openai refuses every OpenAI client and makes its tiers unavailable.",
+   "test": "tests/test_provider_block.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "a run from the owner's shell with the OpenAI key present and .env unread",
+   "gate": "affected tests only (the owner's daytime rule)",
+   "result": "every tier claude-sonnet-5-5; a tier pointed at OpenAI unavailable with no key sent; a direct OpenAI client refused; a local Ollama client allowed; 262 tests in 17 files pass",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "a tool that reads OPENAI_API_KEY without DCLab's clients is not covered"
+   ]
+  }
+ ],
+ "outcome": "No request leaves this machine for OpenAI; the OpenAI key and settings stay in .env.",
+ "lessons": [
+  "A setting a server reads from .env must be read the same way by every command-line run, or the two reach different models."
+ ],
+ "risks": [
+  "Removing the block line re-enables OpenAI at once."
+ ],
+ "commits": []
+}

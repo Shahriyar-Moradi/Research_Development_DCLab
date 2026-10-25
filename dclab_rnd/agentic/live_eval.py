@@ -25,7 +25,12 @@ AGENTS = {name: getattr(agents, name) for name in (
 def _endpoint() -> str:
     """Where NOOA (litellm) sends requests: OPENAI_BASE_URL, else OpenAI."""
     import os
-    return os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
+    url = os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
+    from ..models.live_guard import ProviderBlocked, blocked  # the owner uses Claude only (2026-10-25)
+
+    if blocked(url):
+        raise ProviderBlocked(f"OpenAI is blocked on this machine (DCLAB_BLOCK_PROVIDERS in .env): nothing is sent to {url}")
+    return url
 
 class MeteredClient(ResponsesClient):
     def __init__(self, model):

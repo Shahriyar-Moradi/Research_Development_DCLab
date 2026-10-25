@@ -24,6 +24,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from .client import DEFAULT_MODEL, REASONING_FIELDS
+from .live_guard import blocked, owner_value  # the owner's providers and settings, also for a run that never read .env
 
 TIERS = ("strong", "standard", "cheap")
 TUNED = "tuned"  # the policy model (A6.3/A6.4): only from DCLAB_TIER_TUNED_*; it never falls back to another model
@@ -219,11 +220,11 @@ def default_model(base_url: str) -> str:
 def _claude_model() -> str:
     from .anthropic_client import DEFAULT_MODEL as CLAUDE
 
-    return os.environ.get("ANTHROPIC_MODEL", "").strip() or CLAUDE
+    return owner_value("ANTHROPIC_MODEL").strip() or CLAUDE
 
 
 def anthropic_default() -> bool:
-    return os.environ.get("DCLAB_LLM_PROVIDER", "").strip().lower() == "anthropic"
+    return owner_value("DCLAB_LLM_PROVIDER").strip().lower() == "anthropic"
 
 
 def tier(name: str) -> dict[str, Any]:
@@ -247,7 +248,7 @@ def tier(name: str) -> dict[str, Any]:
 
         base_url = BASE_URL
         model = _env(name, "MODEL") or _claude_model()
-        key = _env(name, "API_KEY") or os.environ.get("ANTHROPIC_API_KEY", "").strip()
+        key = _env(name, "API_KEY") or owner_value("ANTHROPIC_API_KEY").strip()
     elif name == "standard":
         base_url = _env(name, "BASE_URL") or os.environ.get("DCLAB_LLM_BASE_URL") or os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
         model = _env(name, "MODEL") or (_claude_model() if provider(base_url) == "anthropic" else
@@ -269,9 +270,12 @@ def tier(name: str) -> dict[str, Any]:
             model = standard["model"]
         key = _env(name, "API_KEY") or (standard["api_key"] if same_host else "")
         if not key and provider(base_url) == "anthropic":
-            key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+            key = owner_value("ANTHROPIC_API_KEY").strip()
     if not key and is_local(base_url, name):
         key = "local"  # a local server (Ollama, LM Studio) needs no key; the SDK still wants one
+    who = blocked(base_url)
+    if who:  # the owner blocked this provider (2026-10-25: Claude only): the tier is unavailable, its key never sent
+        return {"name": name, "base_url": "", "model": "", "api_key": "", "provider": provider(base_url), "blocked": who, **options(name)}
     return {"name": name, "base_url": base_url, "model": model, "api_key": key, "provider": provider(base_url), **options(name)}
 
 
