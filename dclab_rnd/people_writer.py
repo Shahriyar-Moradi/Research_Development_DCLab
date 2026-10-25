@@ -35,7 +35,18 @@ JOURNEYS = ROOT / "dclab_rnd" / "agent_eval" / "journeys"
 OUT = JOURNEYS / "journeys_homework_v1.json"
 FLAGGED = JOURNEYS / "journeys_homework_v1_flagged.json"
 HOME = ROOT / "agent_runs" / "live_tests" / "2026-10-25-people"
-WRITER, CHECKER = "journey_writer", "journey_checker"
+WRITER, CHECKER = "journey_writer", "journey_checker"  # the gateway's purposes
+PROMPT, ID_PREFIX = "journey_writer", "JH"  # writer A; use_writer("b") switches to the second writer (S8 B2 v2)
+
+
+def use_writer(name: str) -> None:
+    """The second writer (a different prompt, its own files and ids), so the homework is not one writer's style."""
+    global OUT, FLAGGED, HOME, PROMPT, ID_PREFIX
+    if name == "b":
+        OUT, FLAGGED = JOURNEYS / "journeys_homework_v2.json", JOURNEYS / "journeys_homework_v2_flagged.json"
+        HOME, PROMPT, ID_PREFIX = ROOT / "agent_runs" / "live_tests" / "2026-10-25-people-b", "journey_writer_b", "JK"
+    elif name != "a":
+        raise ValueError(f"no writer {name!r}: a or b")
 PER_BATCH, BATCHES = 10, 4  # 15 kinds x 4 batches x 10 people = 600
 ANSWER_KEYS = ("target", "prediction_moment", "action", "entity", "labels", "budget", "costs", "data_plan", "family")
 FAMILIES = {  # each kind's family, as its journeys declare it (the truth; never the writer's)
@@ -92,7 +103,7 @@ def request(kind: str, batch: int) -> list[dict[str, str]]:
     from . import prompts
 
     ask = {"problem": kind_facts(kind), "people": PER_BATCH, "their_businesses": businesses(kind, batch), "examples_of_the_format": examples(kind)}
-    return [{"role": "system", "content": prompts.text(WRITER)}, {"role": "user", "content": json.dumps(ask, ensure_ascii=False)}]
+    return [{"role": "system", "content": prompts.text(PROMPT)}, {"role": "user", "content": json.dumps(ask, ensure_ascii=False)}]
 
 
 def check_request(kind: str, people: list[dict[str, Any]]) -> list[dict[str, str]]:
@@ -129,8 +140,8 @@ def parse_people(content: str) -> list[dict[str, Any]]:
 
 
 def person(kind: str, batch: int, i: int, p: dict[str, Any], prompt_hash: str) -> dict[str, Any]:
-    out = {"id": f"JH-{kind}-{batch}{i:02d}", "kind": kind, "family": FAMILIES[kind], "words": p["words"], "answers": p["answers"],
-           "written_by": f"{WRITER}@{prompt_hash}"}
+    out = {"id": f"{ID_PREFIX}-{kind}-{batch}{i:02d}", "kind": kind, "family": FAMILIES[kind], "words": p["words"], "answers": p["answers"],
+           "written_by": f"{PROMPT}@{prompt_hash}"}
     if kind == "rare_event":
         out["labels"] = "file"  # the replica's found cases come in their own file, as the dev journeys say
     return out
@@ -139,7 +150,7 @@ def person(kind: str, batch: int, i: int, p: dict[str, Any], prompt_hash: str) -
 def _prompt_hash() -> str:
     from . import prompts
 
-    return hashlib.sha256((prompts.text(WRITER) + prompts.text(CHECKER)).encode()).hexdigest()[:12]
+    return hashlib.sha256((prompts.text(PROMPT) + prompts.text(CHECKER)).encode()).hexdigest()[:12]
 
 
 def _checker_hash() -> str:
@@ -166,9 +177,10 @@ def _ask(client: Any, messages: list[dict[str, str]], max_tokens: int) -> dict[s
             "model": getattr(client, "model", None)}
 
 
-def write(cap_eur: float, home: Path = HOME, kinds_: Optional[list[str]] = None) -> dict[str, Any]:
+def write(cap_eur: float, home: Optional[Path] = None, kinds_: Optional[list[str]] = None) -> dict[str, Any]:
     """Every (kind, batch) not answered yet: the writer's request, then the checker's on its people; each request and
     reply kept whole in ``home/replies``; the people that fit to ``OUT``, the others to ``FLAGGED``."""
+    home = Path(home or HOME)
     replies = Path(home) / "replies"
     replies.mkdir(parents=True, exist_ok=True)
     spent = sum(float((json.loads(p.read_text(encoding="utf-8")).get("spent_eur") or 0.0)) for p in replies.glob("*.json"))
@@ -201,10 +213,11 @@ def _check_of(doc: dict[str, Any]) -> Optional[dict[str, Any]]:
     return (rechecks[-1].get("reply") if rechecks else None) or doc.get("check_reply")
 
 
-def recheck(cap_eur: float, home: Path = HOME) -> dict[str, Any]:
+def recheck(cap_eur: float, home: Optional[Path] = None) -> dict[str, Any]:
     """Every kept batch whose latest check was made under another checker prompt, checked again (the old check kept)."""
     from . import prompts
 
+    home = Path(home or HOME)
     current = hashlib.sha256(prompts.text(CHECKER).encode()).hexdigest()[:12]
     spent, asked = 0.0, 0
     for path in sorted((Path(home) / "replies").glob("*.json")):
@@ -226,10 +239,11 @@ def recheck(cap_eur: float, home: Path = HOME) -> dict[str, Any]:
     return {"spent_eur": round(spent, 4), "asked": asked, **assemble(home)}
 
 
-def assemble(home: Path = HOME) -> dict[str, int]:
+def assemble(home: Optional[Path] = None) -> dict[str, int]:
     """The people of every kept reply, split by the checker into homework and kept-apart (rebuilt from the replies)."""
     from .core_advisor import _first_object
 
+    home = Path(home or HOME)
     fit, flagged = [], []
     for path in sorted((Path(home) / "replies").glob("*.json")):
         doc = json.loads(path.read_text(encoding="utf-8"))
@@ -254,7 +268,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--yes", action="store_true")
     ap.add_argument("--cap-eur", type=float)
     ap.add_argument("--kinds", nargs="*")
+    ap.add_argument("--writer", default="a", choices=("a", "b"))
     args = ap.parse_args(argv)
+    use_writer(args.writer)
     if args.command == "plan":
         n = len(args.kinds or FAMILIES) * BATCHES
         print(f"Plan: {n} writer requests ({PER_BATCH} people each) and {n} checker requests through {WRITER} and {CHECKER} "
