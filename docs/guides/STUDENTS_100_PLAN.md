@@ -309,6 +309,24 @@ tables, then the change in `decide.py` (a batch acts on its top share; a stream 
   older written people typed themselves. S9: the Solution page proposes the kind and its fields from the card's family
   and the table, each kind's own way, and the same people are played again.
 
+### S9. The kind that is built is the kind that was understood (designed 2026-10-25, the owner: "do all")
+
+The live first conversation (45 people) showed the largest gap: the card read a forecast right and the build ran a
+regression; most of the 30 people wrong in both arms are kinds whose Solution needs fields the older written people
+typed themselves. Today `kinds.resolve` reads a declared kind, the pack, then the task: never the card's family, and no
+kind proposes its own fields.
+
+| Step | Delivers | Done when |
+|---|---|---|
+| S9.1 | `ProblemKind.propose_fields(frame, target)`: the fields a kind reads from the table, each with its reason, or None; a field only the person knows (a forecast's horizon, whether an offer was randomised, which event counts) is never guessed: it is asked, or assumed and said as an assumption | each kind's replica: the fields its acceptance case states are proposed from the table alone, or the missing one is named |
+| S9.2 | `kinds.for_family(family)`: the kinds a card's family means, the most specific first; `studio.solution.propose(..., family=)` proposes the first kind whose fields it can read, with why; the draft's Solution route, the Home orchestrator and the journeys harness pass the card's family | a forecast the card reads runs as a forecast; the person can change the kind on the Solution page |
+| S9.3 | The Home asks a kind's missing field in the kind's words (`questions`), and "I don't know" leads to the stated assumption or to the plain task, said | no silent default |
+| S9.4 | The same 45 live people played again (about EUR 4), and the older journeys unchanged (harness 17 of 17) | the people wrong for the kind are counted again |
+
+Order of kinds: segmentation and embedded (fields readable), forecasting (series and time readable, the horizon
+assumed and said), time-to-event (duration, event and start columns by name and values), ranking and uplift (one
+field each the person must say), then entity tables and streams (they need their other tables).
+
 ### S6. Fair exams for every student
 - A fresh sealed set (v2) per point, drawn once and never read until a promotion; a gate runner that accepts any
   answerer (classifier, language model, rule) so generation 2 is judged like the students.
