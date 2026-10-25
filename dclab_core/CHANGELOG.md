@@ -4,6 +4,22 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.114.0 (2026-10-25)
+
+The decision's holdout prediction interval, measured too narrow, rebuilt (fraud_decision_v2: on 30 seeds of the
+delivery-fraud replica, 25 of 29 inside, but the misses a quarter larger than the interval said).
+
+- `decide.choose_operating_point(..., folds=)`: in each bootstrap draw a sample of the holdout's number of rows (whole
+  entities, with replacement, until the rows are reached) is drawn and the decision applied to it as it runs; with
+  `folds` (the fold whose model scored each out-of-fold row) each sample comes from one fold's rows, one model's
+  ranking as the holdout's is. The interval is those values' 5th and 95th percentiles, in place of the normal
+  approximation (kept only when fewer than 20 draws exist); the holdout says its method (`prediction_interval_method`);
+  the samples have their own random stream, so the training intervals do not move. A fold is picked by a random row;
+  a small fold is drawn on until the holdout's rows are reached; time splits pass no folds (their models are unlike).
+  Explored on v2's own seeds: 26 of 29 inside, misses of about the size it says (root mean square of z 1.08; row-sized
+  samples without folds: 1.24); without real model differences one-fold samples widen it (more with more folds). The
+  verdict is fraud_decision_v3's, on fresh seeds, with a width gate in both directions.
+
 ## 0.113.0 (2026-10-25)
 
 What-if for targeting and for several actions (34.3's open item), no refit, no contract changed; and a binding capacity

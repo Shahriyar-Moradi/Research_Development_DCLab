@@ -179,9 +179,21 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
                            value_per_case: Optional[Sequence[float]] = None, groups: Optional[Sequence[Any]] = None,
                            rows_per_day: Optional[float] = None, y_test: Optional[Sequence[int]] = None,
                            score_test: Optional[Sequence[float]] = None, value_test: Optional[Sequence[float]] = None,
-                           weights: Optional[Sequence[float]] = None, bootstrap: int = BOOTSTRAP, seed: int = 0) -> dict[str, Any]:
+                           weights: Optional[Sequence[float]] = None, bootstrap: int = BOOTSTRAP, seed: int = 0,
+                           folds: Optional[Sequence[Any]] = None) -> dict[str, Any]:
     """The number of rows to act on with the highest expected value, chosen on out-of-fold scores under the capacity,
     with its interval (a bootstrap over rows, or entities when ``groups`` are given), then read once on the holdout.
+
+    The holdout's prediction interval (0.114.0, fraud_decision_v2 measured the normal approximation too narrow by about a
+    quarter on an entity split): in each bootstrap draw, a sample of the holdout's number of rows is drawn from the draw
+    (whole entities when ``groups`` are given, until the rows are reached) and the decision applied to it as it runs; the
+    interval is those values' 5th and 95th percentiles: the training rows' own uncertainty, the holdout's sampling, its
+    entities, the quota's few slots and the values' skew, with no normal curve. With ``folds`` (the fold whose model
+    scored each out-of-fold row), each sample comes from one fold's rows: one model's ranking, as the holdout is scored by
+    one model, so a single model's quirks count (the review of 0.114.0: with a quota of a dozen rows they dominate). A
+    fold's rows hold a fifth of the data, so without real model differences this widens the interval somewhat (more with
+    more folds); pass ``folds`` only when each entity's rows sit in one fold (grouped cross-validation) and the folds'
+    models are alike (not a time split's expanding windows, whose first model is the weakest).
 
     Rows are ranked by score; with a value per row (``value_per_case``, from ``spec.value_column``) and scores that are
     probabilities, by expected gain (score × value, less the costs), so a likely small case can come after a less likely
@@ -270,7 +282,41 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
         index = dict(zip(keys, np.split(order, starts[1:])))
     else:
         keys, index = np.arange(n), None
-    shares, values = [], []
+    n_test = len(y_test) if y_test is not None else 0
+    fold_of = None
+    if folds is not None:
+        fold_of = np.asarray(folds)
+        if len(fold_of) != n:
+            raise ValueError("One fold per out-of-fold row: the folds must be as many as the scores")
+    sizes = None
+    if index is not None:  # an entity's rows by its code (a row with no entity has a code past the others: look up by code)
+        sizes = np.zeros(int(keys.max()) + 1, dtype=int)
+        sizes[keys] = [len(index[k]) for k in keys]
+    key_fold = ({k: fold_of[index[k][0]] for k in keys} if index is not None else None) if fold_of is not None else None
+    inner = np.random.default_rng([seed, 1])  # its own stream: the training intervals do not move when a holdout is given
+
+    def holdout_sized(draw: np.ndarray, rows: np.ndarray) -> np.ndarray:
+        """A sample of the holdout's number of rows from this draw: whole entities (with replacement) until the rows are
+        reached, else rows; from one fold's rows when the folds are known."""
+        if index is not None:
+            pool = draw
+            if key_fold is not None:  # a fold by a random row (the review: by entity, a fold of many single rows came up too often)
+                fold = fold_of[rows[inner.integers(0, len(rows))]]
+                pool = pool[np.fromiter((key_fold[k] == fold for k in pool), bool, len(pool))]
+            need = max(4 * len(pool), int(np.ceil(2 * n_test / max(float(sizes[pool].mean()), 1.0))))
+            picks = pool[inner.integers(0, len(pool), size=need)]
+            total = np.cumsum(sizes[picks])
+            while total[-1] < n_test:  # a small fold: draw on until the holdout's rows are reached
+                more = pool[inner.integers(0, len(pool), size=need)]
+                picks, total = np.r_[picks, more], np.r_[total, total[-1] + np.cumsum(sizes[more])]
+            stop = int(np.searchsorted(total, n_test)) + 1
+            return np.concatenate([index[k] for k in picks[:stop]])
+        pool = rows
+        if fold_of is not None:
+            pool = pool[fold_of[pool] == fold_of[pool[inner.integers(0, len(pool))]]]
+        return pool[inner.integers(0, len(pool), size=n_test)]
+
+    shares, values, held, held_rows = [], [], [], []
     for _ in range(bootstrap):
         draw = rng.choice(keys, size=len(keys), replace=True)
         rows = np.concatenate([index[k] for k in draw]) if index is not None else draw
@@ -278,6 +324,11 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
         shares.append(k / len(rows))  # the best share again: how stable the choice is
         acted = rows[acted_rows(rank[rows], s[rows], value[rows])]  # the decision taken, as it runs
         values.append(float(_gain(y[acted], value[acted], spec).sum()) / len(rows))
+        if n_test and best:  # a holdout-sized sample of this draw, the decision applied to it as it runs
+            sample = holdout_sized(draw, rows)
+            held_rows.append(len(sample))
+            taken = sample[acted_rows(rank[sample], s[sample], value[sample])]
+            held.append(float(_gain(y[taken], value[taken], spec).sum()) / len(sample))
     ranked = np.sort(rank)[::-1]
     out: dict[str, Any] = {
         "decision": "operating_point", "spec": spec.model_dump(), "ranked_by": ranked_by,
@@ -319,9 +370,15 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
         top = acted_rows(rank_t, st, vt)  # the decision as it would run (a quota under a binding capacity, else the threshold)
         k = len(top)
         realised = float(_gain(yt[top], vt[top], spec).sum())
+        interval = _interval(held) if len(held) >= 20 else _prediction(values, n, len(yt))
         out["holdout"] = {"actions": k, "cases_found": int(yt[top].sum()), "precision": _r(yt[top].mean()) if k else None,
                           "expected_value_per_row": _r(realised / len(yt)),
-                          "prediction_interval": _prediction(values, n, len(yt)),
+                          "prediction_interval": interval,
+                          "prediction_interval_method": ((f"holdout-sized samples of each bootstrap draw ({len(yt)} rows, about "
+                                                          f"{int(np.mean(held_rows))} drawn"
+                                                          + (", whole entities" if index is not None else "")
+                                                          + (", one fold's rows each" if fold_of is not None else "") + ")")
+                                                         if len(held) >= 20 else "normal approximation of the bootstrap spread"),
                           "reads": "the expected value's interval is for the value per row on average; a holdout is one more sample with its "
                                    "own noise, so its value is read against the prediction interval"}
     return out

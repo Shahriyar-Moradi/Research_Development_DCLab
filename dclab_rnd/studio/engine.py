@@ -1219,8 +1219,13 @@ def _act(p: Prepared, decision: Any, selected: dict[str, Any], oof_y: np.ndarray
     if spec.capacity_per_day and not rows_per_day:
         return {"decision": "operating_point", "learnable": False,
                 "warning": "A capacity per day needs the time column to count the rows that arrive a day: name it, or give the capacity as a share"}
+    fold_of = np.full(len(bundle.X_train), -1)
+    for number, (_, valid) in enumerate(bundle.cv_splits):
+        fold_of[np.asarray(valid)] = number
     out = decide.choose_operating_point(oof_y, selected["_oof_pred"], spec, value_per_case=values, groups=groups, rows_per_day=rows_per_day,
-                                        y_test=y_test.to_numpy(), score_test=predictions, value_test=values_test)
+                                        y_test=y_test.to_numpy(), score_test=predictions, value_test=values_test,
+                                        folds=(fold_of[np.asarray(selected["_oof_index"])]  # 0.114.0: one model's rows a holdout-sized sample;
+                                               if bundle.spec.split_strategy not in ("time", "time_group") else None))  # never a time split's (unlike) folds
     out["what"] = spec.action
     if p.solution.labels == "partial":
         out["partial_note"] = ("The labels are partial: an unlabelled row may be a case nobody found, so the value is a lower bound "

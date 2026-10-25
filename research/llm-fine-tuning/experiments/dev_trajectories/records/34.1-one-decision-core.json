@@ -225,6 +225,75 @@
    "impact": "a finished measurement without its verdict",
    "alternatives": [],
    "open": ""
+  },
+  {
+   "id": "B1",
+   "source": "reviewer",
+   "defect": "the first holdout-sized bootstrap passed for the wrong reason",
+   "scenario": "on v2's own seeds it held 25 of 29 with misses of the right size, but its samples were a third smaller than the holdout: about 150 rides without a biker each counted as an entity in training, and a sample of the holdout's count of entities drew many of them",
+   "cause": "samples sized by a count of entities, which rows with no entity and skewed entity sizes distort",
+   "fix": "samples sized by the holdout's rows, whole entities drawn until the rows are reached; an entity's size looked up by its code (rows with no entity have codes past the others: the first version crashed there, now tested)",
+   "test": "tests/test_core_decide_holdout_interval.py (rows with no entity)",
+   "severity": "behaviour",
+   "impact": "an interval that looked fixed by measuring the wrong sample",
+   "alternatives": [
+    "count only named entities (still mis-sized when sizes are skewed)"
+   ],
+   "open": ""
+  },
+  {
+   "id": "B2",
+   "source": "reviewer",
+   "defect": "on a time split with entities the samples were several times too large",
+   "scenario": "the holdout's entities are new and have a few rows each; their count of full-history training entities held many more rows",
+   "cause": "the same entity-count sizing",
+   "fix": "the same row sizing",
+   "test": "tests/test_core_decide_holdout_interval.py (a short-history holdout)",
+   "severity": "behaviour",
+   "impact": "an interval narrower than before on time-and-entity splits",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "B3",
+   "source": "reviewer",
+   "defect": "sized right, the interval was still too narrow on v2's seeds",
+   "scenario": "row-sized samples: 24 of 29 inside, misses 1.24 times its size",
+   "cause": "likely the final model's own ranking: the holdout is scored by one model, a dozen reviews deep, while the training rows were scored by five fold models whose quirks average out",
+   "fix": "each sample drawn from one fold's rows (one model's ranking); explored on v2's own seeds: 26 of 29 inside, misses 1.01 times its size; the verdict is fraud_decision_v3's on fresh seeds",
+   "test": "tests/test_core_decide_holdout_interval.py (one fold's rows a sample)",
+   "severity": "behaviour",
+   "impact": "a range a quarter narrower than the decision's real uncertainty",
+   "alternatives": [
+    "calibrate the half-width by a measured factor (empirical, no mechanism)"
+   ],
+   "open": "fraud_decision_v3"
+  },
+  {
+   "id": "B4",
+   "source": "reviewer",
+   "defect": "the training intervals moved when a holdout was passed",
+   "scenario": "the inner samples drew from the same random stream as the training draws",
+   "cause": "one generator for both",
+   "fix": "the inner samples have their own stream",
+   "test": "tests/test_core_decide_holdout_interval.py (the training interval never moves)",
+   "severity": "behaviour",
+   "impact": "two runs on the same rows disagreeing for no reason",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "B5",
+   "source": "reviewer",
+   "defect": "the one-fold samples picked a fold by entity, could fall short, and suit no time split",
+   "scenario": "the replica's riderless rides, one group in its folds but 156 entities in the bootstrap, made their fold come up about twice as often; a fold of a few entities could not fill a holdout-sized sample; a time split's first fold model is its weakest",
+   "cause": "a fold drawn from the list of entities; a fixed number of picks; folds passed for every split",
+   "fix": "a fold by a random row; picks drawn on until the rows are reached; no folds on time splits; the docstring says what folds assume; v3's width gate catches an interval too wide as well as too narrow",
+   "test": "tests/test_core_decide_holdout_interval.py; tests/test_decision_measure.py (too wide)",
+   "severity": "behaviour",
+   "impact": "an interval sized by one fold too often, or too wide where the models do not differ",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [

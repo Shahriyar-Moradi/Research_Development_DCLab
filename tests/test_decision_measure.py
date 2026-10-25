@@ -43,18 +43,18 @@ class FraudDecisionTest(unittest.TestCase):
         good = {"decision_status": "operating_point", "chosen_share": 0.004, "warning": None, "within_capacity": True,
                 "inside_prediction_interval": True, "holdout_actions": 16, "z": 0.0, "miss_side": "inside"}
         n = len(dm.SEEDS)
-        rows = [dict(good) for _ in dm.SEEDS]
+        rows = [dict(good, z=0.9 if i % 2 else -0.9) for i in range(n)]  # misses of about the interval's own size
         verdict = dm.judge(rows)
         self.assertEqual((verdict["verdict"], verdict["next"]), ("pass", "keep the interval"))
         import json
 
         json.dumps(dm.judge([dict(good, z=0.3 if i % 2 else -0.4) for i in range(n)]))  # the verdict writes as JSON (v2's report crashed on a numpy bool)
-        miss = lambda i: dict(good, inside_prediction_interval=False, z=-2.0 if i % 2 else 2.0, miss_side="below" if i % 2 else "above")
-        six_out = [miss(i) if i < 6 else dict(good) for i in range(n)]  # 24 of 30 inside: 80%
+        miss = lambda i: dict(good, inside_prediction_interval=False, z=-1.8 if i % 2 else 1.8, miss_side="below" if i % 2 else "above")
+        six_out = [miss(i) if i < 6 else dict(good, z=0.8 if i % 2 else -0.8) for i in range(n)]  # 24 of 30 inside: 80%
         self.assertEqual(dm.judge(six_out)["verdict"], "pass")
         seven_out = [miss(i) if i < 7 else dict(good) for i in range(n)]
         self.assertFalse(dm.judge(seven_out)["gates"]["coverage"])
-        nothing = rows[:-1] + [dict(good, chosen_share=0.0, holdout_actions=None, within_capacity=None, inside_prediction_interval=None, z=None)]
+        nothing = rows[:-1] + [dict(good, chosen_share=0.0, holdout_actions=None, within_capacity=None, inside_prediction_interval=None, z=None)]  # 29 read
         self.assertEqual(dm.judge(nothing)["verdict"], "pass")  # no review paid on a seed: a choice, not a capacity failure (v1's flaw)
 
     def test_a_seed_that_chose_to_act_but_acted_on_no_holdout_row_still_counts(self):
@@ -81,7 +81,11 @@ class FraudDecisionTest(unittest.TestCase):
         verdict = dm.judge(narrow)
         self.assertTrue(verdict["gates"]["coverage"])  # 80% inside, yet the misses are too large on average
         self.assertFalse(verdict["gates"]["width"])
-        self.assertEqual(verdict["next"], "a holdout-sized entity bootstrap")
+        self.assertEqual(verdict["next"], "compare each fold model's holdout value with the final model's")
+        wide = [dict(good, z=0.3 if i % 2 else -0.3) for i in range(n)]  # misses far smaller than the interval says
+        verdict = dm.judge(wide)
+        self.assertFalse(verdict["gates"]["width"])
+        self.assertEqual(verdict["next"], "drop the one-fold samples")
 
     def test_too_few_seeds_acting_is_inconclusive(self):
         good = {"decision_status": "operating_point", "chosen_share": 0.004, "warning": None, "within_capacity": True,

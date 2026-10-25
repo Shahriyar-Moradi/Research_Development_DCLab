@@ -1,4 +1,11 @@
-"""The decision core through the engine on the delivery-fraud replica (campaign ``fraud_decision_v2``; 34.1 and 34.4).
+"""The decision core through the engine on the delivery-fraud replica (campaign ``fraud_decision_v3``; 34.1 and 34.4).
+
+``fraud_decision_v3`` measures dclab-core 0.114.0's interval (in each bootstrap draw, samples of the holdout's number
+of rows, whole bikers, each from one fold's rows: one model's ranking, as the holdout's) on 30 fresh seeds (38 to 67).
+v2 found the old normal approximation too narrow by about a quarter (root mean square of z 1.29, 90% interval 1.06 to
+1.64), its coverage and centre fine. v2's gate holds, with one change fixed before the run: the width must be neither too
+narrow nor too wide (one-fold samples widen the interval when the folds' models do not differ). Each seed also keeps the
+row-sized interval without folds, read on the same seed, so the folds' part shows apart.
 
 ``fraud_decision_v1`` (8 seeds) failed its gate: 5 of the 7 seeds that acted fell inside their 90% interval where 6 of 8
 were asked, and its capacity gate counted a seed that acted on nothing as a failure. 5 of 7 or fewer happens about 15
@@ -50,23 +57,24 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-CAMPAIGN_ID = "fraud_decision_v2"
+CAMPAIGN_ID = "fraud_decision_v3"
 CAMPAIGN = ROOT / "evidence" / "campaigns" / CAMPAIGN_ID
 WORK = ROOT / "agent_runs" / CAMPAIGN_ID  # each seed's workspace kept whole: the store reads its sessions, ledger and runs
-SEEDS = tuple(range(8, 38))  # fresh: v1's seeds 0 to 7 raised the question and are not reused
+SEEDS = tuple(range(38, 68))  # fresh again: the seeds that showed the fault (0 to 37) never judge its fix
 DECISION = {"action": "act", "what": "review the ride", "value_column": "biker_fare", "cost_per_action": 25000.0, "capacity_share": 0.005,
             "notes": "a fraud caught saves the ride's fare; a review costs 25,000 (a tenth of a typical fare); the team reviews at most 0.5% of the rides"}
 GATE = {
-    "id": "fraud_decision_gate_v2",
+    "id": "fraud_decision_gate_v3 (v2's, unchanged)",
     "chosen": "the decision is chosen on every seed (an operating point with a share, none when no review pays; no refusal)",
     "capacity": "on every seed that acted, the holdout's actions never exceed the capacity share of its rows (with one row's rounding)",
     "coverage": "among the seeds that chose to act (at least 20), the realised value per ride lies inside the choice's 90% "
                 "prediction interval on at least 80% of them",
     "centre": "each seed's z = (realised - the interval's centre) / (its half-width / 1.645); |mean z| <= 1.645 / sqrt(N)",
-    "width": "the 90% chi-squared interval of the root mean square of z reaches down to 1 (its lower end <= 1)",
+    "width": "the 90% chi-squared interval of the root mean square of z contains 1 (neither too narrow nor too wide)",
     "inconclusive": "fewer than 20 seeds acting: no verdict on the interval",
-    "next": "width fails with misses on both sides: a holdout-sized entity bootstrap; centre fails below 0: correct the optimism "
-            "of choosing the model; a pass: keep the interval",
+    "next": "a pass: keep the 0.114.0 interval; too narrow with misses on both sides: compare each fold model's holdout value "
+            "with the final model's before changing the interval again; too wide: drop the one-fold samples; centre below 0: "
+            "correct the optimism of choosing the model",
 }
 MIN_ACTED = 20
 COVERAGE = 0.8
@@ -90,7 +98,8 @@ def manifest() -> dict[str, Any]:
     body = {"campaign": CAMPAIGN_ID, "package": "34.1 and 34.4", "seeds": list(SEEDS), "decision": DECISION, "gate": GATE,
             "objective": ("Does the decision core keep its word through the engine on the delivery-fraud replica? A stated review "
                           "decision, chosen on out-of-fold scores, against what it realises on the holdout read once, over thirty fresh "
-                          "seeds: how often it lands inside its interval, and how far off and to which side it misses.")}
+                          "seeds: how often it lands inside its interval, and how far off and to which side it misses (dclab-core "
+                          "0.114.0's interval).")}
     body["sha256"] = hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
     return body
 
@@ -136,11 +145,13 @@ def run_one(seed: int) -> dict[str, Any]:
     work.mkdir(parents=True)
     from .campaign_capture import recorded
     from .ledger import labels
+    from dclab_core import decide
 
     with recorded(work), private_scope(True), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None):
         store, pid = acceptance.build(case, work)  # inside: the build's own decisions (target, roles, split) reach the ledger
         engine.run_all(store, pid)  # its ledger and session log kept in the seed's folder; the rules decide
         labels.from_replica(pid, case.facts, "delivery_fraud")  # 19.8: the planted traps label the decisions
+        paired = _rows_only(store, pid, decide)  # the same seed's row-sized interval without folds, for the folds' part
     final = store.read_stage(pid, "final") or {}
     uses = int(store.get(pid).get("holdout_uses") or 0)
     d = (final.get("evidence") or {}).get("decision") or {}
@@ -161,6 +172,8 @@ def run_one(seed: int) -> dict[str, Any]:
               "expected_interval": d.get("expected_value_per_row_interval"), "holdout_rows": rows, "holdout_actions": acted,
               "holdout_cases_found": h.get("cases_found"), "holdout_value_per_row": realised, "prediction_interval": interval,
               "inside_prediction_interval": inside, "z": z, "miss_side": side, "within_capacity": within, "holdout_uses": uses,
+              "prediction_interval_method": h.get("prediction_interval_method"), "rows_only_interval": paired,
+              "inside_rows_only": None if paired is None or realised is None else bool(paired[0] <= realised <= paired[1]),
               "model": (final.get("evidence") or {}).get("model"), "seconds": round(time.perf_counter() - started, 1),
               "code_sha256": CODE_AT_START, "applied_as": d.get("applied_as"), "capacity_binds": d.get("capacity_binds"),
               "limits": ["labels partial: a fraud nobody found counts as a clean ride, so the realised value is a lower bound",
@@ -169,6 +182,33 @@ def run_one(seed: int) -> dict[str, Any]:
     out.mkdir(parents=True, exist_ok=True)
     (out / f"{result['id']}_seed{seed}.json").write_text(json.dumps(result, indent=2, default=str) + "\n")
     return result
+
+
+def _rows_only(store: Any, pid: str, decide: Any) -> list[Any] | None:
+    """The row-sized interval without folds on this seed's own saved out-of-fold rows (a paired reading beside the
+    interval the engine drew), or None when the rows cannot be matched to their bikers."""
+    import numpy as np
+
+    from dclab_rnd.studio import engine
+
+    try:
+        final = store.read_stage(pid, "final") or {}
+        rows = engine.load_decision_rows(store, pid, (final.get("run") or {}).get("run"))
+        p = engine.prepare(store, store.get(pid))
+        b = p.bundle
+        oof = np.concatenate([np.asarray(v) for _, v in b.cv_splits])
+        if rows is None or len(oof) != len(rows["y"]) or not np.array_equal(b.y_train.to_numpy()[oof].astype(int), np.asarray(rows["y"]).astype(int)):
+            return None
+        groups = b.X_train[b.spec.group_column].to_numpy()[oof] if b.spec.group_column else None
+        n_test = len(b.test_idx)
+        y_test = np.zeros(n_test, dtype=int)
+        y_test[0] = 1  # the interval reads only the holdout's size
+        spec = decide.DecisionSpec(**{k: v for k, v in DECISION.items() if k in ("value_column", "cost_per_action", "capacity_share")}, action="review")
+        out = decide.choose_operating_point(rows["y"], rows["score"], spec, value_per_case=rows["value"], groups=groups, y_test=y_test,
+                                            score_test=np.linspace(0.01, 0.99, n_test), value_test=np.full(n_test, float(np.median(rows["value"]))))
+        return (out.get("holdout") or {}).get("prediction_interval")
+    except Exception:  # noqa: BLE001 - a paired reading only: the measured seed stands without it
+        return None
 
 
 def judge(rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -190,11 +230,13 @@ def judge(rows: list[dict[str, Any]]) -> dict[str, Any]:
     enough = len(read) >= MIN_ACTED
     gates = {"chosen": bool(chosen), "capacity": bool(capacity), "coverage": bool(enough and inside >= COVERAGE * len(read)),
              "centre": bool(enough and centre is not None and abs(centre["mean_z"]) <= centre["bound"]),
-             "width": bool(enough and width is not None and width["interval"][0] <= 1)}  # plain bools: numpy's do not write as JSON
+             "width": bool(enough and width is not None and width["interval"][0] <= 1 <= width["interval"][1])}  # plain bools
     complete = len(rows) == len(SEEDS)
     sides = {s: sum(1 for r in read if r.get("miss_side") == s) for s in ("below", "above")}
+    narrow = width is not None and width["interval"][0] > 1
     out_next = ("keep the interval" if all(gates.values()) else
-                "a holdout-sized entity bootstrap" if not gates["width"] and sides["below"] and sides["above"] else
+                "compare each fold model's holdout value with the final model's" if not gates["width"] and narrow and sides["below"] and sides["above"] else
+                "drop the one-fold samples" if not gates["width"] and width is not None and width["interval"][1] < 1 else
                 "correct the optimism of choosing the model" if not gates["centre"] and centre and centre["mean_z"] < 0 else "read the seeds")
     verdict = ((("pass" if all(gates.values()) else "fail") if enough else "inconclusive: fewer than 20 seeds acted")
                if complete else f"not yet: {len(rows)} of {len(SEEDS)} seeds")

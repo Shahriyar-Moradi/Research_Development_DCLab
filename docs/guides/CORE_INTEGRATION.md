@@ -1070,7 +1070,9 @@ per case or a row's value column, a cost per action, a false alarm's and a miss'
 and passes its own out-of-fold scores; nothing is fitted by the library except a bootstrap.
 
 - `choose_operating_point(y_oof, score_oof, spec, ...)`: the threshold with the highest expected value under the
-  capacity, its 90 % interval and, when the host passes its holdout, the holdout read once with a prediction interval.
+  capacity, its 90 % interval and, when the host passes its holdout, the holdout read once with a prediction interval
+  (0.114.0: from holdout-sized samples of each bootstrap draw; pass `folds`, the fold whose model scored each
+  out-of-fold row, so each sample is one model's ranking, as the holdout's is).
   The main product's `spec.objective` takes the costs through `adapters.main_product.objective_of(spec)`; a value per
   case, a cost per action and a capacity have no field there, and the result's notes say so to the person choosing on
   the operating points page.
