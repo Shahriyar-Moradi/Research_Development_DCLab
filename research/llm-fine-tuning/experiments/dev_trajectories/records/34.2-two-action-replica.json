@@ -1,0 +1,72 @@
+{
+  "package": "34.2-two-action-replica",
+  "title": "Several actions on a replica: a call or an email, judged against every row's true lift",
+  "date": "2026-10-26",
+  "request": "Phase 10 'What remains' item 7: 34.2's choice of several actions was tested on random tables only; a two-action replica.",
+  "spec": "dclab_core/replicas/retention_actions.py (customers at risk of leaving; a random test of no contact, an email, a call; a customer kept is worth a year of fees; a call costs 15 and is few, an email 0.5; the true lift of each action per row in facts) and tests/test_retention_actions.py (each action's lift from an uplift learner on the training rows, value = lift x worth - cost, choose_actions under the call capacity, judged on the true lifts against emailing everyone, calling only, a random assignment of the same counts and the best possible).",
+  "plan": [
+    "A replica with two actions whose helped customers differ, its traps written for the knowledge base",
+    "Estimate each action's lift per row from the arms on training rows only",
+    "Assign with choose_actions under the call capacity",
+    "Judge on the true lifts against single-action and random policies and the best possible",
+    "Write the test as measured, not as hoped"
+  ],
+  "decisions": [
+    {
+      "decision": "Each action's lift from its own arm against no contact (a learner per action)",
+      "why": "only the random test's arms tell an action's effect; comparing contacted rows with the rest would mix the arms"
+    },
+    {
+      "decision": "The X-learner in the test",
+      "why": "measured on five seeds: above the T-learner on every one (for example 15.28 against 13.85 a customer on seed 0)"
+    },
+    {
+      "decision": "The test asserts what was measured: beats calling only and random on every seed, emailing everyone on at least 4 of 5",
+      "why": "on seed 2 both learners fall short of emailing everyone; writing every seed as a win would hide a real limit"
+    }
+  ],
+  "change": "dclab_core/replicas/retention_actions.py; tests/test_retention_actions.py (2 tests); evidence/business_examples rebuilt (the replica's traps as an example); docs/guides/PHASE10_ABILITIES_PLAN.md item 7",
+  "findings": [
+    {
+      "id": "M1",
+      "source": "measurement",
+      "defect": "the two-action assignment can lose to emailing everyone",
+      "scenario": "seed 2: 12.43 a customer (X-learner) and 11.97 (T-learner) against 12.65 for emailing everyone; the true best is 17.06",
+      "cause": "an email lifts most customers by about half a point; times a year of fees less 0.5 it is a small positive value, and estimation noise turns many of them negative, so those customers get nothing",
+      "fix": "not changed: recorded as open (act on a cheap action unless its estimated value is clearly negative, with an interval per row's value)",
+      "test": "tests/test_retention_actions.py::RetentionActionsTest::test_two_actions_beat_calling_only_and_random_and_mostly_emailing_everyone",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F1",
+      "source": "self",
+      "defect": "a monkeypatched learner recursed",
+      "scenario": "replacing uplift.TLearner with XLearner to compare them: XLearner.fit calls TLearner, now itself, until RecursionError",
+      "cause": "patching a name the replacement uses",
+      "fix": "the learner is a parameter of the test's run function",
+      "test": "tests/test_retention_actions.py",
+      "severity": "gap"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "two actions on retention_actions, seeds 0 to 4, X-learner",
+      "gate": "the assignment beats calling only and a random assignment of the same counts on every seed, emailing everyone on at least 4 of 5, within 30% of the best possible",
+      "result": "value a customer chosen / best / email everyone / calls only / random: seed 0 15.28/17.07/12.74/3.84/9.67; seed 1 15.05/17.08/12.65/4.62/10.25; seed 2 12.43/17.06/12.65/1.52/8.81; seed 3 15.06/17.34/12.92/4.34/10.14; seed 4 14.56/17.33/12.85/2.47/9.88; calls kept to capacity on every seed",
+      "verdict": "pass",
+      "limits": [
+        "the bar was set after this one measurement: the test guards against regression, it is not a pre-registered gate",
+        "one invented replica, randomised arms only"
+      ]
+    }
+  ],
+  "outcome": "Several actions are now judged on a replica with known lifts: the assignment beats single-action and random policies, and the cheap action's small lift is the open weakness.",
+  "lessons": [
+    "A cheap action that helps a little is lost to estimation noise first: judge it against 'do it for everyone', not only against doing nothing",
+    "Write a test as the measurement came out, and record the miss as an open item"
+  ],
+  "risks": [
+    "The X-learner's better seeds may not hold on observational data (no random arms)"
+  ],
+  "commits": []
+}

@@ -330,8 +330,13 @@ or decided; nothing below blocks using them.
    holdout's): 26 of 28 inside, unbiased (mean z -0.20), its misses of the size it says (root mean square of z 0.93,
    90% interval 0.77 to 1.20). On the same seeds the row-sized interval without folds stayed too narrow (21 of 28, 1.23).
    Open: a time split passes no folds, so its interval is the row-sized one, not measured.
-7. 34.2: ~~a daily capacity for targeting~~ done 2026-10-25 (dclab-core 0.115.0, with item 20); open: a two-action
-   replica (tested on random tables only).
+7. 34.2: ~~a daily capacity for targeting~~ done 2026-10-25 (dclab-core 0.115.0, with item 20); ~~a two-action
+   replica~~ done 2026-10-26 (`dclab_core/replicas/retention_actions.py`: a call, dear and few, or an email, from a random
+   test's three arms, every row's true lifts kept apart; `tests/test_retention_actions.py`). Measured on seeds 0 to 4 with
+   each action's lift from an X-learner on the training rows: the assignment beats calling only and a random one on every
+   seed and emailing everyone on 4 of 5 (seed 2: 12.43 against 12.65 a customer), 9 to 27% short of the best possible
+   assignment; the T-learner is below the X-learner on every seed. Open: an email's small lift for most customers is lost
+   to estimation noise; act on a cheap action unless its value is clearly negative (an interval per row's value).
 8. ~~34.3: what-if for targeting and for several actions~~ done 2026-10-25 (dclab-core 0.113.0: `targeting_what_if`,
    `actions_what_if`; reviewed, 3 findings fixed).
 9. ~~34.4: the wizard has no fields for a decision~~ done 2026-10-25: step 3 has a decision block (what is done, what a
