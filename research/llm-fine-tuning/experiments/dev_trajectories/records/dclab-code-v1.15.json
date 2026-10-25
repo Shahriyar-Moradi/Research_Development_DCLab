@@ -101,6 +101,16 @@
       "fix": "one send at a time; only the sent items are removed",
       "test": "(code)",
       "severity": "behaviour"
+    },
+    {
+      "id": "F9",
+      "source": "measurement",
+      "defect": "the owner's app stayed with DCLab's tools off after a restart",
+      "scenario": "restarting the app on a loaded machine (load about 20): the standalone DCLab server took longer than the first look, and the app showed 'DCLab tools: 0' until refreshed by hand",
+      "cause": "one look at startup",
+      "fix": "while DCLab is not reachable the app looks again every 15 s (never starting a second server)",
+      "test": "(seen live; the refresh brought 40 tools)",
+      "severity": "behaviour"
     }
   ],
   "measurements": [
