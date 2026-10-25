@@ -24,7 +24,7 @@
    "why": "Each kind needs its own fields (a forecast's series and horizon, a ranking's user and item, a segmentation's outcome): proposing them needs a design per kind."
   }
  ],
- "change": "dclab_rnd/draft/chat.py (not_known, NOT_KNOWN, ASSUMED_MOMENT, _not_known in record and note), dclab_rnd/draft/card.py (an assumed moment is inferred), dclab_rnd/draft/api.py (project.assumed.prediction_moment), dclab_rnd/agent_eval/journeys/__init__.py (_Person dont_know, FIELDS, _find/_unsure), dclab_rnd/understand_students.py (the new and the sealed people played saying I don't know), tests/test_home_not_known.py and tests/test_journeys_dont_know.py (new); HRN-045 (17 of 17).",
+ "change": "dclab_rnd/draft/chat.py (not_known, NOT_KNOWN, ASSUMED_MOMENT, _not_known in record and note), dclab_rnd/draft/card.py (an assumed moment is inferred), dclab_rnd/draft/api.py (project.assumed.prediction_moment), dclab_rnd/agent_eval/journeys/__init__.py (_Person dont_know, FIELDS, _find/_unsure), dclab_rnd/understand_students.py (the new and the sealed people played saying I don't know), tests/test_home_not_known.py and tests/test_journeys_dont_know.py (new); HRN-045 (17 of 17). dclab_rnd/studio/engine.py (prepare: no feature left is refused clearly), tests/test_engine_real_tables.py.",
  "findings": [
   {
    "id": "B3-1",
@@ -62,9 +62,9 @@
    "severity": "behaviour",
    "defect": "The engine crashed on a table with no usable feature.",
    "scenario": "JH-ranking-101: LGBMClassifier on 0 features.",
-   "cause": "No check before fitting.",
-   "fix": "Named; to fix with a clear refusal.",
-   "test": "to come"
+   "cause": "A ranking log (user_id, item_id, time, event) ran as binary: the ids identifiers, the time the time column, the event the outcome: no feature left, and nothing checked before fitting.",
+   "fix": "studio/engine.py prepare refuses a table with no feature left, naming the columns and the likely kind (a ranking), before any recipe is registered.",
+   "test": "tests/test_engine_real_tables.py::test_a_table_with_nothing_left_to_learn_from_is_refused_clearly"
   },
   {
    "id": "B3-5",

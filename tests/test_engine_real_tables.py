@@ -29,6 +29,18 @@ class RealTablesTest(unittest.TestCase):
         self.addCleanup(env.stop)
         self.rng = np.random.default_rng(0)
 
+    def test_a_table_with_nothing_left_to_learn_from_is_refused_clearly(self):  # S8 B3, live: a ranking log run as binary crashed in LightGBM
+        n = 600
+        frame = pd.DataFrame({"user_id": [f"u{i % 90}" for i in range(n)], "item_id": [f"i{i % 37}" for i in range(n)],
+                              "time": pd.date_range("2025-01-01", periods=n, freq="h").astype(str), "event": self.rng.integers(0, 2, n)})
+        with self.assertRaisesRegex(ValueError, "No column is left to learn from"):
+            from dclab_rnd.kinds import acceptance as A
+            from dclab_rnd.studio import engine
+
+            with mock.patch.object(engine, "_register_recipes", side_effect=AssertionError("prepared past the check")):
+                A.engine_run(A.Case(table=frame, target="event", task="binary", moment="When a new row arrives, before its outcome is known.",
+                                    solution={"identifiers": ["user_id", "item_id"], "time_column": "time"}))
+
     def test_a_column_with_no_value_at_all_never_stops_a_run(self):
         n = 300
         x = self.rng.normal(size=n)

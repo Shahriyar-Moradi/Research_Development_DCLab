@@ -265,6 +265,11 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     # Numeric columns that stand for categories get no log or product feature (DCLAB-R11). Decided once,
     # on training rows: the declaration when there is one, otherwise the conservative heuristic.
     features = [c for c, role in roles.items() if role == "feature"]
+    if not features:  # S8 B3 (live, 2026-10-25): a who-did-what-when log run as a plain task left nothing, and the model crashed on 0 columns
+        kept = sorted(c for c, role in roles.items() if role != "feature")
+        raise ValueError("No column is left to learn from: every column is the outcome, an identifier, the time or kept out "
+                         f"({', '.join(kept[:8])}). A log of who did what and when is a ranking or a recommendation problem: "
+                         "name its kind on the Solution page, or add the columns that describe each row.")
     codes = category_code_columns(bundle.X_train[features], declared)
     bundle.spec = replace(spec, categorical_columns=tuple(codes))
     code_rule = "declared in the R&D dataset catalog for this sample" if declared is not None else HEURISTIC_RULE
