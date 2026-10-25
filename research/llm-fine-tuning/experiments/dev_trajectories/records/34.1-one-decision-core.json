@@ -189,14 +189,14 @@
    "defect": "the fraud campaign's coverage miss was first read as an interval too narrow, which seven seeds cannot show",
    "scenario": "fraud_decision_v1: 5 of 7 seeds inside a 90% interval, one below and one above",
    "cause": "5 of 7 or fewer happens about 15 times in 100 under a right 90% interval; v1's misses in units of the interval have a root mean square of 1.23 with a 90% interval of 0.86 to 2.2; a simulation of fraud-like data found 87 to 93% coverage but leaves out the engine's model choice, which can shift the centre",
-   "fix": "not established either way: fraud_decision_v2 measures coverage, centre and width on 30 fresh seeds, with the next step fixed before the run",
+   "fix": "measured on 30 fresh seeds (fraud_decision_v2): coverage 0.86 and centre pass, width fails (root mean square of z 1.29, 90% interval 1.06 to 1.64): the interval is too narrow by about a quarter; the holdout-sized entity bootstrap, fixed before the run as the next step, follows",
    "test": "",
    "severity": "behaviour",
    "impact": "a wider interval without evidence would hide a shifted centre, the likelier fault",
    "alternatives": [
     "widen it at once (as first proposed): rejected on the simulation"
    ],
-   "open": "fraud_decision_v2"
+   "open": "the holdout-sized entity bootstrap, measured as fraud_decision_v3"
   },
   {
    "id": "M4",
@@ -211,6 +211,19 @@
    "alternatives": [
     "gate the expected value's interval too (a confidence interval for the average, not a promise about one holdout: rejected)"
    ],
+   "open": ""
+  },
+  {
+   "id": "M5",
+   "source": "measurement",
+   "defect": "v2's report crashed writing its verdict",
+   "scenario": "thirty seeds done, the verdict file never written",
+   "cause": "a gate's comparison with a chi-squared quantile gave a numpy bool, which JSON does not write",
+   "fix": "plain bools and floats in the verdict; the verdict written again from the thirty saved results",
+   "test": "tests/test_decision_measure.py (the verdict writes as JSON)",
+   "severity": "behaviour",
+   "impact": "a finished measurement without its verdict",
+   "alternatives": [],
    "open": ""
   }
  ],
@@ -242,6 +255,20 @@
     "one replica",
     "partial labels: both values are lower bounds of the same kind",
     "the interval's misses go both ways (one below, one above), so no bias in one direction is shown"
+   ]
+  },
+  {
+   "name": "fraud_decision_v2: the review decision's 90% prediction interval through the engine on 30 fresh seeds (8 to 37) of the delivery-fraud replica",
+   "gate": "pass when all hold: chosen on every seed; capacity kept on every seed that acted; at least 80% of the seeds that acted inside their interval (at least 20 acting); the mean of z within 1.645 / sqrt(N); the 90% chi-squared interval of the root mean square of z reaching down to 1",
+   "fixed_before_run": true,
+   "result": "29 seeds acted, all within capacity; 25 inside (0.8621); misses 1 below, 3 above; mean z 0.0483 (bound 0.3055); root mean square of z 1.2854 with a 90% interval of 1.0611 to 1.6449",
+   "verdict": "fail",
+   "cost_eur": 0,
+   "next": "a holdout-sized entity bootstrap, as fixed before the run: draw the holdout's number of entities in each bootstrap draw, apply the decision as it runs, read the quantiles",
+   "against_gate": "Coverage and centre pass; the width gate fails: the misses are larger than the interval says, by about a quarter, on both sides.",
+   "limits": [
+    "one replica",
+    "the report's verdict file was written after the run by a fixed report (a numpy bool crashed it); the thirty results are as the run wrote them"
    ]
   }
  ],

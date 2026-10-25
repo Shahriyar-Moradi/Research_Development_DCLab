@@ -313,8 +313,10 @@ or decided; nothing below blocks using them.
    above). Whether the interval is too narrow is not established: 5 of 7 or fewer happens about 15 times in 100 even
    when a 90% interval is right; v1's misses in units of the interval have a root mean square of 1.23 (90% interval 0.86
    to 2.2), which fits both a right interval and one about a fifth too narrow; a simulation of fraud-like data found 87
-   to 93% coverage but leaves out the engine's model choice. `fraud_decision_v2` decides (30 fresh seeds, coverage,
-   centre and width gates, the next step fixed before the run); the interval is not widened before it.
+   to 93% coverage but leaves out the engine's model choice. `fraud_decision_v2` decided (30 fresh seeds, gates fixed
+   before): **fail on width**. 25 of 29 inside (0.86, passes), centre unbiased (mean z 0.05, passes), but the misses
+   are larger than the interval says (root mean square of z 1.29, 90% interval 1.06 to 1.64): it is too narrow by about
+   a quarter, on both sides. Next, fixed before the run: a holdout-sized entity bootstrap, measured as `fraud_decision_v3`.
 7. 34.2: a daily capacity for targeting (refused today); a two-action replica (tested on random tables only).
 8. ~~34.3: what-if for targeting and for several actions~~ done 2026-10-25 (dclab-core 0.113.0: `targeting_what_if`,
    `actions_what_if`; reviewed, 3 findings fixed).

@@ -1,0 +1,40 @@
+{
+  "id": "FDC-019",
+  "experiment_id": "FDC-019",
+  "status": "completed",
+  "completed_at": "2026-10-25T13:00:15+00:00",
+  "campaign_id": "fraud_decision_v2",
+  "dataset": "delivery_fraud",
+  "seed": 19,
+  "decision_status": "operating_point",
+  "warning": null,
+  "chosen_share": 0.004961,
+  "ranked_by": "expected gain",
+  "expected_value_per_row": 868.2704,
+  "expected_interval": [
+    674.449,
+    1104.6551
+  ],
+  "holdout_rows": 2940,
+  "holdout_actions": 14,
+  "holdout_cases_found": 5,
+  "holdout_value_per_row": 578.6565,
+  "prediction_interval": [
+    364.7985,
+    1367.5815
+  ],
+  "inside_prediction_interval": true,
+  "z": -0.9434,
+  "miss_side": "inside",
+  "within_capacity": true,
+  "holdout_uses": 1,
+  "model": "logistic_regression",
+  "seconds": 156.1,
+  "code_sha256": "11d15531c45c7af47a0c1f07b732403ac92274b94dfddf855639910867d30b19",
+  "applied_as": "a quota: the highest-ranked rows the capacity allows, each worth acting on alone or ranked as high as the rows chosen",
+  "capacity_binds": true,
+  "limits": [
+    "labels partial: a fraud nobody found counts as a clean ride, so the realised value is a lower bound",
+    "where the capacity binds, the choice is the capacity itself: the 'chosen' gate then tests that it was read, not the value"
+  ]
+}

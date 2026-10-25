@@ -1,0 +1,200 @@
+{
+  "seeds": 30,
+  "of": 30,
+  "gates": {
+    "chosen": true,
+    "capacity": true,
+    "coverage": true,
+    "centre": true,
+    "width": false
+  },
+  "acted": 29,
+  "inside_prediction_interval": 25,
+  "coverage": 0.8621,
+  "misses": {
+    "below": 1,
+    "above": 3
+  },
+  "centre": {
+    "mean_z": 0.0483,
+    "bound": 0.3055
+  },
+  "width": {
+    "rms_z": 1.2854,
+    "interval": [
+      1.0611,
+      1.6449
+    ]
+  },
+  "next": "a holdout-sized entity bootstrap",
+  "verdict": "fail",
+  "realised": [
+    317.9864,
+    673.7263,
+    752.3427,
+    741.436,
+    897.1354,
+    571.9871,
+    408.2043,
+    -30.5499,
+    478.7489,
+    null,
+    269.9611,
+    578.6565,
+    980.9154,
+    1294.5989,
+    267.7286,
+    71.1784,
+    1108.0217,
+    378.4197,
+    548.0932,
+    539.5349,
+    291.4339,
+    1214.2759,
+    857.5851,
+    779.676,
+    477.0974,
+    975.4296,
+    839.4626,
+    563.1181,
+    659.2271,
+    851.1664
+  ],
+  "intervals": [
+    [
+      269.6554,
+      1171.0377
+    ],
+    [
+      206.0084,
+      1196.7501
+    ],
+    [
+      339.9324,
+      1007.5009
+    ],
+    [
+      -7.2842,
+      861.6995
+    ],
+    [
+      346.7379,
+      1180.1866
+    ],
+    [
+      336.3486,
+      1131.6404
+    ],
+    [
+      -170.1385,
+      723.345
+    ],
+    [
+      -211.6413,
+      277.8575
+    ],
+    [
+      233.8845,
+      1354.7246
+    ],
+    [
+      null,
+      null
+    ],
+    [
+      -8.9179,
+      952.2127
+    ],
+    [
+      364.7985,
+      1367.5815
+    ],
+    [
+      423.3984,
+      1101.8962
+    ],
+    [
+      -201.2033,
+      887.7823
+    ],
+    [
+      -93.4769,
+      660.5436
+    ],
+    [
+      590.0287,
+      1532.2524
+    ],
+    [
+      -63.8791,
+      917.2027
+    ],
+    [
+      215.4551,
+      1338.6236
+    ],
+    [
+      74.4158,
+      1179.0898
+    ],
+    [
+      320.3421,
+      1103.305
+    ],
+    [
+      275.6938,
+      1364.633
+    ],
+    [
+      -66.0187,
+      1131.4104
+    ],
+    [
+      312.234,
+      1469.9409
+    ],
+    [
+      239.1044,
+      1026.9448
+    ],
+    [
+      29.9483,
+      1156.03
+    ],
+    [
+      39.0832,
+      1106.1101
+    ],
+    [
+      -129.853,
+      881.3994
+    ],
+    [
+      330.0169,
+      1075.3057
+    ],
+    [
+      363.7113,
+      1103.5529
+    ],
+    [
+      18.1081,
+      979.7104
+    ]
+  ],
+  "gate": {
+    "id": "fraud_decision_gate_v2",
+    "chosen": "the decision is chosen on every seed (an operating point with a share, none when no review pays; no refusal)",
+    "capacity": "on every seed that acted, the holdout's actions never exceed the capacity share of its rows (with one row's rounding)",
+    "coverage": "among the seeds that chose to act (at least 20), the realised value per ride lies inside the choice's 90% prediction interval on at least 80% of them",
+    "centre": "each seed's z = (realised - the interval's centre) / (its half-width / 1.645); |mean z| <= 1.645 / sqrt(N)",
+    "width": "the 90% chi-squared interval of the root mean square of z reaches down to 1 (its lower end <= 1)",
+    "inconclusive": "fewer than 20 seeds acting: no verdict on the interval",
+    "next": "width fails with misses on both sides: a holdout-sized entity bootstrap; centre fails below 0: correct the optimism of choosing the model; a pass: keep the interval"
+  },
+  "id": "FDC-100",
+  "experiment_id": "FDC-100",
+  "status": "completed",
+  "completed_at": "2026-10-25T13:36:15+00:00",
+  "campaign_id": "fraud_decision_v2"
+}

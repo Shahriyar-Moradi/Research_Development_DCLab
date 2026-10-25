@@ -46,6 +46,9 @@ class FraudDecisionTest(unittest.TestCase):
         rows = [dict(good) for _ in dm.SEEDS]
         verdict = dm.judge(rows)
         self.assertEqual((verdict["verdict"], verdict["next"]), ("pass", "keep the interval"))
+        import json
+
+        json.dumps(dm.judge([dict(good, z=0.3 if i % 2 else -0.4) for i in range(n)]))  # the verdict writes as JSON (v2's report crashed on a numpy bool)
         miss = lambda i: dict(good, inside_prediction_interval=False, z=-2.0 if i % 2 else 2.0, miss_side="below" if i % 2 else "above")
         six_out = [miss(i) if i < 6 else dict(good) for i in range(n)]  # 24 of 30 inside: 80%
         self.assertEqual(dm.judge(six_out)["verdict"], "pass")

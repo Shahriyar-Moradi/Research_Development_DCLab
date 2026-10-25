@@ -185,12 +185,12 @@ def judge(rows: list[dict[str, Any]]) -> dict[str, Any]:
         mean, rms = sum(zs) / len(zs), (sum(z * z for z in zs) / len(zs)) ** 0.5
         n = len(zs)
         centre = {"mean_z": round(mean, 4), "bound": round(1.645 / n ** 0.5, 4)}
-        width = {"rms_z": round(rms, 4), "interval": [round((n * rms * rms / chi2.ppf(0.95, n)) ** 0.5, 4),
-                                                      round((n * rms * rms / chi2.ppf(0.05, n)) ** 0.5, 4)]}
+        width = {"rms_z": round(rms, 4), "interval": [round(float((n * rms * rms / chi2.ppf(0.95, n)) ** 0.5), 4),
+                                                      round(float((n * rms * rms / chi2.ppf(0.05, n)) ** 0.5), 4)]}
     enough = len(read) >= MIN_ACTED
-    gates = {"chosen": chosen, "capacity": capacity, "coverage": enough and inside >= COVERAGE * len(read),
-             "centre": enough and centre is not None and abs(centre["mean_z"]) <= centre["bound"],
-             "width": enough and width is not None and width["interval"][0] <= 1}
+    gates = {"chosen": bool(chosen), "capacity": bool(capacity), "coverage": bool(enough and inside >= COVERAGE * len(read)),
+             "centre": bool(enough and centre is not None and abs(centre["mean_z"]) <= centre["bound"]),
+             "width": bool(enough and width is not None and width["interval"][0] <= 1)}  # plain bools: numpy's do not write as JSON
     complete = len(rows) == len(SEEDS)
     sides = {s: sum(1 for r in read if r.get("miss_side") == s) for s in ("below", "above")}
     out_next = ("keep the interval" if all(gates.values()) else
