@@ -49,6 +49,10 @@ class DclabCodeTest(unittest.TestCase):
             {"id": "s_copy01", "projectPath": str(self.repo), "cwd": str(self.repo / ".claude/worktrees/dclab-copy01"), "title": "copy"},
             {"id": "s_other1", "projectPath": "/elsewhere/DCLab", "title": "the main product's secret plan"}]}))
         write(self.home / "config.json", "{}")  # settings, not a record: not kept
+        (self.home / "attachments" / "s_abc123").mkdir(parents=True)
+        (self.home / "attachments" / "s_abc123" / "0123456789abcdef.png").write_bytes(b"\x89PNG screenshot")
+        (self.home / "attachments" / "s_other1").mkdir(parents=True)
+        (self.home / "attachments" / "s_other1" / "fedcba9876543210.png").write_bytes(b"\x89PNG client screen")
         self.base = Path(tempfile.mkdtemp()) / "agent_runs"
         write(self.base / "consent.json", json.dumps({"train": True}))
         self.env = {"agent_runs": self.base, "claude_projects": None, "dclab_code_home": self.home, "repo": self.repo,
@@ -94,6 +98,9 @@ class DclabCodeTest(unittest.TestCase):
         self.assertNotIn("dclab_code/records/s_orphan.jsonl", sources)
         counts = json.loads(store.whole("agents", "rnd", "dclab_code/~other-projects~counts.json"))
         self.assertEqual(sorted(c["source"] for c in counts), ["s_orphan.jsonl", "s_other1.jsonl"])
+        images = json.loads(store.whole("agents", "rnd", "dclab_code/~images~counts.json"))
+        self.assertEqual([c["source"] for c in images], ["0123456789abcdef.png"])  # this repository's image counted; another folder's not at all
+        self.assertFalse(any("attachments" in s or s.endswith(".png") for s in sources))  # never an image kept
         index = store.whole("agents", "rnd", "dclab_code/sessions.json")
         self.assertIn(b"s_abc123", index)
         self.assertNotIn(b"secret plan", index)  # another folder's title is not kept either

@@ -26,12 +26,13 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any, Iterator, Optional
 
 from ..layout import ROOT
 from . import Claim, Keeper, Source
-from .agents import _counted, redact
+from .agents import IMAGES, _counted, redact
 
 HOME = Path.home() / ".dclab-code"
 
@@ -79,7 +80,7 @@ def sources(env: Any) -> Iterator[Source]:
     ours = {s.get("id") for s in sessions if isinstance(s, dict) and _inside(s.get("projectPath"), root)}
     records = home / "records"
     others = []
-    for path in sorted(records.glob("*.jsonl")) if records.is_dir() else ():
+    for path in sorted(records.glob("*.jsonl")) if records.is_dir() and not records.is_symlink() else ():
         if path.is_symlink() or not path.is_file():
             continue
         if path.stem not in ours:
@@ -90,6 +91,16 @@ def sources(env: Any) -> Iterator[Source]:
     if others:
         yield Source("rnd", "dclab_code/~other-projects~counts.json", lambda paths=others: _counted(paths, "a session on another folder: counted only"),
                      consent="train", note="counts only: DCLab Code sessions on other folders are never kept")
+    # 32.36: images the person attached in this repository's sessions: counted (name, size, sha256), never kept, as the
+    # agents keeper counts screenshots (no redaction can read a picture). Another folder's images are not even counted.
+    images = []
+    for sid in sorted(i for i in ours if isinstance(i, str) and re.fullmatch(r"[A-Za-z0-9_-]+", i)):
+        folder = home / "attachments" / sid
+        if folder.is_dir() and not folder.is_symlink():  # a linked folder could point at anyone's files
+            images += [p for p in sorted(folder.iterdir()) if p.is_file() and not p.is_symlink() and p.suffix.lower() in IMAGES]
+    if images:
+        yield Source("rnd", "dclab_code/~images~counts.json", lambda paths=images: _counted(paths, "an image the person attached: counted only"),
+                     consent="train", note="counts only: images attached in DCLab Code are never kept, no redaction can read them")
     kept = [s for s in sessions if isinstance(s, dict) and s.get("id") in ours]
     if kept:
         yield Source("rnd", "dclab_code/sessions.json", lambda rows=kept: json.dumps({"sessions": rows}, indent=1).encode(), consent="train",

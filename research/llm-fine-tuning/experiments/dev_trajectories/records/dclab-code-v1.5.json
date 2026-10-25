@@ -1,0 +1,57 @@
+{
+ "package": "dclab-code-v1.5",
+ "title": "DCLab Code: image attachments saved whole as files, referenced in the record",
+ "date": "2026-10-25",
+ "request": "Continue without stopping, and capture, record and store data for training the six models.",
+ "spec": "dclab-code README.md, Images",
+ "plan": [
+  "Take images with a message as Claude Code does",
+  "Keep each image whole without putting image data into text records",
+  "Test on the server, on the page and live"
+ ],
+ "decisions": [
+  {
+   "decision": "Each image saved as its own file; the record holds file, type, size and sha256",
+   "why": "records stay text; R&D keeps text and counts images, since no redaction reads a screenshot"
+  },
+  {
+   "decision": "Bytes checked against the declared type, 5 images of 5 MB at most",
+   "why": "a renamed file is refused; the Messages API's limit per image"
+  }
+ ],
+ "change": "server/attachments.js; engine send with images; an SDK echo recorded with the reference; GET of a saved image with the token; paperclip, paste, drop and previews on the page.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "an assumption that the SDK echoes a streamed image back",
+   "scenario": "a live probe sent an image and a question; no user message with the image came back",
+   "cause": "the SDK does not replay a streamed message",
+   "fix": "the reference step for echoed images stays as a safety net, tested with a fake echo",
+   "test": "tests/server.test.js",
+   "severity": "latent"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "image tests and a live probe",
+   "gate": "server and page tests pass and the model reads the attached image",
+   "result": "41 tests passed; Haiku described the 1x1 PNG as very small for USD 0.006",
+   "verdict": "pass",
+   "cost_eur": 0.006,
+   "limits": [
+    "one tiny image"
+   ]
+  }
+ ],
+ "outcome": "Images go with a message and are kept whole as files, while records and R&D's store hold only their references and counts.",
+ "lessons": [
+  "Check live whether an SDK echoes what you send before building on it"
+ ],
+ "risks": [
+  "a screenshot may hold a secret: kept on this Mac, counted only in the store"
+ ],
+ "commits": [
+  "dclab-code 19e41f5"
+ ]
+}

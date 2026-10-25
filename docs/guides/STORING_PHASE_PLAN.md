@@ -947,6 +947,14 @@ there is none. Never a pair across turns, with a subagent's step, or with the ap
 - **Done when:** the edge session's deny and its narrower allowed step make one pair with the denied step's thinking, in the
   session's split (`tests/test_store_dclab_code_sets.py`).
 
+### 32.36 DCLab Code's attached images counted (added 2026-10-25)
+
+DCLab Code saves each image the person attaches whole, as its own file (`~/.dclab-code/attachments/<session>/`), and its
+records hold only the reference (file, size, sha256). The keeper counts the images of this repository's sessions in
+`dclab_code/~images~counts.json` (name, size, sha256) and keeps none, as the agents keeper counts screenshots: no
+redaction can read a picture. Another folder's images are not counted at all. **Done when:** a session's image is
+counted, another folder's is not, and no image is kept (`tests/test_store_dclab_code.py`).
+
 ## The owner's answers (2026-10-20)
 
 - **The store's bulk:** a separate private GitHub repository, `dclab-records`, with one branch per person (`owner/main`,
@@ -981,7 +989,7 @@ there is none. Never a pair across turns, with a subagent's step, or with the ap
 ## Order
 
 32.1 → 32.2 → 32.3 → 32.4 → 32.5 → 32.6 → 32.7 → 32.8 → 32.9 → 32.10 → 32.11 → 32.12 → 32.13 → 32.14 → 32.15 → 32.16 →
-32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31, then 32.32 → 32.33 → 32.34 → 32.35 (the
+32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31, then 32.32 → 32.33 → 32.34 → 32.35 → 32.36 (the
 check, 32.18, is extended by each).
 
 Every package follows the usual steps: a test first, the reviewer, its development record and `make sft-dev`, and the
@@ -1075,6 +1083,7 @@ gate. Model spend:
     - CPU time per step;
     - a workspace reading the store's shadow students;
     - live runs of the curator and the teacher.
+- **32.36 built (2026-10-25):** DCLab Code's attached images of this repository's sessions counted, never kept.
 - **32.35 built (2026-10-25):** DCLab Code's kept-against-refused pairs (M7 gold, M5 silver), with recorded thinking; the
   owner's decision that provider outputs are stored for evaluation and training (silver, apart) recorded and applied.
 - **32.34 built (2026-10-25):** DCLab Code's sessions as M6 episodes (silver), M7 judgements and M2/M1 decisions (gold).

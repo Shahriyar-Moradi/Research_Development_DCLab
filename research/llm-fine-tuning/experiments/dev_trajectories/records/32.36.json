@@ -1,0 +1,53 @@
+{
+ "package": "32.36",
+ "title": "DCLab Code's attached images counted, never kept",
+ "date": "2026-10-25",
+ "request": "Continue without stopping, and capture, record and store data for training the six models.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.36",
+ "plan": [
+  "Count the images attached in this repository's DCLab Code sessions as the agents keeper counts screenshots",
+  "Never keep an image's bytes; never count another folder's"
+ ],
+ "decisions": [
+  {
+   "decision": "Counts only: name, size, sha256",
+   "why": "no redaction can read a picture; the image stays whole on the owner's Mac"
+  },
+  {
+   "decision": "Linked folders are not followed",
+   "why": "a symlinked session folder could point at a client's files"
+  }
+ ],
+ "change": "keepers/dclab_code.py yields dclab_code/~images~counts.json; tests/test_store_dclab_code.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "defect": "a symlinked session folder was followed",
+   "scenario": "a link from attachments/<session> to a client folder would count the names and hashes of its images",
+   "cause": "is_dir follows links",
+   "fix": "a linked attachments or records folder is not read",
+   "test": "",
+   "severity": "privacy"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "keeper tests and the store check",
+   "gate": "the keeper tests pass and the store check passes all its checks",
+   "fixed_before_run": true,
+   "result": "test_store_dclab_code 5 and test_store_agents 4 passed; store check 28 of 28",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "planted files"
+   ]
+  }
+ ],
+ "outcome": "The store knows each image the person attached in a session on this repository, by name, size and hash, and keeps none.",
+ "lessons": [
+  "Count what cannot be redacted; keep it only where it was made"
+ ],
+ "risks": [],
+ "commits": []
+}
