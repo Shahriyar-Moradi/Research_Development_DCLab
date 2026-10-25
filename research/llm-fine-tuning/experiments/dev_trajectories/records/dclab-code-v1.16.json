@@ -1,0 +1,131 @@
+{
+  "package": "dclab-code-v1.16",
+  "title": "Ship from DCLab Code: push a copy's branch, open a pull request with gh, see its checks (parity B6)",
+  "date": "2026-10-26",
+  "request": "The owner's goal (2026-10-26 night: continue non-stop; then wire every R&D agent): Claude Code and Codex desktop's capabilities; parity B6.",
+  "spec": "dclab-code/docs/PARITY_PLAN.md, B6",
+  "plan": [
+    "push the copy's branch",
+    "open a PR with gh",
+    "read the PR's checks",
+    "record each as the person's act",
+    "tests with a recording gh stub, a page test, a review"
+  ],
+  "decisions": [
+    {
+      "decision": "Everything a PR needs (a remote, committed work, new commits, gh signed in, a base branch) is checked before the branch leaves the machine",
+      "why": "a push publishes: a PR that then fails must not leave a branch on the remote"
+    },
+    {
+      "decision": "Shipping is a person step in R&D's episodes, never their outcome",
+      "why": "a merge stays a merge when it is pushed afterwards"
+    }
+  ],
+  "change": "server/worktree.js safe, readyToShip, push, ghReady, prBase, openPr, prStatus; routes POST worktree/push, POST/GET worktree/pr; palette items and the PR line; R&D's dclab_code set reads pushed and pr_opened as person steps.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "defect": "a token in the remote's address reached the record, the page and the answer",
+      "scenario": "origin https://x-access-token:ghp_…@github.com/o/r.git, then Push: the note and the JSON held the token",
+      "cause": "git remote get-url returns the address as configured; errors quote it",
+      "fix": "credentials stripped from every address and error",
+      "test": "tests/server.test.js: ship",
+      "severity": "privacy"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "defect": "a branch with no commits was published",
+      "scenario": "a copy with no change, then Push or Open a PR: an empty branch on origin",
+      "cause": "no check for new commits",
+      "fix": "refused when the copy has no commits of its own",
+      "test": "tests/server.test.js: ship",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "defect": "the PR's own push was not recorded, and happened before gh was checked",
+      "scenario": "gh missing or signed out: the branch was pushed, then 409, and the record said nothing",
+      "cause": "the route pushed first and recorded only the PR",
+      "fix": "gh auth status first; the push recorded",
+      "test": "tests/server.test.js: ship",
+      "severity": "latent"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "defect": "a wrong base branch",
+      "scenario": "a copy made from a detached HEAD sent --base HEAD; a local branch tracking another name targeted the wrong base",
+      "cause": "the base was the copy's starting branch name",
+      "fix": "refused for a detached HEAD; the base from the branch's upstream, else the repository's default",
+      "test": "tests/server.test.js: ship",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "defect": "the person's own ssh setup was replaced",
+      "scenario": "core.sshCommand with a work key: the push used the default key or failed",
+      "cause": "GIT_SSH_COMMAND set to plain ssh",
+      "fix": "the person's command kept, made non-interactive",
+      "test": "(code)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "defect": "push did not block like commit and merge",
+      "scenario": "a background job running, or Remove copy during a 120 s push",
+      "cause": "no job check, no busy flag",
+      "fix": "the job check and a pushing flag that commit, merge and remove respect",
+      "test": "(code)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "defect": "a startup failure counted as running forever",
+      "scenario": "a check with conclusion STARTUP_FAILURE",
+      "cause": "not in the failed list",
+      "fix": "counted as failed",
+      "test": "tests/server.test.js: ship",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F8",
+      "source": "reviewer",
+      "defect": "a control character in the title gave a 500 after the push",
+      "scenario": "title 'a\\u0000b'",
+      "cause": "execFile refuses NUL",
+      "fix": "400 before anything is pushed",
+      "test": "tests/server.test.js: ship",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "dclab-code tests",
+      "gate": "every test passes, page tests included",
+      "fixed_before_run": true,
+      "result": "all pass (units, server with a recording gh stub, Chromium page tests)",
+      "verdict": "pass"
+    },
+    {
+      "name": "R&D store test",
+      "gate": "shipping is a person step, never the outcome",
+      "fixed_before_run": true,
+      "result": "tests/test_store_dclab_code_sets.py 8 of 8",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "A person pushes a session's work and opens a pull request from DCLab Code, and sees its checks, as in Claude Code and Codex; nothing is published without their click, and no credential is shown or kept.",
+  "lessons": [
+    "Check everything a publish needs before the first byte leaves the machine."
+  ],
+  "risks": [
+    "not live-checked against GitHub (the owner's repositories); a fake gh and a local bare remote stood in"
+  ],
+  "commits": []
+}

@@ -346,6 +346,9 @@ class DclabCodeSetsTest(unittest.TestCase):
             line(T(16), kind="app", type="file_opened", path="src/secret_name.py", line=3, sealed=False, by="person"),
             line(T(17), kind="app", type="file_opened", path="data/holdout.csv", line=None, sealed=True, by="person"),
             line(T(18), kind="app", type="file_opened", path="src/x.py", line=None, sealed=False, by="script"),
+            # dclab-code B6: shipping after the commit keeps the episode's outcome (the work was kept) and is the person's step
+            line(T(19), kind="app", type="outcome", outcome="pushed", branch="dclab/r", by="person"),
+            line(T(20), kind="app", type="outcome", outcome="pr_opened", branch="dclab/r", number=7, by="person"),
         ]
         (self.home / "records" / "s_rewind01.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
         listed = json.loads((self.home / "sessions.json").read_text(encoding="utf-8"))
@@ -360,7 +363,8 @@ class DclabCodeSetsTest(unittest.TestCase):
                                ("b.py", "rewound", 0.0, ["THIRD"])])     # a file outside the repository is left out; a script's rewind judges nothing
         ep = next(e for e in self.rows("m6_stepwise_decisions", "dclab_code") if e["id"].endswith("s_rewind01"))
         self.assertEqual([x["action"] for x in ep["steps"] if x["action"].startswith("person:")],
-                         ["person:rewind", "person:stop_job", "person:open_file", "person:open_file"])
+                         ["person:rewind", "person:stop_job", "person:open_file", "person:open_file", "person:pushed", "person:pr_opened"])
+        self.assertNotIn(ep["outcome"], ("pushed", "pr_opened"))  # shipping is a step, never the episode's outcome
         self.assertEqual([x["outcome"] for x in ep["steps"] if x["action"] == "person:open_file"], ["opened", "sealed_refused"])
         self.assertNotIn("python train.py", json.dumps(ep))  # a job's description never enters the content-free episode
         self.assertNotIn("secret_name", json.dumps(ep))  # nor a file's path

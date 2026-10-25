@@ -217,6 +217,13 @@ class Session:
                 if o in ("committed", "merged") and isinstance(b.get("files"), list):  # older records name no files: no verdict from them
                     self.kept.append({"order": _order(r), "files": {str(f) for f in b["files"]}, "person": by_person(b)})
                 code = "merged" if o == "merged" else ("copy_removed" if b.get("merged") else "copy_removed_unmerged") if o == "copy_removed" else _code(o)
+                if o in ("pushed", "pr_opened"):
+                    # dclab-code B6: shipping (a push, a pull request) is the person's step, never the episode's outcome:
+                    # a merge stays a merge when the person pushes it afterwards
+                    if by_person(b):
+                        self.person_steps.append({"order": _order(r), "action": f"person:{o}", "kind": f"person_{o}", "turn": turn, "mode": mode,
+                                                  "outcome": o, "guard": None, "at": r.at})
+                    continue
                 self.outcome = code if by_person(b) else f"{code}_by_script"  # a script's merge is no sign the person kept the work
             elif t == "stop":
                 self.outcome, stopped = "stopped", True
