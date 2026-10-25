@@ -87,5 +87,84 @@ class ChatUiConfigTests(unittest.TestCase):
         self.assertNotIn("ML_ASSISTANT_MODE", text)
 
 
+class StandaloneMcpTests(unittest.TestCase):
+    """A7.1: the standalone /mcp (what DCLab Code starts) runs in the workspace's whole services, as the product server's."""
+
+    def setUp(self):
+        try:
+            import mcp  # noqa: F401
+            from starlette.testclient import TestClient
+            from dclab_rnd import mcp_server
+        except ImportError as error:
+            self.skipTest(f"dependencies not installed: {error}")
+        self.workspace = Path(tempfile.mkdtemp())
+        self.client = TestClient(mcp_server.standalone_app(self.workspace))
+        self.client.__enter__()
+        self.addCleanup(self.client.__exit__, None, None, None)
+        self.services = self.client.app.state.services
+
+    def call(self, name, arguments, id=1):
+        response = self.client.post("/mcp", json=rpc("tools/call", {"name": name, "arguments": arguments}, id), headers=HEADERS)
+        self.assertEqual(response.status_code, 200, response.text[:300])
+        return json.loads(response.json()["result"]["content"][0]["text"])
+
+    def test_a_call_records_its_events_decisions_and_itself_in_the_workspace(self):
+        project = self.call("create_project", {"name": "standalone", "goal": "smoke"})["project_id"]
+        self.call("check_move", {"project_id": project, "move": "run_stage", "stage": "data"}, 2)
+        calls = [json.loads(x) for x in (self.workspace / "mcp" / "calls.jsonl").read_text(encoding="utf-8").splitlines()]
+        self.assertEqual([c["tool"] for c in calls], ["create_project", "check_move"])
+        events = self.services.experience.read(project=project)  # files or PostgreSQL alike
+        self.assertTrue(events, "the MCP agent's run, recorded in the workspace's experience log")
+        self.assertTrue(all(e.ids.request and e.ids.trace for e in events), "each event carries its request and trace, as through the product server")
+        self.assertTrue(any(str(e.ids.run or "").startswith("mcp-") for e in events), "inside the MCP agent's run")
+        self.assertTrue(self.services.ledger.records(project=project), "the project's decisions in the workspace's ledger")
+
+    def test_the_workspace_is_the_one_the_settings_name_and_consent_is_read_fresh(self):
+        import os
+        from unittest import mock
+
+        from starlette.testclient import TestClient
+        from dclab_rnd import consent, mcp_server
+
+        other = Path(tempfile.mkdtemp())
+        with mock.patch.dict(os.environ, {"DCLAB_AGENT_HOME": str(other)}):
+            app = mcp_server.standalone_app()  # no --home: DCLAB_AGENT_HOME, as the product server and the worker choose
+        with TestClient(app):
+            self.assertEqual(Path(app.state.services.store.home).resolve(), other.resolve())
+        self.assertEqual(consent.PROJECT_TTL, 0.0)
+
+    def test_a_model_request_is_in_the_workspace_usage_log_and_refused_over_its_cap(self):
+        import os
+        from unittest import mock
+
+        from dclab_rnd import models
+
+        prices = self.workspace / "prices.json"
+        prices.write_text(json.dumps({"priced-model": {"input": 2.0, "output": 8.0, "as_of": "2026-10-01", "source": "test"}}))
+
+        class Scripted:
+            def __init__(self, tier, purpose):
+                pass
+
+            def complete(self, messages, tools=None, max_tokens=1800, **options):
+                return {"content": "ok", "usage": {"input_tokens": 500_000, "output_tokens": 100_000}}
+
+        gateway = models.installed()
+        self.assertIs(gateway, self.services.gateway, "the process's gateway is the workspace's")
+        from dclab_rnd.models import settings as model_settings
+
+        clean = {k: "" for k in ("OPENAI_BASE_URL", "DCLAB_LLM_BASE_URL", "DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL",
+                                 "DCLAB_BLOCK_PROVIDERS", "DCLAB_INTERN_MODEL", "DCLAB_WORKSPACE_MONTHLY_EUR")}
+        clean |= {f"DCLAB_TIER_{t.upper()}_{n}": "" for t in model_settings.TIERS for n in ("BASE_URL", "MODEL", "API_KEY")}
+        env = {**clean, "OPENAI_API_KEY": "k", "OPENAI_MODEL": "priced-model", "DCLAB_PRICES_FILE": str(prices),
+               "DCLAB_NO_LIVE_MODELS": ""}  # the scripted transport never leaves the machine
+        with mock.patch.dict(os.environ, env), mock.patch.object(gateway, "transport", lambda tier, purpose: Scripted(tier, purpose)):
+            gateway.client("project_answer", project_id="p1").complete([{"role": "user", "content": "x"}], max_tokens=1000)
+            self.assertTrue(gateway.usage.recent(), "the request is in the workspace's usage log")
+            with mock.patch.dict(os.environ, {"DCLAB_WORKSPACE_MONTHLY_EUR": "0.5"}), self.assertRaises(RuntimeError) as over:
+                gateway.client("project_answer", project_id="p2").complete([{"role": "user", "content": "x"}], max_tokens=1000)
+            self.assertIn("the workspace has used its monthly budget", str(over.exception))
+
+
 if __name__ == "__main__":
     unittest.main()

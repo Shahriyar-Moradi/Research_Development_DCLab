@@ -22,14 +22,11 @@ import asyncio
 import json
 import os
 import sys
-from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
 from dclab_rnd.agentic.catalog import ROOT
-from dclab_rnd.settings import default_home
 from dclab_rnd.intern.tools import Toolbox
-from dclab_rnd.studio import ProjectStore
 
 INSTRUCTIONS = (
     "DCLab notebook tools. Build a model from a table with evidence: write the solution first "
@@ -110,35 +107,46 @@ def available() -> bool:
     return True
 
 
-def standalone_app(home: Path):
-    """A minimal Starlette app serving only ``/mcp`` (for clients that do not need the notebook UI)."""
-    from starlette.applications import Starlette
-    from starlette.routing import Mount
+def standalone_app(workspace: Path | None = None):
+    """``/mcp`` for a client that does not need the notebook's pages (DCLab Code, Chat UI), on its own port.
 
-    store = ProjectStore(home)
-    store.audit_path = Path(home).parent / "audit.jsonl"  # the workspace's audit (10.4), as the notebook server's stores write it
-    manager = session_manager(Toolbox(store))
+    A7.1: it is the product server's app on the workspace (``create_app``), so a call here runs in the workspace's
+    whole services exactly as a call to the product server's ``/mcp``: the experience log, the ledger, the usage log
+    and its caps, lessons, traces and the job worker; the same start-up checks (sign-in when accounts are on), the
+    same request ids and visits, and the routes DCLab's own agents use (the Home agent's build is one). The workspace's
+    ``.env`` is read first, as the server and the worker read it.
+    """
+    _load_env()
+    from . import consent
+    from .agentic.server import create_app
 
-    @asynccontextmanager
-    async def lifespan(app):
-        async with manager.run():
-            yield
+    consent.PROJECT_TTL = 0.0  # a second process beside the product server: a consent switched there is read here at once (as the worker does)
+    return create_app(Path(workspace) if workspace is not None else None)
 
-    return Starlette(routes=[Mount("/mcp", app=manager.handle_request)], lifespan=lifespan)
+
+def _load_env() -> None:
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        return
+    load_dotenv(ROOT / ".env", override=False)  # as the server and the worker read it: all open the same workspace
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--port", type=int, default=int(os.environ.get("DCLAB_MCP_PORT", "8777")))
-    parser.add_argument("--home", type=Path, default=Path(os.environ.get("DCLAB_STUDIO_HOME") or default_home() / "projects"))
+    parser.add_argument("--home", type=Path, default=None,
+                        help="the workspace folder (default: DCLAB_AGENT_HOME, else the default workspace), as the worker takes it")
     args = parser.parse_args(argv)
     if not available():
         print("The MCP server needs the optional package: pip install mcp", file=sys.stderr)
         return 1
     import uvicorn
 
-    print(f"DCLab MCP server on http://127.0.0.1:{args.port}/mcp (projects in {args.home})")
-    uvicorn.run(standalone_app(args.home), host="127.0.0.1", port=args.port)
+    _load_env()  # before the workspace is chosen: DCLAB_AGENT_HOME may be set there
+    app = standalone_app(args.home)
+    print(f"DCLab MCP server on http://127.0.0.1:{args.port}/mcp (workspace {app.state.services.store.home})")
+    uvicorn.run(app, host="127.0.0.1", port=args.port)
     return 0
 
 

@@ -34,6 +34,11 @@ Read the playbook's "Shared preamble" first and paste it before any prompt below
 | A6.2 | Done | `dclab_rnd/studio/corpus_v4.py`, `make sft-v4`: the recipe for corpus v4. A trajectory is one opted-in project's move log or one agent run on it, with at least 3 decisions; the project's own ids are masked (`<project>`, `<run>`) and only distinct trajectories count, so twenty identical standard-plan runs count once. Nothing is written until there are 50 distinct trajectories from at least 10 projects; until then it prints how many exist (today: 0 of 50 from 0 of 10). Then each trajectory gives `next_move` examples (state, the moves or tools on offer, the last three decisions → the move made; only allowed moves and working steps, so a refused move is never a target) and `judge_move` examples (a proposed move → the validator's verdict, failed checks and cited rules). Whole projects are held out: a project is in validation when its own id hashes there (about one in five; such a project never changes split as the workspace grows; when none hashes there, the lowest hash is held out as a fallback the manifest names, which can move to training later) or when it is built on a dataset v3 holds out (recognised by the sample key, the file name or the column set, so a Home-built project counts too). A project built on a judgment-suite table (A4.1, the benchmark A6.3 evaluates on) is left out. The 330 v3 examples keep their split. v3's gates, with v3's patterns, applied within each split after the split so the result does not depend on list order: exact duplicate prompts removed, paths and hashes rejected, and a training prompt equal or near-equal (word 3-shingles, Jaccard ≥ 0.9) to a validation prompt, v4's or v3's, dropped. The Policy model page shows "N of 50 distinct trajectories, from P of 10 opted-in projects" from this count, says so when the count cannot be read, and marks stage 2 ready only at both thresholds. `sft/out_v4/` is ignored by git: unlike out_v3, which the repository builds from its own evidence and commits, v4 holds a workspace's projects. Open: the threshold is not met, so no v4 file has been generated or read by train_lora.py; distinctness is exact (two runs that differ in one step both count); the Policy page builds the records of every opted-in project on each load (about 7 ms each). |
 | A6.3 | Waiting | Not started, by the package's own terms: it runs only when A6.2's threshold is met (today 0 of 50 distinct trajectories from 0 of 10 opted-in projects) and the owner approves the compute and the cost. |
 | A6.4 | Done | `dclab_rnd/models/routing.py`, `models/shadow.py`, the gateway: a purpose can name a shadow tier that receives a copy of each request after the served model answered (the caller's messages are copied first). The shadow's reply is compared (same tool chosen, same arguments) and logged with no prompt, argument or answer (`model_shadow.jsonl`, or the `model_shadow` table), never returned, never shown to the validator and never counted in usage or budgets; only a local tier can shadow, so it costs nothing. A new `tuned` tier is read only from `DCLAB_TIER_TUNED_*` and never falls back to another model. Moving a purpose to another tier needs a reviewer and a reason, and the approval is for one model: the routing records the model and endpoint approved, and a different model configured under the same tier name serves nothing until it is approved (the purpose keeps its own tier; the Admin page says "approved …: not serving") (`POST /api/models/routing`, role declared in `X-DCLab-Role` until accounts exist); moving it back to its own tier is one setting, for anyone; a moved purpose whose tier cannot answer falls back to its own. The routing (`model_routing.json`, or the `model_routing` table, migration 0007) is read before each request, so the intern's long-lived client follows a switch. Every change is in the routing history and the platform audit. The Admin page's purpose table shows the serving tier, the shadow, the agreement rates and the disagreements, with a shadow selector, a reviewer-gated "Serve with tuned" and "Back to". The test runs a week of scripted traffic (168 requests, an hour apart) with a shadow that disagrees on every fourth and fails once: 42 disagreements over 7 days logged, every answer the served model's, 168 usage rows and none from the shadow; and an intern run whose shadow proposes run_stage and set_settings leaves neither in the transition log or the project. The research campaign's purposes (`campaign`, `campaign_review`) go through their own client and cannot be routed or shadowed; command-line tools' gateway (`for_workspace`) follows the same routing; a tool name in a shadow row is kept only when it was offered. Open: no tuned model exists yet (A6.3), so nothing has been shadowed live; agreement compares the first tool call and its arguments, not whole multi-call replies or text answers, and does not ask the validator whether the shadow's move would pass ("same validated output"); a shadow request runs in a background thread with no queue or rate limit. |
+| A7.1 | Done | `mcp_server.standalone_app` is the product server's app on the workspace (`create_app`): an MCP call there runs in the workspace's whole services (experience log, ledger, usage log and its caps, lessons, traces, the job worker), with the same start-up checks (sign-in when accounts are on), request ids, traces and visits, and the routes DCLab's agents use (the Home agent's build). `.env` is read first; `--home` is the workspace (default `DCLAB_AGENT_HOME`, as the server and the worker); a consent switched in another process is read at once. Tested on files and PostgreSQL: a call's events (with its request and trace), decisions and kept call; a model request in the workspace's usage log and refused over its monthly cap; the workspace chosen. Open: two processes on one file workspace (the product server and this one) each run a job worker and hold draft turns per process, so DCLab Code uses the product server's `/mcp` when it runs (A7.5); the port also serves the product's pages. |
+| A7.2 | Planned | The Home agent behind an external chat: a `chat` scope with `home_start`, `home_message` (before a build the Home agent, after it the orchestrator and its specialists), `home_status` and `home_build`, each waiting for the agent's turn and returning its words, questions and workflow. |
+| A7.3 | Planned | The quick agents and services: `workspace_ask` (the workspace chat, capped), `evidence_ask`, `solution_report`, `lineage`, `programme_view`, `lessons` (list, propose, review), `notebook_review` with its opt-in fixes. |
+| A7.4 | Planned | The long agents as jobs a chat starts and follows: the intern (`intern_start`, `intern_status`, `intern_message`), the solution team on a project and the team walk on a draft (each pause a question or a gate the chat puts to the person), the twin (the owner's switch). |
+| A7.5 | Planned | DCLab Code uses them: the agents named in its system prompt with when to use each, DCLab's own model off by default and on with a monthly cap, the product server's `/mcp` used when it runs (one process per workspace), a live check of each agent through the chat. |
 
 ## 1. What exists today
 
@@ -96,6 +101,7 @@ Three agents, built separately, plus the tools they share.
 | A4 | Prove it: evaluation | A4.1 to A4.3 | A2 |
 | A5 | Retrieval and memory | A5.1 to A5.3 | A2 |
 | A6 | Learn from runs: the policy model | A6.1 to A6.4 | A3, A4 |
+| A7 | Every agent behind an external chat (DCLab Code, Chat UI) | A7.1 to A7.5 | A2, A5 |
 
 Order: A1, A2, then A3 and A4 together (every A3 change must pass A4), then A5, then A6.
 
@@ -407,6 +413,53 @@ its answer is stored and compared (same tool chosen? same validated output?) but
 rates on the Admin page. Switching a purpose to the tuned model requires a reviewer's approval, recorded in the
 audit trail, and can be undone in one setting.
 ```
+
+---
+
+## Phase A7: Every agent behind an external chat
+
+The owner's goal for DCLab Code (2026-10-25): every agentic system designed here works behind its chat, as Claude Code's
+and Codex's own agents work behind theirs. The chat's model calls DCLab's agents as tools; each agent keeps its own
+rules, guards, gates, ledger and traces; every call is recorded on both sides. Roles stay inside their agents; the
+store's conductor and tutor, the research campaign and the learning harness stay under the hood.
+
+### A7.1 The standalone /mcp on the workspace's whole services
+
+- **Delivers:** `mcp_server.standalone_app` builds `Services(Settings.load(workspace))` (the `.env` read first) and runs
+  every call inside it, so an MCP call records its events, decisions, usage and kept call as a call through the product
+  server does.
+- **Done when:** a call through the standalone server writes an experience event, a ledger decision and its line in
+  `mcp/calls.jsonl`; a model request is in the usage log and refused over the workspace's cap.
+
+### A7.2 The Home agent behind the chat
+
+- **Delivers:** the `chat` scope (`dclab_rnd/chat_agents.py`): `home_start(description)`, `home_message(draft_id, text)`,
+  `home_status(draft_id)`, `home_build(draft_id)`; each waits for the agent's turn (a timeout says to ask again with
+  `home_status`) and returns its words, its questions, the pack and the workflow; after a build the orchestrator answers.
+- **Done when:** a scripted Home agent, called over MCP, asks its questions, takes the answers, draws the workflow and
+  builds the project; the draft's events and the ledger hold every step.
+
+### A7.3 The quick agents and services
+
+- **Delivers:** `workspace_ask`, `evidence_ask`, `solution_report`, `lineage`, `programme_view`, `lessons`,
+  `notebook_review` (fixes only on request) in the `chat` scope; every model call capped.
+- **Done when:** each answers over MCP with a scripted model, and none calls a model without its cap.
+
+### A7.4 The long agents as jobs
+
+- **Delivers:** `intern_start` / `intern_status` / `intern_message`; `team_walk` on a draft and `solution_team` on a
+  project (a pause comes back as the question or the gate it waits on; a holdout gate needs the person's approval);
+  `twin_start` behind the owner's switch. Each runs as a job of the workspace's worker.
+- **Done when:** an intern job started over MCP finishes and its session is readable; a team walk pauses on a question
+  and resumes with the answer; nothing reads the holdout without an approval.
+
+### A7.5 DCLab Code uses them
+
+- **Delivers:** DCLab Code's system prompt names each agent and when to use it; its config switches DCLab's own model
+  (off: the agents' rules; on: Claude through the gateway, a monthly cap); it connects to the product server's `/mcp`
+  when one runs on the workspace, else starts the standalone one.
+- **Done when:** a live session in DCLab Code reaches each agent of A7.2 to A7.4 at least once, with its spend
+  reported, and R&D's store keeps both sides.
 
 ---
 

@@ -1,0 +1,127 @@
+{
+ "package": "A7.1",
+ "title": "The standalone /mcp runs in the workspace's whole services, as the product server's",
+ "date": "2026-10-25",
+ "request": "also make sure all agentic system that we have design in the dclab r and d project and product work behind the chat (part of the Claude Code / Codex parity goal)",
+ "spec": "docs/guides/AGENTIC_FOUNDATION_PLAN.md, phase A7, package A7.1",
+ "plan": [
+  "Map every agent and service and what reaches /mcp (an exploration)",
+  "Make the standalone /mcp record and cap as the product server's",
+  "Test on files and PostgreSQL"
+ ],
+ "decisions": [
+  {
+   "decision": "The standalone server is the product server's app (create_app), not a second set of services",
+   "why": "the Home agent's build and other routes exist only in the app; one implementation of every check, request id, visit and start-up refusal"
+  },
+  {
+   "decision": "--home is the workspace folder, default DCLAB_AGENT_HOME, .env read first",
+   "why": "the product server and the worker choose it so; a scratch run must never write into the owner's workspace and its training store"
+  }
+ ],
+ "change": "mcp_server.standalone_app(workspace) = create_app(workspace) after reading .env; main takes the workspace; consent read fresh in this second process.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "the standalone /mcp recorded no event, decision, usage or kept call",
+   "scenario": "DCLab Code's chat called create_project and set_solution: nothing reached the experience log, the ledger or mcp/calls.jsonl",
+   "cause": "it built only a ProjectStore",
+   "fix": "the workspace's whole services",
+   "test": "tests/test_mcp.py::StandaloneMcpTests",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F2",
+   "source": "self",
+   "defect": "the Home agent could not build from DCLab Code's chat",
+   "scenario": "home 'build it' through the standalone server",
+   "cause": "build_from_chat exists only inside the product app's routes",
+   "fix": "the standalone server is the product app",
+   "test": "tests/test_mcp.py::StandaloneMcpTests",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "the test failed on PostgreSQL",
+   "scenario": "run_parallel --pg test_mcp",
+   "cause": "it read the logs' files",
+   "fix": "the services' read APIs",
+   "test": "tests/test_mcp.py::StandaloneMcpTests",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "the default workspace ignored DCLAB_AGENT_HOME",
+   "scenario": "a scratch run wrote experience, ledger and usage into the owner's workspace",
+   "cause": "--home defaulted to default_home()/projects before .env was read",
+   "fix": "--home is the workspace, chosen as the server does, after .env",
+   "test": "tests/test_mcp.py::StandaloneMcpTests",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "no sign-in check in the standalone server",
+   "scenario": "DCLAB_AUTH=password: any local process wrote through :8777 without a token",
+   "cause": "settings.problems() was never called",
+   "fix": "create_app's start-up checks and token on /mcp",
+   "test": "tests/test_mcp.py::StandaloneMcpTests",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "the usage log and the cap were not tested",
+   "scenario": "the Done when named both",
+   "cause": "the test checked the wiring only",
+   "fix": "a scripted request in the usage log, the next refused over the workspace's cap",
+   "test": "tests/test_mcp.py::StandaloneMcpTests",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "defect": "events had no request id, trace or visit",
+   "scenario": "grouping a standalone call's events by request",
+   "cause": "no middleware",
+   "fix": "the product app's middleware",
+   "test": "tests/test_mcp.py::StandaloneMcpTests",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "defect": "a consent switched in another process was read 10 s late",
+   "scenario": "the owner turns a project's consent off on :8765",
+   "cause": "the per-process cache",
+   "fix": "PROJECT_TTL 0 in this second process",
+   "test": "tests/test_mcp.py::StandaloneMcpTests",
+   "severity": "behaviour"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "MCP tests",
+   "gate": "every test passes on files and PostgreSQL; the new test fails without the change",
+   "fixed_before_run": true,
+   "result": "test_mcp 6 passed on files, 5 of 5 on PostgreSQL before the last test was added; the old standalone_app fails the new test",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "no live model"
+   ]
+  }
+ ],
+ "outcome": "A chat's call through DCLab's standalone /mcp is recorded and capped as one through the product server.",
+ "lessons": [
+  "Reuse the app, not its parts: the routes held logic (a build) a second set of services did not have",
+  "A default workspace is a training-data decision: it must follow the same settings as the server's"
+ ],
+ "risks": [
+  "two processes on one file workspace race on jobs and draft turns"
+ ],
+ "commits": []
+}
