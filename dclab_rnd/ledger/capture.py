@@ -562,9 +562,10 @@ def next_question(draft: dict[str, Any], asked: Any) -> int:
              "steps_left": max(QUESTION_LIMIT - len(questions), 0), "labels": _labels_band(draft),
              "outcome_known": bool(u.get("target")), "moment_known": bool(u.get("prediction_moment")),
              "pack": _code((draft.get("pack") or {}).get("key"))}
+    field = "kind" if str(field or "").startswith("kind_") else field  # S9.3: a field of the understood kind (randomised, a series)
     value = _code(SAME.get(field, field)) or "none"
     return int(bool(_put("workflow.next_question", ("conversation", draft["id"]), [answer("rule", "rule:plan_fields", value)], value, "rule",
-                         state=state, options=list(QUESTIONS), draft=draft["id"], conversation=draft["id"])))
+                         state=state, options=[*QUESTIONS, "kind"], draft=draft["id"], conversation=draft["id"])))
 
 
 @_quiet

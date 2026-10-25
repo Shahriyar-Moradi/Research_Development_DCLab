@@ -797,8 +797,11 @@ def plan_new_version(t: Turn, /, **_: Any) -> dict[str, Any]:
         profile = studio_data.profile_table(frame) if ops else (project.get("data") or {}).get("profile") or studio_data.profile_table(frame)
         from .card import card_of
 
+        from ..kinds.propose import said_of
+
         proposal = studio_solution.propose(frame, profile, target, None, project.get("pack"), time_hint,
-                                           card_of(_draft(t)).family.value)  # S9: the kind the card understood
+                                           card_of(_draft(t)).family.value,  # S9: the kind the card understood
+                                           said_of(_draft(t).get("understanding") or {}), list(project.get("tables") or {}))
     except Exception as exc:  # noqa: BLE001 - the table cannot be read, or the outcome refused: said, nothing planned
         return {"error": f"The new version cannot be planned on this table: {str(getattr(exc, 'detail', None) or exc)[:300]}"}
     time_column = time_hint if time_hint in frame.columns else (proposal.get("time_candidates") or [None])[0]

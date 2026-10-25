@@ -653,7 +653,10 @@ def _save(projects: Any, project: dict[str, Any], statements: dict[str, Any], de
         proposal = {**suggestion}
     elif target:
         frame = sd.load_table(sd.data_path(projects, project))
-        proposal = propose(frame, project["data"]["profile"], target, statements.get("task"), project.get("pack"), family=family)
+        from dclab_rnd.kinds.propose import said_of
+
+        proposal = propose(frame, project["data"]["profile"], target, statements.get("task"), project.get("pack"), family=family,
+                           said=said_of((project.get("draft") or {}).get("understanding") or {}), tables=list(project.get("tables") or {}))
     elif project.get("solution") and not statements:  # S9: a kind that reads no outcome, its solution built from the card: kept
         proposal = {k: v for k, v in project["solution"].items() if v is not None}
     else:

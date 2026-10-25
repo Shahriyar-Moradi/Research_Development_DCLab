@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Iterable, Optional
 
 import pandas as pd
 
@@ -27,6 +27,7 @@ class FieldProposal:
     why: list[str] = field(default_factory=list)
     assumed: dict[str, Any] = field(default_factory=dict)
     missing: list[str] = field(default_factory=list)
+    declined: dict[str, str] = field(default_factory=dict)  # S9.3: a missing field the person did not know, with what follows
 
     @property
     def complete(self) -> bool:
@@ -34,7 +35,7 @@ class FieldProposal:
 
     def as_dict(self) -> dict[str, Any]:
         return {"kind": self.kind, "kind_fields": self.fields, "time_column": self.time_column, "why": self.why,
-                "assumed": self.assumed, "missing": self.missing}
+                "assumed": self.assumed, "missing": self.missing, **({"declined": self.declined} if self.declined else {})}
 
 
 def _tokens(name: str) -> set[str]:
@@ -175,7 +176,7 @@ def _time_to_event(frame: pd.DataFrame, target: Optional[str]) -> FieldProposal:
 
 
 def _ranking(frame: pd.DataFrame, target: Optional[str]) -> FieldProposal:
-    p = FieldProposal("ranking")
+    p = FieldProposal("ranking", why=["the ranking machine reads the items in their own table, attached by the name `items`"])
     for name, words in (("user_column", {"user", "customer", "visitor", "member", "account", "buyer"}),
                         ("item_column", {"item", "product", "sku", "article", "movie", "song", "listing"})):
         found = [c for c in _named(frame, words) if _repeating_category(frame, c) or pd.api.types.is_numeric_dtype(frame[c])]
@@ -269,22 +270,186 @@ FAMILY_KINDS = {"forecasting": "forecasting", "time_to_event": "time_to_event", 
 NO_OUTCOME = frozenset({"segmentation", "ranking", "streams", "entity_tables"})  # kinds that read no outcome column
 
 
-def for_family(family: Optional[str], frame: pd.DataFrame, target: Optional[str] = None) -> Optional[FieldProposal]:
+def for_family(family: Optional[str], frame: pd.DataFrame, target: Optional[str] = None, said: Optional[dict[str, Optional[str]]] = None,
+               tables: Optional[Iterable[str]] = None) -> Optional[FieldProposal]:
     """The kind a card's family means, with its fields from the table; None when the family is a plain task's."""
     kind = FAMILY_KINDS.get(str(family or ""))
-    return propose_fields(kind, frame, target) if kind else None
+    return propose_fields(kind, frame, target, said, tables) if kind else None
 
 
-def propose_fields(kind: str, frame: pd.DataFrame, target: Optional[str] = None) -> Optional[FieldProposal]:
+def propose_fields(kind: str, frame: pd.DataFrame, target: Optional[str] = None, said: Optional[dict[str, Optional[str]]] = None,
+                   tables: Optional[Iterable[str]] = None) -> Optional[FieldProposal]:
     """The kind's fields the table shows, its assumptions and what only the person can give; None for a kind with no
-    fields of its own (the plain tasks)."""
+    fields of its own (the plain tasks). ``said`` (S9.3): the person's answers to the kind's questions, in their words
+    (None: they did not know); ``tables``: the related tables attached, by name, when known."""
     fn = PROPOSERS.get(kind)
     if fn is None or frame is None:
         return None
     try:
-        return fn(frame, target)
+        p = fn(frame, target)
     except Exception as exc:  # noqa: BLE001 - a table that cannot be read leaves the kind unproposed, with why
         return FieldProposal(kind, missing=["fields"], why=[f"the table could not be read for its fields: {type(exc).__name__}"])
+    if kind == "ranking" and tables is not None and "items" not in set(tables):
+        p.missing.append("items_table")
+    return _with_said(p, frame, said or {})
 
 
-__all__ = ["FieldProposal", "PROPOSERS", "FAMILY_KINDS", "NO_OUTCOME", "for_family", "propose_fields"]
+# ------------------------------------------------------------------------------------------------ S9.3: what the person says
+
+
+@dataclass(frozen=True)
+class KindQuestion:
+    """A kind's field only the person can give, asked in the kind's words. ``columns``: the answer names a column (the
+    table's columns that could be it are offered); ``assume``: the value taken when the person does not know (said as
+    an assumption); without one the field stays missing and ``unknown`` says what runs instead."""
+
+    kind: str
+    field: str
+    text: str
+    why: str
+    options: tuple[str, ...] = ()
+    columns: bool = False
+    unknown: str = ""
+    assume: Any = None
+
+    @property
+    def key(self) -> str:  # the Home question's field: one per kind field
+        return f"kind_{self.field}"
+
+
+def _column_q(kind: str, name: str, text: str, why: str, unknown: str) -> KindQuestion:
+    return KindQuestion(kind, name, text, why, columns=True, unknown=unknown)
+
+
+PLAIN = "until it is said, the plain task runs on the outcome, and the Solution page keeps the kind suggested"
+_QUESTIONS = (
+    KindQuestion("uplift", "randomised",
+                 "Was the action (the offer, the call) given at random, as an experiment with a group left out, or did someone choose who got it?",
+                 "Only a random choice lets the report say what the action changes; otherwise it says who responded with it.",
+                 ("At random: an experiment", "Someone chose who got it", "I don't know"),
+                 unknown="assumed: not at random, the cautious reading: the report says who responded with the action, never what it caused",
+                 assume=False),
+    _column_q("uplift", "treatment_column", "Which column says who got the action (the offer, the call)?",
+              "The effect is read by comparing those who got it with those who did not.", PLAIN),
+    _column_q("forecasting", "series_column", "Which column names one series (a store, a product, a region)?",
+              "Each series is forecast along its own dates; rows of two series are never mixed.", PLAIN),
+    _column_q("forecasting", "time_column", "Which column holds the date each row is for?", "The forecast moves along the dates.", PLAIN),
+    _column_q("time_to_event", "duration_column", "Which column says how long each one lasted, or has lasted so far?",
+              "The time until the event is what is learned.", PLAIN),
+    _column_q("time_to_event", "event_column", "Which column says whether the event (the cancellation, the failure) has happened yet?",
+              "The ones still open are counted as open, never as no event.", PLAIN),
+    _column_q("time_to_event", "start_column", "Which column says when each one started?", "The start orders the rows for the split.", PLAIN),
+    _column_q("ranking", "user_column", "Which column names the user (the customer, the visitor)?", "Each user gets their own list.", PLAIN),
+    _column_q("ranking", "item_column", "Which column names the item (the product, the article)?", "The items are what is ranked.", PLAIN),
+    _column_q("ranking", "event_column", "Which column says what each interaction was (a view, a purchase)?",
+              "One kind of interaction is the one that counts.", PLAIN),
+    KindQuestion("ranking", "relevant_event", "Which interaction counts as a success: a purchase, a click, a booking?",
+                 "The ranking is judged on the interactions that count.", unknown=PLAIN),
+    _column_q("embedded", "text_column", "Which column holds the texts each row is about?", "The model reads the texts.", PLAIN),
+    _column_q("embedded", "source_column", "Which column says where each text comes from (an author, a customer, a channel)?",
+              "Texts of one source stay on one side of the split, or the score would be too good.", PLAIN),
+)
+QUESTIONS: dict[tuple[str, str], KindQuestion] = {(q.kind, q.field): q for q in _QUESTIONS}
+NEEDS_TABLE = {  # a field a sentence cannot give: the table it comes from is attached on the project's Data page
+    ("ranking", "items_table"): "the items in their own table, attached by the name `items` on the project's Data page",
+    ("streams", "incident_time_column"): "the incidents in their own table, attached on the project's Data page",
+    ("entity_tables", "target_table"): "the table of events that decides the outcome, attached on the project's Data page",
+}
+NOT_RANDOM = re.compile(r"\b(not|never|wasn'?t|isn'?t|weren'?t)\s+(at\s+|done\s+at\s+|given\s+at\s+)?random\w*|\bnon-?random", re.I)
+RANDOM = re.compile(r"\b(random\w*|experiment\w*|a/?b\b|control group|left out|holdout|hold-out|lottery|coin)", re.I)
+CHOSEN = re.compile(r"\b(chose|chosen|choose|picked|selected|targeted|decided|by hand|hand-?picked)\b", re.I)
+
+
+def read_said(q: KindQuestion, words: str, frame: pd.DataFrame, fields: dict[str, Any]) -> tuple[bool, Any]:
+    """What the person's words give for the field: (read, value). A column must be named exactly once; an interaction
+    must be one of the event column's values; "random" or "chosen" answers the randomisation."""
+    from dclab_core.conversation import named_columns
+
+    text = str(words or "")
+    if q.field == "randomised":  # "not at random" first, then "random", then "someone chose" ("random, not chosen" is random)
+        if NOT_RANDOM.search(text):
+            return True, False
+        if RANDOM.search(text):
+            return True, True
+        return (True, False) if CHOSEN.search(text) else (False, None)
+    if q.columns:
+        named = named_columns(text, [str(c) for c in frame.columns])
+        return (True, named[0]) if len(named) == 1 else (False, None)
+    if q.field == "relevant_event" and fields.get("event_column") in frame.columns:
+        values = [str(v) for v in frame[fields["event_column"]].dropna().astype(str).unique()[:50]]
+        hits = [v for v in values if re.search(rf"(?<![\w]){re.escape(v)}(?![\w])", text, re.I)]
+        return (True, hits[0]) if len(hits) == 1 else (False, None)
+    return False, None
+
+
+def _with_said(p: FieldProposal, frame: pd.DataFrame, said: dict[str, Optional[str]]) -> FieldProposal:
+    """A missing field the person answered: read from their words (with why), or, when they did not know, assumed and
+    said, or left missing with what runs instead (never a silent default)."""
+    for name in list(p.missing):
+        q = QUESTIONS.get((p.kind, name))
+        if q is None or name not in said:
+            continue
+        if said[name] is None:  # "I don't know"
+            if q.assume is not None:
+                p.fields[name] = q.assume
+                p.assumed[name] = q.unknown
+                p.missing.remove(name)
+            else:
+                p.declined[name] = q.unknown
+            continue
+        read, value = read_said(q, said[name], frame, p.fields)
+        if read:
+            p.fields[name] = value
+            p.missing.remove(name)
+            p.why.append(f"{name.replace('_', ' ')}: as the person said ({value if name != 'randomised' else ('at random' if value else 'not at random')})")
+    if p.kind == "uplift" and p.fields.get("randomised") is False and "randomised" not in p.assumed:
+        p.why.append("not at random, as the person said: the report says who responded with the action, never what it caused")
+    return p
+
+
+def question_for(p: Optional[FieldProposal], asked: Iterable[str] = ()) -> Optional[KindQuestion]:
+    """The first missing field of the proposal the person can answer in words, not asked before (S9.3)."""
+    if p is None:
+        return None
+    asked = set(asked)
+    for name in p.missing:
+        q = QUESTIONS.get((p.kind, name))
+        if q is not None and q.key not in asked and name not in p.declined:
+            return q
+    return None
+
+
+def options_for(q: KindQuestion, frame: pd.DataFrame, p: FieldProposal) -> list[str]:
+    """A column question's options: the columns that could be it, the kind's own words first; names only, never values."""
+    if not q.columns:
+        return list(q.options)
+    taken = {v for v in p.fields.values() if isinstance(v, str)}
+    words = {"series_column": SERIES_WORDS, "duration_column": DURATION_WORDS, "event_column": EVENT_WORDS | {"action", "type", "event"},
+             "start_column": START_WORDS, "treatment_column": TREATMENT_WORDS, "text_column": TEXT_WORDS, "source_column": SOURCE_WORDS,
+             "user_column": {"user", "customer", "visitor", "member", "account"}, "item_column": {"item", "product", "sku", "article"},
+             "time_column": {"date", "time", "day", "timestamp"}}.get(q.field, set())
+    cols = [str(c) for c in frame.columns if str(c) not in taken]
+    return (sorted(cols, key=lambda c: (not (_tokens(c) & words), cols.index(c)))[:3] + ["I don't know"])
+
+
+def still_needed(p: Optional[FieldProposal]) -> list[str]:
+    """What the kind still needs, in words for the person: each declined field with what follows, each other table."""
+    if p is None:
+        return []
+    out = [f"{name.replace('_', ' ')}: {why}" for name, why in p.declined.items()]
+    out += [f"{NEEDS_TABLE[(p.kind, name)]}" for name in p.missing if (p.kind, name) in NEEDS_TABLE]
+    return out
+
+
+def said_of(understanding: dict[str, Any]) -> dict[str, Optional[str]]:
+    """The person's answers to the kind's questions in a draft's understanding: their words, or None for "I don't know"."""
+    out: dict[str, Optional[str]] = {k[len("kind_"):]: str(v) for k, v in (understanding or {}).items()
+                                     if k.startswith("kind_") and isinstance(v, str)}
+    for k in (understanding or {}).get("not_known") or []:
+        if str(k).startswith("kind_"):
+            out[str(k)[len("kind_"):]] = None
+    return out
+
+
+__all__ = ["FieldProposal", "PROPOSERS", "FAMILY_KINDS", "NO_OUTCOME", "QUESTIONS", "KindQuestion", "for_family", "propose_fields",
+           "question_for", "options_for", "read_said", "said_of", "still_needed"]

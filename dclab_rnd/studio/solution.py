@@ -270,13 +270,15 @@ def _whole_numbers(series: pd.Series) -> bool:
 
 
 def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str | None = None, pack: str | None = None,
-            time_column: str | None = None, family: str | None = None) -> dict[str, Any]:
+            time_column: str | None = None, family: str | None = None, said: dict[str, Any] | None = None,
+            tables: Any = None) -> dict[str, Any]:
     """What the agent suggests for the solution, with the signal behind each suggestion. The problem kind (16.1) follows
     from the task, the Domain pack and the text columns; its metrics are the options offered. ``time_column``: the
     column the person (or a studied sample) says orders the rows, read first among the time candidates. ``family``
     (S9): the problem card's family; when it means a kind whose fields the table shows (a forecast's series and dates),
     that kind is proposed with its fields, its assumptions and why; when a field only the person knows is missing, the
-    kind is suggested beside the plain one, never applied (``kind_suggested``)."""
+    kind is suggested beside the plain one, never applied (``kind_suggested``). ``said`` (S9.3): the person's answers
+    to the kind's questions (``kinds.propose.said_of``); ``tables``: the related tables attached, by name, when known."""
     if target not in frame.columns:
         raise ValueError(f"Target {target!r} is not in the data")
     detected = detect_task(frame, target)  # the target's form: its values and classes, over every row
@@ -353,7 +355,7 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
     kind = kinds.resolve({"task": task, "text_columns": text_columns}, pack)
     from ..kinds.propose import for_family
 
-    by_family = for_family(family, frame, target)  # S9: the kind the card understood, with the fields its table shows
+    by_family = for_family(family, frame, target, said, tables)  # S9: the kind the card understood, with the fields its table shows
     from dclab_core import modifiers as M  # 30.11: the modifiers the rows read show, each applied above its threshold with its reason
 
     try:  # a modifier never stops a proposal (the review of 30.11): without its facts, the proposal goes on without modifiers

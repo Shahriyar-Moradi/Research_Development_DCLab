@@ -264,11 +264,13 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             raise HTTPException(422, refused)
         hint = asset.get("suggestion") or {}
         try:  # a studied sample's time column orders the rows the proposal reads, as it will order the run's split
+            from ..kinds.propose import said_of
             from .card import card_of
 
             proposal = await asyncio.to_thread(studio_solution.propose, frame, profile, target, body.get("task"),
                                                (draft.get("pack") or {}).get("key"), hint.get("time_column"),
-                                               card_of(draft).family.value)  # S9: the kind the card understood
+                                               card_of(draft).family.value,  # S9: the kind the card understood
+                                               said_of(draft.get("understanding") or {}), ())  # S9.3: what the person said of it
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
         proposal["rule"] = {k: proposal.get(k) for k in ("identifiers", "forbidden", "time_candidates", "group_candidates", "modifiers", "modifier_facts")}  # 19.7: the rules' own
@@ -1260,12 +1262,12 @@ def _family_solution(projects, project: dict[str, Any], u: dict[str, Any], famil
     family means it and the table shows every field it needs; None otherwise (the Solution page then shows the kind
     suggested, with what the person must give)."""
     from ..kinds import get as kind_of
-    from ..kinds.propose import NO_OUTCOME, for_family
+    from ..kinds.propose import NO_OUTCOME, for_family, said_of
     from ..studio import data as studio_data
     from ..studio.solution import Solution
 
     frame = studio_data.load_table(studio_data.data_path(projects, project))
-    fp = for_family(family, frame, None)
+    fp = for_family(family, frame, None, said_of(u), list(project.get("tables") or {}))
     if fp is None or fp.kind not in NO_OUTCOME or not fp.complete:
         return None
     moment = str(u.get("prediction_moment") or "When the rows are read, using what is known then")

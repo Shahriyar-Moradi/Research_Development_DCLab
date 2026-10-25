@@ -19,7 +19,9 @@ import functools
 import json
 import re
 import secrets
+import threading
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable
 
 from dclab_core.card import label_said
@@ -201,6 +203,37 @@ def moment_options(pack: str | None) -> list[str]:
     if kind is not None and kind.moments:  # the pack's kind words them (16.1)
         return list(kind.moments)
     return ["Right before we act (e.g. before the call)", "At a fixed snapshot each month", "As soon as the event happens"]
+
+
+_TABLES: dict[tuple[str, int], Any] = {}
+_TABLES_LOCK = threading.Lock()
+
+
+def draft_table(store: Any, draft: dict[str, Any]) -> Any:
+    """The draft's cleaned table (S9.3: the kind's fields are read from it), or None before it is ready; read once per
+    file version, the last two kept."""
+    asset = next((a for a in draft.get("assets") or [] if a.get("id") == draft.get("active_asset") and a.get("status") == "ready"), None)
+    if asset is None:
+        return None
+    path = Path(store.data_dir(draft["id"])) / asset.get("clean_file", "clean.parquet")
+    try:
+        key = (str(path), path.stat().st_mtime_ns)
+    except OSError:
+        return None
+    with _TABLES_LOCK:
+        if key in _TABLES:
+            return _TABLES[key]
+    import pandas as pd
+
+    try:
+        frame = pd.read_parquet(path)
+    except Exception:  # noqa: BLE001 - a table that cannot be read asks nothing of its kind
+        return None
+    with _TABLES_LOCK:  # two kept: a draft's table is read again on each turn, and memory is small
+        while len(_TABLES) >= 2:
+            _TABLES.pop(next(iter(_TABLES)))
+        _TABLES[key] = frame
+    return frame
 
 
 class HomeAgent:
@@ -926,6 +959,53 @@ class HomeAgent:
             return None
         return (self.HOME_FIELDS.get(q.field, q.field), q.text, list(q.options), q.why)
 
+    def kind_proposal(self, draft: dict[str, Any]) -> tuple[Any, Any] | None:
+        """S9.3: the kind the card's family means, its fields read from the draft's table and from what the person said
+        to its questions; None when the family is a plain task's or the table is not ready."""
+        from ..kinds.propose import FAMILY_KINDS, for_family, said_of
+        from .card import card_of
+
+        if not (draft.get("analysis") or {}).get("profile"):
+            return None
+        family = card_of(draft).family.value
+        if str(family or "") not in FAMILY_KINDS:
+            return None
+        frame = draft_table(self.store, draft)
+        if frame is None:
+            return None
+        u = draft.get("understanding") or {}
+        target = u.get("target") if u.get("target") in frame.columns else None
+        return for_family(family, frame, target, said_of(u), tables=()), frame  # a draft attaches no related table by name
+
+    def kind_question(self, draft: dict[str, Any]) -> tuple[str, str, list[str], str] | None:
+        """S9.3: the first field of the understood kind that only the person can give, asked once in the kind's words
+        (whether an offer was random, which column names a series); None when the table shows them all."""
+        from ..kinds.propose import options_for, question_for
+
+        got = self.kind_proposal(draft)
+        if got is None or got[0] is None:
+            return None
+        p, frame = got
+        q = question_for(p, {str(x.get("field")) for x in draft.get("questions") or []})
+        return None if q is None else (q.key, q.text, options_for(q, frame, p), q.why)
+
+    def kind_said(self, draft: dict[str, Any]) -> str | None:
+        """The summary's line on the kind: what it reads and assumes, or what it still needs and what runs meanwhile."""
+        from .. import kinds
+
+        got = self.kind_proposal(draft)
+        if got is None or got[0] is None:
+            return None
+        from ..kinds.propose import still_needed
+
+        p = got[0]
+        title = kinds.get(p.kind).title
+        assumed = "; ".join(str(v) for v in p.assumed.values())
+        if p.complete:
+            return f"Kind: {title}." + (f" {assumed[0].upper() + assumed[1:]}." if assumed else "")
+        needed = still_needed(p) or [f"{', '.join(m.replace('_', ' ') for m in p.missing)}, on the Solution page"]
+        return f"Kind suggested: {title}; it still needs {'; '.join(needed)}."
+
     # ------------------------------------------------------------------ the deterministic script
     def script_turn(self, draft_id: str, text: str) -> None:
         """The Home agent without a model: a run of the scripted agent in the harness (21.1), each move a step."""
@@ -977,6 +1057,8 @@ class HomeAgent:
             question = self.card_question(self.store.get(draft_id))
         if question is None and not opening and self.second_opinion:  # 28.6: two readings of the family that differ are asked
             question = self.second_opinion_question(self.store.get(draft_id))
+        if question is None and not opening:  # S9.3: a field of the understood kind only the person can give
+            question = self.kind_question(self.store.get(draft_id))
         asked = question is not None and self.ask(draft_id, *question)
         from ..ledger import capture  # 19.7: the question actually asked, or none
 
@@ -1092,6 +1174,7 @@ class HomeAgent:
         line = lambda label, value: f"{label}: {str(value).strip().rstrip('.')}." if value else None  # noqa: E731 — answers are quoted as given
         parts = [line("Outcome", u.get("target")) or "The outcome is still open.", line("Prediction moment", u.get("prediction_moment")),
                  line("What happens with each prediction", u.get("action"))]
+        parts.append(self.kind_said(draft))  # S9.3: the kind understood, its assumptions, or what it still needs
         ready = any(a.get("status") == "ready" for a in draft["assets"])
         text = ("Here is the solution I would build. " + " ".join(p for p in parts if p) + f" Pack: {name}. "
                 + ("The data is ready, so we can build the solution now." if ready else
@@ -1195,7 +1278,7 @@ class HomeAgent:
             # live (HRN-022): the model ended its turn (or offered to build) with one of the plan's own fields still open, and
             # a fraud walk was built without its entity, its folds never grouped: the plan's next open field is asked, as the
             # rules ask it (the model chose the order and the words before; the questions that change the solution are asked)
-            question = self.next_question(after)
+            question = self.next_question(after) or self.kind_question(after)  # S9.3: the kind's own field too
             if question is not None and self.ask(draft_id, *question):
                 from ..ledger import capture
 
