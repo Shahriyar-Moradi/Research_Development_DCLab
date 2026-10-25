@@ -1,0 +1,162 @@
+{
+  "id": "BKO-010",
+  "experiment_id": "BKO-010",
+  "campaign_id": "bakeoff_v1",
+  "kind": "model_bakeoff",
+  "dataset": "adult",
+  "at": "2026-10-25T06:29:20+00:00",
+  "status": "completed",
+  "rule_sha256": "8314cc5588c76c917744ec0d5edee0bbd7f99236ca647f2ffa534aaf1307d2ab",
+  "metric": "roc_auc",
+  "higher_is_better": true,
+  "split": {
+    "strategy": "stratified",
+    "holdout": "stratified random 4000 of 20000 rows",
+    "folds": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+    "train_rows": 16000,
+    "holdout_rows": 4000,
+    "holdout_rows_sha256": "65788d3782820394ad94af96eb919b2784c66eac29419f797fb277b71d232daa",
+    "holdout_labels_sha256": "54b299070a57929a403ce02f89869b4a88c12bbc11056ebfdbd7fa1648870f92",
+    "fold_sizes": [
+      [
+        10666,
+        5334
+      ],
+      [
+        10667,
+        5333
+      ],
+      [
+        10667,
+        5333
+      ]
+    ],
+    "folds_sha256": "663aee82d0b99bd6d5312e9462eeedce85bf0edc3d6286e266c34521e9d4d7a3",
+    "model_columns": [
+      "age",
+      "workclass",
+      "fnlwgt",
+      "education",
+      "education-num",
+      "marital-status",
+      "occupation",
+      "relationship",
+      "race",
+      "sex",
+      "capital-gain",
+      "capital-loss",
+      "hours-per-week",
+      "native-country"
+    ],
+    "sampling": {
+      "source_rows": 48842,
+      "rows_with_target": 48842,
+      "max_rows": 20000,
+      "rule": "random sample of 20000 rows, seed 42 (label-independent)",
+      "rows_used": 20000
+    }
+  },
+  "same_split": true,
+  "engines": {
+    "dclab": {
+      "holdout_score": 0.9163265382880781,
+      "interval_95": {
+        "low": 0.9060881477009618,
+        "high": 0.9251938196735566,
+        "method": "iid row bootstrap",
+        "draws": 400
+      },
+      "minutes": 0.84,
+      "peak_memory_mb": 526.3,
+      "model": "xgboost",
+      "recipe": "raw",
+      "config": "xgboost_C01",
+      "params": {
+        "model__n_estimators": 500,
+        "model__learning_rate": 0.05,
+        "model__max_depth": 4,
+        "model__subsample": 0.8,
+        "model__colsample_bytree": 0.8
+      },
+      "cv_selected_mean": 0.924979852109931
+    },
+    "flaml": {
+      "holdout_score": 0.916945761704639,
+      "interval_95": {
+        "low": 0.9070806512550627,
+        "high": 0.9261412427086211,
+        "method": "iid row bootstrap",
+        "draws": 400
+      },
+      "minutes": 5.04,
+      "peak_memory_mb": 704.0,
+      "best_estimator": "xgb_limitdepth",
+      "best_config": {
+        "n_estimators": 1374,
+        "max_depth": 6,
+        "min_child_weight": 0.0023427200348288086,
+        "learning_rate": 0.01161810366328984,
+        "subsample": 1.0,
+        "colsample_bylevel": 1.0,
+        "colsample_bytree": 0.5251719930345983,
+        "reg_alpha": 0.0009765625,
+        "reg_lambda": 5.371125541201523
+      },
+      "best_cv_loss": 0.07385958952315219,
+      "trials": 15,
+      "search_seconds": 302.0787910830004,
+      "settings": {
+        "task": "classification",
+        "metric": "roc_auc",
+        "time_budget": 300,
+        "n_splits": 3,
+        "n_jobs": 6,
+        "eval_method": "cv",
+        "seed": 42,
+        "auto_augment": false,
+        "retrain_full": true,
+        "verbose": 0
+      },
+      "columns": [
+        "age",
+        "workclass",
+        "fnlwgt",
+        "education",
+        "education-num",
+        "marital-status",
+        "occupation",
+        "relationship",
+        "race",
+        "sex",
+        "capital-gain",
+        "capital-loss",
+        "hours-per-week",
+        "native-country"
+      ],
+      "category_code_columns": [
+        "workclass",
+        "education",
+        "marital-status",
+        "occupation",
+        "relationship",
+        "race",
+        "sex",
+        "native-country"
+      ],
+      "flaml_version": "2.7.0"
+    }
+  },
+  "paired": {
+    "point": 0.0006192234165609545,
+    "low": -0.001196685642495049,
+    "high": 0.002482398434336766,
+    "draws": 2000,
+    "method": "paired iid row bootstrap",
+    "share_of_draws_flaml_better": 0.7505
+  },
+  "comparison": "no clear difference",
+  "limits": [
+    "One holdout: the interval covers resampling of these rows, not another draw of the data.",
+    "Not a production approval."
+  ]
+}

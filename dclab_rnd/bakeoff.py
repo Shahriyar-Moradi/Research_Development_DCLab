@@ -409,6 +409,9 @@ def _flaml_frame(frame: Any, codes: tuple[str, ...]) -> Any:
     for column in codes:
         if column in frame:
             frame[column] = frame[column].map(lambda v: "__NAN__" if pd.isna(v) else str(v)).astype(object)
+    # 2026-10-25: LightGBM refuses JSON characters in a feature's name (spambase's "char_freq_;"): FLAML failed twice on
+    # it for the harness's sake, not its own; positions as names, the same for training and holdout rows
+    frame.columns = [f"c{i}" for i in range(frame.shape[1])]
     return frame
 
 
@@ -581,12 +584,18 @@ def render_report(campaign: Path, manifest: dict[str, Any], rows: list[dict[str,
              "the DCLab engine as it is. Same rows, holdout, training folds and metric; 95% intervals.", "",
              "| Dataset | Metric | Holdout rows | DCLab engine | FLAML | FLAML − DCLab (paired) | Comparison | Minutes (DCLab / FLAML) | Peak MB (DCLab / FLAML) |",
              "|---|---|---|---|---|---|---|---|---|"]
+    not_judged = set((decision or {}).get("not_judged") or [])
     for r in rows:
         d, f, p = r["engines"]["dclab"], r["engines"]["flaml"], r["paired"]
         diff = f"{p['point']:+.4f} ({p['low']:+.4f} to {p['high']:+.4f})" if p.get("low") is not None else "n/a"
+        comparison = f"not judged by the rule ({r['comparison']})" if r["dataset"] in not_judged else r["comparison"]
         lines.append(f"| {r['dataset']} | {r['metric']} | {r['split']['holdout_rows']} | {score(d)} {d.get('model', '')} | {score(f)} "
-                     f"{f.get('best_estimator', '')} | {diff} | {r['comparison']} | {d['minutes']} / {f['minutes']} | "
+                     f"{f.get('best_estimator', '')} | {diff} | {comparison} | {d['minutes']} / {f['minutes']} | "
                      f"{d['peak_memory_mb']:.0f} / {f['peak_memory_mb']:.0f} |")
+    for dataset, engines in sorted(((decision or {}).get("failed") or {}).items()):  # a failure is a row too, never a silent gap
+        who = " and ".join("FLAML" if e == "flaml" else "DCLab" for e in engines)
+        lines.append(f"| {dataset} | | | | | | {who} failed after its retry"
+                     + (" (counted as FLAML behind by the rule)" if engines == ["flaml"] else "") + " | | |")
     lines += ["", "Differences are oriented so that positive means FLAML scored better (for MAE, lower error).", ""]
     if decision:
         lines += [f"**Decision ({decision['outcome']}):** package 34.8 {decision['package_34_8']}. FLAML ahead on "

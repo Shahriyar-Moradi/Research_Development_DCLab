@@ -1,0 +1,24 @@
+{
+  "campaign": "search_v1",
+  "datasets": [
+    "bank_marketing",
+    "credit_default",
+    "adult",
+    "telco_churn",
+    "online_shoppers",
+    "german_credit"
+  ],
+  "budget": {
+    "minutes": 3.0,
+    "trials": 24,
+    "families": 2
+  },
+  "gate": {
+    "no_worse": "on at least 5 of the 6 datasets, the holdout difference (search minus default, oriented so positive is better) has its 90% lower bound above -0.005",
+    "honest": "on at least 5 of the 6 datasets, the selection fold's score lies within the search arm's own holdout 90% interval",
+    "gain_named": "the mean difference over the datasets is reported with its range; no claim of a gain unless a dataset's lower bound is above zero"
+  },
+  "compared_with": "evidence/campaigns/bakeoff_v1 (the default engine's holdout predictions, agent_runs/bakeoff_v1/<dataset>/dclab.npz)",
+  "sha256": "1817b75323506958f9e3880bb3160cc4a7f398b50d1ecd2610f853566cb419ae",
+  "frozen_at": "2026-10-25T07:13:25+00:00"
+}

@@ -1,0 +1,148 @@
+{
+  "id": "BKO-001",
+  "experiment_id": "BKO-001",
+  "campaign_id": "bakeoff_v1",
+  "kind": "model_bakeoff",
+  "dataset": "heart_disease",
+  "at": "2026-10-25T05:38:55+00:00",
+  "status": "completed",
+  "rule_sha256": "8314cc5588c76c917744ec0d5edee0bbd7f99236ca647f2ffa534aaf1307d2ab",
+  "metric": "roc_auc",
+  "higher_is_better": true,
+  "split": {
+    "strategy": "stratified",
+    "holdout": "stratified random 61 of 303 rows",
+    "folds": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+    "train_rows": 242,
+    "holdout_rows": 61,
+    "holdout_rows_sha256": "3ee0b2997cf24b51547e9dd0da6b9751f474c56d62ea94ff21a36546b6dcfb40",
+    "holdout_labels_sha256": "b2481d9148326a95544a0da5d24bb484596f6850e42ddd30305976a2aba96076",
+    "fold_sizes": [
+      [
+        161,
+        81
+      ],
+      [
+        161,
+        81
+      ],
+      [
+        162,
+        80
+      ]
+    ],
+    "folds_sha256": "5fbcad17db3e4370ad57bace2bdb9d18d64c360c70d98b75c511e2976da43334",
+    "model_columns": [
+      "age",
+      "sex",
+      "cp",
+      "trestbps",
+      "chol",
+      "fbs",
+      "restecg",
+      "thalach",
+      "exang",
+      "oldpeak",
+      "slope",
+      "ca",
+      "thal"
+    ],
+    "sampling": {
+      "source_rows": 303,
+      "rows_with_target": 303,
+      "max_rows": 20000,
+      "rows_used": 303
+    }
+  },
+  "same_split": true,
+  "engines": {
+    "dclab": {
+      "holdout_score": 0.9415584415584415,
+      "interval_95": {
+        "low": 0.8838057839623304,
+        "high": 0.9815134099616857,
+        "method": "iid row bootstrap",
+        "draws": 400
+      },
+      "minutes": 0.16,
+      "peak_memory_mb": 247.9,
+      "model": "extra_trees",
+      "recipe": "raw",
+      "config": "extra_trees_baseline",
+      "params": {},
+      "cv_selected_mean": 0.9014818200864712
+    },
+    "flaml": {
+      "holdout_score": 0.9502164502164503,
+      "interval_95": {
+        "low": 0.904428071928072,
+        "high": 0.9868181818181818,
+        "method": "iid row bootstrap",
+        "draws": 400
+      },
+      "minutes": 5.0,
+      "peak_memory_mb": 539.2,
+      "best_estimator": "extra_tree",
+      "best_config": {
+        "n_estimators": 42,
+        "max_features": 0.1,
+        "max_leaves": 16,
+        "criterion": "gini"
+      },
+      "best_cv_loss": 0.08440470068377044,
+      "trials": 25,
+      "search_seconds": 300.009025417,
+      "settings": {
+        "task": "classification",
+        "metric": "roc_auc",
+        "time_budget": 300,
+        "n_splits": 3,
+        "n_jobs": 6,
+        "eval_method": "cv",
+        "seed": 42,
+        "auto_augment": false,
+        "retrain_full": true,
+        "verbose": 0
+      },
+      "columns": [
+        "age",
+        "sex",
+        "cp",
+        "trestbps",
+        "chol",
+        "fbs",
+        "restecg",
+        "thalach",
+        "exang",
+        "oldpeak",
+        "slope",
+        "ca",
+        "thal"
+      ],
+      "category_code_columns": [
+        "sex",
+        "cp",
+        "fbs",
+        "restecg",
+        "exang",
+        "slope",
+        "ca",
+        "thal"
+      ],
+      "flaml_version": "2.7.0"
+    }
+  },
+  "paired": {
+    "point": 0.008658008658008809,
+    "low": -0.026939655172413708,
+    "high": 0.045163210445468505,
+    "draws": 2000,
+    "method": "paired iid row bootstrap",
+    "share_of_draws_flaml_better": 0.6705
+  },
+  "comparison": "no clear difference",
+  "limits": [
+    "One holdout: the interval covers resampling of these rows, not another draw of the data.",
+    "Not a production approval."
+  ]
+}

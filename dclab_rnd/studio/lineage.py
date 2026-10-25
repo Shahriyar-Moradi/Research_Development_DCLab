@@ -35,7 +35,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CODE_PATHS = ("dclab_rnd", "dclab_core", "general_pipeline")
 # the project settings that change what a stage computes (rows, folds, sampling, the critic's rounds, private scope);
 # the others (the training opt-in) never enter a run's inputs, so changing them does not make a run different
-RUN_SETTINGS = ("max_rows", "quick", "folds", "critic", "private")
+RUN_SETTINGS = ("max_rows", "quick", "folds", "critic", "private", "search")  # 34.7: a search changes what a run makes
 # a report's roots that no stage run writes: they are made when the report is (the brief, the findings, the plan)
 REPORT_ROOTS = ("title", "brief", "findings", "findings_meta", "plan", "plan_risks", "plan_would_change", "rubric")
 

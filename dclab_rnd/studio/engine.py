@@ -102,6 +102,8 @@ class Prepared:
         self.brief: dict[str, Any] | None = None  # 30.14: the project's Solution Brief, set on every prepare
         self.source_rows: np.ndarray | None = None  # each row of the bundle's X: its place in the table as loaded (after a label file's join)
         self.decision_rows: dict[str, Any] | None = None  # 34.4: the out-of-fold rows an act decision chose on, saved for what-if
+        self.search: dict[str, Any] | None = None  # 34.7: the project's search budget, None when its settings ask for none
+        self.search_cut: dict[str, Any] | None = None  # 34.7: the selection fold set aside before any stage scored, or why not
 
     @property
     def task(self) -> str:
@@ -292,6 +294,11 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     prepared.dated = bool(datetime_time)  # 30.12: a capacity's periods need dates, never a counter
     prepared.plan, prepared.label_info = project.get("plan"), project.get("labels")
     prepared.brief = project.get("brief")  # 30.14: the Solution Brief, its bar judged at the one holdout read
+    from . import search as studio_search
+
+    prepared.search = studio_search.settings(project)  # 34.7: off unless the project's settings ask for a search
+    if prepared.search:  # its selection fold leaves every stage's folds before any stage scores (33.2's protocol)
+        prepared.search_cut = studio_search.set_aside(bundle)
     prepared.critic = _critic_advisor(project)
     prepared.critic_examples = _critic_examples(project, prepared.critic)
     _BUNDLES.clear()
@@ -754,7 +761,9 @@ def stage_leakage(p: Prepared, eid: str) -> tuple[dict, list, str]:
         from sklearn.model_selection import KFold
 
         folds = len(bundle.cv_splits)  # the same number of folds as the time-ordered protocol it is compared with
-        random_splits = list(KFold(n_splits=folds, shuffle=True, random_state=ds.RANDOM_STATE).split(np.arange(len(X_tr))))
+        covered = np.unique(np.concatenate([np.concatenate([a, b]) for a, b in bundle.cv_splits]))  # the rows the time folds use (34.7:
+        # never a selection fold set aside for a search)
+        random_splits = [(covered[a], covered[b]) for a, b in KFold(n_splits=folds, shuffle=True, random_state=ds.RANDOM_STATE).split(covered)]
         random_cv = rn.cross_validate(bundle, recipe, audit_model, splits=random_splits, config_id="safe_random_kfold", split_label=f"KFold({folds}, shuffle) — ignores time order")
         gap = rn.oriented_gain(rn._mean(random_cv, metric), rn._mean(safe, metric), higher)
         evidence["random_vs_time_cv"] = {"time_ordered": {"metric_mean": rn._mean(safe, metric), "protocol": bundle.cv_description},
@@ -911,6 +920,40 @@ def stage_models(p: Prepared, eid: str, recipe: str) -> tuple[dict, list, str]:
         if review["rounds"]:
             kept = [r["experiment"] for r in review["rounds"] if r["adopted"]]
             summary += f" Review: {len(review['rounds'])} round(s) on the same folds, kept {', '.join(kept) if kept else 'nothing'}."
+    if getattr(p, "search", None):  # 34.7 with 34.6: a wider search, its winner confirmed once on a selection fold
+        from ..jobs import checkpoint
+        from . import search as studio_search
+
+        base = {"family": evidence["selected_model"], "params": (review or {}).get("adopted_params") or {}}  # the review's kept change
+        found = studio_search.run(p, recipe, ranked, p.search, base=base, checkpoint=checkpoint)
+        evidence["search"] = found
+        evidence["selection_rule"] += " " + found["rule"]
+        if found.get("skipped"):  # asked for, but no fair cut or no library: said, and the choice above stands
+            claims.append(_claim(f"{eid}-S1", "fact", f"The search the project's settings ask for was skipped: {found['skipped']}. The choice above stands.",
+                                 ["evidence.search"]))
+            summary += " Search skipped."
+        else:
+            if found["family"] != evidence["selected_model"]:
+                evidence["screen_leader"] = evidence.get("screen_leader") or evidence["selected_model"]
+                evidence["selected_model"] = found["family"]
+            chosen, against = found["selection"], found.get("without_search")
+            evidence["selected_metric_mean"], evidence["selected_metric_std"] = chosen["search_score"], None
+            evidence["selected_metric_from"] = "the search's pooled out-of-fold score on its search rows (no per-fold spread)"
+            gain = (f" Against the stage's choice without a search ({against['name']}, {against['selection_score']} there), the search gained "
+                    f"{against['gain']} on the same selection fold (90% interval {against['gain_interval'][0]} to {against['gain_interval'][1]})."
+                    if against else "")
+            claims.append(_claim(f"{eid}-S1", "decision",
+                                 f"A search of {found['attempts']} candidates in {found['minutes']} minutes chose {found['family']}"
+                                 + (" with tuned settings" if found["params"] else " with its starting settings")
+                                 + f": {_label(metric)} {chosen['search_score']} pooled out-of-fold on the search rows and {chosen['selection_score']} "
+                                   f"on a selection fold set aside before the search (90% interval {chosen['selection_interval'][0]} to "
+                                   f"{chosen['selection_interval'][1]}); the search score was optimistic by {chosen['optimism']}." + gain,
+                                 ["evidence.search"],
+                                 ["The selection fold is part of the training rows and smaller than the holdout; the holdout, read once in "
+                                  "the final stage, is the honest number.",
+                                  "The gain over no search is read on the selection fold only: an interval that reaches zero means the search "
+                                  "was not shown to help."]))
+            summary += f" Search: {found['attempts']} candidates, {found['family']} kept, optimism {chosen['optimism']}."
     return evidence, claims, summary
 
 
@@ -1370,14 +1413,17 @@ def _evaluation(p: Prepared, selected: dict[str, Any], y_test: pd.Series, predic
         return None
 
 
-def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[str, Any] | None = None) -> tuple[dict, list, str]:
-    """``reviewed``: the change the models stage's review kept (17.6), applied when the family is the one it was kept for."""
+def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[str, Any] | None = None, *,
+                searched: bool = False) -> tuple[dict, list, str]:
+    """``reviewed``: the change the models stage's review kept (17.6), applied when the family is the one it was kept for.
+    ``searched``: the settings came from the models stage's search (34.7), confirmed on its selection fold: fitted as they
+    are, never tuned again here (the review of 34.7: a model the selection fold never saw read the holdout)."""
     bundle, spec, task = p.bundle, p.bundle.spec, p.bundle.task_type
     metric, higher = spec.primary_metric, spec.higher_is_better
     n_classes = rn._n_classes(bundle)
     kept = dict(reviewed or {})
     baseline = rn.cross_validate(bundle, recipe, family, kept or None, config_id=f"{family}_baseline")
-    candidates = rn.optimization_candidates(family, task)
+    candidates = [] if searched else rn.optimization_candidates(family, task)
     if "review__class_weight" in kept:  # weights kept by the review: a candidate's own class weights would apply them twice
         candidates = [{**c, "params": {k: v for k, v in c["params"].items() if k != "model__class_weight"}} for c in candidates]
     tuned = [rn.cross_validate(bundle, recipe, family, {**c["params"], **kept}, config_id=c["candidate_id"]) for c in candidates]
@@ -1386,6 +1432,7 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
     decision = rn.tuning_decision(baseline, tuned, metric, higher, margin, relative=relative)
     selected = decision.pop("selected")
     decision["selected_config"] = selected["config_id"]
+    decision["from_search"] = bool(searched)
     started = time.perf_counter()
     final = rn.fit_and_predict(bundle, recipe, family, selected["model_params"] or None, bundle.X_train, bundle.y_train, bundle.X_test)
     final_seconds = time.perf_counter() - started
@@ -1417,7 +1464,9 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
         "feature_recipe": recipe, "model": family, "configuration_results": [baseline, *tuned], "optimization_search_space": candidates,
         "tuning_decision": decision, "selected_optimization": selected["config_id"], "selected_model_params": selected["model_params"],
         "review_change": kept,
-        "selection_rule": (f"Evaluate {len(candidates)} explicit parameter candidates on training CV ({bundle.cv_description}); take the best by mean "
+        "selection_rule": (("The models stage's search chose these settings and confirmed them once on its selection fold (34.7); they are "
+                            "fitted on every training row as they are, no candidate tried here.") if searched else
+                           f"Evaluate {len(candidates)} explicit parameter candidates on training CV ({bundle.cv_description}); take the best by mean "
                            f"{'-' if higher else '+'} 0.25×std and accept it only if its mean {_label(metric)} beats the default by at least "
                            + (f"{margin:.0%} (relative)" if relative else f"{margin}") + ", otherwise keep the default configuration."),
         "holdout_consumed": True, "holdout_split": bundle.holdout_description, "holdout_rows": int(len(y_test)), "train_rows": int(len(bundle.y_train)),
@@ -1481,10 +1530,15 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
                f"({bundle.holdout_description}; {ci['method']} 95% interval {rn._f(ci['low'])}–{rn._f(ci['high'])}); training-CV mean was {rn._f(cv_mean)}.",
                ["evidence.holdout_metrics", "evidence.holdout_primary_metric_ci", "evidence.holdout_consumed", "evidence.cv_selected_metric_mean"],
                ["A single holdout is one draw; CV models see fewer rows than the final model, so the holdout can legitimately differ from the CV mean."]),
-        _claim(f"{eid}-C2", "decision", f"Tuning {'accepted' if decision['accepted'] else 'rejected'}: best candidate {decision['best_candidate']} changed mean training-CV {label} by "
-               f"{decision['gain']:+.4f} (required ≥ {decision['required_gain']:.4f}), so {selected['config_id']} was used.",
-               ["evidence.tuning_decision", "evidence.configuration_results", "evidence.selection_rule"],
-               ["Only a handful of explicit candidates were tried; this is a sanity check, not an exhaustive search."]),
+        (_claim(f"{eid}-C2", "decision", f"The settings came from the models stage's search, confirmed on its selection fold, and were fitted as "
+                f"they are: no further tuning on the training folds ({selected['config_id']}, training-CV {label} {rn._f(rn._mean(selected, metric))}).",
+                ["evidence.tuning_decision", "evidence.configuration_results"],
+                ["The search's own score was read on folds of the search rows; the holdout, read once here, is the honest number."])
+         if searched else
+         _claim(f"{eid}-C2", "decision", f"Tuning {'accepted' if decision['accepted'] else 'rejected'}: best candidate {decision['best_candidate']} changed mean training-CV {label} by "
+                f"{decision['gain']:+.4f} (required ≥ {decision['required_gain']:.4f}), so {selected['config_id']} was used.",
+                ["evidence.tuning_decision", "evidence.configuration_results", "evidence.selection_rule"],
+                ["Only a handful of explicit candidates were tried; this is a sanity check, not an exhaustive search."])),
     ]
     base_text = "; ".join(f"{k}: " + ", ".join(f"{m} {rn._f(v)}" for m, v in b.items() if isinstance(v, (int, float))) for k, b in baselines.items())
     claims.append(_claim(f"{eid}-C3", "fact", f"Trivial baselines on the same holdout: {base_text}.", ["evidence.baselines"]))
@@ -1746,6 +1800,7 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
             params = {"recipe": recipe}
             evidence, claims, summary = stage_models(p, eid, recipe)
             decision = {"kind": "model", "selected": evidence["selected_model"], "chosen": evidence["selected_model"], "rule": evidence["selection_rule"],
+                        "searched": bool((evidence.get("search") or {}).get("family")),  # 34.7: the search chose it (the ledger's rule)
                         "options": [{"id": r["model"], "label": r["model"], "mean": r["mean"], "std": r["std"], "adjusted": r["adjusted_score"],
                                      "elapsed_seconds": r["elapsed_seconds"], "features": r["feature_count_mean"]} for r in evidence["ranking"]]}
         else:
@@ -1754,12 +1809,17 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
             family = chosen(models, "selected_model")
             review = ((models or {}).get("evidence") or {}).get("review") or {}
             reviewed = review.get("adopted_params") if review.get("family") == family else None  # kept for this family only
+            found = ((models or {}).get("evidence") or {}).get("search") or {}
+            searched = found.get("family") == family
+            if searched:  # 34.7: the search's settings (the review's kept change their base), confirmed on its selection fold, fitted as they are
+                reviewed = dict(found.get("params") or {}) or None
             adopted = project.get("adopted_improvement") or {}  # a way the person adopted from an improvement run (studio/improve.py): its family's only
             if adopted.get("family") == family and adopted.get("recipe") == recipe and isinstance(adopted.get("params"), dict):
                 reviewed = {**(reviewed or {}), **adopted["params"]}
+                searched = False  # a person's change on top of the search's: tuned on the folds as before
             params = {"recipe": recipe, "model": family, "holdout_reuse": bool(reuse_reason), "reviewed": reviewed or {}}
             project["holdout_uses"] = int(project.get("holdout_uses", 0)) + 1
-            evidence, claims, summary = stage_final(p, eid, recipe, family, reviewed)
+            evidence, claims, summary = stage_final(p, eid, recipe, family, reviewed, searched=searched)
             evidence["holdout_uses_in_this_project"] = project["holdout_uses"]
             if reuse_reason:
                 evidence["holdout_reuse_reason"] = str(reuse_reason)[:500]

@@ -1,0 +1,139 @@
+{
+  "id": "BKO-005",
+  "experiment_id": "BKO-005",
+  "campaign_id": "bakeoff_v1",
+  "kind": "model_bakeoff",
+  "dataset": "wine_quality",
+  "at": "2026-10-25T05:55:55+00:00",
+  "status": "completed",
+  "rule_sha256": "8314cc5588c76c917744ec0d5edee0bbd7f99236ca647f2ffa534aaf1307d2ab",
+  "metric": "roc_auc",
+  "higher_is_better": true,
+  "split": {
+    "strategy": "stratified",
+    "holdout": "stratified random 1300 of 6497 rows",
+    "folds": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+    "train_rows": 5197,
+    "holdout_rows": 1300,
+    "holdout_rows_sha256": "330ea5e67a5d0e558244beb8f6395e3a142cdf646761d8827bf859914607d8e8",
+    "holdout_labels_sha256": "2ded40d9110ec07b9be03edb8f15b05f5ac5bc4926a7b4c9f2078396aae4d2d1",
+    "fold_sizes": [
+      [
+        3464,
+        1733
+      ],
+      [
+        3465,
+        1732
+      ],
+      [
+        3465,
+        1732
+      ]
+    ],
+    "folds_sha256": "4e7b3e8f9f8d9188f0873401267395bd2d7cc779386ae25062bdae1b86246174",
+    "model_columns": [
+      "fixed_acidity",
+      "volatile_acidity",
+      "citric_acid",
+      "residual_sugar",
+      "chlorides",
+      "free_sulfur_dioxide",
+      "total_sulfur_dioxide",
+      "density",
+      "pH",
+      "sulphates",
+      "alcohol"
+    ],
+    "sampling": {
+      "source_rows": 6497,
+      "rows_with_target": 6497,
+      "max_rows": 20000,
+      "rows_used": 6497
+    }
+  },
+  "same_split": true,
+  "engines": {
+    "dclab": {
+      "holdout_score": 0.9174314964681548,
+      "interval_95": {
+        "low": 0.9028142635090952,
+        "high": 0.9326292742411626,
+        "method": "iid row bootstrap",
+        "draws": 400
+      },
+      "minutes": 0.32,
+      "peak_memory_mb": 616.0,
+      "model": "extra_trees",
+      "recipe": "raw",
+      "config": "extra_trees_C01",
+      "params": {
+        "model__n_estimators": 500,
+        "model__min_samples_leaf": 1,
+        "model__max_features": "sqrt"
+      },
+      "cv_selected_mean": 0.8924681213428144
+    },
+    "flaml": {
+      "holdout_score": 0.9127750139465217,
+      "interval_95": {
+        "low": 0.8968705291275219,
+        "high": 0.9274341878860785,
+        "method": "iid row bootstrap",
+        "draws": 400
+      },
+      "minutes": 5.01,
+      "peak_memory_mb": 907.9,
+      "best_estimator": "extra_tree",
+      "best_config": {
+        "n_estimators": 237,
+        "max_features": 0.2604593988416165,
+        "max_leaves": 1341,
+        "criterion": "gini"
+      },
+      "best_cv_loss": 0.10673642077238339,
+      "trials": 18,
+      "search_seconds": 300.3690736660001,
+      "settings": {
+        "task": "classification",
+        "metric": "roc_auc",
+        "time_budget": 300,
+        "n_splits": 3,
+        "n_jobs": 6,
+        "eval_method": "cv",
+        "seed": 42,
+        "auto_augment": false,
+        "retrain_full": true,
+        "verbose": 0
+      },
+      "columns": [
+        "fixed_acidity",
+        "volatile_acidity",
+        "citric_acid",
+        "residual_sugar",
+        "chlorides",
+        "free_sulfur_dioxide",
+        "total_sulfur_dioxide",
+        "density",
+        "pH",
+        "sulphates",
+        "alcohol"
+      ],
+      "category_code_columns": [],
+      "flaml_version": "2.7.0"
+    }
+  },
+  "paired": {
+    "point": -0.004656482521633087,
+    "low": -0.008696567852703488,
+    "high": -0.00043883346637920296,
+    "draws": 2000,
+    "method": "paired iid row bootstrap",
+    "share_of_draws_flaml_better": 0.0165
+  },
+  "comparison": "flaml behind",
+  "limits": [
+    "One holdout: the interval covers resampling of these rows, not another draw of the data.",
+    "Not a production approval."
+  ]
+}

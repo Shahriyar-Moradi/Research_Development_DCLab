@@ -78,6 +78,24 @@ class ActDecisionTest(unittest.TestCase):
         self.assertIn("The decision: call the customer on the top", markdown)
         self.assertIn("On the holdout it acted on", markdown)
 
+    def test_the_chosen_share_reaches_the_ledger(self):
+        """A bug found by another session's real-table run: the state's ``of`` was no state field, so every
+        threshold.operating_point record was refused and lost (fixed in dclab-core 0.112.0)."""
+        from dclab_rnd import ledger
+
+        book = ledger.FileLedger(Path(tempfile.mkdtemp()) / "ledger", "wtest")
+        ledger.install(book)
+        try:
+            store, pid, final = finish(churn({"action": "act", "what": "call the customer", "value_column": "monthly_fee",
+                                              "cost_per_action": 4, "capacity_share": 0.3}))
+        finally:
+            ledger.install(None)
+        points = book.records(point="threshold.operating_point")
+        self.assertEqual(len(points), 1)
+        self.assertEqual(points[0].state.get("of"), "share")
+        self.assertEqual(points[0].answers[0].answerer, "rule:decision_core")
+        self.assertEqual(points[0].value_used, final["evidence"]["decision"]["share"])
+
     def test_a_value_written_after_the_outcome_is_refused(self):
         """The proposal forbids the refund (written after the customer left), so a decision valued by it is refused when the
         solution is written, before any stage runs."""

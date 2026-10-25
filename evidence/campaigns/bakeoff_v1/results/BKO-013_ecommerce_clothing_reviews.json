@@ -1,0 +1,129 @@
+{
+  "id": "BKO-013",
+  "experiment_id": "BKO-013",
+  "campaign_id": "bakeoff_v1",
+  "kind": "model_bakeoff",
+  "dataset": "ecommerce_clothing_reviews",
+  "at": "2026-10-25T07:04:10+00:00",
+  "status": "completed",
+  "rule_sha256": "8314cc5588c76c917744ec0d5edee0bbd7f99236ca647f2ffa534aaf1307d2ab",
+  "metric": "roc_auc",
+  "higher_is_better": true,
+  "split": {
+    "strategy": "group",
+    "holdout": "4090 rows from 239 `Clothing ID` groups never seen in training (fold 1 of 5 stratified group folds)",
+    "folds": "StratifiedGroupKFold(3) by `Clothing ID` on training rows",
+    "train_rows": 15910,
+    "holdout_rows": 4090,
+    "holdout_rows_sha256": "358fc5b70b0652093b4e081bf76f7563a7547e8505be83057f261d6dccb9351f",
+    "holdout_labels_sha256": "14b6eb5e337f1b11ae305e2561623e3f9fa989bf5d9d3f18f98ff39f613d16a7",
+    "fold_sizes": [
+      [
+        10301,
+        5609
+      ],
+      [
+        10402,
+        5508
+      ],
+      [
+        11117,
+        4793
+      ]
+    ],
+    "folds_sha256": "3a2650d8ed2504cbb57204f87a7320095f7b8759c158893868c4e9dfa003d677",
+    "model_columns": [
+      "Age",
+      "Division Name",
+      "Department Name",
+      "Class Name"
+    ],
+    "sampling": {
+      "source_rows": 23486,
+      "rows_with_target": 23486,
+      "max_rows": 20000,
+      "rule": "random sample of 20000 rows, seed 42 (label-independent)",
+      "rows_used": 20000
+    }
+  },
+  "same_split": true,
+  "engines": {
+    "dclab": {
+      "holdout_score": 0.950540140855128,
+      "interval_95": {
+        "low": 0.9402586713245161,
+        "high": 0.957193241554485,
+        "method": "cluster bootstrap over 239 groups",
+        "draws": 400
+      },
+      "minutes": 3.52,
+      "peak_memory_mb": 598.8,
+      "model": "logistic_regression",
+      "recipe": "tfidf_word",
+      "config": "logistic_regression_C01",
+      "params": {
+        "model__C": 1.0
+      },
+      "cv_selected_mean": 0.9438791098479272
+    },
+    "flaml": {
+      "holdout_score": 0.5658809115031112,
+      "interval_95": {
+        "low": 0.5369112082520912,
+        "high": 0.5974161034947069,
+        "method": "cluster bootstrap over 239 groups",
+        "draws": 400
+      },
+      "minutes": 5.03,
+      "peak_memory_mb": 689.0,
+      "best_estimator": "xgb_limitdepth",
+      "best_config": {
+        "n_estimators": 57,
+        "max_depth": 4,
+        "min_child_weight": 6.2488598544862635,
+        "learning_rate": 0.05246172795599497,
+        "subsample": 0.8341234175515889,
+        "colsample_bylevel": 1.0,
+        "colsample_bytree": 1.0,
+        "reg_alpha": 0.013761713160329246,
+        "reg_lambda": 9.400434101316446
+      },
+      "best_cv_loss": 0.45786252820658113,
+      "trials": 11,
+      "search_seconds": 301.0991764160008,
+      "settings": {
+        "task": "classification",
+        "metric": "roc_auc",
+        "time_budget": 300,
+        "n_splits": 3,
+        "n_jobs": 6,
+        "eval_method": "cv",
+        "seed": 42,
+        "auto_augment": false,
+        "retrain_full": true,
+        "verbose": 0
+      },
+      "columns": [
+        "Age",
+        "Division Name",
+        "Department Name",
+        "Class Name"
+      ],
+      "category_code_columns": [],
+      "flaml_version": "2.7.0"
+    }
+  },
+  "paired": {
+    "point": -0.3846592293520168,
+    "low": -0.41276996885853473,
+    "high": -0.34903383269548277,
+    "draws": 2000,
+    "method": "paired cluster bootstrap over 239 groups",
+    "share_of_draws_flaml_better": 0.0
+  },
+  "comparison": "flaml behind",
+  "limits": [
+    "One holdout: the interval covers resampling of these rows, not another draw of the data.",
+    "Not a production approval."
+  ]
+}

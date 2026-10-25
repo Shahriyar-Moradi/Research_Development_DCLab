@@ -1,0 +1,42 @@
+{
+  "id": "BKO-100",
+  "experiment_id": "BKO-100",
+  "campaign_id": "bakeoff_v1",
+  "kind": "model_bakeoff_decision",
+  "at": "2026-10-25T07:23:02+00:00",
+  "status": "completed",
+  "rule_id": "bakeoff_rule_v1",
+  "rule_sha256": "8314cc5588c76c917744ec0d5edee0bbd7f99236ca647f2ffa534aaf1307d2ab",
+  "datasets_judged": 13,
+  "needed_ahead": 5,
+  "flaml_ahead": [
+    "bank_marketing"
+  ],
+  "flaml_behind": [
+    "letter_recognition",
+    "spambase",
+    "wine_quality"
+  ],
+  "no_clear_difference": [
+    "adult",
+    "breast_cancer",
+    "credit_card_fraud",
+    "credit_default",
+    "german_credit",
+    "heart_disease",
+    "mushroom",
+    "online_shoppers",
+    "telco_churn"
+  ],
+  "not_judged": [
+    "ecommerce_clothing_reviews"
+  ],
+  "left_out_dclab_failed": [],
+  "outcome": "no go",
+  "package_34_8": "does not go ahead",
+  "failed": {
+    "spambase": [
+      "flaml"
+    ]
+  }
+}

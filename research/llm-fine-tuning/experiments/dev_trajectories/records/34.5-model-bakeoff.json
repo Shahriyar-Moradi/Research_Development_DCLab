@@ -162,6 +162,34 @@
       "impact": "agent metrics would log every bake-off result as a failed evaluation",
       "alternatives": [],
       "open": ""
+    },
+    {
+      "id": "F10",
+      "source": "measurement",
+      "defect": "FLAML failed on one dataset in the full run",
+      "scenario": "the spambase table's column names hold characters LightGBM refuses (inside FLAML)",
+      "cause": "the harness handed FLAML the engine's column names as they are",
+      "fix": "_flaml_frame renames the columns to c0, c1, ... before FLAML sees them; the frozen protocol hash refuses a rerun under bakeoff_v1, so the fix serves a later bakeoff_v2",
+      "test": "tests/test_bakeoff.py (test_flaml_gets_names_lightgbm_accepts)",
+      "severity": "behaviour",
+      "impact": "spambase counted as FLAML behind by the rule's failure clause; the decision does not depend on it",
+      "alternatives": [
+        "edit the frozen campaign (refused: a changed protocol is a new campaign)"
+      ],
+      "open": "a bakeoff_v2 with the fix and AutoGluon on the M1 Max"
+    },
+    {
+      "id": "F11",
+      "source": "self",
+      "defect": "the campaign report hid a failure and a dataset the rule did not judge",
+      "scenario": "spambase, where FLAML failed, had no row; the text dataset showed 'flaml behind' though the rule left it out",
+      "cause": "the report listed only datasets with a result file and printed each comparison as measured",
+      "fix": "a row for each failure with how the rule counted it; a dataset the rule did not judge says so",
+      "test": "tests/test_bakeoff.py (test_the_report_shows_a_failure_and_a_dataset_the_rule_did_not_judge)",
+      "severity": "behaviour",
+      "impact": "a reader could count the wrong datasets behind",
+      "alternatives": [],
+      "open": ""
     }
   ],
   "measurements": [
@@ -177,13 +205,29 @@
       "limits": [
         "a tiny invented table; the real run is not done"
       ]
+    },
+    {
+      "name": "the full bake-off, 14 datasets (bakeoff_v1), on an 8 GB MacBook Air",
+      "gate": "34.8 goes ahead when FLAML is clearly ahead (paired 95% interval above 0) on at least a third of the datasets both engines finished",
+      "fixed_before_run": true,
+      "result": "13 judged (the text dataset not judged: FLAML sees no text); FLAML clearly ahead on 1 (bank marketing, +0.018), behind on 3 (letter, wine; spambase by a harness failure), no clear difference on 9; 5 were needed: no go for 34.8",
+      "verdict": "fail",
+      "cost_eur": 0,
+      "next": "34.8 not built; the engine's own search (34.7) measured instead",
+      "against_gate": "",
+      "limits": [
+        "one holdout per dataset",
+        "a five-minute FLAML budget on an 8 GB Air",
+        "FLAML saw the raw columns, not the engine's features"
+      ]
     }
   ],
-  "outcome": "The bake-off harness is built, reviewed and tested; the rule that decides 34.8 is in code and will be frozen into the manifest by the first run. The run itself (14 datasets, about 2 to 3 hours) waits for the owner.",
+  "outcome": "The bake-off harness is built, reviewed and tested; the rule that decides 34.8 is in code and will be frozen into the manifest by the first run. The run itself (14 datasets, about 2 to 3 hours) waits for the owner. The run (2026-10-25) said no go for 34.8: FLAML clearly ahead on 1 of 13 datasets where 5 were needed; FLAML used its whole five-minute budget on each dataset, while the engine needed under a minute on 8 of 13.",
   "lessons": [
     "Before comparing two engines, make them read the same folds, not just the same holdout: an AutoML library reshuffles unless given a splitter object.",
     "Freeze the code that applies a rule, not only its words.",
-    "On an 8 GB machine a retry must start clean: a killed run leaves state that blocks the next one."
+    "On an 8 GB machine a retry must start clean: a killed run leaves state that blocks the next one.",
+    "A rule fixed before the run decides even when a harness bug lands in the results: count the failure both ways and say whether the decision moves; here it did not."
   ],
   "risks": [
     "FLAML sees the engine's raw columns, not its engineered features: a no-go would not prove FLAML as a family behind the recipe is useless",

@@ -1,0 +1,179 @@
+{
+  "id": "BKO-002",
+  "experiment_id": "BKO-002",
+  "campaign_id": "bakeoff_v1",
+  "kind": "model_bakeoff",
+  "dataset": "breast_cancer",
+  "at": "2026-10-25T05:44:16+00:00",
+  "status": "completed",
+  "rule_sha256": "8314cc5588c76c917744ec0d5edee0bbd7f99236ca647f2ffa534aaf1307d2ab",
+  "metric": "roc_auc",
+  "higher_is_better": true,
+  "split": {
+    "strategy": "stratified",
+    "holdout": "stratified random 114 of 569 rows",
+    "folds": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+    "train_rows": 455,
+    "holdout_rows": 114,
+    "holdout_rows_sha256": "f2d2227d00421e3196cd0c6112e1017def8790f0e3a8a0798f8f8608460cb08f",
+    "holdout_labels_sha256": "d1d8ddb5007ef0dc8061a7aff0a1ae74a97fa527ace56f8ecfcdc1dde9beaf0d",
+    "fold_sizes": [
+      [
+        303,
+        152
+      ],
+      [
+        303,
+        152
+      ],
+      [
+        304,
+        151
+      ]
+    ],
+    "folds_sha256": "7d3ca5294a47080c3ac227b7de3bf34ef8ca179bd125eebf6882982eb3516f7c",
+    "model_columns": [
+      "radius1",
+      "texture1",
+      "perimeter1",
+      "area1",
+      "smoothness1",
+      "compactness1",
+      "concavity1",
+      "concave_points1",
+      "symmetry1",
+      "fractal_dimension1",
+      "radius2",
+      "texture2",
+      "perimeter2",
+      "area2",
+      "smoothness2",
+      "compactness2",
+      "concavity2",
+      "concave_points2",
+      "symmetry2",
+      "fractal_dimension2",
+      "radius3",
+      "texture3",
+      "perimeter3",
+      "area3",
+      "smoothness3",
+      "compactness3",
+      "concavity3",
+      "concave_points3",
+      "symmetry3",
+      "fractal_dimension3"
+    ],
+    "sampling": {
+      "source_rows": 569,
+      "rows_with_target": 569,
+      "max_rows": 20000,
+      "rows_used": 569
+    }
+  },
+  "same_split": true,
+  "engines": {
+    "dclab": {
+      "holdout_score": 0.996362433862434,
+      "interval_95": {
+        "low": 0.9857946675900278,
+        "high": 1.0,
+        "method": "iid row bootstrap",
+        "draws": 400
+      },
+      "minutes": 0.16,
+      "peak_memory_mb": 264.2,
+      "model": "logistic_regression",
+      "recipe": "selected_mi",
+      "config": "logistic_regression_C02",
+      "params": {
+        "model__C": 10.0
+      },
+      "cv_selected_mean": 0.9955634700787055
+    },
+    "flaml": {
+      "holdout_score": 0.9910714285714285,
+      "interval_95": {
+        "low": 0.9672321740306392,
+        "high": 1.0,
+        "method": "iid row bootstrap",
+        "draws": 400
+      },
+      "minutes": 5.0,
+      "peak_memory_mb": 549.3,
+      "best_estimator": "lgbm",
+      "best_config": {
+        "n_estimators": 95,
+        "num_leaves": 52,
+        "min_child_samples": 73,
+        "learning_rate": 1.0,
+        "log_max_bin": 9,
+        "colsample_bytree": 0.7188338450009435,
+        "reg_alpha": 0.028794824936492398,
+        "reg_lambda": 0.06444658246385086
+      },
+      "best_cv_loss": 0.0048663324979115,
+      "trials": 20,
+      "search_seconds": 300.0204591249999,
+      "settings": {
+        "task": "classification",
+        "metric": "roc_auc",
+        "time_budget": 300,
+        "n_splits": 3,
+        "n_jobs": 6,
+        "eval_method": "cv",
+        "seed": 42,
+        "auto_augment": false,
+        "retrain_full": true,
+        "verbose": 0
+      },
+      "columns": [
+        "radius1",
+        "texture1",
+        "perimeter1",
+        "area1",
+        "smoothness1",
+        "compactness1",
+        "concavity1",
+        "concave_points1",
+        "symmetry1",
+        "fractal_dimension1",
+        "radius2",
+        "texture2",
+        "perimeter2",
+        "area2",
+        "smoothness2",
+        "compactness2",
+        "concavity2",
+        "concave_points2",
+        "symmetry2",
+        "fractal_dimension2",
+        "radius3",
+        "texture3",
+        "perimeter3",
+        "area3",
+        "smoothness3",
+        "compactness3",
+        "concavity3",
+        "concave_points3",
+        "symmetry3",
+        "fractal_dimension3"
+      ],
+      "category_code_columns": [],
+      "flaml_version": "2.7.0"
+    }
+  },
+  "paired": {
+    "point": -0.005291005291005457,
+    "low": -0.019648010424612297,
+    "high": 0.0010263250263250635,
+    "draws": 2000,
+    "method": "paired iid row bootstrap",
+    "share_of_draws_flaml_better": 0.1175
+  },
+  "comparison": "no clear difference",
+  "limits": [
+    "One holdout: the interval covers resampling of these rows, not another draw of the data.",
+    "Not a production approval."
+  ]
+}

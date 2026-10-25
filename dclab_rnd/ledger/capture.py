@@ -320,7 +320,7 @@ def stage_decisions(stage: str, record: dict[str, Any], prepared: Any, owner: di
                       options=[o.get("id") for o in decision.get("options") or []])
             _measured(rec, decision, _higher(prepared, record))  # 29.3: the recipe that measured clearly best on validation, if one did
         elif stage == "models" and decision.get("chosen") is not None:
-            rec = put("model.family", str(decision.get("selected", decision["chosen"]))[:200], "rule:rank_rows",
+            rec = put("model.family", str(decision.get("selected", decision["chosen"]))[:200], "rule:search_select" if decision.get("searched") else "rule:rank_rows",
                       options=[o.get("id") for o in decision.get("options") or []])
             _measured(rec, decision, _higher(prepared, record))  # 29.3: the family that measured clearly best on validation, if one did
             first = _first_family(prepared)
@@ -415,7 +415,8 @@ def approval(stage: str, record: dict[str, Any] | None, choice: Any, actor: str,
                              state={"stage": _code(stage)}, options=options, level=level, project=project_id))
         point = {"features": "features.recipe", "models": "model.family"}.get(stage)
         if point and choice not in (None, "") and str(choice) != str(selected):
-            rec = _put(point, ("project", project_id), [answer("rule", "rule:stage_selection", str(selected)[:200] if selected is not None else None),
+            rule = "rule:search_select" if stage == "models" and decision.get("searched") else "rule:stage_selection"  # 34.7: one name a decision
+            rec = _put(point, ("project", project_id), [answer("rule", rule, str(selected)[:200] if selected is not None else None),
                                                         answer(by, who, str(choice)[:200])],
                        str(choice)[:200], by, state={"stage": _code(stage)}, options=options, level=level, exposed=True, project=project_id)
             written += bool(rec)

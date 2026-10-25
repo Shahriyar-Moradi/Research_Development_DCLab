@@ -1,0 +1,141 @@
+{
+  "id": "BKO-008",
+  "experiment_id": "BKO-008",
+  "campaign_id": "bakeoff_v1",
+  "kind": "model_bakeoff",
+  "dataset": "online_shoppers",
+  "at": "2026-10-25T06:16:07+00:00",
+  "status": "completed",
+  "rule_sha256": "8314cc5588c76c917744ec0d5edee0bbd7f99236ca647f2ffa534aaf1307d2ab",
+  "metric": "roc_auc",
+  "higher_is_better": true,
+  "split": {
+    "strategy": "stratified",
+    "holdout": "stratified random 2466 of 12330 rows",
+    "folds": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+    "train_rows": 9864,
+    "holdout_rows": 2466,
+    "holdout_rows_sha256": "f2d1331793f82c186eb4eb76c524273abae40b35b55976d11a3d96f62117a1d3",
+    "holdout_labels_sha256": "d34fa67bf9c57e992cfd89ee146571eed228ca776a64c44d0a6a277eb4238a15",
+    "fold_sizes": [
+      [
+        6576,
+        3288
+      ],
+      [
+        6576,
+        3288
+      ],
+      [
+        6576,
+        3288
+      ]
+    ],
+    "folds_sha256": "d497d4f149cf105e9b202c1f02848f5c395bda9ab8d8ab387b0daacb8f65e493",
+    "model_columns": [
+      "SpecialDay",
+      "Month",
+      "OperatingSystems",
+      "Browser",
+      "Region",
+      "TrafficType",
+      "VisitorType",
+      "Weekend"
+    ],
+    "sampling": {
+      "source_rows": 12330,
+      "rows_with_target": 12330,
+      "max_rows": 20000,
+      "rows_used": 12330
+    }
+  },
+  "same_split": true,
+  "engines": {
+    "dclab": {
+      "holdout_score": 0.6891367537257188,
+      "interval_95": {
+        "low": 0.6612373476014985,
+        "high": 0.713815349262747,
+        "method": "iid row bootstrap",
+        "draws": 400
+      },
+      "minutes": 1.12,
+      "peak_memory_mb": 355.3,
+      "model": "logistic_regression",
+      "recipe": "raw",
+      "config": "logistic_regression_baseline",
+      "params": {},
+      "cv_selected_mean": 0.6894595856079774
+    },
+    "flaml": {
+      "holdout_score": 0.694864763694466,
+      "interval_95": {
+        "low": 0.6665619261266498,
+        "high": 0.7179218201064457,
+        "method": "iid row bootstrap",
+        "draws": 400
+      },
+      "minutes": 5.01,
+      "peak_memory_mb": 571.3,
+      "best_estimator": "lgbm",
+      "best_config": {
+        "n_estimators": 49,
+        "num_leaves": 4,
+        "min_child_samples": 23,
+        "learning_rate": 0.08692644828768177,
+        "log_max_bin": 7,
+        "colsample_bytree": 0.6331684621846542,
+        "reg_alpha": 3.5392997028587905,
+        "reg_lambda": 0.0024799493410824548
+      },
+      "best_cv_loss": 0.308023401188294,
+      "trials": 8,
+      "search_seconds": 300.1120829580004,
+      "settings": {
+        "task": "classification",
+        "metric": "roc_auc",
+        "time_budget": 300,
+        "n_splits": 3,
+        "n_jobs": 6,
+        "eval_method": "cv",
+        "seed": 42,
+        "auto_augment": false,
+        "retrain_full": true,
+        "verbose": 0
+      },
+      "columns": [
+        "SpecialDay",
+        "Month",
+        "OperatingSystems",
+        "Browser",
+        "Region",
+        "TrafficType",
+        "VisitorType",
+        "Weekend"
+      ],
+      "category_code_columns": [
+        "Month",
+        "OperatingSystems",
+        "Browser",
+        "Region",
+        "TrafficType",
+        "VisitorType",
+        "Weekend"
+      ],
+      "flaml_version": "2.7.0"
+    }
+  },
+  "paired": {
+    "point": 0.0057280099687472275,
+    "low": -0.0027739794299756594,
+    "high": 0.014466911686511949,
+    "draws": 2000,
+    "method": "paired iid row bootstrap",
+    "share_of_draws_flaml_better": 0.9
+  },
+  "comparison": "no clear difference",
+  "limits": [
+    "One holdout: the interval covers resampling of these rows, not another draw of the data.",
+    "Not a production approval."
+  ]
+}

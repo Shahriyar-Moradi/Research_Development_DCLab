@@ -220,6 +220,34 @@ class BakeoffRuleTest(unittest.TestCase):
                                                   "identifiers": []}, pd.DataFrame({"Class": [0, 1]}))
         self.assertEqual((fraud["forbidden"], fraud["time_column"], fraud["positive_label"]), ([], "Time", "1"))
 
+    def test_the_report_shows_a_failure_and_a_dataset_the_rule_did_not_judge(self):
+        from dclab_rnd import bakeoff
+
+        manifest = {"rule": {"id": "r", "go": "go"}, "frozen_at": "t", "rule_sha256": "0" * 64, "protocol": {"flaml_budget_seconds": 300, "datasets": []}}
+        engine = {"holdout_score": 0.9, "interval_95": {"low": 0.8, "high": 0.95}, "minutes": 1, "peak_memory_mb": 100}
+        row = {"dataset": "reviews", "metric": "roc_auc", "split": {"holdout_rows": 10}, "engines": {"dclab": engine, "flaml": engine},
+               "paired": {"point": -0.3, "low": -0.4, "high": -0.2}, "comparison": "flaml behind"}
+        decision = {"outcome": "no go", "package_34_8": "does not go ahead", "flaml_ahead": [], "flaml_behind": ["spam"], "datasets_judged": 1,
+                    "needed_ahead": 1, "not_judged": ["reviews"], "failed": {"spam": ["flaml"]}}
+        text = bakeoff.render_report(Path("bakeoff_x"), manifest, [row], decision)
+        self.assertIn("| reviews |", text)
+        self.assertIn("not judged by the rule (flaml behind)", text)
+        self.assertIn("| spam |", text)
+        self.assertIn("FLAML failed after its retry (counted as FLAML behind by the rule)", text)
+
+    def test_flaml_gets_names_lightgbm_accepts(self):
+        """2026-10-25: spambase's column names hold JSON characters (";", "[") that LightGBM refuses: FLAML failed on the
+        harness's account. The frame FLAML gets names its columns by position, the same for training and holdout rows."""
+        import pandas as pd
+
+        from dclab_rnd.bakeoff import _flaml_frame
+
+        frame = pd.DataFrame({"char_freq_;": [0.1, 0.2], "char_freq_[": [1.0, 0.0], "word": ["a", None]})
+        out = _flaml_frame(frame, ("word",))
+        self.assertEqual(list(out.columns), ["c0", "c1", "c2"])
+        self.assertEqual(out["c2"].tolist(), ["a", "__NAN__"])
+        self.assertEqual(list(frame.columns), ["char_freq_;", "char_freq_[", "word"])  # the caller's frame untouched
+
     def test_the_paired_difference_is_oriented_so_positive_means_flaml_better(self):
         from sklearn.metrics import mean_absolute_error, roc_auc_score
 

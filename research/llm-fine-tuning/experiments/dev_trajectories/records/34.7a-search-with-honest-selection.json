@@ -1,0 +1,281 @@
+{
+  "package": "34.7a-search-with-honest-selection",
+  "title": "A wider search in the engine, chosen honestly: Optuna on the stage's choice and the screen's next family, the winner confirmed once on a selection fold (34.7a with 34.6)",
+  "date": "2026-10-25",
+  "request": "The owner asked to finish Phase 10 without stopping. The plan (docs/guides/PHASE10_ABILITIES_PLAN.md, 34.7) asks for a per-family search with a budget, CatBoost reconsidered, stacking of the top families, all chosen through 34.6's selection fold, the exported code reproducing it, and on the bake-off datasets a holdout score that rises with the measured optimism inside its interval at bounded minutes. The search was built first (34.7a); stacking and CatBoost (34.7b) wait for the owner.",
+  "spec": "dclab_rnd/studio/search.py (settings, space, cut, run); the models stage runs it after its screen and review when the project's settings ask; the final stage fits the searched settings as they are; dclab_rnd/search_measure.py (campaign search_v2).",
+  "plan": [
+    "read 34.6's selection library and the engine's models and final stages",
+    "write the search behind an opt-in setting, the selection fold set aside before it, the winner confirmed once",
+    "make the final stage fit the searched settings without re-tuning",
+    "review, fix, re-review",
+    "measure both arms fresh on pinned code over nine bake-off datasets with gates fixed before the run"
+  ],
+  "decisions": [
+    {
+      "decision": "The search is off unless a project's settings ask for it",
+      "why": "a selection fold takes training rows from every project, and the search costs minutes; it is offered, not imposed, until a measurement says it helps"
+    },
+    {
+      "decision": "Search the stage's own choice first, with the review's kept change as the base of every trial",
+      "why": "the review's change was measured on the same folds; dropping it would make the search start behind the stage it is meant to improve"
+    },
+    {
+      "decision": "Compare the winner with the stage's choice without a search on the same selection fold",
+      "why": "the selection score alone says how good the winner is, not whether the search added anything; the paired gain with its interval says that"
+    },
+    {
+      "decision": "Skip the search with the reason when no fair cut exists, never search on an unfair one",
+      "why": "a selection fold missing a class or sharing entities with the search rows would confirm the winner on rows it partly saw or cannot score"
+    },
+    {
+      "decision": "Measure both arms fresh in a new campaign (search_v2) and abort search_v1",
+      "why": "search_v1 compared the search with the bake-off's predictions from an older engine and had gates that could not tell a gain; a changed protocol is a new campaign, never an edit"
+    }
+  ],
+  "change": "dclab_rnd/studio/search.py (new); dclab_rnd/studio/engine.py (Prepared.search and search_cut, the fold set aside in prepare, the models stage's search block, the models decision's searched flag, the final stage's searched branch); dclab_rnd/studio/lineage.py (search among the run settings); dclab_rnd/ledger/capture.py (model.family's rule when the search chose); dclab_rnd/search_measure.py (new); tests/test_search_engine.py, tests/test_search_measure.py. requirements/product.txt (Optuna).",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "defect": "the final stage tuned the searched settings again",
+      "scenario": "a searched project's final stage tried its own candidates on top of the search's choice",
+      "cause": "the final stage did not know the settings came from the search",
+      "fix": "stage_final(searched=True) tries no candidates and says so in its decision and claim; a person's adopted change on top resets it",
+      "test": "tests/test_search_engine.py",
+      "severity": "behaviour",
+      "impact": "a model the selection fold never saw read the holdout",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "defect": "entities shared across the selection fold on a time split with entities",
+      "scenario": "a customer in the search rows also scored the selection fold",
+      "cause": "the cut took the latest rows by time only",
+      "fix": "the selection fold and the search folds drop the rows of any entity the other side holds",
+      "test": "tests/test_search_engine.py (SearchCutTest)",
+      "severity": "leakage",
+      "impact": "an optimistic selection score",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "defect": "a class could be missing from one side",
+      "scenario": "a rare class absent from the latest rows or from a group cut",
+      "cause": "no class check on the cut",
+      "fix": "group and stratified cuts retry up to 20 seeds; a time cut cannot; otherwise the search is skipped with the reason",
+      "test": "tests/test_search_engine.py (SearchCutTest)",
+      "severity": "behaviour",
+      "impact": "a crash or a mis-scored metric",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "defect": "the review's kept change was lost in the search",
+      "scenario": "the review kept class weights; the search's trials started from defaults",
+      "cause": "the search knew only the screen",
+      "fix": "the review's change is the base of every trial of its family; class weight is never drawn on top of it",
+      "test": "tests/test_search_engine.py",
+      "severity": "behaviour",
+      "impact": "the search started behind the stage",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "defect": "the ledger said the screen's rule chose a family the search chose",
+      "scenario": "a searched project's model.family record",
+      "cause": "one rule id for both",
+      "fix": "rule:search_select when the search chose",
+      "test": "tests/test_search_engine.py",
+      "severity": "gap",
+      "impact": "a wrong label for the decision models",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "defect": "the search score was called a mean and nothing said whether the search helped",
+      "scenario": "the record compared the winner with nothing",
+      "cause": "no comparator",
+      "fix": "the score is called pooled out-of-fold; the stage's choice without a search is fitted and scored on the same selection fold with a paired interval of the gain",
+      "test": "tests/test_search_engine.py",
+      "severity": "behaviour",
+      "impact": "a search claimed useful without evidence",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F7-F10",
+      "source": "reviewer",
+      "defect": "claim limits, the stage's mean, a missing library and the run's lineage",
+      "scenario": "a searched project's record and replay",
+      "cause": "the search was added beside the stage without updating them",
+      "fix": "the claim says where the gain was read; selected_metric_mean is the winner's own score; Optuna missing skips with the reason; search counts among a run's settings",
+      "test": "tests/test_search_engine.py",
+      "severity": "behaviour",
+      "impact": "records that misread the search",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "M1-M5",
+      "source": "reviewer",
+      "defect": "the measurement could not decide",
+      "scenario": "search_v1 read the arm without a search from the bake-off's older engine, ran unpinned code and had gates a gain could not pass",
+      "cause": "the campaign was written before the search was reviewed",
+      "fix": "search_v2: both arms fresh, code pinned by hash with a resume on changed code refused, captured predictions checked against each record, four gates, a time, a group-with-text and a multiclass dataset added; search_v1 marked aborted",
+      "test": "tests/test_search_measure.py",
+      "severity": "behaviour",
+      "impact": "a result that would not mean what it said",
+      "alternatives": [
+        "keep search_v1 and edit its gates (refused: a changed protocol is a new campaign)"
+      ],
+      "open": ""
+    },
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "defect": "a group split with one large group crashed the models stage",
+      "scenario": "entity sizes 25, 900, 25, 25, 25: the greedy cut left one group to search and the folds asked for one split",
+      "cause": "a cut was accepted whatever it left on each side",
+      "fix": "a group cut is drawn again when the search rows hold fewer than two groups or more than half the rows are set aside, or the split raised; the folds of one group are none, so the search skips with its reason",
+      "test": "tests/test_search_engine.py (lopsided group cut)",
+      "severity": "behaviour",
+      "impact": "a project failed on every rerun",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "defect": "the selection fold was not clean",
+      "scenario": "the features stage, the screen and the review scored on folds over every training row, the later selection rows included, and chose the recipe, the families searched and the comparator",
+      "cause": "the fold was set aside only when the search started",
+      "fix": "prepare sets the selection fold aside before any stage scores and cuts the project's folds again over the search rows only",
+      "test": "tests/test_search_engine.py (no fold holds a selection row)",
+      "severity": "leakage",
+      "impact": "an understated optimism and a gain pushed toward zero",
+      "alternatives": [
+        "say it as a limit only (the smallest fix)"
+      ],
+      "open": ""
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "defect": "the product image had no Optuna",
+      "scenario": "every searched project in the container was skipped",
+      "cause": "Optuna was in the research requirements only",
+      "fix": "optuna>=3.6 in requirements/product.txt",
+      "test": "",
+      "severity": "gap",
+      "impact": "the setting did nothing in the product",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "defect": "the selection score's interval drew rows on entity splits",
+      "scenario": "a group split's selection fold",
+      "cause": "the library's choose draws rows",
+      "fix": "the chosen one's interval is drawn again over whole entities",
+      "test": "tests/test_search_engine.py",
+      "severity": "behaviour",
+      "impact": "too narrow an interval",
+      "alternatives": [
+        "add groups to dclab_core.selection.choose (a contract change)"
+      ],
+      "open": ""
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "defect": "two rule names for one decision, and the search's numbers not in the ledger's state",
+      "scenario": "a person overrides a searched family",
+      "cause": "the approval capture named its own rule",
+      "fix": "the approval's rule answer is rule:search_select when the search chose; the numbers stay in the stage record (they are known only after the choice, so they are no state a student reads before deciding)",
+      "test": "",
+      "severity": "gap",
+      "impact": "a mislabelled override",
+      "alternatives": [],
+      "open": "the attempts and the optimism as a measured label, if the decision models need them"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "defect": "the record kept 20 of the attempts",
+      "scenario": "30 trials and 2 starting settings",
+      "cause": "only the top 20 by score were kept",
+      "fix": "every attempt in order with its index; the top 20 kept beside it",
+      "test": "tests/test_search_engine.py",
+      "severity": "gap",
+      "impact": "attempts lost from the training records",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "defect": "the final stage's rule text spoke of candidates it did not try",
+      "scenario": "a searched project's final stage",
+      "cause": "the rule text had no searched branch",
+      "fix": "a searched branch",
+      "test": "tests/test_search_engine.py",
+      "severity": "behaviour",
+      "impact": "a record that said the wrong rule",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "R8",
+      "source": "reviewer",
+      "defect": "the leakage stage's random folds still read the selection fold",
+      "scenario": "a time-split project with a search: the random-versus-time comparison drew its folds over every training row",
+      "cause": "those folds were built over the training rows, not over the rows the time folds use",
+      "fix": "the random folds are drawn over the rows the project's folds cover (the same rows without a search)",
+      "test": "tests/test_search_engine.py (time split)",
+      "severity": "leakage",
+      "impact": "a gap and its ledger label read on different rows; no choice depended on it",
+      "alternatives": [],
+      "open": "a route that turns the search on after the features stage must clear the stages from data"
+    },
+    {
+      "id": "X1",
+      "source": "measurement",
+      "defect": "34.4's operating-point records were refused and lost",
+      "scenario": "another session's real-table engine run: the ledger refused the state field 'of'",
+      "cause": "the field was never in dclab_core.ledger.STATE_FIELDS",
+      "fix": "the other session added it in dclab-core 0.112.0; the test here checks the record reaches the ledger",
+      "test": "tests/test_decisions_product.py (the chosen share reaches the ledger)",
+      "severity": "gap",
+      "impact": "no threshold.operating_point record since 34.4",
+      "alternatives": [
+        "reuse an existing code field"
+      ],
+      "open": ""
+    }
+  ],
+  "measurements": [],
+  "outcome": "A project can ask for a wider search; the engine confirms the winner on rows the search never saw, says what the search added over no search, and fits the result as it is. The measurement decides whether it is recommended.",
+  "lessons": [
+    "Build the comparator into the record: a winner's score says how good it is, not whether the search that found it helped.",
+    "When a stage already improved a choice, a search must start from that improvement, or it measures itself against a weaker base.",
+    "A campaign written before its code is reviewed is often wrong in the same places; freeze it after the review.",
+    "Set a selection fold aside where the folds are made, not where it is first used: every earlier choice on those rows already reads it."
+  ],
+  "risks": [
+    "the selection fold takes a fifth of the training rows from a searched project",
+    "small tables give a selection fold too noisy to show a gain"
+  ],
+  "commits": []
+}

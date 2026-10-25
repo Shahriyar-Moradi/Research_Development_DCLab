@@ -1,0 +1,180 @@
+{
+  "id": "BKO-009",
+  "experiment_id": "BKO-009",
+  "campaign_id": "bakeoff_v1",
+  "kind": "model_bakeoff",
+  "dataset": "credit_default",
+  "at": "2026-10-25T06:23:14+00:00",
+  "status": "completed",
+  "rule_sha256": "8314cc5588c76c917744ec0d5edee0bbd7f99236ca647f2ffa534aaf1307d2ab",
+  "metric": "roc_auc",
+  "higher_is_better": true,
+  "split": {
+    "strategy": "stratified",
+    "holdout": "stratified random 4000 of 20000 rows",
+    "folds": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+    "train_rows": 16000,
+    "holdout_rows": 4000,
+    "holdout_rows_sha256": "e8173b71d479cd98274c8cb870d4ff234759d8e6624b327145eb267d47114ec5",
+    "holdout_labels_sha256": "cd7960d989a5463bc02decd8d078ad699950b045d881aac29b0e89dee6f7bdbc",
+    "fold_sizes": [
+      [
+        10666,
+        5334
+      ],
+      [
+        10667,
+        5333
+      ],
+      [
+        10667,
+        5333
+      ]
+    ],
+    "folds_sha256": "11f72aaa27f1405120b592104cbcbe03d276e703214ed5f1a7cdd1bde200547b",
+    "model_columns": [
+      "X1",
+      "X2",
+      "X3",
+      "X4",
+      "X5",
+      "X6",
+      "X7",
+      "X8",
+      "X9",
+      "X10",
+      "X11",
+      "X12",
+      "X13",
+      "X14",
+      "X15",
+      "X16",
+      "X17",
+      "X18",
+      "X19",
+      "X20",
+      "X21",
+      "X22",
+      "X23"
+    ],
+    "sampling": {
+      "source_rows": 30000,
+      "rows_with_target": 30000,
+      "max_rows": 20000,
+      "rule": "random sample of 20000 rows, seed 42 (label-independent)",
+      "rows_used": 20000
+    }
+  },
+  "same_split": true,
+  "engines": {
+    "dclab": {
+      "holdout_score": 0.7828303045630263,
+      "interval_95": {
+        "low": 0.7636328506325014,
+        "high": 0.8010184295010028,
+        "method": "iid row bootstrap",
+        "draws": 400
+      },
+      "minutes": 1.65,
+      "peak_memory_mb": 486.0,
+      "model": "hist_gradient_boosting",
+      "recipe": "raw",
+      "config": "hist_gradient_boosting_C03",
+      "params": {
+        "model__learning_rate": 0.03,
+        "model__max_iter": 500,
+        "model__max_leaf_nodes": 15,
+        "model__min_samples_leaf": 10
+      },
+      "cv_selected_mean": 0.7846182211494606
+    },
+    "flaml": {
+      "holdout_score": 0.7847951515589436,
+      "interval_95": {
+        "low": 0.7670890602757091,
+        "high": 0.8028535578581085,
+        "method": "iid row bootstrap",
+        "draws": 400
+      },
+      "minutes": 5.17,
+      "peak_memory_mb": 598.0,
+      "best_estimator": "xgboost",
+      "best_config": {
+        "n_estimators": 623,
+        "max_leaves": 98,
+        "min_child_weight": 0.1593269636021318,
+        "learning_rate": 0.049188471196278886,
+        "subsample": 1.0,
+        "colsample_bylevel": 0.9201299243039892,
+        "colsample_bytree": 0.4211038253116545,
+        "reg_alpha": 0.0036527847135970084,
+        "reg_lambda": 1024.0
+      },
+      "best_cv_loss": 0.21355877037275386,
+      "trials": 14,
+      "search_seconds": 309.85551283400036,
+      "settings": {
+        "task": "classification",
+        "metric": "roc_auc",
+        "time_budget": 300,
+        "n_splits": 3,
+        "n_jobs": 6,
+        "eval_method": "cv",
+        "seed": 42,
+        "auto_augment": false,
+        "retrain_full": true,
+        "verbose": 0
+      },
+      "columns": [
+        "X1",
+        "X2",
+        "X3",
+        "X4",
+        "X5",
+        "X6",
+        "X7",
+        "X8",
+        "X9",
+        "X10",
+        "X11",
+        "X12",
+        "X13",
+        "X14",
+        "X15",
+        "X16",
+        "X17",
+        "X18",
+        "X19",
+        "X20",
+        "X21",
+        "X22",
+        "X23"
+      ],
+      "category_code_columns": [
+        "X2",
+        "X3",
+        "X4",
+        "X6",
+        "X7",
+        "X8",
+        "X9",
+        "X10",
+        "X11"
+      ],
+      "flaml_version": "2.7.0"
+    }
+  },
+  "paired": {
+    "point": 0.0019648469959173687,
+    "low": -0.002485830360740679,
+    "high": 0.006424900323598196,
+    "draws": 2000,
+    "method": "paired iid row bootstrap",
+    "share_of_draws_flaml_better": 0.816
+  },
+  "comparison": "no clear difference",
+  "limits": [
+    "One holdout: the interval covers resampling of these rows, not another draw of the data.",
+    "Not a production approval."
+  ]
+}

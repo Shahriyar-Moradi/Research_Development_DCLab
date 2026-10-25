@@ -1,0 +1,157 @@
+{
+  "id": "BKO-006",
+  "experiment_id": "BKO-006",
+  "campaign_id": "bakeoff_v1",
+  "kind": "model_bakeoff",
+  "dataset": "telco_churn",
+  "at": "2026-10-25T06:03:35+00:00",
+  "status": "completed",
+  "rule_sha256": "8314cc5588c76c917744ec0d5edee0bbd7f99236ca647f2ffa534aaf1307d2ab",
+  "metric": "roc_auc",
+  "higher_is_better": true,
+  "split": {
+    "strategy": "stratified",
+    "holdout": "stratified random 1409 of 7043 rows",
+    "folds": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+    "train_rows": 5634,
+    "holdout_rows": 1409,
+    "holdout_rows_sha256": "5a1e4151edce41bd187447ed585a7eb43c386eb90143450f71cadf72158dcb73",
+    "holdout_labels_sha256": "693cb3fe13d343f724b86623efd1dc99bb1f20ebaa25bf145a5b13ed9377709b",
+    "fold_sizes": [
+      [
+        3756,
+        1878
+      ],
+      [
+        3756,
+        1878
+      ],
+      [
+        3756,
+        1878
+      ]
+    ],
+    "folds_sha256": "a8ac4fc628399914a79d5022a9057d12f357242f3538f3d288fd932389854c94",
+    "model_columns": [
+      "gender",
+      "SeniorCitizen",
+      "Partner",
+      "Dependents",
+      "tenure",
+      "PhoneService",
+      "MultipleLines",
+      "InternetService",
+      "OnlineSecurity",
+      "OnlineBackup",
+      "DeviceProtection",
+      "TechSupport",
+      "StreamingTV",
+      "StreamingMovies",
+      "Contract",
+      "PaperlessBilling",
+      "PaymentMethod",
+      "MonthlyCharges",
+      "TotalCharges"
+    ],
+    "sampling": {
+      "source_rows": 7043,
+      "rows_with_target": 7043,
+      "max_rows": 20000,
+      "rows_used": 7043
+    }
+  },
+  "same_split": true,
+  "engines": {
+    "dclab": {
+      "holdout_score": 0.8415536438554341,
+      "interval_95": {
+        "low": 0.8210646512801029,
+        "high": 0.8647355342055614,
+        "method": "iid row bootstrap",
+        "draws": 400
+      },
+      "minutes": 0.49,
+      "peak_memory_mb": 363.0,
+      "model": "logistic_regression",
+      "recipe": "raw",
+      "config": "logistic_regression_baseline",
+      "params": {},
+      "cv_selected_mean": 0.8447108081521025
+    },
+    "flaml": {
+      "holdout_score": 0.8474992895709007,
+      "interval_95": {
+        "low": 0.8273081884922573,
+        "high": 0.870627887825529,
+        "method": "iid row bootstrap",
+        "draws": 400
+      },
+      "minutes": 5.01,
+      "peak_memory_mb": 682.4,
+      "best_estimator": "lgbm",
+      "best_config": {
+        "n_estimators": 787,
+        "num_leaves": 4,
+        "min_child_samples": 29,
+        "learning_rate": 0.040821183955264885,
+        "log_max_bin": 5,
+        "colsample_bytree": 0.9862181568412238,
+        "reg_alpha": 0.007665339754810694,
+        "reg_lambda": 148.95758476141995
+      },
+      "best_cv_loss": 0.14963922391349752,
+      "trials": 11,
+      "search_seconds": 300.4366096250001,
+      "settings": {
+        "task": "classification",
+        "metric": "roc_auc",
+        "time_budget": 300,
+        "n_splits": 3,
+        "n_jobs": 6,
+        "eval_method": "cv",
+        "seed": 42,
+        "auto_augment": false,
+        "retrain_full": true,
+        "verbose": 0
+      },
+      "columns": [
+        "gender",
+        "SeniorCitizen",
+        "Partner",
+        "Dependents",
+        "tenure",
+        "PhoneService",
+        "MultipleLines",
+        "InternetService",
+        "OnlineSecurity",
+        "OnlineBackup",
+        "DeviceProtection",
+        "TechSupport",
+        "StreamingTV",
+        "StreamingMovies",
+        "Contract",
+        "PaperlessBilling",
+        "PaymentMethod",
+        "MonthlyCharges",
+        "TotalCharges"
+      ],
+      "category_code_columns": [
+        "SeniorCitizen"
+      ],
+      "flaml_version": "2.7.0"
+    }
+  },
+  "paired": {
+    "point": 0.00594564571546663,
+    "low": -0.0007354543621363173,
+    "high": 0.012502190811928118,
+    "draws": 2000,
+    "method": "paired iid row bootstrap",
+    "share_of_draws_flaml_better": 0.96
+  },
+  "comparison": "no clear difference",
+  "limits": [
+    "One holdout: the interval covers resampling of these rows, not another draw of the data.",
+    "Not a production approval."
+  ]
+}

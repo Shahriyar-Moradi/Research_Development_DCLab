@@ -1,0 +1,81 @@
+{
+  "campaign_id": "bakeoff_v1",
+  "package": "34.5",
+  "objective": "The model bake-off: DCLab's studio engine as it is against FLAML's AutoML on the same rows, holdout, training folds and metric; per dataset the holdout score with its interval, minutes and peak memory. The rule below decides package 34.8 and was fixed before the first run.",
+  "frozen_at": "2026-10-25T05:33:34+00:00",
+  "git_commit": "2deff5d4979e02924b9c0cfe0935614a0bbbb632",
+  "flaml_version": "2.7.0",
+  "python": "3.10.19",
+  "rule": {
+    "id": "bakeoff_rule_v1",
+    "decides": "package 34.8: FLAML as one more family in the engine's models stage",
+    "arm": "flaml (FLAML's AutoML on the engine's prepared table and training folds, the time budget below)",
+    "statistic": "per dataset, a paired bootstrap of the holdout difference on the same holdout rows (2000 draws, whole groups when the split is grouped, rows otherwise), oriented so that a positive difference means FLAML scored better on the dataset's primary metric; the 95% percentile interval",
+    "ahead": "FLAML is ahead on a dataset when the interval's lower end is above 0",
+    "behind": "FLAML is behind on a dataset when the interval's upper end is below 0",
+    "go": "34.8 goes ahead when FLAML is ahead on at least a third of the datasets where both engines finished (rounded up), and ahead on more datasets than it is behind",
+    "not_judged": {
+      "ecommerce_clothing_reviews": "FLAML sees no text (the engine's text recipe is DCLab's), while 34.8 would give FLAML the recipe's features: reported, never counted"
+    },
+    "failures": "a dataset where FLAML failed after its retry counts as FLAML behind; one where only DCLab failed is left out and listed in the decision; the decision is written only when every dataset was compared or failed after its retry",
+    "min_datasets": 10,
+    "too_few": "fewer than 10 datasets judged: undecided, 34.8 waits",
+    "time_and_memory": "reported beside the scores, never in the rule"
+  },
+  "rule_sha256": "8314cc5588c76c917744ec0d5edee0bbd7f99236ca647f2ffa534aaf1307d2ab",
+  "protocol": {
+    "datasets": [
+      "heart_disease",
+      "breast_cancer",
+      "german_credit",
+      "spambase",
+      "wine_quality",
+      "telco_churn",
+      "mushroom",
+      "online_shoppers",
+      "credit_default",
+      "adult",
+      "bank_marketing",
+      "letter_recognition",
+      "ecommerce_clothing_reviews",
+      "credit_card_fraud"
+    ],
+    "left_out": {
+      "hyperack": "known leaks (the final fares); the brief allows it only with its leaks removed, in a later version",
+      "bike_sharing_daily": "a daily time series: the engine derives past-only lags that a tabular search has no equal of; not one of the expansion samples the brief names (imbalanced fraud, multiclass, text plus tabular)"
+    },
+    "flaml_budget_seconds": 300,
+    "holdout": "the studio engine's locked holdout (20%: the latest rows under a time split, unseen groups under a group split, stratified random otherwise), read once by each engine",
+    "folds": "the engine's training folds (bundle.cv_splits): FLAML searches on the same folds through a fixed splitter",
+    "rows": "the engine's own sample (at most 20,000 rows, label-independent, its seed): both engines see the same rows",
+    "metric": "the engine's primary metric for the dataset (its kind's default), both scored by the same function",
+    "intervals": "each engine: the engine's own bootstrap (400 draws, 95%, clustered when grouped); the difference: paired bootstrap, 2000 draws",
+    "time_and_memory": "wall minutes and the process's peak resident memory, each engine in its own process",
+    "engine_budget": "the engine has no time knob: it runs as it is and its minutes are measured",
+    "flaml_settings": {
+      "eval_method": "cv",
+      "seed": 42,
+      "auto_augment": false,
+      "retrain_full": true,
+      "verbose": 0
+    },
+    "flaml_metric": {
+      "average_precision": "ap",
+      "roc_auc": "roc_auc",
+      "macro_f1": "macro_f1",
+      "mae": "mae"
+    },
+    "flaml_version": "2.7.0",
+    "paired_draws": 2000,
+    "seed": 42,
+    "code_sha256": "134258b7c0e973ec5dcc3dcdc2fb3fdc57bf45147fc4ba0af9fb5c7975d1f568"
+  },
+  "protocol_sha256": "c07d007060afa66c6967b53b3f1f69df8cff02372a47110b3b61d9b3e6f2eab4",
+  "command": "python -m dclab_rnd.bakeoff run --yes",
+  "limits": [
+    "One holdout per dataset: one draw of the data, not a distribution over datasets.",
+    "FLAML gets the engine's raw tabular columns, not its engineered features or its text recipe: on the text dataset it sees no text.",
+    "Measured on an 8 GB MacBook Air with a five-minute FLAML budget; a longer budget or AutoGluon (later, on the M1 Max) may change the result.",
+    "Never a production approval: a benchmark result alone says nothing about deployment."
+  ]
+}

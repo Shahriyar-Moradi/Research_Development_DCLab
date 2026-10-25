@@ -6,6 +6,7 @@ pandas>=2.0
 scikit-learn>=1.5
 lightgbm>=4.4             # the engine's boosted-tree family (it falls back without it)
 xgboost-cpu>=2.1          # the CPU build: the GPU one pulls in gigabytes of NVIDIA libraries the product never uses
+optuna>=3.6               # the models stage's opt-in search (34.7); without it a search is skipped with that reason
 matplotlib>=3.8
 pyarrow>=15.0
 openpyxl>=3.1

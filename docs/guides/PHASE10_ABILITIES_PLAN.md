@@ -143,8 +143,11 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
   run (for example: FLAML ahead by more than its interval on at least a third of the datasets).
 - **Status:** harness done (2026-10-25): `dclab_rnd/bakeoff.py`, `make bakeoff` (plan, then `ARGS="run --yes"`), FLAML
   2.7.0 pinned; both engines on the same rows, holdout, folds and metric; the rule deciding 34.8 written into the manifest
-  before the first run; review (11 findings, fixed), 14 tests. Open: the run itself (14 datasets, about 2 to 3 hours,
-  alone on the Air).
+  before the first run; review (11 findings, fixed), 14 tests. Run (2026-10-25, `evidence/campaigns/bakeoff_v1`): 13
+  datasets judged, FLAML clearly ahead on 1 (bank marketing, +0.018), behind on 3 (letter, wine, and spambase, where
+  FLAML failed on our harness's column names: a harness bug, fixed in `_flaml_frame` for a later `bakeoff_v2`), no clear
+  difference on 9; 5 were needed: **no go for 34.8** (still no go with spambase counted as ahead). FLAML used its whole
+  five-minute budget on each dataset; the engine needed under a minute on 8 of 13 (10 seconds to 9.5 minutes).
 
 ### 34.6 Honest selection under many attempts (MLE plan 33.2)
 - As written in `MLE_BENCH_LESSONS_PLAN.md` 33.2: search folds and a selection fold, the measured optimism in the record.
@@ -153,8 +156,9 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
 - **Status:** the library's part done (2026-10-25, dclab-core 0.110.0): `dclab_core.selection` (`selection_split`,
   `choose`, `SelectionRecord` v1). Measured before wiring: only confirming the winner (K=1) keeps its selection score
   honest (optimism about 0.002 at 5, 50 and 200 attempts against 0.019 to 0.051 for plain cross-validation); choosing
-  among three on the selection fold adds about 0.025 of its own, so K=1 is the default. Left: the engine sets the fold
-  aside when a search runs (with 34.7), the stage record and the ledger.
+  among three on the selection fold adds about 0.025 of its own, so K=1 is the default. Wired with 34.7 (2026-10-25):
+  the engine sets the fold aside when a search runs, the models stage's record keeps the `SelectionRecord`, and the
+  ledger's `model.family` answer is `rule:search_select` when the search chose.
 
 ### 34.7 A wider search and ensembles (33.3–33.5)
 - **Delivers:** per-family Optuna search with a budget (minutes, trials), CatBoost reconsidered as a family (its
@@ -162,11 +166,21 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
   `dclab_core.compose`; all chosen through 34.6; the exported code reproduces it (`make code-check`).
 - **Done when:** on the bake-off datasets the engine's holdout score rises with the measured optimism inside its
   interval, at a bounded number of minutes on the Air.
+- **Status (34.7a, the search):** built 2026-10-25: `dclab_rnd/studio/search.py`, opt-in by `settings.search` (minutes,
+  trials, families). Optuna on the stage's own choice (the review's kept change the base of every trial) and the
+  screen's next family, on folds of the search rows; the winner by its pooled out-of-fold score, confirmed once on the
+  selection fold beside the choice without a search; the final stage fits the searched settings as they are; a fair cut
+  or the search skipped with the reason (entities apart on time splits with entities, every class on both sides); the
+  exported code reproduces it. Two reviews (15 findings, then the re-review). Measurement `search_v2` (both arms fresh on
+  pinned code, 9 datasets, gates fixed before the run): see its decision. **34.7b** (stacking, CatBoost): not built;
+  the owner decides whether to build it.
 
 ### 34.8 An AutoML family behind DCLab's splits
 - **Delivers:** FLAML (then AutoGluon on the M1 Max) as one more family in the models stage, fitted inside the same
   folds with a time budget, chosen by the same rule, exported with its requirement; only if 34.5's gate says so.
 - **Done when:** it is chosen only where it wins on the selection fold; code export reproduces its holdout number.
+- **Status:** not built: 34.5's rule said no go (FLAML clearly ahead on 1 of 13 datasets, 5 needed). AutoGluon on the
+  M1 Max would be a new bake-off (`bakeoff_v2`), not this package.
 
 ## Layer 6: Learn (contracts here, wiring in the main product)
 
