@@ -1,0 +1,46 @@
+{
+  "id": "FDC-058",
+  "experiment_id": "FDC-058",
+  "status": "completed",
+  "completed_at": "2026-10-25T15:30:46+00:00",
+  "campaign_id": "fraud_decision_v3",
+  "dataset": "delivery_fraud",
+  "seed": 58,
+  "decision_status": "operating_point",
+  "warning": null,
+  "chosen_share": 0.004955,
+  "ranked_by": "expected gain",
+  "expected_value_per_row": 818.821,
+  "expected_interval": [
+    609.196,
+    1023.4184
+  ],
+  "holdout_rows": 2888,
+  "holdout_actions": 14,
+  "holdout_cases_found": 1,
+  "holdout_value_per_row": 81.5443,
+  "prediction_interval": [
+    -77.4833,
+    1357.0999
+  ],
+  "inside_prediction_interval": true,
+  "z": -1.2803,
+  "miss_side": "inside",
+  "within_capacity": true,
+  "holdout_uses": 1,
+  "prediction_interval_method": "holdout-sized samples of each bootstrap draw (2888 rows, about 2939 drawn, whole entities, one fold's rows each)",
+  "rows_only_interval": [
+    319.183,
+    1250.2581
+  ],
+  "inside_rows_only": false,
+  "model": "logistic_regression",
+  "seconds": 116.9,
+  "code_sha256": "6d4d6a0976eceb2d7c7373f4dab935c1ee056bfff6b3e5ee7d7ee2cf19162345",
+  "applied_as": "a quota: the highest-ranked rows the capacity allows, each worth acting on alone or ranked as high as the rows chosen",
+  "capacity_binds": true,
+  "limits": [
+    "labels partial: a fraud nobody found counts as a clean ride, so the realised value is a lower bound",
+    "where the capacity binds, the choice is the capacity itself: the 'chosen' gate then tests that it was read, not the value"
+  ]
+}

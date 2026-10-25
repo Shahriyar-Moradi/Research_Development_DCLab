@@ -316,7 +316,11 @@ or decided; nothing below blocks using them.
    to 93% coverage but leaves out the engine's model choice. `fraud_decision_v2` decided (30 fresh seeds, gates fixed
    before): **fail on width**. 25 of 29 inside (0.86, passes), centre unbiased (mean z 0.05, passes), but the misses
    are larger than the interval says (root mean square of z 1.29, 90% interval 1.06 to 1.64): it is too narrow by about
-   a quarter, on both sides. Next, fixed before the run: a holdout-sized entity bootstrap, measured as `fraud_decision_v3`.
+   a quarter, on both sides. **Fixed and measured (dclab-core 0.114.0, `fraud_decision_v3`, 30 fresh seeds): pass.** The
+   interval now comes from holdout-sized samples of each bootstrap draw, one fold's rows each (one model's ranking, as the
+   holdout's): 26 of 28 inside, unbiased (mean z -0.20), its misses of the size it says (root mean square of z 0.93,
+   90% interval 0.77 to 1.20). On the same seeds the row-sized interval without folds stayed too narrow (21 of 28, 1.23).
+   Open: a time split passes no folds, so its interval is the row-sized one, not measured.
 7. 34.2: a daily capacity for targeting (refused today); a two-action replica (tested on random tables only).
 8. ~~34.3: what-if for targeting and for several actions~~ done 2026-10-25 (dclab-core 0.113.0: `targeting_what_if`,
    `actions_what_if`; reviewed, 3 findings fixed).

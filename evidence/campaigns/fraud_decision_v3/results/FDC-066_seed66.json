@@ -1,0 +1,46 @@
+{
+  "id": "FDC-066",
+  "experiment_id": "FDC-066",
+  "status": "completed",
+  "completed_at": "2026-10-25T15:56:19+00:00",
+  "campaign_id": "fraud_decision_v3",
+  "dataset": "delivery_fraud",
+  "seed": 66,
+  "decision_status": "operating_point",
+  "warning": null,
+  "chosen_share": 0.004718,
+  "ranked_by": "expected gain",
+  "expected_value_per_row": 650.498,
+  "expected_interval": [
+    480.7552,
+    856.6704
+  ],
+  "holdout_rows": 3300,
+  "holdout_actions": 16,
+  "holdout_cases_found": 10,
+  "holdout_value_per_row": 913.8636,
+  "prediction_interval": [
+    102.7747,
+    1331.6941
+  ],
+  "inside_prediction_interval": true,
+  "z": 0.5264,
+  "miss_side": "inside",
+  "within_capacity": true,
+  "holdout_uses": 1,
+  "prediction_interval_method": "holdout-sized samples of each bootstrap draw (3300 rows, about 3347 drawn, whole entities, one fold's rows each)",
+  "rows_only_interval": [
+    129.6377,
+    1098.3348
+  ],
+  "inside_rows_only": true,
+  "model": "pu_bagging",
+  "seconds": 202.8,
+  "code_sha256": "6d4d6a0976eceb2d7c7373f4dab935c1ee056bfff6b3e5ee7d7ee2cf19162345",
+  "applied_as": "a quota: the highest-ranked rows the capacity allows, each worth acting on alone or ranked as high as the rows chosen",
+  "capacity_binds": true,
+  "limits": [
+    "labels partial: a fraud nobody found counts as a clean ride, so the realised value is a lower bound",
+    "where the capacity binds, the choice is the capacity itself: the 'chosen' gate then tests that it was read, not the value"
+  ]
+}

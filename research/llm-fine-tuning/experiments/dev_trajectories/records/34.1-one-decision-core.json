@@ -189,14 +189,14 @@
    "defect": "the fraud campaign's coverage miss was first read as an interval too narrow, which seven seeds cannot show",
    "scenario": "fraud_decision_v1: 5 of 7 seeds inside a 90% interval, one below and one above",
    "cause": "5 of 7 or fewer happens about 15 times in 100 under a right 90% interval; v1's misses in units of the interval have a root mean square of 1.23 with a 90% interval of 0.86 to 2.2; a simulation of fraud-like data found 87 to 93% coverage but leaves out the engine's model choice, which can shift the centre",
-   "fix": "measured on 30 fresh seeds (fraud_decision_v2): coverage 0.86 and centre pass, width fails (root mean square of z 1.29, 90% interval 1.06 to 1.64): the interval is too narrow by about a quarter; the holdout-sized entity bootstrap, fixed before the run as the next step, follows",
+   "fix": "measured: v2 found the old interval too narrow by about a quarter (root mean square of z 1.29); dclab-core 0.114.0 draws holdout-sized samples, one fold's rows each; v3 on fresh seeds passes (26 of 28 inside, root mean square of z 0.93, 90% interval 0.77 to 1.20), where the same seeds' row-sized interval without folds stayed too narrow (21 of 28, 1.23)",
    "test": "",
    "severity": "behaviour",
    "impact": "a wider interval without evidence would hide a shifted centre, the likelier fault",
    "alternatives": [
     "widen it at once (as first proposed): rejected on the simulation"
    ],
-   "open": "the holdout-sized entity bootstrap, measured as fraud_decision_v3"
+   "open": "time splits: no folds, their interval not measured"
   },
   {
    "id": "M4",
@@ -267,7 +267,7 @@
    "alternatives": [
     "calibrate the half-width by a measured factor (empirical, no mechanism)"
    ],
-   "open": "fraud_decision_v3"
+   "open": ""
   },
   {
    "id": "B4",
@@ -339,13 +339,29 @@
     "one replica",
     "the report's verdict file was written after the run by a fixed report (a numpy bool crashed it); the thirty results are as the run wrote them"
    ]
+  },
+  {
+   "name": "fraud_decision_v3: dclab-core 0.114.0's interval (holdout-sized samples, one fold's rows each) on 30 fresh seeds (38 to 67) of the delivery-fraud replica through the engine",
+   "gate": "v2's gate with the width in both directions: chosen on every seed; capacity kept where a seed acted; at least 80% of the acting seeds inside (at least 20); the mean of z within 1.645 / sqrt(N); the 90% chi-squared interval of the root mean square of z containing 1",
+   "fixed_before_run": true,
+   "result": "28 seeds acted (2 found no review that paid), all within capacity, all with one fold's rows a sample; 26 inside (0.9286); misses 2 below, 0 above; mean z -0.204 (bound 0.3109); root mean square of z 0.9325 with a 90% interval of 0.7674 to 1.1992. On the same seeds the row-sized interval without folds: 21 of 28 inside, root mean square of z 1.227, mean z -0.276",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "keep the 0.114.0 interval",
+   "against_gate": "Every gate holds; the paired reading shows the one-fold samples, not the row sizing, closed the gap.",
+   "limits": [
+    "one replica, an entity split",
+    "the realised value is a lower bound of the same kind on both sides (partial labels)",
+    "a time split passes no folds, so its interval is the row-sized one, not measured here"
+   ]
   }
  ],
  "outcome": "DCLab has one decision core: a person's values, costs and capacity give the operating point with the highest expected value, its tested intervals and the holdout read once; the review budget and the stated-cost threshold are its special cases.",
  "lessons": [
   "Test an interval for what it means: a confidence interval for an average is not a promise about one new sample.",
   "A threshold acts on ties together; a search over counts must too.",
-  "Before fixing a miss, ask how often the miss happens by chance: 5 of 7 inside a 90% interval happens about one time in seven when the interval is right."
+  "Before fixing a miss, ask how often the miss happens by chance: 5 of 7 inside a 90% interval happens about one time in seven when the interval is right.",
+  "Size a predictive sample by what the new sample really holds (its rows), and draw it the way the new sample is made (one model's ranking): each was half of the fix, and the paired reading told them apart."
  ],
  "risks": [
   "the engine's review path still uses review_budget until 34.4",
