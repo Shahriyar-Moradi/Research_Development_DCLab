@@ -71,7 +71,8 @@ class DeclaredMoveTests(unittest.TestCase):
                 self.assertIsNotNone(tool.move)
                 moves = {"project": graph.MOVES, "draft": home.DRAFT_MOVES.values(), "session": SESSION_MOVES.values(),
                          "campaign": ("experiment",),
-                         "home": __import__("dclab_rnd.draft.orchestrator", fromlist=["HOME_MOVES"]).HOME_MOVES}[tool.scope]
+                         "home": __import__("dclab_rnd.draft.orchestrator", fromlist=["HOME_MOVES"]).HOME_MOVES,
+                         "chat": __import__("dclab_rnd.chat_agents", fromlist=["CHAT_MOVES"]).CHAT_MOVES}[tool.scope]  # A7: DCLab's agents behind a chat
                 self.assertIn(tool.move, moves)
 
     def test_every_project_write_tool_has_a_refusal_case(self):
