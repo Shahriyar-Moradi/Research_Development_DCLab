@@ -263,6 +263,23 @@ apart); the baselines come from real training screens only; and two arms are rep
 **Screening real tables is also a robustness test of the product:** DCLab's engine crashed on two of the first three
 (a column with no value, classes of one row); both fixed (cb93b9a9). Every failure is kept with its reason.
 
+### S8. Decide, data and learn: is the rule's answer true on real tables? (the owner's map, layers 5, 2 and 6)
+
+The owner's six-layer map (understand, data, build, trust, decide, learn) asks for ability beyond leakage. For three
+layers DCLab already answers with a fixed rule, each built on replicas or simulated rows. Before a student is built for
+any of them, each rule's answer is checked against what really happened on real OpenML tables of the train split (dev
+and sealed tables untouched). Each plan was written before any result, in `agent_runs/live_tests/2026-10-25-*/PLAN.md`:
+
+| Layer | The rule | The truth on real tables | What it decides |
+|---|---|---|---|
+| 5 decide | `threshold.operating_point`: the best point of the out-of-fold value curve (`decide.choose_operating_point`) | six ways of choosing (argmax, bagged, the top share of new rows by either, the cost-ratio cut with and without calibration), each acted on unseen rows, 8 cost statements per table, 60 two-class tables | a rule change if one way is best or within noise on 80% of the statements; a student only if a picker on the table's state beats the best single way by 2 points of attainable value |
+| 2 data | `data.more_rows` (34.13): the learning curve's answer | the answer on half the rows against training on twice the rows, scored on unseen rows; 30 two-class and 30 regression tables | the rule holds at 80% for both "likely" and "unlikely"; needs work below 70% |
+| 6 learn | `ops.retrain` (34.11): promote a challenger only when it wins on the latest window beyond its bound | three replays per table in time order; each decision judged on the rows after its window; 14 real sources | holds if at most 1 promotion in 20 is worse later; needs work if over 1 in 10, or over half of the kept champions had a better challenger |
+
+**Found by the dry run, before any real table:** a threshold chosen on out-of-fold scores, applied to the scores of the
+model refitted on all training rows (as the engine does), acted on 16.8% of new rows where the capacity allowed 20%:
+the refitted model scores the top a little lower. Layer 5 therefore also measures "act on the chosen share".
+
 ### S6. Fair exams for every student
 - A fresh sealed set (v2) per point, drawn once and never read until a promotion; a gate runner that accepts any
   answerer (classifier, language model, rule) so generation 2 is judged like the students.
