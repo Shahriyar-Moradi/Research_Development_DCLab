@@ -1,0 +1,198 @@
+{
+  "package": "34.1-daily-capacity",
+  "title": "A capacity per day filled day by day on the holdout, and allowed for targeting",
+  "date": "2026-10-25",
+  "request": "The owner, 2026-10-25: build the day-by-day limit (a daily capacity filled day by day on the holdout, and allowed for targeting), tested, reviewed, recorded and pushed; keep the machine light; measure the time-split interval after tonight's gate. Then, mid-work: run the full test after this, not at the scheduled time.",
+  "spec": "dclab_core.decide: choose_operating_point(..., days_test, day_rows) reads the holdout day by day when the decision has a capacity per day and the holdout holds its days whole (a time split): each day's best rows (the same worth and threshold rule) fill that day's capacity_per_day slots, spread so no part of a slot is lost or made up, a share cap spread the same way, a day partly before the holdout given its part; the interval's holdout-sized samples are cut to the holdout's rows and into days of its sizes; target_by_uplift accepts capacity_per_day with rows_per_day and reads its holdout day by day; targeting_what_if passes rows_per_day. The engine passes days on a time split only (any other holdout holds part of each day: one pool, with a note), and counts rows a day over the training period on time splits and over every row otherwise.",
+  "plan": [
+    "Read how the capacity flows: DecisionSpec.capacity_per_day becomes a share (capacity_per_day / rows_per_day) and the holdout is cut to floor(share x holdout rows) in one pool",
+    "Write failing tests: a busy day cannot borrow a quiet day's slots; a random split's holdout gets its share of the slots; uneven slots (12.5 a day) sum right; the interval's samples follow the same slots; days refused where nobody reads them; targeting with a daily cap",
+    "Implement in dclab_core/decide.py with small helpers shared by the operating point and targeting",
+    "Wire the engine: days from the holdout's time column, day_share by split, a fallback note when a time is unreadable",
+    "Review with dclab-reviewer, record, commit with the version agreed with the other session, push",
+    "Then search_v3 and the full gate, then the time-split interval measurement"
+  ],
+  "decisions": [
+    {
+      "decision": "The choice on the training rows stays one pool; only the holdout reading and its prediction interval go day by day",
+      "why": "the out-of-fold rows' days are not passed today and a bootstrap draw breaks days anyway; the reading the person compares with the interval must follow the same rule, so both go day by day, and applied_as says the choice was pooled"
+    },
+    {
+      "decision": "The interval's samples are placed in pseudo-days of the holdout's sizes at random, from their own random stream",
+      "why": "the same rows are drawn with or without days (a paired comparison, and every existing interval unchanged), and the per-day cut in the samples matches the holdout's; the price, said in the docstring and the plan, is that a wave of cases on one day is not in the interval"
+    },
+    {
+      "decision": "Day by day only when the holdout holds its days whole (a time split); every other holdout stays one pool, with a note",
+      "why": "the reviewer's simulation: a random split's holdout holds a fifth of each day, so a slot can only pick the best of a fifth of the day's rows, reading 1.36 against a truth of 5.67 (pooled 6.92); a time-and-group split's holdout keeps only unseen entities' later rows, reading 3.04 against 1.25. Pooled is closer in both; reading a random split day by day would need each holdout row ranked against its day's training rows, which is not built"
+    },
+    {
+      "decision": "Slots per day are the floor-spread of capacity_per_day x each day's part: floor of the running sum, differenced",
+      "why": "12.5 a day gives 12, 13, 12, 13 and a first holdout day half in training gives 2 of 5: the total never exceeds what the capacity allows over the days, and no part of a slot is lost; a share cap beside it is spread the same way over the rows"
+    },
+    {
+      "decision": "Days are refused when the decision has no capacity per day, when there is no holdout, or when a row has no day",
+      "why": "the house rule since 34.2's review: a field read by nobody is refused, never silently ignored; a row with no day cannot be given a day's slots, and the engine falls back to one pool with a days_note instead of guessing"
+    },
+    {
+      "decision": "Version 0.115.0, agreed with the other session that had taken it in its uncommitted tree",
+      "why": "two sessions changing dclab_core at once; it had not committed and needed an hour of gates, so it moved to 0.116.0 and this change stages only its own lines"
+    }
+  ],
+  "change": "dclab_core/decide.py: _cap_share, _check_days, _day_codes (with each day's part), _slots (running-sum spread, the share cap spread too), _take_by_day, _days_said; choose_operating_point days_test and day_rows, acted_rows by day, the interval's samples cut to the holdout's rows and placed in its days, applied_as and the holdout's days; target_by_uplift rows_per_day, days_test, day_rows; targeting_what_if rows_per_day; dclab_rnd/studio/engine.py: rows a day over the training period on time splits and every row otherwise; _act passes days and each day's rows on a time split only, else a days_note; tests/test_core_decide_daily.py (8 tests), tests/test_decisions_product.py (2 engine tests: a time split read day by day, a time-and-group split read as one pool); dclab_core CHANGELOG 0.115.0, docs/guides/CORE_INTEGRATION.md, docs/guides/PHASE10_ABILITIES_PLAN.md items 7, 15, 19 and 20",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "defect": "the engine counted rows a day from the training rows alone, also on a split whose training rows hold part of each day",
+      "scenario": "a project with places and a time column (a group split by blocks): its training rows hold about 80% of each day, so 500 rows a day read as 400 and a capacity of 50 a day became 12.5% of rows instead of 10%",
+      "cause": "rows_per_day = training rows / the training span, written for time splits, where the training rows do hold their days whole",
+      "fix": "first every row on every split; corrected after the review (R3) to every row only on random and group splits, the training rows on time splits",
+      "test": "tests/test_decisions_product.py::ActDecisionTest::test_a_capacity_per_day_is_read_day_by_day_on_the_holdout",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F2",
+      "source": "test",
+      "defect": "the engine test first assumed the churn replica had 24 customers a day",
+      "scenario": "the test expected a share of 2/24 and read 0.487: the table holds about 4 customers a day (1 to 11) over two years",
+      "cause": "the first rows are an hour apart, read as the table's rate without measuring it",
+      "fix": "the test computes the rate from the table itself; no code change (the engine was right)",
+      "test": "tests/test_decisions_product.py::ActDecisionTest::test_a_capacity_per_day_is_read_day_by_day_on_the_holdout",
+      "severity": "gap"
+    },
+    {
+      "id": "F3",
+      "source": "self",
+      "defect": "a first interval test claimed day by day never beats one pool",
+      "scenario": "the test compared the midpoints of the pooled and the daily intervals; it passed, but on rows placed at random among days the two differ by a few rows, and a realised case can sit just below the pool's cut, so the claim is not true sample by sample",
+      "cause": "an expectation written as a guarantee",
+      "fix": "the test now checks what must hold on the same sampled rows: with a busy day of 280 rows and two of 10, day by day takes 5 on the busy day and 5 from each small day's few rows, so the interval moves down",
+      "test": "tests/test_core_decide_daily.py::DailyCapacityTest::test_the_interval_is_cut_into_days_too",
+      "severity": "gap"
+    },
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "defect": "a holdout holding only part of each day was read day by day with that part of the slots, far too low",
+      "scenario": "400 days, a 20% random holdout, 1 call a day, value 120, cost 10: about 4 rows a day read 1.36 a row against a truth of 5.67 (pooled 6.92); about 40 a day read 0.77 against 1.23",
+      "cause": "a slot can only pick the best of the day's holdout rows, a fifth of the day, so it picks worse rows than the team would; sparse days with no holdout row lose their share of slots",
+      "fix": "day by day only for a holdout that holds its days whole; day_share removed from the core; the engine reads any other split as one pool with a days_note; CORE_INTEGRATION.md corrected",
+      "test": "tests/test_decisions_product.py::ActDecisionTest::test_a_holdout_holding_part_of_each_day_is_read_as_one_pool",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "defect": "a time-and-group split's holdout was given every day's full slots",
+      "scenario": "40 rows a day, 30% of the later rows from unseen entities, 1 call a day: day by day read 3.04 a row against a truth of 1.25, acting on 1 row in 12 instead of 1 in 40",
+      "cause": "the split keeps only the later rows of entities never seen in training, so each later day is only partly in the holdout",
+      "fix": "as R1: only a time split is read day by day",
+      "test": "tests/test_decisions_product.py::ActDecisionTest::test_a_holdout_holding_part_of_each_day_is_read_as_one_pool",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "defect": "the first rows-a-day fix was wrong on time splits",
+      "scenario": "100 rows a day over 100 days with a time-and-group split keeping 30% of the later rows: train plus test is 8,600 rows over 100 days, 86 a day, so 5 a day became 5.8% instead of 5%; on a plain time split the training choice depended on the holdout period's row count",
+      "cause": "concatenating the holdout counted dropped rows as missing and pulled holdout volume into a training choice",
+      "fix": "time and time-and-group splits keep the training rows over the training period (the old code); other splits count every row",
+      "test": "tests/test_decisions_product.py::ActDecisionTest::test_a_capacity_per_day_is_read_day_by_day_on_the_holdout (the share from the training period's rate)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "defect": "a share cap beside a daily cap rounded every day to no slot",
+      "scenario": "capacity_share 0.05 and capacity_per_day 5 over a holdout of 30 days of 10 rows: each day floor(0.05 x 10) = 0 slots, 0 actions where one pool takes 15",
+      "cause": "the share cap was taken per day and rounded down day by day",
+      "fix": "the share cap spread over the days by the running sum, as the daily cap is",
+      "test": "tests/test_core_decide_daily.py::DailyCapacityTest::test_a_share_cap_beside_a_daily_cap_is_spread_over_the_days",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "defect": "whole-entity samples ran past the holdout's rows and the extra rows piled onto the last day",
+      "scenario": "entities of 80 rows and a holdout of 300: about 320 rows drawn, the last day given 20 rows more with no more slots, the interval about 6% low",
+      "cause": "a sample of whole entities stops after the holdout's rows are reached, not at them",
+      "fix": "in day mode the sample is cut to the holdout's rows before acting",
+      "test": "tests/test_core_decide_daily.py::DailyCapacityTest::test_whole_entities_are_cut_to_the_holdout_rows_before_days",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "defect": "the first holdout day of a time split, partly training rows, got a whole day's slots",
+      "scenario": "a 2-day holdout whose first day is half in training: that day gets 5 slots for half a day's rows",
+      "cause": "the time split cuts by row count, not at a day's end",
+      "fix": "day_rows (each day's rows in the whole period) gives such a day its part of the slots",
+      "test": "tests/test_core_decide_daily.py::DailyCapacityTest::test_a_day_partly_before_the_holdout_gets_its_part_of_the_slots",
+      "severity": "latent"
+    },
+    {
+      "id": "RR1",
+      "source": "reviewer",
+      "defect": "with both caps below one a day, every day could still end with no slot",
+      "scenario": "capacity_per_day 0.5 and capacity_share 0.05 over holdout days of 20, 10, 10, ... rows: the daily cap gave its slots on some days, the share cap on others, the smaller kept day by day was 0 everywhere, 0 slots where 5 are right",
+      "cause": "the R4 fix spread each cap over the days on its own, then took the smaller per day",
+      "fix": "take the tighter of the two caps each day first, then spread once by the running sum",
+      "test": "tests/test_core_decide_daily.py::DailyCapacityTest::test_a_share_cap_beside_a_daily_cap_is_spread_over_the_days",
+      "severity": "behaviour"
+    },
+    {
+      "id": "RR2",
+      "source": "reviewer",
+      "defect": "a day missing from day_rows was read as a whole day without a word",
+      "scenario": "an outside caller passes days as dates and day_rows keyed by their text: every lookup misses, each day falls back to its holdout count, the partial first day gets full slots",
+      "cause": "day_rows.get(label, holdout count) as the fallback",
+      "fix": "every holdout day must be in day_rows, or the call is refused",
+      "test": "tests/test_core_decide_daily.py::DailyCapacityTest::test_days_are_refused_where_they_would_be_ignored_or_unreadable",
+      "severity": "latent"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests.test_core_decide_daily and the decision core files",
+      "gate": "every day keeps to its slots; a partial first day gets its part; uneven slots sum to the capacity; a share cap beside a daily cap keeps its total; the interval follows the days on the same rows; samples cut to the holdout's rows; refusals; targeting with a daily cap; the existing decision tests unchanged",
+      "result": "8 new tests pass; the decision core files pass",
+      "verdict": "pass",
+      "limits": [
+        "the interval's days are random placements: a wave of cases on one day is not in it",
+        "a random or group split cannot be read day by day yet (each holdout row would need ranking against its day's training rows)"
+      ]
+    },
+    {
+      "name": "the churn replica through the engine with 1 call a day",
+      "gate": "a time split read day by day, never more than a day's slots, the share from the training period's rate; a time-and-group split read as one pool with its note",
+      "result": "time split: 135 holdout days, 135 slots, at most 1 a day, 131 days filled, the share 0.2474 = 1 / 4.04 customers a day, realised 10.62 a customer against a prediction interval of 4.78 to 8.62; time-and-group split: one pool, the note given",
+      "verdict": "pass",
+      "limits": [
+        "one time-split reading landed above its interval: one reading proves nothing, and the reviewer found day by day accurate on whole days, but it points the same way as the unmeasured time-split interval (fold models weaker than the final model); measured next, after the gate"
+      ]
+    },
+    {
+      "name": "the reviewer's simulation of a policy run day by day against the readings",
+      "gate": "the reading close to the truth of acting on each whole day",
+      "result": "time split: day by day 1.26 against a truth of 1.22 (pooled 1.37); random split: day by day 1.36 against 5.67 (pooled 6.92); time-and-group: day by day 3.04 against 1.25",
+      "verdict": "pass",
+      "limits": [
+        "simulated tables, one capacity; it decided where day by day applies, not a gate on the product"
+      ]
+    }
+  ],
+  "outcome": "A capacity per day is now each day's own on a time split's holdout and in targeting; every other holdout stays one pool, said in a note. The engine's rows a day is right on every split. The choice on the training rows stays pooled, said in applied_as.",
+  "lessons": [
+    "A capacity stated per period must be read per period wherever it is applied; a pooled reading lets busy days borrow quiet days' slots and overstates the value",
+    "Reading a per-day rule on a sample of each day is not the rule: a row ranked among part of a day is not the row the whole day would pick",
+    "A rate of rows a day must count every row of the period: a random split's training rows are only part of each day",
+    "Measure a replica's shape before writing a number into its test",
+    "When two caps are combined, take the tighter one per unit before any rounding: rounding each alone can make them miss each other"
+  ],
+  "risks": [
+    "Day by day on the holdout and pooled in the training choice: the expected value per row on the training rows is a pooled number",
+    "On time splits the interval's centre may be low (weaker fold models); the measurement after the gate decides",
+    "Projects on random or group splits with a time column now get a smaller share for the same daily capacity (rows a day counted over every row)"
+  ],
+  "commits": []
+}

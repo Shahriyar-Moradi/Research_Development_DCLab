@@ -1072,7 +1072,12 @@ and passes its own out-of-fold scores; nothing is fitted by the library except a
 - `choose_operating_point(y_oof, score_oof, spec, ...)`: the threshold with the highest expected value under the
   capacity, its 90 % interval and, when the host passes its holdout, the holdout read once with a prediction interval
   (0.114.0: from holdout-sized samples of each bootstrap draw; pass `folds`, the fold whose model scored each
-  out-of-fold row, so each sample is one model's ranking, as the holdout's is).
+  out-of-fold row, so each sample is one model's ranking, as the holdout's is). A capacity per day (0.115.0): pass
+  `rows_per_day` (the rows that arrive a day: on a time split the training rows over the training period; on a random
+  split every row over the whole period, since the training rows are only part of each day), and, only when the holdout
+  holds its days whole (a time split), `days_test` (each holdout row's day) with `day_rows` (each of those days' rows in
+  the whole period, for the first day, partly training), so each day fills its own slots; any other holdout is read as
+  one pool. The same for `target_by_uplift`.
   The main product's `spec.objective` takes the costs through `adapters.main_product.objective_of(spec)`; a value per
   case, a cost per action and a capacity have no field there, and the result's notes say so to the person choosing on
   the operating points page.

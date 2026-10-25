@@ -96,6 +96,40 @@ class ActDecisionTest(unittest.TestCase):
         self.assertEqual(points[0].answers[0].answerer, "rule:decision_core")
         self.assertEqual(points[0].value_used, final["evidence"]["decision"]["share"])
 
+    def test_a_capacity_per_day_is_read_day_by_day_on_the_holdout(self):
+        """0.115.0: the churn table dates each customer (about 4 a day, from 1 to 11) and is split by time; 1 call a day is
+        a share of the training period's rate (its rows hold their days whole), and the holdout, which holds its days
+        whole, is called day by day, never more than a day's slots."""
+        import pandas as pd
+
+        from dclab_rnd.expansion.datasets import HOLDOUT_FRACTION
+
+        stamps = pd.to_datetime(kinds.get("binary").case(0).table["signup_time"]).sort_values()
+        training = stamps.iloc[: len(stamps) - int(round(HOLDOUT_FRACTION * len(stamps)))]
+        rate = len(training) / ((training.max() - training.min()).total_seconds() / 86400)
+        store, pid, final = finish(churn({"action": "act", "what": "call the customer", "value_per_case": 120, "cost_per_action": 10,
+                                          "capacity_per_day": 1}))
+        d = final["evidence"]["decision"]
+        self.assertEqual(d["decision"], "operating_point", d.get("warning"))
+        self.assertAlmostEqual(d["capacity_share"], 1 / rate, places=3)
+        days = d["holdout"]["days"]
+        self.assertGreater(days["days"], 5)
+        self.assertLessEqual(days["most_in_a_day"], 1)
+        self.assertLessEqual(d["holdout"]["actions"], days["slots"])
+        self.assertIn("day by day", d["applied_as"])
+
+    def test_a_holdout_holding_part_of_each_day_is_read_as_one_pool(self):
+        """The review of 0.115.0: a time-and-group split's holdout drops the later rows of entities seen in training, so it
+        holds only part of each day; ranked among a day's few holdout rows, a row is not the one the team would pick."""
+        case = churn({"action": "act", "what": "call the customer", "value_per_case": 120, "cost_per_action": 10, "capacity_per_day": 1})
+        case.solution = {**case.solution, "group_column": "subscriber_id"}
+        store, pid, final = finish(case)
+        d = final["evidence"]["decision"]
+        self.assertEqual(d["decision"], "operating_point", d.get("warning"))
+        self.assertNotIn("days", d["holdout"])
+        self.assertIn("time-group split", d["days_note"])
+        self.assertIn("one pool", d["applied_as"])
+
     def test_a_value_written_after_the_outcome_is_refused(self):
         """The proposal forbids the refund (written after the customer left), so a decision valued by it is refused when the
         solution is written, before any stage runs."""

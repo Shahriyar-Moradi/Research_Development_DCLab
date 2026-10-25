@@ -4,6 +4,27 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.115.0 (2026-10-25)
+
+A capacity per day, filled day by day: a team that reviews 5 rides a day cannot review 15 on a busy day and none on a
+quiet one.
+
+- `decide.choose_operating_point(..., days_test=, day_rows=)`: given each holdout row's day, the holdout is read day by
+  day. Each day's best rows (the same worth and threshold rule) fill that day's own `capacity_per_day` slots, spread so
+  that no part of a slot is lost or made up (12.5 a day: 12, 13, 12, 13); a share cap beside it is spread over the days
+  the same way. Pass days only when the holdout holds its days whole (a time split): a holdout holding a sample of each
+  day ranks a row only among the day's few holdout rows and reads far from what the team would do (the review: a
+  quarter of the truth on a random split, 2.4 times it on a time-and-group split), so such a holdout stays one pool.
+  `day_rows` (each day's rows in the whole period) gives a day partly before the holdout (a time split's first day) its
+  part of the slots. The holdout-sized samples of the prediction interval are cut to the holdout's rows and into days of
+  its sizes, the rows placed at random from their own random stream, so without days the interval is unchanged. The
+  training choice stays one pool, said in `applied_as`; the holdout's `days` says how many days, slots and full days.
+- `decide.target_by_uplift(..., rows_per_day=, days_test=, day_rows=)`: targeting accepts `capacity_per_day` (refused
+  before) as a share of `rows_per_day`, and treats the holdout day by day when its days are given;
+  `targeting_what_if(..., rows_per_day=)` passes it on.
+- Days are refused where nobody would read them (a decision with no capacity per day, no holdout, a day's rows without
+  days) or cannot be placed (a row with no day).
+
 ## 0.114.0 (2026-10-25)
 
 The decision's holdout prediction interval, measured too narrow, rebuilt (fraud_decision_v2: on 30 seeds of the

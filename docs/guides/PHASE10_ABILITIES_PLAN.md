@@ -321,7 +321,8 @@ or decided; nothing below blocks using them.
    holdout's): 26 of 28 inside, unbiased (mean z -0.20), its misses of the size it says (root mean square of z 0.93,
    90% interval 0.77 to 1.20). On the same seeds the row-sized interval without folds stayed too narrow (21 of 28, 1.23).
    Open: a time split passes no folds, so its interval is the row-sized one, not measured.
-7. 34.2: a daily capacity for targeting (refused today); a two-action replica (tested on random tables only).
+7. 34.2: ~~a daily capacity for targeting~~ done 2026-10-25 (dclab-core 0.115.0, with item 20); open: a two-action
+   replica (tested on random tables only).
 8. ~~34.3: what-if for targeting and for several actions~~ done 2026-10-25 (dclab-core 0.113.0: `targeting_what_if`,
    `actions_what_if`; reviewed, 3 findings fixed).
 9. ~~34.4: the wizard has no fields for a decision~~ done 2026-10-25: step 3 has a decision block (what is done, what a
@@ -340,8 +341,8 @@ or decided; nothing below blocks using them.
     the `CORE_INTEGRATION.md` sections.
 
 **Housekeeping:**
-15. `make archive` after the store run of 2026-10-24 (the newest snapshot is from that morning): taken by the session
-    working on the store and the students, today before 22:00, after a store build.
+15. ~~`make archive` after the store run of 2026-10-24~~ done 2026-10-25 by the session working on the store and the
+    students (ed9811b1, snapshot 20261025T155709Z).
 16. Two scratch worktrees (`search_v2`'s run and the builds') are removed with `git worktree remove` once `search_v3` has run.
 17. Playwright's Chromium (581 MB, `~/Library/Caches/ms-playwright`) stays for `make browser-test`.
 18. ~~The Workflow page may stop refreshing during a run when the machine is slow~~ fixed 2026-10-25: it stopped
@@ -351,7 +352,18 @@ or decided; nothing below blocks using them.
     the store collects `agent_runs/`; this session's campaigns now keep their engine runs there (`search_v2` copied in,
     240 MB; `fraud_decision_v1` and `search_v3` write there). Since 2026-10-25 `make product-e2e` and `make browser-test`
     keep their test server's workspace under `agent_runs/e2e/<day>/` too (about 7 MB a run; `DCLAB_E2E_KEEP=0` skips),
-    under a `scripted.json` marker: the lake never files their scripted "person" answers as people's. Open: the store's
-    shapers to honour the same marker (the store session's area; told 2026-10-25).
-20. 34.1: a capacity per day is applied as one pool over the holdout (said in `applied_as`); filling it day by day needs
-    each holdout row's day passed to the core.
+    under a `scripted.json` marker: the lake never files their scripted "person" answers as people's. The store's
+    shapers honour the same marker since 2026-10-25 (the store session: bbfea391; the lake imports its rule, 64ccaa47).
+20. ~~34.1: a capacity per day is applied as one pool over the holdout~~ done 2026-10-25 (dclab-core 0.115.0): on a time
+    split the engine passes each holdout row's day, and each day fills its own slots (the first holdout day, partly
+    training, its part). Any other split's holdout holds only part of each day, and a row ranked among a day's few
+    holdout rows is not the row the team would pick (the review simulated it: a quarter of the truth on a random split,
+    2.4 times it on a time-and-group split), so it stays one pool, with a note. The interval's samples are cut into days
+    of the holdout's sizes, rows placed at random: a wave of cases on one day is not in it. Rows a day: a time split's
+    training rows over its period (as before); a random or group split's every row (its training rows hold part of each
+    day, which made a daily capacity a quarter larger as a share). The choice on the training rows stays one pool. Open:
+    the churn replica's first day-by-day reading (a time split) realised 10.6 a customer against an interval of 4.8 to
+    8.6. One reading proves nothing, and the review found day by day accurate on whole days, but it points the same way
+    as the time split's unmeasured interval (its fold models are weaker than the final model): the time-split
+    measurement after tonight's gate covers it. A random split read day by day needs each holdout row ranked against
+    the training rows of its day: not built.

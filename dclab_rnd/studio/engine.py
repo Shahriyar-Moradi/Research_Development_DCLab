@@ -1151,10 +1151,16 @@ def _decision(p: Prepared, selected: dict[str, Any], y_test: pd.Series, predicti
             groups = bundle.X_train[group].to_numpy()[index] if group and group in bundle.X_train else None
             rows_per_day = None
             time_column = p.solution.time_column
-            if time_column and time_column in bundle.X_train.columns:
-                stamps = pd.to_datetime(bundle.X_train[time_column], errors="coerce").dropna()
+            if time_column and time_column in bundle.X_train.columns and time_column in bundle.X_test.columns:
+                # a time split's training rows hold their days whole (a time-and-group split's holdout drops the later
+                # rows of seen entities, so only the training rows count right); a random or group split's training rows
+                # hold part of every day, so every row counts (the review of 0.115.0)
+                timed = bundle.spec.split_strategy in ("time", "time_group")
+                every = (bundle.X_train[time_column] if timed
+                         else pd.concat([bundle.X_train[time_column], bundle.X_test[time_column]], ignore_index=True))
+                stamps = pd.to_datetime(every.astype(str), errors="coerce").dropna()
                 days = (stamps.max() - stamps.min()).total_seconds() / 86400 if len(stamps) > 1 else 0
-                rows_per_day = len(bundle.X_train) / days if days >= 1 else None
+                rows_per_day = len(every) / days if days >= 1 else None
         if decision.action == "act":
             return _act(p, decision, selected, oof_y, groups, rows_per_day, y_test, predictions)
         if decision.action == "classes":
@@ -1222,10 +1228,29 @@ def _act(p: Prepared, decision: Any, selected: dict[str, Any], oof_y: np.ndarray
     fold_of = np.full(len(bundle.X_train), -1)
     for number, (_, valid) in enumerate(bundle.cv_splits):
         fold_of[np.asarray(valid)] = number
+    days_test, day_rows, days_note = None, None, None
+    time_column = p.solution.time_column
+    if spec.capacity_per_day and time_column in bundle.X_test.columns:  # 0.115.0: the holdout read day by day
+        if bundle.spec.split_strategy != "time":  # the review of 0.115.0: only a time split's holdout holds its days whole
+            days_note = ("The holdout holds only part of each day (a " + str(bundle.spec.split_strategy).replace("_", "-") + " split), "
+                         "and a row ranked among a day's few holdout rows is not the row the team would pick: the capacity per day "
+                         "is read as one pool over the holdout")
+        else:
+            day_of = lambda column: pd.to_datetime(column.astype(str), errors="coerce").dt.to_period("D").astype(str)  # noqa: E731
+            test_days = day_of(bundle.X_test[time_column])
+            if (test_days == "NaT").any():
+                days_note = "Some holdout rows have no readable time: the capacity per day is read as one pool over the holdout"
+            else:
+                days_test = test_days.to_numpy()
+                every = day_of(pd.concat([bundle.X_train[time_column], bundle.X_test[time_column]], ignore_index=True))
+                day_rows = every[every.isin(set(days_test))].value_counts().to_dict()  # the first day is partly training rows
     out = decide.choose_operating_point(oof_y, selected["_oof_pred"], spec, value_per_case=values, groups=groups, rows_per_day=rows_per_day,
                                         y_test=y_test.to_numpy(), score_test=predictions, value_test=values_test,
                                         folds=(fold_of[np.asarray(selected["_oof_index"])]  # 0.114.0: one model's rows a holdout-sized sample;
-                                               if bundle.spec.split_strategy not in ("time", "time_group") else None))  # never a time split's (unlike) folds
+                                               if bundle.spec.split_strategy not in ("time", "time_group") else None),  # never a time split's (unlike) folds
+                                        days_test=days_test, day_rows=day_rows)
+    if days_note:
+        out["days_note"] = days_note
     out["what"] = spec.action
     if p.solution.labels == "partial":
         out["partial_note"] = ("The labels are partial: an unlabelled row may be a case nobody found, so the value is a lower bound "

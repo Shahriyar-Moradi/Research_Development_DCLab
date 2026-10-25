@@ -175,12 +175,75 @@ def _prediction(values: Sequence[float], n_train: int, n_test: int, level: float
     return [_r(v.mean() - half), _r(v.mean() + half)]
 
 
+def _cap_share(spec: DecisionSpec, rows_per_day: Optional[float]) -> Optional[float]:
+    """The tighter of a share and a daily count (as a share of the rows that arrive a day)."""
+    caps = [c for c in (spec.capacity_share, (spec.capacity_per_day / rows_per_day) if spec.capacity_per_day and rows_per_day else None) if c]
+    return min(min(caps), 1.0) if caps else None
+
+
+def _check_days(spec: DecisionSpec, days: Optional[Sequence[Any]], n_test: Optional[int], day_rows: Optional[dict[Any, int]]) -> None:
+    if days is None:
+        if day_rows is not None:
+            raise ValueError("A day's rows are read with the holdout's days: pass days_test too")
+        return
+    if not spec.capacity_per_day:  # a field read by nobody would be silently ignored
+        raise ValueError("Days place a capacity per day; this decision has none (a share of rows needs no days)")
+    if n_test is None:
+        raise ValueError("Days are the holdout rows' own: pass them with the holdout's rows")
+    if len(days) != n_test:
+        raise ValueError("One day per holdout row: the days must be as many as the holdout's rows")
+    if day_rows is not None and any(not np.isfinite(v) or v <= 0 for v in day_rows.values()):
+        raise ValueError("A day's rows in the whole period are a positive count")
+
+
+def _day_codes(days: Sequence[Any], day_rows: Optional[dict[Any, int]] = None) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Each row's day, numbered in date order, each day's number of rows, and the part of each day the rows are (1, or
+    less for a day partly elsewhere: a time split's first holdout day); a row with no day cannot be placed."""
+    codes, labels = pd.factorize(pd.Series(np.asarray(days, dtype=object)), sort=True)
+    if (codes < 0).any():
+        raise ValueError("Every holdout row needs its day: a row with no day cannot be given a day's slots")
+    counts = np.bincount(codes)
+    part = np.ones(len(counts))
+    if day_rows is not None:
+        missing = [label for label in labels if label not in day_rows]
+        if missing:  # the re-review: a key of another type (a date against its text) would be ignored silently
+            raise ValueError(f"A day's rows are needed for every holdout day, keyed as its days are: {len(missing)} missing, such as {missing[0]!r}")
+        whole = np.array([float(day_rows[label]) for label in labels])
+        part = np.minimum(1.0, counts / whole)
+    return codes, counts, part
+
+
+def _slots(counts: np.ndarray, per_day: float, part: np.ndarray, capacity_share: Optional[float]) -> np.ndarray:
+    """Each day's slots: ``per_day`` times the part of the day the rows are, spread so that no part of a slot is lost or
+    made up (12.5 a day: 12, 13, 12, 13); with a share cap too, the tighter of the two each day, spread the same way (the
+    review of 0.115.0: a share of each day alone rounded small days to no slot)."""
+    allow = per_day * part if capacity_share is None else np.minimum(per_day * part, capacity_share * counts)
+    return np.diff(np.floor(np.r_[0.0, np.cumsum(allow)] + 1e-9)).astype(int)  # the tighter first, spread once (the re-review)
+
+
+def _take_by_day(order: np.ndarray, codes: np.ndarray, slots: np.ndarray) -> np.ndarray:
+    """The rows of ``order`` (best first) each day's slots take: a day's best rows until its slots are full."""
+    if not len(order):
+        return order
+    day = codes[order]
+    place = pd.Series(day).groupby(day).cumcount().to_numpy()
+    return order[place < slots[day]]
+
+
+def _days_said(codes: np.ndarray, slots: np.ndarray, taken: np.ndarray, per_day: float, part: np.ndarray) -> dict[str, Any]:
+    per = np.bincount(codes[taken], minlength=len(slots)) if len(taken) else np.zeros(len(slots), dtype=int)
+    return {"days": int(len(slots)), "slots": int(slots.sum()), "slots_per_day": _r(per_day, 4),
+            "partial_days": int((part < 1).sum()), "most_in_a_day": int(per.max(initial=0)),
+            "days_full": int(((per == slots) & (slots > 0)).sum()), "applied": "day by day: each day's best rows, until its slots are full"}
+
+
 def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spec: DecisionSpec, *,
                            value_per_case: Optional[Sequence[float]] = None, groups: Optional[Sequence[Any]] = None,
                            rows_per_day: Optional[float] = None, y_test: Optional[Sequence[int]] = None,
                            score_test: Optional[Sequence[float]] = None, value_test: Optional[Sequence[float]] = None,
                            weights: Optional[Sequence[float]] = None, bootstrap: int = BOOTSTRAP, seed: int = 0,
-                           folds: Optional[Sequence[Any]] = None) -> dict[str, Any]:
+                           folds: Optional[Sequence[Any]] = None, days_test: Optional[Sequence[Any]] = None,
+                           day_rows: Optional[dict[Any, int]] = None) -> dict[str, Any]:
     """The number of rows to act on with the highest expected value, chosen on out-of-fold scores under the capacity,
     with its interval (a bootstrap over rows, or entities when ``groups`` are given), then read once on the holdout.
 
@@ -197,7 +260,17 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
 
     Rows are ranked by score; with a value per row (``value_per_case``, from ``spec.value_column``) and scores that are
     probabilities, by expected gain (score × value, less the costs), so a likely small case can come after a less likely
-    large one. The expected value is against acting on no row."""
+    large one. The expected value is against acting on no row.
+
+    A capacity per day (0.115.0): the choice on the training rows reads it as a share of the rows that arrive a day (one
+    pool). Given each holdout row's day (``days_test``), the holdout is read day by day: each day's best rows fill its own
+    ``capacity_per_day`` slots, so a busy day cannot borrow a quiet day's slots. Pass days only when the holdout holds its
+    days whole (a time split): a holdout that holds a sample of each day (a random, group or time-and-group split) ranks
+    a row only among the day's holdout rows, which picks other rows than the team would (the review of 0.115.0: far too
+    low on a random split, too high on a time-and-group split); read such a holdout as one pool. ``day_rows`` (each day's
+    rows in the whole period) gives a day partly before the holdout (a time split's first day) its part of the slots.
+    The holdout-sized samples are cut to the holdout's rows and into days of its sizes, the rows placed at random among
+    them: a wave of cases on one day is not in the interval."""
     y, s = np.asarray(y_oof).astype(int), np.asarray(score_oof, dtype=float)
     n = len(y)
     per_row = value_per_case is not None
@@ -210,6 +283,11 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
         raise ValueError("A capacity per day needs how many rows arrive a day (rows_per_day): without it the cap cannot hold")
     if not n:
         raise ValueError("No rows were scored: there is no operating point to choose")
+    _check_days(spec, days_test, len(y_test) if y_test is not None and score_test is not None else None, day_rows)
+    day_codes = day_counts = day_slots = day_part = None
+    if days_test is not None:
+        day_codes, day_counts, day_part = _day_codes(days_test, day_rows)
+        day_slots = _slots(day_counts, spec.capacity_per_day, day_part, spec.capacity_share)
     probabilities = s.min() >= 0 and s.max() <= 1
     ranked_by = "expected gain" if per_row and probabilities else "score"
 
@@ -223,8 +301,7 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
     if weights is not None and (bootstrap or groups is not None or y_test is not None):
         # the review of 34.3: the bootstrap, the entities and the holdout read rows, not weights; a weighted choice is a what-if
         raise ValueError("Weighted rows choose a point only (bootstrap=0, no groups, no holdout): the intervals and the holdout read rows")
-    caps = [c for c in (spec.capacity_share, (spec.capacity_per_day / rows_per_day) if spec.capacity_per_day and rows_per_day else None) if c]
-    cap_share = min(min(caps), 1.0) if caps else None  # the tighter of a share and a daily count
+    cap_share = _cap_share(spec, rows_per_day)  # the tighter of a share and a daily count
 
     def curve(rows: np.ndarray) -> tuple[int, np.ndarray]:
         """The best count to act on and the value at every count; a count may end only where the rank changes, so a
@@ -252,11 +329,12 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
     binds = cap_share is not None and float(weighted_share[free]) > cap_share + 1e-12
     quota = binds and best > 0  # the capacity, not the value, ends the list: the decision is a quota
 
-    def acted_rows(r: np.ndarray, sc: np.ndarray, v: np.ndarray) -> np.ndarray:
+    def acted_rows(r: np.ndarray, sc: np.ndarray, v: np.ndarray, days: Optional[tuple[np.ndarray, np.ndarray]] = None) -> np.ndarray:
         """The positions acted on among rows with ranks ``r``, scores ``sc`` and values ``v``, as the decision runs (the
         measurement of 34.1 on the fraud replica): under a binding capacity, the highest-ranked rows the capacity allows,
         each still worth acting on alone (a threshold carried to rows scored on another scale would act on too few or too
-        many); otherwise every row ranked at least as high as the threshold, cut to the capacity."""
+        many); otherwise every row ranked at least as high as the threshold, cut to the capacity. With ``days`` (each
+        row's day and each day's slots), the capacity is each day's own."""
         size = len(r)
         if quota:
             if ranked_by == "expected gain":
@@ -267,8 +345,11 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
                 worth = np.ones(size, dtype=bool)
             worth = worth | (r >= threshold)  # never stricter than the training's own choice, which took every row this high
             candidates = np.flatnonzero(worth)
-            return candidates[np.argsort(-r[candidates], kind="mergesort")[: int(np.floor(cap_share * size))]]
+            ranked_c = candidates[np.argsort(-r[candidates], kind="mergesort")]
+            return _take_by_day(ranked_c, *days) if days is not None else ranked_c[: int(np.floor(cap_share * size))]
         top = np.flatnonzero(r >= threshold) if threshold is not None else np.array([], dtype=int)
+        if days is not None:  # the capacity did not bind on the training rows, yet a busy day may still fill its slots
+            return _take_by_day(top[np.argsort(-r[top], kind="mergesort")], *days)
         if cap_share is not None and len(top) > int(np.floor(cap_share * size)):
             top = top[np.argsort(-r[top], kind="mergesort")[: int(np.floor(cap_share * size))]]
         return top
@@ -294,6 +375,11 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
         sizes[keys] = [len(index[k]) for k in keys]
     key_fold = ({k: fold_of[index[k][0]] for k in keys} if index is not None else None) if fold_of is not None else None
     inner = np.random.default_rng([seed, 1])  # its own stream: the training intervals do not move when a holdout is given
+    placing = np.random.default_rng([seed, 2])  # and the days' own: with days, the samples are the same rows as without
+
+    def sample_days() -> tuple[np.ndarray, np.ndarray]:
+        """A sample's rows (cut to the holdout's number) placed at random in days of the holdout's sizes."""
+        return placing.permutation(np.repeat(np.arange(len(day_counts)), day_counts)), day_slots
 
     def holdout_sized(draw: np.ndarray, rows: np.ndarray) -> np.ndarray:
         """A sample of the holdout's number of rows from this draw: whole entities (with replacement) until the rows are
@@ -326,8 +412,10 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
         values.append(float(_gain(y[acted], value[acted], spec).sum()) / len(rows))
         if n_test and best:  # a holdout-sized sample of this draw, the decision applied to it as it runs
             sample = holdout_sized(draw, rows)
+            if day_codes is not None:  # the review of 0.115.0: whole entities may run past the holdout's rows
+                sample = sample[:n_test]
             held_rows.append(len(sample))
-            taken = sample[acted_rows(rank[sample], s[sample], value[sample])]
+            taken = sample[acted_rows(rank[sample], s[sample], value[sample], sample_days() if day_codes is not None else None)]
             held.append(float(_gain(y[taken], value[taken], spec).sum()) / len(sample))
     ranked = np.sort(rank)[::-1]
     out: dict[str, Any] = {
@@ -338,10 +426,13 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
         "expected_value_per_row": _r(ev[best] / rw.sum()), "expected_value_per_row_interval": _interval(values),
         "share_interval": _interval(shares), "capacity_share": _r(cap_share, 6),
         "capacity_binds": binds,
-        "applied_as": (("a quota: the highest-ranked rows the capacity allows, each worth acting on alone or ranked as high as the "
-                        "rows chosen" + ("; a capacity per day is applied as one pool over the rows read, not day by day"
-                                        if spec.capacity_per_day else "")) if quota else
-                       "a threshold: every row ranked at least as high, cut to the capacity" if best else "no action"),
+        "applied_as": ((("a quota: the highest-ranked rows the capacity allows, each worth acting on alone or ranked as high as the "
+                         "rows chosen") if quota else
+                        "a threshold: every row ranked at least as high, cut to the capacity" if best else "no action")
+                       + (("; a capacity per day is chosen as one pool over the training rows and applied day by day on the "
+                           "holdout's days" if days_test is not None else
+                           "; a capacity per day is applied as one pool over the rows read, not day by day")
+                          if spec.capacity_per_day and best else "")),
         "chosen_on": "out-of-fold training predictions",
         "interval": (f"90% bootstrap over {'entities' if groups is not None else 'rows'}, {bootstrap} draws, of the expected value per row "
                      "at the share chosen (the share's own interval: the best share in each draw)"),
@@ -367,7 +458,7 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
             raise ValueError("The holdout's rows need their own values per case (value_test), one for each row, to be read")
         vt = np.asarray(value_test, dtype=float) if per_row else np.full(len(yt), spec.value_per_case)
         rank_t = rank_of(st, vt)
-        top = acted_rows(rank_t, st, vt)  # the decision as it would run (a quota under a binding capacity, else the threshold)
+        top = acted_rows(rank_t, st, vt, (day_codes, day_slots) if day_codes is not None else None)  # the decision as it would run
         k = len(top)
         realised = float(_gain(yt[top], vt[top], spec).sum())
         interval = _interval(held) if len(held) >= 20 else _prediction(values, n, len(yt))
@@ -377,10 +468,14 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
                           "prediction_interval_method": ((f"holdout-sized samples of each bootstrap draw ({len(yt)} rows, about "
                                                           f"{int(np.mean(held_rows))} drawn"
                                                           + (", whole entities" if index is not None else "")
-                                                          + (", one fold's rows each" if fold_of is not None else "") + ")")
+                                                          + (", one fold's rows each" if fold_of is not None else "")
+                                                          + (", the capacity applied day by day to days of the holdout's sizes, the rows "
+                                                             "placed at random among them" if day_codes is not None else "") + ")")
                                                          if len(held) >= 20 else "normal approximation of the bootstrap spread"),
                           "reads": "the expected value's interval is for the value per row on average; a holdout is one more sample with its "
                                    "own noise, so its value is read against the prediction interval"}
+        if day_codes is not None:
+            out["holdout"]["days"] = _days_said(day_codes, day_slots, top, spec.capacity_per_day, day_part)
     return out
 
 
@@ -576,16 +671,24 @@ def _incremental(score: np.ndarray, t: np.ndarray, y: np.ndarray, w: np.ndarray,
 def target_by_uplift(score: Sequence[float], treated: Sequence[int], outcome: Sequence[int], spec: DecisionSpec, *,
                      weights: Optional[Sequence[float]] = None, score_test: Optional[Sequence[float]] = None,
                      t_test: Optional[Sequence[int]] = None, y_test: Optional[Sequence[int]] = None,
-                     w_test: Optional[Sequence[float]] = None, bootstrap: int = BOOTSTRAP, seed: int = 0) -> dict[str, Any]:
+                     w_test: Optional[Sequence[float]] = None, bootstrap: int = BOOTSTRAP, seed: int = 0,
+                     rows_per_day: Optional[float] = None, days_test: Optional[Sequence[Any]] = None,
+                     day_rows: Optional[dict[Any, int]] = None) -> dict[str, Any]:
     """Whom to treat (34.2): the share of rows, ranked by an uplift model's score, whose treatment is worth the most, its
     value measured from the arms of rows the model never trained on (the validation rows), then read once on the holdout.
 
     A conversion is worth ``spec.value_per_case`` and a treatment costs ``spec.cost_per_action``; ``spec.capacity_share``
-    caps the share. ``weights`` (inverse propensities) when the treatment was not randomised. The value of treating
-    everyone, no one and a random share of the same size are given beside it."""
-    unsupported = [f for f in ("capacity_per_day", "value_column", "cost_false_positive", "cost_false_negative") if getattr(spec, f)]
+    caps the share, ``spec.capacity_per_day`` too as a share of ``rows_per_day`` (0.115.0); given each holdout row's day
+    (``days_test``, and ``day_rows``, as in ``choose_operating_point``: only for a holdout that holds its days whole) the
+    holdout is treated day by day, each day's best-scored rows above the threshold until its slots are full. ``weights``
+    (inverse propensities) when the treatment was not randomised. The value of treating everyone, no one and a random share of the same size are given beside it."""
+    unsupported = [f for f in ("value_column", "cost_false_positive", "cost_false_negative") if getattr(spec, f)]
     if unsupported:  # the review of 34.2: a field read by nobody would be silently ignored
-        raise ValueError(f"Targeting reads a conversion's value, a treatment's cost and a share cap; not {', '.join(unsupported)}")
+        raise ValueError(f"Targeting reads a conversion's value, a treatment's cost and a share or daily cap; not {', '.join(unsupported)}")
+    if spec.capacity_per_day and not rows_per_day:
+        raise ValueError("A capacity per day needs how many rows arrive a day (rows_per_day): without it the cap cannot hold")
+    _check_days(spec, days_test, len(score_test) if score_test is not None else None, day_rows)
+    cap = _cap_share(spec, rows_per_day)
     s, t, y = np.asarray(score, dtype=float), np.asarray(treated).astype(int), np.asarray(outcome).astype(int)
     n = len(s)
     w = np.ones(n) if weights is None else np.asarray(weights, dtype=float)
@@ -606,8 +709,8 @@ def target_by_uplift(score: Sequence[float], treated: Sequence[int], outcome: Se
     def best_of(rows: np.ndarray) -> tuple[int, np.ndarray]:
         ev = _incremental(s[rows], t[rows], y[rows], w[rows], spec)
         ok = _cut_points(s[rows]) & np.isfinite(ev)
-        if spec.capacity_share is not None:
-            ok &= np.arange(len(ev)) <= int(np.floor(spec.capacity_share * len(rows)))
+        if cap is not None:
+            ok &= np.arange(len(ev)) <= int(np.floor(cap * len(rows)))
         return int(np.argmax(np.where(ok, ev, -np.inf))), ev
 
     best, ev = best_of(np.arange(n))
@@ -640,18 +743,27 @@ def target_by_uplift(score: Sequence[float], treated: Sequence[int], outcome: Se
                        "(the smallest groups of top rows are the noisiest); treat no one, or test the targeting first.")
     else:
         out["pays"] = "yes"
-    if spec.capacity_share is not None:
-        out["capacity_share"] = spec.capacity_share
+    if cap is not None:
+        out["capacity_share"] = _r(cap, 6)
     if score_test is not None and t_test is not None and y_test is not None and best:
         st, tt, yt = np.asarray(score_test, dtype=float), np.asarray(t_test).astype(int), np.asarray(y_test).astype(int)
         top = np.flatnonzero(st >= threshold)
-        if spec.capacity_share is not None and len(top) > int(np.floor(spec.capacity_share * len(st))):
-            top = top[np.argsort(-st[top], kind="mergesort")[: int(np.floor(spec.capacity_share * len(st)))]]
+        day_codes = None
+        if days_test is not None:  # each day's best-scored rows above the threshold, until its slots are full
+            day_codes, day_counts, day_part = _day_codes(days_test, day_rows)
+            day_slots = _slots(day_counts, spec.capacity_per_day, day_part, spec.capacity_share)
+            top = _take_by_day(top[np.argsort(-st[top], kind="mergesort")], day_codes, day_slots)
+        elif cap is not None and len(top) > int(np.floor(cap * len(st))):
+            top = top[np.argsort(-st[top], kind="mergesort")[: int(np.floor(cap * len(st)))]]
         everyone_rows = np.arange(len(st))
         wt = np.asarray(w_test, dtype=float) if w_test is not None else np.ones(len(st))
         measured = _value_of(top, everyone_rows, tt, yt, wt, spec) if len(top) else 0.0
         out["holdout"] = {"treated": int(len(top)), "value_per_row": _r(measured), "prediction_interval": _prediction(values, n, len(st)),
                           "reads": "measured from the holdout's own arms among the rows treated; a new sample, so read against the prediction interval"}
+        if day_codes is not None:
+            out["holdout"]["days"] = _days_said(day_codes, day_slots, top, spec.capacity_per_day, day_part)
+            out["holdout"]["reads"] += ("; the prediction interval is the normal approximation, with no days: on busy days it may be "
+                                        "wider than it says")
     return out
 
 
@@ -694,22 +806,24 @@ TARGETING_WHAT_IF_TERMS = ("value_per_case", "cost_per_action", "capacity_share"
 
 
 def targeting_what_if(score: Sequence[float], treated: Sequence[int], outcome: Sequence[int], spec: DecisionSpec, changes: dict[str, float], *,
-                      weights: Optional[Sequence[float]] = None) -> dict[str, Any]:
+                      weights: Optional[Sequence[float]] = None, rows_per_day: Optional[float] = None) -> dict[str, Any]:
     """Whom to treat (34.2) re-chosen under changed numbers (34.3), with no refit: the share chosen before and after, and
     what treating the same rows (the old top rows by score, cut to a smaller capacity) is worth under the new numbers.
-    ``changes`` names a conversion's value, a treatment's cost or the capacity share. A base rate is refused: an uplift is
-    read as the difference between the arms among the top rows, and reweighting the cases would not move it honestly."""
+    ``changes`` names a conversion's value, a treatment's cost or the capacity share; a capacity per day is read with
+    ``rows_per_day``, as by ``target_by_uplift``. A base rate is refused: an uplift is read as the difference between the
+    arms among the top rows, and reweighting the cases would not move it honestly."""
     unknown = set(changes) - set(TARGETING_WHAT_IF_TERMS)
     if unknown:
         raise ValueError(f"A targeting what-if changes {', '.join(TARGETING_WHAT_IF_TERMS)}; not {', '.join(sorted(unknown))}")
     new = DecisionSpec(**{**spec.model_dump(), **changes})
-    before = target_by_uplift(score, treated, outcome, spec, weights=weights, bootstrap=0)
-    after = target_by_uplift(score, treated, outcome, new, weights=weights, bootstrap=0)
+    before = target_by_uplift(score, treated, outcome, spec, weights=weights, bootstrap=0, rows_per_day=rows_per_day)
+    after = target_by_uplift(score, treated, outcome, new, weights=weights, bootstrap=0, rows_per_day=rows_per_day)
     s, t, y = np.asarray(score, dtype=float), np.asarray(treated).astype(int), np.asarray(outcome).astype(int)
     w = np.ones(len(s)) if weights is None else np.asarray(weights, dtype=float)
     n = len(s)
     k = before["treated_training"]  # the very rows treated before: the top k by score
-    limit = None if new.capacity_share is None else int(np.floor(new.capacity_share * n))
+    cap = _cap_share(new, rows_per_day)
+    limit = None if cap is None else int(np.floor(cap * n))
     over = limit is not None and k > limit
     if over:  # cut where the score changes, as target_by_uplift only stops there (the review of 0.113.0: ties)
         k = int(np.flatnonzero(_cut_points(s)[: limit + 1])[-1])
