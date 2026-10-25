@@ -1,0 +1,347 @@
+{
+  "id": "UND-004",
+  "experiment_id": "UND-004",
+  "campaign_id": "understand_v1",
+  "kind": "understand_student_gate",
+  "status": "completed",
+  "at": "2026-10-25T14:39:05+00:00",
+  "point": "workflow.next_question",
+  "student": "workflow.next_question.boosting",
+  "version": "50644d0af96d",
+  "gate": {
+    "version": "understand_gate_v1",
+    "decision_gate": "decision_gate_v1",
+    "seed": 5,
+    "set": "journeys_understand_sealed.json (150 people, ten per kind, written by a separate agent told only the format, the kinds and their columns, never the homework or its writer's prompt; pinned by sealed_understand.sha256)",
+    "played": "seed 5, on the rules alone, each person saying \"I don't know\" to what they cannot answer, as the homework was played",
+    "rule": "Each point's state student, and the text student for problem.family, judged once by decision_gate_v1 (the column points' thresholds, unchanged) beside the rule on the same sealed decisions, by person, an answer right when the person's journey accepts it; a model that does not pass stays in shadow.",
+    "seen_before": "Dev, each beside the rule on the same rows: problem.family text student 0.966 against the rule's 0.821 (235 decisions); problem.family state student 0.498 (the state holds no words): expected to fail; problem.ready 0.887 [0.844, 0.920] against 0.827: its accuracy's lower bound is under 0.90, expected to fail; workflow.next_question 0.876 [0.859, 0.891] against 0.855: expected to fail on the same bar; solution.route 0.820 against 0.826: no margin, expected to fail. The text student is the one candidate; its risk is the writer's style (the homework was written by one writer, the sealed people by another), and the rule's right answers it would turn wrong were not measured on dev. The rule on the new people: 0.71 (family), 0.71 (ready), 0.80 (next question), 0.84 (route), against 0.95, 0.96, 0.99 and 0.89 on the older ones.",
+    "thresholds": {
+      "scored_share_min": 1.0,
+      "accuracy_lower_min": 0.9,
+      "precision_lower_min": 0.8,
+      "recall_lower_min": 0.8,
+      "margin_lower_min": 0.0,
+      "class_min_rows": 30,
+      "class_recall_min": 0.7,
+      "turned_max": 0.02,
+      "draws": 2000
+    }
+  },
+  "sealed": {
+    "decisions": 663,
+    "people": 150,
+    "fingerprint": "739312926aa0d04aed7d56a21cbbc5903dc5e85a26f29f9a74d5f3fa3db6cce9",
+    "plays": 150,
+    "failed_plays": []
+  },
+  "verdict": {
+    "gate": "decision_gate_v1",
+    "pass": false,
+    "criteria": [
+      {
+        "criterion": "every sealed decision scored",
+        "value": "663/663",
+        "need": "100%",
+        "pass": true
+      },
+      {
+        "criterion": "accuracy, 95% lower bound (by table group)",
+        "value": 0.497,
+        "need": ">= 0.9",
+        "pass": false
+      },
+      {
+        "criterion": "precision, 95% lower bound (by table group)",
+        "value": 0.4462,
+        "need": ">= 0.8",
+        "pass": false
+      },
+      {
+        "criterion": "recall, 95% lower bound (by table group)",
+        "value": 0.53,
+        "need": ">= 0.8",
+        "pass": false
+      },
+      {
+        "criterion": "margin over the rule, 95% lower bound (by table group)",
+        "value": -0.0621,
+        "need": "> 0.0",
+        "pass": false
+      },
+      {
+        "criterion": "no class it misses",
+        "value": [
+          "action (32/97)",
+          "none (195/391)",
+          "prediction_moment (42/85)"
+        ],
+        "need": "no class with 30+ decisions below recall 0.7",
+        "pass": false
+      },
+      {
+        "criterion": "the rule's right decisions kept",
+        "value": 0.2896,
+        "need": "<= 0.02 turned wrong",
+        "pass": false
+      }
+    ],
+    "bounds": {
+      "model": {
+        "accuracy": [
+          0.5415,
+          0.497,
+          0.5885
+        ],
+        "precision": [
+          0.4949,
+          0.4462,
+          0.5443
+        ],
+        "recall": [
+          0.5807,
+          0.53,
+          0.6388
+        ]
+      },
+      "rule": {
+        "accuracy": [
+          0.552,
+          0.5129,
+          0.5899
+        ],
+        "precision": [
+          0.2996,
+          0.2809,
+          0.338
+        ],
+        "recall": [
+          0.68,
+          0.6527,
+          0.7097
+        ]
+      },
+      "note": "[value, 95% lower, 95% upper], bootstrap of whole table groups; the gate reads these"
+    },
+    "model": {
+      "n": 663,
+      "accuracy": 0.5415,
+      "accuracy_ci": [
+        0.5034,
+        0.5791
+      ],
+      "precision": 0.4949,
+      "precision_ci": [
+        0.4462,
+        0.5443
+      ],
+      "recall": 0.5807,
+      "recall_ci": [
+        0.53,
+        0.6388
+      ],
+      "intervals": "bootstrap of 2000 draws, clustered by table group, 95%",
+      "answered": 663,
+      "per_class": {
+        "action": {
+          "n": 97,
+          "precision": 0.2092,
+          "precision_ci": [
+            0.1522,
+            0.2803
+          ],
+          "recall": 0.3299,
+          "recall_ci": [
+            0.2444,
+            0.4284
+          ]
+        },
+        "none": {
+          "n": 391,
+          "precision": 0.7588,
+          "precision_ci": [
+            0.7029,
+            0.807
+          ],
+          "recall": 0.4987,
+          "recall_ci": [
+            0.4494,
+            0.5481
+          ]
+        },
+        "prediction_moment": {
+          "n": 85,
+          "precision": 0.4421,
+          "precision_ci": [
+            0.3464,
+            0.5423
+          ],
+          "recall": 0.4941,
+          "recall_ci": [
+            0.3904,
+            0.5983
+          ]
+        },
+        "target": {
+          "n": 90,
+          "precision": 0.5696,
+          "precision_ci": [
+            0.4917,
+            0.6443
+          ],
+          "recall": 1.0,
+          "recall_ci": [
+            0.9591,
+            1.0
+          ]
+        }
+      }
+    },
+    "rule": {
+      "n": 663,
+      "accuracy": 0.552,
+      "accuracy_ci": [
+        0.514,
+        0.5895
+      ],
+      "precision": 0.2996,
+      "precision_ci": [
+        0.2807,
+        0.3198
+      ],
+      "recall": 0.34,
+      "recall_ci": [
+        0.3263,
+        0.3548
+      ],
+      "intervals": "bootstrap of 2000 draws, clustered by table group, 95%",
+      "answered": 663,
+      "per_class": {
+        "action": {
+          "n": 97,
+          "precision": 0.4211,
+          "precision_ci": [
+            0.3405,
+            0.506
+          ],
+          "recall": 0.5773,
+          "recall_ci": [
+            0.4779,
+            0.6708
+          ]
+        },
+        "costs": {
+          "n": 0,
+          "precision": 0.0,
+          "precision_ci": [
+            0.0,
+            0.5615
+          ],
+          "recall": 0.0,
+          "recall_ci": [
+            null,
+            null
+          ]
+        },
+        "entity": {
+          "n": 0,
+          "precision": 0.0,
+          "precision_ci": [
+            0.0,
+            0.2588
+          ],
+          "recall": 0.0,
+          "recall_ci": [
+            null,
+            null
+          ]
+        },
+        "family": {
+          "n": 0,
+          "precision": 0.0,
+          "precision_ci": [
+            0.0,
+            0.0897
+          ],
+          "recall": 0.0,
+          "recall_ci": [
+            null,
+            null
+          ]
+        },
+        "labels": {
+          "n": 0,
+          "precision": 0.0,
+          "precision_ci": [
+            0.0,
+            0.3543
+          ],
+          "recall": 0.0,
+          "recall_ci": [
+            null,
+            null
+          ]
+        },
+        "none": {
+          "n": 391,
+          "precision": 1.0,
+          "precision_ci": [
+            0.9761,
+            1.0
+          ],
+          "recall": 0.4015,
+          "recall_ci": [
+            0.3541,
+            0.4509
+          ]
+        },
+        "prediction_moment": {
+          "n": 85,
+          "precision": 0.4065,
+          "precision_ci": [
+            0.3323,
+            0.4851
+          ],
+          "recall": 0.7412,
+          "recall_ci": [
+            0.6391,
+            0.8224
+          ]
+        },
+        "target": {
+          "n": 90,
+          "precision": 0.5696,
+          "precision_ci": [
+            0.4917,
+            0.6443
+          ],
+          "recall": 1.0,
+          "recall_ci": [
+            0.9591,
+            1.0
+          ]
+        }
+      }
+    },
+    "margin": {
+      "difference": -0.0106,
+      "lower": -0.0621,
+      "upper": 0.0462
+    },
+    "turned": [
+      106,
+      366
+    ],
+    "groups": 150,
+    "decisions": 663,
+    "not_yet": "Blind cases (the main product's R3 asks for them): the generated sets have benchmark labels only; decision_gate_v2 adds the blind labels of 22.4's disagreements.",
+    "demotion": {
+      "accuracy_lower_below": 0.85,
+      "margin_lower_below": -0.02,
+      "turned_above": 0.05
+    },
+    "scope": "Evidence about this model on these generated decisions, not a claim that it is ready for production."
+  },
+  "result": "fail",
+  "rule": "One run of workflow.next_question.boosting on 663 sealed decisions of written people, judged by a gate fixed before it; evidence about these written conversations with no model, not about real sessions nor production readiness."
+}

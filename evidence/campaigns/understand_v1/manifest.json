@@ -1,0 +1,15 @@
+{
+  "campaign_id": "understand_v1",
+  "objective": "S8 B2: the understanding students with more homework (600 written people), state students and a text student, judged once on 150 sealed people written apart.",
+  "gate": {
+    "version": "understand_gate_v1",
+    "decision_gate": "decision_gate_v1",
+    "seed": 5,
+    "set": "journeys_understand_sealed.json (150 people, ten per kind, written by a separate agent told only the format, the kinds and their columns, never the homework or its writer's prompt; pinned by sealed_understand.sha256)",
+    "played": "seed 5, on the rules alone, each person saying \"I don't know\" to what they cannot answer, as the homework was played",
+    "rule": "Each point's state student, and the text student for problem.family, judged once by decision_gate_v1 (the column points' thresholds, unchanged) beside the rule on the same sealed decisions, by person, an answer right when the person's journey accepts it; a model that does not pass stays in shadow.",
+    "seen_before": "Dev, each beside the rule on the same rows: problem.family text student 0.966 against the rule's 0.821 (235 decisions); problem.family state student 0.498 (the state holds no words): expected to fail; problem.ready 0.887 [0.844, 0.920] against 0.827: its accuracy's lower bound is under 0.90, expected to fail; workflow.next_question 0.876 [0.859, 0.891] against 0.855: expected to fail on the same bar; solution.route 0.820 against 0.826: no margin, expected to fail. The text student is the one candidate; its risk is the writer's style (the homework was written by one writer, the sealed people by another), and the rule's right answers it would turn wrong were not measured on dev. The rule on the new people: 0.71 (family), 0.71 (ready), 0.80 (next question), 0.84 (route), against 0.95, 0.96, 0.99 and 0.89 on the older ones."
+  },
+  "rule": "Each point's state student, and the text student for problem.family, judged once by decision_gate_v1 (the column points' thresholds, unchanged) beside the rule on the same sealed decisions, by person, an answer right when the person's journey accepts it; a model that does not pass stays in shadow.",
+  "command": "python -m dclab_rnd.understand_students gate --yes"
+}

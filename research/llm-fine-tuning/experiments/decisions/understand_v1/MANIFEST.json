@@ -1,0 +1,126 @@
+{
+ "name": "workflow decisions from journeys",
+ "version": "understand_v1",
+ "labels": "workflow_labels_v2",
+ "built_at": "2026-10-25T13:49:52+00:00",
+ "seeds": [
+  0
+ ],
+ "new_people": 589,
+ "plays": 589,
+ "failed_plays": [],
+ "older_rows_from": "workflow_v1",
+ "older_rows": 2296,
+ "left_out": {
+  "problem.family stated by the person": 43
+ },
+ "sets": {
+  "problem.family": {
+   "rows": 567,
+   "labelled": 567,
+   "by_split": {
+    "dev": 235,
+    "train": 332
+   },
+   "labels": {
+    "anomaly": 43,
+    "classification": 134,
+    "text_or_images": 40,
+    "entity_tables": 17,
+    "forecasting": 46,
+    "regression": 92,
+    "ranking": 9,
+    "rare_event": 64,
+    "segmentation": 8,
+    "streams": 42,
+    "time_to_event": 38,
+    "uplift": 34
+   },
+   "rule_right": 458,
+   "people": 449,
+   "fingerprint": "fd5ee0f28b4a2fb8a0af4c81d133235ae2b3640f850a4b49d124c9ab4be0ad8c"
+  },
+  "problem.ready": {
+   "rows": 654,
+   "labelled": 654,
+   "by_split": {
+    "dev": 266,
+    "train": 388
+   },
+   "labels": {
+    "True": 534,
+    "False": 120
+   },
+   "rule_right": 534,
+   "people": 514,
+   "fingerprint": "810c2689d272b8da07b2a650bf82ca5e6c22acb7cd867f80e34f69adbe7d475b"
+  },
+  "solution.route": {
+   "rows": 837,
+   "labelled": 393,
+   "by_split": {
+    "dev": 161,
+    "train": 232
+   },
+   "labels": {
+    "anomaly": 37,
+    "binary": 45,
+    "embedded": 8,
+    "forecasting": 23,
+    "multiclass": 40,
+    "places": 12,
+    "ranking": 13,
+    "rare_event": 42,
+    "regression": 18,
+    "streams": 23,
+    "text_tabular": 45,
+    "time_to_event": 25,
+    "uplift": 16,
+    "entity_tables": 20,
+    "segmentation": 6,
+    "review_budgeted": 20
+   },
+   "rule_right": 342,
+   "people": 263,
+   "fingerprint": "e3482763d6b49459d6351268e4afbb70750c6103743c5c93543b53e6c6e8a8c3"
+  },
+  "workflow.next_question": {
+   "rows": 4192,
+   "labelled": 3936,
+   "by_split": {
+    "train": 2313,
+    "dev": 1623
+   },
+   "labels": {
+    "target": 909,
+    "prediction_moment": 731,
+    "action": 943,
+    "none": 1353
+   },
+   "rule_right": 3403,
+   "people": 740,
+   "fingerprint": "00b6025cc6aa0803cabbaee1838e1976c359d16094a221d2e4eb31cf6835be64"
+  }
+ },
+ "not_learned": {
+  "map.size": "its state holds the rules' own drawing (the parts and the template): a classifier on it can only copy the rules",
+  "map.edit": "the person's own change to the map: an action recorded, not a decision DCLab makes",
+  "problem.pack": "only two problem kinds declare a pack, too few to learn from",
+  "workflow.template": "drawn from the pack by a fixed table: there is nothing to learn",
+  "workflow.move": "the workflow graph's validator owns it: no model decides a move (principle 1 of the plan)",
+  "workflow.revisit": "a person's or an agent's request to run a stage again: no journey asks for one",
+  "workflow.stage_approval": "the written person approves every gate: the labels would carry no information",
+  "workflow.stop": "no agent with a model runs in a journey; its labels come from recorded sessions' outcomes (27.2)",
+  "workflow.g4": "G4 is a rule on the run's facts; its truth is where people take the work next, from recorded projects (30.15)",
+  "agent.tool_choice": "no agent with a model runs in a journey; its labels come from recorded sessions' outcomes (27.2)",
+  "experiment.next": "the engine's own improvement loop: labelled by its measured results, not by a journey",
+  "solution.compose": "labelled where it is decided, by the holdout's measured comparison (24.7)",
+  "team.next_node": "the walk's own routing rule (situate) chooses the node from the coordinator's answer: a classifier on it can only copy the rule (29.6)",
+  "critic.send_back": "labelled where it is decided, by whether the person's answer changed the card's field (29.6)",
+  "command.intent_route": "not decided by the studio yet",
+  "proposal.completeness": "not decided by the studio yet",
+  "department.proposal": "labelled where it is judged: a person's judgment of each proposal, not a journey (30.22)"
+ },
+ "rule": "Rows of written journeys played on the rules alone (no model, no routed model, no shadow); each label is the set of answers its journey accepts, never DCLab's answer, and the rules are scored right when their answer is in it. A person (a set and an id) is in one split. Rebuilt by `python -m dclab_rnd.workflow_models collect` (and `relabel` from its plays); the rows are not committed.",
+ "split_rule": "one split per person: dclab_core.datasets.split_of('dataset:journey:<set>:<id>'), its sealed share dev"
+}

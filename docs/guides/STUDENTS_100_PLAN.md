@@ -288,7 +288,11 @@ the refitted model scores the top a little lower. Layer 5 therefore also measure
   and 0.96 on the older ones.
 - **A student that reads the words** (`dclab_rnd/understand_students.py`): before the fix below, the text student for
   `problem.family` scored 0.967 on dev against the rule's 0.825; the state-only student 0.50 (the state holds no words).
-  It is retrained on plays of the fixed product before its one sealed exam.
+  Retrained on plays of the fixed product, then the one sealed exam (150 people of another writer, the gate committed
+  first): **no student passed**. The text student read the family right on 0.896 (the bar 0.90), +0.03 over the rule,
+  but turned 5.6% of the rule's right answers wrong (the bar 0.02); the state students fell from dev to sealed (the
+  next question 0.88 to 0.50): they learned the homework's writer. Next: the rule first and the text student only
+  where the rule reads no family, on a new sealed set; more than one writer before another state student.
 - **Live with Claude** (45 dev people, EUR 3.63): the rules right on 11, Claude as the Home agent on 14. Fixed: a
   person's "I don't know" was recorded as their answer (46 moments, 33 outcomes, 31 families; 4 projects built with
   it); a table with nothing left to learn from crashed the model.

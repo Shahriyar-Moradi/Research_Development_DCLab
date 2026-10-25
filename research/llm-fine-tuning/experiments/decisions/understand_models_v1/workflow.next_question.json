@@ -1,0 +1,318 @@
+{
+ "schema_version": "dclab_core.decision_model_card.v1",
+ "point": "workflow.next_question",
+ "name": "workflow.next_question.boosting",
+ "version": "50644d0af96d",
+ "family": "boosting",
+ "strength": 0.1,
+ "features": 16,
+ "fields": [
+  "labels",
+  "moment_known",
+  "open_questions",
+  "outcome_known",
+  "pack",
+  "step",
+  "steps_left"
+ ],
+ "excluded": [],
+ "trained_on": 2313,
+ "trained_set": "5ff1ff8c07459e20661dcceda56b7466833982e830f7ddcfed96cd5e3a70822c",
+ "groups": 430,
+ "label_sources": {
+  "benchmark": 2313
+ },
+ "chosen_by": "out-of-fold accuracy over 5 folds grouped by table; best boosting:0.1",
+ "oof_accuracy": {
+  "logistic:0.1": 0.8859,
+  "logistic:1.0": 0.8841,
+  "logistic:10.0": 0.8928,
+  "boosting:0.1": 0.8954,
+  "boosting:1.0": 0.8954,
+  "boosting:10.0": 0.8945
+ },
+ "calibration": "Platt scaling on the same 5 table-grouped folds of the training rows",
+ "dev": {
+  "n": 1623,
+  "accuracy": 0.8755,
+  "accuracy_ci": [
+   0.8586,
+   0.8907
+  ],
+  "precision": 0.8732,
+  "precision_ci": [
+   0.8475,
+   0.8968
+  ],
+  "recall": 0.8996,
+  "recall_ci": [
+   0.8813,
+   0.9158
+  ],
+  "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+  "answered": 1623,
+  "per_class": {
+   "action": {
+    "n": 380,
+    "precision": 0.7893,
+    "precision_ci": [
+     0.7474,
+     0.8259
+    ],
+    "recall": 0.8579,
+    "recall_ci": [
+     0.8192,
+     0.8894
+    ]
+   },
+   "none": {
+    "n": 570,
+    "precision": 0.9814,
+    "precision_ci": [
+     0.9637,
+     0.9905
+    ],
+    "recall": 0.7404,
+    "recall_ci": [
+     0.7028,
+     0.7747
+    ]
+   },
+   "prediction_moment": {
+    "n": 297,
+    "precision": 0.7775,
+    "precision_ci": [
+     0.7331,
+     0.8163
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9872,
+     1.0
+    ]
+   },
+   "target": {
+    "n": 376,
+    "precision": 0.9447,
+    "precision_ci": [
+     0.9177,
+     0.9632
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9899,
+     1.0
+    ]
+   }
+  }
+ },
+ "rule_dev": {
+  "n": 1623,
+  "accuracy": 0.8552,
+  "accuracy_ci": [
+   0.8372,
+   0.8715
+  ],
+  "precision": 0.4444,
+  "precision_ci": [
+   0.4334,
+   0.4541
+  ],
+  "recall": 0.4415,
+  "recall_ci": [
+   0.4331,
+   0.4492
+  ],
+  "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+  "answered": 1623,
+  "per_class": {
+   "action": {
+    "n": 380,
+    "precision": 0.8767,
+    "precision_ci": [
+     0.839,
+     0.9066
+    ],
+    "recall": 0.8421,
+    "recall_ci": [
+     0.802,
+     0.8753
+    ]
+   },
+   "costs": {
+    "n": 0,
+    "precision": 0.0,
+    "precision_ci": [
+     0.0,
+     0.4345
+    ],
+    "recall": 0.0,
+    "recall_ci": [
+     null,
+     null
+    ]
+   },
+   "entity": {
+    "n": 0,
+    "precision": 0.0,
+    "precision_ci": [
+     0.0,
+     0.3903
+    ],
+    "recall": 0.0,
+    "recall_ci": [
+     null,
+     null
+    ]
+   },
+   "family": {
+    "n": 0,
+    "precision": 0.0,
+    "precision_ci": [
+     0.0,
+     0.0876
+    ],
+    "recall": 0.0,
+    "recall_ci": [
+     null,
+     null
+    ]
+   },
+   "labels": {
+    "n": 0,
+    "precision": 0.0,
+    "precision_ci": [
+     0.0,
+     0.2425
+    ],
+    "recall": 0.0,
+    "recall_ci": [
+     null,
+     null
+    ]
+   },
+   "none": {
+    "n": 570,
+    "precision": 0.9851,
+    "precision_ci": [
+     0.9679,
+     0.9932
+    ],
+    "recall": 0.6965,
+    "recall_ci": [
+     0.6575,
+     0.7328
+    ]
+   },
+   "prediction_moment": {
+    "n": 297,
+    "precision": 0.7487,
+    "precision_ci": [
+     0.7036,
+     0.789
+    ],
+    "recall": 0.9933,
+    "recall_ci": [
+     0.9758,
+     0.9982
+    ]
+   },
+   "target": {
+    "n": 376,
+    "precision": 0.9447,
+    "precision_ci": [
+     0.9177,
+     0.9632
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+     0.9899,
+     1.0
+    ]
+   }
+  }
+ },
+ "dev_by_source": {
+  "benchmark": {
+   "n": 1623,
+   "accuracy": 0.8755,
+   "accuracy_ci": [
+    0.8586,
+    0.8907
+   ],
+   "precision": 0.8732,
+   "precision_ci": [
+    0.8475,
+    0.8968
+   ],
+   "recall": 0.8996,
+   "recall_ci": [
+    0.8813,
+    0.9158
+   ],
+   "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+   "answered": 1623,
+   "per_class": {
+    "action": {
+     "n": 380,
+     "precision": 0.7893,
+     "precision_ci": [
+      0.7474,
+      0.8259
+     ],
+     "recall": 0.8579,
+     "recall_ci": [
+      0.8192,
+      0.8894
+     ]
+    },
+    "none": {
+     "n": 570,
+     "precision": 0.9814,
+     "precision_ci": [
+      0.9637,
+      0.9905
+     ],
+     "recall": 0.7404,
+     "recall_ci": [
+      0.7028,
+      0.7747
+     ]
+    },
+    "prediction_moment": {
+     "n": 297,
+     "precision": 0.7775,
+     "precision_ci": [
+      0.7331,
+      0.8163
+     ],
+     "recall": 1.0,
+     "recall_ci": [
+      0.9872,
+      1.0
+     ]
+    },
+    "target": {
+     "n": 376,
+     "precision": 0.9447,
+     "precision_ci": [
+      0.9177,
+      0.9632
+     ],
+     "recall": 1.0,
+     "recall_ci": [
+      0.9899,
+      1.0
+     ]
+    }
+   }
+  }
+ },
+ "dev_calibration_error": 0.0349,
+ "limits": [
+  "Measured on dev rows of journeys: written people played through the Home conversation on the rules alone, each label the set of answers its journey accepts (workflow_labels_v2); the sealed journeys are read once, under the gate fixed before.",
+  "A group is a person (a set and an id): dev holds other people of the same problem kinds, so dev measures reading these kinds of conversation, not real sessions, whose words and order vary more.",
+  "On dev the rules' answer counts right when the journey accepts it, the classifier's only when it is the label it learned (the first accepted); the sealed gate counts every accepted answer for both.",
+  "The state is what the ledger records (counts, flags and codes, never the person's words): a classifier sees less than the rules, which read the words; matching the rules is the expected result until real sessions accumulate."
+ ]
+}

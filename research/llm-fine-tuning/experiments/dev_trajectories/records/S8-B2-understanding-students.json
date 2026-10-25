@@ -28,10 +28,65 @@
   }
  ],
  "change": "dclab_rnd/understand_students.py (new: collect, train, gate), dclab_rnd/live_people.py (new, B3), dclab_rnd/lake/answers.py (the sealed guard, the homework split), tests/test_understand_students.py and tests/test_live_people.py (new).",
- "findings": [],
- "measurements": [],
- "outcome": "Built; the collection, the dev figures and the one sealed read follow.",
- "lessons": [],
+ "findings": [
+  {
+   "id": "B2-1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "A student on the ledger's state cannot read a person's family.",
+   "scenario": "problem.family state student 0.498 on dev, 0.51 on the sealed people, against the rule's 0.82.",
+   "cause": "The state holds counts and flags, never the person's words.",
+   "fix": "A text student that reads the words.",
+   "test": "UND-001 and UND-005"
+  },
+  {
+   "id": "B2-2",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The state students learned the homework's writer, not the task.",
+   "scenario": "workflow.next_question 0.876 on dev (the homework writer's people), 0.497 on the sealed people of another writer; problem.ready 0.887 to 0.753; solution.route 0.820 to 0.684.",
+   "cause": "One writer's people share a style; their states follow it.",
+   "fix": "More than one writer, and real sessions, before another state student; the sealed set's second writer is what showed it.",
+   "test": "UND-002 to UND-004"
+  },
+  {
+   "id": "B2-3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The text student reads families better than the rule but turns some of the rule's right answers wrong.",
+   "scenario": "Sealed: 0.896 accuracy (the bar 0.90), margin over the rule +0.030, 5.6% of the rule's right decisions turned wrong (the bar 0.02).",
+   "cause": "It replaces the rule everywhere, including where the rule had read the family plainly.",
+   "fix": "Next version: the rule first, the text student only where the rule reads no family; judged on a new sealed set (this one is spent).",
+   "test": "UND-005"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "dev (plays of the fixed product)",
+   "gate": "each student beside the rule on the same dev rows",
+   "result": "text 0.966 against 0.821; state family 0.498; ready 0.887 against 0.827; next question 0.876 against 0.855; route 0.820 against 0.826; the rule on the new people 0.71, 0.71, 0.80, 0.84 against 0.95, 0.96, 0.99, 0.89 on the older ones",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "dev people of the homework's one writer"
+   ]
+  },
+  {
+   "name": "the sealed exam (once)",
+   "gate": "understand_gate_v1: decision_gate_v1 unchanged, fixed and committed before the read (c0b24002)",
+   "result": "no student passed; the text student nearest: accuracy 0.896, precision 0.94, recall 0.89, margin +0.030 over the rule, 5.6% of the rule's right decisions turned wrong, on 67 sealed decisions; the state students 0.51, 0.75, 0.68 and 0.50",
+   "verdict": "fail",
+   "cost_eur": 0.0,
+   "limits": [
+    "150 sealed people of one other writer; 67 family decisions"
+   ]
+  }
+ ],
+ "outcome": "No student passed; the text student reads a person's family better than the rule on another writer's people (+3 points) but turns 5.6% of the rule's right answers wrong; the state students learned the writer. Next: the rule first and the text student where the rule reads nothing, on a new sealed set.",
+ "lessons": [
+  "A second writer for the exam is what shows a student learned the first writer.",
+  "A student that beats the rule on average can still be unsafe: count the rule's right answers it breaks."
+ ],
  "risks": [
   "The state students may still not beat the rule: their state holds no words."
  ],

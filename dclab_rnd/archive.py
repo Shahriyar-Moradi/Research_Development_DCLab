@@ -38,7 +38,8 @@ SOURCES = {  # name: folders copied as they are (the workspace goes through stor
     "lake_bronze": [ROOT / "lake" / "bronze"],
     "openml_profiles": [ROOT / "data" / "downloads" / "openml"],
     "decision_sets": [DECISIONS / "generated_v1", DECISIONS / "generated_images_v1", DECISIONS / "generated_v2", DECISIONS / "workflow_v1",
-                      DECISIONS / "real_v1", DECISIONS / "generated_v1_committee", DECISIONS / "real_v2", DECISIONS / "generated_v3"],  # S2: the collector's fresh exam; step 5: the mapped students' sets  # 29.15: the real-table sets (OpenML); 29.16: the committee's fresh set
+                      DECISIONS / "real_v1", DECISIONS / "generated_v1_committee", DECISIONS / "real_v2", DECISIONS / "generated_v3",
+                      DECISIONS / "understand_v1"],  # S2: the collector's fresh exam; step 5: the mapped students' sets  # 29.15: the real-table sets (OpenML); 29.16: the committee's fresh set
     # 29.18 (the owner: every judgment with all its details, permanently): the live runs whole, their requests, the full
     # replies (judgments/, answers/), the judge's ledgers; results are never edited, a re-run is a new folder
     "live_tests": [ROOT / "agent_runs" / "live_tests"],

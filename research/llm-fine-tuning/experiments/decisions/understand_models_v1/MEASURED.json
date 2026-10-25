@@ -1,0 +1,113 @@
+{
+ "sets": "research/llm-fine-tuning/experiments/decisions/understand_v1",
+ "measured": {
+  "problem.family": {
+   "kind": "state",
+   "train_rows": 332,
+   "dev_rows": 235,
+   "student_dev_accuracy": 0.4979,
+   "student_dev_ci": [
+    0.4345,
+    0.5613
+   ],
+   "rule_dev_accuracy": 0.8213,
+   "rule_dev_ci": [
+    0.7672,
+    0.865
+   ],
+   "family": "logistic"
+  },
+  "problem.ready": {
+   "kind": "state",
+   "train_rows": 388,
+   "dev_rows": 266,
+   "student_dev_accuracy": 0.8872,
+   "student_dev_ci": [
+    0.8436,
+    0.9198
+   ],
+   "rule_dev_accuracy": 0.8271,
+   "rule_dev_ci": [
+    0.777,
+    0.8678
+   ],
+   "family": "boosting"
+  },
+  "workflow.next_question": {
+   "kind": "state",
+   "train_rows": 2313,
+   "dev_rows": 1623,
+   "student_dev_accuracy": 0.8755,
+   "student_dev_ci": [
+    0.8586,
+    0.8907
+   ],
+   "rule_dev_accuracy": 0.8552,
+   "rule_dev_ci": [
+    0.8372,
+    0.8715
+   ],
+   "family": "boosting"
+  },
+  "solution.route": {
+   "kind": "state",
+   "train_rows": 232,
+   "dev_rows": 161,
+   "student_dev_accuracy": 0.8199,
+   "student_dev_ci": [
+    0.7533,
+    0.8716
+   ],
+   "rule_dev_accuracy": 0.8261,
+   "rule_dev_ci": [
+    0.7601,
+    0.8768
+   ],
+   "family": "logistic"
+  },
+  "problem.family:text": {
+   "point": "problem.family",
+   "kind": "text",
+   "train_people": 262,
+   "dev_rows": 235,
+   "dev_people": 187,
+   "student_dev_accuracy": 0.966,
+   "rule_dev_accuracy": 0.8213,
+   "features": "character n-grams (2 to 5) of the person's words and answers, tf-idf; logistic regression, balanced"
+  }
+ },
+ "skipped": {},
+ "rule_on_new_people": {
+  "problem.family": {
+   "new_rows": 331,
+   "rule_on_new": 0.7069,
+   "old_rows": 236,
+   "rule_on_old": 0.9492
+  },
+  "problem.ready": {
+   "new_rows": 374,
+   "rule_on_new": 0.7112,
+   "old_rows": 280,
+   "rule_on_old": 0.9571
+  },
+  "workflow.next_question": {
+   "new_rows": 2616,
+   "rule_on_new": 0.8031,
+   "old_rows": 1320,
+   "rule_on_old": 0.9864
+  },
+  "solution.route": {
+   "new_rows": 173,
+   "rule_on_new": 0.8439,
+   "old_rows": 220,
+   "rule_on_old": 0.8909
+  }
+ },
+ "limits": [
+  "Measured on dev rows of journeys: written people played through the Home conversation on the rules alone, each label the set of answers its journey accepts (workflow_labels_v2); the sealed journeys are read once, under the gate fixed before.",
+  "A group is a person (a set and an id): dev holds other people of the same problem kinds, so dev measures reading these kinds of conversation, not real sessions, whose words and order vary more.",
+  "On dev the rules' answer counts right when the journey accepts it, the classifier's only when it is the label it learned (the first accepted); the sealed gate counts every accepted answer for both.",
+  "The state is what the ledger records (counts, flags and codes, never the person's words): a classifier sees less than the rules, which read the words; matching the rules is the expected result until real sessions accumulate.",
+  "The new people are written by Claude through the gateway (S8 B1): invented, varied on purpose; a student may learn the writer's style; the sealed people are written by a separate agent to test that."
+ ]
+}
