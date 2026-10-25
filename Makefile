@@ -124,6 +124,9 @@ capture:  ## 26.9: capture and keep everything for training: the store's whole r
 store-check:  ## 32.18: one scripted day captured end to end through the store's three tiers, curators, sets and tutor, in a scratch folder: every kind, nothing twice, the deleted project kept, no key or contact, sealed apart
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.store.check
 
+store-schedule:  ## 32.37: run the store every 6 hours on this Mac (launchd), when due, alone and with 2 GB free; ARGS=--uninstall or --status
+	$(PYTHON) scripts/store_scheduled.py $(if $(ARGS),$(ARGS),--install)
+
 store:  ## the store (32.x, docs/guides/STORING_PHASE_PLAN.md): its status and its catalog, README and schemas rewritten at training_records/store (a clone of dclab-records, owner/main)
 	$(PYTHON) -m dclab_rnd.store status && $(PYTHON) -m dclab_rnd.store catalog
 

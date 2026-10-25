@@ -1,0 +1,56 @@
+{
+ "package": "32.37",
+ "title": "The store on a schedule for this Mac",
+ "date": "2026-10-25",
+ "request": "After the store check: make sure the store runs on a schedule.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.37",
+ "plan": [
+  "Reuse the conductor's own due rule",
+  "A launchd job every 6 hours, low priority",
+  "Never two runs at once; stop under 2 GB free"
+ ],
+ "decisions": [
+  {
+   "decision": "launchd every 6 hours, not hourly",
+   "why": "a whole run took 91 minutes under load; the worker already runs hourly while the server runs"
+  },
+  {
+   "decision": "Skip while the server's worker runs",
+   "why": "the worker runs the store inside its own process, which a check for another store run would not see; two runs would do the same work twice"
+  }
+ ],
+ "change": "scripts/store_scheduled.py, make store-schedule, tests/test_store_scheduled.py, STORING_PHASE_PLAN 32.37.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "defect": "a check for another store run would miss the worker's run",
+   "scenario": "the server's worker runs conduct inside python -m dclab_rnd.worker; pgrep for the store's command finds nothing",
+   "cause": "the worker is its own process",
+   "fix": "the schedule skips while the worker runs",
+   "test": "tests/test_store_scheduled.py::StoreScheduledTest::test_a_run_starts_only_when_due_alone_and_with_disk",
+   "severity": "behaviour"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the first whole run after 32.33 to 32.36",
+   "gate": "the run ends without a failed step and builds the DCLab Code sets",
+   "fixed_before_run": true,
+   "result": "91 minutes, no failed step; dclab_code kept 4 sources; sets: m6 2 episodes, m7 8 judged steps, m2 8 and m1 8 permission decisions; the tutor waits for 20 rows",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "two real sessions so far"
+   ]
+  }
+ ],
+ "outcome": "The store runs every 6 hours on the owner's Mac without the server, alone and with disk to spare.",
+ "lessons": [
+  "A schedule must know every way the same job is already started"
+ ],
+ "risks": [
+  "a run started while the Mac sleeps waits for the next interval"
+ ],
+ "commits": []
+}
