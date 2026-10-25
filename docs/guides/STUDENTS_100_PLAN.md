@@ -154,6 +154,62 @@ missing, and versions `1.10` become the number 1.1. Both were planted on purpose
 so the product keeps changing the data. "NA" is truly ambiguous (R writes missing values as `NA`), so the owner decides
 whether the cleaner keeps it as written in a column of two-letter codes and says so.
 
+**The owner's answers (2026-10-25) and what followed:**
+
+- **"NA" kept in a column of two-letter codes** (`dclab_rnd/studio/na_codes.py`): in every reader of a person's table
+  (upload, project table, cleaner, exported code and notebook, the scoring service), said in the cleaning log. Versions
+  like 1.10 are still read as numbers (not asked).
+- **Part 1, mapped students** (`dclab_rnd/ledger/mapped.py`): the split student answers `modifier.groups` and
+  `modifier.time_order`, the cleaning-step student answers `data.cleaning_keep`. Their homework and exam is
+  `generated_v3`: seeds 10,000 and up (never drawn for generated_v2, where the base students trained), states written by
+  production's own capture. Each is judged once on its sealed rows by `decision_gate_v1`, unchanged
+  (`python -m dclab_rnd.decision_gate_run --set v3 --points modifier.groups --yes`: one point, its sealed set alone).
+  **On dev (2,236 and 550 decisions; the sealed rows unread), checked with the gate's own function before any read:**
+  `modifier.groups` 100% (lower bound 99.3%) against the rule's 64.6%, the gate passed; `modifier.time_order` 73.1%,
+  exactly the rule (a birth date fools both: the state shows nothing about a date column's span or order), the gate
+  failed on its margin; `data.cleaning_keep` 86.9% against 74.6%, the gate failed (accuracy's lower bound 85.4% under
+  90%, and 17.6% of the rule's right answers turned wrong, the gate allows 2%). **The exam's scope, fixed here before
+  the read:** only `modifier.groups` sits its sealed exam; the other two sealed sets stay unread, kept for a student
+  with the evidence they lack, since reading them now would spend them on a known fail.
+  **The review then stopped the groups exam before its read (2026-10-25, morning).** The 100% was not skill:
+  benchgen v2's split tables always hold exactly three features and the outcome, so any further column that is neither a
+  date nor an id *is* the planted entity, and the split student had learned to count columns (one formula on the
+  columns fits every v2 and v3 row; adding one plain number to a table without an entity flips its answer). The split
+  student's own 77% on v2 measured the same layout. Fixed in generated_v3: 0 to 5 plain columns drawn apart from the
+  truth (`decisions_gen.with_plain_columns`), and the tables with both a row time and an entity left out of the groups
+  set, since there the entity recurs over the period and the product's rule asks the person (no truth in the data).
+  generated_v3 is rebuilt (its sealed rows were never read) and dev measured again before any exam. The other v2 sets
+  have the same kind of risk (the cases tables' column counts differ by variant): every v2 student failed its sealed
+  exam, so no serving student rests on them, but any new student needs homework where a column count says nothing.
+  **On the rebuilt generated_v3 (dev, sealed unread):**
+
+  | Point | Mapped student | Student trained on v3's homework | Rule | Gate on dev |
+  |---|---|---|---|---|
+  | `modifier.groups` | 42.8% (it answers yes wherever a column is added) | 82.6% | 80.9% | fail (under 90%) |
+  | `modifier.time_order` | 73.1% | 73.1% | 73.1% | fail (no margin) |
+  | `data.cleaning_keep` | 86.9% | 100% | 74.6% | the trained one passes, on a shortcut |
+
+  The trained keep student's 100% is the dirty tables' own layout again: every "numbers" step they make wrong is either
+  on a column of few values (a version) or on unique plain digits (an identifier), and they never plant unique plain
+  integers written as text that *are* numbers, so "never convert unique digits" scores perfectly here and would be wrong
+  on real tables. **No student sits an exam; all three sealed sets stay unread, and the mapped students are not loaded
+  in shadow** (failing students would fill the people's queue with false disagreements). The next step for planted
+  homework is a generator package in `dclab_core` (benchgen v3): layouts drawn apart from every truth and, for each
+  trap, its counter-example (plain numbers as text, an entity with an id-like name that never repeats, a repeating
+  category that is no entity), with a test that the state alone cannot name the truth by a simple formula.
+- **Part 2, the rule measured on planted files, no student needed for any of the four:**
+
+| Point | Today's rule | Verdict |
+|---|---|---|
+| `data.structure_format` | the right table from 11 of 12 tricky files (a tab file named .csv, Excel named .csv, parquet named .dat, semicolons with decimal commas) | no student; the one miss, a title line above the header, was a reader bug: fixed (12 of 12) |
+| `labels.join_key` | right on clean files, a shared row number when the real key finds every label, an entity key (refused) | no student; a running number under a name the rule does not know ("line", "S.No", "ردیف") wins when a tenth of the labelled cases are missing from the export and marks the first rows as cases: a fix in `dclab_core.analyse` (both files' columns a running number of their own file), queued after the other session's 0.109.0; zero-padded text ids against integers find no key (said to the person) |
+| `modifier.noisy_labels` | knows 13 source words (rule, cluster, expert, audit...) | no student: today's state holds nothing about a source column; "manual", "auto", "analyst" are missed, a vocabulary gap |
+| `modifier.review_capacity` | asks the person on every screening problem | no student: its truth is what the person says about the team |
+
+- **`tuning.accept`'s state** now holds what judges a gain on the folds (its size in units of the folds' spread, how
+  many candidates were tried, the baseline's fold mean and spread, the family, the metric), so the self-play runs grown
+  for it carry evidence a student can use beyond the rule's 0.001 margin.
+
 ### S4. Find the 34 new points (to reach 100)
 - **First an inventory, not invention:** read where DCLab makes a choice today that no point records (the engine's
   encoders and imputers, class weights, calibration, feature selection, text vectorising, date parts, imbalance handling,

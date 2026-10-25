@@ -1,0 +1,200 @@
+{
+ "package": "step5-mapped-students",
+ "title": "More students, measured first: no planted student earns an exam, the generator's layouts named the truths, tuning gets its evidence",
+ "date": "2026-10-25",
+ "request": "The owner's step 5: 'More students (toward 100): first the 16 points whose answers can be planted, then the workflow points with recorded steps'; then 'Both parts': reuse the split and cleaning students on the weak choices, measure the rule on planted files for the other four, a student only where the rule errs.",
+ "spec": "docs/guides/STUDENTS_100_PLAN.md S3: a student only where it has labelled examples and a rule to beat; decision_gate_v1 unchanged; a sealed set read once.",
+ "plan": [
+  "Measure today's rule on planted tables before building anything.",
+  "Map an existing student's answer where its skill already covers a weak choice.",
+  "Homework and exam on fresh seeds, states written by production's own capture.",
+  "Check each mapped student on dev with the gate's own function; fix the exam's scope before the read."
+ ],
+ "decisions": [
+  {
+   "decision": "No new student for nine of the sixteen planted points.",
+   "why": "Settings, a definition, choices DCLab does not make, a choice with no rule by design, or a truth only people hold: a student could only copy the rule."
+  },
+  {
+   "decision": "Map the split student onto groups and time order, and the cleaning-step student onto keeping a step.",
+   "why": "On planted tables their rules are weak (61%, 72%, 55%) while those students already hold the skill; a new student would learn the same thing from the same tables."
+  },
+  {
+   "decision": "generated_v3 from seeds 10,000 up, states written by solution_saved and cleaning into a scratch ledger.",
+   "why": "The base students trained on generated_v2's seeds 0 to 2,399; an exam must hold no table they saw, and states built any other way than production's would test the wrong thing."
+  },
+  {
+   "decision": "Only modifier.groups sits its sealed exam.",
+   "why": "On dev, with the gate's own function, time order equals the rule (no margin) and keeping a step turns 17.6% of the rule's right answers wrong (the gate allows 2%): reading those sealed sets would spend them on a known fail."
+  },
+  {
+   "decision": "tuning.accept's state carries the gain in units of the folds' spread, the candidates tried, the baseline's fold mean and spread, the family and the metric, in existing state fields.",
+   "why": "The rule's 0.001 margin kept 22 of 149 tunings a fresh draw rejected; the old state held only the gain, rows and columns."
+  },
+  {
+   "decision": "No student for the file format, the label join key, noisy labels or review capacity.",
+   "why": "Measured: the reader was right on 11 of 12 tricky files (the miss was a reader bug, fixed); the join key's misses need a product fix, not a whisper; noisy labels' state holds nothing a student could read; review capacity's truth is what the person says."
+  },
+  {
+   "decision": "The mapped students are not loaded in shadow and not listed as students.",
+   "why": "Students that fail on dev would whisper false disagreements into the people's queue."
+  }
+ ],
+ "change": "dclab_rnd/ledger/mapped.py (new), ledger/states.py (tuning_state), ledger/capture.py (the modifiers' split fields, tuning's state), decisions_gen.py (build_v3, keep_truth), decision_models_build.py (build_mapped), decision_gate_run.py (set v3), ledger/shadow.py (models_v3), students.py (generated_v3, models_v3, each student's own exam), archive.py, .gitignore, collector.py (the bar counts labelled decisions), tests.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "Most planted points have no rule a student could beat.",
+   "scenario": "Planted tables: groups right 61%, time order 72%, a step kept 55%; nine points are settings, definitions or undecided.",
+   "cause": "The plan counted points, not rules to beat.",
+   "fix": "Map existing students onto the three weak ones; no student for the rest, each reason in the plan.",
+   "test": "agent_runs/live_tests/2026-10-25-planted-rules/"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The tuning rule kept tunings a fresh draw rejected.",
+   "scenario": "149 measured self-play labels: the rule right 82%, as often as always saying no.",
+   "cause": "A 0.001 margin on the best of several candidates on the same folds; the state held no spread.",
+   "fix": "tuning_state with the gain over the folds' spread and the candidates tried.",
+   "test": "tests/test_tuning_state.py"
+  },
+  {
+   "id": "M3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The register showed a passed student as not examined.",
+   "scenario": "column.semantic_role: DMG-014 (the real-table student, failed) overwrote DMG-004 (the register's student, passed): 'not examined (an earlier version failed)'.",
+   "cause": "verdicts kept only the latest exam per point.",
+   "fix": "Every exam kept; each student matched to the exam it sat.",
+   "test": "tests/test_students.py"
+  },
+  {
+   "id": "M4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The collector's run record called a point's homework met with no labels.",
+   "scenario": "column.is_identifier: 12,753 decisions, 0 labels, bar True.",
+   "cause": "The bar counted decisions.",
+   "fix": "The bar counts decisions with a truth (a person's, measured or benchmark; never a model's), and their tables.",
+   "test": "tests/test_collector.py test_the_bar_counts_labelled_decisions_never_decisions_alone"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Tests pinned the old folder list and the old notebook read.",
+   "scenario": "test_label_queue's FOLDERS; test_labels's and test_studio's read lines.",
+   "cause": "Expected changes.",
+   "fix": "The pinned folder list and read lines updated to the new ones.",
+   "test": "tests/test_label_queue.py, tests/test_labels.py, tests/test_studio.py"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The groups student's 100% came from counting columns, not from finding an entity.",
+   "scenario": "On every non-sealed v3 and v2 row, columns minus dates minus ids minus four above zero, or a repeat share above zero, equals the truth; adding one plain number column to a table with no entity flips the answer to yes.",
+   "cause": "benchgen2.split_table always draws three features and the outcome, so any further column that is neither a date nor an id is the planted entity; capture's split fields now pass the column count.",
+   "fix": "generated_v3 adds 0 to 5 plain columns drawn apart from the truth (decisions_gen.with_plain_columns); rebuilt before any sealed read and measured again.",
+   "test": "tests/test_mapped_students.py test_a_tables_column_count_never_says_its_truth"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The groups truth went against the product's own rule on tables with a time and an entity.",
+   "scenario": "120 of 550 dev rows: the entity recurs over the whole period, where modifiers.detect deliberately asks the person; the label said yes and scored the ask as no.",
+   "cause": "The generator draws the entity apart from time.",
+   "fix": "Those tables are left out of the groups set, with the reason in its manifest.",
+   "test": "test_an_entity_recurring_over_the_period_has_no_truth_for_groups"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The mapped student answered without its own fields.",
+   "scenario": "An older record {rows, has_time: True} got time order no; a table-wide step (duplicates) got keep no.",
+   "cause": "The base student reads a missing field as zero.",
+   "fix": "mapped.ready: every split field present, or a column step with the column's bands; otherwise it abstains.",
+   "test": "test_without_its_own_fields_the_mapped_student_abstains"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The exam record did not say the student was mapped.",
+   "scenario": "DMG records copy the base student's family and trained set.",
+   "cause": "judge copied the card's training fields only.",
+   "fix": "The record keeps the card's chosen_by, which names the base student.",
+   "test": "decision_gate_run.judge"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The plan's exam command would have spent all three sealed sets.",
+   "scenario": "--set v3 --yes without --points reads every point's sealed set.",
+   "cause": "The command in the plan named no point.",
+   "fix": "--points modifier.groups in the plan.",
+   "test": "docs/guides/STUDENTS_100_PLAN.md"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "tuning_state could lose a whole record.",
+   "scenario": "A fold spread of 1e-16 made a ratio of 1e14, which the ledger refuses, and the tuning.accept record was dropped.",
+   "cause": "The ratio was taken for any spread above zero; '@' was kept in a code.",
+   "fix": "The ratio only above a spread of 1e-9; codes keep letters, digits and underscores.",
+   "test": "tests/test_tuning_state.py"
+  },
+  {
+   "id": "B1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A comment swallowed the candidates-tried field.",
+   "scenario": "tuning_state lost 'rounds' after the edit for R6.",
+   "cause": "An inline comment written before the next key on the same line.",
+   "fix": "The key on its own line.",
+   "test": "tests/test_tuning_state.py"
+  },
+  {
+   "id": "M5",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "The trained keep student's 100% read the dirty tables' layout.",
+   "scenario": "Dev: every wrong 'numbers' step is on a column of few values or of unique plain digits; a one-line rule on two bands scores 1,948 of 2,236, the student all.",
+   "cause": "benchgen v2's dirty tables plant no unique plain integers written as text that are numbers.",
+   "fix": "No exam; a generator package with each trap's counter-example proposed (benchgen v3 in dclab_core).",
+   "test": "the plan's table, measured in the session"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "mapped and trained students on the rebuilt generated_v3 dev",
+   "gate": "decision_gate_v1's own verdict on dev rows (never sealed)",
+   "result": "groups: mapped 42.8%, trained 82.6%, rule 80.9%; time order: 73.1% all three; keeping a step: mapped 86.9%, trained 100%, rule 74.6%",
+   "verdict": "fail",
+   "cost_eur": 0.0,
+   "limits": [
+    "invented tables",
+    "the trained keep student's score rests on the dirty tables' layout"
+   ]
+  }
+ ],
+ "outcome": "No new student sits an exam: on homework where a column count says nothing the mapped groups student fell to 42.8% (the rule 80.9%), and the one perfect trained student (keeping a cleaning step) read the dirty tables' layout. All sealed sets stay unread; the mapped students are not loaded in shadow. tuning.accept now records the evidence its student needs, and the register shows each student's own exam.",
+ "lessons": [
+  "Count rules to beat, not points: a student is worth its homework only where the rule errs and the state holds evidence the rule ignores.",
+  "A register that keeps one exam per point hides the others: keep every exam and match each to the version that sat it.",
+  "A perfect score on planted homework is a question, not an answer: find the formula the generator leaves in the state before reading a sealed set."
+ ],
+ "risks": [
+  "Planted homework scores mislead until the generator draws its layouts apart from every truth.",
+  "Time order needs a state that says how a date column behaves (its span, its order) before any student can beat the rule."
+ ],
+ "commits": []
+}

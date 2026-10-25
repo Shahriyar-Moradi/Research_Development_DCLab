@@ -1,0 +1,79 @@
+{
+ "schema_version": "dclab_core.decision_model_card.v1",
+ "point": "data.cleaning_keep",
+ "name": "data.cleaning_keep.from_data.cleaning_step",
+ "version": "5c49b5a6cb15+map1",
+ "family": "logistic",
+ "strength": 0.1,
+ "features": 42,
+ "fields": [
+  "cardinality",
+  "cleaning",
+  "column",
+  "dtype",
+  "name_tokens",
+  "nulls",
+  "rows",
+  "uniqueness",
+  "value_pattern"
+ ],
+ "excluded": [],
+ "trained_on": 8472,
+ "trained_set": "9d31e6a1f408e5b6b4b919d95b7a13430aae91b536957bcf41814806f48eddd9",
+ "groups": 706,
+ "label_sources": {
+  "benchmark": 8472
+ },
+ "chosen_by": "not trained on this point: the data.cleaning_step student (data.cleaning_step.logistic@5c49b5a6cb15) answers, its answer mapped (ledger.mapped)",
+ "oof_accuracy": {},
+ "calibration": "the data.cleaning_step student's own",
+ "dev": {
+  "n": 2236,
+  "accuracy": 0.8685,
+  "accuracy_ci": [
+   0.8539,
+   0.8819
+  ],
+  "precision": 1.0,
+  "precision_ci": [
+   0.9972,
+   1.0
+  ],
+  "recall": 0.8237,
+  "recall_ci": [
+   0.8047,
+   0.8413
+  ],
+  "intervals": "Wilson, 95%",
+  "answered": 2236,
+  "per_class": {}
+ },
+ "rule_dev": {
+  "n": 2236,
+  "accuracy": 0.746,
+  "accuracy_ci": [
+   0.7275,
+   0.7636
+  ],
+  "precision": 0.746,
+  "precision_ci": [
+   0.7275,
+   0.7636
+  ],
+  "recall": 1.0,
+  "recall_ci": [
+   0.9977,
+   1.0
+  ],
+  "intervals": "Wilson, 95%",
+  "answered": 2236,
+  "per_class": {}
+ },
+ "dev_by_source": {},
+ "dev_calibration_error": null,
+ "limits": [
+  "Measured on dev rows of generated_v3 (seeds generated_v2 never drew); the sealed partition is read once, by the gate.",
+  "The base student was trained on generated_v2's data.cleaning_step homework: invented tables, not real ones.",
+  "Its confidence is the base student's for its own answer, not calibrated for this point."
+ ]
+}

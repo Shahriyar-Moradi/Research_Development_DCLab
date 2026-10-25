@@ -73,4 +73,25 @@ def cleaning_state(profile: Optional[Mapping[str, Any]], column: str) -> dict[st
     return {**column_bands(col, column), **({"rows": rows_band((profile or {}).get("rows"))} if (profile or {}).get("rows") else {})}
 
 
-__all__ = ["column_bands", "task_state", "split_state", "cases_state", "cleaning_state"]
+def tuning_state(tuning: Mapping[str, Any], evidence: Mapping[str, Any], metric: Optional[str]) -> dict[str, Any]:
+    """``tuning.accept``'s state (2026-10-25): what judges the best candidate's gain on the folds. The best of several
+    candidates on the same folds is partly luck: fresh draws of self-play's replicas mostly said "do not keep it" where
+    the rule's 0.001 margin kept it. So beside the gain (``tuning_gain``): the baseline's fold mean and spread (``cv_mean``,
+    ``cv_std``), the gain in units of that spread (``margin``), how many candidates were tried (``rounds``), the model
+    family (``kind``) and the metric. Scores and counts, in existing state fields; never a value of the table."""
+    def number(v: Any) -> Optional[float]:
+        return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) and v == v else None
+
+    gain = number(tuning.get("gain"))
+    rows = [r for r in evidence.get("configuration_results") or [] if isinstance(r, Mapping)]
+    stats = ((rows[0].get("metrics") or {}).get(metric) or {}) if rows and metric else {}  # the baseline: the first configuration
+    mean, std = (number(stats.get("mean")), number(stats.get("std"))) if isinstance(stats, Mapping) else (None, None)
+    code = lambda v: re.sub(r"[^a-z0-9_]+", "_", str(v or "").lower()).strip("_")[:60] or None  # noqa: E731
+    state = {"tuning_gain": gain, "cv_mean": round(mean, 6) if mean is not None else None, "cv_std": round(std, 6) if std is not None else None,
+             "margin": round(gain / std, 4) if gain is not None and std is not None and std > 1e-9 else None,  # a spread of 0 says nothing
+             "rounds": max(len(rows) - 1, 0) if rows else None,
+             "kind": code(evidence.get("model")), "metric": code(metric)}
+    return {k: v for k, v in state.items() if v is not None}
+
+
+__all__ = ["column_bands", "task_state", "split_state", "cases_state", "cleaning_state", "tuning_state"]

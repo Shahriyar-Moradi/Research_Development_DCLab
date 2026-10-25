@@ -1,0 +1,81 @@
+{
+ "schema_version": "dclab_core.decision_model_card.v1",
+ "point": "modifier.time_order",
+ "name": "modifier.time_order.from_split.strategy",
+ "version": "533dae099b37+map1",
+ "family": "logistic",
+ "strength": 1.0,
+ "features": 9,
+ "fields": [
+  "columns",
+  "date_columns",
+  "has_groups",
+  "has_time",
+  "id_columns",
+  "positive_rate",
+  "rate_change",
+  "repeat_share",
+  "rows",
+  "strength",
+  "task"
+ ],
+ "excluded": [],
+ "trained_on": 1406,
+ "trained_set": "631a4179b635986d4d866049f5eb4f3d0955efa1dbdaf6eedb42b71c52443c2f",
+ "groups": 703,
+ "label_sources": {
+  "benchmark": 1406
+ },
+ "chosen_by": "not trained on this point: the split.strategy student (split.strategy.logistic@533dae099b37) answers, its answer mapped (ledger.mapped)",
+ "oof_accuracy": {},
+ "calibration": "the split.strategy student's own",
+ "dev": {
+  "n": 550,
+  "accuracy": 0.7309,
+  "accuracy_ci": [
+   0.6923,
+   0.7663
+  ],
+  "precision": 0.659,
+  "precision_ci": [
+   0.6132,
+   0.702
+  ],
+  "recall": 1.0,
+  "recall_ci": [
+   0.9867,
+   1.0
+  ],
+  "intervals": "Wilson, 95%",
+  "answered": 550,
+  "per_class": {}
+ },
+ "rule_dev": {
+  "n": 550,
+  "accuracy": 0.7309,
+  "accuracy_ci": [
+   0.6923,
+   0.7663
+  ],
+  "precision": 0.659,
+  "precision_ci": [
+   0.6132,
+   0.702
+  ],
+  "recall": 1.0,
+  "recall_ci": [
+   0.9867,
+   1.0
+  ],
+  "intervals": "Wilson, 95%",
+  "answered": 550,
+  "per_class": {}
+ },
+ "dev_by_source": {},
+ "dev_calibration_error": null,
+ "limits": [
+  "Measured on dev rows of generated_v3 (seeds generated_v2 never drew); the sealed partition is read once, by the gate.",
+  "The base student was trained on generated_v2's split.strategy homework: invented tables, not real ones.",
+  "Its confidence is the base student's for its own answer, not calibrated for this point."
+ ]
+}

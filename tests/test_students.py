@@ -30,12 +30,16 @@ else:
 class RegisterTests(unittest.TestCase):
     @staticmethod
     def exams():
-        """Every sealed result file, as the register reads them: the expectations come from the files, not from today."""
+        """Each point's sealed result file that its register student sat (by name and version), as the register reads
+        them: the expectations come from the files, not from today. A point can hold exams of several versions (DMG-004
+        the invented-table role student, DMG-014 the real-table one): only the register student's own counts."""
+        reg = {r["point"]: (r["student"] or {}).get("answerer") for r in students.register()["items"]}
         out = {}
         for campaign in ("decision_models_v1", "workflow_models_v1"):
-            for f in (students.CAMPAIGNS / campaign / "results").glob("*.json"):
+            for f in sorted((students.CAMPAIGNS / campaign / "results").glob("*.json")):
                 d = json.loads(f.read_text())
-                out[d["point"]] = d
+                if f"{d['model']['name']}@{d['model']['version']}" == reg.get(d["point"]):
+                    out[d["point"]] = d
         return out
 
     def test_every_point_has_a_row_and_the_numbers_are_the_files(self):
@@ -87,7 +91,7 @@ class RegisterTests(unittest.TestCase):
             self.assertEqual(by[point]["status"], "whisper, failed its exam")
             self.assertTrue(by[point]["verdict"]["failed"])
         unexamined = [r for r in reg["items"] if r["student"].get("answerer") and r["point"] not in exams]
-        self.assertTrue(all(r["status"] == "whisper, not examined" for r in unexamined))
+        self.assertTrue(all(r["status"].startswith("whisper, not examined") for r in unexamined))  # perhaps with an earlier version's
         bare = [r for r in reg["items"] if not r["homework"] and not r["student"] and not r["not_decided"]]
         self.assertTrue(bare and all(r["status"] == "no homework" for r in bare))
         for r in reg["items"]:
@@ -96,7 +100,8 @@ class RegisterTests(unittest.TestCase):
         self.assertTrue(all(r["captured"] or r["not_decided"] for r in reg["items"]))
 
     def test_a_retrained_student_has_not_sat_its_predecessors_exam(self):  # the review's F4
-        point = next(p for p, d in self.exams().items() if d["result"] == "pass")
+        sat = students.verdicts(every=True)  # a point whose only exam its student passed: a retrained one has sat none
+        point = next(p for p, d in self.exams().items() if d["result"] == "pass" and len(sat.get(p, [])) == 1)
         real = students.students
 
         def retrained():

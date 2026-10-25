@@ -151,14 +151,15 @@ V2 = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "gene
 
 
 def _record(point: str, subject: tuple[str, str], state: dict[str, Any], options: list[Any], rule_id: str, rule: Any, truth: Any,
-            table: str, key: str, group: Optional[str] = None) -> tuple[Any, Any]:
+            table: str, key: str, group: Optional[str] = None, generation: str = "2") -> tuple[Any, Any]:
     from dclab_core.ledger import Answer, DecisionLabel, DecisionRecord
 
     digest = hashlib.sha256(f"{table}|{key}|{point}".encode()).hexdigest()[:20]
-    record = DecisionRecord(id=f"g2{digest}", point=point, subject={"kind": subject[0], "key": subject[1][:200]}, state=state,
+    record = DecisionRecord(id=f"g{generation}{digest}", point=point, subject={"kind": subject[0], "key": subject[1][:200]}, state=state,
                             options=[str(o) for o in options], answers=[Answer(by="rule", answerer=rule_id, value=rule)], value_used=rule,
                             used="rule", dataset=(group or table)[:80], at=AT)  # a table and its hidden-name twin share a group
-    label = DecisionLabel(id=f"l2{digest}", record=record.id, point=point, value=truth, source="benchmark", by="generated:benchgen_v2", at=AT)
+    label = DecisionLabel(id=f"l{generation}{digest}", record=record.id, point=point, value=truth, source="benchmark",
+                          by="generated:benchgen_v2" + ("" if generation == "2" else f"@v{generation}"), at=AT)
     return record, label
 
 
@@ -264,6 +265,148 @@ def build_v2(seeds: int = 2400, out: Path = V2) -> dict[str, Any]:
     return summary
 
 
+V3 = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "generated_v3"
+V3_FIRST = 10_000  # seeds v2's students never saw (generated_v2 drew 0 to 2,399): a mapped student is examined on new tables
+V3_POINTS = ("modifier.groups", "modifier.time_order", "data.cleaning_keep")
+
+
+PLAIN_COLUMNS = ("discount", "items", "distance", "weight", "basket_size", "rating_given", "channel", "device")
+
+
+def with_plain_columns(frame: Any, seed: int) -> Any:
+    """0 to 5 plain columns added to a split table, drawn apart from its truth (the review of step 5: benchgen v2 always
+    draws three features, so any further column that is neither a date nor an id was the planted entity, and a student
+    learned to count columns). Numbers, and categories that repeat without being an entity (a channel, a device)."""
+    import numpy as np
+
+    rng = np.random.default_rng([seed, 25, 10, 5])
+    n = len(frame)
+    out = frame.copy()
+    for name in rng.choice(np.array(PLAIN_COLUMNS, dtype=object), int(rng.integers(0, 6)), replace=False):
+        if name == "channel":
+            out[name] = rng.choice(["web", "app", "shop"], n)
+        elif name == "device":
+            out[name] = rng.choice(["ios", "android", "desktop", "tablet"], n)
+        else:
+            out[name] = rng.gamma(2.0, 10.0, n).round(2)
+    return out
+
+
+def keep_truth(step: str, needed: str) -> bool:
+    """Whether a cleaning step applied to a column was right, from the step the column was planted to need: that step, or
+    numbers after missing markers (a column of numbers written with "N/A" needs both)."""
+    return step == needed or (needed == "missing_markers" and step == "numbers")
+
+
+def decide_v3(seed: int) -> tuple[list[Any], list[Any]]:
+    """Step 5 (2026-10-25): the modifiers' groups and time order, and each cleaning step kept, on one seed's split and
+    dirty tables (each also with its names hidden), their states written by production's own capture (``solution_saved``
+    with the proposal kept, ``cleaning`` with the raw profile) into a scratch ledger, the rule's answer its own, and the
+    planted truth beside it."""
+    import tempfile
+
+    from dclab_core import benchgen2 as g
+
+    from .draft.clean import clean
+    from .ledger import capture, install, open_ledger
+    from .studio.data import profile_table
+    from .studio.solution import propose
+
+    records, labels = [], []
+    with tempfile.TemporaryDirectory() as tmp:
+        book = open_ledger(Path(tmp))
+        install(book)
+        try:
+            frame, facts = g.split_table(seed)
+            frame = with_plain_columns(frame, seed)
+            group = f"split3-s{seed}"
+            for suffix, f in (("", frame), ("-ob", _hide(frame, seed * 104729 + 2)[0])):
+                names = {c: c for c in frame.columns} if not suffix else _hide(frame, seed * 104729 + 2)[1]
+                profile = profile_table(f)
+                target = names["outcome"]
+                proposal = propose(f, profile, target)
+                draft = group + suffix
+                solution = {"target": target, "task": proposal.get("task"), "forbidden": proposal.get("forbidden") or [],
+                            "identifiers": proposal.get("identifiers") or [], "time_column": (proposal.get("time_candidates") or [None])[0]}
+                capture.solution_saved(proposal, profile, solution, actor="rule", draft=draft)
+                for r in book.records(draft=draft):
+                    name = r.point.split(".", 1)[1] if r.point.startswith("modifier.") else None
+                    if r.point not in ("modifier.groups", "modifier.time_order"):
+                        continue
+                    if r.point == "modifier.groups" and facts["has_row_time"] and facts["has_entity"]:
+                        continue  # the review of step 5: an entity drawn across the whole period recurs, and the product's rule then
+                        # asks the person (group only if the model will face new ones); the data cannot say, so no truth here
+                    rule = next((a.value for a in r.answers if a.answerer == f"rule:modifier.{name}"), None)
+                    truth = facts["has_entity"] if name == "groups" else facts["has_row_time"]
+                    pair = _record(r.point, ("draft", draft), dict(r.state), list(r.options), f"rule:modifier.{name}", rule, truth, draft, name, group, "3")
+                    records.append(pair[0])
+                    labels.append(pair[1])
+            frame, needed = g.dirty_table(seed)
+            group = f"clean3-s{seed}"
+            for suffix in ("", "-ob"):
+                f, names = (frame, {c: c for c in frame.columns}) if not suffix else _hide(frame, seed * 104729 + 4)
+                draft = group + suffix
+                raw = profile_table(f)
+                _, log = clean(f.copy())
+                capture.cleaning(draft, log, int(len(f)), profile=raw)
+                planted = {names[c]: step for c, step in needed.items()}
+                for r in book.records(draft=draft, point="data.cleaning_keep"):
+                    column, step = r.subject.key, r.state.get("cleaning")
+                    if column not in planted or not step:
+                        continue  # a table-wide step (duplicates, names): no column's truth says it
+                    pair = _record(r.point, ("column", column), dict(r.state), list(r.options), "rule:clean", True, keep_truth(step, planted[column]),
+                                   draft, f"{column}|{step}", group, "3")
+                    records.append(pair[0])
+                    labels.append(pair[1])
+        finally:
+            install(None)
+    return records, labels
+
+
+def build_v3(seeds: int = 1200, out: Path = V3, first: int = V3_FIRST) -> dict[str, Any]:
+    """Step 5: the homework and the exam of the mapped students (``ledger.mapped``): fresh seeds, states written by
+    production's capture, the planted truths, one set per point with a sealed partition by table group."""
+    import os
+
+    records, labels = [], []
+    shadow = os.environ.get("DCLAB_DECISION_SHADOW")
+    os.environ["DCLAB_DECISION_SHADOW"] = "0"  # the records hold the rules' answers only; the students answer when examined
+    try:
+        for seed in range(first, first + seeds):
+            r, l = decide_v3(seed)
+            records += r
+            labels += l
+    finally:
+        if shadow is None:
+            os.environ.pop("DCLAB_DECISION_SHADOW", None)
+        else:
+            os.environ["DCLAB_DECISION_SHADOW"] = shadow
+    by_record: dict[str, list[dict[str, Any]]] = {}
+    for label in labels:
+        by_record.setdefault(label.record, []).append(json.loads(label.model_dump_json()))
+    docs = [{**json.loads(r.model_dump_json()), "labels": by_record.get(r.id, [])} for r in records]
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "records.jsonl").write_text("".join(json.dumps(d, ensure_ascii=False) + "\n" for d in docs), encoding="utf-8")
+    summary = {"version": "benchgen_v2@v3", "at": AT, "first_seed": first, "seeds": seeds, "tables": seeds * 4, "decisions": len(docs),
+               "grouping": "a table and its hidden-name twin are one group: their decisions never sit in two splits", "sets": _write_sets(docs, out),
+               "states": "written by production's own capture into a scratch ledger: ledger/capture.py solution_saved (the proposal kept) "
+                         "for the modifiers, cleaning (with the raw profile) for each step kept",
+               "rules": {"modifier.groups": "dclab_core.modifiers.detect (rule:modifier.groups)", "modifier.time_order": "dclab_core.modifiers.detect (rule:modifier.time_order)",
+                         "data.cleaning_keep": "draft.clean.clean: every step applied is kept (rule:clean)"},
+               "layout": "each split table gets 0 to 5 plain columns drawn apart from its truth (with_plain_columns): benchgen v2 always draws "
+                         "three features, so a column count named the entity",
+               "left_out": {"modifier.groups": "tables with both a row time and an entity: the entity recurs over the period, where the product's "
+                                               "rule asks the person whether the model will face new ones; the data holds no truth"},
+               "truths": {"modifier.groups": "benchgen2.split_table has_entity", "modifier.time_order": "benchgen2.split_table has_row_time",
+                          "data.cleaning_keep": "decisions_gen.keep_truth: the step the column was planted to need (numbers after missing markers too)"},
+               "rule": "Invented tables with planted truths, seeds never drawn for generated_v2, so a student trained there meets them first here. "
+                       "Labels are true by construction; scores say how a model reads these traps, not real tables. The sealed partition is "
+                       "read once, by the gate, and never used for tuning."}
+    (out / "MANIFEST.json").write_text(json.dumps(summary, indent=1) + "\n", encoding="utf-8")
+    return summary
+
+
 def main(argv: list[str] | None = None) -> int:
     import argparse
 
@@ -273,10 +416,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--images", action="store_true", help="26.8: the image decision sets (generated_images_v1)")
     parser.add_argument("--v2", action="store_true", help="29.2: the table-level homework (generated_v2)")
+    parser.add_argument("--v3", action="store_true", help="step 5 (2026-10-25): the mapped students' homework and exam (generated_v3)")
     parser.add_argument("--first", type=int, default=0, help="29.16: the first seed of the tables (the committee's fresh set: "
                                                              "--seeds 12 --first 24 --out .../generated_v1_committee)")
     args = parser.parse_args(argv)
-    done = (build_v2(args.seeds or 2400, args.out or V2) if args.v2 else
+    done = (build_v3(args.seeds or 1200, args.out or V3) if args.v3 else build_v2(args.seeds or 2400, args.out or V2) if args.v2 else
             build_images(args.seeds or 40, args.out or IMAGES) if args.images else build(args.seeds or 24, args.rows, args.out or OUT, first=args.first))
     print(f"{done['tables']} tables, {done['decisions']} decisions")
     for point, s in done["sets"].items():

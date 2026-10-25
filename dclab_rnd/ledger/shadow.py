@@ -38,7 +38,7 @@ WORKFLOW_MODELS = ROOT / "research/llm-fine-tuning/experiments/decisions/workflo
 WORKFLOW_GATE = ROOT / "evidence/campaigns/workflow_models_v1/results"
 MODELS_V2 = ROOT / "research/llm-fine-tuning/experiments/decisions/models_v2"  # 29.2: the table-level choices' students
 MODELS_IMAGES = ROOT / "research/llm-fine-tuning/experiments/decisions/models_images_v1"  # 26.8: the image points' students
-FOLDERS = (MODELS, MODELS_V2, MODELS_IMAGES, WORKFLOW_MODELS)  # 29.8: every student DCLab fitted whispers
+FOLDERS = (MODELS, MODELS_V2, MODELS_IMAGES, WORKFLOW_MODELS)  # 29.8: every student DCLab fitted whispers (models_v3's mapped students failed on dev: not loaded)
 BANDS = ("dtype", "uniqueness", "nulls", "cardinality", "value_pattern")  # a state with none of these holds only a name
 NAMES = ("column", "target")
 

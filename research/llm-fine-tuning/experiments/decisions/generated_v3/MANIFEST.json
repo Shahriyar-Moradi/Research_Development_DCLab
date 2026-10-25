@@ -1,0 +1,63 @@
+{
+ "version": "benchgen_v2@v3",
+ "at": "2026-10-14T00:00:00+00:00",
+ "first_seed": 10000,
+ "seeds": 1200,
+ "tables": 4800,
+ "decisions": 14568,
+ "grouping": "a table and its hidden-name twin are one group: their decisions never sit in two splits",
+ "sets": {
+  "data.cleaning_keep": {
+   "decisions": 10368,
+   "tables": 1200,
+   "splits": {
+    "train": 5942,
+    "dev": 2236,
+    "sealed": 2190
+   },
+   "rule_right": 7770,
+   "label_yes": 7770,
+   "sealed_fingerprint": "bcc3151a0289144e8bedd773417477a4906efe2f1004d5f041a0799375bb32e8"
+  },
+  "modifier.groups": {
+   "decisions": 1800,
+   "tables": 900,
+   "splits": {
+    "sealed": 334,
+    "dev": 430,
+    "train": 1036
+   },
+   "rule_right": 1394,
+   "label_yes": 600,
+   "sealed_fingerprint": "b5ebcffe56df3c3492b194b4ea12e91d2ae1500f5d257a41d77df2fbd2da95b1"
+  },
+  "modifier.time_order": {
+   "decisions": 2400,
+   "tables": 1200,
+   "splits": {
+    "sealed": 444,
+    "dev": 550,
+    "train": 1406
+   },
+   "rule_right": 1768,
+   "label_yes": 1200,
+   "sealed_fingerprint": "718485cb7bac2a673caf599149821d01b6dba9e40e67a4e5ad6b5ee1639402fd"
+  }
+ },
+ "states": "written by production's own capture into a scratch ledger: ledger/capture.py solution_saved (the proposal kept) for the modifiers, cleaning (with the raw profile) for each step kept",
+ "rules": {
+  "modifier.groups": "dclab_core.modifiers.detect (rule:modifier.groups)",
+  "modifier.time_order": "dclab_core.modifiers.detect (rule:modifier.time_order)",
+  "data.cleaning_keep": "draft.clean.clean: every step applied is kept (rule:clean)"
+ },
+ "layout": "each split table gets 0 to 5 plain columns drawn apart from its truth (with_plain_columns): benchgen v2 always draws three features, so a column count named the entity",
+ "left_out": {
+  "modifier.groups": "tables with both a row time and an entity: the entity recurs over the period, where the product's rule asks the person whether the model will face new ones; the data holds no truth"
+ },
+ "truths": {
+  "modifier.groups": "benchgen2.split_table has_entity",
+  "modifier.time_order": "benchgen2.split_table has_row_time",
+  "data.cleaning_keep": "decisions_gen.keep_truth: the step the column was planted to need (numbers after missing markers too)"
+ },
+ "rule": "Invented tables with planted truths, seeds never drawn for generated_v2, so a student trained there meets them first here. Labels are true by construction; scores say how a model reads these traps, not real tables. The sealed partition is read once, by the gate, and never used for tuning."
+}

@@ -26,7 +26,8 @@ RESULTS = ROOT / "evidence" / "campaigns" / "decision_models_v1" / "results"
 DECISIONS = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions"
 SETS = {"v1": (GENERATED, MODELS), "v2": (DECISIONS / "generated_v2", DECISIONS / "models_v2"),  # 29.5: every generation's students sit their exam
         "images": (DECISIONS / "generated_images_v1", DECISIONS / "models_images_v1"),
-        "real": (DECISIONS / "real_v1", DECISIONS / "models_real_v1")}  # 29.15: real OpenML tables, their declared truths (the owner, 2026-10-25)
+        "real": (DECISIONS / "real_v1", DECISIONS / "models_real_v1"),
+        "v3": (DECISIONS / "generated_v3", DECISIONS / "models_v3")}  # step 5 (2026-10-25): the mapped students, on seeds v2 never drew  # 29.15: real OpenML tables, their declared truths (the owner, 2026-10-25)
 
 
 def sealed_fingerprint(rows: list[dict[str, Any]]) -> str:
@@ -93,7 +94,7 @@ def judge(point: str, generated: Path = GENERATED, models: Path = MODELS, result
     doc = {"id": ident, "experiment_id": ident, "campaign_id": "decision_models_v1", "kind": "decision_model_gate",
            "status": "completed", "at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "point": point,
            "model": {"name": card["name"], "version": card["version"], "family": card["family"], "strength": card["strength"],
-                     "trained_set": card["trained_set"]},
+                     "trained_set": card["trained_set"], "chosen_by": card.get("chosen_by")},  # a mapped student says whose answer it maps
            "gate": {"version": decision_gate.VERSION, "thresholds": decision_gate.THRESHOLDS},
            "sealed": {"decisions": len(rows), "fingerprint": fingerprint, **({"left_out": left_out} if exclude else {})},
            **({"scope": {"excluded_truths": list(exclude), "why": why}} if exclude else {}),

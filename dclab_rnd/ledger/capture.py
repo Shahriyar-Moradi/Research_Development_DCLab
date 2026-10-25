@@ -16,6 +16,7 @@ from typing import Any, Callable, Optional
 from dclab_core.bands import ratio_band
 
 from . import answer, batch, column_state, decide, label, rows_band
+from .states import tuning_state  # the fields a tuning student reads, built one way
 
 MAX_COLUMNS = 200  # columns recorded per saved solution, besides every column a rule or the person named
 TASKS = {"binary": "binary_classification", "multiclass": "multiclass_classification", "regression": "regression"}
@@ -137,6 +138,11 @@ def solution_saved(proposal: dict[str, Any] | None, profile: dict[str, Any] | No
                                                                       answer(by, who, name == solution.get("time_column"))],
                                      name == solution.get("time_column"), by, state=column_state(columns[name], rows), options=["yes", "no"],
                                      level=level, exposed=exposed, **ids))
+        # step 5 (2026-10-25): the split student's own fields beside the modifiers' (ledger.mapped: it answers groups and time order)
+        from .states import split_state
+
+        split_view = split_state(profile, times[0] if times else None, (own.get("group_candidates") or [None])[0])
+        split_extra = {k: split_view[k] for k in ("columns", "date_columns", "id_columns", "repeat_share") if split_view.get(k) is not None}
         for found in own.get("modifiers") or []:  # 30.11: each modifier the rows showed, against what the saved solution keeps
             name = found.get("name")
             # what the saved solution applies (the review of 30.11): a group or time column of any name, the rare metric
@@ -150,7 +156,8 @@ def solution_saved(proposal: dict[str, Any] | None, profile: dict[str, Any] | No
             state = {"task": task, "positive_rate": ratio_band(facts.get("minority_rate")) if facts.get("minority_rate") is not None else None,
                      "rows": rows_band(rows), "has_time": bool(facts.get("time_column")), "has_groups": bool(facts.get("keys")),
                      "rows_per_key": key.get("rows_per_key"), "rate_change": facts.get("rate_change"), "class_shift": facts.get("class_shift"),
-                     "level_shift": facts.get("level_shift"), "strength": found.get("strength")}
+                     "level_shift": facts.get("level_shift"), "strength": found.get("strength"),
+                     **(split_extra if name in ("groups", "time_order") else {})}
             written += bool(_put(f"modifier.{name}", where, [answer("rule", f"rule:modifier.{name}", bool(found.get("applies")), reason=str(found.get("reason") or "")[:600]),
                                                               answer(by, who, kept)],
                                  kept, by, state={k: v for k, v in state.items() if v is not None},
@@ -314,8 +321,7 @@ def stage_decisions(stage: str, record: dict[str, Any], prepared: Any, owner: di
             tuning = evidence.get("tuning_decision") or {}
             accepted = tuning.get("accepted") if isinstance(tuning, dict) else None
             if isinstance(accepted, bool):
-                put("tuning.accept", accepted, "rule:tuning_margin", options=["yes", "no"],
-                    state={"tuning_gain": tuning.get("gain") if isinstance(tuning.get("gain"), (int, float)) else None})
+                put("tuning.accept", accepted, "rule:tuning_margin", options=["yes", "no"], state=tuning_state(tuning, evidence, metric))
             point = (evidence.get("task_assessment") or {}).get("threshold")
             value = point.get("value") if isinstance(point, dict) else None
             core = evidence.get("decision") or {}

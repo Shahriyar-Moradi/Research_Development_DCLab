@@ -118,6 +118,53 @@ def build(points: list[str] | None = None, quick: bool = False, sets: Path = SET
     return cards
 
 
+V3_SETS = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "generated_v3" / "decisions"  # step 5 (2026-10-25)
+V3_OUT = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" / "models_v3"  # the mapped students (ledger.mapped)
+
+
+def build_mapped(sets: Path = V3_SETS, out: Path = V3_OUT, bases: Path = V2_OUT) -> dict[str, Any]:
+    """Step 5 (2026-10-25): each mapped student (``ledger.mapped``: a trained student of another point answering this one)
+    saved like any student, its card measured on the point's own dev rows beside the rule. Nothing is trained; the base
+    student is read only when its bytes match its own ``fitted.json``. The sealed rows are never read here."""
+    import hashlib
+
+    import joblib
+
+    from dclab_core.decision_models import ModelCard, metrics
+
+    from .ledger.mapped import MAPS, MappedAnswerer
+
+    hashes = json.loads((Path(bases) / "fitted.json").read_text(encoding="utf-8"))
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    cards = {}
+    for point, (base_point, _, _, _) in MAPS.items():
+        fitted = Path(bases) / f"{base_point}.joblib"
+        if hashlib.sha256(fitted.read_bytes()).hexdigest() != hashes.get(base_point):
+            raise ValueError(f"{base_point}: the fitted student is not the one fitted.json names: never unpickled")
+        base = joblib.load(fitted)
+        base_card = json.loads((Path(bases) / f"{base_point}.json").read_text(encoding="utf-8"))
+        model = MappedAnswerer(base, point)
+        dev = [r for r in rows(point, sets) if r["split"] == "dev" and (r.get("label") or {}).get("value") is not None]
+        truth, groups = [r["label"]["value"] for r in dev], [r["group"] for r in dev]
+        answers = [getattr(model.answer(point, r["state"], list(r.get("options") or [])), "value", None) for r in dev]
+        card = ModelCard(point=point, name=model.name, version=model.version, family=base_card["family"], strength=base_card["strength"],
+                         features=base_card["features"], fields=sorted({f for r in dev for f in r["state"]}), trained_on=base_card["trained_on"],
+                         trained_set=base_card["trained_set"], groups=base_card["groups"], label_sources=base_card.get("label_sources") or {},
+                         chosen_by=f"not trained on this point: the {base_point} student ({base_card['name']}@{base_card['version']}) answers, "
+                                   f"its answer mapped (ledger.mapped)",
+                         calibration=f"the {base_point} student's own", dev=metrics(truth, answers, groups=groups) if dev else None,
+                         rule_dev=metrics(truth, [r.get("value_used") for r in dev], groups=groups) if dev else None,
+                         limits=["Measured on dev rows of generated_v3 (seeds generated_v2 never drew); the sealed partition is read once, by the gate.",
+                                 f"The base student was trained on generated_v2's {base_point} homework: invented tables, not real ones.",
+                                 "Its confidence is the base student's for its own answer, not calibrated for this point."])
+        (out / f"{point}.json").write_text(card.model_dump_json(indent=1) + "\n", encoding="utf-8")
+        joblib.dump(model, out / f"{point}.joblib")
+        cards[point] = card
+    record_fitted(out)
+    return cards
+
+
 def record_fitted(out: Path) -> dict[str, str]:
     """``fitted.json``: each fitted model's SHA-256, committed beside the cards. A model file is unpickled only when its
     bytes match (22.4): unpickling runs code, so a file swapped in the folder is refused before it is read."""
@@ -140,7 +187,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--v2", action="store_true", help="29.2: the table-level points' sets, to models_v2/")
     parser.add_argument("--all", action="store_true", help="29.4: every generation, a student or a reason (SKIPPED.json) for every point")
     parser.add_argument("--compare", action="store_true", help="29.4: every student beside its rule on dev, from the cards")
+    parser.add_argument("--mapped", action="store_true", help="step 5: the mapped students (ledger.mapped) on generated_v3, to models_v3/")
     args = parser.parse_args(argv)
+    if args.mapped:
+        for point, c in build_mapped().items():
+            d, r = c.dev, c.rule_dev
+            print(f"{point:<26} mapped dev accuracy {d.accuracy} {d.accuracy_ci} precision {d.precision} recall {d.recall} | rule {r.accuracy} / {r.precision} / {r.recall}")
+        return 0
     if args.compare:
         print("\n".join(compare()))
         return 0

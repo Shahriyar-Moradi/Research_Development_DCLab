@@ -24,9 +24,11 @@ ROOT = Path(__file__).resolve().parents[1]
 DECISIONS = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions"
 CAMPAIGNS = ROOT / "evidence" / "campaigns"
 # the homework: where each generated set's manifest is, and the shape of its per-point entry
-SETS = (("generated_v1", "benchgen_v1"), ("generated_images_v1", "image_decisions_v1"), ("generated_v2", "benchgen_v2"), ("workflow_v1", "workflow_v1"))
+SETS = (("generated_v1", "benchgen_v1"), ("generated_images_v1", "image_decisions_v1"), ("generated_v2", "benchgen_v2"), ("workflow_v1", "workflow_v1"),
+        ("generated_v3", "benchgen_v2@v3"))  # step 5 (2026-10-25): the mapped students' homework and exam
 # the students: the folders of cards, and the campaign that examined them (None: not examined yet)
 STUDENTS = (("models_v1", "decision_models_v1"), ("models_images_v1", None), ("models_v2", None), ("workflow_models_v1", "workflow_models_v1"))
+# step 5 (2026-10-25): models_v3's mapped students failed on dev (their bases had learned the generator's layout): not students here
 # 29.12: a curriculum's students (decisions/models_v2_curriculum) are not here: CUR-001's gain on the parent's dev rows did
 # not hold on a fresh draw (CUR-002), so the generation's student stays the point's
 
@@ -75,9 +77,11 @@ def students() -> dict[str, dict[str, Any]]:
     return out
 
 
-def verdicts() -> dict[str, dict[str, Any]]:
-    """Per point: the sealed exam's verdict (pass or fail, and the criteria it failed), read once from the campaigns."""
-    out: dict[str, dict[str, Any]] = {}
+def verdicts(every: bool = False) -> dict[str, Any]:
+    """Per point: the sealed exam's verdict (pass or fail, and the criteria it failed), read once from the campaigns: the
+    latest, or with ``every`` each exam in the order sat (a point's students of different versions each sat their own:
+    DMG-004 the invented-table role student, DMG-014 the real-table one)."""
+    out: dict[str, Any] = {}
     for _, campaign in STUDENTS:
         if campaign is None:
             continue
@@ -87,10 +91,15 @@ def verdicts() -> dict[str, dict[str, Any]]:
             if not doc.get("point") or not isinstance(v, dict):
                 continue
             failed = [c.get("criterion", "").split(",")[0] for c in v.get("criteria") or [] if not c.get("pass")]
-            out[doc["point"]] = {"id": doc.get("id"), "pass": bool(v.get("pass")), "failed": failed,
-                                 "sealed_decisions": (doc.get("sealed") or {}).get("decisions"),
-                                 "sealed_accuracy": (v.get("model") or {}).get("accuracy"), "rule_sealed_accuracy": (v.get("rule") or {}).get("accuracy"),
-                                 "answerer": f"{(doc.get('model') or {}).get('name')}@{(doc.get('model') or {}).get('version')}"}
+            exam = {"id": doc.get("id"), "pass": bool(v.get("pass")), "failed": failed,
+                    "sealed_decisions": (doc.get("sealed") or {}).get("decisions"),
+                    "sealed_accuracy": (v.get("model") or {}).get("accuracy"), "rule_sealed_accuracy": (v.get("rule") or {}).get("accuracy"),
+                    "answerer": f"{(doc.get('model') or {}).get('name')}@{(doc.get('model') or {}).get('version')}"}
+            if every:
+                if all(e["id"] != exam["id"] for e in out.get(doc["point"], [])):  # a campaign read twice (two folders share one) counts once
+                    out.setdefault(doc["point"], []).append(exam)
+            else:
+                out[doc["point"]] = exam
     return out
 
 
@@ -207,13 +216,14 @@ def register(ledger: Any = None, routing_doc: Optional[dict[str, Any]] = None, m
     from .ledger import CAPTURED, NOT_DECIDED
     from .ledger.routing import MIN_LABELS, entry
 
-    hw, st, vd, mine, tables, panels = homework(), students(), verdicts(), own(home), real(), committees()
+    hw, st, every, mine, tables, panels = homework(), students(), verdicts(every=True), own(home), real(), committees()
     recorded, labelled = _ledger_counts(ledger)
     rows = []
     for key, point in POINTS.items():
         student = st.get(key) or {}
         name = student.get("answerer")
-        exam = vd.get(key)
+        sat = every.get(key) or []
+        exam = next((e for e in sat if e.get("answerer") == name), None) or (sat[-1] if sat else None)
         verdict = exam if exam and exam.get("answerer") == name else None  # an exam belongs to the version that sat it
         work = dict(hw[key]) if key in hw else None
         if work is not None and not work.get("sealed") and exam and exam.get("sealed_decisions"):
