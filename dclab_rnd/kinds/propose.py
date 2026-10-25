@@ -151,7 +151,8 @@ def _forecasting(frame: pd.DataFrame, target: Optional[str]) -> FieldProposal:
     return p
 
 
-DURATION_WORDS = {"days", "duration", "tenure", "months", "weeks", "lifetime", "survival", "time"}
+DURATION_WORDS = {"days", "duration", "tenure", "months", "weeks", "lifetime", "survival", "time", "minutes", "mins", "hours", "hrs",
+                  "seconds", "secs"}
 EVENT_WORDS = {"cancelled", "canceled", "churned", "died", "failed", "event", "ended", "left", "closed", "defaulted", "status"}
 START_WORDS = {"signup", "start", "started", "joined", "opened", "begin", "created", "since"}
 
@@ -452,17 +453,53 @@ def question_for(p: Optional[FieldProposal], asked: Iterable[str] = ()) -> Optio
     return None
 
 
-def options_for(q: KindQuestion, frame: pd.DataFrame, p: FieldProposal) -> list[str]:
-    """A column question's options: the columns that could be it, the kind's own words first; names only, never values."""
+def _row_number(frame: pd.DataFrame, c: str) -> bool:
+    """A row number or a saved index ("Unnamed: 0", 0..n-1): never a field of a kind."""
+    if re.fullmatch(r"unnamed:? ?\d*|index|row|row_?(id|no|number)|#", str(c).strip().lower()):
+        return True
+    s = pd.to_numeric(frame[c], errors="coerce")
+    return bool(s.notna().all() and len(s) > 1 and (s.diff().dropna() == 1).all())
+
+
+def _identifier(frame: pd.DataFrame, c: str) -> bool:
+    """A key of the row: a different value on (almost) every row."""
+    s = frame[c].dropna()
+    return len(s) > 20 and s.nunique() >= 0.98 * len(s) and not pd.api.types.is_float_dtype(s)
+
+
+FITS: dict[str, Callable[[pd.DataFrame, str], bool]] = {  # what a column must look like to be offered for a field
+    "duration_column": lambda f, c: pd.api.types.is_numeric_dtype(f[c]) and not _binary(f, c),
+    "event_column": _binary, "treatment_column": _binary,
+    "start_column": lambda f, c: c in _dates(f), "time_column": lambda f, c: c in _dates(f),
+    "series_column": _repeating_category, "user_column": _repeating_category, "item_column": _repeating_category,
+    "source_column": _repeating_category, "text_column": lambda f, c: f[c].dtype == object and f[c].dropna().astype(str).str.len().mean() > 40,
+}
+
+
+def options_for(q: KindQuestion, frame: pd.DataFrame, p: FieldProposal, target: Optional[str] = None) -> list[str]:
+    """A column question's options: the columns whose values fit the field (a duration a number, an event a yes or no, a
+    start a date), the target first when it fits (a delivery's minutes are its duration), the kind's words next; never a
+    row number or a row's key, never a field already read; names only, never values (the review of S9.3: a row
+    number and an order id were offered as a duration)."""
     if not q.columns:
         return list(q.options)
     taken = {v for v in p.fields.values() if isinstance(v, str)}
+    fits = FITS.get(q.field, lambda f, c: True)
     words = {"series_column": SERIES_WORDS, "duration_column": DURATION_WORDS, "event_column": EVENT_WORDS | {"action", "type", "event"},
              "start_column": START_WORDS, "treatment_column": TREATMENT_WORDS, "text_column": TEXT_WORDS, "source_column": SOURCE_WORDS,
              "user_column": {"user", "customer", "visitor", "member", "account"}, "item_column": {"item", "product", "sku", "article"},
              "time_column": {"date", "time", "day", "timestamp"}}.get(q.field, set())
-    cols = [str(c) for c in frame.columns if str(c) not in taken]
-    return (sorted(cols, key=lambda c: (not (_tokens(c) & words), cols.index(c)))[:3] + ["I don't know"])
+    cols = []
+    for c in (str(c) for c in frame.columns):
+        try:
+            ok = c not in taken and not _row_number(frame, c) and not _identifier(frame, c) and fits(frame, c)
+        except Exception:  # noqa: BLE001 - a column that cannot be read is not offered
+            ok = False
+        if ok:
+            cols.append(c)
+    order = {c: i for i, c in enumerate(cols)}
+    cols.sort(key=lambda c: (c != target, not (_tokens(c) & words), order[c]))
+    return cols[:3] + ["I don't know"]
 
 
 def still_needed(p: Optional[FieldProposal]) -> list[str]:

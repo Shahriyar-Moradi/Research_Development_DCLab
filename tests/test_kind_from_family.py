@@ -137,7 +137,7 @@ class KindFromFamilyTest(unittest.TestCase):
         import pandas as pd
 
         from dclab_rnd import kinds
-        from dclab_rnd.kinds.propose import options_for, propose_fields, question_for, still_needed
+        from dclab_rnd.kinds.propose import QUESTIONS, options_for, propose_fields, question_for, still_needed
 
         frame = pd.DataFrame({"body": [f"a long message about the delivery number {i} that came late again and again" for i in range(40)],
                               "penname": [f"w{i % 5}" for i in range(40)], "label": [i % 2 for i in range(40)]})
@@ -157,6 +157,20 @@ class KindFromFamilyTest(unittest.TestCase):
         self.assertNotIn("items_table", propose_fields("ranking", case.table, None, tables=["items"]).missing)
         self.assertIn("`items`", still_needed(propose_fields("ranking", case.table, None, tables=()))[0])
         self.assertIsNone(question_for(propose_fields("ranking", case.table, None, tables=())))  # a table is attached, never asked
+        import numpy as np  # the gate of 10c77c72: a row number and an order id were offered as a duration
+
+        rng = np.random.default_rng(0)
+        orders = pd.DataFrame({"Unnamed: 0": range(300), "order_id": [f"O{i}" for i in range(300)], "distance_km": rng.gamma(2, 2, 300),
+                               "wait": rng.normal(30, 8, 300), "late": rng.choice([0, 1], 300)})
+        p = propose_fields("time_to_event", orders, None)
+        q = QUESTIONS[("time_to_event", "duration_column")]
+        self.assertIn("duration_column", p.missing)
+        got = options_for(q, orders, p, target="wait")
+        self.assertEqual(got[0], "wait")  # the target first when it fits
+        self.assertFalse({"Unnamed: 0", "order_id", "late"} & set(got))  # never a row number, a key, or a yes/no as a duration
+        self.assertEqual(options_for(QUESTIONS[("time_to_event", "event_column")], orders, p), ["late", "I don't know"])
+        minutes = orders.rename(columns={"wait": "actual_minutes"})
+        self.assertEqual(propose_fields("time_to_event", minutes, "actual_minutes").fields["duration_column"], "actual_minutes")
 
     def test_build_it_on_a_forecast_draft_saves_a_forecast_with_the_kinds_metric(self):
         """The review of S9: the proposal's task became the kind's but its metric stayed the plain task's, and "build it"

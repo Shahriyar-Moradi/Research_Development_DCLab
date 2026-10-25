@@ -982,12 +982,15 @@ class HomeAgent:
         (whether an offer was random, which column names a series); None when the table shows them all."""
         from ..kinds.propose import options_for, question_for
 
+        if any(x.get("source") == "second_opinion" and (x.get("declined") or not x.get("answered")) for x in draft.get("questions") or []):
+            return None  # the family itself is in dispute (two readings, the person did not choose): its kind's questions would presume it
         got = self.kind_proposal(draft)
         if got is None or got[0] is None:
             return None
         p, frame = got
         q = question_for(p, {str(x.get("field")) for x in draft.get("questions") or []})
-        return None if q is None else (q.key, q.text, options_for(q, frame, p), q.why)
+        u = draft.get("understanding") or {}
+        return None if q is None else (q.key, q.text, options_for(q, frame, p, u.get("target") if u.get("target") in frame.columns else None), q.why)
 
     def kind_said(self, draft: dict[str, Any]) -> str | None:
         """The summary's line on the kind: what it reads and assumes, or what it still needs and what runs meanwhile."""

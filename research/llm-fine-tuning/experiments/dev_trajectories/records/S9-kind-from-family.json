@@ -204,6 +204,26 @@
    "cause": "write() checked its own sum against the cap, not the gateway's refusal.",
    "fix": "The refusal stops the run as the cap does, with the people assembled.",
    "test": "the run itself (assembled 591 people)"
+  },
+  {
+   "id": "S9-17",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A kind's question was asked while its family was in dispute.",
+   "scenario": "The nightly gate on 10c77c72 (check-all, the other session): test_second_opinion's walk - the reader said regression, the rules time to event, the person did not choose - then Home asked time to event's duration column, and the walk waited for an answer.",
+   "cause": "kind_question presumed the card's family even when the second opinion on it was declined or open.",
+   "fix": "No kind question while a second opinion on the family is open or declined: the summary says the kind suggested.",
+   "test": "tests/test_second_opinion.py test_no_answer_keeps_the_card_and_a_walk_goes_on"
+  },
+  {
+   "id": "S9-18",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A row number and an order id were offered as a duration; minutes were not read as a duration.",
+   "scenario": "The same walk: options ['Unnamed: 0', 'order_id', 'distance_km']; `actual_minutes` (the target) not proposed.",
+   "cause": "options_for offered every column not read; the duration words had days, weeks and months but no minutes or hours.",
+   "fix": "Options fit the field's type (a duration a number, an event a yes or no, a start a date), never a row number or a key, the target first when it fits; minutes, hours and seconds are durations.",
+   "test": "test_a_column_question_offers_names_never_values_and_a_table_need_is_said"
   }
  ],
  "measurements": [
@@ -245,7 +265,8 @@
   "A person's answer in words is not a column: check what it names, not whether it was said.",
   "Check every caller of a proposal: one route without the new argument brings the old answer back.",
   "A reviewer who probes with made-up tables finds what replica tests cannot: replicas name their columns plainly.",
-  "A proposal is a set of fields that must agree with each other (task, metric, kind): change one, check the others."
+  "A proposal is a set of fields that must agree with each other (task, metric, kind): change one, check the others.",
+  "A question added to a conversation changes every walk that reaches it: run the suites of the walks (second opinion, coordinator), not only the new tests."
  ],
  "risks": [
   "Name-based proposers can be fooled by unusual column names: each proposal says why, and the person can change it.",
