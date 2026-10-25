@@ -106,5 +106,51 @@ class HoldoutIntervalTest(unittest.TestCase):
         self.assertNotIn("holdout", out)
 
 
+
+@unittest.skipIf(MISSING, MISSING)
+class NearestRowsTest(unittest.TestCase):
+    """0.118.0, time_decision_v1's next step: on a drifting table, the samples come from the rows nearest the holdout."""
+
+    def drifting(self, seed=0, n=3000, n_test=600):
+        rng = np.random.default_rng(seed)
+        level = np.linspace(-1.6, -0.9, n + n_test)  # later rows are cases more often
+        x = rng.normal(size=n + n_test)
+        p = 1 / (1 + np.exp(-(level + x)))
+        y = (rng.random(n + n_test) < p).astype(int)
+        return y[:n], p[:n], y[n:], p[n:]
+
+    def test_the_interval_moves_toward_the_latest_rows(self):
+        y, s, yt, st = self.drifting()
+        spec = DecisionSpec(action="call", value_per_case=120, cost_per_action=10, capacity_share=0.1)
+        latest = np.arange(len(y)) >= int(0.75 * len(y))
+        every = choose_operating_point(y, s, spec, y_test=yt, score_test=st, bootstrap=200)["holdout"]
+        near = choose_operating_point(y, s, spec, y_test=yt, score_test=st, bootstrap=200, sample_rows=latest)["holdout"]
+        self.assertGreater(sum(near["prediction_interval"]), sum(every["prediction_interval"]))  # the later, case-richer rows
+        self.assertIn("nearest the holdout", near["prediction_interval_method"])
+        self.assertEqual(near["expected_value_per_row"], every["expected_value_per_row"])  # the holdout's reading is the same
+
+    def test_entities_are_drawn_from_the_nearest_ones_and_a_draw_without_them_never_mixes(self):
+        y, s, yt, st = self.drifting(n=3000)
+        groups = np.repeat(np.arange(1000), 3)  # three rows an entity, in time order
+        spec = DecisionSpec(action="call", value_per_case=120, cost_per_action=10, capacity_share=0.1)
+        latest = np.arange(len(y)) >= int(0.75 * len(y))
+        every = choose_operating_point(y, s, spec, groups=groups, y_test=yt, score_test=st, bootstrap=200)["holdout"]
+        near = choose_operating_point(y, s, spec, groups=groups, y_test=yt, score_test=st, bootstrap=200, sample_rows=latest)["holdout"]
+        self.assertGreater(sum(near["prediction_interval"]), sum(every["prediction_interval"]))
+        self.assertIn("whole entities", near["prediction_interval_method"])
+        one = np.zeros(len(y), bool)
+        one[-3:] = True  # a single near entity: most draws hold none of it, and they draw it, never every row
+        tiny = choose_operating_point(y, s, spec, groups=groups, y_test=yt, score_test=st, bootstrap=60, sample_rows=one)["holdout"]
+        self.assertIsNotNone(tiny["prediction_interval"][0])
+
+    def test_the_rows_given_are_checked(self):
+        y, s, yt, st = self.drifting(n=400, n_test=100)
+        spec = DecisionSpec(action="call", value_per_case=120, cost_per_action=10, capacity_share=0.1)
+        for bad in ({"sample_rows": np.zeros(len(y), bool)}, {"sample_rows": np.ones(len(y) - 1, bool)},
+                    {"sample_rows": np.ones(len(y), bool), "folds": np.zeros(len(y), int)}):
+            with self.assertRaises(ValueError, msg=str(list(bad))):
+                choose_operating_point(y, s, spec, y_test=yt, score_test=st, bootstrap=20, **bad)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1228,6 +1228,7 @@ def _act(p: Prepared, decision: Any, selected: dict[str, Any], oof_y: np.ndarray
     fold_of = np.full(len(bundle.X_train), -1)
     for number, (_, valid) in enumerate(bundle.cv_splits):
         fold_of[np.asarray(valid)] = number
+    timed = bundle.spec.split_strategy in ("time", "time_group")
     days_test, day_rows, days_note = None, None, None
     time_column = p.solution.time_column
     if spec.capacity_per_day and time_column in bundle.X_test.columns:  # 0.115.0: the holdout read day by day
@@ -1244,10 +1245,20 @@ def _act(p: Prepared, decision: Any, selected: dict[str, Any], oof_y: np.ndarray
                 days_test = test_days.to_numpy()
                 every = day_of(pd.concat([bundle.X_train[time_column], bundle.X_test[time_column]], ignore_index=True))
                 day_rows = every[every.isin(set(days_test))].value_counts().to_dict()  # the first day is partly training rows
+    latest = None
+    if timed:  # the latest fold's out-of-fold rows; too few of them (a short time-and-group fold) and every fold is read
+        flagged = fold_of[np.asarray(selected["_oof_index"])] == len(bundle.cv_splits) - 1
+        units = len(set(np.asarray(groups)[flagged])) if groups is not None else int(flagged.sum())
+        if units >= 20:
+            latest = flagged
+        else:
+            days_note = ((days_note + "; ") if days_note else "") + (f"the latest fold holds {units} rows or entities, too few to "
+                                                                       "draw the interval from: every fold's rows are read")
     out = decide.choose_operating_point(oof_y, selected["_oof_pred"], spec, value_per_case=values, groups=groups, rows_per_day=rows_per_day,
                                         y_test=y_test.to_numpy(), score_test=predictions, value_test=values_test,
                                         folds=(fold_of[np.asarray(selected["_oof_index"])]  # 0.114.0: one model's rows a holdout-sized sample;
-                                               if bundle.spec.split_strategy not in ("time", "time_group") else None),  # never a time split's (unlike) folds
+                                               if not timed else None),  # never a time split's (unlike) folds
+                                        sample_rows=latest,  # 0.118.0: a time split's latest fold, nearest the holdout
                                         days_test=days_test, day_rows=day_rows)
     if days_note:
         out["days_note"] = days_note

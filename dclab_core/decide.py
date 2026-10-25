@@ -243,7 +243,7 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
                            score_test: Optional[Sequence[float]] = None, value_test: Optional[Sequence[float]] = None,
                            weights: Optional[Sequence[float]] = None, bootstrap: int = BOOTSTRAP, seed: int = 0,
                            folds: Optional[Sequence[Any]] = None, days_test: Optional[Sequence[Any]] = None,
-                           day_rows: Optional[dict[Any, int]] = None) -> dict[str, Any]:
+                           day_rows: Optional[dict[Any, int]] = None, sample_rows: Optional[Sequence[bool]] = None) -> dict[str, Any]:
     """The number of rows to act on with the highest expected value, chosen on out-of-fold scores under the capacity,
     with its interval (a bootstrap over rows, or entities when ``groups`` are given), then read once on the holdout.
 
@@ -270,7 +270,12 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
     low on a random split, too high on a time-and-group split); read such a holdout as one pool. ``day_rows`` (each day's
     rows in the whole period) gives a day partly before the holdout (a time split's first day) its part of the slots.
     The holdout-sized samples are cut to the holdout's rows and into days of its sizes, the rows placed at random among
-    them: a wave of cases on one day is not in the interval."""
+    them: a wave of cases on one day is not in the interval.
+
+    ``sample_rows`` (0.118.0): the out-of-fold rows the holdout-sized samples are drawn from, when the rows nearest the
+    holdout tell it best: on a time split, its latest fold (time_decision_v1 measured the interval from every fold too low
+    on a drifting table: the earlier folds' rows are further from the holdout's world, and their models were fitted on
+    fewer rows). With entities, an entity is drawn when its first row is among them. Not with ``folds``."""
     y, s = np.asarray(y_oof).astype(int), np.asarray(score_oof, dtype=float)
     n = len(y)
     per_row = value_per_case is not None
@@ -369,11 +374,20 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
         fold_of = np.asarray(folds)
         if len(fold_of) != n:
             raise ValueError("One fold per out-of-fold row: the folds must be as many as the scores")
+    near = None
+    if sample_rows is not None:
+        near = np.asarray(sample_rows, dtype=bool)
+        if folds is not None:
+            raise ValueError("Samples come from one fold's rows or from the rows given, not both")
+        if len(near) != n or not near.any():
+            raise ValueError("The rows to sample from are one flag per out-of-fold row, at least one of them set")
     sizes = None
     if index is not None:  # an entity's rows by its code (a row with no entity has a code past the others: look up by code)
         sizes = np.zeros(int(keys.max()) + 1, dtype=int)
         sizes[keys] = [len(index[k]) for k in keys]
     key_fold = ({k: fold_of[index[k][0]] for k in keys} if index is not None else None) if fold_of is not None else None
+    key_near = np.array([bool(near[index[k][0]]) for k in keys]) if near is not None and index is not None else None
+    near_of = dict(zip(keys, key_near)) if key_near is not None else None
     inner = np.random.default_rng([seed, 1])  # its own stream: the training intervals do not move when a holdout is given
     placing = np.random.default_rng([seed, 2])  # and the days' own: with days, the samples are the same rows as without
 
@@ -389,6 +403,9 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
             if key_fold is not None:  # a fold by a random row (the review: by entity, a fold of many single rows came up too often)
                 fold = fold_of[rows[inner.integers(0, len(rows))]]
                 pool = pool[np.fromiter((key_fold[k] == fold for k in pool), bool, len(pool))]
+            if near_of is not None:  # the entities nearest the holdout (a time split's latest fold); a draw holding none of
+                kept = pool[np.fromiter((near_of[k] for k in pool), bool, len(pool))]  # them draws from them all (the review:
+                pool = kept if len(kept) else keys[key_near]  # never a mix of near and all-rows samples)
             need = max(4 * len(pool), int(np.ceil(2 * n_test / max(float(sizes[pool].mean()), 1.0))))
             picks = pool[inner.integers(0, len(pool), size=need)]
             total = np.cumsum(sizes[picks])
@@ -400,6 +417,9 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
         pool = rows
         if fold_of is not None:
             pool = pool[fold_of[pool] == fold_of[pool[inner.integers(0, len(pool))]]]
+        if near is not None:  # the rows nearest the holdout (a time split's latest fold); a draw holding none draws from them all
+            kept = pool[near[pool]]
+            pool = kept if len(kept) else np.flatnonzero(near)
         return pool[inner.integers(0, len(pool), size=n_test)]
 
     shares, values, held, held_rows = [], [], [], []
@@ -469,6 +489,7 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
                                                           f"{int(np.mean(held_rows))} drawn"
                                                           + (", whole entities" if index is not None else "")
                                                           + (", one fold's rows each" if fold_of is not None else "")
+                                                          + (", from the rows nearest the holdout" if near is not None else "")
                                                           + (", the capacity applied day by day to days of the holdout's sizes, the rows "
                                                              "placed at random among them" if day_codes is not None else "") + ")")
                                                          if len(held) >= 20 else "normal approximation of the bootstrap spread"),

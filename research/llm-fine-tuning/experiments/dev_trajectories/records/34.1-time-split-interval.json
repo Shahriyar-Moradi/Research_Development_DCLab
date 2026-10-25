@@ -23,6 +23,14 @@
     {
       "decision": "Record positive rates and each fold's value, never a row value",
       "why": "the review: a realised value above the interval has two possible causes on this replica (its planted drift and the expanding-window fold models' weakness); the counts let the report say which"
+    },
+    {
+      "decision": "dclab-core 0.118.0: on a time split the holdout-sized samples come from the latest fold's rows (sample_rows); the expected value's interval still reads every row",
+      "why": "v1's pre-registered next step: the latest fold is the period nearest the holdout"
+    },
+    {
+      "decision": "v2 keeps the all-folds interval on the same seed beside the measured one, reported, never gated",
+      "why": "the review: drawing from a third of the rows also widens the interval by about 1.22 times, so a pass could come from width, not a better centre"
     }
   ],
   "change": "dclab_rnd/time_decision_measure.py and tests/test_time_decision_measure.py (4 tests)",
@@ -76,6 +84,56 @@
       "fix": "the runs' glob is TDC-[0-9]*_seed*.json",
       "test": "tests/test_time_decision_measure.py::TimeDecisionTest::test_a_failed_run_is_recorded_and_counted",
       "severity": "behaviour"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "defect": "v2's step for a centre below 0 named a cause that moves width, not the centre",
+      "scenario": "had v2 ended with mean z -0.5, the step 'sample the latest two folds' would have widened the interval and lowered its centre: the wrong cause treated",
+      "cause": "too few rows widen an interval; they do not push its centre one way",
+      "fix": "centre below 0 keeps 'correct the optimism of choosing the model'; 'sample the latest two folds' moved to the too-wide branch",
+      "test": "tests/test_time_decision_measure.py::TimeDecisionTest::test_the_gates_and_the_next_step_fixed_with_them",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "defect": "v2 could pass from a wider interval and say a better centre, and its 'above 0' step named only drift",
+      "scenario": "from v1's numbers the pooled mean z would move from 0.80 to about 0.32 against a bound of 0.30, about 0.07 of it from widening alone",
+      "cause": "the latest fold is a third of the out-of-fold rows; and its model is still fitted on fewer rows than the final one",
+      "fix": "each run keeps the all-folds interval on the same rows and seed, with its z, reported beside the gate; the 'above 0' step names drift or the fold model's fewer rows",
+      "test": "tests/test_time_decision_measure.py::TimeDecisionTest::test_each_arm_runs_on_a_time_split_and_keeps_to_its_capacity",
+      "severity": "gap"
+    },
+    {
+      "id": "R8",
+      "source": "reviewer",
+      "defect": "no test held the engine to the latest fold, nor the entity path",
+      "scenario": "writing '== 0' for the last fold's number would have passed every test; the entity branch of sample_rows never ran",
+      "cause": "tests checked the method's words only",
+      "fix": "the campaign test checks the flagged rows are the last 600 out-of-fold rows (TimeSeriesSplit(3) of 2,400); a core test with entities checks the interval moves up and says whole entities",
+      "test": "tests/test_core_decide_holdout_interval.py::NearestRowsTest::test_entities_are_drawn_from_the_nearest_ones_and_a_draw_without_them_never_mixes",
+      "severity": "gap"
+    },
+    {
+      "id": "R9",
+      "source": "reviewer",
+      "defect": "a bootstrap draw with none of the near rows fell back to every row, mixing two intervals",
+      "scenario": "one near entity of 3 rows: about 37% of draws used every row and the rest repeated that entity, giving [-1.0, 7.2] against [5.4, 7.8]",
+      "cause": "the empty-pool fallback took the whole draw",
+      "fix": "such a draw samples the near rows or entities themselves; the engine reads every fold, with a note, when the latest fold holds fewer than 20 rows or entities",
+      "test": "tests/test_core_decide_holdout_interval.py::NearestRowsTest::test_entities_are_drawn_from_the_nearest_ones_and_a_draw_without_them_never_mixes",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F1",
+      "source": "self",
+      "defect": "an insert placed the paired reading inside an if branch",
+      "scenario": "a text replacement keyed on '    within = None' matched the indented line inside 'if acted is None:', breaking the if/elif",
+      "cause": "a replacement anchor that is a substring of a deeper line",
+      "fix": "read the lines and put the block before the if",
+      "test": "tests/test_time_decision_measure.py",
+      "severity": "gap"
     }
   ],
   "measurements": [

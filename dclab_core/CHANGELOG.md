@@ -4,6 +4,16 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.118.0 (2026-10-26)
+
+The decision's holdout interval on a time split, from the rows nearest the holdout.
+
+- `decide.choose_operating_point(..., sample_rows=)`: the out-of-fold rows the holdout-sized samples are drawn from
+  (with entities, an entity whose first row is among them). A host passes a time split's latest fold: time_decision_v1
+  measured the interval from every fold too low on a drifting table (30 seeds of the churn replica, every miss above,
+  mean z 0.80 with a share capacity and 1.00 with a daily one), the earlier folds' rows being further from the holdout's
+  world. Refused beside `folds`. The expected value's own interval still reads every row.
+
 ## 0.117.0 (2026-10-26)
 
 What to collect next knows nine business domains, not five.

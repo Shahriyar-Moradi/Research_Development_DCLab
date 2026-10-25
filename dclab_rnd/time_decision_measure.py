@@ -1,4 +1,10 @@
-"""The decision's holdout interval on a time split (campaign ``time_decision_v1``; 34.1, plan item 6's open end).
+"""The decision's holdout interval on a time split (campaign ``time_decision_v2``; 34.1, plan item 6's open end).
+
+``time_decision_v1`` (seeds 100 to 129, 2026-10-26) failed on both arms, every miss above the interval: the replica
+drifts (positive rate 0.217 out of fold, 0.236 on the latest fold, 0.247 on the holdout) and each fold's value rose
+with it, so an interval from every fold sat low. Its next step, fixed with its gate: draw the holdout-sized samples from
+the latest fold's rows only (dclab-core 0.118.0, ``sample_rows``). v2 measures that on fresh seeds (130 to 159), the
+gate unchanged.
 
 ``fraud_decision_v3`` passed on an entity split, where each holdout-sized sample comes from one fold's rows. A time split
 passes no folds: its out-of-fold rows were scored by expanding-window models, the first trained on the fewest rows, while
@@ -22,8 +28,8 @@ The gate, fixed in ``manifest.json`` before the first run, is ``fraud_decision_v
 * z = (realised - centre) / (half-width / 1.645): |mean z| within 1.645/sqrt(N), and the 90% chi-squared interval of the
   root mean square of z contains 1. Fewer than 20 seeds acting is inconclusive, not a failure.
 
-The next step is fixed with the gate: a pass keeps the interval on time splits; a centre failure with mean z above 0
-reads the interval from the latest fold's rows only (two causes are possible and both are helped: the fold models are
+v1's next step, fixed with v1's gate (v2's own steps are in ``GATE``): a pass kept the interval on time splits; a centre
+failure with mean z above 0 reads the interval from the latest fold's rows only (two causes are possible and both are helped: the fold models are
 weaker than the final one, and the replica drifts, later customers leaving more often; each record keeps the positive
 rate of the out-of-fold rows, the latest fold and the holdout, and each fold's value, so the report can say which);
 mean z below 0 corrects the optimism of choosing the model; too narrow with misses on both sides adds blocks of days to
@@ -49,17 +55,17 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-CAMPAIGN_ID = "time_decision_v1"
+CAMPAIGN_ID = "time_decision_v2"
 CAMPAIGN = ROOT / "evidence" / "campaigns" / CAMPAIGN_ID
 WORK = ROOT / "agent_runs" / CAMPAIGN_ID  # each run's workspace kept whole: the store reads its sessions, ledger and runs
-SEEDS = tuple(range(100, 130))  # fresh: seed 0 raised the question and never judges it
+SEEDS = tuple(range(130, 160))  # fresh: v1's seeds (100 to 129) and seed 0 raised the question and never judge its fix
 BASE = {"action": "act", "what": "call the customer", "value_per_case": 120.0, "cost_per_action": 10.0}
 ARMS = {
     "pooled": {**BASE, "capacity_share": 0.1, "notes": "a customer kept is worth 120, a call costs 10; at most 10% of the customers called"},
     "daily": {**BASE, "capacity_per_day": 1.0, "notes": "a customer kept is worth 120, a call costs 10; one call a day"},
 }
 GATE = {
-    "id": "time_decision_gate_v1 (fraud_decision_gate_v3's, for each arm)",
+    "id": "time_decision_gate_v2 (v1's, unchanged)",
     "chosen": "the decision is chosen on every seed (an operating point; no refusal)",
     "time_split": "every run's data stage split by time (the strategy recorded per run)",
     "capacity": "on every seed that acted, the holdout's actions never exceed its capacity (a share of its rows with one row's "
@@ -69,10 +75,13 @@ GATE = {
     "centre": "each seed's z = (realised - the interval's centre) / (its half-width / 1.645); |mean z| <= 1.645 / sqrt(N)",
     "width": "the 90% chi-squared interval of the root mean square of z contains 1 (neither too narrow nor too wide)",
     "inconclusive": "fewer than 20 seeds acting: no verdict on the interval",
-    "next": "a pass: keep the interval on time splits; centre above 0 (realised above): read the interval from the latest "
-            "fold's rows only (the recorded positive rates and each fold's value say whether the replica's drift or the fold "
-            "models' strength explains it); centre below 0: correct the optimism of choosing the model; too narrow with misses "
-            "on both sides: add blocks of days to the samples; too wide: drop a part of the samples' noise",
+    "next": "a pass: keep the latest fold's interval on time splits (the paired all-folds interval on the same seeds says how "
+            "much came from a better centre and how much from a wider one); centre still above 0: drift past the training period "
+            "or the latest fold model's fewer rows, as the recorded rates and fold values show: say it in the decision's note and "
+            "measure a table without drift; centre below 0: correct the optimism of choosing the model; too narrow with misses "
+            "on both sides: add blocks of days to the samples; too wide: sample the latest two folds",
+    "paired": "each run also keeps the interval drawn from every fold (0.115.0's) on the same rows and seed, with its z: reported "
+              "beside the gate, never gated",
 }
 MIN_ACTED = 20
 COVERAGE = 0.8
@@ -94,9 +103,10 @@ CODE_AT_START = code_sha256()
 
 def manifest() -> dict[str, Any]:
     body = {"campaign": CAMPAIGN_ID, "package": "34.1", "seeds": list(SEEDS), "arms": ARMS, "gate": GATE, "dataset": "subscription churn (kinds binary case)",
-            "objective": ("Does the decision's holdout interval keep its word on a time split, where the out-of-fold rows were scored "
-                          "by expanding-window models and the holdout by the final one? Thirty fresh seeds of the churn replica, a "
-                          "share capacity read as one pool and a daily capacity read day by day, each against its 90% interval.")}
+            "objective": ("Does the decision's holdout interval keep its word on a time split when its samples come from the latest "
+                          "fold's rows, the nearest the holdout (dclab-core 0.118.0; v1 found the interval from every fold too low)? "
+                          "Thirty fresh seeds of the churn replica, a share capacity read as one pool and a daily capacity read day "
+                          "by day, each against its 90% interval.")}
     body["sha256"] = hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
     return body
 
@@ -145,7 +155,21 @@ def run_one(seed: int, arm: str) -> dict[str, Any]:
     work.mkdir(parents=True)
     from .ledger import labels
 
-    with recorded(work), private_scope(True), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None):
+    import numpy as np
+
+    from dclab_core import decide
+
+    original, kept = decide.choose_operating_point, {}
+
+    def paired(*args, **kwargs):  # the same call with every fold's rows (0.115.0's interval), kept beside the measured one
+        out = original(*args, **kwargs)
+        if kwargs.get("sample_rows") is not None:
+            kept["sample_rows"] = kwargs["sample_rows"]
+            kept["all_folds"] = (original(*args, **{**kwargs, "sample_rows": None}).get("holdout") or {}).get("prediction_interval")
+        return out
+
+    with recorded(work), private_scope(True), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None), \
+            mock.patch.object(decide, "choose_operating_point", paired):
         store, pid = acceptance.build(case, work)
         engine.run_all(store, pid)
         labels.from_replica(pid, case.facts, "subscription_churn")  # the planted traps label the decisions (the review)
@@ -164,6 +188,11 @@ def run_one(seed: int, arm: str) -> dict[str, Any]:
     if inside is not None and interval[1] > interval[0]:
         z = round((realised - (interval[0] + interval[1]) / 2) / ((interval[1] - interval[0]) / 2 / 1.645), 4)
         side = "inside" if inside else "below" if realised < interval[0] else "above"
+    all_folds = kept.get("all_folds") or [None, None]
+    inside_all = z_all = None
+    if realised is not None and None not in all_folds and all_folds[1] > all_folds[0]:
+        inside_all = bool(all_folds[0] <= realised <= all_folds[1])
+        z_all = round((realised - (all_folds[0] + all_folds[1]) / 2) / ((all_folds[1] - all_folds[0]) / 2 / 1.645), 4)
     if acted is None:
         within = None
     elif arm == "daily":
@@ -180,6 +209,10 @@ def run_one(seed: int, arm: str) -> dict[str, Any]:
               "inside_prediction_interval": inside, "z": z, "miss_side": side, "within_capacity": within, "days": days,
               "days_note": d.get("days_note"), "holdout_uses": int(store.get(pid).get("holdout_uses") or 0),
               "prediction_interval_method": h.get("prediction_interval_method"), "applied_as": d.get("applied_as"),
+              "all_folds_interval": all_folds, "inside_all_folds": inside_all, "z_all_folds": z_all,
+              "latest_fold_rows": int(np.asarray(kept["sample_rows"]).sum()) if kept.get("sample_rows") is not None else None,
+              "latest_fold_is_the_last_block": (bool(np.asarray(kept["sample_rows"])[-int(np.asarray(kept["sample_rows"]).sum()):].all())
+                                                if kept.get("sample_rows") is not None else None),
               "model": evidence.get("model"), "seconds": round(time.perf_counter() - started, 1), "code_sha256": CODE_AT_START}
     out = CAMPAIGN / "results"
     out.mkdir(parents=True, exist_ok=True)
@@ -256,16 +289,20 @@ def judge(rows: list[dict[str, Any]]) -> dict[str, Any]:
     sides = {s: sum(1 for r in read if r.get("miss_side") == s) for s in ("below", "above")}
     narrow = width is not None and width["interval"][0] > 1
     wide = width is not None and width["interval"][1] < 1
-    step = ("keep the interval on time splits" if all(gates.values()) else
-            "read the interval from the latest fold's rows only" if not gates["centre"] and centre and centre["mean_z"] > 0 else
+    step = ("keep the latest fold's interval on time splits" if all(gates.values()) else
+            "say the drift or the fold model's fewer rows in the decision's note" if not gates["centre"] and centre and centre["mean_z"] > 0 else
             "correct the optimism of choosing the model" if not gates["centre"] and centre and centre["mean_z"] < 0 else
             "add blocks of days to the samples" if not gates["width"] and narrow and sides["below"] and sides["above"] else
-            "drop a part of the samples' noise" if not gates["width"] and wide else "read the seeds")
+            "sample the latest two folds" if not gates["width"] and wide else "read the seeds")
+    paired = [float(r["z_all_folds"]) for r in read if r.get("z_all_folds") is not None]
     verdict = ((("pass" if all(gates.values()) else "fail") if enough else "inconclusive: fewer than 20 seeds acted")
                if complete else f"not yet: {len(rows)} of {len(SEEDS)} seeds")
     return {"seeds": len(rows), "of": len(SEEDS), "gates": gates, "acted": len(acted), "inside_prediction_interval": inside,
             "coverage": round(inside / len(read), 4) if read else None, "misses": sides, "centre": centre, "width": width,
-            "next": step if complete and enough else None, "verdict": verdict}
+            "next": step if complete and enough else None, "verdict": verdict,
+            "paired_all_folds": {"mean_z": round(sum(paired) / len(paired), 4) if paired else None,
+                                 "rms_z": round((sum(z * z for z in paired) / len(paired)) ** 0.5, 4) if paired else None,
+                                 "inside": sum(1 for r in read if r.get("inside_all_folds")), "read": len(paired)}}
 
 
 def report() -> dict[str, Any]:

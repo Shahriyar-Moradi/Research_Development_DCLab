@@ -38,6 +38,11 @@ class TimeDecisionTest(unittest.TestCase):
         self.assertIsNone(pooled["days"])  # a share: one pool
         self.assertEqual(daily["days"]["most_in_a_day"], 1)  # a time split's holdout, day by day
         self.assertIn("days of the holdout's sizes", daily["prediction_interval_method"])
+        self.assertIn("nearest the holdout", pooled["prediction_interval_method"])  # 0.118.0: the latest fold's rows
+        for r in (pooled, daily):  # the engine flags the latest fold: TimeSeriesSplit(3) of 2,400 rows, its last 600 out-of-fold rows
+            self.assertEqual(r["latest_fold_rows"], 600)
+            self.assertTrue(r["latest_fold_is_the_last_block"])
+            self.assertEqual(len(r["all_folds_interval"]), 2)  # the paired reading from every fold, on the same seed
         self.assertTrue((scratch / "c" / "results").exists())
 
     def test_the_gates_and_the_next_step_fixed_with_them(self):
@@ -46,10 +51,10 @@ class TimeDecisionTest(unittest.TestCase):
         n = len(tm.SEEDS)
         both = [dict(good, z=0.9 if i % 2 else -0.9) for i in range(n)]
         self.assertEqual(tm.judge(both)["verdict"], "pass")
-        above = [dict(good, z=1.0) for _ in range(n)]  # every seed realises above the centre: the fold models weaker
+        above = [dict(good, z=1.0) for _ in range(n)]  # every seed realises above the centre
         verdict = tm.judge(above)
         self.assertFalse(verdict["gates"]["centre"])
-        self.assertEqual(verdict["next"], "read the interval from the latest fold's rows only")
+        self.assertEqual(verdict["next"], "say the drift or the fold model's fewer rows in the decision's note")
         below = [dict(good, z=-1.0) for _ in range(n)]
         self.assertEqual(tm.judge(below)["next"], "correct the optimism of choosing the model")
         few = [dict(good, chosen_share=0.0, inside_prediction_interval=None, z=None)] * (n - 10) + [dict(good)] * 10
@@ -65,14 +70,14 @@ class TimeDecisionTest(unittest.TestCase):
                        miss_side="inside" if i % 5 else ("above" if i % 2 else "below")) for i in range(n)]
         self.assertEqual(tm.judge(narrow)["next"], "add blocks of days to the samples")
         wide = [dict(good, z=0.3 if i % 2 else -0.3) for i in range(n)]
-        self.assertEqual(tm.judge(wide)["next"], "drop a part of the samples' noise")
+        self.assertEqual(tm.judge(wide)["next"], "sample the latest two folds")
 
     def test_a_failed_run_is_recorded_and_counted(self):
         import json
 
         scratch = Path(tempfile.mkdtemp())
         with mock.patch.object(tm, "CAMPAIGN", scratch / "c"):
-            tm.failed(100, "daily", ValueError("no rows"))
+            tm.failed(tm.SEEDS[0], "daily", ValueError("no rows"))
             (scratch / "c" / "results" / "TDC-900_decision.json").write_text(json.dumps({"id": "TDC-900"}))  # never read as a run
             out = tm.report()
         self.assertEqual(out["arms"]["daily"]["seeds"], 1)
