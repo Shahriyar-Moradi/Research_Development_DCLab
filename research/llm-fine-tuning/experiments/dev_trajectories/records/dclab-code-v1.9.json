@@ -1,0 +1,108 @@
+{
+ "package": "dclab-code-v1.9",
+ "title": "DCLab Code: live tests on the owner's budget, and who acts recorded on every act",
+ "date": "2026-10-25",
+ "request": "You have a $20 budget to test dclab-code live: find bugs and fix them, and keep every record for training.",
+ "spec": "dclab-code README.md; agent_runs/live_tests/2026-10-25-dclab-code/README.md",
+ "plan": [
+  "DCLab's ML tools through the app, up to the holdout guard",
+  "A real small R&D task in its own copy, in plan mode",
+  "Two sessions at once, each in its own copy",
+  "Keep every record, fix what the runs show, report the spend"
+ ],
+ "decisions": [
+  {
+   "decision": "Test homes and port 4318 only, never the owner's home or port 4317",
+   "why": "the owner's sessions are training data; a test must never mix into them"
+  },
+  {
+   "decision": "decidedBy in the config, not a guess from the clicks",
+   "why": "the app cannot tell a script's click from a person's; the home that runs the test can say so"
+  },
+  {
+   "decision": "Anything other than \"person\" counts as a script",
+   "why": "a typo must fail toward no label, never toward a gold one"
+  },
+  {
+   "decision": "Plan files left in ~/.claude/plans",
+   "why": "the SDK can only move them inside the project (into the repository); the plan text is recorded whole anyway"
+  }
+ ],
+ "change": "config decidedBy; LiveSession.who(); by on user_message, permission, question and plan decisions, feedback, person commands, undo, outcomes (committed, merged, copy_removed) and stop; the app's own denies stay app; state.decidedBy and a status-line warning; Keep planning with an empty box asks for the change and sends nothing, and the error goes once the plan is answered.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "a test script's clicks were recorded as the person's",
+   "scenario": "batch 1's page script allowed 9 DCLab steps and graded a turn Good; every record said by: \"person\"",
+   "cause": "only two actors existed, the person and the app",
+   "fix": "decidedBy: \"script\" in a test home puts by: \"script\" on every act",
+   "test": "tests/server.test.js: a test home (decidedBy \"script\")",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "defect": "Keep planning with an empty box sent the agent no direction",
+   "scenario": "the plan card's Keep planning pressed before typing: the agent got 'the person did not approve this plan yet' and had to ask what to change",
+   "cause": "the button sent whatever the box held, even nothing",
+   "fix": "an empty box shows 'Say what to change first' and sends nothing",
+   "test": "tests/page.test.js: the question card and the plan card answer the agent",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "the 'say what to change' error stayed on the card after the plan was approved",
+   "scenario": "Keep planning with an empty box, then Approve: the card said Approved and still showed the error",
+   "cause": "a successful send never cleared it",
+   "fix": "cleared before sending and removed when the plan is answered",
+   "test": "tests/page.test.js: the question card and the plan card answer the agent",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "the test-home test covered six record types of twelve",
+   "scenario": "a plan choice, an answer, an undo, a merge, a copy removal or a stop recorded as the person's would have passed",
+   "cause": "the test stopped after the commit",
+   "fix": "the test plays every act and asserts each record's by; only the app's deny at the stop is the app's",
+   "test": "tests/server.test.js: a test home (decidedBy \"script\")",
+   "severity": "gap"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "live tests with real models",
+   "gate": "the holdout guard asks with no always option; plan card, question card and edit asks work on a real task; two copies stay apart; each batch's spend reported",
+   "fixed_before_run": true,
+   "result": "all held: guard 1 asked, 1 allowed (Y key); the fix made in plan mode in its own copy passed its test; two copies held only their own files; remove refused unsaved work, then removed when forced",
+   "verdict": "pass",
+   "cost_eur": 0.46,
+   "limits": [
+    "one run of each",
+    "the owner did not click: a script did"
+   ]
+  },
+  {
+   "name": "dclab-code tests",
+   "gate": "every server, unit and page test passes, none skipped; the new test fails without who()",
+   "fixed_before_run": true,
+   "result": "52 passed, 0 skipped; the test-home test fails when who() returns person",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": []
+  }
+ ],
+ "outcome": "The live tests found two bugs, both fixed; a test home now says in every record that a script acted.",
+ "lessons": [
+  "A test that clicks for the person is itself an actor: the record must name it",
+  "Give the tool under test a real job: plan mode, the question card and the edit asks were exercised on a fix worth having"
+ ],
+ "risks": [
+  "the session's cost shows $0 until a turn ends (the SDK reports cost then)"
+ ],
+ "commits": [
+  "dclab-code 41299f2"
+ ]
+}

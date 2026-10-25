@@ -987,6 +987,18 @@ while the agent made steps in it, gold when it holds the person's steps alone. *
 list comes out in file order with the person's steps in place, a command started before an agent edit sits before it,
 and the app's own command is not a person step (`tests/test_store_dclab_code_sets.py`).
 
+### 32.40 A test script's acts are never a person's labels (added 2026-10-25)
+
+A live test of DCLab Code (`agent_runs/live_tests/2026-10-25-dclab-code/`) found the clicks of Claude's test script
+recorded as `by: "person"`: a test home's sessions could have become gold labels. DCLab Code now records who acts
+(`decidedBy` in its config: `person`, or `script` in a test home) on every act: decisions, answers, plan choices,
+grades, commands, undos, commits, merges, messages and stops. The builder reads a record as the person's only when its
+`by` is "person" or absent (records older than `by`): a script's decision is automatic, its grade no judgement, its
+command and undo no person step; its undo or commit still cuts a file's history, with no verdict, so a later commit
+by the person never takes credit for changes the script already settled. **Done when:** a session with a script's
+deny, grade, commit and undo beside an old record with no `by` gives exactly the old record's label and judgement, and
+each of the three cuts fails the test when removed (`tests/test_store_dclab_code_sets.py`).
+
 ## The owner's answers (2026-10-20)
 
 - **The store's bulk:** a separate private GitHub repository, `dclab-records`, with one branch per person (`owner/main`,
@@ -1021,7 +1033,7 @@ and the app's own command is not a person step (`tests/test_store_dclab_code_set
 ## Order
 
 32.1 → 32.2 → 32.3 → 32.4 → 32.5 → 32.6 → 32.7 → 32.8 → 32.9 → 32.10 → 32.11 → 32.12 → 32.13 → 32.14 → 32.15 → 32.16 →
-32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31, then 32.32 → 32.33 → 32.34 → 32.35 → 32.36 → 32.37 → 32.38 → 32.39 (the
+32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31, then 32.32 → 32.33 → 32.34 → 32.35 → 32.36 → 32.37 → 32.38 → 32.39 → 32.40 (the
 check, 32.18, is extended by each).
 
 Every package follows the usual steps: a test first, the reviewer, its development record and `make sft-dev`, and the
@@ -1115,6 +1127,7 @@ gate. Model spend:
     - CPU time per step;
     - a workspace reading the store's shadow students;
     - live runs of the curator and the teacher.
+- **32.40 built (2026-10-25):** a test script's acts in DCLab Code are never a person's labels (found in a live test).
 - **32.39 built (2026-10-25):** the person's own commands and undos as steps of DCLab Code's M6 episodes.
 - **32.38 built (2026-10-25):** the person's undos and commits of DCLab Code's file changes as M7 code judgements.
 - **32.37 built (2026-10-25):** the store every 6 hours on the owner's Mac (launchd), when due, alone, with 2 GB free.

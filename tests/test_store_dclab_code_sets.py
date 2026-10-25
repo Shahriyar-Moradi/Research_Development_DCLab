@@ -254,6 +254,68 @@ class DclabCodeSetsTest(unittest.TestCase):
         self.assertEqual({r.split for r in transcript}, {split_of("sdk-s_edge01")})
         self.assertEqual(ep["split"], split_of("sdk-s_edge01"))
 
+    def test_a_scripts_decision_is_never_a_persons_label(self):
+        from dclab_rnd.store import Layout, conductor
+        from dclab_rnd.store.keepers import standard
+
+        T = lambda s: f"2026-10-25T13:00:{s:02d}.000Z"  # noqa: E731
+        tool = lambda s, tid, cmd, name="Bash": sdk(T(s), {"type": "assistant", "parent_tool_use_id": None, "message": {"content": [{"type": "tool_use", "id": tid, "name": name, "input": cmd if isinstance(cmd, dict) else {"command": cmd}}]}})  # noqa: E731
+        result = lambda s, tid, err=False: sdk(T(s), {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": tid, "content": "x", "is_error": err}]}})  # noqa: E731
+        def edit(s, tid, inp):
+            return [sdk(T(s), {"type": "assistant", "parent_tool_use_id": None, "message": {"content": [{"type": "tool_use", "id": tid, "name": "Edit", "input": inp}]}}),
+                    sdk(T(s), {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": tid, "content": "ok", "is_error": False}]}})]
+        lines = [
+            line(T(0), kind="app", type="user_message", id="u1", text="go"),
+            sdk(T(1), {"type": "system", "subtype": "init", "session_id": "sdk-s_script01", "model": "claude-sonnet-5-5", "permissionMode": "plan", "tools": []}),
+            tool(1, "kp", {"plan": "1. clean"}, "ExitPlanMode"),
+            line(T(1), kind="app", type="plan_request", reqId="pl1", plan="1. clean", toolUseId="kp"),
+            line(T(1), kind="app", type="plan_decision", reqId="pl1", choice="auto", feedback=None, by="script"),  # the mode did switch
+            tool(2, "k1", "rm -rf out"),
+            line(T(3), kind="app", type="permission_request", reqId="ps1", tool="Bash", input={}, reason="rm", guard=None, toolUseId="k1"),
+            line(T(4), kind="app", type="permission_decision", reqId="ps1", decision="deny", by="script"),  # a test script clicked
+            result(4, "k1", err=True),
+            tool(5, "k2", "rm -rf out/tmp"),  # the next same-tool step after a deny: a preference pair, were the deny a person's
+            line(T(6), kind="app", type="permission_request", reqId="ps2", tool="Bash", input={}, reason="rm", guard=None, toolUseId="k2"),
+            line(T(7), kind="app", type="permission_decision", reqId="ps2", decision="allow"),  # an old record: no "by", a person's
+            result(7, "k2"),
+            tool(7, "kq", {"questions": [{"question": "Which?"}]}, "AskUserQuestion"),
+            line(T(7), kind="app", type="question_request", reqId="q1", questions=[{"question": "Which?"}], toolUseId="kq"),
+            line(T(7), kind="app", type="question_answer", reqId="q1", answers={"Which?": "A"}, by="script"),
+            sdk(T(8), {"type": "assistant", "parent_tool_use_id": None, "message": {"content": [{"type": "text", "text": "Removed out/tmp."}]}}),
+            sdk(T(9), {"type": "result", "subtype": "success", "is_error": False}),
+            line(T(10), kind="app", type="feedback", turnTs=T(9), turn=1, value="good", note=None, by="script"),  # a script's grade
+            *edit(11, "k3", {"file_path": f"{self.repo}/s.py", "old_string": "a", "new_string": "b"}),
+            line(T(12), kind="app", type="outcome", outcome="committed", sha="s1", files=["s.py"], count=1, branch="dclab/s", by="script"),
+            line(T(13), kind="app", type="outcome", outcome="committed", sha="s2", files=["s.py"], count=1, branch="dclab/s", by="person"),
+            *edit(14, "k4", {"file_path": f"{self.repo}/s.py", "old_string": "b", "new_string": "c"}),
+            line(T(15), kind="app", type="undo", file="s.py", how="restored", backup="/b/s.py", by="script"),
+            line(T(16), kind="app", type="outcome", outcome="merged", files=["s.py"], commits=1, into="main", branch="dclab/s", by="script"),
+        ]
+        (self.home / "records" / "s_script01.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        listed = json.loads((self.home / "sessions.json").read_text(encoding="utf-8"))
+        listed["sessions"].append({"id": "s_script01", "projectPath": str(self.repo), "sdkSessionId": "sdk-s_script01", "model": "claude-sonnet-5-5"})
+        (self.home / "sessions.json").write_text(json.dumps(listed), encoding="utf-8")
+        self.layout = Layout(Path(tempfile.mkdtemp()) / "store")
+        conductor.conduct(self.env, self.layout, standard.install({}))
+        perm = [d for d in self.rows("m2_workflow_decisions", "internal", "dclab_code.permission") if "s_script01" in d["id"]]
+        self.assertEqual([(d["label"], d["label_source"]) for d in perm], [("allow", "person")])  # the script's deny is no person's label
+        steps = [j for j in self.rows("m7_judges", "dclab_code_steps") if "s_script01" in j["id"]]
+        self.assertEqual([(j["candidate"]["input"]["command"], j["score"]) for j in steps], [("rm -rf out/tmp", 1.0)])  # nor a person's judgement of the script's step
+        self.assertFalse([j for j in self.rows("m7_judges", "dclab_code_answers") if "s_script01" in j["id"]])  # nor its grade
+        # A script's commit and undo cut the file's history with no verdict: the person's later commit judges nothing.
+        self.assertFalse([j for j in self.rows("m7_judges", "dclab_code_changes") if "s_script01" in j["id"]])
+        # Nor its plan choice, nor a kept-against-refused pair built on its deny.
+        for mt, folder in (("m7_judges", ("dclab_code_plans",)), ("m2_workflow_decisions", ("internal", "dclab_code.plan_approval")),
+                           ("m1_students", ("dclab_code.plan_approval",)), ("m7_judges", ("dclab_code_preferences",)), ("m5_solver_llm", ("dclab_code_preferences",))):
+            self.assertFalse([j for j in self.rows(mt, *folder) if "s_script01" in j["id"]], (mt, folder))
+        # The episode keeps the facts: the mode the script's approval switched to, what each step did, marked as the script's.
+        ep = next(e for e in self.rows("m6_stepwise_decisions", "dclab_code") if e["id"].endswith("s_script01"))
+        self.assertEqual([(x["action"], x["state"]["method"], x["outcome"]) for x in ep["steps"]],
+                         [("ExitPlanMode", "plan_only", "plan_auto_by_script"), ("Bash", "auto_edits", "denied_by_script"),
+                          ("Bash", "auto_edits", "allowed_ok"), ("AskUserQuestion", "auto_edits", "answered_by_script"),
+                          ("Edit", "auto_edits", "auto_ok"), ("Edit", "auto_edits", "auto_ok")])  # and no person:undo for the script's undo
+        self.assertEqual(ep["outcome"], "merged_by_script")  # a script's merge is no sign the person kept the work
+
     def test_the_persons_steps_sit_in_the_episode(self):
         ep = next(e for e in self.rows("m6_stepwise_decisions", "dclab_code") if e["id"].endswith("s_undo01"))
         actions = [(s["action"], s["outcome"]) for s in ep["steps"]]

@@ -8,7 +8,9 @@ the answers, plan approvals, the person's grade of each turn, and what became of
   is bands and codes only (its step number, the tool as a code, the tool's family, the permission mode, whether it asked
   and why), its action the tool's name, its outcome ``auto_ok``, ``auto_error``, ``allowed_ok``, ``allowed_error``,
   ``denied``, ``answered``, ``skipped`` or ``plan_<choice>``; the episode's outcome from the record (``merged``, ``stopped``,
-  the last turn's result). Silver weight while the agent (Claude) made steps in it; an episode of the person's steps alone
+  the last turn's result). A test script's decision or merge keeps its fact with ``_by_script`` (``denied_by_script``,
+  ``merged_by_script``): DCLab Code records who acted (``by``), and only a person's act (or a record older than ``by``)
+  becomes a label anywhere (32.40). Silver weight while the agent (Claude) made steps in it; an episode of the person's steps alone
   is gold.
 - **M7** (:class:`dclab_core.store.JudgedExample`): the person's judgement, gold: a step allowed or denied (folder
   ``dclab_code_steps``: the tool, its command or file path, why it asked), a plan approved or sent back with a note
@@ -108,6 +110,7 @@ class Session:
 
     @staticmethod
     def _auto(d: dict[str, Any], after_stop: bool) -> bool:
+        """The app answered (a stop, a session ending): a fact about the step. Who decided is apart (``_person``)."""
         return d.get("by") == "app" or after_stop or (d.get("message") or d.get("feedback")) in AUTO_TEXTS
 
     def _read(self) -> None:
@@ -125,7 +128,7 @@ class Session:
             elif t in ("permission_request", "question_request", "plan_request") and b.get("toolUseId"):
                 requests[str(b["toolUseId"])] = {**b, "_record": r}
             elif t in ("permission_decision", "question_answer", "plan_decision") and b.get("reqId"):
-                decisions[str(b["reqId"])] = {**b, "_auto": self._auto(b, after_stop), "_record": r}
+                decisions[str(b["reqId"])] = {**b, "_auto": self._auto(b, after_stop), "_person": by_person(b), "_record": r}
         # Pass 2: the steps in file order.
         mode, turn, last_text, stopped, self._thinking = "unknown", 0, None, False, None
         starts: dict[str, tuple] = {}  # a person's command: where it started
@@ -167,15 +170,17 @@ class Session:
                     mode = "auto_edits"
                 elif b.get("choice") == "ask":
                     mode = "ask_first"
-            elif t == "feedback":
+            elif t == "feedback" and by_person(b):  # a test script's grade is no person's judgement
                 self.grades.append({"turn": b.get("turn"), "value": b.get("value"), "note": b.get("note"), "record": r, "results_before": turn})
-            elif t == "undo" and isinstance(b.get("file"), str) and b.get("by", "person") == "person":
-                self.undos[b["file"]].append({"how": b.get("how"), "record": r, "order": _order(r)})
-                self.person_steps.append({"order": _order(r), "action": "person:undo", "kind": "person_undo", "turn": turn, "mode": mode,
-                                          "outcome": _code(b.get("how") or "undone"), "guard": None, "at": r.at})
+            elif t == "undo" and isinstance(b.get("file"), str):
+                # A script's undo still cuts the file's history (file_verdicts), with no verdict and no person's step.
+                self.undos[b["file"]].append({"how": b.get("how"), "record": r, "order": _order(r), "person": by_person(b)})
+                if by_person(b):
+                    self.person_steps.append({"order": _order(r), "action": "person:undo", "kind": "person_undo", "turn": turn, "mode": mode,
+                                              "outcome": _code(b.get("how") or "undone"), "guard": None, "at": r.at})
             elif t == "person_command_start" and b.get("id"):
                 starts[str(b["id"])] = _order(r)
-            elif t == "person_command" and b.get("by", "person") == "person":
+            elif t == "person_command" and by_person(b):
                 code = "timed_out" if b.get("timedOut") else f"exit_{b.get('exit')}" if isinstance(b.get("exit"), int) else "no_exit"
                 # placed where it started (the app records the start first), so what the agent did meanwhile comes after
                 self.person_steps.append({"order": starts.get(str(b.get("id")), _order(r)), "action": "person:Bash", "kind": "person_shell", "turn": turn, "mode": mode,
@@ -183,8 +188,9 @@ class Session:
             elif t == "outcome":
                 o = b.get("outcome")
                 if o in ("committed", "merged") and isinstance(b.get("files"), list):  # older records name no files: no verdict from them
-                    self.kept.append({"order": _order(r), "files": {str(f) for f in b["files"]}})
-                self.outcome = "merged" if o == "merged" else ("copy_removed" if b.get("merged") else "copy_removed_unmerged") if o == "copy_removed" else _code(o)
+                    self.kept.append({"order": _order(r), "files": {str(f) for f in b["files"]}, "person": by_person(b)})
+                code = "merged" if o == "merged" else ("copy_removed" if b.get("merged") else "copy_removed_unmerged") if o == "copy_removed" else _code(o)
+                self.outcome = code if by_person(b) else f"{code}_by_script"  # a script's merge is no sign the person kept the work
             elif t == "stop":
                 self.outcome, stopped = "stopped", True
             elif t == "user_message":
@@ -202,7 +208,7 @@ class Session:
         dec = decisions.get(str(req.get("reqId"))) if req else None
         step = {"id": tid, "n": len(self.steps), "order": _order(r), "decided": _order(dec["_record"]) if dec else None, "tool": str(block.get("name") or "unknown"), "input": block.get("input"), "mode": mode, "turn": turn,
                 "asked": bool(req), "guard": (req or {}).get("guard"), "reason": (req or {}).get("reason"), "decision": None,
-                "auto": bool(dec and dec["_auto"]), "ok": None, "at": r.at, "record": (dec or {}).get("_record") or r, "sub": sub,
+                "auto": bool(dec and dec["_auto"]), "person": bool(dec and dec["_person"]), "ok": None, "at": r.at, "record": (dec or {}).get("_record") or r, "sub": sub,
                 "thinking": None if sub else self._thinking}
         if not sub:
             self._thinking = None
@@ -212,11 +218,12 @@ class Session:
                 if t == "question_answer" else f"plan_{_code(dec.get('choice'))}"
         if req and req.get("type") == "plan_request":
             self.plans.append({"plan": req.get("plan") or "", "choice": (dec or {}).get("choice"), "feedback": (dec or {}).get("feedback"),
-                               "record": (dec or {}).get("_record") or r, "mode": mode, "auto": step["auto"]})
+                               "record": (dec or {}).get("_record") or r, "mode": mode, "auto": step["auto"], "person": step["person"]})
         if not sub:
             self.steps.append(step)
             self._edit(step)
-        if req and req.get("type") == "permission_request" and step["decision"] in ("allow", "allow_always", "deny") and not step["auto"]:
+        # A label only where the person decided: never the app's answer, never a test script's.
+        if req and req.get("type") == "permission_request" and step["decision"] in ("allow", "allow_always", "deny") and not step["auto"] and step["person"]:
             self.asked.append(step)
 
     def _edit(self, st: dict[str, Any]) -> None:
@@ -240,12 +247,14 @@ class Session:
         d = s["decision"]
         if s["auto"]:
             return "cancelled"  # the app answered (a stop, a session ending): not the person's choice
+        # What happened, as it happened; a test script's decision says so (it is no person's choice).
+        mark = "_by_script" if d is not None and not s["person"] else ""
         if d == "deny":
-            return "denied"
+            return "denied" + mark
         if d in ("answered", "skipped") or str(d).startswith("plan_"):
-            return str(d)
+            return str(d) + mark
         ran = "ok" if s["ok"] else "error" if s["ok"] is False else "no_result"
-        return f"allowed_{ran}" if s["asked"] else f"auto_{ran}"
+        return (f"allowed_{ran}" + mark) if s["asked"] else f"auto_{ran}"
 
     def state(self, i: int, s: dict[str, Any]) -> dict[str, Any]:
         return {"step": i, "move": _code(s["tool"]), "kind": family(s["tool"]), "method": s["mode"], "gate_required": bool(s["asked"]),
@@ -317,7 +326,7 @@ def examples(layout: Layout, choices: Optional[dict] = None) -> dict[tuple[str, 
                         id=f"{mt}:dclab_code:permission:{s.sid}:{i}", model_type=mt, split=split, provenance=prov, point=POINT_PERMISSION,
                         group=group, split_group=s.sdk_id, state=state, options=["allow", "allow_always", "deny"], label=st["decision"], label_source="person"))
         for j, p in enumerate(s.plans):
-            if not p["choice"] or p["auto"]:
+            if not p["choice"] or p["auto"] or not p["person"]:
                 continue
             prov = p["record"].provenance
             if ok["m7_judges"]:
@@ -354,10 +363,17 @@ def examples(layout: Layout, choices: Optional[dict] = None) -> dict[tuple[str, 
     return groups
 
 
+def by_person(d: dict[str, Any]) -> bool:
+    """Whether a record is the person's own act: its "by" is "person", or it has none (records older than "by").
+    Anything else (the app, a test script: ``decidedBy: "script"`` in DCLab Code's config) is never a person's label."""
+    return d.get("by") in (None, "person")
+
+
 def file_verdicts(file: str, changes: list[dict[str, Any]], undos: list[dict[str, Any]], kept: list[dict[str, Any]]) -> list[tuple[str, list, Any]]:
     """A file's history in file order, cut at each undo and at each commit or merge. The changes since the last cut are
     **undone** (0) at an undo, **committed** (1) at a commit or merge that names this file; a commit that does not name it
-    leaves them waiting; changes never cut have no verdict. Only a change that ran (its tool result ok) counts."""
+    leaves them waiting; changes never cut have no verdict. Only a change that ran (its tool result ok) counts. A test
+    script's undo or commit cuts the history too, with no verdict: it is no person's judgement."""
     ran = [c for c in changes if c["_step"].get("ok") is True]
     events = sorted([(c["_order"], 1, c) for c in ran] + [(u["order"], 0, u) for u in undos] + [(k["order"], 0, k) for k in kept],
                     key=lambda e: (e[0], e[1]))
@@ -366,11 +382,12 @@ def file_verdicts(file: str, changes: list[dict[str, Any]], undos: list[dict[str
         if is_change:
             pending.append(item)
         elif "how" in item:  # an undo
-            if pending:
+            if pending and item.get("person", True):
                 out.append(("undone", pending, item["record"].provenance))
             pending = []
-        elif file in item["files"] and pending:  # a commit or merge holding this file
-            out.append(("committed", pending, pending[-1]["_record"].provenance))
+        elif file in item["files"]:  # a commit or merge holding this file
+            if pending and item.get("person", True):
+                out.append(("committed", pending, pending[-1]["_record"].provenance))
             pending = []
     return out
 
@@ -389,10 +406,10 @@ def preferences(s: Session) -> list[tuple[dict[str, Any], dict[str, Any]]]:
     not a subagent's step, never the app's own deny."""
     pairs = []
     for st in s.steps:
-        if st["decision"] != "deny" or st["auto"] or st["n"] + 1 >= len(s.steps):
+        if st["decision"] != "deny" or st["auto"] or not st["person"] or st["n"] + 1 >= len(s.steps):
             continue
         nxt = s.steps[st["n"] + 1]
-        if (nxt["tool"] == st["tool"] and nxt["turn"] == st["turn"] and nxt["asked"] and not nxt["auto"]
+        if (nxt["tool"] == st["tool"] and nxt["turn"] == st["turn"] and nxt["asked"] and not nxt["auto"] and nxt["person"]
                 and nxt["decision"] in ("allow", "allow_always") and st["decided"] is not None and nxt["order"] > st["decided"]):
             pairs.append((nxt, st))
     return pairs

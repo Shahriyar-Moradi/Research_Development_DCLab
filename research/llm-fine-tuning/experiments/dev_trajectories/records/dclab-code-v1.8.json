@@ -1,0 +1,83 @@
+{
+ "package": "dclab-code-v1.8",
+ "title": "DCLab Code: a live end-to-end pass of every new feature",
+ "date": "2026-10-25",
+ "request": "Keep building: pick the next most useful dclab-code improvement and do it.",
+ "spec": "dclab-code docs/dev_records/v1.8.json",
+ "plan": [
+  "Run every new feature with a real model, on its own port and folder",
+  "Fix what the live run shows",
+  "Keep the live records"
+ ],
+ "decisions": [
+  {
+   "decision": "A live pass of every new feature with a real model, on its own port and folder",
+   "why": "the fake agent cannot show what the SDK and the page do together; each earlier live run found something"
+  }
+ ],
+ "change": "web/app.js: the model and mode menus start from the config's defaults until the person picks; today's spend summed from the sessions as they update; the undo button of an untracked file says Remove. Then (19bff54): a banner when the running server is older than the code on disk, and Restart Server (⌘⇧R) in the Mac app.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "a new session started on the menu's first model, not the config's default",
+   "scenario": "config model Haiku; a new session ran on Sonnet",
+   "cause": "the menu's first option was taken before the config arrived",
+   "fix": "the menus start from the defaults until the person picks",
+   "test": "tests/page.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "defect": "today's spend stayed at $0 while a session spent",
+   "scenario": "a turn ended at $0.07; the status line still said $0 today",
+   "cause": "today was read once from the state, not from the sessions as they update",
+   "fix": "today is summed from the sessions on every update",
+   "test": "tests/page.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "defect": "undo of a file git does not track removed the whole file, not only the agent's lines",
+   "scenario": "the agent appended to a new untracked notes.txt; Undo removed the file",
+   "cause": "git has no earlier version of an untracked file",
+   "fix": "the button says Remove and the confirm says the whole file goes (it is saved first)",
+   "test": "",
+   "severity": "behaviour"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "live pass with a real model",
+   "gate": "plan approval, own copy with commit, refused merge, image, ! command, Y key, grade and undo each work once",
+   "fixed_before_run": true,
+   "result": "all worked; a made-up test image was refused by the API (the test's fault: a real PNG worked)",
+   "verdict": "pass",
+   "cost_eur": 0.07,
+   "limits": [
+    "Haiku only",
+    "one run of each feature"
+   ]
+  },
+  {
+   "name": "dclab-code tests",
+   "gate": "every server, unit and page test passes",
+   "fixed_before_run": true,
+   "result": "51 passed",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": []
+  }
+ ],
+ "outcome": "Every new feature worked once live; three page bugs found by the live run were fixed.",
+ "lessons": [
+  "A live pass finds what a fake agent cannot: what the page does with the SDK's real timing and defaults"
+ ],
+ "risks": [],
+ "commits": [
+  "dclab-code b633aed",
+  "dclab-code 19bff54"
+ ]
+}

@@ -1,0 +1,131 @@
+{
+ "package": "32.40",
+ "title": "A test script's acts in DCLab Code are never a person's labels",
+ "date": "2026-10-25",
+ "request": "You have a $20 budget to test dclab-code live: find bugs and fix them, and keep every record for training.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.40",
+ "plan": [
+  "Find in the live test's records who made each click",
+  "Give the fix to DCLab Code itself, in its own copy of R&D, in plan mode (a real task for the live test)",
+  "Check its change, carry it into R&D by hand, and extend it to every kind of act",
+  "Review, fix the review's findings, then commit"
+ ],
+ "decisions": [
+  {
+   "decision": "A record is the person's only when its by is \"person\" or absent",
+   "why": "records older than by are the person's; anything else (the app, a test script, a typo) must never become a gold label"
+  },
+  {
+   "decision": "Keep the M6 facts and mark them _by_script, rather than drop or cancel the steps",
+   "why": "the store keeps records and drops only labels (S8); a script's approval did switch the mode and its allowed step did run"
+  },
+  {
+   "decision": "A script's undo or commit still cuts a file's history, with no verdict",
+   "why": "otherwise a later commit by the person would take credit for changes the script already settled"
+  },
+  {
+   "decision": "The live-test homes are marked in their configs, not rewritten",
+   "why": "records are append-only and kept whole; the folder's scripted.json already says no label there is human"
+  }
+ ],
+ "change": "sets/dclab_code.py: by_person(); _auto stays a fact (the app answered); each decision carries _person and each step person; labels (m1/m2 permission and plan choices, m7 steps, plans, preferences for m7 and m5, grades) only from the person; undos and commits carry person and cut file_verdicts without a verdict when a script's; M6 outcomes and the episode outcome marked _by_script. dclab-code v1.9 records by on every act (decidedBy).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "a test script's clicks were recorded as the person's",
+   "scenario": "the live test's page script allowed 9 DCLab steps and graded a turn Good; every record said by: \"person\", so they would have become gold m1/m2 labels and m7 judgements",
+   "cause": "DCLab Code knew only two actors, the person and the app",
+   "fix": "DCLab Code's decidedBy config; the builder reads by on every act",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_a_scripts_decision_is_never_a_persons_label",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F2",
+   "source": "self",
+   "defect": "a script's grade, commit and merge were still read as the person's",
+   "scenario": "after the first one-line fix (in _auto), a script's Good still made an m7 answer judgement and its commit a committed verdict",
+   "cause": "grades and commits never went through _auto",
+   "fix": "by_person() on grades, undos, commands, commits and merges",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_a_scripts_decision_is_never_a_persons_label",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F3",
+   "source": "self",
+   "defect": "a script's undo did not cut a file's history",
+   "scenario": "an edit, a script's undo, then the person's merge credited the undone edit as committed",
+   "cause": "the undo was skipped whole, so the edit stayed pending",
+   "fix": "a script's undo and commit cut the history with no verdict",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_a_scripts_decision_is_never_a_persons_label",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "a script's decisions turned into cancelled steps in the M6 episode",
+   "scenario": "plan mode, a script approves auto and allows a Bash step that runs: the episode said (ExitPlanMode, plan_only, cancelled), (Bash, plan_only, cancelled) instead of plan_auto then auto_edits allowed_ok",
+   "cause": "_auto was widened to mean a script answered, and _auto drives the mode switch and the cancelled outcome",
+   "fix": "_auto stays a fact; who decided is a separate field, required only where labels are made; outcomes marked _by_script",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_a_scripts_decision_is_never_a_persons_label",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "a script's merge set the episode's outcome to merged",
+   "scenario": "a test home's script merges: the episode said the person kept the work",
+   "cause": "the outcome ignored who merged",
+   "fix": "merged_by_script, copy_removed_by_script",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_a_scripts_decision_is_never_a_persons_label",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "the test did not guard plans, preferences, answers or the episode",
+   "scenario": "dropping the person check in preferences() passed every test",
+   "cause": "the first test asserted only permission labels, steps, grades and changes",
+   "fix": "the session holds a script's plan approval, answer, deny before a same-tool step, commit, undo and merge; every set and the episode's whole step list are asserted; six mutations each fail it",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_a_scripts_decision_is_never_a_persons_label",
+   "severity": "gap"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "store tests and the store check",
+   "gate": "every DCLab Code set test passes, each of the six cuts fails the new test when removed, and the store check passes all its checks",
+   "fixed_before_run": true,
+   "result": "test_store_dclab_code_sets 6 passed; 6 of 6 mutations caught; store check 28 of 28",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "invented sessions",
+    "the live test's own records predate by: script and are kept apart (agent_runs/live_tests, scripted.json)"
+   ]
+  },
+  {
+   "name": "the fix's first version made by DCLab Code in a live session",
+   "gate": "its test fails before its change and passes after",
+   "fixed_before_run": true,
+   "result": "test written first and seen failing, one-line change, 6 of 6 passed (Sonnet 5.5, plan mode, own copy, $0.30)",
+   "verdict": "pass",
+   "cost_eur": 0.28,
+   "limits": [
+    "it covered permission decisions only; grades, commits and undos were added by hand"
+   ]
+  }
+ ],
+ "outcome": "No act of a test script in DCLab Code becomes a person's label; the episodes keep what happened, marked as the script's.",
+ "lessons": [
+  "When a flag gains a second meaning, every reader of the flag changes meaning too: add a new field instead",
+  "A live test that clicks for the person must say so in its own records, not only in a folder marker",
+  "Give the tool under test a real task from the test itself: the plan card, Keep planning and the question card were all exercised on work worth doing"
+ ],
+ "risks": [
+  "records made before dclab-code v1.9 in a test home still say person; only the folder marker protects them"
+ ],
+ "commits": [
+  "dclab-code 41299f2"
+ ]
+}
