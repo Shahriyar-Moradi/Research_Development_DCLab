@@ -209,7 +209,11 @@ def _campaigns() -> list[dict[str, Any]]:
         index = _index_records()
         out = []
         for folder in sorted(p for p in CAMPAIGNS.iterdir() if p.is_dir()):
-            results = [r for r in (_read_json(p) for p in sorted((folder / "results").glob("*.json"))) if isinstance(r, dict)]
+            files = sorted((folder / "results").glob("*.json"))
+            loaded = [(p, _read_json(p)) for p in files]
+            results = [r for _, r in loaded if isinstance(r, dict)]
+            # a result's id, else its file's name before the first "_" (search_v3's verdict was written with neither)
+            ids = [r.get("experiment_id") or r.get("id") or p.stem.split("_", 1)[0] for p, r in loaded if isinstance(r, dict)]
             manifest = _read_json(folder / "manifest.json") or {}
             reports = [folder / n for n in REPORT_ORDER if (folder / n).is_file()] or sorted(folder.glob("*REPORT.md"))
             title, para = _first_paragraph(reports[0].read_text(encoding="utf-8")) if reports else ("", "")
@@ -222,7 +226,6 @@ def _campaigns() -> list[dict[str, Any]]:
             datasets = sorted(set().union(*(_datasets_of(r) for r in results)) if results else set())
             if isinstance(manifest.get("datasets"), list):
                 datasets = sorted(set(datasets) | {d for d in manifest["datasets"] if isinstance(d, str)})
-            ids = [r.get("experiment_id") or r.get("id") for r in results if r.get("experiment_id") or r.get("id")]  # search_v2 wrote "id" only
             indexed = [r["record_id"] for r in index if (r.get("metadata") or {}).get("campaign") == folder.name]
             status = "failed" if failed else "done" if completed >= planned and results else "in progress" if results else "planned"
             if (folder / "ABORTED.json").is_file():  # stopped and replaced by a later version: never "planned" or "in progress"

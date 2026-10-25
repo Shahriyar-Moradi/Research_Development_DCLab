@@ -312,7 +312,9 @@ def report() -> dict[str, Any]:
     rows = [json.loads(p.read_text()) for p in sorted(folder.glob("SRCH-0*.json"))] if folder.exists() else []
     out = judge(rows)
     if len(rows) == len(DATASETS) and not (folder / "SRCH-100_decision.json").exists():  # every dataset in; written once
-        (folder / "SRCH-100_decision.json").write_text(json.dumps({**out, "campaign_id": CAMPAIGN_ID, "decided_at": _now()}, indent=2) + "\n")
+        (folder / "SRCH-100_decision.json").write_text(json.dumps({**out, "id": "SRCH-100", "experiment_id": "SRCH-100", "status": "completed",
+                                                                   "completed_at": _now(), "campaign_id": CAMPAIGN_ID, "decided_at": _now()},
+                                                                  indent=2) + "\n")  # an id as every result has (search_v3's verdict had none)
     return out
 
 

@@ -52,7 +52,8 @@ class LabRouteTests(unittest.TestCase):
         for name, c in campaigns.items():
             results = sorted((ROOT / "evidence/campaigns" / name / "results").glob("*.json"))
             self.assertEqual(c["experiments"], len(results), name)
-            self.assertEqual(sorted(c["record_ids"]), sorted(json.loads(p.read_text()).get("experiment_id") or json.loads(p.read_text())["id"] for p in results))
+            self.assertEqual(sorted(c["record_ids"]), sorted(json.loads(p.read_text()).get("experiment_id") or json.loads(p.read_text()).get("id")
+                                                             or p.stem.split("_", 1)[0] for p in results))  # a verdict written with no id: its file's name
             self.assertIn(c["status"], ("done", "in progress", "failed", "planned"))
             self.assertTrue(c["objective"], name)
         for name, status in (("search_v1", "failed"), ("search_v2", "done")):  # aborted, and closed with what it had

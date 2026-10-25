@@ -336,6 +336,16 @@
       "fix": "not changed: reported in the plan; a hard stop would need each attempt run where it can be interrupted (a worker process), weighed against its cost",
       "test": "evidence/campaigns/search_v3/results/SRCH-006_bank_marketing.json",
       "severity": "behaviour"
+    },
+    {
+      "id": "G1",
+      "source": "test",
+      "defect": "search_v3's verdict file was written with no id, and the Lab page could not list it",
+      "scenario": "the full gate on 10c77c72: test_pages_lab read SRCH-100_decision.json for its id and found neither experiment_id nor id (KeyError), while the page itself silently left it out of the campaign's records",
+      "cause": "report() wrote the verdict with the gates and the campaign id only; search_v2 never reached a verdict, so the path had not run before",
+      "fix": "report() writes id, experiment_id, status and completed_at as every result has; the Lab page and its test fall back to a result file's name before the first underscore, so search_v3's verdict (never edited: results are not changed) is listed as SRCH-100",
+      "test": "tests/test_search_measure.py::SearchMeasureTest::test_the_verdict_has_an_id_as_every_result_does; tests/test_pages_lab.py::LabRouteTests::test_campaigns_come_from_the_campaign_folders",
+      "severity": "behaviour"
     }
   ],
   "measurements": [
@@ -372,7 +382,8 @@
     "A campaign written before its code is reviewed is often wrong in the same places; freeze it after the review.",
     "Set a selection fold aside where the folds are made, not where it is first used: every earlier choice on those rows already reads it.",
     "A clean selection fold has a price: every choice before it is made on fewer rows. Measure that price inside the search's result, never apart from it.",
-    "When the engine's defaults already match a tuned AutoML (the bake-off), a wider search has little room: measure the room before building more search."
+    "When the engine's defaults already match a tuned AutoML (the bake-off), a wider search has little room: measure the room before building more search.",
+    "A campaign's verdict is a result too: it carries the id every reader of results expects"
   ],
   "risks": [
     "the selection fold takes a fifth of the training rows from a searched project",

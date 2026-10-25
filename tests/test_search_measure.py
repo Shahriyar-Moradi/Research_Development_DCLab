@@ -52,6 +52,19 @@ class SearchMeasureTest(unittest.TestCase):
         self.assertEqual(sm.judge(without)["left_out_without_failed"], ["odd"])
         self.assertEqual(sm.judge(without)["verdict"], "pass")
 
+    def test_the_verdict_has_an_id_as_every_result_does(self):
+        """search_v3's verdict was written with no id, so the Lab page could not list it (found by the full gate)."""
+        import json
+
+        folder = Path(tempfile.mkdtemp())
+        (folder / "results").mkdir()
+        for i, name in enumerate(sm.DATASETS):
+            (folder / "results" / f"SRCH-{i + 1:03d}_{name}.json").write_text(json.dumps(row(name, 0.004, -0.002, 0.01, 0.003, 0.01)))
+        with mock.patch.object(sm, "CAMPAIGN", folder):
+            sm.report()
+        written = json.loads((folder / "results" / "SRCH-100_decision.json").read_text())
+        self.assertEqual((written["id"], written["experiment_id"], written["status"]), ("SRCH-100", "SRCH-100", "completed"))
+
     def test_a_resume_on_changed_code_is_refused(self):
         folder = Path(tempfile.mkdtemp()) / "search_v3"
         with mock.patch.object(sm, "CAMPAIGN", folder):
