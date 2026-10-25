@@ -41,11 +41,14 @@ def _lines(path: Path) -> Iterable[dict[str, Any]]:
             continue
 
 
+RESULTS = "results.jsonl"  # the train run's; a confirmation's own file (results_dev.jsonl) is written the same way
+
+
 def _ref(folder: Path, did: Any, part: str) -> str:
-    return f"{folder.relative_to(ROOT).as_posix()}/results.jsonl#{did}:{part}"[:200]
+    return f"{folder.relative_to(ROOT).as_posix()}/{RESULTS}#{did}:{part}"[:200]
 
 
-def _write(folder: Path, name: str, write_one: Callable[[dict[str, Any], Path, Any], int]) -> dict[str, int]:
+def _write(folder: Path, name: str, write_one: Callable[[dict[str, Any], Path, Any], int], results: str = "results.jsonl") -> dict[str, int]:
     """Every finished table of a measurement written once into its own workspace's ledger."""
     from . import ledger
 
@@ -55,7 +58,9 @@ def _write(folder: Path, name: str, write_one: Callable[[dict[str, Any], Path, A
     book = ledger.FileLedger(home / "ledger", f"ability-{name}")
     book.home = home
     counts = {"tables": 0, "records": 0, "skipped": 0}
-    for rec in _lines(folder / "results.jsonl"):
+    global RESULTS
+    RESULTS = results
+    for rec in _lines(folder / results):
         did = rec.get("did")
         if rec.get("failed") or did is None or str(did) in done:
             counts["skipped"] += 1
@@ -152,16 +157,17 @@ def retrain_one(rec: dict[str, Any], folder: Path, book: Any) -> int:
 WRITERS = {"threshold": threshold_one, "more_rows": more_rows_one, "retrain": retrain_one}
 
 
-def write(name: str, folder: Optional[Path] = None) -> dict[str, int]:
-    return _write(Path(folder or FOLDERS[name]), name, WRITERS[name])
+def write(name: str, folder: Optional[Path] = None, results: str = "results.jsonl") -> dict[str, int]:
+    return _write(Path(folder or FOLDERS[name]), name, WRITERS[name], results)
 
 
 def main(argv: Optional[list[str]] = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m dclab_rnd.ability_records", description=__doc__.split("\n")[0])
     ap.add_argument("which", choices=(*WRITERS, "all"))
+    ap.add_argument("--results", default="results.jsonl", help="the measurement's results file (results_dev.jsonl: a confirmation's)")
     args = ap.parse_args(argv)
     for name in WRITERS if args.which == "all" else [args.which]:
-        print(name, write(name))
+        print(name, write(name, results=args.results))
     return 0
 
 

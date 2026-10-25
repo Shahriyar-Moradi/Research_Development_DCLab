@@ -45,11 +45,25 @@
     "train-split tables only",
     "invented cost statements"
    ]
+  },
+  {
+   "name": "ABL-002: the dev confirmation of the share policy",
+   "gate": "CONFIRM.md, written before any dev table was read: (1) a lower mean regret than argmax with the per-table 90% interval above 0; (2) the winner or within noise on at least 0.80 of the statements; (3) no band of fit positives with 30 or more statements more than 0.02 worse than argmax",
+   "result": "46 dev tables, 363 statements: mean regret 0.0483 (bagged_share) against 0.0577 (argmax); per-table difference 0.0105, its 90% interval -0.0505 to 0.0554; winner or within noise 0.876; band 200 to 1000 fit positives (143 statements) 0.0897 against 0.0318",
+   "verdict": "fail",
+   "cost_eur": 0.0,
+   "against_gate": "interval spans zero (condition 1 fails); 0.876 >= 0.80 (condition 2 passes); 0.0897 > 0.0318 + 0.02 (condition 3 fails)",
+   "next": "decide.py unchanged; the measured labels (368 records) are in the measurement's ledger for the students",
+   "limits": [
+    "one dev split, invented cost statements",
+    "the band result is a strong loss where the train split showed a gain: the policy is not stable across tables"
+   ]
   }
  ],
  "outcome": "A rule change candidate for the decide layer, measured on real tables; a student is not needed there.",
  "lessons": [
-  "A rule that wins most often can still lose the most: count how much is lost, not only how often it wins."
+  "A rule that wins most often can still lose the most: count how much is lost, not only how often it wins.",
+  "A rule change that wins on the train tables is a candidate, not a result: the pre-registered dev run is what decides, and here it said no."
  ],
  "risks": [
   "The share policy fits batches; a stream needs its threshold re-anchored on recent scores."
