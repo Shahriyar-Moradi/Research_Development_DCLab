@@ -1,0 +1,63 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.retrain_policy.v1.json",
+  "additionalProperties": false,
+  "description": "What starts a retrain (34.11, v1).",
+  "properties": {
+    "every_days": {
+      "anyOf": [
+        {
+          "maximum": 3650,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Every Days"
+    },
+    "margin": {
+      "default": 0.0,
+      "description": "How much better the challenger must be, beyond its interval.",
+      "minimum": 0,
+      "title": "Margin",
+      "type": "number"
+    },
+    "min_new_labelled": {
+      "default": 500,
+      "minimum": 1,
+      "title": "Min New Labelled",
+      "type": "integer"
+    },
+    "on_drift": {
+      "default": true,
+      "title": "On Drift",
+      "type": "boolean"
+    },
+    "on_performance": {
+      "default": true,
+      "title": "On Performance",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "dclab_core.retrain_policy.v1",
+      "default": "dclab_core.retrain_policy.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "window_share": {
+      "default": 0.2,
+      "description": "The latest labelled rows held out to compare the two.",
+      "exclusiveMaximum": 0.5,
+      "exclusiveMinimum": 0,
+      "title": "Window Share",
+      "type": "number"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "title": "RetrainPolicy",
+  "type": "object"
+}

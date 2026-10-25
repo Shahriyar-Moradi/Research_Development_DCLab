@@ -112,7 +112,8 @@ class ServiceExportTest(unittest.TestCase):
                                 env={**os.environ, "DCLAB_SERVICE_KEY": key, "DCLAB_SERVICE_LOG_DIR": str(logs)})
         self.assertEqual(result.returncode, 0, result.stderr[-3000:])
         said = json.loads(result.stdout.strip().splitlines()[-1])
-        self.assertEqual(said["statuses"], {"json": 200, "csv": 200, "no_key": 200, "outcomes": 200, "bad_outcome": 400, "no_rows": 400})
+        self.assertEqual(said["statuses"], {"json": 200, "csv": 200, "no_key": 200, "outcomes": 200, "bad_outcome": 400, "no_rows": 400,
+                                            "monitor": 200, "bad_window": 400})
         self.assertEqual(said["recorded"], 70 + 1)
         predictions = serving.read_log(logs / "predictions.jsonl", serving.PredictionRecord)  # every line strictly the contract
         outcomes = serving.read_log(logs / "outcomes.jsonl", serving.OutcomeRecord)
@@ -133,6 +134,23 @@ class ServiceExportTest(unittest.TestCase):
                 if len(value) >= 4:
                     self.assertNotIn(value, text, f"a value of {column} is in a log")
         self.assertNotIn(key, text)
+        from dclab_core import live  # 34.10: one profile a batch, the monitor reads the three logs, no value in a profile
+
+        profiles = serving.read_log(logs / "profiles.jsonl", live.BatchProfile)
+        self.assertEqual([p.rows for p in profiles], [40, 30])  # the two-row request waits: no profile of fewer than twenty rows
+        self.assertTrue(all("batch" not in p.model_dump() for p in profiles))  # linked to no request
+        watched = said["monitor"]
+        self.assertEqual(watched["schema_version"], "dclab_core.live_report.v1")
+        self.assertEqual(len(watched["windows"]), 3)
+        self.assertEqual(sum(w["labelled"] for w in watched["windows"]), 70 + 1)
+        self.assertEqual(watched["holdout"]["metric"], "roc_auc")
+        self.assertEqual(meta["live_reference"]["metric"], "roc_auc")
+        shared = (logs / "profiles.jsonl").read_text()
+        for column in list(rows.columns):
+            for value in set(rows[column].dropna().astype(str)):
+                if len(value) >= 4 and not value.replace(".", "").isdigit():
+                    self.assertNotIn(value, shared, f"a value of {column} is in a profile")
+        self.assertIn("GET /monitor", (out / "README.md").read_text())
 
 
 FLASK_STUB = '''
@@ -211,13 +229,22 @@ assert len(body["predictions"]) == 30
 body, statuses["no_key"] = call("POST", "/predict", json=rows[:2])
 made = body["predictions"][0]["key"]
 assert len(made) == 32 and body["batch"]
-posted = [{"key": r["order_id"], "outcome": label, "known_at": "2026-10-25T08:00:00+00:00"} for r, label in zip(rows, labels)]
+from datetime import datetime, timezone
+known = datetime.now(timezone.utc).isoformat()  # known now: an outcome known later than the reading is not yet read (34.10)
+posted = [{"key": r["order_id"], "outcome": label, "known_at": known} for r, label in zip(rows, labels)]
 posted.append({"key": made, "outcome": labels[0]})
 body, statuses["outcomes"] = call("POST", "/outcome", json={"outcomes": posted})
 recorded = body["recorded"]
 _, statuses["bad_outcome"] = call("POST", "/outcome", json={"outcomes": [{"key": "x", "outcome": "maybe"}]})
 _, statuses["no_rows"] = call("POST", "/outcome", json={"nothing": 1})
-print(json.dumps({"statuses": statuses, "scores_json": scores, "recorded": recorded}))
+flask.request.set(args={"window": "batch"})
+watched, statuses["monitor"] = app.app.routes[("GET", "/monitor")]() if True else None, 200
+if isinstance(watched, tuple):
+    watched, statuses["monitor"] = watched
+flask.request.set(args={"window": "hour"})
+bad = app.app.routes[("GET", "/monitor")]()
+statuses["bad_window"] = bad[1] if isinstance(bad, tuple) else 200
+print(json.dumps({"statuses": statuses, "scores_json": scores, "recorded": recorded, "monitor": watched}))
 '''
 
 

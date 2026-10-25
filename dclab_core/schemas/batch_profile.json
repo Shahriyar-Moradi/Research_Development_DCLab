@@ -1,0 +1,57 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.batch_profile.v1.json",
+  "additionalProperties": false,
+  "description": "Scored rows' inputs as the plan's bins see them (34.10): each column's share of the rows in each bin, over at least\n``PROFILE_MIN_ROWS`` rows and with no link to a request. Never a value: a bin's edges are the plan's, a share a count.",
+  "properties": {
+    "at": {
+      "description": "When the last row it covers was scored (it is placed in that moment's window).",
+      "title": "At",
+      "type": "string"
+    },
+    "model_id": {
+      "maxLength": 120,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_version": {
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "title": "Model Version",
+      "type": "string"
+    },
+    "rows": {
+      "minimum": 20,
+      "title": "Rows",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.batch_profile.v1",
+      "default": "dclab_core.batch_profile.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "shares": {
+      "additionalProperties": {
+        "items": {
+          "type": "number"
+        },
+        "type": "array"
+      },
+      "description": "Each monitored column's bin shares, in the plan's bins.",
+      "title": "Shares",
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_id",
+    "model_version",
+    "at",
+    "rows"
+  ],
+  "title": "BatchProfile",
+  "type": "object"
+}

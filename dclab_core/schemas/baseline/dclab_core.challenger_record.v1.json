@@ -1,0 +1,87 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "because": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "challenger": {
+      "type": "number"
+    },
+    "challenger_version": {
+      "default": "",
+      "type": "string"
+    },
+    "champion": {
+      "type": "number"
+    },
+    "champion_version": {
+      "default": "",
+      "type": "string"
+    },
+    "difference": {
+      "type": "number"
+    },
+    "higher_is_better": {
+      "type": "boolean"
+    },
+    "interval": {
+      "items": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "type": "array"
+    },
+    "margin": {
+      "default": 0.0,
+      "type": "number"
+    },
+    "metric": {
+      "type": "string"
+    },
+    "promoted": {
+      "type": "boolean"
+    },
+    "reason": {
+      "maxLength": 1000,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.challenger_record.v1",
+      "default": "dclab_core.challenger_record.v1",
+      "type": "string"
+    },
+    "window": {
+      "default": "",
+      "maxLength": 200,
+      "type": "string"
+    },
+    "window_rows": {
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "metric",
+    "higher_is_better",
+    "window_rows",
+    "champion",
+    "challenger",
+    "difference",
+    "interval",
+    "promoted",
+    "reason"
+  ],
+  "type": "object"
+}

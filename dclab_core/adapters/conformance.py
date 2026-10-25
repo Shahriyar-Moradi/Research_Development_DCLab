@@ -72,6 +72,16 @@ CONTRACT_ADAPTERS: dict[str, str] = {
                   "trainer in each fold, CORE_INTEGRATION.md 'Would more rows help?')",
     "selection_record": LIBRARY + " (how a candidate was chosen among many: the selection fold read once and the measured optimism, 34.6; "
                         "the main product's experiment runner sets the fold aside before its search, CORE_INTEGRATION.md 'Honest selection')",
+    "batch_profile": LIBRARY + " (one scored batch's inputs as the plan's bins see them, never a value, 34.10; the main product's scoring "
+                     "path writes one per request beside its prediction records, CORE_INTEGRATION.md 'Monitoring that runs')",
+    "live_report": LIBRARY + " (a model in use read window by window from its logs, 34.10; the main product's monitoring job reads its "
+                   "own logs through live.monitor_log and records the alerts as its events)",
+    "retrain_policy": LIBRARY + " (what starts a retrain: a drift or performance alert, a schedule, enough new labels, 34.11; the main "
+                      "product's model registry keeps one per model in use)",
+    "challenger_record": LIBRARY + " (one champion/challenger comparison on the latest window neither trained on, 34.11; the main product "
+                         "promotes its challenger only on promoted=true and keeps every record, CORE_INTEGRATION.md 'Retrain and champion/challenger')",
+    "collect_advice": LIBRARY + " (what to collect next: the groups that carry the score on the training folds, the domain's usual kinds "
+                      "missing, where labels help, 34.14; the main product shows it beside its data requests)",
     "table_entry": LIBRARY + " (a table's catalog entry with its owner and checks, 30.23; the main product's data catalog keeps its own entries)",
     "project_request": LIBRARY + " (a requested project scored, 30.24; the main product's intake keeps its own requests and scores them through it)",
     "portfolio": LIBRARY + " (the projects chosen of the requested and what they reuse, 30.24)",

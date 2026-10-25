@@ -1,0 +1,46 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "at": {
+      "type": "string"
+    },
+    "model_id": {
+      "maxLength": 120,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "type": "string"
+    },
+    "model_version": {
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "type": "string"
+    },
+    "rows": {
+      "minimum": 20,
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.batch_profile.v1",
+      "default": "dclab_core.batch_profile.v1",
+      "type": "string"
+    },
+    "shares": {
+      "additionalProperties": {
+        "items": {
+          "type": "number"
+        },
+        "type": "array"
+      },
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_id",
+    "model_version",
+    "at",
+    "rows"
+  ],
+  "type": "object"
+}

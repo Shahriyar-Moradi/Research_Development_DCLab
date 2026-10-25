@@ -182,6 +182,12 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
   alerts as events.
 - **Done when:** a replica with planted drift raises the alert at the planted batch and not before; live performance
   matches the holdout's within its interval on undrifted batches.
+- **Status:** done (2026-10-25, dclab-core 0.111.0). `dclab_core.live`: `BatchProfile` v1 (a batch's inputs as bin shares,
+  never a value), `monitor_log` (`LiveReport` v1, window by window: the score's and the inputs' drift, the flagged share,
+  live performance once outcomes are known by `as_of`, against the holdout's interval from `live.reference`); the exported
+  service writes `profiles.jsonl` and answers `GET /monitor`. Measured on twenty simulated runs: the planted drift the first
+  alert in 20 of 20; undrifted windows within the holdout's interval in 117 of 120; one worse window alerted falsely in 2
+  of 20 runs, so a performance alert needs two worse windows running (then none). Alerts as events are the host's.
 
 ### 34.11 Retrain and champion/challenger
 - **Delivers:** `dclab_core/retrain.py`: a retrain policy (drift alert, performance drop, or schedule); the challenger
@@ -189,10 +195,20 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
   that neither trained on; promoted only when better beyond its interval; every comparison recorded; a studio job
   `POST /api/projects/{id}/retrain`.
 - **Done when:** on a drifting replica the challenger is promoted after the drift and refused without it.
+- **Status:** done (2026-10-25, dclab-core 0.111.0). `dclab_core.retrain` (`RetrainPolicy` v1, `should_retrain`, `compare`,
+  `ChallengerRecord` v1); the studio keeps newer rows beside a project (never read by the engine, no stage cleared, the
+  holdout never read again) and compares as a job (`POST /api/projects/{id}/retrain`), the ledger point `model.promote`.
+  Measured: promoted after a planted change in 20 of 20; an equally good challenger promoted in 1 of 20 (a one-sided 95%
+  bound). The review's 13 findings fixed: repeat rows of the project's table dropped and the window after its latest time;
+  entities kept on one side; labels of unconfirmed sources set aside; the time and the codes read as the engine reads them;
+  no promotion under 30 rows; the project's own measure; the champion is the last promoted fit; the ledger point written.
+  Open: serving the promoted fit is the host's (the studio records the preferred fit, never a production approval).
 
 ### 34.12 Lessons from use
 - **Delivers:** drift alerts, promotions and refusals become lesson proposals in `lessons.py` (reviewed as today).
 - **Done when:** a planted drift yields one cited lesson a reviewer can accept.
+- **Status:** done (2026-10-25). `studio/lessons_from_use.py`: each comparison and a live report's first alert proposed once
+  as a code-written lesson citing its record, scoped "from use", reviewed as any workspace lesson.
 
 ## Layer 2: Data
 
@@ -210,6 +226,13 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
   help most, joined to the data-need agent's questions; active learning stays an option, never the default (its gates
   failed).
 - **Done when:** on a replica with a planted missing feature group, the advice names that group's kind of data.
+- **Status:** done (2026-10-25, dclab-core 0.111.0). `dclab_core.collect` (`CollectAdvice` v1): what each group adds beyond the
+  others with its interval, the domain's usual kinds missing (prior knowledge by whole word parts, never measured), where
+  more rows still helped (34.13) and the problem map's open data needs; the studio weighs the groups as a job (`POST
+  /api/projects/{id}/collect-next`). On the churn replica without its support contacts, support is the first kind named
+  missing (and the same with the outcome shuffled: it is never from the data); over ten seeds the groups the outcome used
+  were named 10 of 10, the two it never used 0 of 20. Open: five domains only (a project in no known domain is weighed
+  column by column, nothing named missing); time folds are bootstrapped by row.
 
 ## Owner decisions still open
 

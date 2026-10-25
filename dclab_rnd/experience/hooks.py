@@ -396,6 +396,23 @@ def programme_built(project_id: str, p: Any, actor: str) -> None:
 
 
 @_quiet
+def collect_advised(project_id: str, advice: Any, actor: str) -> None:
+    """What to collect next (34.14): the groups that carry the score and the usual kinds missing, names only."""
+    record("decision.proposed", _actor(actor),  # the kinds named missing are prior knowledge, never measured: said by its "by"
+           {"point": "data.collect_next", "by": "prior:collect_advice", "choice": ",".join(m.kind for m in advice.missing[:3]) or "nothing missing",
+            "why": advice.plain[:2000]}, project=project_id)
+
+
+@_quiet
+def retrain_compared(project_id: str, compared: Any, actor: str) -> None:
+    """A champion/challenger comparison (34.11): promoted or kept, with its numbers, never a row."""
+    record_ = compared.model_dump(mode="json") if hasattr(compared, "model_dump") else dict(compared)
+    record("decision.proposed", _actor(actor),
+           {"point": "model.promote", "by": "rule:champion_challenger", "choice": "promote" if record_["promoted"] else "keep",
+            "why": str(record_["reason"])[:2000]}, project=project_id)
+
+
+@_quiet
 def decision_what_if(project_id: str, changes: dict[str, Any], out: dict[str, Any], actor: str) -> None:
     """A what-if on the project's decision (34.4): what was changed and the decision core's answer, numbers only."""
     before, after = out.get("before") or {}, out.get("after") or {}

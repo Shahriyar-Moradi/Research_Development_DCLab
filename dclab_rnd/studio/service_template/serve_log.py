@@ -23,6 +23,8 @@ from dclab_core import serving
 
 HERE = Path(__file__).resolve().parent
 PREDICTIONS, OUTCOMES = "predictions.jsonl", "outcomes.jsonl"
+PROFILES = "profiles.jsonl"  # 34.10: scored rows' inputs as the plan's bins see them (shares of 20 rows or more, never a value)
+ALERTS = "alerts.jsonl"  # 34.10: each alert /monitor raised, once, with its window and when it was first seen
 MAX_OUTCOMES = 100_000  # outcomes in one request
 
 
@@ -67,6 +69,7 @@ class Log:
         self.model_id = str(self.meta.get("model_id") or "model")
         self.model_version = self.meta.get("model_version") or hashlib.sha256((HERE / "model.pkl").read_bytes()).hexdigest()[:16]
         self.secret = os.environ.get("DCLAB_LOG_KEY") or scorer.key  # outlives an export, so keys join across retrains
+        self.profiler = None  # 34.10: bin counts gathered in this process until a profile covers enough rows
 
     def _rows(self, rows: Any) -> pd.DataFrame:
         if isinstance(rows, pd.DataFrame):
@@ -114,7 +117,74 @@ class Log:
                 key=serving.key_hash(key, self.secret), task="regression" if task not in ("binary", "multiclass") else task,
                 score=score, predicted_class=chosen, decision=decision, threshold=threshold if decision else None, at=at))
         _append(PREDICTIONS, records)
+        self._profile(frame, batch, at)
         return {"batch": batch, "predictions": [out | {"key": key} for key, out in zip(keys, predictions)]}
+
+    def _profile(self, frame: pd.DataFrame, batch: str, at: str) -> None:
+        """34.10: the scored rows' bin counts gathered in this process; a profile is written once it covers enough rows, with
+        no link to a request (one row's profile would be its bins). Monitoring never fails a scored request."""
+        from dclab_core import live
+
+        try:
+            if not self.meta.get("monitoring"):
+                return
+            plan, seen = self.scorer.monitoring_frame(frame)
+            if plan is None or not plan.columns:
+                return
+            if self.profiler is None:
+                self.profiler = live.Profiler(plan, self.model_id, self.model_version)
+            made = self.profiler.add(seen, at)
+            if made is not None:
+                _append(PROFILES, [made])
+        except Exception:  # noqa: BLE001 - the prediction is logged and answered; its profile is what is lost
+            self.profiler = None
+
+    def monitor(self, window: str = "day") -> dict[str, Any]:
+        """34.10: the model in use read from its logs window by window: the score's and the inputs' drift, the share the
+        rule flags, and live performance once outcomes are known, against the holdout (``dclab_core.live.monitor_log``)."""
+        from dclab_core import live
+
+        if window not in live.WINDOWS:
+            raise Refused(f"window is one of {', '.join(live.WINDOWS)}")
+        plan = self.scorer.monitoring_plan()
+        if plan is None:
+            raise Refused("this export carries no monitoring plan")
+        folder = log_dir()
+
+        def read(name: str, contract: Any) -> list[Any]:
+            return serving.read_log(folder / name, contract) if (folder / name).exists() else []
+
+        def mine(record: Any) -> bool:  # a shared log folder: only this model, this fit, against this fit's plan
+            return record.model_id == self.model_id and record.model_version == self.model_version
+
+        try:
+            report = live.monitor_log(plan, [r for r in read(PREDICTIONS, serving.PredictionRecord) if mine(r)],
+                                      read(OUTCOMES, serving.OutcomeRecord), profiles=[p for p in read(PROFILES, live.BatchProfile) if mine(p)],
+                                      window=window, holdout=self.meta.get("live_reference"))
+        except ValueError as error:  # a log line this reading cannot use: said, never a 500
+            raise Refused(f"the logs cannot be read: {str(error)[:300]}") from None
+        self._alerts(report)
+        return report.model_dump(mode="json")
+
+    def _alerts(self, report: Any) -> None:
+        """Each alert kept once in ``alerts.jsonl``, the service's record of what monitoring found (34.10)."""
+        import json
+
+        path = log_dir() / ALERTS
+        seen = set()
+        if path.exists():
+            for line in path.read_text(encoding="utf-8").splitlines():
+                try:
+                    item = json.loads(line)
+                    seen.add((item.get("window"), item.get("alert")))
+                except ValueError:
+                    continue
+        new = [{"model_id": self.model_id, "model_version": self.model_version, "window": w.window, "alert": a, "first_seen": _now()}
+               for w in report.windows for a in w.alerts if (w.window, a) not in seen]
+        if new:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, "a", encoding="utf-8") as handle:
+                handle.write("".join(json.dumps(item) + "\n" for item in new))
 
     def outcomes(self, body: Any) -> dict[str, Any]:
         """Record true outcomes: one ``{"key", "outcome", "known_at"?}`` or ``{"outcomes": [...]}``. All or nothing: one

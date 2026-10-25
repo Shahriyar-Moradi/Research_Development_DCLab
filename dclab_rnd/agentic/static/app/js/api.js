@@ -330,6 +330,8 @@
     askAgent: ["POST", "/projects/{project_id}/ask", ["project_id"], []],
     projectBrief: ["GET", "/projects/{project_id}/brief", ["project_id"], []],
     saveProjectBrief: ["PUT", "/projects/{project_id}/brief", ["project_id"], []],
+    getCollectNext: ["GET", "/projects/{project_id}/collect-next", ["project_id"], []],
+    collectNext: ["POST", "/projects/{project_id}/collect-next", ["project_id"], ["wait"]],
     uploadData: ["PUT", "/projects/{project_id}/data", ["project_id"], ["filename"]],
     getDataValue: ["GET", "/projects/{project_id}/data-value", ["project_id"], []],
     measureDataValue: ["POST", "/projects/{project_id}/data-value", ["project_id"], ["wait"]],
@@ -353,6 +355,7 @@
     projectLessons: ["POST", "/projects/{project_id}/lessons", ["project_id"], []],
     projectLineage: ["GET", "/projects/{project_id}/lineage", ["project_id"], ["path"]],
     removeMemoryNote: ["DELETE", "/projects/{project_id}/memory/{note_id}", ["project_id", "note_id"], []],
+    uploadNewerRows: ["PUT", "/projects/{project_id}/newer-rows/{name}", ["project_id", "name"], ["filename"]],
     addOwnCell: ["POST", "/projects/{project_id}/notebook/cells", ["project_id"], []],
     deleteNotebookCell: ["DELETE", "/projects/{project_id}/notebook/cells/{cell_id}", ["project_id", "cell_id"], []],
     answerNotebookCell: ["POST", "/projects/{project_id}/notebook/cells/{cell_id}/answer", ["project_id", "cell_id"], []],
@@ -366,6 +369,8 @@
     getProgramme: ["GET", "/projects/{project_id}/programme", ["project_id"], []],
     dropProgrammeLeaf: ["POST", "/projects/{project_id}/programme/drop", ["project_id"], []],
     runProgramme: ["POST", "/projects/{project_id}/programme/run", ["project_id"], ["wait"]],
+    getRetrains: ["GET", "/projects/{project_id}/retrain", ["project_id"], []],
+    retrainProject: ["POST", "/projects/{project_id}/retrain", ["project_id"], ["wait"]],
     reviewProjectNotebook: ["GET", "/projects/{project_id}/review", ["project_id"], []],
     confirmReview: ["POST", "/projects/{project_id}/review", ["project_id"], []],
     reviewProjectFixes: ["POST", "/projects/{project_id}/review/fixes", ["project_id"], []],
@@ -1114,6 +1119,19 @@
    *  @returns {Promise<Page>} */
   client.saveProjectBrief = (...args) => call('saveProjectBrief', args);
   client.path.saveProjectBrief = (...args) => build('saveProjectBrief', args).path;
+  /** GET /api/projects/{project_id}/collect-next: Get Collect Next
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.getCollectNext = (...args) => call('getCollectNext', args);
+  client.path.getCollectNext = (...args) => build('getCollectNext', args).path;
+  client.href.getCollectNext = (...args) => '/api' + build('getCollectNext', args).path;
+  /** POST /api/projects/{project_id}/collect-next: Collect Next
+   *  @param {string} project_id
+   *  @param {{query?: {wait?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.collectNext = (...args) => call('collectNext', args);
+  client.path.collectNext = (...args) => build('collectNext', args).path;
   /** PUT /api/projects/{project_id}/data: Upload Data
    *  @param {string} project_id
    *  @param {{query?: {filename?: *}, body: Blob, headers?: Object}} [opts]
@@ -1267,6 +1285,13 @@
    *  @returns {Promise<Project>} */
   client.removeMemoryNote = (...args) => call('removeMemoryNote', args);
   client.path.removeMemoryNote = (...args) => build('removeMemoryNote', args).path;
+  /** PUT /api/projects/{project_id}/newer-rows/{name}: Upload Newer Rows
+   *  @param {string} project_id
+   *  @param {string} name
+   *  @param {{query?: {filename?: *}, body: Blob, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.uploadNewerRows = (...args) => call('uploadNewerRows', args);
+  client.path.uploadNewerRows = (...args) => build('uploadNewerRows', args).path;
   /** POST /api/projects/{project_id}/notebook/cells: Add Own Cell
    *  @param {string} project_id
    *  @param {{body: AnyObject, headers?: Object}} [opts]
@@ -1350,6 +1375,19 @@
    *  @returns {Promise<Page>} */
   client.runProgramme = (...args) => call('runProgramme', args);
   client.path.runProgramme = (...args) => build('runProgramme', args).path;
+  /** GET /api/projects/{project_id}/retrain: Get Retrains
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.getRetrains = (...args) => call('getRetrains', args);
+  client.path.getRetrains = (...args) => build('getRetrains', args).path;
+  client.href.getRetrains = (...args) => '/api' + build('getRetrains', args).path;
+  /** POST /api/projects/{project_id}/retrain: Retrain Project
+   *  @param {string} project_id
+   *  @param {{query?: {wait?: *}, body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.retrainProject = (...args) => call('retrainProject', args);
+  client.path.retrainProject = (...args) => build('retrainProject', args).path;
   /** GET /api/projects/{project_id}/review: Review Project Notebook
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]

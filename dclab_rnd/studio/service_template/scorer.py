@@ -45,6 +45,14 @@ def read_csv(data: bytes, meta: dict[str, Any], key: str | None = None) -> pd.Da
     return frame
 
 
+def _missing(value: Any) -> bool:
+    """A scalar missing value; a list or another container is a value, never an error (34.10's review)."""
+    try:
+        return bool(pd.isna(value))
+    except (TypeError, ValueError):
+        return False
+
+
 class Scorer:
     def __init__(self, path: Path = HERE / "model.pkl", key: str | None = None):
         with open(path, "rb") as handle:
@@ -125,24 +133,38 @@ class Scorer:
 
         return apply(Calibrator.read(self.meta["calibrator"]), scores)
 
-    def monitor(self, rows: Any, scores: Any = None) -> dict[str, Any]:
-        """A batch read against the training rows' bins (``monitoring.json``): each column's and the score's PSI, the share
-        the rule flags, and what crossed an alert line. ``scores``: the batch's scores when they were already computed."""
-        from dclab_core.monitoring import MonitoringPlan, monitor
+    def monitoring_plan(self) -> Any:
+        """The training rows' bins (``monitoring.json``), or None when the export carries none."""
+        from dclab_core.monitoring import MonitoringPlan
 
         if not self.meta.get("monitoring"):
-            raise RuntimeError("This export carries no monitoring plan")
+            return None
         raw = json.loads((HERE / self.meta["monitoring"]).read_text(encoding="utf-8"))
-        hashed = bool(raw.pop("hashed_levels", False))
-        plan = MonitoringPlan.read(raw)
+        raw.pop("hashed_levels", None)
+        return MonitoringPlan.read(raw)
+
+    def monitoring_frame(self, rows: Any) -> tuple[Any, Any]:
+        """The plan and the rows as it reads them: a category's values hashed with the key, as the plan keeps its levels."""
+        plan = self.monitoring_plan()
         frame = pd.DataFrame([rows] if isinstance(rows, dict) else rows)
-        if hashed:  # the plan keeps its levels hashed with the key: the batch's values are hashed the same way
+        if plan is not None and json.loads((HERE / self.meta["monitoring"]).read_text(encoding="utf-8")).get("hashed_levels"):
             import hashlib
 
+            frame = frame.copy()
             for column in plan.columns:
                 if column.kind == "category" and column.column in frame:
                     frame[column.column] = frame[column.column].map(
-                        lambda v: v if pd.isna(v) else "h:" + hashlib.sha256(f"{self.key}|{v}".encode()).hexdigest()[:16])
+                        lambda v: v if _missing(v) else "h:" + hashlib.sha256(f"{self.key}|{v}".encode()).hexdigest()[:16])
+        return plan, frame
+
+    def monitor(self, rows: Any, scores: Any = None) -> dict[str, Any]:
+        """A batch read against the training rows' bins (``monitoring.json``): each column's and the score's PSI, the share
+        the rule flags, and what crossed an alert line. ``scores``: the batch's scores when they were already computed."""
+        from dclab_core.monitoring import monitor
+
+        if not self.meta.get("monitoring"):
+            raise RuntimeError("This export carries no monitoring plan")
+        plan, frame = self.monitoring_frame(rows)
         if scores is None and self.meta["task"] == "binary":
             scores = [r["score"] for r in self.predict(rows)]
         return monitor(plan, frame, scores).model_dump(mode="json")

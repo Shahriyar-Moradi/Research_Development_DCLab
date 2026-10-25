@@ -296,6 +296,51 @@ def _data_value_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[s
     s.projects.log(payload["project_id"], "data_value", {"job": job["id"], "answer": None, "why": TEXT.get(reason, "The measurement ended before it finished")})
 
 
+def _retrain_run(s: Any, payload: dict[str, Any]) -> None:
+    from dclab_core.retrain import RetrainPolicy
+
+    from ..studio import retrain
+
+    pid = payload["project_id"]
+    checkpoint()
+    s.projects.update(pid, running="retrain")
+    try:
+        policy = RetrainPolicy(**(payload.get("policy") or {}))
+        retrain.run(s.projects, pid, payload["newer"], policy=policy, actor=payload.get("actor") or "human",
+                    lesson_store=getattr(s, "lesson_store", None), live_report=payload.get("live_report"))
+    finally:
+        if s.projects.get(pid).get("running") == "retrain":
+            s.projects.update(pid, running=None)
+
+
+def _retrain_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
+    p = s.projects.get(payload["project_id"])
+    if p.get("running") == "retrain":  # the worker died or was stopped mid-run: the project is free again
+        s.projects.update(payload["project_id"], running=None)
+    s.projects.log(payload["project_id"], "retrain_compared", {"job": job["id"], "promoted": None,
+                                                                "why": TEXT.get(reason, "The comparison ended before it finished")})
+
+
+def _collect_run(s: Any, payload: dict[str, Any]) -> None:
+    from ..studio import collect
+
+    pid = payload["project_id"]
+    checkpoint()
+    s.projects.update(pid, running="collect_next")
+    try:
+        collect.measure(s.projects, pid, actor=payload.get("actor") or "human")
+    finally:
+        if s.projects.get(pid).get("running") == "collect_next":
+            s.projects.update(pid, running=None)
+
+
+def _collect_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
+    p = s.projects.get(payload["project_id"])
+    if p.get("running") == "collect_next":
+        s.projects.update(payload["project_id"], running=None)
+    s.projects.log(payload["project_id"], "collect_next", {"job": job["id"], "missing": None, "why": TEXT.get(reason, "The weighing ended before it finished")})
+
+
 def register() -> None:
     handler("stage", _stage_run, _stage_settle)
     handler("pipeline", _pipeline_run, _pipeline_settle)
@@ -305,6 +350,8 @@ def register() -> None:
     handler("programme", _programme_run, _programme_settle)
     handler("improve", _improve_run, _improve_settle)
     handler("data_value", _data_value_run, _data_value_settle)
+    handler("retrain", _retrain_run, _retrain_settle)  # 34.11
+    handler("collect_next", _collect_run, _collect_settle)  # 34.14
     from ..extensions import available
 
     if available("twin"):  # the closed parts' jobs exist only in the full edition

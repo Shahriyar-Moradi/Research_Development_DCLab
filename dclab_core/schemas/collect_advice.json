@@ -1,0 +1,244 @@
+{
+  "$defs": {
+    "GroupReading": {
+      "additionalProperties": false,
+      "properties": {
+        "adds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How much the score falls without this group, beyond the others (positive: it adds).",
+          "title": "Adds"
+        },
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Columns",
+          "type": "array"
+        },
+        "group": {
+          "title": "Group",
+          "type": "string"
+        },
+        "high": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "High"
+        },
+        "low": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Low"
+        },
+        "score_without": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score Without"
+        },
+        "verdict": {
+          "default": "cannot tell",
+          "enum": [
+            "adds",
+            "cannot tell",
+            "adds nothing"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "group"
+      ],
+      "title": "GroupReading",
+      "type": "object"
+    },
+    "LabelSegment": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "title": "Column",
+          "type": "string"
+        },
+        "level": {
+          "title": "Level",
+          "type": "string"
+        },
+        "rows": {
+          "default": 0,
+          "title": "Rows",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "column",
+        "level"
+      ],
+      "title": "LabelSegment",
+      "type": "object"
+    },
+    "MissingKind": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "rank": {
+          "title": "Rank",
+          "type": "integer"
+        },
+        "what": {
+          "title": "What",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "what",
+        "rank"
+      ],
+      "title": "MissingKind",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.collect_advice.v1.json",
+  "additionalProperties": false,
+  "description": "What to collect next (34.14, v1): kept apart by where each part comes from.",
+  "properties": {
+    "active_learning": {
+      "default": "Active learning stays an option, never the default here: both of its gates failed (ALQ-001, ALQ-002).",
+      "title": "Active Learning",
+      "type": "string"
+    },
+    "assumption": {
+      "default": "A group's reading is what it adds beyond the other groups: what two groups both hold (a fee and the plan it is priced by, a total and the months that make it) reads as little for each.",
+      "title": "Assumption",
+      "type": "string"
+    },
+    "domain": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Domain"
+    },
+    "groups": {
+      "description": "Measured on the training folds: what each group adds beyond the others.",
+      "items": {
+        "$ref": "#/$defs/GroupReading"
+      },
+      "title": "Groups",
+      "type": "array"
+    },
+    "label_segments": {
+      "description": "Where the score still rose with more rows (34.13).",
+      "items": {
+        "$ref": "#/$defs/LabelSegment"
+      },
+      "title": "Label Segments",
+      "type": "array"
+    },
+    "matched": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "description": "The columns each kind was matched to by name, to correct.",
+      "title": "Matched",
+      "type": "object"
+    },
+    "metric": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Metric"
+    },
+    "missing": {
+      "description": "The domain's usual kinds no column matches: prior knowledge, not measured.",
+      "items": {
+        "$ref": "#/$defs/MissingKind"
+      },
+      "title": "Missing",
+      "type": "array"
+    },
+    "plain": {
+      "default": "",
+      "description": "The advice in words; it names columns and kinds, never a level of a column.",
+      "maxLength": 3000,
+      "title": "Plain",
+      "type": "string"
+    },
+    "questions": {
+      "description": "The data-need agent's open questions.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Questions",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.collect_advice.v1",
+      "default": "dclab_core.collect_advice.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "score_all": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Score All"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "title": "CollectAdvice",
+  "type": "object"
+}

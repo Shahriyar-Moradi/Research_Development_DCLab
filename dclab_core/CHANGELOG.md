@@ -4,6 +4,21 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.111.0 (2026-10-25)
+
+The learn layer (34.10 to 34.12) and what to collect next (34.14).
+
+- `live`: `BatchProfile` v1 (scored rows' inputs as bin shares over twenty rows or more, never linked to a request),
+  `Profiler`, `monitor_log` (`LiveReport` v1: window by window, the score's and the inputs' drift, the flagged share, and
+  live performance once a window is mature, against `reference`'s holdout interval; one worse window warns, two alert;
+  `as_of` reads the logs as they stood then) and `reference` (the holdout's measure and interval, over groups when kept).
+- `retrain`: `RetrainPolicy` v1, `should_retrain`, `ChallengerRecord` v1 and `compare` (a paired bootstrap on the window
+  neither model trained on, over whole groups when given, with the host's own measure; never a promotion on fewer than
+  30 rows or 5 of a class).
+- `collect`: `CollectAdvice` v1 and `advise`: what each column group adds beyond the others with its interval (named only
+  above zero), the domain's usual kinds missing (prior knowledge, matched by whole word parts, never measured), where more
+  rows still helped (34.13) and the open data questions.
+
 ## 0.110.1 (2026-10-25)
 
 A running number is never a label-join key.

@@ -1,0 +1,236 @@
+{
+  "$defs": {
+    "WindowReading": {
+      "additionalProperties": false,
+      "properties": {
+        "alerts": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "columns_shifted": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "end": {
+          "type": "string"
+        },
+        "flagged_band": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "flagged_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "interval": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": "array"
+        },
+        "labelled": {
+          "default": 0,
+          "type": "integer"
+        },
+        "mature": {
+          "default": false,
+          "type": "boolean"
+        },
+        "metric": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rows": {
+          "type": "integer"
+        },
+        "score_psi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "start": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "stable",
+            "warn",
+            "alert",
+            "too_few_rows"
+          ],
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "vs_holdout": {
+          "default": "unread",
+          "enum": [
+            "within",
+            "worse",
+            "better",
+            "unread"
+          ],
+          "type": "string"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "window": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "window",
+        "start",
+        "end",
+        "rows",
+        "status"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "alerts": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "as_of": {
+      "type": "string"
+    },
+    "first_alert": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "holdout": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "model_id": {
+      "type": "string"
+    },
+    "model_versions": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "note": {
+      "default": "",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.live_report.v1",
+      "default": "dclab_core.live_report.v1",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "stable",
+        "warn",
+        "alert",
+        "no_rows"
+      ],
+      "type": "string"
+    },
+    "window": {
+      "enum": [
+        "day",
+        "week",
+        "batch"
+      ],
+      "type": "string"
+    },
+    "windows": {
+      "items": {
+        "$ref": "#/$defs/WindowReading"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_id",
+    "window",
+    "as_of",
+    "status"
+  ],
+  "type": "object"
+}

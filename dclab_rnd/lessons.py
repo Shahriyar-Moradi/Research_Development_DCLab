@@ -366,7 +366,8 @@ def as_record(lesson: dict[str, Any]) -> dict[str, Any]:
     """An accepted lesson as an evidence record: its claim, scope, counter-argument and next test, and where it came from."""
     scope = lesson.get("scope") or {}
     text = (f"{lesson['claim']} Scope: {scope_line(scope)}. Against it: {lesson['against']} Next test: {lesson['next_test']} "
-            f"From project {lesson.get('project_name')}, citing {', '.join(lesson.get('cites') or [])} of the final stage run named in this record's metadata; "
+            f"From project {lesson.get('project_name')}, citing {', '.join(lesson.get('cites') or [])} "
+            + ("of the model in use (a comparison or an alert, 34.12); " if scope.get("from") == "use" else "of the final stage run named in this record's metadata; ") +
             f"accepted by a {((lesson.get('review') or {}).get('by') or 'reviewer')}.")  # no date here: every number in the text is one a sentence citing it may state
     return {"record_id": record_id(lesson), "type": TYPE, "title": f"Workspace lesson: {_line(lesson['claim'], 110)}", "text": text,
             "metadata": {"workspace_lesson": True, "label": LABEL, "project_id": lesson.get("project_id"), "project": lesson.get("project_name"),

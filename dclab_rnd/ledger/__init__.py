@@ -98,12 +98,12 @@ CAPTURED = {
     "image.label_suspect": "kinds/embedded.py leakage: training images whose near copies, else nearest images, mostly carry the other label",
     "image.flip_safe": "kinds/embedded.py leakage: whether mirrored training images keep their label, measured on held-apart sources",
     "data.more_rows": "studio/data_value.py: the learning curve's answer on the training folds (34.13), the rule's, when a person asks for it",
+    "model.promote": "studio/retrain.py: a challenger fitted with newer labelled rows against the champion on the latest window neither trained on (34.11), the rule's; never a production approval",
 }
 NOT_DECIDED = {
     "column.missing_value_action": "no choice is made: each model family imputes its own fixed way (expansion/runner.py)",
     "labels.situation": "decided with the card's family (problem.family) from the same answer; not a separate decision here",
     "improve.next_action": "no step proposes what to improve next yet (Part 9's workflow, 20.6)",
-    "model.promote": "nothing is promoted: a research result is never production (DCLAB-R22)",
     "command.intent_route": "two word patterns, no decision with options (draft/chat.py)",
     "proposal.completeness": "the main product's point: proposals are not scored here",
     "ops.diagnose": "no model is in use here", "ops.retrain": "no model is in use here",

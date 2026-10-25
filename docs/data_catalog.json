@@ -65,6 +65,11 @@
    "version": "dclab_core.audit_verdict.v1"
   },
   {
+   "contract": "batch_profile",
+   "reads": [],
+   "version": "dclab_core.batch_profile.v1"
+  },
+  {
    "contract": "build_verdict",
    "reads": [],
    "version": "dclab_core.build_verdict.v1"
@@ -97,11 +102,21 @@
    "version": "dclab_core.challenge_pack.v1"
   },
   {
+   "contract": "challenger_record",
+   "reads": [],
+   "version": "dclab_core.challenger_record.v1"
+  },
+  {
    "contract": "chat_example",
    "reads": [
     "dclab_core.chat_example.v1"
    ],
    "version": "dclab_core.chat_example.v2"
+  },
+  {
+   "contract": "collect_advice",
+   "reads": [],
+   "version": "dclab_core.collect_advice.v1"
   },
   {
    "contract": "coordinator_situation",
@@ -265,6 +280,11 @@
    "version": "dclab_core.learning_curve.v1"
   },
   {
+   "contract": "live_report",
+   "reads": [],
+   "version": "dclab_core.live_report.v1"
+  },
+  {
    "contract": "map_review",
    "reads": [],
    "version": "dclab_core.map_review.v1"
@@ -382,6 +402,11 @@
    "contract": "resolved_recipe",
    "reads": [],
    "version": "dclab_core.resolved_recipe.v1"
+  },
+  {
+   "contract": "retrain_policy",
+   "reads": [],
+   "version": "dclab_core.retrain_policy.v1"
   },
   {
    "contract": "retrieval_example",
@@ -585,7 +610,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.110.1",
+ "dclab_core": "0.111.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -981,7 +1006,7 @@
   {
    "about": "Is the model promoted to the project's champion?",
    "answer": "noul",
-   "decided_in": null,
+   "decided_in": "studio/retrain.py: a challenger fitted with newer labelled rows against the champion on the latest window neither trained on (34.11), the rule's; never a production approval",
    "kind": "technical",
    "main_product": null,
    "point": "model.promote",

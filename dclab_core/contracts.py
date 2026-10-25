@@ -448,3 +448,6 @@ import dclab_core.decide  # noqa: E402,F401  (the decision spec: one decision co
 import dclab_core.serving  # noqa: E402,F401  (the prediction and outcome log of a model in use, 34.9)
 import dclab_core.data_value  # noqa: E402,F401  (would more rows help: the learning curve on the training folds, 34.13)
 import dclab_core.selection  # noqa: E402,F401  (honest selection under many attempts: the selection fold, 34.6)
+import dclab_core.live  # noqa: E402,F401  (monitoring that runs: batch profiles and the live report, 34.10)
+import dclab_core.retrain  # noqa: E402,F401  (retrain and champion/challenger: the policy and the comparison, 34.11)
+import dclab_core.collect  # noqa: E402,F401  (what to collect next: the groups that carry the score and the kinds missing, 34.14)

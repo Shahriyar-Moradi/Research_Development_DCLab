@@ -615,6 +615,110 @@ async def decision_what_if(project_id: str, payload: AnyObject, s: Services = De
     return out
 
 
+@router.post("/api/projects/{project_id}/retrain", response_model=Page)
+async def retrain_project(project_id: str, payload: AnyObject, wait: bool = True, s: Services = Depends(services)):
+    """Champion and challenger (34.11): ``newer`` names newer labelled rows kept beside the project (``PUT .../newer-rows/{name}``:
+    the project's columns and its outcome). The challenger is the champion's recipe, family and settings fitted on the training rows and the newer rows before
+    the latest ``policy.window_share`` of them; both are compared there, on rows neither trained on, with a paired bootstrap;
+    promoted only when better beyond the 90% interval and ``policy.margin``. ``live_report``: the service's ``GET /monitor`` answer,
+    whose alerts say why (and become a lesson, 34.12). ``policy``: ``window_share``, ``min_new_labelled``, ``margin``. A job
+    (Stop, the limits on jobs at once); the project's holdout is never read. ``wait``: answer with the comparison; else the job."""
+    from dclab_core.retrain import RetrainPolicy
+
+    from ...studio import retrain as studio_retrain
+
+    project = s.project(project_id)
+    body = payload.model_dump() if hasattr(payload, "model_dump") else dict(payload or {})
+    newer = str(body.get("newer") or "")
+    if newer not in (project.get("newer_rows") or {}):
+        raise HTTPException(409, "Add the newer labelled rows first (PUT /api/projects/{id}/newer-rows/{name}), then name them")
+    if (project.get("stages", {}).get("final") or {}).get("status") not in ("completed", "approved"):
+        raise HTTPException(409, "Run the final stage first: there is no champion to compare with")
+    if project.get("running"):
+        raise HTTPException(409, "Something is running in this project: wait for it, or stop it")
+    try:
+        policy = RetrainPolicy(**{k: v for k, v in (body.get("policy") or {}).items() if k in ("window_share", "min_new_labelled", "margin")})
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from None
+    live_report = body.get("live_report") if isinstance(body.get("live_report"), dict) else None
+    if live_report is not None:
+        from dclab_core.live import LiveReport
+
+        try:
+            LiveReport.model_validate(live_report)
+        except ValueError as exc:
+            raise HTTPException(422, f"live_report is not a monitor's answer (GET /monitor): {str(exc)[:300]}") from None
+    job = s.submit("retrain", f"{project_id}:retrain", {"project_id": project_id, "newer": newer, "policy": policy.model_dump(mode="json"),
+                                                        "live_report": live_report}, here=wait)
+    if not wait:
+        return {"job": job}
+    done = await s.run_here(job)
+    if done.get("status") != "done":
+        raise HTTPException(409, done.get("error") or "The comparison ended without a result")
+    return {**studio_retrain.view(s.projects, project_id), "job": {"id": job["id"], "status": done.get("status")}}
+
+
+@router.put("/api/projects/{project_id}/newer-rows/{name}", response_model=Page, openapi_extra=OCTET)
+async def upload_newer_rows(project_id: str, name: str, request: Request, filename: str = "", s: Services = Depends(services)):
+    """Newer labelled rows (34.11), as raw bytes, kept beside the project under ``name`` for a champion/challenger comparison:
+    the project's columns and its outcome. Never read by the engine: the stages and the solution stay, and the holdout is not
+    read again."""
+    from ...studio import retrain as studio_retrain
+
+    s.project(project_id)
+    body = await request.body()
+    if len(body) > s.upload_max_bytes:
+        raise HTTPException(413, "Files above 200 MB are not supported in the local notebook")
+    if not body:
+        raise HTTPException(400, "Empty file")
+    await asyncio.to_thread(charge_upload, len(body))
+    try:
+        added = await asyncio.to_thread(studio_retrain.add_newer_rows, s.projects, project_id, body, filename, name, "human")
+    except studio_retrain.RetrainRefused as exc:
+        raise HTTPException(400, str(exc)) from None
+    return {"newer_rows": added}
+
+
+@router.get("/api/projects/{project_id}/retrain", response_model=Page)
+async def get_retrains(project_id: str, s: Services = Depends(services)):
+    """The champion/challenger comparisons kept (34.11), newest last, and the fit the last promotion prefers (never a production
+    approval: serving it is the host's step)."""
+    from ...studio import retrain as studio_retrain
+
+    s.project(project_id)
+    return studio_retrain.view(s.projects, project_id)
+
+
+@router.post("/api/projects/{project_id}/collect-next", response_model=Page)
+async def collect_next(project_id: str, wait: bool = True, s: Services = Depends(services)):
+    """What to collect next (34.14): which column groups carry the score (each made constant in turn on the training folds, with the
+    model the models stage chose; the holdout is never read), the domain's usual kinds of data the table lacks (not measured: worth
+    asking for), where more labels would help (from the last learning curve, 34.13) and the open data questions. A job (Stop, the
+    limits on jobs at once). ``wait``: answer with the record; else the job."""
+    from ...studio import collect as studio_collect
+
+    project = s.project(project_id)
+    if not all(s.projects.read_stage(project_id, k) for k in ("features", "models")):
+        raise HTTPException(409, "Run the project's stages up to the models stage first: the groups are weighed with the model it chose.")
+    if project.get("running"):
+        raise HTTPException(409, "Something is running in this project: wait for it, or stop it")
+    job = s.submit("collect_next", f"{project_id}:collect_next", {"project_id": project_id}, here=wait)
+    if not wait:
+        return {"job": job}
+    done = await s.run_here(job)
+    if done.get("status") != "done":
+        raise HTTPException(409, done.get("error") or "The weighing ended without a result")
+    return {**studio_collect.view(s.project(project_id)), "job": {"id": job["id"], "status": done.get("status")}}
+
+
+@router.get("/api/projects/{project_id}/collect-next", response_model=Page)
+async def get_collect_next(project_id: str, s: Services = Depends(services)):
+    """The last advice on what to collect next (34.14), or ``{}``."""
+    from ...studio import collect as studio_collect
+
+    return studio_collect.view(s.project(project_id))
+
+
 @router.post("/api/projects/{project_id}/improve/adopt", response_model=Page)
 async def adopt_improvement(project_id: str, payload: AnyObject, s: Services = Depends(services)):
     """Adopt a way that cleared: its parameters are kept for the next final run. That run reads the held-back cases a second time and needs

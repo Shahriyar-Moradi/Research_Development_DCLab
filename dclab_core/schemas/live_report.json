@@ -1,0 +1,268 @@
+{
+  "$defs": {
+    "WindowReading": {
+      "additionalProperties": false,
+      "properties": {
+        "alerts": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Alerts",
+          "type": "array"
+        },
+        "columns_shifted": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Columns Shifted",
+          "type": "array"
+        },
+        "end": {
+          "title": "End",
+          "type": "string"
+        },
+        "flagged_band": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Flagged Band"
+        },
+        "flagged_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Flagged Share"
+        },
+        "interval": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Interval",
+          "type": "array"
+        },
+        "labelled": {
+          "default": 0,
+          "title": "Labelled",
+          "type": "integer"
+        },
+        "mature": {
+          "default": false,
+          "title": "Mature",
+          "type": "boolean"
+        },
+        "metric": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metric"
+        },
+        "rows": {
+          "title": "Rows",
+          "type": "integer"
+        },
+        "score_psi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score Psi"
+        },
+        "start": {
+          "title": "Start",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "stable",
+            "warn",
+            "alert",
+            "too_few_rows"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "vs_holdout": {
+          "default": "unread",
+          "enum": [
+            "within",
+            "worse",
+            "better",
+            "unread"
+          ],
+          "title": "Vs Holdout",
+          "type": "string"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        },
+        "window": {
+          "title": "Window",
+          "type": "string"
+        }
+      },
+      "required": [
+        "window",
+        "start",
+        "end",
+        "rows",
+        "status"
+      ],
+      "title": "WindowReading",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.live_report.v1.json",
+  "additionalProperties": false,
+  "description": "A model in use, window by window (34.10, v1): what moved, how it performs once outcomes are known, and the first\nwindow that raised an alert.",
+  "properties": {
+    "alerts": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Alerts",
+      "type": "array"
+    },
+    "as_of": {
+      "title": "As Of",
+      "type": "string"
+    },
+    "first_alert": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "First Alert"
+    },
+    "holdout": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Holdout"
+    },
+    "model_id": {
+      "title": "Model Id",
+      "type": "string"
+    },
+    "model_versions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Model Versions",
+      "type": "array"
+    },
+    "note": {
+      "default": "",
+      "title": "Note",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.live_report.v1",
+      "default": "dclab_core.live_report.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "stable",
+        "warn",
+        "alert",
+        "no_rows"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "window": {
+      "enum": [
+        "day",
+        "week",
+        "batch"
+      ],
+      "title": "Window",
+      "type": "string"
+    },
+    "windows": {
+      "items": {
+        "$ref": "#/$defs/WindowReading"
+      },
+      "title": "Windows",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_id",
+    "window",
+    "as_of",
+    "status"
+  ],
+  "title": "LiveReport",
+  "type": "object"
+}

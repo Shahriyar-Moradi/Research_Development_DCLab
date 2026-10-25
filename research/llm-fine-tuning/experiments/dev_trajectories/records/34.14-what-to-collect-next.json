@@ -1,0 +1,174 @@
+{
+ "package": "34.14-what-to-collect-next",
+ "title": "What to collect next: what each column group adds with its interval, the usual kinds missing, where more rows help (34.14)",
+ "date": "2026-10-25",
+ "request": "The owner asked to finish Phase 10 without stopping. The plan (docs/guides/PHASE10_ABILITIES_PLAN.md, 34.14) asks for feature-group ablation on the folds, the segments where labels would help, the data-need agent's questions, active learning an option and never the default, and on a replica with a planted missing group the advice naming that group's kind.",
+ "spec": "dclab_core/collect.py (CollectAdvice v1, advise); dclab_rnd/studio/collect.py (the groups weighed as a job on the training folds).",
+ "plan": [
+  "group the columns by a domain's usual kinds",
+  "weigh each group on the training folds",
+  "name the usual kinds no column matches",
+  "carry 34.13's segments and the data-need questions",
+  "review and fix"
+ ],
+ "decisions": [
+  {
+   "decision": "Keep three readings apart: measured, prior knowledge, passed through",
+   "why": "a missing kind can never be measured on a table that lacks it"
+  },
+  {
+   "decision": "Name a group only when its interval is above zero",
+   "why": "a drop of a few ten-thousandths is noise"
+  },
+  {
+   "decision": "Match names by whole word parts, the longest word winning",
+   "why": "short words inside longer names gave wrong kinds both ways"
+  }
+ ],
+ "change": "dclab_core/collect.py (new); dclab_rnd/studio/collect.py (new); a job, two routes, an event; contracts and schemas; tests.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "defect": "segments from a real learning curve read as none",
+   "scenario": "a 34.13 segment named its column and level, the advice read other names",
+   "cause": "the shape was invented in the test",
+   "fix": "the column and level read; the words leaving the record name the column only",
+   "test": "tests/test_core_collect.py",
+   "severity": "behaviour",
+   "impact": "the advice said labels help in none",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "the data-need questions never reached a project",
+   "scenario": "the advice read a key nothing writes",
+   "cause": "a guessed place for the questions",
+   "fix": "the confirmed problem map's needs against the data card",
+   "test": "tests/test_core_collect.py",
+   "severity": "gap",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "the measured sentence read backwards",
+   "scenario": "a score that fell without tenure was written as a plus sign without it",
+   "cause": "a signed number with no verb",
+   "fix": "the measure falls by an amount without the group",
+   "test": "tests/test_core_collect.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "a group's reading had no interval",
+   "scenario": "noise of a few ten-thousandths could be named as what the score rests on",
+   "cause": "one pooled score per group",
+   "fix": "a paired bootstrap on the same rows; named only above zero; over ten seeds the unused groups were named 0 of 20",
+   "test": "tests/test_core_collect.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "overlapping groups were read as carrying nothing",
+   "scenario": "a fee priced by the plan: each reads as adding little",
+   "cause": "the reading is what a group adds beyond the others",
+   "fix": "said as such, with the assumption in the record",
+   "test": "tests/test_core_collect.py",
+   "severity": "latent",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "column names matched the wrong kinds",
+   "scenario": "count inside account and country, ip inside shipping and zip, week inside sales_last_week, TechSupport as a support contact, age inside marriage",
+   "cause": "substring matching in list order",
+   "fix": "whole word parts and plurals, the longest word winning; the matches shown to correct",
+   "test": "tests/test_core_collect.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "defect": "a project in no known domain was not weighed at all",
+   "scenario": "an income table outside the five domains",
+   "cause": "measuring was tied to the domain",
+   "fix": "each column weighed on its own",
+   "test": "tests/test_core_collect.py",
+   "severity": "gap",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "defect": "the label sentence claimed more than 34.13 measures",
+   "scenario": "segments said to need labels",
+   "cause": "34.13 measures whether the score still rises with all rows",
+   "fix": "said as the score still rising there, labels may help; a stale curve not used",
+   "test": "tests/test_core_collect.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "defect": "the event made prior knowledge look measured",
+   "scenario": "the missing kinds listed as the rule's choice",
+   "cause": "the answerer named a rule",
+   "fix": "the answerer named as prior knowledge",
+   "test": "tests/test_experience_log.py",
+   "severity": "latent",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "naming over ten seeds",
+   "gate": "the groups the outcome used named in at least 9 of 10; an unused group named in at most 1 of 20",
+   "fixed_before_run": false,
+   "result": "tenure and support named 10 of 10; the plan and the fee 0 of 20",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "",
+   "against_gate": "",
+   "limits": [
+    "simulated rows and a linear model",
+    "five domains"
+   ]
+  }
+ ],
+ "outcome": "A project can be told which column groups its score leans on, with intervals, which usual kinds of data its table lacks, said as prior knowledge, and where more rows still help.",
+ "lessons": [
+  "Say where each part of an advice comes from: measured, prior knowledge or passed through.",
+  "A short word inside a longer name is not a match."
+ ],
+ "risks": [
+  "a domain's usual kinds are a list someone wrote",
+  "a group that overlaps another reads as little"
+ ],
+ "commits": []
+}

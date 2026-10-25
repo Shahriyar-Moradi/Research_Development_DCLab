@@ -129,6 +129,9 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
             "class_labels": list(p.class_labels) if p.class_labels else None, "n_classes": rn._n_classes(bundle),
             "positive_label": solution.positive_label, "threshold": threshold, "prediction_moment": solution.prediction_moment,
             "holdout": {k: final["holdout_metrics"].get(k) for k in (bundle.spec.primary_metric,)},
+            # 34.10: what the service's /monitor compares a model in use with: the live measure on the holdout, with its interval
+            "live_reference": _live_reference(solution.task, bundle.y_test, fitted["predictions"],
+                                              bundle.groups("test") if bundle.spec.split_strategy in ("group", "time_group") else None),
             "batches": ("behaviour features are computed within each request, as they were within each fold and the holdout in "
                         "training: send a whole audit window (or a batch in time order) together; a single row gets no history, "
                         "and no state is kept between requests" if behaviour else "each row is scored on its own"),
@@ -168,7 +171,7 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
         "COPY tests ./tests\n# the hashing key is given at run time: docker run -e DCLAB_SERVICE_KEY=... (it is not in the image)\n"
         "# the prediction and outcome logs: mount a volume here (-v ...:/logs), or they go with the container\n"
         "ENV DCLAB_SERVICE_LOG_DIR=/logs\n"
-        "EXPOSE 8000\nCMD [\"gunicorn\", \"--bind\", \"0.0.0.0:8000\", \"--workers\", \"2\", \"app:app\"]\n", encoding="utf-8")
+        "EXPOSE 8000\nCMD [\"gunicorn\", \"--bind\", \"0.0.0.0:8000\", \"--workers\", \"2\", \"--timeout\", \"120\", \"app:app\"]\n", encoding="utf-8")
     (out / ".dockerignore").write_text("*.csv\n*.parquet\n*.xlsx\n*.json.gz\n*.jsonl\n__pycache__\n", encoding="utf-8")
     rows = _made_up_rows(project["data"].get("profile") or {}, meta["input_columns"])
     (out / "tests" / "test_service.py").write_text(
@@ -196,7 +199,7 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
         "the service, who passes it as `DCLAB_SERVICE_KEY`.\n\n```bash\ndocker build -t dclab-service .\n"
         "docker run -e DCLAB_SERVICE_KEY=... -p 8000:8000 dclab-service\n```\n\n"
         "Endpoints: `GET /health`, `GET /model`, `POST /predict` (one row as an object, or a list), `POST /predict/csv` (form field `file`), "
-        "`POST /outcome` (the true outcome of a row once it is known).\n\n"
+        "`POST /outcome` (the true outcome of a row once it is known), `GET /monitor` (the model in use, window by window).\n\n"
         "Logs: every row scored is a line of `predictions.jsonl` and every outcome a line of `outcomes.jsonl`, beside the model or in "
         "`DCLAB_SERVICE_LOG_DIR` (the image sets `/logs`: mount a volume there). Keys are hashed with `DCLAB_LOG_KEY` (16 characters or more; without it, `DCLAB_SERVICE_KEY`, which changes with each export): "
         "set it once and keep it across exports, so an outcome that arrives after a retrain still joins its prediction. A line holds the model and its version, the row's key "
@@ -208,7 +211,10 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
         f"{meta['batches'].capitalize()}. A score is evidence about the method, not production approval.\n"
         + ("\nMonitoring: `Scorer().monitor(rows, scores)` reads a batch against the training rows' bins in `monitoring.json` "
            "(each column's and the score's PSI, the share the rule flags); an alert says the inputs moved away from what the model "
-           "was trained on.\n" if meta.get("monitoring") else ""), encoding="utf-8")
+           "was trained on. `GET /monitor?window=day` (or `week`, `batch`) reads the logs: the score's and the inputs' drift (each "
+           "batch's inputs kept in `profiles.jsonl` only as the share of its rows in each training bin), the share the rule flags, and "
+           "live performance once outcomes are known, against the holdout's interval in `model.json` (`live_reference`); one worse "
+           "window is a warning, two running an alert.\n" if meta.get("monitoring") else ""), encoding="utf-8")
     try:
         checked = _reload_check(out, key, bundle.X_test, fitted["predictions"], bundle.task_type)  # 30.15: saved, reloaded, predicted, matched
     except ServiceRefused:
@@ -257,6 +263,19 @@ def _forget(store: Any, project_id: str, which: str) -> None:
     project = store.get(project_id)
     if (project.get("exports") or {}).pop(which, None) is not None:
         store.save(project)
+
+
+def _live_reference(task: str, y_test: Any, predictions: Any, groups: Any = None) -> dict[str, Any] | None:
+    """34.10: the holdout's ROC AUC, accuracy or mean absolute error with its 90% interval (over whole groups when the split
+    keeps them together), from the refit's predictions on the holdout rows (the ones the export just checked against the
+    approved record); None when it cannot be read."""
+    from dclab_core import live
+
+    try:
+        return live.reference(task if task in ("binary", "multiclass") else "regression", np.asarray(y_test, dtype=float), predictions,
+                              groups=groups)
+    except (ValueError, TypeError):
+        return None
 
 
 def _hashed_plan(plan: dict[str, Any], key: str) -> dict[str, Any]:

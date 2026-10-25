@@ -1,0 +1,125 @@
+{
+ "package": "34.10-monitoring-that-runs",
+ "title": "Monitoring that runs: a model in use read window by window from its own logs, against its holdout (34.10)",
+ "date": "2026-10-25",
+ "request": "The owner asked to finish Phase 10 without stopping. The plan (docs/guides/PHASE10_ABILITIES_PLAN.md, 34.10) asks for monitor_log over the prediction and outcome logs: drift on each batch, live performance once outcomes arrive with the label delay respected, the service's /monitor report, alerts as events.",
+ "spec": "dclab_core/live.py: BatchProfile v1 (inputs as bin shares of twenty rows or more, never a value), Profiler, monitor_log (LiveReport v1), reference (the holdout's measure and interval); the exported service writes profiles.jsonl and alerts.jsonl and answers GET /monitor.",
+ "plan": [
+  "read the prediction log (34.9) and the monitoring plan (30.15): the log holds no input value, so inputs need their own record",
+  "profiles: each column's share in the plan's bins, gathered as rows are scored",
+  "windows by day, week or batch; the score's PSI and the flagged share as monitoring.monitor reads them",
+  "live performance from outcomes known by the reading, with an interval, against the holdout's",
+  "simulate ten days with a planted drift and a label delay; measure over twenty seeds",
+  "the service: profiles, the monitor route, alerts kept"
+ ],
+ "decisions": [
+  {
+   "decision": "Watch the inputs through bin shares gathered over at least twenty rows, never linked to a request",
+   "why": "the prediction log promises no input value; a profile of one row would be that row binned"
+  },
+  {
+   "decision": "Read a window's performance only once it is mature (most of its rows labelled, or a stated label horizon past)",
+   "why": "outcomes of flagged rows often arrive first; read early, an undrifted day looked worse than the holdout"
+  },
+  {
+   "decision": "One window worse than the holdout is a warning; two running are an alert",
+   "why": "measured: one window alone was worse by chance in about 2 of 120, a false alarm several times a year on daily windows"
+  },
+  {
+   "decision": "Alerts as events are kept by the service in alerts.jsonl; the main product records them as its own",
+   "why": "the owner chose that the main product runs customer models; the exported service is the working reference"
+  }
+ ],
+ "change": "dclab_core/live.py (new); contracts.py and adapters/conformance.py (registered); schemas; dclab_rnd/studio/service.py (live_reference over groups, README, a longer request timeout); service_template scorer.py (monitoring_plan, monitoring_frame, a scalar missing check), serve_log.py (Profiler, monitor, alerts), app.py (GET /monitor); tests/test_core_live.py (new), tests/test_service_export.py (extended).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "a performance alert on one window rang falsely",
+   "scenario": "twenty simulated runs with drift planted on day six: an earlier day alerted in 2 of 20",
+   "cause": "two 90% intervals fail to overlap by chance now and then; with daily windows that happens often",
+   "fix": "one worse window is a warning, two running an alert; the planted drift stayed the first alert in 20 of 20 and no run alerted early",
+   "test": "tests/test_core_live.py::LiveMonitorTests::test_one_worse_window_warns_and_two_running_alert",
+   "severity": "behaviour",
+   "impact": "a team paged for nothing every few weeks",
+   "alternatives": ["a 99% interval: slower to see a real drop"],
+   "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "a window was judged on its first outcomes, which were the flagged rows",
+   "scenario": "flagged rows labelled after a day and the rest after thirty: an undrifted day read 0.69 against a holdout of 0.82 and alerted",
+   "cause": "a window was read as soon as a hundred outcomes were known, whatever share of its rows they were",
+   "fix": "a window is read once mature: at least nine in ten of its rows labelled, or a stated label horizon past its end",
+   "test": "tests/test_core_live.py::LiveMonitorTests::test_outcomes_known_first_for_the_flagged_rows_raise_no_false_alert",
+   "severity": "behaviour",
+   "impact": "fraud monitoring would alert every day on a healthy model",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "a small request wrote its row's bins to the profile log",
+   "scenario": "a one-row prediction wrote shares of zero and one, the row binned, joined to its key through the request",
+   "cause": "a profile was written per request, with the request's id",
+   "fix": "profiles gather twenty rows or more in the process and carry no request id; the contract refuses fewer rows",
+   "test": "tests/test_core_live.py::LiveMonitorTests::test_no_value_of_a_row_is_in_a_profile_or_the_report",
+   "severity": "privacy",
+   "impact": "a column with few values would be readable per row from the logs",
+   "alternatives": ["add noise to small profiles: harder to read and still close to the row"],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "importing the monitoring module first failed",
+   "scenario": "a fresh interpreter importing dclab_core.monitoring met a half-made module",
+   "cause": "the contracts module imports the live module at its end, which imported names from monitoring while it was loading",
+   "fix": "the live module imports the monitoring and serving modules themselves and reads their names at call time",
+   "test": "tests/test_core_live.py::LiveMonitorTests::test_every_import_order_works_in_a_fresh_interpreter",
+   "severity": "behaviour",
+   "impact": "the main product would fail at start if it imports monitoring first",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "smaller faults of the monitor",
+   "scenario": "a column no longer sent stayed stable; a reading as of a past moment saw later rows; a worse window of a few rows was hidden; another model's lines in a shared folder were read; a list value failed a request after it was logged; the monitor ran past a request's timeout on a large log",
+   "cause": "absent columns were skipped, the cut filtered outcomes only, the few-rows status came first, no model filter, a vector missing check, a ranking loop in Python",
+   "fix": "an absent column counts as missing; the cut applies to predictions, profiles and recorded outcomes; alerts come before the few-rows status; only this model and fit are read; profiling never fails a request; the ranking is vectorised and the timeout longer",
+   "test": "tests/test_core_live.py::LiveMonitorTests::test_a_column_no_longer_sent_is_seen_and_a_reading_as_of_a_moment_sees_nothing_later",
+   "severity": "behaviour",
+   "impact": "missed drifts, readings that knew the future, and a monitor that failed under load",
+   "alternatives": [],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "planted drift over twenty simulated runs",
+   "gate": "the planted drift is the first alert and no earlier day alerts; undrifted days agree with the holdout within the intervals",
+   "fixed_before_run": true,
+   "result": "first alert on the drift day in 20 of 20, none earlier; undrifted windows within in 117 of 120; with flagged rows labelled first, 0 false alerts in 20",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "the main product's monitoring job reads its own logs through it",
+   "against_gate": "",
+   "limits": ["simulated rows and one model family", "multiclass and regression services not tested end to end"]
+  }
+ ],
+ "outcome": "A model in use can be read window by window from its own logs: the inputs and the score against training, the flagged share, and performance once its outcomes are known, with alerts kept and no value of a row ever written.",
+ "lessons": [
+  "A window is not known until its outcomes are: the first outcomes are rarely a fair sample.",
+  "An aggregate of one row is the row.",
+  "A module that registers itself at the end of another must not take names from modules that may still be loading."
+ ],
+ "risks": [
+  "profiles in a process are lost when it stops before twenty rows",
+  "a plan from an older fit read against a newer fit's rows"
+ ],
+ "commits": []
+}

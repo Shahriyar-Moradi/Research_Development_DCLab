@@ -1,0 +1,206 @@
+{
+  "$defs": {
+    "GroupReading": {
+      "additionalProperties": false,
+      "properties": {
+        "adds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "group": {
+          "type": "string"
+        },
+        "high": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "low": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "score_without": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "verdict": {
+          "default": "cannot tell",
+          "enum": [
+            "adds",
+            "cannot tell",
+            "adds nothing"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "group"
+      ],
+      "type": "object"
+    },
+    "LabelSegment": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "type": "string"
+        },
+        "level": {
+          "type": "string"
+        },
+        "rows": {
+          "default": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "column",
+        "level"
+      ],
+      "type": "object"
+    },
+    "MissingKind": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "rank": {
+          "type": "integer"
+        },
+        "what": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "what",
+        "rank"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "active_learning": {
+      "default": "Active learning stays an option, never the default here: both of its gates failed (ALQ-001, ALQ-002).",
+      "type": "string"
+    },
+    "assumption": {
+      "default": "A group's reading is what it adds beyond the other groups: what two groups both hold (a fee and the plan it is priced by, a total and the months that make it) reads as little for each.",
+      "type": "string"
+    },
+    "domain": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "groups": {
+      "items": {
+        "$ref": "#/$defs/GroupReading"
+      },
+      "type": "array"
+    },
+    "label_segments": {
+      "items": {
+        "$ref": "#/$defs/LabelSegment"
+      },
+      "type": "array"
+    },
+    "matched": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "metric": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "missing": {
+      "items": {
+        "$ref": "#/$defs/MissingKind"
+      },
+      "type": "array"
+    },
+    "plain": {
+      "default": "",
+      "maxLength": 3000,
+      "type": "string"
+    },
+    "questions": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.collect_advice.v1",
+      "default": "dclab_core.collect_advice.v1",
+      "type": "string"
+    },
+    "score_all": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "type": "object"
+}

@@ -1,0 +1,230 @@
+{
+ "package": "34.11-34.12-retrain-and-lessons-from-use",
+ "title": "Retrain and champion/challenger, and lessons from use: a challenger replaces the model in use only when better on rows neither saw (34.11, 34.12)",
+ "date": "2026-10-25",
+ "request": "The owner asked to finish Phase 10 without stopping. The plan (docs/guides/PHASE10_ABILITIES_PLAN.md, 34.11 and 34.12) asks for a retrain policy, a challenger trained on newer labelled rows through the same engine, compared with the champion on the latest window neither trained on, promoted only beyond its interval, every comparison recorded, and lessons proposed from drift, promotions and refusals.",
+ "spec": "dclab_core/retrain.py (RetrainPolicy v1, should_retrain, ChallengerRecord v1, compare); dclab_rnd/studio/retrain.py (newer rows kept beside the project, the comparison as a job, the ledger point model.promote); dclab_rnd/studio/lessons_from_use.py.",
+ "plan": [
+  "the core: a policy, a paired comparison on a window, a record",
+  "simulate a changing and an unchanging world over twenty seeds",
+  "the studio: newer rows read as the engine reads training rows, the champion refitted as the export does, the challenger the same with newer rows",
+  "routes, a job, an event, the ledger, lessons",
+  "review and fix"
+ ],
+ "decisions": [
+  {
+   "decision": "Keep newer rows beside the project, never as one of its tables",
+   "why": "attaching a table clears every stage, so the final stage would read the holdout again just to compare"
+  },
+  {
+   "decision": "Drop newer rows that repeat a row of the project's own table",
+   "why": "a re-export of the project's holdout would otherwise decide a promotion while the holdout count stays unchanged"
+  },
+  {
+   "decision": "The champion is the fit last promoted, else the approved model",
+   "why": "a challenger must beat the model in use, not an older one"
+  },
+  {
+   "decision": "Never promote on fewer than thirty window rows or five of a class",
+   "why": "a zero-width interval on a handful of rows promoted"
+  }
+ ],
+ "change": "dclab_core/retrain.py (new); dclab_rnd/studio/retrain.py and lessons_from_use.py (new); jobs/handlers.py, agentic/services.py, routers/projects.py (two routes and an upload), experience/hooks.py, ledger/__init__.py (model.promote captured), lessons.py (a from-use lesson's evidence text); contracts and schemas; tests.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "an equally good challenger is promoted about one time in twenty",
+   "scenario": "twenty seeds without a change: one promoted",
+   "cause": "the bound is one-sided at 95%",
+   "fix": "said in the module and the integration guide; a margin above zero makes it rarer",
+   "test": "tests/test_core_retrain.py",
+   "severity": "latent",
+   "impact": "a needless redeploy, never a worse model",
+   "alternatives": [],
+   "open": "a default margin per measure"
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "defect": "attaching newer rows as a table forced a second holdout read",
+   "scenario": "the studio test could not rerun the final stage without a written reason",
+   "cause": "attaching a table clears the stages",
+   "fix": "newer rows kept beside the project, never read by the engine, no stage cleared",
+   "test": "tests/test_retrain_studio.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "test",
+   "defect": "two comparisons in one second shared a lesson key",
+   "scenario": "the second comparison's lesson was never proposed",
+   "cause": "the key was the comparison's time to the second",
+   "fix": "each comparison has its own id",
+   "test": "tests/test_retrain_studio.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "the promotion never reached the ledger",
+   "scenario": "the ledger refused it twice: unknown state fields and a yes or no point given words",
+   "cause": "the record did not follow the point's shape",
+   "fix": "a yes or no with the measure and the window's size",
+   "test": "tests/test_retrain_studio.py",
+   "severity": "gap",
+   "impact": "every comparison said to be captured, none was",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "labels from unconfirmed sources were trained and judged on",
+   "scenario": "a fraud project with rule-labelled newer rows",
+   "cause": "the newer rows skipped the step that sets those labels aside",
+   "fix": "the same step as the training rows",
+   "test": "tests/test_retrain_studio.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "one entity could sit in the challenger's training rows and the window",
+   "scenario": "monthly snapshots of the same customers",
+   "cause": "the window was cut by rows",
+   "fix": "an entity in the window has none of its rows among the challenger's; the interval over whole entities",
+   "test": "tests/test_core_retrain.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "defect": "one bad time stamp made every time missing",
+   "scenario": "a single unreadable date in the newer rows",
+   "cause": "the column fell back to numbers when any stamp failed",
+   "fix": "the time read as the project reads it; a row without one is left out",
+   "test": "tests/test_retrain_studio.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "defect": "a code read as 1.0 was a new category to the champion",
+   "scenario": "a CSV with one blank cell turned a count column to decimals",
+   "cause": "the newer rows kept their own types",
+   "fix": "the training rows' types",
+   "test": "tests/test_retrain_studio.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "defect": "a re-export of the project's rows decided a promotion",
+   "scenario": "the project's table again with a few new rows",
+   "cause": "nothing compared the newer rows with the project's",
+   "fix": "repeat rows dropped and counted; the window only after the project's latest time",
+   "test": "tests/test_retrain_studio.py",
+   "severity": "leakage",
+   "impact": "the holdout's labels used to promote without counting a read",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "defect": "tiny windows promoted",
+   "scenario": "one to four rows promoted on a zero-width interval",
+   "cause": "no minimum window",
+   "fix": "thirty rows and five of a class at least",
+   "test": "tests/test_core_retrain.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "defect": "the comparison used another measure than the project's",
+   "scenario": "a multiclass project judged by accuracy instead of its own measure",
+   "cause": "a fixed measure per task",
+   "fix": "the project's own measure and direction",
+   "test": "tests/test_retrain_studio.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F12",
+   "source": "reviewer",
+   "defect": "later comparisons were against the approved model after a promotion",
+   "scenario": "a second challenger beat an older model, not the one in use",
+   "cause": "the champion was always the final stage's fit",
+   "fix": "the champion is the last promoted fit and its rows",
+   "test": "tests/test_retrain_studio.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F13",
+   "source": "reviewer",
+   "defect": "storage, audit, live reports and Stop were loose",
+   "scenario": "files outside the storage, no audit entry, a malformed live report failing after saving, Stop ignored mid-fit",
+   "cause": "a first version written beside the conventions",
+   "fix": "the project's file storage, a data-import audit entry, the report validated first, a check between the fits",
+   "test": "tests/test_retrain_studio.py",
+   "severity": "behaviour",
+   "impact": "",
+   "alternatives": [],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "promotion over twenty seeds",
+   "gate": "promoted after a change in at least 19 of 20 and without it in at most 1 of 20",
+   "fixed_before_run": true,
+   "result": "promoted after the change in 20 of 20, better by about 0.19 ROC AUC; promoted without it in 1 of 20",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "the main product's model registry wires it",
+   "against_gate": "",
+   "limits": [
+    "simulated rows and a linear model",
+    "one change of rule"
+   ]
+  }
+ ],
+ "outcome": "A model in use can be challenged with newer labelled rows: the comparison is on rows neither model saw, with the project's measure and an interval, recorded in the ledger and proposed as a lesson, and the holdout is never read.",
+ "lessons": [
+  "A comparison window is only fair if neither model saw its rows, its entities or its time.",
+  "Newer rows must be read exactly as the training rows were, or the champion meets data it never learned the shape of."
+ ],
+ "risks": [
+  "an equally good challenger promoted now and then",
+  "newer rows whose columns changed meaning"
+ ],
+ "commits": []
+}

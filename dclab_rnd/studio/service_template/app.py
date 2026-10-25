@@ -4,7 +4,8 @@ features count within the batch, as the project's audit window did (see model.js
 
 Every row scored is logged in ``predictions.jsonl`` and every outcome in ``outcomes.jsonl`` (``serve_log.py``: beside the
 model, or in ``DCLAB_SERVICE_LOG_DIR``); a log line holds the row's key as a salted hash, the score and the decision,
-never a value of the row."""
+never a value of the row. Each batch's inputs are kept only as the share of its rows in each training bin
+(``profiles.jsonl``), which ``GET /monitor`` reads with the two logs (34.10)."""
 
 from __future__ import annotations
 
@@ -52,6 +53,16 @@ def predict_csv():
     frame = read_csv(upload.read(), scorer.meta, key)  # a key keeps its text ("007" stays "007"); "NA" as in training
     try:
         return jsonify(log.predict(frame, key))
+    except Refused as error:
+        return jsonify({"error": str(error)}), 400
+
+
+@app.get("/monitor")
+def monitor():
+    """The model in use, read from its logs: ``?window=day`` (or week, batch): drift of the score and the inputs, the share
+    the rule flags, and live performance once outcomes are known, against the holdout; alerts named by window."""
+    try:
+        return jsonify(log.monitor(request.args.get("window", "day")))
     except Refused as error:
         return jsonify({"error": str(error)}), 400
 

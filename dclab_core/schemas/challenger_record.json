@@ -1,0 +1,107 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.challenger_record.v1.json",
+  "additionalProperties": false,
+  "description": "One comparison of a challenger with the champion (34.11, v1), kept whether it promoted or not.",
+  "properties": {
+    "because": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Because",
+      "type": "array"
+    },
+    "challenger": {
+      "title": "Challenger",
+      "type": "number"
+    },
+    "challenger_version": {
+      "default": "",
+      "title": "Challenger Version",
+      "type": "string"
+    },
+    "champion": {
+      "title": "Champion",
+      "type": "number"
+    },
+    "champion_version": {
+      "default": "",
+      "title": "Champion Version",
+      "type": "string"
+    },
+    "difference": {
+      "description": "Challenger minus champion, oriented so that positive is better.",
+      "title": "Difference",
+      "type": "number"
+    },
+    "higher_is_better": {
+      "title": "Higher Is Better",
+      "type": "boolean"
+    },
+    "interval": {
+      "items": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Interval",
+      "type": "array"
+    },
+    "margin": {
+      "default": 0.0,
+      "title": "Margin",
+      "type": "number"
+    },
+    "metric": {
+      "title": "Metric",
+      "type": "string"
+    },
+    "promoted": {
+      "title": "Promoted",
+      "type": "boolean"
+    },
+    "reason": {
+      "maxLength": 1000,
+      "title": "Reason",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.challenger_record.v1",
+      "default": "dclab_core.challenger_record.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "window": {
+      "default": "",
+      "description": "Which rows: the latest labelled window neither model trained on.",
+      "maxLength": 200,
+      "title": "Window",
+      "type": "string"
+    },
+    "window_rows": {
+      "minimum": 1,
+      "title": "Window Rows",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "metric",
+    "higher_is_better",
+    "window_rows",
+    "champion",
+    "challenger",
+    "difference",
+    "interval",
+    "promoted",
+    "reason"
+  ],
+  "title": "ChallengerRecord",
+  "type": "object"
+}

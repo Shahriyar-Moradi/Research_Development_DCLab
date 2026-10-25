@@ -1104,3 +1104,38 @@ selection fold and the `SelectionRecord` v1 keeps both scores, the number of att
 
 Where it goes in the main product: its experiment runner, when a search runs more than a few candidates; the record is
 a plain dict stored with the experiment. Wiring is the main product's own change.
+
+## Monitoring that runs (34.10, dclab-core 0.111.0)
+
+The library's: `dclab_core.live`. The main product runs customer models, so it reads its own logs through
+`live.monitor_log(plan, predictions, outcomes, profiles=..., window="day", holdout=...)`: the `PredictionRecord`s and
+`OutcomeRecord`s of 34.9, and one `BatchProfile` v1 per scored request, which its scoring path writes with
+`live.profile(plan, rows, ...)` (each column's share of the request's rows in each training bin of the model's
+`MonitoringPlan`, never a value). The answer, a `LiveReport` v1, reads each window: the score's PSI, the share the rule
+flags against its band, the inputs that shifted, and live performance once outcomes known by `as_of` exist, against the
+holdout's interval from `live.reference(task, y_holdout, predictions)` (one worse window is a warning, two running an
+alert). The host records the alerts as its own events. DCLab's exported service is the working reference:
+`profiles.jsonl` beside its two logs and `GET /monitor?window=day`.
+
+## Retrain and champion/challenger (34.11, 34.12, dclab-core 0.111.0)
+
+The library's: `dclab_core.retrain`. `should_retrain(policy, live_report=..., last_trained=..., new_labelled=...)`
+says whether a `RetrainPolicy` v1 calls for a retrain now and why (a drift or performance alert, a schedule, never before
+`min_new_labelled` new labels). The main product fits its challenger itself (the champion's recipe and settings with the
+newer labelled rows), scores both on the latest labelled window neither trained on, and calls
+`compare(task, y_window, champion, challenger, policy=...)`: a `ChallengerRecord` v1 with both values, the paired
+bootstrap's interval and `promoted` (only when the interval's lower bound is above the margin; an equally good challenger
+passes about once in twenty with a margin of zero). It promotes on `promoted` only and keeps every record. DCLab's studio
+is the reference: newer rows kept beside a project (`PUT /api/projects/{id}/newer-rows/{name}`), the comparison as a job
+(`POST /api/projects/{id}/retrain`), each comparison and live alert proposed as a workspace lesson for review (34.12).
+
+## What to collect next (34.14, dclab-core 0.111.0)
+
+The library's: `dclab_core.collect.advise(columns, problem=..., y=..., predict_without=..., metric_fn=..., data_value=...,
+data_needs=...)`, a `CollectAdvice` v1 in three parts kept apart: what each column group adds beyond the others (measured:
+the host's out-of-fold predictions on its training folds with a group's columns left out or made constant, a paired
+bootstrap interval, a group named only when it is above zero), the business domain's usual kinds of data no column
+matches by whole word parts (prior knowledge from `collect.SIGNALS`, never measured: worth asking for, and `matched` shows
+the columns each kind took so a person can correct them), and where more rows still helped with the open data questions. The main product shows it beside its data requests;
+active learning stays an option there too, never the default. DCLab's studio is the reference: `POST
+/api/projects/{id}/collect-next` (a job).
