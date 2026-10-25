@@ -104,6 +104,35 @@ def edge_lines():
     ]
 
 
+def undo_lines(repo):
+    """An undo, a failed edit, an edit outside the repository, a committed second try, a change after the commit, an undo
+    after the commit, and a data file."""
+    T = lambda m, s: f"2026-10-25T12:{m:02d}:{s:02d}.000Z"  # noqa: E731
+    def edit(ts, tid, name, inp, ok=True):
+        return [sdk(ts, {"type": "assistant", "parent_tool_use_id": None, "message": {"content": [{"type": "tool_use", "id": tid, "name": name, "input": inp}]}}),
+                sdk(ts, {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": tid, "content": "ok" if ok else "not found", "is_error": not ok}]}})]
+    done = lambda ts: sdk(ts, {"type": "result", "subtype": "success", "is_error": False})  # noqa: E731
+    return [
+        line(T(0, 0), kind="app", type="user_message", id="u1", text="fix the model"),
+        sdk(T(0, 1), {"type": "system", "subtype": "init", "session_id": "sdk-s_undo01", "model": "claude-sonnet-5-5", "permissionMode": "acceptEdits", "tools": []}),
+        *edit(T(0, 2), "w1", "Edit", {"file_path": f"{repo}/m.py", "old_string": "a = 1", "new_string": "a = 2"}),
+        *edit(T(0, 3), "w2", "Write", {"file_path": f"{repo}/notes.md", "content": "hello"}),
+        *edit(T(0, 4), "w3", "Write", {"file_path": f"{repo}/data.csv", "content": "client,9.99"}),
+        *edit(T(0, 4), "w6", "Write", {"file_path": "/Users/p/.claude/memory/notes.md", "content": "outside"}),
+        *edit(T(0, 4), "w7", "Edit", {"file_path": f"{repo}/m.py", "old_string": "zzz", "new_string": "BAD"}, ok=False),
+        done(T(0, 5)),
+        line(T(1, 0), kind="app", type="undo", file="m.py", how="restored", backup="/b/m.py", by="person"),
+        line(T(1, 1), kind="app", type="user_message", id="u2", text="try again"),
+        *edit(T(1, 2), "w4", "Edit", {"file_path": f"{repo}/m.py", "old_string": "a = 1", "new_string": "a = 3"}),
+        done(T(1, 3)),
+        line(T(2, 0), kind="app", type="outcome", outcome="committed", sha="abc1234", files=["m.py", "notes.md"], count=2, branch="dclab/x", by="person"),
+        *edit(T(2, 1), "w5", "Edit", {"file_path": f"{repo}/notes.md", "old_string": "hello", "new_string": "hello again"}),
+        *edit(T(2, 1), "w8", "Edit", {"file_path": f"{repo}/m.py", "old_string": "a = 3", "new_string": "LATER"}),
+        done(T(2, 2)),
+        line(T(3, 0), kind="app", type="undo", file="m.py", how="restored", backup="/b/m2.py", by="person"),
+    ]
+
+
 @unittest.skipIf(MISSING, MISSING)
 class DclabCodeSetsTest(unittest.TestCase):
     def setUp(self):
@@ -120,6 +149,8 @@ class DclabCodeSetsTest(unittest.TestCase):
             sessions.append({"id": sid, "projectPath": str(self.repo), "sdkSessionId": f"sdk-{sid}", "model": "claude-haiku-5-5"})
         (self.home / "records" / "s_edge01.jsonl").write_text("\n".join(edge_lines()) + "\n", encoding="utf-8")
         sessions.append({"id": "s_edge01", "projectPath": str(self.repo), "sdkSessionId": "sdk-s_edge01", "model": "claude-sonnet-5-5"})
+        (self.home / "records" / "s_undo01.jsonl").write_text("\n".join(undo_lines(self.repo)) + "\n", encoding="utf-8")
+        sessions.append({"id": "s_undo01", "projectPath": str(self.repo), "sdkSessionId": "sdk-s_undo01", "model": "claude-sonnet-5-5"})
         (self.home / "sessions.json").write_text(json.dumps({"sessions": sessions}), encoding="utf-8")
         # The same session's Claude Code transcript (kept by the agents keeper): it must share the session's split.
         from dclab_rnd.store.keepers import agents
@@ -152,7 +183,7 @@ class DclabCodeSetsTest(unittest.TestCase):
     def test_episodes_judgements_and_decisions_are_built(self):
         build = next(s for s in self.record["steps"] if s["name"] == "builders")
         self.assertFalse([e for e in build["errors"] if e["source"] == "dclab_code"], build["errors"])
-        eps = [e for e in self.rows("m6_stepwise_decisions", "dclab_code") if "edge" not in e["id"]]
+        eps = [e for e in self.rows("m6_stepwise_decisions", "dclab_code") if "edge" not in e["id"] and "undo" not in e["id"]]
         self.assertEqual(len(eps), 12)
         ep = eps[0]
         self.assertEqual([s["action"] for s in ep["steps"]], ["Bash", "Read", "ExitPlanMode"])
@@ -215,6 +246,20 @@ class DclabCodeSetsTest(unittest.TestCase):
         self.assertTrue(transcript)
         self.assertEqual({r.split for r in transcript}, {split_of("sdk-s_edge01")})
         self.assertEqual(ep["split"], split_of("sdk-s_edge01"))
+
+    def test_file_changes_judged_by_undo_and_commit(self):
+        from dclab_core.datasets import split_of
+
+        rows = [j for j in self.rows("m7_judges", "dclab_code_changes") if "s_undo01" in j["id"]]
+        got = sorted((j["candidate"]["file"], j["candidate"]["kept_as"], j["score"], [c.get("new_string") or c.get("content") for c in j["candidate"]["changes"]]) for j in rows)
+        self.assertEqual(got, [("m.py", "committed", 1.0, ["a = 3"]),     # the second try, committed
+                               ("m.py", "undone", 0.0, ["LATER"]),        # an undo after the commit judges only what came after it
+                               ("m.py", "undone", 0.0, ["a = 2"]),        # the person undid the first; the failed edit never counts
+                               ("notes.md", "committed", 1.0, ["hello"])])  # the change after the commit has no verdict
+        self.assertFalse([j for j in rows if j["candidate"]["file"].startswith("/")])  # a file outside the repository never
+        self.assertFalse([j for j in rows if j["candidate"]["file"].endswith(".csv")])  # a data file never enters a set
+        self.assertEqual({(j["judge"], j["evidence"], j["candidate_by"], j["split"]) for j in rows},
+                         {("person", "person", "model:claude-sonnet-5-5", split_of("sdk-s_undo01"))})
 
     def test_no_tool_output_in_any_set_and_one_split_per_session(self):
         text = "".join(p.read_text(encoding="utf-8") for p in self.layout.tier("sets").rglob("*.jsonl"))

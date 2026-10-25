@@ -22,13 +22,12 @@ in different splits.
 
 from __future__ import annotations
 
+import json
 import re
 from collections import defaultdict
 from typing import Any, Optional
 
 from dclab_core.datasets import split_of
-import json
-
 from dclab_core.store import DecisionExample, Episode, EpisodeStep, JudgedExample, Message, PreferencePair, StoreRecord
 
 from ..layout import Layout
@@ -43,6 +42,11 @@ POINT_PLAN = "dclab_code.plan_approval"
 FAMILIES = {"Bash": "shell", "Read": "read", "Write": "write", "Edit": "edit", "MultiEdit": "edit", "NotebookEdit": "edit", "Glob": "search",
             "Grep": "search", "WebFetch": "web", "WebSearch": "web", "Task": "agent", "Agent": "agent", "AskUserQuestion": "question",
             "ExitPlanMode": "plan", "TodoWrite": "tasks", "ToolSearch": "tools"}
+EDIT_TOOLS = ("Edit", "Write", "MultiEdit", "NotebookEdit")
+# Code only: a data file (csv, json, parquet...) and a file that often carries a table's rows whole (txt, sql inserts, an
+# html report, a notebook's outputs) never enters a set. Markdown stays: the shaper takes tables out of its text.
+CODE_FILE = re.compile(r"\.(py|r|scala|js|jsx|ts|tsx|java|go|rs|swift|kt|c|cc|cpp|h|sh|md|toml|yaml|yml|cfg|ini|css)$", re.I)
+MAX_CHANGE = 200_000  # a change larger than this (a generated file) is not an example
 MODES = {"default": "ask_first", "acceptEdits": "auto_edits", "plan": "plan_only", "bypassPermissions": "bypass", "dontAsk": "dont_ask", "auto": "auto"}
 
 
@@ -93,6 +97,9 @@ class Session:
         self.plans: list[dict[str, Any]] = []
         self.grades: list[dict[str, Any]] = []
         self.prompts: dict[int, str] = {}         # turn -> the person's message that started it
+        self.edits: dict[str, list[dict[str, Any]]] = defaultdict(list)  # file (relative to the session's folder) -> the agent's changes
+        self.undos: dict[str, list[dict[str, Any]]] = defaultdict(list)  # file -> the person's undos of it, in order
+        self.kept: list[dict[str, Any]] = []        # each commit or merge of the session's work: its order and the files in it
         self.outcome: Optional[str] = None
         self._read()
 
@@ -158,8 +165,12 @@ class Session:
                     mode = "ask_first"
             elif t == "feedback":
                 self.grades.append({"turn": b.get("turn"), "value": b.get("value"), "note": b.get("note"), "record": r, "results_before": turn})
+            elif t == "undo" and isinstance(b.get("file"), str) and b.get("by", "person") == "person":
+                self.undos[b["file"]].append({"how": b.get("how"), "record": r, "order": _order(r)})
             elif t == "outcome":
                 o = b.get("outcome")
+                if o in ("committed", "merged") and isinstance(b.get("files"), list):  # older records name no files: no verdict from them
+                    self.kept.append({"order": _order(r), "files": {str(f) for f in b["files"]}})
                 self.outcome = "merged" if o == "merged" else ("copy_removed" if b.get("merged") else "copy_removed_unmerged") if o == "copy_removed" else _code(o)
             elif t == "stop":
                 self.outcome, stopped = "stopped", True
@@ -191,8 +202,25 @@ class Session:
                                "record": (dec or {}).get("_record") or r, "mode": mode, "auto": step["auto"]})
         if not sub:
             self.steps.append(step)
+            self._edit(step)
         if req and req.get("type") == "permission_request" and step["decision"] in ("allow", "allow_always", "deny") and not step["auto"]:
             self.asked.append(step)
+
+    def _edit(self, st: dict[str, Any]) -> None:
+        """An agent's change to a code or text file, by the file's path in the session's folder (as git and an undo name it)."""
+        inp = st["input"] if isinstance(st["input"], dict) else {}
+        path = inp.get("file_path") or inp.get("notebook_path")
+        if st["tool"] not in EDIT_TOOLS or not isinstance(path, str) or not CODE_FILE.search(path) or st["decision"] == "deny":
+            return
+        # Paths as git names them: from the repository's root (an own copy's root, else the session's recorded root).
+        wt = self.meta.get("worktree") if isinstance(self.meta.get("worktree"), dict) else {}
+        root = str(wt.get("path") or self.meta.get("repoRoot") or self.meta.get("projectPath") or "").rstrip("/")
+        if not root or not path.startswith(root + "/"):
+            return  # outside the repository: no commit of it can hold this file
+        rel = path[len(root) + 1:]
+        change = {k: inp[k] for k in ("old_string", "new_string", "content", "new_source", "edits", "replace_all") if k in inp}
+        if len(json.dumps(change, default=str)) <= MAX_CHANGE:
+            self.edits[rel].append({"tool": st["tool"], **change, "_record": st["record"], "_order": st["order"], "_step": st})
 
     @staticmethod
     def step_outcome(s: dict[str, Any]) -> str:
@@ -287,6 +315,13 @@ def examples(layout: Layout, choices: Optional[dict] = None) -> dict[tuple[str, 
                         id=f"{mt}:dclab_code:preference:{s.sid}:{k}", model_type=mt, split=split, provenance=chosen["record"].provenance,
                         more=[rejected["record"].provenance] if rejected["record"].provenance.entry != chosen["record"].provenance.entry else [],
                         weight=weight, task="dclab_code.step", prompt=prompt, chosen=_as_message(chosen), rejected=_as_message(rejected), decided_by="person"))
+        if ok["m7_judges"]:
+            for f, changes in sorted(s.edits.items()):
+                for n, (verdict, chunk, prov) in enumerate(file_verdicts(f, changes, s.undos.get(f, []), s.kept)):
+                    groups[("m7_judges", "dclab_code_changes")].append(JudgedExample(
+                        id=f"m7:dclab_code:change:{s.sid}:{n}:{f}"[:200], model_type="m7_judges", split=split, provenance=prov, judged="code",
+                        candidate={"file": f, "changes": [{k: v for k, v in c.items() if not k.startswith("_")} for c in chunk], "kept_as": verdict},
+                        candidate_by=f"model:{s.model}", score=0.0 if verdict == "undone" else 1.0, judge="person", evidence="person"))
         for k, g in enumerate(s.grades):
             if ok["m7_judges"] and g["value"] in ("good", "bad") and g["answer"]:
                 groups[("m7_judges", "dclab_code_answers")].append(JudgedExample(
@@ -294,6 +329,27 @@ def examples(layout: Layout, choices: Optional[dict] = None) -> dict[tuple[str, 
                     candidate={"answer": g["answer"], "note": g["note"]}, candidate_by=f"model:{s.model}",
                     score=1.0 if g["value"] == "good" else 0.0, judge="person", evidence="person"))
     return groups
+
+
+def file_verdicts(file: str, changes: list[dict[str, Any]], undos: list[dict[str, Any]], kept: list[dict[str, Any]]) -> list[tuple[str, list, Any]]:
+    """A file's history in file order, cut at each undo and at each commit or merge. The changes since the last cut are
+    **undone** (0) at an undo, **committed** (1) at a commit or merge that names this file; a commit that does not name it
+    leaves them waiting; changes never cut have no verdict. Only a change that ran (its tool result ok) counts."""
+    ran = [c for c in changes if c["_step"].get("ok") is True]
+    events = sorted([(c["_order"], 1, c) for c in ran] + [(u["order"], 0, u) for u in undos] + [(k["order"], 0, k) for k in kept],
+                    key=lambda e: (e[0], e[1]))
+    out, pending = [], []
+    for _, is_change, item in events:
+        if is_change:
+            pending.append(item)
+        elif "how" in item:  # an undo
+            if pending:
+                out.append(("undone", pending, item["record"].provenance))
+            pending = []
+        elif file in item["files"] and pending:  # a commit or merge holding this file
+            out.append(("committed", pending, pending[-1]["_record"].provenance))
+            pending = []
+    return out
 
 
 def _as_message(st: dict[str, Any]) -> Message:
@@ -321,7 +377,7 @@ def preferences(s: Session) -> list[tuple[dict[str, Any], dict[str, Any]]]:
 
 ABOUTS = {"m5_solver_llm": "DCLab Code: the step the person allowed against the one they denied (both Claude's: silver, apart; consent from the owner's decision on provider outputs).",
           "m6_stepwise_decisions": "DCLab Code sessions as episodes of tool steps: content-free state, the tool, the outcome (silver: the steps are Claude's).",
-          "m7_judges": "The person's judgement of DCLab Code's steps, plans and answers (gold).",
+          "m7_judges": "The person's judgement of DCLab Code's steps, plans, answers and file changes (undone: 0; kept in committed or merged work: 1) (gold).",
           "m2_workflow_decisions": "The person's choices in DCLab Code: allow a step, approve a plan (gold).",
           "m1_students": "A student per DCLab Code decision point: what the person chooses, from the step's bands (gold)."}
 

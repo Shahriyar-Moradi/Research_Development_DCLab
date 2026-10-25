@@ -1,0 +1,73 @@
+{
+ "package": "dclab-code-v1.6",
+ "title": "DCLab Code: search inside sessions, Y/N keys, Mac notifications, per-file undo, a daily spending cap",
+ "date": "2026-10-25",
+ "request": "Make sure the store runs on a schedule, then build Y/N keys, Mac notifications, per-file diff with undo, and a daily spending cap.",
+ "spec": "dclab-code README.md",
+ "plan": [
+  "Make every decision faster, since each is a label",
+  "Say when the agent waits",
+  "Let the person take back one file's change, and keep that correction",
+  "Cap spend per day"
+ ],
+ "decisions": [
+  {
+   "decision": "Undo saves the file's current content before restoring it",
+   "why": "an undo must itself be undoable; in a Here session it also drops the person's own edits in that file, and the confirm says so"
+  },
+  {
+   "decision": "A native notification through a WebKit message handler",
+   "why": "WebKit shows no page notifications in the Mac app"
+  },
+  {
+   "decision": "The SDK gets the smaller of the session's and today's cap",
+   "why": "its cap counts only one query's spend"
+  }
+ ],
+ "change": "Y/N/A keys on the oldest waiting card; window.webkit.messageHandlers.dclab for notifications and the Dock badge; POST /api/git/undo with a backup, recorded as the person's undo; budgetUsdPerDay; GET /api/search.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "defect": "palette hover redrew the list under the pointer",
+   "scenario": "a page test's click on a search hit retried for 30 seconds",
+   "cause": "mouseenter rebuilt every row, replacing the one being clicked",
+   "fix": "hover moves only the highlight",
+   "test": "tests/page.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "defect": "a search test waited forever",
+   "scenario": "its second session asked a permission the test never answered",
+   "cause": "the test, not the app",
+   "fix": "the test answers it",
+   "test": "tests/server.test.js",
+   "severity": "flaky"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "dclab-code tests",
+   "gate": "every server, unit and page test passes",
+   "result": "47 passed; the Mac smoke test sees the notification handler",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "the notification itself needs the person's permission on first use"
+   ]
+  }
+ ],
+ "outcome": "Deciding is faster, the app says when it waits, a file's change can be taken back as a kept correction, and spend has a daily cap.",
+ "lessons": [
+  "A UI element that rebuilds itself on hover breaks clicks"
+ ],
+ "risks": [
+  "undo in a Here session drops the person's own uncommitted edits in that file"
+ ],
+ "commits": [
+  "dclab-code 43b8d9e",
+  "dclab-code ce41275"
+ ]
+}

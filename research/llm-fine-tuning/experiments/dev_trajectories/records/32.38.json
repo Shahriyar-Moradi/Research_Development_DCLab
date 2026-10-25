@@ -1,0 +1,99 @@
+{
+ "package": "32.38",
+ "title": "The person's undos and commits of DCLab Code's file changes as M7 code judgements",
+ "date": "2026-10-25",
+ "request": "Turn the undo records (my corrections of the agent's file changes) into M7 judge examples in R&D, then keep going.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.38",
+ "plan": [
+  "Collect the agent's own file changes per file",
+  "Cut each file's history at the person's undos and commits",
+  "Undone 0, kept 1, nothing else judged"
+ ],
+ "decisions": [
+  {
+   "decision": "Positives only from a commit or merge that names the file",
+   "why": "a judge trained only on rejections learns to reject; not undoing is not approving"
+  },
+  {
+   "decision": "Code files only",
+   "why": "a data file, a txt, sql, html or notebook file often carries a table's rows whole"
+  }
+ ],
+ "change": "sets/dclab_code.py: file changes, file_verdicts, m7_judges/dclab_code_changes; DCLab Code records each commit's and merge's files and the session's repository root (dclab-code b8d2520).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "defect": "a failed edit counted as kept",
+   "scenario": "an Edit whose old text was not found (tool result is_error), then a commit: committed, score 1",
+   "cause": "the change was copied before its tool result came in",
+   "fix": "only a change whose tool result is ok counts",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_file_changes_judged_by_undo_and_commit",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "a commit did not cut the file's history",
+   "scenario": "edit, commit, merge, edit again, undo: the merged change scored 0",
+   "cause": "only undos cut the history",
+   "fix": "every commit and merge cuts it; an undo judges only what came after the last cut",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_file_changes_judged_by_undo_and_commit",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "a file outside the repository scored kept",
+   "scenario": "Write ~/.claude/memory/notes.md, then a commit: committed, 1, with the home path in the set",
+   "cause": "paths outside the folder were kept absolute; a commit was assumed to hold every changed file",
+   "fix": "paths outside the repository are dropped; kept only when the commit or merge names the file",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_file_changes_judged_by_undo_and_commit",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "table rows could enter a set through a text file",
+   "scenario": "Write sample.txt holding client_id,fare rows, then a commit: the rows in m7_judges/dclab_code_changes",
+   "cause": "txt, sql, html and ipynb were allowed whole",
+   "fix": "those file types never enter; markdown stays (the shaper takes tables out)",
+   "test": "",
+   "severity": "privacy"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "DCLab Code's undo removed nothing in a project inside its repository",
+   "scenario": "a project at repo/sub: git status names sub/new.txt, the undo resolved it from sub",
+   "cause": "root-relative paths resolved from the project's folder",
+   "fix": "undo and the new-files list use the repository root (dclab-code b8d2520)",
+   "test": "dclab-code tests/server.test.js",
+   "severity": "behaviour"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "store tests and the store check",
+   "gate": "every store test passes and the store check passes all its checks",
+   "fixed_before_run": true,
+   "result": "test_store_dclab_code_sets 4 and test_store_dclab_code 5 passed; store check 28 of 28",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "invented sessions"
+   ]
+  }
+ ],
+ "outcome": "The person's undos and commits judge the agent's code: undone 0, kept 1, nothing guessed.",
+ "lessons": [
+  "A label from silence is no label: only an act of the person judges",
+  "A path must be named the way the source of the label names it (git: from the repository root)"
+ ],
+ "risks": [
+  "few commits through the app so far: positives will be rare at first"
+ ],
+ "commits": [
+  "dclab-code b8d2520"
+ ]
+}

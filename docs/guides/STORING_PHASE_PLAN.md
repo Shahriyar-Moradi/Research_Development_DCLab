@@ -964,6 +964,19 @@ going, the server's worker is not running (it runs the store itself), and at lea
 (SIGINT) when free disk falls under 2 GB. No live model is called. The log: `~/Library/Logs/dclab/store-scheduled.log`.
 **Done when:** the rule is tested (`tests/test_store_scheduled.py`) and the job is installed and loaded on the owner's Mac.
 
+### 32.38 The person's corrections of DCLab Code's file changes (added 2026-10-25)
+
+When the person undoes one file's uncommitted change in DCLab Code (its content saved first), the app records it. The
+builder turns each file the agent changed into an M7 judgement of the agent's code, from the person's own acts. Only a
+change that ran (its tool result ok), inside the session's repository, in a code file (never a data file, nor a txt,
+sql, html or notebook file, which often carry a table's rows whole), counts. A file's history is cut in file order at
+each undo and each commit or merge: the changes since the last cut were **undone** (score 0) at an undo, **kept**
+(score 1) at a commit or merge that names the file (DCLab Code records each commit's and merge's files by name); a
+change never cut has no verdict (not undoing is not approving). Written to `m7_judges/dclab_code_changes` (judge and evidence: the person), in the
+session's split. **Done when:** an undone first try, a committed second try, an undo after the commit and a change after
+it come out as 0, 1, 0 and nothing; a failed edit, an edit outside the repository and a data file never enter
+(`tests/test_store_dclab_code_sets.py`).
+
 ## The owner's answers (2026-10-20)
 
 - **The store's bulk:** a separate private GitHub repository, `dclab-records`, with one branch per person (`owner/main`,
@@ -998,7 +1011,7 @@ going, the server's worker is not running (it runs the store itself), and at lea
 ## Order
 
 32.1 → 32.2 → 32.3 → 32.4 → 32.5 → 32.6 → 32.7 → 32.8 → 32.9 → 32.10 → 32.11 → 32.12 → 32.13 → 32.14 → 32.15 → 32.16 →
-32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31, then 32.32 → 32.33 → 32.34 → 32.35 → 32.36 → 32.37 (the
+32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31, then 32.32 → 32.33 → 32.34 → 32.35 → 32.36 → 32.37 → 32.38 (the
 check, 32.18, is extended by each).
 
 Every package follows the usual steps: a test first, the reviewer, its development record and `make sft-dev`, and the
@@ -1092,6 +1105,7 @@ gate. Model spend:
     - CPU time per step;
     - a workspace reading the store's shadow students;
     - live runs of the curator and the teacher.
+- **32.38 built (2026-10-25):** the person's undos and commits of DCLab Code's file changes as M7 code judgements.
 - **32.37 built (2026-10-25):** the store every 6 hours on the owner's Mac (launchd), when due, alone, with 2 GB free.
 - **32.36 built (2026-10-25):** DCLab Code's attached images of this repository's sessions counted, never kept.
 - **32.35 built (2026-10-25):** DCLab Code's kept-against-refused pairs (M7 gold, M5 silver), with recorded thinking; the

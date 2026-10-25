@@ -1,0 +1,44 @@
+{
+ "package": "dclab-code-v1.7",
+ "title": "DCLab Code: the person's own commands with \"!\", recorded as their steps",
+ "date": "2026-10-25",
+ "request": "Keep going after the undo judgements.",
+ "spec": "dclab-code README.md",
+ "plan": [
+  "Run a command beside the agent as Claude Code does",
+  "Record it whole as the person's step",
+  "Never record a sealed read's text"
+ ],
+ "decisions": [
+  {
+   "decision": "A command line, not a terminal",
+   "why": "a terminal needs a native add-on; a command covers tests, git and the like"
+  },
+  {
+   "decision": "A sealed or holdout command keeps its output's hash only",
+   "why": "the store keeps records; a sealed set's text must never reach it"
+  }
+ ],
+ "change": "server/person_command.js; POST /api/sessions/:id/run; person_command records; a card with Send to agent.",
+ "findings": [],
+ "measurements": [
+  {
+   "name": "dclab-code tests",
+   "gate": "every server, unit and page test passes",
+   "result": "49 passed",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "no interactive programs"
+   ]
+  }
+ ],
+ "outcome": "The person runs their own commands in the session's folder, and each is kept as their step.",
+ "lessons": [],
+ "risks": [
+  "a long-running command is stopped after 2 minutes"
+ ],
+ "commits": [
+  "dclab-code 1c66f31"
+ ]
+}
