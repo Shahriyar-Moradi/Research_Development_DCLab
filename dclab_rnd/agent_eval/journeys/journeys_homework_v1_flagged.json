@@ -1,0 +1,168 @@
+[
+ {
+  "id": "JH-anomaly-308",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "words": "I need predictions of which couriers will commit fraud next month.",
+  "answers": {
+   "entity": "The courier (biker_id)",
+   "labels": "We never recorded fraud",
+   "data_plan": "Orders table only",
+   "family": "Prediction of fraud"
+  },
+  "written_by": "journey_writer@04f53f44ff93",
+  "check": "Wants to forecast which couriers will commit fraud next month, a supervised future-outcome prediction, and no fraud was ever recorded, so it is not anomaly detection of odd orders."
+ },
+ {
+  "id": "JH-entity_tables-203",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "words": "I need a dashboard that shows my customers by region and plan so I can see who is worth more",
+  "answers": {
+   "target": "Which customers are worth more",
+   "entity": "customer",
+   "data_plan": "One excel with customers"
+  },
+  "written_by": "journey_writer@04f53f44ff93",
+  "check": "They want a descriptive dashboard of customers by region and plan, not a prediction about each customer."
+ },
+ {
+  "id": "JH-entity_tables-205",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "words": "We are a farm cooperative, members buy feed and seed from our shop. I would like clustering of members into groups.",
+  "answers": {
+   "target": "Groups of similar members",
+   "entity": "A member of the cooperative",
+   "data_plan": "Member list with sign up date, region, last order, number of orders, and the orders file"
+  },
+  "written_by": "journey_writer@04f53f44ff93",
+  "check": "They want unsupervised grouping of members, with no outcome to predict per entity."
+ },
+ {
+  "id": "JH-entity_tables-308",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "words": "cinema chain here. we have a members club with plans. want to know who is going to be a big spender later, like order a lot more",
+  "answers": {
+   "target": "members who will order a lot more in future",
+   "entity": "member",
+   "data_plan": "members file and a file of ticket and snack orders"
+  },
+  "written_by": "journey_writer@04f53f44ff93",
+  "check": "Wants to find who will order a lot more later, which is a spend or growth outcome, not a stop-ordering yes/no."
+ },
+ {
+  "id": "JH-multiclass-204",
+  "kind": "multiclass",
+  "family": "classification",
+  "words": "need dashboard to see where tickets go",
+  "answers": {},
+  "written_by": "journey_writer@04f53f44ff93",
+  "check": "Wants a dashboard to see where tickets go, which is reporting rather than predicting a team, and gives no answers."
+ },
+ {
+  "id": "JH-multiclass-309",
+  "kind": "multiclass",
+  "family": "classification",
+  "words": "Admissions office here. Applicants write in about portal errors, passwords, fee invoices, document uploads. We want classification of the urgency level of each message.",
+  "answers": {
+   "target": "the team that handles it",
+   "prediction_moment": "On arrival, before staff read it",
+   "entity": "One applicant message, so one ticket",
+   "data_plan": "One file with the ticket log"
+  },
+  "written_by": "journey_writer@04f53f44ff93",
+  "check": "The opening asks for urgency level classification, which is a different outcome not in the table, even though the later answer mentions the handling team."
+ },
+ {
+  "id": "JH-places-308",
+  "kind": "places",
+  "family": "regression",
+  "words": "I want to group the flats into cheap and expensive ones so I can see patterns. I have lat, lon, size_m2, rooms, age_years and price for each one.",
+  "answers": {
+   "target": "How expensive a flat is",
+   "prediction_moment": "When a new flat comes in and I don't know its price yet",
+   "entity": "A flat",
+   "family": "I thought clustering, groups of cheap and expensive"
+  },
+  "written_by": "journey_writer@04f53f44ff93",
+  "check": "Wants to group flats into cheap and expensive categories to see patterns, which is not a numeric price prediction, though they do mention not knowing the price for new flats."
+ },
+ {
+  "id": "JH-segmentation-004",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "words": "Cinema chain. We want to find the weird customers, anomaly detection I think, the ones who behave different from the rest.",
+  "answers": {
+   "target": "People who behave differently from the others, but also the normal groups really",
+   "action": "Look at them and decide a special offer",
+   "entity": "customer"
+  },
+  "written_by": "journey_writer@04f53f44ff93",
+  "check": "They want to find outliers who behave unlike the rest, which is anomaly detection rather than finding the normal groups, even though they mention groups in passing."
+ },
+ {
+  "id": "JH-segmentation-101",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "words": "hello, i have grocery shops, 40 of them. i want AI to tell me who is good customer and who is not. i have excel with orders and discounts",
+  "answers": {
+   "target": "I dont know, just good and bad customers",
+   "action": "Give special coupons to the good ones",
+   "entity": "each customer",
+   "data_plan": "excel file with customers",
+   "family": "I want AI, maybe a score?"
+  },
+  "written_by": "journey_writer@04f53f44ff93",
+  "check": "Wants to label customers as good or bad and score them, which is a supervised target or value score and not natural groups, and the answers show no wish for segments."
+ },
+ {
+  "id": "JH-streams-207",
+  "kind": "streams",
+  "family": "streams",
+  "words": "Our warehouse sorting machines log temperature, vibration and pressure over time. I would like a forecast of the readings for next week so we can plan around them.",
+  "answers": {
+   "target": "The future values of temperature, vibration and pressure of each machine",
+   "prediction_moment": "Once a day, for the next days",
+   "action": "Plan maintenance and shifts around the forecast",
+   "entity": "A sorting machine",
+   "data_plan": "Readings exported from the machine system",
+   "family": "A forecast of the sensor streams"
+  },
+  "written_by": "journey_writer@04f53f44ff93",
+  "check": "Wants a forecast of future sensor values, which is a forecasting problem, not detecting abnormal behaviour."
+ },
+ {
+  "id": "JH-text_tabular-306",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "words": "I sell toothbrushes and whitening kits online for our dental clinic. I want a prediction of how many stars a review will get.",
+  "answers": {
+   "target": "whether the review is negative, I only care bad or not bad",
+   "entity": "one review",
+   "data_plan": "One table, I think it has the review text and a negative column",
+   "family": "prediction"
+  },
+  "written_by": "journey_writer@04f53f44ff93",
+  "check": "Opens by asking for a star-rating prediction, and there is no stars column; the table has only a negative flag."
+ },
+ {
+  "id": "JH-time_to_event-101",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "words": "hola, tenemos un gym y quiero saber cuanto tiempo se queda cada socio nuevo antes de darse de baja. we have the table with plan, age, signup_discount.",
+  "answers": {
+   "target": "cuántos días se quedan, days_subscribed",
+   "prediction_moment": "when they sign up, we don't know anything else yet",
+   "action": "Reception calls them to offer a free personal training session",
+   "entity": "each member",
+   "data_plan": "excel file with all the members, some are still active"
+  },
+  "written_by": "journey_writer@04f53f44ff93",
+  "check": "Wants how long each new member stays before leaving, using days_subscribed with some still active."
+ }
+]
