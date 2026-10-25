@@ -403,6 +403,7 @@
     "dclab-code-v1.8",
     "dclab-code-v1.9",
     "engine-real-tables",
+    "entity-ask-with-evidence",
     "evaluation-page",
     "failed-runs-kept",
     "fix-10.6-quota-window",
@@ -460,14 +461,14 @@
     "ui-tripssource-kit",
     "username-login"
   ],
-  "total": 4789,
-  "train": 3846,
-  "val": 943,
+  "total": 4795,
+  "train": 3847,
+  "val": 948,
   "by_task": {
-    "fix_finding": 3082,
-    "judge_measurement": 521,
-    "plan_package": 450,
-    "retrospective": 439,
+    "fix_finding": 3084,
+    "judge_measurement": 523,
+    "plan_package": 451,
+    "retrospective": 440,
     "review_change": 297
   },
   "val_packages": [
@@ -552,6 +553,7 @@
     "dclab-code-v1.13",
     "dclab-code-v1.15",
     "dclab-code-v1.7",
+    "entity-ask-with-evidence",
     "evaluation-page",
     "fix-dev-worker-supervision",
     "fix-login-one-command",
@@ -565,6 +567,17 @@
     "role-student-real-exam",
     "selfplay-every-kind"
   ],
-  "refused": [],
+  "refused": [
+    {
+      "package": "S9-kind-from-family",
+      "task": "judge_measurement",
+      "why": "a number the prompt does not give"
+    },
+    {
+      "package": "S9-kind-from-family",
+      "task": "judge_measurement",
+      "why": "a number the prompt does not give"
+    }
+  ],
   "validation_policy": "whole packages held out by the hash of their id (about 20%)"
 }
