@@ -719,11 +719,23 @@ def _row_number(s: pd.Series) -> bool:
     return bool(ROW_NUMBER_NAME.match(str(s.name or "")))
 
 
+def _running(s: pd.Series) -> bool:
+    """A column that numbers its own file's rows: whole numbers from 0 or 1, one step each, in the file's order."""
+    v = pd.to_numeric(s, errors="coerce")
+    if len(v) < 3 or bool(v.isna().any()) or bool((v % 1 != 0).any()):
+        return False
+    start = int(v.iloc[0])
+    return start in (0, 1) and bool((v.to_numpy() == np.arange(start, start + len(v))).all())
+
+
 def _key_candidates(main: pd.DataFrame, labels: pd.DataFrame) -> list[tuple[str, ...]]:
     """Columns that could identify a case: an id-like name, or nearly distinct within the label file; and pairs of
-    id-like columns (a coarse pair such as (customer, courier) is the classic way to inflate labels)."""
+    id-like columns (a coarse pair such as (customer, courier) is the classic way to inflate labels). A column that is a
+    running number in both files ("line", "S.No", "ردیف": 1 to n in the table, 1 to k in the label file) pairs rows by
+    their position, never by case: it is never a key, whatever its name (0.110.1)."""
     shared = [c for c in labels.columns if c in main.columns and labels[c].notna().any()
-              and not _row_number(main[c]) and not _row_number(labels[c])]  # a saved index is a row number, never a key
+              and not _row_number(main[c]) and not _row_number(labels[c])  # a saved index is a row number, never a key
+              and not (_running(main[c]) and _running(labels[c]))]
     single = [c for c in shared if not _decimal(labels[c]) and (KEYLIKE_NAME.search(str(c)) or labels[c].nunique() >= 0.8 * labels[c].notna().sum())]
     idlike = [c for c in single if ID_NAME.search(str(c))]
     pairs = [(a, b) for i, a in enumerate(idlike) for b in idlike[i + 1:]]

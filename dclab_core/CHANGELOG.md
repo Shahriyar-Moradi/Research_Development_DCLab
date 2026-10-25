@@ -4,6 +4,16 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.110.1 (2026-10-25)
+
+A running number is never a label-join key.
+
+- `analyse.label_join`: a column that is a running number in both files (whole numbers from 0 or 1, one step each, in
+  each file's order: "line", "S.No", "ردیف"), whatever its name, is no key candidate. Before, only a saved pandas index
+  was refused, by its name; when a tenth of the labelled cases were missing from the table, such a column found more
+  label rows than the true key and marked the table's first rows as the cases. A real key in a label file is a
+  subset of the table's, never the run 1 to k again, so it stays a candidate even when the table's own ids run 1 to n.
+
 ## 0.110.0 (2026-10-25)
 
 Honest selection under many attempts (34.6, the library's part).

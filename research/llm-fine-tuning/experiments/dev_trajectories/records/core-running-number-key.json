@@ -1,0 +1,69 @@
+{
+ "package": "core-running-number-key",
+ "title": "A running number in both files is never a label-join key (dclab-core 0.110.1)",
+ "date": "2026-10-25",
+ "request": "Step 5, part 2 of the 100-students plan: measure the label-join key's rule on planted traps; a student only where the rule errs, a product fix where a whisper protects nobody.",
+ "spec": "dclab_core.analyse.label_join: the candidates a label file may join on; studio/labels.py review chooses the one finding most label rows.",
+ "plan": [
+  "Plant traps: a shared row number, an entity key, missing labelled cases, ids written as zero-padded text.",
+  "Measure the rule's pick against the true key.",
+  "Fix in dclab_core, coordinated with the other session's versions."
+ ],
+ "decisions": [
+  {
+   "decision": "Refuse a column that is a running number in BOTH files, not in either one.",
+   "why": "An order id may itself run 1 to n in the table (the reason the name-only check existed); a real key in a label file is a subset of the table's, never the run 1 to k again."
+  },
+  {
+   "decision": "A patch version, 0.110.1, after the other session's 0.110.0.",
+   "why": "Two sessions bump dclab_core: the version follows whatever HEAD holds, and they were told before."
+  },
+  {
+   "decision": "Zero-padded text ids against integers left as they are.",
+   "why": "The person sees that no key was found; '007' and '7' can be different codes, so stripping zeros could join the wrong rows."
+  }
+ ],
+ "change": "dclab_core/analyse.py (_running, _key_candidates), dclab_core/__init__.py, pyproject.toml, CHANGELOG.md (0.110.1), docs/DATA_CATALOG.md and data_catalog.json (the version), tests/test_core_label_join_running.py.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "A running number won the join and marked the table's first rows as the cases.",
+   "scenario": "A label file of 60 cases, a tenth of them missing from this export, both files with a column 'line' numbering their rows: the rule joined on 'line' in 10 of 10 tables.",
+   "cause": "Only a saved pandas index was refused, by its name ('Unnamed: 0', 'index', 'row_id'); 'line', 'S.No' or 'ردیف' found every label row while the true key found nine in ten.",
+   "fix": "_key_candidates refuses a column that is a running number of its own file in both files.",
+   "test": "tests/test_core_label_join_running.py"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "Ids written as zero-padded text in the label file find no key.",
+   "scenario": "order_id 100023 in the table, '00100023' in the labels: no key in 10 of 10.",
+   "cause": "Keys compared as text.",
+   "fix": "Left: the person is told no key was found; stripping zeros could join codes that differ.",
+   "test": "the planted traps, kept in the session"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "planted label files",
+   "gate": "affected tests only (the owner's daytime rule)",
+   "result": "the right key on clean files, a shared row number, an entity key and missing cases in 10 of 10 each (missing cases 0 of 10 before); zero-padded text ids still find none",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "planted files, not real ones"
+   ]
+  }
+ ],
+ "outcome": "A label file can no longer mark a table's first rows as its cases through a running number under any name.",
+ "lessons": [
+  "A rule that refuses by name only misses the same thing under another name; refuse by what the values are, and ask both files."
+ ],
+ "risks": [
+  "A label file that is exactly the first k orders of a table numbered 1 to n would be refused on that column: very unlikely, and the person can still name the key."
+ ],
+ "commits": []
+}
