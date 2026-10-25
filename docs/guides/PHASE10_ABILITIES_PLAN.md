@@ -308,6 +308,9 @@ or decided; nothing below blocks using them.
    the same; moving it would give one decision two record shapes and change review projects' holdout readings).
    `delivery_fraud` through an `act` decision: campaign `fraud_decision_v1`; its first seed showed a binding capacity read
    as a carried threshold (6 rides reviewed where 16 were allowed), fixed in dclab-core 0.113.0 (applied as a quota).
+   Measured after the fix (8 seeds, gate fixed before): **fail**. Every seed that acted kept to its capacity, as a quota;
+   one seed's model made no review pay; the realised value fell inside its 90% interval on 5 of 7 (one below, one
+   above): the interval is too narrow on an entity split. Open: widen it for entity splits, measure in a new version.
 7. 34.2: a daily capacity for targeting (refused today); a two-action replica (tested on random tables only).
 8. ~~34.3: what-if for targeting and for several actions~~ done 2026-10-25 (dclab-core 0.113.0: `targeting_what_if`,
    `actions_what_if`; reviewed, 3 findings fixed).

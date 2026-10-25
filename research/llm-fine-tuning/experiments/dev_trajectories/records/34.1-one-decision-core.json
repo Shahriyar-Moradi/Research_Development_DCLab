@@ -182,6 +182,19 @@
     "pass each holdout row's day and fill the quota day by day"
    ],
    "open": "fill a daily capacity day by day"
+  },
+  {
+   "id": "M3",
+   "source": "measurement",
+   "defect": "the holdout's prediction interval is too narrow on an entity split",
+   "scenario": "fraud_decision_v1: 5 of 7 seeds inside a 90% interval, one below and one above",
+   "cause": "likely: the holdout's bikers are unseen, a variance the bootstrap over training entities does not carry; few cases a holdout (14 to 18 reviews)",
+   "fix": "not fixed: recorded, the interval to be widened for entity splits and measured again in a new campaign",
+   "test": "",
+   "severity": "behaviour",
+   "impact": "a decision said to be surer than it is",
+   "alternatives": [],
+   "open": "widen the prediction interval on entity splits"
   }
  ],
  "measurements": [
@@ -197,6 +210,21 @@
    "limits": [
     "invented scores",
     "one value and cost"
+   ]
+  },
+  {
+   "name": "fraud_decision_v1: a review decision through the engine on 8 seeds of the delivery-fraud replica (a fraud caught saves the ride's fare, a review costs 25,000, at most 0.5% of rides)",
+   "gate": "pass when all three hold: chosen on every seed; never more holdout actions than the capacity allows; the realised value per ride inside its 90% prediction interval on at least 6 of 8 seeds",
+   "fixed_before_run": true,
+   "result": "7 seeds acted, each as a quota and within its capacity; on seed 5 the selected model's scores made no review pay, so it acted on nothing; the realised value fell inside its interval on 5 of the 7 that acted (seed 1 below: 177.9 against 381.5 to 1747.7; seed 3 above: 1093.6 against 259.2 to 1033.8)",
+   "verdict": "fail",
+   "cost_eur": 0,
+   "next": "widen the prediction interval for entity splits (the holdout's unseen bikers add a variance the training bootstrap does not see) and measure again in a new campaign version",
+   "against_gate": "The coverage gate fails (5 inside, 6 needed); the capacity gate fails only because seed 5 acted on nothing and so had no reading, a flaw of the gate as written, not an excess.",
+   "limits": [
+    "one replica",
+    "partial labels: both values are lower bounds of the same kind",
+    "the interval's misses go both ways (one below, one above), so no bias in one direction is shown"
    ]
   }
  ],

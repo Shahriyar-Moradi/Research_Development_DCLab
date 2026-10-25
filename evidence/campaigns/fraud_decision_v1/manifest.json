@@ -1,0 +1,39 @@
+{
+  "campaign": "fraud_decision_v1",
+  "package": "34.1 and 34.4",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "decision": {
+    "action": "act",
+    "what": "review the ride",
+    "value_column": "biker_fare",
+    "cost_per_action": 25000.0,
+    "capacity_share": 0.005,
+    "notes": "a fraud caught saves the ride's fare; a review costs 25,000 (a tenth of a typical fare); the team reviews at most 0.5% of the rides"
+  },
+  "gate": {
+    "id": "fraud_decision_gate_v1",
+    "chosen": "the decision is chosen on every seed (an operating point with a share, no refusal)",
+    "capacity": "the holdout's acted share never exceeds the capacity share (with one row's rounding)",
+    "coverage": "the holdout's realised value per ride lies inside the choice's 90% prediction interval on at least 6 of 8 seeds"
+  },
+  "objective": "Does the decision core keep its word through the engine on the delivery-fraud replica? A stated review decision, chosen on out-of-fold scores, against what it realises on the holdout read once, over eight seeds.",
+  "sha256": "17a457b7cd9417bdc208513cd11d2b23081aec2875c771323665524af15f0a20",
+  "code_sha256": "ea47da85bb5b9d3db9409a400f4d4c7a5408adff55f41303293a105c14896527",
+  "code_files": [
+    "dclab_rnd/decision_measure.py",
+    "dclab_rnd/campaign_capture.py",
+    "dclab_rnd/ledger",
+    "dclab_rnd/experience"
+  ],
+  "git_commit": "001427a99961f50b8dd64235a4fd8c223b691737",
+  "frozen_at": "2026-10-25T11:37:25+00:00"
+}

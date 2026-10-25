@@ -1,0 +1,38 @@
+{
+  "id": "FDC-006",
+  "experiment_id": "FDC-006",
+  "status": "completed",
+  "completed_at": "2026-10-25T11:51:18+00:00",
+  "campaign_id": "fraud_decision_v1",
+  "dataset": "delivery_fraud",
+  "seed": 5,
+  "decision_status": "operating_point",
+  "warning": null,
+  "chosen_share": 0.0,
+  "ranked_by": "expected gain",
+  "expected_value_per_row": 0.0,
+  "expected_interval": [
+    0.0,
+    0.0
+  ],
+  "holdout_rows": 3026,
+  "holdout_actions": null,
+  "holdout_cases_found": null,
+  "holdout_value_per_row": null,
+  "prediction_interval": [
+    null,
+    null
+  ],
+  "inside_prediction_interval": null,
+  "within_capacity": null,
+  "holdout_uses": 1,
+  "model": "percentile_rules",
+  "seconds": 105.2,
+  "code_sha256": "ea47da85bb5b9d3db9409a400f4d4c7a5408adff55f41303293a105c14896527",
+  "applied_as": "no action",
+  "capacity_binds": false,
+  "limits": [
+    "labels partial: a fraud nobody found counts as a clean ride, so the realised value is a lower bound",
+    "where the capacity binds, the choice is the capacity itself: the 'chosen' gate then tests that it was read, not the value"
+  ]
+}

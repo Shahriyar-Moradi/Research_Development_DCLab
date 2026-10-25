@@ -1,0 +1,66 @@
+{
+  "seeds": 8,
+  "of": 8,
+  "gates": {
+    "chosen": true,
+    "capacity": false,
+    "coverage": false
+  },
+  "inside_prediction_interval": 5,
+  "verdict": "fail",
+  "realised": [
+    654.9335,
+    177.9155,
+    1005.5887,
+    1093.5851,
+    654.3557,
+    null,
+    980.2926,
+    758.584
+  ],
+  "intervals": [
+    [
+      306.8072,
+      1163.4658
+    ],
+    [
+      381.4571,
+      1747.749
+    ],
+    [
+      245.4613,
+      1176.9184
+    ],
+    [
+      259.2089,
+      1033.8316
+    ],
+    [
+      150.0292,
+      1494.6345
+    ],
+    [
+      null,
+      null
+    ],
+    [
+      167.7776,
+      1223.919
+    ],
+    [
+      327.4984,
+      1542.3351
+    ]
+  ],
+  "gate": {
+    "id": "fraud_decision_gate_v1",
+    "chosen": "the decision is chosen on every seed (an operating point with a share, no refusal)",
+    "capacity": "the holdout's acted share never exceeds the capacity share (with one row's rounding)",
+    "coverage": "the holdout's realised value per ride lies inside the choice's 90% prediction interval on at least 6 of 8 seeds"
+  },
+  "id": "FDC-100",
+  "experiment_id": "FDC-100",
+  "status": "completed",
+  "completed_at": "2026-10-25T11:55:21+00:00",
+  "campaign_id": "fraud_decision_v1"
+}
