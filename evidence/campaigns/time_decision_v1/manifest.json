@@ -1,0 +1,77 @@
+{
+  "campaign": "time_decision_v1",
+  "package": "34.1",
+  "seeds": [
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129
+  ],
+  "arms": {
+    "pooled": {
+      "action": "act",
+      "what": "call the customer",
+      "value_per_case": 120.0,
+      "cost_per_action": 10.0,
+      "capacity_share": 0.1,
+      "notes": "a customer kept is worth 120, a call costs 10; at most 10% of the customers called"
+    },
+    "daily": {
+      "action": "act",
+      "what": "call the customer",
+      "value_per_case": 120.0,
+      "cost_per_action": 10.0,
+      "capacity_per_day": 1.0,
+      "notes": "a customer kept is worth 120, a call costs 10; one call a day"
+    }
+  },
+  "gate": {
+    "id": "time_decision_gate_v1 (fraud_decision_gate_v3's, for each arm)",
+    "chosen": "the decision is chosen on every seed (an operating point; no refusal)",
+    "time_split": "every run's data stage split by time (the strategy recorded per run)",
+    "capacity": "on every seed that acted, the holdout's actions never exceed its capacity (a share of its rows with one row's rounding; or the day by day slots the record states), and the holdout was read once",
+    "coverage": "among the seeds that chose to act (at least 20), the realised value per customer lies inside the choice's 90% prediction interval on at least 80% of them",
+    "centre": "each seed's z = (realised - the interval's centre) / (its half-width / 1.645); |mean z| <= 1.645 / sqrt(N)",
+    "width": "the 90% chi-squared interval of the root mean square of z contains 1 (neither too narrow nor too wide)",
+    "inconclusive": "fewer than 20 seeds acting: no verdict on the interval",
+    "next": "a pass: keep the interval on time splits; centre above 0 (realised above): read the interval from the latest fold's rows only (the recorded positive rates and each fold's value say whether the replica's drift or the fold models' strength explains it); centre below 0: correct the optimism of choosing the model; too narrow with misses on both sides: add blocks of days to the samples; too wide: drop a part of the samples' noise"
+  },
+  "dataset": "subscription churn (kinds binary case)",
+  "objective": "Does the decision's holdout interval keep its word on a time split, where the out-of-fold rows were scored by expanding-window models and the holdout by the final one? Thirty fresh seeds of the churn replica, a share capacity read as one pool and a daily capacity read day by day, each against its 90% interval.",
+  "sha256": "415760ad0e8043c9734316760ed872cef15fd06a6ba2abb9471a93b5439c9ec0",
+  "code_sha256": "fbfa74d57fc3514578c5d7348c24c2b0fb05bef1052ae9a13b2b2e796394095f",
+  "code_files": [
+    "dclab_rnd/time_decision_measure.py",
+    "dclab_rnd/campaign_capture.py",
+    "dclab_rnd/ledger",
+    "dclab_rnd/experience"
+  ],
+  "git_commit": "17cfbd362b8d0d2aa18767e4f897fa9a46224003",
+  "frozen_at": "2026-10-25T22:44:07+00:00"
+}

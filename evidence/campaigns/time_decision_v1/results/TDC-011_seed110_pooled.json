@@ -1,0 +1,50 @@
+{
+  "id": "TDC-011",
+  "experiment_id": "TDC-011",
+  "status": "completed",
+  "completed_at": "2026-10-25T22:55:25+00:00",
+  "campaign_id": "time_decision_v1",
+  "dataset": "subscription_churn",
+  "seed": 110,
+  "arm": "pooled",
+  "split": "time",
+  "rates": {
+    "oof_positive_rate": 0.21,
+    "latest_fold_positive_rate": 0.25,
+    "holdout_positive_rate": 0.2433,
+    "fold_values": [
+      5.0,
+      3.6,
+      6.2
+    ]
+  },
+  "decision_status": "operating_point",
+  "warning": null,
+  "chosen_share": 0.1,
+  "capacity_share": 0.1,
+  "expected_value_per_row": 5.0,
+  "expected_interval": [
+    4.2667,
+    5.7333
+  ],
+  "holdout_rows": 600,
+  "holdout_actions": 60,
+  "holdout_cases_found": 30,
+  "holdout_value_per_row": 5.0,
+  "prediction_interval": [
+    3.6,
+    6.4
+  ],
+  "inside_prediction_interval": true,
+  "z": 0.0,
+  "miss_side": "inside",
+  "within_capacity": true,
+  "days": null,
+  "days_note": null,
+  "holdout_uses": 1,
+  "prediction_interval_method": "holdout-sized samples of each bootstrap draw (600 rows, about 600 drawn)",
+  "applied_as": "a quota: the highest-ranked rows the capacity allows, each worth acting on alone or ranked as high as the rows chosen",
+  "model": "logistic_regression",
+  "seconds": 25.3,
+  "code_sha256": "fbfa74d57fc3514578c5d7348c24c2b0fb05bef1052ae9a13b2b2e796394095f"
+}

@@ -329,7 +329,14 @@ or decided; nothing below blocks using them.
    interval now comes from holdout-sized samples of each bootstrap draw, one fold's rows each (one model's ranking, as the
    holdout's): 26 of 28 inside, unbiased (mean z -0.20), its misses of the size it says (root mean square of z 0.93,
    90% interval 0.77 to 1.20). On the same seeds the row-sized interval without folds stayed too narrow (21 of 28, 1.23).
-   Open: a time split passes no folds, so its interval is the row-sized one, not measured.
+   A time split passes no folds, so its interval is the row-sized one: measured 2026-10-26 (`time_decision_v1`, 30
+   fresh seeds of the churn replica, gate fixed before): **fail** on both arms, every miss above. Share capacity: 28 of
+   30 inside, but the centre is off (mean z 0.80 against 0.30) and RMS z 1.22. One call a day: 21 of 30 inside (0.70),
+   mean z 1.00, RMS z 1.45. The replica drifts on purpose (later customers leave more: positive rate 0.217 on the
+   out-of-fold rows, 0.236 on the latest fold, 0.247 on the holdout), and each fold's value rises with it (4.81, 5.19,
+   5.59 against 5.96 realised): an interval from older rows sits low. The next step fixed with the gate: read the
+   interval from the latest fold's rows only (time_decision_v2, fresh seeds). It can narrow the gap, not close it: drift
+   past the training period is not in any interval built from the past.
 7. 34.2: ~~a daily capacity for targeting~~ done 2026-10-25 (dclab-core 0.115.0, with item 20); ~~a two-action
    replica~~ done 2026-10-26 (`dclab_core/replicas/retention_actions.py`: a call, dear and few, or an email, from a random
    test's three arms, every row's true lifts kept apart; `tests/test_retention_actions.py`). Measured on seeds 0 to 4 with

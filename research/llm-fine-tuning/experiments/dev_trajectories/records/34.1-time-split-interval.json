@@ -78,11 +78,23 @@
       "severity": "behaviour"
     }
   ],
-  "measurements": [],
-  "outcome": "The campaign is designed, reviewed and fixed before its gate is frozen; run next.",
+  "measurements": [
+    {
+      "name": "time_decision_v1: 30 fresh seeds of the churn replica (split by time), two arms, on 17cfbd36",
+      "gate": "time_decision_gate_v1 per arm: chosen, time split, capacity and one holdout read, coverage of at least 80% of at least 20 acting seeds, |mean z| <= 1.645/sqrt(N), the 90% chi-squared interval of RMS z contains 1",
+      "result": "pooled (10% share): fail; chosen, time split, capacity, coverage pass (28 of 30 inside, 2 above), centre fail (mean z 0.80, bound 0.30), width fail (RMS z 1.22, interval 1.01 to 1.55). daily (one call a day): fail; coverage 21 of 30 (0.70, 9 above), mean z 1.00, RMS z 1.45 (1.20 to 1.84). Positive rate out-of-fold 0.217, latest fold 0.236, holdout 0.247; each fold's value (pooled share) 4.81, 5.19, 5.59 against 5.96 realised",
+      "verdict": "fail",
+      "limits": [
+        "one replica with a drift planted on purpose; a table without drift may pass as it is",
+        "the per-fold values are read at the chosen share pooled, for both arms"
+      ]
+    }
+  ],
+  "outcome": "Measured: on a time split the interval sits low on both arms; the replica's drift explains the direction (each fold's value rises toward the holdout). Next, fixed with the gate: the interval from the latest fold's rows only.",
   "lessons": [
     "Before a measurement names a cause in its next step, check whether the test data plants another cause with the same sign",
-    "A campaign must write a record for a run that fails, or a frozen campaign can never reach its verdict"
+    "A campaign must write a record for a run that fails, or a frozen campaign can never reach its verdict",
+    "An interval built from the past is for a world that stays the same: on a drifting table it says so by missing on one side"
   ],
   "risks": [
     "The churn replica's drift and the fold models' weakness push the same way; the rates separate them only roughly"

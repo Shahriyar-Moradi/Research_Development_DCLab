@@ -1,0 +1,88 @@
+{
+  "arms": {
+    "pooled": {
+      "seeds": 30,
+      "of": 30,
+      "gates": {
+        "chosen": true,
+        "time_split": true,
+        "capacity": true,
+        "coverage": true,
+        "centre": false,
+        "width": false
+      },
+      "acted": 30,
+      "inside_prediction_interval": 28,
+      "coverage": 0.9333,
+      "misses": {
+        "below": 0,
+        "above": 2
+      },
+      "centre": {
+        "mean_z": 0.8043,
+        "bound": 0.3003
+      },
+      "width": {
+        "rms_z": 1.2207,
+        "interval": [
+          1.0105,
+          1.5547
+        ]
+      },
+      "next": "read the interval from the latest fold's rows only",
+      "verdict": "fail"
+    },
+    "daily": {
+      "seeds": 30,
+      "of": 30,
+      "gates": {
+        "chosen": true,
+        "time_split": true,
+        "capacity": true,
+        "coverage": false,
+        "centre": false,
+        "width": false
+      },
+      "acted": 30,
+      "inside_prediction_interval": 21,
+      "coverage": 0.7,
+      "misses": {
+        "below": 0,
+        "above": 9
+      },
+      "centre": {
+        "mean_z": 0.998,
+        "bound": 0.3003
+      },
+      "width": {
+        "rms_z": 1.4452,
+        "interval": [
+          1.1964,
+          1.8407
+        ]
+      },
+      "next": "read the interval from the latest fold's rows only",
+      "verdict": "fail"
+    }
+  },
+  "gate": {
+    "id": "time_decision_gate_v1 (fraud_decision_gate_v3's, for each arm)",
+    "chosen": "the decision is chosen on every seed (an operating point; no refusal)",
+    "time_split": "every run's data stage split by time (the strategy recorded per run)",
+    "capacity": "on every seed that acted, the holdout's actions never exceed its capacity (a share of its rows with one row's rounding; or the day by day slots the record states), and the holdout was read once",
+    "coverage": "among the seeds that chose to act (at least 20), the realised value per customer lies inside the choice's 90% prediction interval on at least 80% of them",
+    "centre": "each seed's z = (realised - the interval's centre) / (its half-width / 1.645); |mean z| <= 1.645 / sqrt(N)",
+    "width": "the 90% chi-squared interval of the root mean square of z contains 1 (neither too narrow nor too wide)",
+    "inconclusive": "fewer than 20 seeds acting: no verdict on the interval",
+    "next": "a pass: keep the interval on time splits; centre above 0 (realised above): read the interval from the latest fold's rows only (the recorded positive rates and each fold's value say whether the replica's drift or the fold models' strength explains it); centre below 0: correct the optimism of choosing the model; too narrow with misses on both sides: add blocks of days to the samples; too wide: drop a part of the samples' noise"
+  },
+  "verdict": {
+    "pooled": "fail",
+    "daily": "fail"
+  },
+  "id": "TDC-900",
+  "experiment_id": "TDC-900",
+  "status": "completed",
+  "completed_at": "2026-10-25T23:12:58+00:00",
+  "campaign_id": "time_decision_v1"
+}
