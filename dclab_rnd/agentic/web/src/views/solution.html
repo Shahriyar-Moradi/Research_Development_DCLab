@@ -710,7 +710,9 @@ DC.view('solution', {
         if (body.target !== (p.solution || {}).target) {
           // a new target needs its own task, positive label and metric: take them from the column audit for it
           const fresh = audit && audit.target === body.target ? audit : await DC.client.solutionProposal(p.id, { body: { target: body.target } });
-          Object.assign(body, { task: fresh.task, positive_label: fresh.task === 'binary' && fresh.positive_label != null ? String(fresh.positive_label) : null, metric: fresh.metric });
+          Object.assign(body, { task: fresh.task, positive_label: fresh.task === 'binary' && fresh.positive_label != null ? String(fresh.positive_label) : null, metric: fresh.metric,
+            // S9: the kind follows the new outcome (its fields read again), never the old outcome's
+            kind: fresh.kind || null, kind_fields: fresh.kind_proposed ? (fresh.kind_fields || {}) : {}, ...(fresh.kind_proposed && fresh.target == null ? { target: null } : {}) });
         }
         await DC.client.saveSolution(p.id, { body });
         DC.drawer.close();

@@ -77,14 +77,17 @@ def _repeating_category(frame: pd.DataFrame, c: str) -> bool:
 # ------------------------------------------------------------------------------------------------ each kind
 
 
-OUTCOME_WORDS = {"renewed", "churned", "bought", "converted", "cancelled", "canceled", "purchased", "responded", "clicked", "left",
-                 "outcome", "label", "target", "retained", "returned"}
+OUTCOME_WORDS = {"renewed", "churned", "churn", "bought", "converted", "conversion", "cancelled", "canceled", "cancel", "purchased",
+                 "responded", "response", "clicked", "left", "outcome", "label", "target", "retained", "returned", "exited",
+                 "attrition", "default", "defaulted", "fraud", "won", "approved", "subscribed"}  # specific words only: one outcome
+# column is left out of the segments, and a broad word ("is" in is_male) would take its place from the real outcome
 
 
 def _segmentation(frame: pd.DataFrame, target: Optional[str]) -> FieldProposal:
     p = FieldProposal("segmentation", why=["the segments are found from the columns that describe each row"])
-    outcomes = [c for c in _named(frame, OUTCOME_WORDS) if _binary(frame, c)]
-    if outcomes:  # an outcome in the table describes the segments afterwards and never forms them (it would be a leak)
+    outcomes = ([target] if target in frame.columns else []) + [c for c in _named(frame, OUTCOME_WORDS) if _binary(frame, c) and c != target]
+    if outcomes:  # an outcome in the table describes the segments afterwards and never forms them (it would be a leak; the review of S9:
+        # Telco's `Churn` was missed by the words and named as the target, and would have formed the segments)
         p.fields["outcome_column"] = outcomes[0]
         p.why.append(f"`{outcomes[0]}` is an outcome: it describes each segment afterwards, never forms them")
     return p
@@ -127,14 +130,16 @@ def _forecasting(frame: pd.DataFrame, target: Optional[str]) -> FieldProposal:
     stamp = pd.to_datetime(frame[date].astype(str), errors="coerce", format="mixed")
     candidates = [c for c in frame.columns if c not in (target, date) and (frame[c].dtype == object or bool(_tokens(c) & SERIES_WORDS))
                   and 1 < frame[c].nunique(dropna=True) < max(3, len(frame) // 3)]
-    one_per_date = [c for c in candidates if not pd.DataFrame({"s": frame[c], "d": stamp}).duplicated().any()]
+    # a series column only where dates repeat (several series): on one series every date is unique, and any column with few
+    # values (a weekday) would pass as "one row per date" (the review of S9)
+    one_per_date = [c for c in candidates if not pd.DataFrame({"s": frame[c], "d": stamp}).duplicated().any()] if stamp.dropna().duplicated().any() else []
     one_per_date.sort(key=lambda c: (not (_tokens(c) & {"series"}), frame[c].nunique()))
     if one_per_date:
         p.fields["series_column"] = one_per_date[0]
         p.why.append(f"`{one_per_date[0]}` names one series: each of its values has one row per date")
     else:
         p.missing.append("series_column")  # no column names the series (or one series only): the person says which
-    step = stamp.dropna().sort_values().diff().dropna()
+    step = stamp.dropna().drop_duplicates().sort_values().diff().dropna()  # the distinct dates: repeated ones (many series) read 0
     days = float(step.dt.total_seconds().median() / 86400) if len(step) else None
     season = 7 if days is not None and 0.5 <= days <= 1.5 else 12 if days is not None and 27 <= days <= 32 else 52 if days is not None and 6 <= days <= 8 else None
     if season:
@@ -160,6 +165,12 @@ def _time_to_event(frame: pd.DataFrame, target: Optional[str]) -> FieldProposal:
         p.why.append(f"`{durations[0]}` counts the time until the event (or until it was last seen)")
     else:
         p.missing.append("duration_column")
+    if durations and target in frame.columns and target != p.fields.get("duration_column"):  # the kind's target is its duration (the review of S9:
+        # a proposal on the event `churned` read complete and no save could pass): suggested, with the change said
+        p.missing.append("duration_column")
+        p.fields.pop("duration_column")  # read by its name only, which may be another count (months billed): never named as the outcome
+        p.declined["duration_column"] = ("its outcome is the duration, how long each one lasted: choose that column as the outcome on "
+                                         "the Solution page" + (f", with `{target}` as its event" if _binary(frame, target) else ""))
     events = [c for c in _named(frame, EVENT_WORDS) if _binary(frame, c)]
     if events:
         p.fields["event_column"] = events[0]
@@ -355,9 +366,34 @@ NEEDS_TABLE = {  # a field a sentence cannot give: the table it comes from is at
     ("streams", "incident_time_column"): "the incidents in their own table, attached on the project's Data page",
     ("entity_tables", "target_table"): "the table of events that decides the outcome, attached on the project's Data page",
 }
-NOT_RANDOM = re.compile(r"\b(not|never|wasn'?t|isn'?t|weren'?t)\s+(at\s+|done\s+at\s+|given\s+at\s+)?random\w*|\bnon-?random", re.I)
 RANDOM = re.compile(r"\b(random\w*|experiment\w*|a/?b\b|control group|left out|holdout|hold-out|lottery|coin)", re.I)
 CHOSEN = re.compile(r"\b(chose|chosen|choose|picked|selected|targeted|decided|by hand|hand-?picked)\b", re.I)
+NEGATIONS = frozenset({"no", "not", "never", "without", "nobody", "none", "nothing", "neither", "nor", "non", "nope"})
+
+
+def _negated(text: str, at: int) -> bool:
+    """Whether a negation stands in the three words before position ``at``, in the same clause ("we did not run an A/B
+    test", "no control group", "nobody chose", "non-random"; not "no randomisation, we targeted": two clauses)."""
+    clause = re.split(r"[,.;:!?]|\bbut\b|\band\b", text[:at].lower())[-1]  # a negation reaches no further than its clause
+    words = re.findall(r"[a-z']+", clause)[-3:]
+    return any(w in NEGATIONS or w.endswith("n't") for w in words) or clause.endswith("non-")
+
+
+def _randomised(text: str) -> Optional[bool]:
+    """Random, not random, or unread: each word of randomness or of choosing, negated or not, is evidence; both kinds
+    of evidence at once (\"random, but the manager picked some\") leave the answer unread, never guessed."""
+    random_ = chosen = False
+    for m in RANDOM.finditer(text):
+        if _negated(text, m.start()):
+            chosen = True
+        else:
+            random_ = True
+    for m in CHOSEN.finditer(text):
+        if _negated(text, m.start()):
+            random_ = True
+        else:
+            chosen = True
+    return None if random_ == chosen else random_
 
 
 def read_said(q: KindQuestion, words: str, frame: pd.DataFrame, fields: dict[str, Any]) -> tuple[bool, Any]:
@@ -366,12 +402,9 @@ def read_said(q: KindQuestion, words: str, frame: pd.DataFrame, fields: dict[str
     from dclab_core.conversation import named_columns
 
     text = str(words or "")
-    if q.field == "randomised":  # "not at random" first, then "random", then "someone chose" ("random, not chosen" is random)
-        if NOT_RANDOM.search(text):
-            return True, False
-        if RANDOM.search(text):
-            return True, True
-        return (True, False) if CHOSEN.search(text) else (False, None)
+    if q.field == "randomised":  # "random, not chosen" is random; "we did not run an A/B test" is not (the review of S9)
+        value = _randomised(text)
+        return (False, None) if value is None else (True, value)
     if q.columns:
         named = named_columns(text, [str(c) for c in frame.columns])
         return (True, named[0]) if len(named) == 1 else (False, None)

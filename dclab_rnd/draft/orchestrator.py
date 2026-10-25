@@ -799,8 +799,10 @@ def plan_new_version(t: Turn, /, **_: Any) -> dict[str, Any]:
 
         from ..kinds.propose import said_of
 
-        proposal = studio_solution.propose(frame, profile, target, None, project.get("pack"), time_hint,
-                                           card_of(_draft(t)).family.value,  # S9: the kind the card understood
+        # S9: the version's own family when it changed one; the card's only for the same outcome (a new outcome is
+        # another problem: a forecast card's kind never planned onto a yes/no outcome, the review of S9)
+        family = problem.get("family") or (card_of(_draft(t)).family.value if target == old.get("target") else None)
+        proposal = studio_solution.propose(frame, profile, target, None, project.get("pack"), time_hint, family,
                                            said_of(_draft(t).get("understanding") or {}), list(project.get("tables") or {}))
     except Exception as exc:  # noqa: BLE001 - the table cannot be read, or the outcome refused: said, nothing planned
         return {"error": f"The new version cannot be planned on this table: {str(getattr(exc, 'detail', None) or exc)[:300]}"}

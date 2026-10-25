@@ -1003,7 +1003,11 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         unlabelled = card_of(draft).family.value == "anomaly" and plans.label_asset(draft) is None and named is None
         # 28.8: the switch on, or the Team panel's own approval (``team``): the walk builds, which handles a problem of several parts
         through_team = team or await asyncio.to_thread(team_on)
-        if not draft.get("solution") and not unlabelled and not (through_team and named is None):
+        from ..kinds.propose import FAMILY_KINDS, NO_OUTCOME
+
+        # S9 (the review): a kind that reads no outcome (segments, a ranking) is built from the card, never asked for an outcome column
+        no_outcome = FAMILY_KINDS.get(str(card_of(draft).family.value or "")) in NO_OUTCOME and named is None
+        if not draft.get("solution") and not unlabelled and not no_outcome and not (through_team and named is None):
             target = named
             if target is None:
                 raise HTTPException(409, "Which column is the outcome the model should learn? Name it (for example “the outcome is is_fraud”), then say build again.")
@@ -1022,7 +1026,9 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             if flagged is not None:
                 note += (f" `{time_column}` orders the time split and is never a feature; the audit flagged it ({str(flagged.get('reason') or 'a leak signal')[:300]}): "
                          "check that it is known before the prediction moment.")
-            body = {"target": target, "task": task, "prediction_moment": moment,
+            kinded = proposal.get("kind_proposed") is not None  # S9 (the review): the kind the card understood, with its fields and metric
+            body = {"target": proposal.get("target") if kinded else target, "task": task, "prediction_moment": moment,
+                    **({"kind": proposal["kind"], "kind_fields": proposal.get("kind_fields") or {}} if kinded else {}),
                     "positive_label": str(proposal["positive_label"]) if task == "binary" and proposal.get("positive_label") is not None else None,
                     "forbidden": [{"column": f["column"], "reason": f.get("reason") or "declared unavailable at the prediction moment"}
                                   for f in proposal.get("forbidden") or [] if f["column"] != time_column],
@@ -1266,8 +1272,12 @@ def _family_solution(projects, project: dict[str, Any], u: dict[str, Any], famil
     from ..studio import data as studio_data
     from ..studio.solution import Solution
 
+    from dclab_core.conversation import named_columns
+
     frame = studio_data.load_table(studio_data.data_path(projects, project))
-    fp = for_family(family, frame, None, said_of(u), list(project.get("tables") or {}))
+    named = named_columns(str(u.get("target") or ""), [str(c) for c in frame.columns])  # the outcome said in words, when it names
+    # one column: never among the columns that form the segments (the review of S9)
+    fp = for_family(family, frame, named[0] if len(named) == 1 else None, said_of(u), list(project.get("tables") or {}))
     if fp is None or fp.kind not in NO_OUTCOME or not fp.complete:
         return None
     moment = str(u.get("prediction_moment") or "When the rows are read, using what is known then")
@@ -1468,6 +1478,7 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
         project["suggestion"] = {**(project.get("suggestion") or {}), "decision": {**stated, "heard_in": heard_in}}
         projects.log(pid, "decision_read", {"decision": stated, "heard_in": heard_in})
     built_solution = draft.get("solution")
+    built_here = not built_solution  # DCLab's own solution below (anomaly, a kind that reads no outcome): never the person's choice
     if not built_solution and card.family.value == "anomaly" and labels is None and project.get("data"):  # 20.7: no outcome
         built_solution = _anomaly_solution(projects, project, u)  # saved below like the wizard's, through the same check
     if not built_solution and project.get("data") and u.get("target") not in (project["data"].get("columns") or []):  # S9: no outcome
@@ -1489,7 +1500,8 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
             proposed = draft.get("proposal") or {}
             if proposed.get("target") == built_solution.get("target"):  # 30.11: the run names the modifiers its proposal found (the review)
                 project["proposal"] = proposed
-            saved_by = draft.get("solution_by") or "human"  # 25.13: "agent" when DCLab accepted the audit's proposal on "build it"
+            saved_by = "agent" if built_here else (draft.get("solution_by") or "human")  # 25.13: "agent" when DCLab accepted the audit's
+            # proposal on "build it", or built the solution itself from the card (the review of S9: it was recorded as the person's)
             studio_memory.solution_saved(project, None, built_solution, saved_by)  # A5.2: the person saved it in the wizard
             projects.save(project)
             from .. import audit

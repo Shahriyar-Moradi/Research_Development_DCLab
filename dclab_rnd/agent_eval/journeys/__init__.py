@@ -648,15 +648,16 @@ def _save(projects: Any, project: dict[str, Any], statements: dict[str, Any], de
 
     suggestion = project.get("suggestion") or {}
     target = statements.get("target", suggestion.get("target"))
-    family = ((((project.get("draft") or {}).get("card") or {}).get("family") or {}).get("value"))  # S9: the kind the card understood
     if project.get("labels") and suggestion:  # a label file's join: its suggestion is the starting point
         proposal = {**suggestion}
     elif target:
         frame = sd.load_table(sd.data_path(projects, project))
-        from dclab_rnd.kinds.propose import said_of
+        from dclab_rnd.kinds.propose import NO_OUTCOME
+        from dclab_rnd.studio.solution import card_context
 
-        proposal = propose(frame, project["data"]["profile"], target, statements.get("task"), project.get("pack"), family=family,
-                           said=said_of((project.get("draft") or {}).get("understanding") or {}), tables=list(project.get("tables") or {}))
+        proposal = propose(frame, project["data"]["profile"], target, statements.get("task"), project.get("pack"), None, **card_context(project))
+        if proposal.get("kind") in NO_OUTCOME and proposal.get("target") is None and "target" not in statements:
+            target = None  # the kind reads no outcome: the one named describes it (its own field), and the save leaves the target empty
     elif project.get("solution") and not statements:  # S9: a kind that reads no outcome, its solution built from the card: kept
         proposal = {k: v for k, v in project["solution"].items() if v is not None}
     else:

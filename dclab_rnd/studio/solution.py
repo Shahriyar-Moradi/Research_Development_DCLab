@@ -251,16 +251,36 @@ def default_metric(task: str, positive_rate: float | None = None) -> str:
     return kinds.get(task).default_metric(None, positive_rate)
 
 
-def _family_kind(fp: Any, time_candidates: list[str]) -> dict[str, Any]:
+def _family_kind(fp: Any, time_candidates: list[str], task: str, positive_rate: float | None) -> dict[str, Any]:
     """S9: a complete proposal sets the kind and its fields (the proposal's kind is what the Solution saves); an
-    incomplete one is only suggested, with the fields the person must give."""
+    incomplete one is only suggested, with the fields the person must give. The task stays the target's own when the
+    kind takes it (a text kind answers a class or a number too), else the kind's base task; the metric and its options
+    are the kind's own, which its check accepts (the review of S9: a forecast proposed with RMSE was refused). A kind
+    that reads no outcome has no target: the outcome named goes to its own field, never among the columns (S9 review)."""
     if not fp.complete:
         return {"kind_suggested": fp.as_dict()}
+    from ..kinds.propose import NO_OUTCOME
+
     k = kinds.get(fp.kind)
-    out = {"kind": fp.kind, "kind_title": k.title, "task": k.base_task, "kind_fields": fp.fields, "kind_proposed": fp.as_dict()}
+    task = task if task in (k.tasks or (k.base_task,)) else k.base_task
+    out = {"kind": fp.kind, "kind_title": k.title, "task": task, "kind_fields": fp.fields, "kind_proposed": fp.as_dict(),
+           "metric": k.default_metric({"task": task}, positive_rate), "metric_options": list(k.metrics) or METRICS[task]}
+    if fp.kind in NO_OUTCOME:
+        out["target"] = None
     if fp.time_column:
         out["time_candidates"] = [fp.time_column] + [c for c in time_candidates if c != fp.time_column]
     return out
+
+
+def card_context(project: dict[str, Any]) -> dict[str, Any]:
+    """S9: what a project built from a draft brings to every proposal on it, the same for each caller (the project's
+    Solution page, the intern and /mcp, the journeys): its card's family, the person's answers to the kind's questions,
+    the related tables attached by name. A project with no draft brings none of them (the plain proposal)."""
+    from ..kinds.propose import said_of
+
+    built = project.get("draft") or {}
+    return {"family": ((built.get("card") or {}).get("family") or {}).get("value"), "said": said_of(built.get("understanding") or {}),
+            "tables": list(project.get("tables") or {})}
 
 
 def _whole_numbers(series: pd.Series) -> bool:
@@ -393,7 +413,7 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
         "plan": plan,
         "modifiers": [d.model_dump() for d in found], "modifier_facts": facts.model_dump() if facts is not None else None,
         **({"group_column": applied["groups"].value} if "groups" in applied else {}),  # shown with its reason on the Solution form
-        **(_family_kind(by_family, time_candidates) if by_family is not None else {}),
+        **(_family_kind(by_family, time_candidates, task, metric_rate) if by_family is not None else {}),
         **({"label_source_column": source_column} if source_column else {}),  # 30.12: shown with its reason, carried by every save
         **({"decided_by_models": decided} if decided else {}),
     }

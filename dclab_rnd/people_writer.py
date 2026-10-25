@@ -194,7 +194,12 @@ def write(cap_eur: float, home: Optional[Path] = None, kinds_: Optional[list[str
                 return {"stopped": f"the cap of EUR {cap_eur} is reached", "spent_eur": round(spent, 4)}
             writer = _client(WRITER, cap_eur, spent)
             messages = request(kind, batch)
-            got = _ask(writer, messages, 6000)
+            try:
+                got = _ask(writer, messages, 6000)
+            except RuntimeError as exc:  # the gateway's own cap refuses a request that could pass it (writer B, 2026-10-25: it
+                if not str(exc).startswith("BudgetExceeded"):  # ended in a traceback at 58 of 60 and nothing was assembled)
+                    raise
+                return {"stopped": f"the cap of EUR {cap_eur} is reached", "spent_eur": round(spent, 4), **assemble(home)}
             people = parse_people(got["content"])
             checker = _client(CHECKER, cap_eur, spent + float(writer.spent_eur or 0.0))
             check_messages = check_request(kind, people) if people else None

@@ -114,6 +114,96 @@
    "cause": "Order of the patterns.",
    "fix": "\"not at random\" first, then \"random\", then \"someone chose\"; an answer none of them reads stays missing.",
    "test": "test_home_asks_a_kinds_missing_field_once_and_says_what_follows_from_i_dont_know"
+  },
+  {
+   "id": "S9-8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The proposal set the kind's task but kept the plain task's metric, and \"build it\" dropped the kind.",
+   "scenario": "A 3-class text target with family text_or_images: task binary, metric macro_f1, \"build it\" refused; a forecasting draft's \"build it\" saved a plain regression while Home said \"Kind: Forecasting\".",
+   "cause": "_family_kind overwrote task only; quick_build's body, the wizard's Accept and the project editor never carried kind or kind_fields.",
+   "fix": "_family_kind keeps the target's task when the kind takes it and sets the kind's metric and options; \"build it\" carries kind, kind_fields and the kind's target; the wizard shows the kind with a box to untick (unticked: the plain task, its own metric); the project editor takes the kind from the fresh proposal on an outcome change.",
+   "test": "test_build_it_on_a_forecast_draft_saves_a_forecast_with_the_kinds_metric"
+  },
+  {
+   "id": "S9-9",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The outcome could form the segments.",
+   "scenario": "A Telco-like table, `Churn` Yes/No named as the outcome, family segmentation: kind_fields {} and the segmentation machine read every column, `Churn` among them.",
+   "cause": "_segmentation ignored the target, and its outcome words had \"churned\" but not \"churn\".",
+   "fix": "The target named is the outcome column first, then specific outcome words (churn, exited, attrition, default, fraud...; never broad ones like \"is\", which would take the one slot from the real outcome); a kind that reads no outcome proposes no target; the build passes the outcome said in words when it names one column.",
+   "test": "test_the_outcome_never_forms_the_segments_and_each_kind_reads_its_own_target"
+  },
+  {
+   "id": "S9-10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Negated answers read as random.",
+   "scenario": "\"we did not run an A/B test\", \"there was no control group\", \"nobody was left out\", \"no randomisation, we targeted big spenders\": randomised=True, and the uplift report would say what the offer caused.",
+   "cause": "The reader looked for words of randomness without their negation.",
+   "fix": "Each word of randomness or of choosing is evidence, negated within its own clause or not; both kinds at once leave the answer unread, never guessed.",
+   "test": "test_home_asks_a_kinds_missing_field_once_and_says_what_follows_from_i_dont_know"
+  },
+  {
+   "id": "S9-11",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A time-to-event proposal on its event read complete, and no save could pass.",
+   "scenario": "Target `cancelled` (the event): complete, then refused: 'The target of a time-to-event problem is its duration column'.",
+   "cause": "The proposer did not compare the target with the duration it read.",
+   "fix": "Suggested only, with the change said (choose the duration as the outcome, the event as its event); the duration read by its name is not named (it was months_billed, not days_subscribed).",
+   "test": "test_the_outcome_never_forms_the_segments_and_each_kind_reads_its_own_target"
+  },
+  {
+   "id": "S9-12",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A single series' weekday was taken as the series; monthly stores lost their season.",
+   "scenario": "One daily series with a weekday column: series=weekday (7 series); five stores monthly: the median step 0, no season, 7 by default.",
+   "cause": "On one series every date is unique; the step was measured on repeated dates.",
+   "fix": "A series column only where dates repeat; the step on the distinct dates.",
+   "test": "test_the_outcome_never_forms_the_segments_and_each_kind_reads_its_own_target"
+  },
+  {
+   "id": "S9-13",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The intern's and /mcp's propose_solution proposed without the card.",
+   "scenario": "The same project: a regression from the intern, a forecast from the page; the intern's call overwrote project.proposal.",
+   "cause": "Each caller passed its own arguments.",
+   "fix": "studio.solution.card_context(project), one helper for the project page, the intern, /mcp and the journeys.",
+   "test": "the wide tests (test_intern, test_studio)"
+  },
+  {
+   "id": "S9-14",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "DCLab's own solution was recorded as the person's.",
+   "scenario": "A segmentation (or anomaly) solution built from the card at the build: audit, memory and ledger said the person saved it.",
+   "cause": "saved_by fell back to \"human\" when no solution was saved on the page.",
+   "fix": "\"agent\" for a solution the build makes itself.",
+   "test": "the wide tests (test_draft_flow)"
+  },
+  {
+   "id": "S9-15",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A new version with a new outcome was planned with the first card's family.",
+   "scenario": "A forecast card, then a yes/no outcome in a new version: the plan proposed a forecast's fields on it.",
+   "cause": "plan_new_version passed the draft card's family whatever the version's outcome.",
+   "fix": "The version's own family when it changed one; the card's only for the same outcome.",
+   "test": "covered by the orchestrator tests"
+  },
+  {
+   "id": "S9-16",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Writer B ended in a traceback at the gateway's cap and assembled nothing.",
+   "scenario": "58 of 60 batches, EUR 2.97 of 3.00: the next request could cost up to EUR 0.06, the gateway refused it.",
+   "cause": "write() checked its own sum against the cap, not the gateway's refusal.",
+   "fix": "The refusal stops the run as the cap does, with the people assembled.",
+   "test": "the run itself (assembled 591 people)"
   }
  ],
  "measurements": [
@@ -138,12 +228,24 @@
     "the wide tests and harness-eval wait for the other session's gate",
     "words read by patterns: unusual phrasings stay missing"
    ]
+  },
+  {
+   "name": "writer B (second homework writer)",
+   "gate": "the checker per batch",
+   "result": "60 batches, 591 people fit, 8 kept apart by the checker",
+   "verdict": "pass",
+   "cost_eur": 3.08,
+   "limits": [
+    "one model wrote and checked: the third writer's sealed set judges whether the student learned the writers"
+   ]
   }
  ],
  "outcome": "Where the card reads the family, the kind and its fields are proposed and built; what only the person knows is asked or said as assumed.",
  "lessons": [
   "A person's answer in words is not a column: check what it names, not whether it was said.",
-  "Check every caller of a proposal: one route without the new argument brings the old answer back."
+  "Check every caller of a proposal: one route without the new argument brings the old answer back.",
+  "A reviewer who probes with made-up tables finds what replica tests cannot: replicas name their columns plainly.",
+  "A proposal is a set of fields that must agree with each other (task, metric, kind): change one, check the others."
  ],
  "risks": [
   "Name-based proposers can be fooled by unusual column names: each proposal says why, and the person can change it.",
