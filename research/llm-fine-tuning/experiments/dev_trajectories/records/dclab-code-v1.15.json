@@ -1,0 +1,130 @@
+{
+  "package": "dclab-code-v1.15",
+  "title": "Review comments in DCLab Code: comment on changed lines and send them to the agent as one message (parity B5), and page tests back in Chromium",
+  "date": "2026-10-26",
+  "request": "The owner's goal (2026-10-26, before sleeping: continue non-stop, ask questions now): Claude Code and Codex desktop's capabilities in DCLab Code; parity B5. The owner allowed reinstalling Playwright's Chromium (page tests) and removing the stray main-product clone.",
+  "spec": "dclab-code/docs/PARITY_PLAN.md, B5",
+  "plan": [
+    "map each diff line to its file and line",
+    "comment boxes on lines, a bar to send",
+    "one message to the agent and a review_comments record",
+    "tests, a page test in Chromium, a review"
+  ],
+  "decisions": [
+    {
+      "decision": "The server builds the message from the comments (numbered, `file:line`, the line's code, the comment) and records them apart",
+      "why": "one format the agent reads, and the person's review kept as their act for training"
+    },
+    {
+      "decision": "A comment is matched to its line by file, side, line and the line's code; one whose line changed is listed as outdated",
+      "why": "the agent's edits move lines while the person reviews"
+    }
+  ],
+  "change": "server/review.js, POST /api/sessions/:id/review, web/review.js diffLines and unquotePath, the comment UI in the Changes panel, docs/API.md; a page test for A3, A4 and B5 in Chromium.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "defect": "a comment being typed was wiped while the agent worked",
+      "scenario": "about 0.7 s after the agent's next tool ended, loadDiff redrew the panel and the box and its text were gone",
+      "cause": "every tool end refreshes the diff",
+      "fix": "no redraw while a comment box has text or focus (the person's own actions force it)",
+      "test": "tests/page.test.js: files, context and review",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "defect": "line numbers went wrong after a removed '-- ' line",
+      "scenario": "a removed SQL comment '-- note' shows as '--- note' and was skipped as a header, so later removed lines were off by one",
+      "cause": "header lines were matched anywhere",
+      "fix": "headers are read only outside a hunk",
+      "test": "tests/units.test.js: the diff reader",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "defect": "a non-ASCII file name became the whole header line",
+      "scenario": "git quotes names like \"a/\\330\\247.py\"; the agent was told `diff --git \"a/…\":3`",
+      "cause": "the path came from the diff --git line",
+      "fix": "paths from the ---/+++ lines, unquoted",
+      "test": "tests/units.test.js: the diff reader",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "defect": "comments to a session whose copy was gone were said sent and lost",
+      "scenario": "the route recorded the review and answered 202; the engine refused to send; the page cleared the comments",
+      "cause": "no check for a removed or failed copy",
+      "fix": "409 before anything is recorded",
+      "test": "(code)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "defect": "comments went stale when the diff changed",
+      "scenario": "after the agent's edit a comment sat under another line, or vanished from view while still counted",
+      "cause": "matched by file, side and line only",
+      "fix": "the line's code must match too; others are listed as outdated, removable",
+      "test": "(code; page test covers the shown case)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "defect": "removed lines of a renamed file named the new file",
+      "scenario": "`new.py:12` (a removed line) where 12 is old.py's line",
+      "cause": "removed lines used the new path",
+      "fix": "removed lines use the old path",
+      "test": "tests/units.test.js: the diff reader",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "defect": "non-lines became commentable",
+      "scenario": "the empty line after the diff and a binary file's line, with leftover counts",
+      "cause": "no hunk state, counters not reset",
+      "fix": "only lines inside a hunk; counters reset per file",
+      "test": "tests/units.test.js: the diff reader",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F8",
+      "source": "reviewer",
+      "defect": "a double click sent the review twice; a comment added meanwhile was lost",
+      "scenario": "two requests in flight; items cleared after the await",
+      "cause": "no send lock",
+      "fix": "one send at a time; only the sent items are removed",
+      "test": "(code)",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "dclab-code tests",
+      "gate": "every test passes, page tests included",
+      "fixed_before_run": true,
+      "result": "91 tests, all passed, none skipped (Chromium reinstalled); the new page test drives @, the File tab, the meter, a review comment and Fork",
+      "verdict": "pass"
+    },
+    {
+      "name": "browser pane check",
+      "gate": "a click on a changed line opens a box; the comment shows under it; the bar counts it",
+      "fixed_before_run": true,
+      "result": "README.md:4 commented, bar '1 comment on the changes · Send to the agent · Clear'",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "A person reviews the agent's changes line by line and sends the comments as one message, as in Codex; the page tests run in real Chromium again.",
+  "lessons": [
+    "A panel that refreshes on every agent step must never redraw over what the person is typing."
+  ],
+  "risks": [
+    "a comment on a changed data file copies its row into the message (the person's choice, kept as the turn's prompt)"
+  ],
+  "commits": []
+}
