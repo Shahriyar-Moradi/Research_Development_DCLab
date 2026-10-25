@@ -228,8 +228,13 @@ def _split_code(time_column: str | None, group_column: str | None, regression: b
                 "X_train, X_test, y_train, y_test = X.iloc[train_idx], X.iloc[test_idx], y.iloc[train_idx], y.iloc[test_idx]\n"
                 f"cv = {kf}(n_splits={folds}{'' if regression else ', shuffle=True, random_state=RANDOM_STATE'})\ncv_groups = groups[train_idx]")
     kf = "KFold" if regression else "StratifiedKFold"
-    return (f"from sklearn.model_selection import train_test_split, {kf}\n"
-            f"X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, {'' if regression else 'stratify=y, '}random_state=RANDOM_STATE)\n"
+    strata = ("" if regression else  # the engine's own strata (expansion/datasets.py strata): single-row classes drawn with the commonest
+              "counts = y.value_counts(); rare = counts[counts < 2].index\n"
+              "strata = y.where(~y.isin(rare), counts.index[0]) if len(rare) and (counts >= 2).sum() >= 2 else y\n"
+              "n_test = int(np.ceil(0.2 * len(y)))\n"
+              "strata = None if strata.nunique() > min(n_test, len(y) - n_test) else strata  # more classes than holdout rows: at random\n")
+    return (f"from sklearn.model_selection import train_test_split, {kf}\n" + strata
+            + f"X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, {'' if regression else 'stratify=strata, '}random_state=RANDOM_STATE)\n"
             f"cv = {kf}(n_splits={folds}, shuffle=True, random_state=RANDOM_STATE)\ncv_groups = None")
 
 

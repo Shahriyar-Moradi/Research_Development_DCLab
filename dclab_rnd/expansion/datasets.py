@@ -329,6 +329,34 @@ class TaskBundle:
         return self.X[column].iloc[index].to_numpy()
 
 
+def strata(y: pd.Series, holdout_rows: int | None = None) -> pd.Series | None:
+    """The labels a stratified split is drawn on: the outcome itself, unless a class has a single row (a stratified split
+    refuses it: OpenML 7, 24 classes, five of one row each). Those rows are then drawn with the commonest class, every row
+    and the outcome kept as they are; with fewer than two classes of two rows left, the outcome itself (the split then
+    says why it cannot be drawn). None when there are more classes than holdout or training rows (no stratified split
+    exists: the rows are drawn at random). A table whose classes all have two rows or more is split exactly as before."""
+    counts = y.value_counts()
+    rare = counts[counts < 2].index
+    labels = y
+    if len(rare) and int((counts >= 2).sum()) >= 2:
+        labels = y.copy()
+        labels[y.isin(rare)] = counts.index[0]
+    if holdout_rows is not None and labels.nunique() > min(holdout_rows, len(y) - holdout_rows):
+        return None
+    return labels
+
+
+def strata_note(y: pd.Series, labels: pd.Series | None) -> str:
+    """What the split's description says when the strata are not the outcome itself."""
+    if labels is None:
+        return f" (not stratified: {y.nunique()} classes, more than the holdout's rows)"
+    if labels is y:
+        return ""
+    counts = y.value_counts()
+    pooled = int((counts < 2).sum())
+    return f" ({pooled} class{'es' if pooled != 1 else ''} of one row drawn with `{counts.index[0]}`)"
+
+
 def prepare_bundle(
     spec: DatasetSpec,
     X: pd.DataFrame,
@@ -424,15 +452,15 @@ def prepare_bundle(
         )
     else:
         indices = np.arange(n)
-        train_idx, test_idx = train_test_split(
-            indices, test_size=HOLDOUT_FRACTION, stratify=None if regression else y, random_state=RANDOM_STATE
-        )
+        labels = None if regression else strata(y, int(np.ceil(HOLDOUT_FRACTION * n)))
+        train_idx, test_idx = train_test_split(indices, test_size=HOLDOUT_FRACTION, stratify=labels, random_state=RANDOM_STATE)
         train_idx, test_idx = np.sort(train_idx), np.sort(test_idx)
         inner_cls = KFold if regression else StratifiedKFold
         inner = inner_cls(n_splits=cv_folds, shuffle=True, random_state=RANDOM_STATE)
         cv_splits = [(a, b) for a, b in inner.split(train_idx, y.iloc[train_idx])]
         cv_description = f"{inner_cls.__name__}({cv_folds}, shuffle, random_state={RANDOM_STATE}) on training rows"
-        holdout_description = f"{'random' if regression else 'stratified random'} {len(test_idx)} of {n} rows"
+        holdout_description = (f"{'random' if regression or labels is None else 'stratified random'} {len(test_idx)} of {n} rows"
+                               + ("" if regression else strata_note(y, labels)))
     return TaskBundle(
         spec=spec,
         X=X,

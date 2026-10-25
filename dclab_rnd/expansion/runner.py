@@ -1002,7 +1002,7 @@ class FrameRecipe:
             from sklearn.feature_selection import mutual_info_classif
 
             scores = mutual_info_classif(
-                matrix.fillna(matrix.median()).to_numpy(), np.asarray(y), random_state=RANDOM_STATE
+                matrix.fillna(matrix.median()).fillna(0.0).to_numpy(), np.asarray(y), random_state=RANDOM_STATE  # a column with no value has no median
             )
             order = np.argsort(-scores, kind="stable")[: self.select_k]
             self.names = [self.names[i] for i in sorted(order)]
@@ -1084,7 +1084,7 @@ class TextRecipe:
         self.encoder = _Encoder().fit(frame[self.columns], categorical=encoded_codes(spec))
         dense = self._tabular_frame(frame)
         self.dense_names = list(dense.columns)
-        self.medians = dense.median()
+        self.medians = dense.median().fillna(0.0)  # a column with no value on the fit rows has no median (OpenML 2: four such columns)
         self.scaler = MinMaxScaler(clip=True).fit(dense.fillna(self.medians).to_numpy()) if self.dense_names else None
         self.names = [f"{prefix}:{token}" for prefix, vec in self.vectorizers for token in vec.get_feature_names_out()]
         self.names += self.dense_names

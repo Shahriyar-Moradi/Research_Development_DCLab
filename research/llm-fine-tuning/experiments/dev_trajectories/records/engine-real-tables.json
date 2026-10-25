@@ -1,0 +1,124 @@
+{
+ "package": "engine-real-tables",
+ "title": "DCLab's engine on what real tables hold: columns with no value, classes of one row, more classes than holdout rows",
+ "date": "2026-10-25",
+ "request": "Found while screening real OpenML tables for S7 ('more ability'): the engine crashed on two of the first three.",
+ "spec": "Every table a person can upload runs through every stage, or is refused with a reason it can act on; no split already drawn changes.",
+ "plan": [
+  "Reproduce each crash on its real table.",
+  "The smallest fix where the value goes wrong.",
+  "Prove each test fails on the old code.",
+  "Review."
+ ],
+ "decisions": [
+  {
+   "decision": "A column with no value on the fit rows is filled with 0.",
+   "why": "Its median does not exist; the models' imputer and the detectors already turn such a column into 0, fit on the fit rows only."
+  },
+  {
+   "decision": "Single-row classes stratified with the commonest class; the outcome unchanged.",
+   "why": "A stratified split refuses a class of one row; every other table must split exactly as before, which strata(y) returning y itself guarantees."
+  },
+  {
+   "decision": "More classes than holdout rows: a random split, said in the split's description.",
+   "why": "No stratified split exists then; the alternative was a crash."
+  },
+  {
+   "decision": "One positive in a binary table still refused at the split, with sklearn's own message.",
+   "why": "Pooling it would only move the failure into the model with a vaguer error."
+  }
+ ],
+ "change": "dclab_rnd/expansion/runner.py (the selected_mi fill, the text recipe's medians), dclab_rnd/expansion/datasets.py (strata, strata_note, the plain split), dclab_rnd/studio/export.py (the notebook's split cell draws the same strata), tests/test_engine_real_tables.py.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A table with columns that have no value crashed the features stage.",
+   "scenario": "OpenML 2 (anneal, 898 rows): four columns 100% missing; ValueError: Input X contains NaN.",
+   "cause": "selected_mi's mutual information filled gaps with the column's median, which does not exist.",
+   "fix": "fillna(0.0) after the median fill; the text recipe's medians likewise.",
+   "test": "test_a_column_with_no_value_at_all_never_stops_a_run (fails on the old runner)"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A multiclass table with classes of one row could not be split.",
+   "scenario": "OpenML 7: 24 classes, five of a single row: 'The least populated class in y has only 1 member'.",
+   "cause": "train_test_split(stratify=y).",
+   "fix": "strata(y): single-row classes drawn with the commonest; the outcome itself otherwise.",
+   "test": "test_classes_of_a_single_row_never_stop_the_split"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The exported notebook still stratified on the outcome and crashed on those tables.",
+   "scenario": "A project like OpenML 7 now runs; its notebook's split cell raised the old error.",
+   "cause": "_split_code wrote stratify=y.",
+   "fix": "The cell draws the engine's own strata, written into it.",
+   "test": "test_the_notebooks_split_cell_draws_the_engines_strata"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A lone positive moved the failure into the model, with a vaguer error.",
+   "scenario": "200 rows, one 'yes': the split passed and the solver failed on one class.",
+   "cause": "strata pooled the only positive into the negatives.",
+   "fix": "With fewer than two classes of two rows, strata returns the outcome and the split refuses at once.",
+   "test": "test_a_lone_positive_is_refused_clearly_and_many_small_classes_split_at_random"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The text recipe's fill was untested.",
+   "scenario": "Reverting it failed no test.",
+   "cause": "Both tests had no text column.",
+   "fix": "A text table with an empty number column.",
+   "test": "test_a_text_table_with_an_empty_number_column_runs"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The record did not say classes were pooled.",
+   "scenario": "'stratified random N of M rows' with five classes pooled.",
+   "cause": "The description was fixed text.",
+   "fix": "strata_note: pooled classes, or not stratified and why.",
+   "test": "test_a_lone_positive_is_refused_clearly_and_many_small_classes_split_at_random"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "More classes than holdout rows crashed the split.",
+   "scenario": "50 rows, 25 classes of two rows: test_size 10 under 25 classes.",
+   "cause": "A stratified split needs a row of every class on each side.",
+   "fix": "A random split, said in the description.",
+   "test": "test_a_lone_positive_is_refused_clearly_and_many_small_classes_split_at_random"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the two real tables, screened again",
+   "gate": "affected tests only (the owner's daytime rule)",
+   "result": "OpenML 2 screened in 13.6 s, OpenML 7 in 12.7 s; 85 tests in 8 files pass; no earlier split changes (strata returns the outcome itself whenever every class has two rows)",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the real-table screens will find more: every failure is kept with its reason"
+   ]
+  }
+ ],
+ "outcome": "Tables with empty columns or rare classes run through the engine, and the notebook splits them the same way.",
+ "lessons": [
+  "Screening real tables is a robustness test of the whole product: two of the first three crashed it."
+ ],
+ "risks": [
+  "Other real-table crashes are still to be found by the screens."
+ ],
+ "commits": []
+}
