@@ -49,6 +49,10 @@ PURPOSES: dict[str, Purpose] = {
     "parse_pattern": Purpose("cheap", 60, "up to 20 lines of a file no built-in reader can parse (400 characters each); "
                                           "DCLAB_MODEL_READS_SAMPLE_LINES=0 turns this off", cell_values=20 * 40),
     "synthetic_schema": Purpose("standard", 120, "the description of the table to simulate, the problem sentence and the user's answers; no data", keeps_text=True),
+    "journey_writer": Purpose("standard", 300, "S8 B1: one replica kind's family, its invented table's column names, a list of businesses and two "
+                                               "written examples of the format; never a person's data, a row or a cell value", keeps_text=True),
+    "journey_checker": Purpose("standard", 180, "S8 B1: one replica kind's family, its invented table's column names and the written people's "
+                                                "words and answers; never a person's data, a row or a cell value", keeps_text=True),
     "evidence_answer": Purpose("cheap", 60, "the question and the text of the evidence records it retrieved, which can include this workspace's accepted "
                                             "lessons (a project's aggregate results, its name, dataset file name, row count and split); no rows"),
     "stage_notes": Purpose("standard", 60, "a stage record's title, summary, claims with their limits (aggregate results with their intervals), its notes "
