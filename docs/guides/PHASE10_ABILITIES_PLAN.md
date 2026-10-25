@@ -199,6 +199,10 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
   the decision taken, the time; never a cell value) and `OutcomeRecord` (the key, the true outcome, when it became
   known); the exported service logs every `/predict` to a local JSONL and takes `POST /outcome`.
 - **Done when:** a batch scored and its outcomes posted join by key; no input value is in either log (tested).
+- **Status:** done (2026-10-24, dclab-core 0.106.0, d4138426): `dclab_core.serving` (`PredictionRecord`, `OutcomeRecord`,
+  `read_log`, `join`); the exported service logs every `/predict` keyed by a hashed row key and takes `POST /outcome`.
+  13 tests: 71 outcomes posted joined on all 71 keys, a bad outcome refused with nothing recorded, no row key, text value
+  or service key in either log. Open: see "What remains" (the key without `DCLAB_LOG_KEY`).
 
 ### 34.10 Monitoring that runs
 - **Delivers:** `monitor_log(plan, predictions, outcomes)`: `monitoring.monitor` on each logged batch plus live
@@ -258,14 +262,15 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
   were named 10 of 10, the two it never used 0 of 20. Open: five domains only (a project in no known domain is weighed
   column by column, nothing named missing); time folds are bootstrapped by row.
 
-## Owner decisions still open
+## Owner decisions
 
-| Decision | Proposal |
+| Decision | Where it stands |
 |---|---|
-| The rule that decides 34.8 | fixed in 34.5 before its run |
-| Search budgets on the Air | 20 minutes a stage, 30 trials a family by default |
-| AutoGluon | on the M1 Max only |
-| Where the Decision page sits | a tab beside Results |
+| The rule that decides 34.8 | fixed in 34.5 before its run; it said no go (2026-10-25) |
+| Search budgets on the Air | the search stays an opt-in (`search_v2` failed); asked for with no numbers it runs 10 minutes, 30 trials, 2 families |
+| AutoGluon | on the M1 Max only, as a new bake-off (`bakeoff_v2`) |
+| Where the Decision page sits | its own page in the project menu, after Evaluation |
+| 34.7b stacking and CatBoost | not built (2026-10-25); revisit on the M1 Max |
 
 ## Verification
 
@@ -277,7 +282,45 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
 - Layer 6: an end-to-end test that scores, logs, posts outcomes, monitors a planted drift and promotes a challenger.
 - Layer 2: replica tests with known learning curves and planted missing groups.
 
-## Small items still open from the day
+## What remains (recorded 2026-10-25, at the owner's request)
 
-- The pilot after the proposal fix: homeworks 3–5 (tag `proposal-core-keys-v1`, `scripts/learning_loop.sh`).
-- `make archive` after the store run (done 16:54); `make check-all` and `make core-wheel-check` tonight.
+Everything Phase 10 leaves open, in one place: when it runs, who owns it, what it needs. Packages 34.1 to 34.14 are built
+or decided; nothing below blocks using them.
+
+**Tonight (this session, scheduled):**
+1. `search_v3`: confirms the fix of the fraud crash (R9) and that the eight numbers of `search_v2` reproduce. Run from a
+   fresh worktree at the latest commit with `agent_runs/bakeoff_v1` linked in: `python -m dclab_rnd.search_measure run --yes`;
+   its results go to `evidence/campaigns/search_v3/` and 34.7a's record. It cannot pass unless the eight numbers change.
+2. The nightly gate: `make check-all` and `make core-wheel-check` on the latest commit, alone on the machine. Owed since
+   2026-10-24: 34.9 to 34.14 and dclab-core 0.106.0 to 0.112.0 have had only `make rd-gates` and their own tests. A
+   failure is fixed with a test, or reported.
+
+**Waits for the M1 Max:**
+3. 34.7b, stacking and CatBoost, on bigger tables, chosen on the same selection fold and measured in its own campaign.
+4. `bakeoff_v2`: AutoGluon, and FLAML again with the column-name fix (`_flaml_frame`); a new campaign, never an edit of
+   `bakeoff_v1`.
+5. Appendix A (H3 to H6, the harness that learns). The H3 pilot's homeworks 3 to 5 (`scripts/learning_loop.sh`, tag
+   `proposal-core-keys-v1`) need a local model pulled again: `qwen3.5:4b` went to the Trash to free disk on 2026-10-25.
+
+**Open inside built packages (small, each its own change, none started):**
+6. 34.1 and 34.4: the engine's review path still calls `review_budget` (the same answers as the core, tested);
+   `delivery_fraud` is not yet measured through an `act` decision.
+7. 34.2: a daily capacity for targeting (refused today); a two-action replica (tested on random tables only).
+8. 34.3: what-if for targeting and for several actions.
+9. 34.4: the wizard has no fields for a decision; the Solution page edits it as JSON only.
+10. 34.7a: a route that lets a person turn the search on after the features stage must clear the stages from data (no
+    such route exists today); the search's attempts and optimism as a measured ledger label, if the decision models
+    need them; whether a search is worth its fold on bigger tables (with 3).
+11. 34.9: without `DCLAB_LOG_KEY` the row-key fallback changes with each export (the README says to set it).
+12. 34.10 and 34.11: alerts as events and serving the promoted fit belong to the host (the main product); the studio
+    records the preferred fit, never a production approval.
+13. 34.14: five domains only (a project in no known domain is weighed column by column, nothing named missing); time
+    folds bootstrapped by row.
+14. The main product: layer 6 (34.9 to 34.12) and 34.4's decision are wired there by that repository's own change, from
+    the `CORE_INTEGRATION.md` sections.
+
+**Housekeeping:**
+15. `make archive` after the store run of 2026-10-24: the newest snapshot is from that morning. `dclab_rnd/archive.py` has
+    another session's uncommitted changes: ask that session before running it.
+16. Two scratch worktrees (`search_v2`'s run and the builds') are removed with `git worktree remove` once `search_v3` has run.
+17. Playwright's Chromium (581 MB, `~/Library/Caches/ms-playwright`) stays for `make browser-test`.
