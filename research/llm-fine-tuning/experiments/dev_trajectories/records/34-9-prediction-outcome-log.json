@@ -169,6 +169,16 @@
    "impact": "a key another local user could read; a first export whose logs never join",
    "alternatives": [],
    "open": ""
+  },
+  {
+   "id": "G1",
+   "source": "test",
+   "defect": "the challenge solver raised NameError after the log key moved to one per project",
+   "scenario": "an approved challenge result exports its service: challenge/__init__.py still returned `key`, the variable 001427a9 removed when export() began returning the keys in a dict, so every approved challenge failed",
+   "cause": "the change renamed a local in export()'s callers but the tests run for it (test_service_export) never reached the challenge path, and the full gate was owed",
+   "fix": "service_key reads exported[\"key\"] (fixed by the A7 session in 4393e95b, found by its gate)",
+   "test": "tests/test_challenge.py",
+   "severity": "behaviour"
   }
  ],
  "measurements": [
@@ -209,7 +219,8 @@
   "A keyed hash's secret must outlive the thing that issues it when records written under it are joined later",
   "Every place a key or a label is normalised must treat the CSV form of a float the same as the number",
   "An append-only log needs a reader that survives a torn line and a writer that never glues onto one",
-  "A permissive fallback in outcome coding (1/0) becomes a silent mislabel when the labels are other numbers"
+  "A permissive fallback in outcome coding (1/0) becomes a silent mislabel when the labels are other numbers",
+  "A change that renames what a function returns must search every caller, and the gate that runs every test is owed until it runs"
  ],
  "risks": [
   "Without DCLAB_LOG_KEY set, outcomes posted after a re-export do not join (documented, not enforced)",

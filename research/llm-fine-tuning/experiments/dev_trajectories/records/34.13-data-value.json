@@ -67,6 +67,16 @@
    "impact": "the full gate would have failed on the committed packages",
    "alternatives": [],
    "open": ""
+  },
+  {
+   "id": "G1",
+   "source": "test",
+   "defect": "the new learning-curves replica entered the business-examples knowledge base with no pitfalls, and the committed base went stale",
+   "scenario": "test_business_examples on main after 782c7307: replica:learning_curves states no pitfall (its docstring had no traps section and no sentence the builder reads as one), and evidence/business_examples was not rebuilt",
+   "cause": "every replica's docstring is read by dclab_rnd/business_examples.py as a knowledge-base entry; the package's own tests did not include that file, and the full gate was owed",
+   "fix": "a traps section in the replica's docstring (the holdout is not a curve's yardstick; subsets keep the split's shape; two points are not a slope; a flat curve is not a finished model; an average hides a segment), and make business-examples",
+   "test": "tests/test_business_examples.py",
+   "severity": "gap"
   }
  ],
  "measurements": [
@@ -100,7 +110,8 @@
  "outcome": "A project whose models stage ran can ask whether more rows would help: the curve on its training folds, the answer with its interval and assumption, and the segments where errors gather, captured as a decision; the held-back cases are never read.",
  "lessons": [
   "A new route needs its capture declared as much as its code.",
-  "Regenerate every derived file a contract touches, not only its schema."
+  "Regenerate every derived file a contract touches, not only its schema.",
+  "A new replica is also a knowledge-base entry: write its traps section and rebuild the business examples in the same commit"
  ],
  "risks": [
   "segment names stay in the project record only; any new reader must keep them out of the ledger and events"

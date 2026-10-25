@@ -360,6 +360,16 @@
    "impact": "a stated decision lost, or the wrong project shown",
    "alternatives": [],
    "open": ""
+  },
+  {
+   "id": "G1",
+   "source": "test",
+   "defect": "DCLAB_E2E_KEEP was read by the code without a line in .env.example",
+   "scenario": "test_config checks that every DCLAB_ setting the code reads is documented; after d2dd5066 it failed on main",
+   "cause": "a new setting added with its test (tests/test_e2e_keep.py) but without the documentation line the config test requires; the full gate that runs test_config was owed",
+   "fix": "documented with its default in .env.example (by the A7 session in 4393e95b, found by its gate)",
+   "test": "tests/test_config.py",
+   "severity": "gap"
   }
  ],
  "measurements": [
@@ -427,7 +437,8 @@
   "Read a person's numbers only when the words leave no doubt; a refused reading is cheap, a wrong one is a wrong decision.",
   "A reader that guesses is worse than one that refuses: every number must say it is money before it is read as money.",
   "A page that redraws itself must carry every field a person typed, not only the ones that existed when the redraw was written: test it by changing what triggers the redraw after filling the form.",
-  "After adding a browser check, run the unit tests that read the browser script too: a list of checks is a contract."
+  "After adding a browser check, run the unit tests that read the browser script too: a list of checks is a contract.",
+  "A new setting needs its .env.example line in the same commit: the config test checks every name the code reads"
  ],
  "risks": [
   "a wrong amount read from words becomes the built solution's decision",

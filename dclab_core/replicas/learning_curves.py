@@ -9,6 +9,17 @@ already flat.
 
 Each table also has a ``region`` column. In ``rising``, rows of region ``east`` follow the same weights but are rarer
 and three in ten of their labels are flipped, so the errors concentrate there (the per-segment curve's case).
+
+The traps a careful data scientist must see:
+
+* **The holdout is not a curve's yardstick.** A curve read on the holdout chooses how much to collect on the rows that
+  judge the final model; read it on the training folds only.
+* **Subsets must keep the split's shape.** A random quarter of a grouped or timed table puts one customer's rows on both
+  sides, so the small subsets look better than they are and the curve looks flat.
+* **Two points are not a slope.** A small subset's score is noisy: read the slope with its interval, over repeats.
+* **A flat curve is not a finished model.** Noisy labels or a missing kind of column flatten it too: more rows of the
+  same kind will not help, but cleaner labels or better columns may.
+* **An average hides a segment.** A rare region with noisy labels can still be learning while the whole is flat.
 """
 
 from __future__ import annotations
