@@ -249,7 +249,7 @@ def _part(part: dict[str, Any], spec: dict[str, Any], store: Any, out: Path, rea
                                                        and not decision.get("warning")), "warning": decision.get("warning")},
             "project": pid, "task": project["solution"]["task"], "recipe": final["feature_recipe"], "model": final["model"],
             "holdout": final["holdout_metrics"].get(records["final"]["primary_metric"]), "notebook": notebook, "pdf": pdf,
-            "approved": approved, "service": service_out, "service_key": key if service_out else None}
+            "approved": approved, "service": service_out, "service_key": exported["key"] if service_out else None}  # 001427a9 left `key` undefined
 
 
 def _deliver(reading: dict[str, Any], done: dict[str, dict[str, Any]], out: Path) -> dict[str, Any]:

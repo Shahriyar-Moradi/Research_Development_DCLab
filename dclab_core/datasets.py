@@ -491,7 +491,8 @@ def episodes(events: Iterable[dict[str, Any]], records: Iterable[dict[str, Any]]
     for turn in sorted(turns, key=lambda t: (t["conversation"], t["index"])):
         window = sorted(turn["events"], key=lambda e: (_when(e.get("at")), e.get("seq") or 0))
         decided, sp = turn["records"], turn["start"].get("payload") or {}
-        message = sp.get("text") or sp.get("problem")
+        # A7: a turn an external chat started (surface mcp) holds that chat model's words: its counts stay, its text never
+        message = None if sp.get("surface") == "mcp" else sp.get("text") or sp.get("problem")
         kinds = Counter(e["kind"] for e in window)
         finished = [e for e in window if e["kind"] == "pipeline.step_finished"]
         metrics = [e for e in finished if (e.get("payload") or {}).get("metric")]
@@ -536,7 +537,8 @@ def episodes(events: Iterable[dict[str, Any]], records: Iterable[dict[str, Any]]
                                  "split as every set.",
                           limits=["A count or a sum is of the events named in event_ids (all of them); a list that is cut (metrics, moves, decisions, "
                                   "feedback, outcomes) says its total beside it.", "The decisions are the ledger's records in the window."]
-                          + ([] if text else ["Built under improve: no free text, no message, only codes and counts."]))
+                          + ([] if text else ["Built under improve: no free text, no message, only codes and counts."])
+                          + ["A turn an external chat started (surface mcp) has no message: its words are that chat model's."])
 
 
 def model_calls(events: Iterable[dict[str, Any]], *, workspace: Optional[str] = None, consent: str = "train",

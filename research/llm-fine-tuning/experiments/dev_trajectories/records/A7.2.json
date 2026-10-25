@@ -245,6 +245,36 @@
       "fix": "home_start waits for the agent's opening message too, as home_message and home_add_data wait for theirs",
       "test": "tests/test_chat_agents.py::test_a_problem_to_a_built_project_through_the_chat (parallel run)",
       "severity": "flaky"
+    },
+    {
+      "id": "F22",
+      "source": "reviewer",
+      "defect": "chat words became a person's message in the episodes training set and in the intern's and project's chats",
+      "scenario": "dclab_call POST /api/intern/sessions/{id}/message with train consent on: the episodes set (text=True) returned the chat model's words as the person's message; the intern's chat.person had a fixed surface 'intern', the project ask 'project', with no mcp marker",
+      "cause": "only the conversations set filtered on surface; the intern and project chats wrote fixed surfaces",
+      "fix": "episodes keeps a turn started with surface mcp without its message; the intern and the project ask record chat_surface('intern'/'project'); the failure-candidates set skips drafts a chat started",
+      "test": "tests/test_chat_agents.py::ChatConversationsKeptApartTests",
+      "severity": "latent"
+    },
+    {
+      "id": "F23",
+      "source": "test",
+      "defect": "the challenge solver failed both parts with NameError: name 'key' is not defined",
+      "scenario": "this package's gate ran tests/test_challenge.py: part1 and part2 returned {'error': \"NameError: name 'key' is not defined\"}",
+      "cause": "another session's commit 001427a9 (2026-10-25) replaced `key = service.export(...)` with `exported = ...` and left `key` in the result",
+      "fix": "service_key reads exported['key']",
+      "test": "tests/test_challenge.py",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F24",
+      "source": "test",
+      "defect": "four names the code reads were not documented as settings",
+      "scenario": "the gate's test_config listed DCLAB_CODE, DCLAB_E2E_KEEP, DCLAB_JOURNEY_PLAYS, DCLAB_STORE_DCLAB_CODE",
+      "cause": "earlier commits (the DCLab Code keeper, 32.33, aliased a keeper as DCLAB_CODE; the e2e keep and journey plays switches) added names without .env.example lines",
+      "fix": "the alias lower-cased; the three real settings documented with their defaults",
+      "test": "tests/test_config.py",
+      "severity": "gap"
     }
   ],
   "measurements": [

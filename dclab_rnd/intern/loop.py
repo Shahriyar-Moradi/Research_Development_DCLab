@@ -145,7 +145,7 @@ class Intern:
         from .. import experience  # 19.3: the person's request in the session's record
 
         if by == "person":
-            experience.record("chat.person", "person", {"text": task[:4000], "surface": "intern"}, conversation=session["id"], project=project_id)
+            experience.record("chat.person", "person", {"text": task[:4000], "surface": experience.chat_surface("intern")}, conversation=session["id"], project=project_id)
         else:
             experience.record("chat.agent", "system", {"text": task[:4000], "kind": "task", "surface": "intern"}, conversation=session["id"], project=project_id)
         return self.sessions.save(session)
@@ -210,7 +210,7 @@ class Intern:
             session["messages"].append({"role": "user", "content": text})
             from .. import experience  # 19.3: the follow-up in the session's record
 
-            experience.record("chat.person", "person", {"text": text, "surface": "intern"}, conversation=session_id, project=session.get("project_id"))
+            experience.record("chat.person", "person", {"text": text, "surface": experience.chat_surface("intern")}, conversation=session_id, project=session.get("project_id"))  # A7: mcp when an external chat sent it
         session["final"] = None
         session["status"] = "queued"
         self.sessions.save(session)

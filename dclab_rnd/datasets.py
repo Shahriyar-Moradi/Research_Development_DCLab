@@ -274,6 +274,8 @@ def _sessions(services: Any, exported: list[dict[str, Any]], drafts: dict[str, d
         flags = [f.model_dump() for f in experience.flags(allowed)]
         mine = by_visit.get(visit) or []
         created = next((e for e in mine if e["kind"] == "draft.created"), None)
+        if created and (created.get("payload") or {}).get("surface") == "mcp":
+            continue  # A7: a draft an external chat started: its problem and answers are that chat model's words
         conversation = (created or {}).get("ids", {}).get("conversation")
         draft = drafts.get(conversation or "") or {}
         card = None

@@ -156,7 +156,9 @@ def from_activity(project_id: str, kind: str, payload: Any) -> None:
         record("data.labels_joined", "system", {"key": p.get("key"), "rows_marked": p.get("rows_marked"),
                                                 "label_rows": p.get("label_rows"), "not_found": p.get("not_found")}, **ids)
     elif kind == "question":
-        record("chat.person", "person", {"text": p.get("question"), "surface": "project"}, **ids)
+        from . import chat_surface
+
+        record("chat.person", "person", {"text": p.get("question"), "surface": chat_surface("project")}, **ids)  # A7: mcp when an external chat asked
     elif kind == "answer":
         from . import release
 

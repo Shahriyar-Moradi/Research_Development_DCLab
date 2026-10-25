@@ -14,6 +14,8 @@ DCLab's agents behind an external chat (A7): what such a chat sends is its model
 - `datasets.conversations` leaves out a conversation whose `draft.created` surface is not `home` (an event without
   the field reads as `home`): its "person" turns were written by the external chat's model, and the set teaches the
   understanding conversation from a person's words only.
+- `datasets.episodes` keeps a turn an external chat started (surface `mcp`) without its message: its counts stay, its
+  words (that chat model's) never become a person's message.
 
 ## 0.115.0 (2026-10-25)
 

@@ -347,6 +347,16 @@ class ChatConversationsKeptApartTests(unittest.TestCase):
 
         rows, _ = datasets.conversations(events("cHome", None) + events("cMcp", "mcp") + events("cPage", "home"))
         self.assertEqual(sorted(r["conversation"] for r in rows), ["cHome", "cPage"])
+        turns, _ = datasets.episodes([dict(e, at="2026-10-25T10:00:0%d+00:00" % i) for i, e in enumerate(events("cMcp", "mcp") + events("cHome", None))], text=True)
+        said = {t["conversation"]: t["message"] for t in turns}
+        self.assertEqual(said, {"cMcp": None, "cHome": "Predict churn next month"})  # the chat model's words are never a person's message
+
+    def test_the_intern_and_project_chats_mark_a_chats_words(self):
+        from dclab_rnd import experience
+
+        self.assertEqual(experience.chat_surface("intern"), "intern")
+        with experience.via("mcp"):
+            self.assertEqual((experience.chat_surface("intern"), experience.chat_surface("project")), ("mcp", "mcp"))
 
 
 if __name__ == "__main__":
