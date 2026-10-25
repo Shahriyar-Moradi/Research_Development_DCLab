@@ -75,10 +75,9 @@ def _now() -> str:
 
 
 def code_sha256(root: Path = ROOT) -> str:
-    digest = hashlib.sha256()
-    for name in CODE_FILES:
-        digest.update(name.encode() + b"\0" + (root / name).read_bytes() + b"\0")
-    return digest.hexdigest()
+    from .campaign_capture import ENGINE_CODE, code_sha256 as whole
+
+    return whole((*ENGINE_CODE, *CODE_FILES, "dclab_rnd/campaign_capture.py", "dclab_rnd/ledger", "dclab_rnd/experience"), root)  # every file behind the numbers
 
 
 CODE_AT_START = code_sha256()  # the code this process loaded (an edit on disk later never changes what it runs)
@@ -192,7 +191,9 @@ def _arm(dataset: str, name: str, budget: dict[str, Any] | None) -> dict[str, An
         last.update(out=out, rows=len(args[6]) if len(args) > 6 else len(kwargs["X_eval"]))
         return out
 
-    with private_scope(True):  # no model is offered to any purpose: the engine's own rules decide, as in the bake-off
+    from .campaign_capture import recorded
+
+    with recorded(work / "workspace"), private_scope(True):  # the arm's ledger and session log kept; the rules decide, as in the bake-off
         for stage in engine.STAGE_KEYS[:-1]:
             engine.execute(store, pid, stage)
         with mock.patch.object(rn, "fit_and_predict", recording):  # the final stage's last fit is its one holdout fit
@@ -310,7 +311,7 @@ def report() -> dict[str, Any]:
     folder = CAMPAIGN / "results"
     rows = [json.loads(p.read_text()) for p in sorted(folder.glob("SRCH-0*.json"))] if folder.exists() else []
     out = judge(rows)
-    if len(rows) == len(DATASETS):  # every dataset compared or failed
+    if len(rows) == len(DATASETS) and not (folder / "SRCH-100_decision.json").exists():  # every dataset in; written once
         (folder / "SRCH-100_decision.json").write_text(json.dumps({**out, "campaign_id": CAMPAIGN_ID, "decided_at": _now()}, indent=2) + "\n")
     return out
 

@@ -82,6 +82,47 @@ class ServiceExportTest(unittest.TestCase):
         self.assertAlmostEqual(float(runner.binary_metrics(p.bundle.y_test, expected)["average_precision"]), recorded, places=6)
         self.assertIn("no data file is copied", (out / "Dockerfile").read_text())
 
+    def test_every_export_of_a_project_gives_the_same_log_key_kept_where_nothing_copies_it(self):
+        """34.9's open item: without a stable key the log's hashes changed with each export, so an outcome posted to a new
+        export never joined a prediction the last one logged."""
+        from dclab_rnd.testers import NEVER
+
+        if self.store.get(self.pid)["stages"]["final"].get("status") != "approved":
+            engine.approve(self.store, self.pid, "final")
+        with runner.fast_profile():
+            first = service.export(self.store, self.pid, Path(tempfile.mkdtemp()) / "a")
+            second = service.export(self.store, self.pid, Path(tempfile.mkdtemp()) / "b")
+        self.assertNotEqual(first["key"], second["key"])  # the export's own key still changes
+        self.assertEqual(first["log_key"], second["log_key"])  # the log's does not
+        self.assertEqual(len(first["log_key"]), 32)
+        self.assertRegex(service.LOG_KEY_FILE.as_posix(), NEVER)  # the store and the testers' kit skip it by its name
+        for folder in (Path(first["folder"]), Path(second["folder"])):
+            text = "".join(p.read_text(errors="ignore") for p in folder.rglob("*") if p.is_file())
+            self.assertNotIn(first["log_key"], text)  # never in the export's folder
+        records = "".join(p.read_text(errors="ignore") for p in Path(self.store.directory(self.pid)).rglob("*")
+                          if p.is_file() and "secrets" not in p.parts)
+        self.assertNotIn(first["log_key"], records)  # nor in the project's records and logs
+
+    def test_the_log_key_needs_no_store_folder_method_and_is_made_for_the_owner_only(self):
+        """The review of item 11: the PostgreSQL store has no ``directory``; the key is found through ``export_dir``."""
+        import stat
+
+        home = Path(tempfile.mkdtemp())
+
+        class PgLike:  # only what both backends share
+            def export_dir(self, project_id):
+                path = home / "projects" / project_id / "exports"
+                path.mkdir(parents=True, exist_ok=True)
+                return path
+
+        first = service.project_log_key(PgLike(), "abcdef012345")
+        self.assertEqual(service.project_log_key(PgLike(), "abcdef012345"), first)
+        path = home / "projects" / "abcdef012345" / service.LOG_KEY_FILE
+        self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+        self.assertEqual(stat.S_IMODE(path.parent.stat().st_mode) & 0o077, 0)
+        path.write_text("short")  # a broken key is made again, never used
+        self.assertEqual(len(service.project_log_key(PgLike(), "abcdef012345")), 32)
+
     def test_the_service_logs_every_prediction_takes_outcomes_and_the_logs_join_by_key_without_a_value(self):
         """34.9: a batch scored as JSON and one as CSV, their outcomes posted by the caller's own key (the order id), a
         batch with no key gets keys made for it; the two logs join by key and neither holds a value of the rows."""

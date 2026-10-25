@@ -222,6 +222,9 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
         ev = np.r_[0.0, np.cumsum((rw[rows] * _gain(y[rows], value[rows], spec))[order])]
         ranked_r = r[order]
         valid = np.r_[True, np.r_[ranked_r[:-1] != ranked_r[1:], True]] if len(rows) else np.array([True])
+        if cap_share is not None and weights is None:  # the capacity itself may end the list inside a tie (the review of
+            valid = valid.copy()                        # 0.113.0: else a tie across it left only "act on none")
+            valid[min(int(np.floor(cap_share * len(rows))), len(rows))] = True
         if weights is None:
             within = np.arange(len(ev)) <= (len(rows) if cap_share is None else int(np.floor(cap_share * len(rows))))
         else:  # a capacity is a share of the weighted rows
@@ -234,6 +237,30 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
     free = int(np.argmax(np.where(np.r_[True, np.r_[np.sort(rank)[::-1][:-1] != np.sort(rank)[::-1][1:], True]], ev, -np.inf)))
     weighted_share = np.r_[0.0, np.cumsum(rw[np.argsort(-rank, kind="mergesort")])] / rw.sum()  # the share acted on at each count
     threshold = float(np.sort(rank)[::-1][best - 1]) if best else None
+    binds = cap_share is not None and float(weighted_share[free]) > cap_share + 1e-12
+    quota = binds and best > 0  # the capacity, not the value, ends the list: the decision is a quota
+
+    def acted_rows(r: np.ndarray, sc: np.ndarray, v: np.ndarray) -> np.ndarray:
+        """The positions acted on among rows with ranks ``r``, scores ``sc`` and values ``v``, as the decision runs (the
+        measurement of 34.1 on the fraud replica): under a binding capacity, the highest-ranked rows the capacity allows,
+        each still worth acting on alone (a threshold carried to rows scored on another scale would act on too few or too
+        many); otherwise every row ranked at least as high as the threshold, cut to the capacity."""
+        size = len(r)
+        if quota:
+            if ranked_by == "expected gain":
+                worth = r > 0
+            elif probabilities:
+                worth = sc * (v + spec.cost_false_negative) - (1 - sc) * spec.cost_false_positive - spec.cost_per_action > 0
+            else:  # scores that are not probabilities say nothing of one row's worth: the quota alone
+                worth = np.ones(size, dtype=bool)
+            worth = worth | (r >= threshold)  # never stricter than the training's own choice, which took every row this high
+            candidates = np.flatnonzero(worth)
+            return candidates[np.argsort(-r[candidates], kind="mergesort")[: int(np.floor(cap_share * size))]]
+        top = np.flatnonzero(r >= threshold) if threshold is not None else np.array([], dtype=int)
+        if cap_share is not None and len(top) > int(np.floor(cap_share * size)):
+            top = top[np.argsort(-r[top], kind="mergesort")[: int(np.floor(cap_share * size))]]
+        return top
+
     rng = np.random.default_rng(seed)
     if groups is not None:  # entities as codes; a row without one is its own unit
         codes, _ = pd.factorize(pd.Series(np.asarray(groups, dtype=object)))
@@ -249,9 +276,7 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
         rows = np.concatenate([index[k] for k in draw]) if index is not None else draw
         k, _ = curve(rows)
         shares.append(k / len(rows))  # the best share again: how stable the choice is
-        acted = rows[rank[rows] >= threshold] if threshold is not None else rows[:0]  # the decision taken: the chosen threshold
-        if cap_share is not None and len(acted) > int(np.floor(cap_share * len(rows))):
-            acted = acted[np.argsort(-rank[acted], kind="mergesort")[: int(np.floor(cap_share * len(rows)))]]
+        acted = rows[acted_rows(rank[rows], s[rows], value[rows])]  # the decision taken, as it runs
         values.append(float(_gain(y[acted], value[acted], spec).sum()) / len(rows))
     ranked = np.sort(rank)[::-1]
     out: dict[str, Any] = {
@@ -261,7 +286,11 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
         "threshold_of": "the score" if ranked_by == "score" else "the expected gain of acting on the row",
         "expected_value_per_row": _r(ev[best] / rw.sum()), "expected_value_per_row_interval": _interval(values),
         "share_interval": _interval(shares), "capacity_share": _r(cap_share, 6),
-        "capacity_binds": cap_share is not None and float(weighted_share[free]) > cap_share + 1e-12,
+        "capacity_binds": binds,
+        "applied_as": (("a quota: the highest-ranked rows the capacity allows, each worth acting on alone or ranked as high as the "
+                        "rows chosen" + ("; a capacity per day is applied as one pool over the rows read, not day by day"
+                                        if spec.capacity_per_day else "")) if quota else
+                       "a threshold: every row ranked at least as high, cut to the capacity" if best else "no action"),
         "chosen_on": "out-of-fold training predictions",
         "interval": (f"90% bootstrap over {'entities' if groups is not None else 'rows'}, {bootstrap} draws, of the expected value per row "
                      "at the share chosen (the share's own interval: the best share in each draw)"),
@@ -287,9 +316,7 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
             raise ValueError("The holdout's rows need their own values per case (value_test), one for each row, to be read")
         vt = np.asarray(value_test, dtype=float) if per_row else np.full(len(yt), spec.value_per_case)
         rank_t = rank_of(st, vt)
-        top = np.flatnonzero(rank_t >= threshold)  # the decision as it would run: every row ranked at least as high
-        if cap_share is not None and len(top) > int(np.floor(cap_share * len(yt))):
-            top = top[np.argsort(-rank_t[top], kind="mergesort")[: int(np.floor(cap_share * len(yt)))]]
+        top = acted_rows(rank_t, st, vt)  # the decision as it would run (a quota under a binding capacity, else the threshold)
         k = len(top)
         realised = float(_gain(yt[top], vt[top], spec).sum())
         out["holdout"] = {"actions": k, "cases_found": int(yt[top].sum()), "precision": _r(yt[top].mean()) if k else None,
@@ -604,6 +631,103 @@ def choose_actions(values: Any, capacities: Sequence[Optional[int]], actions: Op
     counts["none"] = int(sum(1 for x in best_assign if x < 0))
     return {"decision": "actions", "assignment": [int(x) for x in best_assign], "labels": [names[x] if x >= 0 else None for x in best_assign],
             "counts": counts, "total_value": _r(best_total, 6), "capacities": list(capacities), "method": "min-cost flow (exact)"}
+
+
+TARGETING_WHAT_IF_TERMS = ("value_per_case", "cost_per_action", "capacity_share")
+
+
+def targeting_what_if(score: Sequence[float], treated: Sequence[int], outcome: Sequence[int], spec: DecisionSpec, changes: dict[str, float], *,
+                      weights: Optional[Sequence[float]] = None) -> dict[str, Any]:
+    """Whom to treat (34.2) re-chosen under changed numbers (34.3), with no refit: the share chosen before and after, and
+    what treating the same rows (the old top rows by score, cut to a smaller capacity) is worth under the new numbers.
+    ``changes`` names a conversion's value, a treatment's cost or the capacity share. A base rate is refused: an uplift is
+    read as the difference between the arms among the top rows, and reweighting the cases would not move it honestly."""
+    unknown = set(changes) - set(TARGETING_WHAT_IF_TERMS)
+    if unknown:
+        raise ValueError(f"A targeting what-if changes {', '.join(TARGETING_WHAT_IF_TERMS)}; not {', '.join(sorted(unknown))}")
+    new = DecisionSpec(**{**spec.model_dump(), **changes})
+    before = target_by_uplift(score, treated, outcome, spec, weights=weights, bootstrap=0)
+    after = target_by_uplift(score, treated, outcome, new, weights=weights, bootstrap=0)
+    s, t, y = np.asarray(score, dtype=float), np.asarray(treated).astype(int), np.asarray(outcome).astype(int)
+    w = np.ones(len(s)) if weights is None else np.asarray(weights, dtype=float)
+    n = len(s)
+    k = before["treated_training"]  # the very rows treated before: the top k by score
+    limit = None if new.capacity_share is None else int(np.floor(new.capacity_share * n))
+    over = limit is not None and k > limit
+    if over:  # cut where the score changes, as target_by_uplift only stops there (the review of 0.113.0: ties)
+        k = int(np.flatnonzero(_cut_points(s)[: limit + 1])[-1])
+    curve = _incremental(s, t, y, w, new)  # read as target_by_uplift reads it: NaN when an arm has too few rows
+    kept = float(curve[k]) / n if k else 0.0
+    kept_value = _r(kept) if np.isfinite(kept) else None
+
+    def brief(r: dict[str, Any]) -> dict[str, Any]:  # no "pays": these choices are made without a bootstrap, so it cannot say yes
+        return {"share": r["share"], "threshold": r["threshold"], "value_per_row": r["value_per_row"]}
+
+    keep: dict[str, Any] = {"share": _r(k / n, 6), "value_per_row": kept_value}
+    if over:
+        keep["cut_to_capacity"] = True
+    regret = _r((after["value_per_row"] or 0.0) - kept) if kept_value is not None else None
+    return {"decision": "targeting_what_if", "changes": dict(changes), "before": brief(before), "after": brief(after),
+            "keep_the_old_rows": keep, "regret_if_unchanged": regret,
+            "note": "not refitted: the uplift model's scores and the arms stay as they are; the share is chosen again on the same rows"}
+
+
+ACTIONS_WHAT_IF_TERMS = ("capacities", "value_scale", "added_cost")
+
+
+def actions_what_if(values: Any, capacities: Sequence[Optional[int]], changes: dict[str, dict[str, float]], *,
+                    actions: Optional[Sequence[str]] = None) -> dict[str, Any]:
+    """Which action each row gets (34.2) re-chosen under changed numbers (34.3), with no refit: ``changes`` maps
+    ``capacities`` (an action's new count, None for no limit), ``value_scale`` (every row's value of that action times a
+    number above 0) or ``added_cost`` (subtracted from every row's value of that action), each by action name. The old
+    assignment kept is valued with the new values, each action cut to its new capacity (its rows worth least go to no
+    action)."""
+    unknown = set(changes) - set(ACTIONS_WHAT_IF_TERMS)
+    if unknown:
+        raise ValueError(f"An actions what-if changes {', '.join(ACTIONS_WHAT_IF_TERMS)}; not {', '.join(sorted(unknown))}")
+    v = np.asarray(values, dtype=float)
+    if v.ndim != 2:
+        raise ValueError("Values must be a table: one row per row scored, one column per action")
+    names = list(actions) if actions is not None else [f"action_{j}" for j in range(v.shape[1])]
+    if len(capacities) != v.shape[1] or len(names) != v.shape[1]:
+        raise ValueError(f"One capacity and one name per action: {v.shape[1]} actions")
+    index = {name: j for j, name in enumerate(names)}
+    for term, by_action in changes.items():
+        if not isinstance(by_action, dict) or set(by_action) - set(index):
+            raise ValueError(f"{term} names actions among {', '.join(names)}")
+    caps = list(capacities)
+    for name, c in (changes.get("capacities") or {}).items():
+        if c is not None and c < 0:
+            raise ValueError("A capacity is a count of rows, never negative")
+        caps[index[name]] = c
+    new_v = v.copy()
+    for name, k in (changes.get("value_scale") or {}).items():
+        if not k > 0:
+            raise ValueError("A value scale multiplies an action's values: it must be above 0")
+        new_v[:, index[name]] *= k
+    for name, cost in (changes.get("added_cost") or {}).items():
+        new_v[:, index[name]] -= cost
+    before = choose_actions(v, capacities, names)
+    after = choose_actions(new_v, caps, names)
+    kept = list(before["assignment"])
+    over = False
+    for j, c in enumerate(caps):
+        rows = [i for i, a in enumerate(kept) if a == j]
+        if c is not None and len(rows) > c:
+            over = True
+            for i in sorted(rows, key=lambda i: -new_v[i, j])[int(c):]:  # the rows of that action worth least under the new values
+                kept[i] = -1
+    total = float(sum(new_v[i, a] for i, a in enumerate(kept) if a >= 0))
+    counts = {names[j]: int(sum(1 for a in kept if a == j)) for j in range(len(names))}
+    counts["none"] = int(sum(1 for a in kept if a < 0))
+    keep: dict[str, Any] = {"counts": counts, "total_value": _r(total, 6)}
+    if over:
+        keep["cut_to_capacity"] = True
+    return {"decision": "actions_what_if", "changes": {k: dict(v_) for k, v_ in changes.items()},
+            "before": {"counts": before["counts"], "total_value": before["total_value"]},
+            "after": {"counts": after["counts"], "total_value": after["total_value"]},
+            "keep_the_old_assignment": keep, "regret_if_unchanged": _r((after["total_value"] or 0.0) - total, 6),
+            "note": "not refitted: each row's values come from the same models; the assignment is solved again exactly"}
 
 
 def _flow_assign(v: np.ndarray, caps: list[int]) -> list[int]:

@@ -304,17 +304,21 @@ or decided; nothing below blocks using them.
    `proposal-core-keys-v1`) need a local model pulled again: `qwen3.5:4b` went to the Trash to free disk on 2026-10-25.
 
 **Open inside built packages (small, each its own change, none started):**
-6. 34.1 and 34.4: the engine's review path still calls `review_budget` (the same answers as the core, tested);
-   `delivery_fraud` is not yet measured through an `act` decision.
+6. 34.1 and 34.4: the engine's review path stays on `review_budget` on purpose (2026-10-25: the choice is tested to be
+   the same; moving it would give one decision two record shapes and change review projects' holdout readings).
+   `delivery_fraud` through an `act` decision: campaign `fraud_decision_v1`; its first seed showed a binding capacity read
+   as a carried threshold (6 rides reviewed where 16 were allowed), fixed in dclab-core 0.113.0 (applied as a quota).
 7. 34.2: a daily capacity for targeting (refused today); a two-action replica (tested on random tables only).
-8. 34.3: what-if for targeting and for several actions.
+8. ~~34.3: what-if for targeting and for several actions~~ done 2026-10-25 (dclab-core 0.113.0: `targeting_what_if`,
+   `actions_what_if`; reviewed, 3 findings fixed).
 9. ~~34.4: the wizard has no fields for a decision~~ done 2026-10-25: step 3 has a decision block (what is done, what a
    case is worth, what an action, a miss and a wasted action cost, a capacity), filled from the chat's amounts; tested in
    the browser. Still open: the Solution page edits the decision as JSON only.
 10. 34.7a: a route that lets a person turn the search on after the features stage must clear the stages from data (no
     such route exists today); the search's attempts and optimism as a measured ledger label, if the decision models
     need them; whether a search is worth its fold on bigger tables (with 3).
-11. 34.9: without `DCLAB_LOG_KEY` the row-key fallback changes with each export (the README says to set it).
+11. ~~34.9: without `DCLAB_LOG_KEY` the row-key fallback changes with each export~~ done 2026-10-25: one log key per
+    project, the same for every export, kept where the store and the testers' kit never copy it, on files and PostgreSQL.
 12. 34.10 and 34.11: alerts as events and serving the promoted fit belong to the host (the main product); the studio
     records the preferred fit, never a production approval.
 13. 34.14: five domains only (a project in no known domain is weighed column by column, nothing named missing); time
@@ -334,3 +338,5 @@ or decided; nothing below blocks using them.
     the store collects `agent_runs/`; this session's campaigns now keep their engine runs there (`search_v2` copied in,
     240 MB; `fraud_decision_v1` and `search_v3` write there). Not captured: `make product-e2e` and `make browser-test` run
     in temporary workspaces, so their sessions, ledgers and runs are deleted with them (the test results are kept).
+20. 34.1: a capacity per day is applied as one pool over the holdout (said in `applied_as`); filling it day by day needs
+    each holdout row's day passed to the core.

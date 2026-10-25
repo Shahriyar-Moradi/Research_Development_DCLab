@@ -125,6 +125,50 @@
    "impact": "unclear errors, no leak",
    "alternatives": [],
    "open": ""
+  },
+  {
+   "id": "F2",
+   "source": "owner",
+   "defect": "the log's row keys changed with every export",
+   "scenario": "a model retrained and exported again: an outcome posted to the new export never joined a prediction the last one logged",
+   "cause": "without DCLAB_LOG_KEY the log hashed keys with the export's own key, which is new each time, and DCLab gave no stable key",
+   "fix": "one log key per project, made once and kept beside the project in a file the store and the testers' kit skip by its name; every export returns it beside its own key and the README's run line passes it",
+   "test": "tests/test_service_export.py (two exports, one log key, never in an export or a record)",
+   "severity": "behaviour",
+   "impact": "monitoring with outcomes and a retrain lost the rows of every earlier export",
+   "alternatives": [
+    "refuse to log without DCLAB_LOG_KEY (a service that fails by default)",
+    "a fixed default key (a dictionary of hashed ids anyone could rebuild)"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "the stable log key was never made on PostgreSQL",
+   "scenario": "DCLAB_DATABASE_URL set (make dev, the cloud): two exports returned no log key while the README promised one",
+   "cause": "the key's folder came from store.directory, which only the file store has; the error was caught and the key silently skipped",
+   "fix": "the folder comes from export_dir, which both backends have and both delete with the project",
+   "test": "tests/test_service_export.py (a store with only export_dir)",
+   "severity": "behaviour",
+   "impact": "logs that never join across exports on every deployed workspace",
+   "alternatives": [
+    "a secrets_dir method on the storage protocol"
+   ],
+   "open": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "the key file was briefly readable by others, and two first exports could race",
+   "scenario": "the file written with the default mode, then made private; two exports at once each writing a different key",
+   "cause": "write then chmod, no exclusive create",
+   "fix": "the folder owner-only, the file created owner-only and exclusively; the loser of a race reads the winner's key; a short key is made again",
+   "test": "tests/test_service_export.py (mode 600, a broken key replaced)",
+   "severity": "privacy",
+   "impact": "a key another local user could read; a first export whose logs never join",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [

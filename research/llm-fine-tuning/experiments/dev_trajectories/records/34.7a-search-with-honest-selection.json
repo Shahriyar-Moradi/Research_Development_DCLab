@@ -313,6 +313,19 @@
         "add the missing fields to search_v2's results (refused: results are never edited)"
       ],
       "open": ""
+    },
+    {
+      "id": "R12",
+      "source": "owner",
+      "defect": "the search campaign's engine runs were outside what the store collects",
+      "scenario": "the owner: make sure capture runs for the six models; search_v2's eighteen engine runs sat in a scratch worktree, with no ledger or session log",
+      "cause": "the campaign ran in a worktree for code pinning, and installed no ledger or log",
+      "fix": "search_v2's runs copied into agent_runs (240 MB); search_v3 keeps each arm's ledger and session log (campaign_capture.recorded) and the night's job copies its runs back; the code hash covers the engine's folders whole",
+      "test": "tests/test_search_measure.py",
+      "severity": "gap",
+      "impact": "eighteen engine runs lost to the six models' training sets",
+      "alternatives": [],
+      "open": ""
     }
   ],
   "measurements": [

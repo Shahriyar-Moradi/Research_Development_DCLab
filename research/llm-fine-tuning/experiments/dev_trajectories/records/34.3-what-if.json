@@ -27,6 +27,10 @@
   {
    "decision": "Weighted rows choose a point only: no bootstrap, no entities, no holdout",
    "why": "those read rows, not weights; weighting them all is a larger change than a what-if needs"
+  },
+  {
+   "decision": "What-if for targeting and for several actions as two functions beside what_if (dclab-core 0.113.0)",
+   "why": "each re-chooses with its own call and values the old choice kept under the new numbers, so the answer is the same as asking again; a base rate is refused for targeting, where the uplift is read from the arms' difference"
   }
  ],
  "change": "dclab_core/decide.py (WHAT_IF_TERMS, NOT_REFITTED, _rate_weights, what_if, sensitivity; choose_operating_point takes weights and divides by their total); tests/test_core_decide_whatif.py (new); version 0.108.0 with 34.2.",
@@ -41,7 +45,9 @@
    "test": "tests/test_core_decide_whatif.py::WhatIfTests::test_keeping_the_old_decision_keeps_its_very_rows",
    "severity": "behaviour",
    "impact": "a person asking whether to change their decision would be shown a regret that does not exist",
-   "alternatives": ["keep the threshold unrounded in the answer: still wrong when the ranking itself changes"],
+   "alternatives": [
+    "keep the threshold unrounded in the answer: still wrong when the ranking itself changes"
+   ],
    "open": ""
   },
   {
@@ -67,7 +73,9 @@
    "test": "tests/test_core_decide_whatif.py::WhatIfTests::test_keeping_the_old_decision_keeps_its_very_rows",
    "severity": "behaviour",
    "impact": "a decision the team can no longer carry out would look better than the new one",
-   "alternatives": ["mark it over capacity with no regret: less useful to the person"],
+   "alternatives": [
+    "mark it over capacity with no regret: less useful to the person"
+   ],
    "open": "on tied scores a capacity cuts through a tie for the kept decision but not for the new choice, so the regret can be negative there"
   },
   {
@@ -93,7 +101,48 @@
    "test": "tests/test_core_decide_whatif.py::WhatIfTests::test_weighted_rows_choose_a_point_only_and_weigh_as_shares",
    "severity": "latent",
    "impact": "any later caller passing weights would get intervals that do not hold their own point",
-   "alternatives": ["weight the bootstrap too: a larger change for no current caller"],
+   "alternatives": [
+    "weight the bootstrap too: a larger change for no current caller"
+   ],
+   "open": ""
+  },
+  {
+   "id": "W1",
+   "source": "reviewer",
+   "defect": "the targeting what-if could report a negative regret",
+   "scenario": "a smaller capacity: the old rows kept were read from 24 rows an arm (target_by_uplift needs 30) or cut in the middle of tied scores, where the new choice may not stop",
+   "cause": "the kept rows were valued by their own reading, not the one the choice uses",
+   "fix": "kept read on the same curve as the choice, cut only where the score changes; too few rows an arm gives no value",
+   "test": "tests/test_core_whatif_targeting.py",
+   "severity": "behaviour",
+   "impact": "not changing would look better than the new choice",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "W2",
+   "source": "reviewer",
+   "defect": "the targeting what-if said 'cannot tell' whether it pays, always",
+   "scenario": "its choices run without a bootstrap, so their interval is empty",
+   "cause": "pays copied from a choice that cannot say yes",
+   "fix": "pays left out of the what-if",
+   "test": "tests/test_core_whatif_targeting.py",
+   "severity": "behaviour",
+   "impact": "a misleading word beside every what-if",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "W3",
+   "source": "reviewer",
+   "defect": "a short capacities list raised an index error",
+   "scenario": "actions_what_if with one capacity fewer than actions",
+   "cause": "the list was indexed before it was checked",
+   "fix": "lengths checked first, said in words",
+   "test": "tests/test_core_whatif_targeting.py",
+   "severity": "behaviour",
+   "impact": "an unreadable error",
+   "alternatives": [],
    "open": ""
   }
  ],
@@ -107,7 +156,10 @@
    "cost_eur": 0,
    "next": "the product's what-if (34.4) reads this",
    "against_gate": "",
-   "limits": ["invented scores", "prior shift assumes the scores of cases and non-cases keep their shape"]
+   "limits": [
+    "invented scores",
+    "prior shift assumes the scores of cases and non-cases keep their shape"
+   ]
   }
  ],
  "outcome": "A chosen decision can be asked what if a cost, a value, the capacity or the base rate changes, without refitting: the new point, the old decision's very rows valued anew, the regret of not changing, and how far each number can move.",

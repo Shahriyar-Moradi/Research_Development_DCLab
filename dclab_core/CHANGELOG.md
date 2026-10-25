@@ -4,6 +4,24 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.113.0 (2026-10-25)
+
+What-if for targeting and for several actions (34.3's open item), no refit, no contract changed; and a binding capacity
+read as the quota it is.
+
+- `decide.choose_operating_point`: when the capacity, not the value, ends the list, the decision is applied as a quota
+  (the highest-ranked rows the capacity allows, each still worth acting on alone), in the interval's draws and on the
+  holdout; a threshold carried to rows scored on another scale acted on too few (on the delivery-fraud replica, 6 rides
+  where the team could review 16, far below its interval). The result says how it was applied (`applied_as`). Without a
+  binding capacity the threshold reading is unchanged.
+
+- `decide.targeting_what_if(score, treated, outcome, spec, changes)`: whom to treat (34.2) chosen again under a changed
+  conversion value, treatment cost or capacity share; the same top rows kept are valued under the new numbers (cut to a
+  smaller capacity), with the regret of not changing. A base rate is refused: an uplift is read from the arms' difference.
+- `decide.actions_what_if(values, capacities, changes)`: which action each row gets (34.2) solved again under changed
+  capacities, a value scale or an added cost per action; the old assignment kept is cut to the new capacities (its rows
+  worth least go to no action) and valued anew, with the regret.
+
 ## 0.112.1 (2026-10-25)
 
 One split per public table, everywhere (S8 of the 100-students plan, the owner's "capture everything for every model").

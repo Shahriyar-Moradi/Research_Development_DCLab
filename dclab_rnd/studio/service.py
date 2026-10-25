@@ -110,6 +110,7 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
         shutil.rmtree(out)
     (out / "tests").mkdir(parents=True)
     key = secrets.token_hex(16)  # the hashing key never goes into the folder: the service reads it at start (DCLAB_SERVICE_KEY)
+    log_key = project_log_key(store, project_id)  # the same for every export of this project (DCLAB_LOG_KEY)
     recipe, hashed = _strip(fitted["recipe"], key)
     y_train = bundle.y_train.to_numpy(dtype=float) if bundle.task_type == "timeseries_regression" else None
     with open(out / "model.pkl", "wb") as handle:
@@ -196,13 +197,15 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
     (out / "README.md").write_text(
         f"# Scoring service: {project['name']}\n\nExported by DCLab from the approved final stage: recipe `{recipe_name}`, model `{family}`. "
         "No data is in this folder, and the key that hashes category values is not either: it was given to whoever exported "
-        "the service, who passes it as `DCLAB_SERVICE_KEY`.\n\n```bash\ndocker build -t dclab-service .\n"
-        "docker run -e DCLAB_SERVICE_KEY=... -p 8000:8000 dclab-service\n```\n\n"
+        "the service, who passes it as `DCLAB_SERVICE_KEY`. DCLab gives `DCLAB_LOG_KEY` with it, the same for every export of this "
+        "project, so the logs of one export and the next join.\n\n```bash\ndocker build -t dclab-service .\n"
+        "docker run -e DCLAB_SERVICE_KEY=... -e DCLAB_LOG_KEY=... -p 8000:8000 dclab-service\n```\n\n"
         "Endpoints: `GET /health`, `GET /model`, `POST /predict` (one row as an object, or a list), `POST /predict/csv` (form field `file`), "
         "`POST /outcome` (the true outcome of a row once it is known), `GET /monitor` (the model in use, window by window).\n\n"
         "Logs: every row scored is a line of `predictions.jsonl` and every outcome a line of `outcomes.jsonl`, beside the model or in "
-        "`DCLAB_SERVICE_LOG_DIR` (the image sets `/logs`: mount a volume there). Keys are hashed with `DCLAB_LOG_KEY` (16 characters or more; without it, `DCLAB_SERVICE_KEY`, which changes with each export): "
-        "set it once and keep it across exports, so an outcome that arrives after a retrain still joins its prediction. A line holds the model and its version, the row's key "
+        "`DCLAB_SERVICE_LOG_DIR` (the image sets `/logs`: mount a volume there). Keys are hashed with `DCLAB_LOG_KEY` (the project's own, given "
+        "with every export; without it, `DCLAB_SERVICE_KEY`, which changes with each export): pass it every time, so an outcome that arrives "
+        "after a retrain still joins its prediction. A line holds the model and its version, the row's key "
         "as a salted hash, the score, the decision and the time; never a value of the row. Name the column that identifies a row "
         "(`{\"rows\": [...], \"key\": \"order_id\"}`, or `?key=order_id`, or the form field `key` with a CSV) and post its outcome "
         "later with the same value: `{\"key\": 123, \"outcome\": ..., \"known_at\": \"2026-10-25T08:00:00+00:00\"}` or "
@@ -228,7 +231,37 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
     project["exports"] = {**(project.get("exports") or {}), "service": {"at": _now(), "folder": out.name, "final_run": (final_record.get("run") or {}).get("run"),
                                                                         **checked}}
     store.save(project)
-    return {"folder": str(out), "meta": meta, "key": key, "checked": checked}
+    return {"folder": str(out), "meta": meta, "key": key, "log_key": log_key, "checked": checked}
+
+
+LOG_KEY_FILE = Path("secrets") / "service_log.key"  # beside the project; its name says secret, so the store and the testers' kit never copy it
+
+
+def project_log_key(store: Any, project_id: str) -> str | None:
+    """34.9's open item: the key that hashes the service log's row keys, one per project and the same for every export, so an
+    outcome posted to a later export still joins the prediction an earlier one logged. Made once and kept beside the project
+    (never in a record, an event, a log or the export's folder). The project's folder is found through ``export_dir``, which
+    both storage backends have (files and PostgreSQL), and goes with the project when it is deleted. Made with the owner's
+    read only, at once (never readable in between), and the first of two exports at the same moment wins for both."""
+    import os
+
+    path = Path(store.export_dir(project_id)).parent / LOG_KEY_FILE
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    for _ in range(2):
+        if path.is_file():
+            held = path.read_text(encoding="utf-8").strip()
+            if len(held) >= 32:
+                return held
+            path.unlink()  # a short or broken key is made again, never used
+        try:
+            handle = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError:  # another export made it first: read that one
+            continue
+        made = secrets.token_hex(16)
+        with os.fdopen(handle, "w", encoding="utf-8") as out:
+            out.write(made)
+        return made
+    raise RuntimeError("The project's log key could not be made or read")
 
 
 def _fingerprint(path: Path) -> str:

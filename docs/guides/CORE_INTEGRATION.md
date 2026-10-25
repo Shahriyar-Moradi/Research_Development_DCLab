@@ -1080,6 +1080,9 @@ and passes its own out-of-fold scores; nothing is fitted by the library except a
 - `choose_by_cost_matrix(proba, cost_matrix)`: each row's class with the lowest expected cost.
 - `what_if(...)` and `sensitivity(...)`: the decision under changed numbers or a changed base rate, and how far each
   number can move before it changes; nothing is refitted.
+- `targeting_what_if(...)` and `actions_what_if(...)` (0.113.0): the same question for whom to treat and for several
+  actions: chosen again under a changed value, cost or capacity, the old choice kept valued under the new numbers, and
+  the regret of not changing. The main product offers them beside the targeting and the next-best-action results.
 - `read_spec(text)` (0.109.0): a DecisionSpec from a person's words, or None when any amount could be a count, a time,
   a share or a total; the main product's intake offers it for confirmation. DCLab's studio adds it to a yes/no solution
   only from the answer to the question that asks for the amounts, as its own audited move; amounts heard elsewhere are

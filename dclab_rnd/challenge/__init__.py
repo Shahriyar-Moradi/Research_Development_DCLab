@@ -239,8 +239,8 @@ def _part(part: dict[str, Any], spec: dict[str, Any], store: Any, out: Path, rea
     service_out = None
     if approved:
         try:
-            key = service.export(store, pid, folder / "service")["key"]
-            service_out = {"folder": "service", "key_given": bool(key)}  # the key goes to the caller, never into the folder
+            exported = service.export(store, pid, folder / "service")
+            service_out = {"folder": "service", "key_given": bool(exported["key"]), "log_key_given": bool(exported.get("log_key"))}  # the keys go to the caller, never into the folder
         except service.ServiceRefused as exc:
             (folder / "SERVICE.md").write_text(f"# Service not exported\n\n{exc}\n", encoding="utf-8")
     final = records["final"]["evidence"]
