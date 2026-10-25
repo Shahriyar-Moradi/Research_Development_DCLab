@@ -1,0 +1,62 @@
+{
+ "package": "entity-ask-with-evidence",
+ "title": "A repeating key is asked with its evidence, never grouped silently",
+ "date": "2026-10-26",
+ "request": "The owner, 2026-10-26, before sleeping: when the person does not name the entity (biker_id repeats), Home asks, with evidence; not 'group by default'.",
+ "spec": "ab7f669e made a numeric id-named column a group candidate but left the choice open; the owner chose to ask.",
+ "plan": [
+  "Find a column named like an id that repeats (10 or more values, two or more rows each), never a row's own key.",
+  "Ask once, after the plan, the card and the kind: how many rows for how many values, and why grouping keeps the score honest.",
+  "Yes records the column as the entity (the build groups the folds and the holdout by it); no records none; else the summary says the risk."
+ ],
+ "decisions": [
+  {
+   "decision": "\"I don't know\" groups nothing and the summary says the risk.",
+   "why": "The owner chose asking over grouping by default; the risk is said so the person can change it."
+  },
+  {
+   "decision": "The ledger records it as the next question 'entity'.",
+   "why": "It asks for the entity: one point, never a value from the table."
+  }
+ ],
+ "change": "draft/chat.py: entity_question (from the profile's id-like names and distinct counts), entity_answer in take_answer, asked in next_turn after the kind's question and at a model turn's end, the summary's risk line; ledger/capture.py maps entity_check to entity; tests/test_entity_question.py.",
+ "findings": [
+  {
+   "id": "ENT-1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The entity question stopped every walk whose person did not answer it.",
+   "scenario": "harness-eval (HRN-048, first run): JD-03, JD-04, JD-07, JD-15 'not built: stopped at build: Waiting for the person: `customer_id` repeats ...'; 13 of 17.",
+   "cause": "It was asked as a required question; a ranking's item_id was asked as an entity too.",
+   "fix": "An advisory question: no answer declines it (not grouped, the risk said) and the walk goes on; never asked for a kind with its own structure (forecast, ranking, streams...).",
+   "test": "test_no_answer_declines_it_and_a_walk_goes_on, test_a_kind_with_its_own_structure_is_never_asked; harness 17 of 17 after"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "entity question tests",
+   "gate": "tests/test_entity_question.py and the Home flow suites",
+   "result": "yes groups by biker_id, no records none, I don't know says the risk, a row's key is never asked",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "names and distinct counts only: a repeating column not named like an id is not asked"
+   ]
+  },
+  {
+   "name": "harness-eval",
+   "gate": "17 journeys and regression cases, step by step",
+   "result": "13 of 17 before the fix, 17 of 17 after (HRN-048)",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  }
+ ],
+ "outcome": "A person who did not name the entity is shown the repeating key with its numbers and chooses; nothing is grouped silently.",
+ "lessons": [
+  "The owner's choice between asking and a default is a product rule: write it where the conversation decides, with the evidence the person needs.",
+  "A question added to Home must say what an unanswered one means, or a walk waits forever."
+ ],
+ "risks": [
+  "One more question for any table with a repeating id; within the five."
+ ]
+}

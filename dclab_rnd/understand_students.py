@@ -282,6 +282,7 @@ def gate(models: Path = MODELS, campaign: Path = CAMPAIGN, workers: int = 3) -> 
 # once on a second sealed set (journeys_understand_sealed_v2.json, a third writer: channels such as a WhatsApp message, a
 # form field, a voice note), under decision_gate_v1 unchanged, the gate fixed and committed first.
 HOMEWORK_V2 = W.JOURNEYS / "journeys_homework_v2.json"
+HOMEWORK_V3 = W.JOURNEYS / "journeys_homework_v3.json"  # the fourth writer's busy people (the owner, 2026-10-26)
 SEALED_V2_FILE, SEALED_V2_HASH = W.JOURNEYS / "journeys_understand_sealed_v2.json", W.JOURNEYS / "sealed_understand_v2.sha256"
 MODELS_V2 = W.DECISIONS / "understand_models_v2"
 CAMPAIGN_V2 = ROOT / "evidence" / "campaigns" / "understand_v2"
@@ -318,8 +319,9 @@ def first_words_rows(people: list[tuple[str, dict[str, Any]]]) -> list[dict[str,
 
 def homework_v2_people() -> list[tuple[str, dict[str, Any]]]:
     out = homework()
-    if HOMEWORK_V2.is_file():
-        out += [("homework_v2", j) for j in json.loads(HOMEWORK_V2.read_text(encoding="utf-8"))]
+    for source, path in (("homework_v2", HOMEWORK_V2), ("homework_v3", HOMEWORK_V3)):
+        if path.is_file():
+            out += [(source, j) for j in json.loads(path.read_text(encoding="utf-8"))]
     return out
 
 

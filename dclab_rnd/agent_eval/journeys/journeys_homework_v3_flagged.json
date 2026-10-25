@@ -1,0 +1,18 @@
+[
+ {
+  "id": "JM-entity_tables-203",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "words": "Can AI tell me which of our customers will open a support ticket next month? I have customer id, signup date, plan and region for each one, plus the tickets.",
+  "answers": {
+   "target": "customer opens at least one ticket in the next 30 days",
+   "prediction_moment": "first day of each month",
+   "action": "we staff the desk and reach out to heavy users early",
+   "entity": "customer",
+   "data_plan": "customers table and the tickets table",
+   "family": "a prediction for each customer from the tables linked to it"
+  },
+  "written_by": "journey_writer_d@1c8c6811e15c",
+  "check": "Predicts who will open a support ticket, a different outcome from stopping or continuing to order, and they don't mention order columns."
+ }
+]

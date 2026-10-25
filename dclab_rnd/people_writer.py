@@ -45,8 +45,11 @@ def use_writer(name: str) -> None:
     if name == "b":
         OUT, FLAGGED = JOURNEYS / "journeys_homework_v2.json", JOURNEYS / "journeys_homework_v2_flagged.json"
         HOME, PROMPT, ID_PREFIX = ROOT / "agent_runs" / "live_tests" / "2026-10-25-people-b", "journey_writer_b", "JK"
+    elif name == "d":  # the fourth writer (the owner, 2026-10-26): busy people's short messages, against the student's style gap
+        OUT, FLAGGED = JOURNEYS / "journeys_homework_v3.json", JOURNEYS / "journeys_homework_v3_flagged.json"
+        HOME, PROMPT, ID_PREFIX = ROOT / "agent_runs" / "live_tests" / "2026-10-26-people-d", "journey_writer_d", "JM"
     elif name != "a":
-        raise ValueError(f"no writer {name!r}: a or b")
+        raise ValueError(f"no writer {name!r}: a, b or d")
 PER_BATCH, BATCHES = 10, 4  # 15 kinds x 4 batches x 10 people = 600
 ANSWER_KEYS = ("target", "prediction_moment", "action", "entity", "labels", "budget", "costs", "data_plan", "family")
 FAMILIES = {  # each kind's family, as its journeys declare it (the truth; never the writer's)
@@ -185,8 +188,8 @@ def write(cap_eur: float, home: Optional[Path] = None, kinds_: Optional[list[str
     replies.mkdir(parents=True, exist_ok=True)
     spent = sum(float((json.loads(p.read_text(encoding="utf-8")).get("spent_eur") or 0.0)) for p in replies.glob("*.json"))
     prompt_hash = _prompt_hash()
-    for kind in kinds_ or list(FAMILIES):
-        for batch in range(BATCHES):
+    for batch in range(BATCHES):  # batch by batch across the kinds: a cap reached early still leaves every kind its people
+        for kind in kinds_ or list(FAMILIES):
             path = replies / f"{kind}-{batch}.json"
             if path.is_file():
                 continue
@@ -273,7 +276,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--yes", action="store_true")
     ap.add_argument("--cap-eur", type=float)
     ap.add_argument("--kinds", nargs="*")
-    ap.add_argument("--writer", default="a", choices=("a", "b"))
+    ap.add_argument("--writer", default="a", choices=("a", "b", "d"))
     args = ap.parse_args(argv)
     use_writer(args.writer)
     if args.command == "plan":

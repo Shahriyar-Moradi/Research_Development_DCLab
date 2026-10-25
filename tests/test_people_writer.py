@@ -104,6 +104,9 @@ class WriterTest(unittest.TestCase):
             self.assertEqual((P.PROMPT, P.ID_PREFIX, P.OUT.name), ("journey_writer_b", "JK", "journeys_homework_v2.json"))
             self.assertIn("second writer", P.request("binary", 0)[0]["content"])
             self.assertTrue(P.person("binary", 0, 1, {"words": "w", "answers": {}}, "h")["id"].startswith("JK-binary-"))
+            P.use_writer("d")  # the fourth writer: its own prompt, files and ids too
+            self.assertEqual((P.PROMPT, P.ID_PREFIX, P.OUT.name), ("journey_writer_d", "JM", "journeys_homework_v3.json"))
+            self.assertIn("fourth writer", P.request("binary", 0)[0]["content"])
             with self.assertRaises(ValueError):
                 P.use_writer("z")
         finally:

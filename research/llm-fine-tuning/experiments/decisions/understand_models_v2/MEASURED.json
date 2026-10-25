@@ -26,5 +26,24 @@
   "word 1-2, C 8": "0.892",
   "the rare_event/anomaly pair as one (the labels question settles it, as Home asks)": "0.928 (char, C 4)"
  },
- "exam": "not read (2026-10-26): decision_gate_v1 needs the accuracy's lower bound at 0.90 or more; on dev the student is 0.898 (lower bound about 0.875) and on 150 sealed people it would need about 0.94, so the sealed set would be spent on a predicted fail. The plateau: the first message alone cannot tell a rare event from an anomaly (only the labels question can), and the student is 0.84 on writer A's people against 0.97 on writer B's (it partly learned a style). The sealed set v2 stays unread until a student's dev figures predict a pass."
+ "exam": "not read (2026-10-26): decision_gate_v1 needs the accuracy's lower bound at 0.90 or more; on dev the student is 0.898 (lower bound about 0.875) and on 150 sealed people it would need about 0.94, so the sealed set would be spent on a predicted fail. The plateau: the first message alone cannot tell a rare event from an anomaly (only the labels question can), and the student is 0.84 on writer A's people against 0.97 on writer B's (it partly learned a style). The sealed set v2 stays unread until a student's dev figures predict a pass.",
+ "with_writer_d": {
+  "date": "2026-10-26",
+  "train_people": 1010,
+  "dev_people": 649,
+  "dev_accuracy": 0.903,
+  "dev_lower_bound_90": 0.884,
+  "pair_merged": 0.931,
+  "dev_by_writer": {
+   "A": "214/253 = 0.846",
+   "B": "203/208 = 0.976",
+   "D": "169/188 = 0.899"
+  },
+  "unseen_writer": {
+   "A held out": 0.839,
+   "B held out": 0.97,
+   "D held out": 0.848
+  },
+  "reads": "A fourth writer (busy people's short messages, EUR 1.94) moved dev by 0.005. Trained without a writer and tested on that writer, the student is 0.84 to 0.97: the sealed set is a writer it never saw, so about 0.85 is expected there, below the gate's 0.90 bound. The exam stays unread; the unseen-writer test is the check to pass on dev first."
+ }
 }

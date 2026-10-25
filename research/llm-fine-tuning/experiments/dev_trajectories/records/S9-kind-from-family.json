@@ -224,6 +224,16 @@
    "cause": "options_for offered every column not read; the duration words had days, weeks and months but no minutes or hours.",
    "fix": "Options fit the field's type (a duration a number, an event a yes or no, a start a date), never a row number or a key, the target first when it fits; minutes, hours and seconds are durations.",
    "test": "test_a_column_question_offers_names_never_values_and_a_table_need_is_said"
+  },
+  {
+   "id": "S9-19",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The merge went in without make agent-eval for writer B's new prompt.",
+   "scenario": "The other session's check-all on 10c77c72: test_prompt_gate refused prompt:journey_writer_b.",
+   "cause": "harness-eval was run for the new prompt, agent-eval was not; the repository asks for both.",
+   "fix": "AEV-060 (scores as AEV-059, only that hash changed).",
+   "test": "tests/test_prompt_gate.py"
   }
  ],
  "measurements": [
@@ -258,6 +268,29 @@
    "limits": [
     "one model wrote and checked: the third writer's sealed set judges whether the student learned the writers"
    ]
+  },
+  {
+   "name": "S9.4 live replay (Claude Sonnet 5.5 as the Home agent and the roles, beside the rules)",
+   "gate": "the same written people as the first live run: the 11 whose card was right and build wrong, and the 15 right before",
+   "result": "rules 11 -> 16 right of 26 (embedded-100, segmentation-000 and -003, time_to_event-000 and -006 fixed); Claude 14 -> 17 (embedded-100, text_tabular-003, time_to_event-000 and -006 fixed; binary-002 newly wrong: the outcome column not recorded in that run, a path S9 does not touch); forecasting-005 now runs as a forecast, one check left (rain_mm as known ahead); rare_event-001 fails only 'folds grouped by biker' (the entity question built the same night)",
+   "verdict": "pass",
+   "cost_eur": 2.04,
+   "limits": [
+    "one run per person: Claude's reading varies between runs",
+    "the scripted person changed between the runs (b2688555: \"I don't know\" instead of another field's words), so four people now stop at the family question (segmentation-000 and -003, embedded-007, forecasting-008 in Claude's arm): the card does not read the family from the model's own reading of the outcome (\"no outcome, clustering\"): an understanding finding",
+    "streams-002: the incidents come in a table the play does not attach; refused in both runs",
+    "run on the branch before 9099bacc (the disputed-family rule and the typed options)"
+   ]
+  },
+  {
+   "name": "writer D (fourth homework writer: busy people's short messages) and the v2 student again",
+   "gate": "dev only; the sealed v2 set stays unread until dev predicts a pass",
+   "result": "479 people (EUR 1.94); dev 0.903 (bound 0.884); a writer held out 0.84 to 0.97",
+   "verdict": "not scored",
+   "cost_eur": 1.94,
+   "limits": [
+    "the sealed writer is unseen: about 0.85 expected there, below the 0.90 bound"
+   ]
   }
  ],
  "outcome": "Where the card reads the family, the kind and its fields are proposed and built; what only the person knows is asked or said as assumed.",
@@ -266,7 +299,8 @@
   "Check every caller of a proposal: one route without the new argument brings the old answer back.",
   "A reviewer who probes with made-up tables finds what replica tests cannot: replicas name their columns plainly.",
   "A proposal is a set of fields that must agree with each other (task, metric, kind): change one, check the others.",
-  "A question added to a conversation changes every walk that reaches it: run the suites of the walks (second opinion, coordinator), not only the new tests."
+  "A question added to a conversation changes every walk that reaches it: run the suites of the walks (second opinion, coordinator), not only the new tests.",
+  "A new prompt file needs both suites: make agent-eval and make harness-eval."
  ],
  "risks": [
   "Name-based proposers can be fooled by unusual column names: each proposal says why, and the person can change it.",

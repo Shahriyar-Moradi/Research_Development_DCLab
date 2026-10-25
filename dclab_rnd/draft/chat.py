@@ -733,6 +733,8 @@ class HomeAgent:
             self.take_second_opinion(draft_id, q, value)
             return
         draft = self.store.get(draft_id)
+        if q.get("field") == "entity_check":  # the repeating key's question: yes groups by it, no says there is none
+            self.entity_answer(draft_id, q, value)
         critic = q.get("source") == "critic"
         if critic and (CONFIRMED.match(value) or q["field"] not in (*plans.ALL_FIELDS, *self.RECORDED_AS_SAID)):
             pass  # 28.4 (the review): "yes" to a critic's question keeps what is known; a family is read below, never its words
@@ -926,6 +928,14 @@ class HomeAgent:
         """An advisory question the person did not answer (the second opinion): the card stays as it is, never asked again."""
         if q.get("source") == "second_opinion":
             self.take_second_opinion(draft_id, q, "")
+        elif q.get("source") == "advisory":  # the repeating key unanswered: not grouped, the risk said in the summary
+
+            def closed(d: dict[str, Any]) -> None:
+                for item in d["questions"]:
+                    if item["id"] == q["id"]:
+                        item["answered"], item["declined"] = "(no answer)", True
+            self.store.update(draft_id, closed)
+            self.next_turn(draft_id)
 
     def card_question(self, draft: dict[str, Any]) -> tuple[str, str, list[str], str] | None:
         """20.2: when the plan has nothing left to ask but the problem card still blocks, its question that unblocks the
@@ -991,6 +1001,44 @@ class HomeAgent:
         q = question_for(p, {str(x.get("field")) for x in draft.get("questions") or []})
         u = draft.get("understanding") or {}
         return None if q is None else (q.key, q.text, options_for(q, frame, p, u.get("target") if u.get("target") in frame.columns else None), q.why)
+
+    ENTITY_NO = re.compile(r"\b(no|not|independent|never|separate)\b", re.I)
+    ENTITY_YES = re.compile(r"^\W*(yes|yeah|yep|yup|sure|ok(ay)?|keep|group|one side)\b", re.I)
+
+    def entity_question(self, draft: dict[str, Any]) -> tuple[str, str, list[str], str, None, dict[str, Any]] | None:
+        """The owner, 2026-10-26: a key that repeats (biker_id: many rows for each biker) while no entity was said is
+        asked, with its evidence, never grouped silently: if one biker's rows are on both sides of the split, the score
+        is too good. Once at most; a row's own key (unique on every row) is never one."""
+        u = draft.get("understanding") or {}
+        if u.get("entity") or any(q.get("field") == "entity_check" for q in draft.get("questions") or []):
+            return None
+        from ..kinds.propose import FAMILY_KINDS
+        from .card import card_of
+
+        if str(card_of(draft).family.value or "") in FAMILY_KINDS:  # a kind with its own structure (a forecast's series, a ranking's
+            return None  # items, a stream's units) splits its own way: its keys are fields, never an entity to keep on one side
+        profile = (draft.get("analysis") or {}).get("profile") or {}
+        rows = int(profile.get("rows") or 0)
+        found = [c for c in profile.get("columns") or [] if c.get("name_id_like") and not c.get("id_like") and c.get("name") != u.get("target")
+                 and rows and 10 <= int(c.get("unique") or 0) <= rows // 2]
+        if not found:
+            return None
+        c = max(found, key=lambda c: rows / int(c["unique"]))
+        name, unique = str(c["name"]), int(c["unique"])
+        text = (f"`{name}` repeats: {rows:,} rows for {unique:,} different values, about {rows // unique} rows each. If rows of one "
+                f"`{name}` are both in the rows a model learns from and in the rows it is tested on, its score looks better than it "
+                f"will be. Should each `{name}` stay on one side?")
+        return ("entity_check", text, ["Yes, keep each one on one side", "No, its rows are independent", "I don't know"],
+                "Grouping by who the rows belong to keeps the score honest: the folds and the holdout split by it.", "advisory", {"column": name})
+
+    def entity_answer(self, draft_id: str, q: dict[str, Any], value: str) -> None:
+        """Yes groups by the column (the entity said); no records that there is none; anything else changes nothing."""
+        if not_known(value) or not q.get("column"):
+            return
+        if self.ENTITY_NO.search(value) and not self.ENTITY_YES.match(value):
+            self.record(draft_id, "entity", "No single entity")
+        elif self.ENTITY_YES.match(value):
+            self.record(draft_id, "entity", str(q["column"]))
 
     def kind_said(self, draft: dict[str, Any]) -> str | None:
         """The summary's line on the kind: what it reads and assumes, or what it still needs and what runs meanwhile."""
@@ -1062,6 +1110,8 @@ class HomeAgent:
             question = self.second_opinion_question(self.store.get(draft_id))
         if question is None and not opening:  # S9.3: a field of the understood kind only the person can give
             question = self.kind_question(self.store.get(draft_id))
+        if question is None and not opening:  # the owner, 2026-10-26: a repeating key, asked with its evidence
+            question = self.entity_question(self.store.get(draft_id))
         asked = question is not None and self.ask(draft_id, *question)
         from ..ledger import capture  # 19.7: the question actually asked, or none
 
@@ -1178,6 +1228,9 @@ class HomeAgent:
         parts = [line("Outcome", u.get("target")) or "The outcome is still open.", line("Prediction moment", u.get("prediction_moment")),
                  line("What happens with each prediction", u.get("action"))]
         parts.append(self.kind_said(draft))  # S9.3: the kind understood, its assumptions, or what it still needs
+        checked = next((q for q in draft.get("questions") or [] if q.get("field") == "entity_check" and q.get("answered")), None)
+        if checked and not u.get("entity"):  # asked and not settled: said as a risk, never grouped silently
+            parts.append(f"Not grouped by `{checked.get('column')}`: if its rows are not independent, the score may look better than it will be.")
         ready = any(a.get("status") == "ready" for a in draft["assets"])
         text = ("Here is the solution I would build. " + " ".join(p for p in parts if p) + f" Pack: {name}. "
                 + ("The data is ready, so we can build the solution now." if ready else
@@ -1281,7 +1334,7 @@ class HomeAgent:
             # live (HRN-022): the model ended its turn (or offered to build) with one of the plan's own fields still open, and
             # a fraud walk was built without its entity, its folds never grouped: the plan's next open field is asked, as the
             # rules ask it (the model chose the order and the words before; the questions that change the solution are asked)
-            question = self.next_question(after) or self.kind_question(after)  # S9.3: the kind's own field too
+            question = self.next_question(after) or self.kind_question(after) or self.entity_question(after)  # S9.3; a repeating key
             if question is not None and self.ask(draft_id, *question):
                 from ..ledger import capture
 
