@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
+import numpy as np
 import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -250,6 +251,12 @@ def default_metric(task: str, positive_rate: float | None = None) -> str:
     return kinds.get(task).default_metric(None, positive_rate)
 
 
+def _whole_numbers(series: pd.Series) -> bool:
+    """Whether a numeric column holds whole numbers only (an id stored as numbers, read as floats when a cell is empty)."""
+    values = pd.to_numeric(series, errors="coerce").dropna()
+    return bool(len(values)) and bool(np.all(np.mod(values.to_numpy(dtype=float), 1) == 0))
+
+
 def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str | None = None, pack: str | None = None,
             time_column: str | None = None) -> dict[str, Any]:
     """What the agent suggests for the solution, with the signal behind each suggestion. The problem kind (16.1) follows
@@ -283,7 +290,8 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
         y = y.loc[X.index]
     audit = tools._audit_frame(X, y, task="regression" if task == "regression" else "classification", blind=False)
     identifiers = [name for name, c in columns.items() if name != target and (c["id_like"] or (c["name_id_like"] and c["unique_ratio"] > 0.5))]
-    group_candidates = [name for name, c in columns.items() if name != target and c["name_id_like"] and 0.005 < c["unique_ratio"] < 0.5 and c["kind"] != "numeric"]
+    group_candidates = [name for name, c in columns.items() if name != target and c["name_id_like"] and 0.005 < c["unique_ratio"] < 0.5
+                        and (c["kind"] != "numeric" or _whole_numbers(frame[name]))]  # S8 (live): a biker_id of whole numbers names an entity
     structural = set(time_candidates) | set(profile.get("text_candidates") or []) | {target}
     flagged = {row["column"] for row in audit["flagged"]}
     groups_to_confirm: list[dict[str, str]] = []

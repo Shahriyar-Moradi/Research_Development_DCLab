@@ -24,7 +24,7 @@
    "why": "Each kind needs its own fields (a forecast's series and horizon, a ranking's user and item, a segmentation's outcome): proposing them needs a design per kind."
   }
  ],
- "change": "dclab_rnd/draft/chat.py (not_known, NOT_KNOWN, ASSUMED_MOMENT, _not_known in record and note), dclab_rnd/draft/card.py (an assumed moment is inferred), dclab_rnd/draft/api.py (project.assumed.prediction_moment), dclab_rnd/agent_eval/journeys/__init__.py (_Person dont_know, FIELDS, _find/_unsure), dclab_rnd/understand_students.py (the new and the sealed people played saying I don't know), tests/test_home_not_known.py and tests/test_journeys_dont_know.py (new); HRN-045 (17 of 17). dclab_rnd/studio/engine.py (prepare: no feature left is refused clearly), tests/test_engine_real_tables.py.",
+ "change": "dclab_rnd/draft/chat.py (not_known, NOT_KNOWN, ASSUMED_MOMENT, _not_known in record and note), dclab_rnd/draft/card.py (an assumed moment is inferred), dclab_rnd/draft/api.py (project.assumed.prediction_moment), dclab_rnd/agent_eval/journeys/__init__.py (_Person dont_know, FIELDS, _find/_unsure), dclab_rnd/understand_students.py (the new and the sealed people played saying I don't know), tests/test_home_not_known.py and tests/test_journeys_dont_know.py (new); HRN-045 (17 of 17). dclab_rnd/studio/engine.py (prepare: no feature left is refused clearly), tests/test_engine_real_tables.py. dclab_rnd/studio/solution.py (_whole_numbers: a whole-number entity id is a group candidate), tests/test_solution_entity.py; HRN-046.",
  "findings": [
   {
    "id": "B3-1",
@@ -52,9 +52,9 @@
    "severity": "gap",
    "defect": "The entity is not found without being named.",
    "scenario": "JH-rare_event-000..002: the folds were not grouped by biker when the person did not name the biker, though biker_id repeats.",
-   "cause": "The group column comes from the person's entity answer.",
-   "fix": "Named for a later package (propose the entity from repeating id columns).",
-   "test": "to come"
+   "cause": "biker_id (whole numbers, read as floats where a cell is empty) was left out of the group candidates for being numeric; its phone came in its place. With the candidate, the groups modifier still does not group: the bikers recur over time, so a forward split keeps the future out, and it groups only if the model will face new bikers, which the person must say.",
+   "fix": "A numeric id-named column of whole numbers that repeats is a group candidate (studio/solution.py _whole_numbers). Left for the owner: when the person does not know, ask with the evidence or group by default.",
+   "test": "tests/test_solution_entity.py; HRN-046 17 of 17"
   },
   {
    "id": "B3-4",
