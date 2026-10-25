@@ -77,6 +77,26 @@
    "fix": "a traps section in the replica's docstring (the holdout is not a curve's yardstick; subsets keep the split's shape; two points are not a slope; a flat curve is not a finished model; an average hides a segment), and make business-examples",
    "test": "tests/test_business_examples.py",
    "severity": "gap"
+  },
+  {
+   "id": "G2",
+   "source": "test",
+   "defect": "the route test patched the file store's method, which the app does not use on PostgreSQL",
+   "scenario": "the full gate's PostgreSQL round: test_a_second_request_while_one_is_queued_is_busy_not_an_error got 409 'run the stages first' for its first request",
+   "cause": "mock.patch.object(ProjectStore, 'read_stage') does not reach PgProjectStore, the store the app builds when DCLAB_DATABASE_URL is set",
+   "fix": "patch type(app.state.projects), the store the app actually uses",
+   "test": "tests/test_data_value.py (run with --pg)",
+   "severity": "gap"
+  },
+  {
+   "id": "G3",
+   "source": "test",
+   "defect": "the capture test's event log refused every event on PostgreSQL",
+   "scenario": "the PostgreSQL round: test_a_rising_project_hears_more_rows_likely_help_and_the_answer_is_captured found no decision.proposed event, and the log printed IntegrityError for every event",
+   "cause": "experience.open_log(home, 'wtest') opens a PostgreSQL log when a database is configured, and the made-up workspace wtest has no row, so every insert broke its foreign key",
+   "fix": "the test opens a folder log (FileLog) for its made-up workspace",
+   "test": "tests/test_data_value.py (run with --pg)",
+   "severity": "gap"
   }
  ],
  "measurements": [
@@ -111,7 +131,8 @@
  "lessons": [
   "A new route needs its capture declared as much as its code.",
   "Regenerate every derived file a contract touches, not only its schema.",
-  "A new replica is also a knowledge-base entry: write its traps section and rebuild the business examples in the same commit"
+  "A new replica is also a knowledge-base entry: write its traps section and rebuild the business examples in the same commit",
+  "A test that patches a store or opens a log must hold under PostgreSQL too: patch the class the app uses, and give a made-up workspace a folder log"
  ],
  "risks": [
   "segment names stay in the project record only; any new reader must keep them out of the ledger and events"

@@ -46,7 +46,8 @@ class DataValueStudioTest(unittest.TestCase):
         from dclab_rnd import experience, ledger
 
         home = Path(tempfile.mkdtemp())
-        self.log, self.book = experience.open_log(home, "wtest"), ledger.FileLedger(home / "ledger", "wtest")
+        # a folder log: on PostgreSQL a log for a made-up workspace refuses every event (no such workspace row; the gate)
+        self.log, self.book = experience.FileLog(home / "experience", "wtest"), ledger.FileLedger(home / "ledger", "wtest")
         experience.install(self.log)
         ledger.install(self.book)
         self.addCleanup(experience.install, None)
@@ -151,13 +152,13 @@ class DataValueRouteTest(unittest.TestCase):
         from fastapi.testclient import TestClient
 
         from dclab_rnd.agentic.server import create_app
-        from dclab_rnd.studio.store import ProjectStore
-
         with mock.patch.dict(os.environ, {"DCLAB_WORKER": "external"}):  # nothing runs the queued job: it stays queued
-            client = TestClient(create_app(Path(tempfile.mkdtemp())))
+            app = create_app(Path(tempfile.mkdtemp()))
+            client = TestClient(app)
             h = {"X-DCLab-Token": client.get("/api/config").json()["csrf"]}
             pid = client.post("/api/projects", json={"name": "P", "goal": "g"}, headers=h).json()["id"]
-            with mock.patch.object(ProjectStore, "read_stage", return_value={"status": "completed"}):
+            # the store the app uses (a PostgreSQL store under the PostgreSQL suite, not the file one: the gate)
+            with mock.patch.object(type(app.state.projects), "read_stage", return_value={"status": "completed"}):
                 first = client.post(f"/api/projects/{pid}/data-value?wait=false", headers=h)
                 second = client.post(f"/api/projects/{pid}/data-value?wait=false", headers=h)
         self.assertEqual(first.status_code, 200, first.text)
