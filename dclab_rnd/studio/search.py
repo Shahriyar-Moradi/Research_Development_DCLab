@@ -179,6 +179,11 @@ def set_aside(bundle: Any) -> dict[str, Any]:
     folds = _folds(bundle, search_rows, split, max(2, len(bundle.cv_splits)), entities)
     if len(folds) < 2:
         return {"skipped": "the search rows leave fewer than two usable folds"}
+    if classify:  # every fold must fit and score every class (a rare outcome early in time can leave a fold without one)
+        labels, classes = bundle.y_train.to_numpy()[search_rows], set(np.unique(bundle.y_train.to_numpy()).tolist())
+        if any(set(np.unique(labels[side]).tolist()) != classes for a, b in folds for side in (a, b)):
+            return {"skipped": "a fold of the search rows would hold no row of a class, so a model could not be fitted or scored "
+                               "there; the project's folds stay as they were"}
     bundle.cv_splits = [(search_rows[a], search_rows[b]) for a, b in folds]  # positions into the training rows, as before
     bundle.cv_description += (f"; over {len(search_rows)} search rows only: a selection fold of {len(select_rows)} training rows is set "
                               "aside for the search (34.7) and never enters these folds")

@@ -173,9 +173,14 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
   screen's next family, on folds of the search rows; the winner by its pooled out-of-fold score, confirmed once on the
   selection fold beside the choice without a search; the final stage fits the searched settings as they are; a fair cut
   or the search skipped with the reason (entities apart on time splits with entities, every class on both sides); the
-  exported code reproduces it. Two reviews (15 findings, then the re-review). Measurement `search_v2` (both arms fresh on
-  pinned code, 9 datasets, gates fixed before the run): see its decision. **34.7b** (stacking, CatBoost): not built;
-  the owner decides whether to build it.
+  exported code reproduces it. Two reviews (15 findings, then 8). **Measured (`search_v2`, both sides fresh on pinned
+  code, gates fixed before the run): fail.** On 8 of 9 bake-off datasets the mean holdout difference is -0.0039, the
+  search clearly better on none and clearly worse on one (ecommerce reviews, -0.0078); the selection fold reads the
+  holdout a little closer than the search score (0.0085 against 0.0096); on the fraud table the search side crashed (a
+  fold without a fraud case once the fold was set aside: fixed, the search now skips there). Part of the loss is the
+  set-aside's own price: the screen chooses on a fifth fewer rows. So the search stays an opt-in, not recommended.
+  `search_v3` (the fix, a crash counted as clearly worse) is ready to confirm; by arithmetic it cannot pass unless the
+  eight numbers change. **34.7b** (stacking, CatBoost): not built; the owner decides after this result.
 
 ### 34.8 An AutoML family behind DCLab's splits
 - **Delivers:** FLAML (then AutoGluon on the M1 Max) as one more family in the models stage, fitted inside the same

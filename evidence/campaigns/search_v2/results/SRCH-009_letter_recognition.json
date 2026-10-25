@@ -1,0 +1,109 @@
+{
+  "id": "SRCH-009",
+  "campaign_id": "search_v2",
+  "dataset": "letter_recognition",
+  "metric": "macro_f1",
+  "higher_is_better": true,
+  "split": "stratified",
+  "holdout_rows": 4000,
+  "without": {
+    "holdout": 0.9735887107433941,
+    "seconds": 1132.9,
+    "model": "extra_trees",
+    "params": {
+      "model__n_estimators": 500,
+      "model__min_samples_leaf": 1,
+      "model__max_features": "sqrt"
+    },
+    "interval": {
+      "point": 0.9735887107433941,
+      "low": 0.9688405073130363,
+      "median": 0.9738730364447546,
+      "high": 0.9785537375100462,
+      "draws": 400,
+      "method": "iid row bootstrap"
+    }
+  },
+  "with": {
+    "holdout": 0.9715549091972756,
+    "seconds": 802.3,
+    "model": "extra_trees",
+    "params": {
+      "model__n_estimators": 400,
+      "model__min_samples_leaf": 1,
+      "model__max_features": 0.5
+    },
+    "interval": {
+      "point": 0.9715549091972756,
+      "low": 0.9667679127741193,
+      "median": 0.9717314370824118,
+      "high": 0.9765358243501405,
+      "draws": 400,
+      "method": "iid row bootstrap"
+    }
+  },
+  "difference": {
+    "point": -0.002033801546118541,
+    "low": -0.004512211702440721,
+    "high": 0.000320438242109023,
+    "draws": 2000,
+    "method": "paired iid row bootstrap",
+    "share_of_draws_flaml_better": 0.048
+  },
+  "search": {
+    "family": "extra_trees",
+    "params": {
+      "model__n_estimators": 400,
+      "model__min_samples_leaf": 1,
+      "model__max_features": 0.5
+    },
+    "attempts": 15,
+    "minutes": 3.66,
+    "skipped": null,
+    "failed": []
+  },
+  "selection": {
+    "schema_version": "dclab_core.selection_record.v1",
+    "split": "stratified",
+    "search_rows": 12800,
+    "selection_rows": 3200,
+    "attempts": 15,
+    "top_k": 1,
+    "metric": "macro_f1",
+    "higher_is_better": true,
+    "shortlist": [
+      "extra_trees:trial9"
+    ],
+    "chosen": "extra_trees:trial9",
+    "plain_choice": "extra_trees:trial9",
+    "search_score": 0.957557,
+    "selection_score": 0.965765,
+    "selection_interval": [
+      0.960676,
+      0.970673
+    ],
+    "optimism": -0.008208,
+    "note": "15 attempts scored on the search rows; the top 1 read once on a selection fold of 3200 rows set aside before the search; the chosen one's search score was not flattered by 0.008208."
+  },
+  "gaps": {
+    "selection_minus_holdout": -0.00579,
+    "search_minus_holdout": -0.013998
+  },
+  "selection_gain_over_no_search": {
+    "name": "extra_trees:default",
+    "family": "extra_trees",
+    "selection_score": 0.965501,
+    "gain": 0.000264,
+    "gain_interval": [
+      -0.003565,
+      0.003245
+    ]
+  },
+  "selection_gain_agrees_with_holdout": false,
+  "code_sha256": "6bf32216ed569b355010cde0231e3a79c133ca6c5e1807f311e8eea722fab3b3",
+  "git": {
+    "commit": "bf7fab5051d18b8592ea94ce1435894f2e78cfb5",
+    "code_files_dirty": false
+  },
+  "finished_at": "2026-10-25T09:11:34+00:00"
+}

@@ -1,0 +1,51 @@
+{
+  "campaign": "search_v2",
+  "package": "34.7",
+  "datasets": [
+    "german_credit",
+    "telco_churn",
+    "online_shoppers",
+    "wine_quality",
+    "adult",
+    "bank_marketing",
+    "credit_card_fraud",
+    "ecommerce_clothing_reviews",
+    "letter_recognition"
+  ],
+  "budget": {
+    "minutes": 3.0,
+    "trials": 24,
+    "families": 2
+  },
+  "gate": {
+    "id": "search_gate_v2",
+    "never_clearly_worse": "on at most 1 dataset the holdout difference (search minus no search, oriented so positive is better) has its whole 95% paired interval below 0",
+    "rises_on_average": "the mean holdout difference over the datasets is above 0",
+    "honest_selection": "over the datasets, the mean absolute gap between the selection fold's score and the holdout score is smaller than the mean absolute gap between the search score and the holdout score",
+    "bounded": "on every dataset the search's own minutes are at most 1.5 times the budget's minutes",
+    "verdict": "pass when all four hold: the search may be recommended in a project's settings; otherwise it stays an opt-in, said with this result. Either way it is never on by default from this campaign alone",
+    "reported_not_gated": "per dataset, the gain over the no-search choice on the selection fold with its interval, and whether its sign agrees with the holdout difference; minutes of both arms"
+  },
+  "arms": {
+    "without": "the engine as it is (no search setting)",
+    "with": "the same engine with settings.search = {'minutes': 3.0, 'trials': 24, 'families': 2}"
+  },
+  "source": "each dataset's project, table, rows and split from evidence/campaigns/bakeoff_v1 (agent_runs/bakeoff_v1/<dataset>)",
+  "statistic": "dclab_rnd.bakeoff.paired_bootstrap on the shared holdout rows (95%, whole groups when the split keeps them)",
+  "sha256": "0c3a10d69deaad1d94868c0c6eb0a7ec8d84ce9295932ceda76904050b016349",
+  "code_sha256": "6bf32216ed569b355010cde0231e3a79c133ca6c5e1807f311e8eea722fab3b3",
+  "code_files": [
+    "dclab_rnd/studio/search.py",
+    "dclab_rnd/studio/engine.py",
+    "dclab_core/selection.py",
+    "dclab_rnd/expansion/runner.py",
+    "dclab_rnd/search_measure.py",
+    "dclab_rnd/bakeoff.py"
+  ],
+  "git": {
+    "commit": "bf7fab5051d18b8592ea94ce1435894f2e78cfb5",
+    "code_files_dirty": false
+  },
+  "frozen_at": "2026-10-25T08:04:48+00:00",
+  "python": "3.10.19"
+}

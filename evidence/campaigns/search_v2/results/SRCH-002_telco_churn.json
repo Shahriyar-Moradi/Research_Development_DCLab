@@ -1,0 +1,101 @@
+{
+  "id": "SRCH-002",
+  "campaign_id": "search_v2",
+  "dataset": "telco_churn",
+  "metric": "roc_auc",
+  "higher_is_better": true,
+  "split": "stratified",
+  "holdout_rows": 1409,
+  "without": {
+    "holdout": 0.8415536438554341,
+    "seconds": 25.4,
+    "model": "logistic_regression",
+    "params": {},
+    "interval": {
+      "point": 0.8415536438554341,
+      "low": 0.8210646512801029,
+      "median": 0.8418805421954996,
+      "high": 0.8647355342055614,
+      "draws": 400,
+      "method": "iid row bootstrap"
+    }
+  },
+  "with": {
+    "holdout": 0.8410860523392494,
+    "seconds": 208.0,
+    "model": "logistic_regression",
+    "params": {
+      "model__C": 5.650011028133055
+    },
+    "interval": {
+      "point": 0.8410860523392494,
+      "low": 0.8204543450737699,
+      "median": 0.8414269244108357,
+      "high": 0.8645880563587931,
+      "draws": 400,
+      "method": "iid row bootstrap"
+    }
+  },
+  "difference": {
+    "point": -0.0004675915161846955,
+    "low": -0.0011680796481508327,
+    "high": 0.00026665456087170836,
+    "draws": 2000,
+    "method": "paired iid row bootstrap",
+    "share_of_draws_flaml_better": 0.1015
+  },
+  "search": {
+    "family": "logistic_regression",
+    "params": {
+      "model__C": 5.650011028133055
+    },
+    "attempts": 22,
+    "minutes": 3.07,
+    "skipped": null,
+    "failed": []
+  },
+  "selection": {
+    "schema_version": "dclab_core.selection_record.v1",
+    "split": "stratified",
+    "search_rows": 4507,
+    "selection_rows": 1127,
+    "attempts": 22,
+    "top_k": 1,
+    "metric": "roc_auc",
+    "higher_is_better": true,
+    "shortlist": [
+      "logistic_regression:trial9"
+    ],
+    "chosen": "logistic_regression:trial9",
+    "plain_choice": "logistic_regression:trial9",
+    "search_score": 0.842626,
+    "selection_score": 0.848884,
+    "selection_interval": [
+      0.82922,
+      0.866319
+    ],
+    "optimism": -0.006258,
+    "note": "22 attempts scored on the search rows; the top 1 read once on a selection fold of 1127 rows set aside before the search; the chosen one's search score was not flattered by 0.006258."
+  },
+  "gaps": {
+    "selection_minus_holdout": 0.007798,
+    "search_minus_holdout": 0.00154
+  },
+  "selection_gain_over_no_search": {
+    "name": "logistic_regression:default",
+    "family": "logistic_regression",
+    "selection_score": 0.848848,
+    "gain": 3.6e-05,
+    "gain_interval": [
+      -0.000675,
+      0.000744
+    ]
+  },
+  "selection_gain_agrees_with_holdout": false,
+  "code_sha256": "6bf32216ed569b355010cde0231e3a79c133ca6c5e1807f311e8eea722fab3b3",
+  "git": {
+    "commit": "bf7fab5051d18b8592ea94ce1435894f2e78cfb5",
+    "code_files_dirty": false
+  },
+  "finished_at": "2026-10-25T08:11:02+00:00"
+}

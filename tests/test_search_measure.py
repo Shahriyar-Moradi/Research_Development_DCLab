@@ -41,9 +41,19 @@ class SearchMeasureTest(unittest.TestCase):
         slow = good[:-1] + [row("slow", 0.004, -0.002, 0.01, 0.003, 0.01, minutes=1.5 * sm.BUDGET["minutes"] + 0.1)]
         self.assertFalse(sm.judge(slow)["gates"]["bounded"])
         self.assertTrue(sm.judge(good[:3])["verdict"].startswith("not yet"))
+        crashed = good[:-1] + [{"dataset": "fraud", "failed": "with", "error": "ValueError: one class"}]
+        verdict = sm.judge(crashed)  # search_v2's lesson: the search arm failing is clearly worse, never a gap
+        self.assertEqual(verdict["search_arm_failed"], ["fraud"])
+        self.assertIn("fraud", verdict["clearly_worse"])
+        self.assertNotEqual(verdict["verdict"], "not yet")
+        two = good[:-2] + [{"dataset": "fraud", "failed": "with"}, row("w", -0.02, -0.03, -0.01, 0.003, 0.01)]
+        self.assertFalse(sm.judge(two)["gates"]["never_clearly_worse"])
+        without = good[:-1] + [{"dataset": "odd", "failed": "without"}]
+        self.assertEqual(sm.judge(without)["left_out_without_failed"], ["odd"])
+        self.assertEqual(sm.judge(without)["verdict"], "pass")
 
     def test_a_resume_on_changed_code_is_refused(self):
-        folder = Path(tempfile.mkdtemp()) / "search_v2"
+        folder = Path(tempfile.mkdtemp()) / "search_v3"
         with mock.patch.object(sm, "CAMPAIGN", folder):
             sm.freeze()
             sm.freeze()  # the same code: a resume

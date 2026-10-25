@@ -1,0 +1,111 @@
+{
+  "id": "SRCH-001",
+  "campaign_id": "search_v2",
+  "dataset": "german_credit",
+  "metric": "roc_auc",
+  "higher_is_better": true,
+  "split": "stratified",
+  "holdout_rows": 200,
+  "without": {
+    "holdout": 0.8027380952380954,
+    "seconds": 11.5,
+    "model": "logistic_regression",
+    "params": {
+      "model__C": 0.1
+    },
+    "interval": {
+      "point": 0.8027380952380954,
+      "low": 0.7246270712628471,
+      "median": 0.8024644666479033,
+      "high": 0.8640887769170168,
+      "draws": 400,
+      "method": "iid row bootstrap"
+    }
+  },
+  "with": {
+    "holdout": 0.7771428571428571,
+    "seconds": 122.1,
+    "model": "hist_gradient_boosting",
+    "params": {
+      "model__learning_rate": 0.023841758525692477,
+      "model__max_iter": 500,
+      "model__max_leaf_nodes": 64,
+      "model__min_samples_leaf": 38,
+      "model__l2_regularization": 8.1650349487817
+    },
+    "interval": {
+      "point": 0.7771428571428571,
+      "low": 0.7021610042438449,
+      "median": 0.7771118156618156,
+      "high": 0.8372433259525401,
+      "draws": 400,
+      "method": "iid row bootstrap"
+    }
+  },
+  "difference": {
+    "point": -0.025595238095238226,
+    "low": -0.07687249370613988,
+    "high": 0.024171328006088257,
+    "draws": 2000,
+    "method": "paired iid row bootstrap",
+    "share_of_draws_flaml_better": 0.1545
+  },
+  "search": {
+    "family": "hist_gradient_boosting",
+    "params": {
+      "model__learning_rate": 0.023841758525692477,
+      "model__max_iter": 500,
+      "model__max_leaf_nodes": 64,
+      "model__min_samples_leaf": 38,
+      "model__l2_regularization": 8.1650349487817
+    },
+    "attempts": 26,
+    "minutes": 1.71,
+    "skipped": null,
+    "failed": []
+  },
+  "selection": {
+    "schema_version": "dclab_core.selection_record.v1",
+    "split": "stratified",
+    "search_rows": 640,
+    "selection_rows": 160,
+    "attempts": 26,
+    "top_k": 1,
+    "metric": "roc_auc",
+    "higher_is_better": true,
+    "shortlist": [
+      "hist_gradient_boosting:trial0"
+    ],
+    "chosen": "hist_gradient_boosting:trial0",
+    "plain_choice": "hist_gradient_boosting:trial0",
+    "search_score": 0.775553,
+    "selection_score": 0.766555,
+    "selection_interval": [
+      0.692048,
+      0.833013
+    ],
+    "optimism": 0.008998,
+    "note": "26 attempts scored on the search rows; the top 1 read once on a selection fold of 160 rows set aside before the search; the chosen one's search score was flattered by 0.008998."
+  },
+  "gaps": {
+    "selection_minus_holdout": -0.010588,
+    "search_minus_holdout": -0.00159
+  },
+  "selection_gain_over_no_search": {
+    "name": "extra_trees:default",
+    "family": "extra_trees",
+    "selection_score": 0.793341,
+    "gain": -0.026786,
+    "gain_interval": [
+      -0.079462,
+      0.018059
+    ]
+  },
+  "selection_gain_agrees_with_holdout": true,
+  "code_sha256": "6bf32216ed569b355010cde0231e3a79c133ca6c5e1807f311e8eea722fab3b3",
+  "git": {
+    "commit": "bf7fab5051d18b8592ea94ce1435894f2e78cfb5",
+    "code_files_dirty": false
+  },
+  "finished_at": "2026-10-25T08:07:06+00:00"
+}

@@ -1,4 +1,4 @@
-"""34.7's measurement (campaign ``search_v2``): the studio engine with a search against the same engine without one, both
+"""34.7's measurement (campaign ``search_v3``): the studio engine with a search against the same engine without one, both
 run fresh on the same code, rows, splits and holdout.
 
 For each dataset the bake-off's own project (34.5) is copied twice: one copy runs the engine as it is, the other with
@@ -10,7 +10,9 @@ What changed from ``search_v1`` (aborted before its first result, ``search_v1/AB
 run again on the same code instead of read from the bake-off (whose engine was older); the code that makes the numbers
 is pinned by hash and a resume on changed code is refused; each arm's captured predictions must reproduce its own
 record's holdout number; the gates are the four below; the datasets add a time split, a group split with text and a
-multiclass task.
+multiclass task. From ``search_v2`` (closed with 8 of 9 datasets, ``search_v2/CLOSED.json``): its code crashed the
+search arm on the fraud table (a fold of the search rows without a fraud case); the fix skips the search there, and a
+dataset where only the search arm fails is now a row that counts as clearly worse, never a silent gap.
 
     python -m dclab_rnd.search_measure plan
     python -m dclab_rnd.search_measure run --yes      # about 10 minutes a dataset on the 8 GB Air; resumable on the same code
@@ -34,16 +36,18 @@ from typing import Any
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
-CAMPAIGN_ID = "search_v2"
+CAMPAIGN_ID = "search_v3"
 CAMPAIGN = ROOT / "evidence" / "campaigns" / CAMPAIGN_ID
 WORK = ROOT / "agent_runs" / CAMPAIGN_ID
 DATASETS = ("german_credit", "telco_churn", "online_shoppers", "wine_quality", "adult", "bank_marketing", "credit_card_fraud",
             "ecommerce_clothing_reviews", "letter_recognition")
 BUDGET = {"minutes": 3.0, "trials": 24, "families": 2}
 GATE = {
-    "id": "search_gate_v2",
+    "id": "search_gate_v3",
     "never_clearly_worse": "on at most 1 dataset the holdout difference (search minus no search, oriented so positive is better) has "
-                           "its whole 95% paired interval below 0",
+                           "its whole 95% paired interval below 0, or the search arm failed where the arm without did not",
+    "failures": "a dataset where the arm without a search fails is left out of every gate and named; the verdict needs every "
+                "dataset compared or failed",
     "rises_on_average": "the mean holdout difference over the datasets is above 0",
     "honest_selection": "over the datasets, the mean absolute gap between the selection fold's score and the holdout score is smaller "
                         "than the mean absolute gap between the search score and the holdout score",
@@ -59,6 +63,11 @@ ABORTED = {"search_v1": ("Stopped before its first result (2026-10-25): its revi
                          "settings, entities shared across the selection fold on time splits with entities, no class check, the review's "
                          "change lost, an arm without a search read from the older bake-off engine, unpinned code and gates that "
                          "could not tell a gain. Replaced by search_v2.")}
+CLOSED = {"search_v2": ("Ran on commit bf7fab50 (2026-10-25): 8 of 9 datasets compared; on credit_card_fraud the search arm "
+                        "crashed (with the selection fold set aside, the earliest fold of the search rows held no fraud case, so no "
+                        "model could be fitted there). A defect of the measured code, fixed in the next commit (the search is "
+                        "skipped when a fold would miss a class); no verdict was written for search_v2 because one dataset failed. "
+                        "Its eight results are kept as they are. Replaced by search_v3, whose gates count such a failure.")}
 
 
 def _now() -> str:
@@ -97,8 +106,20 @@ def abort_previous() -> None:
     for name, why in ABORTED.items():
         folder = ROOT / "evidence" / "campaigns" / name
         if folder.is_dir() and not (folder / "ABORTED.json").exists():
-            (folder / "ABORTED.json").write_text(json.dumps({"campaign": name, "aborted": True, "why": why, "replaced_by": CAMPAIGN_ID,
+            (folder / "ABORTED.json").write_text(json.dumps({"campaign": name, "aborted": True, "why": why, "replaced_by": "search_v2",
                                                              "results": 0}, indent=2) + "\n")
+    for name, why in CLOSED.items():
+        folder = ROOT / "evidence" / "campaigns" / name
+        if folder.is_dir() and not (folder / "CLOSED.json").exists():
+            done = sorted(p.stem.split("_", 1)[1] for p in (folder / "results").glob("SRCH-0*.json")) if (folder / "results").is_dir() else []
+            rows = [json.loads(p.read_text()) for p in sorted((folder / "results").glob("SRCH-0*.json"))] if done else []
+            reading = {k: v for k, v in judge(rows).items() if k not in ("gate", "verdict")} if rows else None
+            (folder / "CLOSED.json").write_text(json.dumps({"campaign": name, "closed": True, "why": why, "replaced_by": CAMPAIGN_ID,
+                                                            "results": len(done), "datasets": done,
+                                                            "reading_of_its_results": reading,
+                                                            "reading_note": "the four gates on the datasets it compared (no verdict: one "
+                                                                            "dataset failed and its gates had no rule for a failure)"},
+                                                           indent=2) + "\n")
 
 
 def freeze() -> dict[str, Any]:
@@ -186,11 +207,33 @@ def _arm(dataset: str, name: str, budget: dict[str, Any] | None) -> dict[str, An
             "search": (models.get("evidence") or {}).get("search")}
 
 
+class ArmFailed(RuntimeError):
+    def __init__(self, arm: str, error: BaseException):
+        super().__init__(f"the {arm} arm failed: {type(error).__name__}: {str(error)[:300]}")
+        self.arm, self.error = arm, error
+
+
+def _failed(dataset: str, error: ArmFailed) -> dict[str, Any]:
+    """A dataset whose arm failed is a row of its own (never a silent gap): which arm, the error's type and words."""
+    row = {"id": f"SRCH-{DATASETS.index(dataset) + 1:03d}", "campaign_id": CAMPAIGN_ID, "dataset": dataset, "failed": error.arm,
+           "error": f"{type(error.error).__name__}: {str(error.error)[:300]}", "code_sha256": CODE_AT_START, "git": _git(), "finished_at": _now()}
+    out = CAMPAIGN / "results"
+    out.mkdir(parents=True, exist_ok=True)
+    (out / f"{row['id']}_{dataset}.json").write_text(json.dumps(row, indent=2) + "\n")
+    return row
+
+
 def run_one(dataset: str) -> dict[str, Any]:
     from dclab_rnd import bakeoff
 
-    without = _arm(dataset, "without", None)
-    searched = _arm(dataset, "with", BUDGET)
+    try:
+        without = _arm(dataset, "without", None)
+    except Exception as exc:  # noqa: BLE001 - recorded as the row of a failed arm
+        raise ArmFailed("without", exc) from exc
+    try:
+        searched = _arm(dataset, "with", BUDGET)
+    except Exception as exc:  # noqa: BLE001
+        raise ArmFailed("with", exc) from exc
     if not np.array_equal(without["rows"], searched["rows"]):
         raise RuntimeError(f"{dataset}: the two arms' holdout rows differ")
     fn, higher, y = without["fn"], without["higher_is_better"], without["y"]
@@ -221,8 +264,12 @@ def run_one(dataset: str) -> dict[str, Any]:
 
 def judge(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """The four gates on the datasets' results (pure: the tests call it on made-up rows)."""
+    every = rows
+    search_failed = [r["dataset"] for r in every if r.get("failed") == "with"]
+    left_out = [r["dataset"] for r in every if r.get("failed") == "without"]
+    rows = [r for r in every if not r.get("failed")]
     diffs = [r["difference"]["point"] for r in rows]
-    clearly_worse = [r["dataset"] for r in rows if r["difference"].get("high") is not None and r["difference"]["high"] < 0]
+    clearly_worse = [r["dataset"] for r in rows if r["difference"].get("high") is not None and r["difference"]["high"] < 0] + search_failed
     with_gaps = [r for r in rows if r.get("gaps")]
     selection_gap = float(np.mean([abs(r["gaps"]["selection_minus_holdout"]) for r in with_gaps])) if with_gaps else None
     search_gap = float(np.mean([abs(r["gaps"]["search_minus_holdout"]) for r in with_gaps])) if with_gaps else None
@@ -231,9 +278,9 @@ def judge(rows: list[dict[str, Any]]) -> dict[str, Any]:
              "rises_on_average": bool(diffs) and float(np.mean(diffs)) > 0,
              "honest_selection": selection_gap is not None and search_gap is not None and selection_gap < search_gap,
              "bounded": not over}
-    complete = len(rows) == len(DATASETS)
-    return {"datasets": len(rows), "of": len(DATASETS), "gates": gates,
-            "verdict": ("pass" if all(gates.values()) else "fail") if complete else f"not yet: {len(rows)} of {len(DATASETS)} datasets",
+    complete = len(every) == len(DATASETS)
+    return {"datasets": len(rows), "of": len(DATASETS), "gates": gates, "search_arm_failed": search_failed, "left_out_without_failed": left_out,
+            "verdict": ("pass" if all(gates.values()) else "fail") if complete else f"not yet: {len(every)} of {len(DATASETS)} datasets",
             "mean_difference": round(float(np.mean(diffs)), 6) if diffs else None, "range": [min(diffs), max(diffs)] if diffs else None,
             "clearly_better": [r["dataset"] for r in rows if (r["difference"].get("low") or 0) > 0], "clearly_worse": clearly_worse,
             "mean_abs_gap": {"selection_fold": selection_gap, "search_score": search_gap}, "over_budget": over,
@@ -248,7 +295,7 @@ def report() -> dict[str, Any]:
     folder = CAMPAIGN / "results"
     rows = [json.loads(p.read_text()) for p in sorted(folder.glob("SRCH-0*.json"))] if folder.exists() else []
     out = judge(rows)
-    if len(rows) == len(DATASETS):
+    if len(rows) == len(DATASETS):  # every dataset compared or failed
         (folder / "SRCH-100_decision.json").write_text(json.dumps({**out, "campaign_id": CAMPAIGN_ID, "decided_at": _now()}, indent=2) + "\n")
     return out
 
@@ -280,8 +327,11 @@ def main(argv: list[str] | None = None) -> int:
             d = r["difference"]
             print(f"[search] {dataset}: without {r['without']['holdout']:.4f} with {r['with']['holdout']:.4f} difference {d['point']:+.4f} "
                   f"[{d['low']}, {d['high']}] gaps {r['gaps']} minutes {r['search']['minutes']}", flush=True)
-        except Exception as exc:  # noqa: BLE001 - a dataset that fails is said, the rest still run
-            print(f"[search] {dataset} failed: {type(exc).__name__}: {str(exc)[:300]}", flush=True)
+        except ArmFailed as exc:  # a row of its own, counted by the gates
+            _failed(dataset, exc)
+            print(f"[search] {dataset} failed: {exc}", flush=True)
+        except Exception as exc:  # noqa: BLE001 - a failure outside the arms (the comparison itself): said, never a row
+            print(f"[search] {dataset} failed outside the arms: {type(exc).__name__}: {str(exc)[:300]}", flush=True)
     print(json.dumps(report(), indent=2))
     return 0
 

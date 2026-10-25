@@ -1,0 +1,58 @@
+{
+  "campaign": "search_v2",
+  "closed": true,
+  "why": "Ran on commit bf7fab50 (2026-10-25): 8 of 9 datasets compared; on credit_card_fraud the search arm crashed (with the selection fold set aside, the earliest fold of the search rows held no fraud case, so no model could be fitted there). A defect of the measured code, fixed in the next commit (the search is skipped when a fold would miss a class); no verdict was written for search_v2 because one dataset failed. Its eight results are kept as they are. Replaced by search_v3, whose gates count such a failure.",
+  "replaced_by": "search_v3",
+  "results": 8,
+  "datasets": [
+    "adult",
+    "bank_marketing",
+    "ecommerce_clothing_reviews",
+    "german_credit",
+    "letter_recognition",
+    "online_shoppers",
+    "telco_churn",
+    "wine_quality"
+  ],
+  "reading_of_its_results": {
+    "datasets": 8,
+    "of": 9,
+    "gates": {
+      "never_clearly_worse": true,
+      "rises_on_average": false,
+      "honest_selection": true,
+      "bounded": true
+    },
+    "search_arm_failed": [],
+    "left_out_without_failed": [],
+    "mean_difference": -0.003891,
+    "range": [
+      -0.025595238095238226,
+      0.003186833616384055
+    ],
+    "clearly_better": [],
+    "clearly_worse": [
+      "ecommerce_clothing_reviews"
+    ],
+    "mean_abs_gap": {
+      "selection_fold": 0.00846175,
+      "search_score": 0.00958525
+    },
+    "over_budget": [],
+    "skipped": [],
+    "selection_gain_agrees": [
+      "german_credit",
+      "online_shoppers"
+    ],
+    "selection_gain_disagrees": [
+      "telco_churn",
+      "wine_quality",
+      "letter_recognition"
+    ],
+    "minutes": {
+      "without": 26.3,
+      "with": 39.0
+    }
+  },
+  "reading_note": "the four gates on the datasets it compared (no verdict: one dataset failed and its gates had no rule for a failure)"
+}

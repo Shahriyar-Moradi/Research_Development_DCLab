@@ -276,6 +276,34 @@ class SearchCutTest(unittest.TestCase):
             self.assertFalse(set(timed[fit]) & set(timed[valid]))
             self.assertGreaterEqual(len(valid), 10)
 
+    def test_a_rare_outcome_early_in_time_skips_the_search_instead_of_leaving_a_fold_without_it(self):
+        """search_v2 found it: a fraud table split by time, ten positives, the earliest fold's fit rows had one and, with
+        the selection fold set aside, none: every model on that fold failed."""
+        import pandas as pd
+
+        from dclab_rnd.studio import search
+
+        n = 2000
+        y = np.zeros(n, dtype=int)
+        y[[450, 700, 900, 1100, 1300, 1500, 1700, 1800]] = 1  # none in the first fifth: the search rows' first fold fits on 400
+
+        class Spec:
+            split_strategy = "time"
+
+        class Bundle:
+            spec, task_type = Spec, "binary"
+            y_train = pd.Series(y)
+            cv_splits = [(np.arange(500), np.arange(500, 1000)), (np.arange(1000), np.arange(1000, 1500)), (np.arange(1500), np.arange(1500, 2000))]
+
+            @staticmethod
+            def groups(part):
+                return None
+
+        before = list(Bundle.cv_splits)
+        aside = search.set_aside(Bundle)
+        self.assertIn("no row of a class", aside["skipped"])
+        self.assertEqual(Bundle.cv_splits, before)  # the project's folds untouched
+
     def test_the_reviews_class_weight_is_never_drawn_twice(self):
         from dclab_rnd.studio import search
 

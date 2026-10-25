@@ -1,0 +1,99 @@
+{
+  "id": "SRCH-008",
+  "campaign_id": "search_v2",
+  "dataset": "ecommerce_clothing_reviews",
+  "metric": "roc_auc",
+  "higher_is_better": true,
+  "split": "group",
+  "holdout_rows": 4090,
+  "without": {
+    "holdout": 0.950540140855128,
+    "seconds": 168.3,
+    "model": "logistic_regression",
+    "params": {
+      "model__C": 1.0
+    },
+    "interval": {
+      "point": 0.950540140855128,
+      "low": 0.9402586713245161,
+      "median": 0.9506121528028411,
+      "high": 0.957193241554485,
+      "draws": 400,
+      "method": "cluster bootstrap over 239 groups"
+    }
+  },
+  "with": {
+    "holdout": 0.9427754943410827,
+    "seconds": 348.1,
+    "model": "lightgbm",
+    "params": {},
+    "interval": {
+      "point": 0.9427754943410827,
+      "low": 0.9333734222403042,
+      "median": 0.9424154143861672,
+      "high": 0.9496059781607921,
+      "draws": 400,
+      "method": "cluster bootstrap over 239 groups"
+    }
+  },
+  "difference": {
+    "point": -0.0077646465140452925,
+    "low": -0.012701563104844327,
+    "high": -0.0021313369535660713,
+    "draws": 2000,
+    "method": "paired cluster bootstrap over 239 groups",
+    "share_of_draws_flaml_better": 0.0035
+  },
+  "search": {
+    "family": "lightgbm",
+    "params": {},
+    "attempts": 8,
+    "minutes": 3.28,
+    "skipped": null,
+    "failed": []
+  },
+  "selection": {
+    "schema_version": "dclab_core.selection_record.v1",
+    "split": "group",
+    "search_rows": 12716,
+    "selection_rows": 3194,
+    "attempts": 8,
+    "top_k": 1,
+    "metric": "roc_auc",
+    "higher_is_better": true,
+    "shortlist": [
+      "lightgbm:default"
+    ],
+    "chosen": "lightgbm:default",
+    "plain_choice": "lightgbm:default",
+    "search_score": 0.937635,
+    "selection_score": 0.941472,
+    "selection_interval": [
+      0.932016,
+      0.949132
+    ],
+    "optimism": -0.003837,
+    "note": "8 attempts scored on the search rows; the top 1 read once on a selection fold of 3194 rows set aside before the search; the chosen one's search score was not flattered by 0.003837. Its interval draws whole entities of the selection fold."
+  },
+  "gaps": {
+    "selection_minus_holdout": -0.001303,
+    "search_minus_holdout": -0.00514
+  },
+  "selection_gain_over_no_search": {
+    "name": "lightgbm:default",
+    "family": "lightgbm",
+    "selection_score": 0.941472,
+    "gain": 0.0,
+    "gain_interval": [
+      0.0,
+      0.0
+    ]
+  },
+  "selection_gain_agrees_with_holdout": null,
+  "code_sha256": "6bf32216ed569b355010cde0231e3a79c133ca6c5e1807f311e8eea722fab3b3",
+  "git": {
+    "commit": "bf7fab5051d18b8592ea94ce1435894f2e78cfb5",
+    "code_files_dirty": false
+  },
+  "finished_at": "2026-10-25T08:39:13+00:00"
+}
