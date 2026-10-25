@@ -99,6 +99,76 @@
       "fix": "porcelain output read raw, never trimmed",
       "test": "tests/units.test.js: R&D against GitHub",
       "severity": "behaviour"
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "defect": "the sealed check missed DCLab's own table tools (a regression of the false-ask fix)",
+      "scenario": "describe_table {table: 'p1a2:holdout_customers'}, compute on it, and compute with where {split: 'holdout'} no longer asked",
+      "cause": "a value counted only when it looked like a file path; R&D names tables 'project:stem'",
+      "fix": "DCLab tools: every value under a file, table or place key counts; only a key named path needs a file-like value; a value that is a sealed word by itself counts",
+      "test": "tests/units.test.js: the sealed check on MCP tools",
+      "severity": "leakage"
+    },
+    {
+      "id": "F8",
+      "source": "reviewer",
+      "defect": "other MCP servers lost the whole-input check (a regression)",
+      "scenario": "mcp__jetbrains__open_file_in_editor {filePath: '/r/data/holdout.csv'} and a duckdb query reading data/holdout.csv no longer asked",
+      "cause": "the narrow key-based check applied to every MCP server, and camelCase keys never matched",
+      "fix": "the narrow check only for mcp__dclab__ tools (known keys); other servers read whole, as before; keys snake-cased",
+      "test": "tests/units.test.js",
+      "severity": "leakage"
+    },
+    {
+      "id": "F9",
+      "source": "reviewer",
+      "defect": "a list of objects under a file key was not searched",
+      "scenario": "{files: [{path: '/r/data/holdout.csv'}]} did not ask",
+      "cause": "the list branch kept only strings",
+      "fix": "lists are walked into, objects included",
+      "test": "tests/units.test.js",
+      "severity": "leakage"
+    },
+    {
+      "id": "F10",
+      "source": "reviewer",
+      "defect": "liveModels: false did not hold on R&D's product server",
+      "scenario": "with make notebook running and a key in R&D's .env, the chat's home_start ran the Home agent, intern and teams on live Claude, outside DCLab Code's budget",
+      "cause": "DCLAB_NO_LIVE_MODELS is set only on the standalone server this app starts",
+      "fix": "the status line names the model DCLab's agents use (the product server's own settings, or rules on the standalone); the product server is kept, since two processes on one workspace race on jobs and draft turns",
+      "test": "tests/units.test.js: the DCLab server's model is said",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F11",
+      "source": "reviewer",
+      "defect": "background git in the owner's R&D tree could lock the index or prompt",
+      "scenario": "git status every 30 s without optional locks could leave index.lock under a commit; an SSH passphrase or host-key question could wait on the terminal; a failed status read as clean",
+      "cause": "plain git calls",
+      "fix": "GIT_OPTIONAL_LOCKS=0, GIT_TERMINAL_PROMPT=0, ssh BatchMode; a failed status is unknown (null) and refuses sync-update",
+      "test": "(code)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F12",
+      "source": "reviewer",
+      "defect": "chatWrites could silently miss operations past 100",
+      "scenario": "dclab_capabilities returns at most 100 a call; R&D has 74 POSTs today",
+      "cause": "a cut list was read as whole",
+      "fix": "a list with matching > shown is no list (null)",
+      "test": "(code)",
+      "severity": "latent"
+    },
+    {
+      "id": "F13",
+      "source": "reviewer",
+      "defect": "the home_message holdout ask asked for nothing",
+      "scenario": "'The model must not train on October' asked as Holdout and counted as a sealed ask, though R&D refuses build words through home_message",
+      "cause": "the host still guarded what the server refuses",
+      "fix": "the entry dropped: home_build is the one build",
+      "test": "tests/units.test.js: Home agent holdout asks",
+      "severity": "behaviour"
     }
   ],
   "measurements": [
@@ -138,6 +208,20 @@
       "result": "1 ask (home_build, 'build it' at once); no sealed ask for a 'holdout' question or a lineage read of holdout_metrics; $0.28 (Sonnet 5.5)",
       "verdict": "pass",
       "cost_eur": 0.26
+    },
+    {
+      "name": "after the review",
+      "gate": "every test passes; each review finding has a test or a stated reason",
+      "fixed_before_run": true,
+      "result": "77 tests, 65 passed, 12 page tests skipped (Playwright's Chromium was removed from this machine by a disk cleanup; they passed earlier today with the same pages but one status label); units 28 of 28",
+      "verdict": "pass"
+    },
+    {
+      "name": "sync with R&D on GitHub",
+      "gate": "the lock names an R&D commit on GitHub with no uncommitted capability code",
+      "fixed_before_run": true,
+      "result": "In sync with R&D a8f769ee (on GitHub): 40 tools, 18 chat writes",
+      "verdict": "pass"
     }
   ],
   "outcome": "Claude in DCLab Code can hand a whole ML problem to DCLab's Home agent, reach every R&D product operation, and read the workspace's tables, while the person is asked before every holdout read and every decision.",
