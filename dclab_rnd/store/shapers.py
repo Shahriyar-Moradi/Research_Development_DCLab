@@ -148,7 +148,10 @@ def _body(doc: Any, kind: str, source: str) -> dict[str, Any]:
     for k in ("project", "draft", "session", "record", "conversation"):
         if body.get(k) is not None and not isinstance(body[k], str):
             body[k] = str(body[k].get("id")) if isinstance(body[k], dict) and body[k].get("id") else None
-    if kind == "agents":  # a Claude Code transcript line: which session, where, by whom
+    if kind == "agents" and source.startswith("dclab_code/"):  # 32.33: a DCLab Code record line, by its own app
+        body.setdefault("agent", "dclab_code")
+        body.setdefault("where", source.split("/")[1] if source.count("/") >= 2 else "index")
+    elif kind == "agents":  # a Claude Code transcript line: which session, where, by whom
         body.setdefault("agent", "claude_code")
         parts = source.split("/")
         body.setdefault("where", parts[1] if len(parts) > 2 else "main")

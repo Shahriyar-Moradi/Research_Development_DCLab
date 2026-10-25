@@ -150,7 +150,8 @@ training_records/store/
     fixes/                         a failing test, the passing run after it, the commits between (proposed and accepted)
     tests/                         test runs and gates
     model_requests/                every model request with its shadows and checks
-    agents/                        other agents: claude_code/ (main checkout and worktrees), testers/<id>/
+    agents/                        other agents: claude_code/ (main checkout and worktrees), dclab_code/ (DCLab Code's
+                                   records and sessions index, 32.33), testers/<id>/
     teachers/                      every teacher's answer, whole: <teacher>/<point or task>/ (Claude, GLiNER, the rules,
                                    people, any served or shadow model), with its prompt, its thinking, its cost and its version
     students/                      every student, whole: <point>/<student>/<version>/ holds the fitted model, its
@@ -883,6 +884,30 @@ keeps no account table today (`keepers/database.NEVER`).
   - no password, token, digest or email is in `raw/` or `records/` (the store check gains these plants);
   - a person removed from the product stays in the store until the owner's audited forget.
 
+### 32.33 DCLab Code's records (added 2026-10-25)
+
+The owner's developer app, DCLab Code (the separate `dclab-code` repository, built on the Claude Agent SDK), records every
+session in `~/.dclab-code/records/<session>.jsonl`. The SDK's own transcripts of its sessions on this repository are already
+Claude Code's (32.7), its worktrees too, because the app puts them under `.claude/worktrees/`. What only the app holds is
+kept by a keeper of its own, `keepers/dclab_code.py`:
+
+- **what:** each record of a session on this repository by its new lines (the person's messages; every permission asked
+  and the answer; the sealed and holdout guard's questions; the answers to the agent's questions; plan approvals; notes;
+  each SDK message whole) and those sessions' rows of `sessions.json` (title, project, model, cost, own copy, the SDK
+  session id that links a record to its transcript);
+- **only this repository:** a session whose project is another folder (the main product, a client's data) is counted
+  (name, size, sha256), never kept, and its row is left out, as 32.7 keeps only this repository's sessions;
+- **how:** under `raw/agents/`, workspace `rnd`, source `dclab_code/...`, labelled `agent: dclab_code` when shaped,
+  anything shaped like a credential replaced by the agents keeper's marker; `config.json` is settings and is not kept;
+- **where it reads:** only on the owner's machine; never on a tester's unless `DCLAB_STORE_DCLAB_CODE` names the folder;
+  `DCLAB_STORE_CLAUDE_PROJECTS=off` (the tests' switch, which wins) or `DCLAB_STORE_DCLAB_CODE=off` reads nothing, and a
+  check or test that names the agents' folders reads only the folder it hands over;
+- **feeds no model yet:** no set builder reads these records; one that does keys a session by its `sdkSessionId`, the
+  same session as its Claude Code transcript, so it never lands in two splits.
+- **Done when:** a record's new lines are kept with a key redacted, another folder's session only counted, and nothing is
+  read in a test that did not hand a folder (`tests/test_store_dclab_code.py`); the store check (32.18) plants a key in a
+  record and finds it nowhere.
+
 ## The owner's answers (2026-10-20)
 
 - **The store's bulk:** a separate private GitHub repository, `dclab-records`, with one branch per person (`owner/main`,
@@ -917,7 +942,7 @@ keeps no account table today (`keepers/database.NEVER`).
 ## Order
 
 32.1 → 32.2 → 32.3 → 32.4 → 32.5 → 32.6 → 32.7 → 32.8 → 32.9 → 32.10 → 32.11 → 32.12 → 32.13 → 32.14 → 32.15 → 32.16 →
-32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31 (the
+32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31, then 32.32 → 32.33 (the
 check, 32.18, is extended by each).
 
 Every package follows the usual steps: a test first, the reviewer, its development record and `make sft-dev`, and the
@@ -1011,6 +1036,8 @@ gate. Model spend:
     - CPU time per step;
     - a workspace reading the store's shadow students;
     - live runs of the curator and the teacher.
+- **32.33 built (2026-10-25):** DCLab Code's records of sessions on this repository kept by their own keeper
+  (`dclab_code/`), redacted, owner's machine only; other folders' sessions counted only; a review's 5 findings fixed.
 - **32.24 to 32.31 built (2026-10-20), a review's 17 findings fixed (dclab-core 0.99.0).**
   - **Builds.** Every project the store kept is a `ModelBuild`: file or PostgreSQL workspaces, a deleted project, a
     tester's project. So is every student the tutor refitted.

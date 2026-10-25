@@ -177,8 +177,8 @@ class KeepersTest(unittest.TestCase):
         from dclab_rnd.store import Store
 
         services = SimpleNamespace(store=SimpleNamespace(home=self.base))
-        with mock.patch.dict(os.environ, {"DCLAB_STORE": str(self.layout.root)}):
-            handlers._store_run(services, {})
+        with mock.patch.dict(os.environ, {"DCLAB_STORE": str(self.layout.root), "DCLAB_STORE_CLAUDE_PROJECTS": "off", "DCLAB_STORE_DCLAB_CODE": "off"}):
+            handlers._store_run(services, {})  # never this machine's sessions, even on a direct run
         self.assertIn("audit.jsonl", {e.source for e in Store(self.layout).entries("audit") if e.workspace == "dev"})
 
 

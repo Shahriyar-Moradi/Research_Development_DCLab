@@ -194,6 +194,7 @@ def child_env(tmp: str, threads_one: bool = True) -> dict:
     env.setdefault("DCLAB_STORE_LOOP", "0")
     env.setdefault("DCLAB_STORE_CAPTURE", "0")
     env.setdefault("DCLAB_STORE_CLAUDE_PROJECTS", "off")
+    env.setdefault("DCLAB_STORE_DCLAB_CODE", "off")  # 32.33: no test reads the owner's DCLab Code records
     env.setdefault("DCLAB_STORE_COMMITS", "off")  # 32.21: never this repository's whole history in a test  # 32.7: no test reads this machine's Claude Code sessions; a test gives its own folder  # 32.4: no test writes into the owner's store before a deletion; a test turns it on with its own DCLAB_STORE  # 32.2: no worker of a test server runs the store's conductor behind its back
     env.setdefault("DCLAB_COLLECTOR", "0")  # S2: no worker of a test server gathers real tables or asks Claude behind its back
     env.setdefault("DCLAB_STUDENTS_LOOP", "0")  # 29.7: no worker of a test server retrains students behind its back; a test turns it on itself

@@ -299,6 +299,7 @@ def install(registry: Optional[dict[str, Keeper]] = None) -> dict[str, Keeper]:
     from .agents import KEEPER as AGENTS
     from .commits import KEEPER as COMMITS
     from .database import KEEPER as DATABASE
+    from .dclab_code import KEEPER as DCLAB_CODE
     from .people import KEEPER as PEOPLE
 
     reg = REGISTRY if registry is None else registry
@@ -306,7 +307,7 @@ def install(registry: Optional[dict[str, Keeper]] = None) -> dict[str, Keeper]:
                    "each walk from a draft to a report as one workflow record (32.5)")
     fix = Keeper("fixes", (Claim("fixes", "fixes/"),), fixes.keeper_sources, ("m4_workflow_llm", "m5_solver_llm", "m7_judges"),
                  "a failing test, the run that passed it next, and the commits between (32.6)")
-    for keeper in KEEPERS + (TEST_RUNS_KEEPER, DATABASE, PEOPLE, AGENTS, COMMITS, walks, fix):
+    for keeper in KEEPERS + (TEST_RUNS_KEEPER, DATABASE, PEOPLE, AGENTS, DCLAB_CODE, COMMITS, walks, fix):
         if keeper.name not in reg:
             register(keeper, reg)
     return reg

@@ -1,0 +1,121 @@
+{
+ "package": "32.33",
+ "title": "DCLab Code's records kept by their own keeper: this repository's sessions only, redacted, the owner's machine only",
+ "date": "2026-10-25",
+ "request": "Fix the 3 gaps first: the plan approval card, records into R&D's training store, and worktrees for parallel sessions.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.33",
+ "plan": [
+  "Read how the store finds sources: keepers claim a kind and a source prefix; the agents keeper (32.7) keeps this repository's Claude Code transcripts, worktrees under .claude/worktrees included.",
+  "Add a keeper for DCLab Code's own records (what the SDK transcripts lack: permissions, guard asks, answers, plan approvals) mirroring 32.7's rules.",
+  "Test it on a scratch store; extend the store check with a planted key."
+ ],
+ "decisions": [
+  {
+   "decision": "A keeper of its own, claim agents/dclab_code/, not files dropped into Claude Code's projects folder",
+   "why": "The agents keeper's sources are Claude Code's; dropping files there would mislabel them and couple to its internals."
+  },
+  {
+   "decision": "The app's worktrees live under .claude/worktrees/",
+   "why": "The agents keeper already keeps transcripts of sessions there, so own-copy sessions are kept with no other change."
+  },
+  {
+   "decision": "Only sessions on this repository are kept; others counted (name, size, sha256)",
+   "why": "32.7 keeps only this repository's sessions; CLAUDE.md: the main product is never copied here; a client's rows must not reach dclab-records."
+  },
+  {
+   "decision": "Feeds no model type yet",
+   "why": "No set builder reads these lines; a builder that does must key a session by sdkSessionId so it never lands in two splits beside its Claude Code transcript."
+  }
+ ],
+ "change": "dclab_rnd/store/keepers/dclab_code.py (new), standard.install registers it; shapers label dclab_code lines; tests/test_store_dclab_code.py; store check plants a key in a record; run_parallel sets DCLAB_STORE_DCLAB_CODE=off; test_store_keepers' worker test turns both switches off; STORING_PHASE_PLAN 32.33.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "defect": "sessions on other folders were kept whole",
+   "scenario": "a DCLab Code session on ../DCLab or a client's folder: its tool outputs (file contents, rows) kept as train in workspace rnd and pushed to dclab-records",
+   "cause": "the keeper read every record, not only this repository's",
+   "fix": "read sessions.json; keep a record only when its projectPath is this checkout or inside it; count the rest; keep only those rows of the index",
+   "test": "tests/test_store_dclab_code.py::DclabCodeTest::test_only_this_repositorys_sessions_are_kept_others_counted",
+   "severity": "privacy",
+   "impact": "a session on the main product or a client folder would put its file contents and rows into the private records repository as training data",
+   "alternatives": [
+    "keep everything (the owner wants all data): set aside, the main product is never copied here and a client gave no yes"
+   ]
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "package id 32.32 was already taken (each person's account)",
+   "scenario": "the dev record and status line would merge two packages",
+   "cause": "the plan's Order line stopped at 32.31",
+   "fix": "renumbered to 32.33 everywhere; Order line extended",
+   "test": "",
+   "severity": "gap"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "shaped lines labelled agent claude_code, and the keeper claimed to feed four models that no builder reads",
+   "scenario": "every shaped DCLab Code line said claude_code; trajectories() built 0",
+   "cause": "shapers label every agents line as Claude Code's; the record wraps SDK messages in message",
+   "fix": "label dclab_code for dclab_code/ sources; feeds ()",
+   "test": "tests/test_store_dclab_code.py::DclabCodeTest::test_shaped_lines_say_they_are_dclab_codes",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "a test could read the real ~/.dclab-code",
+   "scenario": "test_the_worker_job_keeps_its_own_workspace run directly, outside run_parallel",
+   "cause": "its env named no folders and no switch was set",
+   "fix": "the tests' switch (DCLAB_STORE_CLAUDE_PROJECTS=off) wins in home_folder; run_parallel sets DCLAB_STORE_DCLAB_CODE=off; the worker test turns both off",
+   "test": "tests/test_store_dclab_code.py::DclabCodeTest::test_nothing_is_read_unless_a_folder_is_given_or_it_is_the_owners_machine",
+   "severity": "privacy"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "no dev record, no store-check extension",
+   "scenario": "house steps",
+   "cause": "missed",
+   "fix": "this record; the store check plants a key in a DCLab Code record and an other-folder session",
+   "test": "python -m dclab_rnd.store.check: 28 of 28",
+   "severity": "gap"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the store tests for keepers",
+   "gate": "every store keeper test passes, the new file's five included",
+   "fixed_before_run": true,
+   "result": "test_store_dclab_code 5, test_store_agents 4, test_store_keepers 6, test_store_people 6 passed",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "the daytime rule: only the relevant test files, not the full gate"
+   ]
+  },
+  {
+   "name": "the store check (32.18) with DCLab Code records",
+   "gate": "all checks pass, a planted key is found nowhere in raw or records",
+   "fixed_before_run": true,
+   "result": "28 of 28: a session on this repository kept, another folder's only counted, no planted key",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "a scratch store, not the owner's"
+   ]
+  }
+ ],
+ "outcome": "DCLab Code's records of sessions on this repository reach the store redacted; other folders' sessions are counted only.",
+ "lessons": [
+  "A keeper for another tool's data inherits the scope rule of its nearest keeper: this repository only.",
+  "Check a package number against the plan's sections, not only its Order line."
+ ],
+ "risks": [
+  "sessions.json is the only link from a record to its project: a record missing from it is counted, never kept.",
+  "Nothing feeds a model until a builder reads these records."
+ ],
+ "commits": []
+}

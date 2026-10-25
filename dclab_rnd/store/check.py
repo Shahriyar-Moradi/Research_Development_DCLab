@@ -102,6 +102,18 @@ def _day(home: Path, runs: Path) -> dict[str, Any]:
     return {"project": pid, "deleted": gone, "draft": draft["id"], "session": s["id"]}
 
 
+def _dclab_code(home: Path) -> Path:
+    """32.33: DCLab Code's records: a session on this repository (with a pasted key) and one on another folder."""
+    from .layout import ROOT
+
+    (home / "records").mkdir(parents=True)
+    (home / "records" / "s_here01.jsonl").write_text(json.dumps({"kind": "sdk", "message": {"type": "user", "content": f"cat .env: {KEY}"}}) + "\n", encoding="utf-8")
+    (home / "records" / "s_away01.jsonl").write_text(json.dumps({"kind": "sdk", "message": {"content": "another folder"}}) + "\n", encoding="utf-8")
+    (home / "sessions.json").write_text(json.dumps({"sessions": [{"id": "s_here01", "projectPath": str(ROOT)},
+                                                                 {"id": "s_away01", "projectPath": "/elsewhere/product"}]}), encoding="utf-8")
+    return home
+
+
 def run(log: Any = print) -> dict[str, Any]:
     """The day, captured, and every check; ``ok`` only when all pass."""
     from .. import experience
@@ -121,7 +133,9 @@ def run(log: Any = print) -> dict[str, Any]:
         experience.install(log_)
         try:
             ids = _day(home, runs)
-            record = conductor.conduct({"agent_runs": base, "test_runs": runs, "claude_projects": None}, layout, standard.install({}))
+            code_home = _dclab_code(scratch / "dclab-code")
+            record = conductor.conduct({"agent_runs": base, "test_runs": runs, "claude_projects": None, "dclab_code_home": code_home},
+                                       layout, standard.install({}))
         finally:
             experience.install(None)
         store = Store(layout)
@@ -147,6 +161,10 @@ def run(log: Any = print) -> dict[str, Any]:
         records_text = b"".join(gzip.decompress(p.read_bytes()) for p in layout.tier("records").rglob("*.gz"))
         check("no planted key in raw or records", KEY.encode() not in raw_text and KEY.encode() not in records_text)
         check("no planted contact in records", CONTACT.encode() not in records_text)
+        code = {e.source for e in store.entries("agents")}  # 32.33
+        check("a DCLab Code session on this repository kept", "dclab_code/records/s_here01.jsonl" in code)
+        check("a DCLab Code session on another folder only counted", "dclab_code/records/s_away01.jsonl" not in code
+              and "dclab_code/~other-projects~counts.json" in code)
         leaks = []
         for manifest in layout.tier("sets").rglob("MANIFEST.json"):
             groups = {}
