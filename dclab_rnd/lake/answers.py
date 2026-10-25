@@ -230,8 +230,8 @@ def _journeys(_: Path) -> Iterator[dict[str, Any]]:
     families = _families()
     for path in sorted(JOURNEYS.glob("journeys_*.json")):
         name = path.stem.replace("journeys_", "")
-        if name == "understand_sealed" and not _understand_spent():
-            continue  # S8 B2: the understanding students' sealed people stay unread until their gate has read them once
+        if name.startswith("understand_sealed") and not (name == "understand_sealed" and _understand_spent()):
+            continue  # S8 B2: every understanding exam's sealed people stay unread until their own gate has read them once
         for j in json.loads(path.read_text(encoding="utf-8")):
             family = j.get("family")
             expected = (j.get("expect") or {}).get("families")
