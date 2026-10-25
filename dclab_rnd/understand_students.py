@@ -275,9 +275,153 @@ def gate(models: Path = MODELS, campaign: Path = CAMPAIGN, workers: int = 3) -> 
     return paths
 
 
+# ------------------------------------------------------------------------------------------------ v2: the first message
+# (S8 B2 v2, the owner's "do all", 2026-10-25): the family read from the person's first message alone, where the rules read
+# nothing for 76% of the new people and are wrong on 10%. Three answerers on the same people: the rules, the text student
+# alone, and the text student only where the rules read nothing (the rules' right answers kept by construction). Judged
+# once on a second sealed set (journeys_understand_sealed_v2.json, a third writer: channels such as a WhatsApp message, a
+# form field, a voice note), under decision_gate_v1 unchanged, the gate fixed and committed first.
+HOMEWORK_V2 = W.JOURNEYS / "journeys_homework_v2.json"
+SEALED_V2_FILE, SEALED_V2_HASH = W.JOURNEYS / "journeys_understand_sealed_v2.json", W.JOURNEYS / "sealed_understand_v2.sha256"
+MODELS_V2 = W.DECISIONS / "understand_models_v2"
+CAMPAIGN_V2 = ROOT / "evidence" / "campaigns" / "understand_v2"
+POINT_V2 = "problem.family_from_words"
+GATE_V2 = {"version": "understand_gate_v2", "decision_gate": "decision_gate_v1", "point": POINT_V2,
+           "set": "journeys_understand_sealed_v2.json (150 people, ten per kind, a third writer, pinned by sealed_understand_v2.sha256)",
+           "answerers": "the rules (dclab_core.conversation.card_for on the first message); the text student alone; the text student only "
+                        "where the rules read no family",
+           "rule": "Each of the two student answerers judged once by decision_gate_v1 (the thresholds unchanged) beside the rules on the "
+                   "same sealed first messages, by person, an answer right when it is one of the person's families.",
+           "seen_before": None}  # the dev figures, written before the sealed set is read (committed first)
+
+
+def _families(j: dict[str, Any]) -> list[str]:
+    f = j.get("family")
+    return [str(x) for x in (f if isinstance(f, list) else [f]) if x]
+
+
+def first_words_rows(people: list[tuple[str, dict[str, Any]]]) -> list[dict[str, Any]]:
+    """One row per person: the first message, the families it may be (the truth), the rules' reading (None: unread)."""
+    from dclab_core.conversation import card_for
+
+    rows = []
+    for source, j in people:
+        families = _families(j)
+        if not families or not str(j.get("words") or "").strip():
+            continue
+        group = f"{source}:{j['id']}"
+        rule = card_for(str(j["words"]), {}).family.value
+        rows.append({"group": group, "words": str(j["words"]), "accepted": families, "label": families[0], "rule": rule,
+                     "split": person_split(group), "source": source})
+    return rows
+
+
+def homework_v2_people() -> list[tuple[str, dict[str, Any]]]:
+    out = homework()
+    if HOMEWORK_V2.is_file():
+        out += [("homework_v2", j) for j in json.loads(HOMEWORK_V2.read_text(encoding="utf-8"))]
+    return out
+
+
+def _right(pick: Any, row: dict[str, Any]) -> bool:
+    return pick is not None and str(pick) in row["accepted"]
+
+
+def text_model_v2(train_rows: list[dict[str, Any]]) -> Any:
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.pipeline import make_pipeline
+
+    model = make_pipeline(TfidfVectorizer(analyzer="char_wb", ngram_range=(2, 5), min_df=2, sublinear_tf=True),
+                          LogisticRegression(max_iter=3000, C=4.0, class_weight="balanced"))
+    return model.fit([r["words"] for r in train_rows], [r["label"] for r in train_rows])
+
+
+def answers_v2(model: Any, rows: list[dict[str, Any]]) -> dict[str, list[Any]]:
+    picks = list(model.predict([r["words"] for r in rows])) if rows else []
+    return {"rule": [r["rule"] for r in rows], "student": picks,
+            "student_where_rule_unread": [r["rule"] if r["rule"] is not None else p for r, p in zip(rows, picks)]}
+
+
+def train_v2(out: Path = MODELS_V2) -> dict[str, Any]:
+    """The text student on the first messages of the homework people (train split), measured on the dev people beside the
+    rules; the sealed people are never read here."""
+    import joblib
+
+    rows = first_words_rows(homework_v2_people())
+    train_rows, dev = [r for r in rows if r["split"] == "train"], [r for r in rows if r["split"] == "dev"]
+    model = text_model_v2(train_rows)
+    got = answers_v2(model, dev)
+    acc = {k: round(sum(_right(a, r) for a, r in zip(v, dev)) / len(dev), 4) if dev else None for k, v in got.items()}
+    unread = [i for i, r in enumerate(dev) if r["rule"] is None]
+    rule_right = [i for i, r in enumerate(dev) if _right(r["rule"], r)]
+    doc = {"point": POINT_V2, "train_people": len(train_rows), "dev_people": len(dev), "by_source": dict(Counter(r["source"] for r in rows)),
+           "dev_accuracy": acc, "rule_unread_share": round(len(unread) / len(dev), 4) if dev else None,
+           "student_on_unread": round(sum(_right(got["student"][i], dev[i]) for i in unread) / len(unread), 4) if unread else None,
+           "student_turns_rule_right": round(sum(not _right(got["student"][i], dev[i]) for i in rule_right) / len(rule_right), 4) if rule_right else None,
+           "features": "character n-grams (2 to 5) of the first message only, tf-idf; logistic regression, balanced"}
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    joblib.dump(model, out / f"{POINT_V2}.text.joblib")
+    (out / "MEASURED.json").write_text(json.dumps(doc, indent=1) + "\n", encoding="utf-8")
+    return doc
+
+
+def gate_v2(models: Path = MODELS_V2, campaign: Path = CAMPAIGN_V2) -> list[Path]:
+    """The sealed v2 people's first messages read once; both student answerers judged beside the rules."""
+    import hashlib
+
+    import joblib
+
+    from dclab_core import decision_gate
+
+    if not GATE_V2["seen_before"]:
+        raise ValueError("the v2 gate's dev figures are not written: it is fixed (and committed) before the sealed set is read")
+    fingerprint = SEALED_V2_HASH.read_text(encoding="utf-8").strip()
+    campaign = Path(campaign)
+    mark = campaign / MARK
+    if mark.is_file() and json.loads(mark.read_text(encoding="utf-8")).get("fingerprint") == fingerprint:
+        raise ValueError("the v2 sealed people were read: a sealed set is read once")
+    if hashlib.sha256(SEALED_V2_FILE.read_bytes()).hexdigest() != fingerprint:
+        raise ValueError("the v2 sealed people changed since they were sealed")
+    model = joblib.load(Path(models) / f"{POINT_V2}.text.joblib")
+    campaign.mkdir(parents=True, exist_ok=True)
+    mark.write_text(json.dumps({"fingerprint": fingerprint, "at": W.datetime.now(W.timezone.utc).isoformat(timespec="seconds")}, indent=1) + "\n",
+                    encoding="utf-8")
+    rows = first_words_rows([("understand_sealed_v2", j) for j in json.loads(SEALED_V2_FILE.read_text(encoding="utf-8"))])
+    got = answers_v2(model, rows)
+    truth = [r["label"] for r in rows]
+    canon = {k: [r["label"] if _right(a, r) else a for a, r in zip(v, rows)] for k, v in got.items()}  # an accepted family reads as the label
+    groups = [r["group"] for r in rows]
+    folder = campaign / "results"
+    folder.mkdir(parents=True, exist_ok=True)
+    if not (campaign / "manifest.json").exists():
+        (campaign / "manifest.json").write_text(json.dumps({"campaign_id": "understand_v2", "objective": "S8 B2 v2: the family from the first "
+                                                            "message, the text student alone and where the rules read none, judged once.",
+                                                            "gate": GATE_V2, "rule": GATE_V2["rule"],
+                                                            "command": "python -m dclab_rnd.understand_students gate-v2 --yes"}, indent=2) + "\n",
+                                                 encoding="utf-8")
+    paths = []
+    for n, name in enumerate(("student", "student_where_rule_unread"), start=1):
+        verdict = decision_gate.verdict(truth, canon[name], canon["rule"], groups)
+        ident = f"UNW-{n:03d}"
+        doc = {"id": ident, "experiment_id": ident, "campaign_id": "understand_v2", "kind": "understand_student_gate", "status": "completed",
+               "at": W.datetime.now(W.timezone.utc).isoformat(timespec="seconds"), "point": POINT_V2, "student": name,
+               "gate": {**GATE_V2, "thresholds": decision_gate.THRESHOLDS},
+               "sealed": {"decisions": len(rows), "people": len(rows), "fingerprint": fingerprint,
+                          "rule_unread": sum(r["rule"] is None for r in rows)},
+               "verdict": verdict, "result": "pass" if verdict["pass"] else "fail",
+               "rule": f"One run of the {name.replace('_', ' ')} on {len(rows)} sealed first messages of written people, judged by a gate "
+                       "fixed before it; evidence about these written messages, not about real sessions nor production readiness."}
+        path = folder / f"{ident}_{name}.json"
+        path.write_text(json.dumps(doc, indent=2, default=str) + "\n", encoding="utf-8")
+        paths.append(path)
+    return paths
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m dclab_rnd.understand_students", description=__doc__.split("\n")[0])
-    ap.add_argument("command", choices=("collect", "train", "report", "gate"))
+    ap.add_argument("command", choices=("collect", "train", "report", "gate", "train-v2", "gate-v2"))
     ap.add_argument("--yes", action="store_true", help="gate: read the sealed people (once: they are then spent)")
     ap.add_argument("--workers", type=int, default=3)
     args = ap.parse_args(argv)
@@ -288,6 +432,17 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 0
     if args.command == "train":
         print(json.dumps(train(), indent=1, default=str)[:4000])
+        return 0
+    if args.command == "train-v2":
+        print(json.dumps(train_v2(), indent=1))
+        return 0
+    if args.command == "gate-v2":
+        if not args.yes:
+            print("Would read the v2 sealed people's first messages once; add --yes (the set is then spent).")
+            return 0
+        for path in gate_v2():
+            doc = json.loads(path.read_text(encoding="utf-8"))
+            print(f"{doc['student']:<28} {doc['result']:<4} " + "  ".join(f"{c['criterion'].split(',')[0]}={c['value']}" for c in doc["verdict"].get("criteria", [])))
         return 0
     if args.command == "gate":
         if not args.yes:

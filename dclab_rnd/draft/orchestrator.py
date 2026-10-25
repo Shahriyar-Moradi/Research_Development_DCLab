@@ -795,7 +795,15 @@ def plan_new_version(t: Turn, /, **_: Any) -> dict[str, Any]:
         if ops:  # the Data engineer's confirmed changes, on this version's copy of the table
             frame = _with_changes(t, frame, ops)
         profile = studio_data.profile_table(frame) if ops else (project.get("data") or {}).get("profile") or studio_data.profile_table(frame)
-        proposal = studio_solution.propose(frame, profile, target, None, project.get("pack"), time_hint)
+        from .card import card_of
+
+        from ..kinds.propose import said_of
+
+        # S9: the version's own family when it changed one; the card's only for the same outcome (a new outcome is
+        # another problem: a forecast card's kind never planned onto a yes/no outcome, the review of S9)
+        family = problem.get("family") or (card_of(_draft(t)).family.value if target == old.get("target") else None)
+        proposal = studio_solution.propose(frame, profile, target, None, project.get("pack"), time_hint, family,
+                                           said_of(_draft(t).get("understanding") or {}), list(project.get("tables") or {}))
     except Exception as exc:  # noqa: BLE001 - the table cannot be read, or the outcome refused: said, nothing planned
         return {"error": f"The new version cannot be planned on this table: {str(getattr(exc, 'detail', None) or exc)[:300]}"}
     time_column = time_hint if time_hint in frame.columns else (proposal.get("time_candidates") or [None])[0]

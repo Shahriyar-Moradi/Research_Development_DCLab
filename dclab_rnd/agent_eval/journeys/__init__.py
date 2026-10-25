@@ -652,7 +652,14 @@ def _save(projects: Any, project: dict[str, Any], statements: dict[str, Any], de
         proposal = {**suggestion}
     elif target:
         frame = sd.load_table(sd.data_path(projects, project))
-        proposal = propose(frame, project["data"]["profile"], target, statements.get("task"), project.get("pack"))
+        from dclab_rnd.kinds.propose import NO_OUTCOME
+        from dclab_rnd.studio.solution import card_context
+
+        proposal = propose(frame, project["data"]["profile"], target, statements.get("task"), project.get("pack"), None, **card_context(project))
+        if proposal.get("kind") in NO_OUTCOME and proposal.get("target") is None and "target" not in statements:
+            target = None  # the kind reads no outcome: the one named describes it (its own field), and the save leaves the target empty
+    elif project.get("solution") and not statements:  # S9: a kind that reads no outcome, its solution built from the card: kept
+        proposal = {k: v for k, v in project["solution"].items() if v is not None}
     else:
         proposal = {}
     stated_kind = statements.get("kind")
@@ -662,7 +669,8 @@ def _save(projects: Any, project: dict[str, Any], statements: dict[str, Any], de
         task = statements.get("task") or kinds.get(stated_kind).base_task
     else:
         task = statements.get("task") or proposal.get("task") or "binary"
-    moment = suggestion.get("prediction_moment") or ((project.get("draft") or {}).get("understanding") or {}).get("prediction_moment") or ""
+    moment = (suggestion.get("prediction_moment") or ((project.get("draft") or {}).get("understanding") or {}).get("prediction_moment")
+              or str(proposal.get("prediction_moment") or ""))  # S9: a kept solution's own moment
     if design is not None and target and proposal:
         frame = sd.load_table(sd.data_path(projects, project))
         if (project.get("labels") or {}).get("target") == target:  # the outcome from a file of known cases, joined as the engine joins it

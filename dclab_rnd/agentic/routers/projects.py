@@ -243,7 +243,7 @@ async def _proposal(project_id: str, body: ProposalRequest, s: Services) -> dict
     frame = s.load_frame(p)
     try:
         proposal = await asyncio.to_thread(studio_solution.propose, frame, p["data"]["profile"], str(body.target if body.target is not None else ""), body.task,
-                                               studio_engine.pack_of(p))
+                                               studio_engine.pack_of(p), None, **studio_solution.card_context(p))  # S9: the kind its card understood
     except ValueError as exc:
         raise HTTPException(422, str(exc))
     proposal["rule"] = {k: proposal.get(k) for k in ("identifiers", "forbidden", "time_candidates", "group_candidates", "modifiers", "modifier_facts")}  # 19.7: the rules' own

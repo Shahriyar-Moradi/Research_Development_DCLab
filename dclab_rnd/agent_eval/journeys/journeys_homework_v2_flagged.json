@@ -1,0 +1,129 @@
+[
+ {
+  "id": "JK-entity_tables-305",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "words": "Our e-scooter fleet has customers on pay-per-ride and monthly passes, in several regions. I want to forecast how many rides each customer will take next month, because we plan scooter placement and promotions around it. Everything starts from the customers table with signup_date, plan, region, last_order_date and lifetime_orders, and each ride is a row in an orders table. Payments and complaints are in their own tables.",
+  "answers": {
+   "target": "The number of rides each customer takes in the next 30 days",
+   "prediction_moment": "The last day of each month",
+   "action": "Plan scooter placement and target promotions at likely heavy riders",
+   "entity": "A customer",
+   "labels": "Past ride counts from the orders table",
+   "family": "A number per customer"
+  },
+  "written_by": "journey_writer_b@cb6a937eddae",
+  "check": "Wants a forecast of ride counts per customer, a numeric outcome rather than churn."
+ },
+ {
+  "id": "JK-entity_tables-306",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "words": "We install solar panels, and after the install most customers sign up for a maintenance plan. The customer list has customer_id, signup_date, plan, region, last_order_date and lifetime_orders, which includes service visits and add-on orders. We also have a table of service tickets. I'd like to know which customers will be asking for a battery or inverter upgrade soon, so sales calls aren't wasted on people who aren't interested.",
+  "answers": {
+   "target": "The customer buys an add-on such as a battery within six months",
+   "action": "A sales call from our team",
+   "costs": "A sales call takes about half an hour, while an add-on sale is worth thousands",
+   "data_plan": "Customers table, service tickets and past add-on orders"
+  },
+  "written_by": "journey_writer_b@cb6a937eddae",
+  "check": "Wants to find customers likely to buy a battery or inverter upgrade, which is upsell propensity rather than churn."
+ },
+ {
+  "id": "JK-entity_tables-307",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "words": "I work at an insurance broker. Most clients start with one policy, and some add a second later. Clients are listed with signup date, plan (the coverage tier), region, last order date and lifetime orders, which counts the policies bought. The policies, claims and calls are in other tables. Management asked whether we can find the clients likely to buy another policy this year.",
+  "answers": {
+   "target": "The client buys an additional policy within the next 12 months",
+   "prediction_moment": "At the start of each quarter",
+   "action": "Cross-sell outreach by their broker",
+   "entity": "A client",
+   "family": "A yes or no per client",
+   "data_plan": "Clients table plus policies, claims and call logs"
+  },
+  "written_by": "journey_writer_b@cb6a937eddae",
+  "check": "Wants clients likely to buy an additional policy, which is cross-sell rather than churn."
+ },
+ {
+  "id": "JK-places-207",
+  "kind": "places",
+  "family": "regression",
+  "words": "The water utility where I work is planning to replace old pipes street by street, and we want to estimate how much property value is exposed to each flooding scenario. For that we need a value for every home along the network, but we only have address coordinates, floor area, rooms and building age, and no prices. A neighbouring council shared its sales table with the same fields plus the sale price. Is there a way to use it?",
+  "answers": {
+   "target": "price",
+   "prediction_moment": "When we plan a street's works, for homes where we know location, area, rooms and age",
+   "action": "The planners rank streets by the total estimated value at risk",
+   "entity": "A home",
+   "labels": "Only in the neighbouring council's sales table",
+   "data_plan": "The neighbouring council's sales table, then apply it to our own homes",
+   "family": "A number: the value of each home"
+  },
+  "written_by": "journey_writer_b@cb6a937eddae",
+  "check": "Their own homes have no prices, so they have no labelled table; they would borrow another council's sales, which is a transfer problem rather than their own table."
+ },
+ {
+  "id": "JK-uplift-001",
+  "kind": "uplift",
+  "family": "uplift",
+  "words": "I'm a data analyst at a mobile operator. I need a propensity model with good precision that ranks customers by how likely they are to buy the upgrade bundle, using age, tenure_months, past_purchases, region and app_user as features. We'll text the top of the ranking. Last quarter's pilot sent the text to some customers and not to others, and that table is ready.",
+  "answers": {
+   "target": "bought",
+   "prediction_moment": "On the day we build the text-message list",
+   "action": "Text the upgrade offer to the top-ranked customers",
+   "entity": "Customer",
+   "labels": "The pilot table, with got_offer and bought",
+   "budget": "Texts for roughly a fifth of the base per wave",
+   "data_plan": "Last quarter's pilot table",
+   "family": "Ranking by likelihood to buy"
+  },
+  "written_by": "journey_writer_b@cb6a937eddae",
+  "check": "Asks for a propensity ranking by likelihood to buy, not the incremental effect of the text, even though a pilot table exists."
+ },
+ {
+  "id": "JK-uplift-101",
+  "kind": "uplift",
+  "family": "uplift",
+  "words": "I'm a data analyst at a mobile game studio. We pushed a bundle offer to some players, and I want to build a classifier on our features that predicts bought with good precision, so we can target the likely buyers. I was going to train gradient boosting on age, app_user, past_purchases, tenure_months and region, and use got_offer as one more feature. Can you set up that pipeline and tell me which accuracy metric to use?",
+  "answers": {
+   "target": "bought",
+   "action": "Push the bundle offer to the players the model ranks highest",
+   "entity": "One player (customer_id)",
+   "labels": "Yes, bought is recorded for everyone, and got_offer shows who received the push"
+  },
+  "written_by": "journey_writer_b@cb6a937eddae",
+  "check": "Asks for a plain classifier predicting bought with got_offer as a feature, aiming at likely buyers rather than who is changed by the offer, and the answers never mention incremental effect."
+ },
+ {
+  "id": "JK-uplift-201",
+  "kind": "uplift",
+  "family": "uplift",
+  "words": "I run analytics for a gym chain and need a classifier with high precision that predicts who will buy the premium-plus upgrade. We have features like age, app_user, past_purchases, tenure_months and region, and we already know got_offer and bought for the last promo. The plan is to take the top scorers and send them the free-month offer. Can you build that pipeline and tell me the model's accuracy?",
+  "answers": {
+   "target": "bought",
+   "prediction_moment": "When the promo list is built, before any free-month offer goes out",
+   "action": "Send the free-month offer to the top of the list",
+   "labels": "got_offer and bought are both recorded from the last promo",
+   "budget": "We can give out maybe 500 free months",
+   "family": "A classifier for who will buy"
+  },
+  "written_by": "journey_writer_b@cb6a937eddae",
+  "check": "Wants a plain classifier of who will buy and its accuracy, ignoring the treatment effect of got_offer; that is a propensity/classification goal, not uplift."
+ },
+ {
+  "id": "JK-uplift-301",
+  "kind": "uplift",
+  "family": "uplift",
+  "words": "I'm an analyst at a food delivery app and we need a classifier with really high precision to flag customers who will order after we push a promo notification. The features are basically age, whether they use the app, past_purchases, tenure_months and region. I was thinking gradient boosting on the bought column and then we notify the top scorers. Can you build that pipeline for us?",
+  "answers": {
+   "target": "bought",
+   "action": "Send the promo notification to the customers at the top of the ranking",
+   "entity": "A customer",
+   "labels": "bought is logged for everyone, and got_offer shows who was sent the promo",
+   "budget": "We can afford to push to about a fifth of the base",
+   "data_plan": "The table from the last promo push, one row per customer"
+  },
+  "written_by": "journey_writer_b@cb6a937eddae",
+  "check": "They want a high-precision classifier of who will order and to notify the top scorers, which is propensity prediction, with no interest in who the promo actually changes."
+ }
+]

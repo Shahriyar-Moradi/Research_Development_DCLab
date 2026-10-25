@@ -97,6 +97,18 @@ class WriterTest(unittest.TestCase):
         with mock.patch.object(P, "_client", side_effect=AssertionError("checked twice")):
             self.assertEqual(P.recheck(1.0, self.home)["asked"], 0)
 
+    def test_the_second_writer_has_its_own_prompt_files_and_ids(self):
+        saved = (P.OUT, P.FLAGGED, P.HOME, P.PROMPT, P.ID_PREFIX)
+        try:
+            P.use_writer("b")
+            self.assertEqual((P.PROMPT, P.ID_PREFIX, P.OUT.name), ("journey_writer_b", "JK", "journeys_homework_v2.json"))
+            self.assertIn("second writer", P.request("binary", 0)[0]["content"])
+            self.assertTrue(P.person("binary", 0, 1, {"words": "w", "answers": {}}, "h")["id"].startswith("JK-binary-"))
+            with self.assertRaises(ValueError):
+                P.use_writer("z")
+        finally:
+            P.OUT, P.FLAGGED, P.HOME, P.PROMPT, P.ID_PREFIX = saved
+
     def test_the_cap_stops_before_a_request(self):
         (self.home / "replies").mkdir()
         (self.home / "replies" / "x-0.json").write_text(json.dumps({"spent_eur": 2.0, "kind": "binary", "batch": 9, "prompt": "p",
