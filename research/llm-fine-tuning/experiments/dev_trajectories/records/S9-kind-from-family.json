@@ -1,0 +1,96 @@
+{
+ "package": "S9-kind-from-family",
+ "title": "The kind that is built is the kind the card understood: each kind reads its own fields from the table",
+ "date": "2026-10-25",
+ "request": "The owner: 'do all', in order; the live first conversation's largest gap (30 of 45 people wrong in both arms, mostly kinds whose Solution needs fields).",
+ "spec": "STUDENTS_100_PLAN S9: S9.1 propose_fields per kind; S9.2 the proposal follows the card's family through the Solution route, the Home orchestrator and the harness; a kind that reads no outcome is built from the card.",
+ "plan": [
+  "Read each kind's acceptance case for the fields it needs.",
+  "Split them: read from the table, assumed and said, or only the person's.",
+  "One module of proposers; the proposal sets a complete kind, suggests an incomplete one.",
+  "Wire the family through every caller; build a no-outcome kind from the card.",
+  "Replay the people wrong live."
+ ],
+ "decisions": [
+  {
+   "decision": "A field only the person knows is never guessed: an uplift's randomisation is asked; a forecast's horizon and a ranking's moment are assumed and said.",
+   "why": "A wrong randomisation claim makes an uplift number meaningless; a horizon or a moment is a choice the person can see and change."
+  },
+  {
+   "decision": "An incomplete proposal is only suggested (kind_suggested), the plain kind kept.",
+   "why": "Building a kind without its fields would fail or mislead; the page can ask."
+  },
+  {
+   "decision": "A segmentation's outcome column describes the segments and never forms them.",
+   "why": "The replica's check: an outcome among the segmenting columns is a leak."
+  },
+  {
+   "decision": "Built in a separate worktree while the other session's gate ran.",
+   "why": "Edits in the shared tree would have been tested by its gate."
+  }
+ ],
+ "change": "dclab_rnd/kinds/propose.py (new: FieldProposal, the proposers, FAMILY_KINDS, NO_OUTCOME, for_family), dclab_rnd/studio/solution.py (propose family=, _family_kind), dclab_rnd/draft/api.py (the route passes the family; build_project _family_solution), dclab_rnd/draft/orchestrator.py, dclab_rnd/agent_eval/journeys/__init__.py (_save passes the family, keeps a built no-outcome solution and its moment), tests/test_kind_from_family.py (new).",
+ "findings": [
+  {
+   "id": "S9-1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The card's family never reached the kind that was built.",
+   "scenario": "JH-forecasting-005 and -008 (Claude's card: forecasting) ran as regression; JH-time_to_event-000 and two segmentation people were refused or wrong.",
+   "cause": "kinds.resolve reads a declared kind, the pack, then the task; no kind proposed its own fields.",
+   "fix": "propose_fields per kind and the family through every caller.",
+   "test": "tests/test_kind_from_family.py; on the rules JH-time_to_event-000, JH-segmentation-000 and -003 now right on every part"
+  },
+  {
+   "id": "S9-2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A segmentation person's answer in words counted as an outcome.",
+   "scenario": "'There is no outcome to predict, we just want the types found' left the target non-empty, so the no-outcome path never ran.",
+   "cause": "The check read whether a target was said, not whether it names a column.",
+   "fix": "The no-outcome path runs when the target names no column.",
+   "test": "the replay of JH-segmentation-000"
+  },
+  {
+   "id": "S9-3",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A segmentation's outcome formed the segments.",
+   "scenario": "The replica's check: the planted behaviours not recovered; renewed used to segment.",
+   "cause": "No outcome_column proposed.",
+   "fix": "A yes/no column named as an outcome is proposed as the outcome that describes the segments.",
+   "test": "READ['segmentation'] in the test; the replays right"
+  },
+  {
+   "id": "S9-4",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "S9 cannot help where the card reads the family wrong.",
+   "scenario": "On the rules: ranking, embedded, a forecast and an uplift person still wrong (the rules read no family or the wrong one).",
+   "cause": "The rules' reading of the words (the understanding students' gap).",
+   "fix": "Measured with Claude's card in S9.4; the text student v2.",
+   "test": "S9.4"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "replica fields and replays",
+   "gate": "the S9 tests (worktree)",
+   "result": "every readable field of the 8 kinds' replicas right on seeds 0 to 2; 3 tests pass; three live-failed people now right on the rules",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "replicas name their columns plainly; real tables vary",
+    "the wide tests and the harness run after the other session's gate"
+   ]
+  }
+ ],
+ "outcome": "Where the card reads the family, the kind and its fields are proposed and built; what only the person knows is asked or said as assumed.",
+ "lessons": [
+  "A person's answer in words is not a column: check what it names, not whether it was said."
+ ],
+ "risks": [
+  "Name-based proposers can be fooled by unusual column names: each proposal says why, and the person can change it."
+ ],
+ "commits": []
+}
