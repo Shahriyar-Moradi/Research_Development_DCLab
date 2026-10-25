@@ -3,13 +3,15 @@
  "title": "The kind that is built is the kind the card understood: each kind reads its own fields from the table",
  "date": "2026-10-25",
  "request": "The owner: 'do all', in order; the live first conversation's largest gap (30 of 45 people wrong in both arms, mostly kinds whose Solution needs fields).",
- "spec": "STUDENTS_100_PLAN S9: S9.1 propose_fields per kind; S9.2 the proposal follows the card's family through the Solution route, the Home orchestrator and the harness; a kind that reads no outcome is built from the card.",
+ "spec": "STUDENTS_100_PLAN S9: S9.1 propose_fields per kind; S9.2 the proposal follows the card's family through the Solution route, the Home orchestrator and the harness; a kind that reads no outcome is built from the card. S9.3: Home asks a kind's missing field in the kind's words, and \"I don't know\" leads to the stated assumption or to the plain task, said.",
  "plan": [
   "Read each kind's acceptance case for the fields it needs.",
   "Split them: read from the table, assumed and said, or only the person's.",
   "One module of proposers; the proposal sets a complete kind, suggests an incomplete one.",
   "Wire the family through every caller; build a no-outcome kind from the card.",
-  "Replay the people wrong live."
+  "Replay the people wrong live.",
+  "S9.3: one question per field only the person can give, kept in their words and read where the solution is proposed.",
+  "Decide what \"I don't know\" leads to for each field: an assumption that is safe, or the plain task, said in the summary."
  ],
  "decisions": [
   {
@@ -27,9 +29,21 @@
   {
    "decision": "Built in a separate worktree while the other session's gate ran.",
    "why": "Edits in the shared tree would have been tested by its gate."
+  },
+  {
+   "decision": "On \"I don't know\" whether an uplift offer was random, the kind runs as not at random, said as an assumption.",
+   "why": "Not random is the cautious reading: the report then says who responded with the offer, never what it caused; the plain task would answer another question (who buys)."
+  },
+  {
+   "decision": "A kind's question counts against the five and is asked after the card's own; past the cap, the summary says what is still needed.",
+   "why": "The owner found many questions unintelligent; a missing field is said either way, never silently defaulted."
+  },
+  {
+   "decision": "No dclab-core change in S9: the ledger records a kind's question as \"kind\" in dclab_rnd.",
+   "why": "The A7 session's uncommitted dclab-core version sits in the main tree; a version bump on the branch would block the merge."
   }
  ],
- "change": "dclab_rnd/kinds/propose.py (new: FieldProposal, the proposers, FAMILY_KINDS, NO_OUTCOME, for_family), dclab_rnd/studio/solution.py (propose family=, _family_kind), dclab_rnd/draft/api.py (the route passes the family; build_project _family_solution), dclab_rnd/draft/orchestrator.py, dclab_rnd/agent_eval/journeys/__init__.py (_save passes the family, keeps a built no-outcome solution and its moment), tests/test_kind_from_family.py (new).",
+ "change": "dclab_rnd/kinds/propose.py (new: FieldProposal, the proposers, FAMILY_KINDS, NO_OUTCOME, for_family), dclab_rnd/studio/solution.py (propose family=, _family_kind), dclab_rnd/draft/api.py (the route passes the family; build_project _family_solution), dclab_rnd/draft/orchestrator.py, dclab_rnd/agent_eval/journeys/__init__.py (_save passes the family, keeps a built no-outcome solution and its moment), tests/test_kind_from_family.py (new). S9.3: kinds/propose.py (KindQuestion, QUESTIONS, read_said, question_for, options_for, still_needed, said_of; ranking's items table a named need), draft/chat.py (draft_table, kind_proposal, kind_question, kind_said; asked in next_turn and at a model turn's end; the summary says the kind), studio/solution.py (propose said=, tables=), draft/api.py, agentic/routers/projects.py (the project's Solution page reads the card it was built from), draft/orchestrator.py, agent_eval/journeys (said, tables), ledger/capture.py (a kind's question as \"kind\").",
  "findings": [
   {
    "id": "S9-1",
@@ -70,6 +84,36 @@
    "cause": "The rules' reading of the words (the understanding students' gap).",
    "fix": "Measured with Claude's card in S9.4; the text student v2.",
    "test": "S9.4"
+  },
+  {
+   "id": "S9-5",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The project's own Solution page proposed without the card's family.",
+   "scenario": "A project built from a draft, its Solution opened on the project page: a forecast proposed as a regression again.",
+   "cause": "S9.2 passed the family in the draft's route, the orchestrator and the harness, not in the project router's _proposal.",
+   "fix": "_proposal reads the card the project was built from (project.draft.card), the person's kind answers and the attached tables.",
+   "test": "tests/test_kind_from_family.py (the route shares studio.solution.propose; covered by the wide tests)"
+  },
+  {
+   "id": "S9-6",
+   "source": "self",
+   "severity": "latent",
+   "defect": "A ranking was built from the card without its items table.",
+   "scenario": "A ranking draft built: the solution saved, then the first stage refused: 'The ranking machine reads the items table 'items': attach it'.",
+   "cause": "propose_fields read the log's columns only; RankingMachine needs the items table, always.",
+   "fix": "propose_fields(tables=): the items table is a named need when the attached tables are known and it is not among them; never asked, said in the summary.",
+   "test": "test_a_kind_that_reads_no_outcome_is_built_from_the_card, test_a_column_question_offers_names_never_values_and_a_table_need_is_said"
+  },
+  {
+   "id": "S9-7",
+   "source": "test",
+   "severity": "latent",
+   "defect": "\"It was random, not chosen\" read as chosen.",
+   "scenario": "The first reader checked the words of choosing before the words of randomness.",
+   "cause": "Order of the patterns.",
+   "fix": "\"not at random\" first, then \"random\", then \"someone chose\"; an answer none of them reads stays missing.",
+   "test": "test_home_asks_a_kinds_missing_field_once_and_says_what_follows_from_i_dont_know"
   }
  ],
  "measurements": [
@@ -83,14 +127,27 @@
     "replicas name their columns plainly; real tables vary",
     "the wide tests and the harness run after the other session's gate"
    ]
+  },
+  {
+   "name": "S9.3 tests",
+   "gate": "tests/test_kind_from_family.py (5) and tests/test_home_not_known.py (2)",
+   "result": "7 pass on the branch; an uplift draft asks kind_randomised once; \"I don't know\" gives randomised=False said as assumed",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the wide tests and harness-eval wait for the other session's gate",
+    "words read by patterns: unusual phrasings stay missing"
+   ]
   }
  ],
  "outcome": "Where the card reads the family, the kind and its fields are proposed and built; what only the person knows is asked or said as assumed.",
  "lessons": [
-  "A person's answer in words is not a column: check what it names, not whether it was said."
+  "A person's answer in words is not a column: check what it names, not whether it was said.",
+  "Check every caller of a proposal: one route without the new argument brings the old answer back."
  ],
  "risks": [
-  "Name-based proposers can be fooled by unusual column names: each proposal says why, and the person can change it."
+  "Name-based proposers can be fooled by unusual column names: each proposal says why, and the person can change it.",
+  "A kind's question adds one to a text problem without a source column; harness-eval shows whether the step-by-step journeys change."
  ],
  "commits": []
 }
