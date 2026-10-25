@@ -394,6 +394,27 @@ class DclabCodeSetsTest(unittest.TestCase):
         self.assertEqual({(j["judge"], j["evidence"], j["candidate_by"], j["split"]) for j in rows},
                          {("person", "person", "model:claude-sonnet-5-5", split_of("sdk-s_undo01"))})
 
+    def test_a_fork_keeps_its_copied_history_once_and_its_sources_split(self):
+        # dclab-code A4: a fork copies its source's records (each marked copiedFrom); they are the source's, never twice
+        copied = [json.dumps({**json.loads(x), "session": "s_fork01", "copiedFrom": "s_000000"}) for x in session_lines("s_000000")]
+        own = [line("2026-10-25T11:00:00.000Z", kind="app", type="user_message", id="u9", uuid="m-9", text="try another way", by="person")]
+        (self.home / "records" / "s_fork01.jsonl").write_text("\n".join(copied + own) + "\n", encoding="utf-8")
+        listed = json.loads((self.home / "sessions.json").read_text(encoding="utf-8"))
+        listed["sessions"].append({"id": "s_fork01", "projectPath": str(self.repo), "sdkSessionId": "sdk-forked-x", "model": "claude-haiku-5-5",
+                                   "forkOf": {"session": "s_000000", "messageId": "m-2"}})
+        (self.home / "sessions.json").write_text(json.dumps(listed), encoding="utf-8")
+        from dclab_rnd.store import Layout, conductor
+        from dclab_rnd.store.keepers import standard
+        from dclab_rnd.store.sets import dclab_code as sets
+
+        self.layout = Layout(Path(tempfile.mkdtemp()) / "store")
+        conductor.conduct(self.env, self.layout, standard.install({}))
+        labels = [r["id"] for r in self.rows("m2_workflow_decisions", "internal", "dclab_code.permission")]
+        self.assertTrue([i for i in labels if "s_000000" in i])
+        self.assertFalse([i for i in labels if "s_fork01" in i], "the fork's copies make no second label")
+        fork = next(x for x in sets.sessions(self.layout) if x.sid == "s_fork01")
+        self.assertEqual((fork.split_key, len(fork.steps)), ("sdk-s_000000", 0))  # the source's split; no copied step
+
     def test_no_tool_output_in_any_set_and_one_split_per_session(self):
         text = "".join(p.read_text(encoding="utf-8") for p in self.layout.tier("sets").rglob("*.jsonl"))
         self.assertNotIn(SECRET_ROWS, text)

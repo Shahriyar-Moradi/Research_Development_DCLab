@@ -1,0 +1,140 @@
+{
+  "package": "dclab-code-v1.14",
+  "title": "Context in DCLab Code: a meter, /compact and /clear said, and Fork from any of your messages (parity A4)",
+  "date": "2026-10-26",
+  "request": "The owner's goal (restated 2026-10-26: continue non-stop): Claude Code and Codex desktop's capabilities in DCLab Code; parity plan step A4: context.",
+  "spec": "dclab-code/docs/PARITY_PLAN.md, A4",
+  "plan": [
+    "read the SDK's own context estimate after each turn for the status line",
+    "say a compaction and a clear in the conversation",
+    "fork a new session from one of the person's messages with the SDK's forkSession",
+    "keep R&D's training sets free of the fork's copies",
+    "tests, live checks, a review"
+  ],
+  "decisions": [
+    {
+      "decision": "The meter reads getContextUsage({detail: 'summary'}) after each result, with a 5 s limit",
+      "why": "the summary costs no model call; a slow or closed agent keeps the last reading"
+    },
+    {
+      "decision": "A fork cuts the agent's conversation at the last main-chain entry before the message (never a subagent's, never a copied record), following forks back to the session that holds it",
+      "why": "the SDK gives a fork new uuids and drops sidechains: a cut at a copied or sidechain uuid fails"
+    },
+    {
+      "decision": "Copied records carry copiedFrom; R&D's store skips them and splits a fork with its root source",
+      "why": "the person's labels must be counted once and never land in two splits (a sealed-split leak)"
+    },
+    {
+      "decision": "A session in its own copy is not forked yet",
+      "why": "the fork would share the copy unguarded: a removal, merge or commit by either would act under the other"
+    },
+    {
+      "decision": "On /clear the session follows the SDK's new conversation id",
+      "why": "a resume or a fork after the clear must use the cleared conversation"
+    }
+  ],
+  "change": "dclab-code: engine.measureContext and conversation_reset; events.js compaction and clear notes, copied flag; POST /api/sessions/:id/fork with cutOf; bin passes forkSession; web: Fork beside Rewind (Rewind hidden on copies), the context meter. R&D: store/sets/dclab_code.py skips copiedFrom records and splits forks by their root.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "defect": "a fork's copied records became duplicate training labels, possibly across splits",
+      "scenario": "the person allowed a step and graded a turn, then forked: the keeper emitted the same permission label for the source and the fork, each split by its own SDK id",
+      "cause": "copied records were unmarked; the split key was the fork's own SDK id",
+      "fix": "copiedFrom on every copy; the keeper skips them and splits a fork by its root source",
+      "test": "R&D tests/test_store_dclab_code_sets.py::test_a_fork_keeps_its_copied_history_once_and_its_sources_split",
+      "severity": "leakage"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "defect": "a fork shared the source's worktree copy with no guard",
+      "scenario": "forking a session in its own copy gave a fork in the same folder; removing the copy from the source deleted it under the fork's running agent",
+      "cause": "the fork took the source's cwd without its worktree state",
+      "fix": "sessions in their own copy are refused (409) until a shared-copy design exists",
+      "test": "tests/server.test.js: fork: a session in its own copy is not forked",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "defect": "the fork point could be a subagent's message",
+      "scenario": "a background subagent streamed after the turn; forking the next message cut at a sidechain uuid the SDK drops: 409",
+      "cause": "the last assistant or user record with a uuid was taken",
+      "fix": "main-chain entries only (no parent_tool_use_id), never copied ones",
+      "test": "(code; the SDK's sidechain rule)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "defect": "forking a fork and rewinding a copied message failed",
+      "scenario": "in a fork, Fork on a copied message cut at the source's uuid, unknown in the forked transcript",
+      "cause": "copies keep the source's uuids; the SDK renames them",
+      "fix": "a copied message forks from its source; a fork's first own message cuts at its forkOf point; Rewind hidden on copies",
+      "test": "tests/server.test.js: context ... a fork of the fork",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "defect": "/clear was not followed",
+      "scenario": "after /clear the meter kept the old reading and resume and fork used the cleared transcript",
+      "cause": "conversation_reset was not handled",
+      "fix": "the session follows new_conversation_id, the meter resets, the clear is said",
+      "test": "tests/units.test.js: /clear is said; live: the id changed and the agent no longer knew the word",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "defect": "the meter's tooltip window differed from its percent",
+      "scenario": "Xk of Yk used maxTokens while the percent is over rawMaxTokens",
+      "cause": "field order",
+      "fix": "rawMaxTokens first",
+      "test": "(code)",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "dclab-code tests",
+      "gate": "every test passes; each new route and note tested",
+      "fixed_before_run": true,
+      "result": "86+ tests pass, page tests skipped (no Chromium on this machine)",
+      "verdict": "pass"
+    },
+    {
+      "name": "live fork",
+      "gate": "a fork before a message keeps the earlier turns and drops the later ones",
+      "fixed_before_run": true,
+      "result": "Haiku: the fork made before 'beta' answered 'alpha'; meter 3% (25.5k of 1M); $0.006",
+      "verdict": "pass",
+      "cost_eur": 0.01
+    },
+    {
+      "name": "live /clear",
+      "gate": "after /clear the agent starts empty and the session follows the new conversation id",
+      "fixed_before_run": true,
+      "result": "the id changed, the note showed, the agent answered NONE for the remembered word; $0.0015",
+      "verdict": "pass",
+      "cost_eur": 0.0
+    },
+    {
+      "name": "R&D store test",
+      "gate": "a fork's copies make no second label; the fork splits with its source",
+      "fixed_before_run": true,
+      "result": "tests/test_store_dclab_code_sets.py 8 of 8",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "DCLab Code shows how full the context is, says when it is compacted or cleared, and forks a session from any of the person's messages, as Claude Code does; a fork's copied history stays out of R&D's training sets twice.",
+  "lessons": [
+    "A copy of a record is a new record unless it says it is a copy: mark copies where they are made."
+  ],
+  "risks": [
+    "a fork gets its own per-session cap (the daily cap still holds)",
+    "forks of sessions in their own copy are not offered yet"
+  ],
+  "commits": []
+}

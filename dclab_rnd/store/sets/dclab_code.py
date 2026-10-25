@@ -98,6 +98,7 @@ class Session:
     def __init__(self, sid: str, lines: list[StoreRecord], meta: dict[str, Any]):
         self.sid, self.lines, self.meta = sid, sorted(lines, key=_order), meta
         self.sdk_id = str(meta.get("sdkSessionId") or sid)
+        self.split_key = self.sdk_id  # a fork's is its root source's (sessions() sets it): one conversation, one split
         self.model = _code(meta.get("model") or "unknown")
         self.steps: list[dict[str, Any]] = []      # the agent's own tool steps (M6), in order
         self.asked: list[dict[str, Any]] = []      # every step that asked the person, a subagent's included (M7, M2, M1)
@@ -313,10 +314,24 @@ def sessions(layout: Layout) -> list[Session]:
                 if isinstance(s, dict) and s.get("id"):
                     index[str(s["id"])] = s
         elif src.startswith(PREFIX) and src.endswith(".jsonl"):
+            if isinstance(r.body, dict) and r.body.get("copiedFrom"):
+                continue  # dclab-code A4: a fork's copy of its source's history, kept (and counted) once, in the source
             lines[src[len(PREFIX):-len(".jsonl")]].append(r)
+
+    def root(sid: str) -> str:  # the session a chain of forks started from
+        seen = set()
+        while sid not in seen and isinstance((index.get(sid) or {}).get("forkOf"), dict) and index[sid]["forkOf"].get("session"):
+            seen.add(sid)
+            sid = str(index[sid]["forkOf"]["session"])
+        return sid
+
     out = []
     for sid, rs in sorted(lines.items()):
-        out.append(Session(sid, rs, index.get(sid, {})))
+        s = Session(sid, rs, index.get(sid, {}))
+        origin = root(sid)
+        if origin != sid:  # a fork continues its source's conversation: its split is the source's, never another one
+            s.split_key = str((index.get(origin) or {}).get("sdkSessionId") or origin)
+        out.append(s)
     return out
 
 
@@ -328,7 +343,7 @@ def examples(layout: Layout, choices: Optional[dict] = None) -> dict[tuple[str, 
     for s in sessions(layout):
         # The same key the shaper gives the session's Claude Code transcript lines (rule sealed_key "session": the raw id),
         # so the session and its transcript always share a split.
-        split = split_of(s.sdk_id)
+        split = split_of(s.split_key)
         first, more = s.provenance()
         ok = {mt: allowed(s.lines[0], mt, choices) for mt in ("m1_students", "m2_workflow_decisions", "m5_solver_llm", "m6_stepwise_decisions", "m7_judges")}
         if ok["m6_stepwise_decisions"] and (s.steps or s.person_steps):
@@ -359,7 +374,7 @@ def examples(layout: Layout, choices: Optional[dict] = None) -> dict[tuple[str, 
                 if ok[mt]:
                     groups[(mt, folder)].append(DecisionExample(
                         id=f"{mt}:dclab_code:permission:{s.sid}:{i}", model_type=mt, split=split, provenance=prov, point=POINT_PERMISSION,
-                        group=group, split_group=s.sdk_id, state=state, options=["allow", "allow_always", "deny"], label=st["decision"], label_source="person"))
+                        group=group, split_group=s.split_key, state=state, options=["allow", "allow_always", "deny"], label=st["decision"], label_source="person"))
         for j, p in enumerate(s.plans):
             if not p["choice"] or p["auto"] or not p["person"]:
                 continue
@@ -373,7 +388,7 @@ def examples(layout: Layout, choices: Optional[dict] = None) -> dict[tuple[str, 
                 if ok[mt]:
                     groups[(mt, folder)].append(DecisionExample(
                         id=f"{mt}:dclab_code:plan:{s.sid}:{j}", model_type=mt, split=split, provenance=prov, point=POINT_PLAN, group=group,
-                        split_group=s.sdk_id, state={"method": p["mode"], "step": j}, options=["auto", "ask", "keep"], label=p["choice"], label_source="person"))
+                        split_group=s.split_key, state={"method": p["mode"], "step": j}, options=["auto", "ask", "keep"], label=p["choice"], label_source="person"))
         for k, (chosen, rejected) in enumerate(preferences(s)):
             prompt = [Message(role="user", content=s.prompts.get(chosen["turn"]) or "Go on with the task.")]
             for mt, weight in (("m7_judges", 1.0), ("m5_solver_llm", SILVER)):  # M5: both steps are Claude's, so silver and apart
