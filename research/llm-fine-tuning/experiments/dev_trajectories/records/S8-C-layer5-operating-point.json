@@ -1,0 +1,58 @@
+{
+ "package": "S8-C-layer5-operating-point",
+ "title": "The operating point checked on 55 real tables: acting on the chosen share beats today's threshold",
+ "date": "2026-10-25",
+ "request": "The owner's six-layer map: more ability beyond leakage; layer 5 (decide) measured before any student.",
+ "spec": "agent_runs/live_tests/2026-10-25-threshold-methods/PLAN.md, written before any result: six ways of choosing the operating point, each acted on unseen rows; a rule change at 80% winner-or-within-noise, a student at 0.02 better than the best single way.",
+ "plan": [
+  "Pre-register the methods, measures and decisions.",
+  "A dry run on an invented table.",
+  "60 real train-split tables, resumable, under the 80% rule.",
+  "Report against the plan's decisions."
+ ],
+ "decisions": [
+  {
+   "decision": "Two share methods were added after the dry run, before any real table.",
+   "why": "The dry run showed the threshold chosen on out-of-fold scores acting on 16.8% of new rows where 20% were allowed: the comparison had to separate 'which point' from 'a score or a share'."
+  },
+  {
+   "decision": "The best share in hindsight is recorded for the label; the first 14 tables lack it.",
+   "why": "Results are never edited; those lines carry no measured label."
+  }
+ ],
+ "change": "agent_runs/live_tests/2026-10-25-threshold-methods (PLAN, measure, REPORT); evidence/campaigns/ability_v1 (ABL-001); the measured decisions written by ability_records into the measurement's ledger (440 records); STUDENTS_100_PLAN S8.",
+ "findings": [
+  {
+   "id": "C5-1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Today's operating point loses value on new rows.",
+   "scenario": "On 55 real tables, the argmax threshold lost 12.4% of the attainable value on unseen rows; with 1,000 positives or more 9.1%, against 0.3% for the share.",
+   "cause": "A threshold chosen on out-of-fold scores is applied to the scores of the model refitted on all rows, which sit a little lower at the top.",
+   "fix": "Next: act on the chosen share (bagged over draws) for a batch; for a stream, re-anchor the threshold on recent scores; measured once on the dev tables before decide.py changes.",
+   "test": "ABL-001; the dev tables next"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "layer 5 on real tables",
+   "gate": "the plan's decision rule, fixed before any result",
+   "result": "55 tables (5 refused: fewer than 20 of a class), 432 statements; mean regret: argmax 0.124, bagged 0.092, argmax_share 0.060, bagged_share 0.055, bayes 0.074, bayes_iso 0.064; bagged_share winner or within noise 0.868; a state picker 0.108",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "one model (HistGradientBoosting)",
+    "train-split tables only",
+    "invented cost statements"
+   ]
+  }
+ ],
+ "outcome": "A rule change candidate for the decide layer, measured on real tables; a student is not needed there.",
+ "lessons": [
+  "A rule that wins most often can still lose the most: count how much is lost, not only how often it wins."
+ ],
+ "risks": [
+  "The share policy fits batches; a stream needs its threshold re-anchored on recent scores."
+ ],
+ "commits": []
+}

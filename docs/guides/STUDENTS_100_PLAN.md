@@ -280,6 +280,13 @@ and sealed tables untouched). Each plan was written before any result, in `agent
 model refitted on all training rows (as the engine does), acted on 16.8% of new rows where the capacity allowed 20%:
 the refitted model scores the top a little lower. Layer 5 therefore also measures "act on the chosen share".
 
+**Layer 5 measured (ABL-001, 2026-10-25):** on 55 real two-class tables, 8 cost statements each, today's rule lost 12.4%
+of the attainable value on unseen rows; acting on the chosen share of the new rows, bagged over 100 draws, lost 5.5%
+and was the winner or within noise on 87% of the statements (the plan's bar 80%). A rule change, not a student (a
+picker on the table's state lost 10.8%); the gap is largest on large tables (9.1% against 0.3% with 1,000 positives or
+more): the threshold chosen on out-of-fold scores does not fit the refitted model's scores. Next: once on the dev
+tables, then the change in `decide.py` (a batch acts on its top share; a stream re-anchors its threshold on recent scores).
+
 **Layer 1 (understand), with the owner's $15 (2026-10-25):**
 - **Homework:** 589 written people over the 15 kinds, written by Claude through the gateway (EUR 2.21), each person's
   kind and family set by the code (`dclab_rnd/people_writer.py`); a sealed set of 150, written by a separate agent.

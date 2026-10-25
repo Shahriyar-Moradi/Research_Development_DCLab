@@ -1,0 +1,91 @@
+{
+  "id": "ABL-001",
+  "experiment_id": "ABL-001",
+  "campaign_id": "ability_v1",
+  "kind": "rule_on_real_tables",
+  "status": "completed",
+  "at": "2026-10-25T16:35:29+00:00",
+  "layer": "decide",
+  "point": "threshold.operating_point",
+  "plan": "agent_runs/live_tests/2026-10-25-threshold-methods/PLAN.md",
+  "tables": 55,
+  "failed_tables": 5,
+  "statements": 440,
+  "set_aside": 8,
+  "mean_regret": {
+    "argmax": 0.1238,
+    "bagged": 0.0922,
+    "argmax_share": 0.0595,
+    "bagged_share": 0.055,
+    "bayes": 0.0739,
+    "bayes_iso": 0.0635
+  },
+  "median_regret": {
+    "argmax": 0.0185,
+    "bagged": 0.0138,
+    "argmax_share": 0.0122,
+    "bagged_share": 0.0105,
+    "bayes": 0.0125,
+    "bayes_iso": 0.0124
+  },
+  "winner_or_within_noise": {
+    "argmax": 0.7407,
+    "bagged": 0.8102,
+    "argmax_share": 0.8472,
+    "bagged_share": 0.8681,
+    "bayes": 0.8241,
+    "bayes_iso": 0.8079
+  },
+  "by_fit_positives": {
+    "<50": {
+      "n": 112,
+      "argmax": 0.1857,
+      "bagged": 0.1778,
+      "argmax_share": 0.1343,
+      "bagged_share": 0.1278,
+      "bayes": 0.1784,
+      "bayes_iso": 0.1766
+    },
+    "50-200": {
+      "n": 210,
+      "argmax": 0.1254,
+      "bagged": 0.0647,
+      "argmax_share": 0.0473,
+      "bagged_share": 0.0422,
+      "bayes": 0.0526,
+      "bayes_iso": 0.0329
+    },
+    "200-1000": {
+      "n": 47,
+      "argmax": 0.0138,
+      "bagged": 0.0128,
+      "argmax_share": 0.0105,
+      "bagged_share": 0.0077,
+      "bayes": 0.0134,
+      "bayes_iso": 0.0109
+    },
+    ">=1000": {
+      "n": 63,
+      "argmax": 0.0906,
+      "bagged": 0.0907,
+      "argmax_share": 0.0039,
+      "bagged_share": 0.0033,
+      "bayes": 0.0045,
+      "bayes_iso": 0.0034
+    }
+  },
+  "student_test": {
+    "run": true,
+    "tree_mean_regret": 0.1075,
+    "best_single_mean_regret": 0.055,
+    "student_candidate": false
+  },
+  "verdict": {
+    "rule_change_candidate": true,
+    "best_single": "bagged_share",
+    "student_candidate": false,
+    "next": "measured once on the dev tables before any change to dclab_core/decide.py (the plan's rule)"
+  },
+  "result": "rule change candidate",
+  "rule": "On 55 real two-class tables of the train split, 8 cost statements each, today's rule (the argmax of the out-of-fold value curve applied as a score threshold) lost 12.4% of the attainable value on unseen rows; acting on the chosen share of the new rows, bagged over 100 draws, lost 5.5% and was the winner or within noise on 86.8% of the statements; a picker on the table's state did worse (10.8%). Evidence about these public tables, under one model (HistGradientBoosting), not production readiness."
+}
