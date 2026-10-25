@@ -320,7 +320,7 @@ or decided; nothing below blocks using them.
     the `CORE_INTEGRATION.md` sections.
 
 **Housekeeping:**
-15. `make archive` after the store run of 2026-10-24: the newest snapshot is from that morning. `dclab_rnd/archive.py` has
-    another session's uncommitted changes: ask that session before running it.
+15. `make archive` after the store run of 2026-10-24 (the newest snapshot is from that morning): taken by the session
+    working on the store and the students, today before 22:00, after a store build.
 16. Two scratch worktrees (`search_v2`'s run and the builds') are removed with `git worktree remove` once `search_v3` has run.
 17. Playwright's Chromium (581 MB, `~/Library/Caches/ms-playwright`) stays for `make browser-test`.
