@@ -795,7 +795,10 @@ def plan_new_version(t: Turn, /, **_: Any) -> dict[str, Any]:
         if ops:  # the Data engineer's confirmed changes, on this version's copy of the table
             frame = _with_changes(t, frame, ops)
         profile = studio_data.profile_table(frame) if ops else (project.get("data") or {}).get("profile") or studio_data.profile_table(frame)
-        proposal = studio_solution.propose(frame, profile, target, None, project.get("pack"), time_hint)
+        from .card import card_of
+
+        proposal = studio_solution.propose(frame, profile, target, None, project.get("pack"), time_hint,
+                                           card_of(_draft(t)).family.value)  # S9: the kind the card understood
     except Exception as exc:  # noqa: BLE001 - the table cannot be read, or the outcome refused: said, nothing planned
         return {"error": f"The new version cannot be planned on this table: {str(getattr(exc, 'detail', None) or exc)[:300]}"}
     time_column = time_hint if time_hint in frame.columns else (proposal.get("time_candidates") or [None])[0]

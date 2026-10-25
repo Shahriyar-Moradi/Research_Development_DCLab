@@ -648,11 +648,14 @@ def _save(projects: Any, project: dict[str, Any], statements: dict[str, Any], de
 
     suggestion = project.get("suggestion") or {}
     target = statements.get("target", suggestion.get("target"))
+    family = ((((project.get("draft") or {}).get("card") or {}).get("family") or {}).get("value"))  # S9: the kind the card understood
     if project.get("labels") and suggestion:  # a label file's join: its suggestion is the starting point
         proposal = {**suggestion}
     elif target:
         frame = sd.load_table(sd.data_path(projects, project))
-        proposal = propose(frame, project["data"]["profile"], target, statements.get("task"), project.get("pack"))
+        proposal = propose(frame, project["data"]["profile"], target, statements.get("task"), project.get("pack"), family=family)
+    elif project.get("solution") and not statements:  # S9: a kind that reads no outcome, its solution built from the card: kept
+        proposal = {k: v for k, v in project["solution"].items() if v is not None}
     else:
         proposal = {}
     stated_kind = statements.get("kind")
@@ -662,7 +665,8 @@ def _save(projects: Any, project: dict[str, Any], statements: dict[str, Any], de
         task = statements.get("task") or kinds.get(stated_kind).base_task
     else:
         task = statements.get("task") or proposal.get("task") or "binary"
-    moment = suggestion.get("prediction_moment") or ((project.get("draft") or {}).get("understanding") or {}).get("prediction_moment") or ""
+    moment = (suggestion.get("prediction_moment") or ((project.get("draft") or {}).get("understanding") or {}).get("prediction_moment")
+              or str(proposal.get("prediction_moment") or ""))  # S9: a kept solution's own moment
     if design is not None and target and proposal:
         frame = sd.load_table(sd.data_path(projects, project))
         if (project.get("labels") or {}).get("target") == target:  # the outcome from a file of known cases, joined as the engine joins it

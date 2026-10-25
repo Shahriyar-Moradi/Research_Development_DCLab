@@ -251,6 +251,18 @@ def default_metric(task: str, positive_rate: float | None = None) -> str:
     return kinds.get(task).default_metric(None, positive_rate)
 
 
+def _family_kind(fp: Any, time_candidates: list[str]) -> dict[str, Any]:
+    """S9: a complete proposal sets the kind and its fields (the proposal's kind is what the Solution saves); an
+    incomplete one is only suggested, with the fields the person must give."""
+    if not fp.complete:
+        return {"kind_suggested": fp.as_dict()}
+    k = kinds.get(fp.kind)
+    out = {"kind": fp.kind, "kind_title": k.title, "task": k.base_task, "kind_fields": fp.fields, "kind_proposed": fp.as_dict()}
+    if fp.time_column:
+        out["time_candidates"] = [fp.time_column] + [c for c in time_candidates if c != fp.time_column]
+    return out
+
+
 def _whole_numbers(series: pd.Series) -> bool:
     """Whether a numeric column holds whole numbers only (an id stored as numbers, read as floats when a cell is empty)."""
     values = pd.to_numeric(series, errors="coerce").dropna()
@@ -258,10 +270,13 @@ def _whole_numbers(series: pd.Series) -> bool:
 
 
 def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str | None = None, pack: str | None = None,
-            time_column: str | None = None) -> dict[str, Any]:
+            time_column: str | None = None, family: str | None = None) -> dict[str, Any]:
     """What the agent suggests for the solution, with the signal behind each suggestion. The problem kind (16.1) follows
     from the task, the Domain pack and the text columns; its metrics are the options offered. ``time_column``: the
-    column the person (or a studied sample) says orders the rows, read first among the time candidates."""
+    column the person (or a studied sample) says orders the rows, read first among the time candidates. ``family``
+    (S9): the problem card's family; when it means a kind whose fields the table shows (a forecast's series and dates),
+    that kind is proposed with its fields, its assumptions and why; when a field only the person knows is missing, the
+    kind is suggested beside the plain one, never applied (``kind_suggested``)."""
     if target not in frame.columns:
         raise ValueError(f"Target {target!r} is not in the data")
     detected = detect_task(frame, target)  # the target's form: its values and classes, over every row
@@ -336,6 +351,9 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
     text_columns = [name for name in profile["text_candidates"] if name != target]
     positive_rate = detected.get("positive_rate")
     kind = kinds.resolve({"task": task, "text_columns": text_columns}, pack)
+    from ..kinds.propose import for_family
+
+    by_family = for_family(family, frame, target)  # S9: the kind the card understood, with the fields its table shows
     from dclab_core import modifiers as M  # 30.11: the modifiers the rows read show, each applied above its threshold with its reason
 
     try:  # a modifier never stops a proposal (the review of 30.11): without its facts, the proposal goes on without modifiers
@@ -373,6 +391,7 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
         "plan": plan,
         "modifiers": [d.model_dump() for d in found], "modifier_facts": facts.model_dump() if facts is not None else None,
         **({"group_column": applied["groups"].value} if "groups" in applied else {}),  # shown with its reason on the Solution form
+        **(_family_kind(by_family, time_candidates) if by_family is not None else {}),
         **({"label_source_column": source_column} if source_column else {}),  # 30.12: shown with its reason, carried by every save
         **({"decided_by_models": decided} if decided else {}),
     }

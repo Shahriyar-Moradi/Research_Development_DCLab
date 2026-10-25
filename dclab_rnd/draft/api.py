@@ -264,8 +264,11 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             raise HTTPException(422, refused)
         hint = asset.get("suggestion") or {}
         try:  # a studied sample's time column orders the rows the proposal reads, as it will order the run's split
+            from .card import card_of
+
             proposal = await asyncio.to_thread(studio_solution.propose, frame, profile, target, body.get("task"),
-                                               (draft.get("pack") or {}).get("key"), hint.get("time_column"))
+                                               (draft.get("pack") or {}).get("key"), hint.get("time_column"),
+                                               card_of(draft).family.value)  # S9: the kind the card understood
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
         proposal["rule"] = {k: proposal.get(k) for k in ("identifiers", "forbidden", "time_candidates", "group_candidates", "modifiers", "modifier_facts")}  # 19.7: the rules' own
@@ -1252,6 +1255,30 @@ def bring_from_draft(drafts: DraftStore, draft_id: str, other_id: str) -> dict[s
                               source={"kind": "draft", "draft_id": other_id, "asset": asset.get("id")})
 
 
+def _family_solution(projects, project: dict[str, Any], u: dict[str, Any], family: Any) -> dict[str, Any] | None:
+    """S9: the solution of a kind that reads no outcome (segmentation, ranking, streams, entity tables) when the card's
+    family means it and the table shows every field it needs; None otherwise (the Solution page then shows the kind
+    suggested, with what the person must give)."""
+    from ..kinds import get as kind_of
+    from ..kinds.propose import NO_OUTCOME, for_family
+    from ..studio import data as studio_data
+    from ..studio.solution import Solution
+
+    frame = studio_data.load_table(studio_data.data_path(projects, project))
+    fp = for_family(family, frame, None)
+    if fp is None or fp.kind not in NO_OUTCOME or not fp.complete:
+        return None
+    moment = str(u.get("prediction_moment") or "When the rows are read, using what is known then")
+    stated = {"target": None, "task": kind_of(fp.kind).base_task, "kind": fp.kind, "kind_fields": fp.fields,
+              "prediction_moment": moment if len(moment) >= 12 else moment + " (as the person said)"}
+    if fp.time_column:
+        stated["time_column"] = fp.time_column
+    try:
+        return Solution(**stated).model_dump()
+    except ValueError:  # the kind's own check refused what the table shows: nothing is built in its name
+        return None
+
+
 def _anomaly_solution(projects, project: dict[str, Any], u: dict[str, Any]) -> dict[str, Any]:
     """The solution of an anomaly project (20.7): no target; the entity the person named, the table's day column, the
     key of a row (a column unique on every row, named as an id) and the review budget they stated."""
@@ -1441,6 +1468,9 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
     built_solution = draft.get("solution")
     if not built_solution and card.family.value == "anomaly" and labels is None and project.get("data"):  # 20.7: no outcome
         built_solution = _anomaly_solution(projects, project, u)  # saved below like the wizard's, through the same check
+    if not built_solution and project.get("data") and u.get("target") not in (project["data"].get("columns") or []):  # S9: no outcome
+        # column (an answer in words, "there is no outcome, we want the types", names none): a kind that reads none, from the card
+        built_solution = _family_solution(projects, project, u, card.family.value)
     projects.save(project)
     projects.log(pid, "built_from_draft", {"draft": draft_id, "rows": (project.get("data") or {}).get("rows")})
     if built_solution and project.get("data"):
