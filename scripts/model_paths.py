@@ -210,10 +210,53 @@ def path_decision(api: Api) -> str:
             f"report: {report[:400]!r}" + (f", error: {s['error']}" if s.get("error") else ""))
 
 
+def path_wizard_decision(api: Api) -> str:
+    """34.4's wizard fields with a real model: a person says the amounts in their own words to Home; the proposal must carry
+    them to the wizard's decision fields; the solution is accepted as the wizard sends it (the heard decision, or an
+    explicit none), and the final stage chooses on it."""
+    from product_e2e import churn_table, solution_from
+
+    table, rows = churn_table()
+    draft = api.call("POST", "/drafts", {"problem": "Rank telecom customers by their risk of leaving next month so the retention team can call them."})
+    did = draft["id"]
+    api.wait(f"/drafts/{did}", lambda d: any(m.get("role") == "agent" for m in d["messages"]), what="the agent's first message")
+    api.call("PUT", f"/drafts/{did}/data?filename=telco.csv", raw=table)
+    api.wait(f"/drafts/{did}", lambda d: d["assets"] and d["assets"][-1]["status"] in ("ready", "failed"), what="the table")
+    for answer in ("Churn: whether the customer leaves.", "At the start of each month, before the retention team's calls.",
+                   "Each call costs us about 5 euros, and losing a customer costs around 300."):
+        for _ in range(60):
+            try:
+                api.call("POST", f"/drafts/{did}/messages", {"text": answer})
+                break
+            except Failed as error:
+                if "409" not in str(error):
+                    raise
+                time.sleep(1)
+        before = len(api.call("GET", f"/drafts/{did}")["messages"])
+        api.wait(f"/drafts/{did}", lambda d, n=before: len(d["messages"]) > n and d["messages"][-1].get("role") == "agent", what="the agent's reply")
+    understood = api.call("GET", f"/drafts/{did}").get("understanding") or {}
+    proposal = api.call("POST", f"/drafts/{did}/solution/proposal", {"target": "Churn"})
+    heard = proposal.get("decision")
+    solution = solution_from(proposal, understood.get("prediction_moment") or "At the start of each month, before the retention team's calls.")
+    solution["decision"] = {k: v for k, v in heard.items() if k != "heard_in"} if heard else None  # as the wizard sends it
+    api.call("PUT", f"/drafts/{did}/solution", solution)
+    api.call("PUT", f"/drafts/{did}/settings", {"quick": True, "max_rows": rows})
+    pid = api.call("POST", f"/drafts/{did}/build", {})["id"]
+    api.call("POST", f"/projects/{pid}/run")
+    api.wait(f"/projects/{pid}", lambda q: all(q["stages"][k]["status"] in ("completed", "failed", "approved")
+                                                for k in ("data", "leakage", "features", "models", "final")), what="the five stages")
+    chosen = api.call("GET", f"/projects/{pid}/decision")
+    if not heard:
+        raise Failed(f"the amounts said in the chat did not reach the proposal; the chat recorded {sorted(understood)} "
+                     f"(costs: {understood.get('costs')!r}, action: {understood.get('action')!r})")
+    return (f"heard in {heard['heard_in']}: call {heard.get('cost_per_action')}, a lost customer {heard.get('cost_false_negative')}; "
+            f"the decision {chosen['status']} at {(chosen.get('chosen') or {}).get('share')}")
+
+
 PATHS = {"synthetic": path_synthetic, "chat": path_chat, "parse": path_parse, "evidence": path_evidence, "intern": path_intern,
-         "decision": path_decision}
+         "decision": path_decision, "wizard_decision": path_wizard_decision}
 PURPOSES = {"synthetic": ("synthetic_schema",), "chat": ("home_agent",), "parse": ("parse_pattern",), "evidence": ("evidence_answer",),
-            "intern": ("intern",), "decision": ("intern",)}
+            "intern": ("intern",), "decision": ("intern",), "wizard_decision": ("home_agent",)}
 
 
 # ------------------------------------------------------------------------------------------------ server

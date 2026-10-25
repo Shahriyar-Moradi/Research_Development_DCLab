@@ -1,4 +1,10 @@
-"""The decision core through the engine on the delivery-fraud replica (campaign ``fraud_decision_v1``; 34.1 and 34.4).
+"""The decision core through the engine on the delivery-fraud replica (campaign ``fraud_decision_v2``; 34.1 and 34.4).
+
+``fraud_decision_v1`` (8 seeds) failed its gate: 5 of the 7 seeds that acted fell inside their 90% interval where 6 of 8
+were asked, and its capacity gate counted a seed that acted on nothing as a failure. 5 of 7 or fewer happens about 15
+times in 100 under a right 90% interval, and a simulation of fraud-like data found the interval covering 87 to 93%, so
+v2 measures the same interval on 30 fresh seeds (8 to 37: the seeds that raised the question are not reused), with the
+capacity read only where a seed acted.
 
 34.1 measured its intervals on simulated scores (the prediction interval held the holdout 54 of 60 times); the fraud
 replica was never run through the engine with an ``act`` decision. Here each seed's replica (its rides, the partial
@@ -10,10 +16,18 @@ the training rows and reads the holdout once; the record says what it realised t
 
 The gate, fixed in ``manifest.json`` before the first run (a changed gate, budget or code is a new campaign version):
 
-* the decision is chosen on every seed;
-* it never acts on more of the holdout than its capacity allows;
-* the holdout's realised value per ride lies inside the 90% prediction interval the choice gave, on at least 6 of 8
-  seeds (a 90% interval holds about 7 of 8; 6 of 8 or more happens 96 times in 100 when it is honest).
+* the decision is chosen on every seed (a share, none when no review pays; never a refusal);
+* on every seed that acted, never more of the holdout than its capacity allows;
+* among the seeds that chose to act (at least 20), the holdout's realised value per ride lies inside the 90% prediction
+  interval on at least 80% of them (a right 90% interval passes about 95 times in 100; one that holds 70% about 1 in 7:
+  a pass rules out coverage of 70% or less, not 80%);
+* each seed's miss is also measured in units of its own interval, z = (realised - centre) / (half-width / 1.645): their
+  mean must not lie clearly off 0 (|mean z| within 1.645/sqrt(N): a centre shifted, for instance by choosing the model on
+  the same folds), and the 90% interval of their root mean square (chi-squared) must reach down to 1 (else the interval
+  is clearly too narrow). Fewer than 20 seeds acting is inconclusive, not a failure.
+
+The next step is fixed with the gate: a width failure with misses on both sides switches the interval to a holdout-sized
+entity bootstrap; a centre failure (mean z below 0) corrects the optimism of choosing the model; a pass keeps it.
 
 The labels are partial (a sample of the frauds), so a fraud nobody found counts as a clean ride in both the choice and
 the holdout: the realised value is a lower bound, said in the record.
@@ -36,18 +50,26 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-CAMPAIGN_ID = "fraud_decision_v1"
+CAMPAIGN_ID = "fraud_decision_v2"
 CAMPAIGN = ROOT / "evidence" / "campaigns" / CAMPAIGN_ID
 WORK = ROOT / "agent_runs" / CAMPAIGN_ID  # each seed's workspace kept whole: the store reads its sessions, ledger and runs
-SEEDS = tuple(range(8))
+SEEDS = tuple(range(8, 38))  # fresh: v1's seeds 0 to 7 raised the question and are not reused
 DECISION = {"action": "act", "what": "review the ride", "value_column": "biker_fare", "cost_per_action": 25000.0, "capacity_share": 0.005,
             "notes": "a fraud caught saves the ride's fare; a review costs 25,000 (a tenth of a typical fare); the team reviews at most 0.5% of the rides"}
 GATE = {
-    "id": "fraud_decision_gate_v1",
-    "chosen": "the decision is chosen on every seed (an operating point with a share, no refusal)",
-    "capacity": "the holdout's acted share never exceeds the capacity share (with one row's rounding)",
-    "coverage": "the holdout's realised value per ride lies inside the choice's 90% prediction interval on at least 6 of 8 seeds",
+    "id": "fraud_decision_gate_v2",
+    "chosen": "the decision is chosen on every seed (an operating point with a share, none when no review pays; no refusal)",
+    "capacity": "on every seed that acted, the holdout's actions never exceed the capacity share of its rows (with one row's rounding)",
+    "coverage": "among the seeds that chose to act (at least 20), the realised value per ride lies inside the choice's 90% "
+                "prediction interval on at least 80% of them",
+    "centre": "each seed's z = (realised - the interval's centre) / (its half-width / 1.645); |mean z| <= 1.645 / sqrt(N)",
+    "width": "the 90% chi-squared interval of the root mean square of z reaches down to 1 (its lower end <= 1)",
+    "inconclusive": "fewer than 20 seeds acting: no verdict on the interval",
+    "next": "width fails with misses on both sides: a holdout-sized entity bootstrap; centre fails below 0: correct the optimism "
+            "of choosing the model; a pass: keep the interval",
 }
+MIN_ACTED = 20
+COVERAGE = 0.8
 CODE_FILES = ("dclab_rnd/decision_measure.py", "dclab_rnd/campaign_capture.py", "dclab_rnd/ledger", "dclab_rnd/experience")  # with the engine's folders
 
 
@@ -67,7 +89,8 @@ CODE_AT_START = code_sha256()
 def manifest() -> dict[str, Any]:
     body = {"campaign": CAMPAIGN_ID, "package": "34.1 and 34.4", "seeds": list(SEEDS), "decision": DECISION, "gate": GATE,
             "objective": ("Does the decision core keep its word through the engine on the delivery-fraud replica? A stated review "
-                          "decision, chosen on out-of-fold scores, against what it realises on the holdout read once, over eight seeds.")}
+                          "decision, chosen on out-of-fold scores, against what it realises on the holdout read once, over thirty fresh "
+                          "seeds: how often it lands inside its interval, and how far off and to which side it misses.")}
     body["sha256"] = hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
     return body
 
@@ -127,14 +150,17 @@ def run_one(seed: int) -> dict[str, Any]:
     rows = h.get("rows") or (final.get("evidence") or {}).get("holdout_rows")
     acted = h.get("actions")
     inside = None if realised is None or None in interval else bool(interval[0] <= realised <= interval[1])
+    z = side = None
+    if inside is not None and interval[1] > interval[0]:
+        z = round((realised - (interval[0] + interval[1]) / 2) / ((interval[1] - interval[0]) / 2 / 1.645), 4)
+        side = "inside" if inside else "below" if realised < interval[0] else "above"
     within = None if acted is None or not rows else bool(acted <= DECISION["capacity_share"] * rows + 1)
-    number = SEEDS.index(seed) + 1
-    result = {"id": f"FDC-{number:03d}", "experiment_id": f"FDC-{number:03d}", "status": "completed", "completed_at": _now(),
+    result = {"id": f"FDC-{seed:03d}", "experiment_id": f"FDC-{seed:03d}", "status": "completed", "completed_at": _now(),
               "campaign_id": CAMPAIGN_ID, "dataset": "delivery_fraud", "seed": seed, "decision_status": d.get("decision"), "warning": d.get("warning"),
               "chosen_share": d.get("share"), "ranked_by": d.get("ranked_by"), "expected_value_per_row": d.get("expected_value_per_row"),
               "expected_interval": d.get("expected_value_per_row_interval"), "holdout_rows": rows, "holdout_actions": acted,
               "holdout_cases_found": h.get("cases_found"), "holdout_value_per_row": realised, "prediction_interval": interval,
-              "inside_prediction_interval": inside, "within_capacity": within, "holdout_uses": uses,
+              "inside_prediction_interval": inside, "z": z, "miss_side": side, "within_capacity": within, "holdout_uses": uses,
               "model": (final.get("evidence") or {}).get("model"), "seconds": round(time.perf_counter() - started, 1),
               "code_sha256": CODE_AT_START, "applied_as": d.get("applied_as"), "capacity_binds": d.get("capacity_binds"),
               "limits": ["labels partial: a fraud nobody found counts as a clean ride, so the realised value is a lower bound",
@@ -147,12 +173,35 @@ def run_one(seed: int) -> dict[str, Any]:
 
 def judge(rows: list[dict[str, Any]]) -> dict[str, Any]:
     chosen = all(r.get("decision_status") == "operating_point" and r.get("chosen_share") is not None and not r.get("warning") for r in rows)
-    capacity = all(r.get("within_capacity") is True for r in rows)
-    inside = sum(1 for r in rows if r.get("inside_prediction_interval") is True)
-    gates = {"chosen": chosen, "capacity": capacity, "coverage": inside >= 6}
+    acted = [r for r in rows if r.get("chosen_share")]  # chose to act (the review of v2: a seed that acted on no holdout row still counts)
+    capacity = all(r.get("within_capacity") is True for r in acted)
+    read = [r for r in acted if r.get("inside_prediction_interval") is not None]
+    inside = sum(1 for r in read if r["inside_prediction_interval"])
+    zs = [float(r["z"]) for r in read if r.get("z") is not None]
+    centre = width = None
+    if len(zs) >= 2:
+        from scipy.stats import chi2
+
+        mean, rms = sum(zs) / len(zs), (sum(z * z for z in zs) / len(zs)) ** 0.5
+        n = len(zs)
+        centre = {"mean_z": round(mean, 4), "bound": round(1.645 / n ** 0.5, 4)}
+        width = {"rms_z": round(rms, 4), "interval": [round((n * rms * rms / chi2.ppf(0.95, n)) ** 0.5, 4),
+                                                      round((n * rms * rms / chi2.ppf(0.05, n)) ** 0.5, 4)]}
+    enough = len(read) >= MIN_ACTED
+    gates = {"chosen": chosen, "capacity": capacity, "coverage": enough and inside >= COVERAGE * len(read),
+             "centre": enough and centre is not None and abs(centre["mean_z"]) <= centre["bound"],
+             "width": enough and width is not None and width["interval"][0] <= 1}
     complete = len(rows) == len(SEEDS)
-    return {"seeds": len(rows), "of": len(SEEDS), "gates": gates, "inside_prediction_interval": inside,
-            "verdict": ("pass" if all(gates.values()) else "fail") if complete else f"not yet: {len(rows)} of {len(SEEDS)} seeds",
+    sides = {s: sum(1 for r in read if r.get("miss_side") == s) for s in ("below", "above")}
+    out_next = ("keep the interval" if all(gates.values()) else
+                "a holdout-sized entity bootstrap" if not gates["width"] and sides["below"] and sides["above"] else
+                "correct the optimism of choosing the model" if not gates["centre"] and centre and centre["mean_z"] < 0 else "read the seeds")
+    verdict = ((("pass" if all(gates.values()) else "fail") if enough else "inconclusive: fewer than 20 seeds acted")
+               if complete else f"not yet: {len(rows)} of {len(SEEDS)} seeds")
+    return {"seeds": len(rows), "of": len(SEEDS), "gates": gates, "acted": len(acted), "inside_prediction_interval": inside,
+            "coverage": round(inside / len(read), 4) if read else None, "misses": sides, "centre": centre, "width": width,
+            "next": out_next if complete and enough else None,
+            "verdict": verdict,
             "realised": [r.get("holdout_value_per_row") for r in rows], "intervals": [r.get("prediction_interval") for r in rows], "gate": GATE}
 
 

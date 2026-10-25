@@ -307,6 +307,20 @@
     "one replica table (the churn sample)",
     "no model: the chat asks its standard questions"
    ]
+  },
+  {
+   "name": "the wizard's decision fields with a real model (make model-paths, the wizard_decision path, Claude through the gateway)",
+   "gate": "the amounts a person says to Home in their own words reach the proposal's decision, and the final stage chooses on them; at most EUR 0.5",
+   "fixed_before_run": true,
+   "result": "Home asked with 5 model requests; the amounts were heard in the answer to the amounts question (a call 5, a lost customer 300); the decision was chosen at a share of 0.848333; 16 requests in all, 0 failed, EUR 0.113075; the run's records kept",
+   "verdict": "pass",
+   "cost_eur": 0.113075,
+   "next": "",
+   "against_gate": "",
+   "limits": [
+    "one conversation",
+    "the person's answers in a fixed order, whatever the model asked"
+   ]
   }
  ],
  "outcome": "A project can say what acting on a row is worth and costs, in a form or in words; the final stage chooses on how many rows to act with its interval, the report says it, and the page, the API and the intern answer what-if with one answer.",

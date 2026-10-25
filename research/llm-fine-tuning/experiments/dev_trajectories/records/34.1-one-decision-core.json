@@ -186,15 +186,32 @@
   {
    "id": "M3",
    "source": "measurement",
-   "defect": "the holdout's prediction interval is too narrow on an entity split",
+   "defect": "the fraud campaign's coverage miss was first read as an interval too narrow, which seven seeds cannot show",
    "scenario": "fraud_decision_v1: 5 of 7 seeds inside a 90% interval, one below and one above",
-   "cause": "likely: the holdout's bikers are unseen, a variance the bootstrap over training entities does not carry; few cases a holdout (14 to 18 reviews)",
-   "fix": "not fixed: recorded, the interval to be widened for entity splits and measured again in a new campaign",
+   "cause": "5 of 7 or fewer happens about 15 times in 100 under a right 90% interval; v1's misses in units of the interval have a root mean square of 1.23 with a 90% interval of 0.86 to 2.2; a simulation of fraud-like data found 87 to 93% coverage but leaves out the engine's model choice, which can shift the centre",
+   "fix": "not established either way: fraud_decision_v2 measures coverage, centre and width on 30 fresh seeds, with the next step fixed before the run",
    "test": "",
    "severity": "behaviour",
-   "impact": "a decision said to be surer than it is",
-   "alternatives": [],
-   "open": "widen the prediction interval on entity splits"
+   "impact": "a wider interval without evidence would hide a shifted centre, the likelier fault",
+   "alternatives": [
+    "widen it at once (as first proposed): rejected on the simulation"
+   ],
+   "open": "fraud_decision_v2"
+  },
+  {
+   "id": "M4",
+   "source": "reviewer",
+   "defect": "v2's first design could pass a wrong interval",
+   "scenario": "a seed that chose to act but acted on no holdout row left the count (23 of 28 passing where 23 of 30 should fail); an inside-or-outside count passes an interval a fifth too narrow about half the time and a shifted centre about nine times in ten",
+   "cause": "the gate read only how often the result landed inside",
+   "fix": "every seed that chose to act counts; each miss is measured in units of its interval (z) with its side; the mean of z (centre) and the root mean square of z (width) are gated, the next step fixed before the run; fewer than 20 acting is inconclusive",
+   "test": "tests/test_decision_measure.py",
+   "severity": "behaviour",
+   "impact": "a measurement that could not answer its own question",
+   "alternatives": [
+    "gate the expected value's interval too (a confidence interval for the average, not a promise about one holdout: rejected)"
+   ],
+   "open": ""
   }
  ],
  "measurements": [
@@ -219,7 +236,7 @@
    "result": "7 seeds acted, each as a quota and within its capacity; on seed 5 the selected model's scores made no review pay, so it acted on nothing; the realised value fell inside its interval on 5 of the 7 that acted (seed 1 below: 177.9 against 381.5 to 1747.7; seed 3 above: 1093.6 against 259.2 to 1033.8)",
    "verdict": "fail",
    "cost_eur": 0,
-   "next": "widen the prediction interval for entity splits (the holdout's unseen bikers add a variance the training bootstrap does not see) and measure again in a new campaign version",
+   "next": "measure the interval on 30 fresh seeds (fraud_decision_v2) before changing it: a simulation of fraud-like data found 87 to 93% coverage",
    "against_gate": "The coverage gate fails (5 inside, 6 needed); the capacity gate fails only because seed 5 acted on nothing and so had no reading, a flaw of the gate as written, not an excess.",
    "limits": [
     "one replica",
@@ -231,7 +248,8 @@
  "outcome": "DCLab has one decision core: a person's values, costs and capacity give the operating point with the highest expected value, its tested intervals and the holdout read once; the review budget and the stated-cost threshold are its special cases.",
  "lessons": [
   "Test an interval for what it means: a confidence interval for an average is not a promise about one new sample.",
-  "A threshold acts on ties together; a search over counts must too."
+  "A threshold acts on ties together; a search over counts must too.",
+  "Before fixing a miss, ask how often the miss happens by chance: 5 of 7 inside a 90% interval happens about one time in seven when the interval is right."
  ],
  "risks": [
   "the engine's review path still uses review_budget until 34.4",
