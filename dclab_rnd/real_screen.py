@@ -121,13 +121,18 @@ def screen_one(derived: dict[str, Any], home: Path = HOME, download: Optional[Ca
             run = A.engine_run(case, fast=False)  # the product's own settings: the test profile's few trees change who wins
         finally:
             ledger.install(before)
-        models = run.evidence("models")
+        models, features = run.evidence("models"), run.evidence("features")
+        metric = (run.records.get("models") or {}).get("primary_metric")
+        recipes = [{"recipe": r.get("recipe"), "mean": ((r.get("metrics") or {}).get(metric) or {}).get("mean"),
+                    "std": ((r.get("metrics") or {}).get(metric) or {}).get("std"), "features": r.get("feature_count_mean")}
+                   for r in features.get("stage_results") or [] if isinstance(r, dict)]  # S7: which recipe first, from the same run
         first = next(iter(book.records(point="model.first")), None)
         record = {"did": did, "split": split, "rows": int(len(frame)), "target": target, "task": case.task, "at": _now(), "profile": PROFILE,
                   "metric": (run.records.get("models") or {}).get("primary_metric"),
                   "state": dict(first.state) if first is not None else None, "first": first.value_used if first is not None else None,
                   "screen": [{k: r.get(k) for k in ("model", "mean", "std", "elapsed_seconds")} for r in models.get("ranking") or [] if isinstance(r, dict)],
-                  "selected": models.get("selected_model"), "seconds": round(time.perf_counter() - started, 1),
+                  "selected": models.get("selected_model"), "recipes": recipes, "recipe_selected": features.get("selected_recipe"),
+                  "recipe_model": features.get("stage_model"), "seconds": round(time.perf_counter() - started, 1),
                   **({"facts": derived["facts"]} if derived.get("facts") else {})}  # a craft table's planted structure: a fact, never a label
         with (folder / "screens.jsonl").open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(record, default=str) + "\n")

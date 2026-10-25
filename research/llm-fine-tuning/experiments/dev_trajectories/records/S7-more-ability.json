@@ -27,6 +27,10 @@
   {
    "decision": "Screens run the product's own settings, never the acceptance harness's fast profile.",
    "why": "The fast profile cuts ensembles to ten trees and changes who wins."
+  },
+  {
+   "decision": "Every screen line also keeps each feature recipe's training-fold score, the recipe chosen and the model it was screened with.",
+   "why": "Layer 3 of the owner's map (build): a second student, which recipe to try first, reads the same screens; recording it now saves running every table twice."
   }
  ],
  "change": "dclab_core/ledger.py (model.first, the table-at-a-glance fields, 'of'), dclab_core/benchgen3.py (new), dclab_core 0.112.0 and its CHANGELOG, adapters/conformance.py; dclab_rnd/ledger/states.py (table_state, coarse_task), ledger/capture.py (model.first in the models stage), ledger/__init__.py, kinds/acceptance.py (engine_run fast=), real_screen.py and first_family.py (new), archive.py; tests test_benchgen_v3, test_first_family, test_real_screen; STUDENTS_100_PLAN S7.",
@@ -141,6 +145,16 @@
    "cost_eur": 0.0,
    "limits": [
     "no student trained yet: the screens run in the background"
+   ]
+  },
+  {
+   "name": "recipes on each screen",
+   "gate": "affected tests only (the owner's daytime rule)",
+   "result": "tests/test_real_screen.py passes (4); the running screen was restarted so every new line carries its recipes",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "lines written before the restart (one table) have no recipes"
    ]
   }
  ],

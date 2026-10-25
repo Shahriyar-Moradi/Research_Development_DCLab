@@ -43,6 +43,7 @@ class ScreenTest(unittest.TestCase):
         self.assertTrue(rec["first"] and rec["selected"] and len(rec["screen"]) >= 2)
         self.assertTrue({"numeric_columns", "category_columns", "missing_columns"} <= set(rec["state"]))  # the table at a glance
         self.assertEqual((rec["state"]["task"], rec["profile"]), ("binary_classification", "full"))  # its task; the product's settings
+        self.assertTrue(len(rec["recipes"]) >= 2 and rec["recipe_selected"] in [r["recipe"] for r in rec["recipes"]])  # every recipe's score too
         self.assertTrue(any((self.home / "dev" / "ledgers" / "42").rglob("*.jsonl")))  # its decisions kept beside it
 
     def test_a_sealed_table_sits_apart_and_a_network_failure_leaves_no_mark(self):
