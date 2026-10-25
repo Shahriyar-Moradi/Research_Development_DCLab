@@ -53,6 +53,7 @@ class UnderstandTest(unittest.TestCase):
         with mock.patch.object(U, "spent", return_value=False):
             sets = {r.get("set") for r in answers._journeys(Path("."))}
         self.assertNotIn("understand_sealed", sets)
+        self.assertFalse({x for x in sets if str(x).startswith("understand_sealed")})  # a later exam (v2) too, until its own gate
         homework = [r for r in answers._journeys(Path(".")) if r.get("set") == "homework_v1"]
         self.assertTrue(all(r["split"] == U.person_split(f"homework_v1:{r['group'].split(':')[-1]}") for r in homework))
 
