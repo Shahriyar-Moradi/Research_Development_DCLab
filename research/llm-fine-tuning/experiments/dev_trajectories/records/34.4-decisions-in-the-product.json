@@ -170,6 +170,32 @@
    "impact": "test records mixed into the training store",
    "alternatives": [],
    "open": "the five running processes are the owner's to stop"
+  },
+  {
+   "id": "F11",
+   "source": "test",
+   "defect": "the browser test never showed a stated decision",
+   "scenario": "the flow's project states none, so the Decision page was checked only for its empty state",
+   "cause": "the check read whatever the flow's project held",
+   "fix": "a check of its own: a decision said in the chat, chosen by the final stage, its page's sentence and curve, and a what-if typed into the form against the API's answer",
+   "test": "scripts/browser_e2e.py (decide)",
+   "severity": "gap",
+   "impact": "the page's chosen-decision view and its form were untested in a browser",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F12",
+   "source": "test",
+   "defect": "the browser test left its server running and failed after every check passed",
+   "scenario": "a job still running in the server when the test ended: terminate did not stop it within ten seconds",
+   "cause": "the teardown waited once and raised",
+   "fix": "kill the server when it does not stop in time",
+   "test": "scripts/browser_e2e.py (run twice, no server left)",
+   "severity": "flaky",
+   "impact": "a green run reported as failed, and a server left on a port",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [
@@ -199,6 +225,20 @@
    "limits": [
     "one run, one model",
     "it rounded the sensitivity's switch point instead of quoting the table's own"
+   ]
+  },
+  {
+   "name": "the Decision page in Chromium (make browser-test, 8 checks)",
+   "gate": "every check passes at 1280 and 375 px; the page's what-if share equals the API's within 0.0006",
+   "fixed_before_run": true,
+   "result": "8 of 8 checks pass; the decision acts on 84.8% of rows, at 50 a call the page and the API both act on 55.8%",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "",
+   "against_gate": "",
+   "limits": [
+    "one replica table (the churn sample)",
+    "no model: the chat asks its standard questions"
    ]
   }
  ],

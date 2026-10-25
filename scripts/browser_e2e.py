@@ -8,6 +8,8 @@ Needs Playwright: pip install -r requirements/browser.txt && python -m playwrigh
 
   flow     one sentence and the Telco CSV uploaded on Home, the chat's questions answered by clicking their options,
            the wizard's five steps with their defaults, a run of every stage from the Workflow page, then the brief
+  decide   34.4: a decision said in the chat ("a call costs 5 euro; a lost customer costs 300"), chosen by the final
+           stage, on its page: the API's sentence, the curve, and a what-if typed into the form answering as the API does
   team     28.8: the Team panel on Home: a question, the map's confirmation, the data given, the build approved
   stats    the numbers on Home, Compute, Integrations and Packs equal the API's (read over HTTP, not through the page)
   pages    all 21 pages at 1280 px: no console error, no uncaught error, no CSP violation, no failed-load warning
@@ -23,6 +25,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 import time
@@ -288,6 +291,44 @@ def check_stats(b: Browser) -> str:
     return f"Home, Compute, Integrations and Packs match the API ({len(ws['projects'])} project(s), {ops['totals']['total']} job(s))"
 
 
+def check_decision(b: Browser) -> str:
+    """34.4: the Decision page of a project whose decision was said in the chat and chosen by the final stage."""
+    from product_e2e import Api, churn_table, solution_from
+
+    api = Api(b.base)
+    table, rows = churn_table()
+    draft_id = api.draft("Rank telecom customers by their risk of leaving next month so the retention team can call them.")
+    api.call("PUT", f"/drafts/{draft_id}/data?filename=telco.csv", raw=table)
+    api.asset_ready(draft_id)
+    draft = api.answer(draft_id, ["Churn", "At the start of each month, before the retention call.", "A call costs 5 euro; a lost customer costs 300."])
+    proposal = api.call("POST", f"/drafts/{draft_id}/solution/proposal")
+    api.call("PUT", f"/drafts/{draft_id}/solution", solution_from(proposal, draft["understanding"]["prediction_moment"]))
+    api.call("PUT", f"/drafts/{draft_id}/settings", {"quick": True, "max_rows": rows})
+    project = api.run_all(api.call("POST", f"/drafts/{draft_id}/build")["id"])
+    stated = api.call("GET", f"/projects/{project['id']}/decision")
+    check(stated["status"] == "chosen" and stated.get("sentence"), f"the decision said in the chat was not chosen: {stated['status']}")
+    page = b.page
+    page.reload()  # the page was drawn before the project was built through the API
+    b.view("home", settle=2)  # chosen with the green switcher, as a person would
+    page.wait_for_selector("#view-home .proj-switch", state="visible", timeout=15_000)
+    page.click("#view-home .proj-switch")
+    page.wait_for_selector("#view-home .ps-opt", timeout=15_000)
+    page.locator("#view-home .ps-opt").filter(has_text=project["name"]).first.click()
+    page.wait_for_function("n => document.querySelector('#view-home .ps-name').textContent === n", arg=project["name"], timeout=15_000)
+    b.view("decision", settle=1)
+    page.wait_for_selector("#dc-curve svg", timeout=30_000)
+    shown = page.text_content("#dc-box") or ""
+    check(stated["sentence"][:40] in shown, "the decision page does not show the decision's sentence")
+    page.fill("#dc-in-cost_per_action", "50")
+    page.click("#dc-ask")
+    page.wait_for_selector("#dc-answer table", timeout=60_000)
+    shown_share = number(page.text_content("#dc-answer tbody tr:nth-child(2) td:nth-child(2)") or "") / 100
+    expected = api.call("POST", f"/projects/{project['id']}/decision/what-if", {"changes": {"cost_per_action": 50}})["after"]["share"]
+    check(abs(shown_share - expected) < 0.0006, f"the page's what-if acts on {shown_share:.4f} of rows, the API on {expected:.4f}")
+    check(not b.problems(), f"the decision page: {b.problems()[:3]}")
+    return f"chosen on {stated['chosen']['share']:.1%} of rows; at 50 a call the page and the API both act on {expected:.1%}"
+
+
 def check_switch(b: Browser) -> str:
     """The green project switcher: Home names the project every page follows, lists the others, and the sidebar's Project
     label and the project pages follow the choice."""
@@ -376,7 +417,7 @@ CULPRIT = """() => { const w = document.documentElement.clientWidth;
   return el ? el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\\s+/).join('.') : '') + ' "' + (el.textContent || '').trim().slice(0, 40) + '"' : '?'; }"""
 
 
-CHECKS = {"flow": (check_flow, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "switch": (check_switch, 1280), "ui": (check_ui_events, 1280), "mobile": (check_mobile, 375)}
+CHECKS = {"flow": (check_flow, 1280), "decide": (check_decision, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "switch": (check_switch, 1280), "ui": (check_ui_events, 1280), "mobile": (check_mobile, 375)}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -415,7 +456,11 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         if process is not None:
             process.terminate()
-            process.wait(10)
+            try:
+                process.wait(10)
+            except subprocess.TimeoutExpired:  # a job still running in the server: never leave it behind
+                process.kill()
+                process.wait(10)
         if home is not None:
             home.cleanup()
     print("all browser checks passed" if not failed else f"{failed} browser check(s) failed")

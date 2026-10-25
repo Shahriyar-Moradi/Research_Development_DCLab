@@ -127,7 +127,9 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
   beside the project for what-if (stamped with the final run); `GET/POST /api/projects/{id}/decision[/what-if]`; the
   Decision page (curve, what moves it, a what-if form); the intern tool `decision_what_if`; the report's section;
   Home reads amounts in words (`decide.read_spec`) and asks them once when the action came from the first sentence.
-  Live: the intern answered a what-if with the core's numbers (EUR 0.10). Open: the wizard has no fields for a decision
+  Live: the intern answered a what-if with the core's numbers (EUR 0.10). In a real browser (2026-10-25, `make
+  browser-test` check `decide`): a decision said in the chat is shown with its sentence and curve, and a what-if typed
+  into the form acts on the share the API chooses (55.8% at 50 a call). Open: the wizard has no fields for a decision
   (Solution page edits it as JSON only); the engine's review path stays on `review_budget` (same answers, tested);
   `delivery_fraud` not yet measured through `act`.
 
