@@ -4,7 +4,8 @@ permission each step needed and the person's answer, the sealed and holdout guar
 the answers, plan approvals, the person's grade of each turn, and what became of the work (merged, its copy removed).
 
 - **M6** (:class:`dclab_core.store.Episode`, folder ``dclab_code``): a session as an episode of tool steps, the person's own
-  steps (``person:Bash`` for a command they ran, ``person:undo``, ``person:rewind``) in their place between the agent's (32.39). A step's state
+  steps (``person:Bash`` for a command they ran, ``person:undo``, ``person:rewind``, ``person:stop_job`` for a background
+  job they stopped) in their place between the agent's (32.39). A step's state
   is bands and codes only (its step number, the tool as a code, the tool's family, the permission mode, whether it asked
   and why), its action the tool's name, its outcome ``auto_ok``, ``auto_error``, ``allowed_ok``, ``allowed_error``,
   ``denied``, ``answered``, ``skipped`` or ``plan_<choice>``; the episode's outcome from the record (``merged``, ``stopped``,
@@ -194,6 +195,10 @@ class Session:
                 if by_person(b):
                     self.person_steps.append({"order": _order(r), "action": "person:rewind", "kind": "person_rewind", "turn": turn, "mode": mode,
                                               "outcome": "rewound" if b["filesChanged"] else "nothing_to_rewind", "guard": None, "at": r.at})
+            elif t == "job_stop" and by_person(b):
+                # The person stopped a background job the agent left running (a training run, a test suite): their step.
+                self.person_steps.append({"order": _order(r), "action": "person:stop_job", "kind": "person_stop_job", "turn": turn, "mode": mode,
+                                          "outcome": "stopped", "guard": None, "at": r.at})
             elif t == "person_command_start" and b.get("id"):
                 starts[str(b["id"])] = _order(r)
             elif t == "person_command" and by_person(b):

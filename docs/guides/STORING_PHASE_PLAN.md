@@ -1011,6 +1011,16 @@ changes `rewound`, the first message's change `committed` by a later commit, a f
 and a script's rewind no verdict; each of these fails the test when its cut is removed
 (`tests/test_store_dclab_code_sets.py`).
 
+### 32.42 A background job the person stops, and their terminal commands, as their steps (added 2026-10-25)
+
+DCLab Code now shows the agent's background jobs with Stop, and has a terminal panel. A stop is recorded as
+`job_stop` (the job's type and description, `by`, whether the agent confirmed it in time): the builder makes it the
+person's M6 step `person:stop_job` (outcome `stopped`), never with the job's description (episodes carry no content); a
+script's stop is no step. A command the person runs in the terminal is recorded as `person_command` with
+`source: "terminal"` (exit code, folder, a sealed command marked; its output never kept): the builder already reads it as
+`person:Bash`. **Done when:** a session with the person's stop and a script's stop gives exactly one `person:stop_job`,
+and the description is nowhere in the episode (`tests/test_store_dclab_code_sets.py`).
+
 ## The owner's answers (2026-10-20)
 
 - **The store's bulk:** a separate private GitHub repository, `dclab-records`, with one branch per person (`owner/main`,
@@ -1045,7 +1055,7 @@ and a script's rewind no verdict; each of these fails the test when its cut is r
 ## Order
 
 32.1 → 32.2 → 32.3 → 32.4 → 32.5 → 32.6 → 32.7 → 32.8 → 32.9 → 32.10 → 32.11 → 32.12 → 32.13 → 32.14 → 32.15 → 32.16 →
-32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31, then 32.32 → 32.33 → 32.34 → 32.35 → 32.36 → 32.37 → 32.38 → 32.39 → 32.40 → 32.41 (the
+32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31, then 32.32 → 32.33 → 32.34 → 32.35 → 32.36 → 32.37 → 32.38 → 32.39 → 32.40 → 32.41 → 32.42 (the
 check, 32.18, is extended by each).
 
 Every package follows the usual steps: a test first, the reviewer, its development record and `make sft-dev`, and the
@@ -1139,6 +1149,7 @@ gate. Model spend:
     - CPU time per step;
     - a workspace reading the store's shadow students;
     - live runs of the curator and the teacher.
+- **32.42 built (2026-10-25):** a background job the person stops, and their terminal commands, as their steps.
 - **32.41 built (2026-10-25):** DCLab Code's Rewind read as the person's rejection of the changes since a message.
 - **32.40 built (2026-10-25):** a test script's acts in DCLab Code are never a person's labels (found in a live test).
 - **32.39 built (2026-10-25):** the person's own commands and undos as steps of DCLab Code's M6 episodes.

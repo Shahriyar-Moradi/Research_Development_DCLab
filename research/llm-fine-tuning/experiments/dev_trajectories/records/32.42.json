@@ -1,0 +1,38 @@
+{
+ "package": "32.42",
+ "title": "A background job the person stops, and their terminal commands, as their steps",
+ "date": "2026-10-25",
+ "request": "Yes, that is the goal. Start step A: background jobs, then the terminal panel.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.42",
+ "plan": [
+  "Read job_stop as the person's step",
+  "Keep the job's description out of the content-free episode"
+ ],
+ "decisions": [
+  {
+   "decision": "A terminal command reuses person_command (source terminal)",
+   "why": "the builder already reads it as person:Bash; its output is never in the record"
+  }
+ ],
+ "change": "sets/dclab_code.py: job_stop by a person -> person:stop_job (outcome stopped); a script's stop is no step.",
+ "findings": [],
+ "measurements": [
+  {
+   "name": "store tests",
+   "gate": "one person:stop_job from a person's and a script's stop; no description in the episode",
+   "fixed_before_run": true,
+   "result": "test_store_dclab_code_sets 7 passed",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "invented sessions"
+   ]
+  }
+ ],
+ "outcome": "Stopping a job is a person's step in M6.",
+ "lessons": [],
+ "risks": [],
+ "commits": [
+  "dclab-code 2cbd6e2"
+ ]
+}

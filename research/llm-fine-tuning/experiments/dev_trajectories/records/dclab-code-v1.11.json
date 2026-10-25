@@ -1,0 +1,280 @@
+{
+ "package": "dclab-code-v1.11",
+ "title": "DCLab Code step A: background jobs with Stop, and a real terminal panel",
+ "date": "2026-10-25",
+ "request": "Yes, that is the goal. Start step A: background jobs, then the terminal panel.",
+ "spec": "dclab-code docs/PARITY_PLAN.md, step A (1 and 2)",
+ "plan": [
+  "Background jobs from the SDK's own task messages: list, Stop per job, record each stop",
+  "A real pseudo-terminal with no native add-on (Python's pty) and xterm.js",
+  "Each terminal command as the person's step, never its output",
+  "Review twice; fix every finding with a test that fails without it; check live"
+ ],
+ "decisions": [
+  {
+   "decision": "Stop on a session ends its turn, not its jobs",
+   "why": "a long training run may be wanted; the note says what keeps running and the Jobs tab stops each"
+  },
+  {
+   "decision": "Python's pty module through a small helper, not node-pty",
+   "why": "no native add-on to build; resize through a control pipe"
+  },
+  {
+   "decision": "Commands from zsh hooks (OSC 633), never output or keystrokes",
+   "why": "a terminal shows secrets and sealed rows; a typed password is not a command"
+  },
+  {
+   "decision": "The marks carry a secret read from a private file the shell deletes at start",
+   "why": "a program's output, or one reading another process's environment, must not write a step in the person's name"
+  },
+  {
+   "decision": "Around each of the person's zsh files ZDOTDIR is what a plain zsh would have",
+   "why": "their history, completion dumps, XDG layout and sourced files must be exactly as in any terminal"
+  },
+  {
+   "decision": "style-src allows inline styles",
+   "why": "xterm.js writes <style> elements; images and connections may only reach the app, so a style cannot send anything"
+  }
+ ],
+ "change": "server/terminal.js and server/pty_helper.py (new); /api/terminals routes, /vendor/ fixed list, jobs/:taskId/stop; engine: meta.jobs, stopJob, terminalCommand; page: side panel tabs (Changes, Jobs, Terminal), status-line jobs link, ⌃` toggle, keys in the terminal never reach the app's Y/N/A or Esc.",
+ "findings": [
+  {
+   "id": "F0",
+   "source": "test",
+   "defect": "a terminal closed at once after opening sent SIGHUP to the server's own process group",
+   "scenario": "+ then x straight away (the test's open-then-DELETE): the whole suite, and the shell running it, died with no summary",
+   "cause": "the helper hung up the shell's group before the shell had left the helper's group (forkpty's setsid had not run yet), and that group is the server's",
+   "fix": "only a group the shell leads is signalled; otherwise the shell alone",
+   "test": "tests/server.test.js: closed at once after opening, the helper never signals its own group",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "Stop left the agent's background job running and the page showed no job",
+   "scenario": "Opus's make rd-check ran on after Stop in the long live test",
+   "cause": "Stop interrupts only a turn; jobs were only counted",
+   "fix": "the Jobs tab with Stop per job (stopTask), a note after Stop",
+   "test": "tests/server.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F2",
+   "source": "self",
+   "defect": "y typed in the terminal would allow a waiting step",
+   "scenario": "a sealed read waits while the person types in the terminal",
+   "cause": "the app's key handler saw every key",
+   "fix": "keys inside the terminal pane go to the shell only",
+   "test": "tests/page.test.js",
+   "severity": "leakage"
+  },
+  {
+   "id": "F3",
+   "source": "self",
+   "defect": "zsh wrote its history beside the app's ZDOTDIR",
+   "scenario": "commands typed in the panel were missing from the person's history",
+   "cause": "/etc/zshrc sets HISTFILE from ZDOTDIR",
+   "fix": "ZDOTDIR handed back, HISTFILE moved back",
+   "test": "tests/server.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F4",
+   "source": "test",
+   "defect": "a mark cut inside its first bytes was lost",
+   "scenario": "the end of a command arrived as ESC ] 63 | 3;D;0",
+   "cause": "the carry kept only a whole mark head",
+   "fix": "keep any prefix of the mark head",
+   "test": "tests/units.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "a paste of about 3 KB froze the terminal for good, and its processes outlived the server",
+   "scenario": "a long line typed at the zsh prompt",
+   "cause": "a blocking write to the pty while the shell blocked echoing",
+   "fix": "input written only when the pty can take it, output read on every pass",
+   "test": "tests/server.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "a shell ignoring SIGHUP survived DELETE",
+   "scenario": "trap '' HUP in .zshrc",
+   "cause": "waitpid with the master still open",
+   "fix": "close the master, SIGHUP the group, SIGKILL after 3 s",
+   "test": "tests/server.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "defect": "the control pipe leaked into the shell and its jobs",
+   "scenario": "nohup sleep & then exit: the terminal looked alive forever",
+   "cause": "fd 3 inherited by the child",
+   "fix": "closed before exec; end on the helper's exit event",
+   "test": "tests/server.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "defect": "program output could forge a person's step",
+   "scenario": "cat of a file holding OSC 633 marks recorded a fake command",
+   "cause": "marks had no secret",
+   "fix": "a per-terminal nonce",
+   "test": "tests/server.test.js",
+   "severity": "leakage"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "defect": "a failing terminal test hung the suite and streams never ended",
+   "scenario": "an assertion failing before sse.destroy",
+   "cause": "the stream route never ended its response",
+   "fix": "end after exit, end all on close, cleanup in finally",
+   "test": "tests/server.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "defect": "Terminal.app or VS Code variables reached the shell",
+   "scenario": "started from Terminal.app: its session history written under the app's home",
+   "cause": "the whole server environment passed on",
+   "fix": "drop other terminals' variables; TERM_PROGRAM=DCLabCode",
+   "test": "tests/server.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "defect": "terminals survived a removed copy or an archived session; switching sessions opened shells",
+   "scenario": "remove a copy with a terminal open",
+   "cause": "no owner clean-up",
+   "fix": "close a session's terminals on remove and archive; switching starts none",
+   "test": "tests/server.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F12",
+   "source": "reviewer",
+   "defect": "long marks dropped and a cut UTF-8 character garbled",
+   "scenario": "ls داده arriving in two chunks",
+   "cause": "8 KB carry; per-chunk decoding",
+   "fix": "256 KB carry, cut commands marked, a StringDecoder per terminal",
+   "test": "tests/units.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F13",
+   "source": "reviewer",
+   "defect": "/vendor/constructor answered 500",
+   "scenario": "a request for an inherited property name",
+   "cause": "plain object lookup",
+   "fix": "Object.hasOwn and 404",
+   "test": "tests/server.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F14",
+   "source": "reviewer",
+   "defect": "one Stop could be recorded twice",
+   "scenario": "a second click before the SDK's task list update",
+   "cause": "the job stayed listed",
+   "fix": "a stopping set; the job leaves the list when stopTask resolves",
+   "test": "tests/server.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F15",
+   "source": "reviewer",
+   "defect": "the nonce was readable by any program through ps -E",
+   "scenario": "a script reading the helper's environment and printing marks",
+   "cause": "the nonce was in the helper's environment",
+   "fix": "a private file the shell reads and deletes",
+   "test": "tests/server.test.js",
+   "severity": "leakage"
+  },
+  {
+   "id": "F16",
+   "source": "reviewer",
+   "defect": "a non-zsh shell exposed the nonce to every program",
+   "scenario": "SHELL=/bin/bash: env shows it and printf forges a step",
+   "cause": "the nonce was set for every shell",
+   "fix": "marks only for zsh; no marks trusted otherwise",
+   "test": "tests/server.test.js",
+   "severity": "leakage"
+  },
+  {
+   "id": "F17",
+   "source": "reviewer",
+   "defect": "the person's XDG zsh setup was not loaded",
+   "scenario": "~/.zshenv exporting ZDOTDIR=~/.config/zsh; .zprofile sourcing ${ZDOTDIR}/.aliases.zsh",
+   "cause": "ZDOTDIR was the app's while their files ran",
+   "fix": "ZDOTDIR is a plain zsh's around each of their files",
+   "test": "tests/server.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F18",
+   "source": "reviewer",
+   "defect": "a write to a helper that just died crashed the server",
+   "scenario": "keys arriving between the helper's death and Node's exit event",
+   "cause": "no error listener on the pipes",
+   "fix": "error listeners on stdin and fd 3",
+   "test": "tests/server.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F19",
+   "source": "measurement",
+   "defect": "the jobs link wrapped onto three lines",
+   "scenario": "the status line with a job running, at 1280 px",
+   "cause": "no nowrap",
+   "fix": "white-space: nowrap",
+   "test": "",
+   "severity": "behaviour"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "live check with a real agent",
+   "gate": "a real background job is listed, stopped from the Jobs tab, and its process is gone; terminal commands recorded with exit codes, no output",
+   "fixed_before_run": true,
+   "result": "two Haiku jobs listed and stopped (stopTask), processes gone; 11 terminal commands recorded with their exit codes (0, 1, 127), no output; Persian commands intact",
+   "verdict": "pass",
+   "cost_eur": 0.01,
+   "limits": [
+    "a test home: a script clicked"
+   ]
+  },
+  {
+   "name": "dclab-code tests",
+   "gate": "every test passes, none skipped, no process left behind; the blocking write and the leaked pipe each fail the tests",
+   "fixed_before_run": true,
+   "result": "70 passed, twice in a row in the shell's own group; the old blocking write froze the typed-line test; the leaked pipe failed the exit test; the old hang-up killed a bystander's group",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "the terminal tests need python3 and /bin/zsh"
+   ]
+  }
+ ],
+ "outcome": "DCLab Code has background jobs with Stop and a real terminal panel, both on par with Claude Code desktop, with every person's act recorded and no terminal output kept.",
+ "lessons": [
+  "A terminal is a security boundary: anything a program prints can pretend to be the app, so marks need a secret no program can read",
+  "Do not change the person's shell: hand everything back exactly as a plain shell would see it",
+  "Test the freeze, not the happy path: a paste at the prompt passed under the old helper; a typed long line froze it",
+  "A test suite that dies with no summary is a finding: look for what signals a whole process group"
+ ],
+ "risks": [
+  "the replay can begin mid-character when no line break falls within 4 KB (full-screen programs)",
+  "bash and other shells get a terminal but no command steps"
+ ],
+ "commits": [
+  "dclab-code 2cbd6e2"
+ ]
+}

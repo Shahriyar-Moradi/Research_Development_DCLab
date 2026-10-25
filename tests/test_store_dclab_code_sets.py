@@ -339,6 +339,9 @@ class DclabCodeSetsTest(unittest.TestCase):
             line(T(10), kind="app", type="user_message", id="u3", uuid="m-3", text="try once more", by="person"),
             *edit(11, "r4", "b.py", "FOURTH"), done(12),
             line(T(13), kind="app", type="rewind", messageId="m-3", turn=3, filesChanged=[f"{self.repo}/b.py"], insertions=1, deletions=1, skippedLinks=0, by="script"),
+            # 32.42: a background job the person stopped is their step; a script's stop is not
+            line(T(14), kind="app", type="job_stop", taskId="j1", jobType="local_bash", description="python train.py", by="person"),
+            line(T(15), kind="app", type="job_stop", taskId="j2", jobType="local_bash", description="make test", by="script"),
         ]
         (self.home / "records" / "s_rewind01.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
         listed = json.loads((self.home / "sessions.json").read_text(encoding="utf-8"))
@@ -352,7 +355,8 @@ class DclabCodeSetsTest(unittest.TestCase):
                                ("a.py", "rewound", 0.0, ["SECOND"]),     # since it: rejected
                                ("b.py", "rewound", 0.0, ["THIRD"])])     # a file outside the repository is left out; a script's rewind judges nothing
         ep = next(e for e in self.rows("m6_stepwise_decisions", "dclab_code") if e["id"].endswith("s_rewind01"))
-        self.assertEqual([x["action"] for x in ep["steps"] if x["action"].startswith("person:")], ["person:rewind"])
+        self.assertEqual([x["action"] for x in ep["steps"] if x["action"].startswith("person:")], ["person:rewind", "person:stop_job"])
+        self.assertNotIn("python train.py", json.dumps(ep))  # a job's description never enters the content-free episode
 
     def test_the_persons_steps_sit_in_the_episode(self):
         ep = next(e for e in self.rows("m6_stepwise_decisions", "dclab_code") if e["id"].endswith("s_undo01"))
