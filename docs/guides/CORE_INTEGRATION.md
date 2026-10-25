@@ -1087,3 +1087,20 @@ and passes its own out-of-fold scores; nothing is fitted by the library except a
 
 Where it goes in the main product: after its experiment's final model is chosen, beside its operating points page; the
 records are plain dicts the host stores with the experiment. Wiring is the main product's own change.
+
+## Honest selection (34.6, dclab-core 0.110.0)
+
+The library's: `dclab_core.selection`. Before a search that tries many candidates (families, settings, feature sets),
+the host sets a selection fold aside with `selection_split(n, y=..., groups=..., order=..., share=0.2)` (cut the way
+the project splits: the latest rows, whole entities, or by class), scores every candidate by cross-validation on the
+search rows only, then calls `choose(search_scores, score_on_selection, metric=...)`: the winner is scored once on the
+selection fold and the `SelectionRecord` v1 keeps both scores, the number of attempts and the measured optimism.
+
+- `top_k=1` (the default) only confirms the winner: its selection score is an honest estimate whatever the number of
+  attempts (measured on simulated candidates: an optimism of about 0.002 at 5, 50 and 200 attempts, against 0.019,
+  0.039 and 0.051 for plain cross-validation's winner).
+- `top_k>1` chooses among the top K on the selection fold: a better pick more often, but its score there holds that
+  choice's luck (about 0.025 with K=3), and the record says to read it as an upper estimate.
+
+Where it goes in the main product: its experiment runner, when a search runs more than a few candidates; the record is
+a plain dict stored with the experiment. Wiring is the main product's own change.

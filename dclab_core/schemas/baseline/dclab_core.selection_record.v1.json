@@ -1,0 +1,105 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "attempts": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "chosen": {
+      "maxLength": 200,
+      "minLength": 1,
+      "type": "string"
+    },
+    "higher_is_better": {
+      "default": true,
+      "type": "boolean"
+    },
+    "metric": {
+      "maxLength": 80,
+      "minLength": 1,
+      "type": "string"
+    },
+    "note": {
+      "default": "",
+      "maxLength": 1000,
+      "type": "string"
+    },
+    "optimism": {
+      "type": "number"
+    },
+    "plain_choice": {
+      "maxLength": 200,
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.selection_record.v1",
+      "default": "dclab_core.selection_record.v1",
+      "type": "string"
+    },
+    "search_rows": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "search_score": {
+      "type": "number"
+    },
+    "selection_interval": {
+      "items": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "type": "array"
+    },
+    "selection_rows": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "selection_score": {
+      "type": "number"
+    },
+    "shortlist": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 50,
+      "type": "array"
+    },
+    "split": {
+      "enum": [
+        "time",
+        "group",
+        "stratified",
+        "random"
+      ],
+      "type": "string"
+    },
+    "top_k": {
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "split",
+    "search_rows",
+    "selection_rows",
+    "attempts",
+    "top_k",
+    "metric",
+    "chosen",
+    "plain_choice",
+    "search_score",
+    "selection_score",
+    "optimism"
+  ],
+  "type": "object"
+}

@@ -1,0 +1,66 @@
+{
+ "package": "34.6-honest-selection-core",
+ "title": "Honest selection under many attempts, the library's part: a selection fold read once and the measured optimism (34.6)",
+ "date": "2026-10-25",
+ "request": "The owner asked to finish Phase 10 without stopping. The plan (docs/guides/PHASE10_ABILITIES_PLAN.md, 34.6, the MLE plan's 33.2) asks for a selection protocol fixed before any wider search: search folds and a selection fold, the measured optimism in the record.",
+ "spec": "dclab_core/selection.py: selection_split (cut as the project splits), choose (the winner on the search rows read once on the selection fold) and SelectionRecord v1; measured on simulated candidates of known quality before the engine uses it.",
+ "plan": [
+  "read the MLE plan's 33.2 and the engine's selection",
+  "write the selection split and the choice with its record",
+  "simulate candidates of about equal true quality and measure each rule's optimism against a holdout",
+  "choose the default from the measurement, register the contract and its schema"
+ ],
+ "decisions": [
+  {
+   "decision": "Confirm only the winner on the selection fold by default",
+   "why": "measured: choosing among three there carries that choice's own luck, larger than plain cross-validation's at five attempts; confirming one keeps the score honest at every count"
+  },
+  {
+   "decision": "The library scores nothing itself: the host passes a function that scores a candidate on the selection fold",
+   "why": "the engine and the main product fit their own models; the protocol is the same for both"
+  },
+  {
+   "decision": "Wire it into the engine together with the wider search of 34.7",
+   "why": "today's engine tries a handful of candidates; setting rows aside costs every project training rows for little gain until the search widens"
+  }
+ ],
+ "change": "dclab_core/selection.py (new: selection_split, choose, SelectionRecord v1); dclab_core/contracts.py and adapters/conformance.py (registered); schemas; version 0.110.0 and CHANGELOG; CORE_INTEGRATION.md section; tests/test_core_selection.py (new).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "choosing among the top three on the selection fold reported a flattered score",
+   "scenario": "simulated candidates with search noise smaller than the selection fold's: the chosen one's selection score beat its holdout by about 0.025 at every number of attempts, more than plain cross-validation's winner at five attempts",
+   "cause": "the best of three noisy readings holds the luck of that choice, as the best of many search scores does",
+   "fix": "the default confirms only the winner; with more than one, the record says to read the score as an upper estimate",
+   "test": "tests/test_core_selection.py::SelectionTests::test_plain_cross_validation_is_flattered_more_as_attempts_grow_and_the_protocol_is_not",
+   "severity": "behaviour",
+   "impact": "an honest-looking score that is not, the very fault the protocol is for",
+   "alternatives": ["a third split to score the chosen one: fewer rows for each part on small tables"],
+   "open": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "optimism by number of attempts, simulated candidates (400 searches each)",
+   "gate": "plain cross-validation's optimism grows with attempts; the protocol's default stays near zero at every count",
+   "fixed_before_run": true,
+   "result": "plain 0.019, 0.039 and 0.051 at 5, 50 and 200 attempts; confirming the winner 0.002, -0.003 and 0.002; choosing among three 0.024, 0.023 and 0.027",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "next": "measure on the replicas with planted noise through the engine with 34.7",
+   "against_gate": "",
+   "limits": ["simulated scores, not models fitted on tables", "one noise level for each reading"]
+  }
+ ],
+ "outcome": "DCLab has the selection protocol a wide search needs: a fold set aside before it, read once for the winner, with the measured optimism in a versioned record; the engine uses it with 34.7.",
+ "lessons": [
+  "Measure a protocol against the fault it is for before choosing its default: the obvious choice among three repeated the fault.",
+  "A fold used to choose is no longer a fold that can tell the truth about the choice."
+ ],
+ "risks": [
+  "a selection fold takes training rows from every search",
+  "small tables give a selection fold too noisy to confirm anything"
+ ],
+ "commits": []
+}

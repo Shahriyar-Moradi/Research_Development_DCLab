@@ -4,6 +4,18 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.110.0 (2026-10-25)
+
+Honest selection under many attempts (34.6, the library's part).
+
+- `selection.selection_split`: a selection fold set aside before a search, cut the way the project splits (the latest
+  rows, whole groups, by class, or at random).
+- `selection.choose` and `SelectionRecord` v1: the candidates scored on the search rows, the winner read once on the
+  selection fold, both scores, the number of attempts and the measured optimism. `top_k=1` (the default) only confirms
+  the winner, which keeps its selection score honest whatever the number of attempts (measured on simulated candidates:
+  about 0.002 at 5, 50 and 200 attempts, against 0.019, 0.039 and 0.051 for plain cross-validation's winner); choosing
+  among more than one there holds that choice's own luck (about 0.025 with three) and the record says so.
+
 ## 0.109.0 (2026-10-25)
 
 Decisions in the product (34.4).

@@ -1,0 +1,125 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.selection_record.v1.json",
+  "additionalProperties": false,
+  "description": "How a candidate was chosen among many (34.6, v1): the attempts scored on the search rows, the top K read once on\nthe selection fold, the one chosen, both its scores and the optimism between them (oriented so that a positive\noptimism means the search score flattered it), with the interval of its selection score.",
+  "properties": {
+    "attempts": {
+      "minimum": 1,
+      "title": "Attempts",
+      "type": "integer"
+    },
+    "chosen": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Chosen",
+      "type": "string"
+    },
+    "higher_is_better": {
+      "default": true,
+      "title": "Higher Is Better",
+      "type": "boolean"
+    },
+    "metric": {
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Metric",
+      "type": "string"
+    },
+    "note": {
+      "default": "",
+      "maxLength": 1000,
+      "title": "Note",
+      "type": "string"
+    },
+    "optimism": {
+      "title": "Optimism",
+      "type": "number"
+    },
+    "plain_choice": {
+      "description": "The candidate plain cross-validation would have chosen.",
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Plain Choice",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.selection_record.v1",
+      "default": "dclab_core.selection_record.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "search_rows": {
+      "minimum": 1,
+      "title": "Search Rows",
+      "type": "integer"
+    },
+    "search_score": {
+      "title": "Search Score",
+      "type": "number"
+    },
+    "selection_interval": {
+      "items": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Selection Interval",
+      "type": "array"
+    },
+    "selection_rows": {
+      "minimum": 1,
+      "title": "Selection Rows",
+      "type": "integer"
+    },
+    "selection_score": {
+      "title": "Selection Score",
+      "type": "number"
+    },
+    "shortlist": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 50,
+      "title": "Shortlist",
+      "type": "array"
+    },
+    "split": {
+      "enum": [
+        "time",
+        "group",
+        "stratified",
+        "random"
+      ],
+      "title": "Split",
+      "type": "string"
+    },
+    "top_k": {
+      "minimum": 1,
+      "title": "Top K",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "split",
+    "search_rows",
+    "selection_rows",
+    "attempts",
+    "top_k",
+    "metric",
+    "chosen",
+    "plain_choice",
+    "search_score",
+    "selection_score",
+    "optimism"
+  ],
+  "title": "SelectionRecord",
+  "type": "object"
+}

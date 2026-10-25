@@ -150,6 +150,12 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
 - As written in `MLE_BENCH_LESSONS_PLAN.md` 33.2: search folds and a selection fold, the measured optimism in the record.
   Needed before any wider search, ours or FLAML's.
 
+- **Status:** the library's part done (2026-10-25, dclab-core 0.110.0): `dclab_core.selection` (`selection_split`,
+  `choose`, `SelectionRecord` v1). Measured before wiring: only confirming the winner (K=1) keeps its selection score
+  honest (optimism about 0.002 at 5, 50 and 200 attempts against 0.019 to 0.051 for plain cross-validation); choosing
+  among three on the selection fold adds about 0.025 of its own, so K=1 is the default. Left: the engine sets the fold
+  aside when a search runs (with 34.7), the stage record and the ledger.
+
 ### 34.7 A wider search and ensembles (33.3–33.5)
 - **Delivers:** per-family Optuna search with a budget (minutes, trials), CatBoost reconsidered as a family (its
   exclusion reason at `runner.py:11` re-checked), stacking of the top families on out-of-fold predictions reusing

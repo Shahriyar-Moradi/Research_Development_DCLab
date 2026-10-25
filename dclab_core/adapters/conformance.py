@@ -70,6 +70,8 @@ CONTRACT_ADAPTERS: dict[str, str] = {
                       "outcomes, joined to its predictions by serving.join)",
     "data_value": LIBRARY + " (would more rows help: the learning curve on the training folds, 34.13; the main product draws it with its own "
                   "trainer in each fold, CORE_INTEGRATION.md 'Would more rows help?')",
+    "selection_record": LIBRARY + " (how a candidate was chosen among many: the selection fold read once and the measured optimism, 34.6; "
+                        "the main product's experiment runner sets the fold aside before its search, CORE_INTEGRATION.md 'Honest selection')",
     "table_entry": LIBRARY + " (a table's catalog entry with its owner and checks, 30.23; the main product's data catalog keeps its own entries)",
     "project_request": LIBRARY + " (a requested project scored, 30.24; the main product's intake keeps its own requests and scores them through it)",
     "portfolio": LIBRARY + " (the projects chosen of the requested and what they reuse, 30.24)",
