@@ -107,8 +107,18 @@ def parse_people(content: str) -> list[dict[str, Any]]:
     from .core_advisor import _first_object
 
     doc = _first_object(content or "") or {}
+    found = doc.get("people") if isinstance(doc.get("people"), list) else None
+    if found is None:  # a reply whose JSON is broken somewhere (a stray brace): each person's object read on its own
+        decoder, found, at = json.JSONDecoder(), [], (content or "").find('{"words"')
+        while at >= 0:
+            try:
+                obj, end = decoder.raw_decode(content, at)
+                found.append(obj)
+            except ValueError:
+                end = at + 1
+            at = content.find('{"words"', end)
     out = []
-    for p in doc.get("people") or []:
+    for p in found:
         if not isinstance(p, dict):
             continue
         words = p.get("words")
@@ -130,6 +140,12 @@ def _prompt_hash() -> str:
     from . import prompts
 
     return hashlib.sha256((prompts.text(WRITER) + prompts.text(CHECKER)).encode()).hexdigest()[:12]
+
+
+def _checker_hash() -> str:
+    from . import prompts
+
+    return hashlib.sha256(prompts.text(CHECKER).encode()).hexdigest()[:12]
 
 
 def _client(purpose: str, cap_eur: float, spent: float) -> Any:
@@ -173,10 +189,41 @@ def write(cap_eur: float, home: Path = HOME, kinds_: Optional[list[str]] = None)
             checked = _ask(checker, check_messages, 2500) if people else None
             cost = float(writer.spent_eur or 0.0) + float(getattr(checker, "spent_eur", 0.0) or 0.0)
             spent += cost
-            path.write_text(json.dumps({"kind": kind, "batch": batch, "prompt": prompt_hash, "request": messages, "reply": got,
+            path.write_text(json.dumps({"kind": kind, "batch": batch, "prompt": prompt_hash, "checker": _checker_hash(), "request": messages, "reply": got,
                                         "check_request": check_messages, "check_reply": checked, "spent_eur": round(cost, 6)},
                                        ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     return {"spent_eur": round(spent, 4), **assemble(home)}
+
+
+def _check_of(doc: dict[str, Any]) -> Optional[dict[str, Any]]:
+    """A kept batch's latest check: a recheck under a newer checker prompt wins; the older ones stay in the file."""
+    rechecks = doc.get("rechecks") or []
+    return (rechecks[-1].get("reply") if rechecks else None) or doc.get("check_reply")
+
+
+def recheck(cap_eur: float, home: Path = HOME) -> dict[str, Any]:
+    """Every kept batch whose latest check was made under another checker prompt, checked again (the old check kept)."""
+    from . import prompts
+
+    current = hashlib.sha256(prompts.text(CHECKER).encode()).hexdigest()[:12]
+    spent, asked = 0.0, 0
+    for path in sorted((Path(home) / "replies").glob("*.json")):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        last = (doc.get("rechecks") or [{}])[-1].get("checker") or doc.get("checker")
+        people = parse_people(doc["reply"]["content"])
+        if last == current or not people:
+            continue
+        if spent >= cap_eur:
+            return {"stopped": f"the cap of EUR {cap_eur} is reached", "spent_eur": round(spent, 4), "asked": asked}
+        client = _client(CHECKER, cap_eur, spent)
+        messages = check_request(doc["kind"], people)
+        got = _ask(client, messages, 2500)
+        spent += float(client.spent_eur or 0.0)
+        asked += 1
+        doc.setdefault("rechecks", []).append({"checker": current, "request": messages, "reply": got, "spent_eur": round(float(client.spent_eur or 0.0), 6)})
+        doc["spent_eur"] = round(float(doc.get("spent_eur") or 0.0) + float(client.spent_eur or 0.0), 6)
+        path.write_text(json.dumps(doc, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    return {"spent_eur": round(spent, 4), "asked": asked, **assemble(home)}
 
 
 def assemble(home: Path = HOME) -> dict[str, int]:
@@ -187,7 +234,7 @@ def assemble(home: Path = HOME) -> dict[str, int]:
     for path in sorted((Path(home) / "replies").glob("*.json")):
         doc = json.loads(path.read_text(encoding="utf-8"))
         people = parse_people(doc["reply"]["content"])
-        checks = {c.get("index"): c for c in ((_first_object((doc.get("check_reply") or {}).get("content") or "") or {}).get("checks") or [])
+        checks = {c.get("index"): c for c in ((_first_object((_check_of(doc) or {}).get("content") or "") or {}).get("checks") or [])
                   if isinstance(c, dict)}
         for i, p in enumerate(people):
             row = person(doc["kind"], doc["batch"], i, p, doc["prompt"])
@@ -203,7 +250,7 @@ def assemble(home: Path = HOME) -> dict[str, int]:
 
 def main(argv: Optional[list[str]] = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m dclab_rnd.people_writer", description=__doc__.split("\n")[0])
-    ap.add_argument("command", choices=("plan", "write", "status", "assemble"))
+    ap.add_argument("command", choices=("plan", "write", "status", "assemble", "recheck"))
     ap.add_argument("--yes", action="store_true")
     ap.add_argument("--cap-eur", type=float)
     ap.add_argument("--kinds", nargs="*")
@@ -228,7 +275,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     real_shadow.load_env()
     os.environ.pop("DCLAB_NO_LIVE_MODELS", None)
-    print(json.dumps(write(args.cap_eur, kinds_=args.kinds), indent=1))
+    print(json.dumps(recheck(args.cap_eur) if args.command == "recheck" else write(args.cap_eur, kinds_=args.kinds), indent=1))
     return 0
 
 

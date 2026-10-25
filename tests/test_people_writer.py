@@ -78,6 +78,25 @@ class WriterTest(unittest.TestCase):
         with mock.patch.object(P, "_client", side_effect=AssertionError("asked again")):
             P.write(1.0, self.home, kinds_=["binary"])  # resumable: nothing sent twice
 
+    def test_a_broken_reply_still_gives_its_people_and_a_new_checker_rechecks_keeping_the_old(self):
+        broken = '{"people": [\n{"words": "who will cancel?", "answers": {"target": "churned"}}},\n{"words": "churn please", "answers": {}}\n]}'
+        self.assertEqual([p["words"] for p in P.parse_people(broken)], ["who will cancel?", "churn please"])  # a stray brace
+        writer, checker = FakeClient([PEOPLE]), FakeClient([CHECKS])
+        with mock.patch.object(P, "_client", side_effect=[writer, checker]):
+            P.write(1.0, self.home, kinds_=["binary"])
+        path = self.home / "replies" / "binary-0.json"
+        doc = json.loads(path.read_text())
+        doc["checker"] = "an-older-prompt"
+        path.write_text(json.dumps(doc))
+        all_fit = json.dumps({"checks": [{"index": i, "fits": True, "why": "fits"} for i in range(3)]})
+        with mock.patch.object(P, "_client", return_value=FakeClient([all_fit])):
+            got = P.recheck(1.0, self.home)
+        self.assertEqual((got["asked"], got["people"], got["flagged"]), (1, 3, 0))
+        kept = json.loads(path.read_text())
+        self.assertEqual((kept["check_reply"]["content"], len(kept["rechecks"])), (CHECKS, 1))  # the old check kept beside the new
+        with mock.patch.object(P, "_client", side_effect=AssertionError("checked twice")):
+            self.assertEqual(P.recheck(1.0, self.home)["asked"], 0)
+
     def test_the_cap_stops_before_a_request(self):
         (self.home / "replies").mkdir()
         (self.home / "replies" / "x-0.json").write_text(json.dumps({"spent_eur": 2.0, "kind": "binary", "batch": 9, "prompt": "p",

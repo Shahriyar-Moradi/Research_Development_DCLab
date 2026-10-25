@@ -210,10 +210,28 @@ def _committee(_: Path) -> Iterator[dict[str, Any]]:
                        "accepted": None, "rule_answer": r.get("value_used"), "label_origin": "construction"}
 
 
+def _homework_split(name: str, ident: str) -> Optional[str]:
+    if name != "homework_v1":
+        return None
+    from ..understand_students import person_split
+
+    return person_split(f"homework_v1:{ident}")
+
+
+def _understand_spent() -> bool:
+    try:
+        from ..understand_students import spent
+    except ImportError:
+        return False
+    return spent()
+
+
 def _journeys(_: Path) -> Iterator[dict[str, Any]]:
     families = _families()
     for path in sorted(JOURNEYS.glob("journeys_*.json")):
         name = path.stem.replace("journeys_", "")
+        if name == "understand_sealed" and not _understand_spent():
+            continue  # S8 B2: the understanding students' sealed people stay unread until their gate has read them once
         for j in json.loads(path.read_text(encoding="utf-8")):
             family = j.get("family")
             expected = (j.get("expect") or {}).get("families")
@@ -224,7 +242,8 @@ def _journeys(_: Path) -> Iterator[dict[str, Any]]:
             group = f"journey:{name}:{j['id']}"
             schema = {"answer": {"labels": families, "prompt": "Which family of machine-learning problem does this person describe?",
                                  **({"multi_label": True, "cls_threshold": 0.4} if multi else {})}}
-            yield {"sample_id": group, "decision_point": "problem.family_from_words", "split": _split(group), "group": group,
+            split = _homework_split(name, j["id"]) or _split(group)  # S8 B2: a new homework person in the one split it has everywhere
+            yield {"sample_id": group, "decision_point": "problem.family_from_words", "split": split, "group": group,
                    "text": str(j["words"]), "schema": schema, "options": list(families), "label": accepted if multi else accepted[0],
                    "accepted": accepted, "rule_answer": None, "label_origin": "journey_truth", "set": name}
 

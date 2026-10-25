@@ -4,24 +4,122 @@
  "date": "2026-10-25",
  "request": "The owner: 'the student model must have more ability', with $15 to test and fix (plan 2026-10-25 Part B1).",
  "spec": "600 homework people over the 15 replica kinds through the gateway (Claude only), each with its declared truth; a checker that keeps apart a person who does not fit; a sealed set written apart by another writer; played on the rules with whole records.",
- "plan": ["Read why the understanding students failed.", "Let the code, not the writer, own the truth.", "Ask for variety by businesses, knowledge, mistakes and answers.", "A second request checks each person.", "Keep every request and reply whole; resumable; capped."],
+ "plan": [
+  "Read why the understanding students failed.",
+  "Let the code, not the writer, own the truth.",
+  "Ask for variety by businesses, knowledge, mistakes and answers.",
+  "A second request checks each person.",
+  "Keep every request and reply whole; resumable; capped."
+ ],
  "decisions": [
-  {"decision": "The writer writes only the first words and the answers; the kind and family come from the code.", "why": "A writer that also declared the truth could mislabel; the checker catches people whose words describe another problem."},
-  {"decision": "The businesses are suggestions, taken only where a business like it could have the table.", "why": "The first request gave a delivery-fraud table 'a recruitment firm' and 'a farm cooperative': people forced into them would not fit and would be paid for and set aside."},
-  {"decision": "The homework writer goes through the gateway; the sealed people are written by a fresh agent apart.", "why": "The gateway keeps every request and reply whole for the models; two different writers keep the exam apart from the homework's style."},
-  {"decision": "Two purposes with no user data (journey_writer, journey_checker), in the data-limit test's no_user_data set.", "why": "They see invented replica tables' column names and written people only, never a workspace's data."}
+  {
+   "decision": "The writer writes only the first words and the answers; the kind and family come from the code.",
+   "why": "A writer that also declared the truth could mislabel; the checker catches people whose words describe another problem."
+  },
+  {
+   "decision": "The businesses are suggestions, taken only where a business like it could have the table.",
+   "why": "The first request gave a delivery-fraud table 'a recruitment firm' and 'a farm cooperative': people forced into them would not fit and would be paid for and set aside."
+  },
+  {
+   "decision": "The homework writer goes through the gateway; the sealed people are written by a fresh agent apart.",
+   "why": "The gateway keeps every request and reply whole for the models; two different writers keep the exam apart from the homework's style."
+  },
+  {
+   "decision": "Two purposes with no user data (journey_writer, journey_checker), in the data-limit test's no_user_data set.",
+   "why": "They see invented replica tables' column names and written people only, never a workspace's data."
+  }
  ],
  "change": "dclab_rnd/people_writer.py (new), dclab_rnd/prompts/journey_writer.md and journey_checker.md (new), dclab_rnd/models/settings.py and dclab_rnd/agents/harness.py (the purposes), tests/test_people_writer.py (new), tests/test_model_data_limits.py; make agent-eval (AEV-058) and make harness-eval (HRN-043) after the prompt change.",
  "findings": [
-  {"id": "B1-1", "source": "measurement", "severity": "gap", "defect": "The understanding students' homework was too small and too easy.", "scenario": "problem.family: 236 rows from 118 people, the rule right on 95%; its sealed exam 11 decisions.", "cause": "Journeys were written by hand or once per kind for the replicas' tests.", "fix": "600 written people with deliberate variety.", "test": "the rule's accuracy on them is reported before any training"},
-  {"id": "B1-2", "source": "measurement", "severity": "gap", "defect": "A student on the ledger's state cannot read the person's words.", "scenario": "The workflow gate's own note: problem.family 0.526 against the rules' 0.895, the recorded state holds no words.", "cause": "States never hold a person's words.", "fix": "B2 adds a student that reads the written people's words (invented, allowed), beside the rule and the state-only one.", "test": "B2's exam"},
-  {"id": "B1-3", "source": "test", "severity": "behaviour", "defect": "Businesses that cannot have the table were forced on the writer.", "scenario": "A delivery-fraud table with 'a recruitment firm'.", "cause": "A fixed draw from one pool for every kind.", "fix": "Suggestions only, in the prompt.", "test": "the request printed by plan before any spend"}
+  {
+   "id": "B1-1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The understanding students' homework was too small and too easy.",
+   "scenario": "problem.family: 236 rows from 118 people, the rule right on 95%; its sealed exam 11 decisions.",
+   "cause": "Journeys were written by hand or once per kind for the replicas' tests.",
+   "fix": "600 written people with deliberate variety.",
+   "test": "the rule's accuracy on them is reported before any training"
+  },
+  {
+   "id": "B1-2",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "A student on the ledger's state cannot read the person's words.",
+   "scenario": "The workflow gate's own note: problem.family 0.526 against the rules' 0.895, the recorded state holds no words.",
+   "cause": "States never hold a person's words.",
+   "fix": "B2 adds a student that reads the written people's words (invented, allowed), beside the rule and the state-only one.",
+   "test": "B2's exam"
+  },
+  {
+   "id": "B1-3",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Businesses that cannot have the table were forced on the writer.",
+   "scenario": "A delivery-fraud table with 'a recruitment firm'.",
+   "cause": "A fixed draw from one pool for every kind.",
+   "fix": "Suggestions only, in the prompt.",
+   "test": "the request printed by plan before any spend"
+  },
+  {
+   "id": "B1-4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A reply with broken JSON lost its whole batch.",
+   "scenario": "The first live batch held a stray closing brace after one person's answers: the parser read one inner object and returned no people.",
+   "cause": "The parser read the first object only.",
+   "fix": "Each person's object read on its own (raw_decode at each '{\"words\"'); the kept reply re-parsed, no new request.",
+   "test": "test_a_broken_reply_still_gives_its_people_and_a_new_checker_rechecks_keeping_the_old"
+  },
+  {
+   "id": "B1-5",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The checker set aside exactly the hard cases the homework is for.",
+   "scenario": "'Need clustering of our subscribers into leavers and stayers' on the churn table: flagged as not fitting, though the goal is churn.",
+   "cause": "The checker judged the technique's name, not the goal.",
+   "fix": "The checker prompt says to judge the goal; recheck asks the new checker again on kept batches, the old checks kept beside.",
+   "test": "the same test; AEV-059 and HRN-044 ran on the new prompt"
+  },
+  {
+   "id": "B1-6",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "The lake's answer sets would read the new sealed people.",
+   "scenario": "lake/answers.py reads every journeys_*.json as problem.family_from_words tests, most of a set in its train share.",
+   "cause": "A glob over the folder.",
+   "fix": "journeys_understand_sealed.json skipped until its gate has read it; the homework people in the one split they have everywhere.",
+   "test": "test_the_sealed_people_are_read_by_no_answerer_before_their_gate"
+  }
  ],
  "measurements": [
-  {"name": "scripted suites after the prompt change", "gate": "make agent-eval and make harness-eval (no model)", "result": "harness 17 of 17 right on every step and part; the agent suite's scripted policies as before; the prompt and harness gates pass", "verdict": "pass", "cost_eur": 0.0, "limits": ["the first pair of suite results, on the prompt before its business fix, was removed before it was committed instead of being kept"]}
+  {
+   "name": "scripted suites after the prompt change",
+   "gate": "make agent-eval and make harness-eval (no model)",
+   "result": "harness 17 of 17 right on every step and part; the agent suite's scripted policies as before; the prompt and harness gates pass",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the first pair of suite results, on the prompt before its business fix, was removed before it was committed instead of being kept"
+   ]
+  },
+  {
+   "name": "the first live batches",
+   "gate": "a trial capped at EUR 0.3 on one kind",
+   "result": "4 batches, EUR 0.1237: 30 people parsed (40 after the parser fix), 4 set aside by the first checker; about EUR 0.03 a batch",
+   "verdict": "pass",
+   "cost_eur": 0.1237,
+   "limits": [
+    "one kind only"
+   ]
+  }
  ],
  "outcome": "The writer is ready to run; its live run and the people it writes follow.",
- "lessons": ["Print a live request before paying for it: the business list's misfit showed only in the real request."],
- "risks": ["Students may learn the writer's style: the sealed set's separate writer and the rule-accuracy check are the defences."],
+ "lessons": [
+  "Print a live request before paying for it: the business list's misfit showed only in the real request."
+ ],
+ "risks": [
+  "Students may learn the writer's style: the sealed set's separate writer and the rule-accuracy check are the defences."
+ ],
  "commits": []
 }
