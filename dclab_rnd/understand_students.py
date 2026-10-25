@@ -183,7 +183,15 @@ GATE = {"version": "understand_gate_v1", "decision_gate": "decision_gate_v1", "s
         "rule": "Each point's state student, and the text student for problem.family, judged once by decision_gate_v1 (the column "
                 "points' thresholds, unchanged) beside the rule on the same sealed decisions, by person, an answer right when the "
                 "person's journey accepts it; a model that does not pass stays in shadow.",
-        "seen_before": None}  # the dev figures, written into this before the sealed set is read (committed first)
+        # written after the dev figures (plays of the fixed product, 2026-10-25) and before the sealed people were read
+        "seen_before": "Dev, each beside the rule on the same rows: problem.family text student 0.966 against the rule's 0.821 (235 "
+                       "decisions); problem.family state student 0.498 (the state holds no words): expected to fail; problem.ready "
+                       "0.887 [0.844, 0.920] against 0.827: its accuracy's lower bound is under 0.90, expected to fail; "
+                       "workflow.next_question 0.876 [0.859, 0.891] against 0.855: expected to fail on the same bar; solution.route "
+                       "0.820 against 0.826: no margin, expected to fail. The text student is the one candidate; its risk is the "
+                       "writer's style (the homework was written by one writer, the sealed people by another), and the rule's right "
+                       "answers it would turn wrong were not measured on dev. The rule on the new people: 0.71 (family), 0.71 (ready), "
+                       "0.80 (next question), 0.84 (route), against 0.95, 0.96, 0.99 and 0.89 on the older ones."}
 
 
 def spent(campaign: Path = CAMPAIGN) -> bool:
