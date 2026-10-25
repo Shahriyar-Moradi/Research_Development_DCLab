@@ -1,0 +1,51 @@
+{
+ "package": "32.41",
+ "title": "DCLab Code's Rewind read as the person's rejection of the changes since a message",
+ "date": "2026-10-25",
+ "request": "Run longer live tests with the remaining budget (a bigger real task, Opus, a long multi-turn session), cap each run, and report.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.41",
+ "plan": [
+  "Read the rewind record DCLab Code's live run built",
+  "Treat it as an undo of the changes since its message",
+  "Test the cut, the real path and a script's rewind"
+ ],
+ "decisions": [
+  {
+   "decision": "A rewind judges only the changes since its message; earlier changes stay waiting",
+   "why": "the files go back to before that message, so only its turn and later turns are rejected"
+  },
+  {
+   "decision": "The verdict is rewound, apart from undone",
+   "why": "a whole-turn rejection and a per-file undo are different acts; both score 0"
+  },
+  {
+   "decision": "/private plus the root counts as the root",
+   "why": "the SDK names a rewound file by its real path"
+  }
+ ],
+ "change": "sets/dclab_code.py: message uuids mapped to their place; rewind records become undos with since; file_verdicts splits pending changes at since; _rel() shared with _edit; person:rewind in the M6 episode; M7 score 0 for rewound.",
+ "findings": [],
+ "measurements": [
+  {
+   "name": "store tests",
+   "gate": "every DCLab Code set test passes; the since cut, the real path and the script check each fail the new test when removed",
+   "fixed_before_run": true,
+   "result": "test_store_dclab_code_sets 7 passed; 3 of 3 mutations caught",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "invented sessions; no real rewind has reached the store yet"
+   ]
+  }
+ ],
+ "outcome": "A Rewind in DCLab Code becomes M7 change judgements (rewound) and a person step in M6.",
+ "lessons": [
+  "When the app gains a new person act, the store reads it in the same day, or the act is lost as training data"
+ ],
+ "risks": [
+  "a rewind does not restore files changed by shell commands; those changes keep no verdict"
+ ],
+ "commits": [
+  "dclab-code 640f275"
+ ]
+}

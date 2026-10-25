@@ -4,7 +4,7 @@ permission each step needed and the person's answer, the sealed and holdout guar
 the answers, plan approvals, the person's grade of each turn, and what became of the work (merged, its copy removed).
 
 - **M6** (:class:`dclab_core.store.Episode`, folder ``dclab_code``): a session as an episode of tool steps, the person's own
-  steps (``person:Bash`` for a command they ran, ``person:undo``) in their place between the agent's (32.39). A step's state
+  steps (``person:Bash`` for a command they ran, ``person:undo``, ``person:rewind``) in their place between the agent's (32.39). A step's state
   is bands and codes only (its step number, the tool as a code, the tool's family, the permission mode, whether it asked
   and why), its action the tool's name, its outcome ``auto_ok``, ``auto_error``, ``allowed_ok``, ``allowed_error``,
   ``denied``, ``answered``, ``skipped`` or ``plan_<choice>``; the episode's outcome from the record (``merged``, ``stopped``,
@@ -14,7 +14,9 @@ the answers, plan approvals, the person's grade of each turn, and what became of
   is gold.
 - **M7** (:class:`dclab_core.store.JudgedExample`): the person's judgement, gold: a step allowed or denied (folder
   ``dclab_code_steps``: the tool, its command or file path, why it asked), a plan approved or sent back with a note
-  (``dclab_code_plans``: the plan whole), a turn's answer graded good or not good with a note (``dclab_code_answers``).
+  (``dclab_code_plans``: the plan whole), a turn's answer graded good or not good with a note (``dclab_code_answers``),
+  and the agent's file changes judged by what the person did with them (``dclab_code_changes``: ``committed`` 1,
+  ``undone`` 0 by a per-file undo, ``rewound`` 0 by a Rewind to before one of their messages, 32.41).
 - **M2 and M1** (:class:`dclab_core.store.DecisionExample`): the person's choices at two points, gold:
   ``dclab_code.permission`` (allow, allow_always, deny) and ``dclab_code.plan_approval`` (auto, ask, keep), in M2's
   ``internal`` group and as M1 student sets the tutor fits where enough rows exist.
@@ -104,7 +106,8 @@ class Session:
         self.edits: dict[str, list[dict[str, Any]]] = defaultdict(list)  # file (relative to the session's folder) -> the agent's changes
         self.undos: dict[str, list[dict[str, Any]]] = defaultdict(list)  # file -> the person's undos of it, in order
         self.kept: list[dict[str, Any]] = []        # each commit or merge of the session's work: its order and the files in it
-        self.person_steps: list[dict[str, Any]] = []  # the person's own acts between the agent's steps (commands, undos), in order
+        self.person_steps: list[dict[str, Any]] = []  # the person's own acts between the agent's steps (commands, undos, rewinds), in order
+        self._message_at: dict[str, tuple] = {}     # a person's message uuid -> its place (a rewind goes back to before it)
         self.outcome: Optional[str] = None
         self._read()
 
@@ -125,6 +128,8 @@ class Session:
                 after_stop = True
             elif t == "user_message":
                 after_stop = False
+                if b.get("uuid"):
+                    self._message_at[str(b["uuid"])] = _order(r)  # a rewind names a message by it
             elif t in ("permission_request", "question_request", "plan_request") and b.get("toolUseId"):
                 requests[str(b["toolUseId"])] = {**b, "_record": r}
             elif t in ("permission_decision", "question_answer", "plan_decision") and b.get("reqId"):
@@ -178,6 +183,17 @@ class Session:
                 if by_person(b):
                     self.person_steps.append({"order": _order(r), "action": "person:undo", "kind": "person_undo", "turn": turn, "mode": mode,
                                               "outcome": _code(b.get("how") or "undone"), "guard": None, "at": r.at})
+            elif t == "rewind" and isinstance(b.get("filesChanged"), list):
+                # The person put every file back as it was before one of their messages: each change since that message,
+                # to the files it names, is rejected (a script's rewind only cuts the history, as its undo does).
+                since = self._message_at.get(str(b.get("messageId")))
+                for f in b["filesChanged"]:
+                    rel = self._rel(str(f))
+                    if rel is not None:
+                        self.undos[rel].append({"how": "rewind", "record": r, "order": _order(r), "person": by_person(b), "since": since})
+                if by_person(b):
+                    self.person_steps.append({"order": _order(r), "action": "person:rewind", "kind": "person_rewind", "turn": turn, "mode": mode,
+                                              "outcome": "rewound" if b["filesChanged"] else "nothing_to_rewind", "guard": None, "at": r.at})
             elif t == "person_command_start" and b.get("id"):
                 starts[str(b["id"])] = _order(r)
             elif t == "person_command" and by_person(b):
@@ -232,15 +248,24 @@ class Session:
         path = inp.get("file_path") or inp.get("notebook_path")
         if st["tool"] not in EDIT_TOOLS or not isinstance(path, str) or not CODE_FILE.search(path) or st["decision"] == "deny":
             return
-        # Paths as git names them: from the repository's root (an own copy's root, else the session's recorded root).
-        wt = self.meta.get("worktree") if isinstance(self.meta.get("worktree"), dict) else {}
-        root = str(wt.get("path") or self.meta.get("repoRoot") or self.meta.get("projectPath") or "").rstrip("/")
-        if not root or not path.startswith(root + "/"):
+        rel = self._rel(path)
+        if rel is None:
             return  # outside the repository: no commit of it can hold this file
-        rel = path[len(root) + 1:]
         change = {k: inp[k] for k in ("old_string", "new_string", "content", "new_source", "edits", "replace_all") if k in inp}
         if len(json.dumps(change, default=str)) <= MAX_CHANGE:
             self.edits[rel].append({"tool": st["tool"], **change, "_record": st["record"], "_order": st["order"], "_step": st})
+
+    def _rel(self, path: str) -> Optional[str]:
+        """A path as git names it: from the repository's root (an own copy's root, else the session's recorded root);
+        None outside it. The SDK names a rewound file by its real path (/private/var/... for /var/...): both count."""
+        wt = self.meta.get("worktree") if isinstance(self.meta.get("worktree"), dict) else {}
+        root = str(wt.get("path") or self.meta.get("repoRoot") or self.meta.get("projectPath") or "").rstrip("/")
+        if not root:
+            return None
+        for base in (root, "/private" + root):
+            if path.startswith(base + "/"):
+                return path[len(base) + 1:]
+        return None
 
     @staticmethod
     def step_outcome(s: dict[str, Any]) -> str:
@@ -353,7 +378,7 @@ def examples(layout: Layout, choices: Optional[dict] = None) -> dict[tuple[str, 
                     groups[("m7_judges", "dclab_code_changes")].append(JudgedExample(
                         id=f"m7:dclab_code:change:{s.sid}:{n}:{f}"[:200], model_type="m7_judges", split=split, provenance=prov, judged="code",
                         candidate={"file": f, "changes": [{k: v for k, v in c.items() if not k.startswith("_")} for c in chunk], "kept_as": verdict},
-                        candidate_by=f"model:{s.model}", score=0.0 if verdict == "undone" else 1.0, judge="person", evidence="person"))
+                        candidate_by=f"model:{s.model}", score=0.0 if verdict in ("undone", "rewound") else 1.0, judge="person", evidence="person"))
         for k, g in enumerate(s.grades):
             if ok["m7_judges"] and g["value"] in ("good", "bad") and g["answer"]:
                 groups[("m7_judges", "dclab_code_answers")].append(JudgedExample(
@@ -373,7 +398,8 @@ def file_verdicts(file: str, changes: list[dict[str, Any]], undos: list[dict[str
     """A file's history in file order, cut at each undo and at each commit or merge. The changes since the last cut are
     **undone** (0) at an undo, **committed** (1) at a commit or merge that names this file; a commit that does not name it
     leaves them waiting; changes never cut have no verdict. Only a change that ran (its tool result ok) counts. A test
-    script's undo or commit cuts the history too, with no verdict: it is no person's judgement."""
+    script's undo or commit cuts the history too, with no verdict: it is no person's judgement. A rewind (32.41) is an
+    undo of the changes since one message: those are **rewound** (0); the ones before it stay waiting."""
     ran = [c for c in changes if c["_step"].get("ok") is True]
     events = sorted([(c["_order"], 1, c) for c in ran] + [(u["order"], 0, u) for u in undos] + [(k["order"], 0, k) for k in kept],
                     key=lambda e: (e[0], e[1]))
@@ -381,9 +407,14 @@ def file_verdicts(file: str, changes: list[dict[str, Any]], undos: list[dict[str
     for _, is_change, item in events:
         if is_change:
             pending.append(item)
-        elif "how" in item:  # an undo
+        elif "how" in item and item.get("since") is not None:  # a rewind: the changes since its message go back
+            back = [c for c in pending if c["_order"] >= item["since"]]
+            if back and item.get("person", True):
+                out.append(("rewound", back, item["record"].provenance))
+            pending = [c for c in pending if c["_order"] < item["since"]]
+        elif "how" in item:  # an undo (a rewind to a message this session never recorded: everything pending)
             if pending and item.get("person", True):
-                out.append(("undone", pending, item["record"].provenance))
+                out.append(("rewound" if item["how"] == "rewind" else "undone", pending, item["record"].provenance))
             pending = []
         elif file in item["files"]:  # a commit or merge holding this file
             if pending and item.get("person", True):

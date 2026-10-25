@@ -1,0 +1,204 @@
+{
+ "package": "dclab-code-v1.10",
+ "title": "DCLab Code: long live tests, Rewind built by the app itself, and the sealed guard's holes closed",
+ "date": "2026-10-25",
+ "request": "Run longer live tests with the remaining budget (a bigger real task, Opus, a long multi-turn session), cap each run, and report.",
+ "spec": "agent_runs/live_tests/2026-10-25-dclab-code-long/README.md",
+ "plan": [
+  "A bigger real task on Opus in its own copy: Rewind",
+  "A 7-turn ML session on Sonnet with a trap and the holdout",
+  "The same prompts on Opus, paired",
+  "Fix what the runs show; review; merge"
+ ],
+ "decisions": [
+  {
+   "decision": "A file watcher adds a sealed folder at once, instead of rescans after every step",
+   "why": "R&D's scan takes 27 s of disk work; the review measured a rescan every 2.5 minutes per session"
+  },
+  {
+   "decision": "Only code read (not run) and test files are exempt from the name guard",
+   "why": "a script run by its sealed name may read the set through another module; docs, SQL, YAML and notebooks can hold rows"
+  },
+  {
+   "decision": "Check each word from both the cd-tracked folder and the session's",
+   "why": "cd tracking is a guess (subshells, popd, cd $(...)); a wrong guess must never hide a sweep"
+  },
+  {
+   "decision": "Stop the paired Opus run after 5 of 7 prompts",
+   "why": "the owner asked to finish; the five turns already cover the holdout read"
+  }
+ ],
+ "change": "guards.js: scriptReason (a run script's data names, linear token split), codeOnly/isRun, wordsInDirs with dual checks, backslash and line-break handling, searchWords, middle wildcards, grep -r with no path; sealed_scan.js: fs.watch adds folders, code files ignored, no rescans; app.js: the scan starts with the server; prompts: Edit and Write for file changes; Rewind (built by the app on Opus) merged.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "python final.py read the holdout with no question",
+   "scenario": "Sonnet and Opus each ran the script that reads holdout_telco.csv; the command named no file",
+   "cause": "the guard read only the command's text",
+   "fix": "the script a command runs is read for a sealed data name or path",
+   "test": "tests/units.test.js: a script that reads the holdout, cd before a sweep, R\\&D and line breaks",
+   "severity": "leakage"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "defect": "a holdout written during the session was unguarded for up to 10 minutes",
+   "scenario": "split.py wrote holdout_telco.csv; the tester's head -3 research/telco_live/*.csv ran with no ask and its rows were recorded",
+   "cause": "the cached scan did not know the new file",
+   "fix": "each folder a sweep reaches is looked into at once; a watcher adds deeper folders",
+   "test": "tests/units.test.js: a holdout made after the scan, at any depth",
+   "severity": "leakage"
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "defect": "R\\&D paths and cd dir && glob were checked in the wrong place",
+   "scenario": "cd research/telco_live && head -3 *.csv passed though the folder was known sealed",
+   "cause": "shellWords ignored backslashes; globs resolved from the session folder",
+   "fix": "escapes read as the shell does; cd tracked, both folders checked",
+   "test": "tests/units.test.js",
+   "severity": "leakage"
+  },
+  {
+   "id": "F4",
+   "source": "measurement",
+   "defect": "code named after a sealed set marked whole folders sealed",
+   "scenario": "every grep over server/*.js asked because of server/sealed_scan.js",
+   "cause": "the scan matched any file name",
+   "fix": "code files are ignored by the scan",
+   "test": "tests/units.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F5",
+   "source": "measurement",
+   "defect": "the first listings of every session asked",
+   "scenario": "R&D's scan takes 27 s and began at the first step",
+   "cause": "lazy scan",
+   "fix": "the scan starts with the server",
+   "test": "tests/server.test.js: the sealed-folder scan starts with the server",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "the first fix exempted scripts run by their sealed name",
+   "scenario": "python eval_holdout.py that imports the path from another module ran with no ask",
+   "cause": "every .py name was exempt",
+   "fix": "only code read, or a test file run",
+   "test": "tests/units.test.js: code named after a sealed set",
+   "severity": "leakage"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "defect": "cd tracking hid sweeps when it guessed wrong",
+   "scenario": "cd $(git rev-parse --show-toplevel) && head -3 research/telco_live/*.csv ran silently",
+   "cause": "a word was checked only from the tracked folder",
+   "fix": "both folders checked; cd $(...) does not move",
+   "test": "tests/units.test.js",
+   "severity": "leakage"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "defect": "a backslash line break hid the next word",
+   "scenario": "head -3 \\ then research/telco_live/*.csv on the next line",
+   "cause": "the escaped newline joined the word",
+   "fix": "a line continuation is dropped",
+   "test": "tests/units.test.js",
+   "severity": "leakage"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "defect": "docs, SQL and YAML were exempted",
+   "scenario": "cat research/telco_live/holdout_rows.md ran with no ask",
+   "cause": "SOURCE_FILE held doc formats",
+   "fix": "code extensions only",
+   "test": "tests/units.test.js",
+   "severity": "leakage"
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "defect": "the script pattern could stall the server",
+   "scenario": "a 200 KB unbroken token took minutes in the permission check",
+   "cause": "a backtracking regular expression",
+   "fix": "a plain word split and includes",
+   "test": "tests/units.test.js (a 200 KB line under 1 s)",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "defect": "too many asks",
+   "scenario": "154 of R&D's 362 test files asked when run",
+   "cause": "every word with a script extension was read; any quoted word counted",
+   "fix": "only scripts being run, not test files; data names or paths only",
+   "test": "tests/units.test.js",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F12",
+   "source": "reviewer",
+   "defect": "the folder look was one level deep",
+   "scenario": "rg Churn in the stale window let a deeper new holdout through",
+   "cause": "readdir of the reached folder only",
+   "fix": "a recursive file watcher",
+   "test": "tests/units.test.js",
+   "severity": "leakage"
+  },
+  {
+   "id": "F13",
+   "source": "measurement",
+   "defect": "Stop leaves the agent's background jobs running, and the page shows none",
+   "scenario": "Opus's make rd-check ran on after Stop and was ended by hand",
+   "cause": "the turn had ended; Stop interrupts only a turn",
+   "fix": "not fixed yet: a Stop job control on the status line is planned",
+   "test": "",
+   "severity": "behaviour"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "live runs",
+   "gate": "each run under its cap; every guard ask answered by the tester; records kept",
+   "fixed_before_run": true,
+   "result": "A $2.82 (cap 8), B $0.41 (cap 6), C $1.24 (cap 5, stopped after 5 of 7)",
+   "verdict": "pass",
+   "cost_eur": 4.1,
+   "limits": [
+    "a script clicked for the person",
+    "one run per model"
+   ]
+  },
+  {
+   "name": "dclab-code tests",
+   "gate": "every test passes, none skipped",
+   "fixed_before_run": true,
+   "result": "60 passed after the merge",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "the reworked guard has not had a second review"
+   ]
+  }
+ ],
+ "outcome": "Rewind is in the app; the holdout can no longer be read through a script, a fresh file, a cd or an escaped path without a question.",
+ "lessons": [
+  "A guard that reads only a command's text misses what the command runs",
+  "Review a guard fix adversarially: the first version opened holes as it closed others",
+  "Repository instructions (commit when the gate passes) can push a strong model to commit unasked"
+ ],
+ "risks": [
+  "the file watcher is best effort; where it cannot watch, the 10-minute scan and the one-level look remain",
+  "a script that builds the holdout's path at run time from pieces is not seen"
+ ],
+ "commits": [
+  "dclab-code 704108e",
+  "dclab-code 640f275",
+  "dclab-code 2e686bc"
+ ]
+}

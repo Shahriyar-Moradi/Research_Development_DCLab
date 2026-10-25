@@ -999,6 +999,18 @@ by the person never takes credit for changes the script already settled. **Done 
 deny, grade, commit and undo beside an old record with no `by` gives exactly the old record's label and judgement, and
 each of the three cuts fails the test when removed (`tests/test_store_dclab_code_sets.py`).
 
+### 32.41 DCLab Code's Rewind as the person's rejection of a turn's changes (added 2026-10-25)
+
+DCLab Code v1.10 can rewind: every file goes back as it was before one of the person's messages (the SDK's file
+checkpoints), recorded as `rewind` with the message's uuid, the files and the line counts. The builder reads it as an
+undo of the changes since that message, to the files it names: those become M7 change judgements `rewound` (score 0);
+changes before the message stay waiting for a commit or an undo. The SDK names a file by its real path (`/private/...`),
+which counts as the root. A rewind is the person's step `person:rewind` in the M6 episode; a script's rewind cuts the
+history with no verdict. **Done when:** a session rewound to before its second message gives the second message's
+changes `rewound`, the first message's change `committed` by a later commit, a file outside the repository nothing,
+and a script's rewind no verdict; each of these fails the test when its cut is removed
+(`tests/test_store_dclab_code_sets.py`).
+
 ## The owner's answers (2026-10-20)
 
 - **The store's bulk:** a separate private GitHub repository, `dclab-records`, with one branch per person (`owner/main`,
@@ -1033,7 +1045,7 @@ each of the three cuts fails the test when removed (`tests/test_store_dclab_code
 ## Order
 
 32.1 → 32.2 → 32.3 → 32.4 → 32.5 → 32.6 → 32.7 → 32.8 → 32.9 → 32.10 → 32.11 → 32.12 → 32.13 → 32.14 → 32.15 → 32.16 →
-32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31, then 32.32 → 32.33 → 32.34 → 32.35 → 32.36 → 32.37 → 32.38 → 32.39 → 32.40 (the
+32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31, then 32.32 → 32.33 → 32.34 → 32.35 → 32.36 → 32.37 → 32.38 → 32.39 → 32.40 → 32.41 (the
 check, 32.18, is extended by each).
 
 Every package follows the usual steps: a test first, the reviewer, its development record and `make sft-dev`, and the
@@ -1127,6 +1139,7 @@ gate. Model spend:
     - CPU time per step;
     - a workspace reading the store's shadow students;
     - live runs of the curator and the teacher.
+- **32.41 built (2026-10-25):** DCLab Code's Rewind read as the person's rejection of the changes since a message.
 - **32.40 built (2026-10-25):** a test script's acts in DCLab Code are never a person's labels (found in a live test).
 - **32.39 built (2026-10-25):** the person's own commands and undos as steps of DCLab Code's M6 episodes.
 - **32.38 built (2026-10-25):** the person's undos and commits of DCLab Code's file changes as M7 code judgements.

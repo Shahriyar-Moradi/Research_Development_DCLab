@@ -316,6 +316,44 @@ class DclabCodeSetsTest(unittest.TestCase):
                           ("Edit", "auto_edits", "auto_ok"), ("Edit", "auto_edits", "auto_ok")])  # and no person:undo for the script's undo
         self.assertEqual(ep["outcome"], "merged_by_script")  # a script's merge is no sign the person kept the work
 
+    def test_a_rewind_rejects_the_changes_since_its_message(self):
+        """32.41: DCLab Code's Rewind puts files back as they were before one of the person's messages."""
+        from dclab_rnd.store import Layout, conductor
+        from dclab_rnd.store.keepers import standard
+
+        T = lambda s: f"2026-10-25T15:00:{s:02d}.000Z"  # noqa: E731
+        def edit(s, tid, f, new):
+            return [sdk(T(s), {"type": "assistant", "parent_tool_use_id": None, "message": {"content": [{"type": "tool_use", "id": tid, "name": "Edit", "input": {"file_path": f"{self.repo}/{f}", "old_string": "a", "new_string": new}}]}}),
+                    sdk(T(s), {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": tid, "content": "ok", "is_error": False}]}})]
+        done = lambda s: sdk(T(s), {"type": "result", "subtype": "success", "is_error": False})  # noqa: E731
+        lines = [
+            line(T(0), kind="app", type="user_message", id="u1", uuid="m-1", text="add the split", by="person"),
+            sdk(T(1), {"type": "system", "subtype": "init", "session_id": "sdk-s_rewind01", "model": "claude-opus-5-5", "permissionMode": "acceptEdits", "tools": []}),
+            *edit(2, "r1", "a.py", "FIRST"), done(3),
+            line(T(4), kind="app", type="user_message", id="u2", uuid="m-2", text="now tune it", by="person"),
+            *edit(5, "r2", "a.py", "SECOND"), *edit(6, "r3", "b.py", "THIRD"), done(7),
+            # the SDK names files by their real path; /private + root counts as the root
+            line(T(8), kind="app", type="rewind", messageId="m-2", turn=2, filesChanged=[f"/private{self.repo}/a.py", f"{self.repo}/b.py", "/elsewhere/c.py"],
+                 insertions=2, deletions=2, skippedLinks=0, by="person"),
+            line(T(9), kind="app", type="outcome", outcome="committed", sha="c1", files=["a.py"], count=1, branch="dclab/r", by="person"),
+            line(T(10), kind="app", type="user_message", id="u3", uuid="m-3", text="try once more", by="person"),
+            *edit(11, "r4", "b.py", "FOURTH"), done(12),
+            line(T(13), kind="app", type="rewind", messageId="m-3", turn=3, filesChanged=[f"{self.repo}/b.py"], insertions=1, deletions=1, skippedLinks=0, by="script"),
+        ]
+        (self.home / "records" / "s_rewind01.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        listed = json.loads((self.home / "sessions.json").read_text(encoding="utf-8"))
+        listed["sessions"].append({"id": "s_rewind01", "projectPath": str(self.repo), "sdkSessionId": "sdk-s_rewind01", "model": "claude-opus-5-5"})
+        (self.home / "sessions.json").write_text(json.dumps(listed), encoding="utf-8")
+        self.layout = Layout(Path(tempfile.mkdtemp()) / "store")
+        conductor.conduct(self.env, self.layout, standard.install({}))
+        rows = [j for j in self.rows("m7_judges", "dclab_code_changes") if "s_rewind01" in j["id"]]
+        got = sorted((j["candidate"]["file"], j["candidate"]["kept_as"], j["score"], [c["new_string"] for c in j["candidate"]["changes"]]) for j in rows)
+        self.assertEqual(got, [("a.py", "committed", 1.0, ["FIRST"]),    # before the rewound message: kept, then committed
+                               ("a.py", "rewound", 0.0, ["SECOND"]),     # since it: rejected
+                               ("b.py", "rewound", 0.0, ["THIRD"])])     # a file outside the repository is left out; a script's rewind judges nothing
+        ep = next(e for e in self.rows("m6_stepwise_decisions", "dclab_code") if e["id"].endswith("s_rewind01"))
+        self.assertEqual([x["action"] for x in ep["steps"] if x["action"].startswith("person:")], ["person:rewind"])
+
     def test_the_persons_steps_sit_in_the_episode(self):
         ep = next(e for e in self.rows("m6_stepwise_decisions", "dclab_code") if e["id"].endswith("s_undo01"))
         actions = [(s["action"], s["outcome"]) for s in ep["steps"]]
