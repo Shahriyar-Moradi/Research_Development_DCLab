@@ -298,6 +298,21 @@
         "a nested protocol (several times the minutes)"
       ],
       "open": "whether a search is worth its fold on bigger tables (the M1 Max)"
+    },
+    {
+      "id": "R11",
+      "source": "test",
+      "defect": "the Lab page could not read the search campaigns",
+      "scenario": "test_pages_lab: search_v1 had no objective; search_v2's results carry 'id' but no 'experiment_id', no status and no finish time, so the page showed v1 as planned and v2 as in progress",
+      "cause": "search_measure did not follow the campaigns' result convention",
+      "fix": "search_v3 writes experiment_id, status and completed_at and an objective; the results of search_v2 stay as written (results are never edited) and the page reads 'id' when 'experiment_id' is missing; an aborted campaign shows as failed and a closed one as done; a generated report gives v1 and v2 their objective",
+      "test": "tests/test_pages_lab.py",
+      "severity": "behaviour",
+      "impact": "the Lab page misreported two campaigns",
+      "alternatives": [
+        "add the missing fields to search_v2's results (refused: results are never edited)"
+      ],
+      "open": ""
     }
   ],
   "measurements": [

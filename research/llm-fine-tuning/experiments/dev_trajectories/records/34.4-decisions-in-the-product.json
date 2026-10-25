@@ -196,6 +196,73 @@
    "impact": "a green run reported as failed, and a server left on a port",
    "alternatives": [],
    "open": ""
+  },
+  {
+   "id": "F13",
+   "source": "owner",
+   "defect": "a person could state a decision only as raw JSON or in the chat",
+   "scenario": "the setup wizard's solution step had no decision fields; the Solution page edits the decision as JSON",
+   "cause": "34.4 wired the decision through the engine, the API, the page and the chat, not the wizard",
+   "fix": "a decision block in the wizard's step 3 for a yes/no outcome: what is done to a row, what a case found is worth (a number or a value column), what an action, a miss and a wasted action cost, a capacity; amounts said in the chat fill it in (the proposal carries them); a decision set on the Solution page of another kind is kept",
+   "test": "scripts/browser_e2e.py (flow: the decision stated in the wizard is chosen); scripts/product_e2e.py (the proposal carries the chat's amounts)",
+   "severity": "gap",
+   "impact": "most people would never state a decision",
+   "alternatives": [
+    "fields on the Solution page only"
+   ],
+   "open": "the Solution page still edits the decision as JSON"
+  },
+  {
+   "id": "F14",
+   "source": "test",
+   "defect": "amounts typed in the wizard vanished when the columns were audited again",
+   "scenario": "a person fills the decision, then edits the prediction moment: the audit redraws the sheet",
+   "cause": "the redraw kept the ticks of other rows but not the new fields",
+   "fix": "once touched in this draft, the fields are restored after every redraw; untouched, the new proposal's heard amounts fill them",
+   "test": "scripts/browser_e2e.py (flow edits the moment after filling the decision)",
+   "severity": "behaviour",
+   "impact": "a decision silently lost before the build",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F15",
+   "source": "test",
+   "defect": "amounts typed while an audit ran were still lost",
+   "scenario": "a screenshot script typed while the target's audit was in flight",
+   "cause": "the fields were read when the audit began, before the typing",
+   "fix": "read just before the redraw",
+   "test": "scripts/browser_e2e.py (flow); a screenshot of step 3 at 1280 and 375 px",
+   "severity": "behaviour",
+   "impact": "the same loss under a slow audit",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F16",
+   "source": "self",
+   "defect": "the decision block was cramped",
+   "scenario": "three columns in the sheet's value column cut the action's text and let the value-column list overflow its cell",
+   "cause": "a grid sized for a full-width panel",
+   "fix": "the action on its own line, the amounts in two columns, the list at full width",
+   "test": "a screenshot at 1280 and 375 px, no sideways scroll",
+   "severity": "behaviour",
+   "impact": "hard to read and to fill",
+   "alternatives": [],
+   "open": ""
+  },
+  {
+   "id": "F17",
+   "source": "test",
+   "defect": "a browser check added in the last commit broke a unit test",
+   "scenario": "test_web_client lists the browser checks; the new check 'decide' was not in it",
+   "cause": "the commit ran the browser suite but not the unit tests that read its list",
+   "fix": "the list updated",
+   "test": "tests/test_web_client.py",
+   "severity": "flaky",
+   "impact": "a red test on main for an hour",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [
@@ -247,7 +314,9 @@
   "Run the product's main flow end to end: unit tests passed while the chat never asked for the amounts.",
   "A question added to a conversation is a cost to every person: put it where the existing questions left a gap.",
   "Read a person's numbers only when the words leave no doubt; a refused reading is cheap, a wrong one is a wrong decision.",
-  "A reader that guesses is worse than one that refuses: every number must say it is money before it is read as money."
+  "A reader that guesses is worse than one that refuses: every number must say it is money before it is read as money.",
+  "A page that redraws itself must carry every field a person typed, not only the ones that existed when the redraw was written: test it by changing what triggers the redraw after filling the form.",
+  "After adding a browser check, run the unit tests that read the browser script too: a list of checks is a contract."
  ],
  "risks": [
   "a wrong amount read from words becomes the built solution's decision",

@@ -127,10 +127,11 @@ engine improved beside them (Optuna, ensembles); the main product runs customer 
   beside the project for what-if (stamped with the final run); `GET/POST /api/projects/{id}/decision[/what-if]`; the
   Decision page (curve, what moves it, a what-if form); the intern tool `decision_what_if`; the report's section;
   Home reads amounts in words (`decide.read_spec`) and asks them once when the action came from the first sentence.
-  Live: the intern answered a what-if with the core's numbers (EUR 0.10). In a real browser (2026-10-25, `make
+  The setup wizard states a decision in its own fields too (2026-10-25). Live: the intern answered a what-if with the
+  core's numbers (EUR 0.10). In a real browser (2026-10-25, `make
   browser-test` check `decide`): a decision said in the chat is shown with its sentence and curve, and a what-if typed
-  into the form acts on the share the API chooses (55.8% at 50 a call). Open: the wizard has no fields for a decision
-  (Solution page edits it as JSON only); the engine's review path stays on `review_budget` (same answers, tested);
+  into the form acts on the share the API chooses (55.8% at 50 a call). Open: the Solution page edits the decision as
+  JSON only; the engine's review path stays on `review_budget` (same answers, tested);
   `delivery_fraud` not yet measured through `act`.
 
 ## Layer 3: Build
@@ -307,7 +308,9 @@ or decided; nothing below blocks using them.
    `delivery_fraud` is not yet measured through an `act` decision.
 7. 34.2: a daily capacity for targeting (refused today); a two-action replica (tested on random tables only).
 8. 34.3: what-if for targeting and for several actions.
-9. 34.4: the wizard has no fields for a decision; the Solution page edits it as JSON only.
+9. ~~34.4: the wizard has no fields for a decision~~ done 2026-10-25: step 3 has a decision block (what is done, what a
+   case is worth, what an action, a miss and a wasted action cost, a capacity), filled from the chat's amounts; tested in
+   the browser. Still open: the Solution page edits the decision as JSON only.
 10. 34.7a: a route that lets a person turn the search on after the features stage must clear the stages from data (no
     such route exists today); the search's attempts and optimism as a measured ledger label, if the decision models
     need them; whether a search is worth its fold on bigger tables (with 3).
@@ -324,3 +327,10 @@ or decided; nothing below blocks using them.
     working on the store and the students, today before 22:00, after a store build.
 16. Two scratch worktrees (`search_v2`'s run and the builds') are removed with `git worktree remove` once `search_v3` has run.
 17. Playwright's Chromium (581 MB, `~/Library/Caches/ms-playwright`) stays for `make browser-test`.
+18. The Workflow page may stop refreshing during a run when the machine is slow: the browser flow failed once at a load
+    of 18 on 8 cores (the page showed 1 of 5 stages while the run had finished) and passed on the rerun. Not investigated:
+    a page that stops polling between two stages would explain it.
+19. Capture (the owner, 2026-10-25: "make sure all data capturing and recording and store are running for our 6 models"):
+    the store collects `agent_runs/`; this session's campaigns now keep their engine runs there (`search_v2` copied in,
+    240 MB; `fraud_decision_v1` and `search_v3` write there). Not captured: `make product-e2e` and `make browser-test` run
+    in temporary workspaces, so their sessions, ledgers and runs are deleted with them (the test results are kept).

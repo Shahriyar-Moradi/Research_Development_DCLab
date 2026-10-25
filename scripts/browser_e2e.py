@@ -7,7 +7,8 @@
 Needs Playwright: pip install -r requirements/browser.txt && python -m playwright install chromium.
 
   flow     one sentence and the Telco CSV uploaded on Home, the chat's questions answered by clicking their options,
-           the wizard's five steps with their defaults, a run of every stage from the Workflow page, then the brief
+           the wizard's five steps with their defaults and a decision stated in its fields (34.4), a run of every stage
+           from the Workflow page, then the brief and the decision chosen
   decide   34.4: a decision said in the chat ("a call costs 5 euro; a lost customer costs 300"), chosen by the final
            stage, on its page: the API's sentence, the curve, and a what-if typed into the form answering as the API does
   team     28.8: the Team panel on Home: a question, the map's confirmation, the data given, the build approved
@@ -138,6 +139,17 @@ def check_flow(b: Browser) -> str:
     moment = page.locator("#wz-moment")
     if len(moment.input_value().strip()) < 12:
         moment.fill("At the start of each month, from the customer's account as it stands that day.")
+    check(page.locator("#wz-dc-fields").is_hidden(), "the decision's fields show before it is asked for")
+    page.check("#wz-dc-on")  # 34.4: the decision on top of the model, in the wizard's own fields
+    page.fill("#wz-dc-what", "call the customer")
+    page.fill("#wz-dc-cost", "5")
+    page.fill("#wz-dc-miss", "300")
+    page.evaluate("() => { window.__redrawn = false; new MutationObserver(() => { window.__redrawn = true; }).observe(document.querySelector('#wz-sheet'), { childList: true }); }")
+    moment.fill(moment.input_value().strip() + " Known that day.")  # a new moment audits the columns again and redraws the sheet
+    moment.press("Tab")
+    page.wait_for_function("() => window.__redrawn && !(document.querySelector('#wz-sol-status') || {}).textContent", timeout=90_000)
+    check(page.is_checked("#wz-dc-on") and page.input_value("#wz-dc-what") == "call the customer" and page.input_value("#wz-dc-miss") == "300",
+          "the decision typed in the sheet was lost when the columns were audited again")
     page.click("#wz-accept")
     page.wait_for_selector(".panel[data-new-step='4']:not([hidden])", timeout=30_000)
     page.click("#wz-settings-next")  # the defaults: quick rows, the folds and budget as they are
@@ -176,8 +188,9 @@ def check_flow(b: Browser) -> str:
     page.wait_for_selector("#dc-box .empty, #dc-box .panel", timeout=30_000)
     stated = b.api(f"/projects/{project_id}/decision")
     shown_decision = page.text_content("#dc-box") or ""
-    check(("states no decision" in shown_decision) if stated["status"] == "none" else bool(stated.get("sentence")) and stated["sentence"][:40] in shown_decision,
-          f"the decision page does not show the decision's status {stated['status']}")
+    check(stated["status"] == "chosen" and stated["stated"]["what"] == "call the customer",
+          f"the decision stated in the wizard was not chosen: {stated['status']}")
+    check(bool(stated.get("sentence")) and stated["sentence"][:40] in shown_decision, "the decision page does not show the decision's sentence")
     return (f"{answered} question(s) answered by clicking, five wizard steps, five stages in {clicks} click(s) on the Workflow page, "
             f"brief {metric} {shown} on {record.get('holdout_rows')} rows, decision {stated['status']}")
 

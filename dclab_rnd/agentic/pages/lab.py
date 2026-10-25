@@ -222,9 +222,13 @@ def _campaigns() -> list[dict[str, Any]]:
             datasets = sorted(set().union(*(_datasets_of(r) for r in results)) if results else set())
             if isinstance(manifest.get("datasets"), list):
                 datasets = sorted(set(datasets) | {d for d in manifest["datasets"] if isinstance(d, str)})
-            ids = [r.get("experiment_id") for r in results if r.get("experiment_id")]
+            ids = [r.get("experiment_id") or r.get("id") for r in results if r.get("experiment_id") or r.get("id")]  # search_v2 wrote "id" only
             indexed = [r["record_id"] for r in index if (r.get("metadata") or {}).get("campaign") == folder.name]
             status = "failed" if failed else "done" if completed >= planned and results else "in progress" if results else "planned"
+            if (folder / "ABORTED.json").is_file():  # stopped and replaced by a later version: never "planned" or "in progress"
+                status = "failed"
+            elif (folder / "CLOSED.json").is_file():  # ended with what it had, replaced by a later version
+                status = "done"
             dates = sorted(r.get("completed_at") for r in results if r.get("completed_at"))
             subtitle = title.split(":", 1)[1].strip() if ":" in title else ""
             objective = manifest.get("objective") or (f"{subtitle[:1].upper()}{subtitle[1:]}. {para}" if subtitle else para)

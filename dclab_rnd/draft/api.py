@@ -284,6 +284,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         # "prediction_moment" is a real moment (the chat's answer, or the studied sample's own); when it is missing the
         # page shows "prediction_moment_hint" as guidance only, so an instruction is never saved as the moment (DCLAB-R01)
         proposal.setdefault("prediction_moment", None)
+        proposal["decision"] = proposal_decision(draft.get("understanding") or {}, proposal.get("task"))  # 34.4: for the sheet's fields
         # The leakage reviewer (A3.2): the audit's flags stay ticked; what the moment or a model adds is shown, never applied.
         from ..studio import leakage_review
         proposal["review"] = await asyncio.to_thread(
@@ -329,13 +330,15 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             from .. import corrections
 
             proposal = draft.get("proposal") or {}
-            earlier = draft.get("solution") if draft.get("solution_by") == "agent" else {k: proposal.get(k) for k in value if k in proposal} or None
+            earlier = (draft.get("solution") if draft.get("solution_by") == "agent" else
+                       {k: proposal.get(k) for k in value if k in proposal and k != "decision"} or None)  # the heard amounts are no proposal of the audit
             if earlier and any(earlier.get(k) != value.get(k) for k in earlier):
                 corrections.record("solution", earlier, value, draft=draft_id)
 
         def put(d):
             d["solution"] = value
             d["solution_by"] = actor
+            d["decision_declined"] = declined(body, actor)  # 34.4: the wizard's box unticked: the build adds no heard decision
             d.setdefault("understanding", {}).update(target=value["target"], prediction_moment=value["prediction_moment"])
             if d.get("settings"):
                 d["settings"]["split"] = split_of(d)
@@ -1298,6 +1301,24 @@ def _decision_said(u: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None
     return None, None
 
 
+def proposal_decision(understanding: dict[str, Any], task: Any) -> dict[str, Any] | None:
+    """34.4: the amounts Home heard, for the wizard's decision fields, with where they were heard; None for an outcome that
+    is not yes/no (an act decision reads a yes/no outcome) or when nothing was read plainly."""
+    stated, heard_in = _decision_said(understanding)
+    return {**stated, "heard_in": heard_in} if stated and task == "binary" else None
+
+
+def declined(body: dict[str, Any], actor: str) -> bool:
+    """34.4: a person who saved the solution with the decision explicitly empty (the wizard's box shown and unticked) said
+    no to a decision; a caller that never sent the field said nothing."""
+    return actor == "human" and "decision" in body and body.get("decision") is None
+
+
+def heard_to_add(draft: dict[str, Any], stated: dict[str, Any] | None, heard_in: str | None) -> bool:
+    """34.4: the build adds the amounts heard as the answer to the amounts question, unless the person declined them."""
+    return bool(stated) and heard_in == "costs" and not draft.get("decision_declined")
+
+
 def _add_decision(projects: Any, pid: str, stated: dict[str, Any]) -> None:
     """34.4: the decision read from the person's answer to the amounts question, added to the solution they saved, as
     DCLab's own move (the actor "agent", through the validator, audited and noted as such), only where the solution
@@ -1440,7 +1461,7 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
             from .. import audit
 
             audit.solution(projects, project, built_solution, saved_by, built=True)
-            if stated and heard_in == "costs":
+            if heard_to_add(draft, stated, heard_in):
                 _add_decision(projects, pid, stated)
 
     def done(d):

@@ -214,6 +214,9 @@ def flow_upload(api: Api) -> str:
     check(len((draft["workflow"] or {}).get("nodes", [])) == 10, "the solution workflow is not drawn")
     proposal = api.call("POST", f"/drafts/{draft_id}/solution/proposal")  # the target comes from the chat
     check(proposal["target"] == "Churn" and "customerID" in proposal["identifiers"], "the proposal missed the target or the identifier")
+    heard = proposal.get("decision") or {}  # 34.4: the amounts said in the chat fill the wizard's decision fields
+    check(heard.get("heard_in") == "costs" and heard.get("cost_per_action") == 5 and heard.get("cost_false_negative") == 300,
+          f"the proposal does not carry the amounts said in the chat: {heard}")
     api.call("PUT", f"/drafts/{draft_id}/solution", solution_from(proposal, understood["prediction_moment"]))
     settings = api.call("PUT", f"/drafts/{draft_id}/settings", {"split": "time", "quick": True, "max_rows": rows, "folds": 5, "budget": {"calls": 24, "minutes": 20, "eur": 5}})["settings"]
     check(settings["split"] == "stratified", "the stored split is not what the solution implies (no time column)")
