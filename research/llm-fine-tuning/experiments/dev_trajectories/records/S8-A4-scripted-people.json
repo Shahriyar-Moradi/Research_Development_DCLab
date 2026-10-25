@@ -21,9 +21,13 @@
   {
    "decision": "agent_runs/live_tests is marked as a whole.",
    "why": "Live tests play written or scripted people against a live model: the model is live, the person never is."
+  },
+  {
+   "decision": "The rule lives in store/keepers/workspaces.py; the lake imports it.",
+   "why": "Workspace discovery is there; two copies of who is a human would drift."
   }
  ],
- "change": "dclab_rnd/store/keepers/workspaces.py (SCRIPTED, scripted, scripted_names), dclab_rnd/store/sets/decisions.py (a scripted person's label set aside, counted once per record), dclab_rnd/store/sets/others.py (judged and preferences skip a scripted correction), tests/test_store_scripted.py (new); markers in agent_runs/journey_plays, journey_plays_before_fix and live_tests.",
+ "change": "dclab_rnd/store/keepers/workspaces.py (SCRIPTED, scripted, scripted_names), dclab_rnd/store/sets/decisions.py (a scripted person's label set aside, counted once per record), dclab_rnd/store/sets/others.py (judged and preferences skip a scripted correction), tests/test_store_scripted.py (new); markers in agent_runs/journey_plays, journey_plays_before_fix and live_tests. Then dclab_rnd/lake/harvest.py imports the store's scripted() instead of its own copy (one rule; the other session's test_lake_harvest test passes).",
  "findings": [
   {
    "id": "A4-1",

@@ -35,17 +35,8 @@ from . import LAKE, ROOT
 
 WORKSPACES = ROOT / "agent_runs"
 BY = {"rule": ("dclab-rules", "train"), "classifier": ("dclab-classifiers", "train"), "person": ("people", "train")}
-SCRIPTED = "scripted.json"  # a workspace a test script drove (the end-to-end and browser tests): its "person" answers are clicks, never a person's
-
-
-def scripted(workspace: Path, root: Path) -> bool:
-    """Whether a workspace, or a folder above it within ``root``, says a script drove it."""
-    for folder in (workspace, *workspace.parents):
-        if (folder / SCRIPTED).is_file():
-            return True
-        if folder == root or root not in folder.parents:
-            return False
-    return False
+from ..store.keepers.workspaces import SCRIPTED, scripted  # noqa: E402,F401 - one rule for the lake and the store (S8): a workspace a
+# script drove (the end-to-end and browser tests, written people): its "person" answers are a script's, never a person's
 
 
 def _lines(path: Path) -> Iterator[dict[str, Any]]:
