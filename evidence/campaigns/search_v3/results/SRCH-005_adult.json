@@ -1,0 +1,106 @@
+{
+  "id": "SRCH-005",
+  "experiment_id": "SRCH-005",
+  "status": "completed",
+  "completed_at": "2026-10-25T19:08:51+00:00",
+  "campaign_id": "search_v3",
+  "dataset": "adult",
+  "metric": "roc_auc",
+  "higher_is_better": true,
+  "split": "stratified",
+  "holdout_rows": 4000,
+  "without": {
+    "holdout": 0.9163265382880781,
+    "seconds": 66.3,
+    "model": "xgboost",
+    "params": {
+      "model__n_estimators": 500,
+      "model__learning_rate": 0.05,
+      "model__max_depth": 4,
+      "model__subsample": 0.8,
+      "model__colsample_bytree": 0.8
+    },
+    "interval": {
+      "point": 0.9163265382880781,
+      "low": 0.9060881477009618,
+      "median": 0.9162142124680357,
+      "high": 0.9251938196735566,
+      "draws": 400,
+      "method": "iid row bootstrap"
+    }
+  },
+  "with": {
+    "holdout": 0.9161607054018097,
+    "seconds": 373.3,
+    "model": "hist_gradient_boosting",
+    "params": {},
+    "interval": {
+      "point": 0.9161607054018097,
+      "low": 0.9054363347695262,
+      "median": 0.9161269850921534,
+      "high": 0.9246940168034474,
+      "draws": 400,
+      "method": "iid row bootstrap"
+    }
+  },
+  "difference": {
+    "point": -0.0001658328862683689,
+    "low": -0.002434943520210625,
+    "high": 0.0023048354641656424,
+    "draws": 2000,
+    "method": "paired iid row bootstrap",
+    "share_of_draws_flaml_better": 0.4475
+  },
+  "search": {
+    "family": "hist_gradient_boosting",
+    "params": {},
+    "attempts": 3,
+    "minutes": 4.36,
+    "skipped": null,
+    "failed": []
+  },
+  "selection": {
+    "schema_version": "dclab_core.selection_record.v1",
+    "split": "stratified",
+    "search_rows": 12800,
+    "selection_rows": 3200,
+    "attempts": 3,
+    "top_k": 1,
+    "metric": "roc_auc",
+    "higher_is_better": true,
+    "shortlist": [
+      "hist_gradient_boosting:default"
+    ],
+    "chosen": "hist_gradient_boosting:default",
+    "plain_choice": "hist_gradient_boosting:default",
+    "search_score": 0.921224,
+    "selection_score": 0.919545,
+    "selection_interval": [
+      0.910909,
+      0.928721
+    ],
+    "optimism": 0.001679,
+    "note": "3 attempts scored on the search rows; the top 1 read once on a selection fold of 3200 rows set aside before the search; the chosen one's search score was flattered by 0.001679."
+  },
+  "gaps": {
+    "selection_minus_holdout": 0.003384,
+    "search_minus_holdout": 0.005063
+  },
+  "selection_gain_over_no_search": {
+    "name": "hist_gradient_boosting:default",
+    "family": "hist_gradient_boosting",
+    "selection_score": 0.919545,
+    "gain": 0.0,
+    "gain_interval": [
+      0.0,
+      0.0
+    ]
+  },
+  "selection_gain_agrees_with_holdout": null,
+  "code_sha256": "7fcf17b249dcc83ecc6bfd51fdd484de15f83e8d04354848404d22f7627e3041",
+  "git": {
+    "commit": "1957d1d5739a0d518d48dde9f71c2a32e82fccb2",
+    "code_files_dirty": false
+  },
+  "finished_at": "2026-10-25T19:08:51+00:00"
+}

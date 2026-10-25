@@ -326,6 +326,16 @@
       "impact": "eighteen engine runs lost to the six models' training sets",
       "alternatives": [],
       "open": ""
+    },
+    {
+      "id": "M2",
+      "source": "measurement",
+      "defect": "the search's time budget can be overrun by its last attempt",
+      "scenario": "search_v3 on bank_marketing beside another session's gate: the 3-minute search took 4.81 minutes (search_v2 on a quiet machine: 3.16), failing the bounded gate",
+      "cause": "the budget stops new attempts from starting; an attempt already running finishes, and one fit of a large table under load can take more than a minute and a half",
+      "fix": "not changed: reported in the plan; a hard stop would need each attempt run where it can be interrupted (a worker process), weighed against its cost",
+      "test": "evidence/campaigns/search_v3/results/SRCH-006_bank_marketing.json",
+      "severity": "behaviour"
     }
   ],
   "measurements": [
@@ -342,6 +352,16 @@
         "one holdout per dataset",
         "another session's jobs ran beside it, so the minutes are an upper bound",
         "where the screen chose differently, the loss came from choosing on the rows left after the set-aside, not from the search (R10)"
+      ]
+    },
+    {
+      "name": "search_v3: the engine with its opt-in search against the same engine without, nine bake-off datasets, on 1957d1d5",
+      "gate": "search_gate_v3, fixed before the run: never clearly worse on more than one dataset (a failed search arm counts), the mean holdout difference above 0, the selection fold's gap to the holdout smaller than the search score's, the search's minutes at most 1.5 times the budget's",
+      "result": "fail: never clearly worse yes (clothing reviews -0.0078 [-0.0127, -0.0021] is the only one), rises on average no (mean -0.0034), honest selection yes, bounded no (bank marketing 4.81 minutes against 4.5); seven of search_v2's eight datasets reproduce to the last digit, letter recognition's search made 10 attempts instead of 15 under load; credit_card_fraud compared, its search skipped with its reason, difference 0",
+      "verdict": "fail",
+      "limits": [
+        "run beside other sessions' tests: the minutes and a time-budgeted search's attempts depend on the machine's load",
+        "nine public tables on an 8 GB laptop; bigger tables wait for the M1 Max"
       ]
     }
   ],

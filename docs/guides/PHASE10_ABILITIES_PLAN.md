@@ -289,9 +289,14 @@ Everything Phase 10 leaves open, in one place: when it runs, who owns it, what i
 or decided; nothing below blocks using them.
 
 **Tonight (this session, scheduled):**
-1. `search_v3`: confirms the fix of the fraud crash (R9) and that the eight numbers of `search_v2` reproduce. Run from a
-   fresh worktree at the latest commit with `agent_runs/bakeoff_v1` linked in: `python -m dclab_rnd.search_measure run --yes`;
-   its results go to `evidence/campaigns/search_v3/` and 34.7a's record. It cannot pass unless the eight numbers change.
+1. ~~`search_v3`~~ ran 2026-10-25/26 on 1957d1d5 (evidence/campaigns/search_v3): **fail**, as search_v2. Seven of the
+   eight datasets search_v2 compared give the same holdout numbers to the last digit; letter recognition's arm without
+   a search is identical, its search made 10 attempts instead of 15 in its 3 minutes on a busy machine and found other
+   settings (0.9721 against 0.9716). The fraud crash is fixed: credit_card_fraud is compared, its search skipped with
+   the reason (a fold would hold no fraud case), difference 0. Gates: never clearly worse yes, honest selection yes,
+   rises on average no (mean difference -0.0034), bounded no (bank marketing's search took 4.81 minutes against 4.5:
+   the budget stops new attempts, not one already running, and on a loaded machine the last one ran over; 3.16 on a
+   quiet one). The search stays an opt-in.
 2. The nightly gate: `make check-all` and `make core-wheel-check` on the latest commit, alone on the machine. Owed since
    2026-10-24: 34.9 to 34.14 and dclab-core 0.106.0 to 0.112.0 have had only `make rd-gates` and their own tests. A
    failure is fixed with a test, or reported.

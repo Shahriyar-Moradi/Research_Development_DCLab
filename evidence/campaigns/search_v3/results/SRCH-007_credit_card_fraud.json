@@ -1,0 +1,74 @@
+{
+  "id": "SRCH-007",
+  "experiment_id": "SRCH-007",
+  "status": "completed",
+  "completed_at": "2026-10-25T19:21:30+00:00",
+  "campaign_id": "search_v3",
+  "dataset": "credit_card_fraud",
+  "metric": "average_precision",
+  "higher_is_better": true,
+  "split": "time",
+  "holdout_rows": 4000,
+  "without": {
+    "holdout": 0.50025,
+    "seconds": 46.9,
+    "model": "extra_trees",
+    "params": {
+      "model__n_estimators": 500,
+      "model__min_samples_leaf": 3,
+      "model__max_features": 0.7
+    },
+    "interval": {
+      "point": 0.50025,
+      "low": 0.0,
+      "median": 0.50025,
+      "high": 1.0,
+      "draws": 400,
+      "method": "iid row bootstrap"
+    }
+  },
+  "with": {
+    "holdout": 0.50025,
+    "seconds": 46.7,
+    "model": "extra_trees",
+    "params": {
+      "model__n_estimators": 500,
+      "model__min_samples_leaf": 3,
+      "model__max_features": 0.7
+    },
+    "interval": {
+      "point": 0.50025,
+      "low": 0.0,
+      "median": 0.50025,
+      "high": 1.0,
+      "draws": 400,
+      "method": "iid row bootstrap"
+    }
+  },
+  "difference": {
+    "point": 0.0,
+    "low": 0.0,
+    "high": 0.0,
+    "draws": 2000,
+    "method": "paired iid row bootstrap",
+    "share_of_draws_flaml_better": 0.0
+  },
+  "search": {
+    "family": null,
+    "params": null,
+    "attempts": null,
+    "minutes": null,
+    "skipped": "a fold of the search rows would hold no row of a class, so a model could not be fitted or scored there; the project's folds stay as they were",
+    "failed": null
+  },
+  "selection": {},
+  "gaps": null,
+  "selection_gain_over_no_search": null,
+  "selection_gain_agrees_with_holdout": null,
+  "code_sha256": "7fcf17b249dcc83ecc6bfd51fdd484de15f83e8d04354848404d22f7627e3041",
+  "git": {
+    "commit": "1957d1d5739a0d518d48dde9f71c2a32e82fccb2",
+    "code_files_dirty": false
+  },
+  "finished_at": "2026-10-25T19:21:30+00:00"
+}

@@ -1,0 +1,53 @@
+{
+  "campaign": "search_v3",
+  "package": "34.7",
+  "datasets": [
+    "german_credit",
+    "telco_churn",
+    "online_shoppers",
+    "wine_quality",
+    "adult",
+    "bank_marketing",
+    "credit_card_fraud",
+    "ecommerce_clothing_reviews",
+    "letter_recognition"
+  ],
+  "budget": {
+    "minutes": 3.0,
+    "trials": 24,
+    "families": 2
+  },
+  "gate": {
+    "id": "search_gate_v3",
+    "never_clearly_worse": "on at most 1 dataset the holdout difference (search minus no search, oriented so positive is better) has its whole 95% paired interval below 0, or the search arm failed where the arm without did not",
+    "failures": "a dataset where the arm without a search fails is left out of every gate and named; the verdict needs every dataset compared or failed",
+    "rises_on_average": "the mean holdout difference over the datasets is above 0",
+    "honest_selection": "over the datasets, the mean absolute gap between the selection fold's score and the holdout score is smaller than the mean absolute gap between the search score and the holdout score",
+    "bounded": "on every dataset the search's own minutes are at most 1.5 times the budget's minutes",
+    "verdict": "pass when all four hold: the search may be recommended in a project's settings; otherwise it stays an opt-in, said with this result. Either way it is never on by default from this campaign alone",
+    "reported_not_gated": "per dataset, the gain over the no-search choice on the selection fold with its interval, and whether its sign agrees with the holdout difference; minutes of both arms"
+  },
+  "objective": "Does the engine's opt-in search lift the holdout? The engine with a search against the same engine without one, both run fresh on the same code, rows, splits and holdout, on nine of the bake-off's datasets.",
+  "arms": {
+    "without": "the engine as it is (no search setting)",
+    "with": "the same engine with settings.search = {'minutes': 3.0, 'trials': 24, 'families': 2}"
+  },
+  "source": "each dataset's project, table, rows and split from evidence/campaigns/bakeoff_v1 (agent_runs/bakeoff_v1/<dataset>)",
+  "statistic": "dclab_rnd.bakeoff.paired_bootstrap on the shared holdout rows (95%, whole groups when the split keeps them)",
+  "sha256": "2414bd9bfdc10fb198b8f115fb21f5bbae1052f7d9c760c986ce5aff1f2cf201",
+  "code_sha256": "7fcf17b249dcc83ecc6bfd51fdd484de15f83e8d04354848404d22f7627e3041",
+  "code_files": [
+    "dclab_rnd/studio/search.py",
+    "dclab_rnd/studio/engine.py",
+    "dclab_core/selection.py",
+    "dclab_rnd/expansion/runner.py",
+    "dclab_rnd/search_measure.py",
+    "dclab_rnd/bakeoff.py"
+  ],
+  "git": {
+    "commit": "1957d1d5739a0d518d48dde9f71c2a32e82fccb2",
+    "code_files_dirty": false
+  },
+  "frozen_at": "2026-10-25T18:45:08+00:00",
+  "python": "3.10.19"
+}

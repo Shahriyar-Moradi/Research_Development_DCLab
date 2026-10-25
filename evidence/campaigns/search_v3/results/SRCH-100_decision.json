@@ -1,0 +1,57 @@
+{
+  "datasets": 9,
+  "of": 9,
+  "gates": {
+    "never_clearly_worse": true,
+    "rises_on_average": false,
+    "honest_selection": true,
+    "bounded": false
+  },
+  "search_arm_failed": [],
+  "left_out_without_failed": [],
+  "verdict": "fail",
+  "mean_difference": -0.003399,
+  "range": [
+    -0.025595238095238226,
+    0.003186833616384055
+  ],
+  "clearly_better": [],
+  "clearly_worse": [
+    "ecommerce_clothing_reviews"
+  ],
+  "mean_abs_gap": {
+    "selection_fold": 0.008370375,
+    "search_score": 0.009674375
+  },
+  "over_budget": [
+    "bank_marketing"
+  ],
+  "skipped": [
+    "credit_card_fraud"
+  ],
+  "selection_gain_agrees": [
+    "german_credit",
+    "online_shoppers"
+  ],
+  "selection_gain_disagrees": [
+    "telco_churn",
+    "wine_quality",
+    "letter_recognition"
+  ],
+  "minutes": {
+    "without": 30.9,
+    "with": 87.4
+  },
+  "gate": {
+    "id": "search_gate_v3",
+    "never_clearly_worse": "on at most 1 dataset the holdout difference (search minus no search, oriented so positive is better) has its whole 95% paired interval below 0, or the search arm failed where the arm without did not",
+    "failures": "a dataset where the arm without a search fails is left out of every gate and named; the verdict needs every dataset compared or failed",
+    "rises_on_average": "the mean holdout difference over the datasets is above 0",
+    "honest_selection": "over the datasets, the mean absolute gap between the selection fold's score and the holdout score is smaller than the mean absolute gap between the search score and the holdout score",
+    "bounded": "on every dataset the search's own minutes are at most 1.5 times the budget's minutes",
+    "verdict": "pass when all four hold: the search may be recommended in a project's settings; otherwise it stays an opt-in, said with this result. Either way it is never on by default from this campaign alone",
+    "reported_not_gated": "per dataset, the gain over the no-search choice on the selection fold with its interval, and whether its sign agrees with the holdout difference; minutes of both arms"
+  },
+  "campaign_id": "search_v3",
+  "decided_at": "2026-10-25T20:44:56+00:00"
+}
